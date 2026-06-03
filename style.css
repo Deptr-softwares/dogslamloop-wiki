@@ -1,0 +1,133 @@
+/* Base styles */
+body { 
+    background-color: hsl(216, 28%, 7%); 
+    color: hsl(210, 17%, 82%); 
+    font-family: sans-serif; 
+}
+
+/* Navigation Utilities */
+.nav-btn { 
+    color: hsl(213, 94%, 68%); 
+    border-color: transparent; 
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+.nav-btn:hover { 
+    color: hsl(212, 96%, 78%); 
+    text-decoration: underline; 
+}
+.nav-btn.active { 
+    border-color: hsl(217, 91%, 60%); 
+    color: hsl(0, 0%, 100%); 
+    border-bottom-width: 2px; 
+    border-bottom-style: solid;
+    font-weight: bold; 
+    text-decoration: none;
+}
+
+/* Interactive Frame Data Thingy */
+.frame-bar-container {
+    display: flex;
+    width: 100%;
+    height: 2.5rem; /* Matches Tailwind h-10 */
+    background-color: hsl(0, 0%, 0%);
+    border: 1px solid hsl(212, 12%, 21%);
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.phase-section {
+    display: flex;
+    height: 100%;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+.phase-section:hover {
+    opacity: 0.8;
+}
+
+.frame-tick {
+    flex-grow: 1;
+    height: 100%;
+    border-right: 1px solid hsl(0, 0%, 0%);
+}
+.frame-tick:last-child {
+    border-right: none;
+}
+
+/* Data Frame Colors */
+.bg-tick-green .frame-tick { background-color: hsl(120, 100%, 45%); } /* Startup */
+.bg-tick-red .frame-tick { background-color: hsl(0, 100%, 45%); } /* Active Frames */
+.bg-tick-blue .frame-tick { background-color: hsl(224, 84%, 55%); } /* Recovery / Whiff Endlag */
+.bg-tick-gray .frame-tick { background-color: hsl(215, 14%, 34%); } /* Self Stun*/
+.bg-tick-gray .frame-tick { background-color: hsl(216, 14%, 7%); } /* Self Stun 2/Weird Stun*/
+.bg-tick-darkred .frame-tick { background-color: hsl(0, 70%, 35%); } /* Target Stun on Hit */
+.bg-tick-yellow .frame-tick { background-color: hsl(45, 93%, 47%); } /* Misc variable frames */
+.bg-tick-darkblue .frame-tick { background-color: hsl(224, 64%, 33%); } /* Block Endlag */
+
+/* Character Colors Code */
+#Vessel-button{
+    background-color: hsl(0, 100%, 80%);
+}
+#Honored-One-button{
+    background-color: #aaffff;
+}
+#Restless-Gambler-button{
+    background-color: #aaff7f;
+}
+#Ten-Shadows-button{
+    background-color: #787878;
+}
+#Perfection-button{
+    background-color: #ffaaff;
+}
+#Blood-Manipulator-button{
+    background-color: #aa4b4b;
+}
+#Switcher-button{
+    background-color: #aaffff;
+}
+#Defense-Attorney-button{
+    background-color: #73634d;
+}
+#Cursed-Partners-button{
+    background-color: #ffaaff;
+}
+#Puppet-Master-button{
+    background-color: #e10a4b;
+}
+#Salaryman-button{
+    background-color: #5ebfff;
+}
+#Head-Hei-button{
+    background-color: #807eff;
+}
+#Disaster-Plant-button{
+    background-color: #accba3;
+}
+#True-Cannon-button{
+    background-color: #aaffff;
+}
+#Locust-button{
+    background-color: #aaff7f;
+}
+#Star-Rage-button{
+    background-color: #aaaaff;
+}
+#Mangaka-button{
+    background-color: #ffebeb;
+}
+#Lucky-Coward-button{
+    background-color: #a77dcb;
+}
+#Sus-Sister-button{
+    background-color: #232850;
+}
+#Black-Death-button{
+    background-color: #65232c;
+}
+#Boomcat-button{
+    background-color: hsl(0, 1%, 75%);
+}
