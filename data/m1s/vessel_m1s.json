@@ -1,0 +1,74 @@
+{
+  "characterId": "vessel",
+    "m1s": [
+        {
+        "id": "vessel-first-m1",
+        "name": "First M1",
+        "input": "M1",
+        "type": "Basic Attack",
+        "variant": "Standard Variant",
+        "media": {
+            "src": "/medias/images/vessel_1m1.png",
+            "alt": "First M1 stuff thingy"
+        },
+        "stats": [
+            { "label": "Damage", "value": "3" },
+            { "label": "Damage Type", "value": "Melee" },
+            { "label": "Punishablility", "value": "Very Unsafe (18f)", "isHighlighted": true }
+        ],
+        "variants": {
+            "hit/whiff": {
+            "label": "On Hit/On Whiff",
+            "totalScale": 40,
+            "bars": [
+                {
+                "type": "single",
+                "headerInfo": "M1 duration (21f)",
+                "phases": [
+                    { "duration": 12, "styleClass": "bg-tick-start", "label": "Startup: 12f" },
+                    { "duration": 1, "styleClass": "bg-tick-active", "label": "Active Hitbox: 1f" },
+                    { "duration": 8, "styleClass": "bg-tick-recov", "label": "Recovery: 8f" }
+                ]
+                }
+            ]
+            },
+            "block": {
+            "label": "On Block",
+            "totalScale": 40,
+            "bars": [
+                {
+                "type": "single",
+                "headerInfo": "M1 duration on Block (30f)",
+                "phases": [
+                    { "duration": 12, "styleClass": "bg-tick-start", "label": "Startup: 12f" },
+                    { "duration": 1, "styleClass": "bg-tick-active", "label": "Active Hitbox: 1f" },
+                    { "duration": 17, "styleClass": "bg-tick-blockendlag", "label": "Block Endlag: 17f" }
+                ]
+                }
+            ]
+            }
+        }
+        },
+        {
+        "id": "vessel-second-m1",
+        "name": "Second M1",
+        "input": "M1 x2 or Hold M1",
+        "type": "Basic Attack",
+        "variant": "Standard Variant"
+        },
+        {
+        "id": "vessel-third-m1",
+        "name": "Third M1",
+        "input": "M1 x3 or Hold M1",
+        "type": "Basic Attack",
+        "variant": "Standard Variant"
+        },
+        {
+        "id": "vessel-fourth-m1",
+        "name": "Fourth M1",
+        "input": "M1 x4 or Hold M1",
+        "type": "Basic Attack",
+        "variant": "Ground Variant"
+        }
+    ]
+}

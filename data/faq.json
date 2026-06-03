@@ -1,0 +1,27 @@
+{
+  "faqs": [
+    {
+      "id": 1,
+      "question": "What is \"Boomcat\"?",
+      "paragraphs": [
+        "Boomcat is my spirit animal."
+      ]
+    },
+    {
+      "id": 2,
+      "question": "How do you measure this frame data?",
+      "paragraphs": [
+        "We record the game at a locked 60 FPS and count the video frames one by one in editing software to determine the numbers.",
+        "There is a set standard for analyzing these. @Mrt1 please expand on this section."
+      ]
+    },
+    {
+      "id": 3,
+      "question": "Can I contribute to the wiki?",
+      "paragraphs": [
+        "Absolutely! You can reach out directly via Discord.",
+        "Contact @.mrt1 for frame data stuff, or contact @deptr4869 for the site and general feedback."
+      ]
+    }
+  ]
+}

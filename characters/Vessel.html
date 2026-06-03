@@ -13,22 +13,22 @@
     <header class="global-header max-w-6xl">
         <div>
             <a href="../index.html" class="site-title">dogslamloop wiki</a>
-            <p class="site-subtitle">Alpha v0.02 | The Competitive JJS Wiki</p>
+            <p class="site-subtitle">Alpha v0.03 | The Competitive JJS Wiki</p>
         </div>
     </header>
 
     <main class="max-w-6xl w-full flex-grow space-y-8">
         
         <div style="margin-bottom:1rem;">
-            <a href="../index.html" style="color:#8b949e; text-decoration:none;">← Roster</a>
+            <a href="../index.html" style="color:hsl(212, 9%, 58%); text-decoration:none;">← Roster</a>
         </div>
 
         <header class="character-header">
             <h2 class="character-title">Vessel</h2>
             <nav class="character-nav">
-                <button id="nav-overview" class="nav-btn">Overview & Strategy</button>
+                <button id="nav-overview" class="nav-btn active">Overview & Strategy</button>
                 <button id="nav-m1s" class="nav-btn">M1s</button>
-                <button id="nav-skills" class="nav-btn active">Skills</button>
+                <button id="nav-skills" class="nav-btn">Skills</button>
                 <button id="nav-specials" class="nav-btn">Specials</button>
                 <button id="nav-matchups" class="nav-btn">Matchups</button>
                 <button id="nav-counterplay" class="nav-btn">Counterplay</button>
@@ -36,55 +36,20 @@
             </nav>
         </header>
 
-        <div id="tab-overview" class="vessel-content hidden empty-tab-msg">Overview data has not been collected yet.</div>
-        <div id="tab-m1s" class="vessel-content hidden empty-tab-msg">M1 string data has not been collected yet.</div>
-        <div id="tab-specials" class="vessel-content hidden empty-tab-msg">Special/Awakening data has not been collected yet.</div>
-        <div id="tab-matchups" class="vessel-content hidden empty-tab-msg">Matchup data has not been collected yet.</div>
-        <div id="tab-counterplay" class="vessel-content hidden empty-tab-msg">Counterplay data has not been collected yet.</div>
-        <div id="tab-gallery" class="vessel-content hidden empty-tab-msg">Gallery is empty.</div>
+        <div id="tab-overview" class="tab-content"></div>
 
-        <div id="tab-skills" class="vessel-content space-y-8">
-    
-            <!-- KEEP THIS: The JavaScript engine saves and preserves this block! -->
-            <section class="wiki-section legend-section">
-                <h3 class="legend-title">Frame Data Color Legend</h3>
-                <div class="legend-grid">
-                    <div class="legend-item">
-                        <span class="legend-swatch" style="background-color: hsl(120, 100%, 45%);"></span>
-                        <div><span class="legend-name">Startup</span></div>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-swatch" style="background-color: hsl(45, 93%, 47%);"></span>
-                        <div><span class="legend-name">Misc</span>Variable frame data, aka no hard number so it always come with a note</div>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-swatch" style="background-color: hsl(0, 100%, 45%);"></span>
-                        <div><span class="legend-name">Active</span>Hitbox view ...</div>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-swatch" style="background-color: hsl(224, 84%, 55%);"></span>
-                        <div><span class="legend-name">Recovery</span>aka Whiff endlag</div>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-swatch" style="background-color: hsl(30, 100%, 50%);"></span>
-                        <div><span class="legend-name">Self Stun</span></div>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-swatch" style="background-color: hsl(34, 99%, 27%);"></span>
-                        <div><span class="legend-name">InSkill Stun</span>It's a weird version of Self Stun where you can move around but can't use Skills, M1s, and dashes</div>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-swatch" style="background-color: hsl(0, 70%, 35%);"></span>
-                        <div><span class="legend-name">Target Stun</span>on Hit; Block stun basically do not exist in this game</div>
-                    </div>
-                    <div class="legend-item">
-                        <span class="legend-swatch" style="background-color: hsl(224, 64%, 33%);"></span>
-                        <div><span class="legend-name">Block Endlag</span>aka Extended Recovery</div>
-                    </div>
-                </div>
-            </section>
+        <div id="tab-m1s" class="tab-content hidden"></div>
 
-        </div>
+        <div id="tab-skills" class="vessel-content space-y-8 hidden"></div>
+
+        <div id="tab-specials" class="tab-content hidden"></div>
+
+        <div id="tab-matchups" class="vessel-content hidden"></div>
+
+        <div id="tab-counterplay" class="vessel-content hidden"></div>
+
+        <div id="tab-gallery" class="vessel-content hidden"></div>
+
     </main>
 
     <script src="../js/pagebuilder.js"></script>
@@ -93,15 +58,14 @@
     <script src="../js/internalstyling.js"></script>
     
     <script>
-        // 1. Initialize Character Hub Tabs (Handles upper navigation)
         setupTabs('nav', 'tab', ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay', 'gallery']);
         
-        // 2. Safely trigger the live JSON engine to build the skill cards and timeline tracks
-        if (typeof loadCharacterSkills === 'function') {
-            loadCharacterSkills('vessel');
-        }
+        if (typeof loadMoveSection === 'function') {
+        loadMoveSection('vessel', 'skills');
+        loadMoveSection('vessel', 'm1s');
+        loadMoveSection('vessel', 'specials');
+    }
 
-        // 3. Load external JSON data descriptions if present
         if (typeof loadCharacterDescriptions === 'function') {
             loadCharacterDescriptions('vessel');
         }

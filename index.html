@@ -14,7 +14,7 @@
     <header class="global-header max-w-7xl">
         <div>
             <a href="index.html" class="site-title">dogslamloop wiki</a>
-            <p class="site-subtitle">Alpha v0.02 | The Competitive JJS Wiki</p>
+            <p class="site-subtitle">Alpha v0.03 | The Competitive JJS Wiki</p>
         </div>
         <a href="https://Ko-fi.com/deptr_software_coffee_corner " target="_blank" class="kofi-btn">
             ☕ Support Ko-fi
@@ -52,23 +52,23 @@
                 </section>
             </div>
 
-            <section class="wiki-section lg:col-span-1">
-                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:1rem; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem;">
-                    <h2 style="font-size:1.25rem; font-weight:bold; color:var(--text-white); margin:0;">Update Log</h2>
-                    <a href="#" style="font-size:0.75rem; color:#58a6ff; text-decoration:none;">View Full Log (WIP)</a>
-                </div>
+            <section class="wiki-section main-dashboard">
+                <h2 class="section-heading">Recent Wiki Changes</h2>
                 
-                <div class="update-table-container">
-                    <table class="update-table">
-                        <thead>
-                            <tr>
-                                <th scope="col">Version</th>
-                                <th scope="col">Date</th>
-                                <th scope="col">Summary</th>
-                            </tr>
-                        </thead>
-                        <tbody id="update-log-body"></tbody>
-                    </table>
+                <!-- Target injection node for script parsing -->
+                <div id="site-updates-dashboard" class="space-y-4">
+                    <p style="color: #8b949e; font-style: italic;">Fetching latest site updates...</p>
+                </div>
+
+                <!-- View All Trigger -->
+                <div style="text-align: center; margin-top: 1.25rem;">
+                    <button 
+                        id="btn-expand-updates" 
+                        class="nav-btn" 
+                        data-expanded="false" 
+                        onclick="toggleUpdates('site-updates-dashboard', 'btn-expand-updates', 2)">
+                        View All Site History
+                    </button>
                 </div>
             </section>
 
@@ -76,7 +76,9 @@
                 <h2 class="section-title" style="border:none; margin-bottom:1rem;">Game Info</h2>
                 
                 <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:1.5rem;">
-                    <h3 style="font-size:1.125rem; font-weight:900; color:var(--text-white); font-style:italic; letter-spacing:0.15em; text-align:center; line-height:1.2; margin:0;">Jujutsu<br>Shenanigans</h3>
+                    <h3 style="font-family: 'Finger-Paint'; font-size: 1.125rem; font: weight 4px; color:var(--text-white); letter-spacing:0.15em; text-align:center; line-height:1.2; margin:0;">
+                        Jujutsu<br>Shenanigans
+                    </h3>
                 </div>
 
                 <div class="space-y-4 text-sm">
@@ -87,7 +89,7 @@
                     </div>
                     <div>
                         <span style="display:block; color:#6e7681; font-weight:bold; margin-bottom:0.25rem;">Platform</span>
-                        <span class="text-gray-300">Roblox (PC, Mobile, Console)</span>
+                        <span class="text-gray-300">Roblox (PC, Mobile, Console, VR)</span>
                     </div>
                     <div style="padding-top:1rem; border-top:1px solid var(--border-color); margin-top:1rem;">
                         <span style="display:block; color:#6e7681; font-weight:bold; margin-bottom:0.5rem;">Official Links</span>
@@ -104,30 +106,9 @@
             <section class="wiki-section lg:col-span-2">
                 <h2 class="section-title" style="font-size:1.25rem; border:none; margin-bottom:1.5rem;">Frequently Asked Questions (FAQ)</h2>
                 
-                <div class="space-y-4">
-                    <details class="faq-details">
-                        <summary class="faq-summary">
-                            What is "Boomcat"?
-                            <span class="faq-arrow">▼</span>
-                        </summary>
-                        <p class="faq-content">Boomcat is my spirit animal.</p>
-                    </details>
-
-                    <details class="faq-details">
-                        <summary class="faq-summary">
-                            How do you measure this frame data?
-                            <span class="faq-arrow">▼</span>
-                        </summary>
-                        <p class="faq-content">We record the game at a locked 60 FPS and count the video frames one by one in editing software to determine the numbers. There is a standard and such, mrt1 please expand on this.</p>
-                    </details>
-
-                    <details class="faq-details">
-                        <summary class="faq-summary">
-                            Can I contribute to the wiki?
-                            <span class="faq-arrow">▼</span>
-                        </summary>
-                        <p class="faq-content">Absolutely, you can @.mrt1 on Discord for the frame data thing and @deptr4869 for the site in general.</p>
-                    </details>
+                <!-- Target Injection Container Node for FAQ Fetcher -->
+                <div id="faq-dynamic-container" class="faq-scroll-box space-y-4">
+                    <p style="color: hsl(212, 9%, 58%); font-style: italic;">Fetching latest FAQ records...</p>
                 </div>
             </section>
 
@@ -168,7 +149,7 @@
                         <li>
                             <span class="dot-indicator dot-blue"></span>
                             <div>
-                                <span style="color:var(--text-white); font-weight:bold;">@Kigtus</span> - Allowance to steal from the wiki resource and such
+                                <span style="color:var(--text-white); font-weight:bold;">@Kigtus</span> - Allowance to borrow from the wiki resource and such
                             </div>
                         </li>
                         <li>
@@ -187,35 +168,20 @@
         </div>
     </main>
 
+    <!-- Update Logs Fetcher -->
+    <script src="./js/updatelog.js"></script>
+    <script src="./js/faq.js"></script> <!-- FAQ Logs Fetcher -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load the 2 newest logs, regardless of type
+            loadUpdateLogs('site-updates-dashboard', 2);
+            
+            // Populate your scrollbox from the json database setup dynamically
+            loadFAQ('faq-dynamic-container');
+        });
+    </script>
+
     <!-- Global Modular Scripts -->
     <script src="js/pagebuilder.js"></script>
-
-    <!-- Page Local Script Configurations -->
-    <script>
-        async function loadUpdates() {
-            try {
-                const response = await fetch('updates.json');
-                if (!response.ok) throw new Error('Network response was not ok');
-                const updates = await response.json();
-                const tbody = document.getElementById('update-log-body');
-                updates.forEach(update => {
-                    const row = document.createElement('tr');
-                    row.className = 'update-row';
-                    row.innerHTML = `
-                        <td class="version-cell">${update.version}</td>
-                        <td>${update.date}</td>
-                        <td>${update.summary}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            } catch (error) {
-                console.error("Failed to load updates:", error);
-                document.getElementById('update-log-body').innerHTML = `
-                    <tr><td colspan="3" style="text-align:center; color:#f85149; font-style:italic; padding:0.75rem;">Failed to load update log.</td></tr>
-                `;
-            }
-        }
-        loadUpdates();
-    </script>
 </body>
 </html>

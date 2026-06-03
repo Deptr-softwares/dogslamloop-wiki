@@ -1,12 +1,12 @@
 /* ColorCoding.css - Specific Data & Entity Colors */
-.bg-tick-green .frame-tick { background-color: hsl(120, 100%, 45%); }   /* Startup */
-.bg-tick-red .frame-tick { background-color: hsl(0, 100%, 45%); }       /* Active Frames */
-.bg-tick-blue .frame-tick { background-color: hsl(224, 84%, 55%); }     /* Recovery / Whiff Endlag */
-.bg-tick-orange .frame-tick { background-color: hsl(30, 100%, 50%); }     /* Self Stun */
-.bg-tick-darkorange .frame-tick { background-color: hsl(34, 99%, 27%); }     /* InSkill Stun */
-.bg-tick-darkred .frame-tick { background-color: hsl(0, 70%, 35%); }   /* Target Stun*/
-.bg-tick-yellow .frame-tick { background-color: hsl(45, 93%, 47%); }    /* Misc variable frames */
-.bg-tick-darkblue .frame-tick { background-color: hsl(224, 64%, 33%); }  /* Block Endlag */
+.bg-tick-start .frame-tick { background-color: hsl(217.18, 100%, 50%); }   /* Startup */
+.bg-tick-active .frame-tick { background-color: hsl(0, 100%, 45%); }       /* Active Frames */
+.bg-tick-recov .frame-tick { background-color: hsl(295, 89.76%, 50.2%); }     /* Recovery / Whiff Endlag */
+.bg-tick-selfstun .frame-tick { background-color: hsl(111.06, 100%, 50%); }     /* Self Stun */
+.bg-tick-inskillstun .frame-tick { background-color: hsl(34, 99%, 27%); }     /* InSkill Stun */
+.bg-tick-targetstun .frame-tick { background-color: hsl(0, 70%, 35%); }   /* Target Stun*/
+.bg-tick-misc .frame-tick { background-color: hsl(153.88, 100%, 50%); }    /* Misc variable frames */
+.bg-tick-blockendlag .frame-tick { background-color: hsl(319.73, 88.24%, 50%); }  /* Block Endlag */
 
 /* Roster Button Color Identifiers */
 #Vessel-button { background-color: hsl(0, 100%, 80%); }

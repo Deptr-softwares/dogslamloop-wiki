@@ -1,4 +1,4 @@
-/* UI.css - Custom Application Layout Modules */
+/* UI.css - The Whole Site Layout Sheet */
 .kofi-btn {
     font-size: 0.875rem;
     background-color: var(--bg-secondary);
@@ -48,8 +48,10 @@
 }
 
 .roster-card {
-    width: 4rem;
-    height: 4rem;
+    width: 4.25rem;
+    height: 4.25rem;
+    padding: 0.35rem;
+    box-sizing: border-box;
     border: 1px solid var(--border-color);
     border-radius: 0.25rem;
     display: flex;
@@ -58,7 +60,7 @@
     justify-content: center;
     transition: all 0.2s;
     position: relative;
-    overflow: hidden;
+    overflow: auto;
     text-decoration: none;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
 }
@@ -66,29 +68,137 @@
     border-color: hsl(213, 94%, 68%);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 600px) {
     .roster-card {
-        width: 5rem;
-        height: 5rem;
+        width: 6.5rem;
+        height: 6.5rem;
     }
 }
 
 .roster-card-text {
-    font-size: 0.75rem;
+    font-family: 'Finger-Paint', sans-serif;
+    font-size: 0.65rem;
     font-weight: bold;
     color: var(--text-white);
     text-align: center;
-    line-height: 1.2;
+    line-height: 1.1;
+    max-width: 100%;
+    word-wrap: break-word;
     transition: transform 0.2s;
 }
+/* Slightly relaxed scaling ensures text never collides with borders on hover */
 .roster-card:hover .roster-card-text {
-    transform: scale(1.1);
+    transform: scale(1.05); 
 }
 
 @media (min-width: 768px) {
     .roster-card-text {
-        font-size: 0.875rem;
+        font-size: 0.75rem; /* Scaled up cleanly for desktop monitors */
     }
+}
+
+.update-log-item {
+    background: hsl(215, 21%, 11%);
+    border: 1px solid hsl(212, 12%, 21%);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+.update-log-summary {
+    cursor: pointer;
+    list-style: none; /* Hides default triangle in most browsers */
+    outline: none;
+}
+.update-log-summary::-webkit-details-marker {
+    display: none; /* Hides default triangle in Safari/WebKit */
+}
+.update-log-meta {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.85rem;
+    color: hsl(212, 9%, 58%);
+    margin-bottom: 0.25rem;
+}
+.expand-hint {
+    margin-left: auto; /* Pushes the expand arrow to the far right */
+    font-size: 0.75rem;
+    color: hsl(212, 9%, 58%);
+    transition: transform 0.2s ease;
+}
+/* Rotate the arrow 180 degrees when the log is clicked open */
+.update-log-item[open] .expand-hint {
+    transform: rotate(180deg);
+}
+.update-badge {
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+.badge-site { background-color: hsl(132, 59%, 33%); color: #fff; }
+.badge-patch { background-color: hsl(216, 84%, 52%); color: #fff; }
+.badge-general { background-color: hsl(261, 73%, 62%); color: #fff; }
+.update-title { 
+    margin: 0; 
+    font-size: 1.15rem; 
+    color: #c9d1d9; 
+}
+.update-log-body {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid hsl(212, 12%, 21%); /* Creates a clean dividing line when opened */
+}
+.update-bullet-list { 
+    margin-top: 0.5rem; 
+    padding-left: 1.25rem; 
+    color: hsl(210, 17%, 82%); 
+}
+
+.faq-details {
+    background: hsl(215, 21%, 11%);
+    border: 1px solid hsl(212, 12%, 21%);
+    border-radius: 6px;
+    padding: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+/* Optional hover state to make it feel highly interactive */
+.faq-details:hover {
+    border-color: hsl(212, 9%, 58%);
+}
+
+.faq-summary {
+    display: flex;
+    justify-content: space-between; /* Automatically flushes the question text left and arrow right */
+    align-items: center;
+    font-weight: 600;
+    color: hsl(210, 17%, 82%);
+    cursor: pointer;
+    list-style: none; /* Strips default summary block triangle */
+}
+
+.faq-summary::-webkit-details-marker {
+    display: none; /* Strips default summary triangle specifically for Safari */
+}
+
+.faq-arrow {
+    font-size: 0.75rem;
+    color: hsl(212, 9%, 58%);
+    transition: transform 0.2s ease; /* Smooth twist effect */
+}
+
+/* Snaps the arrow upside down cleanly when the item is active */
+.faq-details[open] .faq-arrow {
+    transform: rotate(180deg);
+}
+
+.faq-content {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid hsl(212, 12%, 21%); /* Clean divider layout line separating answers */
+    color: hsl(212, 9%, 58%);
+    line-height: 1.6;
 }
 
 .grid-layout-3col {
@@ -175,6 +285,34 @@
     border-top: 1px solid var(--border-color);
     padding-top: 0.75rem;
 }
+/* Scrollable Container for FAQs */
+.faq-scroll-box {
+    max-height: 380px; /* Adjust this height to control when it starts scrolling */
+    overflow-y: auto;
+    padding-right: 0.5rem; /* Spacing so the text doesn't touch the scrollbar */
+}
+
+.faq-scroll-box::-webkit-scrollbar {
+    width: 6px;
+}
+.faq-scroll-box::-webkit-scrollbar-track {
+    background: hsl(215, 21%, 11%);
+    border-radius: 3px;
+}
+.faq-scroll-box::-webkit-scrollbar-thumb {
+    background: hsl(212, 12%, 21%);
+    border-radius: 3px;
+}
+.faq-scroll-box::-webkit-scrollbar-thumb:hover {
+    background: hsl(212, 9%, 58%);
+}
+/* Multi-paragraph handling inside engine-rendered FAQ cards */
+.faq-content p {
+    margin: 0;
+}
+.faq-content p + p {
+    margin-top: 0.75rem; /* Standard spatial gap between successive blocks */
+}
 
 .credits-list { list-style: none; padding: 0; margin: 0; }
 .credits-list li { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
@@ -255,7 +393,16 @@
 .legend-inline-item { display: flex; align-items: center; gap: 0.25rem; }
 .legend-inline-item .dot { width: 0.75rem; height: 0.75rem; border-radius: 0.25rem; display: inline-block; }
 
-.frame-bar-container { display: flex; width: 100%; height: 2.5rem; background-color: #000000; border: 1px solid hsl(212, 12%, 21%); border-radius: 0.25rem; overflow: hidden; }
+.frame-bar-container { 
+    display: flex; 
+    width: 100%; 
+    height: 2.5rem; 
+    background-color: #000000; 
+    border: 1px solid hsl(212, 12%, 21%); 
+    border-radius: 0.25rem; 
+    overflow: hidden;
+    gap: 2px; 
+}
 .phase-section { display: flex; height: 100%; cursor: pointer; transition: opacity 0.2s; }
 .phase-section:hover { opacity: 0.8; }
 .frame-tick { flex-grow: 1; height: 100%; border-right: 1px solid #000000; }
@@ -271,10 +418,16 @@
 .strategy-content ul { list-style-type: disc; padding-left: 1.25rem; margin: 0; }
 .strategy-content li { margin-bottom: 0.5rem; }
 
+.text-red-600 { color: hsl(0, 100%, 50%); }
+.text-red-500 { color: hsl(0, 100%, 75%); }
+.text-green-500 { color: hsl(120, 100%, 25%); }
+.text-orange-400 { color: hsl(39, 100%, 50%); }
 .text-blue-400 { color: hsl(212, 100%, 67%); }
 .text-red-400 { color: hsl(3, 93%, 63%); }
 .text-green-400 { color: hsl(127, 59%, 58%); }
 .text-purple-400 { color: hsl(261, 86%, 86%); }
+.text-gray-400 { color: hsl(0, 0%, 50%); }
+.text-cyan-400 { color: hsl(180, 100%, 50%); }
 .tracking-wider { letter-spacing: 0.05em; }
 
 .nav-btn {

@@ -1,0 +1,69 @@
+{
+  "characterId": "vessel",
+  "profile": {
+    "image": "/medias/images/vessel_portrait.webp",
+    "stats": [
+      { "label": "Archetype", "value": "M1 Merchant" },
+      { "label": "Difficulty", "value": "Braindead" },
+      { "label": "Health", "value": "100" }
+    ]
+  },
+  "overview": {
+    "paragraphs": [
+      "Vessel is a m1 merchant who maxxed out the Hype and Aura moments in the kit.",
+      "Extra sentence to make this an example paragraph."
+    ],
+    "bullets": [
+      "<strong>Blah Blah Bullet Point Test:</strong> Hi I'm a bullet point"
+    ]
+  },
+  "strategy": {
+    "paragraphs": [
+      "So basically, you want to Feint and mixup majorly to do 100-0 combo ok?",
+      "Also you should try out Blood Manipulator"
+    ],
+    "bullets": [
+      "You are punishable asf, use Blood Manipulator NOW!",
+      "I guess you can sneak in an extra M1 if you go M1 > CS > 4M1s"
+    ]
+  },
+  "extras": [
+    {
+      "title": "Trivia & Myths",
+      "paragraphs": [
+        "<strong>Myth:</strong> Vessel takes actual skill.",
+        "<strong>Reality:</strong> Just press 3 and hope for the best."
+      ]
+    }
+  ],
+  "matchups": [
+    {
+      "opponent": "Ten Shadows",
+      "tier": "Extreme Disadvantage",
+      "notes": {
+        "text": "You died lmfao.",
+        "media": { "src": "/medias/gifs/vessel_dies.gif", "alt": "Vessel getting cooked" }
+      }
+    },
+    {
+      "opponent": "Vessel",
+      "tier": "Equal",
+      "specialFocus": [
+        {
+          "title": "Comp Whitelist Hell",
+          "text": "Mixup them up majorly JJS vessel!"
+        }
+      ]
+    }
+  ],
+  "counterplay": {
+    "paragraphs": [
+      "M1 catching or sth sth",
+      "Yeah M1 catch work I think, idk, someone help me write ts."
+    ],
+    "bullets": [
+      "Keep track of their position and such",
+      "Playing at zone is incredibly effective so go play Blood Manipulator NOW!"
+    ]
+  }
+}

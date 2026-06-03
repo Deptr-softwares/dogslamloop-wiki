@@ -1,0 +1,40 @@
+{
+  "changelogs": [
+    {
+      "version": "Alpha v0.03",
+      "date": "04/06/2026",
+      "type": "site",
+      "title": "The half-boomcat update",
+      "description": "Updated the way each character entry receive their relevant data.",
+      "changes": [
+        "Slightly recolor some of the color codes for experimenting",
+        "Added Boomcat half-complete entry",
+        "Download the in-game font for shenanigans stuff",
+        "Hide a few boomcats around the site",
+        "Complete the template for Vessel Entry (Mostly)"
+      ]
+    },
+    {
+      "version": "Alpha v0.02",
+      "date": "03/06/2026",
+      "type": "site",
+      "title": "The something update",
+      "description": "Changed up the site structure + Some misc color changes.",
+      "changes": [
+        "Change Self Stun color code to Orange, and InSkill Stun color code to Dark Orange.",
+        "Added Boomcat entry, but it is empty right now.",
+        "Added color-coded button for the characters selection section."
+      ]
+    },
+    {
+      "version": "Alpha v0.01",
+      "date": "03/06/2026",
+      "type": "Alpha Launch",
+      "title": "The something update",
+      "description": "Initial Site Launch.",
+      "changes": [
+        "Removed Boomcat entry"
+      ]
+    }
+  ]
+}

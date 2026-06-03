@@ -1,0 +1,71 @@
+{
+  "characterId": "boomcat",
+  "profile": {
+    "image": "/medias/images/Boomcat.webp",
+    "stats": [
+      { "label": "Archetype", "value": "Neutral God" },
+      { "label": "Difficulty", "value": "Airplane Pilot Level" },
+      { "label": "Health", "value": "70" }
+    ]
+  },
+  "overview": {
+    "paragraphs": [
+      "Boomcat is an amazing ZZZ tier character in the hit game JJS, it has multiple powerful Neutral options that lead to every other Neutral options it has. Its R special also help convert some of its Neutral tools into powerful M1 trading tools. So basically, it is the strongest among the strongest; you can say it is the most 'boomcat' out of them",
+      "Here is a second paragraph on why this character is goated; it is cause I said so duh."
+    ],
+    "bullets": [
+      "<strong>Powerful and Flexible Neutral:</strong> The conversion of every hits into everything is crazy, you go boom boom.",
+      "<strong>Cracked M1 Trading Capabilities:</strong> It is also the best M1 merchant as well.",
+      "<strong>Just start praying:</strong> boomcat is coming"
+    ]
+  },
+  "strategy": {
+    "paragraphs": [
+      "Just mashed buttons and you will win all the times",
+      "Also you should try out Blood Manipulator"
+    ],
+    "bullets": [
+      "No thoughts really"
+    ]
+  },
+  "extras": [
+    {
+      "title": "Trivia & Myths",
+      "paragraphs": [
+        "<strong>Myth:</strong> Boomcat is not cool.",
+        "<strong>Reality:</strong> Boomcat is cool"
+      ]
+    }
+  ],
+  "matchups": [
+    {
+      "opponent": "Ten Shadows",
+      "tier": "Unloseable",
+      "notes": {
+        "text": "You win automatically cause you are just that guy."
+      }
+    },
+    {
+      "opponent": "Vessel",
+      "tier": "Extreme Advantage",
+      "notes": {
+        "text": "Actually Vessel is so stinky that you have a slight disadvantage when going against Vessel mains."
+      },
+      "specialFocus": [
+        {
+          "title": "Boomcat?",
+          "text": "Boomcat!"
+        }
+      ]
+    }
+  ],
+  "counterplay": {
+    "paragraphs": [
+      "There is no counterplay"
+    ],
+    "bullets": [
+      "Pray I guess",
+      "Or join us :Boomcat:"
+    ]
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "characterId": "boomcat",
+  "skills": [
+    {
+      "id": "boom-cat",
+      "name": "Boom Cat",
+      "input": "1 Key",
+      "type": "AOE Long Range Blockbreaker",
+      "variant": "Ground Variant",
+      "variants": [
+
+      ]
+    },
+    {
+      "id": "boom-cat-air",
+      "name": "Aerial Boom Cat",
+      "input": "Air + 1 Key",
+      "type": "Gap Closer Blockbreaking Combo Starter",
+      "variant": "Air Variant"
+    },
+    {
+      "id": "nonchalant-aura",
+      "name": "Nonchalant Aura",
+      "input": "2 Key",
+      "type": "Mid Range Combo Starter, Extender, Breaker, Enhancer, Finisher, Execution, Chainer, and Ender",
+      "variant": "Ground Variant"
+    },
+    {
+      "id": "nonchalant-aura-air",
+      "name": "Aerial Nonchalant Aura",
+      "input": "Air + 2 Key",
+      "type": "Teleport Mixup I-frames/Escape tool with I-frames",
+      "variant": "Air Variant"
+    },
+    {
+      "id": "explosion",
+      "name": "Explosion",
+      "input": "3 Key",
+      "type": "Backside Omni-Counter/Ragdoll Execution",
+      "variant": "Use Once Variant"
+    },
+    {
+      "id": "super-explosion",
+      "name": "Super Explosion",
+      "input": "hold 3 Key",
+      "type": "Close Range Punisher with I-frames/AOE Ragdoll Execution",
+      "variant": "Held Variant"
+    },
+    {
+      "id": "boomcat-manji-kick",
+      "name": "Boomcat Style Manji Kick",
+      "input": "4 Key",
+      "type": "Instakill Omni-Counter",
+      "variant": "Normal Counter Variant"
+    },
+    {
+      "id": "boomcat-manji-kick-extender",
+      "name": "Boomcat Style Manji Kick",
+      "input": "4 + 4 Key",
+      "type": "M1 Reset",
+      "variant": "Use twice Variant"
+    }
+  ]
+}

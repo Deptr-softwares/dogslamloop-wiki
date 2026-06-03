@@ -1,0 +1,22 @@
+{
+  "characterId": "vessel",
+  "specials": [
+    {
+      "id": "vessel-special-1",
+      "name": "Combat Instinct",
+      "input": "R Key",
+      "type": "Feint/Mixup Option/Movement Tool",
+      "variant": "Main Variant"
+    },
+    {
+      "id": "vessel-special-2",
+      "name": "Punch Trashcan Really Hard",
+      "input": "R Key",
+      "type": "Shenanigans Stuff",
+      "variant": "Use against a stationary throwable",
+      "variants": [
+
+      ]
+    }
+  ]
+}

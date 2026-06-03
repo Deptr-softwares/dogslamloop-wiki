@@ -1,4 +1,11 @@
 /* Common.css - Global Styles & Design Tokens */
+@font-face {
+    font-family: 'Finger-Paint';
+    src: url('../fonts/FingerPaint-Regular.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap; /* Prevents text invisible lag while loading */
+}
 :root {
     --bg-main: hsl(216, 28%, 7%);
     --bg-secondary: hsl(215, 21%, 11%);
@@ -56,6 +63,8 @@ body {
     text-decoration: none;
     transition: color 0.2s;
     display: block;
+    font-family: 'Finger-Paint', 'Impact', sans-serif;
+    letter-spacing: 0.02em; 
 }
 .site-title:hover {
     color: hsl(213, 94%, 68%);
@@ -66,4 +75,8 @@ body {
     color: hsl(215, 8%, 47%);
     font-family: var(--text-mono);
     margin: 0.25rem 0 0 0;
+}
+.character-title {
+    font-family: 'Finger-Paint', 'Impact', sans-serif;
+    letter-spacing: 0.02em; 
 }
