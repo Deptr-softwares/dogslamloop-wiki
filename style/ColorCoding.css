@@ -1,0 +1,32 @@
+/* ColorCoding.css - Specific Data & Entity Colors */
+.bg-tick-green .frame-tick { background-color: hsl(120, 100%, 45%); }   /* Startup */
+.bg-tick-red .frame-tick { background-color: hsl(0, 100%, 45%); }       /* Active Frames */
+.bg-tick-blue .frame-tick { background-color: hsl(224, 84%, 55%); }     /* Recovery / Whiff Endlag */
+.bg-tick-orange .frame-tick { background-color: hsl(30, 100%, 50%); }     /* Self Stun */
+.bg-tick-darkorange .frame-tick { background-color: hsl(34, 99%, 27%); }     /* InSkill Stun */
+.bg-tick-darkred .frame-tick { background-color: hsl(0, 70%, 35%); }   /* Target Stun*/
+.bg-tick-yellow .frame-tick { background-color: hsl(45, 93%, 47%); }    /* Misc variable frames */
+.bg-tick-darkblue .frame-tick { background-color: hsl(224, 64%, 33%); }  /* Block Endlag */
+
+/* Roster Button Color Identifiers */
+#Vessel-button { background-color: hsl(0, 100%, 80%); }
+#Honored-One-button { background-color: hsl(180, 100%, 83%); }
+#Restless-Gambler-button { background-color: hsl(100, 100%, 75%); }
+#Ten-Shadows-button { background-color: hsl(0, 0%, 47%); }
+#Perfection-button { background-color: hsl(300, 100%, 83%); }
+#Blood-Manipulator-button { background-color: hsl(0, 39%, 48%); }
+#Switcher-button { background-color: hsl(180, 100%, 83%); }
+#Defense-Attorney-button { background-color: hsl(35, 20%, 38%); }
+#Cursed-Partners-button { background-color: hsl(300, 100%, 83%); }
+#Puppet-Master-button { background-color: hsl(342, 91%, 46%); }
+#Salaryman-button { background-color: hsl(204, 100%, 68%); }
+#Head-Hei-button { background-color: hsl(241, 100%, 75%); }
+#Disaster-Plant-button { background-color: hsl(106, 28%, 72%); }
+#True-Cannon-button { background-color: hsl(180, 100%, 83%); }
+#Locust-button { background-color: hsl(100, 100%, 75%); }
+#Star-Rage-button { background-color: hsl(240, 100%, 83%); }
+#Mangaka-button { background-color: hsl(0, 100%, 96%); }
+#Lucky-Coward-button { background-color: hsl(272, 43%, 64%); }
+#Sus-Sister-button { background-color: hsl(233, 39%, 23%); }
+#Black-Death-button { background-color: hsl(352, 49%, 27%); }
+#Boomcat-button { background-color: hsl(0, 1%, 75%); }

@@ -1,0 +1,103 @@
+{
+  "characterId": "vessel",
+  "skills": [
+    {
+      "id": "cursed-strikes",
+      "name": "Cursed Strikes",
+      "input": "1 Key",
+      "type": "Projectile Grab",
+      "variant": "Ground Variant",
+      "media": {
+        "src": "/medias/images/AwesomeMrt1Data.webp",
+        "alt": "Cursed Strikes Visual"
+      },
+      "stats": [
+        { "label": "Projectile Coverage", "value": "32x13 studs" },
+        { "label": "Damage Type", "value": "All Melee" },
+        { "label": "Properties", "value": "Move the user forward", "isHighlighted": true },
+        { "label": "Notes", "value": "I'm boomcatting myself", "isHighlighted": true }
+      ],
+      "variants": {
+        "miss": {
+          "label": "On Whiff",
+          "totalScale": 120,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "Total Duration on whiff (110f)",
+              "phases": [
+                { "duration": 30, "styleClass": "bg-tick-green", "label": "Startup: 30f" },
+                { "duration": 55, "styleClass": "bg-tick-red", "label": "Projectile Active: 55f" },
+                { "duration": 25, "styleClass": "bg-tick-blue", "label": "Recovery: 25f" },
+                { "duration": 10, "styleClass": "bg-transparent", "label": "" }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            { "color": "hsl(120, 100%, 45%)", "text": "Startup (30f)" },
+            { "color": "hsl(0, 100%, 45%)", "text": "Projectile Active (55f)" },
+            { "color": "hsl(224, 84%, 55%)", "text": "Recovery/Whiff Endlag (25f)" }
+          ]
+        },
+        "hit": {
+          "label": "On Hit",
+          "totalScale": 206,
+          "bars": [
+            {
+              "type": "user",
+              "headerInfo": "Self Stun (113f)",
+              "headerClass": "text-blue-400",
+              "phases": [
+                { "duration": 30, "styleClass": "bg-tick-green", "label": "Startup: 30f" },
+                { "duration": 15, "styleClass": "bg-tick-yellow", "label": "Misc Variable Frame Data: 0f - 55f" },
+                { "duration": 113, "styleClass": "bg-tick-orange", "label": "Self Stun: 113f" }
+              ]
+            },
+            {
+              "type": "target",
+              "headerInfo": "Target Stun (161f)",
+              "headerClass": "text-red-400",
+              "advantageText": "ADVANTAGE: +48f",
+              "phases": [
+                { "duration": 45, "styleClass": "bg-transparent", "label": "" },
+                { "duration": 161, "styleClass": "bg-tick-darkred", "label": "Target Stun: 161f" }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            { "color": "hsl(120, 100%, 45%)", "text": "Startup (30f)" },
+            { "color": "hsl(30, 100%, 50%)", "text": "Self Stun (113f)" },
+            { "color": "hsl(0, 70%, 35%)", "text": "Target Stun (161f)" },
+            { "color": "hsl(45, 93%, 47%)", "text": "Misc: The Projectile travel a certain distance before hitting the target, making so the exact frame data vary quite a lots. For this one the range is (0f - 55f)" }
+          ]
+        },
+        "block": {
+          "label": "On Block",
+          "totalScale": 120,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "Bro tried using Cursed Strikes in Neutral",
+              "advantageText": "SAFETY: -46f",
+              "phases": [
+                { "duration": 30, "styleClass": "bg-tick-green", "label": "Startup: 30f" },
+                { "duration": 15, "styleClass": "bg-tick-yellow", "label": "Misc Variable Frame Data: 0f - 55f" },
+                { "duration": 46, "styleClass": "bg-tick-darkblue", "label": "Block Endlag: 46f" }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            { "color": "hsl(120, 100%, 45%)", "text": "Startup (30f)" },
+            { "color": "hsl(224, 64%, 33%)", "text": "Extended Recovery/Block Endlag (46f)" },
+            { "color": "hsl(45, 93%, 47%)", "text": "Misc: The Projectile travel a certain distance before getting blocked, making so the exact frame data vary quite a lots. For this one the range is (0f - 55f)" }
+          ]
+        }
+      },
+      "strategyText": "The user strike a pose with a 30 frame startup. Then, fires a projectile that travels >32 studs in 55 frames before despawning. After that, you are left in stun for 25 frames on whiff. If the projectile hit, the user will grab the target and perform a barrage of attacks on them, dealing damage; this give the user self stun for 113f, and give the target stun for 161f, which can lead to many other skills or an M1 in the kit. If the projectile is blocked, the user will get a block endlag of 46f, more than punishable for anyone with half a braincell, so do not use this in neutral.",
+      "bulletPoints": [
+        "<strong>The Projectile Thingy:</strong> Because the hit detection is tied to a spawned projectile rather than the user's physical body, the move can grab opponents through solid walls, even if the user doesn't move.",
+        "<strong>Combo Extender (+48f):</strong> While the attacker leaves their grab animation after 113f, the target is forced to endure a total stun of 161 frames (113f of the animation + 48f of extra stun). This decent frame advantage creates a window to link into any attacks in the kit."
+      ]
+    }
+  ]
+}

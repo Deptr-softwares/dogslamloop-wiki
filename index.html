@@ -5,395 +5,216 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dogslamloop Wiki</title>
     <link rel="icon" type="image/jpg" href="/medias/images/DestroymanFront.jpg">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style/Common.css">
+    <link rel="stylesheet" href="style/UI.css">
+    <link rel="stylesheet" href="style/ColorCoding.css">
 </head>
-<body class="min-h-screen p-4 md:p-8 flex flex-col bg-[#0d1117]">
+<body class="site-body">
 
-    <!-- Global Site Header -->
-    <header class="max-w-7xl mx-auto w-full border-b border-[#30363d] pb-4 mb-6 flex justify-between items-end">
+    <header class="global-header max-w-7xl">
         <div>
-            <a href="index.html" class="text-3xl font-black text-white hover:text-blue-400 transition-colors block">dogslamloop wiki</a>
-            <p class="text-xs text-gray-500 font-mono mt-1">Alpha v0.01 | The Competitive JJS Hub</p>
+            <a href="index.html" class="site-title">dogslamloop wiki</a>
+            <p class="site-subtitle">Alpha v0.01 | The Competitive JJS Wiki</p>
         </div>
-        <a href="https://Ko-fi.com/deptr_software_coffee_corner " target="_blank" class="text-sm bg-[#161b22] hover:bg-[#30363d] border border-[#30363d] text-[#eab308] px-4 py-2 rounded font-bold transition-colors">
+        <a href="https://Ko-fi.com/deptr_software_coffee_corner " target="_blank" class="kofi-btn">
             ☕ Support Ko-fi
         </a>
     </header>
 
-    <main class="max-w-7xl mx-auto w-full flex-grow space-y-6">
+    <main class="max-w-7xl w-full flex-grow space-y-6">
         
-        <!-- TOP SECTION: Character Roster -->
-        <section class="bg-[#161b22] border border-[#30363d] rounded-lg p-6">
-            <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4 border-b border-[#30363d] pb-2">Characters</h2>
+        <section class="wiki-section">
+            <h2 class="section-title">Characters</h2>
             
-            <!-- Character roster -->
-            <div class="flex flex-wrap gap-3 justify-center md:justify-start">
-                
-                <!-- Vessel -->
-                <a href="characters/Vessel.html" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden"
-                id="Vessel-button">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Vessel
-                    </span>
-                </a>
-
-                <!-- Honored One -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Honored One (WIP)
-                    </span>
-                </a>
-
-                <!-- Restless Gambler -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Restless Gambler (WIP)
-                    </span>
-                </a>
-
-                <!-- Ten Shadows (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Ten Shadows (WIP)
-                    </span>
-                </a>
-
-                <!-- Perfection (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Perfection (WIP)
-                    </span>
-                </a>
-
-                <!-- Blood Manipulator (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Blood Manipulator (WIP)
-                    </span>
-                </a>
-
-                <!-- Switcher (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Switcher (WIP)
-                    </span>
-                </a>
-
-                <!-- Defense Attorney (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Defense Attorney (WIP)
-                    </span>
-                </a>
-
-                <!-- Cursed Partners (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Cursed Partners (WIP)
-                    </span>
-                </a>
-
-                <!-- Puppet Master (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Puppet Master (WIP)
-                    </span>
-                </a>
-
-                <!-- Head of the Hei (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Head of<br>the Hei (WIP)
-                    </span>
-                </a>
-
-                <!-- Salaryman (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Salaryman (WIP)
-                    </span>
-                </a>
-
-                <!-- Disaster Plant (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Disaster Plant (WIP)
-                    </span>
-                </a>
-
-                <!-- True Cannon (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        True Cannon (WIP)
-                    </span>
-                </a>
-
-                <!-- Locust Guy (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Locust Guy (WIP)
-                    </span>
-                </a>
-
-                <!-- Star Rage (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Star Rage (WIP)
-                    </span>
-                </a>
-
-                <!-- Aspiring Mangaka (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Aspiring Mangaka (WIP)
-                    </span>
-                </a>
-
-                <!-- Lucky Coward (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Lucky Coward (WIP)
-                    </span>
-                </a>
-
-                <!-- Crow Charmer (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Crow Charmer (WIP)
-                    </span>
-                </a>
-
-                <!-- Black Death (WIP) -->
-                <a href="#" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Black Death (WIP)
-                    </span>
-                </a>
-
-                <!-- Boomcat -->
-                <a href="/characters/Boomcat.html" class="w-16 h-16 md:w-20 md:h-20 bg-blue-900/40 border border-[#30363d] 
-                hover:border-blue-400 rounded flex flex-col items-center justify-center transition-all group relative overflow-hidden"
-                id="Boomcat-button">
-                    <span class="text-xs md:text-sm font-bold text-white group-hover:scale-110 transition-transform text-center leading-tight">
-                        Boomcat
-                    </span>
-                </a>
-
-            </div>
+            <!-- Dynamically populated by pagebuilder.js -->
+            <div class="roster-grid"></div>
         </section>
 
-        <!-- BOTTOM SECTION -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid-layout-3col">
             
-            <!-- Column 1: Game Info & System Pages -->
             <div class="space-y-6">
-                <!-- Game Summary -->
-                <section class="bg-[#161b22] border border-[#30363d] rounded-lg p-6">
+                <section class="wiki-section">
                     <p class="text-gray-300 text-sm leading-relaxed">
-                        <span class="font-bold text-white italic">Jujutsu Shenanigans</span> is a casual (shenanigans) battleground game on Roblox. However,
-                        this hub provides in-depth frame data, hitbox visualizations (please tze we need this), 
-                        and strategy breakdowns to help all users, Tier 5 and Tier 1, to get better at the game via better understanding of the game.
+                        <span class="font-bold text-white italic">Jujutsu Shenanigans</span> is a casual (shenanigans) battleground game on Roblox. However, this hub provides in-depth frame data, hitbox visualizations (please tze we need this), and strategy breakdowns to help all users, Tier 5 and Tier 1, to get better at the game via better understanding of the game.
                     </p>
                 </section>
 
-                <!-- System Pages (WIP)-->
-                <section class="bg-[#161b22] border border-[#30363d] rounded-lg p-6">
-                    <h2 class="text-xl font-bold text-white mb-4">Systems Pages</h2>
-                    <div class="grid grid-cols-2 gap-3">
-                        <a href="#" class="bg-[#0d1117] hover:bg-[#1f2937] border border-[#30363d] rounded py-2 text-center text-sm text-gray-300 hover:text-white transition-colors">Fundamental Mechanics</a>
-                        <a href="#" class="bg-[#0d1117] hover:bg-[#1f2937] border border-[#30363d] rounded py-2 text-center text-sm text-gray-300 hover:text-white transition-colors">Evasive System</a>
-                        <a href="#" class="bg-[#0d1117] hover:bg-[#1f2937] border border-[#30363d] rounded py-2 text-center text-sm text-gray-300 hover:text-white transition-colors">Frame Data</a>
+                <section class="wiki-section">
+                    <h2 class="section-title" style="border:none; margin-bottom:0.5rem;">Systems Pages</h2>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
+                        <a href="#" class="system-page-btn">Fundamental Mechanics</a>
+                        <a href="#" class="system-page-btn">Evasive System</a>
+                        <a href="#" class="system-page-btn">Frame Data</a>
+                        <a href="#" class="system-page-btn">M1 Trading</a>
+                        <a href="#" class="system-page-btn">Awesome Collaborators</a>
+                        <a href="#" class="system-page-btn">Source Code</a>
                     </div>
                 </section>
             </div>
 
-            <!-- Column 2: Update Log -->
-            <section class="bg-[#161b22] border border-[#30363d] rounded-lg p-6 lg:col-span-1">
-                <div class="flex justify-between items-end mb-4 border-b border-[#30363d] pb-2">
-                    <h2 class="text-xl font-bold text-white">Update Log</h2>
-                    <a href="#" class="text-xs text-blue-400 hover:text-blue-300">View Full Log (WIP)</a>
+            <section class="wiki-section lg:col-span-1">
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:1rem; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem;">
+                    <h2 style="font-size:1.25rem; font-weight:bold; color:var(--text-white); margin:0;">Update Log</h2>
+                    <a href="#" style="font-size:0.75rem; color:#58a6ff; text-decoration:none;">View Full Log (WIP)</a>
                 </div>
                 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-400">
-                        <thead class="text-xs text-gray-500 uppercase bg-[#0d1117] border-b border-[#30363d]">
+                <div class="update-table-container">
+                    <table class="update-table">
+                        <thead>
                             <tr>
-                                <th scope="col" class="px-3 py-2">Version</th>
-                                <th scope="col" class="px-3 py-2">Date</th>
-                                <th scope="col" class="px-3 py-2">Summary</th>
+                                <th scope="col">Version</th>
+                                <th scope="col">Date</th>
+                                <th scope="col">Summary</th>
                             </tr>
                         </thead>
-                        <tbody id="update-log-body">
-                            <!-- JSON data will be injected here via JavaScript -->
-                        </tbody>
+                        <tbody id="update-log-body"></tbody>
                     </table>
                 </div>
             </section>
 
-            <!-- Column 3: Game Info -->
-            <section class="bg-[#161b22] border border-[#30363d] rounded-lg p-6">
-                <h2 class="text-xl font-bold text-white mb-4 border-b border-[#30363d] pb-2">Game Info</h2>
+            <section class="wiki-section">
+                <h2 class="section-title" style="border:none; margin-bottom:1rem;">Game Info</h2>
                 
-                <div class="flex flex-col items-center mb-6">
-                    <h3 class="text-lg font-black text-white italic tracking-widest text-center">Jujutsu<br>Shenanigans</h3>
+                <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:1.5rem;">
+                    <h3 style="font-size:1.125rem; font-weight:900; color:var(--text-white); font-style:italic; letter-spacing:0.15em; text-align:center; line-height:1.2; margin:0;">Jujutsu<br>Shenanigans</h3>
                 </div>
 
                 <div class="space-y-4 text-sm">
                     <div>
-                        <span class="block text-gray-500 font-bold mb-1">Developers</span>
+                        <span style="display:block; color:#6e7681; font-weight:bold; margin-bottom:0.25rem;">Developers</span>
                         <span class="text-gray-300">Tze's Shenanigans</span>
-                        <span class="text-gray-250">(Tze, Imed, Frost)</span>
+                        <span style="color:#8b949e; font-size:0.75rem; display:block;">(Tze, Imed, Frost)</span>
                     </div>
                     <div>
-                        <span class="block text-gray-500 font-bold mb-1">Platform</span>
+                        <span style="display:block; color:#6e7681; font-weight:bold; margin-bottom:0.25rem;">Platform</span>
                         <span class="text-gray-300">Roblox (PC, Mobile, Console)</span>
                     </div>
-                    <div class="pt-4 border-t border-[#30363d]">
-                        <span class="block text-gray-500 font-bold mb-2">Official Links</span>
+                    <div style="padding-top:1rem; border-top:1px solid var(--border-color); margin-top:1rem;">
+                        <span style="display:block; color:#6e7681; font-weight:bold; margin-bottom:0.5rem;">Official Links</span>
                         <div class="space-y-2">
-                            <a href="https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans" type="_blank" class="block text-blue-400 hover:text-blue-300">▶ Roblox Game Page</a>
-                            <a href="https://discord.gg/nyTYVCDMBF" type="_blank" class="block text-blue-400 hover:text-blue-300">▶ Official Discord</a>
+                            <a href="https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans" target="_blank" style="display:block; color:#58a6ff; text-decoration:none;">▶ Roblox Game Page</a>
+                            <a href="https://discord.gg/nyTYVCDMBF" target="_blank" style="display:block; color:#58a6ff; text-decoration:none;">▶ Official Discord</a>
                         </div>
                     </div>
                 </div>
             </section>
-
         </div>
 
-        <!-- ABOUT SECTION -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 border-t border-[#30363d] pt-8">
-            
-            <section class="bg-[#161b22] border border-[#30363d] rounded-lg p-6 lg:col-span-2">
-                <h2 class="text-xl font-bold text-white mb-6 border-b border-[#30363d] pb-2">Frequently Asked Questions (FAQ)</h2>
+        <div class="grid-layout-3col" style="margin-top:1.5rem; border-top:1px solid var(--border-color); padding-top:2rem;">
+            <section class="wiki-section lg:col-span-2">
+                <h2 class="section-title" style="font-size:1.25rem; border:none; margin-bottom:1.5rem;">Frequently Asked Questions (FAQ)</h2>
                 
                 <div class="space-y-4">
-                    <details class="group bg-[#0d1117] border border-[#30363d] rounded p-4 cursor-pointer">
-                        <summary class="font-bold text-blue-400 list-none flex justify-between items-center">
+                    <details class="faq-details">
+                        <summary class="faq-summary">
                             What is "Boomcat"?
-                            <span class="text-gray-500 group-open:rotate-180 transition-transform">▼</span>
+                            <span class="faq-arrow">▼</span>
                         </summary>
-                        <p class="text-gray-400 text-sm mt-3 leading-relaxed border-t border-[#30363d] pt-3">
-                            Boomcat is my spirit animal.
-                        </p>
+                        <p class="faq-content">Boomcat is my spirit animal.</p>
                     </details>
 
-                    <details class="group bg-[#0d1117] border border-[#30363d] rounded p-4 cursor-pointer">
-                        <summary class="font-bold text-blue-400 list-none flex justify-between items-center">
+                    <details class="faq-details">
+                        <summary class="faq-summary">
                             How do you measure this frame data?
-                            <span class="text-gray-500 group-open:rotate-180 transition-transform">▼</span>
+                            <span class="faq-arrow">▼</span>
                         </summary>
-                        <p class="text-gray-400 text-sm mt-3 leading-relaxed border-t border-[#30363d] pt-3">
-                            We record the game at a locked 60 FPS and count the video frames one by one in editing software to determine the numbers. There is a standard and such, mrt1 please expand on this.
-                        </p>
+                        <p class="faq-content">We record the game at a locked 60 FPS and count the video frames one by one in editing software to determine the numbers. There is a standard and such, mrt1 please expand on this.</p>
                     </details>
 
-                    <details class="group bg-[#0d1117] border border-[#30363d] rounded p-4 cursor-pointer">
-                        <summary class="font-bold text-blue-400 list-none flex justify-between items-center">
+                    <details class="faq-details">
+                        <summary class="faq-summary">
                             Can I contribute to the wiki?
-                            <span class="text-gray-500 group-open:rotate-180 transition-transform">▼</span>
+                            <span class="faq-arrow">▼</span>
                         </summary>
-                        <p class="text-gray-400 text-sm mt-3 leading-relaxed border-t border-[#30363d] pt-3">
-                            Absolutely, you can @.mrt1 on Discord for the frame data thing and @deptr4869 for the site in general.
-                        </p>
+                        <p class="faq-content">Absolutely, you can @.mrt1 on Discord for the frame data thing and @deptr4869 for the site in general.</p>
                     </details>
                 </div>
             </section>
 
             <div class="space-y-6">
-                
-                <section class="bg-[#161b22] border border-[#30363d] rounded-lg p-6">
-                    <h2 class="text-xl font-bold text-white mb-4 border-b border-[#30363d] pb-2">Credits</h2>
-                    <ul class="text-sm text-gray-400 space-y-3">
-                        <li class="flex items-center gap-2">
-                            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                            <div><span class="text-white font-bold">@Deptr</span> - Site owner and developer</div>
+                <section class="wiki-section">
+                    <h2 class="section-title" style="font-size:1.25rem; border:none; margin-bottom:1rem;">Credits</h2>
+                    <ul class="credits-list">
+                        <li>
+                            <span class="dot-indicator dot-green"></span>
+                            <div>
+                                <span style="color:var(--text-white); font-weight:bold;">@Deptr</span> - Site owner and developer
+                            </div>
                         </li>
-                        <li class="flex items-center gap-2">
-                            <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-                            <div><span class="text-white font-bold">@Mrt1</span> - Frame Data and such</div>
+                        <li>
+                            <span class="dot-indicator dot-blue"></span>
+                            <div>
+                                <span style="color:var(--text-white); font-weight:bold;">@Mrt1</span> - Frame Data and such
+                            </div>
                         </li>
-                        <li class="flex items-center gap-2">
-                            <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                            <div><span class="text-white font-bold">@Air Putrifier</span> - Strategies and such</div>
+                        <li>
+                            <span class="dot-indicator dot-yellow"></span>
+                            <div>
+                                <span style="color:var(--text-white); font-weight:bold;">@Air Putrifier</span> - Strategies and such
+                            </div>
                         </li>
-                        <li class="flex items-center gap-2">
-                            <span class="w-2 h-2 bg-lime-500 rounded-full"></span>
-                            <div><span class="text-white font-bold">@PositiveHA</span> - Strategies and testing and such</div>
+                        <li>
+                            <span class="dot-indicator dot-lime"></span>
+                            <div>
+                                <span style="color:var(--text-white); font-weight:bold;">@PositiveHA</span> - Strategies and testing and such
+                            </div>
                         </li>
-                        <li class="flex items-center gap-2">
-                            <span class="w-2 h-2 bg-grey-500 rounded-full"></span>
-                            <div><span class="text-white font-bold">@Demi</span> - Strategies and testing and such</div>
+                        <li>
+                            <span class="dot-indicator dot-grey"></span>
+                            <div>
+                                <span style="color:var(--text-white); font-weight:bold;">@Demi</span> - Strategies and testing and such
+                            </div>
                         </li>
-                        <li class="flex items-center gap-2">
-                            <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
-                            <div><span class="text-white font-bold">@Kigtus</span> - Allowance to steal from the wiki resource and such</div>
+                        <li>
+                            <span class="dot-indicator dot-blue"></span>
+                            <div>
+                                <span style="color:var(--text-white); font-weight:bold;">@Kigtus</span> - Allowance to steal from the wiki resource and such
+                            </div>
+                        </li>
+                        <li>
+                            <span class="dot-indicator dot-pink"></span>
+                            <div>
+                                <span style="color:var(--text-white); font-weight:bold;">@SerialKiller4F</span> - Strategies and testing and such
+                            </div>
                         </li>
                     </ul>
                 </section>
 
-                <section class="bg-[#161b22] border border-[#30363d] rounded-lg overflow-hidden group relative aspect-video flex items-center justify-center cursor-crosshair shadow-lg">
-                    <img src="/medias/images/Boomcat.webp" alt="Boomcat" class="object-cover w-full h-full opacity-60 group-hover:opacity-100 transition-opacity duration-300" width="100px">
+                <section class="image-card-container">
+                    <img src="/medias/images/Boomcat.webp" alt="Boomcat" class="image-card-img" style="width:auto;">
                 </section>
-
             </div>
         </div>
     </main>
 
+    <!-- Global Modular Scripts -->
+    <script src="js/pagebuilder.js"></script>
+
+    <!-- Page Local Script Configurations -->
     <script>
         async function loadUpdates() {
             try {
-                // Fetch the JSON file
                 const response = await fetch('updates.json');
                 if (!response.ok) throw new Error('Network response was not ok');
-                
                 const updates = await response.json();
                 const tbody = document.getElementById('update-log-body');
-                
-                // Loop through the data and create table rows
                 updates.forEach(update => {
                     const row = document.createElement('tr');
-                    row.className = 'border-b border-[#30363d] hover:bg-[#1f2937]';
-                    
+                    row.className = 'update-row';
                     row.innerHTML = `
-                        <td class="px-3 py-3 font-mono text-blue-400">${update.version}</td>
-                        <td class="px-3 py-3">${update.date}</td>
-                        <td class="px-3 py-3">${update.summary}</td>
+                        <td class="version-cell">${update.version}</td>
+                        <td>${update.date}</td>
+                        <td>${update.summary}</td>
                     `;
-                    
                     tbody.appendChild(row);
                 });
             } catch (error) {
                 console.error("Failed to load updates:", error);
                 document.getElementById('update-log-body').innerHTML = `
-                    <tr>
-                        <td colspan="3" class="px-3 py-3 text-red-500 text-center italic">Failed to load update log.</td>
-                    </tr>
+                    <tr><td colspan="3" style="text-align:center; color:#f85149; font-style:italic; padding:0.75rem;">Failed to load update log.</td></tr>
                 `;
             }
         }
-
-        // Initialize the function
         loadUpdates();
     </script>
 </body>

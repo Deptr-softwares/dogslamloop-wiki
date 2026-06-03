@@ -1,0 +1,69 @@
+/* Common.css - Global Styles & Design Tokens */
+:root {
+    --bg-main: hsl(216, 28%, 7%);
+    --bg-secondary: hsl(215, 21%, 11%);
+    --border-color: hsl(212, 12%, 21%);
+    --text-primary: hsl(210, 17%, 82%);
+    --text-white: hsl(0, 0%, 100%);
+    --text-muted: hsl(212, 9%, 58%);
+    --accent-blue: hsl(213, 94%, 68%);
+    --accent-blue-hover: hsl(212, 96%, 78%);
+    --accent-yellow: hsl(45, 93%, 47%);
+    --text-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.site-body {
+    min-height: 100vh;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+    .site-body {
+        padding: 2rem;
+    }
+}
+
+.max-w-7xl { max-width: 80rem; width: 100%; margin-left: auto; margin-right: auto; }
+.max-w-6xl { max-width: 72rem; width: 100%; margin-left: auto; margin-right: auto; }
+.w-full { width: 100%; }
+.flex-grow { flex-grow: 1; }
+
+.global-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    box-sizing: border-box;
+}
+
+.site-title {
+    font-size: 1.875rem;
+    font-weight: 900;
+    color: var(--text-white);
+    text-decoration: none;
+    transition: color 0.2s;
+    display: block;
+}
+.site-title:hover {
+    color: hsl(213, 94%, 68%);
+}
+
+.site-subtitle {
+    font-size: 0.75rem;
+    color: hsl(215, 8%, 47%);
+    font-family: var(--text-mono);
+    margin: 0.25rem 0 0 0;
+}
