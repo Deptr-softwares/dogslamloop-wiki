@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vessel | Dogslamloop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fixed: Added ../ to tell it to look in the parent folder -->
+    <link rel="stylesheet" href="../style.css">
+</head>
+<body class="min-h-screen p-4 md:p-8 flex flex-col">
+
+    <header class="max-w-6xl mx-auto w-full border-b border-[#30363d] pb-4 mb-8 flex justify-between items-end">
+        <div>
+            <!-- Fixed: Added ../ to go back to the root index -->
+            <a href="../index.html" class="text-3xl font-black text-white hover:text-blue-400 transition-colors block">Dogslamloop.com</a>
+            <p class="text-xs text-gray-500 font-mono mt-1">Alpha v0.1 | The Community Frame Data Hub</p>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto w-full flex-grow space-y-8">
+        
+        <div class="mb-4">
+            <!-- Fixed: Added ../ to go back to the root characters page -->
+            <a href="../index.html" class="text-gray-400 hover:text-white">← Roster</a>
+        </div>
+
+        <header class="border-b border-[#30363d] pb-4">
+            <h2 class="text-5xl font-extrabold text-white">Vessel</h2>
+            <nav class="text-sm mt-4 flex flex-wrap gap-x-6 gap-y-2">
+                <button onclick="switchVesselTab('overview')" id="nav-overview" class="nav-btn pb-1">Overview & Strategy</button>
+                <button onclick="switchVesselTab('m1s')" id="nav-m1s" class="nav-btn pb-1">M1s</button>
+                <button onclick="switchVesselTab('skills')" id="nav-skills" class="nav-btn active pb-1">Skills</button>
+                <button onclick="switchVesselTab('specials')" id="nav-specials" class="nav-btn pb-1">Specials</button>
+                <button onclick="switchVesselTab('matchups')" id="nav-matchups" class="nav-btn pb-1">Matchups</button>
+                <button onclick="switchVesselTab('counterplay')" id="nav-counterplay" class="nav-btn pb-1">Counterplay</button>
+                <button onclick="switchVesselTab('gallery')" id="nav-gallery" class="nav-btn pb-1">Gallery</button>
+            </nav>
+        </header>
+
+        <!-- EMPTY TABS -->
+        <div id="tab-overview" class="vessel-content hidden text-gray-500 italic p-8 text-center bg-[#161b22] border border-[#30363d] rounded-lg">Overview data has not been collected yet.</div>
+        <div id="tab-m1s" class="vessel-content hidden text-gray-500 italic p-8 text-center bg-[#161b22] border border-[#30363d] rounded-lg">M1 string data has not been collected yet.</div>
+        <div id="tab-specials" class="vessel-content hidden text-gray-500 italic p-8 text-center bg-[#161b22] border border-[#30363d] rounded-lg">Special/Awakening data has not been collected yet.</div>
+        <div id="tab-matchups" class="vessel-content hidden text-gray-500 italic p-8 text-center bg-[#161b22] border border-[#30363d] rounded-lg">Matchup data has not been collected yet.</div>
+        <div id="tab-counterplay" class="vessel-content hidden text-gray-500 italic p-8 text-center bg-[#161b22] border border-[#30363d] rounded-lg">Counterplay data has not been collected yet.</div>
+        <div id="tab-gallery" class="vessel-content hidden text-gray-500 italic p-8 text-center bg-[#161b22] border border-[#30363d] rounded-lg">Gallery is empty.</div>
+
+        <!-- SKILLS TAB -->
+        <div id="tab-skills" class="vessel-content space-y-8">
+            
+            <section class="bg-[#161b22] border border-[#30363d] rounded-lg p-5">
+                <h3 class="text-sm font-semibold tracking-wider text-gray-400 uppercase mb-3">Frame Data Color Legend</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4 text-xs font-mono">
+                    <div class="flex items-start gap-2">
+                        <span class="w-4 h-4 rounded bg-[#00e500] border border-black shrink-0 mt-0.5"></span>
+                        <div><span class="text-white block font-bold">Startup</span></div>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="w-4 h-4 rounded bg-[#eab308] border border-black shrink-0 mt-0.5"></span>
+                        <div><span class="text-white block font-bold">Misc</span>Variable frame data, aka no hard number so it always come with a note</div>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="w-4 h-4 rounded bg-[#e50000] border border-black shrink-0 mt-0.5"></span>
+                        <div><span class="text-white block font-bold">Active</span>Hitbox view ...</div>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="w-4 h-4 rounded bg-[#2b5fed] border border-black shrink-0 mt-0.5"></span>
+                        <div><span class="text-white block font-bold">Recovery</span>aka Whiff endlag</div>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="w-4 h-4 rounded bg-[#4b5563] border border-black shrink-0 mt-0.5"></span>
+                        <div><span class="text-white block font-bold">Self Stun</span></div>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="w-4 h-4 rounded bg-[#0f1114] border border-black shrink-0 mt-0.5"></span>
+                        <div><span class="text-white block font-bold">InSkill Stun</span>It's a weird version of Self Stun where you can move around but can't use Skills, M1s, and dashes</div>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="w-4 h-4 rounded bg-[#991b1b] border border-black shrink-0 mt-0.5"></span>
+                        <div><span class="text-white block font-bold">Target Stun</span>on Hit; Block stun basically do not exist in this game</div>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="w-4 h-4 rounded bg-[#1e3a8a] border border-black shrink-0 mt-0.5"></span>
+                        <div><span class="text-white block font-bold">Block Endlag</span>aka Extended Recovery</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="bg-[#0d1117] border border-[#30363d] rounded-lg overflow-hidden shadow-lg">
+                <div class="bg-[#161b22] px-6 py-4 flex justify-between items-center border-b border-[#30363d]">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white tracking-wide">Cursed Strikes</h2>
+                        <span class="text-xs font-mono text-gray-400">Input: 1 Key | Skill Type: Projectile Grab</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col xl:flex-row">
+                    <!-- Left Column -->
+                    <div class="xl:w-1/3 p-6 border-b xl:border-b-0 xl:border-r border-[#30363d] flex flex-col items-center">
+                        <div class="w-full aspect-video bg-[#161b22] rounded border border-[#30363d] flex items-center justify-center mb-4 overflow-hidden relative">
+                            <!-- Fixed: Added ../ to find the image in the root folder -->
+                            <img src="../AwesomeMrt1Data.webp" alt="Cursed Strikes Visual" class="object-cover w-full h-full opacity-70 hover:opacity-100 transition-opacity">
+                            <span class="absolute text-gray-400 font-mono text-sm pointer-events-none bg-black/50 px-2 py-1 rounded">AwesomeMrt1Data.webp</span>
+                        </div>
+                        <div class="w-full bg-[#161b22] rounded border border-[#30363d] p-4 text-sm font-mono space-y-2">
+                            <div class="flex justify-between"><span class="text-gray-400">Coverage</span> <span class="text-white">32x13 studs</span></div>
+                            <div class="flex justify-between"><span class="text-gray-400">Damage</span> <span class="text-white">All Melee</span></div>
+                            <div class="flex justify-between"><span class="text-gray-400">Properties</span> <span class="text-purple-400">Move user forward</span></div>
+                            <div class="flex justify-between"><span class="text-gray-400">Notes</span> <span class="text-purple-400">I'm boomcatting myself</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column: Tabs & Bars -->
+                    <div class="xl:w-2/3 p-6 space-y-6">
+                        <div class="flex gap-6 border-b border-[#30363d] pb-2">
+                            <button id="tab-miss" class="text-lg font-bold text-white border-b-2 border-blue-500 pb-1 transition-colors">On Whiff</button>
+                            <button id="tab-hit" class="text-lg font-bold text-gray-500 hover:text-gray-300 transition-colors pb-1">On Hit</button>
+                            <button id="tab-block" class="text-lg font-bold text-gray-500 hover:text-gray-300 transition-colors pb-1">On Block</button>
+                        </div>
+
+                        <!-- On Whiff -->
+                        <div id="view-miss" class="space-y-6">
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-xs font-mono text-gray-400 px-1"><span>Total Duration on whiff: 110f</span></div>
+                                <div id="miss-bar" class="frame-bar-container"></div>
+                            </div>
+                        </div>
+
+                        <!-- On Hit -->
+                        <div id="view-hit" class="hidden space-y-6">
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-xs font-mono px-1"><span class="text-blue-400">Self Stun (113f)</span></div>
+                                <div id="hit-user-bar" class="frame-bar-container border-b-0 rounded-b-none"></div>
+                            </div>
+                            <div class="space-y-2 !mt-0"> 
+                                <div id="hit-target-bar" class="frame-bar-container border-t-0 rounded-t-none border-dashed border-gray-600"></div>
+                                <div class="flex justify-between text-xs font-mono px-1 mt-1">
+                                    <span class="text-red-400">Target Stun (161f)</span>
+                                    <span class="text-green-400 font-bold tracking-wider">ADVANTAGE: +48f</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- On Block -->
+                        <div id="view-block" class="hidden space-y-6">
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-xs font-mono text-gray-400 px-1">
+                                    <span>Blocked in Neutral</span>
+                                    <span class="text-red-400 font-bold tracking-wider">SAFETY: -46f</span>
+                                </div>
+                                <div id="block-bar" class="frame-bar-container"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script src="../js/framedata.js"></script>
+    
+    <script>
+        // --- Initialize Tabs ---
+        // Character Hub Tabs
+        setupTabs('nav', 'tab', ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay', 'gallery']);
+        
+        // Cursed Strikes Tabs
+        setupTabs('tab', 'view', ['miss', 'hit', 'block']);
+
+
+        // --- Render Frame Bars for Cursed Strikes ---
+        
+        // On Whiff (Total Scale: 161)
+        const missBar = document.getElementById('miss-bar');
+        missBar.appendChild(createPhase(30, 161, 'bg-tick-green', 'Startup: 30f'));
+        missBar.appendChild(createPhase(55, 161, 'bg-tick-red', 'Projectile Active: 55f'));
+        missBar.appendChild(createPhase(25, 161, 'bg-tick-blue', 'Recovery: 25f'));
+        let missEmpty = document.createElement('div');
+        missEmpty.style.width = `${((161 - 110) / 161) * 100}%`;
+        missBar.appendChild(missEmpty);
+
+        // On Hit (Total Scale: 206)
+        const hitUserBar = document.getElementById('hit-user-bar');
+        hitUserBar.appendChild(createPhase(30, 206, 'bg-tick-green', 'Startup: 30f'));
+        hitUserBar.appendChild(createPhase(15, 206, 'bg-tick-yellow', 'Projectile Travel: Variable Time'));
+        hitUserBar.appendChild(createPhase(113, 206, 'bg-tick-gray', 'Self Stun: 113f'));
+        
+        const hitTargetBar = document.getElementById('hit-target-bar');
+        let targetEmpty = document.createElement('div');
+        targetEmpty.style.width = `${((30 + 15) / 206) * 100}%`;
+        hitTargetBar.appendChild(targetEmpty);
+        hitTargetBar.appendChild(createPhase(161, 206, 'bg-tick-darkred', 'Target Stun: 161f'));
+
+        // On Block (Total Scale: 140)
+        const blockBar = document.getElementById('block-bar');
+        blockBar.appendChild(createPhase(30, 140, 'bg-tick-green', 'Startup: 30f'));
+        blockBar.appendChild(createPhase(15, 140, 'bg-tick-yellow', 'Projectile Travel: Variable Time')); 
+        blockBar.appendChild(createPhase(60, 140, 'bg-tick-darkblue', 'Extended Recovery (Guaranteed Punish)'));
+    </script>
+</body>
+</html>
