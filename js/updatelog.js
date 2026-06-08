@@ -75,7 +75,8 @@ async function loadUpdateLogs(containerId, limit = null, filterType = null) {
 // Global toggle function to expand or collapse the update timelines
 function toggleUpdates(containerId, buttonId, defaultLimit = 2, filterType = null) {
     const btn = document.getElementById(buttonId);
-    if (!btn) return;
+    const container = document.getElementById(containerId);
+    if (!btn || !container) return;
 
     // Check our custom attribute to see if the list is currently expanded
     const isExpanded = btn.getAttribute('data-expanded') === 'true';
@@ -83,13 +84,20 @@ function toggleUpdates(containerId, buttonId, defaultLimit = 2, filterType = nul
     if (isExpanded) {
         // It is expanded, so collapse it back down to the default limit
         loadUpdateLogs(containerId, defaultLimit, filterType);
-        btn.textContent = 'View All Site History';
+        btn.textContent = 'View All';
         btn.setAttribute('data-expanded', 'false');
+        
+        // Remove the scrollbox styling so it returns to normal
+        container.classList.remove('faq-scroll-box');
+        container.style.maxHeight = '';
     } else {
         // It is collapsed, so expand it to show absolutely everything (limit = null)
         loadUpdateLogs(containerId, null, filterType);
         btn.textContent = 'Show Less';
         btn.setAttribute('data-expanded', 'true');
+        
+        container.classList.add('faq-scroll-box');
+        container.style.maxHeight = '450px'; // Slightly taller than the FAQ box
     }
 }
 

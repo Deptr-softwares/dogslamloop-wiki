@@ -2,42 +2,75 @@
  * Dogslamloop Wiki - Character Text Descriptions Engine
  */
 
+// Helper to compute media layout styles based on alignment and custom width
+function getMediaStyle(align, customWidth) {
+    let style = 'border-radius:4px; border:1px solid var(--border-color); ';
+    
+    // Apply custom width if provided, otherwise use standard structural defaults
+    if (align === 'left') {
+        let w = customWidth || '45%';
+        style += `float: left; width: ${w}; margin: 0.5rem 1.5rem 1rem 0;`;
+    } else if (align === 'right') {
+        let w = customWidth || '45%';
+        style += `float: right; width: ${w}; margin: 0.5rem 0 1rem 1.5rem;`;
+    } else if (align === 'center') {
+        let w = customWidth || '75%';
+        style += `display: block; width: ${w}; margin: 1.5rem auto;`;
+    } else {
+        let w = customWidth || '100%';
+        style += `width: ${w}; margin: 1.5rem 0;`; 
+    }
+    return style;
+}
+
 async function loadCharacterDescriptions(characterId) {
     try {
         const response = await fetch(`../data/descriptions/${characterId}_descriptions.json?t=${Date.now()}`);
         if (!response.ok) throw new Error(`Could not fetch descriptions configuration profile for ${characterId}.`);
         const data = await response.json();
 
-        function populateTextSection(containerId, sectionTitle, paragraphs, bullets) {
+        function populateTextSection(containerId, sectionTitle, blocks) {
             const container = document.getElementById(containerId);
             if (!container) return;
 
             container.innerHTML = '';
-            // FIX: Use classList.add instead of className to preserve the 'hidden' class!
             container.classList.add('vessel-content', 'space-y-4'); 
 
-            const hasParagraphs = paragraphs && paragraphs.length > 0;
-            const hasBullets = bullets && bullets.length > 0;
-
-            if (hasParagraphs || hasBullets) {
+            if (blocks && blocks.length > 0) {
                 const section = document.createElement('section');
                 section.className = 'wiki-section';
+                section.style.overflow = 'hidden'; 
                 
-                let contentHTML = `<h3 class="strategy-title" style="font-size: 1.25rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">${sectionTitle}</h3>`;
+                let contentHTML = `<h3 class="strategy-title" style="font-size: 1.15rem;">${sectionTitle}</h3>`;
                 
-                if (hasParagraphs) {
-                    paragraphs.forEach(text => {
-                        contentHTML += `<p class="strategy-paragraph" style="margin-bottom: 0.75rem; line-height: 1.6;">${text}</p>`;
-                    });
-                }
-                
-                if (hasBullets) {
-                    contentHTML += `<ul style="list-style-type: disc; padding-left: 1.25rem; margin-top: 0.75rem;" class="space-y-2 text-gray-300">`;
-                    bullets.forEach(bullet => {
-                        contentHTML += `<li>${bullet}</li>`;
-                    });
-                    contentHTML += `</ul>`;
-                }
+                blocks.forEach(block => {
+                    const alignStyle = block.align ? `text-align: ${block.align};` : '';
+
+                    if (block.type === 'heading') {
+                        contentHTML += `<h4 style="color: var(--text-white); font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; ${alignStyle}">${block.content}</h4>`;
+                    } 
+                    else if (block.type === 'paragraph') {
+                        const text = Array.isArray(block.content) ? block.content.join(' ') : block.content;
+                        contentHTML += `<p class="strategy-paragraph" style="margin-bottom: 0.75rem; line-height: 1.6; ${alignStyle}">${text}</p>`;
+                    } 
+                    else if (block.type === 'list') {
+                        contentHTML += `<ul style="list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; ${alignStyle}" class="space-y-2 text-gray-300">`;
+                        block.items.forEach(item => { contentHTML += `<li>${item}</li>`; });
+                        contentHTML += `</ul>`;
+                    }
+                    else if (block.type === 'image') {
+                        contentHTML += `<img src="${block.src}" alt="${block.alt || 'Wiki Image'}" style="${getMediaStyle(block.align, block.width)}">`;
+                    }
+                    else if (block.type === 'video') {
+                        const attributes = block.controls ? 'controls' : 'autoplay loop muted playsinline';
+                        contentHTML += `<video src="${block.src}" style="${getMediaStyle(block.align, block.width)}" ${attributes}></video>`;
+                    }
+                    
+                    // NEW: Block-level author credit
+                    if (block.author) {
+                        contentHTML += `<div style="text-align: right; font-size: 0.75rem; color: var(--text-muted); font-style: italic; margin-top: -0.25rem; margin-bottom: 0.75rem;">— Contributed by ${block.author}</div>`;
+                    }
+                });
 
                 section.innerHTML = contentHTML;
                 container.appendChild(section);
@@ -56,13 +89,11 @@ async function loadCharacterDescriptions(characterId) {
             overviewContainer.innerHTML = '';
             overviewContainer.classList.add('vessel-content', 'space-y-6');
 
-            // 1. Create Top Split Layout (Flexbox)
             const topSplit = document.createElement('div');
             topSplit.style.display = 'flex';
             topSplit.style.gap = '2rem';
             topSplit.style.flexWrap = 'wrap';
 
-            // 2. Build Profile Card (Left Side)
             let profileHTML = '';
             if (data.profile) {
                 let statsHTML = '';
@@ -88,35 +119,33 @@ async function loadCharacterDescriptions(characterId) {
                 `;
             }
 
-            // 3. Build Overview Text Area (Right Side)
             const overviewTextWrapper = document.createElement('div');
             overviewTextWrapper.id = 'overview-text-subnode';
             overviewTextWrapper.style.flex = '2';
             overviewTextWrapper.style.minWidth = '300px';
 
-            // Inject into Top Split
             topSplit.innerHTML = profileHTML;
             topSplit.appendChild(overviewTextWrapper);
             overviewContainer.appendChild(topSplit);
 
-            // Populate Overview right side
-            populateTextSection('overview-text-subnode', 'Character Overview', data.overview?.paragraphs, data.overview?.bullets);
+            populateTextSection('overview-text-subnode', 'Character Overview', data.overview);
 
-            // 4. Build Strategy Area (Bottom)
-            if (data.strategy?.paragraphs?.length > 0 || data.strategy?.bullets?.length > 0) {
+            if (data.strategy && data.strategy.length > 0) {
                 const stratWrapper = document.createElement('div');
                 stratWrapper.id = 'overview-strategy-subnode';
                 overviewContainer.appendChild(stratWrapper);
-                populateTextSection('overview-strategy-subnode', 'General Strategy', data.strategy?.paragraphs, data.strategy?.bullets);
+                populateTextSection('overview-strategy-subnode', 'General Strategy', data.strategy);
             }
 
-            // 5. Build Extras / Trivia Area (Very Bottom)
             if (data.extras && data.extras.length > 0) {
                 data.extras.forEach((extraItem, index) => {
                     const extraWrapper = document.createElement('div');
                     extraWrapper.id = `overview-extra-${index}`;
                     overviewContainer.appendChild(extraWrapper);
-                    populateTextSection(`overview-extra-${index}`, extraItem.title, extraItem.paragraphs, extraItem.bullets);
+                    
+                    if (extraItem.content) {
+                        populateTextSection(`overview-extra-${index}`, extraItem.title, extraItem.content);
+                    }
                 });
             }
         }
@@ -125,66 +154,181 @@ async function loadCharacterDescriptions(characterId) {
         const matchupsContainer = document.getElementById('tab-matchups');
         if (matchupsContainer) {
             matchupsContainer.innerHTML = '';
-            matchupsContainer.classList.add('vessel-content');
+            matchupsContainer.classList.add('vessel-content', 'space-y-6'); 
 
             if (data.matchups && data.matchups.length > 0) {
-                const section = document.createElement('section');
-                section.className = 'wiki-section';
-                
-                let matchupsHTML = `<h3 class="strategy-title" style="font-size: 1.25rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">Matchups</h3>`;
-                matchupsHTML += `<div style="display: flex; flex-direction: column; gap: 1.5rem;">`;
-
                 data.matchups.forEach(mu => {
-                    // Mapping tiers to colors
                     const tierColors = {
-                        "Unwinnable": "text-red-600",
-                        "Extreme Disadvantage": "text-red-500",
-                        "Disadvantage": "text-orange-400",
-                        "Equal": "text-gray-400",
-                        "Advantage": "text-green-400",
-                        "Extreme Advantage": "text-green-500",
+                        "Unwinnable": "text-red-600", "Extreme Disadvantage": "text-red-500",
+                        "Disadvantage": "text-orange-400", "Equal": "text-gray-400",
+                        "Advantage": "text-green-400", "Extreme Advantage": "text-green-500",
                         "Unloseable": "text-cyan-400"
                     };
                     const tierClass = tierColors[mu.tier] || "text-white";
 
-                    // Construct base note text
-                    const noteText = mu.notes 
-                        ? (typeof mu.notes === 'string' ? mu.notes : (mu.notes.text || '')) 
-                        : 'No notes recorded for this matchup.';
-                    const mediaHTML = (mu.notes?.media) ? `<img src="${mu.notes.media.src}" alt="${mu.notes.media.alt}" style="width:100%; border-radius:4px; margin-top:1rem;">` : '';
-                    
-                    // Handle special sub-sections
-                    let specialHTML = '';
-                    if (mu.specialFocus) {
-                        mu.specialFocus.forEach(spec => {
-                            specialHTML += `<div style="margin-top:1rem; padding:0.5rem; border-left: 2px solid var(--border-color);">
-                                <strong style="color:var(--text-white); display:block; margin-bottom:0.25rem;">${spec.title}</strong>
-                                <p style="margin:0; font-size: 0.85rem; color: hsl(0, 0%, 64%);">${spec.text}</p>
-                            </div>`;
+                    const muSection = document.createElement('section');
+                    muSection.className = 'wiki-section'; 
+                    muSection.style.overflow = 'hidden'; 
+
+                    let muHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                            <h3 style="color: var(--text-white); font-size: 1.5rem; margin: 0; font-weight: bold;">vs. ${mu.opponent}</h3>
+                            <span style="font-size: 0.85rem; font-weight: bold; text-transform: uppercase;" class="${tierClass}">${mu.tier}</span>
+                        </div>
+                        <div class="matchup-content">
+                    `;
+
+                    if (mu.content && mu.content.length > 0) {
+                        mu.content.forEach(block => {
+                            const alignStyle = block.align ? `text-align: ${block.align};` : '';
+
+                            if (block.type === 'heading') {
+                                muHTML += `<h4 style="color: var(--text-white); font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; border-left: 3px solid hsl(212, 12%, 21%); padding-left: 0.75rem; ${alignStyle}">${block.content}</h4>`;
+                            } 
+                            else if (block.type === 'paragraph') {
+                                const text = Array.isArray(block.content) ? block.content.join(' ') : block.content;
+                                muHTML += `<p class="strategy-paragraph" style="margin-bottom: 0.75rem; line-height: 1.6; color: hsl(210, 17%, 82%); ${alignStyle}">${text}</p>`;
+                            } 
+                            else if (block.type === 'list') {
+                                muHTML += `<ul style="list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; color: hsl(210, 17%, 82%); ${alignStyle}" class="space-y-2">`;
+                                block.items.forEach(item => { muHTML += `<li>${item}</li>`; });
+                                muHTML += `</ul>`;
+                            }
+                            else if (block.type === 'image') {
+                                muHTML += `<img src="${block.src}" alt="${block.alt || 'Matchup Image'}" style="${getMediaStyle(block.align, block.width)}">`;
+                            }
+                            else if (block.type === 'video') {
+                                const attributes = block.controls ? 'controls' : 'autoplay loop muted playsinline';
+                                muHTML += `<video src="${block.src}" style="${getMediaStyle(block.align, block.width)}" ${attributes}></video>`;
+                            }
+                            
+                            // NEW: Block-level author credit
+                            if (block.author) {
+                                muHTML += `<div style="text-align: right; font-size: 0.75rem; color: var(--text-muted); font-style: italic; margin-top: -0.25rem; margin-bottom: 0.75rem;">— Contributed by ${block.author}</div>`;
+                            }
                         });
+                    } else {
+                        muHTML += `<p style="color: #8b949e; font-style: italic;">No notes recorded for this matchup.</p>`;
                     }
 
-                    matchupsHTML += `
-                        <div style="border-left: 3px solid hsl(212, 12%, 21%); background: hsla(0, 0%, 100%, 0.02); padding: 1.25rem; border-radius: 0 4px 4px 0;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-                                <strong style="color: var(--text-white); font-size: 1.1rem;">vs. ${mu.opponent}</strong>
-                                <span style="font-size: 0.85rem; font-weight: bold; text-transform: uppercase;" class="${tierClass}">${mu.tier}</span>
-                            </div>
-                            <p class="strategy-paragraph" style="font-size: 0.95rem; line-height: 1.6; color: hsl(210, 17%, 82%);">${noteText}</p>
-                            ${mediaHTML}
-                            ${specialHTML}
-                        </div>
-                    `;
-                });
+                    // NEW: Section-level author credit (placed right under the content)
+                    if (mu.author) {
+                        muHTML += `<div style="text-align: right; font-size: 0.8rem; color: var(--accent-blue); font-family: var(--text-mono); margin-top: 1rem; border-top: 1px dashed var(--border-color); padding-top: 0.5rem;">— Matchup details by ${mu.author}</div>`;
+                    }
 
-                matchupsHTML += `</div>`;
-                section.innerHTML = matchupsHTML;
-                matchupsContainer.appendChild(section);
+                    muHTML += `</div>`;
+                    muSection.innerHTML = muHTML;
+                    matchupsContainer.appendChild(muSection);
+                });
             }
         }
 
         // --- 3. COUNTERPLAY TAB ---
-        populateTextSection('tab-counterplay', 'Counterplay & Weaknesses', data.counterplay?.paragraphs, data.counterplay?.bullets);
+        const counterplayContainer = document.getElementById('tab-counterplay');
+        if (counterplayContainer) {
+            counterplayContainer.innerHTML = '';
+            counterplayContainer.classList.add('vessel-content', 'space-y-6'); 
+
+            if (data.counterplay && data.counterplay.length > 0) {
+                data.counterplay.forEach(cp => {
+                    const importanceColors = {
+                        "Crucial": "text-red-500", "High": "text-orange-400",
+                        "Moderate": "text-yellow-400", "Low": "text-green-400",
+                        "Situational": "text-cyan-400"
+                    };
+                    const importanceClass = importanceColors[cp.importance] || "text-gray-400";
+
+                    const cpSection = document.createElement('section');
+                    cpSection.className = 'wiki-section'; 
+                    cpSection.style.overflow = 'hidden';
+
+                    let cpHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem;">
+                            <h3 style="color: var(--text-white); font-size: 1.5rem; margin: 0; font-weight: bold;">${cp.topic}</h3>
+                            <span style="font-size: 0.85rem; font-weight: bold; text-transform: uppercase;" class="${importanceClass}">${cp.importance}</span>
+                        </div>
+                        <div class="counterplay-content">
+                    `;
+
+                    if (cp.content && cp.content.length > 0) {
+                        cp.content.forEach(block => {
+                            const alignStyle = block.align ? `text-align: ${block.align};` : '';
+
+                            if (block.type === 'heading') {
+                                cpHTML += `<h4 style="color: var(--text-white); font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; border-left: 3px solid hsl(0, 60%, 50%); padding-left: 0.75rem; ${alignStyle}">${block.content}</h4>`;
+                            } 
+                            else if (block.type === 'paragraph') {
+                                const text = Array.isArray(block.content) ? block.content.join(' ') : block.content;
+                                cpHTML += `<p class="strategy-paragraph" style="margin-bottom: 0.75rem; line-height: 1.6; color: hsl(210, 17%, 82%); ${alignStyle}">${text}</p>`;
+                            } 
+                            else if (block.type === 'list') {
+                                cpHTML += `<ul style="list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; color: hsl(210, 17%, 82%); ${alignStyle}" class="space-y-2">`;
+                                block.items.forEach(item => { cpHTML += `<li>${item}</li>`; });
+                                cpHTML += `</ul>`;
+                            }
+                            else if (block.type === 'image') {
+                                cpHTML += `<img src="${block.src}" alt="${block.alt || 'Counterplay Image'}" style="${getMediaStyle(block.align, block.width)}">`;
+                            }
+                            else if (block.type === 'video') {
+                                const attributes = block.controls ? 'controls' : 'autoplay loop muted playsinline';
+                                cpHTML += `<video src="${block.src}" style="${getMediaStyle(block.align, block.width)}" ${attributes}></video>`;
+                            }
+                            
+                            // NEW: Block-level author credit
+                            if (block.author) {
+                                cpHTML += `<div style="text-align: right; font-size: 0.75rem; color: var(--text-muted); font-style: italic; margin-top: -0.25rem; margin-bottom: 0.75rem;">— Contributed by ${block.author}</div>`;
+                            }
+                        });
+                    } else {
+                        cpHTML += `<p style="color: #8b949e; font-style: italic;">No specific counterplay details recorded.</p>`;
+                    }
+
+                    // Section-level author credit (placed right under the content)
+                    if (cp.author) {
+                        cpHTML += `<div style="text-align: right; font-size: 0.8rem; color: var(--accent-blue); font-family: var(--text-mono); margin-top: 1rem; border-top: 1px dashed var(--border-color); padding-top: 0.5rem;">— Counterplay notes by ${cp.author}</div>`;
+                    }
+
+                    cpHTML += `</div>`;
+                    cpSection.innerHTML = cpHTML;
+                    counterplayContainer.appendChild(cpSection);
+                });
+            } else {
+                 counterplayContainer.innerHTML = `
+                    <div class="empty-tab-msg" style="border: 1px dashed var(--border-color); background: transparent; padding: 2rem; border-radius: 4px; text-align: center; color: #8b949e;">
+                        Counterplay analysis has not been written yet.
+                    </div>
+                `;
+            }
+        }
+
+        // --- 4. MOVE STRATEGIES (M1s, Skills, Specials) ---
+        if (data.moveStrategies) {
+            setTimeout(() => {
+                for (const [moveId, blocks] of Object.entries(data.moveStrategies)) {
+                    populateTextSection(`strategy-${moveId}`, 'Move Overview & Strategy', blocks);
+
+                    const strategyContainer = document.getElementById(`strategy-${moveId}`);
+                    if (strategyContainer) {
+                        strategyContainer.style.marginBottom = '3rem';
+                    }
+                }
+                
+                if (typeof applyInternalStyling === 'function') {
+                    applyInternalStyling();
+                }
+            }, 300); 
+        }
+
+        // --- Trigger KaTeX to render LaTeX automatically ---
+        if (window.renderMathInElement) {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}
+                ],
+                throwOnError: false
+            });
+        }
 
     } catch (error) {
         console.error("Failed handling live descriptive text resource synchronization:", error);

@@ -10,10 +10,11 @@ const frameDataLegendHTML = `
             <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(153.88, 100%, 50%);"></span><div><span class="legend-name">Misc</span>Variable frame data aka no hard number so it always come with a note</div></div>
             <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(0, 100%, 45%);"></span><div><span class="legend-name">Active</span>Hitbox view ...</div></div>
             <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(295, 89.76%, 50.2%);"></span><div><span class="legend-name">Recovery</span>aka Whiff endlag</div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(111.06, 100%, 50%);"></span><div><span class="legend-name">Self Stun</span></div></div>
+            <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(111.06, 100%, 50%);"></span><div><span class="legend-name">Self Stun</span>for Grab moves mostly</div></div>
             <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(34, 99%, 27%);"></span><div><span class="legend-name">InSkill Stun</span>A weird version of Self Stun, but you can move around</div></div>
             <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(0, 70%, 35%);"></span><div><span class="legend-name">Target Stun</span>on Hit</div></div>
             <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(319.73, 88.24%, 50%);"></span><div><span class="legend-name">Block Endlag</span>aka Extended Recovery</div></div>
+            <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(44, 100%, 50%);"></span><div><span class="legend-name">Inactive</span>Frames between Active frames</div></div>
         </div>
     </section>
 `;
@@ -103,34 +104,21 @@ async function loadMoveSection(characterId, sectionType) {
                         </div>
                         <div class="skill-stats-box">${statsHTML}</div>
                     </div>
-                    <div class="skill-right-col">
-                        <div class="skill-tab-bar" id="tabbar-${move.id}"></div>
-                        <div class="views-wrapper" id="views-${move.id}"></div>
-                    </div>
+                    <!-- Blank slate for the recursive engine -->
+                    <div class="skill-right-col" id="right-col-${move.id}"></div>
                 </div>
             `;
 
             container.appendChild(card);
+            
+            const rightCol = document.getElementById(`right-col-${move.id}`);
+            const pendingTabs = [];
 
-            const tabBar = document.getElementById(`tabbar-${move.id}`);
-            const viewsWrapper = document.getElementById(`views-${move.id}`);
-            const variantKeys = move.variants ? Object.keys(move.variants) : [];
-
-            // --- 3. FRAME DATA FALLBACK ---
-            if (variantKeys.length > 0) {
-                variantKeys.forEach((key, index) => {
-                    const variant = move.variants[key];
-                    const btn = document.createElement('button');
-                    btn.id = `tab-${move.id}-${key}`;
-                    btn.className = `skill-tab-btn ${index === 0 ? 'active' : ''}`;
-                    btn.textContent = variant.label;
-                    tabBar.appendChild(btn);
-
-                    const viewSection = document.createElement('div');
-                    viewSection.id = `view-${move.id}-${key}`;
-                    viewSection.className = `view-section ${index === 0 ? '' : 'hidden'}`;
-
-                    variant.bars.forEach(bar => {
+            // --- 3. RECURSIVE FRAME DATA ENGINE ---
+            function buildNestedTabs(dataNode, prefixId, wrapperElement) {
+                // LEAF NODE: It has bars, render the actual frame data
+                if (dataNode.bars) {
+                    dataNode.bars.forEach(bar => {
                         const barGroup = document.createElement('div');
                         if (bar.type === 'target') barGroup.style.marginTop = '0';
 
@@ -138,7 +126,7 @@ async function loadMoveSection(characterId, sectionType) {
                         infoHeader.className = 'bar-header-info';
                         if (bar.type === 'target') infoHeader.style.marginTop = '0.25rem';
                         
-                        const headerText = bar.headerInfo || bar.title || variant.headerInfo || '';
+                        const headerText = bar.headerInfo || bar.title || dataNode.headerInfo || '';
                         let headerContent = `<span class="${bar.headerClass || ''}">${headerText}</span>`;
                         
                         if (bar.advantageText) {
@@ -151,7 +139,7 @@ async function loadMoveSection(characterId, sectionType) {
                         timelineContainer.className = 'frame-bar-container';
 
                         bar.phases.forEach(phase => {
-                            const phaseEl = createPhase(phase.duration, variant.totalScale, phase.styleClass, phase.label);
+                            const phaseEl = createPhase(phase.duration, dataNode.totalScale, phase.styleClass, phase.label);
                             timelineContainer.appendChild(phaseEl);
                         });
 
@@ -162,81 +150,96 @@ async function loadMoveSection(characterId, sectionType) {
                             barGroup.appendChild(infoHeader);
                             barGroup.appendChild(timelineContainer);
                         }
-
-                        viewSection.appendChild(barGroup);
+                        wrapperElement.appendChild(barGroup);
                     });
 
-                    if (variant.inlineLegend && variant.inlineLegend.length > 0) {
+                    if (dataNode.inlineLegend && dataNode.inlineLegend.length > 0) {
                         const divider = document.createElement('hr');
                         divider.className = 'view-divider';
-                        viewSection.appendChild(divider);
+                        wrapperElement.appendChild(divider);
 
                         const legendGrid = document.createElement('div');
                         legendGrid.className = 'view-legend-grid';
 
-                        variant.inlineLegend.forEach(item => {
+                        dataNode.inlineLegend.forEach(item => {
                             const legendItem = document.createElement('span');
                             legendItem.className = 'legend-inline-item';
                             legendItem.innerHTML = `<span class="dot" style="background-color: ${item.color}; flex-shrink: 0;"></span><span>${item.text}</span>`;
                             legendGrid.appendChild(legendItem);
                         });
+                        wrapperElement.appendChild(legendGrid);
+                    }
+                    return;
+                }
 
-                        viewSection.appendChild(legendGrid);
+                // BRANCH NODE: It has nested variants, generate a new row of tabs
+                if (dataNode.variants) {
+                    const keys = Object.keys(dataNode.variants);
+                    if (keys.length === 0) return;
+
+                    const tabBar = document.createElement('div');
+                    tabBar.className = 'skill-tab-bar';
+                    
+                    // Indent and space sub-tabs so they don't blend into parent tabs
+                    if (prefixId !== move.id) {
+                        tabBar.style.marginTop = '1rem';
+                        tabBar.style.paddingBottom = '0.5rem';
                     }
 
-                    viewsWrapper.appendChild(viewSection);
-                });
+                    const viewsWrapper = document.createElement('div');
+                    viewsWrapper.className = 'views-wrapper';
 
+                    keys.forEach((key, index) => {
+                        const childNode = dataNode.variants[key];
+                        const childId = `${prefixId}-${key}`;
+
+                        const btn = document.createElement('button');
+                        btn.id = `tab-${childId}`;
+                        btn.className = `skill-tab-btn ${index === 0 ? 'active' : ''}`;
+                        btn.textContent = childNode.label || key;
+                        tabBar.appendChild(btn);
+
+                        const viewSection = document.createElement('div');
+                        viewSection.id = `view-${childId}`;
+                        viewSection.className = `view-section ${index === 0 ? '' : 'hidden'}`;
+
+                        // Recursion! Build the inside of this newly created tab
+                        buildNestedTabs(childNode, childId, viewSection);
+
+                        viewsWrapper.appendChild(viewSection);
+                    });
+
+                    wrapperElement.appendChild(tabBar);
+                    wrapperElement.appendChild(viewsWrapper);
+
+                    if (typeof window.setupTabs === 'function') {
+                        pendingTabs.push({ prefix: prefixId, keys: keys });
+                    }
+                }
+            }
+
+            if (move.variants && Object.keys(move.variants).length > 0) {
+                // Kick off the recursion from the top level
+                buildNestedTabs({ variants: move.variants }, move.id, rightCol);
+                
+                // EXECUTE setups now that the elements are physically on the page
                 if (typeof window.setupTabs === 'function') {
-                    window.setupTabs(`tab-${move.id}`, `view-${move.id}`, variantKeys);
+                    pendingTabs.forEach(tab => {
+                        window.setupTabs(`tab-${tab.prefix}`, `view-${tab.prefix}`, tab.keys);
+                    });
                 }
             } else {
-                // Renders an empty placeholder if variants are missing
-                tabBar.style.display = 'none';
-                viewsWrapper.innerHTML = `
+                rightCol.innerHTML = `
                     <div class="empty-tab-msg" style="margin-top:0; border:1px dashed var(--border-color); background:transparent; padding: 2rem;">
                         Frame data has not been mapped for this move yet.
                     </div>
                 `;
             }
-
-            // --- 4. STRATEGY FALLBACK ---
-            const strategySection = document.createElement('section');
-            strategySection.className = 'skill-strategy-section';
-            
-            const hasStrategy = move.strategyParagraphs && move.strategyParagraphs.length > 0;
-            const hasBullets = move.bulletPoints && move.bulletPoints.length > 0;
-
-            if (hasStrategy || hasBullets) {
-                let paragraphsHTML = '';
-                if (hasStrategy) {
-                    move.strategyParagraphs.forEach(text => {
-                        paragraphsHTML += `<p class="strategy-paragraph">${text}</p>`;
-                    });
-                }
-
-                let bulletsHTML = '';
-                if (hasBullets) {
-                    move.bulletPoints.forEach(pt => bulletsHTML += `<li>${pt}</li>`);
-                }
-
-                strategySection.innerHTML = `
-                    <h3 class="strategy-title">Skill Overview & Strategy</h3>
-                    <div class="strategy-content">
-                        ${paragraphsHTML}
-                        ${hasBullets ? `<ul>${bulletsHTML}</ul>` : ''}
-                    </div>
-                `;
-            } else {
-                // Renders an empty placeholder if no strategy is written
-                strategySection.innerHTML = `
-                    <h3 class="strategy-title">Skill Overview & Strategy</h3>
-                    <div class="empty-tab-msg" style="margin-top:0.5rem; border:1px dashed var(--border-color); background:transparent; padding: 1.5rem;">
-                        Overview and strategy have not been written yet.
-                    </div>
-                `;
-            }
-            container.appendChild(strategySection);
+            // --- 4. STRATEGY INJECTION TARGET ---
+            // Creates an empty div that description.js will populate with LaTeX, media, and rich text
+            const strategyTarget = document.createElement('div');
+            strategyTarget.id = `strategy-${move.id}`;
+            container.appendChild(strategyTarget);
         });
 
     } catch (error) {

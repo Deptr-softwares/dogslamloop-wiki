@@ -4,19 +4,33 @@
     src: url('../fonts/FingerPaint-Regular.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
-    font-display: swap; /* Prevents text invisible lag while loading */
+    font-display: swap; 
 }
+
+/* Added your new Manga Font */
+@font-face {
+    font-family: 'CC-Wild-Words';
+    src: url('../fonts/CC\ Wild\ Words\ Roman.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 :root {
     --bg-main: hsl(216, 28%, 7%);
     --bg-secondary: hsl(215, 21%, 11%);
     --border-color: hsl(212, 12%, 21%);
-    --text-primary: hsl(210, 17%, 82%);
-    --text-white: hsl(0, 0%, 100%);
-    --text-muted: hsl(212, 9%, 58%);
+    
     --accent-blue: hsl(213, 94%, 68%);
     --accent-blue-hover: hsl(212, 96%, 78%);
     --accent-yellow: hsl(45, 93%, 47%);
+    
+    --text-primary: hsl(210, 17%, 82%);
+    --text-white: hsl(0, 0%, 100%);
+    --text-muted: hsl(212, 9%, 58%);
+    
     --text-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --manga-shadow: #000000;
 }
 
 body {
@@ -25,6 +39,13 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     margin: 0;
     padding: 0;
+    background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.015) 0px,
+        rgba(255, 255, 255, 0.015) 2px,
+        transparent 2px,
+        transparent 8px
+    );
 }
 
 .site-body {
@@ -36,9 +57,7 @@ body {
 }
 
 @media (min-width: 768px) {
-    .site-body {
-        padding: 2rem;
-    }
+    .site-body { padding: 2rem; }
 }
 
 .max-w-7xl { max-width: 80rem; width: 100%; margin-left: auto; margin-right: auto; }
@@ -50,24 +69,36 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 2px solid var(--border-color);
     padding-bottom: 1rem;
     margin-bottom: 1.5rem;
     box-sizing: border-box;
 }
 
+.site-title, .character-title {
+    font-family: 'Finger-Paint', 'Impact', sans-serif;
+    color: var(--text-white);
+    letter-spacing: 0.05em; 
+    text-decoration: none;
+    transition: color 0.2s, text-shadow 0.2s;
+}
+
 .site-title {
     font-size: 1.875rem;
-    font-weight: 900;
-    color: var(--text-white);
-    text-decoration: none;
-    transition: color 0.2s;
     display: block;
-    font-family: 'Finger-Paint', 'Impact', sans-serif;
-    letter-spacing: 0.02em; 
+    /* Cursed Blue Drop Shadow */
+    text-shadow: 2px 2px 0px var(--manga-shadow);
 }
+
 .site-title:hover {
-    color: hsl(213, 94%, 68%);
+    color: var(--accent-blue);
+    text-shadow: 2px 2px 0px var(--manga-shadow), 0 0 15px hsla(213, 94%, 68%, 0.4);
+}
+
+.character-title {
+    font-size: 3.5rem;
+    margin: 0;
+    text-shadow: 3px 3px 0px var(--manga-shadow), -1px -1px 0 var(--border-color), 1px -1px 0 var(--border-color), -1px 1px 0 var(--border-color), 1px 1px 0 var(--border-color);
 }
 
 .site-subtitle {
@@ -75,8 +106,4 @@ body {
     color: hsl(215, 8%, 47%);
     font-family: var(--text-mono);
     margin: 0.25rem 0 0 0;
-}
-.character-title {
-    font-family: 'Finger-Paint', 'Impact', sans-serif;
-    letter-spacing: 0.02em; 
 }
