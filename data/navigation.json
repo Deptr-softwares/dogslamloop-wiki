@@ -1,0 +1,191 @@
+{
+  "Characters": [
+    {
+        "id": "Vessel",
+        "name": "Vessel",
+        "url": "characters/Vessel.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": false
+    },
+    {
+        "id": "Honored-One",
+        "name": "Honored One",
+        "url": "characters/Honored_One.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": false
+    },
+    {
+        "id": "Restless-Gambler",
+        "name": "Restless Gambler",
+        "url": "characters/Restless_Gambler.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": false
+    },
+    {
+        "id": "Ten-Shadows",
+        "name": "Ten Shadows",
+        "url": "characters/Ten_Shadows.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": false
+    },
+    {
+        "id": "Perfection",
+        "name": "Perfection",
+        "url": "characters/Perfection.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": false
+    },
+    {
+        "id": "Blood-Manipulator",
+        "name": "Blood Manipulator",
+        "url": "characters/Blood_Manipulator.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": false
+    },
+    {
+        "id": "Switcher",
+        "name": "Switcher",
+        "url": "characters/Switcher.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": false
+    },
+    {
+        "id": "Defense-Attorney",
+        "name": "Defense Attorney",
+        "url": "characters/Defense_Attorney.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": false
+    },
+    {
+        "id": "Cursed-Partners",
+        "name": "Cursed Partners",
+        "url": "characters/Cursed_Partners.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": false
+    },
+    {
+        "id": "Puppet-Master",
+        "name": "Puppet Master",
+        "url": "characters/Puppet_Master.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": false
+    },
+    {
+        "id": "Salaryman",
+        "name": "Salaryman",
+        "url": "characters/Salaryman.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": false
+    },
+    {
+        "id": "Head-Hei",
+        "name": "Head of the Hei",
+        "url": "characters/Head_of_the_Hei.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": false
+    },
+    {
+        "id": "Disaster-Plant",
+        "name": "Disaster Plant",
+        "url": "characters/Disaster_Plant.html",
+        "isWip": true,
+        "isEA": true,
+        "isBaseOnly": false
+    },
+    {
+        "id": "True-Cannon",
+        "name": "True Cannon",
+        "url": "characters/True_Cannon.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": false
+    },
+    {
+        "id": "Locust",
+        "name": "Locust Guy",
+        "url": "characters/Locust_Guy.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": true
+    },
+    {
+        "id": "Star-Rage",
+        "name": "Star Rage",
+        "url": "characters/Star_Rage.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": true
+    },
+    {
+        "id": "Mangaka",
+        "name": "Aspiring Mangaka",
+        "url": "characters/Aspiring_Mangaka.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": true
+    },
+    {
+        "id": "Lucky-Coward",
+        "name": "Lucky Coward",
+        "url": "characters/Lucky_Coward.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": true
+    },
+    {
+        "id": "Sus-Sister",
+        "name": "Crow Charmer",
+        "url": "characters/Crow_Charmer.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": true
+    },
+    {
+        "id": "Black-Death",
+        "name": "Black Death",
+        "url": "characters/Black_Death.html",
+        "isWip": true,
+        "isEA": false,
+        "isBaseOnly": true
+    },
+    {
+        "id": "Boomcat",
+        "name": "Boomcat",
+        "url": "characters/Boomcat.html",
+        "isWip": false,
+        "isEA": false,
+        "isBaseOnly": false
+    }
+    ],
+  "System Pages": [
+    { "name": "HUD", "url": "#" },
+    { "name": "Frame Data", "url": "#" },
+    { "name": "Fundamentals", "url": "#" },
+    { "name": "Evasive System", "url": "#" }
+  ],
+  "Site Info": [
+    { "name": "Template & Guide", "url": "systems/Template.html" },
+    { "name": "Source Code", "url": "https://github.com/Deptr-softwares/dogslamloop-wiki" },
+    { "name": "Update Log", "url": "#" },
+    { "name": "Collaborators", "url": "systems/Collaborators.html" }
+  ],
+  "Guides": [
+    { "name": "M1 Trading", "url": "#" },
+    { "name": "Starter Guide", "url": "#" },
+    { "name": "Terminologies", "url": "#" },
+    { "name": "Color Codes", "url": "#" },
+    { "name": "Tier List", "url": "#" }
+  ]
+}

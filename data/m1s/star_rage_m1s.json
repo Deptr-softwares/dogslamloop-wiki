@@ -1,14 +1,14 @@
 {
-  "characterId": "vessel",
+  "characterId": "star_rage",
   "m1s": [
     {
-      "id": "vessel-first-m1",
+      "id": "star-rage-first-m1",
       "name": "First M1",
       "input": "M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_firstm1.png",
+        "src": "/medias/images/starrage_firstm1.png",
         "alt": "First M1 animation"
       },
       "stats": [
@@ -22,7 +22,7 @@
         },
         {
           "label": "Punishability",
-          "value": "Very Unsafe (17f)",
+          "value": "Safe (12f)",
           "isHighlighted": true
         }
       ],
@@ -33,12 +33,12 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration (21f)",
+              "headerInfo": "M1 duration (20f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 14,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 14f"
                 },
                 {
                   "duration": 1,
@@ -46,9 +46,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 8,
+                  "duration": 5,
                   "styleClass": "bg-tick-recov",
-                  "label": "Recovery: 8f"
+                  "label": "Recovery: 5f"
                 }
               ]
             }
@@ -56,7 +56,7 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (14f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
@@ -64,7 +64,7 @@
             },
             {
               "color": "hsl(295, 89.76%, 50.2%)",
-              "text": "Recovery (8f)"
+              "text": "Recovery (5f)"
             }
           ]
         },
@@ -74,12 +74,12 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration on Block (30f)",
+              "headerInfo": "M1 duration on Block (26f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 14,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 14f"
                 },
                 {
                   "duration": 1,
@@ -87,9 +87,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 17,
+                  "duration": 11,
                   "styleClass": "bg-tick-blockendlag",
-                  "label": "Block Endlag: 17f"
+                  "label": "Block Endlag: 11f"
                 }
               ]
             }
@@ -97,7 +97,7 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (14f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
@@ -105,20 +105,20 @@
             },
             {
               "color": "hsl(319.73, 88.24%, 50%)",
-              "text": "Block Endlag (17f)"
+              "text": "Block Endlag (11f)"
             }
           ]
         }
       }
     },
     {
-      "id": "vessel-second-m1",
+      "id": "star-rage-second-m1",
       "name": "Second M1",
       "input": "M1 x2 or Hold M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_secondm1.png",
+        "src": "/medias/images/starrage_secondm1.png",
         "alt": "Second M1 animation"
       },
       "stats": [
@@ -132,8 +132,8 @@
         },
         {
           "label": "Punishability",
-          "value": "Very Unsafe (17f)",
-          "isHighlighted": true
+          "value": "Safe (12f)",
+          "isHighlighted": false
         }
       ],
       "variants": {
@@ -143,12 +143,12 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration (21f)",
+              "headerInfo": "M1 duration (20f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 14,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 14f"
                 },
                 {
                   "duration": 1,
@@ -156,9 +156,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 8,
+                  "duration": 5,
                   "styleClass": "bg-tick-recov",
-                  "label": "Recovery: 8f"
+                  "label": "Recovery: 5f"
                 }
               ]
             }
@@ -166,7 +166,7 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (14f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
@@ -174,7 +174,7 @@
             },
             {
               "color": "hsl(295, 89.76%, 50.2%)",
-              "text": "Recovery (8f)"
+              "text": "Recovery (5f)"
             }
           ]
         },
@@ -184,12 +184,12 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration on Block (30f)",
+              "headerInfo": "M1 duration on Block (26f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 14,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 14f"
                 },
                 {
                   "duration": 1,
@@ -197,9 +197,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 17,
+                  "duration": 11,
                   "styleClass": "bg-tick-blockendlag",
-                  "label": "Block Endlag: 17f"
+                  "label": "Block Endlag: 11f"
                 }
               ]
             }
@@ -207,7 +207,7 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (14f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
@@ -215,20 +215,20 @@
             },
             {
               "color": "hsl(319.73, 88.24%, 50%)",
-              "text": "Block Endlag (17f)"
+              "text": "Block Endlag (11f)"
             }
           ]
         }
       }
     },
     {
-      "id": "vessel-third-m1",
+      "id": "star-rage-third-m1",
       "name": "Third M1",
       "input": "M1 x3 or Hold M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_thirdm1.png",
+        "src": "/medias/images/starrage_thirdm1.png",
         "alt": "Third M1 animation"
       },
       "stats": [
@@ -242,7 +242,7 @@
         },
         {
           "label": "Punishability",
-          "value": "Very Unsafe (17f)",
+          "value": "Safe (12f)",
           "isHighlighted": true
         }
       ],
@@ -253,12 +253,12 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration (21f)",
+              "headerInfo": "M1 duration (20f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 14,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 14f"
                 },
                 {
                   "duration": 1,
@@ -266,9 +266,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 8,
+                  "duration": 5,
                   "styleClass": "bg-tick-recov",
-                  "label": "Recovery: 8f"
+                  "label": "Recovery: 5f"
                 }
               ]
             }
@@ -276,7 +276,7 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (14f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
@@ -284,7 +284,7 @@
             },
             {
               "color": "hsl(295, 89.76%, 50.2%)",
-              "text": "Recovery (8f)"
+              "text": "Recovery (5f)"
             }
           ]
         },
@@ -294,10 +294,10 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration on Block (30f)",
+              "headerInfo": "M1 duration on Block (26f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 14,
                   "styleClass": "bg-tick-start",
                   "label": "Startup: 12f"
                 },
@@ -307,9 +307,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 17,
+                  "duration": 11,
                   "styleClass": "bg-tick-blockendlag",
-                  "label": "Block Endlag: 17f"
+                  "label": "Block Endlag: 11f"
                 }
               ]
             }
@@ -317,7 +317,7 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (14f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
@@ -325,20 +325,20 @@
             },
             {
               "color": "hsl(319.73, 88.24%, 50%)",
-              "text": "Block Endlag (17f)"
+              "text": "Block Endlag (11f)"
             }
           ]
         }
       }
     },
     {
-      "id": "vessel-fourth-m1",
+      "id": "star-rage-fourth-m1",
       "name": "Fourth M1",
       "input": "M1 x4 or Hold M1",
       "type": "Basic Attack",
       "variant": "Ground Variant",
       "media": {
-        "src": "/medias/images/vessel_fourthm1.png",
+        "src": "/medias/images/starrage_fourthm1.png",
         "alt": "Fourth M1 animation"
       },
       "stats": [
@@ -354,13 +354,13 @@
       "variants": {}
     },
     {
-      "id": "vessel-uppercut",
+      "id": "star-rage-uppercut",
       "name": "Uppercut",
       "input": "Space + M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_uppercut.png",
+        "src": "/medias/images/starrage_uppercut.png",
         "alt": "Uppercut animation"
       },
       "stats": [
@@ -376,13 +376,13 @@
       "variants": {}
     },
     {
-      "id": "vessel-downslam",
+      "id": "star-rage-downslam",
       "name": "Downslam",
       "input": "Air + M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_downslam.png",
+        "src": "/medias/images/starrage-downslam.png",
         "alt": "Downslam animation"
       },
       "stats": [

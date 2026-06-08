@@ -28,8 +28,7 @@
               "phases": [
                 { "duration": 30, "styleClass": "bg-tick-start", "label": "Startup: 30f" },
                 { "duration": 55, "styleClass": "bg-tick-active", "label": "Projectile Active: 55f" },
-                { "duration": 25, "styleClass": "bg-tick-recov", "label": "Recovery: 25f" },
-                { "duration": 10, "styleClass": "bg-transparent", "label": "" }
+                { "duration": 25, "styleClass": "bg-tick-recov", "label": "Recovery: 25f" }
               ]
             }
           ],
@@ -92,16 +91,7 @@
             { "color": "hsl(153.88, 100%, 50%)", "text": "Misc: The Projectile travel a certain distance before getting blocked, making so the exact frame data vary quite a lots. For this one the range is (0f - 55f)" }
           ]
         }
-      },
-      "strategyParagraphs": [
-        "The user strikes a pose with a 30 frame startup. Then, fires a projectile that travels >32 studs in 55 frames before despawning.",
-        "After that, you are left in stun for 25 frames on whiff. If the projectile hits, the user will grab the target and perform a barrage of attacks on them, dealing damage.",
-        "If the projectile is blocked, the user will get a block endlag of 46f, more than punishable for anyone with half a braincell, so do not use this in neutral."
-      ],
-      "bulletPoints": [
-        "<strong>The Projectile Thingy:</strong> Because the hit detection is tied to a spawned projectile rather than the user's physical body, the move can grab opponents through solid walls, even if the user doesn't move.",
-        "<strong>Combo Extender (+48f):</strong> While the attacker leaves their grab animation after 113f, the target is forced to endure a total stun of 161 frames (113f of the animation + 48f of extra stun). This decent frame advantage creates a window to link into any attacks in the kit."
-      ]
+      }
     },
     {
       "id": "cursed-strikes-air",

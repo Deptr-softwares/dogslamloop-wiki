@@ -7,58 +7,111 @@
       "input": "1 Key",
       "type": "AOE Long Range Blockbreaker",
       "variant": "Ground Variant",
-      "variants": [
-
-      ]
+      "stats": [
+        { "label": "Range", "value": "Entire Map", "isHighlighted": true }
+      ],
+      "variants": {
+        "hit": {
+          "label": "On Hit",
+          "totalScale": 1000,
+          "bars": [
+            {
+              "type": "user",
+              "headerInfo": "Attacker Stun",
+              "headerClass": "text-blue-400",
+              "phases": [
+                { "duration": 1, "styleClass": "bg-tick-start", "label": "Startup: 1f" },
+                { "duration": 1, "styleClass": "bg-tick-selfstun", "label": "Self Stun: 1f" }
+              ]
+            },
+            {
+              "type": "target",
+              "headerInfo": "Target Stun",
+              "headerClass": "text-red-400",
+              "advantageText": "ADVANTAGE: +998f",
+              "phases": [
+                { "duration": 1, "styleClass": "bg-transparent", "label": "Target is free" },
+                { "duration": 999, "styleClass": "bg-tick-targetstun", "label": "Target Stun: 999f" }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            { "color": "hsl(217.18, 100%, 50%)", "text": "Startup (1f)" },
+            { "color": "hsl(0, 70%, 35%)", "text": "Eternal Target Stun (999f)" }
+          ]
+        }
+      }
     },
     {
       "id": "boom-cat-air",
       "name": "Aerial Boom Cat",
       "input": "Air + 1 Key",
       "type": "Gap Closer Blockbreaking Combo Starter",
-      "variant": "Air Variant"
+      "variant": "Air Variant",
+      "variants": {}
     },
     {
       "id": "nonchalant-aura",
       "name": "Nonchalant Aura",
       "input": "2 Key",
       "type": "Mid Range Combo Starter, Extender, Breaker, Enhancer, Finisher, Execution, Chainer, and Ender",
-      "variant": "Ground Variant"
+      "variant": "Ground Variant",
+      "variants": {
+        "aura": {
+          "label": "Aura Active",
+          "totalScale": 100,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "Pure Aura (100f)",
+              "phases": [
+                { "duration": 0, "styleClass": "bg-tick-start", "label": "Startup: 0f" },
+                { "duration": 100, "styleClass": "bg-tick-active", "label": "Active: 100f" }
+              ]
+            }
+          ]
+        }
+      }
     },
     {
       "id": "nonchalant-aura-air",
       "name": "Aerial Nonchalant Aura",
       "input": "Air + 2 Key",
       "type": "Teleport Mixup I-frames/Escape tool with I-frames",
-      "variant": "Air Variant"
+      "variant": "Air Variant",
+      "variants": {}
     },
     {
       "id": "explosion",
       "name": "Explosion",
       "input": "3 Key",
       "type": "Backside Omni-Counter/Ragdoll Execution",
-      "variant": "Use Once Variant"
+      "variant": "Use Once Variant",
+      "variants": {}
     },
     {
       "id": "super-explosion",
       "name": "Super Explosion",
       "input": "hold 3 Key",
       "type": "Close Range Punisher with I-frames/AOE Ragdoll Execution",
-      "variant": "Held Variant"
+      "variant": "Held Variant",
+      "variants": {}
     },
     {
       "id": "boomcat-manji-kick",
       "name": "Boomcat Style Manji Kick",
       "input": "4 Key",
       "type": "Instakill Omni-Counter",
-      "variant": "Normal Counter Variant"
+      "variant": "Normal Counter Variant",
+      "variants": {}
     },
     {
       "id": "boomcat-manji-kick-extender",
       "name": "Boomcat Style Manji Kick",
       "input": "4 + 4 Key",
       "type": "M1 Reset",
-      "variant": "Use twice Variant"
+      "variant": "Use twice Variant",
+      "variants": {}
     }
   ]
 }

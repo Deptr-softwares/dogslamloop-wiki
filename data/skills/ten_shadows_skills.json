@@ -1,0 +1,18 @@
+{
+  "characterId": "ten_shadows",
+  "skills": [
+    {
+      "id": "placeholder-skill",
+      "name": "Placeholder Skill",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    }
+  ]
+}

@@ -1,14 +1,14 @@
 {
-  "characterId": "vessel",
+  "characterId": "head_hei",
   "m1s": [
     {
-      "id": "vessel-first-m1",
+      "id": "headhei-first-m1",
       "name": "First M1",
       "input": "M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_firstm1.png",
+        "src": "/medias/images/headhei_firstm1.png",
         "alt": "First M1 animation"
       },
       "stats": [
@@ -22,7 +22,7 @@
         },
         {
           "label": "Punishability",
-          "value": "Very Unsafe (17f)",
+          "value": "50/50 (16f)",
           "isHighlighted": true
         }
       ],
@@ -33,7 +33,7 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration (21f)",
+              "headerInfo": "M1 duration (20f)",
               "phases": [
                 {
                   "duration": 12,
@@ -46,9 +46,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 8,
+                  "duration": 7,
                   "styleClass": "bg-tick-recov",
-                  "label": "Recovery: 8f"
+                  "label": "Recovery: 7f"
                 }
               ]
             }
@@ -64,7 +64,7 @@
             },
             {
               "color": "hsl(295, 89.76%, 50.2%)",
-              "text": "Recovery (8f)"
+              "text": "Recovery (7f)"
             }
           ]
         },
@@ -74,7 +74,7 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration on Block (30f)",
+              "headerInfo": "M1 duration on Block (28f)",
               "phases": [
                 {
                   "duration": 12,
@@ -87,9 +87,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 17,
+                  "duration": 15,
                   "styleClass": "bg-tick-blockendlag",
-                  "label": "Block Endlag: 17f"
+                  "label": "Block Endlag: 15f"
                 }
               ]
             }
@@ -105,20 +105,20 @@
             },
             {
               "color": "hsl(319.73, 88.24%, 50%)",
-              "text": "Block Endlag (17f)"
+              "text": "Block Endlag (15f)"
             }
           ]
         }
       }
     },
     {
-      "id": "vessel-second-m1",
+      "id": "headhei-second-m1",
       "name": "Second M1",
       "input": "M1 x2 or Hold M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_secondm1.png",
+        "src": "/medias/images/headhei_secondm1.png",
         "alt": "Second M1 animation"
       },
       "stats": [
@@ -132,7 +132,7 @@
         },
         {
           "label": "Punishability",
-          "value": "Very Unsafe (17f)",
+          "value": "RIP (20f)",
           "isHighlighted": true
         }
       ],
@@ -146,9 +146,9 @@
               "headerInfo": "M1 duration (21f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 11,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 11f"
                 },
                 {
                   "duration": 1,
@@ -156,9 +156,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 8,
+                  "duration": 9,
                   "styleClass": "bg-tick-recov",
-                  "label": "Recovery: 8f"
+                  "label": "Recovery: 9f"
                 }
               ]
             }
@@ -166,7 +166,7 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (11f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
@@ -174,7 +174,7 @@
             },
             {
               "color": "hsl(295, 89.76%, 50.2%)",
-              "text": "Recovery (8f)"
+              "text": "Recovery (9f)"
             }
           ]
         },
@@ -184,12 +184,12 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration on Block (30f)",
+              "headerInfo": "M1 duration on Block (31f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 11,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 11f"
                 },
                 {
                   "duration": 1,
@@ -197,9 +197,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 17,
+                  "duration": 19,
                   "styleClass": "bg-tick-blockendlag",
-                  "label": "Block Endlag: 17f"
+                  "label": "Block Endlag: 19f"
                 }
               ]
             }
@@ -207,7 +207,7 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (11f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
@@ -215,20 +215,20 @@
             },
             {
               "color": "hsl(319.73, 88.24%, 50%)",
-              "text": "Block Endlag (17f)"
+              "text": "Block Endlag (19f)"
             }
           ]
         }
       }
     },
     {
-      "id": "vessel-third-m1",
+      "id": "headhei-third-m1",
       "name": "Third M1",
       "input": "M1 x3 or Hold M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_thirdm1.png",
+        "src": "/medias/images/headhei_thirdm1.png",
         "alt": "Third M1 animation"
       },
       "stats": [
@@ -242,7 +242,7 @@
         },
         {
           "label": "Punishability",
-          "value": "Very Unsafe (17f)",
+          "value": "RIP (20f)",
           "isHighlighted": true
         }
       ],
@@ -256,9 +256,9 @@
               "headerInfo": "M1 duration (21f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 11,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 11f"
                 },
                 {
                   "duration": 1,
@@ -266,9 +266,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 8,
+                  "duration": 9,
                   "styleClass": "bg-tick-recov",
-                  "label": "Recovery: 8f"
+                  "label": "Recovery: 9f"
                 }
               ]
             }
@@ -284,7 +284,7 @@
             },
             {
               "color": "hsl(295, 89.76%, 50.2%)",
-              "text": "Recovery (8f)"
+              "text": "Recovery (9f)"
             }
           ]
         },
@@ -294,12 +294,12 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration on Block (30f)",
+              "headerInfo": "M1 duration on Block (31f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 11,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 11f"
                 },
                 {
                   "duration": 1,
@@ -307,9 +307,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 17,
+                  "duration": 19,
                   "styleClass": "bg-tick-blockendlag",
-                  "label": "Block Endlag: 17f"
+                  "label": "Block Endlag: 19f"
                 }
               ]
             }
@@ -317,7 +317,7 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (11f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
@@ -325,20 +325,20 @@
             },
             {
               "color": "hsl(319.73, 88.24%, 50%)",
-              "text": "Block Endlag (17f)"
+              "text": "Block Endlag (19f)"
             }
           ]
         }
       }
     },
     {
-      "id": "vessel-fourth-m1",
+      "id": "headhei-fourth-m1",
       "name": "Fourth M1",
       "input": "M1 x4 or Hold M1",
       "type": "Basic Attack",
       "variant": "Ground Variant",
       "media": {
-        "src": "/medias/images/vessel_fourthm1.png",
+        "src": "/medias/images/headhei_fourthm1.png",
         "alt": "Fourth M1 animation"
       },
       "stats": [
@@ -349,54 +349,6 @@
         {
           "label": "Damage Type",
           "value": "Melee"
-        }
-      ],
-      "variants": {}
-    },
-    {
-      "id": "vessel-uppercut",
-      "name": "Uppercut",
-      "input": "Space + M1",
-      "type": "Basic Attack",
-      "variant": "Standard Variant",
-      "media": {
-        "src": "/medias/images/vessel_uppercut.png",
-        "alt": "Uppercut animation"
-      },
-      "stats": [
-        {
-          "label": "Damage",
-          "value": "4"
-        },
-        {
-          "label": "Damage Type",
-          "value": "Melee"
-        }
-      ],
-      "variants": {}
-    },
-    {
-      "id": "vessel-downslam",
-      "name": "Downslam",
-      "input": "Air + M1",
-      "type": "Basic Attack",
-      "variant": "Standard Variant",
-      "media": {
-        "src": "/medias/images/vessel_downslam.png",
-        "alt": "Downslam animation"
-      },
-      "stats": [
-        {
-          "label": "Damage",
-          "value": "4"
-        },
-        {
-          "label": "Damage Type",
-          "value": "Melee"
-        },
-        {
-          "label": "Blockbreak",
-          "value": "True"
         }
       ],
       "variants": {}

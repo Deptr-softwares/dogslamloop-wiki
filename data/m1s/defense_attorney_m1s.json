@@ -1,14 +1,14 @@
 {
-  "characterId": "vessel",
+  "characterId": "defense_attorney",
   "m1s": [
     {
-      "id": "vessel-first-m1",
+      "id": "defense-attorney-first-m1",
       "name": "First M1",
       "input": "M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_firstm1.png",
+        "src": "/medias/images/defenseattorney_firstm1.png",
         "alt": "First M1 animation"
       },
       "stats": [
@@ -22,8 +22,7 @@
         },
         {
           "label": "Punishability",
-          "value": "Very Unsafe (17f)",
-          "isHighlighted": true
+          "value": "Very Safe (11f)"
         }
       ],
       "variants": {
@@ -33,12 +32,12 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration (21f)",
+              "headerInfo": "M1 duration (20f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 14,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 14f"
                 },
                 {
                   "duration": 1,
@@ -46,9 +45,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 8,
+                  "duration": 5,
                   "styleClass": "bg-tick-recov",
-                  "label": "Recovery: 8f"
+                  "label": "Recovery: 5f"
                 }
               ]
             }
@@ -56,7 +55,7 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (14f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
@@ -64,7 +63,7 @@
             },
             {
               "color": "hsl(295, 89.76%, 50.2%)",
-              "text": "Recovery (8f)"
+              "text": "Recovery (5f)"
             }
           ]
         },
@@ -74,12 +73,12 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration on Block (30f)",
+              "headerInfo": "M1 duration on Block (26f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 14,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 14f"
                 },
                 {
                   "duration": 1,
@@ -87,9 +86,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 17,
+                  "duration": 11,
                   "styleClass": "bg-tick-blockendlag",
-                  "label": "Block Endlag: 17f"
+                  "label": "Block Endlag: 11f"
                 }
               ]
             }
@@ -97,7 +96,7 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (14f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
@@ -105,20 +104,20 @@
             },
             {
               "color": "hsl(319.73, 88.24%, 50%)",
-              "text": "Block Endlag (17f)"
+              "text": "Block Endlag (11f)"
             }
           ]
         }
       }
     },
     {
-      "id": "vessel-second-m1",
+      "id": "defense-attorney-second-m1",
       "name": "Second M1",
       "input": "M1 x2 or Hold M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_secondm1.png",
+        "src": "/medias/images/defenseattorney_secondm1.png",
         "alt": "Second M1 animation"
       },
       "stats": [
@@ -132,8 +131,7 @@
         },
         {
           "label": "Punishability",
-          "value": "Very Unsafe (17f)",
-          "isHighlighted": true
+          "value": "Safe (13f)"
         }
       ],
       "variants": {
@@ -143,22 +141,32 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration (21f)",
+              "headerInfo": "M1 duration (32f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 14,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 14f"
                 },
                 {
                   "duration": 1,
                   "styleClass": "bg-tick-active",
-                  "label": "Active Hitbox: 1f"
+                  "label": "Active Hitbox 1: 1f"
                 },
                 {
-                  "duration": 8,
+                  "duration": 10,
+                  "styleClass": "bg-tick-inactive",
+                  "label": "Inactive Frames: 10f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox 2: 1f"
+                },
+                {
+                  "duration": 6,
                   "styleClass": "bg-tick-recov",
-                  "label": "Recovery: 8f"
+                  "label": "Recovery: 6f"
                 }
               ]
             }
@@ -166,15 +174,19 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (14f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
-              "text": "Active Hitbox (1f)"
+              "text": "Active Hitbox (2f total)"
+            },
+            {
+              "color": "hsl(44, 100%, 50%)",
+              "text": "Inactive Frames (10f)"
             },
             {
               "color": "hsl(295, 89.76%, 50.2%)",
-              "text": "Recovery (8f)"
+              "text": "Recovery (6f)"
             }
           ]
         },
@@ -184,22 +196,32 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration on Block (30f)",
+              "headerInfo": "M1 duration on Block (39f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 14,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 14f"
                 },
                 {
                   "duration": 1,
                   "styleClass": "bg-tick-active",
-                  "label": "Active Hitbox: 1f"
+                  "label": "Active Hitbox 1: 1f"
                 },
                 {
-                  "duration": 17,
+                  "duration": 10,
+                  "styleClass": "bg-tick-inactive",
+                  "label": "Inactive Frames: 10f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox 2: 1f"
+                },
+                {
+                  "duration": 13,
                   "styleClass": "bg-tick-blockendlag",
-                  "label": "Block Endlag: 17f"
+                  "label": "Block Endlag: 13f"
                 }
               ]
             }
@@ -207,28 +229,32 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (14f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
-              "text": "Active Hitbox (1f)"
+              "text": "Active Hitbox (2f total)"
+            },
+            {
+              "color": "hsl(44, 100%, 50%)",
+              "text": "Inactive Frames (10f)"
             },
             {
               "color": "hsl(319.73, 88.24%, 50%)",
-              "text": "Block Endlag (17f)"
+              "text": "Block Endlag (13f)"
             }
           ]
         }
       }
     },
     {
-      "id": "vessel-third-m1",
+      "id": "defense-attorney-third-m1",
       "name": "Third M1",
       "input": "M1 x3 or Hold M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_thirdm1.png",
+        "src": "/medias/images/defenseattorney_thirdm1.png",
         "alt": "Third M1 animation"
       },
       "stats": [
@@ -242,8 +268,7 @@
         },
         {
           "label": "Punishability",
-          "value": "Very Unsafe (17f)",
-          "isHighlighted": true
+          "value": "Safe (13f)"
         }
       ],
       "variants": {
@@ -253,12 +278,12 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration (21f)",
+              "headerInfo": "M1 duration (26f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 19,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 19f"
                 },
                 {
                   "duration": 1,
@@ -266,9 +291,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 8,
+                  "duration": 6,
                   "styleClass": "bg-tick-recov",
-                  "label": "Recovery: 8f"
+                  "label": "Recovery: 6f"
                 }
               ]
             }
@@ -276,7 +301,7 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (19f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
@@ -284,7 +309,7 @@
             },
             {
               "color": "hsl(295, 89.76%, 50.2%)",
-              "text": "Recovery (8f)"
+              "text": "Recovery (6f)"
             }
           ]
         },
@@ -294,12 +319,12 @@
           "bars": [
             {
               "type": "single",
-              "headerInfo": "M1 duration on Block (30f)",
+              "headerInfo": "M1 duration on Block (33f)",
               "phases": [
                 {
-                  "duration": 12,
+                  "duration": 19,
                   "styleClass": "bg-tick-start",
-                  "label": "Startup: 12f"
+                  "label": "Startup: 19f"
                 },
                 {
                   "duration": 1,
@@ -307,9 +332,9 @@
                   "label": "Active Hitbox: 1f"
                 },
                 {
-                  "duration": 17,
+                  "duration": 13,
                   "styleClass": "bg-tick-blockendlag",
-                  "label": "Block Endlag: 17f"
+                  "label": "Block Endlag: 13f"
                 }
               ]
             }
@@ -317,7 +342,7 @@
           "inlineLegend": [
             {
               "color": "hsl(217.18, 100%, 50%)",
-              "text": "Startup (12f)"
+              "text": "Startup (19f)"
             },
             {
               "color": "hsl(0, 100%, 45%)",
@@ -325,20 +350,20 @@
             },
             {
               "color": "hsl(319.73, 88.24%, 50%)",
-              "text": "Block Endlag (17f)"
+              "text": "Block Endlag (13f)"
             }
           ]
         }
       }
     },
     {
-      "id": "vessel-fourth-m1",
+      "id": "defense-attorney-fourth-m1",
       "name": "Fourth M1",
       "input": "M1 x4 or Hold M1",
       "type": "Basic Attack",
       "variant": "Ground Variant",
       "media": {
-        "src": "/medias/images/vessel_fourthm1.png",
+        "src": "/medias/images/defenseattorney_fourthm1.png",
         "alt": "Fourth M1 animation"
       },
       "stats": [
@@ -354,13 +379,13 @@
       "variants": {}
     },
     {
-      "id": "vessel-uppercut",
+      "id": "defense-attorney-uppercut",
       "name": "Uppercut",
       "input": "Space + M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_uppercut.png",
+        "src": "/medias/images/defenseattorney_uppercut.png",
         "alt": "Uppercut animation"
       },
       "stats": [
@@ -376,13 +401,13 @@
       "variants": {}
     },
     {
-      "id": "vessel-downslam",
+      "id": "defense-attorney-downslam",
       "name": "Downslam",
       "input": "Air + M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_downslam.png",
+        "src": "/medias/images/defenseattorney_downslam.png",
         "alt": "Downslam animation"
       },
       "stats": [

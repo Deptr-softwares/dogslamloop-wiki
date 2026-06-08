@@ -1,14 +1,14 @@
 {
-  "characterId": "vessel",
+  "characterId": "restless_gambler",
   "m1s": [
     {
-      "id": "vessel-first-m1",
+      "id": "restless-gambler-first-m1",
       "name": "First M1",
       "input": "M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_firstm1.png",
+        "src": "/medias/images/restlessgambler_firstm1.png",
         "alt": "First M1 animation"
       },
       "stats": [
@@ -22,7 +22,7 @@
         },
         {
           "label": "Punishability",
-          "value": "Very Unsafe (17f)",
+          "value": "Unsafe (17f)",
           "isHighlighted": true
         }
       ],
@@ -112,13 +112,13 @@
       }
     },
     {
-      "id": "vessel-second-m1",
+      "id": "restless-gambler-second-m1",
       "name": "Second M1",
       "input": "M1 x2 or Hold M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_secondm1.png",
+        "src": "/medias/images/restlessgambler_secondm1.png",
         "alt": "Second M1 animation"
       },
       "stats": [
@@ -132,7 +132,7 @@
         },
         {
           "label": "Punishability",
-          "value": "Very Unsafe (17f)",
+          "value": "Unsafe (17f)",
           "isHighlighted": true
         }
       ],
@@ -222,13 +222,13 @@
       }
     },
     {
-      "id": "vessel-third-m1",
+      "id": "restless-gambler-third-m1",
       "name": "Third M1",
       "input": "M1 x3 or Hold M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_thirdm1.png",
+        "src": "/medias/images/restlessgambler_thirdm1.png",
         "alt": "Third M1 animation"
       },
       "stats": [
@@ -242,7 +242,7 @@
         },
         {
           "label": "Punishability",
-          "value": "Very Unsafe (17f)",
+          "value": "Unsafe (17f)",
           "isHighlighted": true
         }
       ],
@@ -332,13 +332,13 @@
       }
     },
     {
-      "id": "vessel-fourth-m1",
+      "id": "restless-gambler-fourth-m1",
       "name": "Fourth M1",
       "input": "M1 x4 or Hold M1",
       "type": "Basic Attack",
       "variant": "Ground Variant",
       "media": {
-        "src": "/medias/images/vessel_fourthm1.png",
+        "src": "/medias/images/restlessgambler_fourthm1.png",
         "alt": "Fourth M1 animation"
       },
       "stats": [
@@ -354,13 +354,13 @@
       "variants": {}
     },
     {
-      "id": "vessel-uppercut",
+      "id": "restless-gambler-uppercut",
       "name": "Uppercut",
       "input": "Space + M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_uppercut.png",
+        "src": "/medias/images/restlessgambler_uppercut.png",
         "alt": "Uppercut animation"
       },
       "stats": [
@@ -376,13 +376,13 @@
       "variants": {}
     },
     {
-      "id": "vessel-downslam",
+      "id": "restless-gambler-downslam",
       "name": "Downslam",
       "input": "Air + M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_downslam.png",
+        "src": "/medias/images/restlessgambler_downslam.png",
         "alt": "Downslam animation"
       },
       "stats": [

@@ -1,14 +1,14 @@
 {
-  "characterId": "vessel",
+  "characterId": "cursed_partners",
   "m1s": [
     {
-      "id": "vessel-first-m1",
+      "id": "cursed-partners-first-m1",
       "name": "First M1",
       "input": "M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_firstm1.png",
+        "src": "/medias/images/cursedpartners_firstm1.png",
         "alt": "First M1 animation"
       },
       "stats": [
@@ -112,13 +112,13 @@
       }
     },
     {
-      "id": "vessel-second-m1",
+      "id": "cursed-partners-second-m1",
       "name": "Second M1",
       "input": "M1 x2 or Hold M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_secondm1.png",
+        "src": "/medias/images/cursedpartners_secondm1.png",
         "alt": "Second M1 animation"
       },
       "stats": [
@@ -222,13 +222,13 @@
       }
     },
     {
-      "id": "vessel-third-m1",
+      "id": "cursed-partners-third-m1",
       "name": "Third M1",
       "input": "M1 x3 or Hold M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_thirdm1.png",
+        "src": "/medias/images/cursedpartners_thirdm1.png",
         "alt": "Third M1 animation"
       },
       "stats": [
@@ -332,13 +332,13 @@
       }
     },
     {
-      "id": "vessel-fourth-m1",
+      "id": "cursed-partners-fourth-m1",
       "name": "Fourth M1",
       "input": "M1 x4 or Hold M1",
       "type": "Basic Attack",
       "variant": "Ground Variant",
       "media": {
-        "src": "/medias/images/vessel_fourthm1.png",
+        "src": "/medias/images/cursedpartners_fourthm1.png",
         "alt": "Fourth M1 animation"
       },
       "stats": [
@@ -354,13 +354,13 @@
       "variants": {}
     },
     {
-      "id": "vessel-uppercut",
+      "id": "cursed-partners-uppercut",
       "name": "Uppercut",
       "input": "Space + M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_uppercut.png",
+        "src": "/medias/images/cursedpartners_uppercut.png",
         "alt": "Uppercut animation"
       },
       "stats": [
@@ -376,13 +376,13 @@
       "variants": {}
     },
     {
-      "id": "vessel-downslam",
+      "id": "cursed-partners-downslam",
       "name": "Downslam",
       "input": "Air + M1",
       "type": "Basic Attack",
       "variant": "Standard Variant",
       "media": {
-        "src": "/medias/images/vessel_downslam.png",
+        "src": "/medias/images/cursedpartners_downslam.png",
         "alt": "Downslam animation"
       },
       "stats": [

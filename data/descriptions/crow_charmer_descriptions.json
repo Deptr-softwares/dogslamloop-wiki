@@ -1,0 +1,123 @@
+{
+  "characterId": "crow_charmer",
+  "profile": {
+    "image": "",
+    "stats": []
+  },
+  "overview": [],
+  "strategy": [],
+  "extras": [],
+  "matchups": [
+    {
+      "opponent": "Honored One",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Vessel",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Restless Gambler",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Ten Shadows",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Perfection",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Blood Manipulator",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Switcher",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Defense Attorney",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Cursed Partners",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Puppet Master",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Head of the Hei",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Salaryman",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Disaster Plant",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "True Cannon",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Locust Guy",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Star Rage",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Aspiring Mangaka",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Lucky Coward",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Crow Charmer",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Black Death",
+      "tier": "Equal",
+      "content": []
+    }
+  ],
+  "counterplay": [],
+  "moveStrategies": {
+    "crow-charmer-first-m1": [],
+    "crow-charmer-second-m1": [],
+    "crow-charmer-third-m1": [],
+    "crow-charmer-fourth-m1": [],
+    "crow-charmer-uppercut": [],
+    "crow-charmer-downslam": [],
+    "placeholder-skill": [],
+    "placeholder-special": []
+  }
+}

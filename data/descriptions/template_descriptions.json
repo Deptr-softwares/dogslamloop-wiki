@@ -1,0 +1,482 @@
+{
+  "characterId": "template",
+  "profile": {
+    "image": "/medias/images/DestroymanFront.jpg",
+    "stats": [
+      { "label": "Purpose", "value": "Guide" },
+      { "label": "Difficulty", "value": "Reading Required" },
+      { "label": "Label", "value": "Hi I'm a Label!" }
+    ]
+  },
+  "overview": [
+    {
+      "type": "heading",
+      "align": "center",
+      "content": "What the site is capable of."
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "Welcome to the formatting guide page.",
+        "Instead of writing raw HTML, you write arrays of blocks.",
+        "This paragraph is an example of a standard text block."
+      ]
+    },
+    {
+      "type": "heading",
+      "content": "1. Text Highlighting & Auto-Colors"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "The wiki's internal styling engine automatically detects and highlights character names like Vessel, Honored One, and Restless Gambler.",
+        "It also detects frame data terminology like Startup, Active, Recovery, and Block Endlag."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "Frame numbers are dynamically colored based on their context:",
+        "Advantage states like +15f or (+48f) turn generic green.",
+        "Disadvantage states like -10f or (-24f) turn generic red.",
+        "Neutral timings like 30f, f50, or (12f) will automatically adopt the specific accent color of the character page they are on."
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": "If you need to manually force a color, use the shortcode: [color=hsl(300, 100%, 83%)]Like this custom pink text![/color]. To highlight a specific move name, use bold tags: [b]Cursed Strikes[/b]."
+    },
+    {
+      "type": "heading",
+      "content": "2. LaTeX Math Support"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "You can write advanced formulas right into your paragraphs! Use single dollar signs for inline math like $E = mc^2$, or double dollar signs for display equations like the M1 Block Endlag formula below:"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "align": "center",
+      "content": "$$ \\text{Block Endlag} = (\\text{Active} + \\text{Recovery}) * 2 - 1 $$"
+    },
+    {
+      "type": "heading",
+      "content": "3. Media Sizing and Text Wrapping"
+    },
+    {
+      "type": "image",
+      "src": "/medias/images/DestroymanFront.jpg",
+      "align": "right",
+      "width": "25%",
+      "alt": "Resized Image"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "By adding the 'width' property (like '25%' or '200px') to a media block, you can override the default sizing so high-res images don't consume the screen.",
+        "Because the image to the right has 'align': 'right', this text block effortlessly wraps around the left side of it. This saves massive amounts of vertical space and makes the wiki look incredibly clean.",
+        "You can stack as many paragraphs or lists next to a floating image as you need."
+      ]
+    },
+    {
+      "type": "heading",
+      "content": "4. Embedding GIFs and Videos"
+    },
+    {
+      "type": "image",
+      "src": "/medias/gifs/cat-cute.gif",
+      "align": "left",
+      "width": "30%",
+      "alt": "Cute Cat GIF"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "You can embed GIFs using the 'image' type, and MP4s using the 'video' type.",
+        "To the left is a standard GIF block aligned left. The engine handles the CSS float automatically, allowing text to wrap naturally around it without breaking the layout."
+      ]
+    },
+    {
+      "type": "video",
+      "src": "/medias/videos/awesome-haruta-example.mp4",
+      "align": "right",
+      "width": "40%",
+      "controls": true
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "On the right is a 'video' block with 'controls': true.",
+        "Setting controls to true gives the user a timeline to scrub through, volume controls, and fullscreen options.",
+        "Advantage states like +15f or (+48f) turn generic green."
+      ]
+    },
+    {
+      "type": "heading",
+      "content": "5. High-Quality Loopers (Autoplay)"
+    },
+    {
+      "type": "video",
+      "src": "/medias/videos/example-video2.mp4",
+      "align": "center",
+      "width": "65%",
+      "controls": false
+    },
+    {
+      "type": "paragraph",
+      "align": "center",
+      "content": ["Need a high-framerate showcase without the clunky UI? Set 'controls': false on a video block.",
+      "It will play silently in a loop, acting exactly like a next-gen GIF while saving massive amounts of file size."
+      ]
+    },
+    {
+      "type": "heading",
+      "content": "6. Gif example and Guide writing rules and such"
+    },
+    {
+      "type": "image",
+      "src": "/medias/gifs/ohio-silence.gif",
+      "align": "center",
+      "width": "45%",
+      "alt": "Ohio Silence Meme"
+    },
+    {
+      "type": "paragraph",
+      "align": "center",
+      "content": [
+        "When writing guides, try to break up massive walls of text with relevant media, lists, and headings. Keep it engaging, but remember to keep the formatting structured!"
+    ]
+    }
+  ],
+ "strategy": [
+    {
+      "type": "heading",
+      "align": "center",
+      "content": "Building Comprehensive Guides"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "The Dogslamloop Wiki is built to support highly flexible layouts.",
+        "By aligning your media blocks, you can craft dense, highly readable strategy guides without overwhelming the user with a massive wall of text.",
+        "This can also apply to each individual skill's overview and strategy.",
+        "[b]Genrally, you want this tab to go over the general stuff, and the other tabs to go into details[/b]."
+    ]
+    },
+    {
+      "type": "paragraph",
+      "content": "[color=hsl(39, 100%, 50%)][b]Desktop Optimization Notice:[/b][/color] While the wiki is fully responsive, these flexible media layouts are intentionally optimized for Desktop viewing. On mobile devices, floated media and text blocks will automatically stack vertically to fit the screen, which can make videos appear quite small."
+    },
+    {
+      "type": "heading",
+      "content": "Example: Mixup Breakdowns"
+    },
+    {
+      "type": "video",
+      "src": "/medias/videos/example-video3.mp4",
+      "align": "left",
+      "width": "45%",
+      "controls": true
+    },
+    {
+      "type": "paragraph",
+      "content": "When writing guides and such, it is highly recommended to float a scrubbable video to the left, and place your step-by-step instructions immediately after it. The text will naturally wrap to the right side of the video."
+    },
+    {
+      "type": "list",
+      "items": [
+        "Step 1: Set up a Grounded Supernova Orb",
+        "Step 2: Explode it and fling yourself to the opponent backside",
+        "Step 3: Mixup them up majory with sidedash",
+        "Step 4: If you win the mixup, combo and such then",
+        "Step 5: Hi, I am Step 5."
+      ]
+    },
+    {
+      "type": "heading",
+      "content": "Example: Neutral Breakdowns"
+    },
+    {
+      "type": "video",
+      "src": "/medias/videos/example-video4.mp4",
+      "align": "right",
+      "width": "45%",
+      "controls": false
+    },
+    {
+      "type": "paragraph",
+      "content": "Just another layout example."
+    },
+    {
+      "type": "paragraph",
+      "content": "By setting 'controls': false, the video behaves exactly like a seamless GIF. I think this would be pretty useful."
+    }
+  ],
+  "extras": [
+    {
+      "title": "Custom Tab",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": ["The 'extras' array is customizable.", 
+          "It allows you to build completely custom named sections that render at the bottom of the overview tab.",
+          "You can add as many of these objects as you want."
+        ]
+        }
+      ]
+    },
+    {
+      "title": "Passives",
+      "content": [
+        {
+          "type": "heading",
+          "content": "Example: Passive"
+        },
+        {
+          "type": "paragraph",
+          "content": [
+          "Such as character passives, special notes and such"
+        ]
+        }
+      ]
+    }
+  ],
+  "matchups": [
+    {
+      "opponent": "Deptr",
+      "tier": "Unloseable",
+      "content": [
+        {
+          "type": "video",
+          "src": "/medias/videos/example-video.mp4",
+          "align": "left",
+          "width": "40%",
+          "controls": true
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            "This is the matchups tab, for most character entry, this will include all possible matchups for them (including mirror match).",
+            "The accepted (color-coded) matchup tiers are [b]Unloseable, Extreme Advantage, Advantage, Equal, Disadvantage, Extreme Disadvantage, and Unwinnable[/b]."
+        ]
+        }
+      ]
+    },
+    {
+      "opponent": "Ten Shadows",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "video",
+          "src": "/medias/videos/example-video.mp4",
+          "align": "right",
+          "width": "40%",
+          "controls": true
+        },
+        {
+          "type": "paragraph",
+          "content": "This is an example of a right-wrapped video in a matchup card. This tier is marked as 'Extreme Disadvantage'."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Watch out for their 14f Startup on Boomcat.",
+            "Punish their -18f whiff animation.",
+            "Because this video is floated right, this list stays neatly tucked on the left."
+          ]
+        }
+      ]
+    },
+    {
+      "opponent": "Blood Manipulator",
+      "tier": "Advantage",
+      "content": [
+        {
+          "type": "heading",
+          "content": "Auto-Coloring test"
+        },
+        {
+          "type": "paragraph",
+          "content": ["This tier is marked as 'Advantage'.", 
+          "If Blood Manipulator uses Piercing Blood, they have quite a lots of Startup, giving you a sizeable window to punish them on Startup."
+        ]
+        },
+        {
+          "type": "paragraph",
+          "content": "You can also use LaTeX here to calculate exact damage and such for the matchup: $\\text{What's 21} = 9 + 10$."
+        }
+      ]
+    },
+    {
+      "opponent": "Vessel",
+      "tier": "Equal",
+      "content": [
+        {
+          "type": "image",
+          "src": "/medias/gifs/cat-cute.gif",
+          "align": "left",
+          "width": "30%",
+          "alt": "Vessel Mixup"
+        },
+        {
+          "type": "paragraph",
+          "content": "This tier is marked as 'Equal'. Here, we placed a GIF using the 'image' type and floated it to the left with 'align': 'left' and 'width': '30%'."
+        },
+        {
+          "type": "paragraph",
+          "content": "All subsequent paragraphs will now flow to the right of the GIF."
+        }
+      ]
+    },
+    {
+      "opponent": "Boomcat",
+      "tier": "Unwinnable",
+      "content": [
+        {
+          "type": "heading",
+          "align": "center",
+          "content": "[color=hsl(3, 93%, 63%)]Just give up.[/color]"
+        },
+        {
+          "type": "paragraph",
+          "align": "center",
+          "content": "Sometimes a matchup is so bad, you just accept it."
+        }
+      ]
+    }
+  ],
+  "counterplay": [
+    {
+      "topic": "Punishing Boomcat-surf Tech",
+      "importance": "Crucial",
+      "content": [
+        {
+          "type": "image",
+          "src": "/medias/gifs/cat-cute.gif",
+          "align": "left",
+          "width": "35%",
+          "alt": "Punish GIF"
+        },
+        {
+          "type": "paragraph",
+          "content": "Counterplay cards use the exact same universal block builder as Matchups. Valid importance tags are: [b]Crucial, High, Moderate, Low, and Situational[/b]."
+        },
+        {
+          "type": "paragraph",
+          "content": "There is also the optional tag of 'Character-specific', which isn't color coded, but the point is that the tags are not limited to those 5 tags, the same goes for the Matchup Tiers as well."
+        },
+        {
+          "type": "paragraph",
+          "content": "Because the engine is universal, you can drop GIFs aligned to the left and wrap your counterplay tips around them perfectly without breaking the card's boundaries."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Wait for the 22f Recovery.",
+            "Dash in and use [b]Boomcat[/b]."
+          ]
+        }
+      ]
+    },
+    {
+      "topic": "Evasive on Neutral M1",
+      "importance": "Situational",
+      "content": [
+        {
+          "type": "video",
+          "src": "/medias/videos/example-video.mp4",
+          "align": "center",
+          "width": "80%",
+          "controls": false
+        },
+        {
+          "type": "paragraph",
+          "align": "center",
+          "content": "This is a centered video with 'controls': false, meaning it behaves exactly like a high-quality GIF that loops automatically in the center of the screen."
+        }
+      ]
+    }
+  ],
+  "moveStrategies": {
+    "template-example-skill": [
+      {
+        "type": "paragraph",
+        "content": [
+          "When a move hits, we generally want to show two bars using type: 'user' and type: 'target' to show frame advantage.",
+          "When a move misses or is blocked, we usually only need a type: 'single' bar to show the total duration and endlag."
+        ]
+      },
+      {
+        "type": "list",
+        "items": [
+          "[b]totalScale:[/b] Always ensure the totalScale parameter equals the longest bar in your variant. If the longest bar is 200 frames, totalScale must be 200, or the UI will draw it incorrectly."
+        ]
+      }
+    ],
+    "template-projectile": [
+      {
+        "type": "image",
+        "src": "/medias/gifs/cat-cute.gif",
+        "align": "right",
+        "width": "35%",
+        "alt": "Projectile Hitbox"
+      },
+      {
+        "type": "paragraph",
+        "content": "This skill demonstrates how to use the Misc frame data tag for things like projectile travel time or variable startup."
+      }
+    ],
+    "template-triple-bar" : [
+      {
+        "type": "heading",
+        "content": "Video in a Skill Overview"
+      },
+      {
+        "type": "video",
+        "src": "/medias/videos/example-video5.mp4",
+        "align": "center"
+      },
+      {
+        "type": "paragraph",
+        "align": "left",
+        "content": [
+          "Filler Stuff here",
+          ":boomcat easter egg:"
+        ]
+      },
+      {
+        "type": "video",
+        "src": "/medias/videos/example-video5.mp4",
+        "align": "left",
+        "width": "20%"
+      },
+      {
+        "type": "paragraph",
+        "content": [
+          "This video is scaled down and aligned left, so yeah, the layout is pretty flexible",
+          ":another boomcat easter egg:"
+        ]
+      }
+    ],
+    "template-first-m1" : [
+
+    ],
+    "template-second-m1" : [
+
+    ],
+    "template-third-m1" : [
+
+    ],
+    "template-fourth-m1" : [
+
+    ],
+    "template-uppercut" : [
+
+    ],
+    "template-downslam" : [
+
+    ]
+  }
+}
