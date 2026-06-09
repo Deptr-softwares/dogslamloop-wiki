@@ -1,6 +1,16 @@
 {
   "changelogs": [
     {
+      "version": "Alpha v0.11",
+      "date": "09/06/2026",
+      "type": "site",
+      "title": "The something update",
+      "description": "Uploaded the videos",
+      "changes": [
+        "Got the example videos up, I need to figure out how to host videos here, maybe via youtube, I don't know, hmmmmm"
+      ]
+    },
+    {
       "version": "Alpha v0.1",
       "date": "09/06/2026",
       "type": "site",
