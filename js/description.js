@@ -25,7 +25,7 @@ function getMediaStyle(align, customWidth) {
 
 async function loadCharacterDescriptions(characterId) {
     try {
-        const response = await fetch(`../data/descriptions/${characterId}_descriptions.json?t=${Date.now()}`);
+        const response = await fetch(`../data/descriptions/${characterId}_descriptions.json?v=1.0`);
         if (!response.ok) throw new Error(`Could not fetch descriptions configuration profile for ${characterId}.`);
         const data = await response.json();
 
@@ -59,14 +59,20 @@ async function loadCharacterDescriptions(characterId) {
                         contentHTML += `</ul>`;
                     }
                     else if (block.type === 'image') {
-                        contentHTML += `<img src="${block.src}" alt="${block.alt || 'Wiki Image'}" style="${getMediaStyle(block.align, block.width)}">`;
+                        contentHTML += `<img src="${block.src}" alt="${block.alt || 'Wiki Image'}" style="${getMediaStyle(block.align, block.width)} loading="lazy"">`;
                     }
                     else if (block.type === 'video') {
-                        const attributes = block.controls ? 'controls' : 'autoplay loop muted playsinline';
-                        contentHTML += `<video src="${block.src}" style="${getMediaStyle(block.align, block.width)}" ${attributes}></video>`;
+                        const posterAttr = block.poster ? `poster="${block.poster}"` : '';
+
+                        if (block.controls) {
+                            // Scrubbable videos: Uses poster image, does not download video until clicked
+                            contentHTML += `<video src="${block.src}" ${posterAttr} style="${getMediaStyle(block.align, block.width)}" controls preload="none"></video>`;
+                        } else {
+                            // Autoplaying looping videos (GIF replacements)
+                            contentHTML += `<video src="${block.src}" ${posterAttr} style="${getMediaStyle(block.align, block.width)}" autoplay loop muted playsinline preload="metadata"></video>`;
+                        }
                     }
                     
-                    // NEW: Block-level author credit
                     if (block.author) {
                         contentHTML += `<div style="text-align: right; font-size: 0.75rem; color: var(--text-muted); font-style: italic; margin-top: -0.25rem; margin-bottom: 0.75rem;">— Contributed by ${block.author}</div>`;
                     }

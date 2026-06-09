@@ -6,7 +6,7 @@ async function fetchNavigationData() {
     const inSubfolder = window.location.pathname.includes('/systems/') || window.location.pathname.includes('/characters/');
     const dataPath = inSubfolder ? '../data/' : 'data/';
     
-    const response = await fetch(`${dataPath}navigation.json?t=${Date.now()}`);
+    const response = await fetch(`${dataPath}navigation.json?v=1.0`);
     if (!response.ok) throw new Error('Failed to load navigation.json');
     
     return await response.json();
