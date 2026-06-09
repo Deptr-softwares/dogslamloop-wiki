@@ -1,7 +1,7 @@
 {
   "characterId": "template",
   "profile": {
-    "image": "/medias/images/DestroymanFront.jpg",
+    "image": "../medias/images/DestroymanFront.jpg",
     "stats": [
       { "label": "Purpose", "value": "Guide" },
       { "label": "Difficulty", "value": "Reading Required" },
@@ -67,7 +67,7 @@
     },
     {
       "type": "image",
-      "src": "/medias/images/DestroymanFront.jpg",
+      "src": "../medias/images/DestroymanFront.jpg",
       "align": "right",
       "width": "25%",
       "alt": "Resized Image"
@@ -86,7 +86,7 @@
     },
     {
       "type": "image",
-      "src": "/medias/gifs/cat-cute.gif",
+      "src": "../medias/gifs/cat-cute.gif",
       "align": "left",
       "width": "30%",
       "alt": "Cute Cat GIF"
@@ -100,7 +100,7 @@
     },
     {
       "type": "video",
-      "src": "/medias/videos/awesome-haruta-example.mp4",
+      "src": "../medias/videos/awesome-haruta-example.mp4",
       "align": "right",
       "width": "40%",
       "controls": true
@@ -119,7 +119,7 @@
     },
     {
       "type": "video",
-      "src": "/medias/videos/example-video2.mp4",
+      "src": "../medias/videos/example-video2.webm",
       "align": "center",
       "width": "65%",
       "controls": false
@@ -137,7 +137,7 @@
     },
     {
       "type": "image",
-      "src": "/medias/gifs/ohio-silence.gif",
+      "src": "../medias/gifs/ohio-silence.gif",
       "align": "center",
       "width": "45%",
       "alt": "Ohio Silence Meme"
@@ -175,7 +175,7 @@
     },
     {
       "type": "video",
-      "src": "/medias/videos/example-video3.mp4",
+      "src": "../medias/videos/example-video3.webm",
       "align": "left",
       "width": "45%",
       "controls": true
@@ -200,7 +200,7 @@
     },
     {
       "type": "video",
-      "src": "/medias/videos/example-video4.mp4",
+      "src": "../medias/videos/example-video4.webm",
       "align": "right",
       "width": "45%",
       "controls": false
@@ -250,7 +250,7 @@
       "content": [
         {
           "type": "video",
-          "src": "/medias/videos/example-video.mp4",
+          "src": "../medias/videos/example-video.webm",
           "align": "left",
           "width": "40%",
           "controls": true
@@ -270,7 +270,7 @@
       "content": [
         {
           "type": "video",
-          "src": "/medias/videos/example-video.mp4",
+          "src": "../medias/videos/example-video.webm",
           "align": "right",
           "width": "40%",
           "controls": true
@@ -315,7 +315,7 @@
       "content": [
         {
           "type": "image",
-          "src": "/medias/gifs/cat-cute.gif",
+          "src": "../medias/gifs/cat-cute.gif",
           "align": "left",
           "width": "30%",
           "alt": "Vessel Mixup"
@@ -354,7 +354,7 @@
       "content": [
         {
           "type": "image",
-          "src": "/medias/gifs/cat-cute.gif",
+          "src": "../medias/gifs/cat-cute.gif",
           "align": "left",
           "width": "35%",
           "alt": "Punish GIF"
@@ -386,7 +386,7 @@
       "content": [
         {
           "type": "video",
-          "src": "/medias/videos/example-video.mp4",
+          "src": "../medias/videos/example-video.webm",
           "align": "center",
           "width": "80%",
           "controls": false
@@ -418,7 +418,7 @@
     "template-projectile": [
       {
         "type": "image",
-        "src": "/medias/gifs/cat-cute.gif",
+        "src": "../medias/gifs/cat-cute.gif",
         "align": "right",
         "width": "35%",
         "alt": "Projectile Hitbox"
@@ -435,7 +435,7 @@
       },
       {
         "type": "video",
-        "src": "/medias/videos/example-video5.mp4",
+        "src": "../medias/videos/example-video5.webm",
         "align": "center"
       },
       {
@@ -448,7 +448,7 @@
       },
       {
         "type": "video",
-        "src": "/medias/videos/example-video5.mp4",
+        "src": "../medias/videos/example-video5.webm",
         "align": "left",
         "width": "20%"
       },
