@@ -190,7 +190,7 @@ function renderFilteredRoster() {
 
     filteredChars.forEach(char => {
         const card = document.createElement('a');
-        card.href = char.url;
+        card.href = `${window.getRootPath()}${char.url}`;
         card.className = 'roster-card';
         card.id = `${char.id}-button`; 
 
