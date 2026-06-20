@@ -1,0 +1,62 @@
+{
+  "mainContributors": [
+    {
+      "name": "Deptr",
+      "role": "Lead Developer and Owner",
+      "badgeType": "badge-patch",
+      "isLead": true,
+      "avatar": "/medias/images/DestroymanFront.webp",
+      "description": "Pretty much the sole dev of Dogslamloop, worked on almost every feature in the site, and some double checking of frame data.",
+      "links": [
+        { "name": "GitHub", "url": "https://github.com/Deptr-softwares" }
+      ]
+    },
+    {
+      "name": "MrT1",
+      "role": "Frame Data & Testing",
+      "badgeType": "badge-site",
+      "isLead": false,
+      "avatar": "/medias/images/Solid Blue.webp",
+      "description": "Spent countless hours recording 60FPS footage to count frames and such. Contact him via @.mrt1 on Discord.",
+      "links": []
+    },
+    {
+      "name": "Air Putrifier",
+      "role": "Strategies and Resource",
+      "badgeType": "badge-site",
+      "isLead": false,
+      "avatar": "/medias/images/diego2.webp",
+      "description": "Written a lot of strategy entries for the site (perchance), also allow me to borrow his awesome Medal clips.",
+      "links": []
+    },
+    {
+      "name": "Nickolas4F",
+      "role": "Strategies",
+      "badgeType": "badge-site",
+      "isLead": false,
+      "avatar": "/medias/images/nickpfp.webp",
+      "description": "Written a lot of strategy entries for the site, awesome mobile player as well.",
+      "links": [
+        { "name": "YouTube", "url": "https://www.youtube.com/@CrailsheimTS" }
+      ]
+    },
+    {
+      "name": "PositiveHA",
+      "role": "Testing & Strategies",
+      "badgeType": "badge-site",
+      "isLead": false,
+      "avatar": "/medias/images/OrochimaruKunfoPop.webp",
+      "description": "Figured out the 4-frames rule for M1 trading stuff, among other things as well.",
+      "links": [
+        { "name": "YouTube", "url": "https://www.youtube.com/@PositiveHA" }
+      ]
+    }
+  ],
+  "specialThanks": [
+    { "name": "FUNNY_NAME_2", "reason": "Suggested the color format for the frame data" },
+    { "name": "Kigtus", "reason": "Owner of the Unofficial JJS wiki who allowed us to borrow their resource" },
+    { "name": "Nova", "reason": "I think he helped Nickolas4F right?" },
+    { "name": "Demi", "reason": "I think she helped PositiveHA right?" },
+    { "name": "Boomcat", "reason": "Everything" }
+  ]
+}

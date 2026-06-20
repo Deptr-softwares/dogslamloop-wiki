@@ -1,0 +1,85 @@
+{
+  "changelogs": [
+    {
+      "version": "Beta v0.2",
+      "date": "20/06/2026",
+      "type": "Beta Launch",
+      "title": "The 'finally ready' update",
+      "description": "Major Overhaul",
+      "changes": [
+        "Touched up all of the Foundation of the Site",
+        "Added all the entries for every system pages, site info, and guides, but they are empty for now (Beside the Tier List)",
+        "Implement the Tier Lists: it has an Overall Ranking which is a placeholder (by Air Putrifier) for now, and 20 incompleted matchup specific lists",
+        "Added Nickolas4F entries for Head of the Hei's Overview, Matchups, and Counterplay.",
+        "Added Nickolas4F entries for Salaryman's Overview, Matchups, and Counterplay.",
+        "Added Nickolas4F entries for Locust Guy's Overview, Matchups, and Counterplay.",
+        "Added a completed entry (all the frame data, and details) for Cursed Strikes which will act as the GOLD STANDARD of the site",
+        "Added Air Putrifier entries for Black Death's skills' overview and special's overview",
+        "Added Air Putrifier entries for Cursed Partners' skills' overview and specials' overview",
+        "Decided on the matchup tiers for every Nickolas4F matchup wiki entries (Head of the Hei, Switcher, Locust Guy, and Salaryman)",
+        "Added all the skills, M1s, and specials entries for all the empty character pages",
+        "Added all the character portraits",
+        "Convert all media resources on the site to WebP and WebM form to save storage and bandwidth",
+        "Added a new warning system to the site",
+        "Improve and Optimize the site Loading process",
+        "Added two centralized dashboards: Side Dashboard and Character Dashboard, to help with navigation and info dumping in the foreseeable future",
+        "Added a completed entry (all the frame data, and details) for Cursed Strikes which will act as the GOLD STANDARD of the site",
+        "Boomcat is coming back"
+      ]
+    },
+    {
+      "version": "Alpha v0.1",
+      "date": "09/06/2026",
+      "type": "site",
+      "title": "The non-boomcat update",
+      "description": "Major Overhaul",
+      "changes": [
+        "Give the site a new look",
+        "Removed Boomcat entry",
+        "Give every characters an empty entry to be filled in",
+        "Added all of MrT1 M1 frame data to the site",
+        "Added the Template & Guide page, make sure to check that out",
+        "Added the Collaborators page, check out the awesome people there",
+        "Updated the foundation of the site",
+        "Added Inactive Frame type",
+        "Added Nickolas4F's Matchups info for Todo and Naoya"
+      ]
+    },
+    {
+      "version": "Alpha v0.03",
+      "date": "04/06/2026",
+      "type": "site",
+      "title": "The half-boomcat update",
+      "description": "Updated the way each character entry receive their relevant data.",
+      "changes": [
+        "Slightly recolor some of the color codes for experimenting",
+        "Added Boomcat half-complete entry",
+        "Download the in-game font for shenanigans stuff",
+        "Hide a few boomcats around the site",
+        "Complete the template for Vessel Entry (Mostly)"
+      ]
+    },
+    {
+      "version": "Alpha v0.02",
+      "date": "03/06/2026",
+      "type": "site",
+      "title": "The something update",
+      "description": "Changed up the site structure + Some misc color changes.",
+      "changes": [
+        "Change Self Stun color code to Orange, and InSkill Stun color code to Dark Orange.",
+        "Added Boomcat entry, but it is empty right now.",
+        "Added color-coded button for the characters selection section."
+      ]
+    },
+    {
+      "version": "Alpha v0.01",
+      "date": "03/06/2026",
+      "type": "Alpha Launch",
+      "title": "The something update",
+      "description": "Initial Site Launch.",
+      "changes": [
+        "Removed Boomcat entry"
+      ]
+    }
+  ]
+}

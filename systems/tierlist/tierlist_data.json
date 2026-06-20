@@ -1,0 +1,406 @@
+{
+  "tabs": [
+    {
+      "id": "overall",
+      "label": "Overall",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": ["Ten-Shadows", "Puppet-Master", "Blood-Manipulator"] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": ["True-Cannon", "Lucky-Coward"] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": ["Sus-Sister", "Disaster-Plant", "Star-Rage", "Mangaka"] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": ["Cursed-Partners", "Honored-One", "Locust", "Perfection"] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": ["Black-Death", "Salaryman", "Defense-Attorney"] },
+        { "name": "F", "color": "hsl(300, 80%, 60%)", "characters": ["Head-Hei", "Restless-Gambler", "Switcher", "Vessel"] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Initial creation of the objective (with three layers of asterisk) tier list.",
+            "Woaw a tier list, pls argue over this for 2 hours.",
+            "All of this is made by Air Putrifier, go lynch him if you disagree with him majorly."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-honored-one",
+      "label": "vs Honored One",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-vessel",
+      "label": "vs Vessel",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-gambler",
+      "label": "vs Restless Gambler",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-ten-shadows",
+      "label": "vs Ten Shadows",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": ["Ten-Shadows", "Ten-Shadows", "Ten-Shadows"] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": ["Ten-Shadows", "Ten-Shadows", "Ten-Shadows"] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": ["Ten-Shadows", "Ten-Shadows", "Ten-Shadows"] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": ["Ten-Shadows", "Ten-Shadows", "Ten-Shadows"] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": ["Vessel"] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-perfection",
+      "label": "vs Perfection",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-blood",
+      "label": "vs Blood Manipulator",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-switcher",
+      "label": "vs Switcher",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": ["Vessel", "Black-Death","Blood-Manipulator","Cursed-Partners","Defense-Attorney","Disaster-Plant","Head-Hei","Honored-One","Locust","Lucky-Coward","Mangaka","Perfection","Puppet-Master","Restless-Gambler","Salaryman","Star-Rage","Sus-Sister","Switcher","Ten-Shadows","True-Cannon"] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-defense",
+      "label": "vs Defense Attorney",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-partners",
+      "label": "vs Cursed Partners",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-puppet",
+      "label": "vs Puppet Master",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-hei",
+      "label": "vs Head of the Hei",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": ["Head-Hei", "Head-Hei", "Head-Hei", "Head-Hei", "Head-Hei", "Head-Hei", "Head-Hei", "Head-Hei"] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": ["Head-Hei", "Head-Hei", "Head-Hei", "Head-Hei", "Head-Hei", "Head-Hei", "Head-Hei", "Head-Hei"] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-salary",
+      "label": "vs Salaryman",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-plant",
+      "label": "vs Disaster Plant",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-cannon",
+      "label": "vs True Cannon",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-locust",
+      "label": "vs Locust Guy",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-star",
+      "label": "vs Star Rage",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-mangaka",
+      "label": "vs Aspiring Mangaka",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-coward",
+      "label": "vs Lucky Coward",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-crow",
+      "label": "vs Crow Charmer",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-death",
+      "label": "vs Black Death",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    }
+  ]
+}

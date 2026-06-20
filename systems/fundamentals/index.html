@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fundamentals | Dogslamloop Wiki</title>
+    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
+    <link rel="stylesheet" href="../../style/Common.css">
+    <link rel="stylesheet" href="../../style/UI.css">
+    <link rel="stylesheet" href="../../style/ColorCoding.css">
+</head>
+<body class="site-body p-0">
+
+    <div class="site-layout">
+        
+        <aside class="global-sidebar-left" id="master-sidebar">
+            <div class="sidebar-header-top">
+                <img src="../../medias/images/DogslamloopIcon.webp" alt="Site Logo" class="sidebar-site-logo">
+                <div class="sidebar-title-container">
+                    <a href="../../index.html" class="site-title">dogslamloop wiki</a>
+                    <p class="site-subtitle">Alpha v0.1</p>
+                </div>
+            </div>
+            <button class="sidebar-toggle-btn">☰</button>
+            <div class="sidebar-nav-title">Navigation</div>
+            <div id="global-sidebar-nav">
+                <p class="loading-msg loading-msg-sm">Loading menu...</p>
+            </div>
+        </aside>
+
+        <main class="main-content-area space-y-6">
+            
+            <div style="margin-bottom:1rem;">
+                <a href="../index.html" style="color:hsl(212, 9%, 58%); text-decoration:none;">← Back to Systems Hub</a>
+            </div>
+
+            <header class="home-main-header">
+                <h1 class="home-main-title">Fundamentals</h1>
+            </header>
+
+            <section class="wiki-section">
+                <h2 class="section-title section-title-clean mb-4">Overview</h2>
+                <p class="text-gray-300 text-sm leading-relaxed m-0">
+                    to be completed
+                </p>
+            </section>
+
+        </main>
+
+        <aside class="local-sidebar-right">
+            <div class="sidebar-nav-title">On this page</div>
+            <ul class="toc-list" id="dynamic-toc">
+                <li><p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.75rem; padding: 0.25rem 0.75rem;">Loading contents...</p></li>
+            </ul>
+        </aside>
+
+    </div>
+
+    <!-- Core Scripts -->
+    <script src="../../js/site_utils.js"></script>
+    <script src="../../js/site_meta.js"></script>
+    <script src="../../js/pagebuilder.js"></script>
+
+    <!-- Page Alert Trigger -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (typeof window.loadPageAlerts === 'function') {
+                await window.loadPageAlerts('Starter Guide');
+            }
+        });
+    </script>
+</body>
+</html>

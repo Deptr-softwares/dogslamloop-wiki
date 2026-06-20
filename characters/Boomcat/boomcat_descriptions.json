@@ -1,0 +1,216 @@
+{
+  "characterId": "boomcat",
+  "profile": {
+    "image": "/medias/images/Boomcat.webp",
+    "stats": [
+      { "label": "Archetype", "value": "Neutral God" },
+      { "label": "Difficulty", "value": "Negative" },
+      { "label": "Health", "value": "9999" }
+    ]
+  },
+  "overview": [
+    {
+      "type": "heading",
+      "align": "center",
+      "content": "The Unbeatable"
+    },
+    {
+      "type": "image",
+      "src": "/medias/images/Boomcat.webp",
+      "align": "right",
+      "width": "30%",
+      "alt": "Text will wrap around the left side of this!"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "Boomcat is my spirit animal.",
+        "There is no counterplay. There is no strategy. There is only the cat."
+      ]
+    }
+  ],
+  "strategy": [
+    {
+      "type": "paragraph",
+      "content": "Just roll your face across the keyboard. Because your moves have 0f startup, you will automatically win every trades and interactions."
+    }
+  ],
+  "extras": [
+    {
+      "title": "Myths",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": "[b]Myth:[/b] Boomcat can be defeated"
+        },
+        {
+          "type": "paragraph",
+          "content": "[b]Reality:[/b] Nuh uh"
+        }
+      ]
+    }
+  ],
+  "matchups": [
+    {
+      "opponent": "Honored One",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Vessel",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Restless Gambler",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Ten Shadows",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Perfection",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Blood Manipulator",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Switcher",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Defense Attorney",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Cursed Partners",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Puppet Master",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Head of the Hei",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Salaryman",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Disaster Plant",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "True Cannon",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Locust Guy",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Star Rage",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Aspiring Mangaka",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Lucky Coward",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Crow Charmer",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Black Death",
+      "tier": "Equal",
+      "content": []
+    }
+  ],
+  "counterplay": [
+    {
+      "topic": "Alt + F4",
+      "importance": "Crucial",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": "The only winning move is not to play."
+        }
+      ]
+    }
+  ],
+  "moveStrategies": {
+    "boomcat-first-m1": [
+      {
+        "type": "paragraph",
+        "content": "A perfectly balanced 12f startup attack."
+      }
+    ],
+    "boomcat-second-m1": [
+      {
+        "type": "paragraph",
+        "content": "The recovery drops to 1f here for literally no reason."
+      }
+    ],
+    "boomcat-third-m1": [
+      {
+        "type": "paragraph",
+        "content": "At 1f startup, this move breaks the sound barrier."
+      }
+    ],
+    "boomcat-fourth-m1": [
+      {
+        "type": "paragraph",
+        "content": "This move has a 0f startup and 0f recovery. It hits the opponent before you even press the button."
+      },
+      {
+        "type": "paragraph",
+        "align": "center",
+        "content": ":boomcat:"
+      }
+    ],
+    "boom-cat": [
+      {
+        "type": "paragraph",
+        "content": "A global blockbreaker. The +999f advantage means you can go eat an appelflap, come back, and still continue your combo."
+      }
+    ],
+    "nonchalant-aura": [
+      {
+        "type": "paragraph",
+        "content": "You just stand there. It is a combo starter, extender, breaker, enhancer, finisher, execution, chainer, and ender all at once."
+      }
+    ],
+    "boomcat-special-2": [
+      {
+        "type": "paragraph",
+        "content": "Permanently increases your HP because 9999 wasn't enough."
+      }
+    ]
+  }
+}

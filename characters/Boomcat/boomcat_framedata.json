@@ -1,0 +1,227 @@
+{
+  "characterId": "boomcat",
+  "m1s": [
+    {
+      "id": "boomcat-first-m1",
+      "name": "First M1",
+      "input": "M1",
+      "type": "Basic Attack",
+      "variant": "Standard Variant",
+      "media": {
+        "src": "/medias/images/Boomcat.webp",
+        "alt": "First M1 stuff thingy"
+      },
+      "stats": [
+        { "label": "Damage", "value": "10" },
+        { "label": "Damage Type", "value": "Melee" },
+        { "label": "Punishabilility", "value": "Safe (16f)", "isHighlighted": true }
+      ],
+      "variants": {
+        "hit/whiff": {
+          "label": "On Hit/On Whiff",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration (20f)",
+              "phases": [
+                { "duration": 12, "styleClass": "bg-tick-start", "label": "Startup: 12f" },
+                { "duration": 1, "styleClass": "bg-tick-active", "label": "Active Hitbox: 1f" },
+                { "duration": 7, "styleClass": "bg-tick-recov", "label": "Recovery: 7f" }
+              ]
+            }
+          ]
+        },
+        "block": {
+          "label": "On Block",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration on Block (21f)",
+              "phases": [
+                { "duration": 12, "styleClass": "bg-tick-start", "label": "Startup: 12f" },
+                { "duration": 1, "styleClass": "bg-tick-active", "label": "Active Hitbox: 1f" },
+                { "duration": 8, "styleClass": "bg-tick-blockendlag", "label": "Block Endlag: 8f" }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "boomcat-second-m1",
+      "name": "Second M1",
+      "input": "M1 x2 or Hold M1",
+      "type": "Basic Attack",
+      "variant": "Standard Variant",
+      "media": {
+        "src": "/medias/images/Boomcat.webp",
+        "alt": "Second M1 stuff thingy"
+      },
+      "stats": [
+        { "label": "Damage", "value": "10" },
+        { "label": "Damage Type", "value": "Melee" },
+        { "label": "Punishabilility", "value": "Super Safe (1f)", "isHighlighted": true }
+      ],
+      "variants": {
+        "hit/whiff": {
+          "label": "On Hit/On Whiff",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration (14f)",
+              "phases": [
+                { "duration": 12, "styleClass": "bg-tick-start", "label": "Startup: 12f" },
+                { "duration": 1, "styleClass": "bg-tick-active", "label": "Active Hitbox: 1f" },
+                { "duration": 1, "styleClass": "bg-tick-recov", "label": "Recovery: 1f" }
+              ]
+            }
+          ]
+        },
+        "block": {
+          "label": "On Block",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration on Block (2f)",
+              "phases": [
+                { "duration": 12, "styleClass": "bg-tick-start", "label": "Startup: 12f" },
+                { "duration": 1, "styleClass": "bg-tick-active", "label": "Active Hitbox: 1f" },
+                { "duration": 2, "styleClass": "bg-tick-blockendlag", "label": "Block Endlag: 2f" }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "boomcat-third-m1",
+      "name": "Third M1",
+      "input": "M1 x3 or Hold M1",
+      "type": "Basic Attack",
+      "variant": "Standard Variant",
+      "media": {
+        "src": "/medias/images/Boomcat.webp",
+        "alt": "Third M1 stuff thingy"
+      },
+      "stats": [
+        { "label": "Damage", "value": "15" },
+        { "label": "Damage Type", "value": "Melee" },
+        { "label": "Punishabilility", "value": "Super Safe (1f)", "isHighlighted": true }
+      ],
+      "variants": {
+        "hit/whiff": {
+          "label": "On Hit/On Whiff",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration (3f)",
+              "phases": [
+                { "duration": 1, "styleClass": "bg-tick-start", "label": "Startup: 1f" },
+                { "duration": 1, "styleClass": "bg-tick-active", "label": "Active Hitbox: 1f" },
+                { "duration": 1, "styleClass": "bg-tick-recov", "label": "Recovery: 1f" }
+              ]
+            }
+          ]
+        },
+        "block": {
+          "label": "On Block",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration on Block (4f)",
+              "phases": [
+                { "duration": 1, "styleClass": "bg-tick-start", "label": "Startup: 1f" },
+                { "duration": 1, "styleClass": "bg-tick-active", "label": "Active Hitbox: 1f" },
+                { "duration": 2, "styleClass": "bg-tick-blockendlag", "label": "Block Endlag: 2f" }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "boomcat-fourth-m1",
+      "name": "Fourth M1",
+      "input": "M1 x4 or Hold M1",
+      "type": "Basic Attack",
+      "variant": "Ground Variant",
+      "media": {
+        "src": "/medias/images/Boomcat.webp",
+        "alt": "Fourth M1 stuff thingy"
+      },
+      "stats": [
+        { "label": "Damage", "value": "20" },
+        { "label": "Damage Type", "value": "Melee" },
+        { "label": "Punishabilility", "value": "What? (0f)", "isHighlighted": true }
+      ],
+      "variants": {
+        "hit/whiff": {
+          "label": "On Hit/On Whiff",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration (1f)",
+              "phases": [
+                { "duration": 0, "styleClass": "bg-tick-start", "label": "Startup: 0f" },
+                { "duration": 1, "styleClass": "bg-tick-active", "label": "Active Hitbox: 1f" },
+                { "duration": 0, "styleClass": "bg-tick-recov", "label": "Recovery: 0f" }
+              ]
+            }
+          ]
+        },
+        "block": {
+          "label": "On Block",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration on Block (2f)",
+              "phases": [
+                { "duration": 0, "styleClass": "bg-tick-start", "label": "Startup: 0f" },
+                { "duration": 1, "styleClass": "bg-tick-active", "label": "Active Hitbox: 1f" },
+                { "duration": 1, "styleClass": "bg-tick-blockendlag", "label": "Block Endlag: 1f" }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "skills": [
+    {
+      "id": "placeholder-skill",
+      "name": "Placeholder Skill",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    }
+  ],
+  "specials": [
+    {
+      "id": "placeholder-special",
+      "name": "Placeholder Special",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    }
+  ]
+}

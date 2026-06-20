@@ -59,7 +59,6 @@ function applyInternalStyling() {
         content = content.replace(timingRegex, (match) => {
             let finalColor = currentCharColor;
 
-            // Simple, clean if/else statement to route the correct color styling
             if (match.includes('+')) {
                 finalColor = 'hsl(127, 59%, 58%)';  // Generic Green Advantage
             } else if (match.includes('-')) {
@@ -97,5 +96,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Keep it exposed globally just in case you ever need to trigger it manually
 window.applyInternalStyling = applyInternalStyling;

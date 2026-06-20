@@ -7,7 +7,6 @@
     font-display: swap; 
 }
 
-/* Added your new Manga Font */
 @font-face {
     font-family: 'CC-Wild-Words';
     src: url('../fonts/CC\ Wild\ Words\ Roman.ttf') format('truetype');
@@ -107,3 +106,11 @@ body {
     font-family: var(--text-mono);
     margin: 0.25rem 0 0 0;
 }
+
+/* --- GLOBAL UTILITIES --- */
+.p-0 { padding: 0 !important; }
+.m-0 { margin: 0 !important; }
+.mb-4 { margin-bottom: 1rem !important; }
+.items-start { align-items: flex-start !important; }
+.text-white { color: var(--text-white) !important; }
+.text-xl { font-size: 1.25rem !important; }

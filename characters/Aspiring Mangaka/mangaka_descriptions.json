@@ -1,0 +1,143 @@
+{
+  "characterId": "mangaka",
+  "profile": {
+    "image": "/medias/images/AspiringMangakaPortrait.webp",
+    "stats": [
+      { "label": "Archetype", "value": "Counter Merchant" },
+      { "label": "Difficulty", "value": "Omega Counter 9000" },
+      { "label": "#1 Propagandist", "value": "yoda_on_ketamine" },
+      { "label": "Health", "value": "85" }
+    ]
+  },
+  "overview": [
+    {
+      "type": "paragraph",
+      "content": "To be completed"
+    }
+  ],
+  "strategy": [
+    {
+      "type": "paragraph",
+      "content": "To be completed"
+    }
+  ],
+  "extras": [],
+  "matchups": [
+    {
+      "opponent": "Honored One",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Vessel",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Restless Gambler",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Ten Shadows",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Perfection",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Blood Manipulator",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Switcher",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Defense Attorney",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Cursed Partners",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Puppet Master",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Head of the Hei",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Salaryman",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Disaster Plant",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "True Cannon",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Locust Guy",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Star Rage",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Aspiring Mangaka",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Lucky Coward",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Crow Charmer",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Black Death",
+      "tier": "Equal",
+      "content": []
+    }
+  ],
+  "counterplay": [],
+  "moveStrategies": {
+    "mangaka-first-m1": [],
+    "mangaka-second-m1": [],
+    "mangaka-third-m1": [],
+    "mangaka-fourth-m1": [],
+    "mangaka-uppercut": [],
+    "mangaka-downslam": [],
+    "despair": [],
+    "shut-up": [],
+    "aerial-shut-up": [],
+    "eye-catching": [],
+    "sacrilege": [],
+    "clairvoyance": [],
+    "clairvoyance-predict": []
+  }
+}

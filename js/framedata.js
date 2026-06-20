@@ -3,7 +3,7 @@
  */
 
 const frameDataLegendHTML = `
-    <section class="wiki-section legend-section" style="margin-bottom: 2rem;">
+    <section class="wiki-section legend-section">
         <h3 class="legend-title">Frame Data Color Legend</h3>
         <div class="legend-grid">
             <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(217.18, 100%, 50%);"></span><div><span class="legend-name">Startup</span></div></div>
@@ -23,6 +23,7 @@ const frameDataLegendHTML = `
 function createPhase(duration, totalScale, styleClass, label) {
     const phase = document.createElement('div');
     phase.className = `phase-section ${styleClass}`;
+    // Width is kept inline because it relies on dynamic math calculations
     phase.style.width = `${(duration / totalScale) * 100}%`;
     
     if (label) {
@@ -38,27 +39,28 @@ function createPhase(duration, totalScale, styleClass, label) {
     return phase;
 }
 
+let cachedMasterFrameData = {}; 
+
 async function loadMoveSection(characterId, sectionType) {
     try {
-        // Dynamically fetches the correct file based on the section passed in
-        const response = await fetch(`../data/${sectionType}/${characterId}_${sectionType}.json?t=${Date.now()}`);
-        if (!response.ok) throw new Error(`Could not fetch ${sectionType} profile.`);
-        const data = await response.json();
+        let data;
         
-        // Dynamically targets the correct HTML tab
+        if (cachedMasterFrameData[characterId]) {
+            data = cachedMasterFrameData[characterId];
+        } else {
+            data = await window.fetchJson(`./${characterId}_framedata.json`);
+            if (!data) throw new Error(`Could not fetch master frame data for ${characterId}.`);
+            
+            cachedMasterFrameData[characterId] = data;
+        }
+        
         const container = document.getElementById(`tab-${sectionType}`);
         if (!container) return;
 
-        // Access the correct array in the JSON (e.g., data.skills, data.m1s)
         const movesArray = data[sectionType] || [];
-
-        // Clear out any empty fallback messages in the HTML container
         container.innerHTML = ''; 
 
-        // Does ANY move in this specific array have a 'variants' block?
         const hasFrameData = movesArray.some(move => move.variants);
-
-        // If yes, inject the JavaScript legend at the very top of the tab
         if (hasFrameData) {
             container.innerHTML = frameDataLegendHTML;
         }
@@ -79,14 +81,14 @@ async function loadMoveSection(characterId, sectionType) {
                         </div>`;
                 });
             } else {
-                statsHTML = `<div class="stat-row" style="justify-content:center; color:hsl(215, 8%, 47%); font-style:italic;">No stats recorded</div>`;
+                statsHTML = `<div class="stat-row stat-row-empty">No stats recorded</div>`;
             }
 
             // --- 2. MEDIA FALLBACK ---
             const mediaContent = move.media?.src 
                 ? `<img src="${move.media.src}" alt="${move.media.alt || ''}" class="skill-media-img">
                    <span class="skill-media-filename">${move.media.src.split('/').pop()}</span>`
-                : `<div style="display:flex; height:100%; width:100%; align-items:center; justify-content:center; border: 1px dashed var(--border-color); color: hsl(215, 8%, 47%); font-family: var(--text-mono); font-size: 0.875rem;">
+                : `<div class="skill-media-missing">
                        [ Missing Media ]
                    </div>`;
 
@@ -99,12 +101,11 @@ async function loadMoveSection(characterId, sectionType) {
                 </div>
                 <div class="skill-entry-body">
                     <div class="skill-left-col">
-                        <div class="skill-media-wrapper" ${!move.media?.src ? 'style="background: transparent;"' : ''}>
+                        <div class="skill-media-wrapper ${!move.media?.src ? 'skill-media-wrapper-empty' : ''}">
                             ${mediaContent}
                         </div>
                         <div class="skill-stats-box">${statsHTML}</div>
                     </div>
-                    <!-- Blank slate for the recursive engine -->
                     <div class="skill-right-col" id="right-col-${move.id}"></div>
                 </div>
             `;
@@ -116,15 +117,15 @@ async function loadMoveSection(characterId, sectionType) {
 
             // --- 3. RECURSIVE FRAME DATA ENGINE ---
             function buildNestedTabs(dataNode, prefixId, wrapperElement) {
-                // LEAF NODE: It has bars, render the actual frame data
+                // LEAF NODE: Render actual frame data
                 if (dataNode.bars) {
                     dataNode.bars.forEach(bar => {
                         const barGroup = document.createElement('div');
-                        if (bar.type === 'target') barGroup.style.marginTop = '0';
+                        if (bar.type === 'target') barGroup.className = 'bar-group-target';
 
                         const infoHeader = document.createElement('div');
                         infoHeader.className = 'bar-header-info';
-                        if (bar.type === 'target') infoHeader.style.marginTop = '0.25rem';
+                        if (bar.type === 'target') infoHeader.classList.add('bar-header-target');
                         
                         const headerText = bar.headerInfo || bar.title || dataNode.headerInfo || '';
                         let headerContent = `<span class="${bar.headerClass || ''}">${headerText}</span>`;
@@ -164,7 +165,8 @@ async function loadMoveSection(characterId, sectionType) {
                         dataNode.inlineLegend.forEach(item => {
                             const legendItem = document.createElement('span');
                             legendItem.className = 'legend-inline-item';
-                            legendItem.innerHTML = `<span class="dot" style="background-color: ${item.color}; flex-shrink: 0;"></span><span>${item.text}</span>`;
+                            // Background-color is kept inline because it relies on JSON specific data
+                            legendItem.innerHTML = `<span class="dot" style="background-color: ${item.color};"></span><span>${item.text}</span>`;
                             legendGrid.appendChild(legendItem);
                         });
                         wrapperElement.appendChild(legendGrid);
@@ -172,7 +174,7 @@ async function loadMoveSection(characterId, sectionType) {
                     return;
                 }
 
-                // BRANCH NODE: It has nested variants, generate a new row of tabs
+                // BRANCH NODE: Generate a new row of tabs
                 if (dataNode.variants) {
                     const keys = Object.keys(dataNode.variants);
                     if (keys.length === 0) return;
@@ -180,10 +182,8 @@ async function loadMoveSection(characterId, sectionType) {
                     const tabBar = document.createElement('div');
                     tabBar.className = 'skill-tab-bar';
                     
-                    // Indent and space sub-tabs so they don't blend into parent tabs
                     if (prefixId !== move.id) {
-                        tabBar.style.marginTop = '1rem';
-                        tabBar.style.paddingBottom = '0.5rem';
+                        tabBar.classList.add('skill-tab-bar-nested');
                     }
 
                     const viewsWrapper = document.createElement('div');
@@ -203,7 +203,6 @@ async function loadMoveSection(characterId, sectionType) {
                         viewSection.id = `view-${childId}`;
                         viewSection.className = `view-section ${index === 0 ? '' : 'hidden'}`;
 
-                        // Recursion! Build the inside of this newly created tab
                         buildNestedTabs(childNode, childId, viewSection);
 
                         viewsWrapper.appendChild(viewSection);
@@ -219,10 +218,8 @@ async function loadMoveSection(characterId, sectionType) {
             }
 
             if (move.variants && Object.keys(move.variants).length > 0) {
-                // Kick off the recursion from the top level
                 buildNestedTabs({ variants: move.variants }, move.id, rightCol);
                 
-                // EXECUTE setups now that the elements are physically on the page
                 if (typeof window.setupTabs === 'function') {
                     pendingTabs.forEach(tab => {
                         window.setupTabs(`tab-${tab.prefix}`, `view-${tab.prefix}`, tab.keys);
@@ -230,13 +227,13 @@ async function loadMoveSection(characterId, sectionType) {
                 }
             } else {
                 rightCol.innerHTML = `
-                    <div class="empty-tab-msg" style="margin-top:0; border:1px dashed var(--border-color); background:transparent; padding: 2rem;">
+                    <div class="empty-tab-msg empty-frame-data-msg">
                         Frame data has not been mapped for this move yet.
                     </div>
                 `;
             }
+            
             // --- 4. STRATEGY INJECTION TARGET ---
-            // Creates an empty div that description.js will populate with LaTeX, media, and rich text
             const strategyTarget = document.createElement('div');
             strategyTarget.id = `strategy-${move.id}`;
             container.appendChild(strategyTarget);
@@ -247,7 +244,6 @@ async function loadMoveSection(characterId, sectionType) {
     }
 }
 
-// Legacy function kept intact to ensure your current HTML files don't break
 async function loadCharacterSkills(characterId) {
     return loadMoveSection(characterId, 'skills');
 }

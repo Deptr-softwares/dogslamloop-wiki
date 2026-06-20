@@ -1,0 +1,513 @@
+{
+  "characterId": "restless_gambler",
+  "m1s": [
+    {
+      "id": "restless-gambler-first-m1",
+      "name": "First M1",
+      "input": "M1",
+      "type": "Basic Attack",
+      "variant": "Standard Variant",
+      "media": {
+        "src": "/medias/images/restlessgambler_firstm1.png",
+        "alt": "First M1 animation"
+      },
+      "stats": [
+        {
+          "label": "Damage",
+          "value": "3"
+        },
+        {
+          "label": "Damage Type",
+          "value": "Melee"
+        },
+        {
+          "label": "Punishability",
+          "value": "Unsafe (17f)",
+          "isHighlighted": true
+        }
+      ],
+      "variants": {
+        "hit/whiff": {
+          "label": "On Hit/On Whiff",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration (21f)",
+              "phases": [
+                {
+                  "duration": 12,
+                  "styleClass": "bg-tick-start",
+                  "label": "Startup: 12f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox: 1f"
+                },
+                {
+                  "duration": 8,
+                  "styleClass": "bg-tick-recov",
+                  "label": "Recovery: 8f"
+                }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            {
+              "color": "hsl(217.18, 100%, 50%)",
+              "text": "Startup (12f)"
+            },
+            {
+              "color": "hsl(0, 100%, 45%)",
+              "text": "Active Hitbox (1f)"
+            },
+            {
+              "color": "hsl(295, 89.76%, 50.2%)",
+              "text": "Recovery (8f)"
+            }
+          ]
+        },
+        "block": {
+          "label": "On Block",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration on Block (30f)",
+              "phases": [
+                {
+                  "duration": 12,
+                  "styleClass": "bg-tick-start",
+                  "label": "Startup: 12f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox: 1f"
+                },
+                {
+                  "duration": 17,
+                  "styleClass": "bg-tick-blockendlag",
+                  "label": "Block Endlag: 17f"
+                }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            {
+              "color": "hsl(217.18, 100%, 50%)",
+              "text": "Startup (12f)"
+            },
+            {
+              "color": "hsl(0, 100%, 45%)",
+              "text": "Active Hitbox (1f)"
+            },
+            {
+              "color": "hsl(319.73, 88.24%, 50%)",
+              "text": "Block Endlag (17f)"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "restless-gambler-second-m1",
+      "name": "Second M1",
+      "input": "M1 x2 or Hold M1",
+      "type": "Basic Attack",
+      "variant": "Standard Variant",
+      "media": {
+        "src": "/medias/images/restlessgambler_secondm1.png",
+        "alt": "Second M1 animation"
+      },
+      "stats": [
+        {
+          "label": "Damage",
+          "value": "3"
+        },
+        {
+          "label": "Damage Type",
+          "value": "Melee"
+        },
+        {
+          "label": "Punishability",
+          "value": "Unsafe (17f)",
+          "isHighlighted": true
+        }
+      ],
+      "variants": {
+        "hit/whiff": {
+          "label": "On Hit/On Whiff",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration (21f)",
+              "phases": [
+                {
+                  "duration": 12,
+                  "styleClass": "bg-tick-start",
+                  "label": "Startup: 12f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox: 1f"
+                },
+                {
+                  "duration": 8,
+                  "styleClass": "bg-tick-recov",
+                  "label": "Recovery: 8f"
+                }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            {
+              "color": "hsl(217.18, 100%, 50%)",
+              "text": "Startup (12f)"
+            },
+            {
+              "color": "hsl(0, 100%, 45%)",
+              "text": "Active Hitbox (1f)"
+            },
+            {
+              "color": "hsl(295, 89.76%, 50.2%)",
+              "text": "Recovery (8f)"
+            }
+          ]
+        },
+        "block": {
+          "label": "On Block",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration on Block (30f)",
+              "phases": [
+                {
+                  "duration": 12,
+                  "styleClass": "bg-tick-start",
+                  "label": "Startup: 12f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox: 1f"
+                },
+                {
+                  "duration": 17,
+                  "styleClass": "bg-tick-blockendlag",
+                  "label": "Block Endlag: 17f"
+                }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            {
+              "color": "hsl(217.18, 100%, 50%)",
+              "text": "Startup (12f)"
+            },
+            {
+              "color": "hsl(0, 100%, 45%)",
+              "text": "Active Hitbox (1f)"
+            },
+            {
+              "color": "hsl(319.73, 88.24%, 50%)",
+              "text": "Block Endlag (17f)"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "restless-gambler-third-m1",
+      "name": "Third M1",
+      "input": "M1 x3 or Hold M1",
+      "type": "Basic Attack",
+      "variant": "Standard Variant",
+      "media": {
+        "src": "/medias/images/restlessgambler_thirdm1.png",
+        "alt": "Third M1 animation"
+      },
+      "stats": [
+        {
+          "label": "Damage",
+          "value": "4"
+        },
+        {
+          "label": "Damage Type",
+          "value": "Melee"
+        },
+        {
+          "label": "Punishability",
+          "value": "Unsafe (17f)",
+          "isHighlighted": true
+        }
+      ],
+      "variants": {
+        "hit/whiff": {
+          "label": "On Hit/On Whiff",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration (21f)",
+              "phases": [
+                {
+                  "duration": 12,
+                  "styleClass": "bg-tick-start",
+                  "label": "Startup: 12f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox: 1f"
+                },
+                {
+                  "duration": 8,
+                  "styleClass": "bg-tick-recov",
+                  "label": "Recovery: 8f"
+                }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            {
+              "color": "hsl(217.18, 100%, 50%)",
+              "text": "Startup (12f)"
+            },
+            {
+              "color": "hsl(0, 100%, 45%)",
+              "text": "Active Hitbox (1f)"
+            },
+            {
+              "color": "hsl(295, 89.76%, 50.2%)",
+              "text": "Recovery (8f)"
+            }
+          ]
+        },
+        "block": {
+          "label": "On Block",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration on Block (30f)",
+              "phases": [
+                {
+                  "duration": 12,
+                  "styleClass": "bg-tick-start",
+                  "label": "Startup: 12f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox: 1f"
+                },
+                {
+                  "duration": 17,
+                  "styleClass": "bg-tick-blockendlag",
+                  "label": "Block Endlag: 17f"
+                }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            {
+              "color": "hsl(217.18, 100%, 50%)",
+              "text": "Startup (12f)"
+            },
+            {
+              "color": "hsl(0, 100%, 45%)",
+              "text": "Active Hitbox (1f)"
+            },
+            {
+              "color": "hsl(319.73, 88.24%, 50%)",
+              "text": "Block Endlag (17f)"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "restless-gambler-fourth-m1",
+      "name": "Fourth M1",
+      "input": "M1 x4 or Hold M1",
+      "type": "Basic Attack",
+      "variant": "Ground Variant",
+      "media": {
+        "src": "/medias/images/restlessgambler_fourthm1.png",
+        "alt": "Fourth M1 animation"
+      },
+      "stats": [
+        {
+          "label": "Damage",
+          "value": "4"
+        },
+        {
+          "label": "Damage Type",
+          "value": "Melee"
+        }
+      ],
+      "variants": {}
+    },
+    {
+      "id": "restless-gambler-uppercut",
+      "name": "Uppercut",
+      "input": "Space + M1",
+      "type": "Basic Attack",
+      "variant": "Standard Variant",
+      "media": {
+        "src": "/medias/images/restlessgambler_uppercut.png",
+        "alt": "Uppercut animation"
+      },
+      "stats": [
+        {
+          "label": "Damage",
+          "value": "4"
+        },
+        {
+          "label": "Damage Type",
+          "value": "Melee"
+        }
+      ],
+      "variants": {}
+    },
+    {
+      "id": "restless-gambler-downslam",
+      "name": "Downslam",
+      "input": "Air + M1",
+      "type": "Basic Attack",
+      "variant": "Standard Variant",
+      "media": {
+        "src": "/medias/images/restlessgambler_downslam.png",
+        "alt": "Downslam animation"
+      },
+      "stats": [
+        {
+          "label": "Damage",
+          "value": "4"
+        },
+        {
+          "label": "Damage Type",
+          "value": "Melee"
+        },
+        {
+          "label": "Blockbreak",
+          "value": "True"
+        }
+      ],
+      "variants": {}
+    }
+  ],
+  "skills": [
+    {
+      "id": "reserve-balls",
+      "name": "Reserve Balls",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    },
+    {
+      "id": "pachinko-combo",
+      "name": "Pachinko Combo",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    },
+    {
+      "id": "shutter-doors",
+      "name": "Shutter Doors",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    },
+    {
+      "id": "rough-energy",
+      "name": "Rough Energy",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    },
+    {
+      "id": "aerial-rough-energy",
+      "name": "Aerial Rough Energy",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    },
+    {
+      "id": "fever-breaker",
+      "name": "Fever Breaker",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    },
+    {
+      "id": "fever-crush",
+      "name": "Fever Crush",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    }
+  ],
+  "specials": [
+    {
+      "id": "door-guard",
+      "name": "Door Guard",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    }
+  ]
+}

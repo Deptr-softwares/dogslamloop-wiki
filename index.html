@@ -4,22 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dogslamloop Wiki</title>
-    <link rel="icon" type="image/jpg" href="/medias/images/DestroymanFront.jpg">
+    <link rel="icon" type="image/jpg" href="/medias/images/DogslamloopIcon.webp">
     <link rel="stylesheet" href="style/Common.css">
     <link rel="stylesheet" href="style/UI.css">
     <link rel="stylesheet" href="style/ColorCoding.css">
 </head>
-<body class="site-body" style="padding: 0;">
+<body class="site-body p-0">
 
     <div class="site-layout">
         
-        <!-- LEFT SIDEBAR: Master Navigation -->
         <aside class="global-sidebar-left" id="master-sidebar">
             <div class="sidebar-header-top">
-                <img src="/medias/images/DestroymanFront.jpg" alt="Site Logo" class="sidebar-site-logo">
+                <img src="/medias/images/DogslamloopIcon.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
-                    <a href="../index.html" class="site-title" style="font-size: 1.25rem;">dogslamloop wiki</a>
-                    <p class="site-subtitle" style="margin: 0;">Alpha v0.1</p>
+                    <a href="../index.html" class="site-title">dogslamloop wiki</a>
+                    <p class="site-subtitle">Alpha v0.1</p>
                 </div>
             </div>
 
@@ -28,95 +27,96 @@
             <div class="sidebar-nav-title">Navigation</div>
             
             <div id="global-sidebar-nav">
-                <p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.75rem;">Loading menu...</p>
+                <p class="loading-msg loading-msg-sm">Loading menu...</p>
             </div>
 
             <div class="kofi-btn-wrapper">
                 <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="kofi-btn">
-                    <span style="font-size: 1.1rem; line-height: 1;">☕</span>
-                    <span class="kofi-text" style="margin-left: 0.5rem;">Support Ko-fi</span>
+                    <span class="kofi-icon">☕</span>
+                    <span class="kofi-text">Support Ko-fi</span>
                 </a>
             </div>
 
         </aside>
 
-        <!-- CENTER: Main Content Area -->
         <main class="main-content-area space-y-6">
             
-            <header style="border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 2rem;">
-                <h1 style="font-size: 2rem; margin: 0; color: var(--text-white);">Hi</h1>
+            <header class="home-main-header">
+                <h1 class="home-main-title">Main Dashboard</h1>
             </header>
 
-            <!-- Moved About Us to the top for full-width reading -->
             <section class="wiki-section" id="about-section">
-                <p class="text-gray-300 text-sm leading-relaxed" style="margin: 0;">
-                    <strong style="color: var(--text-white);">About Us:</strong> <span class="font-bold text-white italic">Jujutsu Shenanigans</span> is a casual (shenanigans) battleground game on Roblox. However, this hub provides in-depth frame data, and strategy breakdowns to help all users, Tier 5 and Tier 1, to get better at the game via better understanding of the game.
+                <p class="text-gray-300 text-sm leading-relaxed m-0">
+                    <strong class="text-white">About Us:</strong> <span class="font-bold text-white italic">Jujutsu Shenanigans</span> is a casual (shenanigans) battleground game on Roblox. However, this hub provides in-depth frame data, and strategy breakdowns to help all users, Tier 5 and Tier 1, to get better at the game via better understanding of the game.
                 </p>
             </section>
             
             <section class="wiki-section" id="roster-section">
-                <h2 class="section-title">Characters</h2>
-                <!-- Dynamically populated by pagebuilder.js -->
+                <div class="header-split-wrapper">
+                    <h2 class="section-title section-title-flex m-0">
+                        Characters
+                        <a href="characters/index.html" class="hub-link">View More ➔</a>
+                    </h2>
+                    <div id="roster-filter-bar" class="filter-bar-inline"></div>
+                </div>
+
                 <div class="roster-grid"></div>
             </section>
 
-            <div class="grid-layout-3col" style="align-items: flex-start;">
+            <div class="grid-layout-3col">
                 
                 <section class="wiki-section" id="navigation-section">
-                    <h2 class="section-title" style="border:none; margin-bottom:1rem;">Guides & Such</h2>
+                    <h2 class="section-title section-title-flex mb-4">
+                        Guides & Such
+                        <a href="systems/index.html" class="hub-link">View More ➔</a>
+                    </h2>
                     
-                    <div class="faq-scroll-box" style="max-height: 450px;">
-                        <!-- Target injection node for pagebuilder.js -->
+                    <div class="faq-scroll-box scroll-lg">
                         <div id="systems-grid">
-                            <p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.875rem;">Loading resources...</p>
+                            <p class="loading-msg loading-msg-md">Loading resources...</p>
                         </div>
                     </div>
                 </section>
 
                 <section class="wiki-section main-dashboard" id="updates-section">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 2px solid var(--accent-blue); padding-bottom: 0.5rem;">
-                        <h2 class="section-title" style="border: none; margin-bottom: 0; padding-bottom: 0;">Recent Changes</h2>
-                        
-                        <button 
-                            id="btn-expand-updates" 
-                            class="nav-btn" 
-                            data-expanded="false" 
-                            onclick="toggleUpdates('site-updates-dashboard', 'btn-expand-updates', 2)"
-                            style="margin: 0;">
+                    <div class="dashboard-header-split">
+                        <h2 class="section-title section-title-clean m-0">Recent Changes</h2>
+                        <!-- Replaced the toggle button with a direct link to the new Update Log hub -->
+                        <a href="systems/updatelog/index.html" class="nav-btn m-0" style="text-decoration: none;">
                             View All
-                        </button>
+                        </a>
                     </div>
                     
                     <div id="site-updates-dashboard" class="faq-scroll-box space-y-4">
-                        <p style="color: hsl(212, 9%, 58%); font-style: italic;">Fetching latest site updates...</p>
+                        <p class="loading-msg">Fetching latest site updates...</p>
                     </div>
                 </section>
 
                 <section class="wiki-section">
-                    <h2 class="section-title" style="border:none; margin-bottom:1rem;">Game Info</h2>
+                    <h2 class="section-title section-title-clean mb-4">Game Info</h2>
                     
-                    <div class="faq-scroll-box" style="max-height: 450px;">
-                        <div style="display:flex; flex-direction:column; align-items:center; margin-bottom:1.5rem;">
-                            <h3 style="font-family: 'Finger-Paint'; font-size: 1.125rem; font: weight 4px; color:var(--text-white); letter-spacing:0.15em; text-align:center; line-height:1.2; margin:0;">
+                    <div class="faq-scroll-box scroll-lg">
+                        <div class="game-info-logo-box">
+                            <h3 class="game-info-title">
                                 Jujutsu<br>Shenanigans
                             </h3>
                         </div>
 
                         <div class="space-y-4 text-sm">
                             <div>
-                                <span style="display:block; color:#6e7681; font-weight:bold; margin-bottom:0.25rem;">Developers</span>
+                                <span class="game-info-label">Developers</span>
                                 <span class="text-gray-300">Tze's Shenanigans</span>
-                                <span style="color:#8b949e; font-size:0.75rem; display:block;">(Tze, Imed, Frost)</span>
+                                <span class="game-info-subtext">(Tze, Imed, Frost)</span>
                             </div>
                             <div>
-                                <span style="display:block; color:#6e7681; font-weight:bold; margin-bottom:0.25rem;">Platform</span>
+                                <span class="game-info-label">Platform</span>
                                 <span class="text-gray-300">Roblox (PC, Mobile, Console, VR)</span>
                             </div>
-                            <div style="padding-top:1rem; border-top:1px solid var(--border-color); margin-top:1rem;">
-                                <span style="display:block; color:#6e7681; font-weight:bold; margin-bottom:0.5rem;">Official Links</span>
+                            <div class="game-info-footer">
+                                <span class="game-info-label mb-2">Official Links</span>
                                 <div class="space-y-2">
-                                    <a href="https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans" target="_blank" style="display:block; color:#58a6ff; text-decoration:none;">▶ Roblox Game Page</a>
-                                    <a href="https://discord.gg/nyTYVCDMBF" target="_blank" style="display:block; color:#58a6ff; text-decoration:none;">▶ Official Discord</a>
+                                    <a href="https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans" target="_blank" class="game-info-link">▶ Roblox Game Page</a>
+                                    <a href="https://discord.gg/nyTYVCDMBF" target="_blank" class="game-info-link">▶ Official Discord</a>
                                 </div>
                             </div>
                         </div>
@@ -124,81 +124,63 @@
                 </section>
             </div>
 
-            <div class="grid-layout-3col" style="margin-top:1.5rem; border-top:1px solid var(--border-color); padding-top:2rem;">
+            <div class="grid-layout-3col footer-grid-section">
                 <section class="wiki-section lg:col-span-2" id="faq-section">
-                    <h2 class="section-title" style="font-size:1.25rem; border:none; margin-bottom:1.5rem;">Frequently Asked Questions (FAQ)</h2>
+                    <h2 class="section-title section-title-clean text-xl mb-4">Frequently Asked Questions (FAQ)</h2>
                     
-                    <!-- Target Injection Container Node for FAQ Fetcher -->
                     <div id="faq-dynamic-container" class="faq-scroll-box space-y-4">
-                        <p style="color: hsl(212, 9%, 58%); font-style: italic;">Fetching latest FAQ records...</p>
+                        <p class="loading-msg">Fetching latest FAQ records...</p>
                     </div>
                 </section>
 
                 <div class="space-y-6">
                     <section class="wiki-section">
-                        <h2 class="section-title" style="font-size:1.25rem; border:none; margin-bottom:1rem;">Credits</h2>
-                        <div class="faq-scroll-box" style="max-height: 220px;">
+                        <h2 class="section-title section-title-clean mb-4">Credits</h2>
+                        <div class="faq-scroll-box scroll-sm">
                             <ul class="credits-list">
                                 <li>
                                     <span class="dot-indicator dot-green"></span>
-                                    <div>
-                                        <span style="color:var(--text-white); font-weight:bold;">@Deptr</span> - Site owner and developer
-                                    </div>
+                                    <div><span class="credit-name">@Deptr</span> - Site owner and developer</div>
                                 </li>
                                 <li>
                                     <span class="dot-indicator dot-blue"></span>
-                                    <div>
-                                        <span style="color:var(--text-white); font-weight:bold;">@Mrt1</span> - Frame Data and such
-                                    </div>
+                                    <div><span class="credit-name">@Mrt1</span> - Frame Data and such</div>
                                 </li>
                                 <li>
                                     <span class="dot-indicator dot-yellow"></span>
-                                    <div>
-                                        <span style="color:var(--text-white); font-weight:bold;">@Air Putrifier</span> - Strategies and resource and such
-                                    </div>
+                                    <div><span class="credit-name">@Air Putrifier</span> - Strategies and resource and such</div>
                                 </li>
                                 <li>
                                     <span class="dot-indicator dot-lime"></span>
-                                    <div>
-                                        <span style="color:var(--text-white); font-weight:bold;">@PositiveHA</span> - Strategies and testing and such
-                                    </div>
+                                    <div><span class="credit-name">@PositiveHA</span> - Strategies and testing and such</div>
                                 </li>
                                 <li>
                                     <span class="dot-indicator dot-grey"></span>
-                                    <div>
-                                        <span style="color:var(--text-white); font-weight:bold;">@Demi</span> - Strategies and testing and such
-                                    </div>
+                                    <div><span class="credit-name">@Demi</span> - Strategies and testing and such</div>
                                 </li>
                                 <li>
                                     <span class="dot-indicator dot-blue"></span>
-                                    <div>
-                                        <span style="color:var(--text-white); font-weight:bold;">@Kigtus</span> - Allowance to borrow from the wiki resource and such
-                                    </div>
+                                    <div><span class="credit-name">@Kigtus</span> - Allowance to borrow from the wiki resource and such</div>
                                 </li>
                                 <li>
                                     <span class="dot-indicator dot-pink"></span>
-                                    <div>
-                                        <span style="color:var(--text-white); font-weight:bold;">@SerialKiller4F</span> - Strategies and testing and such
-                                    </div>
+                                    <div><span class="credit-name">@SerialKiller4F</span> - Strategies and testing and such</div>
                                 </li>
                                 <li>
                                     <span class="dot-indicator dot-yellow"></span>
-                                    <div>
-                                        <span style="color:var(--text-white); font-weight:bold;">@FUNNY_NAME_2</span> - Suggestions and such
-                                    </div>
+                                    <div><span class="credit-name">@FUNNY_NAME_2</span> - Suggestions and such</div>
                                 </li>
                             </ul>
                         </div>
                     </section>
 
                     <section class="image-card-container">
-                        <img src="/medias/images/Boomcat.webp" alt="Boomcat" class="image-card-img" style="width:auto;">
+                        <img src="/medias/images/Boomcat.webp" alt="Boomcat" class="image-card-img image-card-img-auto">
                     </section>
                 </div>
             </div>
         </main>
 
-        <!-- RIGHT SIDEBAR: Table of Contents -->
         <aside class="local-sidebar-right">
             <div class="sidebar-nav-title">On this page</div>
             <ul class="toc-list">
@@ -212,9 +194,8 @@
 
     </div>
 
-    <!-- Update Logs Fetcher -->
-    <script src="./js/updatelog.js"></script>
-    <script src="./js/faq.js"></script>
+    <script src="../../js/site_utils.js"></script>
+    <script src="../../js/home_widgets.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             loadUpdateLogs('site-updates-dashboard', 2);
@@ -222,8 +203,7 @@
         });
     </script>
 
-    <!-- Global Modular Scripts -->
-    <script src="js/site_meta.js"></script>
-    <script src="js/pagebuilder.js"></script>
+    <script src="../../js/site_meta.js"></script>
+    <script src="../../js/pagebuilder.js"></script>
 </body>
 </html>

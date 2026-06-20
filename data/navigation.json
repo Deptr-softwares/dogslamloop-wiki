@@ -1,0 +1,334 @@
+{
+  "Characters": [
+    {
+      "id": "Honored-One",
+      "name": "Honored One",
+      "url": "characters/Honored One/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Vessel",
+      "name": "Vessel",
+      "url": "characters/Vessel/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Restless-Gambler",
+      "name": "Restless Gambler",
+      "url": "characters/Restless Gambler/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Ten-Shadows",
+      "name": "Ten Shadows",
+      "url": "characters/Ten Shadows/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Perfection",
+      "name": "Perfection",
+      "url": "characters/Perfection/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Blood-Manipulator",
+      "name": "Blood Manipulator",
+      "url": "characters/Blood Manipulator/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Switcher",
+      "name": "Switcher",
+      "url": "characters/Switcher/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Defense-Attorney",
+      "name": "Defense Attorney",
+      "url": "characters/Defense Attorney/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Cursed-Partners",
+      "name": "Cursed Partners",
+      "url": "characters/Cursed Partners/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Puppet-Master",
+      "name": "Puppet Master",
+      "url": "characters/Puppet Master/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Head-Hei",
+      "name": "Head of the Hei",
+      "url": "characters/Head of the Hei/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Salaryman",
+      "name": "Salaryman",
+      "url": "characters/Salaryman/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Disaster-Plant",
+      "name": "Disaster Plant",
+      "url": "characters/Disaster Plant/index.html",
+      "isWip": true,
+      "isEA": true,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "True-Cannon",
+      "name": "True Cannon",
+      "url": "characters/True Cannon/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Locust",
+      "name": "Locust Guy",
+      "url": "characters/Locust Guy/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": true,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Star-Rage",
+      "name": "Star Rage",
+      "url": "characters/Star Rage/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": true,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Mangaka",
+      "name": "Aspiring Mangaka",
+      "url": "characters/Aspiring Mangaka/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": true,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Lucky-Coward",
+      "name": "Lucky Coward",
+      "url": "characters/Lucky Coward/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": true,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Sus-Sister",
+      "name": "Crow Charmer",
+      "url": "characters/Crow Charmer/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": true,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Black-Death",
+      "name": "Black Death",
+      "url": "characters/Black Death/index.html",
+      "isWip": true,
+      "isEA": false,
+      "isBaseOnly": true,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    },
+    {
+      "id": "Boomcat",
+      "name": "Boomcat",
+      "url": "characters/Boomcat/index.html",
+      "isWip": false,
+      "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": false,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD"
+    }
+  ],
+  "System Pages": [
+    { 
+      "name": "HUD", 
+      "url": "systems/hud/index.html", 
+      "isWip": true },
+    { 
+      "name": "Frame Data", 
+      "url": "systems/framedata/index.html", 
+      "isWip": true },
+    { 
+      "name": "Fundamentals", 
+      "url": "systems/fundamentals/index.html", 
+      "isWip": true },
+    { 
+      "name": "Evasive System", 
+      "url": "systems/evasive/index.html", 
+      "isWip": true }
+  ],
+  "Site Info": [
+    { 
+      "id": "character-hub",
+      "name": "Character Hub", 
+      "url": "characters/index.html", 
+      "isWip": true
+    },
+    { 
+      "id": "systems-hub",
+      "name": "Systems Hub", 
+      "url": "systems/index.html", 
+      "isWip": true
+    },
+    { 
+      "name": "Template & Guide", 
+      "url": "characters/template/index.html"
+    },
+    { 
+      "name": "Source Code", 
+      "url": "https://github.com/Deptr-softwares/dogslamloop-wiki", 
+      "isWip": false 
+    },
+    { 
+      "name": "Update Log", 
+      "url": "systems/updatelog/index.html"
+    },
+    {
+        "id": "Collaborators",
+        "name": "Collaborators",
+        "url": "systems/collaborators/index.html"
+    }
+  ],
+  "Guides": [
+    { 
+      "name": "M1 Trading", 
+      "url": "systems/m1-trading/index.html", 
+      "isWip": true
+    },
+    { 
+      "name": "Starter Guide", 
+      "url": "systems/starter-guide/index.html", 
+      "isWip": true 
+    },
+    { 
+      "name": "Terminologies", 
+      "url": "systems/terminologies/index.html", 
+      "isWip": true 
+    },
+    { 
+      "name": "Color Codes", 
+      "url": "systems/color-codes/index.html", 
+      "isWip": true 
+    },
+    { 
+      "name": "Tier List", 
+      "url": "systems/tierlist/index.html", 
+      "isWip": true, 
+      "isSubjective": true 
+    }
+  ]
+}

@@ -1,0 +1,545 @@
+{
+  "characterId": "head_hei",
+  "profile": {
+    "image": "/medias/images/HeadoftheHeiPortrait.webp",
+    "stats": [
+      { "label": "Archetype", "value": "Being Framed Merchant" },
+      { "label": "Difficulty", "value": "Omega Green 9000" },
+      { "label": "Health", "value": "90" }
+    ]
+  },
+  "overview": [
+    {
+      "type": "paragraph",
+      "content": "Hidoi naa~~? Hitotokoko ko ko naika??~~!!!!",
+      "author":"Nickolas4F"
+    }
+  ],
+  "strategy": [
+    {
+      "type": "heading",
+      "align": "center",
+      "content": "How to [b]Play[/b]"
+    },
+    {
+      "type": "heading",
+      "content": "Basics"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "Rush them bro, you really don't want to be the one to dash first,",
+        "so you're at your strongest with 2 available dashes.",
+        "Always try to be close to your enemy, so you are able to combo and not lose frame meter"
+      ]
+    },
+    {
+      "type": "heading",
+      "content": "Punishing"
+    },
+    {
+      "type": "paragraph",
+      "content": "Since you have 2 dashes, you are really good at punishing your enemie's mistakes"
+    },
+    {
+      "type": "heading",
+      "content": "Self projection meter"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "Since that's a thing, resort to using one skill, so you don't get frames.",
+        "after getting any self projection, do NOT use another skill.",
+        "You will get framed and your enemy gets a free combo"
+      ]
+    },
+    {
+      "type": "heading",
+      "content": "Framing"
+    },
+    {
+      "type": "paragraph",
+      "content": "A) at the start of the game"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "Always land projection breaker first then land m1s and frame.",
+        "Framing with m1s only is really risky. 4 m1s into decisive strike is also risky,",
+        "but since the move covers more distance, you can almost fully lap around your enemy"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": "B) mid game-endgame"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "The struggle remains almost the same.",
+        "But you can land R into 3 (on a framed Oponent), 1 agaisnt a frame. R special into 4 m1 (agaisnt a frame obviously)",
+        "You also have bleedout, which prolongs projection meter duration on the enemy.",
+        "side note: always keep in mind their bleed stacks so you could land the hemorrhage (the 50 bleed dmg)"
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": "C) frame cycle:-A) bleedout chess:"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "If you have bleed stacks on your enemy, and frame them (really punishable by evasive, you need to bait it first).",
+        "You can R into 3 into m1s for another frame "
+      ]
+    },
+    {
+      "type": "paragraph",
+      "content": "D) 1 + 3"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "If you have framed your opponent. You can jump on the frame, do 1.",
+        "This will make them get vertical ragdol enough for 3 to lock on and you get to frame them again much better tbh"
+      ],
+      "author":"Nickolas4F"
+    }
+  ],
+  "extras": [
+    {
+      "title": "Issues and Weaknesses",
+      "content": [
+        {
+          "type":"heading",
+          "content": "1) you don't have evasive bait"
+        },
+        {
+          "type":"paragraph",
+          "content": [
+            "Since the only time where someone would want to evasive Is on frame.",
+            "And because you get to evasive at 38 DMG received (if you're bellow 50 hp)",
+            "and if you deal 35 DMG atlesst (if you don't have evasive) you get it on the next frame again.",
+            "This makes a cycle, where you frame them, they evasive and you frame them, for them to just evasive again.",
+            "Making you never get a double frame or a full DMG combo"
+          ]
+        },
+        {
+          "type":"heading",
+          "content": "2) terrible finish game"
+        },
+        {
+          "type":"paragraph",
+          "content": [
+            "Since your regular skills and m1s deal zero DMG, you really never get to finish off your enemy.",
+            "8 DMG m1s are that bad. Skills after m1s are also punishable too. "
+          ]
+        },{
+          "type":"heading",
+          "content": "3) forced to go in"
+        },
+        {
+          "type":"paragraph",
+          "content": [
+            "Most cases when your enemy is passive, both people win the same benefits (hp regeneration and CDs),",
+            "and since evasive isn't gained by time.",
+            "You don't miss on your big DMG combo. BUT naoya has to deal with projection meter.",
+            "Even though naoya's dashes work amazingly when he plays passive.",
+            "He is missing out on all his DMG by playing like a bitch.",
+            "A smart enemy will decide to not go in when you play passive.",
+            "Also since you have to go in, your insane double dashes are pointless.",
+            "Rushing down naoya is the worst play ever"
+          ]
+        },
+        {
+          "type":"heading",
+          "align": "center",
+          "content": "[b]DESIGN FLAW[/b]"
+        },
+        {
+          "type":"paragraph",
+          "content": [
+            "One major reason why the double frame (R>3>m1s) will never ever happen unless you're noobstomping.",
+            "It's your evasive bait.",
+            "Naoya has good overall CDs (not bleedout) so he can afford to do 4(frame)>3 to bait ragdol cancel.",
+            "But you just did around 27 instant damage. Putting your opponent likely bellow 50%.",
+            "(Especially 85 hp characters, 100-90 hp characters if you frame them too fast?,",
+            "yes you're punished for effieciency. Which goes against your design: always be in, go in, get m1s,",
+            "to maintain frame meter. So you have two issues you can't solve together:"
+          ]
+        },
+        {
+          "type":"list",
+          "items": [
+            "1) You need to frame: You want to go in go frame for DMG",
+            "2) you don't want to go in too fast where you will give your enemy evasive again (going back to square one) But since frame meter drops, you NEED TO GO IN"
+          ],
+          "author":"Nickolas4F"
+        }
+      ]
+    },
+    {
+      "title": "Tips",
+      "content": [
+        {
+          "type":"list",
+          "items": [
+            "Bleedout finishes at 15 hp (unframed) and at 24 (framed)",
+            "Your 1 has Mele iframes, so you can use is as a semi counter. (At the start only)",
+            "Framing someone, jumping 1 and then 3 will guarantee a secondary frame",
+            "Lockon version of 3 happens against airborne enemies and adds zero projection meter"
+          ],
+          "author":"Nickolas4F"
+        }
+      ]
+    }
+  ],
+  "matchups": [
+    {
+      "opponent": "Honored One",
+      "tier": "Equal",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Red variant will catch All of your shitty neutral, he can deal 40 Dmg out of an m1 +blue +R+3.",
+            "But if he rushes you down he will suffer. He should stay on the defensive"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Vessel",
+      "tier": "Equal",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "you basically have the same mobility, but he has more style with roles, better combos, better DMG, better consistency blah blah blah,",
+            "he also has a counter which ruins you.",
+            "You could say your trades are better than him, because you keep your mobility after a full combo."
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Restless Gambler",
+      "tier": "Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Counter fucks you over."
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Ten Shadows",
+      "tier": "Unwinnable",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "You lost when divine dog came out."
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Perfection",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Gg, he has stockpile which denies m1 trades, he may not have s counter. But he can get more chip than you."
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Blood Manipulator",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Congrats, choso is no longer the weakest character (without orbs) he instantly gets ORBs from hoe aggressive you are",
+            "(counters and green). Also bleedout is useless. Overall beats you"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Switcher",
+      "tier": "Equal",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Nothing to be said"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Defense Attorney",
+      "tier": "Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "You also have the mobility to go in and out,",
+            "only issue is that you shouldn't R R and go right in (as jiggy) since he wil have 2 dashes on your face,",
+            "but you have 1 variant to clutch up, since it has Mele iframes"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Cursed Partners",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Unlike Charles, even if you on purpose miss your neutral, outburst will punishes your neutral,",
+            "it's a free parry or outburst explosion. He has second wind to catch your whiffed m1s, and he has rika smash/haymaker,",
+            "he shouldn't use launch since you would get to lock on him"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Puppet Master",
+      "tier": "Unwinnable",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "He has way better neutral than you, heat emission, greater evaisve bait,",
+            "he gains 100% more from landing an M1 than you ever do. He still has his neutral r1 for M1 trades,",
+            "4 to catch you, puppet barrage to force block, puppet barrage into heat emission etc."
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Head of the Hei",
+      "tier": "Equal",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "This is the most fun you will have on this character,",
+            "he is really chaotic fun since you can frame yourself to escape a combo or instantly get a frame from your enemy."
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Salaryman",
+      "tier": "Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Nothing much to be said. His neutral is better than yours lol. Get your legs broken and die"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Disaster Plant",
+      "tier": "Unwinnable",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "RUSHDOWN Vs zoner, gg no re, you lost"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "True Cannon",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Your only advantage is that you can close the gap and profit 100% of his r special,",
+            "and use your tp to be close. Also you can dodge granite blast charged easier.",
+            "He still is getting to stall combos, stall our your projection meter, force you to block so many times,",
+            "he can't catch you like others (where 3 is basically free and really hard to punish).",
+            "But yeah, you both have punishable m1s so. If Ryu gets an M1 he is going to deal heavy DMG.",
+            "Also you will be using your double dashes to get close, you lose your m1 trade advantage"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Locust Guy",
+      "tier": "Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Depending on who is better at M1 trades, they win. Also if you get spit... Yeha you deal basically 0 DMG."
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Star Rage",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "4r and 2rr, she gets to deal actual DMG out of any hit. You don't.",
+            "She doesn't have much other than side dash M1 (if she doesn't have mass) but she still has rebound to knock you out of skills"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Aspiring Mangaka",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "You're fucked, his R special, his counters, just fuck you over. He walks you down.",
+            "Only if you on purpose miss moves to bait counters, maybe then (but this is being smarter/more skilled than the Charles)"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Lucky Coward",
+      "tier": "Unwinnable",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "He can just dodge everything you do, even if you miss he doenst lose shit.",
+            "He has the sword to stop all your engaging, yeah good luck."
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Crow Charmer",
+      "tier": "Unwinnable",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Your neutral is gone, bird, or any of her moves (due to the big hitboxes) catch you up,",
+            "mei Mei forces block a lot and you're playing a hyper aggressive character. You're fucked "
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Black Death",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Kuro shouldn't pull you in with his 2, since you will have 2 dashes on his face.",
+            "He should go for the 2 jump variant (the pull) other than that he is very safe,",
+            "R special makes you unable to M1 trade, 1 denies your aggressiveness, 4 is a gap closer+ chip,",
+            "3 can be used in an M1 trade to cheese you too."
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    }
+  ],
+  "counterplay": [
+    {
+      "topic": "M1 Trading",
+      "importance": "Crucial",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "You can't M1 trade him due to his 2 dashes.",
+            "So you don't want to drag M1 trades.",
+            "Also since he doesn't have a downslam, you can always punish his 4th m1 in a trade. "
+          ]
+        }
+      ],
+      "author":"Nickolas4F"
+    },
+    {
+      "topic": "Rushing Down",
+      "importance": "Crucial",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Never rush naoya,",
+            "your fronrdash is 10x more punishable because he has 2 dashes.",
+            "You want him to dash in first so you're on the equal."
+          ]
+        }
+      ],
+      "author":"Nickolas4F"
+    },
+    {
+      "topic": "Evasive Usage",
+      "importance": "Specific",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Evasive only on 4 framed to [b]A MOVE (ON REACTION, NOT PREDICT)[/b]"
+          ]
+        },
+        {
+          "type":"paragraph",
+          "content": [
+            "You can also evasive on 4 m1s into 3 (to punish it ofc) or 4 m1s into any skill that would kill you (when low)"
+          ]
+        }
+      ],
+      "author":"Nickolas4F"
+    }
+  ],
+  "moveStrategies": {
+    "headhei-first-m1": [],
+    "headhei-second-m1": [],
+    "headhei-third-m1": [],
+    "headhei-fourth-m1": [],
+    "projection-breaker": [],
+    "bleedout": [],
+    "decisive-strike": [],
+    "cursory-impact": [],
+    "projection-sorcery": [],
+    "projection-sorcery-joke": []
+  }
+}

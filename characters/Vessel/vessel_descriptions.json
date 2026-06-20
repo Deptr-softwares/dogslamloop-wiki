@@ -1,0 +1,391 @@
+{
+  "characterId": "vessel",
+  "profile": {
+    "image": "/medias/images/VesselPortrait.webp",
+    "stats": [
+      { "label": "Archetype", "value": "M1 Merchant" },
+      { "label": "Difficulty", "value": "Omega Side Dash M1 9000" },
+      { "label": "Health", "value": "85" }
+    ]
+  },
+  "overview": [
+    {
+      "type": "heading",
+      "content": "The Mixup Merchant"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "Vessel is an m1 merchant who maxxed out the Hype and Aura moments in the kit."
+      ]
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>Blah Blah Bullet Point Test:</strong> Hi I'm a [b]bullet[/b] point"
+      ]
+    },
+    {
+      "type": "image",
+      "src": "VesselPortrait.webp",
+      "alt": "Vessel mid-mixup"
+    }
+  ],
+  "strategy": [
+    {
+      "type": "paragraph",
+      "content": [
+        "So basically, you want to Feint and mixup majorly to do 100-0 combo ok?",
+        "Also you should try out Blood Manipulator"
+      ]
+    },
+    {
+      "type": "list",
+      "items": [
+        "You are punishable asf, use Blood Manipulator NOW!",
+        "I guess you can sneak in an extra M1 if you go M1 > CS > 4M1s"
+      ]
+    }
+  ],
+  "extras": [
+    {
+      "title": "Trivia & Myths",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": "<strong>Myth:</strong> Vessel takes actual skill."
+        },
+        {
+          "type": "paragraph",
+          "content": "<strong>Reality:</strong> Just press 3 and hope for the best."
+        }
+      ]
+    },
+    {
+      "title": "Passives",
+      "content": []
+    }
+  ],
+  "matchups": [
+    {
+      "opponent": "Honored One",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Vessel",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Restless Gambler",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Ten Shadows",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Perfection",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Blood Manipulator",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Switcher",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Defense Attorney",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Cursed Partners",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Puppet Master",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Head of the Hei",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Salaryman",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Disaster Plant",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "True Cannon",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Locust Guy",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Star Rage",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Aspiring Mangaka",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Lucky Coward",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Crow Charmer",
+      "tier": "Equal",
+      "content": []
+    },
+    {
+      "opponent": "Black Death",
+      "tier": "Equal",
+      "content": []
+    }
+  ],
+  "counterplay": [
+    {
+      "topic": "As a Ten Shadows",
+      "importance": "Crucial",
+      "content": [
+        {
+          "type": "heading",
+          "content": "How to put the peasant in their place"
+        },
+        {
+          "type": "paragraph",
+          "content": [
+            "Vessel players often kneel to out glorious king Ten Shadows",
+            "Use Rabbit, Use Nue, and Toad to win"
+          ]
+        }
+      ]
+    },
+    {
+      "topic": "Baiting Counter",
+      "importance": "Moderate",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": "Aurafarm on them as you bait there counter."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Pump fake your m1s.",
+            "Stare at them.",
+            "Jump on their head and emote."
+          ]
+        }
+      ]
+    }
+  ],
+  "moveStrategies": {
+    "cursed-strikes": [
+      {
+        "type":"heading",
+        "align": "center",
+        "content": "[b]Skill Overview[/b]"
+      },
+      {
+        "type":"heading",
+        "content": "Description"
+      },
+      {
+        "type":"paragraph",
+        "content": [
+          "Vessel first strike a pose with 30f startup, upon inputing the skill.",
+          "Then the user will lunge forward around 28-32 studs, while a projectile hitbox spawned in a travel at the same speed;",
+          "Notably, the user can not curve the skill, and the hitbox is active for 55f.",
+          "On whiff, Vessel suffers a -25f whiff endlag; On block, Vessel instead suffers a -46f block endlag.",
+          "Finally, on hit, Vessel gain 113f of Self Stun and inflict 161f of Target Stun during and after the attack barrage;",
+          "this give Vessel a +48f Advantage against the target."
+        ]
+      },
+      {
+        "type": "video",
+        "src": "../../medias/videos/NoNeutralCS.webm",
+        "align": "right",
+        "width": "50%",
+        "controls": false
+      },
+      {
+        "type":"heading",
+        "align": "left",
+        "content": "[b]Neutral Application[/b]"
+      },
+      {
+        "type":"paragraph",
+        "align": "left",
+        "content": [
+          "[color=hsl(0, 80%, 30%)]DO NOT[/color] use this skill in Neutral.",
+          "The move is extremly easy to interrupt on prediction or even reaction thanks to its lengthy 30f startup."
+        ]
+      },
+      {
+        "type": "video",
+        "src": "../../medias/videos/NoNeutral2CS.webm",
+        "align": "left",
+        "width": "45%",
+        "controls": false
+      },
+      {
+        "type":"heading",
+        "align": "right",
+        "content": "[b]Extremely Punishable if Blocked[/b]"
+      },
+      {
+        "type":"paragraph",
+        "align": "right",
+        "content": [
+          "Especially when you risk getting the move blocked and get a massive 46f block endlag, which anyone with half a braincell",
+          "can punish it. Plus the fact that, you just also wasted your best damaging tool and mixup option."
+        ]
+      },
+      {
+        "type":"heading",
+        "align": "left",
+        "content": "[b]Pure Combo Tool[/b]"
+      },
+      {
+        "type":"paragraph",
+        "align": "left",
+        "content": [
+          "Cursed Strikes exist solely to do combo and nothing else, dealing a decent 17.5 damage,",
+          "and it lasts pretty long too, which can help with [b]Cooldown Stalling[/b]. Plus,",
+          "it is the only safe move in Vessel's kit"
+        ]
+      },
+      {
+        "type":"heading",
+        "align": "center",
+        "content": "[b]Strategies[/b]"
+      },
+      {
+        "type":"heading",
+        "content": "[b]Cooldown Stalling[/b]"
+      },
+      {
+        "type":"paragraph",
+        "content": [
+          "As mentioned earlier, the skill on hit last quite long, so it would be decent in stalling cooldown."
+        ]
+      },
+      {
+        "type":"heading",
+        "content": "[b]'Neutral' Cursed Strikes[/b]"
+      },
+      {
+        "type":"paragraph",
+        "content": [
+          "It is so stupid for anyone to attempt to throw this move out of Neutral.",
+          "And that's when this 'strategy' be viable with three layers of asterisk.",
+          "The idea is that it is so stupid, that it becomes a suprise option that you can get away [b]if it lands[/b].",
+          "It is kinda similar to Locust Guy's 'Clever Mixup' but inferior in everyway"
+        ]
+      },
+      {
+        "type":"heading",
+        "content": "[b]Sauceless[/b]"
+      },
+      {
+        "type":"paragraph",
+        "content": [
+          "Beside being an extremly generic Grab move that deal damage and stall cooldown.",
+          "This skill has nothing of notes that would be helpful for the user to know"
+        ]
+      },
+      {
+        "type":"heading",
+        "align": "center",
+        "content": "[b]Others[/b]"
+      },
+      {
+        "type": "video",
+        "src": "../../medias/videos/MeleeIframeDiffedCS.webm",
+        "align": "right",
+        "width": "35%",
+        "controls": false
+      },
+      {
+        "type":"heading",
+        "align": "left",
+        "content": "[b]Melee Type Grab[/b]"
+      },
+      {
+        "type":"paragraph",
+        "align": "left",
+        "content": [
+          "This is all Melee type, so watch out for enemies move that give them Melee Iframes, you don't want to waste your skill.",
+          "Furthermore, it is also very counterable (obviously).",
+          "",
+          "",
+          ""
+        ]
+      },
+      {
+        "type": "video",
+        "src": "../../medias/videos/NoExplosionIframeCS.webm",
+        "align": "left",
+        "width": "35%",
+        "controls": false
+      },
+      {
+        "type":"heading",
+        "align": "left",
+        "content": "[b]Only Melee and Bullet Iframes on Hit[/b]"
+      },
+      {
+        "type":"paragraph",
+        "align": "left",
+        "content": [
+          "Cursed Strikes on Hit will give Vessel Melee and Bullet Iframes for the total duration equal to the self stun.",
+          "This, however, means that the skill can be diffed [b]even on Hit[/b] by uncancellable delayed Explosion moves such as ",
+          "Cursed Partners' Outburst or Blood Manipulator's Blood Mine."
+        ],
+        "author": "Deptr"
+      }
+    ],
+    "vessel-first-m1": [],
+    "vessel-second-m1": [],
+    "vessel-third-m1": [],
+    "vessel-fourth-m1": [],
+    "vessel-uppercut": [],
+    "vessel-downslam": [],
+    "air-cursed-strikes": [],
+    "crushing-blows": [],
+    "air-crushing-blows": [],
+    "divergent-fist": [],
+    "black-flash": [],
+    "back-flash": [],
+    "manji-kick": [],
+    "manji-kick-long": [],
+    "vessel-special-1": [],
+    "vessel-special-2": []
+  }
+}

@@ -1,0 +1,439 @@
+{
+  "characterId": "head_hei",
+  "m1s": [
+    {
+      "id": "headhei-first-m1",
+      "name": "First M1",
+      "input": "M1",
+      "type": "Basic Attack",
+      "variant": "Standard Variant",
+      "media": {
+        "src": "/medias/images/headhei_firstm1.png",
+        "alt": "First M1 animation"
+      },
+      "stats": [
+        {
+          "label": "Damage",
+          "value": "3"
+        },
+        {
+          "label": "Damage Type",
+          "value": "Melee"
+        },
+        {
+          "label": "Punishability",
+          "value": "50/50 (16f)",
+          "isHighlighted": true
+        }
+      ],
+      "variants": {
+        "hit/whiff": {
+          "label": "On Hit/On Whiff",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration (20f)",
+              "phases": [
+                {
+                  "duration": 12,
+                  "styleClass": "bg-tick-start",
+                  "label": "Startup: 12f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox: 1f"
+                },
+                {
+                  "duration": 7,
+                  "styleClass": "bg-tick-recov",
+                  "label": "Recovery: 7f"
+                }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            {
+              "color": "hsl(217.18, 100%, 50%)",
+              "text": "Startup (12f)"
+            },
+            {
+              "color": "hsl(0, 100%, 45%)",
+              "text": "Active Hitbox (1f)"
+            },
+            {
+              "color": "hsl(295, 89.76%, 50.2%)",
+              "text": "Recovery (7f)"
+            }
+          ]
+        },
+        "block": {
+          "label": "On Block",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration on Block (28f)",
+              "phases": [
+                {
+                  "duration": 12,
+                  "styleClass": "bg-tick-start",
+                  "label": "Startup: 12f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox: 1f"
+                },
+                {
+                  "duration": 15,
+                  "styleClass": "bg-tick-blockendlag",
+                  "label": "Block Endlag: 15f"
+                }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            {
+              "color": "hsl(217.18, 100%, 50%)",
+              "text": "Startup (12f)"
+            },
+            {
+              "color": "hsl(0, 100%, 45%)",
+              "text": "Active Hitbox (1f)"
+            },
+            {
+              "color": "hsl(319.73, 88.24%, 50%)",
+              "text": "Block Endlag (15f)"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "headhei-second-m1",
+      "name": "Second M1",
+      "input": "M1 x2 or Hold M1",
+      "type": "Basic Attack",
+      "variant": "Standard Variant",
+      "media": {
+        "src": "/medias/images/headhei_secondm1.png",
+        "alt": "Second M1 animation"
+      },
+      "stats": [
+        {
+          "label": "Damage",
+          "value": "3"
+        },
+        {
+          "label": "Damage Type",
+          "value": "Melee"
+        },
+        {
+          "label": "Punishability",
+          "value": "RIP (20f)",
+          "isHighlighted": true
+        }
+      ],
+      "variants": {
+        "hit/whiff": {
+          "label": "On Hit/On Whiff",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration (21f)",
+              "phases": [
+                {
+                  "duration": 11,
+                  "styleClass": "bg-tick-start",
+                  "label": "Startup: 11f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox: 1f"
+                },
+                {
+                  "duration": 9,
+                  "styleClass": "bg-tick-recov",
+                  "label": "Recovery: 9f"
+                }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            {
+              "color": "hsl(217.18, 100%, 50%)",
+              "text": "Startup (11f)"
+            },
+            {
+              "color": "hsl(0, 100%, 45%)",
+              "text": "Active Hitbox (1f)"
+            },
+            {
+              "color": "hsl(295, 89.76%, 50.2%)",
+              "text": "Recovery (9f)"
+            }
+          ]
+        },
+        "block": {
+          "label": "On Block",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration on Block (31f)",
+              "phases": [
+                {
+                  "duration": 11,
+                  "styleClass": "bg-tick-start",
+                  "label": "Startup: 11f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox: 1f"
+                },
+                {
+                  "duration": 19,
+                  "styleClass": "bg-tick-blockendlag",
+                  "label": "Block Endlag: 19f"
+                }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            {
+              "color": "hsl(217.18, 100%, 50%)",
+              "text": "Startup (11f)"
+            },
+            {
+              "color": "hsl(0, 100%, 45%)",
+              "text": "Active Hitbox (1f)"
+            },
+            {
+              "color": "hsl(319.73, 88.24%, 50%)",
+              "text": "Block Endlag (19f)"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "headhei-third-m1",
+      "name": "Third M1",
+      "input": "M1 x3 or Hold M1",
+      "type": "Basic Attack",
+      "variant": "Standard Variant",
+      "media": {
+        "src": "/medias/images/headhei_thirdm1.png",
+        "alt": "Third M1 animation"
+      },
+      "stats": [
+        {
+          "label": "Damage",
+          "value": "4"
+        },
+        {
+          "label": "Damage Type",
+          "value": "Melee"
+        },
+        {
+          "label": "Punishability",
+          "value": "RIP (20f)",
+          "isHighlighted": true
+        }
+      ],
+      "variants": {
+        "hit/whiff": {
+          "label": "On Hit/On Whiff",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration (21f)",
+              "phases": [
+                {
+                  "duration": 11,
+                  "styleClass": "bg-tick-start",
+                  "label": "Startup: 11f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox: 1f"
+                },
+                {
+                  "duration": 9,
+                  "styleClass": "bg-tick-recov",
+                  "label": "Recovery: 9f"
+                }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            {
+              "color": "hsl(217.18, 100%, 50%)",
+              "text": "Startup (12f)"
+            },
+            {
+              "color": "hsl(0, 100%, 45%)",
+              "text": "Active Hitbox (1f)"
+            },
+            {
+              "color": "hsl(295, 89.76%, 50.2%)",
+              "text": "Recovery (9f)"
+            }
+          ]
+        },
+        "block": {
+          "label": "On Block",
+          "totalScale": 40,
+          "bars": [
+            {
+              "type": "single",
+              "headerInfo": "M1 duration on Block (31f)",
+              "phases": [
+                {
+                  "duration": 11,
+                  "styleClass": "bg-tick-start",
+                  "label": "Startup: 11f"
+                },
+                {
+                  "duration": 1,
+                  "styleClass": "bg-tick-active",
+                  "label": "Active Hitbox: 1f"
+                },
+                {
+                  "duration": 19,
+                  "styleClass": "bg-tick-blockendlag",
+                  "label": "Block Endlag: 19f"
+                }
+              ]
+            }
+          ],
+          "inlineLegend": [
+            {
+              "color": "hsl(217.18, 100%, 50%)",
+              "text": "Startup (11f)"
+            },
+            {
+              "color": "hsl(0, 100%, 45%)",
+              "text": "Active Hitbox (1f)"
+            },
+            {
+              "color": "hsl(319.73, 88.24%, 50%)",
+              "text": "Block Endlag (19f)"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "headhei-fourth-m1",
+      "name": "Fourth M1",
+      "input": "M1 x4 or Hold M1",
+      "type": "Basic Attack",
+      "variant": "Ground Variant",
+      "media": {
+        "src": "/medias/images/headhei_fourthm1.png",
+        "alt": "Fourth M1 animation"
+      },
+      "stats": [
+        {
+          "label": "Damage",
+          "value": "4"
+        },
+        {
+          "label": "Damage Type",
+          "value": "Melee"
+        }
+      ],
+      "variants": {}
+    }
+  ],
+  "skills": [
+    {
+      "id": "projection-breaker",
+      "name": "Projection Breaker",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    },
+    {
+      "id": "bleedout",
+      "name": "Bleedout",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    },
+    {
+      "id": "decisive-strike",
+      "name": "Decisive Strike",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    },
+    {
+      "id": "cursory-impact",
+      "name": "Cursory Impact",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    }
+  ],
+  "specials": [
+    {
+      "id": "projection-sorcery",
+      "name": "Projection Sorcery",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "",
+        "alt": ""
+      },
+      "stats": [],
+      "variants": {}
+    },
+    {
+      "id": "projection-sorcery-joke",
+      "name": "トウジくんやない! 雑魚の罪は強さを知らんことに 誰もトウジくんは理解してへんから 立つサトルくんを除いて お前やない! あっち側に立つんわ! 俺や! 風車需給は 角に物理法則や軌道を無視した動きは作れない 同じく速度も術式発動時の加速度には上限がある 逆に絶えず術式を重ねれば重ねるほど 出せる速度は上がっていく あっち側に立つんわ! 俺や!",
+      "input": "",
+      "type": "",
+      "variant": "",
+      "media": {
+        "src": "/medias/images/ProjectionSorceryJoke.webp",
+        "alt": "Hidoi Naa~~"
+      },
+      "stats": [],
+      "variants": {}
+    }
+  ]
+}

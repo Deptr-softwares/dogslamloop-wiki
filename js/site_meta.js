@@ -32,17 +32,14 @@ window.CHARACTER_COLORS = {
  */
 async function loadSiteMetadata() {
     try {
-        // Use an absolute path (starting with /) so it works across all subfolders
-        // The cache-busting timestamp ensures users always see the latest version
-        const response = await fetch(`/data/site_meta.json?t=${Date.now()}`);
-        if (!response.ok) throw new Error('Could not fetch site metadata.');
-        
-        const meta = await response.json();
-        
-        // Target the subtitle class you use in your headers
+        if (!window.fetchJson) {
+            throw new Error('fetchJson helper is not loaded');
+        }
+
+        const rootPath = window.getRootPath ? window.getRootPath() : './';
+        const meta = await window.fetchJson(`${rootPath}data/site_meta.json`, { cache: true });
+
         const subtitleElements = document.querySelectorAll('.site-subtitle');
-        
-        // Loop through and update them (in case there are multiple on one page)
         subtitleElements.forEach(el => {
             el.textContent = `${meta.version} | ${meta.tagline}`;
         });
@@ -51,6 +48,5 @@ async function loadSiteMetadata() {
         console.error('Failed to load site version:', error);
     }
 }
-
 // Execute as soon as the DOM is ready
 document.addEventListener('DOMContentLoaded', loadSiteMetadata);

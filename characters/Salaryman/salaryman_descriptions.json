@@ -1,0 +1,416 @@
+{
+  "characterId": "salaryman",
+  "profile": {
+    "image": "/medias/images/SalarymanPortrait.webp",
+    "stats": [
+      { "label": "Archetype", "value": "Ratio Merchant" },
+      { "label": "Difficulty", "value": "Random ahh skill check" },
+      { "label": "Health", "value": "100" }
+    ]
+  },
+  "overview": [
+    {
+      "type": "heading",
+      "align": "center",
+      "content": "[b]Basics[/b]"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "His moves are Blockable, but his R special makes some them unblockable.",
+        "It's a quick time event, if you interrupt someone every move has an effect"
+      ]
+    },
+    {
+      "type": "heading",
+      "align": "center",
+      "content": "[b]Weaknesses[/b]"
+    },
+    {
+      "type":"heading",
+      "content": "Conversion"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "His neutral doesn't convert in a full combo, if you land R1 you can go into 3 and stop,",
+        "or 2 Backhit or wakeup 2-3 or just 3.",
+        "If you can do the M1 reset yes there is more value BUT, IT WILL probably get patched soon.",
+        "Out of blunt cut (limb stagger) you only convert to 2 Backhit or a green 4 to 3,",
+        "you will have the advantage since they don't have a dash, but nothing else."
+      ]
+    },
+    {
+      "type":"heading",
+      "content": "Combo"
+    },
+    {
+      "type": "paragraph",
+      "content": [
+        "A lot of green and really simple to punish.",
+        "You need to master the ratio technique too"
+      ],
+      "author": "Nickolas4F"
+    }
+  ],
+  "strategy": [
+    {
+      "type": "heading",
+      "content": "[b]Moves + Ratio:[/b]"
+    },
+    {
+      "type":"list",
+      "items": [
+        "a) 1 skill becomes unblockable and breaks an Arm (half block radius) if it interrupts a skill, M1, block",
+        "b) 2 skill, if it's the back version, it will stun and let you m1 chain if you interupt",
+        "c) 3 skill becomes unblockable and staggees an leg on interuption of if it hits a block. Where the the enemy can't dash for 6 seconds",
+        "d) 4 becomes also unblockable and stuns enough for 1 or 3 to land. On interuption (without ratio) it has the same effect"
+      ]
+    },
+    {
+      "type": "heading",
+      "content": "[b]Evasive Baits:[/b]"
+    },
+    {
+      "type":"paragraph",
+      "content": [
+        "He doesn't have one, at all, but he doesn't need it. He can just do burst DMG ...",
+        "BUT he has somewhat punishable options:"
+      ] 
+    },
+    {
+      "type":"list",
+      "items": [
+        "A) severance kick front variant is fully punishable if you don't have blunt cut of cd, this is because it inflicts self stun only blunt cut can get you out of, backhit isnt though",
+        "B) 4 skill AGAISNT Ragdolled ",
+        "C) 2+3. If you backdash RC you can dodge it and M1 them, nfor a free punish, if they delay the 3 you can evaisve on their face, dash and M1 them"
+      ],
+      "author": "Nickolas4F"
+    }
+  ],
+  "extras": [],
+  "matchups": [
+    {
+      "opponent": "Honored One",
+      "tier": "Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Tp+red variant will cancel out your neutral, other than that, your upclose game with Honored One isn't bad.",
+            "Having severance back hit and he has rapid punches (imo severance kick back variant is better as a skill,",
+            "But it only combos if you cancel something, while Honored One's combos if he has evasive out.",
+            "Also his evasive bait is better and more safe than Salaryman's)"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Vessel",
+      "tier": "Advantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Salaryman does more DMG, has better bait in a way,",
+            "only issue is Vessel having the mobility to deal with blunt cut.",
+            "Other than that, if you can consistently land ratio, you're fine in M1 trades too"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Restless Gambler",
+      "tier": "Equal",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Said before, it's a matter if Restless Gambler lands his counter or not.",
+            "Your neutral loses value, and some mixups with 2+3 (making it green is risky) Salaryman has to play smart around his's counter.",
+            "If he baits it, he is free to act as he likes.",
+            "Also your blunt cut is victim to reserve balls"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Ten Shadows",
+      "tier": "Unwinnable",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Ten Shadows has divine dog to deal with your options, only if he goes for rabbits in neutral,",
+            "you can respond with a blunt cut (by reacting at the windup).",
+            "But you aren't catching a good megumi In his R special, (he moves faster than a normal player).",
+            "MEGUMI overall has better bait and divine dog in M1 trades. Your options are really not present"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Perfection",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "He has soul fire to deal with your neutral,",
+            "more effective range than you and stockpile, better cooldowns too.",
+            "It should be a slaughter"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Blood Manipulator",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Supernova beats your neutral, even if choso's M1 tools are only aerial 2, his bait is better,",
+            "cooldowns are better.",
+            "With your only somewhat redeeming quality is the Backhit of severance kick and stabilise with ratio.",
+            "But you need to get close first and your 2 Backhit sets back to neutral where choso is stronge"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Switcher",
+      "tier": "Equal",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Since Salaryman's neutral is more telegraphed.",
+            "You could work around his 1 and 3 by swapping and turning a random direction.",
+            "But I do think swap is slower than his moves. So you will get your legs broken.",
+            "He has overall better DMG with a worse bait.",
+            "Salaryman should infact win this, only possible issue is elbow drop being able to cheese M1 trades."
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Defense Attorney",
+      "tier": "Advantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Higuruma has better mobility to rush you down, making your moves in neutral easy to dodge.",
+            "But overall higuruma lacks evasive bait, DMG, threat. Something you have (not bait).",
+            "He does have better cooldowns.",
+            "As long you have the reaction time to work around higgy's mixups with 4, you should win"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Cursed Partners",
+      "tier": "Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "He can just parry your neutral and green combos, or hit you with rika or protect himself with haymaker.",
+            "His DMG is arguably worse, but his versatility is better. If you whiff a skill he can catch you with secom wind"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Puppet Master",
+      "tier": "Unwinnable",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "He has puppets, his boost on is a better m1 than your M2 tools.",
+            "His evasive bait and true DMG are way better than yours.",
+            "He also has heat emission, overall you're diffed"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Head of the Hei",
+      "tier": "Extreme Advantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "As long Salaryman doesn't try to rush him down, he is fine.",
+            "Only issue is blunt cut on whiff will be more punishable due to Head of the Hei's 2 dashes.",
+            "This matchup makes stabilise work if the Head of the Hei dashes forward and m1s,",
+            "overall Salaryman should win due to how he can deal substantial dmg against bumoya hei.",
+            "The back variant of severance kick will also work out here too."
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Salaryman",
+      "tier": "Equal",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Fair fight where it's basically a skill check "
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Disaster Plant",
+      "tier": "Unwinnable",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "You lose this, hanami will backdash and press a skill to deal with your neutral, with better bait,",
+            "better combo DMG and skills (her R special really denies everything you do)"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "True Cannon",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "You're range diffed, he can close the gap instantly with his 3, here you can do your 1 to go around him,",
+            "so you can respond accordingly.",
+            "Also since the rest of his attacks are projectiles, he can just put you in a combo for pressing any skill. "
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Locust Guy",
+      "tier": "Equal",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Locust gains way more from landing an M1, you do have M1 tools though.",
+            "If you play your cards right you can hold out as nanami, the only issue is how consistent locust DMG is"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Star Rage",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "She has Garuda stab variant, blunt cut won't get charged because of rebound,",
+            "Garuda stab on its on has more reach than your M1 tools. So you get diffed on that.",
+            "The only advantage you have, if she charges you can easily catch up and break her limb (with 3 at mid range).",
+            "but that's it, you don't convert as well as her with a mid evasive bait"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Aspiring Mangaka",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Counter character. So you will have to work around with your neutral (purposely missing skills).",
+            "However after that, Charles can just use his R special to basically give you a leg stagger every 5 seconds.",
+            "You wont be M1 trading him ever, with your m1 tools (2,4 with ratio) don't mater much,",
+            "unless he dashes into you after pressing his R special, so your 4 or 2 will catch them.",
+            "But that's a buy play by the Charles.",
+            "His evasive bait and CDs are better either way, you are losing this most likely"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Lucky Coward",
+      "tier": "Unwinnable",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Sword off, throwing out his sword,",
+            "the fact only your 1 has Mele iframes and that he can just dodge your whole neutral.",
+            "You should lose this match."
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Crow Charmer",
+      "tier": "Aerial Circling tier",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": "Reworked Crow Charmer and such, need new entry. I think Crow Charmer mog Salaryman now",
+          "author": "Deptr"
+        }
+      ],
+      "author": "Nickolas4F"
+    },
+    {
+      "opponent": "Black Death",
+      "tier": "Extreme Disadvantage",
+      "content": [
+        {
+          "type": "paragraph",
+          "content": [
+            "Kuro has Moe effective range than you, M1 tools with his 1,",
+            "he can close the gap or safely push you away with roaches (his 4),",
+            "chokehold isn't as good because backwards severance kick exist.",
+            "But he is still getting his DMG out of your block, and he can parry with his 1 your neutral"
+          ]
+        }
+      ],
+      "author": "Nickolas4F"
+    }
+  ],
+  "counterplay": [],
+  "moveStrategies": {
+    "salaryman-first-m1": [],
+    "salaryman-second-m1": [],
+    "salaryman-third-m1": [],
+    "salaryman-fourth-m1": [],
+    "salaryman-uppercut": [],
+    "salaryman-downslam": [],
+    "cleaving-whirlwind": [],
+    "severance-kick": [],
+    "reverse-kick": [],
+    "blunt-cut": [],
+    "air-blunt-cut": [],
+    "stabilize": [],
+    "ration-point": []
+  }
+}

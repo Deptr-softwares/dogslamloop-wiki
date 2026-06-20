@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tier Lists | Dogslamloop Wiki</title>
+    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
+    <link rel="stylesheet" href="../../style/Common.css">
+    <link rel="stylesheet" href="../../style/UI.css">
+    <link rel="stylesheet" href="../../style/ColorCoding.css">
+</head>
+<body class="site-body p-0">
+
+    <div class="site-layout">
+        
+        <aside class="global-sidebar-left" id="master-sidebar">
+            <div class="sidebar-header-top">
+                <img src="../../medias/images/DogslamloopIcon.webp" alt="Site Logo" class="sidebar-site-logo">
+                <div class="sidebar-title-container">
+                    <a href="../../index.html" class="site-title">dogslamloop wiki</a>
+                    <p class="site-subtitle">Alpha v0.1</p>
+                </div>
+            </div>
+            <button class="sidebar-toggle-btn">☰</button>
+            <div class="sidebar-nav-title">Navigation</div>
+            <div id="global-sidebar-nav">
+                <p class="loading-msg loading-msg-sm">Loading menu...</p>
+            </div>
+        </aside>
+
+        <main class="main-content-area space-y-6">
+            
+            <div style="margin-bottom:1rem;">
+                <a href="../index.html" style="color:hsl(212, 9%, 58%); text-decoration:none;">← Back to Systems Hub</a>
+            </div>
+
+            <header class="home-main-header">
+                <h1 class="home-main-title">Tier Lists</h1>
+            </header>
+
+            <section class="wiki-section">
+                <p class="text-gray-300 text-sm leading-relaxed m-0">
+                    These tier lists evaluate the character overall strength in certain contexts: Overall strength here means stuff like damage, neutral, evasive bait, blah blah blah. I am writing up a serious overview later
+                </p>
+            </section>
+            
+            <section class="wiki-section">
+                <div class="tier-tabs" id="tier-tabs-container">
+                    <!-- Tabs injected via JS -->
+                </div>
+
+                <div class="tier-list-container" id="tier-list-ui">
+                    <p class="loading-msg">Loading tier list data...</p>
+                </div>
+            </section>
+
+            <section class="wiki-section" id="changelog-section">
+                <h2 class="section-title section-title-clean m-0">Reasoning & Changelogs</h2>
+                <div id="changelog-container">
+                    <!-- Changelogs injected via JS -->
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Core Scripts -->
+    <script src="../../js/site_utils.js"></script>
+    <script src="../../js/site_meta.js"></script>
+    <script src="../../js/pagebuilder.js"></script>
+
+    <!-- Page Alert Trigger -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (typeof window.loadPageAlerts === 'function') {
+                await window.loadPageAlerts('Tier List');
+            }
+        });
+    </script>
+</body>
+</html>
