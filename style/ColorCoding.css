@@ -8,3 +8,24 @@
 .bg-tick-misc .frame-tick { background-color: hsl(153.88, 100%, 50%); }    /* Misc variable frames */
 .bg-tick-blockendlag .frame-tick { background-color: hsl(319.73, 88.24%, 50%); }  /* Block Endlag */
 .bg-tick-inactive .frame-tick { background-color: hsl(44, 100%, 50%); }       /* Inactive Frames */
+
+/* --- STACKABLE WINDOW OVERLAYS (Solid Two-Color Frames) --- */
+.window-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0; /* Snaps perfectly inside the base frame */
+    pointer-events: none;
+    z-index: 5;
+    box-sizing: border-box; /* Ensures borders don't push outside the container */
+}
+
+/* 
+  Creates a Two-Color Window Pane:
+  1. A sharp 2px outer border using the tier color
+  2. A hard 2px inner border (inset shadow) using a semi-transparent black
+*/
+.span-rhc { border: 2px solid hsl(173, 80%, 40%); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); }
+.span-iframe-melee { border: 2px solid hsl(215, 20%, 65%); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); }
+.span-iframe-bullet { border: 2px solid hsl(217, 91%, 60%); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); }
+.span-iframe-explosion { border: 2px solid hsl(38, 92%, 50%); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); }
+.span-iframe-swarm { border: 2px solid hsl(330, 81%, 60%); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); }
+.span-iframe-complete { border: 2px solid hsl(0, 0%, 100%); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); }

@@ -1,6 +1,23 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.3",
+      "date": "20/06/2026",
+      "type": "site",
+      "title": "The 'free labor and gay' update",
+      "description": "Major Overhaul 2.0",
+      "changes": [
+        "Touched up all of the Foundation of the Site",
+        "Boomcat is never coming back ngl",
+        "Added editting character pages (computer + mobile <3 Nick)",
+        "Added log in stuff",
+        "Gave the site a backend server",
+        "Added reviewer role and such, which give them access to the staff revision page",
+        "ngl i want to blow my head off with a shotgun",
+        "Add Gay Standard, Happy Pride Month!!!"
+      ]
+    },
+    {
       "version": "Beta v0.2",
       "date": "20/06/2026",
       "type": "Beta Launch",

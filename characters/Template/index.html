@@ -17,7 +17,7 @@
         
         <aside class="global-sidebar-left" id="master-sidebar">
             <div class="sidebar-header-top">
-                <img src="../../medias/images/DogslamloopIcon.webp" alt="Site Logo" class="sidebar-site-logo">
+                <img src="../../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
                     <a href="../../index.html" class="site-title" style="font-size: 1.25rem;">dogslamloop wiki</a>
                     <p class="site-subtitle" style="margin: 0;">Alpha v0.1</p>
@@ -75,6 +75,7 @@
 
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
@@ -87,22 +88,27 @@
             // 1. Setup navigation tabs
             setupTabs('nav', 'tab', ['overview', 'm1s', 'skills', 'matchups', 'counterplay'], 'major');
             
-            // 2. Load JSON contents
-            if (typeof loadMoveSection === 'function') {
-                await loadMoveSection('template', 'skills');
-                await loadMoveSection('template', 'm1s');
+            // 2. Load JSON contents (Explicitly flag pageType as 'character')
+            if (typeof window.loadMoveSection === 'function') {
+                await window.loadMoveSection('template', 'skills', null, 'character');
+                await window.loadMoveSection('template', 'm1s', null, 'character');
             }
 
-            if (typeof loadCharacterDescriptions === 'function') {
-                await loadCharacterDescriptions('template');
+            if (typeof window.loadPageDescriptions === 'function') {
+                await window.loadPageDescriptions('template', 'character');
             }
 
             // 3. Load Warnings & Alerts
-            if (typeof loadPageAlerts === 'function') {
-                await loadPageAlerts('Template & Guide');
+            if (typeof window.loadPageAlerts === 'function') {
+                await window.loadPageAlerts('Template & Guide');
+            }
+            
+            // 4. Mount the Edit Button (Staff Only due to editor.js protections)
+            if (typeof window.initSidebarEditButton === 'function') {
+                window.initSidebarEditButton('template', 'character');
             }
 
-            // 4. Append specific guide logic AFTER standard wiki assembly finishes
+            // 5. Append specific guide logic AFTER standard wiki assembly finishes
             if (typeof displayRawJSON === 'function') {
                 await displayRawJSON('template');
             }

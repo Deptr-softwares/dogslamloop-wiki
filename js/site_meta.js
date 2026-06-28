@@ -27,6 +27,29 @@ window.CHARACTER_COLORS = {
     "Black Death": "hsl(352, 49%, 27%)",
     "Boomcat": "hsl(0, 1%, 75%)"
 };
+
+// Global Frame Data Color Dictionary (Maps to ColorCoding.css)
+window.FRAME_COLORS = {
+    'bg-tick-start': 'hsl(217.18, 100%, 50%)',
+    'bg-tick-active': 'hsl(0, 100%, 45%)',
+    'bg-tick-recov': 'hsl(295, 89.76%, 50.2%)',
+    'bg-tick-selfstun': 'hsl(111.06, 100%, 50%)',
+    'bg-tick-inskillstun': 'hsl(34, 99%, 27%)',
+    'bg-tick-targetstun': 'hsl(0, 70%, 35%)',
+    'bg-tick-misc': 'hsl(153.88, 100%, 50%)',
+    'bg-tick-blockendlag': 'hsl(319.73, 88.24%, 50%)',
+    'bg-tick-inactive': 'hsl(44, 100%, 50%)'
+};
+
+// Global Window/Overlay Color Dictionary (Maps to ColorCoding.css)
+window.WINDOW_COLORS = {
+    'reverse-hitcancel': '#14b8a6', // Cyber Teal
+    'iframe-melee': '#94a3b8',      // Silver Slate
+    'iframe-bullet': '#3b82f6',     // Electric Blue
+    'iframe-explosion': '#f59e0b',  // Vibrant Amber
+    'iframe-swarm': '#ec4899',      // Neon Pink
+    'iframe-complete': '#ffffff'    // Pure White
+};
 /**
  * Fetches global site metadata and injects it into the header.
  */

@@ -17,7 +17,7 @@
         
         <aside class="global-sidebar-left" id="master-sidebar">
             <div class="sidebar-header-top">
-                <img src="../../medias/images/DogslamloopIcon.webp" alt="Site Logo" class="sidebar-site-logo">
+                <img src="../../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
                     <a href="../../index.html" class="site-title" style="font-size: 1.25rem;">dogslamloop wiki</a>
                     <p class="site-subtitle" style="margin: 0;">Alpha v0.1</p>
@@ -79,6 +79,8 @@
 
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
@@ -88,20 +90,31 @@
     
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Setup Tab Navigation
             setupTabs('nav', 'tab', ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay', 'gallery'], 'major');
 
-            if (typeof loadMoveSection === 'function') {
-                await loadMoveSection('salaryman', 'skills');
-                await loadMoveSection('salaryman', 'm1s');
-                await loadMoveSection('salaryman', 'specials');
+            // 2. Fetch Frame Data (Using the updated universal pageId structure)
+            if (typeof window.loadMoveSection === 'function') {
+                await window.loadMoveSection('salaryman', 'skills');
+                await window.loadMoveSection('salaryman', 'm1s');
+                await window.loadMoveSection('salaryman', 'specials');
             }
 
-            if (typeof loadCharacterDescriptions === 'function') {
-                await loadCharacterDescriptions('salaryman');
+            // 3. Fetch Block Builder Text Data (Using the new Universal Wiki Engine)
+            if (typeof window.loadPageDescriptions === 'function') {
+                // Pass the pageType explicitly so the engine knows it's a character!
+                await window.loadPageDescriptions('salaryman', 'character');
             }
 
-            if (typeof loadPageAlerts === 'function') {
-                await loadPageAlerts('Salaryman');
+            // 4. Fetch Page Alerts
+            if (typeof window.loadPageAlerts === 'function') {
+                await window.loadPageAlerts('Salaryman');
+            }
+
+            // 5. Initialize the Edit Button with Universal Routing
+            if (typeof window.initSidebarEditButton === 'function') {
+                // Passes both the ID and Type so the button points to: edit.html?page=vessel&type=character
+                window.initSidebarEditButton('salaryman', 'character');
             }
         });
     </script>
