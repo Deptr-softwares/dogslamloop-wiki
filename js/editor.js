@@ -19,8 +19,9 @@ window.toggleMobilePreview = function() {
 
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
-    // Universal parameters
-    const pageId = urlParams.get('page') || urlParams.get('char'); 
+    
+    // Grab the raw parameter first
+    const pageIdRaw = urlParams.get('page') || urlParams.get('char'); 
     const pageType = urlParams.get('type') || 'character';
     const tabId = urlParams.get('tab') || 'overview';
     const moveId = urlParams.get('move');
@@ -28,13 +29,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     const titleEl = document.getElementById('editor-title');
     const subTitleEl = document.getElementById('editor-subtitle');
 
-    // Use pageId
-    if (!pageId || !tabId) {
+    if (!pageIdRaw || !tabId) {
         titleEl.textContent = "Error: Missing Context";
         subTitleEl.textContent = "Please initiate edits directly from a valid wiki page.";
         return;
     }
 
+    const pageId = pageIdRaw.toLowerCase();
+    
     if (pageType === 'system') {
         // Rip out the frame data tabs so system editors don't see them
         document.getElementById('tab-m1s')?.remove();
@@ -42,8 +44,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('tab-specials')?.remove();
     }
 
-    // Use pageId for display text
-    const pageDisplay = pageId.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    // Use original raw casing purely for visual display in the header
+    const pageDisplay = pageIdRaw.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     
     const targetPreviewTab = document.getElementById(`tab-${tabId}`);
     if (targetPreviewTab) targetPreviewTab.style.display = 'block';
@@ -56,22 +58,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             let cloudData = null;
             
-            // Explicitly ping the live database using the NEW universal table and column
+            // Explicitly ping the live database
             if (window.supabaseClient) {
                 const { data, error } = await window.supabaseClient
                     .from('page_data')
                     .select('*')
-                    .eq('page_id', pageId.toLowerCase())
+                    .eq('page_id', pageId) // Uses our new strict lowercase ID
                     .single();
                     
                 if (!error && data) cloudData = data;
             }
 
-            // Bypass the frameData requirement if it's a system page
-            if (cloudData && cloudData.desc_data && (cloudData.frame_data || pageType === 'system')) {
+            // If desc_data exists, keep it! If frame_data is null, just initialize empty arrays.
+            if (cloudData && cloudData.desc_data) {
                 console.log(`[Editor] Loaded ${pageId} strictly from Cloud.`);
                 descData = cloudData.desc_data;
-                frameData = cloudData.frame_data;
+                frameData = cloudData.frame_data || { m1s: [], skills: [], specials: [] };
             } else {
                 console.log(`[Editor] No cloud data found for ${pageId}. Initializing blank template.`);
                 descData = {
@@ -116,6 +118,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 3. ROUTE TO THE CORRECT EDITOR
         window.currentEditorTabId = tabId;
         window.currentEditorCharId = pageId; 
+        
+        // SECURITY PATCH
+        window.currentEditorDescData = descData;
+        window.currentEditorFrameData = frameData;
 
         if (moveId) {
             titleEl.textContent = `Editing Move`;
@@ -369,9 +375,13 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             navHTML += `<span style="color:var(--text-muted); font-size: 0.75rem; padding: 0.5rem;">No moves mapped in this category yet.</span>`;
         } else {
             moves.forEach((m, idx) => {
-                navHTML += `<button class="daw-tab-btn ${idx === 0 ? 'active' : ''}" id="move-nav-${m.id}" onclick="loadMoveIntoEditor('${m.id}')">${m.name}</button>`;
+                navHTML += `<div style="display:inline-flex; align-items:center; position:relative; margin-bottom: -1px;">`;
+                navHTML += `<button class="daw-tab-btn ${idx === 0 ? 'active' : ''}" id="move-nav-${m.id}" onclick="loadMoveIntoEditor('${m.id}')" style="padding-right: 1.5rem;">${m.name || m.id}</button>`;
+                navHTML += `<button onclick="window.removeMove('${m.id}')" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); background:none; border:none; color:#ef4444; font-size:10px; cursor:pointer;" title="Remove Move">✖</button>`;
+                navHTML += `</div>`;
             });
         }
+        navHTML += `<button class="daw-tab-btn btn-action-add" style="font-size: 0.65rem;">+ ADD MOVE</button>`;
         navHTML += `</div>`;
         
         builder.innerHTML = `
@@ -379,7 +389,11 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             <div id="move-editor-container"></div>
         `;
         
-        if (moves.length > 0) loadMoveIntoEditor(moves[0].id);
+        if (moves.length > 0) {
+            loadMoveIntoEditor(moves[0].id);
+        } else {
+            document.getElementById('move-editor-container').innerHTML = `<div class="empty-tab-msg" style="padding: 2rem; border: 1px dashed #333; background: transparent; text-align: center;">Click + ADD MOVE to begin mapping data.</div>`;
+        }
 
     } else if (tabId === 'overview') {
         if (!window.currentEditorDescData.overview) window.currentEditorDescData.overview = [];
@@ -481,6 +495,23 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         updateLivePreview(); 
     }
 }
+
+window.removeMove = async function(moveId) {
+    if (await window.customConfirm("Delete this entire move (stats, frame data, and strategy)?")) {
+        const tabId = window.currentEditorTabId;
+        const arr = window.currentEditorFrameData[tabId];
+        const idx = arr.findIndex(m => m.id === moveId);
+        if (idx > -1) arr.splice(idx, 1);
+        
+        // Also cleanup the text strategy block so it doesn't leave ghost data in the DB
+        if (window.currentEditorDescData.moveStrategies && window.currentEditorDescData.moveStrategies[moveId]) {
+            delete window.currentEditorDescData.moveStrategies[moveId];
+        }
+        
+        initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+    }
+};
+
 // --- SUB-NAVIGATION: OVERVIEW ---
 window.loadOverviewSectionIntoEditor = function(sectionId) {
     document.querySelectorAll('[id^="overview-nav-"]').forEach(btn => btn.classList.remove('active'));
@@ -718,7 +749,19 @@ window.loadMatchupIntoEditor = function(idx) {
 };
 
 // --- SUB-NAVIGATION: MOVES ---
-window.loadMoveIntoEditor = async function(moveId) { // Added async
+window.loadMoveIntoEditor = async function(moveId) {
+    // SECURITY PATCH: Only force save if we are ACTUALLY switching between two different moves!
+    const oldActiveBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
+    if (oldActiveBtn && window.currentEditorDescData) {
+        const oldMoveId = oldActiveBtn.id.replace('move-nav-', '');
+        
+        // Prevent empty-array overwrites on initial page boot
+        if (oldMoveId !== moveId) {
+            if (!window.currentEditorDescData.moveStrategies) window.currentEditorDescData.moveStrategies = {};
+            window.currentEditorDescData.moveStrategies[oldMoveId] = JSON.parse(JSON.stringify(currentStrategyBlocks));
+        }
+    }
+
     document.querySelectorAll('[id^="move-nav-"]').forEach(btn => btn.classList.remove('active'));
     const activeBtn = document.getElementById(`move-nav-${moveId}`);
     if(activeBtn) activeBtn.classList.add('active');
@@ -1263,6 +1306,7 @@ function initDawEditor(containerId, moveData) {
 
     renderDaw();
 }
+
 function initProfileEditor(containerId, profileData) {
     const container = document.getElementById(containerId);
     
@@ -1424,8 +1468,6 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 <button class="add-block-btn" id="btn-clear-all" style="color:#ef4444; border-color:#333;" title="Clear All Blocks">✖ CLEAR ALL</button>
             </div>
         </div>
-        
-        <div id="block-list" class="block-editor-container" style="margin-top: 0; margin-bottom: 3rem;"></div>
         
         <div id="block-list" class="block-editor-container" style="margin-top: 0; margin-bottom: 3rem;"></div>
         
@@ -1965,85 +2007,6 @@ function initStrategyBlockBuilder(containerId, initialData) {
     renderBlockList();
 }
 
-function initProfileEditor(containerId, profileData) {
-    const container = document.getElementById(containerId);
-    
-    // Safety defaults
-    if (!profileData) profileData = {};
-    if (!profileData.stats) profileData.stats = [];
-    
-    const renderProfileForm = () => {
-        let statsHtml = '';
-        profileData.stats.forEach((stat, idx) => {
-            statsHtml += `
-                <div class="editor-row" style="margin-bottom: 0.25rem;">
-                    <div><input type="text" class="editor-input stat-label" data-idx="${idx}" value="${stat.label}" placeholder="Label (e.g. Archetype)"></div>
-                    <div><input type="text" class="editor-input stat-val" data-idx="${idx}" value="${stat.value}" placeholder="Value (e.g. M1 Merchant)"></div>
-                    <button class="add-block-btn btn-action-delete btn-del-stat" data-idx="${idx}" style="padding: 0 0.5rem; color: #ef4444; border-color: #ef4444;">✖</button>
-                </div>
-            `;
-        });
-
-        container.innerHTML = `
-            <div class="block-editor-container">
-                <div class="block-card">
-                    <div class="block-header"><span class="block-type-badge">PORTRAIT IMAGE</span></div>
-                    <input type="text" class="editor-input" id="profile-image-input" value="${profileData.image || ''}" placeholder="Image Path/URL (e.g. /medias/images/Portrait.webp)">
-                </div>
-                
-                <div class="block-card">
-                    <div class="block-header">
-                        <span class="block-type-badge">CHARACTER STATS</span>
-                        <button class="add-block-btn" id="btn-add-stat" style="font-size: 0.6rem; padding: 0.1rem 0.3rem;">+ ADD STAT</button>
-                    </div>
-                    <div id="profile-stats-container">${statsHtml}</div>
-                </div>
-            </div>
-        `;
-
-        // Live Sync Listeners for Profile Data
-        container.querySelector('#profile-image-input').addEventListener('input', (e) => {
-            profileData.image = e.target.value;
-            window.currentEditorDescData.profile = profileData;
-            renderFullOverviewPreview();
-        });
-
-        container.querySelectorAll('.stat-label').forEach(inp => {
-            inp.addEventListener('input', (e) => {
-                profileData.stats[e.target.dataset.idx].label = e.target.value;
-                window.currentEditorDescData.profile = profileData;
-                renderFullOverviewPreview();
-            });
-        });
-
-        container.querySelectorAll('.stat-val').forEach(inp => {
-            inp.addEventListener('input', (e) => {
-                profileData.stats[e.target.dataset.idx].value = e.target.value;
-                window.currentEditorDescData.profile = profileData;
-                renderFullOverviewPreview();
-            });
-        });
-
-        container.querySelectorAll('.btn-del-stat').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                profileData.stats.splice(e.target.dataset.idx, 1);
-                window.currentEditorDescData.profile = profileData;
-                renderProfileForm();
-                renderFullOverviewPreview();
-            });
-        });
-
-        container.querySelector('#btn-add-stat').addEventListener('click', () => {
-            profileData.stats.push({ label: 'New Stat', value: 'Value' });
-            window.currentEditorDescData.profile = profileData;
-            renderProfileForm();
-            renderFullOverviewPreview();
-        });
-    };
-
-    renderProfileForm();
-}
-
 function renderBlockList() {
     const listContainer = document.getElementById('block-list');
     listContainer.innerHTML = '';
@@ -2265,12 +2228,6 @@ function renderBlockList() {
         ta.style.height = (ta.scrollHeight) + 'px';
     });
 
-    // Instantly resize all textareas on render
-    listContainer.querySelectorAll('.editor-textarea').forEach(ta => {
-        ta.style.height = 'auto';
-        ta.style.height = (ta.scrollHeight) + 'px';
-    });
-
     // --- HOOK VIRTUALIZATION ---
     if (window.editorBlockObserver) {
         listContainer.querySelectorAll('.block-card').forEach(card => {
@@ -2484,6 +2441,9 @@ window.triggerManualSync = async function() {
     if (frameTabs.includes(tabId) && typeof window.loadMoveSection === 'function') {
         // Determine the currently active move
         let activeMoveId = new URLSearchParams(window.location.search).get('move'); 
+        if (activeMoveId) {
+            await window.loadMoveSection(window.currentEditorCharId, tabId, activeMoveId);
+        }
         if (!activeMoveId) {
             const activeBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
             if (activeBtn) activeMoveId = activeBtn.id.replace('move-nav-', '');
@@ -2536,7 +2496,11 @@ function updateLivePreview(skipHistory = false) {
         }
         
         // CRITICAL: Sync active block changes back into the master JSON object
-        if (activeMoveId && window.currentEditorDescData && window.currentEditorDescData.moveStrategies) {
+        if (activeMoveId && window.currentEditorDescData) {
+            // SECURITY PATCH
+            if (!window.currentEditorDescData.moveStrategies) {
+                window.currentEditorDescData.moveStrategies = {};
+            }
             window.currentEditorDescData.moveStrategies[activeMoveId] = JSON.parse(JSON.stringify(currentStrategyBlocks));
         }
 
@@ -2916,9 +2880,7 @@ dropZone.addEventListener('click', () => {
 fileInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) handleUpload(e.target.files[0]);
 });
-fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) handleUpload(e.target.files[0]);
-});
+
 
 // Visual Drag & Drop Physics
 dropZone.addEventListener('dragover', (e) => {
@@ -3101,12 +3063,6 @@ window.renderDiffView = function() {
     if(typeof window.applyInternalStyling === 'function') setTimeout(window.applyInternalStyling, 50);
 }
 
-// =======================================================
-// EMERGENCY INTERCEPTOR: CUSTOM SECTION ADDITION MODALS
-// =======================================================
-// Bypasses browser-blocked prompt() dialogues by intercepting the click 
-// in the Capture Phase and deploying a custom HTML modal instead.
-
 document.addEventListener('click', (e) => {
     const addBtn = e.target.closest('.btn-action-add');
     if (!addBtn) return;
@@ -3114,7 +3070,7 @@ document.addEventListener('click', (e) => {
     const btnText = addBtn.textContent.trim().toUpperCase();
     
     // Catch the specific sidebar buttons
-    if (btnText.includes('ADD TAB') || btnText.includes('ADD MATCHUP') || btnText.includes('ADD TOPIC') || btnText.includes('ADD COUNTERPLAY')) {
+    if (btnText.includes('ADD TAB') || btnText.includes('ADD MATCHUP') || btnText.includes('ADD TOPIC') || btnText.includes('ADD COUNTERPLAY') || btnText.includes('ADD MOVE')) {
         e.preventDefault();
         e.stopPropagation(); // Kills the broken underlying script instantly
         
@@ -3215,6 +3171,38 @@ function openCustomAddModal(type) {
             window.currentEditorDescData.counterplay.push({ topic: topic, importance: imp, content: [] });
             
             finalizeAddition();
+        };
+    }
+    else if (type.includes('MOVE')) {
+        inputsContainer.innerHTML = `
+            <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888;">MOVE ID (Internal, No Spaces)</label>
+            <input type="text" id="inp-custom-move-id" class="editor-input" placeholder="e.g., skill_1">
+            <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888; margin-top: 0.5rem;">MOVE NAME (Display)</label>
+            <input type="text" id="inp-custom-move-name" class="editor-input" placeholder="e.g., Domain Expansion">
+        `;
+        confirmBtn.onclick = () => {
+            // Force strict formatting for the internal ID
+            const id = document.getElementById('inp-custom-move-id').value.trim().replace(/\s+/g, '_').toLowerCase();
+            const name = document.getElementById('inp-custom-move-name').value.trim();
+            if (!id || !name) return;
+            
+            const tabId = window.currentEditorTabId;
+            if (!window.currentEditorFrameData[tabId]) window.currentEditorFrameData[tabId] = [];
+            
+            if (window.currentEditorFrameData[tabId].some(m => m.id === id)) {
+                window.editorAlert("A move with this ID already exists in this tab.");
+                return;
+            }
+
+            // Spawn the blank template
+            window.currentEditorFrameData[tabId].push({
+                id: id, name: name, input: "", type: "", variant: "Standard",
+                media: { src: "", alt: "" }, stats: [], variants: {}
+            });
+            
+            overlay.style.display = 'none';
+            initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+            window.loadMoveIntoEditor(id); // Auto-jump to the new move
         };
     }
     
