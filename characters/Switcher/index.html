@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Switcher | Dogslamloop</title>
+    <link rel="stylesheet" href="../../style/Common.css">
+    <link rel="stylesheet" href="../../style/UI.css">
+    <link rel="stylesheet" href="../../style/ColorCoding.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+</head>
+<body class="site-body" style="padding: 0;">
+
+    <div class="site-layout">
+        
+        <aside class="global-sidebar-left" id="master-sidebar">
+            <div class="sidebar-header-top">
+                <img src="../../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
+                <div class="sidebar-title-container">
+                    <a href="../../index.html" class="site-title" style="font-size: 1.25rem;">dogslamloop wiki</a>
+                    <p class="site-subtitle" style="margin: 0;">Alpha v0.1</p>
+                </div>
+            </div>
+
+            <button class="sidebar-toggle-btn">☰</button>
+
+            <div class="sidebar-nav-title">Navigation</div>
+            
+            <div id="global-sidebar-nav">
+                <p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.75rem;">Loading menu...</p>
+            </div>
+
+            <div class="kofi-btn-wrapper">
+                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="kofi-btn">
+                    <span style="font-size: 1.1rem; line-height: 1;">☕</span>
+                    <span class="kofi-text" style="margin-left: 0.5rem;">Support Ko-fi</span>
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content-area space-y-6">
+            
+            <div style="margin-bottom:1rem;">
+                <a href="../../index.html" style="color:hsl(212, 9%, 58%); text-decoration:none;">← Back to Home</a>
+            </div>
+            
+            <header class="character-header">
+                <h2 class="character-title">Switcher</h2>
+                <nav class="character-nav">
+                    <button id="nav-overview" class="nav-btn active">Overview & Strategy</button>
+                    <button id="nav-m1s" class="nav-btn">M1s</button>
+                    <button id="nav-skills" class="nav-btn">Skills</button>
+                    <button id="nav-specials" class="nav-btn">Specials</button>
+                    <button id="nav-matchups" class="nav-btn">Matchups</button>
+                    <button id="nav-counterplay" class="nav-btn">Counterplay</button>
+                    <button id="nav-gallery" class="nav-btn">Gallery</button>
+                </nav>
+            </header>
+
+            <div id="tab-overview" class="tab-content"></div>
+            <div id="tab-m1s" class="tab-content hidden"></div>
+            <div id="tab-skills" class="vessel-content space-y-8 hidden"></div>
+            <div id="tab-specials" class="tab-content hidden"></div>
+            <div id="tab-matchups" class="vessel-content hidden"></div>
+            <div id="tab-counterplay" class="vessel-content hidden"></div>
+            <div id="tab-gallery" class="vessel-content hidden"></div>
+
+        </main>
+
+        <aside class="local-sidebar-right">
+            <div class="sidebar-nav-title">On this tab</div>
+            
+            <ul class="toc-list" id="dynamic-toc">
+                <li><p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.75rem; padding: 0.25rem 0.75rem;">Loading contents...</p></li>
+            </ul>
+        </aside>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="../../js/site_utils.js"></script>
+    <script src="../../js/site_meta.js"></script>
+    <script src="../../js/pagebuilder.js"></script>
+    <script src="../../js/framedata.js"></script>
+    <script src="../../js/description.js"></script>
+    <script src="../../js/internalstyling.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Setup Tab Navigation
+            setupTabs('nav', 'tab', ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay', 'gallery'], 'major');
+
+            // 2. Fetch Frame Data (Using the updated universal pageId structure)
+            if (typeof window.loadMoveSection === 'function') {
+                await window.loadMoveSection('switcher', 'skills');
+                await window.loadMoveSection('switcher', 'm1s');
+                await window.loadMoveSection('switcher', 'specials');
+            }
+
+            // 3. Fetch Block Builder Text Data (Using the new Universal Wiki Engine)
+            if (typeof window.loadPageDescriptions === 'function') {
+                // Pass the pageType explicitly so the engine knows it's a character!
+                await window.loadPageDescriptions('switcher', 'character');
+            }
+
+            // 4. Fetch Page Alerts
+            if (typeof window.loadPageAlerts === 'function') {
+                await window.loadPageAlerts('Switcher');
+            }
+
+            // 5. Initialize the Edit Button with Universal Routing
+            if (typeof window.initSidebarEditButton === 'function') {
+                window.initSidebarEditButton('switcher', 'character');
+            }
+        });
+    </script>
+</body>
+</html>

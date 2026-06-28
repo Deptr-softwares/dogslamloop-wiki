@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formatting Template | Dogslamloop</title>
+    <link rel="stylesheet" href="../../style/Common.css">
+    <link rel="stylesheet" href="../../style/UI.css">
+    <link rel="stylesheet" href="../../style/ColorCoding.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+</head>
+<body class="site-body" style="padding: 0;">
+
+    <div class="site-layout">
+        
+        <aside class="global-sidebar-left" id="master-sidebar">
+            <div class="sidebar-header-top">
+                <img src="../../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
+                <div class="sidebar-title-container">
+                    <a href="../../index.html" class="site-title" style="font-size: 1.25rem;">dogslamloop wiki</a>
+                    <p class="site-subtitle" style="margin: 0;">Alpha v0.1</p>
+                </div>
+            </div>
+
+            <button class="sidebar-toggle-btn">☰</button>
+
+            <div class="sidebar-nav-title">Navigation</div>
+            
+            <div id="global-sidebar-nav">
+                <p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.75rem;">Loading menu...</p>
+            </div>
+
+            <div class="kofi-btn-wrapper">
+                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="kofi-btn">
+                    <span style="font-size: 1.1rem; line-height: 1;">☕</span>
+                    <span class="kofi-text" style="margin-left: 0.5rem;">Support Ko-fi</span>
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content-area space-y-6">
+            
+            <div style="margin-bottom:1rem;">
+                <a href="../../index.html" style="color:hsl(212, 9%, 58%); text-decoration:none;">← Back to Home</a>
+            </div>
+
+            <header class="character-header">
+                <h2 class="character-title">Template & Guide</h2>
+                <nav class="character-nav">
+                    <button id="nav-overview" class="nav-btn active">Overview & JSON</button>
+                    <button id="nav-m1s" class="nav-btn">M1s Formatting</button>
+                    <button id="nav-skills" class="nav-btn">Skills Formatting</button>
+                    <button id="nav-matchups" class="nav-btn">Matchups</button>
+                    <button id="nav-counterplay" class="nav-btn">Counterplay</button>
+                </nav>
+            </header>
+
+            <div id="tab-overview" class="tab-content"></div>
+            <div id="tab-m1s" class="tab-content hidden"></div>
+            <div id="tab-skills" class="vessel-content space-y-8 hidden"></div>
+            <div id="tab-matchups" class="vessel-content hidden"></div>
+            <div id="tab-counterplay" class="vessel-content hidden"></div>
+
+        </main>
+
+        <aside class="local-sidebar-right">
+            <div class="sidebar-nav-title">On this tab</div>
+            
+            <ul class="toc-list" id="dynamic-toc">
+                <li><p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.75rem; padding: 0.25rem 0.75rem;">Loading contents...</p></li>
+            </ul>
+        </aside>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../js/site_utils.js"></script>
+    <script src="../../js/site_meta.js"></script>
+    <script src="../../js/pagebuilder.js"></script>
+    <script src="../../js/framedata.js"></script>
+    <script src="../../js/description.js"></script>
+    <script src="../../js/internalstyling.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Setup navigation tabs
+            setupTabs('nav', 'tab', ['overview', 'm1s', 'skills', 'matchups', 'counterplay'], 'major');
+            
+            // 2. Load JSON contents (Explicitly flag pageType as 'character')
+            if (typeof window.loadMoveSection === 'function') {
+                await window.loadMoveSection('template', 'skills', null, 'character');
+                await window.loadMoveSection('template', 'm1s', null, 'character');
+            }
+
+            if (typeof window.loadPageDescriptions === 'function') {
+                await window.loadPageDescriptions('template', 'character');
+            }
+
+            // 3. Load Warnings & Alerts
+            if (typeof window.loadPageAlerts === 'function') {
+                await window.loadPageAlerts('Template & Guide');
+            }
+            
+            // 4. Mount the Edit Button (Staff Only due to editor.js protections)
+            if (typeof window.initSidebarEditButton === 'function') {
+                window.initSidebarEditButton('template', 'character');
+            }
+
+            // 5. Append specific guide logic AFTER standard wiki assembly finishes
+            if (typeof displayRawJSON === 'function') {
+                await displayRawJSON('template');
+            }
+        });
+
+        async function displayRawJSON(charId) {
+            const overviewTab = document.getElementById('tab-overview');
+            if (!overviewTab) return;
+
+            const files = [
+                { name: 'Template Descriptions JSON', path: `./${charId}_descriptions.json` },
+                { name: 'Template Frame Data JSON', path: `./${charId}_framedata.json` }
+            ];
+
+            const jsonContainer = document.createElement('section');
+            jsonContainer.className = 'wiki-section space-y-4';
+            jsonContainer.style.marginTop = '3rem';
+            jsonContainer.innerHTML = '<h3 class="strategy-title" style="font-size: 1.5rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; color: var(--text-white);">Behind the Scenes: Raw JSON</h3>';
+
+            for (const file of files) {
+                try {
+                    const data = await window.fetchJson(file.path);
+                    if (!data) continue;
+                    
+                    const details = document.createElement('details');
+                    details.className = 'faq-details'; 
+                    
+                    const summary = document.createElement('summary');
+                    summary.className = 'faq-summary';
+                    summary.innerHTML = `${file.name} <span class="faq-arrow">▼</span>`;
+                    
+                    const pre = document.createElement('pre');
+                    pre.style = "background: #0d1117; padding: 1rem; border-radius: 4px; overflow-x: auto; color: #c9d1d9; font-family: var(--text-mono); font-size: 0.85rem; border: 1px solid var(--border-color); margin-top: 1rem;";
+                    
+                    pre.textContent = JSON.stringify(data, null, 2);
+                    
+                    details.appendChild(summary);
+                    details.appendChild(pre);
+                    jsonContainer.appendChild(details);
+                } catch(e) {
+                    console.error(`Could not load ${file.path} through site_utils.`, e);
+                }
+            }
+            overviewTab.appendChild(jsonContainer);
+        }
+    </script>
+</body>
+</html>

@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Termninologies | Dogslamloop Wiki</title>
-    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
+    <title>Terminologies | Dogslamloop Wiki</title>
+    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIconGay.webp">
     <link rel="stylesheet" href="../../style/Common.css">
     <link rel="stylesheet" href="../../style/UI.css">
     <link rel="stylesheet" href="../../style/ColorCoding.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 </head>
 <body class="site-body p-0">
 
@@ -15,7 +18,7 @@
         
         <aside class="global-sidebar-left" id="master-sidebar">
             <div class="sidebar-header-top">
-                <img src="../../medias/images/DogslamloopIcon.webp" alt="Site Logo" class="sidebar-site-logo">
+                <img src="../../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
                     <a href="../../index.html" class="site-title">dogslamloop wiki</a>
                     <p class="site-subtitle">Alpha v0.1</p>
@@ -38,12 +41,8 @@
                 <h1 class="home-main-title">Terminologies</h1>
             </header>
 
-            <section class="wiki-section">
-                <h2 class="section-title section-title-clean mb-4">Overview</h2>
-                <p class="text-gray-300 text-sm leading-relaxed m-0">
-                    to be completed
-                </p>
-            </section>
+            <!-- The dynamic injection target for description.js -->
+            <div id="tab-overview" class="tab-content active" style="display: block;"></div>
 
         </main>
 
@@ -56,16 +55,30 @@
 
     </div>
 
-    <!-- Core Scripts -->
+    <!-- Core Scripts (Now including Supabase and description rendering) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
+    <script src="../../js/description.js"></script>
+    <script src="../../js/internalstyling.js"></script>
 
-    <!-- Page Alert Trigger -->
+    <!-- Page Engine Trigger -->
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
+            // 1. Fetch Block Builder Text Data (Explicitly flagged as 'system')
+            if (typeof window.loadPageDescriptions === 'function') {
+                await window.loadPageDescriptions('terminologies', 'system');
+            }
+
+            // 2. Load Page Alerts
             if (typeof window.loadPageAlerts === 'function') {
-                await window.loadPageAlerts('Starter Guide');
+                await window.loadPageAlerts('Terminologies');
+            }
+
+            // 3. Mount the Edit Button to the Sidebar
+            if (typeof window.initSidebarEditButton === 'function') {
+                window.initSidebarEditButton('terminologies', 'system');
             }
         });
     </script>

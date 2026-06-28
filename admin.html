@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Staff Overseer | Revision Queue</title>
+    <link rel="stylesheet" href="style/Common.css">
+    <link rel="stylesheet" href="style/UI.css">
+    <link rel="stylesheet" href="style/ColorCoding.css">
+    <link rel="stylesheet" href="style/editor.css">
+    <link rel="stylesheet" href="style/admin.css">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+</head>
+<body class="admin-body">
+
+    <div class="editor-layout">
+        
+        <aside class="editor-workspace admin-sidebar">
+            
+            <div class="editor-header admin-header">
+                <div class="admin-header-flex">
+                    <div>
+                        <h2 class="editor-title admin-title">STAFF OVERSEER</h2>
+                        <span class="editor-subtitle admin-subtitle">Moderation & Revision Queue</span>
+                    </div>
+                    <a href="index.html" class="system-page-btn admin-hub-btn">HUB</a>
+                </div>
+            </div>
+
+            <div class="admin-sidebar-content">
+                
+                <div id="preview-nav-sidebar" style="display: none;">
+                    <div class="dashboard-header-split admin-split-header">
+                        <h3 class="section-title section-title-clean m-0 admin-section-title">Document Explorer</h3>
+                    </div>
+                    <div class="admin-nav-col">
+                        <button id="nav-overview" class="nav-btn active">Overview & Strategy</button>
+                        <button id="nav-m1s" class="nav-btn">M1s</button>
+                        <button id="nav-skills" class="nav-btn">Skills</button>
+                        <button id="nav-specials" class="nav-btn">Specials</button>
+                        <button id="nav-matchups" class="nav-btn">Matchups</button>
+                        <button id="nav-counterplay" class="nav-btn">Counterplay</button>
+                    </div>
+                    <div class="admin-toc-container">
+                        <div class="sidebar-nav-title">ON THIS PAGE</div>
+                        <ul class="toc-list" id="dynamic-toc">
+                            <li><p class="admin-toc-empty">Navigation unavailable.</p></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="dashboard-header-split admin-split-header">
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Pending Queue</h3>
+                    <button onclick="loadQueue()" class="system-page-btn admin-refresh-btn">↻ Refresh</button>
+                </div>
+                
+                <div id="queue-container" class="space-y-4">
+                    <p class="loading-msg admin-loading-msg">Authenticating RBAC...</p>
+                </div>
+
+                <div id="admin-only-tools" style="display: none;">
+                    <div class="dashboard-header-split admin-split-header">
+                        <h3 class="section-title section-title-clean m-0 admin-tools-title">System Admin</h3>
+                    </div>
+                    <div class="update-log-item admin-tool-card personnel">
+                        <h3 class="update-title admin-tool-title personnel">Personnel Management</h3>
+                        <input type="email" id="target-email" placeholder="user@email.com" class="editor-input admin-input-full">
+                        <select id="target-role" class="editor-input admin-input-full select">
+                            <option value="reviewer">Clearance: Reviewer</option>
+                            <option value="admin">Clearance: Administrator</option>
+                            <option value="guest">Revoke Access (Guest)</option>
+                        </select>
+                        <button onclick="changeUserRole()" class="submit-btn admin-tool-btn personnel">UPDATE CLEARANCE</button>
+                        <div id="role-results" class="admin-tool-results"></div>
+                    </div>
+                    <div class="update-log-item admin-tool-card gc">
+                        <h3 class="update-title admin-tool-title gc">Media Garbage Collection</h3>
+                        <button id="btn-run-gc" onclick="runGarbageCollector()" class="submit-btn admin-tool-btn gc">SCAN & PURGE MEDIA</button>
+                        <div id="gc-results" class="admin-tool-results"></div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <main class="live-preview-pane admin-main-pane">
+            
+            <div class="editor-live-header admin-live-header">
+                <div class="admin-status-container">
+                    <div class="status-dot online"></div>
+                    <span id="preview-status-text" class="admin-status-text">Select a revision...</span>
+                </div>
+                <div id="preview-action-buttons"></div>
+            </div>
+
+            <div id="ticket-workspace" class="ticket-workspace" style="display: none;">
+                <div class="ticket-left-col">
+                    <h4 class="ticket-header-title status">TICKET STATUS</h4>
+                    <p id="ticket-support-text" class="ticket-status-text support"></p>
+                    <p id="ticket-oppose-text" class="ticket-status-text oppose"></p>
+                    
+                    <h4 class="ticket-header-title" style="color: #3b82f6; margin-top: 1.5rem;">QA REPORT</h4>
+                    <div id="ticket-qa-report" style="background: rgba(0,0,0,0.3); border: 1px dashed #333; padding: 0.75rem; border-radius: 4px; font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); margin-bottom: 1rem; overflow-wrap: break-word;">
+                        Select a ticket to view QA data.
+                    </div>
+
+                    <div id="ticket-support-actions"></div>
+                </div>
+                <div class="ticket-right-col">
+                    <h4 class="ticket-header-title log">DISCUSSION LOG</h4>
+                    <div id="ticket-chat-log" class="ticket-chat-log"></div>
+                    <div id="ticket-typing-indicator"></div>
+                    <div class="ticket-chat-input-row">
+                        <input type="text" id="ticket-chat-input" class="editor-input ticket-chat-input" placeholder="Add to discussion..." autocomplete="off" spellcheck="false" onkeydown="if(event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); postTicketMessage(); }">
+                        <button type="button" onclick="postTicketMessage()" class="submit-btn ticket-chat-send-btn">SEND</button>
+                    </div>
+                </div> 
+            </div>
+
+            <div class="main-content-area" id="preview-content-area">
+                
+                <div id="version-toggle-bar" style="display: none;">
+                    <button id="btn-view-pending" onclick="switchVersionView('pending')" class="submit-btn version-toggle-btn pending">PENDING SUBMISSION</button>
+                    <button id="btn-view-live" onclick="switchVersionView('live')" class="system-page-btn version-toggle-btn">LIVE VERSION</button>
+                    <button id="btn-view-diff" onclick="switchVersionView('diff')" class="system-page-btn version-toggle-btn diff">DIFF VIEW</button>
+                </div>
+
+                <div id="tab-overview"></div>
+                <div id="tab-m1s" class="hidden"></div>
+                <div id="tab-skills" class="hidden space-y-8"></div>
+                <div id="tab-specials" class="hidden"></div>
+                <div id="tab-matchups" class="hidden"></div>
+                <div id="tab-counterplay" class="hidden"></div>
+            </div>
+
+        </main>
+    </div>
+
+    <div id="admin-confirm-modal" class="editor-modal-overlay" style="display: none; z-index: 10000;">
+        <div class="editor-modal-box auth-modal-box confirm-box">
+            <div class="auth-header admin-modal-header">
+                <h3 class="admin-modal-title confirm">SYSTEM CONFIRMATION</h3>
+            </div>
+            <div class="auth-body admin-modal-body">
+                <p id="admin-confirm-msg" class="admin-modal-msg"></p>
+                <div class="admin-modal-actions">
+                    <button id="btn-admin-confirm-cancel" class="system-page-btn admin-modal-btn">CANCEL</button>
+                    <button id="btn-admin-confirm-ok" class="submit-btn admin-modal-btn confirm-ok">CONFIRM</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-alert-modal" class="editor-modal-overlay" style="display: none; z-index: 10000;">
+        <div class="editor-modal-box auth-modal-box alert-box">
+            <div class="auth-header admin-modal-header">
+                <h3 class="admin-modal-title alert">SYSTEM MESSAGE</h3>
+            </div>
+            <div class="auth-body admin-modal-body">
+                <p id="admin-alert-msg" class="admin-modal-msg"></p>
+                <button id="btn-admin-alert-ok" class="submit-btn admin-modal-btn alert-ok">ACKNOWLEDGE</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="admin-prompt-modal" class="editor-modal-overlay" style="display: none; z-index: 10000;">
+        <div class="editor-modal-box auth-modal-box" style="border-top-color: #ef4444; width: 450px;">
+            <div class="auth-header" style="border-bottom: 1px solid #333; background: #050505;">
+                <h3 style="color: #ef4444; font-size: 1rem;">REJECT REVISION</h3>
+            </div>
+            <div class="auth-body" style="text-align: left; padding: 1.5rem;">
+                <p id="admin-prompt-msg" style="font-family: var(--text-mono); font-size: 0.85rem; color: var(--text-white); margin: 0 0 1rem 0; line-height: 1.6;"></p>
+                <textarea id="admin-prompt-input" class="editor-input" rows="3" placeholder="Explain why this revision was declined..." style="width: 100%; box-sizing: border-box; resize: none; font-size: 0.75rem; padding: 0.75rem;"></textarea>
+                <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
+                    <button id="btn-admin-prompt-cancel" class="system-page-btn" style="flex: 1; padding: 0.5rem;">CANCEL</button>
+                    <button id="btn-admin-prompt-ok" class="submit-btn" style="flex: 1; color: #000; background: #ef4444; border-color: #ef4444;">DECLINE TICKET</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/site_utils.js"></script>
+    <script src="js/pagebuilder.js"></script>
+    <script src="js/framedata.js"></script>
+    <script src="js/description.js"></script>
+    <script src="js/internalstyling.js"></script>
+    
+    <script src="js/admin.js"></script>
+</body>
+</html>

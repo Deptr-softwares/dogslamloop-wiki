@@ -3,14 +3,15 @@
     {
       "id": "Honored-One",
       "name": "Honored One",
-      "url": "characters/Honored One/index.html",
+      "url": "characters/Honored_one/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": false,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Vessel",
@@ -22,31 +23,34 @@
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Restless-Gambler",
       "name": "Restless Gambler",
-      "url": "characters/Restless Gambler/index.html",
+      "url": "characters/Restless_gambler/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": false,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Ten-Shadows",
       "name": "Ten Shadows",
-      "url": "characters/Ten Shadows/index.html",
+      "url": "characters/Ten_shadows/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": false,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Perfection",
@@ -58,19 +62,21 @@
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Blood-Manipulator",
       "name": "Blood Manipulator",
-      "url": "characters/Blood Manipulator/index.html",
+      "url": "characters/Blood_manipulator/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": false,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Switcher",
@@ -82,55 +88,60 @@
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Defense-Attorney",
       "name": "Defense Attorney",
-      "url": "characters/Defense Attorney/index.html",
+      "url": "characters/Defense_attorney/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": false,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Cursed-Partners",
       "name": "Cursed Partners",
-      "url": "characters/Cursed Partners/index.html",
+      "url": "characters/Cursed_partners/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": false,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Puppet-Master",
       "name": "Puppet Master",
-      "url": "characters/Puppet Master/index.html",
+      "url": "characters/Puppet_master/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": false,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Head-Hei",
       "name": "Head of the Hei",
-      "url": "characters/Head of the Hei/index.html",
+      "url": "characters/Head_hei/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": false,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Salaryman",
@@ -142,103 +153,112 @@
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Disaster-Plant",
       "name": "Disaster Plant",
-      "url": "characters/Disaster Plant/index.html",
+      "url": "characters/Disaster_plant/index.html",
       "isWip": true,
       "isEA": true,
       "isBaseOnly": false,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "True-Cannon",
       "name": "True Cannon",
-      "url": "characters/True Cannon/index.html",
+      "url": "characters/True_cannon/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": false,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Locust",
       "name": "Locust Guy",
-      "url": "characters/Locust Guy/index.html",
+      "url": "characters/Locust_guy/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": true,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Star-Rage",
       "name": "Star Rage",
-      "url": "characters/Star Rage/index.html",
+      "url": "characters/Star_rage/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": true,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Mangaka",
       "name": "Aspiring Mangaka",
-      "url": "characters/Aspiring Mangaka/index.html",
+      "url": "characters/Aspiring_mangaka/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": true,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Lucky-Coward",
       "name": "Lucky Coward",
-      "url": "characters/Lucky Coward/index.html",
+      "url": "characters/Lucky_coward/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": true,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Sus-Sister",
       "name": "Crow Charmer",
-      "url": "characters/Crow Charmer/index.html",
+      "url": "characters/Crow_charmer/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": true,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Black-Death",
       "name": "Black Death",
-      "url": "characters/Black Death/index.html",
+      "url": "characters/Black_death/index.html",
       "isWip": true,
       "isEA": false,
       "isBaseOnly": true,
       "isMissingMedia": true,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
       "id": "Boomcat",
@@ -250,85 +270,117 @@
       "isMissingMedia": false,
       "archetype": "TBD",
       "tier": "TBD",
-      "releaseDate": "TBD"
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
     }
   ],
   "System Pages": [
     { 
+      "id": "hud",
       "name": "HUD", 
       "url": "systems/hud/index.html", 
-      "isWip": true },
+      "isWip": true,
+      "cms_config": { "isEditable": true, "pageType": "system" }
+    },
     { 
+      "id": "framedata",
       "name": "Frame Data", 
       "url": "systems/framedata/index.html", 
-      "isWip": true },
+      "isWip": true,
+      "cms_config": { "isEditable": true, "pageType": "system" }
+    },
     { 
+      "id": "fundamentals",
       "name": "Fundamentals", 
       "url": "systems/fundamentals/index.html", 
-      "isWip": true },
+      "isWip": true,
+      "cms_config": { "isEditable": true, "pageType": "system" }
+    },
     { 
+      "id": "evasive",
       "name": "Evasive System", 
       "url": "systems/evasive/index.html", 
-      "isWip": true }
+      "isWip": true,
+      "cms_config": { "isEditable": true, "pageType": "system" }
+    }
   ],
   "Site Info": [
     { 
       "id": "character-hub",
       "name": "Character Hub", 
       "url": "characters/index.html", 
-      "isWip": true
+      "isWip": true,
+      "cms_config": { "isEditable": false }
     },
     { 
       "id": "systems-hub",
       "name": "Systems Hub", 
       "url": "systems/index.html", 
-      "isWip": true
+      "isWip": true,
+      "cms_config": { "isEditable": false }
     },
     { 
+      "id": "template",
       "name": "Template & Guide", 
-      "url": "characters/Template/index.html"
+      "url": "characters/template/index.html",
+      "cms_config": { "isEditable": false, "pageType": "character" }
     },
     { 
+      "id": "source-code",
       "name": "Source Code", 
       "url": "https://github.com/Deptr-softwares/dogslamloop-wiki", 
-      "isWip": false 
+      "isWip": false,
+      "cms_config": { "isEditable": false }
     },
     { 
+      "id": "updatelog",
       "name": "Update Log", 
-      "url": "systems/updatelog/index.html"
+      "url": "systems/updatelog/index.html",
+      "cms_config": { "isEditable": true, "pageType": "system" }
     },
     {
-        "id": "Collaborators",
-        "name": "Collaborators",
-        "url": "systems/collaborators/index.html"
+      "id": "collaborators",
+      "name": "Collaborators",
+      "url": "systems/collaborators/index.html",
+      "cms_config": { "isEditable": true, "pageType": "system" }
     }
   ],
   "Guides": [
     { 
+      "id": "m1-trading",
       "name": "M1 Trading", 
       "url": "systems/m1-trading/index.html", 
-      "isWip": true
+      "isWip": true,
+      "cms_config": { "isEditable": true, "pageType": "system" }
     },
     { 
+      "id": "starter-guide",
       "name": "Starter Guide", 
       "url": "systems/starter-guide/index.html", 
-      "isWip": true 
+      "isWip": true,
+      "cms_config": { "isEditable": true, "pageType": "system" }
     },
     { 
+      "id": "terminologies",
       "name": "Terminologies", 
       "url": "systems/terminologies/index.html", 
-      "isWip": true 
+      "isWip": true,
+      "cms_config": { "isEditable": true, "pageType": "system" }
     },
     { 
+      "id": "color-codes",
       "name": "Color Codes", 
       "url": "systems/color-codes/index.html", 
-      "isWip": true 
+      "isWip": true,
+      "cms_config": { "isEditable": true, "pageType": "system" }
     },
     { 
+      "id": "tierlist",
       "name": "Tier List", 
       "url": "systems/tierlist/index.html", 
       "isWip": true, 
-      "isSubjective": true 
+      "isSubjective": true,
+      "cms_config": { "isEditable": true, "pageType": "system" }
     }
   ]
 }

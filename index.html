@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dogslamloop Wiki</title>
-    <link rel="icon" type="image/jpg" href="/medias/images/DogslamloopIcon.webp">
+    <link rel="icon" type="image/jpg" href="/medias/images/DogslamloopIconGay.webp">
     <link rel="stylesheet" href="style/Common.css">
     <link rel="stylesheet" href="style/UI.css">
     <link rel="stylesheet" href="style/ColorCoding.css">
@@ -15,7 +15,7 @@
         
         <aside class="global-sidebar-left" id="master-sidebar">
             <div class="sidebar-header-top">
-                <img src="/medias/images/DogslamloopIcon.webp" alt="Site Logo" class="sidebar-site-logo">
+                <img src="/medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
                     <a href="../index.html" class="site-title">dogslamloop wiki</a>
                     <p class="site-subtitle">Alpha v0.1</p>
@@ -28,6 +28,13 @@
             
             <div id="global-sidebar-nav">
                 <p class="loading-msg loading-msg-sm">Loading menu...</p>
+            </div>
+
+            <div class="sidebar-auth-widget" style="margin-top: auto;padding-top: 12rem; width: 100%;">
+                <button onclick="window.openAuthModal()" class="sidebar-login-btn">
+                    <span id="global-status-dot" class="dot-indicator dot-grey"></span> 
+                    <span id="global-auth-text">SYSTEM LOGIN</span>
+                </button>
             </div>
 
             <div class="kofi-btn-wrapper">
@@ -194,8 +201,10 @@
 
     </div>
 
-    <script src="../../js/site_utils.js"></script>
-    <script src="../../js/home_widgets.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script src="js/site_utils.js"></script>
+    <script src="js/home_widgets.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             loadUpdateLogs('site-updates-dashboard', 2);
@@ -203,7 +212,7 @@
         });
     </script>
 
-    <script src="../../js/site_meta.js"></script>
-    <script src="../../js/pagebuilder.js"></script>
+    <script src="js/site_meta.js"></script>
+    <script src="js/pagebuilder.js"></script>
 </body>
 </html>

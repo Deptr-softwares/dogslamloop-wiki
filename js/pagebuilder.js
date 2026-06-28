@@ -36,55 +36,63 @@ function setupTabs(buttonGroupType, contentPrefix, tabIds, tabLevel = 'minor') {
     });
 }
 
-function generateTOC(container) {
+window.refreshTOC = function() {
     const tocContainer = document.getElementById('dynamic-toc');
-    if (!tocContainer || !container) return;
+    if (!tocContainer) return;
 
-    const headings = container.querySelectorAll('h2, h3, .matchup-card-title, .counterplay-card-title, .character-title, .strategy-title');
+    // 1. Clear the old list
+    tocContainer.innerHTML = '';
+
+    // 2. Target the actual tab containers
+    const activeTab = document.querySelector('.main-content-area > [id^="tab-"]:not(.hidden)');
     
-    if (headings.length === 0) {
-        tocContainer.innerHTML = '<li><p class="toc-empty-msg">Loading or empty...</p></li>';
+    if (!activeTab) {
+        tocContainer.innerHTML = '<li><p style="color: var(--text-muted); font-style: italic; font-size: 0.75rem; padding: 0.25rem 0.75rem;">Navigation unavailable.</p></li>';
         return;
     }
 
-    tocContainer.innerHTML = '';
-    const slugify = text => text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    // 3. THE GOLDEN QUERY
 
-    headings.forEach(heading => {
-        const headingText = heading.textContent.replace('▼', '').trim();
-        if (!headingText) return;
-        if (headingText === "Move Overview and Strategy" || headingText === "Move Overview & Strategy") return; 
+    const headers = activeTab.querySelectorAll('.strategy-title, .card-header-title, .skill-title, .legend-title');
 
-        if (!heading.id) {
-            if (heading.classList.contains('matchup-card-title')) heading.id = 'matchup-' + slugify(headingText);
-            else if (heading.classList.contains('counterplay-card-title')) heading.id = 'counterplay-' + slugify(headingText);
-            else heading.id = slugify(headingText);
+    if (headers.length === 0) {
+        tocContainer.innerHTML = '<li><p style="color: var(--text-muted); font-style: italic; font-size: 0.75rem; padding: 0.25rem 0.75rem;">No headers on this tab.</p></li>';
+        return;
+    }
+
+    // 4. Build the constrained list
+    headers.forEach(header => {
+        const headerText = (header.innerText || header.textContent).trim();
+        
+        // Skip empty headers or the redundant "Move Overview" titles injected below every skill
+        if (!headerText || headerText === "Move Overview and Strategy") return; 
+
+        // Generate an ID if the HTML doesn't have one (so clicking it scrolls down)
+        if (!header.id) {
+            header.id = 'toc-' + Math.random().toString(36).substr(2, 9);
         }
 
         const li = document.createElement('li');
         const a = document.createElement('a');
-        a.href = `#${heading.id}`;
+        a.href = '#' + header.id;
         a.className = 'toc-btn';
-        a.textContent = headingText;
+        a.textContent = headerText;
         
+        // Smart Formatting: Matchup/Counterplay topics get indented, main titles stay bold
+        if (header.classList.contains('card-header-title')) {
+            a.style.paddingLeft = '1.5rem';
+            a.style.fontSize = '0.75rem';
+            a.style.color = 'var(--text-muted)';
+        } else {
+            a.style.fontWeight = 'bold';
+            a.style.color = 'var(--text-white)';
+            a.style.paddingLeft = '0.5rem';
+        }
+
         li.appendChild(a);
         tocContainer.appendChild(li);
     });
-}
-
-function refreshTOC() {
-    const tocContainer = document.getElementById('dynamic-toc');
-    if (!tocContainer) return;
-
-    const activeTab = document.querySelector('.main-content-area > .tab-content:not(.hidden), .main-content-area > .vessel-content:not(.hidden)');
-    
-    if (activeTab) {
-        generateTOC(activeTab);
-    } else {
-        const mainArea = document.querySelector('.main-content-area');
-        if (mainArea) generateTOC(mainArea);
-    }
-}
+};
 
 function initDynamicTOC() {
     if (!document.getElementById('dynamic-toc')) return;
@@ -499,7 +507,7 @@ function initMobileNav() {
 
     topBar.innerHTML = `
         <a href="${rootPath}index.html" class="mobile-logo-link">
-            <img src="${rootPath}medias/images/DogslamloopIcon.webp" alt="Site Logo" class="mobile-logo-img">
+            <img src="${rootPath}medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="mobile-logo-img">
             <span class="site-title mobile-site-title">dogslamloop</span>
         </a>
         <button class="mobile-menu-btn">☰</button>
@@ -716,7 +724,7 @@ async function initTierList() {
             img.loading = "lazy";
             
             img.onerror = function() {
-                this.src = `${window.getRootPath()}medias/images/DogslamloopIcon.webp`;
+                this.src = `${window.getRootPath()}medias/images/DogslamloopIconGay.webp`;
             };
 
             const tooltip = document.createElement('div');
@@ -757,6 +765,127 @@ async function initTierList() {
         console.error("Tier List Init Error:", err);
     }
 }
+
+// --- Editor Handoff Router ---
+function initSidebarEditButton(characterId) {
+    const localSidebar = document.querySelector('.local-sidebar-right');
+    if (!localSidebar) return;
+
+    // Prevent duplicate buttons on re-renders
+    if (document.getElementById('edit-tab-btn')) return;
+
+    // 1. Desktop Edit Button (Right Sidebar)
+    const editBtn = document.createElement('button');
+    editBtn.id = 'edit-tab-btn';
+    editBtn.className = 'system-page-btn';
+    editBtn.style.cssText = 'width: 100%; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-color: var(--accent-blue); background: rgba(59, 130, 246, 0.1);';
+    
+    // SVG Edit Pencil Icon
+    editBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        <span style="color: var(--accent-blue); font-weight: bold;">Edit This Tab</span>
+    `;
+
+    // 2. Mobile Edit FAB (Floating on screen)
+    let mobileEditBtn = document.getElementById('mobile-edit-tab-btn');
+    if (!mobileEditBtn) {
+        mobileEditBtn = document.createElement('button');
+        mobileEditBtn.id = 'mobile-edit-tab-btn';
+        mobileEditBtn.className = 'mobile-edit-fab';
+        mobileEditBtn.innerHTML = `
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+        `;
+        document.body.appendChild(mobileEditBtn); // Appends to body so it survives the mobile sidebar collapse
+    }
+
+    // 3. Shared Routing Logic
+    const routeToEditor = () => {
+        const activeTabBtn = document.querySelector('.character-nav .nav-btn.active');
+        if (activeTabBtn) {
+            // Extracts "overview", "matchups", etc.
+            const activeTabId = activeTabBtn.id.replace('nav-', '');
+            // Sends them to the new editor page with the context
+            window.location.href = `../../edit.html?char=${characterId}&tab=${activeTabId}`;
+        }
+    };
+
+    // Bind the router to both buttons
+    editBtn.onclick = routeToEditor;
+    mobileEditBtn.onclick = routeToEditor;
+
+    localSidebar.insertBefore(editBtn, localSidebar.firstChild);
+}
+
+// --- SIDEBAR ACTION DOCK BUILDER ---
+window.buildSidebarDock = function(containerId, session, role, unreadCount) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const username = session ? window.getDisplayName(session) : "SYSTEM LOGIN";
+    const loginClass = session ? "login" : "";
+    const loginIcon = session ? "👤" : "🔌";
+
+    // 1. Initialize the Dock
+    let html = `<div class="sidebar-action-dock">`;
+
+    // 2. Staff Overseer (Renders only if cleared)
+    if (role === 'admin' || role === 'reviewer') {
+        html += `
+            <a href="${window.getRootPath()}admin.html" class="slanted-action-btn admin">
+                <div class="slanted-btn-content">
+                    <span class="slanted-icon">👀</span>
+                    <span class="slanted-btn-text">STAFF OVERSEER</span>
+                </div>
+            </a>
+        `;
+    }
+
+    // 3. User Inbox (Renders only if logged in)
+    if (session) {
+        const badgeHtml = unreadCount > 0 ? `<div class="dock-badge"></div>` : ``;
+        html += `
+            <button id="dock-btn-inbox" class="slanted-action-btn">
+                <div class="slanted-btn-content">
+                    <span class="slanted-icon">📧</span>
+                    <span class="slanted-btn-text">INBOX</span>
+                    ${badgeHtml}
+                </div>
+            </button>
+        `;
+    }
+
+    // 4. Auth & Profile Button
+    html += `
+        <button id="dock-btn-auth" class="slanted-action-btn ${loginClass}">
+            <div class="slanted-btn-content">
+                <span class="slanted-icon">${loginIcon}</span>
+                <span class="slanted-btn-text">${username.toUpperCase()}</span>
+            </div>
+        </button>
+    `;
+
+    html += `</div>`;
+    
+    // Mount the HTML
+    container.innerHTML = html;
+
+    // 5. Bind Event Listeners
+    const btnAuth = document.getElementById('dock-btn-auth');
+    if (btnAuth && typeof window.openAuthModal === 'function') {
+        btnAuth.onclick = window.openAuthModal;
+    }
+
+    const btnInbox = document.getElementById('dock-btn-inbox');
+    if (btnInbox) {
+        btnInbox.onclick = () => { 
+            const modal = document.getElementById('site-notification-modal');
+            if (modal) modal.style.display = 'flex'; 
+        };
+    }
+};
+
+// Ensure it's globally available
+window.initSidebarEditButton = initSidebarEditButton;
 
 window.loadCollaborators = loadCollaborators;
 window.setupTabs = setupTabs;
