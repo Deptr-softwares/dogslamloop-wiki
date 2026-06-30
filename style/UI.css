@@ -351,7 +351,7 @@
     width: 100vw; height: 100vh;
     background: rgba(5, 5, 5, 0.95); 
     backdrop-filter: none !important;
-    z-index: 9999; 
+    z-index: 10006; 
     display: flex; 
     align-items: center; 
     justify-content: center;
@@ -1145,6 +1145,20 @@
 .wiki-media-right { float: right; margin: 0.5rem 0 1rem 1.5rem; }
 .wiki-media-center { display: block; margin: 1.5rem auto; }
 .wiki-media-full { margin: 1.5rem 0; }
+/* --- YOUTUBE IFRAME ANTI-SQUASH FIX --- */
+iframe[src*="youtube.com"],
+iframe[src*="youtu.be"],
+.wiki-media iframe,
+.skill-media-wrapper iframe {
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 16 / 9 !important;
+    border: none !important;
+    display: block;
+    margin: 0;
+    padding: 0;
+    box-shadow: 4px 4px 0px var(--manga-shadow);
+}
 
 /* Text Blocks */
 .wiki-block-heading { color: var(--text-white); font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; }
