@@ -154,6 +154,22 @@
         </div>
     </div>
 
+    <!-- SMART COMPILER MODAL -->
+    <div id="compiler-modal-overlay" class="editor-modal-overlay" style="display: none; z-index: 9999;">
+        <div class="editor-modal-box auth-modal-box" style="border-top-color: #a855f7; width: 650px; max-height: 85vh; display: flex; flex-direction: column;">
+            <div class="auth-header" style="border-bottom: 1px solid #333; background: #050505;">
+                <h3 style="color: #a855f7; font-size: 1rem;">SMART COMPILER: <span id="compiler-char-name"></span></h3>
+            </div>
+            <div class="auth-body" style="padding: 1.5rem; text-align: left; overflow-y: auto; flex-grow: 1; background: #0a0a0a;" id="compiler-modal-body">
+                <!-- Content injected via JS -->
+            </div>
+            <div class="editor-modal-actions" style="border-top: 1px dashed #333; padding-top: 1rem; margin-top: 0; justify-content: flex-end; gap: 1rem;">
+                <button onclick="document.getElementById('compiler-modal-overlay').style.display='none'" class="system-page-btn">CANCEL</button>
+                <button id="btn-compiler-confirm" class="submit-btn" style="color: #000; background-color: #a855f7; border-color: #a855f7;">COMPILE MASTER TICKET</button>
+            </div>
+        </div>
+    </div>
+
     <div id="admin-alert-modal" class="editor-modal-overlay" style="display: none; z-index: 10000;">
         <div class="editor-modal-box auth-modal-box alert-box">
             <div class="auth-header admin-modal-header">
