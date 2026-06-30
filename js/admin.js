@@ -164,33 +164,66 @@ async function loadQueue() {
     }
 
     container.innerHTML = '';
+    
+    // SMART GROUPING: Organize tickets by character ID
+    const groupedQueue = {};
     window.currentQueueData.forEach(rev => {
-        rev.supporters = rev.supporters || [];
-        rev.ticket_chat = rev.ticket_chat || [];
-
-        const dateStr = new Date(rev.created_at).toLocaleDateString();
-        const statusBadge = rev.status === 'ticket_open' 
-            ? `<span class="update-badge" style="background: #eab308; color: #000; margin-bottom:0.25rem; font-size:0.5rem; border: none;">TICKET OPEN</span>`
-            : `<span class="update-badge badge-patch" style="margin-bottom:0.25rem; font-size:0.5rem; background: var(--accent-blue); color: #000; border: none;">PENDING</span>`;
-
-        const card = document.createElement('div');
-        card.className = 'update-log-item';
-        card.style.padding = '0.75rem';
-        card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        ${statusBadge}
-                        <span class="update-badge" style="margin-bottom:0.25rem; font-size:0.5rem; background: #333; color: #fff; border: 1px solid #555;">${rev.page_id.toUpperCase()}</span>
-                    </div>
-                    <h3 class="update-title" style="font-size: 0.75rem; margin: 0;">Revision Submission</h3>
-                    <div class="update-log-meta" style="margin-top:0.25rem; font-size: 0.6rem;">By: <strong style="color:var(--text-white);">${rev.author_name}</strong> | ${dateStr}</div>
-                </div>
-                <button onclick="previewRevision('${rev.id}')" class="submit-btn" style="color:var(--accent-blue); border-color:var(--accent-blue); font-size: 0.6rem; padding: 0.2rem 0.5rem;">REVIEW</button>
-            </div>
-        `;
-        container.appendChild(card);
+        if (!groupedQueue[rev.page_id]) groupedQueue[rev.page_id] = [];
+        groupedQueue[rev.page_id].push(rev);
     });
+
+    for (const [pageId, tickets] of Object.entries(groupedQueue)) {
+        
+        // Render Character Header
+        const header = document.createElement('div');
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'flex-end';
+        header.style.borderBottom = '2px solid var(--accent-blue)';
+        header.style.paddingBottom = '0.5rem';
+        header.style.marginBottom = '1rem';
+        header.style.marginTop = '2rem';
+
+        let mergeBtnHtml = '';
+        if (tickets.length > 1 && window.currentUserRole === 'admin') {
+            mergeBtnHtml = `<button onclick="window.openSmartCompiler('${pageId}')" class="submit-btn" style="color:#a855f7; border-color:#a855f7; font-size:0.65rem; padding: 0.3rem 0.6rem; box-shadow: 2px 2px 0px rgba(168,85,247,0.3); transition: all 0.1s;">✦ SMART MERGE (${tickets.length})</button>`;
+        }
+
+        header.innerHTML = `
+            <h3 style="font-family:'CC-Wild-Words', sans-serif; font-size:1.1rem; color:var(--text-white); margin:0; text-transform: uppercase;">${pageId.replace(/_/g, ' ')}</h3>
+            ${mergeBtnHtml}
+        `;
+        container.appendChild(header);
+
+        // Render Individual Tickets
+        tickets.forEach(rev => {
+            rev.supporters = rev.supporters || [];
+            rev.ticket_chat = rev.ticket_chat || [];
+
+            const dateStr = new Date(rev.created_at).toLocaleDateString();
+            const statusBadge = rev.status === 'ticket_open' 
+                ? `<span class="update-badge" style="background: #eab308; color: #000; margin-bottom:0.25rem; font-size:0.5rem; border: none;">TICKET OPEN</span>`
+                : `<span class="update-badge badge-patch" style="margin-bottom:0.25rem; font-size:0.5rem; background: var(--accent-blue); color: #000; border: none;">PENDING</span>`;
+
+            const card = document.createElement('div');
+            card.className = 'update-log-item';
+            card.style.padding = '0.75rem';
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            ${statusBadge}
+                            <span class="update-badge" style="margin-bottom:0.25rem; font-size:0.5rem; background: #333; color: #fff; border: 1px solid #555;">${rev.page_id.toUpperCase()}</span>
+                        </div>
+                        <h3 class="update-title" style="font-size: 0.75rem; margin: 0;">Revision Submission</h3>
+                        <div class="update-log-meta" style="margin-top:0.25rem; font-size: 0.6rem;">By: <strong style="color:var(--text-white);">${rev.author_name}</strong> | ${dateStr}</div>
+                    </div>
+                    <button onclick="previewRevision('${rev.id}')" class="submit-btn" style="color:var(--accent-blue); border-color:var(--accent-blue); font-size: 0.6rem; padding: 0.2rem 0.5rem;">REVIEW</button>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
 }
 
 // --- DYNAMIC BUTTON HELPER ---
@@ -801,3 +834,227 @@ async function changeUserRole() {
         document.getElementById('target-email').value = '';
     }
 }
+
+// --- 8. SMART MERGE COMPILER ENGINE ---
+window.openSmartCompiler = async function(pageId) {
+    const modal = document.getElementById('compiler-modal-overlay');
+    const body = document.getElementById('compiler-modal-body');
+    const titleSpan = document.getElementById('compiler-char-name');
+    const confirmBtn = document.getElementById('btn-compiler-confirm');
+    
+    titleSpan.textContent = pageId.toUpperCase();
+    body.innerHTML = `<p style="color:var(--text-muted); font-style:italic; text-align: center; padding: 2rem;">Analyzing revisions and fetching live database...</p>`;
+    modal.style.display = 'flex';
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '0.5';
+
+    // 1. Fetch current Live Data to use as our base
+    const { data: liveData, error: liveErr } = await window.supabaseClient.from('page_data').select('desc_data, frame_data').eq('page_id', pageId).single();
+    
+    const liveDesc = (liveData && liveData.desc_data) ? liveData.desc_data : {};
+    const liveFrame = (liveData && liveData.frame_data) ? liveData.frame_data : {};
+
+    // 2. Fetch all tickets for this character and sort oldest -> newest
+    const tickets = window.currentQueueData.filter(r => r.page_id === pageId).sort((a,b) => new Date(a.created_at) - new Date(b.created_at));
+
+    // 3. Find Conflicts (Sections that differ from the live DB)
+    const isDiff = (a, b) => JSON.stringify(a || null) !== JSON.stringify(b || null);
+    const conflicts = []; 
+    
+    const addConflict = (sectionId, sectionName, type, lData, lStratData = null) => {
+        let existing = conflicts.find(c => c.sectionId === sectionId);
+        if (!existing) {
+            existing = { sectionId, sectionName, type, liveData: lData, liveStratData: lStratData, options: [] };
+            conflicts.push(existing);
+        }
+        return existing;
+    };
+
+    tickets.forEach(t => {
+        const tDesc = t.desc_data || {};
+        const tFrame = t.frame_data || {};
+
+        if (isDiff(tDesc.profile, liveDesc.profile)) addConflict('profile', 'Profile Metadata', 'desc', liveDesc.profile).options.push({ ticket: t, data: tDesc.profile });
+        if (isDiff(tDesc.overview, liveDesc.overview)) addConflict('overview', 'Character Overview', 'desc', liveDesc.overview).options.push({ ticket: t, data: tDesc.overview });
+        if (isDiff(tDesc.strategy, liveDesc.strategy)) addConflict('strategy', 'General Strategy', 'desc', liveDesc.strategy).options.push({ ticket: t, data: tDesc.strategy });
+        if (isDiff(tDesc.extras, liveDesc.extras)) addConflict('extras', 'Custom Tabs (Extras)', 'desc', liveDesc.extras).options.push({ ticket: t, data: tDesc.extras });
+        if (isDiff(tDesc.matchups, liveDesc.matchups)) addConflict('matchups', 'Matchups', 'desc', liveDesc.matchups).options.push({ ticket: t, data: tDesc.matchups });
+        if (isDiff(tDesc.counterplay, liveDesc.counterplay)) addConflict('counterplay', 'Counterplay', 'desc', liveDesc.counterplay).options.push({ ticket: t, data: tDesc.counterplay });
+
+        // Iterate deep into the individual moves
+        ['m1s', 'skills', 'specials'].forEach(cat => {
+            const tMoves = tFrame[cat] || [];
+            const lMoves = liveFrame[cat] || [];
+            const allMoveIds = new Set([...tMoves.map(m=>m.id), ...lMoves.map(m=>m.id)]);
+
+            allMoveIds.forEach(moveId => {
+                const tMove = tMoves.find(m => m.id === moveId);
+                const lMove = lMoves.find(m => m.id === moveId);
+                const tStrat = (tDesc.moveStrategies || {})[moveId];
+                const lStrat = (liveDesc.moveStrategies || {})[moveId];
+
+                if (isDiff(tMove, lMove) || isDiff(tStrat, lStrat)) {
+                    addConflict(`move_${cat}_${moveId}`, `Move: ${cat.toUpperCase()} / ${moveId}`, 'move', { move: lMove, cat: cat }, lStrat).options.push({
+                        ticket: t,
+                        data: { move: tMove, cat: cat },
+                        stratData: tStrat
+                    });
+                }
+            });
+        });
+    });
+
+    // 4. Render the UI Checklist
+    if (conflicts.length === 0) {
+        body.innerHTML = `<p style="color:var(--text-muted); padding: 2rem; border: 1px dashed #333; text-align: center;">No mergeable changes detected in these tickets. They may be functionally identical to the live database.</p>`;
+        return; 
+    }
+
+    let html = `<p style="font-family:var(--text-mono); font-size:0.75rem; color:#888; margin-bottom:1.5rem; line-height:1.5;">Select the version to keep for each modified section. The compiler will merge your selections into a new Master Ticket, approve the chosen source tickets, and leave any completely discarded tickets in the pending queue.</p>`;
+
+    conflicts.forEach(c => {
+        let selectHtml = `<select id="compiler-sel-${c.sectionId}" class="editor-select" style="margin-bottom: 0; border-color: #a855f7; background: rgba(168,85,247,0.1); color: #fff; font-weight: bold;">`;
+        selectHtml += `<option value="live" style="color:#888; font-weight: normal;">[DISCARD] Keep current live data</option>`;
+
+        c.options.forEach((opt, idx) => {
+            const isLast = (idx === c.options.length - 1);
+            const dateStr = new Date(opt.ticket.created_at).toLocaleDateString();
+            // Pre-selects the newest ticket by default
+            selectHtml += `<option value="${opt.ticket.id}" ${isLast ? 'selected' : ''}>[MERGE] By ${opt.ticket.author_name} (${dateStr})</option>`;
+        });
+        selectHtml += `</select>`;
+
+        html += `
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid #333; padding: 0.75rem; margin-bottom: 0.75rem; border-left: 3px solid #a855f7;">
+                <div style="font-family:'CC-Wild-Words', sans-serif; font-size:0.8rem; color:#fff; margin-bottom:0.5rem; text-transform: uppercase;">${c.sectionName}</div>
+                ${selectHtml}
+            </div>
+        `;
+    });
+
+    body.innerHTML = html;
+    confirmBtn.disabled = false;
+    confirmBtn.style.opacity = '1';
+
+    // 5. Build Master Payload and Push to Queue
+    confirmBtn.onclick = async () => {
+        if (!(await window.adminConfirm(`Compile these selections into a new Master Ticket for review?`))) return;
+
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = "COMPILING TICKET...";
+
+        const masterDesc = JSON.parse(JSON.stringify(liveDesc));
+        const masterFrame = JSON.parse(JSON.stringify(liveFrame));
+        const selectedTicketIds = new Set();
+
+        conflicts.forEach(c => {
+            const selVal = document.getElementById(`compiler-sel-${c.sectionId}`).value;
+            if (selVal === 'live') return; // Do nothing, keep live DB version
+
+            const chosenOpt = c.options.find(o => o.ticket.id === selVal);
+            if (!chosenOpt) return;
+
+            // Track that this ticket was explicitly selected for at least one conflict
+            selectedTicketIds.add(selVal);
+
+            // Inject Text Data
+            if (c.type === 'desc') {
+                masterDesc[c.sectionId] = chosenOpt.data;
+            } 
+            // Inject Frame/Move Data
+            else if (c.type === 'move') {
+                const cat = chosenOpt.data.cat;
+                const moveData = chosenOpt.data.move;
+                const stratData = chosenOpt.stratData;
+                
+                const prefix = `move_${cat}_`;
+                const moveId = c.sectionId.substring(prefix.length);
+
+                if (!masterFrame[cat]) masterFrame[cat] = [];
+                const existingIdx = masterFrame[cat].findIndex(m => m.id === moveId);
+
+                // Add or Replace Move Stats
+                if (moveData) {
+                    if (existingIdx > -1) masterFrame[cat][existingIdx] = moveData;
+                    else masterFrame[cat].push(moveData);
+                } else {
+                    if (existingIdx > -1) masterFrame[cat].splice(existingIdx, 1);
+                }
+
+                // Add or Replace Move Strategy Blocks
+                if (!masterDesc.moveStrategies) masterDesc.moveStrategies = {};
+                if (stratData) masterDesc.moveStrategies[moveId] = stratData;
+                else delete masterDesc.moveStrategies[moveId];
+            }
+        });
+
+        // Safety catch if the admin discards everything
+        if (selectedTicketIds.size === 0) {
+            window.adminAlert("No tickets were selected. All conflicts were set to keep Live Data.");
+            modal.style.display = 'none';
+            confirmBtn.textContent = "COMPILE MASTER TICKET";
+            return;
+        }
+
+        // --- THE ANTI-SPAM BYPASS FIX ---
+        // Instead of INSERTING a new row, we hijack the newest selected ticket 
+        // and UPDATE it to become the host for the Master Ticket.
+        const chosenTickets = tickets.filter(t => selectedTicketIds.has(t.id));
+        const masterTicket = chosenTickets[chosenTickets.length - 1]; 
+        const otherTicketIds = chosenTickets.filter(t => t.id !== masterTicket.id).map(t => t.id);
+
+        const payload = {
+            desc_data: masterDesc,
+            frame_data: masterFrame,
+            author_id: window.currentUserId,
+            author_name: window.currentUsername + " (Compiler)",
+            status: 'ticket_open', 
+            qa_metadata: {
+                changelog: `System Merge: Compiled from ${selectedTicketIds.size} different submissions.`,
+                confidence: "high",
+                evidence: masterTicket.qa_metadata?.evidence || ""
+            }
+        };
+
+        // 1. Transform the host ticket into the Master Ticket
+        const { error: updateError } = await window.supabaseClient
+            .from('pending_revisions')
+            .update(payload)
+            .eq('id', masterTicket.id);
+        
+        if (updateError) { 
+            window.adminAlert("Merge Failed: " + updateError.message); 
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = "COMPILE MASTER TICKET";
+            return; 
+        }
+
+        // 2. Mark the OTHER explicitly selected source tickets as officially merged
+        if (otherTicketIds.length > 0) {
+            await window.supabaseClient.from('pending_revisions')
+                .update({ status: 'approved', ticket_chat: [], supporters: [] })
+                .in('id', otherTicketIds);
+        }
+
+        // 3. Map Notifications for the chosen authors
+        const pageUrl = tickets[0].page_type === 'system' 
+            ? `../../systems/${pageId}/index.html` 
+            : `../../characters/${pageId.charAt(0).toUpperCase() + pageId.slice(1)}/index.html`;
+
+        const notifications = chosenTickets.map(t => ({
+            user_id: t.author_id,
+            message: `Your revision for "${pageId.toUpperCase()}" was included in a Master Merge ticket for staff review!`,
+            link: pageUrl
+        }));
+
+        const uniqueNotifications = Array.from(new Map(notifications.map(item => [item.user_id, item])).values());
+        await window.supabaseClient.from('user_notifications').insert(uniqueNotifications);
+
+        window.adminAlert(`Successfully compiled ${selectedTicketIds.size} tickets into a new Master Ticket! Unselected edits remain in the queue.`);
+        modal.style.display = 'none';
+        confirmBtn.textContent = "COMPILE MASTER TICKET";
+        
+        resetPreviewState(); 
+        loadQueue();
+    };
+};

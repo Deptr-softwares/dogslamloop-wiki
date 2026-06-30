@@ -69,28 +69,75 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (!error && data) cloudData = data;
             }
 
-            // If desc_data exists, keep it! If frame_data is null, just initialize empty arrays.
+            // --- BASE CLOUD DATA INITIALIZATION ---
+            let baseCloudDesc = null;
+            let baseCloudFrame = null;
+
             if (cloudData && cloudData.desc_data) {
-                console.log(`[Editor] Loaded ${pageId} strictly from Cloud.`);
-                descData = cloudData.desc_data;
-                frameData = cloudData.frame_data || { m1s: [], skills: [], specials: [] };
+                baseCloudDesc = cloudData.desc_data;
+                baseCloudFrame = cloudData.frame_data || { m1s: [], skills: [], specials: [] };
             } else {
-                console.log(`[Editor] No cloud data found for ${pageId}. Initializing blank template.`);
-                descData = {
+                baseCloudDesc = {
                     profile: { stats: [], image: "" },
                     overview: [], strategy: [], extras: [],
                     matchups: [], counterplay: [], moveStrategies: {}
                 };
-                frameData = {
-                    m1s: [], skills: [], specials: []
-                };
+                baseCloudFrame = { m1s: [], skills: [], specials: [] };
+            }
+
+            // --- SNAPSHOT ORIGINAL CLOUD STATE FOR DIFFING ---
+            // We do this BEFORE draft restoration, so Diff View compares the Draft vs the Live Cloud!
+            window.originalCloudDescData = JSON.parse(JSON.stringify(baseCloudDesc));
+            window.originalCloudFrameData = JSON.parse(JSON.stringify(baseCloudFrame));
+
+            // --- LOCAL DRAFT RESTORATION CHECK ---
+            const urlParams = new URLSearchParams(window.location.search);
+            const forceLoadDraft = urlParams.get('loadDraft') === 'true'; 
+            const specificDraftKey = urlParams.get('draftKey');
+            
+            // Determine context-aware key if they just load the page naturally
+            let defaultDraftKey = `wiki_draft_${pageId}_${tabId}`;
+            if (moveId) defaultDraftKey += `_${moveId}`;
+
+            const targetKey = specificDraftKey || defaultDraftKey;
+            const rawDraft = localStorage.getItem(targetKey);
+            let useDraft = false;
+
+            if (rawDraft) {
+                try {
+                    const parsedDraft = JSON.parse(rawDraft);
+                    
+                    if (forceLoadDraft) {
+                        useDraft = true;
+                    } else {
+                        // Dynamically name the section in the prompt
+                        const scopeName = `${tabId.toUpperCase()}${moveId ? ' / ' + moveId.toUpperCase() : ''}`;
+                        const restore = await window.customConfirm(`An unsaved local draft was found for this specific section (${scopeName}).\n\nDo you want to restore your local progress, or load the live cloud version?`, "RESTORE DRAFT", false);
+                        
+                        if (restore) {
+                            useDraft = true;
+                        } 
+                    }
+
+                    if (useDraft) {
+                        descData = parsedDraft.desc_data || baseCloudDesc;
+                        frameData = parsedDraft.frame_data || baseCloudFrame;
+                        window.currentDraftKey = targetKey; // Remember the active draft!
+                        console.log(`[Editor] Restored local draft: ${targetKey}`);
+                    }
+                } catch (e) {
+                    console.warn("Corrupt local draft found. Discarding.");
+                    localStorage.removeItem(targetKey);
+                }
+            }
+
+            if (!useDraft) {
+                console.log(`[Editor] Loaded ${pageId} strictly from Cloud.`);
+                descData = baseCloudDesc;
+                frameData = baseCloudFrame;
             }
             
-            // --- SNAPSHOT ORIGINAL CLOUD STATE FOR DIFFING ---
-            window.originalCloudDescData = JSON.parse(JSON.stringify(descData));
-            window.originalCloudFrameData = JSON.parse(JSON.stringify(frameData));
             window.isDiffModeActive = false;
-            
             window.cachedMasterFrameData = window.cachedMasterFrameData || {};
             window.cachedMasterFrameData[pageId] = frameData;
             
@@ -107,7 +154,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!activeMoveId && frameData && frameData[tabId] && frameData[tabId].length > 0) {
                 activeMoveId = frameData[tabId][0].id;
             }
-            // FIX 5: Pass the pageType into the move renderer
+            // Pass the pageType into the move renderer
             try { await window.loadMoveSection(pageId, tabId, activeMoveId, pageType); } catch(e) { console.warn("Move section build skipped:", e); }
         }
         
@@ -266,9 +313,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 document.getElementById('qa-modal-overlay').style.display = 'none';
                 
+                // SYSTEM WIPE: Clean up the specific draft slot so they don't get prompted next time
+                if (window.currentDraftKey) {
+                    localStorage.removeItem(window.currentDraftKey);
+                } else {
+                    // Fallback context sweep just in case
+                    const sweepTab = window.currentEditorTabId || 'overview';
+                    let sweepMove = new URLSearchParams(window.location.search).get('move') || '';
+                    if (!sweepMove) {
+                        const activeBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
+                        if (activeBtn && activeBtn.id.startsWith('move-nav-')) sweepMove = activeBtn.id.replace('move-nav-', '');
+                    }
+                    localStorage.removeItem(`wiki_draft_${pageId}_${sweepTab}${sweepMove ? '_' + sweepMove : ''}`);
+                }
+
                 // Visual Success Feedback on the Main Editor Button
-                const fallbackText = "Submit to Queue";
-                submitBtn.textContent = "SAVED TO CLOUD!";
+                const fallbackText = "Submit";
+                submitBtn.textContent = "SUBMITTED!";
                 submitBtn.style.backgroundColor = "#22c55e"; 
                 submitBtn.style.color = "#000";
                 
@@ -308,7 +369,7 @@ async function fetchCharacterData(charId) {
 }
 
 // --- CUSTOM MODAL ENGINE ---
-window.customConfirm = function(message) {
+window.customConfirm = function(message, confirmText = "DELETE", isDanger = true) {
     return new Promise((resolve) => {
         const modal = document.getElementById('editor-custom-modal');
         const textEl = document.getElementById('editor-modal-text');
@@ -316,6 +377,19 @@ window.customConfirm = function(message) {
         const btnConfirm = document.getElementById('editor-modal-confirm');
 
         textEl.textContent = message;
+        btnConfirm.textContent = confirmText;
+
+        // Dynamically swap the danger classes
+        if (isDanger) {
+            btnConfirm.className = "submit-btn btn-danger-fill";
+            btnConfirm.style = "";
+        } else {
+            btnConfirm.className = "submit-btn";
+            btnConfirm.style.color = "var(--accent-blue)";
+            btnConfirm.style.borderColor = "var(--accent-blue)";
+            btnConfirm.style.backgroundColor = "transparent";
+        }
+
         modal.style.display = 'flex';
 
         const cleanup = () => {
@@ -381,7 +455,8 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 navHTML += `</div>`;
             });
         }
-        navHTML += `<button class="daw-tab-btn btn-action-add" style="font-size: 0.65rem;">+ ADD MOVE</button>`;
+
+        navHTML += `<button class="daw-tab-btn btn-sys btn-sys-green" style="font-size: 0.65rem;">+ ADD MOVE</button>`;
         navHTML += `</div>`;
         
         builder.innerHTML = `
@@ -412,7 +487,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             navHTML += `</div>`;
         });
 
-        navHTML += `<button class="daw-tab-btn btn-action-add" style="font-size: 0.65rem; onclick="addExtraTab()">+ ADD TAB</button>`;
+        navHTML += `<button class="daw-tab-btn btn-sys btn-sys-green" style="font-size: 0.65rem;" onclick="addExtraTab()">+ ADD TAB</button>`;
         navHTML += `</div>`;
         
         builder.innerHTML = `
@@ -437,7 +512,8 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 navHTML += `</div>`;
             });
         }
-        navHTML += `<button class="daw-tab-btn btn-action-add" style="font-size: 0.65rem; onclick="window.addMatchup()">+ ADD MATCHUP</button>`;
+
+        navHTML += `<button class="daw-tab-btn btn-sys btn-sys-green" style="font-size: 0.65rem;" onclick="window.addMatchup()">+ ADD MATCHUP</button>`;
         navHTML += `</div>`;
         
         builder.innerHTML = `
@@ -467,7 +543,8 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 navHTML += `</div>`;
             });
         }
-        navHTML += `<button class="daw-tab-btn btn-action-add" style="font-size: 0.65rem; onclick="window.addCounterplayTopic()">+ ADD TOPIC</button>`;
+
+        navHTML += `<button class="daw-tab-btn btn-sys btn-sys-green" style="font-size: 0.65rem;" onclick="window.addCounterplayTopic()">+ ADD TOPIC</button>`;
         navHTML += `</div>`;
         
         builder.innerHTML = `
@@ -961,8 +1038,8 @@ function initDawEditor(containerId, moveData) {
                             
                             <div style="display:flex; gap: 0.25rem; align-items: center;">
                                 <input type="text" class="editor-input daw-track-inp" data-bidx="${bIdx}" data-field="headerInfo" value="${bar.headerInfo || ''}" placeholder="Header Title (Top)" style="margin:0; flex: 1;">
-                                <button onclick="window.addDawPhase(${bIdx})" class="add-block-btn btn-action-add" style="margin:0;" title="Add Phase">+</button>
-                                <button onclick="window.deleteDawTrack(${bIdx})" class="add-block-btn btn-action-delete" style="margin:0; padding: 0.25rem 0.5rem;" title="Delete Track">✖</button>
+                                <button onclick="window.addDawPhase(${bIdx})" class="btn-sys btn-sys-green" title="Add Phase">+</button>
+                                <button onclick="window.deleteDawTrack(${bIdx})" class="btn-sys btn-sys-red" title="Delete Track">✖</button>
                             </div>
                             
                             <div style="display:flex; gap: 0.25rem; align-items: center;">
@@ -1014,7 +1091,7 @@ function initDawEditor(containerId, moveData) {
                     <div class="daw-inspector" style="margin-top: 1rem;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
                             <span class="block-type-badge">PHASE INSPECTOR</span>
-                            <button onclick="window.deleteDawPhase()" class="add-block-btn btn-action-delete" style="color:#ef4444; border-color:#222;">✖ DELETE PHASE</button>
+                            <button onclick="window.deleteDawPhase()" class="btn-sys btn-sys-red">✖ DELETE PHASE</button>
                         </div>
                         <div class="editor-row">
                             <div>
@@ -1068,8 +1145,8 @@ function initDawEditor(containerId, moveData) {
                             <input type="number" class="editor-input" style="margin:0; width:80px;" placeholder="Scale" id="daw-variant-scale" value="${totalScale}">
                         </div>
                         <div style="display:flex; gap: 0.25rem;">
-                            <button onclick="window.deleteDawVariant()" class="add-block-btn btn-action-delete" style="color:#ef4444; border-color:#ef4444;" title="Delete this Variant completely">✖ DELETE</button>
-                            <button onclick="window.addDawTrack()" class="add-block-btn" style="color:var(--accent-blue); border-color:var(--accent-blue);">+ Add Track</button>
+                            <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red" title="Delete this Variant completely">✖ DELETE</button>
+                            <button onclick="window.addDawTrack()" class="btn-sys btn-sys-blue">+ Add Track</button>
                         </div>
                     </div>
                     <div class="daw-timeline-wrapper">
@@ -1105,9 +1182,9 @@ function initDawEditor(containerId, moveData) {
 
                     <p style="color:var(--text-muted); font-family:var(--text-mono); margin-bottom:1.5rem;">This variant is currently empty.</p>
                     <div style="display:flex; gap:1rem; justify-content:center;">
-                        <button onclick="window.initDawLeaf()" class="submit-btn" style="max-width:200px;">Initialize Timeline</button>
-                        <button onclick="window.initDawBranch()" class="system-page-btn" style="max-width:200px;">Create Sub-Variants</button>
-                        <button onclick="window.deleteDawVariant()" class="add-block-btn" style="color:#ef4444; border-color:#ef4444;">Delete Variant</button>
+                        <button onclick="window.initDawLeaf()" class="btn-sys btn-sys-blue" style="max-width:200px;">Initialize Timeline</button>
+                        <button onclick="window.initDawBranch()" class="btn-sys btn-sys-regular" style="max-width:200px;">Create Sub-Variants</button>
+                        <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red">Delete Variant</button>
                     </div>
                 </div>
             `;
@@ -1320,7 +1397,7 @@ function initProfileEditor(containerId, profileData) {
                 <div class="editor-row" style="margin-bottom: 0.25rem;">
                     <div><input type="text" class="editor-input stat-label" data-idx="${idx}" value="${stat.label}" placeholder="Label (e.g. Archetype)"></div>
                     <div><input type="text" class="editor-input stat-val" data-idx="${idx}" value="${stat.value}" placeholder="Value (e.g. M1 Merchant)"></div>
-                    <button class="add-block-btn btn-action-delete btn-del-stat" data-idx="${idx}" style="padding: 0.3rem 0.5rem;" title="Remove Stat">✖</button>
+                    <button class="btn-sys btn-sys-red btn-del-stat" data-idx="${idx}" title="Remove Stat">✖</button>
                 </div>
             `;
         });
@@ -1335,7 +1412,7 @@ function initProfileEditor(containerId, profileData) {
                 <div class="block-card">
                     <div class="block-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <span class="block-type-badge">CHARACTER STATS</span>
-                        <button class="add-block-btn" id="btn-add-stat" style="font-size: 0.65rem; padding: 0.15rem 0.4rem;">+ ADD STAT</button>
+                        <button class="btn-sys btn-sys-green" id="btn-add-stat">+ ADD STAT</button>
                     </div>
                     <div id="profile-stats-container">${statsHtml}</div>
                 </div>
@@ -1460,12 +1537,12 @@ function initStrategyBlockBuilder(containerId, initialData) {
     container.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
             <div>
-                <button class="add-block-btn" id="btn-media-library" style="color:var(--accent-blue); border-color:#333;" title="Open Media Manager">📁 MEDIA LIBRARY</button>
+                <button class="btn-sys btn-sys-blue" id="btn-media-library" title="Open Media Manager">📁 MEDIA LIBRARY</button>
             </div>
             <div style="display: flex; gap: 0.5rem;">
-                <button class="add-block-btn" id="btn-undo" title="Undo (Ctrl+Z)" disabled>⮌ UNDO</button>
-                <button class="add-block-btn" id="btn-redo" title="Redo (Ctrl+Y)" disabled>⮎ REDO</button>
-                <button class="add-block-btn" id="btn-clear-all" style="color:#ef4444; border-color:#333;" title="Clear All Blocks">✖ CLEAR ALL</button>
+                <button class="btn-sys btn-sys-regular" id="btn-undo" title="Undo (Ctrl+Z)" disabled>⮌ UNDO</button>
+                <button class="btn-sys btn-sys-regular" id="btn-redo" title="Redo (Ctrl+Y)" disabled>⮎ REDO</button>
+                <button class="btn-sys btn-sys-red" id="btn-clear-all" title="Clear All Blocks">✖ CLEAR ALL</button>
             </div>
         </div>
         
@@ -1506,21 +1583,21 @@ function initStrategyBlockBuilder(containerId, initialData) {
             <div class="add-block-menu-wrapper">
                 <div class="add-block-popup" id="add-block-popup">
                     <div class="add-block-popup-title">Text & Media</div>
-                    <button class="add-block-btn" data-type="heading" draggable="true">+ Heading</button>
-                    <button class="add-block-btn" data-type="paragraph" draggable="true">+ Paragraph</button>
-                    <button class="add-block-btn" data-type="table" draggable="true">+ Table</button>
-                    <button class="add-block-btn" data-type="list" draggable="true">+ List</button>
-                    <button class="add-block-btn" data-type="image" draggable="true">+ Image</button>
-                    <button class="add-block-btn" data-type="video" draggable="true">+ Video</button>
-                    <button class="add-block-btn" data-type="youtube" draggable="true">+ YouTube</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="heading" draggable="true">+ Heading</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="paragraph" draggable="true">+ Paragraph</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="table" draggable="true">+ Table</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="list" draggable="true">+ List</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="image" draggable="true">+ Image</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="video" draggable="true">+ Video</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="youtube" draggable="true">+ YouTube</button>
                     <div class="add-block-popup-title" style="margin-top: 0.5rem;">Components</div>
-                    <button class="add-block-btn" data-type="callout" draggable="true">+ Callout</button>
-                    <button class="add-block-btn" data-type="combo" draggable="true">+ Combo</button>
-                    <button class="add-block-btn" data-type="accordion" draggable="true">+ Accordion</button>
-                    <button class="add-block-btn" data-type="divider" draggable="true">+ Divider</button>
-                    <button class="add-block-btn" data-type="author" draggable="true">+ Author</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="callout" draggable="true">+ Callout</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="combo" draggable="true">+ Combo</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="accordion" draggable="true">+ Accordion</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="divider" draggable="true">+ Divider</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="author" draggable="true">+ Author</button>
                 </div>
-                <button class="submit-btn" id="btn-toggle-add-menu" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 1rem;">
+                <button class="btn-sys btn-sys-green" id="btn-toggle-add-menu" style="gap: 0.5rem;">
                     <span style="font-size: 1.25rem; line-height: 0.8; font-weight: normal;">⨁</span> ADD BLOCK
                 </button>
             </div>
@@ -1714,8 +1791,9 @@ function initStrategyBlockBuilder(containerId, initialData) {
         }
     });
 
-    // --- SMART BLOCK CONVERSION ---
+    // --- SMART BLOCK CONVERSION & DROPDOWN SYNC ---
     blockList.addEventListener('change', (e) => {
+        
         if (e.target.classList.contains('block-type-selector')) {
             const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
             const newType = e.target.value;
@@ -1752,6 +1830,24 @@ function initStrategyBlockBuilder(containerId, initialData) {
             currentStrategyBlocks[index] = newBlock;
             renderBlockList();
             updateLivePreview();
+            return; // Safety exit to stop execution here
+        }
+
+        // Intercepts programmatically dispatched 'change' events from the custom UI
+        if (e.target.classList.contains('editor-select') && e.target.hasAttribute('data-field')) {
+            const card = e.target.closest('.block-card');
+            if (!card) return;
+            
+            const index = parseInt(card.getAttribute('data-index'));
+            const field = e.target.getAttribute('data-field');
+
+            currentStrategyBlocks[index][field] = e.target.value;
+
+            // Trigger the auto-save sync
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                updateLivePreview(); 
+            }, 400);
         }
     });
 
@@ -2043,16 +2139,16 @@ function renderBlockList() {
                 <div class="block-header">
                     <div style="display:flex; align-items:center; gap:0.5rem;">
                         <span class="drag-handle" title="Drag to reorder" style="color: #666; font-size: 1rem; line-height: 1; cursor: grab;">⠿</span>
-                        <select class="block-type-badge block-type-selector" style="cursor: pointer; border: none; outline: none; padding-right: 0.2rem;">
+                        <select class="editor-select block-type-selector" style="cursor: pointer; border: none; outline: none; padding-right: 0.2rem;">
                             ${typeOptions}
                         </select>
                     </div>
                 <div class="block-actions">
-                    <button class="btn-insert-below" style="color:#34d399; font-size:0.85rem;" title="Insert Paragraph Below">⨁</button>
-                    <button class="btn-collapse" title="Minimize/Expand">—</button>
-                    <button class="btn-up" title="Move Up">▲</button>
-                    <button class="btn-down" title="Move Down">▼</button>
-                    <button class="btn-delete btn-action-delete" title="Delete">✖</button>
+                    <button class="btn-sys btn-sys-green btn-insert-below" title="Insert Paragraph Below">⨁</button>
+                    <button class="btn-sys btn-sys-regular btn-collapse" title="Minimize/Expand">—</button>
+                    <button class="btn-sys btn-sys-regular btn-up" title="Move Up">▲</button>
+                    <button class="btn-sys btn-sys-regular btn-down" title="Move Down">▼</button>
+                    <button class="btn-sys btn-sys-red btn-delete" title="Delete">✖</button>
                 </div>
             </div>
             <div class="block-body">
@@ -2163,10 +2259,10 @@ function renderBlockList() {
             html += `
                 ${tableHTML}
                 <div style="display:flex; gap:0.25rem; margin-bottom: 0.5rem; border-radius: 0rem">
-                    <button class="add-block-btn btn-table-add-row" style="flex:1; border-color:#333; color:var(--text-white);" title="Add Row Below">⊞ +Row</button>
-                    <button class="add-block-btn btn-table-add-col" style="flex:1; border-color:#333; color:var(--text-white);" title="Add Column Right">⊞ +Col</button>
-                    <button class="add-block-btn btn-table-del-row btn-action-delete" style="flex:1; border-color:#333; color:#ef4444;" title="Delete Bottom Row">⊟ -Row</button>
-                    <button class="add-block-btn btn-table-del-col btn-action-delete" style="flex:1; border-color:#333; color:#ef4444;" title="Delete Right Column">⊟ -Col</button>
+                    <button class="btn-sys btn-sys-regular btn-table-add-row" style="flex:1;" title="Add Row Below">⊞ +Row</button>
+                    <button class="btn-sys btn-sys-regular btn-table-add-col" style="flex:1;" title="Add Column Right">⊞ +Col</button>
+                    <button class="btn-sys btn-sys-red btn-table-del-row" style="flex:1;" title="Delete Bottom Row">⊟ -Row</button>
+                    <button class="btn-sys btn-sys-red btn-table-del-col" style="flex:1;" title="Delete Right Column">⊟ -Col</button>
                 </div>
                 <input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Author Credit (Optional)">
             `;
@@ -2233,6 +2329,14 @@ function renderBlockList() {
         listContainer.querySelectorAll('.block-card').forEach(card => {
             window.editorBlockObserver.observe(card);
         });
+    }
+
+    // --- REBUILD THE DROPDOWN ---
+    if (typeof window.initializeMangaSelects === 'function') {
+        window.initializeMangaSelects(); 
+    } else if (typeof window.applyInternalStyling === 'function') {
+        // Fallback in case your select init is bundled in your styling engine
+        window.applyInternalStyling(); 
     }
 }
 // --- MASTER RENDERER FOR OVERVIEW TAB ---
@@ -2441,16 +2545,16 @@ window.triggerManualSync = async function() {
     if (frameTabs.includes(tabId) && typeof window.loadMoveSection === 'function') {
         // Determine the currently active move
         let activeMoveId = new URLSearchParams(window.location.search).get('move'); 
-        if (activeMoveId) {
-            await window.loadMoveSection(window.currentEditorCharId, tabId, activeMoveId);
-        }
+        
         if (!activeMoveId) {
             const activeBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
             if (activeBtn) activeMoveId = activeBtn.id.replace('move-nav-', '');
         }
         
         // Pass it to the engine to isolate the preview!
-        await window.loadMoveSection(window.currentEditorCharId, tabId, activeMoveId);
+        if (activeMoveId) {
+            await window.loadMoveSection(window.currentEditorCharId, tabId, activeMoveId);
+        }
     }
 
     // 2. Now run the standard text/profile sync to populate the newly built DOM
@@ -2475,6 +2579,9 @@ window.triggerManualSync = async function() {
     } else if (typeof updateLivePreview === 'function') {
         updateLivePreview();
     }
+    
+    // AUTO-SAVE: Fire a save whenever a manual sync completes
+    if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
 };
 
 // --- LIVE SYNC & STATE MANAGEMENT ---
@@ -2566,7 +2673,49 @@ function updateLivePreview(skipHistory = false) {
             if (typeof window.applyInternalStyling === 'function') setTimeout(window.applyInternalStyling, 50); 
         }
     }
+    
+    // AUTO-SAVE: Fire a save after every typing pause
+    if (!skipHistory && typeof window.saveLocalDraft === 'function') {
+        window.saveLocalDraft();
+    }
 }
+
+// --- LOCAL AUTO-SAVE ENGINE ---
+window.saveLocalDraft = function() {
+    if (!window.currentEditorCharId) return;
+    
+    const tabId = window.currentEditorTabId || 'overview';
+    let moveId = '';
+    
+    // Sniff out the currently active move if we are in a frame data tab
+    const activeBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
+    if (activeBtn && activeBtn.id.startsWith('move-nav-')) {
+        moveId = activeBtn.id.replace('move-nav-', '');
+    } else if (new URLSearchParams(window.location.search).get('move')) {
+        moveId = new URLSearchParams(window.location.search).get('move');
+    }
+
+    // Generate a unique slot for this exact location
+    const draftKey = `wiki_draft_${window.currentEditorCharId}_${tabId}${moveId ? '_' + moveId : ''}`;
+    
+    const draftData = {
+        timestamp: Date.now(),
+        charId: window.currentEditorCharId,
+        tabId: tabId,
+        moveId: moveId,
+        desc_data: window.currentEditorDescData,
+        frame_data: window.currentEditorFrameData
+    };
+    
+    // SECURITY PATCH: Prevent QuotaExceededError from crashing the editor
+    try {
+        localStorage.setItem(draftKey, JSON.stringify(draftData));
+        window.currentDraftKey = draftKey; 
+    } catch (e) {
+        console.warn("Auto-Save Failed: LocalStorage is full. Please discard old drafts in the Draft Manager.");
+        // We do not throw the error, allowing the live preview and editor to continue functioning normally.
+    }
+};
 
 // --- MEDIA LIBRARY SYSTEM ---
 window.initMediaLibrary = function() {
@@ -2908,42 +3057,43 @@ document.addEventListener('DOMContentLoaded', () => {
 window.initMediaLibrary();
 });
 
-// --- DIFF COMPARISON ENGINE ---
-window.toggleDiffMode = async function() {
+// --- VISUAL DIFF COMPARISON ENGINE ---
+window.toggleDiffMode = function() {
     window.isDiffModeActive = !window.isDiffModeActive;
     const btn = document.getElementById('btn-toggle-diff');
     
-    // Force a data sync so the diff engine captures the absolute latest typing
-    if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
-    
     if (window.isDiffModeActive) {
-        btn.style.background = '#a855f7';
-        btn.style.color = '#000';
-        btn.textContent = '[-] CLOSE DIFF';
-        renderDiffView();
+        // Active State: Filled Purple
+        btn.className = "btn-sys btn-sys-purple btn-purple-fill";
+        btn.textContent = "EXIT DIFF";
+        window.renderDiffView();
     } else {
-        btn.style.background = 'transparent';
-        btn.style.color = '#a855f7';
-        btn.textContent = '[+] DIFF VIEW';
+        // Inactive State: Hollow Purple
+        btn.className = "btn-sys btn-sys-purple";
+        btn.textContent = "VIEW DIFF";
         
         // Remove diff container and unhide normal preview
         const diffCont = document.getElementById('diff-view-container');
         if (diffCont) diffCont.remove();
-        document.querySelector('.main-content-area').style.display = 'block';
+        
+        const standardCont = document.getElementById('standard-preview-container');
+        if (standardCont) standardCont.style.display = 'block';
     }
-}
+};
 
 // --- VISUAL DIFF COMPARISON ENGINE ---
 window.renderDiffView = function() {
     // Hide normal live preview
-    document.querySelector('.main-content-area').style.display = 'none';
+    document.getElementById('standard-preview-container').style.display = 'none';
     
     let diffContainer = document.getElementById('diff-view-container');
     if (!diffContainer) {
         diffContainer = document.createElement('div');
         diffContainer.id = 'diff-view-container';
         diffContainer.className = 'main-content-area';
-        document.querySelector('.mock-window-content').appendChild(diffContainer);
+        
+        // THE FIX: Inject into the new main-content tag instead of the deleted mock-window
+        document.querySelector('main.main-content').appendChild(diffContainer);
     }
     
     diffContainer.innerHTML = '<h2 class="section-title">UNSAVED CHANGES (VISUAL DIFF)</h2>';
@@ -3064,7 +3214,7 @@ window.renderDiffView = function() {
 }
 
 document.addEventListener('click', (e) => {
-    const addBtn = e.target.closest('.btn-action-add');
+    const addBtn = e.target.closest('.daw-tab-btn'); 
     if (!addBtn) return;
     
     const btnText = addBtn.textContent.trim().toUpperCase();
@@ -3221,3 +3371,82 @@ function openCustomAddModal(type) {
         if (firstInput) firstInput.focus();
     }, 50);
 }
+
+// --- LOCAL DRAFT MANAGER HUB ---
+window.openDraftManager = function() {
+    const container = document.getElementById('draft-list-container');
+    const drafts = [];
+
+    // 1. Scan memory for drafts and extract their specific scopes
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('wiki_draft_')) {
+            try {
+                const data = JSON.parse(localStorage.getItem(key));
+                
+                // Fallbacks just in case a legacy draft from 10 minutes ago was caught
+                const charId = data.charId || key.replace('wiki_draft_', '').split('_')[0];
+                const tabId = data.tabId || 'overview';
+                const moveId = data.moveId || '';
+
+                drafts.push({ key, charId, tabId, moveId, timestamp: data.timestamp });
+            } catch(e) {}
+        }
+    }
+
+    drafts.sort((a, b) => b.timestamp - a.timestamp);
+
+    if (drafts.length === 0) {
+        container.innerHTML = '<div style="color: #666; font-family: var(--text-mono); font-size: 0.8rem; text-align: center; padding: 2rem 0; border: 1px dashed #333;">No local drafts found. Your workspace is clean!</div>';
+    } else {
+        let html = '';
+        drafts.forEach(draft => {
+            const dateStr = new Date(draft.timestamp).toLocaleString();
+            const charDisplay = draft.charId.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            
+            let contextDisplay = draft.tabId.toUpperCase();
+            if (draft.moveId) contextDisplay += ` / ${draft.moveId.toUpperCase()}`;
+            
+            // Sniff out current location to prevent an infinite reload loop on the active draft
+            const currentTab = window.currentEditorTabId || 'overview';
+            let currentMove = new URLSearchParams(window.location.search).get('move') || '';
+            if (!currentMove) {
+                const activeBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
+                if (activeBtn && activeBtn.id.startsWith('move-nav-')) currentMove = activeBtn.id.replace('move-nav-', '');
+            }
+            
+            const isCurrent = (window.currentEditorCharId === draft.charId) && (currentTab === draft.tabId) && (currentMove === draft.moveId);
+            
+            let resumeUrl = `?char=${draft.charId}&tab=${draft.tabId}&loadDraft=true&draftKey=${draft.key}`;
+            if (draft.moveId) resumeUrl += `&move=${draft.moveId}`;
+
+            html += `
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #050505; border: 1px solid #333; padding: 0.75rem 1rem; margin-bottom: 0.5rem;">
+                    <div>
+                        <div style="color: #fff; font-family: var(--text-manga); font-size: 1rem; text-transform: uppercase;">${charDisplay}</div>
+                        <div style="color: var(--accent-blue); font-family: var(--text-mono); font-size: 0.75rem; margin-bottom: 0.25rem;">[ ${contextDisplay} ]</div>
+                        <div style="color: #888; font-family: var(--text-mono); font-size: 0.65rem;">Last Auto-Saved: ${dateStr}</div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        ${!isCurrent ? 
+                            `<button class="submit-btn" style="color: var(--accent-blue); border-color: var(--accent-blue); padding: 0.3rem 0.6rem; font-size: 0.65rem; box-shadow: none;" onclick="window.location.href='${resumeUrl}'">RESUME</button>` : 
+                            `<span style="color: #22c55e; font-family: var(--text-mono); font-size: 0.65rem; padding: 0.3rem 0.6rem; border: 1px solid #22c55e;">ACTIVE</span>`
+                        }
+                        <button class="btn-action-delete" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 0.3rem 0.6rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.65rem; cursor: pointer;" onclick="window.deleteDraft('${draft.key}')">DISCARD</button>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    }
+
+    document.getElementById('draft-manager-modal').style.display = 'flex';
+};
+
+window.deleteDraft = async function(key) {
+    // Reusing the newly patched dynamic customConfirm to spawn a red Delete modal!
+    if (await window.customConfirm("Permanently discard this local draft? This cannot be undone.", "DISCARD DRAFT", true)) {
+        localStorage.removeItem(key);
+        window.openDraftManager(); // Instantly refresh the visual list
+    }
+};
