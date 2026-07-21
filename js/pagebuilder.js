@@ -1,161 +1,367 @@
 /**
  * Dogslamloop Wiki - Page Builder & Navigation Module
+ * V0.4 DSL Standardized Engine
  */
 
-function setupTabs(buttonGroupType, contentPrefix, tabIds, tabLevel = 'minor') {
-    tabIds.forEach(tabId => {
-        const button = document.getElementById(`${buttonGroupType}-${tabId}`);
-        if (!button) return;
+// ==========================================
+// 1. SIDEBAR & NAVIGATION BUILDERS
+// ==========================================
 
-        button.addEventListener('click', () => {
-            tabIds.forEach(id => {
-                const btn = document.getElementById(`${buttonGroupType}-${id}`);
-                const content = document.getElementById(`${contentPrefix}-${id}`);
-                
-                if (btn) btn.classList.remove('active');
-                if (content) {
-                    content.classList.add('hidden');
-                    content.classList.remove('space-y-8');
+window.initSidebarToggle = function() {
+    const toggleBtn = document.querySelector('.sidebar-toggle-btn');
+    const sidebar = document.getElementById('master-sidebar');
+    
+    if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => { 
+            // The True Despawn Toggle
+            sidebar.classList.toggle('collapsed'); 
+        });
+    }
+};
+
+window.buildGlobalSidebarMenu = async function(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const legacyNavHeaders = document.querySelectorAll('.sidebar-nav-title');
+    legacyNavHeaders.forEach(el => {
+        if (el.textContent.trim().toUpperCase() === 'NAVIGATION') {
+            el.className = 'sidebar-master-title';
+            el.style.textTransform = 'uppercase';
+        }
+    });
+
+    try {
+        const rootPath = window.getRootPath ? window.getRootPath() : './';
+        let navData;
+        if (window.fetchJson) navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
+        else { const res = await fetch(`${rootPath}data/navigation.json`); navData = await res.json(); }
+
+        if (!navData) throw new Error("Navigation configuration missing.");
+
+        let html = '';
+        for (const [category, items] of Object.entries(navData)) {
+            html += `<div class="sidebar-group-wrapper" style="margin-bottom: 0.75rem;">`;
+            html += `<div class="sidebar-nav-title" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                        ${category} <span style="font-size: 0.5rem; color: var(--text-muted);">▼</span>
+                     </div>`;
+            html += `<ul class="toc-list hidden" style="margin-top: 0.5rem;">`;
+
+            items.forEach(item => {
+                let badge = '';
+                if (item.isWip) badge = ` <span class="update-badge badge-general" style="background-color: var(--accent-yellow); color: #000; margin-left: 0.5rem;">WIP</span>`;
+                if (item.isEA) badge = ` <span class="update-badge badge-general" style="background-color: hsl(28, 99%, 53%); margin-left: 0.5rem;">EA</span>`;
+
+                let colorStyle = '';
+                if (category === 'Characters' && window.CHARACTER_COLORS && window.CHARACTER_COLORS[item.name]) {
+                    colorStyle = `color: ${window.CHARACTER_COLORS[item.name]}; font-weight: bold;`;
                 }
+
+                // FIXED: Explicitly removed text-decoration to kill the underline
+                html += `
+                    <li>
+                        <a href="${rootPath}${item.url}" class="btn-nav" style="text-decoration: none !important;">
+                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; ${colorStyle}">${item.name}</span>
+                            ${badge}
+                        </a>
+                    </li>
+                `;
             });
+            html += `</ul></div>`;
+        }
+        container.innerHTML = html;
+    } catch (e) {
+        console.error("Sidebar Menu Error:", e);
+        container.innerHTML = `<p class="loading-msg" style="color: #ef4444;">Menu unavailable.</p>`;
+    }
+};
 
-            button.classList.add('active');
+// Universal Tab Editor Buttons (Handles Desktop Sidebar & Mobile Nav)
+window.initTabEditorButtons = function(pageId, pageType = 'character') {
+    const sidebarBtn = document.getElementById('btn-edit-current-tab');
+    const mobileBtn = document.getElementById('btn-edit-current-tab-mobile');
+    
+    if (!pageId) return;
+
+    const handleEditClick = () => {
+        const activeTabEl = document.querySelector('nav.character-nav .btn-manga.active');
+        let activeTabId = 'overview'; 
+        if (activeTabEl) {
+            activeTabId = activeTabEl.id.replace('nav-', ''); 
+        }
+        window.location.href = `../../edit.html?page=${pageId}&type=${pageType}&tab=${activeTabId}`;
+    };
+
+    const handleHistoryClick = () => {
+        window.location.href = `../../history.html?page=${pageId}`;
+    };
+
+    // 1. Hook up the Desktop Right Sidebar Buttons (Stacked Layout)
+    if (sidebarBtn) {
+        sidebarBtn.style.display = 'flex'; 
+        sidebarBtn.onclick = handleEditClick;
+
+        const parentDiv = sidebarBtn.parentNode;
+        
+        // Restructure the parent container so the title sits on top of the buttons
+        parentDiv.style.flexDirection = 'column';
+        parentDiv.style.alignItems = 'stretch';
+        parentDiv.style.gap = '0.75rem';
+
+        let btnGroup = document.getElementById('sidebar-btn-group');
+        if (!btnGroup) {
+            btnGroup = document.createElement('div');
+            btnGroup.id = 'sidebar-btn-group';
+            btnGroup.style.display = 'flex';
+            btnGroup.style.gap = '0.5rem';
+            btnGroup.style.width = '100%';
+
+            // Move the Edit button into the new wrapper
+            parentDiv.insertBefore(btnGroup, sidebarBtn);
+            btnGroup.appendChild(sidebarBtn);
+
+            // Create the History button
+            const histBtn = document.createElement('button');
+            histBtn.id = 'btn-history-current-tab';
+            histBtn.className = 'btn-sys btn-sys-regular';
+            histBtn.style.cssText = sidebarBtn.style.cssText;
+            histBtn.style.flex = '1'; // Forces buttons to share width equally
+            sidebarBtn.style.flex = '1';
+            histBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> HISTORY`;
+            histBtn.onclick = handleHistoryClick;
             
-            const targetContent = document.getElementById(`${contentPrefix}-${tabId}`);
-            if (targetContent) {
-                targetContent.classList.remove('hidden');
-                if (buttonGroupType === 'nav' && tabId === 'skills') {
-                    targetContent.classList.add('space-y-8');
-                }
+            btnGroup.insertBefore(histBtn, sidebarBtn);
+        }
+    }
 
-                if (tabLevel === 'major' && typeof refreshTOC === 'function') {
-                    refreshTOC();
+    // 2. Hook up the Mobile Nav Buttons (Grouped Layout)
+    if (mobileBtn) {
+        mobileBtn.classList.add('is-active'); 
+        mobileBtn.onclick = handleEditClick;
+
+        const parentDiv = mobileBtn.parentNode;
+
+        let mobBtnGroup = document.getElementById('mobile-btn-group');
+        if (!mobBtnGroup) {
+            mobBtnGroup = document.createElement('div');
+            mobBtnGroup.id = 'mobile-btn-group';
+            mobBtnGroup.style.display = 'flex';
+            mobBtnGroup.style.gap = '0.5rem';
+
+            parentDiv.insertBefore(mobBtnGroup, mobileBtn);
+            mobBtnGroup.appendChild(mobileBtn);
+
+            const histBtnMob = document.createElement('button');
+            histBtnMob.id = 'btn-history-current-tab-mobile';
+            histBtnMob.className = 'btn-sys btn-sys-regular is-active';
+            histBtnMob.style.cssText = mobileBtn.style.cssText;
+            histBtnMob.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> HISTORY`;
+            histBtnMob.onclick = handleHistoryClick;
+            
+            mobBtnGroup.insertBefore(histBtnMob, mobileBtn);
+        }
+    }
+};
+
+window.initSidebarEditButton = async function(pageId = null, pageType = 'character') {
+    let container = document.getElementById('sidebar-dynamic-dock') 
+                 || document.getElementById('auth-dock-container')
+                 || document.getElementById('auth-btn-container');
+                 
+    if (!container) return;
+
+    let existingKofi = container.querySelector('.kofi-btn-wrapper, a[href*="Ko-fi"]');
+
+    // --- AUTHENTICATION & SIDEBAR DOCK ---
+    let userRole = 'viewer'; let username = 'LOGIN'; let unreadCount = 0;
+    if (window.supabaseClient) {
+        try {
+            // Fetch the FULL session so we can pass it to our universal name extractor
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            if (session && session.user) {
+                // Uses the unified Site Utils function to grab your exact Profile Name
+                username = typeof window.getDisplayName === 'function' ? window.getDisplayName(session) : session.user.email.split('@')[0];
+                
+                const { data: roleData } = await window.supabaseClient.from('user_roles').select('role').eq('user_id', session.user.id).single();
+                if (roleData) userRole = roleData.role;
+                
+                const { count } = await window.supabaseClient.from('system_inbox').select('*', { count: 'exact', head: true }).eq('recipient_id', session.user.id).eq('is_read', false);
+                unreadCount = count || 0;
+            }
+        } catch (e) { console.warn("Auth sync skipped."); }
+    }
+
+    // --- V0.4 FULL ROLE ICON SUITE (2.5px Geometric SVG) ---
+    // 1. Guest / Logged Out (Standard User)
+    const svgUser = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+    // 2. Authenticated Normal User (User + Checkmark)
+    const svgAuth = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>`;
+    // 3. Reviewer (The Eye / Observer)
+    const svgReviewer = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    // 4. Trusted Editor (The Pen / Signature)
+    const svgTrusted = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
+    // 5. Admin (The Crown)
+    const svgAdmin = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M2 9l4.5 6L9 7l5 10 3.5-8L22 9"></path><path d="M2 9h20v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"></path></svg>`;
+    
+    // Core App Icons
+    const svgGear = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
+    const svgMail = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`;
+
+    // --- ASSIGN ROLES & COLORS ---
+    let loginIcon = svgUser; 
+    let dynamicColorClass = "btn-sys-regular"; 
+
+    if (username !== 'LOGIN') {
+        const role = userRole.toLowerCase();
+        if (role === 'admin') { loginIcon = svgAdmin; dynamicColorClass = "btn-sys-purple"; } 
+        else if (role === 'trusted_editor') { loginIcon = svgTrusted; dynamicColorClass = "btn-sys-yellow"; }
+        else if (role === 'reviewer' || role === 'contributor') { loginIcon = svgReviewer; dynamicColorClass = "btn-sys-blue"; } 
+        else { loginIcon = svgAuth; dynamicColorClass = "btn-sys-green"; }
+    }
+
+    // --- CRITICAL DOM STRUCTURE FIX ---
+    // Uses .btn-manga-icon and .btn-manga-text span wrappers so Layout.css knows how to collapse it natively
+    const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : './';
+    let html = '';
+    const btnStyle = "width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: flex-start; gap: 0.75rem; white-space: nowrap;";
+    const iconStyle = "display: flex; align-items: center; justify-content: center;";
+    
+    // 1. OVERSEER PANEL (Pathing Fixed)
+    const elevatedRoles = ['admin', 'reviewer', 'contributor', 'trusted_editor'];
+    if (elevatedRoles.includes(userRole.toLowerCase())) {
+        html += `
+            <button id="dock-btn-edit" class="btn-sys btn-sys-purple" style="${btnStyle}" onclick="window.location.href='${rootPath}admin.html'">
+                <span class="btn-manga-icon" style="${iconStyle}">${svgGear}</span>
+                <span class="btn-manga-text" style="overflow: hidden; text-overflow: ellipsis;">OVERSEER</span>
+            </button>`;
+    }
+
+    // 2. SYSTEM INBOX
+    if (username !== 'LOGIN') {
+        let badgeHtml = unreadCount > 0 ? `<div class="dock-badge" style="position: absolute; top: -4px; right: -4px;"></div>` : ``;
+        html += `
+            <button id="dock-btn-inbox" class="btn-sys btn-sys-blue" style="${btnStyle} position: relative;">
+                <span class="btn-manga-icon" style="${iconStyle}">${svgMail}</span>
+                <span class="btn-manga-text" style="overflow: hidden; text-overflow: ellipsis;">INBOX</span>
+                ${badgeHtml}
+            </button>`;
+    }
+
+    // 3. PROFILE / LOGIN
+    html += `
+        <button id="dock-btn-auth" class="btn-sys ${dynamicColorClass}" style="${btnStyle}">
+            <span class="btn-manga-icon" style="${iconStyle}">${loginIcon}</span>
+            <span class="btn-manga-text" style="overflow: hidden; text-overflow: ellipsis;">${username.toUpperCase()}</span>
+        </button>`;
+    
+    container.innerHTML = html;
+
+    // --- RESTORE KO-FI ---
+    if (existingKofi) {
+        let targetNode = existingKofi.tagName === 'A' ? existingKofi : existingKofi.querySelector('a');
+        if (targetNode) {
+            targetNode.className = 'btn-sys btn-sys-yellow';
+            targetNode.style.cssText = btnStyle + ' text-decoration: none;';
+            if (!targetNode.querySelector('.btn-manga-icon')) {
+                const svgCoffee = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>`;
+                targetNode.innerHTML = `
+                    <span class="btn-manga-icon" style="${iconStyle}">${svgCoffee}</span>
+                    <span class="kofi-text btn-manga-text" style="font-family: 'CC-Wild-Words', sans-serif;">SUPPORT KO-FI</span>
+                `;
+            }
+        }
+        container.appendChild(existingKofi);
+    }
+    
+    // Bind click events (unchanged logic)
+    const btnAuth = document.getElementById('dock-btn-auth');
+    if (btnAuth && typeof window.openAuthModal === 'function') btnAuth.onclick = window.openAuthModal;
+
+    const btnInbox = document.getElementById('dock-btn-inbox');
+    if (btnInbox) {
+        btnInbox.onclick = async () => { 
+            const modalHtml = `
+                <div id="site-notification-modal" class="modal-overlay" style="display: flex;">
+                    <div class="modal-box modal-md accent-blue">
+                        <div class="modal-header"><h3>SYSTEM INBOX</h3></div>
+                        <div class="modal-body" id="inbox-dynamic-body"><p class='loading-msg'>Fetching messages...</p></div>
+                        <div class="modal-footer">
+                            <button id="close-inbox-btn" class="btn-sys btn-sys-regular">CLOSE</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            document.getElementById('close-inbox-btn').onclick = () => document.getElementById('site-notification-modal').remove();
+
+            if (window.supabaseClient) {
+                const { data: { user } } = await window.supabaseClient.auth.getUser();
+                if (user) {
+                    const { data: messages } = await window.supabaseClient.from('system_inbox').select('*').eq('recipient_id', user.id).order('created_at', { ascending: false });
+                    if (!messages || messages.length === 0) {
+                        document.getElementById('inbox-dynamic-body').innerHTML = "<p class='loading-msg'>No new messages.</p>";
+                    } else {
+                        let msgsHtml = `<div class="space-y-2">`;
+                        messages.forEach(m => {
+                            const bg = m.is_read ? 'transparent' : 'rgba(59, 130, 246, 0.1)';
+                            const border = m.is_read ? 'var(--border-color)' : 'var(--accent-blue)';
+                            msgsHtml += `
+                                <div style="background: ${bg}; border: 1px solid ${border}; padding: 0.75rem; border-radius: 4px;">
+                                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">${new Date(m.created_at).toLocaleDateString()}</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-white);">${m.message}</div>
+                                </div>
+                            `;
+                        });
+                        msgsHtml += `</div>`;
+                        document.getElementById('inbox-dynamic-body').innerHTML = msgsHtml;
+                        await window.supabaseClient.from('system_inbox').update({ is_read: true }).eq('recipient_id', user.id);
+                        const badge = document.querySelector('#dock-btn-inbox .dock-badge');
+                        if (badge) badge.remove();
+                    }
                 }
             }
-        });
-    });
-}
-
-window.refreshTOC = function() {
-    const tocContainer = document.getElementById('dynamic-toc');
-    if (!tocContainer) return;
-
-    // 1. Clear the old list
-    tocContainer.innerHTML = '';
-
-    // 2. Target the actual tab containers
-    const activeTab = document.querySelector('.main-content-area > [id^="tab-"]:not(.hidden)');
-    
-    if (!activeTab) {
-        tocContainer.innerHTML = '<li><p style="color: var(--text-muted); font-style: italic; font-size: 0.75rem; padding: 0.25rem 0.75rem;">Navigation unavailable.</p></li>';
-        return;
+        };
     }
-
-    // 3. THE GOLDEN QUERY
-
-    const headers = activeTab.querySelectorAll('.strategy-title, .card-header-title, .skill-title, .legend-title');
-
-    if (headers.length === 0) {
-        tocContainer.innerHTML = '<li><p style="color: var(--text-muted); font-style: italic; font-size: 0.75rem; padding: 0.25rem 0.75rem;">No headers on this tab.</p></li>';
-        return;
-    }
-
-    // 4. Build the constrained list
-    headers.forEach(header => {
-        const headerText = (header.innerText || header.textContent).trim();
-        
-        // Skip empty headers or the redundant "Move Overview" titles injected below every skill
-        if (!headerText || headerText === "Move Overview and Strategy") return; 
-
-        // Generate an ID if the HTML doesn't have one (so clicking it scrolls down)
-        if (!header.id) {
-            header.id = 'toc-' + Math.random().toString(36).substr(2, 9);
-        }
-
-        const li = document.createElement('li');
-        const a = document.createElement('a');
-        a.href = '#' + header.id;
-        a.className = 'toc-btn';
-        a.textContent = headerText;
-        
-        // Smart Formatting: Matchup/Counterplay topics get indented, main titles stay bold
-        if (header.classList.contains('card-header-title')) {
-            a.style.paddingLeft = '1.5rem';
-            a.style.fontSize = '0.75rem';
-            a.style.color = 'var(--text-muted)';
-        } else {
-            a.style.fontWeight = 'bold';
-            a.style.color = 'var(--text-white)';
-            a.style.paddingLeft = '0.5rem';
-        }
-
-        li.appendChild(a);
-        tocContainer.appendChild(li);
-    });
 };
 
-function initDynamicTOC() {
-    if (!document.getElementById('dynamic-toc')) return;
-
-    const observer = new MutationObserver(refreshTOC);
-    const mainArea = document.querySelector('.main-content-area');
-    if (mainArea) {
-        observer.observe(mainArea, { childList: true, subtree: true });
-    }
-
-    refreshTOC(); 
-}
+// ==========================================
+// 2. DATA GRID BUILDERS & FILTERS
+// ==========================================
 
 let masterRosterData = [];
-let currentFilters = {
-    archetype: 'All',
-    tier: 'All',
-    eaOnly: false,
-    baseOnly: false,
-    hideWip: false
-};
+let currentFilters = { archetype: 'All', tier: 'All', eaOnly: false, baseOnly: false, hideWip: false };
 
-async function initRosterFilters() {
+window.initRosterFilters = async function() {
     const filterContainer = document.getElementById('roster-filter-bar');
     if (!filterContainer) return;
 
-    if (masterRosterData.length === 0) {
-        const navData = await window.fetchNavigationData();
-        masterRosterData = navData["Characters"];
-    }
+    try {
+        const rootPath = window.getRootPath ? window.getRootPath() : './';
+        let navData;
+        if (window.fetchJson) navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
+        else { const res = await fetch(`${rootPath}data/navigation.json`); navData = await res.json(); }
+        
+        // ACCESSED CORRECTLY FROM NAVIGATION.JSON
+        masterRosterData = navData["Characters"] || [];
+    } catch(e) { console.error("Roster Data Error:", e); return; }
+
+    if (masterRosterData.length === 0) return;
 
     const archetypes = ['All', ...new Set(masterRosterData.map(c => c.archetype).filter(a => a && a !== "TBD"))];
     const tiers = ['All', ...new Set(masterRosterData.map(c => c.tier).filter(t => t && t !== "TBD"))];
 
     filterContainer.innerHTML = `
-        <div class="filter-group">
-            <span class="filter-label">Archetype</span>
-            <select id="filter-archetype" class="filter-select">
-                ${archetypes.map(a => `<option value="${a}">${a}</option>`).join('')}
-            </select>
-        </div>
-        <div class="filter-group">
-            <span class="filter-label">Tier</span>
-            <select id="filter-tier" class="filter-select">
-                ${tiers.map(t => `<option value="${t}">${t}</option>`).join('')}
-            </select>
-        </div>
+        <div class="filter-group"><span class="filter-label">Archetype</span><select id="filter-archetype" class="filter-select">${archetypes.map(a => `<option value="${a}">${a}</option>`).join('')}</select></div>
+        <div class="filter-group"><span class="filter-label">Tier</span><select id="filter-tier" class="filter-select">${tiers.map(t => `<option value="${t}">${t}</option>`).join('')}</select></div>
         <div class="filter-group" style="margin-left: auto;">
-            <button id="filter-ea" class="filter-toggle">EA Only</button>
-            <button id="filter-base" class="filter-toggle">Base Only</button>
-            <button id="filter-wip" class="filter-toggle">Hide WIP Entries</button>
+            <button id="filter-ea" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">EA Only</span></div></button>
+            <button id="filter-base" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Base Only</span></div></button>
+            <button id="filter-wip" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Hide WIP</span></div></button>
         </div>
     `;
 
-    document.getElementById('filter-archetype').addEventListener('change', (e) => {
-        currentFilters.archetype = e.target.value;
-        renderFilteredRoster();
-    });
-
-    document.getElementById('filter-tier').addEventListener('change', (e) => {
-        currentFilters.tier = e.target.value;
-        renderFilteredRoster();
-    });
+    document.getElementById('filter-archetype').addEventListener('change', (e) => { currentFilters.archetype = e.target.value; renderFilteredRoster(); });
+    document.getElementById('filter-tier').addEventListener('change', (e) => { currentFilters.tier = e.target.value; renderFilteredRoster(); });
 
     const setupToggle = (btnId, filterKey) => {
         const btn = document.getElementById(btnId);
@@ -165,727 +371,320 @@ async function initRosterFilters() {
             renderFilteredRoster();
         });
     };
-
-    setupToggle('filter-ea', 'eaOnly');
-    setupToggle('filter-base', 'baseOnly');
-    setupToggle('filter-wip', 'hideWip');
+    setupToggle('filter-ea', 'eaOnly'); setupToggle('filter-base', 'baseOnly'); setupToggle('filter-wip', 'hideWip');
 
     renderFilteredRoster();
-}
+};
 
-function renderFilteredRoster() {
-    const rosterGrid = document.querySelector('.roster-grid');
+window.renderFilteredRoster = function() {
+    const rosterGrid = document.getElementById('roster-grid') || document.querySelector('.roster-grid');
     if (!rosterGrid) return;
-
     rosterGrid.innerHTML = '';
 
+    // --- Grab the root path to prevent duplicate directory stacking ---
+    const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../';
+
     const filteredChars = masterRosterData.filter(char => {
+        if (char.published === false) return false;
         if (currentFilters.archetype !== 'All' && char.archetype !== currentFilters.archetype) return false;
         if (currentFilters.tier !== 'All' && char.tier !== currentFilters.tier) return false;
         if (currentFilters.eaOnly && !char.isEA) return false;
         if (currentFilters.baseOnly && !char.isBaseOnly) return false;
         if (currentFilters.hideWip && char.isWip) return false;
-        
         return true; 
     });
 
     if (filteredChars.length === 0) {
-        rosterGrid.innerHTML = `<div class="empty-tab-msg" style="width: 100%;">No characters found matching these filters.</div>`;
+        rosterGrid.innerHTML = `<div class="empty-tab-msg" style="width: 100%; text-align: center; color: var(--text-muted); font-family: var(--text-mono);">No characters found matching these filters.</div>`;
         return;
     }
 
-    const fragment = document.createDocumentFragment();
-
+    let html = '';
     filteredChars.forEach(char => {
-        const card = document.createElement('a');
-        card.href = `${window.getRootPath()}${char.url}`;
-        card.className = 'roster-card';
-        card.id = `${char.id}-button`; 
+        let charColor = 'var(--bg-main)';
+        let textColor = 'var(--text-white)';
+        let textOutline = 'text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 2px 2px 0px rgba(0,0,0,0.8);';
 
         if (window.CHARACTER_COLORS && window.CHARACTER_COLORS[char.name]) {
-            card.style.backgroundColor = window.CHARACTER_COLORS[char.name];
+            charColor = window.CHARACTER_COLORS[char.name];
         }
 
-        if (char.isEA) {
-            const eaStar = document.createElement('span');
-            eaStar.className = 'ea-star-indicator';
-            eaStar.textContent = '*';
-            card.appendChild(eaStar);
-        }
-
-        const textSpan = document.createElement('span');
-        textSpan.className = 'roster-card-text';
-        
         if (char.isBaseOnly) {
-            textSpan.classList.add('base-only-text');
-        }
-        
-        textSpan.innerHTML = char.isWip ? `${char.name}<br>(WIP)` : char.name;
-
-        card.appendChild(textSpan);
-        fragment.appendChild(card);
-    });
-
-    rosterGrid.appendChild(fragment);
-}
-
-function initApp() {
-    const sidebarNav = document.getElementById('global-sidebar-nav');
-    const systemsGrid = document.getElementById('systems-grid');
-    const rosterGrid = document.querySelector('.roster-grid');
-    const tierListUI = document.getElementById('tier-list-ui');
-
-    if (sidebarNav) void loadMasterSidebar();
-    if (systemsGrid) void loadSystemsGrid();
-    if (rosterGrid) void initRosterFilters();
-    if (tierListUI) void initTierList();
-
-    initDynamicTOC();
-    initSidebarState();
-    initMobileNav();
-}
-
-document.addEventListener('DOMContentLoaded', initApp);
-
-async function loadSystemsGrid() {
-    try {
-        const navData = await window.fetchNavigationData();
-        const sysContainer = document.getElementById('systems-grid');
-        if (!sysContainer) return;
-
-        sysContainer.innerHTML = '';
-        sysContainer.className = 'systems-grid-container';
-
-        for (const [categoryName, links] of Object.entries(navData)) {
-            if (categoryName === "Characters") continue;
-            
-            const categoryWrapper = document.createElement('div');
-            
-            const header = document.createElement('h3');
-            header.className = 'system-category-header';
-            header.textContent = categoryName;
-            categoryWrapper.appendChild(header);
-
-            const buttonGrid = document.createElement('div');
-            buttonGrid.className = 'system-button-grid';
-
-            links.forEach(sys => {
-                const btn = document.createElement('a');
-
-                const isExternal = sys.url.startsWith('http') || sys.url.startsWith('#');
-                btn.href = isExternal ? sys.url : `${window.getRootPath()}${sys.url}`;
-                
-                btn.className = 'system-page-btn';
-                btn.textContent = sys.name;
-                buttonGrid.appendChild(btn);
-            });
-
-            categoryWrapper.appendChild(buttonGrid);
-            sysContainer.appendChild(categoryWrapper);
-        }
-    } catch (error) {
-        console.error("Failed to compile systems layout grid component:", error);
-    }
-}
-
-async function loadMasterSidebar() {
-    const sidebar = document.getElementById('global-sidebar-nav');
-    if (!sidebar) return;
-
-    let rootPath = window.getRootPath();
-
-    try {
-        const navData = await window.fetchNavigationData();
-        sidebar.innerHTML = '';
-
-        const fragment = document.createDocumentFragment();
-
-        const homeBtn = document.createElement('a');
-        homeBtn.href = `${rootPath}index.html`; 
-        homeBtn.className = 'sidebar-link sidebar-link-home';
-        homeBtn.textContent = 'Home';
-        fragment.appendChild(homeBtn);
-
-        const characterColors = window.CHARACTER_COLORS || {};
-
-        const buildCategory = (title, links) => {
-            const details = document.createElement('details');
-            details.className = 'sidebar-nav-details';
-            
-            const summary = document.createElement('summary');
-            summary.className = 'sidebar-link faq-summary sidebar-category-summary'; 
-            
-            summary.innerHTML = `${title} 
-                <svg class="nav-arrow" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
-            
-            const linkContainer = document.createElement('div');
-            linkContainer.className = 'sidebar-nav-group';
-
-            let hubUrl = '';
-            if (title === 'Characters') hubUrl = 'characters/index.html';
-            else if (title === 'System Pages') hubUrl = 'systems/index.html';
-
-            if (hubUrl) {
-                const hubA = document.createElement('a');
-                hubA.href = `${rootPath}${hubUrl}`;
-                hubA.className = 'sidebar-link sidebar-sublink';
-                hubA.style.color = 'var(--text-muted)';
-                hubA.style.borderBottom = '1px dashed var(--border-color)';
-                hubA.style.paddingBottom = '0.5rem';
-                hubA.style.marginBottom = '0.25rem';
-                hubA.innerHTML = `${title} General`;
-                
-                hubA.addEventListener('mouseover', () => hubA.style.color = 'var(--accent-blue)');
-                hubA.addEventListener('mouseout', () => hubA.style.color = 'var(--text-muted)');
-
-                linkContainer.appendChild(hubA);
-            }
-
-            links.forEach(link => {
-                const a = document.createElement('a');
-                
-                const isExternal = link.url.startsWith('http') || link.url.startsWith('#');
-                a.href = isExternal ? link.url : `${rootPath}${link.url}`;
-                
-                a.className = 'sidebar-link sidebar-sublink';
-                
-                if (title === 'Characters' && characterColors[link.name]) {
-                    a.classList.add('sidebar-character-link');
-                    a.style.setProperty('color', characterColors[link.name], 'important');
-                }
-
-                a.textContent = link.name;
-                linkContainer.appendChild(a);
-            });
-
-            details.appendChild(summary);
-            details.appendChild(linkContainer);
-            fragment.appendChild(details);
-        };
-
-        for (const [category, links] of Object.entries(navData)) {
-            buildCategory(category, links);
+            textColor = '#a1a1aa'; 
         }
 
-        sidebar.appendChild(fragment);
-
-    } catch (error) {
-        console.error("Failed to build master sidebar:", error);
-    }
-}
-
-function initSidebarState() {
-    const sidebar = document.getElementById('master-sidebar');
-    const toggleBtn = document.querySelector('.sidebar-toggle-btn');
-
-    if (!sidebar || !toggleBtn) return;
-
-    if (localStorage.getItem('wikiSidebarCollapsed') === 'true') {
-        sidebar.classList.add('collapsed');
-    }
-
-    toggleBtn.removeAttribute('onclick');
-    
-    toggleBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed');
-        localStorage.setItem('wikiSidebarCollapsed', sidebar.classList.contains('collapsed'));
-    });
-}
-
-async function loadPageAlerts(pageId) {
-    const mainArea = document.querySelector('.main-content-area');
-    if (!mainArea) return;
-
-    let alertsHTML = '';
-
-    try {
-        const navData = await window.fetchNavigationData();
-        let pageEntry = null;
-        
-        for (const category in navData) {
-            const found = navData[category].find(item => 
-                (item.id && item.id.toLowerCase() === pageId.toLowerCase()) || 
-                (item.name && item.name.toLowerCase() === pageId.toLowerCase())
-            );
-            
-            if (found) {
-                pageEntry = found;
-                break;
-            }
-        }
-
-        if (pageEntry) {
-            if (pageEntry.isOutdated) {
-                alertsHTML += `
-                    <div class="wiki-alert alert-outdated">
-                        <div class="wiki-alert-icon">🕰️</div>
-                        <div class="wiki-alert-content">
-                            <h4>Outdated Information</h4>
-                            <p>This page reflects an older version of the game. The data, frame numbers, and strategies here may no longer be accurate or useful.</p>
-                        </div>
-                    </div>`;
-            }
-
-            if (pageEntry.isEA) {
-                alertsHTML += `
-                    <div class="wiki-alert alert-ea">
-                        <div class="wiki-alert-icon">⚠️</div>
-                        <div class="wiki-alert-content">
-                            <h4>Early Access Content</h4>
-                            <p>This content relates to an Early Access character. Data and strategies is highly subjected to unannounced (and sometimes rapid) changes. So don't rely too hard on them.</p>
-                        </div>
-                    </div>`;
-            }
-
-            if (pageEntry.isWip) {
-                alertsHTML += `
-                    <div class="wiki-alert alert-wip">
-                        <div class="wiki-alert-icon">🚧</div>
-                        <div class="wiki-alert-content">
-                            <h4>Work In Progress</h4>
-                            <p>This page is currently a WIP. Wanting to contribute to the site? Reach out to <a href="${window.getRootPath()}systems/collaborators/index.html">our contributors</a> via Discord or their attached socials.</p>
-                        </div>
-                    </div>`;
-            }
-
-            if (pageEntry.isUnverified) {
-                alertsHTML += `
-                    <div class="wiki-alert alert-unverified">
-                        <div class="wiki-alert-icon">🔬</div>
-                        <div class="wiki-alert-content">
-                            <h4>Needs Verification</h4>
-                            <p>The frame data, and such on this page have not yet been peer-reviewed, which might get changed or be wrong (pick your poison).</p>
-                        </div>
-                    </div>`;
-            }
-
-            if (pageEntry.isSubjective) {
-                alertsHTML += `
-                    <div class="wiki-alert alert-subjective">
-                        <div class="wiki-alert-icon">💭</div>
-                        <div class="wiki-alert-content">
-                            <h4>Subjective Content</h4>
-                            <p>This page contains opinions!!! Opinions that are not objective, and might not be true for players with different experiences. So please, don't start any beef, let's resolve whatever disagreements via running 1s?.</p>
-                        </div>
-                    </div>`;
-            }
-
-            if (pageEntry.isMissingMedia) {
-                alertsHTML += `
-                    <div class="wiki-alert alert-medialess">
-                        <div class="wiki-alert-icon">🎞️</div>
-                        <div class="wiki-alert-content">
-                            <h4>Missing Media</h4>
-                            <p>This entry is missing necessary visual media (GIFs, images, or video clips for strategies). If you can capture pics or record clean 60FPS 1-5 seconds footage using the fandom wiki outfits, please consider contributing.</p>
-                        </div>
-                    </div>`;
-            }
-        }
-
-        if (alertsHTML !== '') {
-            const alertsContainer = document.createElement('div');
-            alertsContainer.className = 'character-alerts-container';
-            alertsContainer.innerHTML = alertsHTML;
-            mainArea.insertBefore(alertsContainer, mainArea.firstChild);
-        }
-
-    } catch (error) {
-        console.error("Failed to compile page warning banners:", error);
-    }
-}
-
-window.loadPageAlerts = loadPageAlerts;
-
-function initMobileNav() {
-    const sidebar = document.getElementById('master-sidebar');
-    if (!sidebar) return;
-
-    const topBar = document.createElement('header');
-    topBar.className = 'mobile-top-bar';
-    
-    let rootPath = window.getRootPath();
-
-    topBar.innerHTML = `
-        <a href="${rootPath}index.html" class="mobile-logo-link">
-            <img src="${rootPath}medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="mobile-logo-img">
-            <span class="site-title mobile-site-title">dogslamloop</span>
-        </a>
-        <button class="mobile-menu-btn">☰</button>
-    `;
-    
-    const siteLayout = document.querySelector('.site-layout');
-    if (siteLayout && siteLayout.parentNode) {
-        siteLayout.parentNode.insertBefore(topBar, siteLayout);
-    }
-
-    const backdrop = document.createElement('div');
-    backdrop.className = 'mobile-backdrop';
-    document.body.appendChild(backdrop);
-
-    const menuBtn = topBar.querySelector('.mobile-menu-btn');
-
-    menuBtn.addEventListener('click', () => {
-        sidebar.classList.add('mobile-open');
-        backdrop.classList.add('active');
-        document.body.style.overflow = 'hidden'; 
-    });
-
-    backdrop.addEventListener('click', () => {
-        sidebar.classList.remove('mobile-open');
-        backdrop.classList.remove('active');
-        document.body.style.overflow = ''; 
-    });
-}
-
-async function loadCollaborators() {
-    const coreGrid = document.getElementById('core-team-grid');
-    const thanksList = document.getElementById('special-thanks-list');
-    if (!coreGrid && !thanksList) return;
-
-    try {
-        const response = await fetch('collaborators_data.json?v=1.0');
-        if (!response.ok) throw new Error("Failed to load collaborators data.");
-        const data = await response.json();
-
-        if (coreGrid && data.mainContributors) {
-            coreGrid.innerHTML = '';
-            data.mainContributors.forEach(c => {
-                const avatarHTML = c.avatar 
-                    ? `<img src="${c.avatar}" alt="Avatar" class="contributor-avatar">`
-                    : `<div class="contributor-avatar-placeholder">No Img</div>`;
-                
-                const nameClass = c.isLead ? "contributor-name-lead" : "contributor-name-standard";
-                
-                let linksHTML = '<div class="contributor-links">';
-                if (c.links && c.links.length > 0) {
-                    c.links.forEach(link => {
-                        linksHTML += `<a href="${link.url}" target="_blank" class="system-page-btn contributor-btn">${link.name}</a>`;
-                    });
-                }
-                linksHTML += '</div>';
-
-                coreGrid.innerHTML += `
-                    <div class="wiki-section contributor-card">
-                        <div class="contributor-header">
-                            ${avatarHTML}
-                            <div>
-                                <h4 class="contributor-name ${nameClass}">${c.name}</h4>
-                                <span class="update-badge ${c.badgeType}" style="margin-top: 0.35rem;">${c.role}</span>
-                            </div>
-                        </div>
-                        <div class="contributor-desc">${c.description}</div>
-                        ${linksHTML}
-                    </div>
-                `;
-            });
-        }
-
-        if (thanksList && data.specialThanks) {
-            thanksList.innerHTML = '';
-            data.specialThanks.forEach(t => {
-                thanksList.innerHTML += `<li><strong>${t.name}</strong> — ${t.reason}</li>`;
-            });
-        }
-
-    } catch (error) {
-        console.error("Failed to render collaborators engine:", error);
-    }
-}
-
-async function initTierList() {
-    const listUI = document.getElementById('tier-list-ui');
-    const tabsContainer = document.getElementById('tier-tabs-container');
-    const changelogUI = document.getElementById('changelog-container');
-    if (!listUI) return;
-
-    let tierData = null;
-    let characterRoster = [];
-
-    try {
-        // 1. Fetch Navigation safely using the centralized utility
-        const navData = await window.fetchNavigationData();
-
-        // 2. Fetch Tier Data (this runs on the tierlist page, so relative fetch works perfectly)
-        const tierRes = await fetch('tierlist_data.json');
-        if (!tierRes.ok) throw new Error(`Could not find tierlist_data.json`);
-        tierData = await tierRes.json();
-
-        // Filter valid roster (Exclude Template and Boomcat)
-        characterRoster = navData["Characters"].filter(c => 
-            c.id !== "Boomcat" && c.name !== "Template"
-        );
-
-        function renderTab(tabId) {
-            document.querySelectorAll('.tier-tab-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.tabId === tabId);
-            });
-
-            const tab = tierData.tabs.find(t => t.id === tabId);
-            if (!tab) return;
-
-            listUI.innerHTML = '';
-            let placedCharacterIds = new Set();
-
-            // Render Defined Tiers
-            tab.tiers.forEach(tier => {
-                const row = document.createElement('div');
-                row.className = 'tier-row';
-                
-                const label = document.createElement('div');
-                label.className = 'tier-label';
-                label.style.backgroundColor = tier.color || 'hsl(0, 0%, 50%)';
-                label.textContent = tier.name;
-
-                const charContainer = document.createElement('div');
-                charContainer.className = 'tier-characters';
-
-                tier.characters.forEach(charId => {
-                    placedCharacterIds.add(charId);
-                    const charData = characterRoster.find(c => c.id === charId);
-                    if (charData) {
-                        charContainer.appendChild(createCharCard(charData));
-                    }
-                });
-
-                row.appendChild(label);
-                row.appendChild(charContainer);
-                listUI.appendChild(row);
-            });
-
-            // Render Unranked / TBD Pool
-            const unrankedChars = characterRoster.filter(c => !placedCharacterIds.has(c.id));
-            if (unrankedChars.length > 0) {
-                const unrankedRow = document.createElement('div');
-                unrankedRow.className = 'tier-row';
-                
-                const unrankedLabel = document.createElement('div');
-                unrankedLabel.className = 'tier-label';
-                unrankedLabel.style.backgroundColor = 'hsl(212, 10%, 40%)';
-                unrankedLabel.style.color = '#fff';
-                unrankedLabel.textContent = 'Unranked';
-
-                const unrankedContainer = document.createElement('div');
-                unrankedContainer.className = 'tier-characters';
-
-                unrankedChars.forEach(charData => {
-                    unrankedContainer.appendChild(createCharCard(charData));
-                });
-
-                unrankedRow.appendChild(unrankedLabel);
-                unrankedRow.appendChild(unrankedContainer);
-                listUI.appendChild(unrankedRow);
-            }
-
-            // Render Changelogs
-            changelogUI.innerHTML = '';
-            if (tab.changelog && tab.changelog.length > 0) {
-                tab.changelog.forEach(log => {
-                    const logBox = document.createElement('div');
-                    logBox.className = 'changelog-box';
-                    
-                    const dateHeading = document.createElement('h3');
-                    dateHeading.style.color = 'hsl(212, 80%, 60%)';
-                    dateHeading.style.marginTop = '0';
-                    dateHeading.textContent = `Update: ${log.date}`;
-                    logBox.appendChild(dateHeading);
-
-                    const list = document.createElement('ul');
-                    list.style.color = 'hsl(0, 0%, 80%)';
-                    list.style.fontSize = '0.9rem';
-                    list.style.margin = '0';
-                    list.style.paddingLeft = '1.5rem';
-
-                    log.notes.forEach(note => {
-                        const li = document.createElement('li');
-                        li.textContent = note;
-                        li.style.marginBottom = '0.5rem';
-                        list.appendChild(li);
-                    });
-
-                    logBox.appendChild(list);
-                    changelogUI.appendChild(logBox);
-                });
-            } else {
-                changelogUI.innerHTML = '<p class="text-gray-300">No logs available for this tab.</p>';
-            }
-        }
-
-        function createCharCard(charData) {
-            const card = document.createElement('a');
-            card.className = 'tier-char-card';
-            card.href = `${window.getRootPath()}${charData.url}`;
-            
-            const safeName = charData.name.replace(/\s+/g, '');
-            const imgPath = `${window.getRootPath()}medias/images/${safeName}Portrait.webp`;
-
-            const img = document.createElement('img');
-            img.src = imgPath;
-            img.alt = charData.name;
-            img.loading = "lazy";
-            
-            img.onerror = function() {
-                this.src = `${window.getRootPath()}medias/images/DogslamloopIconGay.webp`;
-            };
-
-            const tooltip = document.createElement('div');
-            tooltip.className = 'tier-char-tooltip';
-            tooltip.textContent = charData.name;
-
-            card.appendChild(img);
-            card.appendChild(tooltip);
-            return card;
-        }
-
-        // Build tabs
-        tabsContainer.innerHTML = '';
-        tierData.tabs.forEach(tab => {
-            const btn = document.createElement('button');
-            btn.className = 'tier-tab-btn';
-            btn.textContent = tab.label;
-            
-            // Extract the character name by stripping the "vs " prefix
-            let charName = tab.label.replace(/^vs\s+/i, '').trim();
-            
-            // Check if the site meta has a color for this character and apply it as a CSS variable
-            if (window.CHARACTER_COLORS && window.CHARACTER_COLORS[charName]) {
-                btn.style.setProperty('--tab-bg', window.CHARACTER_COLORS[charName]);
-            }
-
-            btn.onclick = () => renderTab(tab.id);
-            btn.dataset.tabId = tab.id;
-            tabsContainer.appendChild(btn);
-        });
-
-        if(tierData.tabs.length > 0) {
-            renderTab(tierData.tabs[0].id);
-        }
-
-    } catch (err) {
-        listUI.innerHTML = `<p style="color: hsl(0, 80%, 60%); padding: 1rem; font-weight: bold;">Failed to load tier list data: ${err.message}</p>`;
-        console.error("Tier List Init Error:", err);
-    }
-}
-
-// --- Editor Handoff Router ---
-function initSidebarEditButton(characterId) {
-    const localSidebar = document.querySelector('.local-sidebar-right');
-    if (!localSidebar) return;
-
-    // Prevent duplicate buttons on re-renders
-    if (document.getElementById('edit-tab-btn')) return;
-
-    // 1. Desktop Edit Button (Right Sidebar)
-    const editBtn = document.createElement('button');
-    editBtn.id = 'edit-tab-btn';
-    editBtn.className = 'system-page-btn';
-    editBtn.style.cssText = 'width: 100%; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; border-color: var(--accent-blue); background: rgba(59, 130, 246, 0.1);';
-    
-    // SVG Edit Pencil Icon
-    editBtn.innerHTML = `
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent-blue)" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-        <span style="color: var(--accent-blue); font-weight: bold;">Edit This Tab</span>
-    `;
-
-    // 2. Mobile Edit FAB (Floating on screen)
-    let mobileEditBtn = document.getElementById('mobile-edit-tab-btn');
-    if (!mobileEditBtn) {
-        mobileEditBtn = document.createElement('button');
-        mobileEditBtn.id = 'mobile-edit-tab-btn';
-        mobileEditBtn.className = 'mobile-edit-fab';
-        mobileEditBtn.innerHTML = `
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-        `;
-        document.body.appendChild(mobileEditBtn); // Appends to body so it survives the mobile sidebar collapse
-    }
-
-    // 3. Shared Routing Logic
-    const routeToEditor = () => {
-        const activeTabBtn = document.querySelector('.character-nav .nav-btn.active');
-        if (activeTabBtn) {
-            // Extracts "overview", "matchups", etc.
-            const activeTabId = activeTabBtn.id.replace('nav-', '');
-            // Sends them to the new editor page with the context
-            window.location.href = `../../edit.html?char=${characterId}&tab=${activeTabId}`;
-        }
-    };
-
-    // Bind the router to both buttons
-    editBtn.onclick = routeToEditor;
-    mobileEditBtn.onclick = routeToEditor;
-
-    localSidebar.insertBefore(editBtn, localSidebar.firstChild);
-}
-
-// --- SIDEBAR ACTION DOCK BUILDER ---
-window.buildSidebarDock = function(containerId, session, role, unreadCount) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-
-    const username = session ? window.getDisplayName(session) : "SYSTEM LOGIN";
-    const loginClass = session ? "login" : "";
-    const loginIcon = session ? "👤" : "🔌";
-
-    // 1. Initialize the Dock
-    let html = `<div class="sidebar-action-dock">`;
-
-    // 2. Staff Overseer (Renders only if cleared)
-    if (role === 'admin' || role === 'reviewer') {
+        // --- Prepend the rootPath to the href ---
         html += `
-            <a href="${window.getRootPath()}admin.html" class="slanted-action-btn admin">
-                <div class="slanted-btn-content">
-                    <span class="slanted-icon">👀</span>
-                    <span class="slanted-btn-text">STAFF OVERSEER</span>
+            <a href="${rootPath}${char.url}" class="roster-card" style="background-color: ${charColor};">
+                ${char.isEA ? `<span class="ea-star-indicator" title="Early Access" style="color: ${textColor}; ${textOutline}">★</span>` : ''}
+                ${char.image ? `<img src="${char.image}" alt="${char.name}" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; opacity: 0.5; filter: grayscale(100%); transition: opacity 0.2s;">` : ''}
+                <div class="roster-card-text" style="position: relative; z-index: 2; width: 100%; white-space: normal; padding: 0 0.25rem; color: ${textColor}; ${textOutline} font-weight: bold;">
+                    ${char.name}
+                    ${char.isWip ? `<br><span style="font-size: 0.55rem; font-family: var(--text-mono);">(WIP)</span>` : ''}
                 </div>
             </a>
         `;
-    }
+    });
+    rosterGrid.innerHTML = html;
+};
 
-    // 3. User Inbox (Renders only if logged in)
-    if (session) {
-        const badgeHtml = unreadCount > 0 ? `<div class="dock-badge"></div>` : ``;
-        html += `
-            <button id="dock-btn-inbox" class="slanted-action-btn">
-                <div class="slanted-btn-content">
-                    <span class="slanted-icon">📧</span>
-                    <span class="slanted-btn-text">INBOX</span>
-                    ${badgeHtml}
-                </div>
-            </button>
-        `;
-    }
+window.buildSystemsDirectory = async function(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
 
-    // 4. Auth & Profile Button
-    html += `
-        <button id="dock-btn-auth" class="slanted-action-btn ${loginClass}">
-            <div class="slanted-btn-content">
-                <span class="slanted-icon">${loginIcon}</span>
-                <span class="slanted-btn-text">${username.toUpperCase()}</span>
-            </div>
-        </button>
-    `;
+    try {
+        const rootPath = window.getRootPath ? window.getRootPath() : './';
+        let navData;
+        if (window.fetchJson) navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
+        else { const res = await fetch(`${rootPath}data/navigation.json`); navData = await res.json(); }
 
-    html += `</div>`;
-    
-    // Mount the HTML
-    container.innerHTML = html;
+        // --- Increased gap between categories for breathing room ---
+        let html = '<div class="systems-grid-container" style="display: flex; flex-direction: column; gap: 2.5rem;">';
+        const categories = Object.keys(navData).filter(k => k !== 'Characters');
+        
+        categories.forEach((category) => {
+            const items = navData[category];
+            html += `
+                <div class="system-category-block">
+                    <h3 class="sidebar-master-title" style="margin-top: 0; margin-bottom: 1.25rem; border-bottom: 2px dashed var(--border-color);">${category}</h3>
 
-    // 5. Bind Event Listeners
-    const btnAuth = document.getElementById('dock-btn-auth');
-    if (btnAuth && typeof window.openAuthModal === 'function') {
-        btnAuth.onclick = window.openAuthModal;
-    }
-
-    const btnInbox = document.getElementById('dock-btn-inbox');
-    if (btnInbox) {
-        btnInbox.onclick = () => { 
-            const modal = document.getElementById('site-notification-modal');
-            if (modal) modal.style.display = 'flex'; 
-        };
+                    <div class="system-button-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.25rem;">
+            `;
+            items.forEach(sys => {
+                // Swapped flat gray boxes for slanted interactive manga buttons natively inheriting the blue hover glow
+                html += `
+                    <button class="btn-manga btn-manga-slanted" style="width: 100%; padding: 0.6rem 1rem;" onclick="window.location.href='${rootPath}${sys.url}'">
+                        <div class="btn-manga-content" style="justify-content: center;">
+                            <span class="btn-manga-text" style="font-size: 0.85rem; letter-spacing: 1px;">${sys.name}</span>
+                        </div>
+                    </button>
+                `;
+            });
+            html += `</div></div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    } catch(e) {
+        console.error("Systems Grid Error:", e);
     }
 };
 
-// Ensure it's globally available
-window.initSidebarEditButton = initSidebarEditButton;
+// ==========================================
+// 3. UTILITIES & CHARACTER PAGE ENGINES
+// ==========================================
 
-window.loadCollaborators = loadCollaborators;
-window.setupTabs = setupTabs;
+// Restored: Tab switching logic for the Character Pages
+window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = 'minor') {
+    tabIds.forEach(tabId => {
+        const button = document.getElementById(`${buttonGroupType}-${tabId}`);
+        if (!button) return;
+
+        button.addEventListener('click', () => {
+            // Hide all tabs
+            tabIds.forEach(id => {
+                const btn = document.getElementById(`${buttonGroupType}-${id}`);
+                const content = document.getElementById(`${contentPrefix}-${id}`);
+                
+                if (btn) btn.classList.remove('active');
+                if (content) content.classList.add('hidden');
+            });
+
+            // Activate clicked tab
+            button.classList.add('active');
+            const targetContent = document.getElementById(`${contentPrefix}-${tabId}`);
+            if (targetContent) {
+                targetContent.classList.remove('hidden');
+                
+                // Refresh the ToC for the new tab after a tiny delay so the DOM un-hides first
+                if (tabLevel === 'major' && typeof window.refreshTOC === 'function') {
+                    setTimeout(window.refreshTOC, 50);
+                }
+            }
+        });
+    });
+};
+
+// Context-Aware, Expansive & Collapsible Table of Contents Generator
+window.refreshTOC = function() {
+    const tocContainer = document.getElementById('dynamic-toc');
+    if (!tocContainer) return;
+
+    // 1. Target the active tab (Character Pages) OR the main content area (Dashboards)
+    let targetArea = document.querySelector('main > div[id^="tab-"]:not(.hidden)');
+    
+    if (!targetArea) {
+        targetArea = document.querySelector('.main-content-area');
+    }
+
+    if (!targetArea) {
+        tocContainer.innerHTML = '<li><p class="loading-msg" style="padding: 0.25rem 0.75rem;">Nothing to index here.</p></li>';
+        return;
+    }
+
+    // 2. The Expansive Header System
+    // Added '.section-title' so it can index Dashboard headers!
+    const headers = targetArea.querySelectorAll('.section-title, .skill-title, .strategy-title, .card-header-title, .wiki-block-heading');
+    
+    if (headers.length === 0) {
+        tocContainer.innerHTML = '<li><p class="loading-msg" style="padding: 0.25rem 0.75rem;">Nothing to index here.</p></li>';
+        return;
+    }
+
+    // 3. Build the Hierarchical Tree
+    let tocStructure = [];
+    let currentGroup = null;
+
+    headers.forEach((header, index) => {
+        if (header.textContent.trim() === 'Move Overview and Strategy') return;
+
+        // Dynamic Anchor Generation
+        if (!header.id) {
+            const slug = header.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            header.id = `toc-${slug}-${index}`;
+        }
+        
+        const isMinor = header.classList.contains('wiki-block-heading');
+        const itemData = { id: header.id, text: header.textContent.trim() };
+
+        if (!isMinor) {
+            // Create a new major group
+            currentGroup = { ...itemData, children: [] };
+            tocStructure.push(currentGroup);
+        } else {
+            // Add to the current major group, or create an orphan if it's floating alone
+            if (currentGroup) {
+                currentGroup.children.push(itemData);
+            } else {
+                tocStructure.push({ ...itemData, children: [], isOrphan: true });
+            }
+        }
+    });
+
+    // 4. Render the Tree to HTML with Collapsible Accordions
+    let tocHtml = '';
+    tocStructure.forEach(group => {
+        if (group.isOrphan) {
+            // Fallback for orphaned minor headers
+            tocHtml += `
+                <li>
+                    <a href="#${group.id}" class="btn-nav" style="text-decoration: none !important; padding-left: 1.5rem; font-size: 0.7rem; color: var(--text-muted); opacity: 0.7;" onclick="smoothScroll(event, '${group.id}')">
+                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${group.text}</span>
+                    </a>
+                </li>
+            `;
+        } else {
+            if (group.children.length > 0) {
+                // Parent Header WITH a Toggle Button
+                tocHtml += `
+                    <li>
+                        <div style="display: flex; position: relative;">
+                            <a href="#${group.id}" class="btn-nav" style="text-decoration: none !important; font-size: 0.75rem; color: var(--text-white); padding-right: 2rem;" onclick="smoothScroll(event, '${group.id}')">
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${group.text}</span>
+                            </a>
+                            <button style="position: absolute; right: 0; top: 0; bottom: 1px; background: none; border: none; color: var(--text-muted); padding: 0 0.5rem; cursor: pointer; font-size: 0.5rem; z-index: 2; transition: color 0.2s;" onmouseover="this.style.color='var(--text-white)'" onmouseout="this.style.color='var(--text-muted)'" onclick="this.parentElement.nextElementSibling.classList.toggle('hidden')">
+                                ▼
+                            </button>
+                        </div>
+                        <ul class="toc-sublist" style="list-style: none; padding: 0; margin: 0;">
+                `;
+                
+                // Render the Nested Children
+                group.children.forEach(child => {
+                    tocHtml += `
+                        <li>
+                            <a href="#${child.id}" class="btn-nav" style="text-decoration: none !important; padding-left: 1.5rem; font-size: 0.7rem; color: var(--text-muted); opacity: 0.7;" onclick="smoothScroll(event, '${child.id}')">
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${child.text}</span>
+                            </a>
+                        </li>
+                    `;
+                });
+                
+                tocHtml += `</ul></li>`;
+            } else {
+                // Standard Parent Header (No Children, No Toggle Arrow)
+                tocHtml += `
+                    <li>
+                        <a href="#${group.id}" class="btn-nav" style="text-decoration: none !important; font-size: 0.75rem; color: var(--text-white);" onclick="smoothScroll(event, '${group.id}')">
+                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${group.text}</span>
+                        </a>
+                    </li>
+                `;
+            }
+        }
+    });
+    
+    tocContainer.innerHTML = tocHtml;
+};
+
+// Smooth scroll with offset to prevent headers from hiding under the top of the screen
+window.smoothScroll = function(e, targetId) {
+    e.preventDefault();
+    const target = document.getElementById(targetId);
+    if (target) {
+        const offset = 40; // Gives breathing room above the header
+        const elementPosition = target.getBoundingClientRect().top + window.scrollY;
+        
+        window.scrollTo({
+            top: elementPosition - offset,
+            behavior: 'smooth'
+        });
+        history.pushState(null, null, `#${targetId}`);
+    }
+};
+
+// Restored: Wiki Alert Generator
+window.showWikiAlert = function(containerId, type, message) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    const alertMap = {
+        'wip': { icon: '🚧', class: 'alert-wip', title: 'Work In Progress' },
+        'medialess': { icon: '🎥', class: 'alert-medialess', title: 'Media Missing' },
+        'ea': { icon: '⭐', class: 'alert-ea', title: 'Early Access Content' },
+        'unverified': { icon: '⚠️', class: 'alert-unverified', title: 'Unverified Data' },
+        'subjective': { icon: '👁️', class: 'alert-subjective', title: 'Subjective Strategy' },
+        'outdated': { icon: '🕒', class: 'alert-outdated', title: 'Outdated Patch' }
+    };
+
+    const config = alertMap[type] || alertMap['wip'];
+
+    // Uses += so multiple alerts stack perfectly
+    container.innerHTML += `
+        <div class="wiki-alert ${config.class}">
+            <div class="wiki-alert-icon">${config.icon}</div>
+            <div class="wiki-alert-content">
+                <h4>${config.title}</h4>
+                <p>${message}</p>
+            </div>
+        </div>
+    `;
+};
+
+// Restored: Auto-fetching Alerts based on Navigation.json
+window.loadPageAlerts = async function(pageId) {
+    const container = document.getElementById('character-alerts-container');
+    if (!container) return;
+    container.innerHTML = ''; 
+    
+    try {
+        const rootPath = window.getRootPath ? window.getRootPath() : '../../';
+        let navData;
+        if (window.fetchJson) navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
+        else { const res = await fetch(`${rootPath}data/navigation.json`); navData = await res.json(); }
+
+        let targetEntry = null;
+        for (const [cat, items] of Object.entries(navData)) {
+            const found = items.find(i => i.id === pageId);
+            if (found) { targetEntry = found; break; }
+        }
+        
+        if (!targetEntry) return;
+
+        // Triggers the UI components automatically based on the JSON booleans
+        if (targetEntry.isWip) window.showWikiAlert('character-alerts-container', 'wip', 'This page is actively being drafted. Data may be incomplete or subject to change.');
+        if (targetEntry.isEA) window.showWikiAlert('character-alerts-container', 'ea', 'This character is currently in Early Access. Strategies and frame data will likely change constantly.');
+        if (targetEntry.isMissingMedia) window.showWikiAlert('character-alerts-container', 'medialess', 'Some videos or images are missing from this page. We are working on recording them!');
+    } catch (e) {
+        console.error("Failed to load page alerts:", e);
+    }
+};

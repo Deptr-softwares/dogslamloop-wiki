@@ -16,8 +16,9 @@ window.CHARACTER_COLORS = {
     "Puppet Master": "hsl(342, 91%, 46%)",
     "Salaryman": "hsl(204, 100%, 68%)",
     "Head of the Hei": "hsl(241, 100%, 75%)",
-    "Disaster Plant": "hsl(106, 28%, 72%)",
+    "Disaster Plants": "hsl(106, 28%, 72%)",
     "True Cannon": "hsl(180, 100%, 83%)",
+    "Register": "hsl(0, 0%, 100%)",
     "Locust Guy": "hsl(100, 100%, 75%)",
     "Star Rage": "hsl(240, 100%, 83%)",
     "Aspiring Mangaka": "hsl(0, 100%, 96%)",
@@ -50,6 +51,7 @@ window.WINDOW_COLORS = {
     'iframe-swarm': '#ec4899',      // Neon Pink
     'iframe-complete': '#ffffff'    // Pure White
 };
+
 /**
  * Fetches global site metadata and injects it into the header.
  */
@@ -71,5 +73,88 @@ async function loadSiteMetadata() {
         console.error('Failed to load site version:', error);
     }
 }
-// Execute as soon as the DOM is ready
-document.addEventListener('DOMContentLoaded', loadSiteMetadata);
+
+/**
+ * Automatically extracts the character's Hue and paints the entire UI.
+ */
+window.applyCharacterTheme = function() {
+    const titleEl = document.querySelector('.character-title');
+    if (!titleEl) return; 
+
+    const charName = titleEl.textContent.trim();
+    const charColor = window.CHARACTER_COLORS[charName];
+
+    if (charColor) {
+        // 1. The Accent Replacement
+        document.documentElement.style.setProperty('--accent-blue', charColor);
+        
+        // 2. The Universal Tint Engine
+        const hslMatch = charColor.match(/hsl\((\d+),\s*([\d.]+)%,\s*([\d.]+)%\)/);
+        if (hslMatch) {
+            const h = hslMatch[1];
+            const s = parseFloat(hslMatch[2]);
+            const l = parseFloat(hslMatch[3]); 
+            
+            const themeSat = s > 0 ? 25 : 0; 
+            const bgSat = s > 0 ? 15 : 0;
+
+            document.documentElement.style.setProperty('--border-color', `hsl(${h}, ${themeSat}%, 23%)`);
+            document.documentElement.style.setProperty('--text-muted', `hsl(${h}, ${themeSat}%, 65%)`);
+            
+            document.documentElement.style.setProperty('--bg-main', `hsl(${h}, ${bgSat}%, 7%)`);
+            document.documentElement.style.setProperty('--bg-secondary', `hsl(${h}, ${bgSat}%, 11%)`);
+
+            // Ensure global box shadows stay black!
+            document.documentElement.style.setProperty('--manga-shadow', '#000000');
+
+            // 3. THE TEXT SHADOW ENGINE
+            let dynamicStyle = document.getElementById('persona-dynamic-styles');
+            if (!dynamicStyle) {
+                dynamicStyle = document.createElement('style');
+                dynamicStyle.id = 'persona-dynamic-styles';
+                document.head.appendChild(dynamicStyle);
+            }
+
+            // If Lightness is below 50% (Ten Shadows, Crow Charmer, Black Death)
+            if (l < 50) {
+                dynamicStyle.innerHTML = `
+                    .section-title, .strategy-title, .card-header-title, .skill-title {
+                        color: ${charColor} !important;
+                        text-shadow: 
+                            -1px -1px 0 #ffffff, 
+                             1px -1px 0 #ffffff, 
+                            -1px  1px 0 #ffffff, 
+                             1px  1px 0 #ffffff,
+                             3px  3px 0px #ffffff !important;
+                    }
+                `;
+                
+                titleEl.style.color = charColor;
+                titleEl.style.textShadow = `
+                    -1px -1px 0 #ffffff, 
+                     1px -1px 0 #ffffff, 
+                    -1px  1px 0 #ffffff, 
+                     1px  1px 0 #ffffff,
+                     3px  3px 0px #ffffff
+                `;
+            } else {
+                // Normal behavior for bright characters
+                dynamicStyle.innerHTML = ''; 
+                titleEl.style.color = 'var(--text-white)';
+                titleEl.style.textShadow = `
+                    -1px -1px 0 ${charColor}, 
+                     1px -1px 0 ${charColor}, 
+                    -1px  1px 0 ${charColor}, 
+                     1px  1px 0 ${charColor},
+                     3px  3px 0px var(--manga-shadow)
+                `;
+            }
+        }
+    }
+};
+
+// Execute boot sequence
+document.addEventListener('DOMContentLoaded', () => {
+    loadSiteMetadata();
+    applyCharacterTheme();
+});

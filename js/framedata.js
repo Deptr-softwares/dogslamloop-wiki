@@ -35,7 +35,7 @@ const windowTypes = {
     'iframe-complete': { class: 'span-iframe-complete', label: 'Complete I-Frames' }
 };
 
-// --- GLOBAL MANGA TOOLTIP SETUP (Lazy-Loaded Fix) ---
+// --- GLOBAL MANGA TOOLTIP SETUP (Unified with description.js) ---
 let frameTooltip = null;
 
 function initTooltip() {
@@ -44,30 +44,60 @@ function initTooltip() {
         if (!frameTooltip) {
             frameTooltip = document.createElement('div');
             frameTooltip.id = 'wiki-frame-tooltip';
-            frameTooltip.className = 'manga-tooltip';
+            
+            // Explicitly define the heavy manga box styles here so it matches description.js!
+            frameTooltip.style.position = 'fixed';
+            frameTooltip.style.zIndex = '100000';
+            frameTooltip.style.pointerEvents = 'none'; // Prevents it from stealing the hover cursor
+            frameTooltip.style.background = 'var(--bg-main, #050505)';
+            frameTooltip.style.border = '2px solid var(--border-color, #333)';
+            frameTooltip.style.padding = '0.75rem 1rem';
+            frameTooltip.style.boxShadow = '6px 6px 0px var(--manga-shadow, #000)';
+            frameTooltip.style.maxWidth = '320px';
+            frameTooltip.style.color = 'var(--text-white, #fff)';
+            frameTooltip.style.fontFamily = 'var(--text-mono)';
+            frameTooltip.style.fontSize = '0.75rem';
+            frameTooltip.style.display = 'none'; // Hidden by default
+            
             document.body.appendChild(frameTooltip);
         }
     }
 }
 
-// Helper function to manage tooltip positioning
+// Helper function to manage tooltip positioning with Boundary Physics
 function bindTooltip(element, titleHtml) {
     element.addEventListener('mouseenter', (e) => {
         initTooltip();
         frameTooltip.innerHTML = titleHtml;
-        frameTooltip.classList.add('visible');
+        frameTooltip.style.display = 'block'; // Force show
     });
+    
     element.addEventListener('mousemove', (e) => {
         if(frameTooltip) {
-            frameTooltip.style.left = (e.pageX + 15) + 'px';
-            frameTooltip.style.top = (e.pageY + 15) + 'px';
+            // Use clientX/Y instead of pageX/Y so scrolling doesn't break the fixed position!
+            let x = e.clientX + 15;
+            let y = e.clientY + 15;
+            const box = frameTooltip.getBoundingClientRect();
+            
+            // Boundary Physics: Flip the box if it gets too close to the right/bottom edges
+            if (x + box.width > window.innerWidth) {
+                x = e.clientX - box.width - 15;
+            }
+            if (y + box.height > window.innerHeight) {
+                y = e.clientY - box.height - 15;
+            }
+            
+            frameTooltip.style.left = x + 'px';
+            frameTooltip.style.top = y + 'px';
         }
     });
+    
     element.addEventListener('mouseleave', () => {
-        if(frameTooltip) frameTooltip.classList.remove('visible');
+        if(frameTooltip) {
+            frameTooltip.style.display = 'none'; // Force hide
+        }
     });
 }
-
 // Core frame section generator
 function createPhase(phaseObj, totalScale) {
     const phase = document.createElement('div');
@@ -179,36 +209,47 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             let statsHTML = '';
             if (move.stats && move.stats.length > 0) {
                 move.stats.forEach(stat => {
-                    // Properly combine the highlight class into the existing class string
-                    const highlightClass = stat.isHighlighted ? ' text-red-400' : '';
+                    // FIXED: Replaced Tailwind with explicit CSS color
+                    const highlightStyle = stat.isHighlighted ? 'color: #ef4444;' : '';
                     statsHTML += `
                         <div class="stat-row">
                             <span class="stat-label">${stat.label}</span> 
-                            <span class="stat-value${highlightClass}">${stat.value}</span>
+                            <span class="stat-value" style="${highlightStyle}">${stat.value}</span>
                         </div>`;
                 });
             } else {
                 statsHTML = `<div class="stat-row stat-row-empty">No stats recorded</div>`;
             }
 
-            // --- 2. MEDIA FALLBACK ---
-            const mediaContent = move.media?.src 
-                ? `<img src="${move.media.src}" alt="${move.media.alt || ''}" class="skill-media-img">
-                   <span class="skill-media-filename">${move.media.src.split('/').pop()}</span>`
-                : `<div class="skill-media-missing">
-                       [ Missing Media ]
-                   </div>`;
+            // --- 2. MEDIA & VIDEO FALLBACK ---
+            let mediaContent = `<div class="skill-media-missing">[ Missing Media ]</div>`;
+            if (move.media?.src) {
+                const srcLower = move.media.src.toLowerCase();
+                const isVideo = srcLower.endsWith('.mp4') || srcLower.endsWith('.webm');
+                const filename = move.media.src.split('/').pop();
+                
+                if (isVideo) {
+                    // Injecting lazy-loading to prevent memory nukes!
+                    mediaContent = `
+                        <video data-lazy-src="${move.media.src}" class="skill-media-img" autoplay loop muted playsinline style="object-fit: cover;" preload="none"></video>
+                        <span class="skill-media-filename">${filename}</span>`;
+                } else {
+                    mediaContent = `
+                        <img data-lazy-src="${move.media.src}" alt="${move.media.alt || ''}" class="skill-media-img">
+                        <span class="skill-media-filename">${filename}</span>`;
+                }
+            }
 
             card.innerHTML = `
                 <div class="skill-entry-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <h2 class="skill-title">${move.name || 'Unknown Move'}</h2>
-                        <span class="skill-subtitle">Input: ${move.input || 'N/A'} | Skill Type: ${move.type || 'N/A'} | ${move.variant || ''}</span>
+                        <span class="skill-subtitle">Input: ${move.input || 'N/A'} | Skill Type: ${move.type || 'N/A'} | Damage Type: ${move.damageType || 'N/A'} | ${move.variant || ''}</span>
                     </div>
-                    
-                    <button class="edit-move-btn system-page-btn" 
+
+                    <button class="btn-sys btn-sys-regular" 
                             onclick="window.location.href='../../edit.html?page=${pageId}&type=${pageType}&tab=${sectionType}&move=${move.id}'" 
-                            style="display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.8rem; font-size: 0.85rem; border-color: var(--text-muted); cursor: pointer;">
+                            style="display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.6rem;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         Edit Move
                     </button>
@@ -355,21 +396,20 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                         : autoLegendItems;
 
                     if (legendData.length > 0) {
-                        const divider = document.createElement('hr');
-                        divider.className = 'view-divider';
-                        // The legend goes directly to the wrapperElement so it doesn't scroll away!
-                        wrapperElement.appendChild(divider);
 
                         const legendGrid = document.createElement('div');
-                        legendGrid.className = 'view-legend-grid';
+
+                        legendGrid.style.cssText = "display: flex; flex-direction: column; gap: 0.35rem; padding: 0 1.5rem 1.5rem 1.5rem; font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-primary); line-height: 1.4;";
 
                         legendData.forEach(item => {
-                            const legendItem = document.createElement('span');
-                            legendItem.className = 'legend-inline-item';
+                            const legendItem = document.createElement('div');
+
+                            legendItem.style.cssText = "display: flex; align-items: flex-start; gap: 0.4rem;";
+
                             if (item.isWindow) {
-                                legendItem.innerHTML = `<span class="dot" style="background: transparent; border: 2px solid ${item.color}; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); box-sizing: border-box;"></span><span>${item.text}</span>`;
+                                legendItem.innerHTML = `<span style="width: 0.6rem; height: 0.6rem; background: transparent; border: 2px solid ${item.color}; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); flex-shrink: 0; margin-top: 0.15rem;"></span><span>${item.text}</span>`;
                             } else {
-                                legendItem.innerHTML = `<span class="dot" style="background: ${item.color};"></span><span>${item.text}</span>`;
+                                legendItem.innerHTML = `<span style="width: 0.6rem; height: 0.6rem; background: ${item.color}; border: 1px solid #000; flex-shrink: 0; margin-top: 0.15rem;"></span><span>${item.text}</span>`;
                             }
                             legendGrid.appendChild(legendItem);
                         });
@@ -399,8 +439,8 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
 
                         const btn = document.createElement('button');
                         btn.id = `tab-${childId}`;
-                        btn.className = `skill-tab-btn ${index === 0 ? 'active' : ''}`;
-                        btn.textContent = childNode.label || key;
+                        btn.className = `btn-manga btn-manga-slanted btn-manga-gray ${index === 0 ? 'active' : ''}`;
+                        btn.innerHTML = `<div class="btn-manga-content"><span class="btn-manga-text">${childNode.label || key}</span></div>`;
                         tabBar.appendChild(btn);
 
                         const viewSection = document.createElement('div');
@@ -423,7 +463,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                     wrapperElement.appendChild(tabBar);
                     wrapperElement.appendChild(viewsWrapper);
                 }
-            } // <-- Closes buildNestedTabs
+            }
 
             if (move.variants && Object.keys(move.variants).length > 0) {
                 // Generates the entire recursive tree at once
@@ -439,13 +479,19 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             // --- 4. STRATEGY INJECTION TARGET ---
             const strategyTarget = document.createElement('div');
             strategyTarget.id = `strategy-${move.id}`;
-            container.appendChild(strategyTarget);
+            card.appendChild(strategyTarget);
         });
 
 
 
     } catch (error) {
         console.error(`Failed handling live frame engine synchronization updates for ${sectionType}:`, error);
+    }
+
+    // AWAKEN THE LAZY OBSERVER
+    if (typeof window.initLazyMedia === 'function') {
+        const container = document.getElementById(`tab-${sectionType}`);
+        if (container) window.initLazyMedia(container);
     }
 
     if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
