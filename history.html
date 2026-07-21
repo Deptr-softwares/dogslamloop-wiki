@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page History | Dogslamloop</title>
+    <link rel="stylesheet" href="style/Common.css">
+    <link rel="stylesheet" href="style/ColorCoding.css">
+    <link rel="stylesheet" href="style/Buttons.css">
+    <link rel="stylesheet" href="style/Modals.css">
+    <link rel="stylesheet" href="style/Forms.css">
+    <link rel="stylesheet" href="style/Badges.css">
+    <link rel="stylesheet" href="style/Layout.css">
+    <link rel="stylesheet" href="style/Cards.css">
+    <link rel="stylesheet" href="style/FrameData.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+</head>
+<body class="site-body p-0">
+    <div class="site-layout">
+        
+        <aside class="global-sidebar-left" id="master-sidebar">
+            <div class="sidebar-header-top">
+                <img src="medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
+                <div class="sidebar-title-container">
+                    <a href="index.html" class="site-title">dogslamloop wiki</a>
+                    <p class="site-subtitle">Alpha v0.4</p>
+                </div>
+            </div>
+            <button class="sidebar-toggle-btn">☰</button>
+            <div class="sidebar-master-title">Navigation</div>
+            <div id="global-sidebar-nav"><p class="loading-msg loading-msg-sm">Loading menu...</p></div>
+            <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
+        </aside>
+
+        <main class="main-content-area space-y-6">
+            <div style="margin-bottom: 1.5rem;">
+                <button onclick="window.history.back()" class="btn-ghost">← Back to Previous Page</button>
+            </div>
+            
+            <header class="character-header" style="margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 1rem;">
+                <h2 class="character-title" id="history-page-title" style="color: var(--accent-blue);">PAGE HISTORY</h2>
+                <p style="color: var(--text-muted); font-family: var(--text-mono); font-size: 0.85rem; margin-top: 0.5rem;">Public history of all staff-approved revisions and modifications.</p>
+            </header>
+
+            <div id="history-meta-card" style="margin-bottom: 2rem;">
+                <p class="loading-msg">Fetching history...</p>
+            </div>
+
+            <div id="history-content-area"></div>
+        </main>
+
+        <aside class="local-sidebar-right">
+            <div class="sidebar-master-title">On this tab</div>
+            <ul class="toc-list" id="dynamic-toc">
+                <li><p class="loading-msg">Loading contents...</p></li>
+            </ul>
+        </aside>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/site_utils.js"></script>
+    <script src="js/site_meta.js"></script>
+    <script src="js/pagebuilder.js"></script>
+    <script src="js/description.js"></script>
+    <script src="js/framedata.js"></script>
+    <script src="js/internalstyling.js"></script>
+    <script src="js/history.js"></script>
+</body>
+</html>

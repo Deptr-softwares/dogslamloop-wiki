@@ -4,9 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wiki Contributor Editor</title>
+    
+    <!-- 1. FOUNDATIONS -->
     <link rel="stylesheet" href="style/Common.css">
-    <link rel="stylesheet" href="style/UI.css">
     <link rel="stylesheet" href="style/ColorCoding.css">
+    
+    <!-- 2. COMPONENTS (The DSL) -->
+    <link rel="stylesheet" href="style/Buttons.css">
+    <link rel="stylesheet" href="style/Modals.css">
+    <link rel="stylesheet" href="style/Forms.css">
+    <link rel="stylesheet" href="style/Badges.css">
+    <link rel="stylesheet" href="style/Alerts.css">
+    <link rel="stylesheet" href="style/Cards.css">
+    <link rel="stylesheet" href="style/FrameData.css">
+
+    <!-- 3. PAGE LAYOUT -->
+    <link rel="stylesheet" href="style/Layout.css">
+
+    <!-- 4. DEPENDENCIES & EDITOR-SPECIFIC OVERRIDES -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <link rel="stylesheet" href="style/editor.css">
 </head>
@@ -133,15 +148,15 @@
             <div class="editor-header">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="flex: 1; min-width: 0;">
-                        <h2 class="editor-title" id="editor-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Loading...</h2>
-                        <span class="editor-subtitle" id="editor-subtitle" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">Connecting to database...</span>
+                        <h2 class="editor-title" id="editor-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--text-manga); color: #fff; margin: 0; text-transform: uppercase;">Loading...</h2>
+                        <span class="editor-subtitle" id="editor-subtitle" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; color: var(--accent-blue); font-size: 0.75rem; font-family: var(--text-mono);">Connecting to database...</span>
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-direction: column; align-items: flex-end; flex-shrink: 0;">
                         <a href="index.html" class="btn-sys btn-sys-regular" style="padding: 0.2rem 0.4rem; font-size: 0.6rem;">HUB</a>
                         <button id="mobile-preview-toggle" class="btn-sys btn-sys-blue" style="display: none; font-size: 0.6rem; padding: 0.3rem;" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
                     </div>
                 </div>
-                <div class="header-actions">
+                <div class="header-actions" style="display: flex; gap: 0.25rem; margin-top: 0.5rem;">
                     <button class="btn-sys btn-sys-regular" onclick="window.history.back()">Cancel</button>
                     <button class="btn-sys btn-sys-blue" onclick="window.openDraftManager()">Drafts</button>
                     <button class="btn-sys btn-sys-yellow" onclick="window.triggerManualSync()">Sync/Save</button>
@@ -160,8 +175,8 @@
 
             <div class="preview-badge">PREVIEW</div>
             
-            <!-- Direct injection of the content area without the fake browser window -->
-            <main class="main-content" style="width: 110%; height: 100%;">
+            <!-- Direct injection of the content area -->
+            <main class="main-content" style="width: 100%; height: 100%;">
                 <div id="standard-preview-container" class="main-content-area">
                     <div id="tab-overview" class="tab-content" style="display: none;"></div>
                     <div id="tab-m1s" class="tab-content" style="display: none;"></div>
@@ -176,9 +191,12 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/site_utils.js"></script>
+    <script src="js/site_meta.js"></script>
+    <script src="js/pagebuilder.js"></script>
     <script src="js/framedata.js"></script>
     <script src="js/description.js"></script>
     <script src="js/internalstyling.js"></script>
     <script src="js/editor.js"></script>
+    <script src="js/tierlist.js"></script>
 </body>
 </html>
