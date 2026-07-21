@@ -1316,13 +1316,12 @@ async function approveCurrentPreview() {
     } 
 
     if (freshLive) {
+        // MATCHES SUPABASE SCHEMA EXACTLY: id, page_id, desc_data, frame_data, updated_by_user, version_timestamp
         const historyPayload = {
             page_id: freshLive.page_id,
-            page_type: freshLive.page_type || 'character',
             desc_data: freshLive.desc_data,
             frame_data: freshLive.frame_data,
-            updated_by_user: window.currentUsername,
-            replaced_by_rev: revData.id 
+            updated_by_user: window.currentUsername
         };
         
         // Block the entire merge if the history fails to archive safely
