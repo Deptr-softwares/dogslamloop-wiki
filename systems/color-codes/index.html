@@ -5,68 +5,249 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Color Codes | Dogslamloop Wiki</title>
     <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIconGay.webp">
+    
+    <!-- THE NEW MODULAR DESIGN SYSTEM -->
     <link rel="stylesheet" href="../../style/Common.css">
-    <link rel="stylesheet" href="../../style/UI.css">
+    <link rel="stylesheet" href="../../style/Layout.css">
+    <link rel="stylesheet" href="../../style/Cards.css">
+    <link rel="stylesheet" href="../../style/Buttons.css">
+    <link rel="stylesheet" href="../../style/Badges.css">
     <link rel="stylesheet" href="../../style/ColorCoding.css">
+    <link rel="stylesheet" href="../../style/Alerts.css">
+    <link rel="stylesheet" href="../../style/Modals.css">
+
+    <style>
+        /* Local overrides for the design system swatches */
+        .color-swatch-card {
+            border: 2px solid var(--border-color);
+            box-shadow: 4px 4px 0px var(--manga-shadow);
+            background: var(--bg-main);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.1s, border-color 0.1s;
+        }
+        .color-swatch-card:hover {
+            transform: translate(-2px, -2px);
+            border-color: var(--accent-blue);
+        }
+        .swatch-color-block {
+            height: 60px;
+            width: 100%;
+            border-bottom: 2px solid var(--border-color);
+        }
+        .swatch-meta {
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .swatch-title {
+            font-family: 'CC-Wild-Words', sans-serif;
+            font-size: 0.75rem;
+            color: var(--text-white);
+            text-transform: uppercase;
+        }
+        .swatch-code {
+            font-family: var(--text-mono);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+    </style>
 </head>
 <body class="site-body p-0">
 
+    <!-- MOBILE NAVIGATION -->
+    <div class="mobile-top-bar">
+        <a href="../../index.html" class="mobile-logo-link">
+            <img src="../../medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
+            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+        </a>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+    </div>
+    <div class="mobile-backdrop" id="mobile-backdrop"></div>
+
     <div class="site-layout">
         
+        <!-- LEFT SIDEBAR -->
         <aside class="global-sidebar-left" id="master-sidebar">
             <div class="sidebar-header-top">
-                <img src="../../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
+                <img src="../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
-                    <a href="../../index.html" class="site-title">dogslamloop wiki</a>
-                    <p class="site-subtitle">Alpha v0.1</p>
+                    <a href="../index.html" class="site-title">dogslamloop wiki</a>
+                    <p class="site-subtitle">Alpha v0.4</p>
                 </div>
             </div>
-            <button class="sidebar-toggle-btn">☰</button>
-            <div class="sidebar-nav-title">Navigation</div>
+
+            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar">☰</button>
+
+            <div class="sidebar-master-title">Navigation</div>
+            
             <div id="global-sidebar-nav">
                 <p class="loading-msg loading-msg-sm">Loading menu...</p>
             </div>
+
+            <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
+
+            <div class="kofi-btn-wrapper" style="margin-top: 0.75rem;">
+                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow" style="width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1rem; height: 1rem;">
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line>
+                    </svg>
+                    <span class="kofi-text">SUPPORT KO-FI</span>
+                </a>
+            </div>
         </aside>
 
+
+        <!-- MAIN CONTENT AREA -->
         <main class="main-content-area space-y-6">
             
-            <div style="margin-bottom:1rem;">
-                <a href="../index.html" style="color:hsl(212, 9%, 58%); text-decoration:none;">← Back to Systems Hub</a>
+            <div style="margin-bottom:1rem; display: flex; justify-content: space-between; align-items: center;">
+                <a href="../index.html" class="btn-ghost">← Back to Systems Hub</a>
+                <!-- No Edit Button: This is an exclusive structural reference page! -->
             </div>
 
             <header class="home-main-header">
                 <h1 class="home-main-title">Color Codes</h1>
+                <p class="strategy-paragraph" style="color: var(--text-muted); margin-top: 0.5rem;">
+                    The standardized color codes, character colors, frame data colors, and state colors used across the Dogslamloop Wiki.
+                </p>
             </header>
 
-            <section class="wiki-section">
-                <h2 class="section-title section-title-clean mb-4">Overview</h2>
-                <p class="text-gray-300 text-sm leading-relaxed m-0">
-                    to be completed
-                </p>
+            <div id="character-alerts-container" class="character-alerts-container"></div>
+
+            <!-- 1. CHARACTER THEMES -->
+            <section class="wiki-section" style="margin-bottom: 3rem;">
+                <h2 class="section-title">Character Themes</h2>
+                <p class="strategy-paragraph m-0">These color codes define the identity of each character and are used automatically for roster cards, tier lists, highlights, and themes.</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+                    <!-- Auto-generates based on your CSS variables -->
+                    <script>
+                        const chars = [
+                            { name: "Vessel", var: "--color-vessel" }, { name: "Honored One", var: "--color-honored-one" },
+                            { name: "Restless Gambler", var: "--color-restless-gambler" }, { name: "Ten Shadows", var: "--color-ten-shadows" },
+                            { name: "Perfection", var: "--color-perfection" }, { name: "Blood Manipulator", var: "--color-blood-manipulator" },
+                            { name: "Switcher", var: "--color-switcher" }, { name: "Defense Attorney", var: "--color-defense-attorney" },
+                            { name: "Cursed Partners", var: "--color-cursed-partners" }, { name: "Puppet Master", var: "--color-puppet-master" },
+                            { name: "Salaryman", var: "--color-salaryman" }, { name: "Head of the Hei", var: "--color-head-of-the-hei" },
+                            { name: "Disaster Plants", var: "--color-disaster-plant" }, { name: "True Cannon", var: "--color-true-cannon" },
+                            { name: "Locust Guy", var: "--color-locust-guy" }, { name: "Star Rage", var: "--color-star-rage" },
+                            { name: "Aspiring Mangaka", var: "--color-aspiring-mangaka" },
+                            { name: "Lucky Coward", var: "--color-lucky-coward" }, { name: "Crow Charmer", var: "--color-crow-charmer" },
+                            { name: "Black Death", var: "--color-black-death" }, { name: "Boomcat", var: "--color-boomcat" }
+                        ];
+                        chars.forEach(c => {
+                            document.write(`
+                                <div class="color-swatch-card">
+                                    <div class="swatch-color-block" style="background-color: var(${c.var});"></div>
+                                    <div class="swatch-meta">
+                                        <span class="swatch-title">${c.name}</span>
+                                        <span class="swatch-code">${c.var}</span>
+                                    </div>
+                                </div>
+                            `);
+                        });
+                    </script>
+                </div>
+            </section>
+
+            <!-- 2. FRAME DATA TIMING -->
+            <section class="wiki-section" style="margin-bottom: 3rem;">
+                <h2 class="section-title">Frame Data Types</h2>
+                <p class="strategy-paragraph m-0">Color colors used within the Timeline GUI to represent frame data types.</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+                    <script>
+                        const frames = [
+                            { name: "Startup", class: "bg-tick-start" }, { name: "Active", class: "bg-tick-active" },
+                            { name: "Recovery", class: "bg-tick-recov" }, { name: "Self Stun", class: "bg-tick-selfstun" },
+                            { name: "InSkill Stun", class: "bg-tick-inskillstun" }, { name: "Target Stun", class: "bg-tick-targetstun" },
+                            { name: "Block Endlag", class: "bg-tick-blockendlag" }, { name: "Inactive", class: "bg-tick-inactive" },
+                            { name: "Misc / Variable", class: "bg-tick-misc" }
+                        ];
+                        frames.forEach(f => {
+                            document.write(`
+                                <div class="color-swatch-card">
+                                    <!-- Utilizes the exact nested classes from ColorCoding.css -->
+                                    <div class="${f.class} swatch-color-block" style="border-bottom: none;"><div class="frame-tick" style="width:100%; height:100%; border:none;"></div></div>
+                                    <div class="swatch-meta" style="border-top: 2px solid var(--border-color);">
+                                        <span class="swatch-title">${f.name}</span>
+                                        <span class="swatch-code">.${f.class}</span>
+                                    </div>
+                                </div>
+                            `);
+                        });
+                    </script>
+                </div>
+            </section>
+
+            <!-- 3. STACKABLE OVERLAYS -->
+            <section class="wiki-section" style="margin-bottom: 3rem;">
+                <h2 class="section-title">Stackable Overlays</h2>
+                <p class="strategy-paragraph m-0">Inset shadows and borders used to represent i-frames or special properties layered on top of existing frames.</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+                    <script>
+                        const overlays = [
+                            { name: "Complete I-Frames", class: "span-iframe-complete" }, { name: "Melee I-Frames", class: "span-iframe-melee" },
+                            { name: "Bullet I-Frames", class: "span-iframe-bullet" }, { name: "Explosion I-Frames", class: "span-iframe-explosion" },
+                            { name: "Swarm I-Frames", class: "span-iframe-swarm" }, { name: "Reverse Hitcancel", class: "span-rhc" }
+                        ];
+                        overlays.forEach(o => {
+                            document.write(`
+                                <div class="color-swatch-card">
+                                    <div style="position: relative; width: 100%; height: 60px; background: var(--bg-secondary);">
+                                        <div class="window-overlay ${o.class}"></div>
+                                    </div>
+                                    <div class="swatch-meta" style="border-top: 2px solid var(--border-color);">
+                                        <span class="swatch-title">${o.name}</span>
+                                        <span class="swatch-code">.${o.class}</span>
+                                    </div>
+                                </div>
+                            `);
+                        });
+                    </script>
+                </div>
             </section>
 
         </main>
 
+        <!-- RIGHT SIDEBAR -->
         <aside class="local-sidebar-right">
-            <div class="sidebar-nav-title">On this page</div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);">
+                <div class="sidebar-master-title" style="margin: 0; padding: 0; border: none; text-transform: uppercase;">ON THIS PAGE</div>
+            </div>
             <ul class="toc-list" id="dynamic-toc">
-                <li><p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.75rem; padding: 0.25rem 0.75rem;">Loading contents...</p></li>
+                <li><p class="loading-msg">Loading contents...</p></li>
             </ul>
         </aside>
 
     </div>
 
-    <!-- Core Scripts -->
+    <!-- V0.4 SYSTEM SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
 
-    <!-- Page Alert Trigger -->
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            if (typeof window.loadPageAlerts === 'function') {
-                await window.loadPageAlerts('Starter Guide');
+            // Standard Menu Bindings
+            const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
+            const sidebar = document.getElementById('master-sidebar');
+            const backdrop = document.getElementById('mobile-backdrop');
+            if (mobileMenuBtn && sidebar && backdrop) {
+                mobileMenuBtn.addEventListener('click', () => { sidebar.classList.add('mobile-open'); backdrop.classList.add('active'); });
+                backdrop.addEventListener('click', () => { sidebar.classList.remove('mobile-open'); backdrop.classList.remove('active'); });
             }
+
+            if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
+            if (typeof window.initSidebarEditButton === 'function') await window.initSidebarEditButton();
+            if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
+
+            if (typeof window.loadPageAlerts === 'function') await window.loadPageAlerts('Color Codes');
+            if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
         });
     </script>
 </body>

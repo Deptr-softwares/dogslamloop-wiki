@@ -1,0 +1,75 @@
+/* =========================================
+   DESIGN SYSTEM: ALERTS & CALLOUTS (Alerts.css)
+   ========================================= */
+
+/* --- 1. WIKI BANNER ALERTS --- */
+.character-alerts-container {
+    display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;
+}
+
+.wiki-alert {
+    display: flex; align-items: flex-start; gap: 1rem;
+    padding: 1rem 1.25rem;
+    border: 2px solid var(--border-color);
+    background-color: var(--bg-secondary);
+    box-shadow: 4px 4px 0px var(--manga-shadow);
+}
+
+.wiki-alert-icon { font-size: 1.5rem; line-height: 1; }
+
+.wiki-alert-content h4 {
+    margin: 0 0 0.25rem 0;
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.9rem;
+    color: var(--text-white);
+    text-shadow: 1px 1px 0px var(--manga-shadow);
+}
+
+.wiki-alert-content p {
+    margin: 0; font-size: 0.85rem; color: var(--text-primary); line-height: 1.5;
+}
+
+.wiki-alert-content a { color: var(--accent-blue); text-decoration: underline; font-weight: bold; }
+
+/* Severity Modifiers */
+.alert-wip { border-color: var(--accent-yellow); }
+.alert-medialess { border-color: hsl(3, 93%, 63%); } 
+.alert-ea { border-color: hsl(28, 99%, 53%); } 
+.alert-unverified { border-color: hsl(295, 89.76%, 50.2%); } 
+.alert-subjective { border-color: hsl(180, 100%, 40%); } 
+.alert-outdated { border-color: hsl(215, 8%, 47%); } 
+
+/* --- 2. INLINE TEXT CALLOUTS --- */
+
+.inline-callout-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    
+    /* Dynamically grabs the color we injected from description.js! */
+    border-left: 4px solid var(--callout-color, var(--accent-blue));
+    color: var(--text-white);
+    
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    padding: 0.3rem 0.6rem;
+    cursor: help;
+    box-shadow: 2px 2px 0px var(--manga-shadow);
+    transition: all 0.15s ease;
+}
+
+/* Hover Physics */
+.inline-callout-btn:hover {
+    border-color: var(--callout-color, var(--accent-blue));
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0px var(--callout-color, var(--accent-blue));
+    color: var(--callout-color, var(--accent-blue));
+}
+
+.inline-callout-btn .callout-icon {
+    font-size: 0.85rem;
+}

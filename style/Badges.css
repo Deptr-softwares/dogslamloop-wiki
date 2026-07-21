@@ -1,0 +1,87 @@
+/* =========================================
+   DESIGN SYSTEM: BADGES & INDICATORS (Badges.css)
+   ========================================= */
+
+/* --- 1. UPDATE & TAG BADGES --- */
+.update-badge { 
+    padding: 0.25rem 0.4rem 0.15rem 0.4rem; 
+    border-radius: 0; 
+    font-size: 0.7rem; 
+    font-family: 'CC-Wild-Words', sans-serif; 
+    border: 1px solid #000; 
+    white-space: nowrap; 
+    display: inline-block;
+    line-height: 1;
+}
+.badge-site { background-color: hsl(132, 59%, 33%); color: #fff; }
+.badge-patch { background-color: var(--accent-blue); color: #fff; }
+.badge-general { background-color: hsl(261, 73%, 62%); color: #fff; }
+
+/* --- 2. AUTHOR & CREDITS BADGES --- */
+.author-badge {
+    background: var(--bg-secondary);
+    color: var(--accent-blue);
+    border: 2px solid var(--border-color);
+    padding: 0.35rem 0.75rem;
+    border-radius: 0;
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transform: skewX(-10deg); 
+    box-shadow: 3px 3px 0px var(--manga-shadow);
+    transition: all 0.1s ease;
+    cursor: default;
+}
+.author-badge:hover {
+    background: var(--text-white);
+    color: #000;
+    border-color: var(--text-white);
+    transform: skewX(-10deg) translate(-2px, -2px);
+    box-shadow: 4px 4px 0px var(--accent-blue);
+}
+
+/* --- 3. KEYBIND BADGES --- */
+.keybind-badge {
+    background-color: var(--bg-main);
+    color: var(--text-white);
+    border: 1px solid var(--border-color);
+    border-bottom: 2px solid var(--border-color); /* 3D pop */
+    border-radius: 4px;
+    padding: 0.15rem 0.4rem;
+    font-family: var(--text-mono);
+    font-size: 0.85em;
+    margin: 0 0.1rem;
+    box-shadow: 1px 1px 0px var(--manga-shadow);
+    font-weight: bold;
+}
+
+/* --- 4. STATUS & UTILITY DOTS --- */
+.status-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 8px currentColor; }
+.status-dot.offline { color: #ef4444; background: #ef4444; }
+.status-dot.online { color: #22c55e; background: #22c55e; }
+
+.dot-indicator { width: 0.5rem; height: 0.5rem; border-radius: 0; border: 1px solid #000; display: inline-block; }
+.dot-green { background-color: hsl(132, 59%, 33%); }
+.dot-blue { background-color: var(--accent-blue); }
+.dot-yellow { background-color: var(--accent-yellow); }
+.dot-lime { background-color: hsl(128, 49%, 49%); }
+.dot-grey { background-color: var(--text-muted); }
+.dot-pink { background-color: hsl(330, 81%, 60%); }
+
+/* --- 5. FLOATING INDICATORS --- */
+.ea-star-indicator { 
+    position: absolute; top: 2px; right: 4px; 
+    color: var(--accent-yellow); font-size: 1rem; 
+    font-family: 'CC-Wild-Words', sans-serif; line-height: 1; 
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; 
+}
+
+.dock-badge {
+    position: absolute; top: -6px; right: -6px;
+    background: #ef4444; width: 12px; height: 12px;
+    border: 2px solid #050505;
+    transform: skewX(10deg); 
+    box-shadow: 2px 2px 0px #000;
+}

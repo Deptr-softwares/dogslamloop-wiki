@@ -251,8 +251,8 @@
       ]
     },
     {
-      "id": "vs-plant",
-      "label": "vs Disaster Plant",
+      "id": "vs-plants",
+      "label": "vs Disaster Plants",
       "tiers": [
         { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
         { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
@@ -272,6 +272,25 @@
     {
       "id": "vs-cannon",
       "label": "vs True Cannon",
+      "tiers": [
+        { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
+        { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": [] },
+        { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": [] },
+        { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": [] }
+      ],
+      "changelog": [
+        {
+          "date": "2026-06-20",
+          "notes": [
+            "Add an example tier list based on matchup"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "vs-register",
+      "label": "vs Register",
       "tiers": [
         { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": [] },
         { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": [] },

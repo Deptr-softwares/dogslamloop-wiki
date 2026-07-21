@@ -1,0 +1,136 @@
+/* =========================================
+   DESIGN SYSTEM: MODAL COMPONENTS (Modals.css)
+   ========================================= */
+
+/* --- 1. Z-INDEX ARCHITECTURE & OVERLAYS --- */
+/* Tier 1: Standard Modals (Includes legacy aliases for site_utils.js) */
+.modal-overlay,
+.editor-modal-overlay,
+#auth-modal {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh; /* Safer than inset:0 for absolute containment */
+    background: rgba(0, 0, 0, 0.85);
+    /* backdrop-filter: blur(4px); REMOVED: Causes stacking context traps & breaks Editor UI */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9000; 
+}
+
+/* Tier 2: Priority Modals */
+.modal-overlay.tier-priority,
+.editor-modal-overlay.tier-priority {
+    z-index: 9500;
+}
+
+/* Tier 3: Critical System Interrupts */
+.modal-overlay.tier-critical,
+.editor-modal-overlay.tier-critical {
+    z-index: 10000;
+}
+
+
+/* --- 2. THE MODAL CONTAINER (.modal-box) --- */
+/* Added legacy aliases so old JS scripts snap into the new engine */
+.modal-box,
+.editor-modal,
+#auth-modal .modal-content {
+    background: #0a0a0a;
+    border: 1px solid #333;
+    border-top: 3px solid #555; /* Default Accent */
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+    width: 500px;
+    max-width: 95vw;
+    max-height: 85vh;
+    animation: modal-fade-in 0.15s ease-out;
+}
+
+@keyframes modal-fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Modal Sizing Modifiers */
+.modal-box.modal-sm, .editor-modal.modal-sm { width: 400px; }
+.modal-box.modal-lg, .editor-modal.modal-lg { width: 650px; }
+.modal-box.modal-xl, .editor-modal.modal-xl { width: 95vw; height: 90vh; } 
+
+
+/* --- 3. MODAL ACCENT COLORS (The Top Bar) --- */
+.modal-box.accent-blue, .editor-modal.accent-blue { border-top-color: var(--accent-blue); }
+.modal-box.accent-purple, .editor-modal.accent-purple { border-top-color: #a855f7; }
+.modal-box.accent-red, .editor-modal.accent-red { border-top-color: #ef4444; }
+.modal-box.accent-yellow, .editor-modal.accent-yellow { border-top-color: #eab308; }
+.modal-box.accent-green, .editor-modal.accent-green { border-top-color: #22c55e; }
+
+
+/* --- 4. INTERNAL STRUCTURAL SECTIONS --- */
+/* The Header */
+.modal-header,
+.editor-modal-header {
+    background: #050505;
+    border-bottom: 1px solid #333;
+    padding: 1rem 1.5rem;
+    flex-shrink: 0;
+}
+
+.modal-header h3,
+.editor-modal-header h3,
+#auth-modal h2 {
+    margin: 0;
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.9rem;
+    color: var(--text-white);
+    text-transform: uppercase;
+}
+
+/* Inherit Header Colors */
+.modal-box.accent-blue .modal-header h3, .editor-modal.accent-blue .editor-modal-header h3 { color: var(--accent-blue); }
+.modal-box.accent-purple .modal-header h3, .editor-modal.accent-purple .editor-modal-header h3 { color: #a855f7; }
+.modal-box.accent-red .modal-header h3, .editor-modal.accent-red .editor-modal-header h3 { color: #ef4444; }
+.modal-box.accent-yellow .modal-header h3, .editor-modal.accent-yellow .editor-modal-header h3 { color: #eab308; }
+
+/* The Body */
+.modal-body,
+.editor-modal-body {
+    padding: 1.5rem;
+    flex-grow: 1;
+    overflow-y: auto;
+    text-align: left;
+}
+
+.modal-body.centered-text,
+.editor-modal-body.centered-text {
+    text-align: center;
+}
+
+.modal-body p.modal-desc,
+.editor-modal-body p.modal-desc {
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+/* The Footer (Action Buttons) */
+.modal-footer,
+.editor-modal-footer {
+    border-top: 1px dashed #333;
+    padding: 1rem 1.5rem;
+    margin-top: 0;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+}
+
+.modal-footer.centered-actions,
+.editor-modal-footer.centered-actions {
+    justify-content: center;
+}

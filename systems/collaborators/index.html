@@ -3,97 +3,227 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Collaborators | Dogslamloop</title>
+    <title>Collaborators | Dogslamloop Wiki</title>
+    
+    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIconGay.webp">
+    
     <link rel="stylesheet" href="../../style/Common.css">
-    <link rel="stylesheet" href="../../style/UI.css">
     <link rel="stylesheet" href="../../style/ColorCoding.css">
+    
+    <link rel="stylesheet" href="../../style/Buttons.css">
+    <link rel="stylesheet" href="../../style/Modals.css">
+    <link rel="stylesheet" href="../../style/Forms.css">
+    <link rel="stylesheet" href="../../style/Badges.css">
+    <link rel="stylesheet" href="../../style/Alerts.css">
+    <link rel="stylesheet" href="../../style/Cards.css">
+    <link rel="stylesheet" href="../../style/FrameData.css">
+
+    <link rel="stylesheet" href="../../style/Layout.css">
 </head>
-<body class="site-body" style="padding: 0;">
+<body class="site-body p-0">
+
+    <!-- MOBILE NAVIGATION -->
+    <div class="mobile-top-bar">
+        <a href="../../index.html" class="mobile-logo-link">
+            <img src="../../medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
+            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+        </a>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+    </div>
+    <div class="mobile-backdrop" id="mobile-backdrop"></div>
 
     <div class="site-layout">
         
-        <!-- Left Global Sidebar -->
+        <!-- LEFT SIDEBAR: GLOBAL NAVIGATION -->
         <aside class="global-sidebar-left" id="master-sidebar">
             <div class="sidebar-header-top">
-                <img src="/medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
+                <img src="../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
-                    <a href="../../index.html" class="site-title" style="font-size: 1.25rem;">dogslamloop wiki</a>
-                    <p class="site-subtitle" style="margin: 0;">Alpha v0.1</p>
+                    <a href="../index.html" class="site-title">dogslamloop wiki</a>
+                    <p class="site-subtitle">Alpha v0.4</p>
                 </div>
             </div>
 
-            <button class="sidebar-toggle-btn">☰</button>
+            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar">☰</button>
 
-            <div class="sidebar-nav-title">Navigation</div>
+            <div class="sidebar-master-title">Navigation</div>
+            
             <div id="global-sidebar-nav">
-                <p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.75rem;">Loading menu...</p>
+                <p class="loading-msg loading-msg-sm">Loading menu...</p>
             </div>
 
-            <div class="kofi-btn-wrapper">
-                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="kofi-btn">
-                    <span style="font-size: 1.1rem; line-height: 1;">☕</span>
-                    <span class="kofi-text" style="margin-left: 0.5rem;">Support Ko-fi</span>
+            <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
+
+            <div class="kofi-btn-wrapper" style="margin-top: 0.75rem;">
+                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow" style="width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1rem; height: 1rem;">
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line>
+                    </svg>
+                    <span class="kofi-text">SUPPORT KO-FI</span>
                 </a>
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <main class="main-content-area space-y-8">
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content-area space-y-6">
             
-            <div style="margin-bottom:1rem;">
-                <a href="../../index.html" style="color:hsl(212, 9%, 58%); text-decoration:none;">← Back to Home</a>
+            <div style="margin-bottom: 1.5rem;">
+                <a href="../index.html" class="btn-ghost">← Back to Systems Hub</a>
             </div>
-
-            <header class="character-header" style="margin-bottom: 2rem;">
-                <h2 class="character-title" style="margin: 0;">Collaborators</h2>
-                <p style="color: var(--text-muted); font-family: var(--text-mono); margin-top: 0.5rem;">
-                    The awesome sugoi people who helped and contributed to the development of Dogslamloop Wiki.
+            
+            <header class="character-header" style="margin-bottom: 2.5rem;">
+                <div id="character-alerts-container" class="character-alerts-container"></div>
+                <h2 class="character-title">Collaborators</h2>
+                <p class="strategy-paragraph" style="color: var(--text-muted); margin-top: 0.5rem;">
+                    The awesome, sugoi people who helped and contributed to the development of Dogslamloop Wiki.
                 </p>
             </header>
 
             <!-- CORE TEAM SECTION -->
-            <section>
-                <h3 class="section-title" id="core-team">Main Contributors</h3>
-                <!-- Dynamic Target -->
+            <section style="margin-bottom: 3rem;">
+                <h3 class="section-title" id="core-team">MAIN CONTRIBUTORS</h3>
                 <div id="core-team-grid" class="grid-layout-3col">
-                    <p style="color: var(--text-muted); font-style: italic;">Loading contributors...</p>
+                    <p class="loading-msg">Loading contributors...</p>
                 </div>
             </section>
 
             <!-- SPECIAL THANKS SECTION -->
-            <section style="margin-top: 3rem;">
-                <h3 class="section-title" id="special-thanks">Special Thanks</h3>
+            <section style="margin-bottom: 3rem;">
+                <h3 class="section-title" id="special-thanks">SPECIAL THANKS</h3>
                 <div class="wiki-section">
-                    <p class="thanks-desc">
-                        This wiki would not be possible without the testing, and feedback from the following community members:
+                    <p class="strategy-paragraph" style="margin-top: 0; margin-bottom: 1rem;">
+                        This wiki would not be possible without the testing, data, and feedback from the following community members:
                     </p>
-                    <!-- Dynamic Target -->
-                    <ul id="special-thanks-list" class="update-bullet-list thanks-list"></ul>
+                    <ul id="special-thanks-list" class="wiki-block-list space-y-2 text-gray-300 m-0">
+                        <p class="loading-msg loading-msg-sm">Loading special thanks...</p>
+                    </ul>
                 </div>
             </section>
 
         </main>
 
-        <!-- Right Local Sidebar (Table of Contents) -->
+        <!-- RIGHT SIDEBAR: PAGE NAVIGATION -->
         <aside class="local-sidebar-right">
-            <div class="sidebar-nav-title">On this page</div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);">
+                <div class="sidebar-master-title" style="margin: 0; padding: 0; border: none; text-transform: uppercase;">ON THIS PAGE</div>
+            </div>
             <ul class="toc-list" id="dynamic-toc">
-                <li><p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.75rem; padding: 0.25rem 0.75rem;">Loading contents...</p></li>
+                <li><p class="loading-msg">Loading contents...</p></li>
             </ul>
         </aside>
 
     </div>
 
+    <!-- V0.4 SYSTEM SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
+
+    <!-- LOCAL COLLABORATORS FETCH & RENDER ENGINE -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            if (typeof loadCollaborators === 'function') {
-                loadCollaborators();
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Standard Menu Bindings
+            const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
+            const sidebar = document.getElementById('master-sidebar');
+            const backdrop = document.getElementById('mobile-backdrop');
+            if (mobileMenuBtn && sidebar && backdrop) {
+                mobileMenuBtn.addEventListener('click', () => { sidebar.classList.add('mobile-open'); backdrop.classList.add('active'); });
+                backdrop.addEventListener('click', () => { sidebar.classList.remove('mobile-open'); backdrop.classList.remove('active'); });
             }
-            if (typeof loadPageAlerts === 'function') {
-                loadPageAlerts('Collaborators');
+
+            if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
+            if (typeof window.initSidebarEditButton === 'function') await window.initSidebarEditButton();
+            if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
+
+            if (typeof window.loadPageAlerts === 'function') await window.loadPageAlerts('Collaborators');
+
+            // --- LOCAL RENDER ENGINE ---
+            const coreGrid = document.getElementById('core-team-grid');
+            const thanksList = document.getElementById('special-thanks-list');
+            const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../../';
+
+            try {
+                let data;
+                // FIXED: Direct local fetch instead of traversing up to the /data/ folder
+                const jsonPath = `collaborators_data.json`;
+                
+                if (typeof window.fetchJson === 'function') {
+                    data = await window.fetchJson(jsonPath);
+                } else {
+                    const response = await fetch(jsonPath);
+                    data = await response.json();
+                }
+
+                if (!data) throw new Error("Could not load collaborators data.");
+
+                // 1. Render Main Contributors
+                if (data.mainContributors && data.mainContributors.length > 0) {
+                    coreGrid.innerHTML = '';
+                    data.mainContributors.forEach(contributor => {
+                        let linksHtml = '';
+                        if (contributor.links && contributor.links.length > 0) {
+                            linksHtml = `<div style="margin-top: auto; display: flex; gap: 0.5rem; flex-wrap: wrap; padding-top: 1rem;">`;
+                            contributor.links.forEach(link => {
+                                linksHtml += `<a href="${link.url}" target="_blank" class="btn-sys btn-sys-blue" style="text-decoration: none;">${link.name}</a>`;
+                            });
+                            linksHtml += `</div>`;
+                        }
+
+                        // Fix for absolute avatar paths beginning with '/'
+                        let avatarSrc = contributor.avatar || '';
+                        if (avatarSrc && avatarSrc.startsWith('/')) {
+                            avatarSrc = rootPath + avatarSrc.substring(1);
+                        }
+
+                        const avatarHtml = avatarSrc 
+                            ? `<img src="${avatarSrc}" alt="${contributor.name}" class="contributor-avatar">` 
+                            : `<div class="contributor-avatar-placeholder">N/A</div>`;
+
+                        const cardHtml = `
+                            <div class="wiki-card" style="padding: 1.5rem;">
+                                <div class="contributor-card">
+                                    <div class="contributor-header">
+                                        ${avatarHtml}
+                                        <div>
+                                            <h3 style="margin: 0 0 0.25rem 0; font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; color: var(--text-white);">${contributor.name}</h3>
+                                            <span class="update-badge ${contributor.badgeType || 'badge-general'}">${contributor.role}</span>
+                                        </div>
+                                    </div>
+                                    <p class="strategy-paragraph" style="margin: 0; font-size: 0.85rem; color: var(--text-primary);">
+                                        ${contributor.description}
+                                    </p>
+                                    ${linksHtml}
+                                </div>
+                            </div>
+                        `;
+                        coreGrid.insertAdjacentHTML('beforeend', cardHtml);
+                    });
+                } else {
+                    coreGrid.innerHTML = '<p class="loading-msg">No main contributors listed.</p>';
+                }
+
+                // 2. Render Special Thanks
+                if (data.specialThanks && data.specialThanks.length > 0) {
+                    thanksList.innerHTML = '';
+                    data.specialThanks.forEach(person => {
+                        thanksList.insertAdjacentHTML('beforeend', `
+                            <li>
+                                <strong style="color: var(--accent-blue); font-family: var(--text-mono);">${person.name}</strong> - <span style="color: var(--text-primary);">${person.reason}</span>
+                            </li>
+                        `);
+                    });
+                } else {
+                    thanksList.innerHTML = '<li><span class="loading-msg">No special thanks listed.</span></li>';
+                }
+
+                // 3. Boot Table of Contents
+                if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
+
+            } catch (error) {
+                console.error("Error fetching collaborators:", error);
+                coreGrid.innerHTML = '<p class="loading-msg" style="color: #ef4444;">Failed to load contributor data.</p>';
+                thanksList.innerHTML = '';
             }
         });
     </script>

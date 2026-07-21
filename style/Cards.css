@@ -1,0 +1,120 @@
+/* =========================================
+   DESIGN SYSTEM: CARDS & SURFACES (Cards.css)
+   ========================================= */
+
+/* --- 1. THE MASTER SURFACE ENGINE --- */
+.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .changelog-box {
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: 0;
+    box-shadow: 4px 4px 0px var(--manga-shadow);
+    transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
+    box-sizing: border-box;
+}
+
+/* Default Hover Physics (Pops up and left, shadow deepens) */
+.wiki-card:hover, .update-log-item:hover, .faq-details:hover {
+    border-color: var(--accent-blue);
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px var(--accent-blue); 
+}
+
+
+/* --- 2. FAMILY A: LARGE CONTENT PANELS --- */
+.wiki-section, .changelog-box {
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 6px 6px 0px var(--manga-shadow);
+}
+
+/* Subtle hover for massive sections (prevents the whole page from flashing blue) */
+.wiki-section:hover, .skill-entry-card:hover {
+    border-color: hsl(212, 12%, 30%); 
+    transform: translate(-2px, -2px);
+    box-shadow: 8px 8px 0px var(--manga-shadow);
+}
+
+.skill-entry-card { margin-bottom: 2rem; }
+.changelog-box { margin-top: 2rem; }
+
+
+/* --- 3. FAMILY B: DASHBOARD LIST ITEMS --- */
+.update-log-item, .faq-details {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+
+/* --- 4. FAMILY C: INTERACTIVE GRID ITEMS --- */
+.roster-card, .tier-char-card, .image-card-container {
+    border: 2px solid var(--border-color);
+    border-radius: 0;
+    background-color: var(--bg-main);
+    box-shadow: 3px 3px 0px var(--manga-shadow);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+}
+
+.roster-card:hover, .tier-char-card:hover, .image-card-container:hover {
+    border-color: var(--accent-blue);
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0px var(--accent-blue);
+    z-index: 10;
+}
+
+/* Grid Item Sizing Modifiers */
+.roster-card { 
+    width: 4rem; 
+    height: 4rem; 
+    padding: 0.15rem; 
+    flex-direction: column; 
+    text-decoration: none; 
+}
+@media (min-width: 600px) { 
+    .roster-card { width: 6rem; height: 6rem; } 
+}
+
+.tier-char-card { 
+    width: 4rem; 
+    height: 4rem; 
+}
+@media (min-width: 600px) { 
+    .tier-char-card { width: 6rem; height: 6rem; } 
+}
+
+.image-card-container { aspect-ratio: 16 / 9; box-shadow: 6px 6px 0px var(--manga-shadow); }
+
+/* Internal Card Elements */
+.roster-card-text {
+    font-family: 'Finger-Paint', sans-serif; font-size: 0.65rem; color: var(--text-white);
+    text-align: center; line-height: 1.1; word-wrap: break-word; transition: transform 0.2s;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+.roster-card:hover .roster-card-text { transform: scale(1.05); }
+@media (min-width: 768px) { .roster-card-text { font-size: 0.75rem; } }
+
+.tier-char-card img { width: 100%; height: 100%; object-fit: cover; }
+.image-card-img { object-fit: cover; width: 100%; height: 100%; opacity: 0.6; transition: opacity 0.3s; filter: grayscale(50%); }
+.image-card-container:hover .image-card-img { opacity: 1; filter: grayscale(0%); }
+
+
+/* --- 5. FAMILY D: PROFILES & CONTRIBUTORS --- */
+.contributor-card { display: flex; flex-direction: column; gap: 1rem; height: 100%; box-sizing: border-box; }
+.contributor-header { display: flex; gap: 1rem; align-items: center; }
+
+.contributor-avatar, .contributor-avatar-placeholder {
+    width: 64px; height: 64px; 
+    border: 2px solid var(--border-color);
+    box-shadow: 2px 2px 0 var(--manga-shadow); 
+    flex-shrink: 0;
+}
+.contributor-avatar { object-fit: cover; }
+.contributor-avatar-placeholder { 
+    background: var(--bg-main); display: flex; align-items: center; justify-content: center; 
+    color: var(--text-muted); font-family: var(--text-mono); font-size: 0.75rem; 
+}

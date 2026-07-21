@@ -1,0 +1,185 @@
+/* =========================================
+   DESIGN SYSTEM: BUTTON COMPONENTS (Buttons.css)
+   ========================================= */
+
+/* --- GLOBAL BUTTON RESET --- */
+button {
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+}
+
+/* =========================================
+   FAMILY 1: SYSTEM BUTTONS
+   ========================================= */
+.btn-sys {
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold;
+    text-transform: uppercase; padding: 0.4rem 0.75rem; 
+    transition: all 0.15s ease-in-out; box-sizing: border-box;
+    background: rgba(0, 0, 0, 0.6); border: 1px solid #555;
+    color: var(--text-primary); white-space: nowrap; text-decoration: none;
+}
+.btn-sys:hover:not(:disabled) { transform: translateY(-2px); }
+.btn-sys:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: none !important; }
+.btn-sys:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.btn-sys-regular { border-color: #555; color: #aaa; }
+.btn-sys-regular:hover:not(:disabled) { border-color: #888; background: #888; color: #000; box-shadow: 0px 0px 12px rgba(136, 136, 136, 0.5); }
+
+.btn-sys-blue { border-color: var(--accent-blue); color: var(--accent-blue); }
+.btn-sys-blue:hover:not(:disabled) { background: var(--accent-blue); color: #000; box-shadow: 0px 0px 12px rgba(59, 130, 246, 0.6); }
+
+.btn-sys-green { border-color: #22c55e; color: #22c55e; }
+.btn-sys-green:hover:not(:disabled) { background: #22c55e; color: #000; box-shadow: 0px 0px 12px rgba(34, 197, 94, 0.6); }
+
+.btn-sys-red { border-color: #ef4444; color: #ef4444; }
+.btn-sys-red:hover:not(:disabled) { background: #ef4444; color: #000; box-shadow: 0px 0px 12px rgba(239, 68, 68, 0.6); }
+
+.btn-sys-yellow { border-color: #eab308; color: #eab308; }
+.btn-sys-yellow:hover:not(:disabled) { background: #eab308; color: #000; box-shadow: 0px 0px 12px rgba(234, 179, 8, 0.6); }
+
+.btn-sys-purple { border-color: #a855f7; color: #a855f7; }
+.btn-sys-purple:hover:not(:disabled) { background: #a855f7; color: #000; box-shadow: 0px 0px 12px rgba(168, 85, 247, 0.6); }
+
+/* Filled Variants (For Modals) */
+.btn-danger-fill { background: #ef4444 !important; color: #000 !important; border-color: #ef4444 !important; }
+.btn-danger-fill:hover:not(:disabled) { box-shadow: 0px 0px 15px rgba(239, 68, 68, 0.6) !important; }
+.btn-purple-fill { background: #a855f7 !important; color: #000 !important; border-color: #a855f7 !important; }
+.btn-purple-fill:hover:not(:disabled) { box-shadow: 0px 0px 15px rgba(168, 85, 247, 0.6) !important; }
+
+
+/* =========================================
+   FAMILY 2: MANGA BUTTONS (Live Wiki / Action / Filters)
+   ========================================= */
+
+/* --- 1. The Base Aesthetic Engine --- */
+.btn-manga, .filter-toggle {
+    --manga-accent: var(--accent-blue);
+    --manga-border: var(--border-color);
+    --manga-text: var(--text-muted);
+
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--bg-main);
+    color: var(--manga-text);
+    border: 2px solid var(--manga-border);
+    padding: 0.35rem 0.75rem;
+    font-family: 'Finger-Paint', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    white-space: nowrap;
+    text-decoration: none;
+    box-shadow: 3px 3px 0px var(--manga-shadow);
+    transition: all 0.1s ease;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+/* Hover Physics */
+.btn-manga:hover, .filter-toggle:hover {
+    background: var(--bg-main);
+    color: var(--text-white);
+    border-color: var(--manga-accent);
+    box-shadow: 4px 4px 0px var(--manga-accent);
+}
+
+/* Active / Selected State */
+.btn-manga.active, .filter-toggle.active {
+    background: var(--text-white);
+    color: var(--bg-main);
+    border-color: var(--text-white);
+    box-shadow: 4px 4px 0px var(--manga-accent);
+    font-weight: bold;
+}
+
+/* --- 2. Color Modifiers --- */
+/* Simply swap the local variable to instantly create new colored buttons! */
+.btn-manga-purple { --manga-accent: #a855f7; }
+.btn-manga-blue   { --manga-accent: var(--accent-blue); }
+.btn-manga-green  { --manga-accent: #22c55e; }
+.btn-manga-yellow { --manga-accent: #eab308; }
+.btn-manga-red    { --manga-accent: #ef4444; }
+.btn-manga-gray   { --manga-accent: var(--text-muted); color: var(--text-muted); border-color: var(--border-color); }
+
+
+/* --- 3. Geometry Modifiers --- */
+.btn-manga-slanted { transform: skewX(-10deg); }
+.btn-manga-slanted:hover { transform: skewX(-10deg) translate(-2px, -2px); }
+.btn-manga-slanted.active { transform: skewX(-10deg); }
+
+.btn-manga-box { transform: none; border-radius: 0; }
+.btn-manga-box:hover { transform: translate(-2px, -2px); }
+
+/* Internals */
+.btn-manga-content { transform: skewX(10deg); display: flex; align-items: center; gap: 0.75rem; width: 100%; pointer-events: none; }
+.btn-manga-box .btn-manga-content { transform: none; }
+.btn-manga-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* SVG scaling and alignment */
+.btn-manga-icon { 
+    display: flex; justify-content: center; align-items: center; 
+    flex-shrink: 0; width: 1.2rem; height: 1.2rem; 
+}
+.btn-manga-icon svg { 
+    width: 100%; height: 100%; 
+    stroke: currentColor;
+    transition: transform 0.1s ease;
+}
+.btn-manga:hover .btn-manga-icon svg { transform: scale(1.1); } /* Slight pop on hover */
+/* =========================================
+   FAMILY 3: NAVIGATION BUTTONS
+   ========================================= */
+.btn-nav {
+    display: flex;
+    width: 100%;
+    text-align: left;
+    justify-content: flex-start;
+    padding: 0.2rem 0.5rem;
+    margin-bottom: 1px;
+    font-family: var(--text-mono);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid #333;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+    text-decoration: none !important;
+    box-sizing: border-box;
+}
+
+.btn-nav:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-left-color: #555;
+    transform: translateX(2px);
+    color: var(--text-white);
+}
+
+.btn-nav.active {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #333;
+    border-left-color: var(--accent-blue) !important;
+    color: var(--text-white);
+}
+
+
+/* =========================================
+   FAMILY 4: GHOST BUTTONS
+   ========================================= */
+.btn-ghost {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    color: var(--accent-blue);
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    text-decoration: none;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.btn-ghost:hover {
+    color: var(--accent-blue-hover);
+    transform: translateX(3px);
+}

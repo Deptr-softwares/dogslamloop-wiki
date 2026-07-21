@@ -5,73 +5,124 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Update Log | Dogslamloop Wiki</title>
     <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIconGay.webp">
+    
+    <!-- THE NEW MODULAR DESIGN SYSTEM -->
     <link rel="stylesheet" href="../../style/Common.css">
-    <link rel="stylesheet" href="../../style/UI.css">
+    <link rel="stylesheet" href="../../style/Layout.css">
+    <link rel="stylesheet" href="../../style/Cards.css">
+    <link rel="stylesheet" href="../../style/Buttons.css">
+    <link rel="stylesheet" href="../../style/Badges.css">
     <link rel="stylesheet" href="../../style/ColorCoding.css">
+    <link rel="stylesheet" href="../../style/Alerts.css">
+    <link rel="stylesheet" href="../../style/Modals.css">
 </head>
 <body class="site-body p-0">
 
+    <!-- MOBILE NAVIGATION -->
+    <div class="mobile-top-bar">
+        <a href="../../index.html" class="mobile-logo-link">
+            <img src="../../medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
+            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+        </a>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+    </div>
+    <div class="mobile-backdrop" id="mobile-backdrop"></div>
+
     <div class="site-layout">
         
+        <!-- LEFT SIDEBAR -->
         <aside class="global-sidebar-left" id="master-sidebar">
             <div class="sidebar-header-top">
                 <img src="../../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
                     <a href="../../index.html" class="site-title">dogslamloop wiki</a>
-                    <p class="site-subtitle">Alpha v0.1</p>
+                    <p class="site-subtitle">Alpha v0.4</p>
                 </div>
             </div>
-            <button class="sidebar-toggle-btn">☰</button>
-            <div class="sidebar-nav-title">Navigation</div>
+
+            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar">☰</button>
+
+            <div class="sidebar-master-title">Navigation</div>
+            
             <div id="global-sidebar-nav">
                 <p class="loading-msg loading-msg-sm">Loading menu...</p>
             </div>
+
+            <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
+
+            <div class="kofi-btn-wrapper" style="margin-top: 0.75rem;">
+                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow" style="width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1rem; height: 1rem;">
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line>
+                    </svg>
+                    <span class="kofi-text">SUPPORT KO-FI</span>
+                </a>
+            </div>
         </aside>
 
+        <!-- MAIN CONTENT AREA -->
         <main class="main-content-area space-y-6">
             
-            <div style="margin-bottom:1rem;">
-                <a href="../../index.html" style="color:hsl(212, 9%, 58%); text-decoration:none;">← Back to Home</a>
+            <div style="margin-bottom:1rem; display: flex; justify-content: space-between; align-items: center;">
+                <a href="../index.html" class="btn-ghost">← Back to Systems Hub</a>
+                <!-- Notice: NO Edit Button here, as this is an exclusive auto-generated page! -->
             </div>
 
             <header class="home-main-header">
                 <h1 class="home-main-title">Site Update Log</h1>
-                <p class="text-gray-300 text-sm mt-2">A comprehensive, in-depth history of wiki updates, structural changes, and new features.</p>
+                <p class="strategy-paragraph" style="color: var(--text-muted); margin-top: 0.5rem;">A comprehensive, in-depth history of wiki updates, structural changes, and new features.</p>
             </header>
 
-            <!-- The container where the detailed JSON data will be injected -->
-            <div id="changelog-container" class="space-y-6">
-                <p class="loading-msg">Loading comprehensive update logs...</p>
+            <div id="character-alerts-container" class="character-alerts-container"></div>
+
+            <!-- DYNAMIC INJECTION TARGET -->
+            <div id="changelog-container">
+                <p class="loading-msg">Loading update logs...</p>
             </div>
 
         </main>
 
+        <!-- RIGHT SIDEBAR -->
         <aside class="local-sidebar-right">
-            <div class="sidebar-nav-title">On this page</div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);">
+                <div class="sidebar-master-title" style="margin: 0; padding: 0; border: none;">Version History</div>
+            </div>
             <ul class="toc-list" id="dynamic-toc">
-                <li><p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.75rem; padding: 0.25rem 0.75rem;">Loading contents...</p></li>
+                <li><p class="loading-msg">Loading contents...</p></li>
             </ul>
         </aside>
 
     </div>
 
-    <!-- Core Scripts -->
+    <!-- V0.4 SYSTEM SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
 
-    <!-- Dynamic Fetch Script -->
+    <!-- DYNAMIC FETCH & RENDER SCRIPT -->
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            if (typeof window.loadPageAlerts === 'function') {
-                await window.loadPageAlerts('Update Log');
+            // Standard Menu Bindings
+            const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
+            const sidebar = document.getElementById('master-sidebar');
+            const backdrop = document.getElementById('mobile-backdrop');
+            if (mobileMenuBtn && sidebar && backdrop) {
+                mobileMenuBtn.addEventListener('click', () => { sidebar.classList.add('mobile-open'); backdrop.classList.add('active'); });
+                backdrop.addEventListener('click', () => { sidebar.classList.remove('mobile-open'); backdrop.classList.remove('active'); });
             }
 
+            if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
+            if (typeof window.initSidebarEditButton === 'function') await window.initSidebarEditButton();
+            if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
+
+            if (typeof window.loadPageAlerts === 'function') await window.loadPageAlerts('Update Log');
+
+            // --- V0.4 UPDATE LOG RENDERING ENGINE ---
             const container = document.getElementById('changelog-container');
             const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../../';
 
             try {
-                // Fetch the existing updatelog.json using the project's standard promise-cached utility
                 let data;
                 const jsonPath = `${rootPath}data/updates.json`;
                 
@@ -79,84 +130,75 @@
                     data = await window.fetchJson(jsonPath);
                 } else {
                     const response = await fetch(jsonPath);
-                    if (!response.ok) throw new Error("Network response was not ok");
                     data = await response.json();
                 }
 
-                if (!data || !data.changelogs) throw new Error("Invalid format in updatelog.json");
+                if (!data || !data.changelogs) throw new Error("Invalid format in updates.json");
 
-                container.innerHTML = ''; // Clear loading message
+                container.innerHTML = ''; 
 
                 data.changelogs.forEach(log => {
                     const section = document.createElement('section');
-                    section.className = 'wiki-section';
-                    section.style.marginBottom = '2rem';
+                    // Maps to v0.4 Cards.css
+                    section.className = 'wiki-section'; 
 
-                    // Heading: Date + Version + Title
-                    const title = document.createElement('h2');
-                    title.className = 'section-title section-title-clean mb-4';
-                    title.innerHTML = `
-                        <span style="color:hsl(212, 9%, 58%); font-weight:normal; margin-right:8px;">[${log.date}]</span> 
-                        <span style="color:var(--accent-blue); margin-right:8px;">${log.version}</span> 
-                        ${log.title}
-                    `;
-                    
-                    // Meta details block (Description & Type)
-                    const metaBlock = document.createElement('div');
-                    metaBlock.className = 'strategy-paragraph';
-                    metaBlock.style.marginBottom = '1rem';
-                    metaBlock.style.padding = '1rem';
-                    metaBlock.style.backgroundColor = 'var(--bg-card)';
-                    metaBlock.style.borderRadius = '0.5rem';
-                    metaBlock.innerHTML = `
-                        <div style="margin-bottom: 0.5rem;">
-                            <span style="color:hsl(212, 9%, 58%); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Update Type:</span> 
-                            <span style="color: #fff; font-weight: bold; margin-left: 5px;">${log.type}</span>
-                        </div>
-                        <div>
-                            <span style="color:hsl(212, 9%, 58%); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em;">Description:</span> 
-                            <span style="color: #fff; margin-left: 5px;">${log.description}</span>
-                        </div>
-                    `;
+                    let typeBadgeClass = 'badge-general';
+                    if (log.type === 'Site Structure') typeBadgeClass = 'badge-site';
+                    if (log.type === 'Game Patch') typeBadgeClass = 'badge-patch';
 
-                    // Unordered list for detailed changes
-                    const ul = document.createElement('ul');
-                    ul.className = 'text-gray-300 text-sm leading-relaxed';
-                    ul.style.listStyleType = 'disc';
-                    ul.style.paddingLeft = '1.5rem';
-                    ul.style.margin = '0';
-
-                    if (log.changes && log.changes.length > 0) {
-                        log.changes.forEach(change => {
-                            const li = document.createElement('li');
-                            li.textContent = change;
-                            li.style.marginBottom = '0.5rem';
-                            ul.appendChild(li);
-                        });
-                    } else {
-                        const li = document.createElement('li');
-                        li.textContent = "No specific changes listed for this update.";
-                        li.style.color = "hsl(212, 9%, 58%)";
-                        li.style.fontStyle = "italic";
-                        ul.appendChild(li);
+                    // Parse Custom Tables
+                    let tableHTML = '';
+                    if (log.tableData && log.tableData.headers && log.tableData.rows) {
+                        let headersHTML = log.tableData.headers.map(h => `<th>${h}</th>`).join('');
+                        let rowsHTML = log.tableData.rows.map(row => {
+                            return `<tr class="update-row">${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`;
+                        }).join('');
+                        
+                        tableHTML = `
+                            <div style="overflow-x: auto; margin: 1.5rem 0; border: 2px solid var(--border-color); box-shadow: 4px 4px 0px var(--manga-shadow); background: var(--bg-main);">
+                                <table class="update-table" style="width: 100%; border-collapse: collapse;">
+                                    <thead><tr>${headersHTML}</tr></thead>
+                                    <tbody>${rowsHTML}</tbody>
+                                </table>
+                            </div>`;
                     }
 
-                    section.appendChild(title);
-                    section.appendChild(metaBlock);
-                    section.appendChild(ul);
+                    // Parse Bullet Points
+                    let changesHTML = '';
+                    if (log.changes && log.changes.length > 0) {
+                        changesHTML = `<ul class="wiki-block-list space-y-2" style="color: var(--text-primary); font-size: 0.85rem; margin-top: 1rem;">`;
+                        log.changes.forEach(change => {
+                            changesHTML += `<li>${change}</li>`;
+                        });
+                        changesHTML += `</ul>`;
+                    } else {
+                        changesHTML = `<p class="strategy-paragraph" style="color: var(--text-muted); font-style: italic; margin-top: 1rem;">No specific changes listed for this update.</p>`;
+                    }
+
+                    // Assemble the v0.4 Component
+                    section.innerHTML = `
+                        <div class="card-header-flex" style="margin-bottom: 1.5rem;">
+                            <div style="display: flex; align-items: baseline; gap: 0.75rem;">
+                                <!-- Assigned card-header-title so refreshTOC catches it automatically! -->
+                                <h2 class="card-header-title" style="color: var(--text-white);">${log.version}</h2>
+                                <span style="font-family: var(--text-mono); font-size: 0.85rem; color: var(--text-muted);">${log.date}</span>
+                            </div>
+                            <span class="update-badge ${typeBadgeClass}">${log.type}</span>
+                        </div>
+                        <h3 class="strategy-title" style="margin-bottom: 1rem; border-bottom: none; font-size: 1.1rem;">${log.title}</h3>
+                        <p class="strategy-paragraph">${log.description}</p>
+                        ${changesHTML}
+                        ${tableHTML}
+                    `;
                     container.appendChild(section);
                 });
 
-                // Generate TOC so users can skip directly to specific versions
-                if (typeof window.generateTOC === 'function') {
-                    window.generateTOC(container);
-                } else if (typeof window.refreshTOC === 'function') {
-                    window.refreshTOC();
-                }
+                // Auto-Index the Versions into the Right Sidebar
+                if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
 
             } catch (error) {
                 console.error("Error fetching update logs:", error);
-                container.innerHTML = '<p style="color: hsl(0, 80%, 60%);">Unable to load comprehensive update logs at this time. Please ensure data/updatelog.json is correctly formatted.</p>';
+                container.innerHTML = '<p class="loading-msg" style="color: #ef4444;">Unable to load comprehensive update logs. Ensure data/updates.json is correctly formatted.</p>';
             }
         });
     </script>

@@ -3,70 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evasive System | Dogslamloop Wiki</title>
+    <title>Evasive | Dogslamloop Wiki</title>
     <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIconGay.webp">
+    
     <link rel="stylesheet" href="../../style/Common.css">
-    <link rel="stylesheet" href="../../style/UI.css">
+    <link rel="stylesheet" href="../../style/Layout.css">
+    <link rel="stylesheet" href="../../style/Cards.css">
+    <link rel="stylesheet" href="../../style/Buttons.css">
+    <link rel="stylesheet" href="../../style/Badges.css">
     <link rel="stylesheet" href="../../style/ColorCoding.css">
+    <link rel="stylesheet" href="../../style/Alerts.css">
+    <link rel="stylesheet" href="../../style/Modals.css">
 </head>
 <body class="site-body p-0">
 
+    <!-- MOBILE NAVIGATION -->
+    <div class="mobile-top-bar">
+        <a href="../../index.html" class="mobile-logo-link">
+            <img src="../../medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
+            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+        </a>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+    </div>
+    <div class="mobile-backdrop" id="mobile-backdrop"></div>
+
     <div class="site-layout">
         
+        <!-- LEFT SIDEBAR: GLOBAL NAVIGATION -->
         <aside class="global-sidebar-left" id="master-sidebar">
             <div class="sidebar-header-top">
                 <img src="../../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
                     <a href="../../index.html" class="site-title">dogslamloop wiki</a>
-                    <p class="site-subtitle">Alpha v0.1</p>
+                    <p class="site-subtitle">Alpha v0.4</p>
                 </div>
             </div>
-            <button class="sidebar-toggle-btn">☰</button>
-            <div class="sidebar-nav-title">Navigation</div>
+
+            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar">☰</button>
+
+            <div class="sidebar-master-title">Navigation</div>
+            
             <div id="global-sidebar-nav">
                 <p class="loading-msg loading-msg-sm">Loading menu...</p>
             </div>
+
+            <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
+
+            <div class="kofi-btn-wrapper" style="margin-top: 0.75rem;">
+                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow" style="width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1rem; height: 1rem;">
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line>
+                    </svg>
+                    <span class="kofi-text">SUPPORT KO-FI</span>
+                </a>
+            </div>
         </aside>
 
+        <!-- MAIN CONTENT AREA -->
         <main class="main-content-area space-y-6">
             
-            <div style="margin-bottom:1rem;">
-                <a href="../index.html" style="color:hsl(212, 9%, 58%); text-decoration:none;">← Back to Systems Hub</a>
+            <div style="margin-bottom:1rem; display: flex; justify-content: space-between; align-items: center;">
+                <a href="../index.html" class="btn-ghost">← Back to Systems Hub</a>
+                
+                <!-- MOBILE EDIT BUTTON -->
+                <button id="btn-edit-current-tab-mobile" class="btn-sys btn-sys-regular" style="display: none; font-size: 0.6rem; padding: 0.35rem 0.6rem; align-items: center; gap: 0.35rem;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    EDIT PAGE
+                </button>
             </div>
 
             <header class="home-main-header">
-                <h1 class="home-main-title">Evasive Math</h1>
+                <h1 class="home-main-title" id="system-main-title">Loading...</h1>
             </header>
 
-            <section class="wiki-section">
-                <h2 class="section-title section-title-clean mb-4">Overview</h2>
-                <p class="text-gray-300 text-sm leading-relaxed m-0">
-                    to be completed, but fr how tf did this system even work.
-                </p>
-            </section>
+            <div id="character-alerts-container" class="character-alerts-container"></div>
+
+            <!-- THE DYNAMIC INJECTION TARGET FOR DESCRIPTION.JS -->
+            <!-- The engine will automatically spawn <nav id="system-dynamic-nav"> and all <div class="tab-content"> blocks directly below here! -->
 
         </main>
 
+        <!-- RIGHT SIDEBAR: PAGE NAVIGATION -->
         <aside class="local-sidebar-right">
-            <div class="sidebar-nav-title">On this page</div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);">
+                <div class="sidebar-master-title" style="margin: 0; padding: 0; border: none;">On this page</div>
+                
+                <!-- DESKTOP EDIT BUTTON -->
+                <button id="btn-edit-current-tab" class="btn-sys btn-sys-regular" style="display: none; font-size: 0.6rem; padding: 0.25rem 0.5rem; align-items: center; gap: 0.35rem;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    EDIT PAGE
+                </button>
+            </div>
+
             <ul class="toc-list" id="dynamic-toc">
-                <li><p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.75rem; padding: 0.25rem 0.75rem;">Loading contents...</p></li>
+                <li><p class="loading-msg">Loading contents...</p></li>
             </ul>
         </aside>
 
     </div>
 
-    <!-- Core Scripts -->
+    <!-- V0.4 SYSTEM SCRIPTS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
+    <!-- description.js is required to build the blocks natively! -->
+    <script src="../../js/description.js"></script>
 
-    <!-- Page Alert Trigger -->
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
-            if (typeof window.loadPageAlerts === 'function') {
-                await window.loadPageAlerts('Starter Guide');
+            // === CONFIGURATION: CHANGE THIS PER SYSTEM PAGE ===
+            const PAGE_ID = 'evasive'; 
+            const PAGE_TITLE = 'Evasive';
+            // ==================================================
+
+            document.getElementById('system-main-title').textContent = PAGE_TITLE;
+
+            // Mobile Menu Toggle Binding
+            const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
+            const sidebar = document.getElementById('master-sidebar');
+            const backdrop = document.getElementById('mobile-backdrop');
+
+            if (mobileMenuBtn && sidebar && backdrop) {
+                mobileMenuBtn.addEventListener('click', () => { sidebar.classList.add('mobile-open'); backdrop.classList.add('active'); });
+                backdrop.addEventListener('click', () => { sidebar.classList.remove('mobile-open'); backdrop.classList.remove('active'); });
             }
+
+            // 1. Fetch Cloud Data & Render Blocks
+            if (typeof window.loadPageDescriptions === 'function') {
+                await window.loadPageDescriptions(PAGE_ID, 'system');
+            }
+
+            // 2. Alerts Hook
+            if (typeof window.loadPageAlerts === 'function') {
+                await window.loadPageAlerts(PAGE_TITLE);
+            }
+            
+            // 3. Boot Table of Contents
+            if (typeof window.refreshTOC === 'function') {
+                setTimeout(window.refreshTOC, 150);
+            }
+
+            // 4. Hook up the Edit Buttons (Routes to Editor with type=system)
+            if (typeof window.initTabEditorButtons === 'function') {
+                window.initTabEditorButtons(PAGE_ID, 'system');
+            }
+
+            // 5. Boot the Sidebar & Action Dock
+            if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
+            if (typeof window.initSidebarEditButton === 'function') await window.initSidebarEditButton();
+            if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
         });
     </script>
 </body>
