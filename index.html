@@ -5,9 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dogslamloop Wiki</title>
     <link rel="icon" type="image/jpg" href="/medias/images/DogslamloopIconGay.webp">
+    
+    <!-- 1. FOUNDATIONS -->
     <link rel="stylesheet" href="style/Common.css">
-    <link rel="stylesheet" href="style/UI.css">
     <link rel="stylesheet" href="style/ColorCoding.css">
+    
+    <!-- 2. COMPONENTS -->
+    <link rel="stylesheet" href="style/Buttons.css">
+    <link rel="stylesheet" href="style/Modals.css">
+    <link rel="stylesheet" href="style/Forms.css">
+    <link rel="stylesheet" href="style/Badges.css">
+    <link rel="stylesheet" href="style/Alerts.css">
+    <link rel="stylesheet" href="style/Cards.css">
+    <link rel="stylesheet" href="style/FrameData.css">
+
+    <!-- 3. PAGE LAYOUT -->
+    <link rel="stylesheet" href="style/Layout.css">
+
+    <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self'; 
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; 
+    connect-src 'self' https://gtqswjspxymjdopljmfi.supabase.co; 
+    img-src 'self' data: blob: https://gtqswjspxymjdopljmfi.supabase.co; 
+    style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; 
+    font-src 'self' data: https://cdn.jsdelivr.net;
+    ">
 </head>
 <body class="site-body p-0">
 
@@ -24,22 +46,19 @@
 
             <button class="sidebar-toggle-btn">☰</button>
 
-            <div class="sidebar-nav-title">Navigation</div>
+            <div class="sidebar-master-title">Navigation</div>
             
             <div id="global-sidebar-nav">
                 <p class="loading-msg loading-msg-sm">Loading menu...</p>
             </div>
 
-            <div class="sidebar-auth-widget" style="margin-top: auto;padding-top: 12rem; width: 100%;">
-                <button onclick="window.openAuthModal()" class="sidebar-login-btn">
-                    <span id="global-status-dot" class="dot-indicator dot-grey"></span> 
-                    <span id="global-auth-text">SYSTEM LOGIN</span>
-                </button>
-            </div>
+            <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
 
-            <div class="kofi-btn-wrapper">
-                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="kofi-btn">
-                    <span class="kofi-icon">☕</span>
+            <div class="kofi-btn-wrapper" style="margin-top: 0.75rem;">
+                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow" style="width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1rem; height: 1rem;">
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line>
+                    </svg>
                     <span class="kofi-text">Support Ko-fi</span>
                 </a>
             </div>
@@ -62,21 +81,22 @@
                 <div class="header-split-wrapper">
                     <h2 class="section-title section-title-flex m-0">
                         Characters
-                        <a href="characters/index.html" class="hub-link">View More ➔</a>
+                        <!-- REFACTORED: hub-link is now btn-ghost -->
+                        <a href="characters/index.html" class="btn-ghost">View More ➔</a>
                     </h2>
                     <div id="roster-filter-bar" class="filter-bar-inline"></div>
                 </div>
 
-                <div class="roster-grid"></div>
+                <div id="roster-grid" class="roster-grid"></div>
             </section>
 
             <div class="grid-layout-3col">
                 
                 <section class="wiki-section" id="navigation-section">
-                    <h2 class="section-title section-title-flex mb-4">
-                        Guides & Such
-                        <a href="systems/index.html" class="hub-link">View More ➔</a>
-                    </h2>
+                    <div class="dashboard-header-split">
+                        <h2 class="section-title section-title-clean m-0">Guides & Such</h2>
+                        <a href="systems/index.html" class="btn-ghost" style="font-size: 0.65rem; text-transform: uppercase;">View More ➔</a>
+                    </div>
                     
                     <div class="faq-scroll-box scroll-lg">
                         <div id="systems-grid">
@@ -88,8 +108,7 @@
                 <section class="wiki-section main-dashboard" id="updates-section">
                     <div class="dashboard-header-split">
                         <h2 class="section-title section-title-clean m-0">Recent Changes</h2>
-                        <!-- Replaced the toggle button with a direct link to the new Update Log hub -->
-                        <a href="systems/updatelog/index.html" class="nav-btn m-0" style="text-decoration: none;">
+                        <a href="systems/updatelog/index.html" class="btn-manga m-0" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">
                             View All
                         </a>
                     </div>
@@ -100,10 +119,15 @@
                 </section>
 
                 <section class="wiki-section">
-                    <h2 class="section-title section-title-clean mb-4">Game Info</h2>
+                    <div class="dashboard-header-split">
+                        <h2 class="section-title section-title-clean m-0">Game Info</h2>
+                    </div>
                     
                     <div class="faq-scroll-box scroll-lg">
-                        <div class="game-info-logo-box">
+                        
+                        <div class="game-info-logo-box" style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                            <img src="/medias/images/JJS_Icon.webp" alt="JJS Logo" loading="lazy" onerror="this.src='https://via.placeholder.com/80?text=JJS'" style="width: 80px; height: 80px; border-radius: 0px; border: 2px solid var(--border-color); box-shadow: 4px 4px 0px var(--manga-shadow); object-fit: cover;">
+                            
                             <h3 class="game-info-title">
                                 Jujutsu<br>Shenanigans
                             </h3>
@@ -132,18 +156,24 @@
             </div>
 
             <div class="grid-layout-3col footer-grid-section">
+                
                 <section class="wiki-section lg:col-span-2" id="faq-section">
-                    <h2 class="section-title section-title-clean text-xl mb-4">Frequently Asked Questions (FAQ)</h2>
+                    <div class="dashboard-header-split">
+                        <h2 class="section-title section-title-clean m-0 text-xl">Frequently Asked Questions (FAQ)</h2>
+                    </div>
                     
-                    <div id="faq-dynamic-container" class="faq-scroll-box space-y-4">
+                    <div id="faq-dynamic-container" class="faq-scroll-box space-y-4" style="margin-top: 1rem;">
                         <p class="loading-msg">Fetching latest FAQ records...</p>
                     </div>
                 </section>
 
                 <div class="space-y-6">
                     <section class="wiki-section">
-                        <h2 class="section-title section-title-clean mb-4">Credits</h2>
-                        <div class="faq-scroll-box scroll-sm">
+                        <div class="dashboard-header-split">
+                            <h2 class="section-title section-title-clean m-0">Credits</h2>
+                        </div>
+                        
+                        <div class="faq-scroll-box scroll-sm" style="margin-top: 1rem;">
                             <ul class="credits-list">
                                 <li>
                                     <span class="dot-indicator dot-green"></span>
@@ -182,7 +212,7 @@
                     </section>
 
                     <section class="image-card-container">
-                        <img src="/medias/images/Boomcat.webp" alt="Boomcat" class="image-card-img image-card-img-auto">
+                        <img src="/medias/images/Boomcat.webp" alt="Boomcat" loading="lazy" class="image-card-img image-card-img-auto">
                     </section>
                 </div>
             </div>
@@ -191,11 +221,11 @@
         <aside class="local-sidebar-right">
             <div class="sidebar-nav-title">On this page</div>
             <ul class="toc-list">
-                <li><a href="#about-section" class="toc-btn">About Us</a></li>
-                <li><a href="#roster-section" class="toc-btn">Characters</a></li>
-                <li><a href="#navigation-section" class="toc-btn">Navigation & Guides</a></li>
-                <li><a href="#updates-section" class="toc-btn">Recent Changes</a></li>
-                <li><a href="#faq-section" class="toc-btn">FAQ</a></li>
+                <li><a href="#about-section" class="btn-nav">About Us</a></li>
+                <li><a href="#roster-section" class="btn-nav">Characters</a></li>
+                <li><a href="#navigation-section" class="btn-nav">Navigation & Guides</a></li>
+                <li><a href="#updates-section" class="btn-nav">Recent Changes</a></li>
+                <li><a href="#faq-section" class="btn-nav">FAQ</a></li>
             </ul>
         </aside>
 
@@ -203,16 +233,28 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+    <script src="js/site_meta.js"></script>
     <script src="js/site_utils.js"></script>
     <script src="js/home_widgets.js"></script>
+    <script src="js/pagebuilder.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            loadUpdateLogs('site-updates-dashboard', 2);
-            loadFAQ('faq-dynamic-container');
+            // 1. Boot the Sidebar Toggle logic
+            if (window.initSidebarToggle) window.initSidebarToggle();
+
+            // 2. Fire all async builders concurrently
+            if (window.loadUpdateLogs) loadUpdateLogs('site-updates-dashboard', 2);
+            if (window.loadFAQ) loadFAQ('faq-dynamic-container');
+            if (window.buildGlobalSidebarMenu) window.buildGlobalSidebarMenu('global-sidebar-nav');
+            if (window.initSidebarEditButton) window.initSidebarEditButton();
+            if (window.initRosterFilters) window.initRosterFilters();
+            if (window.buildSystemsDirectory) window.buildSystemsDirectory('systems-grid');
+
+            setTimeout(() => {
+                if (window.refreshTOC) window.refreshTOC();
+            }, 500);
         });
     </script>
-
-    <script src="js/site_meta.js"></script>
-    <script src="js/pagebuilder.js"></script>
 </body>
 </html>

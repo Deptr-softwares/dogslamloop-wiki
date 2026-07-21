@@ -4,9 +4,24 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wiki Contributor Editor</title>
+    
+    <!-- 1. FOUNDATIONS -->
     <link rel="stylesheet" href="style/Common.css">
-    <link rel="stylesheet" href="style/UI.css">
     <link rel="stylesheet" href="style/ColorCoding.css">
+    
+    <!-- 2. COMPONENTS (The DSL) -->
+    <link rel="stylesheet" href="style/Buttons.css">
+    <link rel="stylesheet" href="style/Modals.css">
+    <link rel="stylesheet" href="style/Forms.css">
+    <link rel="stylesheet" href="style/Badges.css">
+    <link rel="stylesheet" href="style/Alerts.css">
+    <link rel="stylesheet" href="style/Cards.css">
+    <link rel="stylesheet" href="style/FrameData.css">
+
+    <!-- 3. PAGE LAYOUT -->
+    <link rel="stylesheet" href="style/Layout.css">
+
+    <!-- 4. DEPENDENCIES & EDITOR-SPECIFIC OVERRIDES -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <link rel="stylesheet" href="style/editor.css">
 </head>
@@ -19,8 +34,8 @@
             <div class="auth-body auth-body-centered">
                 <p id="editor-modal-text" class="modal-prompt-text">Are you sure?</p>
                 <div class="modal-actions-centered">
-                    <button id="editor-modal-cancel" class="system-page-btn">CANCEL</button>
-                    <button id="editor-modal-confirm" class="submit-btn btn-danger-fill">DELETE</button>
+                    <button id="editor-modal-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
+                    <button id="editor-modal-confirm" class="btn-sys btn-sys-red btn-danger-fill">DELETE</button>
                 </div>
             </div>
         </div>
@@ -33,7 +48,7 @@
             </div>
             <div class="auth-body auth-body-centered">
                 <p id="editor-alert-msg" class="modal-prompt-text pre-wrap"></p>
-                <button onclick="document.getElementById('editor-alert-modal').style.display='none'" class="submit-btn btn-warning-outline">ACKNOWLEDGE</button>
+                <button onclick="document.getElementById('editor-alert-modal').style.display='none'" class="btn-sys btn-sys-yellow">ACKNOWLEDGE</button>
             </div>
         </div>
     </div>
@@ -68,8 +83,8 @@
                 </div>
             </div>
             <div class="editor-modal-actions" style="border-top: 1px dashed #333; padding-top: 1rem; margin-top: 0; justify-content: flex-end; gap: 1rem;">
-                <button onclick="document.getElementById('qa-modal-overlay').style.display='none'" class="system-page-btn">CANCEL</button>
-                <button id="btn-qa-confirm-submit" class="submit-btn" style="color: #000; background-color: #a855f7; border-color: #a855f7;">CONFIRM & UPLOAD</button>
+                <button onclick="document.getElementById('qa-modal-overlay').style.display='none'" class="btn-sys btn-sys-regular">CANCEL</button>
+                <button id="btn-qa-confirm-submit" class="btn-sys btn-sys-purple btn-purple-fill">CONFIRM & UPLOAD</button>
             </div>
         </div>
     </div>
@@ -98,17 +113,33 @@
                     </div>
                     
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <button id="btn-media-prev" class="system-page-btn" style="padding: 0.25rem 0.5rem;">◄ PREV</button>
+                        <button id="btn-media-prev" class="btn-sys btn-sys-regular" style="padding: 0.25rem 0.5rem;">◄ PREV</button>
                         <span id="media-page-indicator" style="font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-white); width: 80px; text-align: center;">PAGE 1/1</span>
-                        <button id="btn-media-next" class="system-page-btn" style="padding: 0.25rem 0.5rem;">NEXT ►</button>
+                        <button id="btn-media-next" class="btn-sys btn-sys-regular" style="padding: 0.25rem 0.5rem;">NEXT ►</button>
                     </div>
 
                     <div style="display: flex; gap: 1rem;">
-                        <button id="btn-media-refresh" class="system-page-btn">↻ Refresh</button>
-                        <button onclick="document.getElementById('media-modal-overlay').style.display='none';" class="submit-btn btn-action-delete">Close</button>
+                        <button id="btn-media-refresh" class="btn-sys btn-sys-regular">↻ Refresh</button>
+                        <button onclick="document.getElementById('media-modal-overlay').style.display='none';" class="btn-sys btn-sys-red">Close</button>
                     </div>
                 </div>
             </div> 
+        </div>
+    </div>
+
+    <div id="draft-manager-modal" class="editor-modal-overlay" style="display: none; z-index: 9999;">
+        <div class="editor-modal-box auth-modal-box" style="border-top-color: var(--accent-blue); width: 600px;">
+            <div class="auth-header" style="border-bottom: 1px solid #333; background: #050505;">
+                <h3 style="color: var(--accent-blue); font-size: 1rem;">LOCAL DRAFTS MANAGER</h3>
+            </div>
+            <div class="auth-body" style="padding: 1.5rem; text-align: left; max-height: 50vh; overflow-y: auto;">
+                <p style="font-family: var(--text-mono); font-size: 0.75rem; color: #888; margin-top: 0; margin-bottom: 1rem;">These edits are saved to your browser's local storage and are safe from page refreshes. Submitting a page to the cloud will automatically clear its local draft.</p>
+                <div id="draft-list-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    </div>
+            </div>
+            <div class="editor-modal-actions" style="border-top: 1px dashed #333; padding-top: 1rem; margin-top: 0; justify-content: flex-end;">
+                <button onclick="document.getElementById('draft-manager-modal').style.display='none'" class="btn-sys btn-sys-regular">CLOSE</button>
+            </div>
         </div>
     </div>
 
@@ -117,18 +148,20 @@
             <div class="editor-header">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div style="flex: 1; min-width: 0;">
-                        <h2 class="editor-title" id="editor-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Loading...</h2>
-                        <span class="editor-subtitle" id="editor-subtitle" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">Connecting to database...</span>
+                        <h2 class="editor-title" id="editor-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--text-manga); color: #fff; margin: 0; text-transform: uppercase;">Loading...</h2>
+                        <span class="editor-subtitle" id="editor-subtitle" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; color: var(--accent-blue); font-size: 0.75rem; font-family: var(--text-mono);">Connecting to database...</span>
                     </div>
                     <div style="display: flex; gap: 0.5rem; flex-direction: column; align-items: flex-end; flex-shrink: 0;">
-                        <a href="index.html" class="system-page-btn" style="padding: 0.2rem 0.4rem; font-size: 0.6rem;">HUB</a>
-                        <button id="mobile-preview-toggle" class="submit-btn" style="display: none; font-size: 0.6rem; padding: 0.3rem;" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
+                        <a href="index.html" class="btn-sys btn-sys-regular" style="padding: 0.2rem 0.4rem; font-size: 0.6rem;">HUB</a>
+                        <button id="mobile-preview-toggle" class="btn-sys btn-sys-blue" style="display: none; font-size: 0.6rem; padding: 0.3rem;" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
                     </div>
                 </div>
-                <div class="header-actions">
-                    <button class="system-page-btn" onclick="window.history.back()">Cancel</button>
-                    <button class="submit-btn btn-sync-preview" onclick="window.triggerManualSync()">Sync Preview</button>
-                    <button class="submit-btn" id="submit-payload-btn">Submit to Queue</button>
+                <div class="header-actions" style="display: flex; gap: 0.25rem; margin-top: 0.5rem;">
+                    <button class="btn-sys btn-sys-regular" onclick="window.history.back()">Cancel</button>
+                    <button class="btn-sys btn-sys-blue" onclick="window.openDraftManager()">Drafts</button>
+                    <button class="btn-sys btn-sys-yellow" onclick="window.triggerManualSync()">Sync/Save</button>
+                    <button id="btn-toggle-diff" class="btn-sys btn-sys-purple" onclick="window.toggleDiffMode()">Diff View</button>
+                    <button id="submit-payload-btn" class="btn-sys btn-sys-green">Submit</button>
                 </div>
             </div>
 
@@ -136,42 +169,34 @@
         </div>
 
         <div class="live-preview-pane">
-            
             <button class="mobile-back-to-editor" onclick="window.toggleMobilePreview()">
                 <span style="font-size: 1rem; margin-right: 0.5rem;">←</span> BACK TO EDITOR
             </button>
 
             <div class="preview-badge">PREVIEW</div>
             
-            <div class="mock-window-wrapper">
-                <div class="mock-window-bar">
-                    <div class="mock-window-dot dot-close"></div>
-                    <div class="mock-window-dot dot-min"></div>
-                    <div class="mock-window-dot dot-max"></div>
-                    <span class="mock-window-text">dogslamloop.wiki / Live Layout</span>
-                    
-                    <button id="btn-toggle-diff" onclick="window.toggleDiffMode()" class="add-block-btn" style="margin-left: auto; color: #a855f7; border-color: #a855f7; font-size: 0.65rem; padding: 0.15rem 0.5rem; transition: all 0.2s;">[+] DIFF VIEW</button>
+            <!-- Direct injection of the content area -->
+            <main class="main-content" style="width: 100%; height: 100%;">
+                <div id="standard-preview-container" class="main-content-area">
+                    <div id="tab-overview" class="tab-content" style="display: none;"></div>
+                    <div id="tab-m1s" class="tab-content" style="display: none;"></div>
+                    <div id="tab-skills" class="vessel-content space-y-8" style="display: none;"></div>
+                    <div id="tab-specials" class="tab-content" style="display: none;"></div>
+                    <div id="tab-matchups" class="vessel-content" style="display: none;"></div>
+                    <div id="tab-counterplay" class="vessel-content" style="display: none;"></div>
                 </div>
-
-                <main class="main-content mock-window-content">
-                    <div class="main-content-area">
-                        <div id="tab-overview" class="tab-content" style="display: none;"></div>
-                        <div id="tab-m1s" class="tab-content" style="display: none;"></div>
-                        <div id="tab-skills" class="vessel-content space-y-8" style="display: none;"></div>
-                        <div id="tab-specials" class="tab-content" style="display: none;"></div>
-                        <div id="tab-matchups" class="vessel-content" style="display: none;"></div>
-                        <div id="tab-counterplay" class="vessel-content" style="display: none;"></div>
-                    </div>
-                </main>
-            </div>
+            </main>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="js/site_utils.js"></script>
+    <script src="js/site_meta.js"></script>
+    <script src="js/pagebuilder.js"></script>
     <script src="js/framedata.js"></script>
     <script src="js/description.js"></script>
     <script src="js/internalstyling.js"></script>
     <script src="js/editor.js"></script>
+    <script src="js/tierlist.js"></script>
 </body>
 </html>
