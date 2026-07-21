@@ -157,9 +157,9 @@
       "cms_config": { "isEditable": true, "pageType": "character" }
     },
     {
-      "id": "Disaster-Plant",
-      "name": "Disaster Plant",
-      "url": "characters/Disaster_plant/index.html",
+      "id": "Disaster-Plants",
+      "name": "Disaster Plants",
+      "url": "characters/Disaster_plants/index.html",
       "isWip": true,
       "isEA": true,
       "isBaseOnly": false,
@@ -175,6 +175,19 @@
       "url": "characters/True_cannon/index.html",
       "isWip": true,
       "isEA": false,
+      "isBaseOnly": false,
+      "isMissingMedia": true,
+      "archetype": "TBD",
+      "tier": "TBD",
+      "releaseDate": "TBD",
+      "cms_config": { "isEditable": true, "pageType": "character" }
+    },
+    {
+      "id": "Register",
+      "name": "Register",
+      "url": "characters/Register/index.html",
+      "isWip": true,
+      "isEA": true,
       "isBaseOnly": false,
       "isMissingMedia": true,
       "archetype": "TBD",
@@ -326,6 +339,13 @@
       "cms_config": { "isEditable": false, "pageType": "character" }
     },
     { 
+    "id": "writing_guide",
+    "name": "Writing Guide", 
+    "url": "systems/writing_guide/index.html", 
+    "isWip": true,
+    "cms_config": { "isEditable": true, "pageType": "system" }
+    },
+    { 
       "id": "source-code",
       "name": "Source Code", 
       "url": "https://github.com/Deptr-softwares/dogslamloop-wiki", 
@@ -380,7 +400,7 @@
       "url": "systems/tierlist/index.html", 
       "isWip": true, 
       "isSubjective": true,
-      "cms_config": { "isEditable": true, "pageType": "system" }
+      "cms_config": { "isEditable": true, "pageType": "tierlist" }
     }
   ]
 }

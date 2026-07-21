@@ -4,14 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Head of the Hei | Dogslamloop</title>
+    
     <link rel="stylesheet" href="../../style/Common.css">
-    <link rel="stylesheet" href="../../style/UI.css">
     <link rel="stylesheet" href="../../style/ColorCoding.css">
+    
+    <link rel="stylesheet" href="../../style/Buttons.css">
+    <link rel="stylesheet" href="../../style/Modals.css">
+    <link rel="stylesheet" href="../../style/Forms.css">
+    <link rel="stylesheet" href="../../style/Badges.css">
+    <link rel="stylesheet" href="../../style/Alerts.css">
+    <link rel="stylesheet" href="../../style/Cards.css">
+    <link rel="stylesheet" href="../../style/FrameData.css">
+
+    <link rel="stylesheet" href="../../style/Layout.css">
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 </head>
-<body class="site-body" style="padding: 0;">
+<body class="site-body p-0">
 
     <div class="site-layout">
         
@@ -19,43 +30,62 @@
             <div class="sidebar-header-top">
                 <img src="../../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
-                    <a href="../../index.html" class="site-title" style="font-size: 1.25rem;">dogslamloop wiki</a>
-                    <p class="site-subtitle" style="margin: 0;">Alpha v0.1</p>
+                    <a href="../../index.html" class="site-title">dogslamloop wiki</a>
+                    <p class="site-subtitle">Alpha v0.1</p>
                 </div>
             </div>
 
             <button class="sidebar-toggle-btn">☰</button>
 
-            <div class="sidebar-nav-title">Navigation</div>
+            <div class="sidebar-master-title">Navigation</div>
             
             <div id="global-sidebar-nav">
-                <p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.75rem;">Loading menu...</p>
+                <p class="loading-msg loading-msg-sm">Loading menu...</p>
             </div>
 
-            <div class="kofi-btn-wrapper">
-                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="kofi-btn">
-                    <span style="font-size: 1.1rem; line-height: 1;">☕</span>
-                    <span class="kofi-text" style="margin-left: 0.5rem;">Support Ko-fi</span>
+            <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
+
+            <div class="kofi-btn-wrapper" style="margin-top: 0.75rem;">
+                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow" style="width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1rem; height: 1rem;">
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line>
+                    </svg>
+                    <span class="kofi-text">Support Ko-fi</span>
                 </a>
             </div>
         </aside>
 
         <main class="main-content-area space-y-6">
             
-            <div style="margin-bottom:1rem;">
-                <a href="../../index.html" style="color:hsl(212, 9%, 58%); text-decoration:none;">← Back to Home</a>
+            <div style="margin-bottom: 1.5rem;">
+                <a href="../../index.html" class="btn-ghost">← Back to Home</a>
             </div>
             
-            <header class="character-header">
+            <header class="character-header" style="margin-bottom: 2.5rem;">
+                <div id="character-alerts-container" class="character-alerts-container"></div>
+                
                 <h2 class="character-title">Head of the Hei</h2>
-                <nav class="character-nav">
-                    <button id="nav-overview" class="nav-btn active">Overview & Strategy</button>
-                    <button id="nav-m1s" class="nav-btn">M1s</button>
-                    <button id="nav-skills" class="nav-btn">Skills</button>
-                    <button id="nav-specials" class="nav-btn">Specials</button>
-                    <button id="nav-matchups" class="nav-btn">Matchups</button>
-                    <button id="nav-counterplay" class="nav-btn">Counterplay</button>
-                    <button id="nav-gallery" class="nav-btn">Gallery</button>
+
+                <nav class="character-nav" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue); align-items: center;">
+                    <button id="nav-overview" class="btn-manga btn-manga-slanted active"><div class="btn-manga-content"><span class="btn-manga-text">Overview & Strategy</span></div></button>
+                    <button id="nav-m1s" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">M1s</span></div></button>
+                    <button id="nav-skills" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Skills</span></div></button>
+                    <button id="nav-specials" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Specials</span></div></button>
+                    <button id="nav-matchups" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Matchups</span></div></button>
+                    <button id="nav-counterplay" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Counterplay</span></div></button>
+                    <button id="nav-gallery" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Gallery</span></div></button>
+                
+                    <!-- MOBILE-EXCLUSIVE EDIT BUTTON -->
+                    <style>
+                        #btn-edit-current-tab-mobile { display: none !important; }
+                        @media (max-width: 900px) {
+                            #btn-edit-current-tab-mobile.is-active { display: flex !important; }
+                        }
+                    </style>
+                    <button id="btn-edit-current-tab-mobile" class="btn-sys btn-sys-regular" style="margin-left: auto; font-size: 0.7rem; padding: 0.4rem 0.75rem; align-items: center; gap: 0.4rem;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        EDIT TAB
+                    </button>
                 </nav>
             </header>
 
@@ -69,11 +99,18 @@
 
         </main>
 
-        <aside class="local-sidebar-right">
-            <div class="sidebar-nav-title">On this tab</div>
-            
+                <aside class="local-sidebar-right">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);">
+                <div class="sidebar-master-title" style="margin: 0; padding: 0; border: none;">On this tab</div>
+                
+                <button id="btn-edit-current-tab" class="btn-sys btn-sys-regular" style="display: none; font-size: 0.6rem; padding: 0.25rem 0.5rem; align-items: center; gap: 0.35rem;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    EDIT TAB
+                </button>
+            </div>
+
             <ul class="toc-list" id="dynamic-toc">
-                <li><p style="color: hsl(212, 9%, 58%); font-style: italic; font-size: 0.75rem; padding: 0.25rem 0.75rem;">Loading contents...</p></li>
+                <li><p class="loading-msg">Loading contents...</p></li>
             </ul>
         </aside>
 
@@ -89,32 +126,35 @@
     <script src="../../js/internalstyling.js"></script>
     
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            // 1. Setup Tab Navigation
-            setupTabs('nav', 'tab', ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay', 'gallery'], 'major');
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Boot the Master Global Sidebars
+            if (window.initSidebarToggle) window.initSidebarToggle();
+            if (window.buildGlobalSidebarMenu) window.buildGlobalSidebarMenu('global-sidebar-nav');
+            if (window.initSidebarEditButton) window.initSidebarEditButton('head_hei', 'character');
+            if (window.initTabEditorButtons) window.initTabEditorButtons('head_hei', 'character');
 
-            // 2. Fetch Frame Data (Using the updated universal pageId structure)
+            // 2. Setup Inner Tab Navigation
+            if (window.setupTabs) setupTabs('nav', 'tab', ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay', 'gallery'], 'major');
+
+            // 3. Fire all Data Fetchers Concurrently (No blocking 'await')
             if (typeof window.loadMoveSection === 'function') {
-                await window.loadMoveSection('head_hei', 'skills');
-                await window.loadMoveSection('head_hei', 'm1s');
-                await window.loadMoveSection('head_hei', 'specials');
+                window.loadMoveSection('head_hei', 'skills');
+                window.loadMoveSection('head_hei', 'm1s');
+                window.loadMoveSection('head_hei', 'specials');
             }
 
-            // 3. Fetch Block Builder Text Data (Using the new Universal Wiki Engine)
             if (typeof window.loadPageDescriptions === 'function') {
-                // Pass the pageType explicitly so the engine knows it's a character!
-                await window.loadPageDescriptions('head_hei', 'character');
+                window.loadPageDescriptions('head_hei', 'character');
             }
 
-            // 4. Fetch Page Alerts
             if (typeof window.loadPageAlerts === 'function') {
-                await window.loadPageAlerts('Head-Hei');
+                window.loadPageAlerts('Head-Hei');
             }
 
-            // 5. Initialize the Edit Button with Universal Routing
-            if (typeof window.initSidebarEditButton === 'function') {
-                window.initSidebarEditButton('head_hei', 'character');
-            }
+            // 4. Delay the TOC mapping to ensure all content blocks have been injected
+            setTimeout(() => {
+                if (window.refreshTOC) window.refreshTOC();
+            }, 500);
         });
     </script>
 </body>

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Honored One | Dogslamloop</title>
+    <title>Register | Dogslamloop</title>
     
     <link rel="stylesheet" href="../../style/Common.css">
     <link rel="stylesheet" href="../../style/ColorCoding.css">
@@ -64,7 +64,7 @@
             <header class="character-header" style="margin-bottom: 2.5rem;">
                 <div id="character-alerts-container" class="character-alerts-container"></div>
                 
-                <h2 class="character-title">Honored One</h2>
+                <h2 class="character-title">Register</h2>
 
                 <nav class="character-nav" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue); align-items: center;">
                     <button id="nav-overview" class="btn-manga btn-manga-slanted active"><div class="btn-manga-content"><span class="btn-manga-text">Overview & Strategy</span></div></button>
@@ -130,25 +130,25 @@
             // 1. Boot the Master Global Sidebars
             if (window.initSidebarToggle) window.initSidebarToggle();
             if (window.buildGlobalSidebarMenu) window.buildGlobalSidebarMenu('global-sidebar-nav');
-            if (window.initSidebarEditButton) window.initSidebarEditButton('honored_one', 'character');
-            if (window.initTabEditorButtons) window.initTabEditorButtons('honored_one', 'character');
+            if (window.initSidebarEditButton) window.initSidebarEditButton('register', 'character');
+            if (window.initTabEditorButtons) window.initTabEditorButtons('register', 'character');
 
             // 2. Setup Inner Tab Navigation
             if (window.setupTabs) setupTabs('nav', 'tab', ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay', 'gallery'], 'major');
 
             // 3. Fire all Data Fetchers Concurrently (No blocking 'await')
             if (typeof window.loadMoveSection === 'function') {
-                window.loadMoveSection('honored_one', 'skills');
-                window.loadMoveSection('honored_one', 'm1s');
-                window.loadMoveSection('honored_one', 'specials');
+                window.loadMoveSection('register', 'skills');
+                window.loadMoveSection('register', 'm1s');
+                window.loadMoveSection('register', 'specials');
             }
 
             if (typeof window.loadPageDescriptions === 'function') {
-                window.loadPageDescriptions('honored_one', 'character');
+                window.loadPageDescriptions('register', 'character');
             }
 
             if (typeof window.loadPageAlerts === 'function') {
-                window.loadPageAlerts('Honored-One');
+                window.loadPageAlerts('Register');
             }
 
             // 4. Delay the TOC mapping to ensure all content blocks have been injected
