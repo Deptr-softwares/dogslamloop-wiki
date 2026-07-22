@@ -1315,22 +1315,7 @@ async function approveCurrentPreview() {
         return; 
     } 
 
-    if (freshLive) {
-        // MATCHES SUPABASE SCHEMA EXACTLY: id, page_id, desc_data, frame_data, updated_by_user, version_timestamp
-        const historyPayload = {
-            page_id: freshLive.page_id,
-            desc_data: freshLive.desc_data,
-            frame_data: freshLive.frame_data,
-            updated_by_user: window.currentUsername
-        };
-        
-        // Block the entire merge if the history fails to archive safely
-        const { error: histErr } = await window.supabaseClient.from('page_history').insert([historyPayload]);
-        if (histErr) {
-            window.adminAlert("System Merge Aborted: Failed to safely archive the previous version. " + histErr.message);
-            return;
-        }
-    }
+    // Your Supabase trigger "trigger_archive_page_before_update" handles the backup automatically.
 
     const liveDesc = freshLive ? freshLive.desc_data : {};
     const liveFrame = freshLive ? freshLive.frame_data : {};
