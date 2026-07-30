@@ -433,60 +433,11 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
         section.appendChild(bodyDiv);
         container.appendChild(section);
 
-        // 2. Bind the tooltips
+        // 2. Bind the tooltips (shared engine, see site_utils.js)
         const callouts = section.querySelectorAll('.inline-callout-btn');
         callouts.forEach(btn => {
             const decodedTooltip = decodeURIComponent(btn.getAttribute('data-tooltip'));
-            
-            btn.addEventListener('mouseenter', (e) => {
-                let frameTooltip = document.getElementById('wiki-frame-tooltip');
-                if (!frameTooltip) {
-                    frameTooltip = document.createElement('div');
-                    frameTooltip.id = 'wiki-frame-tooltip';
-                    
-                    // Explicitly define the heavy manga box styles here!
-                    frameTooltip.style.position = 'fixed';
-                    frameTooltip.style.zIndex = '100000';
-                    frameTooltip.style.pointerEvents = 'none'; // Prevents it from stealing the hover
-                    frameTooltip.style.background = 'var(--bg-main, #050505)';
-                    frameTooltip.style.border = '2px solid var(--border-color, #333)';
-                    frameTooltip.style.padding = '0.75rem 1rem';
-                    frameTooltip.style.boxShadow = '6px 6px 0px var(--manga-shadow, #000)';
-                    frameTooltip.style.maxWidth = '320px';
-                    
-                    document.body.appendChild(frameTooltip);
-                }
-                
-                frameTooltip.innerHTML = decodedTooltip;
-                frameTooltip.style.display = 'block'; // Force it to show
-            });
-            
-            btn.addEventListener('mousemove', (e) => {
-                const frameTooltip = document.getElementById('wiki-frame-tooltip');
-                if(frameTooltip) {
-                    let x = e.clientX + 15;
-                    let y = e.clientY + 15;
-                    const box = frameTooltip.getBoundingClientRect();
-                    
-                    // Boundary Physics: Flip the box if it gets too close to the right/bottom edges
-                    if (x + box.width > window.innerWidth) {
-                        x = e.clientX - box.width - 15;
-                    }
-                    if (y + box.height > window.innerHeight) {
-                        y = e.clientY - box.height - 15;
-                    }
-                    
-                    frameTooltip.style.left = x + 'px';
-                    frameTooltip.style.top = y + 'px';
-                }
-            });
-            
-            btn.addEventListener('mouseleave', () => {
-                const frameTooltip = document.getElementById('wiki-frame-tooltip');
-                if(frameTooltip) {
-                    frameTooltip.style.display = 'none'; 
-                }
-            });
+            window.bindTooltip(btn, decodedTooltip);
         });
 
         // 3. Initialize Lazy Loading for newly injected videos

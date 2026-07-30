@@ -122,6 +122,66 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
     return { newDesc, newFrame };
 };
 
+// --- SHARED MANGA TOOLTIP ---
+// Used by description.js (inline callouts) and framedata.js (frame
+// timeline phases) for the same hover tooltip, so both element types
+// get identical styling regardless of which is hovered first.
+let frameTooltip = null;
+
+window.initTooltip = function() {
+    if (!frameTooltip) {
+        frameTooltip = document.getElementById('wiki-frame-tooltip');
+        if (!frameTooltip) {
+            frameTooltip = document.createElement('div');
+            frameTooltip.id = 'wiki-frame-tooltip';
+
+            frameTooltip.style.position = 'fixed';
+            frameTooltip.style.zIndex = '100000';
+            frameTooltip.style.pointerEvents = 'none'; // Prevents it from stealing the hover cursor
+            frameTooltip.style.background = 'var(--bg-main, #050505)';
+            frameTooltip.style.border = '2px solid var(--border-color, #333)';
+            frameTooltip.style.padding = '0.75rem 1rem';
+            frameTooltip.style.boxShadow = '6px 6px 0px var(--manga-shadow, #000)';
+            frameTooltip.style.maxWidth = '320px';
+            frameTooltip.style.color = 'var(--text-white, #fff)';
+            frameTooltip.style.fontFamily = 'var(--text-mono)';
+            frameTooltip.style.fontSize = '0.75rem';
+            frameTooltip.style.display = 'none'; // Hidden by default
+
+            document.body.appendChild(frameTooltip);
+        }
+    }
+};
+
+// Binds hover/move/leave listeners that show titleHtml in the shared tooltip,
+// with boundary physics so it flips away from the right/bottom viewport edges.
+window.bindTooltip = function(element, titleHtml) {
+    element.addEventListener('mouseenter', () => {
+        window.initTooltip();
+        frameTooltip.innerHTML = titleHtml;
+        frameTooltip.style.display = 'block';
+    });
+
+    element.addEventListener('mousemove', (e) => {
+        if (frameTooltip) {
+            // Use clientX/Y instead of pageX/Y so scrolling doesn't break the fixed position!
+            let x = e.clientX + 15;
+            let y = e.clientY + 15;
+            const box = frameTooltip.getBoundingClientRect();
+
+            if (x + box.width > window.innerWidth) x = e.clientX - box.width - 15;
+            if (y + box.height > window.innerHeight) y = e.clientY - box.height - 15;
+
+            frameTooltip.style.left = x + 'px';
+            frameTooltip.style.top = y + 'px';
+        }
+    });
+
+    element.addEventListener('mouseleave', () => {
+        if (frameTooltip) frameTooltip.style.display = 'none';
+    });
+};
+
 // --- GLOBAL SUPABASE BACKEND ---
 const SUPABASE_URL = 'https://gtqswjspxymjdopljmfi.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0cXN3anNweHltamRvcGxqbWZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMzQ1MDIsImV4cCI6MjA5NzkxMDUwMn0.6RsP5Ue1m9X8iGecXa245S3fEdYnDqML-QLux1KUAuw';
