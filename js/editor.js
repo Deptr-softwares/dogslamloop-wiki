@@ -461,15 +461,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!session) { window.openAuthModal(); return; }
 
             // --- EXCLUSIVE PAGE GUARD (Trusted Editor & Admin Only) ---
-            const exclusivePages = ['template', 'tierlist', 'writing_guide', 'character_dashboard', 'side_dashboard'];
-            
-            if (exclusivePages.includes(pageId.toLowerCase())) {
-                const { data: roleData } = await window.supabaseClient.from('user_roles').select('role').eq('user_id', session.user.id).maybeSingle(); 
-                const userRole = (roleData?.role || 'guest').trim().toLowerCase(); 
-                
+            // Mirrors the server-side check in the pending_revisions RLS policy
+            // (supabase/migrations/20260731000000_page_permissions.sql) - this is
+            // just UX, the database is the real boundary. Reading from
+            // page_permissions instead of a hardcoded array means adding a new
+            // restricted page is a table row, not a code change.
+            const { data: permissionRow } = await window.supabaseClient.from('page_permissions').select('page_id').eq('page_id', pageId.toLowerCase()).maybeSingle();
+
+            if (permissionRow) {
+                const { data: roleData } = await window.supabaseClient.from('user_roles').select('role').eq('user_id', session.user.id).maybeSingle();
+                const userRole = (roleData?.role || 'guest').trim().toLowerCase();
+
                 if (userRole !== 'admin' && userRole !== 'trusted_editor') {
                     window.editorAlert("READ ONLY: This is an exclusive systemic page. You require the 'Trusted Editor' or 'Admin' role to submit revisions here.");
-                    return; 
+                    return;
                 }
             }
 
