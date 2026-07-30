@@ -6,7 +6,7 @@
       "tiers": [
         { "name": "S", "color": "hsl(0, 80%, 60%)", "characters": ["Ten-Shadows", "Puppet-Master", "Blood-Manipulator"] },
         { "name": "A", "color": "hsl(30, 80%, 60%)", "characters": ["True-Cannon", "Lucky-Coward"] },
-        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": ["Sus-Sister", "Disaster-Plant", "Star-Rage", "Mangaka"] },
+        { "name": "B", "color": "hsl(60, 80%, 60%)", "characters": ["Sus-Sister", "Disaster-Plants", "Star-Rage", "Mangaka"] },
         { "name": "C", "color": "hsl(120, 60%, 60%)", "characters": ["Cursed-Partners", "Honored-One", "Locust", "Perfection"] },
         { "name": "D", "color": "hsl(210, 80%, 60%)", "characters": ["Black-Death", "Salaryman", "Defense-Attorney"] },
         { "name": "F", "color": "hsl(300, 80%, 60%)", "characters": ["Head-Hei", "Restless-Gambler", "Switcher", "Vessel"] }

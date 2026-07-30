@@ -335,7 +335,7 @@
     { 
       "id": "template",
       "name": "Template & Guide", 
-      "url": "characters/template/index.html",
+      "url": "characters/Template/index.html",
       "cms_config": { "isEditable": false, "pageType": "character" }
     },
     { 

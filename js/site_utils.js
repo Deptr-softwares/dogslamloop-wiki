@@ -44,48 +44,143 @@ async function fetchJson(url, options = {}) {
     return response.json();
 }
 
-// --- CLOUD DATA FETCHING (SUPABASE) ---
-window.fetchCloudCharacterData = async function(charId) {
-    if (!window.supabaseClient) return null;
-    
-    try {
-        const { data, error } = await window.supabaseClient
-            .from('page_data')
-            .select('*')
-            .eq('page_id', charId.toLowerCase())
-            .single();
-            
-        if (error || !data) return null;
-        return data; // Returns { page_id, desc_data, frame_data }
-    } catch (err) {
-        console.error("Cloud fetch failed:", err);
-        return null;
-    }
-};
-
-// Override the Editor's fetch logic to check the cloud first
-window.fetchCharacterData = async function(charId) {
-    // 1. Try Cloud First
-    const cloudData = await window.fetchCloudCharacterData(charId);
-    if (cloudData && cloudData.desc_data && cloudData.frame_data) {
-        console.log(`[Editor] Loaded ${charId} from Supabase Cloud.`);
-        return { descData: cloudData.desc_data, frameData: cloudData.frame_data };
-    }
-    
-    // 2. Fallback to local files if it hasn't been uploaded to the cloud yet
-    console.log(`[Editor] Cloud data not found. Falling back to local files for ${charId}.`);
-    const basePath = `${getRootPath()}characters/${charId.charAt(0).toUpperCase() + charId.slice(1)}/`;
-    const [descData, frameData] = await Promise.all([
-        fetchJson(`${basePath}${charId}_descriptions.json`),
-        fetchJson(`${basePath}${charId}_framedata.json`)
-    ]);
-    
-    return { descData, frameData };
-};
-
 async function fetchNavigationData() {
     return fetchJson(`${getRootPath()}data/navigation.json?v=1.0`, { cache: true });
 }
+
+// --- DELTA INJECTION ENGINE ---
+// Shared by admin.js, editor.js, and history.js, which each need to
+// reconstruct a full description/frame-data object from a stored
+// scoped patch (used for live preview, revision merging, and history
+// replay respectively).
+window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
+    let newDesc = JSON.parse(JSON.stringify(baseDesc || {}));
+    let newFrame = JSON.parse(JSON.stringify(baseFrame || {}));
+
+    // --- SMART BATCH UNPACKER (handles bundled multi-field submissions) ---
+    if (scope === 'multi' && Array.isArray(payload)) {
+        payload.forEach(edit => {
+            const res = window.applyDeltaToData(newDesc, newFrame, edit.scope, edit.key, edit.payload);
+            newDesc = res.newDesc;
+            newFrame = res.newFrame;
+        });
+        return { newDesc, newFrame };
+    }
+
+    // --- Safely intercept full modular replacements ---
+    if (scope === 'system_data') {
+        return { newDesc: JSON.parse(JSON.stringify(payload)), newFrame };
+    }
+
+    if (['profile', 'playstyle', 'overview', 'strategy'].includes(scope)) {
+        newDesc[scope] = payload;
+    }
+    else if (scope === 'extra') {
+        if (!newDesc.extras) newDesc.extras = [];
+        if (payload === null) {
+            newDesc.extras = newDesc.extras.filter(e => e.title !== key);
+        } else {
+            const idx = newDesc.extras.findIndex(e => e.title === key);
+            if (idx > -1) newDesc.extras[idx] = payload; else newDesc.extras.push(payload);
+        }
+    }
+    else if (scope === 'matchup') {
+        if (!newDesc.matchups) newDesc.matchups = [];
+        if (payload === null) {
+            newDesc.matchups = newDesc.matchups.filter(m => m.opponent !== key);
+        } else {
+            const idx = newDesc.matchups.findIndex(m => m.opponent === key);
+            if (idx > -1) newDesc.matchups[idx] = payload; else newDesc.matchups.push(payload);
+        }
+    }
+    else if (scope === 'counterplay') {
+        if (!newDesc.counterplay) newDesc.counterplay = [];
+        if (payload === null) {
+            newDesc.counterplay = newDesc.counterplay.filter(c => c.topic !== key);
+        } else {
+            const idx = newDesc.counterplay.findIndex(c => c.topic === key);
+            if (idx > -1) newDesc.counterplay[idx] = payload; else newDesc.counterplay.push(payload);
+        }
+    }
+    else if (scope === 'move') {
+        const [cat, moveId] = key.split('::');
+        if (payload === null) {
+            if (newFrame[cat]) newFrame[cat] = newFrame[cat].filter(m => m.id !== moveId);
+            if (newDesc.moveStrategies) delete newDesc.moveStrategies[moveId];
+        } else {
+            if (!newFrame[cat]) newFrame[cat] = [];
+            const idx = newFrame[cat].findIndex(m => m.id === moveId);
+            if (payload.frame_data) {
+                if (idx > -1) newFrame[cat][idx] = payload.frame_data;
+                else newFrame[cat].push(payload.frame_data);
+            }
+            if (!newDesc.moveStrategies) newDesc.moveStrategies = {};
+            newDesc.moveStrategies[moveId] = payload.desc_data || [];
+        }
+    }
+
+    return { newDesc, newFrame };
+};
+
+// --- SHARED MANGA TOOLTIP ---
+// Used by description.js (inline callouts) and framedata.js (frame
+// timeline phases) for the same hover tooltip, so both element types
+// get identical styling regardless of which is hovered first.
+let frameTooltip = null;
+
+window.initTooltip = function() {
+    if (!frameTooltip) {
+        frameTooltip = document.getElementById('wiki-frame-tooltip');
+        if (!frameTooltip) {
+            frameTooltip = document.createElement('div');
+            frameTooltip.id = 'wiki-frame-tooltip';
+
+            frameTooltip.style.position = 'fixed';
+            frameTooltip.style.zIndex = '100000';
+            frameTooltip.style.pointerEvents = 'none'; // Prevents it from stealing the hover cursor
+            frameTooltip.style.background = 'var(--bg-main, #050505)';
+            frameTooltip.style.border = '2px solid var(--border-color, #333)';
+            frameTooltip.style.padding = '0.75rem 1rem';
+            frameTooltip.style.boxShadow = '6px 6px 0px var(--manga-shadow, #000)';
+            frameTooltip.style.maxWidth = '320px';
+            frameTooltip.style.color = 'var(--text-white, #fff)';
+            frameTooltip.style.fontFamily = 'var(--text-mono)';
+            frameTooltip.style.fontSize = '0.75rem';
+            frameTooltip.style.display = 'none'; // Hidden by default
+
+            document.body.appendChild(frameTooltip);
+        }
+    }
+};
+
+// Binds hover/move/leave listeners that show titleHtml in the shared tooltip,
+// with boundary physics so it flips away from the right/bottom viewport edges.
+window.bindTooltip = function(element, titleHtml) {
+    element.addEventListener('mouseenter', () => {
+        window.initTooltip();
+        frameTooltip.innerHTML = titleHtml;
+        frameTooltip.style.display = 'block';
+    });
+
+    element.addEventListener('mousemove', (e) => {
+        if (frameTooltip) {
+            // Use clientX/Y instead of pageX/Y so scrolling doesn't break the fixed position!
+            let x = e.clientX + 15;
+            let y = e.clientY + 15;
+            const box = frameTooltip.getBoundingClientRect();
+
+            if (x + box.width > window.innerWidth) x = e.clientX - box.width - 15;
+            if (y + box.height > window.innerHeight) y = e.clientY - box.height - 15;
+
+            frameTooltip.style.left = x + 'px';
+            frameTooltip.style.top = y + 'px';
+        }
+    });
+
+    element.addEventListener('mouseleave', () => {
+        if (frameTooltip) frameTooltip.style.display = 'none';
+    });
+};
 
 // --- GLOBAL SUPABASE BACKEND ---
 const SUPABASE_URL = 'https://gtqswjspxymjdopljmfi.supabase.co';

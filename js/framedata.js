@@ -35,69 +35,9 @@ const windowTypes = {
     'iframe-complete': { class: 'span-iframe-complete', label: 'Complete I-Frames' }
 };
 
-// --- GLOBAL MANGA TOOLTIP SETUP (Unified with description.js) ---
-let frameTooltip = null;
+// initTooltip/bindTooltip are defined once, in site_utils.js (loaded before
+// this file), and shared with description.js's inline callout tooltips.
 
-function initTooltip() {
-    if (!frameTooltip) {
-        frameTooltip = document.getElementById('wiki-frame-tooltip');
-        if (!frameTooltip) {
-            frameTooltip = document.createElement('div');
-            frameTooltip.id = 'wiki-frame-tooltip';
-            
-            // Explicitly define the heavy manga box styles here so it matches description.js!
-            frameTooltip.style.position = 'fixed';
-            frameTooltip.style.zIndex = '100000';
-            frameTooltip.style.pointerEvents = 'none'; // Prevents it from stealing the hover cursor
-            frameTooltip.style.background = 'var(--bg-main, #050505)';
-            frameTooltip.style.border = '2px solid var(--border-color, #333)';
-            frameTooltip.style.padding = '0.75rem 1rem';
-            frameTooltip.style.boxShadow = '6px 6px 0px var(--manga-shadow, #000)';
-            frameTooltip.style.maxWidth = '320px';
-            frameTooltip.style.color = 'var(--text-white, #fff)';
-            frameTooltip.style.fontFamily = 'var(--text-mono)';
-            frameTooltip.style.fontSize = '0.75rem';
-            frameTooltip.style.display = 'none'; // Hidden by default
-            
-            document.body.appendChild(frameTooltip);
-        }
-    }
-}
-
-// Helper function to manage tooltip positioning with Boundary Physics
-function bindTooltip(element, titleHtml) {
-    element.addEventListener('mouseenter', (e) => {
-        initTooltip();
-        frameTooltip.innerHTML = titleHtml;
-        frameTooltip.style.display = 'block'; // Force show
-    });
-    
-    element.addEventListener('mousemove', (e) => {
-        if(frameTooltip) {
-            // Use clientX/Y instead of pageX/Y so scrolling doesn't break the fixed position!
-            let x = e.clientX + 15;
-            let y = e.clientY + 15;
-            const box = frameTooltip.getBoundingClientRect();
-            
-            // Boundary Physics: Flip the box if it gets too close to the right/bottom edges
-            if (x + box.width > window.innerWidth) {
-                x = e.clientX - box.width - 15;
-            }
-            if (y + box.height > window.innerHeight) {
-                y = e.clientY - box.height - 15;
-            }
-            
-            frameTooltip.style.left = x + 'px';
-            frameTooltip.style.top = y + 'px';
-        }
-    });
-    
-    element.addEventListener('mouseleave', () => {
-        if(frameTooltip) {
-            frameTooltip.style.display = 'none'; // Force hide
-        }
-    });
-}
 // Core frame section generator
 function createPhase(phaseObj, totalScale) {
     const phase = document.createElement('div');
@@ -136,7 +76,7 @@ function createPhase(phaseObj, totalScale) {
                 }
             });
         }
-        bindTooltip(phase, tooltipContent);
+        window.bindTooltip(phase, tooltipContent);
     }
 
     for (let i = 0; i < phaseObj.duration; i++) {
