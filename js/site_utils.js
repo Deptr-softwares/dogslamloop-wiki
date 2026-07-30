@@ -44,45 +44,6 @@ async function fetchJson(url, options = {}) {
     return response.json();
 }
 
-// --- CLOUD DATA FETCHING (SUPABASE) ---
-window.fetchCloudCharacterData = async function(charId) {
-    if (!window.supabaseClient) return null;
-    
-    try {
-        const { data, error } = await window.supabaseClient
-            .from('page_data')
-            .select('*')
-            .eq('page_id', charId.toLowerCase())
-            .single();
-            
-        if (error || !data) return null;
-        return data; // Returns { page_id, desc_data, frame_data }
-    } catch (err) {
-        console.error("Cloud fetch failed:", err);
-        return null;
-    }
-};
-
-// Override the Editor's fetch logic to check the cloud first
-window.fetchCharacterData = async function(charId) {
-    // 1. Try Cloud First
-    const cloudData = await window.fetchCloudCharacterData(charId);
-    if (cloudData && cloudData.desc_data && cloudData.frame_data) {
-        console.log(`[Editor] Loaded ${charId} from Supabase Cloud.`);
-        return { descData: cloudData.desc_data, frameData: cloudData.frame_data };
-    }
-    
-    // 2. Fallback to local files if it hasn't been uploaded to the cloud yet
-    console.log(`[Editor] Cloud data not found. Falling back to local files for ${charId}.`);
-    const basePath = `${getRootPath()}characters/${charId.charAt(0).toUpperCase() + charId.slice(1)}/`;
-    const [descData, frameData] = await Promise.all([
-        fetchJson(`${basePath}${charId}_descriptions.json`),
-        fetchJson(`${basePath}${charId}_framedata.json`)
-    ]);
-    
-    return { descData, frameData };
-};
-
 async function fetchNavigationData() {
     return fetchJson(`${getRootPath()}data/navigation.json?v=1.0`, { cache: true });
 }
