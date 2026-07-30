@@ -1,0 +1,5 @@
+{
+    "easyProjectExport.enableOnSave": true,
+    "easyProjectExport.notificationLevel": "silent",
+    "easyProjectExport.outputFormat": "txt"
+}
