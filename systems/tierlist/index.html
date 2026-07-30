@@ -155,7 +155,7 @@
             if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
             if (typeof window.initSidebarEditButton === 'function') await window.initSidebarEditButton();
             if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
-            if (typeof window.loadPageAlerts === 'function') await window.loadPageAlerts('Tier List');
+            if (typeof window.loadPageAlerts === 'function') await window.loadPageAlerts('tierlist');
             
             // IMPORTANT: We register this as 'tierlist', not 'system', to protect the JSON!
             if (typeof window.initTabEditorButtons === 'function') window.initTabEditorButtons('tierlist', 'tierlist');
