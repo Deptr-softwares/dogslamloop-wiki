@@ -17,75 +17,7 @@ window.toggleMobilePreview = function() {
     }
 };
 
-// --- DELTA INJECTION HELPER (For Intercept Mode) ---
-window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
-    let newDesc = JSON.parse(JSON.stringify(baseDesc || {}));
-    let newFrame = JSON.parse(JSON.stringify(baseFrame || {}));
-
-    // --- SMART BATCH UNPACKER (Rate Limit Bypass) ---
-    if (scope === 'multi' && Array.isArray(payload)) {
-        payload.forEach(edit => {
-            const res = window.applyDeltaToData(newDesc, newFrame, edit.scope, edit.key, edit.payload);
-            newDesc = res.newDesc;
-            newFrame = res.newFrame;
-        });
-        return { newDesc, newFrame };
-    }
-
-    // --- Safely intercept full modular replacements ---
-    if (scope === 'system_data') {
-        return { newDesc: JSON.parse(JSON.stringify(payload)), newFrame }; 
-    }
-
-    if (['profile', 'playstyle', 'overview', 'strategy'].includes(scope)) {
-        newDesc[scope] = payload;
-    }
-    else if (scope === 'extra') { 
-        if (!newDesc.extras) newDesc.extras = []; 
-        if (payload === null) {
-            newDesc.extras = newDesc.extras.filter(e => e.title !== key);
-        } else {
-            const idx = newDesc.extras.findIndex(e => e.title === key);
-            if (idx > -1) newDesc.extras[idx] = payload; else newDesc.extras.push(payload);
-        }
-    }
-    else if (scope === 'matchup') { 
-        if (!newDesc.matchups) newDesc.matchups = []; 
-        if (payload === null) {
-            newDesc.matchups = newDesc.matchups.filter(m => m.opponent !== key);
-        } else {
-            const idx = newDesc.matchups.findIndex(m => m.opponent === key);
-            if (idx > -1) newDesc.matchups[idx] = payload; else newDesc.matchups.push(payload);
-        }
-    }
-    else if (scope === 'counterplay') { 
-        if (!newDesc.counterplay) newDesc.counterplay = []; 
-        if (payload === null) {
-            newDesc.counterplay = newDesc.counterplay.filter(c => c.topic !== key);
-        } else {
-            const idx = newDesc.counterplay.findIndex(c => c.topic === key);
-            if (idx > -1) newDesc.counterplay[idx] = payload; else newDesc.counterplay.push(payload);
-        }
-    }
-    else if (scope === 'move') {
-        const [cat, moveId] = key.split('::');
-        if (payload === null) {
-            if (newFrame[cat]) newFrame[cat] = newFrame[cat].filter(m => m.id !== moveId);
-            if (newDesc.moveStrategies) delete newDesc.moveStrategies[moveId];
-        } else {
-            if (!newFrame[cat]) newFrame[cat] = [];
-            const idx = newFrame[cat].findIndex(m => m.id === moveId);
-            if (payload.frame_data) {
-                if (idx > -1) newFrame[cat][idx] = payload.frame_data;
-                else newFrame[cat].push(payload.frame_data);
-            }
-            if (!newDesc.moveStrategies) newDesc.moveStrategies = {};
-            newDesc.moveStrategies[moveId] = payload.desc_data || [];
-        }
-    }
-
-    return { newDesc, newFrame };
-};
+// applyDeltaToData is defined once, in site_utils.js (loaded before this file).
 
 // --- INLINE TEXT DIFF ALGORITHM (SMART GROUPING) ---
 window.diffTextLCS = function(oldStr, newStr) {
