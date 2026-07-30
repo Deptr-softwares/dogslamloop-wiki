@@ -5,6 +5,39 @@
 
 let cachedUpdates = [];
 
+// --- SHARED CHANGELOG RENDER HELPERS ---
+// Used by both the homepage "Recent Changes" widget and the full
+// systems/updatelog page, so the two views can't drift out of sync.
+function getUpdateBadgeClass(type) {
+    if (type === 'site') return 'badge-site';
+    if (type === 'Beta Launch' || type === 'Alpha Launch') return 'badge-patch';
+    return 'badge-general';
+}
+
+function buildUpdateTableHTML(tableData) {
+    if (!tableData || !tableData.headers || !tableData.rows) return '';
+    const headersHTML = tableData.headers.map(h => `<th>${h}</th>`).join('');
+    const rowsHTML = tableData.rows.map(row => {
+        const cellsHTML = row.map(cell => `<td>${cell}</td>`).join('');
+        return `<tr class="update-row">${cellsHTML}</tr>`;
+    }).join('');
+
+    return `
+        <div class="update-table-container" style="overflow-x: auto; margin-top: 1rem; border: 2px solid var(--border-color); box-shadow: 4px 4px 0px var(--manga-shadow); background: var(--bg-main);">
+            <table class="update-table" style="width: 100%; border-collapse: collapse;">
+                <thead><tr>${headersHTML}</tr></thead>
+                <tbody>${rowsHTML}</tbody>
+            </table>
+        </div>
+    `;
+}
+
+function buildUpdateChangesHTML(changes) {
+    if (!changes || changes.length === 0) return '';
+    const itemsHTML = changes.map(change => `<li>${change}</li>`).join('');
+    return `<ul class="wiki-block-list space-y-2" style="color: var(--text-primary); font-size: 0.85rem; margin-top: 1rem;">${itemsHTML}</ul>`;
+}
+
 async function loadUpdateLogs(containerId, limit = null, filterType = null) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -30,29 +63,10 @@ async function loadUpdateLogs(containerId, limit = null, filterType = null) {
         targetedLogs.forEach(log => {
             const logBox = document.createElement('details');
             logBox.className = 'update-log-item';
-            
-            let typeBadgeClass = 'badge-general';
-            if (log.type === 'Site Structure') typeBadgeClass = 'badge-site';
-            if (log.type === 'Game Patch') typeBadgeClass = 'badge-patch';
 
-            // --- V0.4 AESTHETIC TABLE UPGRADE ---
-            let tableHTML = '';
-            if (log.tableData && log.tableData.headers && log.tableData.rows) {
-                let headersHTML = log.tableData.headers.map(h => `<th>${h}</th>`).join('');
-                let rowsHTML = log.tableData.rows.map(row => {
-                    let cellsHTML = row.map((cell, idx) => `<td>${cell}</td>`).join('');
-                    return `<tr class="update-row">${cellsHTML}</tr>`;
-                }).join('');
-
-                tableHTML = `
-                    <div class="update-table-container" style="overflow-x: auto; margin-top: 1rem; border: 2px solid var(--border-color); box-shadow: 4px 4px 0px var(--manga-shadow); background: var(--bg-main);">
-                        <table class="update-table" style="width: 100%; border-collapse: collapse;">
-                            <thead><tr>${headersHTML}</tr></thead>
-                            <tbody>${rowsHTML}</tbody>
-                        </table>
-                    </div>
-                `;
-            }
+            const typeBadgeClass = getUpdateBadgeClass(log.type);
+            const tableHTML = buildUpdateTableHTML(log.tableData);
+            const changesHTML = buildUpdateChangesHTML(log.changes);
 
             logBox.innerHTML = `
                 <summary class="update-log-summary">
@@ -65,6 +79,7 @@ async function loadUpdateLogs(containerId, limit = null, filterType = null) {
                 </summary>
                 <div class="update-log-body">
                     <p class="strategy-paragraph" style="color: var(--text-primary); margin: 0;">${log.description}</p>
+                    ${changesHTML}
                     ${tableHTML}
                 </div>
             `;
@@ -121,3 +136,6 @@ async function loadFAQ(containerId) {
 
 window.loadUpdateLogs = loadUpdateLogs;
 window.loadFAQ = loadFAQ;
+window.getUpdateBadgeClass = getUpdateBadgeClass;
+window.buildUpdateTableHTML = buildUpdateTableHTML;
+window.buildUpdateChangesHTML = buildUpdateChangesHTML;

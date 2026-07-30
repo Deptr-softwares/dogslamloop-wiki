@@ -99,6 +99,7 @@
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
+    <script src="../../js/home_widgets.js"></script>
 
     <!-- DYNAMIC FETCH & RENDER SCRIPT -->
     <script>
@@ -140,40 +141,13 @@
                 data.changelogs.forEach(log => {
                     const section = document.createElement('section');
                     // Maps to v0.4 Cards.css
-                    section.className = 'wiki-section'; 
+                    section.className = 'wiki-section';
 
-                    let typeBadgeClass = 'badge-general';
-                    if (log.type === 'Site Structure') typeBadgeClass = 'badge-site';
-                    if (log.type === 'Game Patch') typeBadgeClass = 'badge-patch';
-
-                    // Parse Custom Tables
-                    let tableHTML = '';
-                    if (log.tableData && log.tableData.headers && log.tableData.rows) {
-                        let headersHTML = log.tableData.headers.map(h => `<th>${h}</th>`).join('');
-                        let rowsHTML = log.tableData.rows.map(row => {
-                            return `<tr class="update-row">${row.map(cell => `<td>${cell}</td>`).join('')}</tr>`;
-                        }).join('');
-                        
-                        tableHTML = `
-                            <div style="overflow-x: auto; margin: 1.5rem 0; border: 2px solid var(--border-color); box-shadow: 4px 4px 0px var(--manga-shadow); background: var(--bg-main);">
-                                <table class="update-table" style="width: 100%; border-collapse: collapse;">
-                                    <thead><tr>${headersHTML}</tr></thead>
-                                    <tbody>${rowsHTML}</tbody>
-                                </table>
-                            </div>`;
-                    }
-
-                    // Parse Bullet Points
-                    let changesHTML = '';
-                    if (log.changes && log.changes.length > 0) {
-                        changesHTML = `<ul class="wiki-block-list space-y-2" style="color: var(--text-primary); font-size: 0.85rem; margin-top: 1rem;">`;
-                        log.changes.forEach(change => {
-                            changesHTML += `<li>${change}</li>`;
-                        });
-                        changesHTML += `</ul>`;
-                    } else {
-                        changesHTML = `<p class="strategy-paragraph" style="color: var(--text-muted); font-style: italic; margin-top: 1rem;">No specific changes listed for this update.</p>`;
-                    }
+                    const typeBadgeClass = typeof window.getUpdateBadgeClass === 'function' ? window.getUpdateBadgeClass(log.type) : 'badge-general';
+                    const tableHTML = typeof window.buildUpdateTableHTML === 'function' ? window.buildUpdateTableHTML(log.tableData) : '';
+                    const changesHTML = (typeof window.buildUpdateChangesHTML === 'function' && log.changes && log.changes.length > 0)
+                        ? window.buildUpdateChangesHTML(log.changes)
+                        : `<p class="strategy-paragraph" style="color: var(--text-muted); font-style: italic; margin-top: 1rem;">No specific changes listed for this update.</p>`;
 
                     // Assemble the v0.4 Component
                     section.innerHTML = `
