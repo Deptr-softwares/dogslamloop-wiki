@@ -77,11 +77,27 @@ window.buildGlobalSidebarMenu = async function(containerId) {
 };
 
 // Universal Tab Editor Buttons (Handles Desktop Sidebar & Mobile Nav)
-window.initTabEditorButtons = function(pageId, pageType = 'character') {
+window.initTabEditorButtons = async function(pageId, pageType = 'character') {
     const sidebarBtn = document.getElementById('btn-edit-current-tab');
     const mobileBtn = document.getElementById('btn-edit-current-tab-mobile');
-    
+
     if (!pageId) return;
+
+    // Pages with cms_config.editRole === 'locked' have no editing pathway at
+    // all (e.g. the changelog/collaborators pages aren't wired to the CMS) -
+    // don't show a button that leads nowhere. 'open'/'elevated' pages still
+    // show it; elevated ones are blocked at submit time instead (see
+    // js/editor.js's page_permissions check), matching how staff-only pages
+    // work in most CMSes - browsable, gated on save.
+    try {
+        const navData = typeof window.fetchNavigationData === 'function' ? await window.fetchNavigationData() : null;
+        if (navData) {
+            const entry = Object.values(navData).flat().find(e => e.cms_config && e.cms_config.pageId === pageId);
+            if (entry && entry.cms_config.editRole === 'locked') return;
+        }
+    } catch (e) {
+        console.error('Failed to check page editability:', e);
+    }
 
     const handleEditClick = () => {
         const activeTabEl = document.querySelector('nav.character-nav .btn-manga.active');
@@ -163,7 +179,7 @@ window.initTabEditorButtons = function(pageId, pageType = 'character') {
     }
 };
 
-window.initSidebarEditButton = async function(pageId = null, pageType = 'character') {
+window.initSidebarEditButton = async function() {
     let container = document.getElementById('sidebar-dynamic-dock') 
                  || document.getElementById('auth-dock-container')
                  || document.getElementById('auth-btn-container');
@@ -674,7 +690,7 @@ window.loadPageAlerts = async function(pageId) {
 
         let targetEntry = null;
         for (const [cat, items] of Object.entries(navData)) {
-            const found = items.find(i => i.id === pageId);
+            const found = items.find(i => i.cms_config && i.cms_config.pageId === pageId);
             if (found) { targetEntry = found; break; }
         }
         
