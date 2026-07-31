@@ -509,16 +509,21 @@ input[type="checkbox"]:checked {
 .daw-branch-actions-row { display: flex; gap: 1rem; justify-content: center; }
 .add-block-btn.daw-delete-branch-btn { color: #ef4444; border-color: #ef4444; }
 .btn-sys.daw-narrow-btn { max-width: 200px; }
-.daw-option-default { color: #ffffff; }
-.daw-option-red-400 { color: hsl(3, 93%, 63%); }
-.daw-option-red-600 { color: hsl(0, 100%, 50%); }
-.daw-option-blue-400 { color: #3b82f6; }
-.daw-option-green-400 { color: hsl(127, 59%, 58%); }
-.daw-option-green-500 { color: hsl(120, 100%, 25%); }
-.daw-option-purple-400 { color: hsl(261, 71%, 51%); }
-.daw-option-orange-400 { color: hsl(39, 100%, 50%); }
-.daw-option-cyan-400 { color: hsl(180, 100%, 50%); }
-.daw-option-gray-400 { color: hsl(0, 0%, 50%); }
+/* Compound selectors: .editor-select option (style/editor.css:150) sets its
+   own color: #d1d5db at higher specificity (0,1,1) than a bare class
+   (0,1,0), so these were silently losing outright, not just tying - the
+   root cause of the "color does not load in" bug in the track-color
+   dropdown. */
+.editor-select option.daw-option-default { color: #ffffff; }
+.editor-select option.daw-option-red-400 { color: hsl(3, 93%, 63%); }
+.editor-select option.daw-option-red-600 { color: hsl(0, 100%, 50%); }
+.editor-select option.daw-option-blue-400 { color: #3b82f6; }
+.editor-select option.daw-option-green-400 { color: hsl(127, 59%, 58%); }
+.editor-select option.daw-option-green-500 { color: hsl(120, 100%, 25%); }
+.editor-select option.daw-option-purple-400 { color: hsl(261, 71%, 51%); }
+.editor-select option.daw-option-orange-400 { color: hsl(39, 100%, 50%); }
+.editor-select option.daw-option-cyan-400 { color: hsl(180, 100%, 50%); }
+.editor-select option.daw-option-gray-400 { color: hsl(0, 0%, 50%); }
 
 /* --- MEDIA LIBRARY UI --- */
 #media-modal-overlay {

@@ -1488,6 +1488,8 @@ function initPerMoveEditor(moveId, statsData, strategyData) {
 }
 
 // --- DAW FRAME EDITOR ENGINE ---
+const DAW_TRACK_COLOR_CLASSES = ['text-red-400', 'text-red-600', 'text-blue-400', 'text-green-400', 'text-green-500', 'text-purple-400', 'text-orange-400', 'text-cyan-400', 'text-gray-400'];
+
 function initDawEditor(containerId, moveData) {
     const container = document.getElementById(containerId);
     if (!moveData) {
@@ -1833,8 +1835,15 @@ function initDawEditor(containerId, moveData) {
                 let bIdx = e.target.dataset.bidx;
                 let val = e.target.value;
 
-                e.target.className = `editor-select daw-track-color daw-track-color-select ${val}`;
-                
+                // Swap only the semantic color-marker class in place (classList,
+                // not a className rebuild) so unrelated classes survive - most
+                // importantly .manga-initialized, which site_utils.js's dropdown
+                // engine relies on to avoid re-wrapping this <select> on every
+                // DOM mutation (a rebuild silently dropping it caused the select
+                // to get wrapped a second time on every color change).
+                DAW_TRACK_COLOR_CLASSES.forEach(c => e.target.classList.remove(c));
+                if (val) e.target.classList.add(val);
+
                 if (val) {
                     currentObj.bars[bIdx].headerClass = val;
                 } else {

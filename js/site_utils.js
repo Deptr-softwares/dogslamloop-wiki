@@ -531,7 +531,12 @@ window.initializeMangaSelects = function() {
             const optDiv = document.createElement('div');
             optDiv.className = 'manga-option';
             if (option.selected) optDiv.classList.add('selected');
-            if (option.style.color) optDiv.style.color = option.style.color;
+            // Read the resolved color rather than option.style.color: options
+            // are colored via CSS classes (e.g. the DAW track-color dropdown's
+            // .daw-option-* classes), not inline styles, so the inline-only
+            // check used to always miss them.
+            const optColor = getComputedStyle(option).color;
+            if (optColor) optDiv.style.color = optColor;
             optDiv.textContent = option.textContent;
 
             optDiv.addEventListener('click', (e) => {
