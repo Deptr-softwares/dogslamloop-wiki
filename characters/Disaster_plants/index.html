@@ -130,7 +130,7 @@
             // 1. Boot the Master Global Sidebars
             if (window.initSidebarToggle) window.initSidebarToggle();
             if (window.buildGlobalSidebarMenu) window.buildGlobalSidebarMenu('global-sidebar-nav');
-            if (window.initSidebarEditButton) window.initSidebarEditButton('disaster_plants', 'character');
+            if (window.initSidebarEditButton) window.initSidebarEditButton();
             if (window.initTabEditorButtons) window.initTabEditorButtons('disaster_plants', 'character');
 
             // 2. Setup Inner Tab Navigation
@@ -148,7 +148,7 @@
             }
 
             if (typeof window.loadPageAlerts === 'function') {
-                window.loadPageAlerts('Disaster-Plants');
+                window.loadPageAlerts('disaster_plants');
             }
 
             // 4. Delay the TOC mapping to ensure all content blocks have been injected
