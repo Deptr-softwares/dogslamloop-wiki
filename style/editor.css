@@ -209,7 +209,12 @@ input[type="checkbox"]:checked {
     background: rgba(0, 0, 0, 0.8);
     z-index: 10006;
     backdrop-filter: none !important;
-    display: none;
+    /* display intentionally not set here - style/Modals.css's shared
+       .modal-overlay, .editor-modal-overlay rule provides display:flex.
+       This rule used to also set display:none, silently overriding that
+       (same specificity, later in load order) - harmless historically
+       only because every toggle used a higher-specificity inline style,
+       never a plain class. */
     align-items: center; justify-content: center;
 }
 .editor-modal-box {
@@ -291,6 +296,35 @@ input[type="checkbox"]:checked {
 }
 .format-btn:hover { background: var(--accent-blue); color: #000; border-color: var(--accent-blue); transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--accent-blue); }
 .format-btn:active { transform: translate(1px, 1px); box-shadow: none; }
+.copy-toast {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(34, 197, 94, 0.9);
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.8rem;
+    z-index: 10;
+    pointer-events: none;
+}
+.format-color-popup {
+    display: block;
+    position: absolute;
+    bottom: calc(100% + 5px);
+    left: 0;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    padding: 0.5rem;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+    z-index: 100;
+    min-width: 140px;
+}
 .format-select {
     background: transparent; color: #d1d5db; border: 1px solid #333; height: 28px;
     font-family: var(--text-mono); font-size: 0.75rem; padding: 0 0.5rem; cursor: pointer; margin-left: 0.5rem;
