@@ -6,21 +6,21 @@ const frameDataLegendHTML = `
     <section class="wiki-section legend-section">
         <h3 class="legend-title">Frame Data Color Legend</h3>
         <div class="legend-grid">
-            <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(217.18, 100%, 50%);"></span><div><span class="legend-name">Startup</span></div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(153.88, 100%, 50%);"></span><div><span class="legend-name">Misc</span>Variable frame data aka no hard number so it always come with a note</div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(0, 100%, 45%);"></span><div><span class="legend-name">Active</span>Hitbox view ...</div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(295, 89.76%, 50.2%);"></span><div><span class="legend-name">Recovery</span>aka Whiff endlag</div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(111.06, 100%, 50%);"></span><div><span class="legend-name">Self Stun</span>for Grab moves mostly</div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(34, 99%, 27%);"></span><div><span class="legend-name">InSkill Stun</span>A weird version of Self Stun, but you can move around</div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(0, 70%, 35%);"></span><div><span class="legend-name">Target Stun</span>on Hit</div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(319.73, 88.24%, 50%);"></span><div><span class="legend-name">Block Endlag</span>aka Extended Recovery</div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: hsl(44, 100%, 50%);"></span><div><span class="legend-name">Inactive</span>Frames between Active frames</div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: transparent; border: 2px solid #ffffff; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.4); box-sizing: border-box;"></span><div><span class="legend-name">Complete I-Frames</span>aka Domain I-Frames</div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: transparent; border: 2px solid #ec4899; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.4); box-sizing: border-box;"></span><div><span class="legend-name">Swarm I-Frames</span></div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: transparent; border: 2px solid #f59e0b; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.4); box-sizing: border-box;"></span><div><span class="legend-name">Explosion I-Frames</span></div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: transparent; border: 2px solid #3b82f6; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.4); box-sizing: border-box;"></span><div><span class="legend-name">Bullet I-Frames</span></div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: transparent; border: 2px solid #94a3b8; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.4); box-sizing: border-box;"></span><div><span class="legend-name">Melee I-Frames</span></div></div>
-            <div class="legend-item"><span class="legend-swatch" style="background-color: transparent; border: 2px solid #14b8a6; box-shadow: inset 0 0 0 2px rgba(0,0,0,0.4); box-sizing: border-box;"></span><div><span class="legend-name">Reverse Hitcancel</span></div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-start"></span><div><span class="legend-name">Startup</span></div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-misc"></span><div><span class="legend-name">Misc</span>Variable frame data aka no hard number so it always come with a note</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-active"></span><div><span class="legend-name">Active</span>Hitbox view ...</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-recov"></span><div><span class="legend-name">Recovery</span>aka Whiff endlag</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-selfstun"></span><div><span class="legend-name">Self Stun</span>for Grab moves mostly</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-inskillstun"></span><div><span class="legend-name">InSkill Stun</span>A weird version of Self Stun, but you can move around</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-targetstun"></span><div><span class="legend-name">Target Stun</span>on Hit</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-blockendlag"></span><div><span class="legend-name">Block Endlag</span>aka Extended Recovery</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-inactive"></span><div><span class="legend-name">Inactive</span>Frames between Active frames</div></div>
+            <div class="legend-item"><span class="legend-swatch span-iframe-complete"></span><div><span class="legend-name">Complete I-Frames</span>aka Domain I-Frames</div></div>
+            <div class="legend-item"><span class="legend-swatch span-iframe-swarm"></span><div><span class="legend-name">Swarm I-Frames</span></div></div>
+            <div class="legend-item"><span class="legend-swatch span-iframe-explosion"></span><div><span class="legend-name">Explosion I-Frames</span></div></div>
+            <div class="legend-item"><span class="legend-swatch span-iframe-bullet"></span><div><span class="legend-name">Bullet I-Frames</span></div></div>
+            <div class="legend-item"><span class="legend-swatch span-iframe-melee"></span><div><span class="legend-name">Melee I-Frames</span></div></div>
+            <div class="legend-item"><span class="legend-swatch span-rhc"></span><div><span class="legend-name">Reverse Hitcancel</span></div></div>
         </div>
     </section>
 `;

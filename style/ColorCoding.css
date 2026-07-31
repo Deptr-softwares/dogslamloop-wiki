@@ -26,21 +26,43 @@
     --color-lucky-coward: hsl(272, 43%, 64%);
     --color-crow-charmer: hsl(233, 39%, 23%);
     --color-black-death: hsl(352, 49%, 27%);
-    --color-boomcat: hsl(0, 1%, 75%)
+    --color-boomcat: hsl(0, 1%, 75%);
+
+    /* Frame data timing colors - single source of truth, also read at runtime
+       via getComputedStyle by site_meta.js (window.FRAME_COLORS/WINDOW_COLORS) */
+    --frame-color-start: hsl(217.18, 100%, 50%);
+    --frame-color-active: hsl(0, 100%, 45%);
+    --frame-color-recov: hsl(295, 89.76%, 50.2%);
+    --frame-color-selfstun: hsl(111.06, 100%, 50%);
+    --frame-color-inskillstun: hsl(34, 99%, 27%);
+    --frame-color-targetstun: hsl(0, 70%, 35%);
+    --frame-color-misc: hsl(153.88, 100%, 50%);
+    --frame-color-blockendlag: hsl(319.73, 88.24%, 50%);
+    --frame-color-inactive: hsl(44, 100%, 50%);
+
+    --window-color-rhc: hsl(173, 80%, 40%);
+    --window-color-iframe-melee: hsl(215, 20%, 65%);
+    --window-color-iframe-bullet: hsl(217, 91%, 60%);
+    --window-color-iframe-explosion: hsl(38, 92%, 50%);
+    --window-color-iframe-swarm: hsl(330, 81%, 60%);
+    --window-color-iframe-complete: hsl(0, 0%, 100%);
 }
 
-/* --- 2. FRAME DATA TIMING COLORS --- */
-.bg-tick-start .frame-tick { background-color: hsl(217.18, 100%, 50%); }   /* Startup */
-.bg-tick-active .frame-tick { background-color: hsl(0, 100%, 45%); }       /* Active Frames */
-.bg-tick-recov .frame-tick { background-color: hsl(295, 89.76%, 50.2%); }  /* Recovery / Whiff Endlag */
-.bg-tick-selfstun .frame-tick { background-color: hsl(111.06, 100%, 50%); }/* Self Stun */
-.bg-tick-inskillstun .frame-tick { background-color: hsl(34, 99%, 27%); }  /* InSkill Stun */
-.bg-tick-targetstun .frame-tick { background-color: hsl(0, 70%, 35%); }    /* Target Stun*/
-.bg-tick-misc .frame-tick { background-color: hsl(153.88, 100%, 50%); }    /* Misc variable frames */
-.bg-tick-blockendlag .frame-tick { background-color: hsl(319.73, 88.24%, 50%); } /* Block Endlag */
-.bg-tick-inactive .frame-tick { background-color: hsl(44, 100%, 50%); }    /* Inactive Frames */
+/* --- 2. FRAME DATA TIMING COLORS ---
+   Each rule also matches .legend-swatch so the frame-data legend
+   (js/framedata.js) can reuse these classes instead of inline styles. */
+.bg-tick-start .frame-tick, .legend-swatch.bg-tick-start { background-color: var(--frame-color-start); }   /* Startup */
+.bg-tick-active .frame-tick, .legend-swatch.bg-tick-active { background-color: var(--frame-color-active); }       /* Active Frames */
+.bg-tick-recov .frame-tick, .legend-swatch.bg-tick-recov { background-color: var(--frame-color-recov); }  /* Recovery / Whiff Endlag */
+.bg-tick-selfstun .frame-tick, .legend-swatch.bg-tick-selfstun { background-color: var(--frame-color-selfstun); }/* Self Stun */
+.bg-tick-inskillstun .frame-tick, .legend-swatch.bg-tick-inskillstun { background-color: var(--frame-color-inskillstun); }  /* InSkill Stun */
+.bg-tick-targetstun .frame-tick, .legend-swatch.bg-tick-targetstun { background-color: var(--frame-color-targetstun); }    /* Target Stun*/
+.bg-tick-misc .frame-tick, .legend-swatch.bg-tick-misc { background-color: var(--frame-color-misc); }    /* Misc variable frames */
+.bg-tick-blockendlag .frame-tick, .legend-swatch.bg-tick-blockendlag { background-color: var(--frame-color-blockendlag); } /* Block Endlag */
+.bg-tick-inactive .frame-tick, .legend-swatch.bg-tick-inactive { background-color: var(--frame-color-inactive); }    /* Inactive Frames */
 
-/* --- 3. STACKABLE WINDOW OVERLAYS --- */
+/* --- 3. STACKABLE WINDOW OVERLAYS ---
+   Each rule also matches .legend-swatch for the same reason as above. */
 .window-overlay {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
@@ -49,9 +71,9 @@
     box-sizing: border-box;
 }
 
-.span-rhc { border: 2px solid hsl(173, 80%, 40%); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); }
-.span-iframe-melee { border: 2px solid hsl(215, 20%, 65%); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); }
-.span-iframe-bullet { border: 2px solid hsl(217, 91%, 60%); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); }
-.span-iframe-explosion { border: 2px solid hsl(38, 92%, 50%); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); }
-.span-iframe-swarm { border: 2px solid hsl(330, 81%, 60%); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); }
-.span-iframe-complete { border: 2px solid hsl(0, 0%, 100%); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); }
+.span-rhc, .legend-swatch.span-rhc { border: 2px solid var(--window-color-rhc); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); box-sizing: border-box; }
+.span-iframe-melee, .legend-swatch.span-iframe-melee { border: 2px solid var(--window-color-iframe-melee); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); box-sizing: border-box; }
+.span-iframe-bullet, .legend-swatch.span-iframe-bullet { border: 2px solid var(--window-color-iframe-bullet); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); box-sizing: border-box; }
+.span-iframe-explosion, .legend-swatch.span-iframe-explosion { border: 2px solid var(--window-color-iframe-explosion); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); box-sizing: border-box; }
+.span-iframe-swarm, .legend-swatch.span-iframe-swarm { border: 2px solid var(--window-color-iframe-swarm); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); box-sizing: border-box; }
+.span-iframe-complete, .legend-swatch.span-iframe-complete { border: 2px solid var(--window-color-iframe-complete); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); box-sizing: border-box; }
