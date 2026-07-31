@@ -46,6 +46,51 @@ test('real bug fix: changing the track color select keeps .daw-track-color-selec
   expect(classAfter).toContain('text-blue-400');
 });
 
+test('real bug fix: changing the track color no longer drops .manga-initialized, so a later DOM-mutation rescan does not double-wrap the select', async ({ page }) => {
+  await page.evaluate(() => window.initializeMangaSelects());
+  const select = page.locator('#daw-test-container .daw-track-color');
+  await expect(page.locator('#daw-test-container .manga-select-wrapper')).toHaveCount(1);
+
+  await select.evaluate(el => {
+    el.value = 'text-blue-400';
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+
+  // Simulate the site-wide MutationObserver (site_utils.js) re-running
+  // initializeMangaSelects() after some later, unrelated DOM mutation.
+  await page.evaluate(() => window.initializeMangaSelects());
+
+  await expect(page.locator('#daw-test-container .manga-select-wrapper')).toHaveCount(1); // not duplicated
+  expect(await select.evaluate(el => el.classList.contains('manga-initialized'))).toBe(true);
+  expect(await select.evaluate(el => el.classList.contains('text-red-400'))).toBe(false); // old marker cleared
+});
+
+test('real bug fix: the manga-select custom dropdown colors its option rows from the .daw-option-* CSS classes, not a (removed) inline style', async ({ page }) => {
+  await page.evaluate(() => window.initializeMangaSelects());
+  const wrapper = page.locator('#daw-test-container .manga-select-wrapper').first();
+  const redOptionColor = await wrapper.locator('.manga-option', { hasText: 'Red (L)' }).evaluate(el => el.style.color);
+
+  // Compare against a synthetic option nested in a real .editor-select: bare
+  // .daw-option-red-400 alone loses outright to .editor-select option's own
+  // color at higher specificity, so the class only wins as a compound
+  // selector (.editor-select option.daw-option-red-400) - must match that.
+  const expectedColor = await page.evaluate(() => {
+    const sel = document.createElement('select');
+    sel.className = 'editor-select';
+    const opt = document.createElement('option');
+    opt.className = 'daw-option-red-400';
+    sel.appendChild(opt);
+    document.body.appendChild(sel);
+    const c = getComputedStyle(opt).color;
+    sel.remove();
+    return c;
+  });
+
+  expect(redOptionColor).not.toBe('');
+  expect(redOptionColor).not.toBe('rgb(209, 213, 219)'); // must not be .editor-select option's generic #d1d5db default
+  expect(redOptionColor).toBe(expectedColor);
+});
+
 test('.daw-track-color-select CSS rule itself sets width/font-weight (verified in isolation - some other script visually replaces the live <select>, confounding a direct computed-style check on it)', async ({ page }) => {
   const cs = await page.evaluate(() => {
     const el = document.createElement('select');
