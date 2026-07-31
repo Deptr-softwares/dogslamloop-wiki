@@ -330,6 +330,21 @@ input[type="checkbox"]:checked {
     font-family: var(--text-mono); font-size: 0.75rem; padding: 0 0.5rem; cursor: pointer; margin-left: 0.5rem;
 }
 .format-select:focus { outline: none; border-color: var(--accent-blue); }
+.format-btn-italic { font-style: italic; }
+.format-btn-underline { text-decoration: underline; }
+.format-btn-strikethrough { text-decoration: line-through; }
+/* Compound: .format-btn's own base rule sets font-size: 0.85rem at the same
+   specificity - same lesson as every other compound-selector fix. */
+.format-btn.format-btn-code { font-size: 0.65rem; }
+.format-btn-color-trigger { display: flex; align-items: center; gap: 0.35rem; padding: 0 0.5rem; }
+.format-color-wrapper { position: relative; display: inline-flex; align-items: center; }
+.format-color-swatch-icon { width: 12px; height: 12px; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); border-radius: 50%; }
+.format-color-popup-label { font-size: 0.65rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; }
+.format-color-presets-row { display: flex; gap: 4px; margin-bottom: 0.5rem; flex-wrap: wrap; }
+.color-preset-btn { width: 20px; height: 20px; border-radius: 4px; border: 1px solid #222; cursor: pointer; }
+.format-color-custom-row { border-top: 1px solid #333; padding-top: 0.5rem; display: flex; align-items: center; justify-content: space-between; }
+.format-color-custom-label { font-size: 0.75rem; color: #ccc; }
+.format-color-custom-input { background: none; border: none; width: 24px; height: 24px; cursor: pointer; padding: 0; outline: none; }
 
 /* --- ADD BLOCK POPUP MENU --- */
 .add-block-menu-wrapper { position: relative; }
@@ -344,6 +359,9 @@ input[type="checkbox"]:checked {
     grid-column: 1 / -1; color: #666; font-size: 0.65rem; font-family: var(--text-mono);
     text-transform: uppercase; margin-bottom: 0.25rem; border-bottom: 1px dashed #333; padding-bottom: 0.25rem;
 }
+.add-block-popup-title-spaced { margin-top: 0.5rem; }
+.btn-add-block-toggle { gap: 0.5rem; }
+.add-block-icon { font-size: 1.25rem; line-height: 0.8; font-weight: normal; }
 
 /* --- VIRTUALIZATION ENGINE --- */
 .block-card.virtual-unloaded:not([draggable="true"]) > * {
@@ -527,6 +545,43 @@ input[type="checkbox"]:checked {
 .editor-select option.daw-option-orange-400 { color: var(--track-color-orange-400); }
 .editor-select option.daw-option-cyan-400 { color: var(--track-color-cyan-400); }
 .editor-select option.daw-option-gray-400 { color: var(--track-color-gray-400); }
+
+/* --- CONTENT BLOCK BUILDER (js/editor.js initProfileEditor, initPlaystyleEditor,
+   initStrategyBlockBuilder, renderBlockList) --- */
+/* Compound selectors: .block-editor-container's own base rule sets
+   margin-top: 1rem at the same specificity - same lesson as .block-editor-container-tight. */
+.block-editor-container.block-editor-container-notop { margin-top: 0; }
+.block-editor-container.block-editor-container-splitgrid { margin-top: 0; display: flex; gap: 1rem; flex-wrap: wrap; }
+.block-editor-container.block-editor-container-blocklist { margin-top: 0; margin-bottom: 3rem; }
+.block-card-split { flex: 1; min-width: 300px; }
+/* Compound: .block-type-badge's own base rule sets color: #000 at the same specificity. */
+.block-type-badge.block-type-badge-positive { color: #22c55e; }
+.block-type-badge.block-type-badge-negative { color: #ef4444; }
+.strategy-toolbar-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.strategy-toolbar-actions { display: flex; gap: 0.5rem; }
+.accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+.accordion-back-label { color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
+.accordion-back-title { color: #fff; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; }
+.block-type-row { display: flex; align-items: center; gap: 0.5rem; }
+.drag-handle { color: #666; font-size: 1rem; line-height: 1; cursor: grab; }
+/* Compound: .editor-select's own base rule sets border/padding at the same specificity. */
+.editor-select.block-type-selector { cursor: pointer; border: none; outline: none; padding-right: 0.2rem; }
+/* Compound: .editor-input's own base rule sets font-family/color at the same specificity. */
+.editor-input.block-heading-input { font-family: var(--text-manga); font-size: 1.1rem; color: #fff; }
+.block-video-controls-row { display: flex; align-items: center; }
+.block-video-controls-label { color: var(--text-muted); font-size: 0.85rem; margin: 0; }
+.block-table-wrapper { overflow-x: auto; margin-bottom: 0.5rem; border: 1px solid #333; border-radius: 4px; }
+.block-table { width: 100%; border-collapse: collapse; }
+/* Compound: .editor-input's own base rule sets margin-bottom/border/background at the same specificity. */
+.editor-input.table-header-input { margin: 0; border-radius: 0; border: none; border-bottom: 2px solid #444; border-right: 1px solid #333; font-weight: bold; background: rgba(0,0,0,0.4); text-align: center; }
+.editor-input.table-cell-input { margin: 0; border-radius: 0; border: none; border-bottom: 1px solid #222; border-right: 1px solid #333; }
+.block-table-actions-row { display: flex; gap: 0.25rem; margin-bottom: 0.5rem; border-radius: 0rem; }
+.btn-table-add-row, .btn-table-add-col, .btn-table-del-row, .btn-table-del-col { flex: 1; }
+.editor-row-spaced-md { margin-bottom: 0.5rem; }
+.editor-row-nomargin { margin: 0; }
+.accordion-inner-block-wrapper { padding: 1rem; border: 1px dashed #444; background: rgba(0,0,0,0.3); text-align: center; margin-bottom: 0.5rem; }
+.block-field-label-sm { font-size: 0.65rem; color: #888; }
+.block-unsupported-msg { color: var(--text-muted); font-style: italic; }
 
 /* --- MEDIA LIBRARY UI --- */
 #media-modal-overlay {
@@ -1082,6 +1137,9 @@ select.editor-select.manga-initialized {
 
 /* --- STICKY FORMATTING TOOLBAR --- */
 .add-block-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     position: sticky;
     bottom: -1.5rem; /* Offsets the padding of the interactive-builder */
     background-color: #050505;
