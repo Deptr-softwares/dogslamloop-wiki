@@ -466,6 +466,60 @@ input[type="checkbox"]:checked {
    at the same specificity - genuinely different here (0, not 1rem). */
 .block-editor-container.block-editor-container-tight { margin-top: 0; margin-bottom: 1rem; }
 
+/* --- DAW FRAME EDITOR (js/editor.js initDawEditor) --- */
+.daw-empty-notice { color: var(--text-muted); font-size: 0.85rem; padding-bottom: 1rem; }
+.editor-row-spaced-sm { margin-bottom: 0.25rem; }
+.daw-stat-actions { display: flex; align-items: center; gap: 0.5rem; width: auto; flex: 0 0 auto; }
+.editor-checkbox-label { color: var(--text-muted); font-size: 0.75rem; }
+/* Compound selectors: .add-block-btn's own base rule sets padding at the
+   same single-class specificity. */
+.add-block-btn.daw-stat-del-btn { padding: 0.3rem 0.5rem; }
+.add-block-btn.daw-add-stat-btn { padding: 0.15rem 0.4rem; }
+.daw-variant-wrapper { margin-bottom: 1rem; }
+.daw-tab-btn.daw-tab-btn-add-variant { color: #34d399; font-size: 0.65rem; }
+.daw-phase-block-duration { pointer-events: none; }
+.daw-track-wrapper { margin-bottom: 1.5rem; }
+.daw-track-header-row { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.25rem; }
+.daw-track-input-row { display: flex; gap: 0.25rem; align-items: center; }
+.daw-track-inp.daw-track-inp-flex { margin: 0; flex: 1; }
+/* Compound selector: .editor-select's own base rule sets width: 100% at the
+   same specificity - same lesson as every other compound-selector fix in
+   this workstream. */
+.editor-select.daw-track-color-select { margin: 0; width: 125px; flex: none; font-weight: bold; }
+.daw-inspector-spaced { margin-top: 1rem; }
+.daw-inspector-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.daw-overlay-label { display: flex; align-items: center; color: #d1d5db; font-size: 0.7rem; margin-bottom: 0.25rem; cursor: pointer; }
+.daw-overlay-label-block { display: block; margin-bottom: 0.25rem; }
+.daw-overlay-details { padding: 0.3rem 0.4rem; cursor: pointer; height: auto; }
+.daw-overlay-summary { font-size: 0.75rem; color: #d1d5db; font-family: var(--text-mono); list-style-position: inside; }
+.daw-overlay-grid { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #333; display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; }
+.daw-inspector-field-flex1 { flex: 1; }
+.daw-container-header-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; align-items: center; }
+.daw-container-header-meta { width: 250px; margin: 0; }
+.daw-container-header-actions { display: flex; gap: 0.25rem; }
+.editor-input.daw-variant-label-inp { margin: 0; }
+.editor-input.daw-variant-scale-inp { margin: 0; width: 80px; }
+/* Compound selector: applied alongside .daw-container, which has its own
+   padding: 1rem at the same specificity - same lesson as .daw-track-color-select. */
+.daw-container.daw-branch-empty-notice { text-align: center; padding: 3rem 1rem; }
+.daw-branch-title { color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.1rem; margin-bottom: 1rem; text-transform: uppercase; }
+.daw-branch-label-row { display: flex; justify-content: center; margin-bottom: 1.5rem; }
+.editor-input.daw-branch-label-inp { max-width: 250px; text-align: center; font-size: 0.9rem; }
+.daw-branch-hint { color: var(--text-muted); font-family: var(--text-mono); margin-bottom: 1.5rem; }
+.daw-branch-actions-row { display: flex; gap: 1rem; justify-content: center; }
+.add-block-btn.daw-delete-branch-btn { color: #ef4444; border-color: #ef4444; }
+.btn-sys.daw-narrow-btn { max-width: 200px; }
+.daw-option-default { color: #ffffff; }
+.daw-option-red-400 { color: hsl(3, 93%, 63%); }
+.daw-option-red-600 { color: hsl(0, 100%, 50%); }
+.daw-option-blue-400 { color: #3b82f6; }
+.daw-option-green-400 { color: hsl(127, 59%, 58%); }
+.daw-option-green-500 { color: hsl(120, 100%, 25%); }
+.daw-option-purple-400 { color: hsl(261, 71%, 51%); }
+.daw-option-orange-400 { color: hsl(39, 100%, 50%); }
+.daw-option-cyan-400 { color: hsl(180, 100%, 50%); }
+.daw-option-gray-400 { color: hsl(0, 0%, 50%); }
+
 /* --- MEDIA LIBRARY UI --- */
 #media-modal-overlay {
     backdrop-filter: none !important;
