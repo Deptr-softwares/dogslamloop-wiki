@@ -295,14 +295,42 @@
 .profile-stat-val { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
 .profile-portrait { width: 100%; border-radius: 4px; margin-bottom: 1rem; border: 1px solid var(--border-color); }
 
-/* Tier List Layout */
-.tier-tabs { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border-color); padding-bottom: 1.5rem; justify-content: center; }
+/* Tier List Layout (js/tierlist.js LIVE RENDERER: loadTierList/switchLiveTierTab).
+   .tier-tabs/.tier-row/.tier-label/.tier-characters/.tier-char-tooltip were
+   removed here - confirmed zero references anywhere in the codebase, dead
+   CSS from an earlier iteration of this feature that current tierlist.js
+   markup doesn't use. .tier-list-container is still live (wraps #tier-list-ui
+   in both systems/tierlist/index.html and js/history.js's tierlist branch). */
 .tier-list-container { background: var(--bg-main); border: 2px solid var(--border-color); box-shadow: 6px 6px 0px var(--manga-shadow); display: flex; flex-direction: column; gap: 2px; }
-.tier-row { display: flex; background: var(--bg-secondary); min-height: 80px; border-bottom: 2px dashed var(--border-color); }
-.tier-row:last-child { border-bottom: none; }
-.tier-label { width: 100px; display: flex; align-items: center; justify-content: center; font-family: 'CC-Wild-Words', sans-serif; font-size: 1.25rem; color: #000; text-align: center; padding: 0.5rem; border-right: 2px solid var(--border-color); text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5); }
-.tier-characters { display: flex; flex-wrap: wrap; gap: 10px; padding: 10px; flex-grow: 1; }
-.tier-char-tooltip { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0, 0, 0, 0.85); color: var(--text-white); font-family: var(--text-mono); font-size: 0.65rem; text-align: center; padding: 4px 0; pointer-events: none; border-top: 1px solid var(--accent-blue); }
+
+.tier-nav-overall-wrapper { display: flex; justify-content: center; width: 100%; margin-bottom: 1.5rem; }
+/* Compound selectors (.btn-manga.X) rather than bare classes: .btn-manga's
+   own base rule already sets padding/border-color at the same (single
+   class) specificity, so a bare .tier-nav-overall-btn rule would only win
+   by source order - fragile and, in practice, lost the tie here (confirmed
+   via a real 16px layout regression caught by the visual-regression suite). */
+.btn-manga.tier-nav-overall-btn { padding: 0.85rem 3rem; border-color: var(--accent-blue); }
+.tier-nav-overall-text { font-size: 1.2rem; }
+.tier-nav-matchup-row { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue); }
+.btn-manga.tier-nav-matchup-btn { border-color: var(--tier-nav-color); }
+.tier-nav-matchup-text { color: var(--tier-nav-color); text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; }
+
+.tier-list-inner { display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-secondary); border: 2px solid var(--border-color); padding: 0.5rem; box-shadow: 6px 6px 0px var(--manga-shadow, #000); }
+.tier-list-empty { padding: 2rem; text-align: center; color: var(--text-muted); font-family: var(--text-mono); }
+.tier-list-row { display: flex; min-height: 80px; background: var(--bg-main); border: 1px solid var(--border-color); }
+.tier-list-row-label { width: 100px; background-color: var(--tier-row-color); display: flex; align-items: center; justify-content: center; border-right: 2px solid var(--bg-secondary); flex-shrink: 0; box-shadow: inset -4px 0px 8px rgba(0,0,0,0.2); }
+.tier-list-row-label-text { font-family: 'CC-Wild-Words', sans-serif; font-size: 1.5rem; color: #000; text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
+.tier-list-row-chars { flex: 1; padding: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; align-content: flex-start; }
+
+.tier-changelog-entry { background: rgba(255,255,255,0.02); border-left: 3px solid var(--accent-blue); padding: 1rem; }
+.tier-changelog-date { color: var(--accent-blue); font-family: var(--text-mono); font-size: 0.75rem; margin-bottom: 0.5rem; font-weight: bold; }
+.wiki-block-list.tier-changelog-notes { margin: 0; padding-left: 1rem; }
+.tier-changelog-empty { color: var(--text-muted); font-family: var(--text-mono); font-style: italic; }
+
+.tier-portrait { width: 60px; height: 60px; position: relative; border: 2px solid var(--border-color); box-shadow: 3px 3px 0px var(--manga-shadow, #000); cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; flex-shrink: 0; }
+.tier-portrait.draggable-portrait { cursor: grab; }
+.tier-portrait-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 3; pointer-events: none; }
+.tier-portrait-name { position: relative; z-index: 2; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.5rem; color: #fff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; word-wrap: break-word; line-height: 1.1; padding: 2px; }
 
 /* Footer & Credits */
 .footer-grid-section { margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 2rem; }
