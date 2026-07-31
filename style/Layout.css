@@ -128,13 +128,58 @@
 }
 .sidebar-nav-title:first-child { margin-top: 0; }
 
+/* Collapsible category groups in the global sidebar menu (js/pagebuilder.js
+   buildGlobalSidebarMenu) */
+.sidebar-group-wrapper { margin-bottom: 0.75rem; }
+.sidebar-nav-title.sidebar-group-header {
+    cursor: pointer; display: flex; justify-content: space-between;
+    align-items: center; margin-bottom: 0;
+}
+.sidebar-group-caret { font-size: 0.5rem; color: var(--text-muted); }
+.sidebar-group-wrapper .toc-list { margin-top: 0.5rem; }
+
 .toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+
+/* Table of Contents links (js/pagebuilder.js refreshTOC) */
+.toc-link-minor { padding-left: 1.5rem; font-size: 0.7rem; color: var(--text-muted); opacity: 0.7; }
+.toc-link-major { font-size: 0.75rem; color: var(--text-white); }
+.toc-link-major-toggle { font-size: 0.75rem; color: var(--text-white); padding-right: 2rem; }
+.toc-link-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.toc-group-row { display: flex; position: relative; }
+.toc-toggle-btn {
+    position: absolute; right: 0; top: 0; bottom: 1px; background: none; border: none;
+    color: var(--text-muted); padding: 0 0.5rem; cursor: pointer; font-size: 0.5rem;
+    z-index: 2; transition: color 0.2s;
+}
+.toc-toggle-btn:hover { color: var(--text-white); }
+.toc-sublist { list-style: none; padding: 0; margin: 0; }
+.loading-msg-toc { padding: 0.25rem 0.75rem; }
+.loading-msg-error { color: #ef4444; }
 
 .sidebar-action-dock {
     display: flex; flex-direction: column; gap: 0.75rem; width: 100%;
     padding: 0 1.5rem 1.5rem 1.5rem; box-sizing: border-box; margin-top: auto;
 }
 .global-sidebar-left.collapsed .sidebar-action-dock { padding: 0 0.5rem 1.5rem 0.5rem; gap: 1rem; }
+
+/* Auth/dock action buttons (js/pagebuilder.js initSidebarEditButton) */
+.kofi-text { font-family: 'CC-Wild-Words', sans-serif; }
+.dock-role-icon { width: 1.2rem; height: 1.2rem; }
+.dock-action-btn {
+    width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex;
+    align-items: center; justify-content: flex-start; gap: 0.75rem;
+    white-space: nowrap; text-decoration: none;
+}
+.dock-action-icon { display: flex; align-items: center; justify-content: center; }
+.dock-action-text { overflow: hidden; text-overflow: ellipsis; }
+.dock-btn-inbox { position: relative; }
+.inbox-message-card {
+    padding: 0.75rem; border-radius: 4px;
+    background: var(--inbox-msg-bg, transparent);
+    border: 1px solid var(--inbox-msg-border, var(--border-color));
+}
+.inbox-message-date { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+.inbox-message-text { font-size: 0.85rem; color: var(--text-white); }
 
 /* Character page sidebar dock (js/pagebuilder.js populates #sidebar-dynamic-dock) */
 #sidebar-dynamic-dock {
@@ -183,11 +228,18 @@
 
 /* Grids & Galleries */
 .roster-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
-.systems-grid-container { display: flex; flex-direction: column; gap: 1rem; }
-.system-button-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.5rem; }
+.systems-grid-container { display: flex; flex-direction: column; gap: 2.5rem; }
+.system-button-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.25rem; }
+
+/* Systems directory grid (js/pagebuilder.js buildSystemsDirectory) */
+.system-category-block .sidebar-master-title { margin-top: 0; margin-bottom: 1.25rem; border-bottom: 2px dashed var(--border-color); }
+.system-directory-btn { width: 100%; padding: 0.6rem 1rem; }
+.system-directory-btn .btn-manga-content { justify-content: center; }
+.system-directory-btn .btn-manga-text { font-size: 0.85rem; letter-spacing: 1px; }
 
 .filter-bar-inline { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
 .filter-group { display: flex; align-items: center; gap: 0.5rem; }
+.filter-group-right { margin-left: auto; }
 .filter-label { font-family: 'CC-Wild-Words', sans-serif; font-size: 0.75rem; color: var(--accent-blue); text-transform: uppercase; }
 
 /* --- 4. SCROLL BOXES --- */
@@ -369,6 +421,6 @@
     .global-sidebar-left.collapsed .btn-manga-text { display: none; }
     .global-sidebar-left.collapsed .btn-manga-slanted { padding: 0.6rem; justify-content: center; }
     .global-sidebar-left.collapsed .btn-manga-icon { margin: 0; width: 100%; font-size: 1.5rem; transform: translateY(2px); }
-    .global-sidebar-left.collapsed .dock-badge { top: -4px; right: -4px; width: 14px; height: 14px; }
+    .global-sidebar-left.collapsed .dock-badge { width: 14px; height: 14px; }
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
