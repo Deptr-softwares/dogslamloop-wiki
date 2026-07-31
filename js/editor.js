@@ -870,10 +870,10 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         const previewPane = document.querySelector('.live-preview-pane .main-content-area') || document.querySelector('.live-preview-pane');
         if (previewPane) {
             previewPane.innerHTML = `
-                <div style="padding: 2rem; color: #888; text-align: center; border: 1px dashed #333; margin-top: 4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
-                    <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">🚫</div>
-                    <h2 style="color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; letter-spacing: 1px;">LIVE PREVIEW DISABLED</h2>
-                    <p style="font-family: var(--text-mono); font-size: 0.85rem; max-width: 400px; line-height: 1.5;">The Tier List editor is used on the side. Live Preview is disabled because this shit is so fucking buggy.<br>I want to RAAAAAAAAAAAAAAHHHHHHHH</p>
+                <div class="tierlist-preview-disabled-notice">
+                    <div class="tierlist-preview-disabled-icon">🚫</div>
+                    <h2 class="tierlist-preview-disabled-title">LIVE PREVIEW DISABLED</h2>
+                    <p class="tierlist-preview-disabled-text">The Tier List editor is used on the side. Live Preview is disabled because this shit is so fucking buggy.<br>I want to RAAAAAAAAAAAAAAHHHHHHHH</p>
                 </div>
             `;
         }
@@ -890,30 +890,30 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
     if (frameTabs.includes(tabId)) {
         const moves = frameData ? (frameData[tabId] || []) : [];
         
-        let navHTML = `<div class="daw-variant-tabs" style="margin-bottom: 0.5rem; overflow-x: auto; padding-bottom: 0; border-bottom: 1px solid #333; display: flex; align-items: center;">`;
+        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
         if (moves.length === 0) {
-            navHTML += `<span style="color:var(--text-muted); font-size: 0.75rem; padding: 0.5rem;">No moves mapped in this category yet.</span>`;
+            navHTML += `<span class="daw-empty-state">No moves mapped in this category yet.</span>`;
         } else {
             moves.forEach((m, idx) => {
-                navHTML += `<div style="display:inline-flex; align-items:center; position:relative; margin-bottom: -1px;">`;
-                navHTML += `<button class="daw-tab-btn ${idx === 0 ? 'active' : ''}" id="move-nav-${m.id}" onclick="loadMoveIntoEditor('${m.id}')" style="padding-right: 1.5rem;">${m.name || m.id}</button>`;
-                navHTML += `<button onclick="window.removeMove('${m.id}')" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); background:none; border:none; color:#ef4444; font-size:10px; cursor:pointer;" title="Remove Move">✖</button>`;
+                navHTML += `<div class="daw-tab-item">`;
+                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${idx === 0 ? 'active' : ''}" id="move-nav-${m.id}" onclick="loadMoveIntoEditor('${m.id}')">${m.name || m.id}</button>`;
+                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeMove('${m.id}')" title="Remove Move">✖</button>`;
                 navHTML += `</div>`;
             });
         }
 
-        navHTML += `<button class="daw-tab-btn btn-sys btn-sys-green" style="font-size: 0.65rem;" onclick="window.addMove()">+ ADD MOVE</button>`;
+        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addMove()">+ ADD MOVE</button>`;
         navHTML += `</div>`;
-        
+
         builder.innerHTML = `
             ${navHTML}
             <div id="move-editor-container"></div>
         `;
-        
+
         if (moves.length > 0) {
             loadMoveIntoEditor(moves[0].id);
         } else {
-            document.getElementById('move-editor-container').innerHTML = `<div class="empty-tab-msg" style="padding: 2rem; border: 1px dashed #333; background: transparent; text-align: center;">Click + ADD MOVE to begin mapping data.</div>`;
+            document.getElementById('move-editor-container').innerHTML = `<div class="empty-tab-msg editor-empty-dashed">Click + ADD MOVE to begin mapping data.</div>`;
         }
 
     } else if (tabId === 'overview') {
@@ -921,53 +921,53 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         if (!window.currentEditorDescData.strategy) window.currentEditorDescData.strategy = [];
         if (!window.currentEditorDescData.extras) window.currentEditorDescData.extras = [];
 
-        let navHTML = `<div class="daw-variant-tabs" style="margin-bottom: 0.5rem; overflow-x: auto; padding-bottom: 0; border-bottom: 1px solid #333; display: flex; align-items: center;">`;
+        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
         navHTML += `<button class="daw-tab-btn" id="overview-nav-profile" onclick="loadOverviewSectionIntoEditor('profile')">Profile Card</button>`;
         navHTML += `<button class="daw-tab-btn active" id="overview-nav-overview" onclick="loadOverviewSectionIntoEditor('overview')">Character Overview</button>`;
         navHTML += `<button class="daw-tab-btn" id="overview-nav-playstyle" onclick="loadOverviewSectionIntoEditor('playstyle')">Playstyle</button>`;
         navHTML += `<button class="daw-tab-btn" id="overview-nav-strategy" onclick="loadOverviewSectionIntoEditor('strategy')">General Strategy</button>`;
-        
+
         window.currentEditorDescData.extras.forEach((ext, idx) => {
-            navHTML += `<div style="display:inline-flex; align-items:center; position:relative; margin-bottom: -1px;">`;
-            navHTML += `<button class="daw-tab-btn" id="overview-nav-extra-${idx}" onclick="loadOverviewSectionIntoEditor('extra-${idx}')" style="padding-right: 1.5rem;">${ext.title}</button>`;
-            navHTML += `<button onclick="removeExtraTab(${idx})" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); background:none; border:none; color:#ef4444; font-size:10px; cursor:pointer;" title="Remove Tab">✖</button>`;
+            navHTML += `<div class="daw-tab-item">`;
+            navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="overview-nav-extra-${idx}" onclick="loadOverviewSectionIntoEditor('extra-${idx}')">${ext.title}</button>`;
+            navHTML += `<button class="daw-tab-remove-btn" onclick="removeExtraTab(${idx})" title="Remove Tab">✖</button>`;
             navHTML += `</div>`;
         });
 
-        navHTML += `<button class="daw-tab-btn btn-sys btn-sys-green" style="font-size: 0.65rem;" onclick="addExtraTab()">+ ADD TAB</button>`;
+        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="addExtraTab()">+ ADD TAB</button>`;
         navHTML += `</div>`;
-        
+
         builder.innerHTML = `
             ${navHTML}
             <div id="overview-editor-container"></div>
         `;
-        
+
         loadOverviewSectionIntoEditor('overview');
 
     } else if (tabId === 'matchups') {
         if (!window.currentEditorDescData.matchups) window.currentEditorDescData.matchups = [];
-        
-        let navHTML = `<div class="daw-variant-tabs" style="margin-bottom: 0.5rem; overflow-x: auto; padding-bottom: 0; border-bottom: 1px solid #333; display: flex; align-items: center; flex-shrink: 0;">`;
+
+        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
         if (window.currentEditorDescData.matchups.length === 0) {
-             navHTML += `<span style="color:var(--text-muted); font-size: 0.75rem; padding: 0.5rem;">No matchups defined yet.</span>`;
+             navHTML += `<span class="daw-empty-state">No matchups defined yet.</span>`;
         } else {
             window.currentEditorDescData.matchups.forEach((mu, idx) => {
                 let muName = mu.opponent || `Matchup ${idx + 1}`;
-                navHTML += `<div style="display:inline-flex; align-items:center; position:relative; margin-bottom: -1px;">`;
-                navHTML += `<button class="daw-tab-btn" id="matchup-nav-${idx}" onclick="window.loadMatchupIntoEditor(${idx})" style="padding-right: 1.5rem;">vs. ${muName}</button>`;
-                navHTML += `<button onclick="window.removeMatchup(${idx})" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); background:none; border:none; color:#ef4444; font-size:10px; cursor:pointer;" title="Remove Matchup">✖</button>`;
+                navHTML += `<div class="daw-tab-item">`;
+                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="matchup-nav-${idx}" onclick="window.loadMatchupIntoEditor(${idx})">vs. ${muName}</button>`;
+                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeMatchup(${idx})" title="Remove Matchup">✖</button>`;
                 navHTML += `</div>`;
             });
         }
 
-        navHTML += `<button class="daw-tab-btn btn-sys btn-sys-green" style="font-size: 0.65rem;" onclick="window.addMatchup()">+ ADD MATCHUP</button>`;
+        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addMatchup()">+ ADD MATCHUP</button>`;
         navHTML += `</div>`;
-        
+
         builder.innerHTML = `
             ${navHTML}
             <div id="matchup-editor-container"></div>
         `;
-        
+
         if (window.currentEditorDescData.matchups.length > 0) {
             window.loadMatchupIntoEditor(0);
         } else {
@@ -977,21 +977,21 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
 
     } else if (tabId === 'counterplay') {
         if (!window.currentEditorDescData.counterplay) window.currentEditorDescData.counterplay = [];
-        
-        let navHTML = `<div class="daw-variant-tabs" style="margin-bottom: 0.5rem; overflow-x: auto; padding-bottom: 0; border-bottom: 1px solid #333; display: flex; align-items: center; flex-shrink: 0;">`;
+
+        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
         if (window.currentEditorDescData.counterplay.length === 0) {
-             navHTML += `<span style="color:var(--text-muted); font-size: 0.75rem; padding: 0.5rem;">No counterplay topics defined yet.</span>`;
+             navHTML += `<span class="daw-empty-state">No counterplay topics defined yet.</span>`;
         } else {
             window.currentEditorDescData.counterplay.forEach((cp, idx) => {
                 let cpName = cp.topic || `Topic ${idx + 1}`;
-                navHTML += `<div style="display:inline-flex; align-items:center; position:relative; margin-bottom: -1px;">`;
-                navHTML += `<button class="daw-tab-btn" id="counterplay-nav-${idx}" onclick="window.loadCounterplayIntoEditor(${idx})" style="padding-right: 1.5rem;">${cpName}</button>`;
-                navHTML += `<button onclick="window.removeCounterplayTopic(${idx})" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); background:none; border:none; color:#ef4444; font-size:10px; cursor:pointer;" title="Remove Topic">✖</button>`;
+                navHTML += `<div class="daw-tab-item">`;
+                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="counterplay-nav-${idx}" onclick="window.loadCounterplayIntoEditor(${idx})">${cpName}</button>`;
+                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeCounterplayTopic(${idx})" title="Remove Topic">✖</button>`;
                 navHTML += `</div>`;
             });
         }
 
-        navHTML += `<button class="daw-tab-btn btn-sys btn-sys-green" style="font-size: 0.65rem;" onclick="window.addCounterplayTopic()">+ ADD TOPIC</button>`;
+        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addCounterplayTopic()">+ ADD TOPIC</button>`;
         navHTML += `</div>`;
         
         builder.innerHTML = `
@@ -1008,8 +1008,8 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
 
     } else {
         builder.innerHTML = `
-            <div style="background: #0a0a0a; border-top: 1px solid #222; border-bottom: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; margin-top: 0.5rem; display: flex; align-items: center;">
-                <span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin:0;">EDITING: ${tabId}</span>
+            <div class="editor-section-banner editor-section-banner-spaced">
+                <span class="editor-section-banner-text">EDITING: ${tabId}</span>
             </div>
             <div id="strategy-block-target"></div>
         `;
@@ -1084,31 +1084,30 @@ window.promptForMoveId = function() {
         if (!overlay) {
             overlay = document.createElement('div');
             overlay.id = 'move-id-modal';
-            overlay.className = 'editor-modal-overlay';
-            overlay.style.zIndex = '10006'; // Forces it over everything
+            overlay.className = 'editor-modal-overlay move-id-modal-elevated';
             document.body.appendChild(overlay);
         }
 
         overlay.innerHTML = `
-            <div class="editor-modal-box auth-modal-box" style="border-top-color: #22c55e; max-width: 400px; width: 100%;">
+            <div class="editor-modal-box auth-modal-box move-id-modal-box">
                 <div class="auth-header">
-                    <h3 style="color: #22c55e; font-family: 'CC-Wild-Words', sans-serif;">ADD NEW MOVE</h3>
+                    <h3 class="move-id-modal-title">ADD NEW MOVE</h3>
                 </div>
-                <div class="auth-body" style="padding: 1.5rem;">
-                    <div style="display: flex; flex-direction: column; gap: 1rem; text-align: left;">
+                <div class="auth-body">
+                    <div class="move-id-form-fields">
                         <div>
-                            <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888;">MOVE DISPLAY NAME</label>
-                            <input type="text" id="new-move-name" class="editor-input" placeholder="e.g. Cursed Strike" style="margin-top: 0.25rem;">
+                            <label class="qa-field-label">MOVE DISPLAY NAME</label>
+                            <input type="text" id="new-move-name" class="editor-input editor-input-spaced" placeholder="e.g. Cursed Strike">
                         </div>
                         <div>
-                            <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888;">TECHNICAL ID (No spaces, lowercase)</label>
-                            <input type="text" id="new-move-id" class="editor-input" placeholder="e.g. cursed_strike" style="margin-top: 0.25rem;">
+                            <label class="qa-field-label">TECHNICAL ID (No spaces, lowercase)</label>
+                            <input type="text" id="new-move-id" class="editor-input editor-input-spaced" placeholder="e.g. cursed_strike">
                         </div>
                     </div>
                 </div>
-                <div class="editor-modal-actions" style="justify-content: flex-end; border-top: 1px dashed #333; padding-top: 1rem; margin-top: 0;">
+                <div class="editor-modal-actions qa-modal-actions-divided">
                     <button id="btn-move-cancel" class="system-page-btn">CANCEL</button>
-                    <button id="btn-move-confirm" class="submit-btn" style="color: #22c55e; border-color: #22c55e;">INITIALIZE</button>
+                    <button id="btn-move-confirm" class="submit-btn submit-btn-green-outline">INITIALIZE</button>
                 </div>
             </div>
         `;
@@ -1174,8 +1173,8 @@ window.loadOverviewSectionIntoEditor = function(sectionId) {
 
     if (sectionId === 'profile') {
         container.innerHTML = `
-            <div style="background: #0a0a0a; border-top: 1px solid #222; border-bottom: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; display: flex; align-items: center;">
-                <span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin:0;">EDITING: PROFILE CARD</span>
+            <div class="editor-section-banner">
+                <span class="editor-section-banner-text">EDITING: PROFILE CARD</span>
             </div>
             <div id="profile-editor-target"></div>
         `;
@@ -1196,8 +1195,8 @@ window.loadOverviewSectionIntoEditor = function(sectionId) {
 
     if (sectionId === 'playstyle') {
         container.innerHTML = `
-            <div style="background: #0a0a0a; border-top: 1px solid #222; border-bottom: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; display: flex; align-items: center;">
-                <span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin:0;">EDITING: PLAYSTYLE</span>
+            <div class="editor-section-banner">
+                <span class="editor-section-banner-text">EDITING: PLAYSTYLE</span>
             </div>
             <div id="playstyle-editor-target"></div>
         `;
@@ -1213,25 +1212,25 @@ window.loadOverviewSectionIntoEditor = function(sectionId) {
     if (sectionId === 'overview') {
         contentData = descData.overview || [];
         sectionTitle = "Character Overview";
-        titleHTML = `<span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin:0;">EDITING: ${sectionTitle}</span>`;
+        titleHTML = `<span class="editor-section-banner-text">EDITING: ${sectionTitle}</span>`;
     } else if (sectionId === 'strategy') {
         contentData = descData.strategy || [];
         sectionTitle = "General Strategy";
-        titleHTML = `<span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin:0;">EDITING: ${sectionTitle}</span>`;
+        titleHTML = `<span class="editor-section-banner-text">EDITING: ${sectionTitle}</span>`;
     } else if (sectionId.startsWith('extra-')) {
         const idx = parseInt(sectionId.split('-')[1]);
         contentData = descData.extras[idx].content || [];
         sectionTitle = descData.extras[idx].title || `Extra ${idx}`;
         titleHTML = `
-            <div style="display: flex; align-items: center; gap: 0.75rem; width: 100%;">
-                <span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap;">EDITING:</span>
-                <input type="text" class="editor-input" style="margin: 0; max-width: 300px; font-size: 0.85rem; font-family: var(--text-mono); border-radius: 0; padding: 0.4rem 0.6rem; text-transform: uppercase;" value="${sectionTitle}" oninput="window.updateExtraTabTitle(${idx}, this.value)" placeholder="Custom Tab Name">
+            <div class="editor-extra-title-row">
+                <span class="editor-section-banner-text-inline">EDITING:</span>
+                <input type="text" class="editor-input editor-extra-title-input" value="${sectionTitle}" oninput="window.updateExtraTabTitle(${idx}, this.value)" placeholder="Custom Tab Name">
             </div>
         `;
     }
 
     container.innerHTML = `
-        <div style="background: #0a0a0a; border-top: 1px solid #222; border-bottom: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; display: flex; align-items: center;">
+        <div class="editor-section-banner">
             ${titleHTML}
         </div>
         <div id="strategy-block-target"></div>
@@ -1328,16 +1327,16 @@ window.loadCounterplayIntoEditor = function(idx) {
     let impHTML = importanceOptions.map(t => `<option value="${t}" ${cp.importance === t ? 'selected' : ''}>${t}</option>`).join('');
 
     container.innerHTML = `
-        <div class="block-editor-container" style="margin-top: 0; margin-bottom: 1rem;">
+        <div class="block-editor-container block-editor-container-tight">
             <div class="block-card">
                 <div class="block-header"><span class="block-type-badge">TOPIC METADATA</span></div>
                 <div class="editor-row">
                     <div>
-                        <label style="font-size:0.65rem; color:#888;">Topic Name</label>
+                        <label class="editor-field-label-sm">Topic Name</label>
                         <input type="text" class="editor-input" value="${cp.topic || ''}" oninput="window.updateCounterplayMeta(${idx}, 'topic', this.value)" placeholder="e.g. Dealing with M1s">
                     </div>
                     <div>
-                        <label style="font-size:0.65rem; color:#888;">Importance</label>
+                        <label class="editor-field-label-sm">Importance</label>
                         <select class="editor-select" onchange="window.updateCounterplayMeta(${idx}, 'importance', this.value)">
                             ${impHTML}
                         </select>
@@ -1345,8 +1344,8 @@ window.loadCounterplayIntoEditor = function(idx) {
                     </div>
             </div>
         </div>
-        <div style="background: #0a0a0a; border-top: 1px solid #222; border-bottom: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; display: flex; align-items: center;">
-            <span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin:0;">STRATEGY BLOCKS</span>
+        <div class="editor-section-banner">
+            <span class="editor-section-banner-text">STRATEGY BLOCKS</span>
         </div>
         <div id="strategy-block-target"></div>
     `;
@@ -1383,16 +1382,16 @@ window.loadMatchupIntoEditor = function(idx) {
     let tierHTML = tierOptions.map(t => `<option value="${t}" ${matchup.tier === t ? 'selected' : ''}>${t}</option>`).join('');
 
     container.innerHTML = `
-        <div class="block-editor-container" style="margin-top: 0; margin-bottom: 1rem;">
+        <div class="block-editor-container block-editor-container-tight">
             <div class="block-card">
                 <div class="block-header"><span class="block-type-badge">MATCHUP METADATA</span></div>
                 <div class="editor-row">
                     <div>
-                        <label style="font-size:0.65rem; color:#888;">Opponent Name</label>
+                        <label class="editor-field-label-sm">Opponent Name</label>
                         <input type="text" class="editor-input" value="${matchup.opponent || ''}" oninput="window.updateMatchupMeta(${idx}, 'opponent', this.value)" placeholder="e.g. Gojo">
                     </div>
                     <div>
-                        <label style="font-size:0.65rem; color:#888;">Difficulty Tier</label>
+                        <label class="editor-field-label-sm">Difficulty Tier</label>
                         <select class="editor-select" onchange="window.updateMatchupMeta(${idx}, 'tier', this.value)">
                             ${tierHTML}
                         </select>
@@ -1400,8 +1399,8 @@ window.loadMatchupIntoEditor = function(idx) {
                     </div>
             </div>
         </div>
-        <div style="background: #0a0a0a; border-top: 1px solid #222; border-bottom: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; display: flex; align-items: center;">
-            <span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin:0;">STRATEGY BLOCKS</span>
+        <div class="editor-section-banner">
+            <span class="editor-section-banner-text">STRATEGY BLOCKS</span>
         </div>
         <div id="strategy-block-target"></div>
     `;
@@ -1445,17 +1444,17 @@ window.loadMoveIntoEditor = async function(moveId) {
 
     const container = document.getElementById('move-editor-container');
     container.innerHTML = `
-        <div style="background: #0a0a0a; border-top: 1px solid #222; border-bottom: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; margin-top: 0.5rem; display: flex; align-items: center;">
-            <span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin:0;">1. STATS & FRAME DATA: ${moveStats?.name || moveId}</span>
+        <div class="editor-section-banner editor-section-banner-spaced">
+            <span class="editor-section-banner-text">1. STATS & FRAME DATA: ${moveStats?.name || moveId}</span>
         </div>
-        <div id="daw-editor-target" style="padding-bottom: 1rem;"></div>
-        
-        <div style="background: #0a0a0a; border-top: 1px solid #222; border-bottom: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; display: flex; align-items: center;">
-            <span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin:0;">2. MOVE STRATEGIES</span>
+        <div id="daw-editor-target" class="daw-editor-target-spacing"></div>
+
+        <div class="editor-section-banner">
+            <span class="editor-section-banner-text">2. MOVE STRATEGIES</span>
         </div>
         <div id="strategy-block-target"></div>
     `;
-    
+
     initDawEditor('daw-editor-target', moveStats);
     initStrategyBlockBuilder('strategy-block-target', moveStrats || []);
     
@@ -1472,17 +1471,17 @@ window.loadMoveIntoEditor = async function(moveId) {
 function initPerMoveEditor(moveId, statsData, strategyData) {
     const builder = document.getElementById('interactive-builder');
     builder.innerHTML = `
-        <div style="background: #0a0a0a; border-top: 1px solid #222; border-bottom: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; margin-top: 0.5rem; display: flex; align-items: center;">
-            <span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin:0;">1. STATS & FRAME DATA</span>
+        <div class="editor-section-banner editor-section-banner-spaced">
+            <span class="editor-section-banner-text">1. STATS & FRAME DATA</span>
         </div>
-        <div id="daw-editor-target" style="padding-bottom: 1rem;"></div>
-        
-        <div style="background: #0a0a0a; border-top: 1px solid #222; border-bottom: 1px solid #222; border-left: 3px solid var(--accent-blue); padding: 0.75rem 1.5rem; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: 1rem; display: flex; align-items: center;">
-            <span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.1rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin:0;">2. MOVE STRATEGIES</span>
+        <div id="daw-editor-target" class="daw-editor-target-spacing"></div>
+
+        <div class="editor-section-banner">
+            <span class="editor-section-banner-text">2. MOVE STRATEGIES</span>
         </div>
         <div id="strategy-block-target"></div>
     `;
-    
+
     initDawEditor('daw-editor-target', statsData);
     initStrategyBlockBuilder('strategy-block-target', strategyData || []);
     updateLivePreview(); 
