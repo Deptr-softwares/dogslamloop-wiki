@@ -254,6 +254,26 @@
    explicit so removing .hidden doesn't rely on the browser's implicit default. */
 .tab-content, .vessel-content { display: block; }
 
+/* Wiki Divider Blocks (js/description.js generateHTMLForBlocks 'divider' type) */
+.wiki-divider { clear: both; display: flex; align-items: center; justify-content: center; opacity: 0.8; width: 100%; }
+.wiki-divider-pad-none { margin: 0; }
+.wiki-divider-pad-small { margin: 1rem 0; }
+.wiki-divider-pad-normal { margin: 2.5rem 0; }
+.wiki-divider-pad-large { margin: 4rem 0; }
+.wiki-divider-pad-massive { margin: 6rem 0; }
+
+.wiki-divider-line-solid { width: 100%; height: 2px; background: var(--border-color, #333); }
+.wiki-divider-line-dashed { width: 100%; height: 2px; border-bottom: 2px dashed var(--border-color, #333); }
+.wiki-divider-line-dotted { width: 100%; height: 4px; border-bottom: 4px dotted var(--border-color, #333); }
+.wiki-divider-line-double { width: 100%; height: 6px; border-top: 2px solid var(--border-color, #333); border-bottom: 2px solid var(--border-color, #333); }
+.wiki-divider-line-fade { width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--border-color, #333) 20%, var(--border-color, #333) 80%, transparent); }
+
+.wiki-divider-segment { flex-grow: 1; height: 2px; background: var(--border-color, #333); }
+.wiki-divider-circle-dot { margin: 0 1rem; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--accent-blue); background: var(--bg-main); box-shadow: 2px 2px 0px var(--manga-shadow); }
+.wiki-divider-cross-plus { margin: 0 1rem; font-family: var(--text-mono); color: var(--accent-blue); font-weight: bold; font-size: 1.4rem; line-height: 0.5; }
+.wiki-divider-slash-mark { margin: 0 1rem; font-family: 'CC-Wild-Words', sans-serif; color: var(--border-color, #333); font-size: 1rem; letter-spacing: 2px; font-style: italic; }
+.wiki-divider-diamond-mark { margin: 0 1rem; transform: rotate(45deg); width: 10px; height: 10px; border: 2px solid var(--accent-blue); background: var(--bg-main); box-shadow: 2px 2px 0px var(--manga-shadow); }
+
 /* Media Formatting Helpers */
 .wiki-media { border-radius: 4px; border: 1px solid var(--border-color); }
 .wiki-media-left { float: left; margin: 0.5rem 1.5rem 1rem 0; }
