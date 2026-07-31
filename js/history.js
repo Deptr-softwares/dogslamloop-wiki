@@ -157,6 +157,28 @@ window.renderRevision = async function(index) {
             });
         }
         
+    } else if (window.currentEditorPageType === 'tierlist') {
+        // Unlike the 'system' branch, tierlist.js's loadTierList() looks up
+        // its containers by a fixed set of global IDs (not a scoped query),
+        // so we can build them directly inside history's own container
+        // instead of building elsewhere and re-parenting.
+        mainArea.innerHTML = `
+            <nav id="tier-tabs-container" class="character-nav" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue); align-items: center;">
+                <p class="loading-msg" style="margin:0;">Loading tabs...</p>
+            </nav>
+            <div class="tier-list-container" id="tier-list-ui">
+                <p class="loading-msg">Loading tier list data...</p>
+            </div>
+            <h2 class="section-title mb-4" style="text-transform: uppercase; margin-top: 2rem;">Reasoning & Changelogs</h2>
+            <div id="changelog-container" style="display: flex; flex-direction: column; gap: 1rem;"></div>
+        `;
+
+        if (typeof window.loadTierList === 'function') {
+            await window.loadTierList();
+        } else {
+            mainArea.innerHTML = '<div class="empty-tab-msg">Tier list renderer failed to load.</div>';
+        }
+
     } else {
         let validTabs = [];
         if (renderDesc.profile || renderDesc.playstyle || renderDesc.overview || renderDesc.strategy || (renderDesc.extras && renderDesc.extras.length)) validTabs.push('overview');
