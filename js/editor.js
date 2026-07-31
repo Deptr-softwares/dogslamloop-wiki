@@ -1491,7 +1491,7 @@ function initPerMoveEditor(moveId, statsData, strategyData) {
 function initDawEditor(containerId, moveData) {
     const container = document.getElementById(containerId);
     if (!moveData) {
-        container.innerHTML = `<p style="color:var(--text-muted); font-size: 0.85rem; padding-bottom: 1rem;">No frame data configured for this move yet.</p>`;
+        container.innerHTML = `<p class="daw-empty-notice">No frame data configured for this move yet.</p>`;
         return;
     }
 
@@ -1514,7 +1514,7 @@ function initDawEditor(containerId, moveData) {
 
     function renderDaw() {
         let metaHtml = `
-            <div class="block-editor-container" style="margin-top: 0; margin-bottom: 1rem;">
+            <div class="block-editor-container block-editor-container-tight">
                 <div class="block-card">
                     <div class="block-header"><span class="block-type-badge">MOVE METADATA</span></div>
                     <div class="editor-row">
@@ -1537,29 +1537,29 @@ function initDawEditor(containerId, moveData) {
         let statsHtml = '';
         moveData.stats.forEach((stat, idx) => {
             statsHtml += `
-                <div class="editor-row" style="margin-bottom: 0.25rem;">
+                <div class="editor-row editor-row-spaced-sm">
                     <div><input type="text" class="editor-input stat-inp" data-idx="${idx}" data-field="label" value="${stat.label}" placeholder="Stat Name"></div>
                     <div><input type="text" class="editor-input stat-inp" data-idx="${idx}" data-field="value" value="${stat.value}" placeholder="Stat Value"></div>
-                    <div style="display:flex; align-items:center; gap:0.5rem; width:auto; flex: 0 0 auto;">
-                        <label style="color:var(--text-muted); font-size:0.75rem;"><input type="checkbox" class="stat-highlight" data-idx="${idx}" ${stat.isHighlighted ? 'checked' : ''}> Highlight</label>
-                        <button class="add-block-btn btn-action-delete btn-del-stat" data-idx="${idx}" style="padding: 0.3rem 0.5rem;" title="Remove Stat">✖</button>
+                    <div class="daw-stat-actions">
+                        <label class="editor-checkbox-label"><input type="checkbox" class="stat-highlight" data-idx="${idx}" ${stat.isHighlighted ? 'checked' : ''}> Highlight</label>
+                        <button class="add-block-btn btn-action-delete btn-del-stat daw-stat-del-btn" data-idx="${idx}" title="Remove Stat">✖</button>
                     </div>
                 </div>
             `;
         });
         let statsCard = `
-            <div class="block-editor-container" style="margin-top: 0; margin-bottom: 1rem;">
+            <div class="block-editor-container block-editor-container-tight">
                 <div class="block-card">
-                    <div class="block-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="block-header">
                         <span class="block-type-badge">MOVE STATS</span>
-                        <button class="add-block-btn" id="btn-add-movestat" style="font-size: 0.65rem; padding: 0.15rem 0.4rem;">+ ADD STAT</button>
+                        <button class="add-block-btn daw-add-stat-btn" id="btn-add-movestat">+ ADD STAT</button>
                     </div>
                     <div id="move-stats-container">${statsHtml}</div>
                 </div>
             </div>
         `;
 
-        let variantTabsHtml = `<div class="daw-variant-wrapper" style="margin-bottom: 1rem;">`;
+        let variantTabsHtml = `<div class="daw-variant-wrapper">`;
         let walkNode = moveData;
 
         for (let depth = 0; depth <= activePath.length; depth++) {
@@ -1578,7 +1578,7 @@ function initDawEditor(containerId, moveData) {
             });
             
             let parentPathStr = JSON.stringify(activePath.slice(0, depth));
-            variantTabsHtml += `<button class="daw-tab-btn" style="color: #34d399; font-size:0.65rem;" onclick='window.addDawVariant(${parentPathStr})'>+ ADD VARIANT</button></div>`;
+            variantTabsHtml += `<button class="daw-tab-btn daw-tab-btn-add-variant" onclick='window.addDawVariant(${parentPathStr})'>+ ADD VARIANT</button></div>`;
 
             if (activeKey && walkNode.variants[activeKey]) {
                 walkNode = walkNode.variants[activeKey];
@@ -1613,37 +1613,37 @@ function initDawEditor(containerId, moveData) {
                     let phaseColor = bgClassMap[p.styleClass] || "#555";
                     
                     phasesHtml += `
-                        <div class="daw-phase-block ${isSelected ? 'selected' : ''}" 
+                        <div class="daw-phase-block ${isSelected ? 'selected' : ''}"
                                 style="width: ${widthPct}%; background-color: ${phaseColor};"
                                 onclick="window.selectDawPhase(${bIdx}, ${pIdx})">
-                            <span style="pointer-events:none;">${p.duration}f</span>
+                            <span class="daw-phase-block-duration">${p.duration}f</span>
                         </div>
                     `;
                 });
 
                 tracksHtml += `
-                    <div style="margin-bottom: 1.5rem;">
-                        <div style="display:flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.25rem;">
-                            
-                            <div style="display:flex; gap: 0.25rem; align-items: center;">
-                                <input type="text" class="editor-input daw-track-inp" data-bidx="${bIdx}" data-field="headerInfo" value="${bar.headerInfo || ''}" placeholder="Header Title (Top)" style="margin:0; flex: 1;">
+                    <div class="daw-track-wrapper">
+                        <div class="daw-track-header-row">
+
+                            <div class="daw-track-input-row">
+                                <input type="text" class="editor-input daw-track-inp daw-track-inp-flex" data-bidx="${bIdx}" data-field="headerInfo" value="${bar.headerInfo || ''}" placeholder="Header Title (Top)">
                                 <button onclick="window.addDawPhase(${bIdx})" class="btn-sys btn-sys-green" title="Add Phase">+</button>
                                 <button onclick="window.deleteDawTrack(${bIdx})" class="btn-sys btn-sys-red" title="Delete Track">✖</button>
                             </div>
-                            
-                            <div style="display:flex; gap: 0.25rem; align-items: center;">
-                                <input type="text" class="editor-input daw-track-inp" data-bidx="${bIdx}" data-field="footerInfo" value="${bar.footerInfo || ''}" placeholder="Footer Title (Bottom)" style="margin:0; flex: 1;">
-                                <select class="editor-select daw-track-color ${bar.headerClass || ''}" data-bidx="${bIdx}" style="margin:0; width: 125px; flex: none; font-weight: bold;">
-                                    <option value="" style="color: #ffffff;" ${!bar.headerClass ? 'selected' : ''}>Default</option>
-                                    <option value="text-red-400" style="color: hsl(3, 93%, 63%);" ${bar.headerClass === 'text-red-400' ? 'selected' : ''}>Red (L)</option>
-                                    <option value="text-red-600" style="color: hsl(0, 100%, 50%);" ${bar.headerClass === 'text-red-600' ? 'selected' : ''}>Red (D)</option>
-                                    <option value="text-blue-400" style="color: #3b82f6;" ${bar.headerClass === 'text-blue-400' ? 'selected' : ''}>Blue</option>
-                                    <option value="text-green-400" style="color: hsl(127, 59%, 58%);" ${bar.headerClass === 'text-green-400' ? 'selected' : ''}>Green (L)</option>
-                                    <option value="text-green-500" style="color: hsl(120, 100%, 25%);" ${bar.headerClass === 'text-green-500' ? 'selected' : ''}>Green (D)</option>
-                                    <option value="text-purple-400" style="color: hsl(261, 71%, 51%);" ${bar.headerClass === 'text-purple-400' ? 'selected' : ''}>Purple</option>
-                                    <option value="text-orange-400" style="color: hsl(39, 100%, 50%);" ${bar.headerClass === 'text-orange-400' ? 'selected' : ''}>Orange</option>
-                                    <option value="text-cyan-400" style="color: hsl(180, 100%, 50%);" ${bar.headerClass === 'text-cyan-400' ? 'selected' : ''}>Cyan</option>
-                                    <option value="text-gray-400" style="color: hsl(0, 0%, 50%);" ${bar.headerClass === 'text-gray-400' ? 'selected' : ''}>Gray</option>
+
+                            <div class="daw-track-input-row">
+                                <input type="text" class="editor-input daw-track-inp daw-track-inp-flex" data-bidx="${bIdx}" data-field="footerInfo" value="${bar.footerInfo || ''}" placeholder="Footer Title (Bottom)">
+                                <select class="editor-select daw-track-color daw-track-color-select ${bar.headerClass || ''}" data-bidx="${bIdx}">
+                                    <option value="" class="daw-option-default" ${!bar.headerClass ? 'selected' : ''}>Default</option>
+                                    <option value="text-red-400" class="daw-option-red-400" ${bar.headerClass === 'text-red-400' ? 'selected' : ''}>Red (L)</option>
+                                    <option value="text-red-600" class="daw-option-red-600" ${bar.headerClass === 'text-red-600' ? 'selected' : ''}>Red (D)</option>
+                                    <option value="text-blue-400" class="daw-option-blue-400" ${bar.headerClass === 'text-blue-400' ? 'selected' : ''}>Blue</option>
+                                    <option value="text-green-400" class="daw-option-green-400" ${bar.headerClass === 'text-green-400' ? 'selected' : ''}>Green (L)</option>
+                                    <option value="text-green-500" class="daw-option-green-500" ${bar.headerClass === 'text-green-500' ? 'selected' : ''}>Green (D)</option>
+                                    <option value="text-purple-400" class="daw-option-purple-400" ${bar.headerClass === 'text-purple-400' ? 'selected' : ''}>Purple</option>
+                                    <option value="text-orange-400" class="daw-option-orange-400" ${bar.headerClass === 'text-orange-400' ? 'selected' : ''}>Orange</option>
+                                    <option value="text-cyan-400" class="daw-option-cyan-400" ${bar.headerClass === 'text-cyan-400' ? 'selected' : ''}>Cyan</option>
+                                    <option value="text-gray-400" class="daw-option-gray-400" ${bar.headerClass === 'text-gray-400' ? 'selected' : ''}>Gray</option>
                                 </select>
                             </div>
                             
@@ -1668,25 +1668,25 @@ function initDawEditor(containerId, moveData) {
                 ];
 
                 let overlaysHtml = overlayOptions.map(opt => `
-                    <label style="display:flex; align-items:center; color:#d1d5db; font-size:0.7rem; margin-bottom:0.25rem; cursor:pointer;">
+                    <label class="daw-overlay-label">
                         <input type="checkbox" class="insp-overlay-cb" value="${opt.id}" ${pOverlays.includes(opt.id) ? 'checked' : ''}>
                         ${opt.label}
                     </label>
                 `).join('');
 
                 inspectorHtml = `
-                    <div class="daw-inspector" style="margin-top: 1rem;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+                    <div class="daw-inspector daw-inspector-spaced">
+                        <div class="daw-inspector-header">
                             <span class="block-type-badge">PHASE INSPECTOR</span>
                             <button onclick="window.deleteDawPhase()" class="btn-sys btn-sys-red">✖ DELETE PHASE</button>
                         </div>
                         <div class="editor-row">
                             <div>
-                                <label style="font-size:0.65rem; color:#888;">Duration (Frames)</label>
+                                <label class="editor-field-label-sm">Duration (Frames)</label>
                                 <input type="number" class="editor-input" id="insp-duration" value="${p.duration}">
                             </div>
                             <div>
-                                <label style="font-size:0.65rem; color:#888;">Frame Type</label>
+                                <label class="editor-field-label-sm">Frame Type</label>
                                 <select class="editor-select" id="insp-class">
                                     <option value="bg-tick-start" ${p.styleClass==='bg-tick-start'?'selected':''}>Startup (Blue)</option>
                                     <option value="bg-tick-active" ${p.styleClass==='bg-tick-active'?'selected':''}>Active (Red)</option>
@@ -1701,22 +1701,22 @@ function initDawEditor(containerId, moveData) {
                         </div>
                         <div class="editor-row">
                             <div>
-                                <label style="font-size:0.65rem; color:#888;">Tooltip</label>
+                                <label class="editor-field-label-sm">Tooltip</label>
                                 <input type="text" class="editor-input" id="insp-label" value="${p.label || ''}">
                             </div>
                             <div>
-                                <label style="font-size:0.65rem; color:#888; display:block; margin-bottom: 0.25rem;">Overlays</label>
-                                <details class="editor-input" style="padding: 0.3rem 0.4rem; cursor: pointer; height: auto;">
-                                    <summary style="font-size: 0.75rem; color: #d1d5db; font-family: var(--text-mono); list-style-position: inside;">Select Overlays (${pOverlays.length})</summary>
-                                    <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #333; display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem;">
+                                <label class="editor-field-label-sm daw-overlay-label-block">Overlays</label>
+                                <details class="editor-input daw-overlay-details">
+                                    <summary class="daw-overlay-summary">Select Overlays (${pOverlays.length})</summary>
+                                    <div class="daw-overlay-grid">
                                         ${overlaysHtml}
                                     </div>
                                 </details>
                             </div>
                         </div>
                         <div class="editor-row">
-                            <div style="flex: 1;">
-                                <label style="font-size:0.65rem; color:#888;">Legend Description (Overrides the normal tooltip in the bottom Legend)</label>
+                            <div class="daw-inspector-field-flex1">
+                                <label class="editor-field-label-sm">Legend Description (Overrides the normal tooltip in the bottom Legend)</label>
                                 <input type="text" class="editor-input" id="insp-legend" value="${p.legendDesc || ''}" placeholder="e.g. Has Super Armor">
                             </div>
                         </div>
@@ -1726,12 +1726,12 @@ function initDawEditor(containerId, moveData) {
 
             dawHtml = `
                 <div class="daw-container">
-                    <div style="display:flex; justify-content:space-between; margin-bottom: 0.5rem; align-items:center;">
-                        <div class="editor-row" style="width: 250px; margin: 0;">
-                            <input type="text" class="editor-input" style="margin:0;" placeholder="Variant Label" id="daw-variant-label" value="${currentObj.label || ''}">
-                            <input type="number" class="editor-input" style="margin:0; width:80px;" placeholder="Scale" id="daw-variant-scale" value="${totalScale}">
+                    <div class="daw-container-header-row">
+                        <div class="editor-row daw-container-header-meta">
+                            <input type="text" class="editor-input daw-variant-label-inp" placeholder="Variant Label" id="daw-variant-label" value="${currentObj.label || ''}">
+                            <input type="number" class="editor-input daw-variant-scale-inp" placeholder="Scale" id="daw-variant-scale" value="${totalScale}">
                         </div>
-                        <div style="display:flex; gap: 0.25rem;">
+                        <div class="daw-container-header-actions">
                             <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red" title="Delete this Variant completely">✖ DELETE</button>
                             <button onclick="window.addDawTrack()" class="btn-sys btn-sys-blue">+ Add Track</button>
                         </div>
@@ -1744,31 +1744,31 @@ function initDawEditor(containerId, moveData) {
             `;
         } else if (hasVariants) {
             dawHtml = `
-                <div class="daw-container" style="text-align: center; padding: 3rem 1rem;">
-                    <p style="color:var(--accent-blue); font-family:var(--text-manga); font-size: 1.1rem; margin-bottom:1rem; text-transform: uppercase;">Variant Branch</p>
-                    
-                    <div style="display: flex; justify-content: center; margin-bottom: 1.5rem;">
-                        <input type="text" class="editor-input" style="max-width: 250px; text-align: center; font-size: 0.9rem;" placeholder="Branch Name" id="daw-variant-label" value="${currentObj.label || ''}">
+                <div class="daw-container daw-branch-empty-notice">
+                    <p class="daw-branch-title">Variant Branch</p>
+
+                    <div class="daw-branch-label-row">
+                        <input type="text" class="editor-input daw-branch-label-inp" placeholder="Branch Name" id="daw-variant-label" value="${currentObj.label || ''}">
                     </div>
 
-                    <p style="color:var(--text-muted); font-family:var(--text-mono); margin-bottom:1.5rem;">Select a sub-variant from the tabs above to view or edit its timeline.</p>
-                    <div style="display:flex; gap:1rem; justify-content:center;">
-                        <button onclick="window.deleteDawVariant()" class="add-block-btn" style="color:#ef4444; border-color:#ef4444;">Delete Entire Branch</button>
+                    <p class="daw-branch-hint">Select a sub-variant from the tabs above to view or edit its timeline.</p>
+                    <div class="daw-branch-actions-row">
+                        <button onclick="window.deleteDawVariant()" class="add-block-btn daw-delete-branch-btn">Delete Entire Branch</button>
                     </div>
                 </div>
             `;
         } else if (activePath.length > 0) {
             dawHtml = `
-                <div class="daw-container" style="text-align: center; padding: 3rem 1rem;">
-                    
-                    <div style="display: flex; justify-content: center; margin-bottom: 1.5rem;">
-                        <input type="text" class="editor-input" style="max-width: 250px; text-align: center; font-size: 0.9rem;" placeholder="Variant Name" id="daw-variant-label" value="${currentObj.label || ''}">
+                <div class="daw-container daw-branch-empty-notice">
+
+                    <div class="daw-branch-label-row">
+                        <input type="text" class="editor-input daw-branch-label-inp" placeholder="Variant Name" id="daw-variant-label" value="${currentObj.label || ''}">
                     </div>
 
-                    <p style="color:var(--text-muted); font-family:var(--text-mono); margin-bottom:1.5rem;">This variant is currently empty.</p>
-                    <div style="display:flex; gap:1rem; justify-content:center;">
-                        <button onclick="window.initDawLeaf()" class="btn-sys btn-sys-blue" style="max-width:200px;">Initialize Timeline</button>
-                        <button onclick="window.initDawBranch()" class="btn-sys btn-sys-regular" style="max-width:200px;">Create Sub-Variants</button>
+                    <p class="daw-branch-hint">This variant is currently empty.</p>
+                    <div class="daw-branch-actions-row">
+                        <button onclick="window.initDawLeaf()" class="btn-sys btn-sys-blue daw-narrow-btn">Initialize Timeline</button>
+                        <button onclick="window.initDawBranch()" class="btn-sys btn-sys-regular daw-narrow-btn">Create Sub-Variants</button>
                         <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red">Delete Variant</button>
                     </div>
                 </div>
@@ -1833,7 +1833,7 @@ function initDawEditor(containerId, moveData) {
                 let bIdx = e.target.dataset.bidx;
                 let val = e.target.value;
 
-                e.target.className = `editor-select daw-track-color ${val}`;
+                e.target.className = `editor-select daw-track-color daw-track-color-select ${val}`;
                 
                 if (val) {
                     currentObj.bars[bIdx].headerClass = val;
