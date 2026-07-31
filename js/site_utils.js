@@ -215,7 +215,7 @@ window.injectAuthModal = function() {
 
     // 1. The Better Auth Modal (Login & Register Tabs)
     const authModalHTML = `
-    <div id="auth-modal-overlay" class="modal-overlay" style="display: none;">
+    <div id="auth-modal-overlay" class="modal-overlay hidden">
         <div class="modal-box modal-sm accent-blue">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: none; padding-bottom: 0;">
                 <h3>SYSTEM ACCESS</h3>
@@ -249,7 +249,7 @@ window.injectAuthModal = function() {
                 </div>
 
                 <!-- REGISTER VIEW -->
-                <div id="auth-view-register" class="editor-row" style="flex-direction: column; gap: 0.5rem; display: none;">
+                <div id="auth-view-register" class="editor-row hidden" style="flex-direction: column; gap: 0.5rem;">
                     <label style="font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); text-align: left;">CREATE ACCOUNT</label>
                     <input type="text" id="auth-name-register" class="editor-input" placeholder="Display Name (Public)" style="margin-bottom: 0.25rem;">
                     <input type="email" id="auth-email-register" class="editor-input" placeholder="Email Address" style="margin-bottom: 0.25rem;">
@@ -257,17 +257,17 @@ window.injectAuthModal = function() {
                     <button id="btn-auth-action-register" class="btn-sys btn-sys-green" style="margin-top: 0.5rem; width: 100%;">REGISTER ACCOUNT</button>
                 </div>
 
-                <div id="auth-feedback-message" style="display: none; font-size: 0.75rem; font-family: var(--text-mono); text-align: left; margin-top: 0.75rem; padding: 0.5rem; border-radius: 4px;"></div>
+                <div id="auth-feedback-message" class="hidden" style="font-size: 0.75rem; font-family: var(--text-mono); text-align: left; margin-top: 0.75rem; padding: 0.5rem; border-radius: 4px;"></div>
             </div>
             <div class="modal-footer" style="justify-content: center;">
-                <button class="btn-sys btn-sys-regular" style="width: 100%;" onclick="document.getElementById('auth-modal-overlay').style.display='none'">CANCEL</button>
+                <button class="btn-sys btn-sys-regular" style="width: 100%;" onclick="document.getElementById('auth-modal-overlay').classList.add('hidden')">CANCEL</button>
             </div>
         </div>
     </div>`;
 
     // 2. The Custom Profile Modal
     const profileModalHTML = `
-    <div id="profile-modal-overlay" class="modal-overlay" style="display: none;">
+    <div id="profile-modal-overlay" class="modal-overlay hidden">
         <div class="modal-box modal-sm accent-purple">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3>SYSTEM PROFILE</h3>
@@ -285,7 +285,7 @@ window.injectAuthModal = function() {
             <div class="modal-footer" style="justify-content: space-between;">
                 <button id="btn-profile-logout" class="btn-sys btn-sys-red">LOGOUT</button>
                 <div style="display: flex; gap: 0.5rem;">
-                    <button class="btn-sys btn-sys-regular" onclick="document.getElementById('profile-modal-overlay').style.display='none'">CANCEL</button>
+                    <button class="btn-sys btn-sys-regular" onclick="document.getElementById('profile-modal-overlay').classList.add('hidden')">CANCEL</button>
                     <button id="btn-profile-save" class="btn-sys btn-sys-purple">SAVE CHANGES</button>
                 </div>
             </div>
@@ -294,7 +294,7 @@ window.injectAuthModal = function() {
 
     // 3. The Custom System Alert Modal
     const alertModalHTML = `
-    <div id="alert-modal-overlay" class="modal-overlay tier-priority" style="display: none;">
+    <div id="alert-modal-overlay" class="modal-overlay tier-priority hidden">
         <div class="modal-box modal-sm accent-green">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3>SYSTEM MESSAGE</h3>
@@ -324,15 +324,15 @@ window.injectAuthModal = function() {
     tabLogin.onclick = () => {
         tabLogin.classList.add('active'); tabLogin.style.opacity = '1';
         tabRegister.classList.remove('active'); tabRegister.style.opacity = '0.5';
-        viewLogin.style.display = 'flex'; viewRegister.style.display = 'none';
-        feedbackMsg.style.display = 'none';
+        viewLogin.classList.remove('hidden'); viewRegister.classList.add('hidden');
+        feedbackMsg.classList.add('hidden');
     };
 
     tabRegister.onclick = () => {
         tabRegister.classList.add('active'); tabRegister.style.opacity = '1';
         tabLogin.classList.remove('active'); tabLogin.style.opacity = '0.5';
-        viewRegister.style.display = 'flex'; viewLogin.style.display = 'none';
-        feedbackMsg.style.display = 'none';
+        viewRegister.classList.remove('hidden'); viewLogin.classList.add('hidden');
+        feedbackMsg.classList.add('hidden');
     };
 
     // --- LOGIC: LOGIN ---
@@ -342,7 +342,7 @@ window.injectAuthModal = function() {
         const btn = e.target;
         
         if (!email || !password) {
-            feedbackMsg.style.display = 'block'; feedbackMsg.style.color = '#ef4444'; feedbackMsg.style.background = 'rgba(239,68,68,0.1)';
+            feedbackMsg.classList.remove('hidden'); feedbackMsg.style.color = '#ef4444'; feedbackMsg.style.background = 'rgba(239,68,68,0.1)';
             feedbackMsg.textContent = "Please enter both email and password."; return; 
         }
         
@@ -351,10 +351,10 @@ window.injectAuthModal = function() {
         btn.disabled = false; btn.textContent = "AUTHENTICATE";
 
         if (error) {
-            feedbackMsg.style.display = 'block'; feedbackMsg.style.color = '#ef4444'; feedbackMsg.style.background = 'rgba(239,68,68,0.1)';
+            feedbackMsg.classList.remove('hidden'); feedbackMsg.style.color = '#ef4444'; feedbackMsg.style.background = 'rgba(239,68,68,0.1)';
             feedbackMsg.textContent = "Error: " + error.message;
         } else {
-            document.getElementById('auth-modal-overlay').style.display = 'none';
+            document.getElementById('auth-modal-overlay').classList.add('hidden');
             document.getElementById('auth-password-login').value = ''; 
             window.checkActiveSession(); 
             window.showSystemAlert("Authentication successful! You are now securely connected.");
@@ -369,7 +369,7 @@ window.injectAuthModal = function() {
         const btn = e.target;
         
         if (!name || !email || !password) {
-            feedbackMsg.style.display = 'block'; feedbackMsg.style.color = '#ef4444'; feedbackMsg.style.background = 'rgba(239,68,68,0.1)';
+            feedbackMsg.classList.remove('hidden'); feedbackMsg.style.color = '#ef4444'; feedbackMsg.style.background = 'rgba(239,68,68,0.1)';
             feedbackMsg.textContent = "All fields are required to register."; return; 
         }
         
@@ -380,17 +380,17 @@ window.injectAuthModal = function() {
         btn.disabled = false; btn.textContent = "REGISTER ACCOUNT";
 
         if (error) {
-            feedbackMsg.style.display = 'block'; feedbackMsg.style.color = '#ef4444'; feedbackMsg.style.background = 'rgba(239,68,68,0.1)';
+            feedbackMsg.classList.remove('hidden'); feedbackMsg.style.color = '#ef4444'; feedbackMsg.style.background = 'rgba(239,68,68,0.1)';
             feedbackMsg.textContent = "Error: " + error.message;
         } else {
-            feedbackMsg.style.display = 'block'; feedbackMsg.style.color = '#22c55e'; feedbackMsg.style.background = 'rgba(34,197,94,0.1)';
+            feedbackMsg.classList.remove('hidden'); feedbackMsg.style.color = '#22c55e'; feedbackMsg.style.background = 'rgba(34,197,94,0.1)';
             feedbackMsg.textContent = "Success! Your account has been created. If email verification is enabled on your server, please check your inbox.";
             document.getElementById('auth-password-register').value = '';
             
             // Auto-login fallback if verification isn't strictly required
             if (data.session) {
                 setTimeout(() => {
-                    document.getElementById('auth-modal-overlay').style.display = 'none';
+                    document.getElementById('auth-modal-overlay').classList.add('hidden');
                     window.checkActiveSession();
                 }, 2000);
             }
@@ -403,7 +403,7 @@ window.injectAuthModal = function() {
 
     if (btnLogout) {
         btnLogout.addEventListener('click', async () => {
-            document.getElementById('profile-modal-overlay').style.display = 'none';
+            document.getElementById('profile-modal-overlay').classList.add('hidden');
             await window.supabaseClient.auth.signOut();
             location.reload(); 
         });
@@ -421,20 +421,20 @@ window.injectAuthModal = function() {
                 btnSave.disabled = false; btnSave.textContent = "SAVE CHANGES";
 
                 if (!error) {
-                    document.getElementById('profile-modal-overlay').style.display = 'none';
+                    document.getElementById('profile-modal-overlay').classList.add('hidden');
                     window.checkActiveSession(); 
                 } else {
                     alert("Failed to update name. Check console."); console.error(error);
                 }
             } else {
-                document.getElementById('profile-modal-overlay').style.display = 'none';
+                document.getElementById('profile-modal-overlay').classList.add('hidden');
             }
         });
     }
 
     // Bind System Alert Close Button
     document.getElementById('btn-alert-close')?.addEventListener('click', () => {
-        document.getElementById('alert-modal-overlay').style.display = 'none';
+        document.getElementById('alert-modal-overlay').classList.add('hidden');
     });
 };
 
@@ -443,7 +443,7 @@ window.showSystemAlert = function(message) {
     window.injectAuthModal(); // Ensure it exists in the DOM
     const msgEl = document.getElementById('alert-modal-msg');
     if (msgEl) msgEl.textContent = message;
-    document.getElementById('alert-modal-overlay').style.display = 'flex';
+    document.getElementById('alert-modal-overlay').classList.remove('hidden');
 };
 
 // --- USERNAME & PROFILE SYSTEM ---
@@ -476,13 +476,13 @@ window.openAuthModal = async function() {
         const nameInput = document.getElementById('profile-new-name');
         nameInput.value = username;
         
-        document.getElementById('profile-modal-overlay').style.display = 'flex';
+        document.getElementById('profile-modal-overlay').classList.remove('hidden');
         nameInput.focus(); 
         return; 
     }
 
     // IF NOT LOGGED IN: Open the Auth Modal
-    document.getElementById('auth-modal-overlay').style.display = 'flex';
+    document.getElementById('auth-modal-overlay').classList.remove('hidden');
 };
 
 window.triggerOAuth = async function(providerName) {
@@ -655,8 +655,7 @@ window.initNotifications = async function() {
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'site-notification-modal';
-        modal.className = 'modal-overlay'; // FIXED: Strict DSL overlay
-        modal.style = "display: none;";
+        modal.className = 'modal-overlay hidden'; // FIXED: Strict DSL overlay
         document.body.appendChild(modal);
     }
 
@@ -696,7 +695,7 @@ window.initNotifications = async function() {
                 ${notifHTML}
             </div>
             <div class="modal-footer">
-                <button class="btn-sys btn-sys-regular" onclick="document.getElementById('site-notification-modal').style.display='none'">CLOSE</button>
+                <button class="btn-sys btn-sys-regular" onclick="document.getElementById('site-notification-modal').classList.add('hidden')">CLOSE</button>
             </div>
         </div>
     `;
@@ -712,7 +711,7 @@ window.markNotifRead = async function(id, link) {
         row.classList.remove('unread');
         row.classList.add('read');
     }
-    if (dot) dot.style.display = 'none';
+    if (dot) dot.classList.add('hidden');
 
     // 2. Fire database update in the background
     if (window.supabaseClient) {
