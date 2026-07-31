@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // --- INTERCEPT UI OVERRIDES ---
         if (window.interceptedTicketData) {
-            titleEl.innerHTML = `<span style="color: #a855f7;">Intercepting Submission</span>`;
+            titleEl.innerHTML = `<span class="editor-intercept-label">Intercepting Submission</span>`;
             subTitleEl.textContent = `Reviewing and editing submission by ${window.interceptedTicketData.author_name}`;
         } else if (moveId) {
             titleEl.textContent = `Editing Move`;
@@ -332,8 +332,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (!overlay) {
                 overlay = document.createElement('div');
                 overlay.id = 'dynamic-qa-modal-overlay';
-                overlay.className = 'editor-modal-overlay';
-                overlay.style.zIndex = '10005';
+                overlay.className = 'editor-modal-overlay qa-modal-elevated';
                 document.body.appendChild(overlay);
             }
 
@@ -344,34 +343,34 @@ document.addEventListener('DOMContentLoaded', async () => {
                 let modalWidth = '400px';
 
                 const tabsHtml = `
-                    <div style="display:flex; gap:0.5rem; margin-bottom: 1rem;">
-                        <button class="btn-sys ${currentForm === 'short' ? 'btn-sys-blue' : 'btn-sys-regular'}" style="flex:1; font-size:0.7rem;" id="qa-tab-short">Short</button>
-                        <button class="btn-sys ${currentForm === 'long' ? 'btn-sys-blue' : 'btn-sys-regular'}" style="flex:1; font-size:0.7rem;" id="qa-tab-long">Long</button>
-                        <button class="btn-sys ${currentForm === 'technical' ? 'btn-sys-blue' : 'btn-sys-regular'}" style="flex:1; font-size:0.7rem;" id="qa-tab-technical">Technical</button>
+                    <div class="qa-tabs-row">
+                        <button class="btn-sys ${currentForm === 'short' ? 'btn-sys-blue' : 'btn-sys-regular'} qa-tab-btn" id="qa-tab-short">Short</button>
+                        <button class="btn-sys ${currentForm === 'long' ? 'btn-sys-blue' : 'btn-sys-regular'} qa-tab-btn" id="qa-tab-long">Long</button>
+                        <button class="btn-sys ${currentForm === 'technical' ? 'btn-sys-blue' : 'btn-sys-regular'} qa-tab-btn" id="qa-tab-technical">Technical</button>
                     </div>
                 `;
 
                 if (currentForm === 'short') {
                     formHtml = `
-                        <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888;">CHANGELOG SUMMARY (Max 50 Words)</label>
-                        <textarea id="qa-changelog" class="editor-textarea" style="min-height: 80px;" placeholder="Briefly describe what you changed..."></textarea>
-                        <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888; margin-top: 0.75rem;">SOURCE / EVIDENCE (Optional)</label>
+                        <label class="qa-field-label">CHANGELOG SUMMARY (Max 50 Words)</label>
+                        <textarea id="qa-changelog" class="editor-textarea qa-textarea-short" placeholder="Briefly describe what you changed..."></textarea>
+                        <label class="qa-field-label qa-field-label-spaced">SOURCE / EVIDENCE (Optional)</label>
                         <input type="text" id="qa-evidence" class="editor-input" placeholder="URL or link to proof...">
                     `;
                 } else if (currentForm === 'long') {
                     modalWidth = '600px';
                     formHtml = `
-                        <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888;">DETAILED CHANGELOG (Max 500 Words)</label>
-                        <textarea id="qa-changelog" class="editor-textarea" style="min-height: 150px;" placeholder="Provide a detailed explanation of your edits, reasoning, and context..."></textarea>
-                        <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888; margin-top: 0.75rem;">SOURCE / EVIDENCE (Optional)</label>
+                        <label class="qa-field-label">DETAILED CHANGELOG (Max 500 Words)</label>
+                        <textarea id="qa-changelog" class="editor-textarea qa-textarea-long" placeholder="Provide a detailed explanation of your edits, reasoning, and context..."></textarea>
+                        <label class="qa-field-label qa-field-label-spaced">SOURCE / EVIDENCE (Optional)</label>
                         <input type="text" id="qa-evidence" class="editor-input" placeholder="URL or link to proof...">
                     `;
                 } else if (currentForm === 'technical') {
                     modalWidth = '600px';
                     formHtml = `
-                        <div style="display:flex; gap: 1rem; margin-bottom: 0.75rem;">
-                            <div style="flex:1;">
-                                <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888;">CONFIDENCE LEVEL</label>
+                        <div class="qa-field-row">
+                            <div class="qa-field-col">
+                                <label class="qa-field-label">CONFIDENCE LEVEL</label>
                                 <select id="qa-confidence" class="editor-select">
                                     <option value="N/A">N/A</option>
                                     <option value="High">High - 100% Certain (Tested in-game/files)</option>
@@ -379,30 +378,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                                     <option value="Low">Low - Guessing / Needs verification</option>
                                 </select>
                             </div>
-                            <div style="flex:1;">
-                                <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888;">SOURCE / EVIDENCE (Optional)</label>
+                            <div class="qa-field-col">
+                                <label class="qa-field-label">SOURCE / EVIDENCE (Optional)</label>
                                 <input type="text" id="qa-evidence" class="editor-input" placeholder="URL or link to proof...">
                             </div>
                         </div>
-                        <label style="font-family: var(--text-mono); font-size: 0.65rem; color: #888;">TECHNICAL CHANGELOG</label>
-                        <textarea id="qa-changelog" class="editor-textarea" style="min-height: 150px;" placeholder="Detail frame data changes, math, hitboxes, or engine mechanics..."></textarea>
+                        <label class="qa-field-label">TECHNICAL CHANGELOG</label>
+                        <textarea id="qa-changelog" class="editor-textarea qa-textarea-long" placeholder="Detail frame data changes, math, hitboxes, or engine mechanics..."></textarea>
                     `;
                 }
 
                 overlay.innerHTML = `
-                    <div class="editor-modal-box auth-modal-box" style="border-top-color: var(--accent-blue); max-width: ${modalWidth}; width: 100%; transition: max-width 0.3s ease;">
+                    <div class="editor-modal-box auth-modal-box qa-modal-box" style="max-width: ${modalWidth};">
                         <div class="auth-header">
-                            <h3 style="color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif;">QUALITY ASSURANCE</h3>
+                            <h3 class="qa-modal-title">QUALITY ASSURANCE</h3>
                         </div>
-                        <div class="auth-body" style="padding: 1.5rem;">
+                        <div class="auth-body">
                             ${tabsHtml}
-                            <div id="qa-form-container" style="display: flex; flex-direction: column; text-align: left;">
+                            <div id="qa-form-container" class="qa-form-container">
                                 ${formHtml}
                             </div>
                         </div>
-                        <div class="editor-modal-actions" style="justify-content: flex-end; border-top: 1px dashed #333; padding-top: 1rem; margin-top: 0;">
+                        <div class="editor-modal-actions qa-modal-actions-divided">
                             <button id="btn-qa-cancel" class="system-page-btn">CANCEL</button>
-                            <button id="btn-qa-confirm" class="submit-btn" style="color: var(--accent-blue); border-color: var(--accent-blue);">${isIntercept ? 'UPDATE SUBMISSION' : 'CONFIRM & UPLOAD'}</button>
+                            <button id="btn-qa-confirm" class="submit-btn">${isIntercept ? 'UPDATE SUBMISSION' : 'CONFIRM & UPLOAD'}</button>
                         </div>
                     </div>
                 `;
@@ -795,12 +794,8 @@ window.customConfirm = function(message, confirmText = "DELETE", isDanger = true
 
         if (isDanger) {
             btnConfirm.className = "submit-btn btn-danger-fill";
-            btnConfirm.style = "";
         } else {
-            btnConfirm.className = "submit-btn";
-            btnConfirm.style.color = "var(--accent-blue)";
-            btnConfirm.style.borderColor = "var(--accent-blue)";
-            btnConfirm.style.backgroundColor = "transparent";
+            btnConfirm.className = "submit-btn submit-btn-outline";
         }
 
         modal.classList.remove('hidden');
