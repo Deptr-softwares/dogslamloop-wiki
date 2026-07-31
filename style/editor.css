@@ -393,6 +393,37 @@ input[type="checkbox"]:checked {
     justify-content: flex-end;
 }
 
+/* --- QA MODAL (js/editor.js openQAModal) --- */
+.editor-intercept-label { color: #a855f7; }
+.qa-modal-elevated { z-index: 10005; }
+/* Compound selector: .auth-modal-box's own base rule also sets width (400px)
+   at the same single-class specificity - a bare .qa-modal-box rule would
+   only win the tie by source-order luck (same lesson as .submit-btn-outline
+   above and the tierlist.js PR's .tier-nav-overall-btn). No visible effect
+   today since the inline max-width already clips to 400px at normal
+   viewport widths, but this is the correct fix regardless. */
+.auth-modal-box.qa-modal-box { width: 100%; transition: max-width 0.3s ease; }
+.qa-modal-title { color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; }
+.qa-form-container { display: flex; flex-direction: column; text-align: left; }
+.qa-modal-actions-divided { border-top: 1px dashed #333; }
+.qa-tabs-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.qa-tab-btn { flex: 1; font-size: 0.7rem; }
+.qa-field-label { font-family: var(--text-mono); font-size: 0.65rem; color: #888; }
+.qa-field-label-spaced { margin-top: 0.75rem; }
+.qa-field-row { display: flex; gap: 1rem; margin-bottom: 0.75rem; }
+.qa-field-col { flex: 1; }
+.qa-textarea-short { min-height: 80px; }
+.qa-textarea-long { min-height: 150px; }
+
+/* --- CUSTOM CONFIRM MODAL non-danger variant (js/editor.js customConfirm) ---
+   .submit-btn's own base rule already provides color/border-color:
+   var(--accent-blue) - only the transparent background is a genuine
+   addition here. Compound selector (not a bare .submit-btn-outline) since
+   .submit-btn's own background is set at the same (single-class)
+   specificity later in this file - a bare rule would lose that tie, the
+   same bug the tierlist.js PR caught in .tier-nav-overall-btn. */
+.submit-btn.submit-btn-outline { background-color: transparent; }
+
 /* --- MEDIA LIBRARY UI --- */
 #media-modal-overlay {
     backdrop-filter: none !important;
