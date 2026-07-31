@@ -1197,3 +1197,19 @@ del.diff-del {
 .submit-btn.draft-resume-btn:hover:not(:disabled) { box-shadow: none; }
 .draft-active-badge { color: #22c55e; font-family: var(--text-mono); font-size: 0.65rem; padding: 0.4rem 0.8rem; border: 1px solid #22c55e; }
 .btn-action-delete.draft-discard-btn { background: transparent; padding: 0.4rem 0.8rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.65rem; }
+
+/* --- SYSTEM PAGE EDITOR (js/editor.js renderSystemEditor) ---
+   The tab/section-tab row reuses .daw-tab-item/.daw-tab-btn-removable/
+   .daw-tab-remove-btn (initFullTabEditor's tab-with-a-remove-button
+   pattern) and .daw-editor-nav-row, all already established. */
+/* Compound: .daw-variant-tabs's own base rule sets border-bottom at the
+   same specificity; margin-bottom already matches the base rule's own
+   1rem, so no override needed for that property here. */
+.daw-variant-tabs.system-section-tabs-row { overflow-x: auto; align-items: center; border-bottom: 1px solid #333; background: rgba(0,0,0,0.2); }
+/* Compound: .daw-tab-btn's own base rule sets color: #666 at the same specificity. */
+.daw-tab-btn.system-section-tab-btn { color: #a855f7; }
+/* Compound: .daw-tab-btn's own base rule sets font-size: 0.7rem at the same specificity. */
+.daw-tab-btn.system-tab-add-btn { font-size: 0.65rem; }
+.editor-row-divider { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #333; }
+.system-checkbox-row { display: flex; align-items: center; }
+.system-checkbox-label { color: var(--text-muted); font-size: 0.85rem; margin: 0; cursor: pointer; }

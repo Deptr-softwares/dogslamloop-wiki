@@ -4107,31 +4107,31 @@ window.renderSystemEditor = function(container) {
     }
     
     // 1. RENDER MAIN TABS
-    let tabHTML = `<div class="daw-variant-tabs" style="margin-bottom: 0.5rem; overflow-x: auto; padding-bottom: 0; border-bottom: 1px solid #333; display: flex; align-items: center;">`;
+    let tabHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
     descData.tabs.forEach((tab, tIdx) => {
         let active = tIdx === window.currentSystemTabIdx ? 'active' : '';
-        tabHTML += `<div style="display:inline-flex; align-items:center; position:relative; margin-bottom: -1px;">`;
-        tabHTML += `<button class="daw-tab-btn ${active}" onclick="window.switchSystemTab(${tIdx})" style="padding-right: 1.5rem;">${tab.tabLabel}</button>`;
-        tabHTML += `<button onclick="window.removeSystemTab(${tIdx})" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); background:none; border:none; color:#ef4444; font-size:10px; cursor:pointer;" title="Delete Tab">✖</button>`;
+        tabHTML += `<div class="daw-tab-item">`;
+        tabHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${active}" onclick="window.switchSystemTab(${tIdx})">${tab.tabLabel}</button>`;
+        tabHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemTab(${tIdx})" title="Delete Tab">✖</button>`;
         tabHTML += `</div>`;
     });
-    tabHTML += `<button class="daw-tab-btn btn-sys btn-sys-green" style="font-size: 0.65rem;" onclick="window.addSystemTab()">+ ADD TAB</button>`;
+    tabHTML += `<button class="daw-tab-btn btn-sys btn-sys-green system-tab-add-btn" onclick="window.addSystemTab()">+ ADD TAB</button>`;
     tabHTML += `</div>`;
 
     let activeTab = descData.tabs[window.currentSystemTabIdx];
     if (!activeTab) { container.innerHTML = tabHTML; return; }
 
     // 2. RENDER SECTIONS WITHIN ACTIVE TAB
-    let secHTML = `<div class="daw-variant-tabs" style="margin-bottom: 1rem; overflow-x: auto; padding-bottom: 0; border-bottom: 1px solid #333; display: flex; align-items: center; background: rgba(0,0,0,0.2);">`;
+    let secHTML = `<div class="daw-variant-tabs system-section-tabs-row">`;
     if (!activeTab.sections) activeTab.sections = [];
     activeTab.sections.forEach((sec, sIdx) => {
         let active = sIdx === window.currentSystemSecIdx ? 'active' : '';
-        secHTML += `<div style="display:inline-flex; align-items:center; position:relative; margin-bottom: -1px;">`;
-        secHTML += `<button class="daw-tab-btn ${active}" onclick="window.switchSystemSection(${sIdx})" style="padding-right: 1.5rem; font-size: 0.7rem; color: #a855f7;">${sec.sectionTitle || 'Section ' + (sIdx+1)}</button>`;
-        secHTML += `<button onclick="window.removeSystemSection(${sIdx})" style="position:absolute; right:4px; top:50%; transform:translateY(-50%); background:none; border:none; color:#ef4444; font-size:10px; cursor:pointer;" title="Delete Section">✖</button>`;
+        secHTML += `<div class="daw-tab-item">`;
+        secHTML += `<button class="daw-tab-btn daw-tab-btn-removable system-section-tab-btn ${active}" onclick="window.switchSystemSection(${sIdx})">${sec.sectionTitle || 'Section ' + (sIdx+1)}</button>`;
+        secHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemSection(${sIdx})" title="Delete Section">✖</button>`;
         secHTML += `</div>`;
     });
-    secHTML += `<button class="daw-tab-btn btn-sys btn-sys-purple" style="font-size: 0.65rem;" onclick="window.addSystemSection()">+ ADD SECTION</button>`;
+    secHTML += `<button class="daw-tab-btn btn-sys btn-sys-purple system-tab-add-btn" onclick="window.addSystemSection()">+ ADD SECTION</button>`;
     secHTML += `</div>`;
 
     // 3. RENDER METADATA & BLOCK BUILDER
@@ -4145,35 +4145,35 @@ window.renderSystemEditor = function(container) {
         let secBreak = activeSec.forceBreak !== undefined ? activeSec.forceBreak : (activeSec.layout === 'split-left' || activeSec.layout === 'split-right' ? false : true);
 
         editorArea = `
-            <div class="block-editor-container" style="margin-top: 0; margin-bottom: 1rem;">
+            <div class="block-editor-container block-editor-container-tight">
                 <div class="block-card">
                     <div class="block-header"><span class="block-type-badge">LAYOUT & METADATA</span></div>
                     <div class="editor-row">
                         <div>
-                            <label style="font-size:0.65rem; color:#888;">Tab Name (Navigation)</label>
+                            <label class="block-field-label-sm">Tab Name (Navigation)</label>
                             <input type="text" class="editor-input" value="${activeTab.tabLabel}" oninput="window.updateSystemMeta('tabLabel', this.value)">
                         </div>
                         <div>
-                            <label style="font-size:0.65rem; color:#888;">Section Title (Header)</label>
+                            <label class="block-field-label-sm">Section Title (Header)</label>
                             <input type="text" class="editor-input" value="${activeSec.sectionTitle}" oninput="window.updateSystemMeta('sectionTitle', this.value)">
                         </div>
                     </div>
-                    <div class="editor-row" style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #333;">
+                    <div class="editor-row editor-row-divider">
                         <div>
-                            <label style="font-size:0.65rem; color:#888;">Width (%)</label>
+                            <label class="block-field-label-sm">Width (%)</label>
                             <input type="number" class="editor-input" min="10" max="100" step="5" value="${secWidth}" oninput="window.updateSystemMeta('width', this.value, false, true)">
                         </div>
                         <div>
-                            <label style="font-size:0.65rem; color:#888;">Alignment</label>
+                            <label class="block-field-label-sm">Alignment</label>
                             <select class="editor-select" onchange="window.updateSystemMeta('alignment', this.value)">
                                 <option value="left" ${secAlign==='left'?'selected':''}>Left</option>
                                 <option value="center" ${secAlign==='center'?'selected':''}>Center</option>
                                 <option value="right" ${secAlign==='right'?'selected':''}>Right</option>
                             </select>
                         </div>
-                        <div style="display:flex; align-items:center;">
-                            <label style="color:var(--text-muted); font-size:0.85rem; margin:0; cursor:pointer;">
-                                <input type="checkbox" onchange="window.updateSystemMeta('forceBreak', this.checked, true)" ${secBreak ? 'checked' : ''} style="margin-right: 0.25rem;"> 
+                        <div class="system-checkbox-row">
+                            <label class="system-checkbox-label">
+                                <input type="checkbox" onchange="window.updateSystemMeta('forceBreak', this.checked, true)" ${secBreak ? 'checked' : ''}>
                                 Force New Row (Cut Down)
                             </label>
                         </div>
