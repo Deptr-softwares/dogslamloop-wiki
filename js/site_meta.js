@@ -29,28 +29,36 @@ window.CHARACTER_COLORS = {
     "Boomcat": "hsl(0, 1%, 75%)"
 };
 
-// Global Frame Data Color Dictionary (Maps to ColorCoding.css)
-window.FRAME_COLORS = {
-    'bg-tick-start': 'hsl(217.18, 100%, 50%)',
-    'bg-tick-active': 'hsl(0, 100%, 45%)',
-    'bg-tick-recov': 'hsl(295, 89.76%, 50.2%)',
-    'bg-tick-selfstun': 'hsl(111.06, 100%, 50%)',
-    'bg-tick-inskillstun': 'hsl(34, 99%, 27%)',
-    'bg-tick-targetstun': 'hsl(0, 70%, 35%)',
-    'bg-tick-misc': 'hsl(153.88, 100%, 50%)',
-    'bg-tick-blockendlag': 'hsl(319.73, 88.24%, 50%)',
-    'bg-tick-inactive': 'hsl(44, 100%, 50%)'
-};
+// Frame Data & Window/Overlay Color Dictionaries.
+// ColorCoding.css's :root custom properties are the single source of truth;
+// read them once here instead of duplicating literal color values in JS.
+// This relies on ColorCoding.css being loaded (in <head>) before this
+// script runs, which holds true across every page in the site.
+(function populateFrameColorDictionaries() {
+    const rootStyle = getComputedStyle(document.documentElement);
+    const readVar = (name) => rootStyle.getPropertyValue(name).trim();
 
-// Global Window/Overlay Color Dictionary (Maps to ColorCoding.css)
-window.WINDOW_COLORS = {
-    'reverse-hitcancel': '#14b8a6', // Cyber Teal
-    'iframe-melee': '#94a3b8',      // Silver Slate
-    'iframe-bullet': '#3b82f6',     // Electric Blue
-    'iframe-explosion': '#f59e0b',  // Vibrant Amber
-    'iframe-swarm': '#ec4899',      // Neon Pink
-    'iframe-complete': '#ffffff'    // Pure White
-};
+    window.FRAME_COLORS = {
+        'bg-tick-start': readVar('--frame-color-start'),
+        'bg-tick-active': readVar('--frame-color-active'),
+        'bg-tick-recov': readVar('--frame-color-recov'),
+        'bg-tick-selfstun': readVar('--frame-color-selfstun'),
+        'bg-tick-inskillstun': readVar('--frame-color-inskillstun'),
+        'bg-tick-targetstun': readVar('--frame-color-targetstun'),
+        'bg-tick-misc': readVar('--frame-color-misc'),
+        'bg-tick-blockendlag': readVar('--frame-color-blockendlag'),
+        'bg-tick-inactive': readVar('--frame-color-inactive')
+    };
+
+    window.WINDOW_COLORS = {
+        'reverse-hitcancel': readVar('--window-color-rhc'),
+        'iframe-melee': readVar('--window-color-iframe-melee'),
+        'iframe-bullet': readVar('--window-color-iframe-bullet'),
+        'iframe-explosion': readVar('--window-color-iframe-explosion'),
+        'iframe-swarm': readVar('--window-color-iframe-swarm'),
+        'iframe-complete': readVar('--window-color-iframe-complete')
+    };
+})();
 
 /**
  * Fetches global site metadata and injects it into the header.

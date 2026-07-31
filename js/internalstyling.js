@@ -14,16 +14,19 @@ function applyInternalStyling() {
     const charRegex = new RegExp(`\\b(${charNames})\\b(?![^<]*>)`, 'g');
 
     // 3. Map Frame Data Terms with \s+ for LaTeX safety
+    // Colors come from window.FRAME_COLORS (site_meta.js), itself sourced from
+    // ColorCoding.css's :root custom properties - not duplicated here.
+    const frameColors = window.FRAME_COLORS || {};
     const frameRules = [
-        { pattern: /\b(Startup)\b(?![^<]*>)/gi, color: 'hsl(217.18, 100%, 50%)' },
-        { pattern: /\b(Active)\b(?![^<]*>)/gi, color: 'hsl(0, 100%, 45%)' },
-        { pattern: /\b(Recovery|Whiff\s+Endlag)\b(?![^<]*>)/gi, color: 'hsl(295, 89.76%, 50.2%)' },
-        { pattern: /\b(Self\s+Stun)\b(?![^<]*>)/gi, color: 'hsl(111.06, 100%, 50%)' },
-        { pattern: /\b(InSkill\s+Stun)\b(?![^<]*>)/gi, color: 'hsl(34, 99%, 27%)' },
-        { pattern: /\b(Target\s+Stun)\b(?![^<]*>)/gi, color: 'hsl(0, 70%, 35%)' },
-        { pattern: /\b(Block\s+Endlag|Extended\s+Recovery)\b(?![^<]*>)/gi, color: 'hsl(319.73, 88.24%, 50%)' },
-        { pattern: /\b(Misc)\b(?![^<]*>)/gi, color: 'hsl(153.88, 100%, 50%)' },
-        { pattern: /\b(Inactive)\b(?![^<]*>)/gi, color: 'hsl(44, 100%, 50%)' }
+        { pattern: /\b(Startup)\b(?![^<]*>)/gi, color: frameColors['bg-tick-start'] },
+        { pattern: /\b(Active)\b(?![^<]*>)/gi, color: frameColors['bg-tick-active'] },
+        { pattern: /\b(Recovery|Whiff\s+Endlag)\b(?![^<]*>)/gi, color: frameColors['bg-tick-recov'] },
+        { pattern: /\b(Self\s+Stun)\b(?![^<]*>)/gi, color: frameColors['bg-tick-selfstun'] },
+        { pattern: /\b(InSkill\s+Stun)\b(?![^<]*>)/gi, color: frameColors['bg-tick-inskillstun'] },
+        { pattern: /\b(Target\s+Stun)\b(?![^<]*>)/gi, color: frameColors['bg-tick-targetstun'] },
+        { pattern: /\b(Block\s+Endlag|Extended\s+Recovery)\b(?![^<]*>)/gi, color: frameColors['bg-tick-blockendlag'] },
+        { pattern: /\b(Misc)\b(?![^<]*>)/gi, color: frameColors['bg-tick-misc'] },
+        { pattern: /\b(Inactive)\b(?![^<]*>)/gi, color: frameColors['bg-tick-inactive'] }
     ];
 
     // Detect current character header title context
