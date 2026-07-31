@@ -236,8 +236,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.key === 'Escape' && window.activePreviewRevId) resetPreviewState();
         if (e.key === '/' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
             const ticketWorkspace = document.getElementById('ticket-workspace');
-            if (ticketWorkspace && ticketWorkspace.style.display !== 'none') {
-                e.preventDefault(); 
+            if (ticketWorkspace && !ticketWorkspace.classList.contains('hidden')) {
+                e.preventDefault();
                 document.getElementById('ticket-chat-input').focus();
             }
         }
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function kickUser() {
-    document.body.innerHTML = `<div style="height:100vh; width:100vw; display:flex; align-items:center; justify-content:center; flex-direction:column; background:#050505;"><h1 style="color:#ef4444; font-family:'CC-Wild-Words', sans-serif;">ACCESS DENIED</h1></div>`;
+    document.body.innerHTML = `<div class="access-denied-screen"><h1 class="access-denied-title">ACCESS DENIED</h1></div>`;
 }
 
 function updateTypingText() {
@@ -312,17 +312,17 @@ async function loadQueue() {
         .in('status', ['pending', 'ticket_open'])
         .order('created_at', { ascending: true });
 
-    if (error) { container.innerHTML = `<p style="color:#ef4444; font-size: 0.75rem;">Error: ${error.message}</p>`; return; }
+    if (error) { container.innerHTML = `<p class="admin-error-text">Error: ${error.message}</p>`; return; }
 
     window.currentQueueData = data || [];
 
     if (window.currentQueueData.length === 0) {
-        container.innerHTML = `<div class="empty-tab-msg" style="border: 1px dashed #333; padding: 1.5rem 1rem; font-size: 0.7rem;">No pending revisions or open tickets.</div>`;
+        container.innerHTML = `<div class="empty-tab-msg admin-queue-empty-msg">No pending revisions or open tickets.</div>`;
         return;
     }
 
     container.innerHTML = '';
-    
+
     const groupedQueue = {};
     window.currentQueueData.forEach(rev => {
         if (!groupedQueue[rev.page_id]) groupedQueue[rev.page_id] = [];
@@ -330,17 +330,17 @@ async function loadQueue() {
     });
 
     for (const [pageId, tickets] of Object.entries(groupedQueue)) {
-        
+
         const header = document.createElement('div');
         header.className = 'admin-queue-group-header';
 
         let mergeBtnHtml = '';
         if (tickets.length > 1) {
-            mergeBtnHtml = `<button onclick="window.openMergeCompiler('${pageId}')" class="btn-sys btn-sys-purple" style="font-size:0.65rem; padding: 0.3rem 0.6rem;">✦ MERGE TICKETS (${tickets.length})</button>`;
+            mergeBtnHtml = `<button onclick="window.openMergeCompiler('${pageId}')" class="btn-sys btn-sys-purple admin-merge-btn">✦ MERGE TICKETS (${tickets.length})</button>`;
         }
 
         header.innerHTML = `
-            <h3 style="font-family:'CC-Wild-Words', sans-serif; font-size:1rem; color:var(--text-white); margin:0; text-transform: uppercase;">${pageId.replace(/_/g, ' ')}</h3>
+            <h3 class="admin-queue-group-title">${pageId.replace(/_/g, ' ')}</h3>
             ${mergeBtnHtml}
         `;
         container.appendChild(header);
@@ -351,32 +351,32 @@ async function loadQueue() {
 
             const exactDate = new Date(rev.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' });
             const relativeTime = timeSince(rev.created_at);
-            
-            const statusBadge = rev.status === 'ticket_open' 
-                ? `<span class="update-badge" style="background: #eab308; color: #000; font-size:0.55rem; border: none; padding: 0.15rem 0.4rem;">TICKET OPEN</span>`
-                : `<span class="update-badge badge-patch" style="font-size:0.55rem; background: var(--accent-blue); color: #000; border: none; padding: 0.15rem 0.4rem;">PENDING</span>`;
+
+            const statusBadge = rev.status === 'ticket_open'
+                ? `<span class="update-badge badge-status-ticket-open">TICKET OPEN</span>`
+                : `<span class="update-badge badge-status-pending">PENDING</span>`;
 
             const deltaBadge = rev.is_delta
-                ? `<span class="update-badge" style="background: rgba(168,85,247,0.1); color: #a855f7; border: 1px solid #a855f7; font-size: 0.55rem; padding: 0.1rem 0.4rem;">[PATCH: ${rev.target_scope.toUpperCase()}]</span>`
-                : `<span class="update-badge" style="background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem;">[LEGACY OVERWRITE]</span>`;
+                ? `<span class="update-badge badge-patch-delta">[PATCH: ${rev.target_scope.toUpperCase()}]</span>`
+                : `<span class="update-badge badge-legacy-overwrite">[LEGACY OVERWRITE]</span>`;
 
             const card = document.createElement('div');
             card.className = 'update-log-item';
             card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-                        <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                <div class="admin-queue-card-header">
+                    <div class="admin-queue-card-info">
+                        <div class="admin-queue-badges-row">
                             ${statusBadge}
-                            <span class="update-badge" style="font-size:0.5rem; background: #333; color: #fff; border: 1px solid #555; padding: 0.15rem 0.4rem;">${rev.page_id.toUpperCase()}</span>
+                            <span class="update-badge badge-page-id">${rev.page_id.toUpperCase()}</span>
                             ${deltaBadge}
                         </div>
-                        <h3 class="update-title" style="font-size: 0.85rem; margin: 0; font-family: 'CC-Wild-Words', sans-serif;">REVISION SUBMISSION</h3>
-                        <div class="update-log-meta" style="font-size: 0.65rem; color: #888;">
-                            By: <strong style="color:var(--text-white);">${rev.author_name}</strong><br>
-                            <span style="color: var(--accent-blue);">${relativeTime}</span> <span style="opacity: 0.5;">(${exactDate})</span>
+                        <h3 class="update-title">REVISION SUBMISSION</h3>
+                        <div class="update-log-meta">
+                            By: <strong class="admin-queue-author-name">${rev.author_name}</strong><br>
+                            <span class="admin-queue-time-relative">${relativeTime}</span> <span class="admin-queue-time-exact">(${exactDate})</span>
                         </div>
                     </div>
-                    <button onclick="previewRevision('${rev.id}')" class="btn-sys btn-sys-blue" style="font-size: 0.6rem; padding: 0.3rem 0.6rem; margin-top: 0.2rem;">REVIEW</button>
+                    <button onclick="previewRevision('${rev.id}')" class="btn-sys btn-sys-blue admin-review-btn">REVIEW</button>
                 </div>
             `;
             container.appendChild(card);
@@ -560,14 +560,7 @@ window.updateAdminSidebar = function() {
             btn.id = `nav-${tabId}`;
             btn.className = `nav-btn system-nav-btn ${idx === 0 ? 'active' : ''}`;
             btn.textContent = tabLabel;
-            
-            // Replicate the admin sidebar styling
-            btn.style.cursor = 'pointer';
-            btn.style.padding = '0.75rem 1rem';
-            btn.style.borderBottom = '1px solid #222';
-            btn.style.color = '#d1d5db';
-            btn.style.fontSize = '0.85rem';
-            
+
             navContainer.appendChild(btn);
 
             btn.addEventListener('click', () => {
@@ -593,7 +586,7 @@ async function previewRevision(revId) {
     window.activePreviewRevId = rev.id;
     window.activePreviewCharId = rev.page_id;
     window.activePreviewPageType = rev.page_type || 'character';
-    document.getElementById('preview-status-text').innerHTML = `REVIEWING: <strong style="color: var(--text-white);">${rev.page_id.toUpperCase()}</strong> (By ${rev.author_name})`;
+    document.getElementById('preview-status-text').innerHTML = `REVIEWING: <strong class="admin-preview-status-highlight">${rev.page_id.toUpperCase()}</strong> (By ${rev.author_name})`;
     
     updateActionButtons(rev);
     document.getElementById('preview-nav-sidebar').classList.remove('hidden');
@@ -662,8 +655,7 @@ async function previewRevision(revId) {
     }
     
     const contentArea = document.getElementById('preview-content-area');
-    contentArea.style.opacity = '1';
-    contentArea.style.pointerEvents = 'auto';
+    contentArea.classList.add('active');
 
     let initMode = 'pending';
     if (rev.is_delta) {
@@ -685,7 +677,7 @@ async function previewRevision(revId) {
         const workspace = document.getElementById('ticket-workspace');
         const actionBtns = document.getElementById('preview-action-buttons');
         // If there's an open ticket chat, snap to it. Otherwise, snap to the review buttons.
-        if (workspace && workspace.style.display !== 'none') {
+        if (workspace && !workspace.classList.contains('hidden')) {
             workspace.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else if (actionBtns) {
             actionBtns.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -731,7 +723,7 @@ async function switchVersionView(mode) {
             if (mainArea) mainArea.appendChild(diffContainer);
         }
         
-        diffContainer.innerHTML = `<h2 class="section-title" style="color: #a855f7;">REVISION COMPARISON</h2>`;
+        diffContainer.innerHTML = `<h2 class="section-title diff-view-title">REVISION COMPARISON</h2>`;
         diffContainer.classList.remove('hidden');
         
         const rev = window.currentQueueData.find(r => r.id === window.activePreviewRevId);
@@ -755,7 +747,7 @@ async function switchVersionView(mode) {
 
         if (rev.is_delta) {
             const renderDeltaDiff = (scope, key, payload) => {
-                diffContainer.innerHTML += `<div style="font-family:var(--text-mono); font-size:0.75rem; color:#888; margin-bottom: 1.5rem; margin-top: 2rem;">Suggested Edit Location: [ ${formatScopeName(scope).toUpperCase()} ➔ ${key.replace('::', ': ').toUpperCase()} ]</div>`;
+                diffContainer.innerHTML += `<div class="diff-location-label">Suggested Edit Location: [ ${formatScopeName(scope).toUpperCase()} ➔ ${key.replace('::', ': ').toUpperCase()} ]</div>`;
 
                 if (['profile', 'playstyle', 'overview', 'strategy'].includes(scope)) {
                     renderDiffBlock(formatScopeName(scope), window.currentLiveDescData[scope], payload);
@@ -805,7 +797,7 @@ async function switchVersionView(mode) {
 
             // Recursively execute the render function for Batched multi-tickets!
             if (rev.target_scope === 'multi') {
-                diffContainer.innerHTML += `<div style="font-family:var(--text-mono); font-size:0.85rem; color:#22c55e; margin-bottom: 1rem; border: 1px dashed #22c55e; padding: 0.75rem; text-align: center;">BATCHED MULTI-PAYLOAD DETECTED (${rev.delta_payload.length} EDITS)</div>`;
+                diffContainer.innerHTML += `<div class="diff-batch-banner">BATCHED MULTI-PAYLOAD DETECTED (${rev.delta_payload.length} EDITS)</div>`;
                 rev.delta_payload.forEach(edit => renderDeltaDiff(edit.scope, edit.key, edit.payload));
             } else if (rev.target_scope === 'system_data') {
                 const oldTabs = window.currentLiveDescData.tabs || [];
@@ -849,7 +841,7 @@ async function switchVersionView(mode) {
             }
         } else {
             if (window.changedTabs.length === 0) {
-                diffContainer.innerHTML += `<p style="color:var(--text-muted); font-style:italic;">No changes detected.</p>`;
+                diffContainer.innerHTML += `<p class="diff-no-changes">No changes detected.</p>`;
                 return;
             }
             window.changedTabs.forEach(tab => {
@@ -1017,7 +1009,7 @@ async function switchVersionView(mode) {
                 diffContainer.innerHTML += `
                     <div class="diff-container">
                         <h3 class="diff-section-title">${title.toUpperCase()}</h3>
-                        <div id="diff-inline-${safeId}" style="width: 100%;"></div>
+                        <div id="diff-inline-${safeId}" class="diff-inline-target"></div>
                     </div>
                 `;
                 diffRenderQueue.push(() => {
@@ -1028,8 +1020,8 @@ async function switchVersionView(mode) {
                 diffContainer.innerHTML += `
                     <div class="diff-container">
                         <h3 class="diff-section-title">${title.toUpperCase()}</h3>
-                        <div class="diff-stacked-old"><div class="diff-stacked-label old">[-] CURRENT VERSION</div><pre style="font-family:var(--text-mono); font-size:0.65rem; color:#fca5a5; margin:0;">${JSON.stringify(oldData, null, 2)}</pre></div>
-                        <div class="diff-stacked-new"><div class="diff-stacked-label new">[+] SUGGESTED REVISION</div><pre style="font-family:var(--text-mono); font-size:0.65rem; color:#86efac; margin:0;">${JSON.stringify(newData, null, 2)}</pre></div>
+                        <div class="diff-stacked-old"><div class="diff-stacked-label old">[-] CURRENT VERSION</div><pre class="diff-stacked-pre old">${JSON.stringify(oldData, null, 2)}</pre></div>
+                        <div class="diff-stacked-new"><div class="diff-stacked-label new">[+] SUGGESTED REVISION</div><pre class="diff-stacked-pre new">${JSON.stringify(newData, null, 2)}</pre></div>
                     </div>
                 `;
             }
@@ -1057,7 +1049,7 @@ async function switchVersionView(mode) {
             overviewTab.innerHTML = `
                 <div id="tier-tabs-container"></div>
                 <div id="tier-list-ui"></div>
-                <div id="changelog-container" style="margin-top: 2rem;"></div>
+                <div id="changelog-container" class="admin-changelog-container"></div>
             `;
             overviewTab.classList.remove('hidden');
         }
@@ -1104,40 +1096,40 @@ function renderTicketWorkspace(rev, isOwnSubmission, hasSupported, hasOpposed) {
     if (netScore > 0) scoreColor = "#22c55e"; 
     if (netScore < 0) scoreColor = "#ef4444"; 
     
-    supportText.innerHTML = `Net Approval Score: <strong style="color:${scoreColor}; font-size: 1.1rem;">${netScore > 0 ? '+' : ''}${netScore}</strong>`;
-    
-    const perkHtml = isTrusted ? ` <span style="color:#a855f7; font-weight:bold;">(Trusted Editor Perk Applied)</span>` : '';
-    opposeText.innerHTML = `<span style="color:#888; font-size: 0.75rem;">Requires +${requiredSupport} to Merge, or -2 to Reject${perkHtml}</span>`;
-    
-    if (isOwnSubmission) {
-        supportActions.innerHTML = `<span style="color:#ef4444; font-size:0.65rem; font-family:var(--text-mono);">Cannot vote on own submission.</span>`;
-    } else {
-        const supBtn = hasSupported 
-            ? `<button type="button" onclick="toggleSupportToTicket()" class="btn-sys btn-sys-regular" style="flex:1;">UN-SUPPORT</button>`
-            : `<button type="button" onclick="toggleSupportToTicket()" class="btn-sys btn-sys-green" style="flex:1;">SUPPORT</button>`;
-            
-        const oppBtn = hasOpposed 
-            ? `<button type="button" onclick="toggleOpposeToTicket()" class="btn-sys btn-sys-regular" style="flex:1;">REMOVE OPPOSE</button>`
-            : `<button type="button" onclick="toggleOpposeToTicket()" class="btn-sys btn-sys-yellow" style="flex:1;">OPPOSE</button>`;
+    supportText.innerHTML = `Net Approval Score: <strong class="ticket-score-value" style="color:${scoreColor};">${netScore > 0 ? '+' : ''}${netScore}</strong>`;
 
-        supportActions.innerHTML = `<div style="display:flex; gap:0.5rem; width:100%;">${supBtn}${oppBtn}</div>`;
+    const perkHtml = isTrusted ? ` <span class="ticket-perk-note">(Trusted Editor Perk Applied)</span>` : '';
+    opposeText.innerHTML = `<span class="ticket-requirement-text">Requires +${requiredSupport} to Merge, or -2 to Reject${perkHtml}</span>`;
+
+    if (isOwnSubmission) {
+        supportActions.innerHTML = `<span class="ticket-own-submission-note">Cannot vote on own submission.</span>`;
+    } else {
+        const supBtn = hasSupported
+            ? `<button type="button" onclick="toggleSupportToTicket()" class="btn-sys btn-sys-regular ticket-vote-btn">UN-SUPPORT</button>`
+            : `<button type="button" onclick="toggleSupportToTicket()" class="btn-sys btn-sys-green ticket-vote-btn">SUPPORT</button>`;
+
+        const oppBtn = hasOpposed
+            ? `<button type="button" onclick="toggleOpposeToTicket()" class="btn-sys btn-sys-regular ticket-vote-btn">REMOVE OPPOSE</button>`
+            : `<button type="button" onclick="toggleOpposeToTicket()" class="btn-sys btn-sys-yellow ticket-vote-btn">OPPOSE</button>`;
+
+        supportActions.innerHTML = `<div class="ticket-vote-actions-row">${supBtn}${oppBtn}</div>`;
     }
 
     const qa = rev.qa_metadata || {};
     const qaHtml = `
-        <div style="margin-bottom: 0.5rem;"><strong style="color:var(--text-white);">Changelog:</strong><br>${qa.changelog || 'No changelog provided.'}</div>
-        <div style="margin-bottom: 0.5rem;"><strong style="color:var(--text-white);">Confidence:</strong><br>${qa.confidence || 'Unrated'}</div>
-        <div><strong style="color:var(--text-white);">Evidence:</strong><br>${qa.evidence ? `<a href="${qa.evidence}" target="_blank" style="color:var(--accent-blue); text-decoration:underline;">[View Attached Link]</a>` : 'No evidence linked.'}</div>
+        <div class="ticket-qa-field"><strong class="ticket-qa-label">Changelog:</strong><br>${qa.changelog || 'No changelog provided.'}</div>
+        <div class="ticket-qa-field"><strong class="ticket-qa-label">Confidence:</strong><br>${qa.confidence || 'Unrated'}</div>
+        <div><strong class="ticket-qa-label">Evidence:</strong><br>${qa.evidence ? `<a href="${qa.evidence}" target="_blank" class="ticket-qa-link">[View Attached Link]</a>` : 'No evidence linked.'}</div>
     `;
     document.getElementById('ticket-qa-report').innerHTML = qaHtml;
 
     chatLog.innerHTML = '';
     if (rev.ticket_chat.length === 0) {
-        chatLog.innerHTML = `<span style="color:#555; font-style:italic;">No messages yet.</span>`;
+        chatLog.innerHTML = `<span class="ticket-chat-empty">No messages yet.</span>`;
     } else {
         rev.ticket_chat.forEach(msg => {
             const timeStr = new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            chatLog.innerHTML += `<div><strong style="color:var(--accent-blue)">[${timeStr}] ${msg.author}:</strong> ${msg.text}</div>`;
+            chatLog.innerHTML += `<div><strong class="ticket-chat-author">[${timeStr}] ${msg.author}:</strong> ${msg.text}</div>`;
         });
         chatLog.scrollTop = chatLog.scrollHeight;
     }
@@ -1351,9 +1343,9 @@ async function openTicketCurrentPreview() {
     // Snap the camera down to the workspace and flash it
     setTimeout(() => {
         const workspace = document.getElementById('ticket-workspace');
-        if (workspace && workspace.style.display !== 'none') {
+        if (workspace && !workspace.classList.contains('hidden')) {
             workspace.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
+
             // Flash the borders so the user's eyes are drawn to the newly opened workspace
             workspace.style.transition = 'box-shadow 0.3s ease';
             workspace.style.boxShadow = '0 0 20px var(--accent-blue)';
@@ -1374,8 +1366,7 @@ function resetPreviewState() {
     if (toggleBar) toggleBar.classList.add('hidden');
     
     const contentArea = document.getElementById('preview-content-area');
-    contentArea.style.opacity = '0.2';
-    contentArea.style.pointerEvents = 'none';
+    contentArea.classList.remove('active');
     
     ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'].forEach(tab => {
         const el = document.getElementById(`tab-${tab}`);
@@ -1489,12 +1480,11 @@ window.openMergeCompiler = async function(pageId) {
     const confirmBtn = document.getElementById('btn-compiler-confirm');
     
     titleSpan.textContent = pageId.toUpperCase();
-    titleSpan.parentElement.innerHTML = `MERGE COMPILER: <span id="compiler-char-name" style="color: #fff;">${pageId.toUpperCase()}</span>`;
-    
-    body.innerHTML = `<p style="color:var(--text-muted); font-style:italic; text-align: center; padding: 2rem;">Analyzing revisions and fetching live database...</p>`;
+    titleSpan.parentElement.innerHTML = `MERGE COMPILER: <span id="compiler-char-name" class="compiler-title-highlight">${pageId.toUpperCase()}</span>`;
+
+    body.innerHTML = `<p class="compiler-status-text">Analyzing revisions and fetching live database...</p>`;
     modal.classList.remove('hidden');
     confirmBtn.disabled = true;
-    confirmBtn.style.opacity = '0.5';
 
     const { data: liveData, error: liveErr } = await window.supabaseClient.from('page_data').select('desc_data, frame_data').eq('page_id', pageId).single();
     
@@ -1572,15 +1562,15 @@ window.openMergeCompiler = async function(pageId) {
     });
 
     if (conflicts.length === 0) {
-        body.innerHTML = `<p style="color:var(--text-muted); padding: 2rem; border: 1px dashed #333; text-align: center;">No mergeable changes detected in these tickets. They may be functionally identical to the live database.</p>`;
-        return; 
+        body.innerHTML = `<p class="compiler-empty-text">No mergeable changes detected in these tickets. They may be functionally identical to the live database.</p>`;
+        return;
     }
 
-    let html = `<p style="font-family:var(--text-mono); font-size:0.75rem; color:#888; margin-bottom:1.5rem; line-height:1.5;">Select the version to keep for each modified section. The compiler will merge your selections into a single unified ticket.</p>`;
+    let html = `<p class="compiler-instructions">Select the version to keep for each modified section. The compiler will merge your selections into a single unified ticket.</p>`;
 
     conflicts.forEach(c => {
-        let selectHtml = `<select id="compiler-sel-${c.sectionId}" class="editor-select" style="margin-bottom: 0; border-color: #a855f7; background: rgba(168,85,247,0.1); color: #fff; font-weight: bold;">`;
-        selectHtml += `<option value="live" style="color:#888; font-weight: normal;">[DISCARD] Keep current live data</option>`;
+        let selectHtml = `<select id="compiler-sel-${c.sectionId}" class="editor-select compiler-select">`;
+        selectHtml += `<option value="live" class="compiler-discard-option">[DISCARD] Keep current live data</option>`;
 
         c.options.forEach((opt, idx) => {
             const isLast = (idx === c.options.length - 1);
@@ -1590,8 +1580,8 @@ window.openMergeCompiler = async function(pageId) {
         selectHtml += `</select>`;
 
         html += `
-            <div style="background: rgba(255,255,255,0.02); border: 1px solid #333; padding: 0.75rem; margin-bottom: 0.75rem; border-left: 3px solid #a855f7;">
-                <div style="font-family:'CC-Wild-Words', sans-serif; font-size:0.8rem; color:#fff; margin-bottom:0.5rem; text-transform: uppercase;">${c.sectionName}</div>
+            <div class="compiler-conflict-card">
+                <div class="compiler-conflict-title">${c.sectionName}</div>
                 ${selectHtml}
             </div>
         `;
@@ -1599,7 +1589,6 @@ window.openMergeCompiler = async function(pageId) {
 
     body.innerHTML = html;
     confirmBtn.disabled = false;
-    confirmBtn.style.opacity = '1';
     confirmBtn.textContent = "CREATE MERGED TICKET";
 
     confirmBtn.onclick = async () => {
