@@ -182,6 +182,19 @@ window.bindTooltip = function(element, titleHtml) {
     });
 };
 
+// --- PAGE URL BUILDER ---
+// Returns a root-relative path (no '../' prefix - see markNotifRead, which
+// prepends getRootPath() at click time). Callers that need a navigable
+// path from the current page should do the same rather than baking a
+// fixed depth into the stored value, since e.g. notification links are
+// shown from every page on the site, at every folder depth.
+window.buildPageUrl = function(pageId, pageType) {
+    if (pageType === 'tierlist') return 'systems/tierlist/index.html';
+    if (pageType === 'system') return `systems/${pageId}/index.html`;
+    const folderName = pageId.charAt(0).toUpperCase() + pageId.slice(1);
+    return `characters/${folderName}/index.html`;
+};
+
 // --- GLOBAL SUPABASE BACKEND ---
 const SUPABASE_URL = 'https://gtqswjspxymjdopljmfi.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0cXN3anNweHltamRvcGxqbWZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMzQ1MDIsImV4cCI6MjA5NzkxMDUwMn0.6RsP5Ue1m9X8iGecXa245S3fEdYnDqML-QLux1KUAuw';
@@ -710,8 +723,13 @@ window.markNotifRead = async function(id, link) {
     }
     
     // 3. Navigate if a link was provided
+    // Links are stored root-relative (see window.buildPageUrl) since
+    // notifications are shown from every page at every folder depth -
+    // resolve against the CURRENT page's root, not wherever the link
+    // was originally constructed from.
     if (link && link !== 'null' && link !== '') {
-        window.location.href = link;
+        const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : './';
+        window.location.href = rootPath + link;
     }
 };
 

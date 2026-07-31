@@ -546,7 +546,7 @@ window.updateAdminSidebar = function() {
     // Clean up any old dynamically generated system tabs
     navContainer.querySelectorAll('.system-nav-btn').forEach(btn => btn.remove());
 
-    if (window.activePreviewPageType === 'system') {
+    if (window.activePreviewPageType === 'system' || window.activePreviewPageType === 'tierlist') {
         // Hide standard character tabs
         ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'].forEach(tab => {
             const btn = document.getElementById(`nav-${tab}`);
@@ -558,11 +558,14 @@ window.updateAdminSidebar = function() {
         const tabIds = [];
 
         sysTabs.forEach((tab, idx) => {
-            tabIds.push(tab.tabId);
+            // System-page tabs use tabId/tabLabel; tierlist tabs use id/label.
+            const tabId = tab.tabId || tab.id;
+            const tabLabel = tab.tabLabel || tab.label || tabId;
+            tabIds.push(tabId);
             const btn = document.createElement('div');
-            btn.id = `nav-${tab.tabId}`;
+            btn.id = `nav-${tabId}`;
             btn.className = `nav-btn system-nav-btn ${idx === 0 ? 'active' : ''}`;
-            btn.textContent = tab.tabLabel || tab.tabId;
+            btn.textContent = tabLabel;
             
             // Replicate the admin sidebar styling
             btn.style.cursor = 'pointer';
@@ -1291,9 +1294,7 @@ async function approveCurrentPreview() {
         opposers: [] 
     }).eq('id', window.activePreviewRevId);
     
-    const pageUrl = revData.page_type === 'system' 
-        ? `../../systems/${revData.page_id}/index.html` 
-        : `../../characters/${revData.page_id.charAt(0).toUpperCase() + revData.page_id.slice(1)}/index.html`;
+    const pageUrl = window.buildPageUrl(revData.page_id, revData.page_type);
 
     // Update Notification to include the Staff Note
     await window.supabaseClient.from('user_notifications').insert([{
@@ -1327,9 +1328,7 @@ async function rejectCurrentPreview() {
         return;
     }
 
-    const pageUrl = revData.page_type === 'system' 
-        ? `../../systems/${revData.page_id}/index.html` 
-        : `../../characters/${revData.page_id.charAt(0).toUpperCase() + revData.page_id.slice(1)}/index.html`;
+    const pageUrl = window.buildPageUrl(revData.page_id, revData.page_type);
 
     await window.supabaseClient.from('user_notifications').insert([{
         user_id: revData.author_id,
