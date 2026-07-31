@@ -2,3 +2,5 @@ node_modules/
 dogslamloop-output.txt
 supabase/.temp/
 supabase/.branches/
+test-results/
+playwright-report/
