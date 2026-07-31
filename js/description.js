@@ -17,25 +17,25 @@ function getMediaAttributes(align, customWidth, extraStyles = '') {
 window.generatePlaystyleHTML = function(playstyle) {
     if (!playstyle || (!playstyle.likes?.length && !playstyle.dislikes?.length)) return '';
     
-    const renderList = (items, icon, color) => items.map(text => `
-        <li style="margin-bottom:0.5rem; display:flex; gap:0.6rem; align-items:flex-start;">
-            <span style="color:${color}; font-weight:bold; font-size: 1rem; line-height: 1;">${icon}</span> 
-            <span style="line-height: 1.4;">${text}</span>
+    const renderList = (items, icon, variant) => items.map(text => `
+        <li class="playstyle-item">
+            <span class="playstyle-icon ${variant}">${icon}</span>
+            <span class="playstyle-item-text">${text}</span>
         </li>
     `).join('');
 
     return `
-        <div class="playstyle-container" style="display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 250px; background: rgba(34, 197, 94, 0.05); border: 1px solid #22c55e; box-shadow: 4px 4px 0px var(--manga-shadow, #000); padding: 1.25rem 1.5rem;">
-                <h4 style="color: #22c55e; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-top: 0; margin-bottom: 1rem; border-bottom: 1px dotted #22c55e; padding-bottom: 0.5rem;">PICK IF YOU LIKE</h4>
-                <ul style="list-style: none; padding: 0; margin: 0; font-family: var(--text-mono); font-size: 0.8rem; color: #e5e7eb;">
-                    ${renderList(playstyle.likes || [], '✓', '#22c55e')}
+        <div class="playstyle-container">
+            <div class="playstyle-col likes">
+                <h4 class="playstyle-header">PICK IF YOU LIKE</h4>
+                <ul class="playstyle-list">
+                    ${renderList(playstyle.likes || [], '✓', 'likes')}
                 </ul>
             </div>
-            <div style="flex: 1; min-width: 250px; background: rgba(239, 68, 68, 0.05); border: 1px solid #ef4444; box-shadow: 4px 4px 0px var(--manga-shadow, #000); padding: 1.25rem 1.5rem;">
-                <h4 style="color: #ef4444; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-top: 0; margin-bottom: 1rem; border-bottom: 1px dotted #ef4444; padding-bottom: 0.5rem;">AVOID IF YOU DISLIKE</h4>
-                <ul style="list-style: none; padding: 0; margin: 0; font-family: var(--text-mono); font-size: 0.8rem; color: #e5e7eb;">
-                    ${renderList(playstyle.dislikes || [], '✖', '#ef4444')}
+            <div class="playstyle-col dislikes">
+                <h4 class="playstyle-header">AVOID IF YOU DISLIKE</h4>
+                <ul class="playstyle-list">
+                    ${renderList(playstyle.dislikes || [], '✖', 'dislikes')}
                 </ul>
             </div>
         </div>
@@ -84,8 +84,8 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             if (block.caption) {
                 contentHTML += `
                     <figure ${getMediaAttributes(block.align, block.width, 'text-align: center;')} >
-                        <img src="${block.src}" alt="${block.alt || 'Wiki Image'}" style="width: 100%; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow, #000);" loading="lazy">
-                        <figcaption style="font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; font-style: italic;">
+                        <img src="${block.src}" alt="${block.alt || 'Wiki Image'}" class="wiki-block-image" loading="lazy">
+                        <figcaption class="wiki-figcaption">
                             ${block.caption}
                         </figcaption>
                     </figure>
@@ -179,10 +179,10 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
 
             let tooltipContent = '';
             if (bData.title) {
-                tooltipContent += `<strong style="color: ${config.color}; font-family: 'CC-Wild-Words', sans-serif; text-transform: uppercase; font-size: 0.9rem; display: block; margin-bottom: 0.5rem; border-bottom: 1px dashed ${config.color}; padding-bottom: 0.25rem;">${bData.title}</strong>`;
+                tooltipContent += `<strong class="callout-tooltip-title" style="--tooltip-accent: ${config.color};">${bData.title}</strong>`;
             }
 
-            tooltipContent += `<span class="tooltip-desc" style="font-family: var(--text-mono); font-size: 0.75rem; color: #e5e7eb; line-height: 1.5; display: block;">${text}</span>`;
+            tooltipContent += `<span class="tooltip-desc callout-tooltip-desc">${text}</span>`;
 
             contentHTML += `
                 <div class="wiki-callout-wrapper" ${getAlignStyle(bData.align)}>
@@ -200,43 +200,39 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             const headers = bData.headers || [];
             const rows = bData.rows || [];
             
-            let tableContent = '<table class="update-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;">';
-            
+            let tableContent = '<table class="update-table wiki-content-table">';
+
             // Render Headers
             if (headers.length > 0) {
-                tableContent += `<thead><tr style="background: var(--bg-main, #050505); border-bottom: 2px solid var(--border-color, #333);">`;
+                tableContent += `<thead><tr>`;
                 headers.forEach(h => {
-                    tableContent += `<th style="padding: 0.85rem 1rem; font-family: var(--text-mono); color: var(--accent-blue); text-transform: uppercase;">${h}</th>`;
+                    tableContent += `<th>${h}</th>`;
                 });
                 tableContent += `</tr></thead>`;
             }
-            
-            // Render Rows
+
+            // Render Rows (alternating background + hover are handled by CSS: nth-child/:hover)
             if (rows.length > 0) {
                 tableContent += `<tbody>`;
-                rows.forEach((row, rowIndex) => {
-                    // Alternating row background for readability
-                    const bgStyle = rowIndex % 2 !== 0 ? 'background: rgba(255,255,255,0.02);' : '';
-                    const hoverBg = rowIndex % 2 !== 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
-                    
-                    tableContent += `<tr style="border-bottom: 1px dashed var(--border-color, #222); ${bgStyle} transition: background 0.1s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='${hoverBg}'">`;
-                    
+                rows.forEach((row) => {
+                    tableContent += `<tr>`;
+
                     // Parse [M1] keybinds natively inside the cells
                     row.forEach(cell => {
                         let parsedCell = (cell || '').replace(/\[([A-Z0-9\s\+]+)\]/g, '<kbd class="keybind-badge">$1</kbd>');
-                        tableContent += `<td style="padding: 0.75rem 1rem; color: var(--text-primary, #d1d5db);">${parsedCell}</td>`;
+                        tableContent += `<td>${parsedCell}</td>`;
                     });
                     tableContent += `</tr>`;
                 });
                 tableContent += `</tbody>`;
             } else {
-                tableContent += '<tr><td style="padding: 1rem; text-align: center; color: #888; font-style: italic;">Table data is empty.</td></tr>';
+                tableContent += '<tr><td class="wiki-table-empty-cell">Table data is empty.</td></tr>';
             }
             tableContent += '</table>';
 
             // Wrapping container provides horizontal scrolling on mobile and the heavy manga shadow
             contentHTML += `
-                <div style="overflow-x: auto; margin: 1.5rem 0; border: 2px solid var(--border-color, #333); box-shadow: 4px 4px 0px var(--manga-shadow, #000); background: var(--bg-secondary, #0a0a0a);">
+                <div class="wiki-table-wrapper">
                     ${tableContent}
                 </div>
             `;
@@ -255,8 +251,8 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                     // Injecting data-lazy-src
                     mediaInnerHtml = `
                         <iframe data-lazy-src="https://www.youtube.com/embed/${videoId}" src="about:blank"
-                                style="width: 100%; aspect-ratio: 16/9; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow); background: #050505; border: none; display: block;" 
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                class="wiki-video-embed"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowfullscreen>
                         </iframe>
                     `;
@@ -267,7 +263,7 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 if (videoUrl) {
                     const controlsAttr = bData.controls ? 'controls' : 'autoplay loop muted playsinline';
                     // Injecting data-lazy-src and preload="none"
-                    mediaInnerHtml = `<video data-lazy-src="${videoUrl}" ${controlsAttr} style="width: 100%; background: #050505; display: block; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow);" preload="none"></video>`;
+                    mediaInnerHtml = `<video data-lazy-src="${videoUrl}" ${controlsAttr} class="wiki-video-native" preload="none"></video>`;
                 }
             }
 
@@ -276,7 +272,7 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                     contentHTML += `
                         <figure ${getMediaAttributes(bData.align, bData.width, 'text-align: center;')} >
                             ${mediaInnerHtml}
-                            <figcaption style="font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; font-style: italic;">
+                            <figcaption class="wiki-figcaption">
                                 ${bData.caption}
                             </figcaption>
                         </figure>
@@ -300,17 +296,13 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
 
             // The arrow is pinned via absolute positioning so it doesn't move when the title is centered!
             contentHTML += `
-                <div style="margin: 1.5rem 0; width: 100%;">
-                    <style>
-                        .manga-accordion summary::-webkit-details-marker { display: none; }
-                        .manga-accordion[open] summary .accordion-arrow { transform: translateY(-50%) rotate(180deg) !important; }
-                    </style>
-                    <details class="manga-accordion" style="background: var(--bg-main, #050505); border: 1px solid var(--border-color, #333); box-shadow: 4px 4px 0px var(--manga-shadow, #000); width: 100%;">
-                        <summary style="position: relative; padding: 0.75rem 2.5rem 0.75rem 1rem; cursor: pointer; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.8rem; color: var(--accent-blue, #3b82f6); list-style: none; outline: none; user-select: none; text-transform: uppercase; text-align: ${bData.align || 'left'};">
-                            <span>${title}</span> 
-                            <span class="accordion-arrow" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.6rem; color: var(--text-muted, #888); transition: transform 0.2s;">▼</span>
+                <div class="wiki-accordion-wrapper">
+                    <details class="manga-accordion">
+                        <summary class="wiki-accordion-summary" style="text-align: ${bData.align || 'left'};">
+                            <span>${title}</span>
+                            <span class="accordion-arrow">▼</span>
                         </summary>
-                        <div style="padding: 1rem; border-top: 1px dashed var(--border-color, #333); background: var(--bg-secondary, #111); display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+                        <div class="wiki-accordion-body">
                             ${innerHTML}
                         </div>
                     </details>
@@ -326,7 +318,7 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 if (block.align === 'center') justifyClass = 'center';
                 if (block.align === 'right') justifyClass = 'flex-end';
 
-                let comboHTML = `<div class="combo-container" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: ${justifyClass}; gap: 0.5rem; margin: 1.5rem 0;">`;
+                let comboHTML = `<div class="combo-container" style="justify-content: ${justifyClass};">`;
                 
                 block.sequence.forEach((move, index) => {
                     // Use the new Keycap aesthetic
@@ -341,7 +333,7 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 if (block.note || block.damage) {
                     // If aligned left, push the damage to the far right. Otherwise, keep it grouped together.
                     const pushRight = block.align === 'left' ? 'margin-left: auto;' : '';
-                    comboHTML += `<div style="display:flex; align-items:center; gap:0.75rem; ${pushRight}">`;
+                    comboHTML += `<div class="combo-meta-group" style="${pushRight}">`;
                     
                     if (block.note) {
                         comboHTML += `<span class="combo-note">${block.note}</span>`;
@@ -383,7 +375,7 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
         `;
     }
 
-    contentHTML += `<div style="clear: both; display: table; width: 100%;"></div>`;
+    contentHTML += `<div class="wiki-blocks-clearfix"></div>`;
 
     return contentHTML;
 };
@@ -439,7 +431,7 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
 
     } else {
         container.innerHTML = `
-            <div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.85rem; font-style: italic; border-top: 1px dashed var(--border-color);">
+            <div class="wiki-section-empty">
                 "${sectionTitle}" analysis has not been written yet.
             </div>
         `;
@@ -560,12 +552,7 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                     mainArea.appendChild(tabContainer);
                 }
                 
-                tabContainer.innerHTML = ''; 
-                
-                // --- ACTIVATE SMART FLEX GRID ---
-                tabContainer.style.display = 'flex';
-                tabContainer.style.flexWrap = 'wrap';
-                tabContainer.style.margin = '0 -0.5rem'; // Offsets internal padding to keep edges flush
+                tabContainer.innerHTML = '';
 
                 if (tab.sections && tab.sections.length > 0) {
                     tab.sections.forEach((section, sIdx) => {
@@ -588,19 +575,14 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                         // --- THE ROW BREAKER ---
                         if (sBreak && sIdx !== 0) {
                             const flexBreak = document.createElement('div');
-                            flexBreak.style.flexBasis = '100%';
-                            flexBreak.style.height = '0';
+                            flexBreak.className = 'flex-row-break';
                             tabContainer.appendChild(flexBreak);
                         }
 
                         const sectionNode = document.createElement('section');
-                        sectionNode.className = 'wiki-section';
-                        
+                        sectionNode.className = 'wiki-section system-content-grid-section';
+
                         // --- DYNAMIC GEOMETRY APPLICATION ---
-                        sectionNode.style.boxSizing = 'border-box';
-                        sectionNode.style.padding = '0 0.5rem'; // Standard horizontal grid padding
-                        sectionNode.style.marginBottom = '1.5rem'; // Replaces the old space-y-6
-                        
                         sectionNode.style.flex = `0 0 ${sWidth}%`;
                         sectionNode.style.maxWidth = `${sWidth}%`;
 
@@ -615,7 +597,7 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                         }
                         
                         if (section.sectionTitle) {
-                            sectionNode.innerHTML = `<h2 class="section-title mb-4" style="text-transform: uppercase;">${section.sectionTitle}</h2>`;
+                            sectionNode.innerHTML = `<h2 class="section-title mb-4">${section.sectionTitle}</h2>`;
                         }
                         
                         const contentDiv = document.createElement('div');
@@ -628,11 +610,10 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                     
                     // Flexbox safe clear-fix
                     const clearFix = document.createElement('div');
-                    clearFix.style.flexBasis = '100%';
-                    clearFix.style.height = '0';
+                    clearFix.className = 'flex-row-break';
                     tabContainer.appendChild(clearFix);
                 } else {
-                    tabContainer.innerHTML = `<div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.85rem; font-style: italic; border-top: 1px dashed var(--border-color); flex-basis: 100%;">This section has not been written yet.</div>`;
+                    tabContainer.innerHTML = `<div class="wiki-section-empty wiki-section-empty-flex">This section has not been written yet.</div>`;
                 }
             });
 
@@ -687,7 +668,7 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                         : `<div class="profile-portrait-missing">[No Portrait]</div>`;
 
                     profileHTML = `
-                        <aside class="wiki-section profile-card" style="align-self: flex-start;">
+                        <aside class="wiki-section profile-card">
                             ${imgHTML}
                             <div class="profile-stats-container">${statsHTML}</div>
                         </aside>
@@ -695,9 +676,7 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                 }
 
                 const rightColumn = document.createElement('div');
-                rightColumn.className = 'profile-text-wrapper'; 
-                rightColumn.style.display = 'flex';
-                rightColumn.style.flexDirection = 'column';
+                rightColumn.className = 'profile-text-wrapper';
 
                 const overviewTextWrapper = document.createElement('div');
                 overviewTextWrapper.id = 'overview-text-subnode';
@@ -753,8 +732,7 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                         const tierColor = tierColors[mu.tier] || "#ffffff";
 
                         const muSection = document.createElement('section');
-                        muSection.className = 'wiki-section'; 
-                        muSection.style.overflow = 'hidden'; 
+                        muSection.className = 'wiki-section wiki-section-clip';
 
                         let muHTML = `
                             <div class="card-header-flex">
@@ -803,8 +781,7 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                         const impColor = importanceColors[cp.importance] || "#9ca3af";
 
                         const cpSection = document.createElement('section');
-                        cpSection.className = 'wiki-section'; 
-                        cpSection.style.overflow = 'hidden';
+                        cpSection.className = 'wiki-section wiki-section-clip';
 
                         let cpHTML = `
                             <div class="card-header-flex">
