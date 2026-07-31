@@ -97,76 +97,68 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
         // --- DIVIDERS ---
         else if (block.type === 'divider') {
             const bData = block.data || block; // SAFE EXTRACTOR
-            
+
             // Legacy fallback for old invisible blocks
             let currentStyle = bData.style || (bData.invisible ? 'invisible' : 'diamond');
             let paddingClass = bData.padding || 'normal';
-            
-            // Resolve the math for the margins
-            let marginVal = '2.5rem';
-            if (paddingClass === 'none') marginVal = '0';
-            else if (paddingClass === 'small') marginVal = '1rem';
-            else if (paddingClass === 'large') marginVal = '4rem';
-            else if (paddingClass === 'massive') marginVal = '6rem';
 
-            // The master wrapper
-            const wrapStart = `<div style="clear: both; margin: ${marginVal} 0; display: flex; align-items: center; justify-content: center; opacity: 0.8; width: 100%;">`;
-            const wrapEnd = `</div>`;
-            
+            const validPadding = ['none', 'small', 'normal', 'large', 'massive'];
+            const padClass = `wiki-divider-pad-${validPadding.includes(paddingClass) ? paddingClass : 'normal'}`;
+
             let divHtml = '';
-            
+
             // Inject the exact HTML for the requested style
             switch (currentStyle) {
                 case 'invisible':
                     divHtml = ``; // Just the margin container!
                     break;
                 case 'solid':
-                    divHtml = `<div style="width: 100%; height: 2px; background: var(--border-color, #333);"></div>`;
+                    divHtml = `<div class="wiki-divider-line-solid"></div>`;
                     break;
                 case 'dashed':
-                    divHtml = `<div style="width: 100%; height: 2px; border-bottom: 2px dashed var(--border-color, #333);"></div>`;
+                    divHtml = `<div class="wiki-divider-line-dashed"></div>`;
                     break;
                 case 'dotted':
-                    divHtml = `<div style="width: 100%; height: 4px; border-bottom: 4px dotted var(--border-color, #333);"></div>`;
+                    divHtml = `<div class="wiki-divider-line-dotted"></div>`;
                     break;
                 case 'double':
-                    divHtml = `<div style="width: 100%; height: 6px; border-top: 2px solid var(--border-color, #333); border-bottom: 2px solid var(--border-color, #333);"></div>`;
+                    divHtml = `<div class="wiki-divider-line-double"></div>`;
                     break;
                 case 'circle':
                     divHtml = `
-                        <div style="flex-grow: 1; height: 2px; background: var(--border-color, #333);"></div>
-                        <div style="margin: 0 1rem; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--accent-blue); background: var(--bg-main); box-shadow: 2px 2px 0px var(--manga-shadow);"></div>
-                        <div style="flex-grow: 1; height: 2px; background: var(--border-color, #333);"></div>
+                        <div class="wiki-divider-segment"></div>
+                        <div class="wiki-divider-circle-dot"></div>
+                        <div class="wiki-divider-segment"></div>
                     `;
                     break;
                 case 'cross':
                     divHtml = `
-                        <div style="flex-grow: 1; height: 2px; background: var(--border-color, #333);"></div>
-                        <div style="margin: 0 1rem; font-family: var(--text-mono); color: var(--accent-blue); font-weight: bold; font-size: 1.4rem; line-height: 0.5;">+</div>
-                        <div style="flex-grow: 1; height: 2px; background: var(--border-color, #333);"></div>
+                        <div class="wiki-divider-segment"></div>
+                        <div class="wiki-divider-cross-plus">+</div>
+                        <div class="wiki-divider-segment"></div>
                     `;
                     break;
                 case 'fade':
-                    divHtml = `<div style="width: 100%; height: 2px; background: linear-gradient(90deg, transparent, var(--border-color, #333) 20%, var(--border-color, #333) 80%, transparent);"></div>`;
+                    divHtml = `<div class="wiki-divider-line-fade"></div>`;
                     break;
                 case 'slash':
                     divHtml = `
-                        <div style="flex-grow: 1; height: 2px; background: var(--border-color, #333);"></div>
-                        <div style="margin: 0 1rem; font-family: 'CC-Wild-Words', sans-serif; color: var(--border-color, #333); font-size: 1rem; letter-spacing: 2px; font-style: italic;">///</div>
-                        <div style="flex-grow: 1; height: 2px; background: var(--border-color, #333);"></div>
+                        <div class="wiki-divider-segment"></div>
+                        <div class="wiki-divider-slash-mark">///</div>
+                        <div class="wiki-divider-segment"></div>
                     `;
                     break;
                 case 'diamond':
                 default:
                     divHtml = `
-                        <div style="flex-grow: 1; height: 2px; background: var(--border-color, #333);"></div>
-                        <div style="margin: 0 1rem; transform: rotate(45deg); width: 10px; height: 10px; border: 2px solid var(--accent-blue); background: var(--bg-main); box-shadow: 2px 2px 0px var(--manga-shadow);"></div>
-                        <div style="flex-grow: 1; height: 2px; background: var(--border-color, #333);"></div>
+                        <div class="wiki-divider-segment"></div>
+                        <div class="wiki-divider-diamond-mark"></div>
+                        <div class="wiki-divider-segment"></div>
                     `;
                     break;
             }
-            
-            contentHTML += wrapStart + divHtml + wrapEnd;
+
+            contentHTML += `<div class="wiki-divider ${padClass}">${divHtml}</div>`;
         }
         // --- STANDALONE AUTHOR BLOCK ---
         else if (block.type === 'author') {
@@ -193,9 +185,9 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             tooltipContent += `<span class="tooltip-desc" style="font-family: var(--text-mono); font-size: 0.75rem; color: #e5e7eb; line-height: 1.5; display: block;">${text}</span>`;
 
             contentHTML += `
-                <div ${getAlignStyle(bData.align)} style="margin: 0.75rem 0;">
-                    <span class="inline-callout-btn" style="--callout-color: ${config.color}; display: inline-flex; align-items: center; gap: 0.5rem; background: var(--bg-secondary, #111); border: 2px solid var(--border-color, #333); border-left: 4px solid ${config.color}; color: var(--text-white, #fff); font-family: var(--text-mono); font-size: 0.75rem; font-weight: bold; text-transform: uppercase; padding: 0.4rem 0.75rem; cursor: help; box-shadow: 3px 3px 0px var(--manga-shadow, #000); transition: transform 0.1s, box-shadow 0.1s, border-color 0.1s, color 0.1s;" data-tooltip="${encodeURIComponent(tooltipContent)}" onmouseover="this.style.transform='translate(-2px, -2px)'; this.style.boxShadow='5px 5px 0px ${config.color}'; this.style.borderColor='${config.color}'; this.style.color='${config.color}';" onmouseout="this.style.transform='none'; this.style.boxShadow='3px 3px 0px var(--manga-shadow, #000)'; this.style.borderColor='var(--border-color, #333)'; this.style.color='var(--text-white, #fff)';">
-                        <span class="callout-icon" style="font-size: 0.9rem;">${config.icon}</span> 
+                <div class="wiki-callout-wrapper" ${getAlignStyle(bData.align)}>
+                    <span class="inline-callout-btn" style="--callout-color: ${config.color};" data-tooltip="${encodeURIComponent(tooltipContent)}">
+                        <span class="callout-icon">${config.icon}</span>
                         <span class="callout-label">${config.label}</span>
                     </span>
                 </div>

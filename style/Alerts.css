@@ -41,6 +41,8 @@
 
 /* --- 2. INLINE TEXT CALLOUTS --- */
 
+.wiki-callout-wrapper { margin: 0.75rem 0; }
+
 .inline-callout-btn {
     display: inline-flex;
     align-items: center;
