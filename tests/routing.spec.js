@@ -25,11 +25,23 @@ test('editRole gate: locked page hides the Edit button, open page shows it', asy
   // can exercise initTabEditorButtons() directly against different pageIds
   // on the same page/button without needing a locked page that actually
   // calls it (none currently do - this tests the gate mechanism itself).
+  //
+  // The button's hidden-by-default state now comes entirely from its own
+  // .tab-editor-btn-sidebar class (style/Layout.css), not an inline style -
+  // js/pagebuilder.js un-hides it via classList.add('is-active') rather
+  // than a direct style.display write (mobile-support pass). So this test
+  // resets to that true default via classList.remove instead of forcing an
+  // inline display: none, which a bare classList toggle correctly can't
+  // override (inline styles always beat a non-!important class rule) - and
+  // Boomcat's own page bootstrap already ran initTabEditorButtons('boomcat',
+  // 'character') once before this test's manual calls even start, since
+  // it's an open page.
   await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(async () => {
     const btn = document.getElementById('btn-edit-current-tab');
-    btn.style.display = 'none';
+    btn.classList.remove('is-active');
+    const beforeAny = getComputedStyle(btn).display;
 
     await window.initTabEditorButtons('collaborators', 'system'); // editRole: locked
     const afterLocked = getComputedStyle(btn).display;
@@ -37,10 +49,11 @@ test('editRole gate: locked page hides the Edit button, open page shows it', asy
     await window.initTabEditorButtons('boomcat', 'character'); // editRole: open
     const afterOpen = getComputedStyle(btn).display;
 
-    return { afterLocked, afterOpen };
+    return { beforeAny, afterLocked, afterOpen };
   });
 
-  expect(result.afterLocked).toBe('none');
+  expect(result.beforeAny).toBe('none'); // true default, no inline style needed
+  expect(result.afterLocked).toBe('none'); // locked gate early-returns, leaves it untouched
   expect(result.afterOpen).toBe('flex');
 });
 

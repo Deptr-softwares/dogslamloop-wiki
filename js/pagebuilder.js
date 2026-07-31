@@ -113,45 +113,42 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
 
     // 1. Hook up the Desktop Right Sidebar Buttons (Stacked Layout)
     if (sidebarBtn) {
-        sidebarBtn.style.display = 'flex'; 
+        sidebarBtn.classList.add('is-active');
         sidebarBtn.onclick = handleEditClick;
 
         const parentDiv = sidebarBtn.parentNode;
-        
+
         // Restructure the parent container so the title sits on top of the buttons
-        parentDiv.style.flexDirection = 'column';
-        parentDiv.style.alignItems = 'stretch';
-        parentDiv.style.gap = '0.75rem';
+        parentDiv.classList.add('sidebar-tab-header-stacked');
 
         let btnGroup = document.getElementById('sidebar-btn-group');
         if (!btnGroup) {
             btnGroup = document.createElement('div');
             btnGroup.id = 'sidebar-btn-group';
-            btnGroup.style.display = 'flex';
-            btnGroup.style.gap = '0.5rem';
-            btnGroup.style.width = '100%';
 
             // Move the Edit button into the new wrapper
             parentDiv.insertBefore(btnGroup, sidebarBtn);
             btnGroup.appendChild(sidebarBtn);
 
-            // Create the History button
+            // Create the History button. Shares .tab-editor-btn-sidebar
+            // with the Edit button directly (style/Layout.css) instead of
+            // cloning sidebarBtn.style.cssText at creation time - that
+            // clone was fragile and, on system pages, actually carried a
+            // stale display: none onto this button permanently (see the
+            // matching fix in the mobile block below for the same bug).
             const histBtn = document.createElement('button');
             histBtn.id = 'btn-history-current-tab';
-            histBtn.className = 'btn-sys btn-sys-regular';
-            histBtn.style.cssText = sidebarBtn.style.cssText;
-            histBtn.style.flex = '1'; // Forces buttons to share width equally
-            sidebarBtn.style.flex = '1';
+            histBtn.className = 'btn-sys btn-sys-regular tab-editor-btn-sidebar is-active';
             histBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> HISTORY`;
             histBtn.onclick = handleHistoryClick;
-            
+
             btnGroup.insertBefore(histBtn, sidebarBtn);
         }
     }
 
     // 2. Hook up the Mobile Nav Buttons (Grouped Layout)
     if (mobileBtn) {
-        mobileBtn.classList.add('is-active'); 
+        mobileBtn.classList.add('is-active');
         mobileBtn.onclick = handleEditClick;
 
         const parentDiv = mobileBtn.parentNode;
@@ -160,19 +157,26 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
         if (!mobBtnGroup) {
             mobBtnGroup = document.createElement('div');
             mobBtnGroup.id = 'mobile-btn-group';
-            mobBtnGroup.style.display = 'flex';
-            mobBtnGroup.style.gap = '0.5rem';
 
             parentDiv.insertBefore(mobBtnGroup, mobileBtn);
             mobBtnGroup.appendChild(mobileBtn);
 
+            // Real bug fixed here: this used to clone mobileBtn.style.cssText,
+            // which on system pages included a leftover inline
+            // "display: none" (present on those pages' static markup).
+            // #btn-edit-current-tab-mobile had a matching ID-specific CSS
+            // override to force it visible, but #btn-history-current-tab-mobile
+            // had no such override - so the cloned inline style permanently
+            // hid the History button on every system page except tierlist
+            // (the one page whose markup happened not to include it).
+            // Sharing .tab-editor-btn-mobile (style/Layout.css) instead of
+            // cloning makes both buttons' visibility rule live in one place.
             const histBtnMob = document.createElement('button');
             histBtnMob.id = 'btn-history-current-tab-mobile';
-            histBtnMob.className = 'btn-sys btn-sys-regular is-active';
-            histBtnMob.style.cssText = mobileBtn.style.cssText;
+            histBtnMob.className = 'btn-sys btn-sys-regular tab-editor-btn-mobile is-active';
             histBtnMob.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> HISTORY`;
             histBtnMob.onclick = handleHistoryClick;
-            
+
             mobBtnGroup.insertBefore(histBtnMob, mobileBtn);
         }
     }
