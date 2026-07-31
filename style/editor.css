@@ -597,10 +597,12 @@ input[type="checkbox"]:checked {
     border-bottom: 1px dashed #333;
 }
 
-#media-upload-zone:hover {
+#media-upload-zone:hover, #media-upload-zone.media-upload-zone-dragover {
     border-color: #34d399;
     background: rgba(52, 211, 153, 0.05) !important;
 }
+
+#btn-media-prev:disabled, #btn-media-next:disabled { opacity: 0.3; }
 
 .media-thumbnail-card {
     background: #050505;
@@ -620,34 +622,11 @@ input[type="checkbox"]:checked {
     box-shadow: 4px 4px 0px var(--manga-shadow);
 }
 
-.media-thumb-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-}
-
-.media-thumbnail-card:hover .media-thumb-img {
-    opacity: 1;
-}
-
-.media-thumb-name {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    color: var(--text-white);
-    font-family: var(--text-mono);
-    font-size: 0.6rem;
-    padding: 0.25rem;
-    box-sizing: border-box;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    border-top: 1px solid #333;
-}
+.media-status-msg { color: #888; font-family: var(--text-mono); font-size: 0.75rem; padding: 2rem; text-align: center; grid-column: 1 / -1; }
+.media-error-msg { color: #ef4444; grid-column: 1 / -1; }
+.media-thumbnail-media { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.media-thumbnail-badge { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.85); color: var(--accent-blue); font-size: 0.55rem; padding: 2px 4px; font-family: var(--text-mono); border: 1px solid var(--accent-blue); z-index: 5; }
+.media-thumbnail-filename { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.85); color: #fff; font-size: 0.65rem; font-family: var(--text-mono); padding: 4px 6px; box-sizing: border-box; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top: 1px solid #333; z-index: 5; }
 
 /* --- CUSTOM MODAL THEMES --- */
 .editor-modal-overlay { z-index: 10000; }
@@ -761,49 +740,6 @@ input[type="checkbox"]:checked {
     height: 100%;
     object-fit: cover;
     pointer-events: none;
-}
-
-/* DIFF VIEWER (UNSAVED CHANGES) */
-.diff-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    padding: 1.5rem;
-    background: var(--bg-secondary);
-    border: 2px solid var(--border-color);
-    box-shadow: 6px 6px 0px var(--manga-shadow);
-    margin-bottom: 2rem;
-}
-
-.diff-section-title {
-    font-family: 'CC-Wild-Words', sans-serif;
-    color: var(--text-white);
-    font-size: 1rem;
-    border-bottom: 2px dashed #444;
-    padding-bottom: 0.5rem;
-    margin: 0;
-}
-
-.diff-block-old {
-    background: hsla(0, 100%, 50%, 0.1);
-    border-left: 3px solid #ef4444;
-    padding: 1rem;
-    color: #fca5a5;
-    font-family: var(--text-mono);
-    font-size: 0.75rem;
-    white-space: pre-wrap;
-    word-break: break-all;
-}
-
-.diff-block-new {
-    background: hsla(120, 100%, 25%, 0.1);
-    border-left: 3px solid #22c55e;
-    padding: 1rem;
-    color: #86efac;
-    font-family: var(--text-mono);
-    font-size: 0.75rem;
-    white-space: pre-wrap;
-    word-break: break-all;
 }
 
 /* Keep the native select looking okay as a fallback before JS loads */
@@ -1188,6 +1124,13 @@ select.editor-select.manga-initialized {
     padding-bottom: 0.5rem;
     margin: 0;
 }
+/* js/editor.js's raw/JSON diff branch (renderDiffView) - the border/
+   box-shadow differ from the default (inline-blocks) .diff-container above. */
+.diff-container.diff-container-raw { border: 2px solid var(--border-color, #333); box-shadow: 6px 6px 0px var(--manga-shadow, #000); }
+/* Referenced by js/admin.js's own diff view too (<div class="diff-inline-
+   target">) but never had a CSS rule until this pass. */
+.diff-inline-target { width: 100%; }
+.editor-diff-empty-msg { color: var(--text-muted); font-style: italic; border: 1px dashed #333; padding: 2rem; text-align: center; }
 
 /* Inline Text Highlighters */
 ins.diff-add {
@@ -1232,3 +1175,25 @@ del.diff-del {
 }
 .diff-stacked-label.old { color: #ef4444; }
 .diff-stacked-label.new { color: #22c55e; }
+/* Referenced by js/admin.js's own raw/JSON diff view too (<pre class="diff-
+   stacked-pre old/new">) but never had a CSS rule until this pass. */
+.diff-stacked-pre { font-family: var(--text-mono); font-size: 0.65rem; margin: 0; }
+.diff-stacked-pre.old { color: #fca5a5; }
+.diff-stacked-pre.new { color: #86efac; }
+
+/* --- LOCAL DRAFT MANAGER (js/editor.js openDraftManager) --- */
+.draft-empty-msg { color: #666; font-family: var(--text-mono); font-size: 0.8rem; text-align: center; padding: 2rem 0; border: 1px dashed #333; }
+.draft-row { display: flex; justify-content: space-between; align-items: center; background: #050505; border: 1px solid #333; padding: 1rem; margin-bottom: 0.5rem; border-left: 3px solid var(--accent-blue); }
+.draft-row-label { color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.25rem; }
+.draft-row-title { color: #fff; font-family: var(--text-mono); font-size: 0.8rem; margin-bottom: 0.25rem; font-weight: bold; }
+.draft-row-context { color: #888; font-weight: normal; }
+.draft-row-timestamp { color: #666; font-family: var(--text-mono); font-size: 0.65rem; }
+.draft-row-actions { display: flex; gap: 0.5rem; align-items: center; }
+/* Compound: .submit-btn's own base rule sets color/border-color at the same
+   specificity (redundant, harmless either way) - kept compound for the
+   genuinely differing padding/font-size, and to suppress the shared
+   :hover glow this button intentionally never had. */
+.submit-btn.draft-resume-btn { padding: 0.4rem 0.8rem; font-size: 0.65rem; box-shadow: none; }
+.submit-btn.draft-resume-btn:hover:not(:disabled) { box-shadow: none; }
+.draft-active-badge { color: #22c55e; font-family: var(--text-mono); font-size: 0.65rem; padding: 0.4rem 0.8rem; border: 1px solid #22c55e; }
+.btn-action-delete.draft-discard-btn { background: transparent; padding: 0.4rem 0.8rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.65rem; }

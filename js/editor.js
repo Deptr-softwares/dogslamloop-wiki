@@ -3588,13 +3588,13 @@ window.initMediaLibrary = function() {
         const grid = document.getElementById('media-gallery-grid');
         if (!grid) return;
         
-        grid.innerHTML = '<div style="color:#888; font-family:var(--text-mono); font-size:0.75rem; padding: 2rem; text-align:center; grid-column: 1 / -1;">Connecting to Cloud Storage...</div>';
-        
+        grid.innerHTML = '<div class="media-status-msg">Connecting to Cloud Storage...</div>';
+
         if (!window.supabaseClient) return;
 
         const { data, error } = await window.supabaseClient.storage.from('wiki-media').list('', { limit: 1000 });
         if (error) {
-            grid.innerHTML = `<div style="color:#ef4444; grid-column: 1 / -1;">Error: ${error.message}</div>`;
+            grid.innerHTML = `<div class="media-error-msg">Error: ${error.message}</div>`;
             return;
         }
 
@@ -3638,12 +3638,9 @@ window.initMediaLibrary = function() {
         
         btnPrev.disabled = window.currentMediaPage === 1;
         btnNext.disabled = window.currentMediaPage === totalPages;
-        
-        btnPrev.style.opacity = btnPrev.disabled ? '0.3' : '1';
-        btnNext.style.opacity = btnNext.disabled ? '0.3' : '1';
 
         if (paginatedFiles.length === 0) {
-            grid.innerHTML = '<div style="color:#888; font-family:var(--text-mono); font-size:0.75rem; padding: 2rem; text-align:center; grid-column: 1 / -1;">No media matches your search criteria.</div>';
+            grid.innerHTML = '<div class="media-status-msg">No media matches your search criteria.</div>';
             return;
         }
 
@@ -3671,19 +3668,19 @@ window.initMediaLibrary = function() {
             const isVideo = file.name.endsWith('.webm') || file.name.endsWith('.mp4');
             const isGif = file.name.endsWith('.gif');
 
-            let mediaHTML = isVideo 
-                ? `<video src="${url}" loop muted playsinline preload="metadata" style="width:100%; height:100%; object-fit:cover; pointer-events:none;"></video>`
-                : `<img src="${url}" style="width:100%; height:100%; object-fit:cover; pointer-events:none;">`;
+            let mediaHTML = isVideo
+                ? `<video src="${url}" loop muted playsinline preload="metadata" class="media-thumbnail-media"></video>`
+                : `<img src="${url}" class="media-thumbnail-media">`;
 
-            const badgeHTML = (isVideo || isGif) 
-                ? `<div style="position:absolute; top:4px; right:4px; background:rgba(0,0,0,0.85); color:var(--accent-blue); font-size:0.55rem; padding:2px 4px; font-family:var(--text-mono); border:1px solid var(--accent-blue); z-index:5;">${isVideo ? 'VIDEO' : 'GIF'}</div>` 
+            const badgeHTML = (isVideo || isGif)
+                ? `<div class="media-thumbnail-badge">${isVideo ? 'VIDEO' : 'GIF'}</div>`
                 : '';
 
             card.innerHTML = `
                 ${mediaHTML}
                 ${badgeHTML}
                 <div class="copy-toast hidden">COPIED URL!</div>
-                <div style="position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.85); color: #fff; font-size: 0.65rem; font-family: var(--text-mono); padding: 4px 6px; box-sizing: border-box; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top: 1px solid #333; z-index:5;">
+                <div class="media-thumbnail-filename">
                     ${file.name}
                 </div>
             `;
@@ -3803,20 +3800,17 @@ window.initMediaLibrary = function() {
 
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
-        dropZone.style.borderColor = '#34d399';
-        dropZone.style.background = 'rgba(52, 211, 153, 0.05)';
+        dropZone.classList.add('media-upload-zone-dragover');
     });
 
     dropZone.addEventListener('dragleave', (e) => {
         e.preventDefault();
-        dropZone.style.borderColor = '';
-        dropZone.style.background = '';
+        dropZone.classList.remove('media-upload-zone-dragover');
     });
 
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
-        dropZone.style.borderColor = '';
-        dropZone.style.background = '';
+        dropZone.classList.remove('media-upload-zone-dragover');
         if (e.dataTransfer.files.length > 0) handleUpload(e.dataTransfer.files[0]);
     });
 };
@@ -3963,25 +3957,30 @@ window.renderDiffView = function() {
                 const diffedBlocks = applyInlineDiffToBlocks(oldBlocks, newBlocks);
 
                 diffContainer.innerHTML += `
-                    <div class="diff-container" style="padding: 1.5rem; margin-bottom: 2rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-left: 3px solid #a855f7; box-shadow: 4px 4px 0px var(--manga-shadow);">
-                        <h3 class="diff-section-title" style="color: #a855f7; border-bottom: 1px dashed #333; padding-bottom: 0.5rem; margin-top:0;">${sectionName.toUpperCase()}</h3>
-                        <div id="diff-inline-${safeId}" style="width: 100%;"></div>
+                    <div class="diff-container">
+                        <h3 class="diff-section-title">${sectionName.toUpperCase()}</h3>
+                        <div id="diff-inline-${safeId}" class="diff-inline-target"></div>
                     </div>
                 `;
                 diffRenderQueue.push(() => {
                     if (typeof window.populateTextSection === 'function') window.populateTextSection(`diff-inline-${safeId}`, '', diffedBlocks);
                 });
             } else {
+                // Same diff-stacked-* classes admin.js's own raw/JSON diff view
+                // uses (js/admin.js ~line 1023) - kept in sync rather than a
+                // parallel editor-only copy, and diff-container-raw is the
+                // only genuinely different piece (this branch's border/
+                // box-shadow differ from the inline-blocks branch above).
                 diffContainer.innerHTML += `
-                    <div class="diff-container" style="padding: 1.5rem; margin-bottom: 2rem; background: var(--bg-secondary); border: 2px solid var(--border-color); box-shadow: 6px 6px 0px var(--manga-shadow);">
-                        <h3 class="diff-section-title" style="color: #a855f7; border-bottom: 1px dashed #333; padding-bottom: 0.5rem; margin-top:0;">${sectionName.toUpperCase()}</h3>
-                        <div style="border: 1px solid #ef4444; background: rgba(239, 68, 68, 0.05); padding: 1rem; margin-bottom: 0.5rem;">
-                            <div style="color: #ef4444; font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; margin-bottom: 1rem;">[-] LIVE CLOUD DATA</div>
-                            <pre style="font-family:var(--text-mono); font-size:0.65rem; color:#fca5a5; margin:0;">${JSON.stringify(oldData, null, 2)}</pre>
+                    <div class="diff-container diff-container-raw">
+                        <h3 class="diff-section-title">${sectionName.toUpperCase()}</h3>
+                        <div class="diff-stacked-old">
+                            <div class="diff-stacked-label old">[-] LIVE CLOUD DATA</div>
+                            <pre class="diff-stacked-pre old">${JSON.stringify(oldData, null, 2)}</pre>
                         </div>
-                        <div style="border: 1px solid #22c55e; background: rgba(34, 197, 94, 0.05); padding: 1rem;">
-                            <div style="color: #22c55e; font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; margin-bottom: 1rem;">[+] SUGGESTED REVISION</div>
-                            <pre style="font-family:var(--text-mono); font-size:0.65rem; color:#86efac; margin:0;">${JSON.stringify(newData, null, 2)}</pre>
+                        <div class="diff-stacked-new">
+                            <div class="diff-stacked-label new">[+] SUGGESTED REVISION</div>
+                            <pre class="diff-stacked-pre new">${JSON.stringify(newData, null, 2)}</pre>
                         </div>
                     </div>
                 `;
@@ -4017,7 +4016,7 @@ window.renderDiffView = function() {
     compareArrayOfObjects('Frame Data (Skill)', window.originalCloudFrameData.skills, window.currentEditorFrameData.skills, 'id', 'json');
     compareArrayOfObjects('Frame Data (Special)', window.originalCloudFrameData.specials, window.currentEditorFrameData.specials, 'id', 'json');
 
-    if (!changesFound) diffContainer.innerHTML += `<p style="color:var(--text-muted); font-style:italic; border: 1px dashed #333; padding: 2rem; text-align: center;">No changes detected against the live database.</p>`;
+    if (!changesFound) diffContainer.innerHTML += `<p class="editor-diff-empty-msg">No changes detected against the live database.</p>`;
 
     diffRenderQueue.forEach(fn => fn());
     if(typeof window.applyInternalStyling === 'function') setTimeout(window.applyInternalStyling, 50);
@@ -4044,7 +4043,7 @@ window.openDraftManager = function() {
     drafts.sort((a, b) => b.timestamp - a.timestamp);
 
     if (drafts.length === 0) {
-        container.innerHTML = '<div style="color: #666; font-family: var(--text-mono); font-size: 0.8rem; text-align: center; padding: 2rem 0; border: 1px dashed #333;">No local drafts found. Your workspace is clean!</div>';
+        container.innerHTML = '<div class="draft-empty-msg">No local drafts found. Your workspace is clean!</div>';
     } else {
         let html = '';
         drafts.forEach(draft => {
@@ -4068,18 +4067,18 @@ window.openDraftManager = function() {
 
             // --- DRAFT UI ---
             html += `
-                <div style="display: flex; justify-content: space-between; align-items: center; background: #050505; border: 1px solid #333; padding: 1rem; margin-bottom: 0.5rem; border-left: 3px solid var(--accent-blue);">
+                <div class="draft-row">
                     <div>
-                        <div style="color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.25rem;">DRAFT ${drafts.length - drafts.indexOf(draft)}</div>
-                        <div style="color: #fff; font-family: var(--text-mono); font-size: 0.8rem; margin-bottom: 0.25rem; font-weight: bold;">${charDisplay} <span style="color: #888; font-weight: normal;">— [ ${contextDisplay} ]</span></div>
-                        <div style="color: #666; font-family: var(--text-mono); font-size: 0.65rem;">Last Auto-Saved: ${dateStr}</div>
+                        <div class="draft-row-label">DRAFT ${drafts.length - drafts.indexOf(draft)}</div>
+                        <div class="draft-row-title">${charDisplay} <span class="draft-row-context">— [ ${contextDisplay} ]</span></div>
+                        <div class="draft-row-timestamp">Last Auto-Saved: ${dateStr}</div>
                     </div>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        ${!isCurrent ? 
-                            `<button class="submit-btn" style="color: var(--accent-blue); border-color: var(--accent-blue); padding: 0.4rem 0.8rem; font-size: 0.65rem; box-shadow: none;" onclick="window.location.href='${resumeUrl}'">RESUME</button>` : 
-                            `<span style="color: #22c55e; font-family: var(--text-mono); font-size: 0.65rem; padding: 0.4rem 0.8rem; border: 1px solid #22c55e;">CURRENTLY ACTIVE</span>`
+                    <div class="draft-row-actions">
+                        ${!isCurrent ?
+                            `<button class="submit-btn draft-resume-btn" onclick="window.location.href='${resumeUrl}'">RESUME</button>` :
+                            `<span class="draft-active-badge">CURRENTLY ACTIVE</span>`
                         }
-                        <button class="btn-action-delete" style="background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 0.4rem 0.8rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.65rem; cursor: pointer;" onclick="window.deleteDraft('${draft.key}')">DISCARD</button>
+                        <button class="btn-action-delete draft-discard-btn" onclick="window.deleteDraft('${draft.key}')">DISCARD</button>
                     </div>
                 </div>
             `;
