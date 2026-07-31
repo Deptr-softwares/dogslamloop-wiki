@@ -462,12 +462,30 @@
 .mobile-top-bar { display: none; }
 .mobile-backdrop { display: none; }
 
-/* Mobile-exclusive "EDIT TAB" button injected into .character-nav (was a
-   per-page embedded <style> block identical across all character pages) */
-#btn-edit-current-tab-mobile { display: none !important; }
+/* Mobile-exclusive "EDIT TAB"/"EDIT PAGE" button injected into
+   .character-nav, and its dynamically-created History sibling
+   (js/pagebuilder.js initTabEditorButtons) - a class instead of an ID
+   selector so both buttons share one visibility rule. Was previously
+   ID-scoped to #btn-edit-current-tab-mobile only, which meant the cloned
+   History button (js/pagebuilder.js used to copy its style.cssText) had
+   no matching override and stayed permanently hidden wherever the source
+   markup included an inline display: none (every system page but one). */
+.tab-editor-btn-mobile { display: none !important; font-size: 0.7rem; padding: 0.4rem 0.75rem; align-items: center; gap: 0.4rem; }
 @media (max-width: 900px) {
-    #btn-edit-current-tab-mobile.is-active { display: flex !important; }
+    .tab-editor-btn-mobile.is-active { display: flex !important; }
 }
+#mobile-btn-group { display: flex; gap: 0.5rem; margin-left: auto; }
+
+/* Desktop right-sidebar "EDIT TAB"/"EDIT PAGE" + History buttons
+   (js/pagebuilder.js initTabEditorButtons). Un-hidden via .is-active
+   instead of a direct style.display write, matching the mobile pattern
+   above. */
+.tab-editor-btn-sidebar { display: none; font-size: 0.6rem; padding: 0.25rem 0.5rem; align-items: center; gap: 0.35rem; flex: 1; }
+.tab-editor-btn-sidebar.is-active { display: flex; }
+#sidebar-btn-group { display: flex; gap: 0.5rem; width: 100%; }
+/* Compound: .sidebar-tab-header's own base rule sets align-items: flex-end
+   at the same specificity. */
+.sidebar-tab-header.sidebar-tab-header-stacked { flex-direction: column; align-items: stretch; gap: 0.75rem; }
 
 @media (max-width: 1023px) {
     .mobile-top-bar {
