@@ -11,7 +11,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "honored_one", "editRole": "open" }
     },
     {
       "id": "Vessel",
@@ -24,7 +24,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "vessel", "editRole": "open" }
     },
     {
       "id": "Restless-Gambler",
@@ -37,7 +37,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "restless_gambler", "editRole": "open" }
     },
     {
       "id": "Ten-Shadows",
@@ -50,7 +50,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "ten_shadows", "editRole": "open" }
     },
     {
       "id": "Perfection",
@@ -63,7 +63,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "perfection", "editRole": "open" }
     },
     {
       "id": "Blood-Manipulator",
@@ -76,7 +76,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "blood_manipulator", "editRole": "open" }
     },
     {
       "id": "Switcher",
@@ -89,7 +89,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "switcher", "editRole": "open" }
     },
     {
       "id": "Defense-Attorney",
@@ -102,7 +102,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "defense_attorney", "editRole": "open" }
     },
     {
       "id": "Cursed-Partners",
@@ -115,7 +115,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "cursed_partners", "editRole": "open" }
     },
     {
       "id": "Puppet-Master",
@@ -128,7 +128,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "puppet_master", "editRole": "open" }
     },
     {
       "id": "Head-Hei",
@@ -141,7 +141,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "head_hei", "editRole": "open" }
     },
     {
       "id": "Salaryman",
@@ -154,7 +154,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "salaryman", "editRole": "open" }
     },
     {
       "id": "Disaster-Plants",
@@ -167,7 +167,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "disaster_plants", "editRole": "open" }
     },
     {
       "id": "True-Cannon",
@@ -180,7 +180,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "true_cannon", "editRole": "open" }
     },
     {
       "id": "Register",
@@ -193,7 +193,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "register", "editRole": "open" }
     },
     {
       "id": "Locust",
@@ -206,7 +206,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "locust_guy", "editRole": "open" }
     },
     {
       "id": "Star-Rage",
@@ -219,7 +219,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "star_rage", "editRole": "open" }
     },
     {
       "id": "Mangaka",
@@ -232,7 +232,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "aspiring_mangaka", "editRole": "open" }
     },
     {
       "id": "Lucky-Coward",
@@ -245,7 +245,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "lucky_coward", "editRole": "open" }
     },
     {
       "id": "Sus-Sister",
@@ -258,7 +258,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "crow_charmer", "editRole": "open" }
     },
     {
       "id": "Black-Death",
@@ -271,7 +271,7 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "black_death", "editRole": "open" }
     },
     {
       "id": "Boomcat",
@@ -284,123 +284,123 @@
       "archetype": "TBD",
       "tier": "TBD",
       "releaseDate": "TBD",
-      "cms_config": { "isEditable": true, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "boomcat", "editRole": "open" }
     }
   ],
   "System Pages": [
-    { 
+    {
       "id": "hud",
-      "name": "HUD", 
-      "url": "systems/hud/index.html", 
+      "name": "HUD",
+      "url": "systems/hud/index.html",
       "isWip": true,
-      "cms_config": { "isEditable": true, "pageType": "system" }
+      "cms_config": { "pageType": "system", "pageId": "hud", "editRole": "open" }
     },
-    { 
+    {
       "id": "framedata",
-      "name": "Frame Data", 
-      "url": "systems/framedata/index.html", 
+      "name": "Frame Data",
+      "url": "systems/framedata/index.html",
       "isWip": true,
-      "cms_config": { "isEditable": true, "pageType": "system" }
+      "cms_config": { "pageType": "system", "pageId": "framedata", "editRole": "open" }
     },
-    { 
+    {
       "id": "fundamentals",
-      "name": "Fundamentals", 
-      "url": "systems/fundamentals/index.html", 
+      "name": "Fundamentals",
+      "url": "systems/fundamentals/index.html",
       "isWip": true,
-      "cms_config": { "isEditable": true, "pageType": "system" }
+      "cms_config": { "pageType": "system", "pageId": "fundamentals", "editRole": "open" }
     },
-    { 
+    {
       "id": "evasive",
-      "name": "Evasive System", 
-      "url": "systems/evasive/index.html", 
+      "name": "Evasive System",
+      "url": "systems/evasive/index.html",
       "isWip": true,
-      "cms_config": { "isEditable": true, "pageType": "system" }
+      "cms_config": { "pageType": "system", "pageId": "evasive", "editRole": "open" }
     }
   ],
   "Site Info": [
-    { 
+    {
       "id": "character-hub",
-      "name": "Character Hub", 
-      "url": "characters/index.html", 
+      "name": "Character Hub",
+      "url": "characters/index.html",
       "isWip": true,
-      "cms_config": { "isEditable": false }
+      "cms_config": { "pageType": "hub", "pageId": "character-hub", "editRole": "locked" }
     },
-    { 
+    {
       "id": "systems-hub",
-      "name": "Systems Hub", 
-      "url": "systems/index.html", 
+      "name": "Systems Hub",
+      "url": "systems/index.html",
       "isWip": true,
-      "cms_config": { "isEditable": false }
+      "cms_config": { "pageType": "hub", "pageId": "systems-hub", "editRole": "locked" }
     },
-    { 
+    {
       "id": "template",
-      "name": "Template & Guide", 
+      "name": "Template & Guide",
       "url": "characters/Template/index.html",
-      "cms_config": { "isEditable": false, "pageType": "character" }
+      "cms_config": { "pageType": "character", "pageId": "template", "editRole": "elevated" }
     },
-    { 
+    {
     "id": "writing_guide",
-    "name": "Writing Guide", 
-    "url": "systems/writing_guide/index.html", 
+    "name": "Writing Guide",
+    "url": "systems/writing_guide/index.html",
     "isWip": true,
-    "cms_config": { "isEditable": true, "pageType": "system" }
+    "cms_config": { "pageType": "system", "pageId": "writing_guide", "editRole": "elevated" }
     },
-    { 
+    {
       "id": "source-code",
-      "name": "Source Code", 
-      "url": "https://github.com/Deptr-softwares/dogslamloop-wiki", 
+      "name": "Source Code",
+      "url": "https://github.com/Deptr-softwares/dogslamloop-wiki",
       "isWip": false,
-      "cms_config": { "isEditable": false }
+      "cms_config": { "pageType": "external", "pageId": "source-code", "editRole": "locked" }
     },
-    { 
+    {
       "id": "updatelog",
-      "name": "Update Log", 
+      "name": "Update Log",
       "url": "systems/updatelog/index.html",
-      "cms_config": { "isEditable": true, "pageType": "system" }
+      "cms_config": { "pageType": "system", "pageId": "updatelog", "editRole": "locked" }
     },
     {
       "id": "collaborators",
       "name": "Collaborators",
       "url": "systems/collaborators/index.html",
-      "cms_config": { "isEditable": true, "pageType": "system" }
+      "cms_config": { "pageType": "system", "pageId": "collaborators", "editRole": "locked" }
     }
   ],
   "Guides": [
-    { 
+    {
       "id": "m1-trading",
-      "name": "M1 Trading", 
-      "url": "systems/m1-trading/index.html", 
+      "name": "M1 Trading",
+      "url": "systems/m1-trading/index.html",
       "isWip": true,
-      "cms_config": { "isEditable": true, "pageType": "system" }
+      "cms_config": { "pageType": "system", "pageId": "m1_trading", "editRole": "open" }
     },
-    { 
+    {
       "id": "starter-guide",
-      "name": "Starter Guide", 
-      "url": "systems/starter-guide/index.html", 
+      "name": "Starter Guide",
+      "url": "systems/starter-guide/index.html",
       "isWip": true,
-      "cms_config": { "isEditable": true, "pageType": "system" }
+      "cms_config": { "pageType": "system", "pageId": "starter_guide", "editRole": "open" }
     },
-    { 
+    {
       "id": "terminologies",
-      "name": "Terminologies", 
-      "url": "systems/terminologies/index.html", 
+      "name": "Terminologies",
+      "url": "systems/terminologies/index.html",
       "isWip": true,
-      "cms_config": { "isEditable": true, "pageType": "system" }
+      "cms_config": { "pageType": "system", "pageId": "terminologies", "editRole": "open" }
     },
-    { 
+    {
       "id": "color-codes",
-      "name": "Color Codes", 
-      "url": "systems/color-codes/index.html", 
+      "name": "Color Codes",
+      "url": "systems/color-codes/index.html",
       "isWip": true,
-      "cms_config": { "isEditable": true, "pageType": "system" }
+      "cms_config": { "pageType": "system", "pageId": "color_codes", "editRole": "locked" }
     },
-    { 
+    {
       "id": "tierlist",
-      "name": "Tier List", 
-      "url": "systems/tierlist/index.html", 
-      "isWip": true, 
+      "name": "Tier List",
+      "url": "systems/tierlist/index.html",
+      "isWip": true,
       "isSubjective": true,
-      "cms_config": { "isEditable": true, "pageType": "tierlist" }
+      "cms_config": { "pageType": "tierlist", "pageId": "tierlist", "editRole": "elevated" }
     }
   ]
 }
