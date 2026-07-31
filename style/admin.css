@@ -77,9 +77,12 @@
 }
 
 #preview-nav-sidebar .nav-btn {
-    display: flex; 
+    display: flex;
     align-items: center;
 }
+
+/* Dynamically-created system/tierlist tab buttons (js/admin.js updateAdminSidebar) */
+#preview-nav-sidebar .nav-btn.system-nav-btn { cursor: pointer; padding: 0.75rem 1rem; color: #d1d5db; font-size: 0.85rem; }
 
 @keyframes pulse {
     0% { opacity: 0.5; }
@@ -201,5 +204,74 @@
 
 /* --- CONTENT VIEWERS --- */
 #preview-content-area { opacity: 0.2; pointer-events: none; transition: opacity 0.3s ease; padding: 0; max-width: 1000px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+#preview-content-area.active { opacity: 1; pointer-events: auto; }
 #version-toggle-bar { justify-content: center; gap: 0.75rem; margin-bottom: 2rem; border-bottom: 1px dashed #222; padding-bottom: 1.5rem; flex-shrink: 0; width: 100%; box-sizing: border-box; display: flex; }
+
+/* --- ACCESS DENIED (js/admin.js kickUser) --- */
+.access-denied-screen { height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; flex-direction: column; background: #050505; }
+.access-denied-title { color: #ef4444; font-family: 'CC-Wild-Words', sans-serif; }
+
+/* --- QUEUE LOADING / ERROR / EMPTY STATES (js/admin.js loadQueue) --- */
+.admin-error-text { color: #ef4444; font-size: 0.75rem; }
+.admin-queue-empty-msg { border: 1px dashed #333; padding: 1.5rem 1rem; font-size: 0.7rem; }
+
+/* --- QUEUE GROUP HEADER --- */
+.admin-queue-group-title { font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; color: var(--text-white); margin: 0; text-transform: uppercase; }
+.admin-merge-btn { font-size: 0.65rem; padding: 0.3rem 0.6rem; }
+
+/* --- QUEUE STATUS BADGES --- */
+.badge-status-ticket-open { background: #eab308; color: #000; border: none; font-size: 0.55rem; padding: 0.15rem 0.4rem; }
+.badge-status-pending { background: var(--accent-blue); color: #000; border: none; font-size: 0.55rem; padding: 0.15rem 0.4rem; }
+.badge-patch-delta { background: rgba(168,85,247,0.1); color: #a855f7; border: 1px solid #a855f7; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-legacy-overwrite { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-page-id { font-size: 0.5rem; background: #333; color: #fff; border: 1px solid #555; padding: 0.15rem 0.4rem; }
+
+/* --- QUEUE CARD LAYOUT --- */
+.admin-queue-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+.admin-queue-card-info { display: flex; flex-direction: column; gap: 0.4rem; }
+.admin-queue-card-info .update-title { font-size: 0.85rem; }
+.admin-queue-card-info .update-log-meta { font-size: 0.65rem; color: #888; }
+.admin-queue-badges-row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+.admin-queue-author-name { color: var(--text-white); }
+.admin-queue-time-relative { color: var(--accent-blue); }
+.admin-queue-time-exact { opacity: 0.5; }
+.admin-review-btn { font-size: 0.6rem; padding: 0.3rem 0.6rem; margin-top: 0.2rem; }
+
+/* --- PREVIEW HEADER / DIFF VIEW --- */
+.admin-preview-status-highlight { color: var(--text-white); }
+.diff-view-title { color: #a855f7; }
+.diff-location-label { font-family: var(--text-mono); font-size: 0.75rem; color: #888; margin-bottom: 1.5rem; margin-top: 2rem; }
+.diff-batch-banner { font-family: var(--text-mono); font-size: 0.85rem; color: #22c55e; margin-bottom: 1rem; border: 1px dashed #22c55e; padding: 0.75rem; text-align: center; }
+.diff-no-changes { color: var(--text-muted); font-style: italic; }
+.diff-inline-target { width: 100%; }
+.diff-stacked-pre { font-family: var(--text-mono); font-size: 0.65rem; margin: 0; }
+.diff-stacked-pre.old { color: #fca5a5; }
+.diff-stacked-pre.new { color: #86efac; }
+
+/* --- TIERLIST ADMIN PREVIEW --- */
+.admin-changelog-container { margin-top: 2rem; }
+
+/* --- TICKET WORKSPACE (dynamic content, js/admin.js renderTicketWorkspace) --- */
+.ticket-score-value { font-size: 1.1rem; }
+.ticket-perk-note { color: #a855f7; font-weight: bold; }
+.ticket-requirement-text { color: #888; font-size: 0.75rem; }
+.ticket-own-submission-note { color: #ef4444; font-size: 0.65rem; font-family: var(--text-mono); }
+.ticket-vote-btn { flex: 1; }
+.ticket-vote-actions-row { display: flex; gap: 0.5rem; width: 100%; }
+.ticket-qa-field { margin-bottom: 0.5rem; }
+.ticket-qa-label { color: var(--text-white); }
+.ticket-qa-link { color: var(--accent-blue); text-decoration: underline; }
+.ticket-chat-empty { color: #555; font-style: italic; }
+.ticket-chat-author { color: var(--accent-blue); }
+
+/* --- MERGE COMPILER (js/admin.js openMergeCompiler) --- */
+.compiler-title-highlight { color: #fff; }
+.compiler-status-text { color: var(--text-muted); font-style: italic; text-align: center; padding: 2rem; }
+.compiler-empty-text { color: var(--text-muted); padding: 2rem; border: 1px dashed #333; text-align: center; }
+.compiler-instructions { font-family: var(--text-mono); font-size: 0.75rem; color: #888; margin-bottom: 1.5rem; line-height: 1.5; }
+.compiler-select { margin-bottom: 0; border-color: #a855f7; background: rgba(168,85,247,0.1); color: #fff; font-weight: bold; }
+.compiler-discard-option { color: #888; font-weight: normal; }
+.compiler-conflict-card { background: rgba(255,255,255,0.02); border: 1px solid #333; padding: 0.75rem; margin-bottom: 0.75rem; border-left: 3px solid #a855f7; }
+.compiler-conflict-title { font-family: 'CC-Wild-Words', sans-serif; font-size: 0.8rem; color: #fff; margin-bottom: 0.5rem; text-transform: uppercase; }
+#btn-compiler-confirm:disabled { opacity: 0.5; }
 .version-toggle-btn { font-size: 0.7rem; padding: 0.5rem 1.25rem; }
