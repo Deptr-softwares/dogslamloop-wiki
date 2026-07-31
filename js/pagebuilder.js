@@ -297,7 +297,7 @@ window.initSidebarEditButton = async function() {
     if (btnInbox) {
         btnInbox.onclick = async () => { 
             const modalHtml = `
-                <div id="site-notification-modal" class="modal-overlay" style="display: flex;">
+                <div id="site-notification-modal" class="modal-overlay">
                     <div class="modal-box modal-md accent-blue">
                         <div class="modal-header"><h3>SYSTEM INBOX</h3></div>
                         <div class="modal-body" id="inbox-dynamic-body"><p class='loading-msg'>Fetching messages...</p></div>

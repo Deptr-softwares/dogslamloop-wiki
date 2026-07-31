@@ -47,7 +47,7 @@
 
             <div class="admin-sidebar-content">
                 
-                <div id="preview-nav-sidebar" style="display: none;">
+                <div id="preview-nav-sidebar" class="hidden">
                     <div class="dashboard-header-split admin-split-header">
                         <h3 class="section-title section-title-clean m-0 admin-section-title">Document Explorer</h3>
                     </div>
@@ -76,7 +76,7 @@
                     <p class="loading-msg admin-loading-msg">Authenticating RBAC...</p>
                 </div>
 
-                <div id="admin-only-tools" style="display: none;">
+                <div id="admin-only-tools" class="hidden">
                     <div class="dashboard-header-split admin-split-header">
                         <h3 class="section-title section-title-clean m-0 admin-tools-title">System Admin</h3>
                     </div>
@@ -113,7 +113,7 @@
             </div>
 
             <!-- TICKET COMMUNICATION HUB -->
-            <div id="ticket-workspace" class="ticket-workspace" style="display: none;">
+            <div id="ticket-workspace" class="ticket-workspace hidden">
                 <div class="ticket-left-col">
                     <h4 class="ticket-header-title status">TICKET STATUS</h4>
                     <p id="ticket-support-text" class="ticket-status-text support"></p>
@@ -137,7 +137,7 @@
                 </div> 
             </div>
 
-            <div id="version-toggle-bar" style="display: none;">
+            <div id="version-toggle-bar" class="hidden">
                 <button id="btn-view-pending" onclick="switchVersionView('pending')" class="btn-sys btn-sys-blue version-toggle-btn pending">PENDING SUBMISSION</button>
                 <button id="btn-view-live" onclick="switchVersionView('live')" class="btn-sys btn-sys-green version-toggle-btn live">LIVE VERSION</button>
                 <button id="btn-view-diff" onclick="switchVersionView('diff')" class="btn-sys btn-sys-purple version-toggle-btn diff">DIFF VIEW</button>
@@ -161,7 +161,7 @@
     </div>
 
     <!-- STANDARD CONFIRM MODAL -->
-    <div id="admin-confirm-modal" class="editor-modal-overlay modal-warning" style="display: none; z-index: 10000;">
+    <div id="admin-confirm-modal" class="editor-modal-overlay modal-warning hidden" style="z-index: 10000;">
         <div class="editor-modal-box auth-modal-box confirm-box">
             <div class="auth-header admin-modal-header">
                 <h3 class="admin-modal-title confirm">SYSTEM CONFIRMATION</h3>
@@ -177,7 +177,7 @@
     </div>
 
     <!-- SMART COMPILER MODAL -->
-    <div id="compiler-modal-overlay" class="editor-modal-overlay" style="display: none; z-index: 9999;">
+    <div id="compiler-modal-overlay" class="editor-modal-overlay hidden" style="z-index: 9999;">
         <div class="editor-modal-box auth-modal-box" style="border-top-color: #a855f7; width: 650px; max-height: 85vh; display: flex; flex-direction: column;">
             <div class="auth-header" style="border-bottom: 1px solid #333; background: #050505;">
                 <h3 style="color: #a855f7; font-size: 1rem;">SMART COMPILER: <span id="compiler-char-name"></span></h3>
@@ -186,14 +186,14 @@
                 <!-- Content injected via JS -->
             </div>
             <div class="editor-modal-actions" style="border-top: 1px dashed #333; padding-top: 1rem; margin-top: 0; justify-content: flex-end; gap: 1rem;">
-                <button onclick="document.getElementById('compiler-modal-overlay').style.display='none'" class="btn-sys btn-sys-regular">CANCEL</button>
+                <button onclick="document.getElementById('compiler-modal-overlay').classList.add('hidden')" class="btn-sys btn-sys-regular">CANCEL</button>
                 <button id="btn-compiler-confirm" class="btn-sys btn-sys-purple btn-purple-fill">COMPILE MASTER TICKET</button>
             </div>
         </div>
     </div>
 
     <!-- ALERT MODAL -->
-    <div id="admin-alert-modal" class="editor-modal-overlay" style="display: none; z-index: 10000;">
+    <div id="admin-alert-modal" class="editor-modal-overlay hidden" style="z-index: 10000;">
         <div class="editor-modal-box auth-modal-box alert-box">
             <div class="auth-header admin-modal-header">
                 <h3 class="admin-modal-title alert">SYSTEM MESSAGE</h3>
@@ -206,7 +206,7 @@
     </div>
 
     <!-- REJECT PROMPT MODAL -->
-    <div id="admin-prompt-modal" class="editor-modal-overlay modal-danger" style="display: none; z-index: 10000;">
+    <div id="admin-prompt-modal" class="editor-modal-overlay modal-danger hidden" style="z-index: 10000;">
         <div class="editor-modal-box auth-modal-box">
             <div class="auth-header" style="border-bottom: 1px solid #333; background: #050505;">
                 <h3 style="color: #ef4444; font-size: 1rem;">REJECT REVISION</h3>

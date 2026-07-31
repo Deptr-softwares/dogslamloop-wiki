@@ -2,7 +2,7 @@
 window.editorAlert = function(message) {
     const modal = document.getElementById('editor-alert-modal');
     document.getElementById('editor-alert-msg').textContent = message;
-    modal.style.display = 'flex';
+    modal.classList.remove('hidden');
 };
 
 // --- MOBILE VIEW TOGGLE ---
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const fakeTitle = document.createElement('div');
     fakeTitle.className = 'character-title';
-    fakeTitle.style.display = 'none';
+    fakeTitle.classList.add('hidden');
     fakeTitle.textContent = exactCharName;
     document.body.appendChild(fakeTitle);
 
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     
     const targetPreviewTab = document.getElementById(`tab-${tabId}`);
-    if (targetPreviewTab) targetPreviewTab.style.display = 'block';
+    if (targetPreviewTab) targetPreviewTab.classList.remove('hidden');
 
     try {
         // 1. FETCH DATA
@@ -412,7 +412,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 overlay.querySelector('#qa-tab-technical').onclick = () => { currentForm = 'technical'; renderForm(); };
 
                 overlay.querySelector('#btn-qa-cancel').onclick = () => {
-                    overlay.style.display = 'none';
+                    overlay.classList.add('hidden');
                     resolve(null);
                 };
 
@@ -436,13 +436,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                         return;
                     }
 
-                    overlay.style.display = 'none';
+                    overlay.classList.add('hidden');
                     resolve({ changelog, confidence, evidence });
                 };
             };
 
             renderForm();
-            overlay.style.display = 'flex';
+            overlay.classList.remove('hidden');
         });
     };
 
@@ -803,10 +803,10 @@ window.customConfirm = function(message, confirmText = "DELETE", isDanger = true
             btnConfirm.style.backgroundColor = "transparent";
         }
 
-        modal.style.display = 'flex';
+        modal.classList.remove('hidden');
 
         const cleanup = () => {
-            modal.style.display = 'none';
+            modal.classList.add('hidden');
             btnCancel.removeEventListener('click', onCancel);
             btnConfirm.removeEventListener('click', onConfirm);
         };
@@ -1118,7 +1118,7 @@ window.promptForMoveId = function() {
             </div>
         `;
 
-        overlay.style.display = 'flex';
+        overlay.classList.remove('hidden');
 
         // Auto-fill the Technical ID based on what they type in the Name box
         const nameInp = overlay.querySelector('#new-move-name');
@@ -1133,7 +1133,7 @@ window.promptForMoveId = function() {
         idInp.addEventListener('input', () => { idInp.dataset.manuallyEdited = 'true'; });
 
         overlay.querySelector('#btn-move-cancel').onclick = () => {
-            overlay.style.display = 'none';
+            overlay.classList.add('hidden');
             resolve(null);
         };
 
@@ -1154,7 +1154,7 @@ window.promptForMoveId = function() {
                 return;
             }
 
-            overlay.style.display = 'none';
+            overlay.classList.add('hidden');
             resolve({ name: mName, id: mId });
         };
     });
@@ -2221,7 +2221,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
                     <button class="format-btn" id="btn-format-color" title="Apply Color to Highlighted Text" style="display: flex; align-items: center; gap: 0.35rem; padding: 0 0.5rem;">
                         <div style="width: 12px; height: 12px; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); border-radius: 50%;"></div> 🎨
                     </button>
-                    <div id="format-color-popup" style="display: none; position: absolute; bottom: calc(100% + 5px); left: 0; background: #0a0a0a; border: 1px solid #333; padding: 0.5rem; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.8); z-index: 100; min-width: 140px;">
+                    <div id="format-color-popup" class="format-color-popup hidden">
                         <div style="font-size: 0.65rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase;">Presets</div>
                         <div style="display: flex; gap: 4px; margin-bottom: 0.5rem; flex-wrap: wrap;">
                             <button class="color-preset-btn" data-color="hsl(3, 93%, 63%)" style="background: hsl(3, 93%, 63%); width: 20px; height: 20px; border-radius: 4px; border: 1px solid #222; cursor: pointer;"></button>
@@ -2310,7 +2310,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
     const btnMediaLib = container.querySelector('#btn-media-library');
     if (btnMediaLib) {
         btnMediaLib.addEventListener('click', () => {
-            document.getElementById('media-modal-overlay').style.display = 'flex';
+            document.getElementById('media-modal-overlay').classList.remove('hidden');
             if (typeof window.loadMediaGallery === 'function') window.loadMediaGallery();
         });
     }
@@ -2484,26 +2484,26 @@ function initStrategyBlockBuilder(containerId, initialData) {
     if (colorBtn && colorPopup) {
         colorBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            colorPopup.style.display = colorPopup.style.display === 'none' ? 'block' : 'none';
+            colorPopup.classList.toggle('hidden');
         });
 
         colorPopup.addEventListener('click', (e) => {
             const preset = e.target.closest('.color-preset-btn');
             if (preset) {
                 applyFormat('color', preset.getAttribute('data-color'));
-                colorPopup.style.display = 'none';
+                colorPopup.classList.add('hidden');
             }
         });
 
         const customColorInput = container.querySelector('#format-custom-color');
         customColorInput.addEventListener('change', (e) => {
             applyFormat('color', e.target.value);
-            colorPopup.style.display = 'none';
+            colorPopup.classList.add('hidden');
         });
 
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#format-color-popup') && !e.target.closest('#btn-format-color')) {
-                colorPopup.style.display = 'none';
+                colorPopup.classList.add('hidden');
             }
         });
     }
@@ -3139,9 +3139,7 @@ function renderFullOverviewPreview() {
     }
 
     const rightColumn = document.createElement('div');
-    rightColumn.className = 'profile-text-wrapper'; 
-    rightColumn.style.display = 'flex';
-    rightColumn.style.flexDirection = 'column';
+    rightColumn.className = 'profile-text-wrapper';
 
     const overviewTextWrapper = document.createElement('div');
     overviewTextWrapper.id = 'overview-text-subnode';
@@ -3659,8 +3657,8 @@ window.initMediaLibrary = function() {
                 navigator.clipboard.writeText(url).then(() => {
                     const toast = card.querySelector('.copy-toast');
                     if (toast) {
-                        toast.style.display = 'flex';
-                        setTimeout(() => toast.style.display = 'none', 1200);
+                        toast.classList.remove('hidden');
+                        setTimeout(() => toast.classList.add('hidden'), 1200);
                     }
                 }).catch(err => {
                     alert("Clipboard access denied. Manual URL: " + url);
@@ -3681,7 +3679,7 @@ window.initMediaLibrary = function() {
             card.innerHTML = `
                 ${mediaHTML}
                 ${badgeHTML}
-                <div class="copy-toast" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(34, 197, 94, 0.9); color:#000; display:none; align-items:center; justify-content:center; font-family:'CC-Wild-Words', sans-serif; font-size:0.8rem; z-index:10; pointer-events:none;">COPIED URL!</div>
+                <div class="copy-toast hidden">COPIED URL!</div>
                 <div style="position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.85); color: #fff; font-size: 0.65rem; font-family: var(--text-mono); padding: 4px 6px; box-sizing: border-box; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top: 1px solid #333; z-index:5;">
                     ${file.name}
                 </div>
@@ -3841,13 +3839,13 @@ window.toggleDiffMode = function() {
         if (diffCont) diffCont.remove();
         
         const standardCont = document.getElementById('standard-preview-container');
-        if (standardCont) standardCont.style.display = 'block';
+        if (standardCont) standardCont.classList.remove('hidden');
     }
 };
 
 // --- VISUAL DIFF COMPARISON ENGINE ---
 window.renderDiffView = function() {
-    document.getElementById('standard-preview-container').style.display = 'none';
+    document.getElementById('standard-preview-container').classList.add('hidden');
     
     let diffContainer = document.getElementById('diff-view-container');
     if (!diffContainer) {
@@ -4086,7 +4084,7 @@ window.openDraftManager = function() {
         container.innerHTML = html;
     }
 
-    document.getElementById('draft-manager-modal').style.display = 'flex';
+    document.getElementById('draft-manager-modal').classList.remove('hidden');
 };
 
 window.deleteDraft = async function(key) {

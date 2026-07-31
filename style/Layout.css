@@ -12,8 +12,8 @@
     position: relative;
 }
 
-.main-content-area { 
-    flex-grow: 1; padding: 2rem; min-width: 0; max-width: 1000px; margin: 0 auto; 
+.main-content-area {
+    display: block; flex-grow: 1; padding: 2rem; min-width: 0; max-width: 1000px; margin: 0 auto;
 }
 
 .grid-layout-3col { 
@@ -202,7 +202,7 @@
 /* Profile / Biography Layouts */
 .profile-top-split { display: flex; gap: 2rem; flex-wrap: wrap; }
 .profile-card { flex: 1; min-width: 250px; max-width: 320px; align-self: flex-start; }
-.profile-text-wrapper { flex: 2; min-width: 300px; }
+.profile-text-wrapper { display: flex; flex-direction: column; flex: 2; min-width: 300px; }
 .profile-stat-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); }
 .profile-stat-label { color: #8b949e; font-size: 0.9rem; }
 .profile-stat-val { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
@@ -249,6 +249,10 @@
 .space-y-4 > * + * { margin-top: 1rem; }
 .space-y-2 > * + * { margin-top: 0.5rem; }
 .hidden { display: none !important; }
+
+/* Tab content panes (used across editor.js/admin.js/history.js/description.js) -
+   explicit so removing .hidden doesn't rely on the browser's implicit default. */
+.tab-content, .vessel-content { display: block; }
 
 /* Media Formatting Helpers */
 .wiki-media { border-radius: 4px; border: 1px solid var(--border-color); }
