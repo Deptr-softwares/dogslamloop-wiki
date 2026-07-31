@@ -50,16 +50,16 @@ function getCharPortraitHTML(charId, isDraggable = false) {
     const finalImgSrc = charMeta.image ? `${rootPath}${charMeta.image}` : cloudImageUrl;
 
     // Image is layered on top. If it fails to load, it hides itself revealing the text!
-    const imgHTML = `<img src="${finalImgSrc}" onerror="this.style.display='none'" style="width:100%; height:100%; object-fit:cover; position:absolute; top:0; left:0; z-index:3; pointer-events:none;">`;
+    const imgHTML = `<img src="${finalImgSrc}" onerror="this.style.display='none'" class="tier-portrait-img">`;
 
     return `
-        <div class="tier-portrait ${isDraggable ? 'draggable-portrait' : ''}" 
+        <div class="tier-portrait ${isDraggable ? 'draggable-portrait' : ''}"
              ${isDraggable ? 'draggable="true"' : ''}
              data-char-id="${charId}"
              title="${charMeta.name}"
-             style="width: 60px; height: 60px; background-color: ${charColor}; position: relative; border: 2px solid var(--border-color); box-shadow: 3px 3px 0px var(--manga-shadow, #000); cursor: ${isDraggable ? 'grab' : 'pointer'}; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; flex-shrink: 0;"
+             style="background-color: ${charColor};"
              ${!isDraggable && charMeta.url ? `onclick="window.location.href='${rootPath}${charMeta.url}'"` : ''}>
-            <span style="position: relative; z-index: 2; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.5rem; color: #fff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; word-wrap: break-word; line-height: 1.1; padding: 2px;">
+            <span class="tier-portrait-name">
                 ${charMeta.name}
             </span>
             ${imgHTML}
@@ -117,29 +117,29 @@ window.loadTierList = async function() {
     if (overallIdx === -1) { overallTab = data.tabs[0]; overallIdx = 0; }
 
     let navHTML = `
-        <div style="display: flex; justify-content: center; width: 100%; margin-bottom: 1.5rem;">
+        <div class="tier-nav-overall-wrapper">
             <!-- Removed 'transform: scale' and used font-size/padding to preserve the slant -->
-            <button id="nav-tier-${overallTab.id}" class="btn-manga btn-manga-slanted" onclick="window.switchLiveTierTab(${overallIdx})" style="padding: 0.85rem 3rem; border-color: var(--accent-blue);">
+            <button id="nav-tier-${overallTab.id}" class="btn-manga btn-manga-slanted tier-nav-overall-btn" onclick="window.switchLiveTierTab(${overallIdx})">
                 <div class="btn-manga-content">
-                    <span class="btn-manga-text" style="font-size: 1.2rem;">${overallTab.label.toUpperCase()}</span>
+                    <span class="btn-manga-text tier-nav-overall-text">${overallTab.label.toUpperCase()}</span>
                 </div>
             </button>
         </div>
-        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue);">
+        <div class="tier-nav-matchup-row">
     `;
 
     // Render the Matchup Tabs with Character Colors
     data.tabs.forEach((tab, idx) => {
         if (idx === overallIdx) return; // Skip the overall tab we already rendered
-        
+
         // Extract the character name (e.g. "vs Honored One" -> "Honored One") to find their color
         let charName = tab.label.replace(/^vs\.?\s+/i, '').trim();
         let charColor = (window.CHARACTER_COLORS && window.CHARACTER_COLORS[charName]) ? window.CHARACTER_COLORS[charName] : 'var(--border-color)';
-        
+
         navHTML += `
-            <button id="nav-tier-${tab.id}" class="btn-manga btn-manga-slanted" onclick="window.switchLiveTierTab(${idx})" style="border-color: ${charColor};">
+            <button id="nav-tier-${tab.id}" class="btn-manga btn-manga-slanted tier-nav-matchup-btn" onclick="window.switchLiveTierTab(${idx})" style="--tier-nav-color: ${charColor};">
                 <div class="btn-manga-content">
-                    <span class="btn-manga-text" style="color: ${charColor}; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;">${tab.label.toUpperCase()}</span>
+                    <span class="btn-manga-text tier-nav-matchup-text">${tab.label.toUpperCase()}</span>
                 </div>
             </button>
         `;
@@ -167,15 +167,15 @@ window.switchLiveTierTab = function(tabIndex) {
     const logContainer = document.getElementById('changelog-container');
 
     // 1. Render Tiers
-    let listHTML = `<div style="display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-secondary); border: 2px solid var(--border-color); padding: 0.5rem; box-shadow: 6px 6px 0px var(--manga-shadow, #000);">`;
-    
+    let listHTML = `<div class="tier-list-inner">`;
+
     if (!activeTab.tiers || activeTab.tiers.length === 0) {
-        listHTML += `<div style="padding: 2rem; text-align: center; color: var(--text-muted); font-family: var(--text-mono);">No tiers configured for this category.</div>`;
+        listHTML += `<div class="tier-list-empty">No tiers configured for this category.</div>`;
     } else {
         activeTab.tiers.forEach(tier => {
             const rowColor = tier.color || '#555555';
             let charsHTML = '';
-            
+
             if (tier.characters && tier.characters.length > 0) {
                 tier.characters.forEach(charId => {
                     charsHTML += getCharPortraitHTML(charId, false);
@@ -183,11 +183,11 @@ window.switchLiveTierTab = function(tabIndex) {
             }
 
             listHTML += `
-                <div style="display: flex; min-height: 80px; background: var(--bg-main); border: 1px solid var(--border-color);">
-                    <div style="width: 100px; background-color: ${rowColor}; display: flex; align-items: center; justify-content: center; border-right: 2px solid var(--bg-secondary); flex-shrink: 0; box-shadow: inset -4px 0px 8px rgba(0,0,0,0.2);">
-                        <span style="font-family: 'CC-Wild-Words', sans-serif; font-size: 1.5rem; color: #000; text-shadow: 1px 1px 0px rgba(255,255,255,0.5);">${tier.name}</span>
+                <div class="tier-list-row">
+                    <div class="tier-list-row-label" style="--tier-row-color: ${rowColor};">
+                        <span class="tier-list-row-label-text">${tier.name}</span>
                     </div>
-                    <div style="flex: 1; padding: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; align-content: flex-start;">
+                    <div class="tier-list-row-chars">
                         ${charsHTML}
                     </div>
                 </div>
@@ -202,16 +202,16 @@ window.switchLiveTierTab = function(tabIndex) {
     if (activeTab.changelog && activeTab.changelog.length > 0) {
         activeTab.changelog.forEach(log => {
             logHTML += `
-                <div style="background: rgba(255,255,255,0.02); border-left: 3px solid var(--accent-blue); padding: 1rem;">
-                    <div style="color: var(--accent-blue); font-family: var(--text-mono); font-size: 0.75rem; margin-bottom: 0.5rem; font-weight: bold;">${log.date}</div>
-                    <ul class="wiki-block-list space-y-2 text-gray-300" style="margin:0; padding-left: 1rem;">
+                <div class="tier-changelog-entry">
+                    <div class="tier-changelog-date">${log.date}</div>
+                    <ul class="wiki-block-list space-y-2 text-gray-300 tier-changelog-notes">
                         ${log.notes.map(note => `<li>${note}</li>`).join('')}
                     </ul>
                 </div>
             `;
         });
     } else {
-        logHTML = `<div style="color: var(--text-muted); font-family: var(--text-mono); font-style: italic;">No changelogs recorded for this list.</div>`;
+        logHTML = `<div class="tier-changelog-empty">No changelogs recorded for this list.</div>`;
     }
     logContainer.innerHTML = logHTML;
 
