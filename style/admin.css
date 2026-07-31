@@ -121,7 +121,7 @@
 .admin-hub-btn { padding: 0.3rem 0.6rem; font-size: 0.65rem; }
 .admin-sidebar-content { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; }
 
-#preview-nav-sidebar { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px dashed #333; }
+#preview-nav-sidebar { display: block; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px dashed #333; }
 .admin-split-header { margin-bottom: 0.75rem; border-bottom: 1px solid var(--accent-blue); padding-bottom: 0.5rem; }
 .admin-section-title { color: var(--text-white); font-size: 0.9rem; margin: 0; text-transform: uppercase; }
 .admin-nav-col { display: flex; flex-direction: column; margin-bottom: 1.5rem; }
@@ -138,9 +138,18 @@
 
 .admin-refresh-btn { font-size: 0.65rem; padding: 0.3rem 0.6rem; }
 .admin-loading-msg { font-size: 0.75rem; }
+.admin-queue-group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 1px solid var(--accent-blue);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+    margin-top: 2rem;
+}
 
 /* --- SYSTEM ADMIN TOOLS --- */
-#admin-only-tools { margin-top: 2rem; border-top: 1px dashed #333; padding-top: 2rem; }
+#admin-only-tools { display: block; margin-top: 2rem; border-top: 1px dashed #333; padding-top: 2rem; }
 .admin-tools-title { color: #a855f7; font-size: 0.9rem; margin: 0; text-transform: uppercase; }
 .admin-tool-card { position: relative; margin-bottom: 1rem; padding: 1rem; border-left: 3px solid; }
 .admin-tool-card.personnel { border-left-color: #a855f7; }

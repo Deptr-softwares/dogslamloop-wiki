@@ -56,7 +56,10 @@
 /* Modal Sizing Modifiers */
 .modal-box.modal-sm, .editor-modal.modal-sm { width: 400px; }
 .modal-box.modal-lg, .editor-modal.modal-lg { width: 650px; }
-.modal-box.modal-xl, .editor-modal.modal-xl { width: 95vw; height: 90vh; } 
+.modal-box.modal-xl, .editor-modal.modal-xl { width: 95vw; height: 90vh; }
+
+/* Auth modal inline feedback (error/success message) */
+#auth-feedback-message { display: block; }
 
 
 /* --- 3. MODAL ACCENT COLORS (The Top Bar) --- */

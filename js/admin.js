@@ -114,8 +114,8 @@ window.diffTextLCS = function(oldStr, newStr) {
 window.adminAlert = function(message) {
     const modal = document.getElementById('admin-alert-modal');
     document.getElementById('admin-alert-msg').textContent = message;
-    modal.style.display = 'flex';
-    document.getElementById('btn-admin-alert-ok').onclick = () => { modal.style.display = 'none'; };
+    modal.classList.remove('hidden');
+    document.getElementById('btn-admin-alert-ok').onclick = () => { modal.classList.add('hidden'); };
 };
 
 window.adminPrompt = function(message, title = "SYSTEM PROMPT", confirmText = "CONFIRM", isDanger = false) {
@@ -145,10 +145,10 @@ window.adminPrompt = function(message, title = "SYSTEM PROMPT", confirmText = "C
             btnOk.className = `btn-sys ${isDanger ? 'btn-sys-red btn-danger-fill' : 'btn-sys-green'}`;
         }
 
-        modal.style.display = 'flex';
+        modal.classList.remove('hidden');
 
         const cleanup = () => {
-            modal.style.display = 'none';
+            modal.classList.add('hidden');
             if (btnOk) btnOk.onclick = null;
             if (btnCancel) btnCancel.onclick = null;
         };
@@ -162,13 +162,13 @@ window.adminConfirm = function(message) {
     return new Promise((resolve) => {
         const modal = document.getElementById('admin-confirm-modal');
         document.getElementById('admin-confirm-msg').textContent = message;
-        modal.style.display = 'flex';
+        modal.classList.remove('hidden');
 
         const btnOk = document.getElementById('btn-admin-confirm-ok');
         const btnCancel = document.getElementById('btn-admin-confirm-cancel');
 
         const cleanup = () => {
-            modal.style.display = 'none';
+            modal.classList.add('hidden');
             btnOk.onclick = null;
             btnCancel.onclick = null;
         };
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.currentUserRoles = roles;
     window.currentUsername = window.getDisplayName ? window.getDisplayName(session) : "Staff";
     
-    if (roles.includes('admin')) document.getElementById('admin-only-tools').style.display = 'block';
+    if (roles.includes('admin')) document.getElementById('admin-only-tools').classList.remove('hidden');
     
     if (typeof setupTabs === 'function') {
         setupTabs('nav', 'tab', ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'], 'major');
@@ -332,13 +332,7 @@ async function loadQueue() {
     for (const [pageId, tickets] of Object.entries(groupedQueue)) {
         
         const header = document.createElement('div');
-        header.style.display = 'flex';
-        header.style.justifyContent = 'space-between';
-        header.style.alignItems = 'flex-end';
-        header.style.borderBottom = '1px solid var(--accent-blue)';
-        header.style.paddingBottom = '0.5rem';
-        header.style.marginBottom = '1rem';
-        header.style.marginTop = '2rem';
+        header.className = 'admin-queue-group-header';
 
         let mergeBtnHtml = '';
         if (tickets.length > 1) {
@@ -429,7 +423,7 @@ function updateActionButtons(rev) {
         }
     }
     actionContainer.innerHTML = buttonsHTML;
-    actionContainer.style.display = 'flex';
+    actionContainer.classList.remove('hidden');
 }
 
 // --- INTERCEPT & EDIT ENGINE ---
@@ -550,7 +544,7 @@ window.updateAdminSidebar = function() {
         // Hide standard character tabs
         ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'].forEach(tab => {
             const btn = document.getElementById(`nav-${tab}`);
-            if (btn) btn.style.display = 'none';
+            if (btn) btn.classList.add('hidden');
         });
 
         // Rebuild with system tabs
@@ -602,7 +596,7 @@ async function previewRevision(revId) {
     document.getElementById('preview-status-text').innerHTML = `REVIEWING: <strong style="color: var(--text-white);">${rev.page_id.toUpperCase()}</strong> (By ${rev.author_name})`;
     
     updateActionButtons(rev);
-    document.getElementById('preview-nav-sidebar').style.display = 'block';
+    document.getElementById('preview-nav-sidebar').classList.remove('hidden');
 
     const { data: liveData } = await window.supabaseClient.from('page_data').select('desc_data, frame_data').eq('page_id', rev.page_id).single();
     window.currentLiveDescData = liveData ? liveData.desc_data : {};
@@ -627,7 +621,7 @@ async function previewRevision(revId) {
     if (typeof window.updateAdminSidebar === 'function') window.updateAdminSidebar();
 
     const toggleBar = document.getElementById('version-toggle-bar');
-    if (toggleBar) toggleBar.style.display = 'flex';
+    if (toggleBar) toggleBar.classList.remove('hidden');
 
     calculateTabDiffs(rev);
 
@@ -637,7 +631,7 @@ async function previewRevision(revId) {
 
     if (rev.status === 'ticket_open') {
         const ticketWorkspace = document.getElementById('ticket-workspace');
-        ticketWorkspace.style.display = 'flex';
+        ticketWorkspace.classList.remove('hidden');
         renderTicketWorkspace(rev, (rev.author_id === window.currentUserId), (rev.supporters || []).includes(window.currentUserId), (rev.opposers || []).includes(window.currentUserId));
         
         window.activeChatChannel = window.supabaseClient.channel('ticket-' + rev.id)
@@ -664,7 +658,7 @@ async function previewRevision(revId) {
             })
             .subscribe();
     } else {
-        document.getElementById('ticket-workspace').style.display = 'none';
+        document.getElementById('ticket-workspace').classList.add('hidden');
     }
     
     const contentArea = document.getElementById('preview-content-area');
@@ -1372,12 +1366,12 @@ function resetPreviewState() {
     window.activePreviewRevId = null;
     window.activePreviewCharId = null;
     document.getElementById('preview-status-text').textContent = "Select a revision from the queue to preview...";
-    document.getElementById('preview-action-buttons').style.display = 'none';
-    document.getElementById('preview-nav-sidebar').style.display = 'none';
-    document.getElementById('ticket-workspace').style.display = 'none';
+    document.getElementById('preview-action-buttons').classList.add('hidden');
+    document.getElementById('preview-nav-sidebar').classList.add('hidden');
+    document.getElementById('ticket-workspace').classList.add('hidden');
 
     const toggleBar = document.getElementById('version-toggle-bar');
-    if (toggleBar) toggleBar.style.display = 'none';
+    if (toggleBar) toggleBar.classList.add('hidden');
     
     const contentArea = document.getElementById('preview-content-area');
     contentArea.style.opacity = '0.2';
@@ -1389,7 +1383,7 @@ function resetPreviewState() {
         if (el) { el.innerHTML = ''; el.classList.add('hidden'); }
         if (btn) {
             btn.classList.remove('active');
-            btn.style.display = ''; // Restore default display visibility
+            btn.classList.remove('hidden'); // Restore default display visibility
             const indicator = btn.querySelector('.tab-changed-indicator');
             if (indicator) indicator.remove();
         }
@@ -1498,7 +1492,7 @@ window.openMergeCompiler = async function(pageId) {
     titleSpan.parentElement.innerHTML = `MERGE COMPILER: <span id="compiler-char-name" style="color: #fff;">${pageId.toUpperCase()}</span>`;
     
     body.innerHTML = `<p style="color:var(--text-muted); font-style:italic; text-align: center; padding: 2rem;">Analyzing revisions and fetching live database...</p>`;
-    modal.style.display = 'flex';
+    modal.classList.remove('hidden');
     confirmBtn.disabled = true;
     confirmBtn.style.opacity = '0.5';
 
@@ -1664,7 +1658,7 @@ window.openMergeCompiler = async function(pageId) {
 
         if (selectedTicketIds.size === 0) {
             window.adminAlert("No tickets were selected. All conflicts were set to keep Live Data.");
-            modal.style.display = 'none';
+            modal.classList.add('hidden');
             return;
         }
 
@@ -1705,7 +1699,7 @@ window.openMergeCompiler = async function(pageId) {
         }
 
         window.adminAlert(`Successfully merged ${selectedTicketIds.size} tickets!`);
-        modal.style.display = 'none';
+        modal.classList.add('hidden');
         
         resetPreviewState(); 
         loadQueue();
