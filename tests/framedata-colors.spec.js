@@ -67,6 +67,46 @@ test('Boomcat M1 tab renders the frame data legend with populated swatches', asy
   expect(firstSwatchBg).not.toBe('rgba(0, 0, 0, 0)');
 });
 
+test('real bug fix: bar.headerClass actually colors the header/footer text on the live page, not just the editor dropdown preview', async ({ page }) => {
+  // Pre-existing gap (not caused by editor.js PR3/PR20): bar.headerClass
+  // values like text-blue-400 were applied as a class on the live
+  // header/footer <span>, but no stylesheet outside the editor's own
+  // .daw-option-* dropdown rules ever defined what that class means, so it
+  // always rendered in the generic .bar-header-info muted-gray default.
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+
+  await page.evaluate(async () => {
+    window.cachedMasterFrameData = window.cachedMasterFrameData || {};
+    window.cachedMasterFrameData['boomcat'] = {
+      m1s: [{
+        id: 'test_move', name: 'Test Move', input: 'M1', type: 'Attack', damageType: 'Melee',
+        stats: [],
+        variants: {
+          standard: {
+            label: 'Standard', totalScale: 100,
+            bars: [{
+              type: 'single', headerInfo: 'Self Stun', footerInfo: 'Target Stun', headerClass: 'text-blue-400',
+              phases: [{ duration: 10, styleClass: 'bg-tick-start', label: 'Startup' }],
+            }],
+          },
+        },
+      }],
+    };
+    await window.loadMoveSection('boomcat', 'm1s');
+  });
+
+  await page.locator('#nav-m1s').click();
+
+  const infoRows = page.locator('#tab-m1s .bar-header-info');
+  await expect(infoRows).toHaveCount(2); // header (top) + footer (bottom)
+  await expect(infoRows.first()).toBeVisible();
+
+  const headerColor = await infoRows.nth(0).locator('span').evaluate(el => getComputedStyle(el).color);
+  const footerColor = await infoRows.nth(1).locator('span').evaluate(el => getComputedStyle(el).color);
+  expect(headerColor).toBe('rgb(59, 130, 246)'); // text-blue-400 = #3b82f6
+  expect(footerColor).toBe('rgb(59, 130, 246)');
+});
+
 test('admin.html now loads site_meta.js: CHARACTER_COLORS/FRAME_COLORS are populated, not empty', async ({ page }) => {
   await page.goto('/admin.html', { waitUntil: 'networkidle' });
   const state = await page.evaluate(() => ({

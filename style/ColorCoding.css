@@ -46,6 +46,19 @@
     --window-color-iframe-explosion: hsl(38, 92%, 50%);
     --window-color-iframe-swarm: hsl(330, 81%, 60%);
     --window-color-iframe-complete: hsl(0, 0%, 100%);
+
+    /* DAW track header/footer color markers (js/editor.js bar.headerClass) -
+       single source of truth shared by the editor's .daw-option-* dropdown
+       preview and the live page's .text-* rendering in js/framedata.js. */
+    --track-color-red-400: hsl(3, 93%, 63%);
+    --track-color-red-600: hsl(0, 100%, 50%);
+    --track-color-blue-400: #3b82f6;
+    --track-color-green-400: hsl(127, 59%, 58%);
+    --track-color-green-500: hsl(120, 100%, 25%);
+    --track-color-purple-400: hsl(261, 71%, 51%);
+    --track-color-orange-400: hsl(39, 100%, 50%);
+    --track-color-cyan-400: hsl(180, 100%, 50%);
+    --track-color-gray-400: hsl(0, 0%, 50%);
 }
 
 /* --- 2. FRAME DATA TIMING COLORS ---
@@ -77,3 +90,16 @@
 .span-iframe-explosion, .legend-swatch.span-iframe-explosion { border: 2px solid var(--window-color-iframe-explosion); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); box-sizing: border-box; }
 .span-iframe-swarm, .legend-swatch.span-iframe-swarm { border: 2px solid var(--window-color-iframe-swarm); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); box-sizing: border-box; }
 .span-iframe-complete, .legend-swatch.span-iframe-complete { border: 2px solid var(--window-color-iframe-complete); box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); box-sizing: border-box; }
+
+/* --- 4. DAW TRACK HEADER/FOOTER TEXT COLORS ---
+   bar.headerClass (js/editor.js, js/framedata.js) applies one of these
+   directly to the header/footer <span> around a track's frame-data bar. */
+.text-red-400 { color: var(--track-color-red-400); }
+.text-red-600 { color: var(--track-color-red-600); }
+.text-blue-400 { color: var(--track-color-blue-400); }
+.text-green-400 { color: var(--track-color-green-400); }
+.text-green-500 { color: var(--track-color-green-500); }
+.text-purple-400 { color: var(--track-color-purple-400); }
+.text-orange-400 { color: var(--track-color-orange-400); }
+.text-cyan-400 { color: var(--track-color-cyan-400); }
+.text-gray-400 { color: var(--track-color-gray-400); }
