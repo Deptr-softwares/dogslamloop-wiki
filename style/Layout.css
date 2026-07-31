@@ -97,6 +97,13 @@
     text-transform: uppercase;
 }
 
+/* "On this tab" header row (local-sidebar-right, above the ToC) */
+.sidebar-tab-header {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);
+}
+.sidebar-tab-header .sidebar-master-title { margin: 0; padding: 0; border: none; }
+
 .sidebar-header-top { display: flex; align-items: center; margin-bottom: 1.5rem; width: 100%; white-space: normal; }
 .sidebar-site-logo { width: 38px; height: 38px; border: 2px solid var(--border-color); box-shadow: 2px 2px 0px var(--manga-shadow); object-fit: cover; flex-shrink: 0; }
 .sidebar-title-container { display: flex; flex-direction: column; margin-left: 0.75rem; flex-grow: 1; min-width: 0; }
@@ -129,9 +136,37 @@
 }
 .global-sidebar-left.collapsed .sidebar-action-dock { padding: 0 0.5rem 1.5rem 0.5rem; gap: 1rem; }
 
+/* Character page sidebar dock (js/pagebuilder.js populates #sidebar-dynamic-dock) */
+#sidebar-dynamic-dock {
+    margin-top: auto; width: 100%; display: flex; flex-direction: column;
+    gap: 0.75rem; padding-top: 2rem;
+}
+.kofi-btn-wrapper { margin-top: 0.75rem; }
+.kofi-btn-wrapper .btn-sys {
+    width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex;
+    align-items: center; justify-content: center; gap: 0.5rem;
+}
+.kofi-btn-wrapper svg { width: 1rem; height: 1rem; }
+
 /* --- 3. PAGE HEADERS & GRIDS --- */
 .home-main-header { border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 2rem; }
 .home-main-title { font-size: 2rem; margin: 0; color: var(--text-white); }
+
+.back-home-wrapper { margin-bottom: 1.5rem; }
+.character-header { margin-bottom: 2.5rem; }
+/* Scoped to .character-header, not a bare .character-nav rule: the
+   .character-nav class is also reused by js/history.js and
+   systems/tierlist/index.html's static nav with a *different* margin
+   convention (margin-bottom, not margin-top) and one variant omits
+   align-items - a bare rule here would leak margin-top/align-items onto
+   those, since inline styles only override the specific properties they
+   set. .character-header only wraps .character-nav in the character page
+   template, so this scoping keeps the two independent. */
+.character-header .character-nav {
+    display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem;
+    padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue);
+    align-items: center;
+}
 
 .header-split-wrapper, .dashboard-header-split {
     display: flex; justify-content: space-between; align-items: flex-end;
@@ -284,6 +319,13 @@
 /* --- 6. MOBILE SUPPORT --- */
 .mobile-top-bar { display: none; }
 .mobile-backdrop { display: none; }
+
+/* Mobile-exclusive "EDIT TAB" button injected into .character-nav (was a
+   per-page embedded <style> block identical across all character pages) */
+#btn-edit-current-tab-mobile { display: none !important; }
+@media (max-width: 900px) {
+    #btn-edit-current-tab-mobile.is-active { display: flex !important; }
+}
 
 @media (max-width: 1023px) {
     .mobile-top-bar {
