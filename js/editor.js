@@ -1990,7 +1990,7 @@ function initProfileEditor(containerId, profileData) {
         let statsHtml = '';
         profileData.stats.forEach((stat, idx) => {
             statsHtml += `
-                <div class="editor-row" style="margin-bottom: 0.25rem;">
+                <div class="editor-row editor-row-spaced-sm">
                     <div><input type="text" class="editor-input stat-label" data-idx="${idx}" value="${stat.label}" placeholder="Label (e.g. Archetype)"></div>
                     <div><input type="text" class="editor-input stat-val" data-idx="${idx}" value="${stat.value}" placeholder="Value (e.g. M1 Merchant)"></div>
                     <button class="btn-sys btn-sys-red btn-del-stat" data-idx="${idx}" title="Remove Stat">✖</button>
@@ -1999,14 +1999,14 @@ function initProfileEditor(containerId, profileData) {
         });
 
         container.innerHTML = `
-            <div class="block-editor-container" style="margin-top: 0;">
+            <div class="block-editor-container block-editor-container-notop">
                 <div class="block-card">
                     <div class="block-header"><span class="block-type-badge">PORTRAIT IMAGE</span></div>
                     <input type="text" class="editor-input" id="profile-image-input" value="${profileData.image || ''}" placeholder="Image Path/URL (e.g. /medias/images/Portrait.webp)">
                 </div>
-                
+
                 <div class="block-card">
-                    <div class="block-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="block-header">
                         <span class="block-type-badge">CHARACTER STATS</span>
                         <button class="btn-sys btn-sys-green" id="btn-add-stat">+ ADD STAT</button>
                     </div>
@@ -2053,29 +2053,29 @@ function initPlaystyleEditor(containerId, playstyleData) {
 
     const renderForm = () => {
         let likesHtml = playstyleData.likes.map((item, idx) => `
-            <div class="editor-row" style="margin-bottom: 0.25rem;">
+            <div class="editor-row editor-row-spaced-sm">
                 <input type="text" class="editor-input like-inp" data-idx="${idx}" value="${item}" placeholder="e.g. Fast-paced rushdown">
                 <button class="btn-sys btn-sys-red btn-del-like" data-idx="${idx}">✖</button>
             </div>`).join('');
 
         let dislikesHtml = playstyleData.dislikes.map((item, idx) => `
-            <div class="editor-row" style="margin-bottom: 0.25rem;">
+            <div class="editor-row editor-row-spaced-sm">
                 <input type="text" class="editor-input dislike-inp" data-idx="${idx}" value="${item}" placeholder="e.g. Long-ranged zoning">
                 <button class="btn-sys btn-sys-red btn-del-dislike" data-idx="${idx}">✖</button>
             </div>`).join('');
 
         container.innerHTML = `
-            <div class="block-editor-container" style="margin-top: 0; display: flex; gap: 1rem; flex-wrap: wrap;">
-                <div class="block-card" style="flex: 1; min-width: 300px;">
-                    <div class="block-header" style="display: flex; justify-content: space-between;">
-                        <span class="block-type-badge" style="color:#22c55e;">PICK IF YOU LIKE...</span>
+            <div class="block-editor-container block-editor-container-splitgrid">
+                <div class="block-card block-card-split">
+                    <div class="block-header">
+                        <span class="block-type-badge block-type-badge-positive">PICK IF YOU LIKE...</span>
                         <button class="btn-sys btn-sys-green" id="btn-add-like">+ ADD</button>
                     </div>
                     <div id="likes-container">${likesHtml}</div>
                 </div>
-                <div class="block-card" style="flex: 1; min-width: 300px;">
-                    <div class="block-header" style="display: flex; justify-content: space-between;">
-                        <span class="block-type-badge" style="color:#ef4444;">AVOID IF YOU DISLIKE...</span>
+                <div class="block-card block-card-split">
+                    <div class="block-header">
+                        <span class="block-type-badge block-type-badge-negative">AVOID IF YOU DISLIKE...</span>
                         <button class="btn-sys btn-sys-red" id="btn-add-dislike">+ ADD</button>
                     </div>
                     <div id="dislikes-container">${dislikesHtml}</div>
@@ -2198,46 +2198,46 @@ function initStrategyBlockBuilder(containerId, initialData) {
     historyIndex = 0;
 
     container.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <div class="strategy-toolbar-row">
             <div>
                 <button class="btn-sys btn-sys-blue" id="btn-media-library" title="Open Media Manager">📁 MEDIA LIBRARY</button>
             </div>
-            <div style="display: flex; gap: 0.5rem;">
+            <div class="strategy-toolbar-actions">
                 <button class="btn-sys btn-sys-regular" id="btn-undo" title="Undo (Ctrl+Z)" disabled>⮌ UNDO</button>
                 <button class="btn-sys btn-sys-regular" id="btn-redo" title="Redo (Ctrl+Y)" disabled>⮎ REDO</button>
                 <button class="btn-sys btn-sys-red" id="btn-clear-all" title="Clear All Blocks">✖ CLEAR ALL</button>
             </div>
         </div>
-        
-        <div id="block-list" class="block-editor-container" style="margin-top: 0; margin-bottom: 3rem;"></div>
-        
-        <div class="add-block-toolbar" style="display: flex; justify-content: space-between; align-items: center;">
+
+        <div id="block-list" class="block-editor-container block-editor-container-blocklist"></div>
+
+        <div class="add-block-toolbar">
             <div class="format-toolbar" title="Highlight text in a block, then click to apply styling">
                 <button class="format-btn" data-tag="b" title="Bold">B</button>
-                <button class="format-btn" data-tag="i" title="Italic" style="font-style: italic;">I</button>
-                <button class="format-btn" data-tag="u" title="Underline" style="text-decoration: underline;">U</button>
-                <button class="format-btn" data-tag="s" title="Strikethrough" style="text-decoration: line-through;">S</button>
-                <button class="format-btn" data-tag="code" title="Inline Code" style="font-size: 0.65rem;">&lt;&gt;</button>
+                <button class="format-btn format-btn-italic" data-tag="i" title="Italic">I</button>
+                <button class="format-btn format-btn-underline" data-tag="u" title="Underline">U</button>
+                <button class="format-btn format-btn-strikethrough" data-tag="s" title="Strikethrough">S</button>
+                <button class="format-btn format-btn-code" data-tag="code" title="Inline Code">&lt;&gt;</button>
                 <button class="format-btn" data-tag="url" title="Turn text into a link">🔗</button>
-                
-                <div style="position: relative; display: inline-flex; align-items: center;">
-                    <button class="format-btn" id="btn-format-color" title="Apply Color to Highlighted Text" style="display: flex; align-items: center; gap: 0.35rem; padding: 0 0.5rem;">
-                        <div style="width: 12px; height: 12px; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); border-radius: 50%;"></div> 🎨
+
+                <div class="format-color-wrapper">
+                    <button class="format-btn format-btn-color-trigger" id="btn-format-color" title="Apply Color to Highlighted Text">
+                        <div class="format-color-swatch-icon"></div> 🎨
                     </button>
                     <div id="format-color-popup" class="format-color-popup hidden">
-                        <div style="font-size: 0.65rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase;">Presets</div>
-                        <div style="display: flex; gap: 4px; margin-bottom: 0.5rem; flex-wrap: wrap;">
-                            <button class="color-preset-btn" data-color="hsl(3, 93%, 63%)" style="background: hsl(3, 93%, 63%); width: 20px; height: 20px; border-radius: 4px; border: 1px solid #222; cursor: pointer;"></button>
-                            <button class="color-preset-btn" data-color="hsl(217, 91%, 60%)" style="background: hsl(217, 91%, 60%); width: 20px; height: 20px; border-radius: 4px; border: 1px solid #222; cursor: pointer;"></button>
-                            <button class="color-preset-btn" data-color="hsl(127, 59%, 58%)" style="background: hsl(127, 59%, 58%); width: 20px; height: 20px; border-radius: 4px; border: 1px solid #222; cursor: pointer;"></button>
-                            <button class="color-preset-btn" data-color="hsl(261, 86%, 86%)" style="background: hsl(261, 86%, 86%); width: 20px; height: 20px; border-radius: 4px; border: 1px solid #222; cursor: pointer;"></button>
-                            <button class="color-preset-btn" data-color="hsl(39, 100%, 50%)" style="background: hsl(39, 100%, 50%); width: 20px; height: 20px; border-radius: 4px; border: 1px solid #222; cursor: pointer;"></button>
-                            <button class="color-preset-btn" data-color="hsl(180, 100%, 50%)" style="background: hsl(180, 100%, 50%); width: 20px; height: 20px; border-radius: 4px; border: 1px solid #222; cursor: pointer;"></button>
-                            <button class="color-preset-btn" data-color="hsl(0, 0%, 50%)" style="background: hsl(0, 0%, 50%); width: 20px; height: 20px; border-radius: 4px; border: 1px solid #222; cursor: pointer;"></button>
+                        <div class="format-color-popup-label">Presets</div>
+                        <div class="format-color-presets-row">
+                            <button class="color-preset-btn" data-color="hsl(3, 93%, 63%)" style="background: hsl(3, 93%, 63%);"></button>
+                            <button class="color-preset-btn" data-color="hsl(217, 91%, 60%)" style="background: hsl(217, 91%, 60%);"></button>
+                            <button class="color-preset-btn" data-color="hsl(127, 59%, 58%)" style="background: hsl(127, 59%, 58%);"></button>
+                            <button class="color-preset-btn" data-color="hsl(261, 86%, 86%)" style="background: hsl(261, 86%, 86%);"></button>
+                            <button class="color-preset-btn" data-color="hsl(39, 100%, 50%)" style="background: hsl(39, 100%, 50%);"></button>
+                            <button class="color-preset-btn" data-color="hsl(180, 100%, 50%)" style="background: hsl(180, 100%, 50%);"></button>
+                            <button class="color-preset-btn" data-color="hsl(0, 0%, 50%)" style="background: hsl(0, 0%, 50%);"></button>
                         </div>
-                        <div style="border-top: 1px solid #333; padding-top: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
-                            <span style="font-size: 0.75rem; color: #ccc;">Custom Hex</span>
-                            <input type="color" id="format-custom-color" value="#ffffff" style="background: none; border: none; width: 24px; height: 24px; cursor: pointer; padding: 0; outline: none;">
+                        <div class="format-color-custom-row">
+                            <span class="format-color-custom-label">Custom Hex</span>
+                            <input type="color" id="format-custom-color" value="#ffffff" class="format-color-custom-input">
                         </div>
                     </div>
                 </div>
@@ -2253,15 +2253,15 @@ function initStrategyBlockBuilder(containerId, initialData) {
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="image" draggable="true">+ Image</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="video" draggable="true">+ Video</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="youtube" draggable="true">+ YouTube</button>
-                    <div class="add-block-popup-title" style="margin-top: 0.5rem;">Components</div>
+                    <div class="add-block-popup-title add-block-popup-title-spaced">Components</div>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="callout" draggable="true">+ Callout</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="combo" draggable="true">+ Combo</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="accordion" draggable="true">+ Accordion</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="divider" draggable="true">+ Divider</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="author" draggable="true">+ Author</button>
                 </div>
-                <button class="btn-sys btn-sys-green" id="btn-toggle-add-menu" style="gap: 0.5rem;">
-                    <span style="font-size: 1.25rem; line-height: 0.8; font-weight: normal;">⨁</span> ADD BLOCK
+                <button class="btn-sys btn-sys-green btn-add-block-toggle" id="btn-toggle-add-menu">
+                    <span class="add-block-icon">⨁</span> ADD BLOCK
                 </button>
             </div>
         </div>
@@ -2845,10 +2845,10 @@ function renderBlockList() {
         const parentTitle = parentBlock[activeIdx].title || 'Accordion';
         
         const backBtnHTML = `
-            <div style="background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+            <div class="accordion-back-banner">
                 <div>
-                    <span style="color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase;">EDITING INNER BLOCKS:</span>
-                    <div style="color: #fff; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem;">${parentTitle}</div>
+                    <span class="accordion-back-label">EDITING INNER BLOCKS:</span>
+                    <div class="accordion-back-title">${parentTitle}</div>
                 </div>
                 <button class="btn-sys btn-sys-purple btn-purple-fill" onclick="window.activeAccordionPath.pop(); renderBlockList();">⮑ BACK TO PARENT</button>
             </div>
@@ -2867,9 +2867,9 @@ function renderBlockList() {
 
             let html = `
                 <div class="block-header">
-                    <div style="display:flex; align-items:center; gap:0.5rem;">
-                        <span class="drag-handle" title="Drag to reorder" style="color: #666; font-size: 1rem; line-height: 1; cursor: grab;">⠿</span>
-                        <select class="editor-select block-type-selector" style="cursor: pointer; border: none; outline: none; padding-right: 0.2rem;">
+                    <div class="block-type-row">
+                        <span class="drag-handle" title="Drag to reorder">⠿</span>
+                        <select class="editor-select block-type-selector">
                             ${typeOptions}
                         </select>
                     </div>
@@ -2886,7 +2886,7 @@ function renderBlockList() {
 
         if (block.type === 'heading') {
             html += `
-                <input type="text" class="editor-input" data-field="content" value="${block.content}" placeholder="Heading Text" style="font-family: var(--text-manga); font-size: 1.1rem; color: #fff;">
+                <input type="text" class="editor-input block-heading-input" data-field="content" value="${block.content}" placeholder="Heading Text">
                 <div class="editor-row">
                     <div>
                         <select class="editor-select" data-field="size">
@@ -2941,8 +2941,8 @@ function renderBlockList() {
                 </div>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'center')}</div>
-                    <div style="display:flex; align-items:center;">
-                        <label style="color:var(--text-muted); font-size:0.85rem; margin:0;"><input type="checkbox" data-field="controls" ${block.controls ? 'checked' : ''}> Show Controls</label>
+                    <div class="block-video-controls-row">
+                        <label class="block-video-controls-label"><input type="checkbox" data-field="controls" ${block.controls ? 'checked' : ''}> Show Controls</label>
                     </div>
                 </div>
             `;
@@ -2975,30 +2975,30 @@ function renderBlockList() {
             `;
         }
         else if (block.type === 'table') {
-            let tableHTML = `<div style="overflow-x: auto; margin-bottom: 0.5rem; border: 1px solid #333; border-radius: 4px;"><table style="width: 100%; border-collapse: collapse;">`;
-            
+            let tableHTML = `<div class="block-table-wrapper"><table class="block-table">`;
+
             tableHTML += `<tr>`;
             block.headers.forEach((h, c) => {
-                tableHTML += `<td><input type="text" class="editor-input table-header-input" data-col="${c}" value="${h}" placeholder="Header" style="margin:0; border-radius:0; border:none; border-bottom: 2px solid #444; border-right: 1px solid #333; font-weight: bold; background: rgba(0,0,0,0.4); text-align: center;"></td>`;
+                tableHTML += `<td><input type="text" class="editor-input table-header-input" data-col="${c}" value="${h}" placeholder="Header"></td>`;
             });
             tableHTML += `</tr>`;
-            
+
             block.rows.forEach((r, rIdx) => {
                 tableHTML += `<tr>`;
                 r.forEach((cell, cIdx) => {
-                    tableHTML += `<td><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${cell}" placeholder="..." style="margin:0; border-radius:0; border:none; border-bottom: 1px solid #222; border-right: 1px solid #333;"></td>`;
+                    tableHTML += `<td><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${cell}" placeholder="..."></td>`;
                 });
                 tableHTML += `</tr>`;
             });
             tableHTML += `</table></div>`;
-            
+
             html += `
                 ${tableHTML}
-                <div style="display:flex; gap:0.25rem; margin-bottom: 0.5rem; border-radius: 0rem">
-                    <button class="btn-sys btn-sys-regular btn-table-add-row" style="flex:1;" title="Add Row Below">⊞ +Row</button>
-                    <button class="btn-sys btn-sys-regular btn-table-add-col" style="flex:1;" title="Add Column Right">⊞ +Col</button>
-                    <button class="btn-sys btn-sys-red btn-table-del-row" style="flex:1;" title="Delete Bottom Row">⊟ -Row</button>
-                    <button class="btn-sys btn-sys-red btn-table-del-col" style="flex:1;" title="Delete Right Column">⊟ -Col</button>
+                <div class="block-table-actions-row">
+                    <button class="btn-sys btn-sys-regular btn-table-add-row" title="Add Row Below">⊞ +Row</button>
+                    <button class="btn-sys btn-sys-regular btn-table-add-col" title="Add Column Right">⊞ +Col</button>
+                    <button class="btn-sys btn-sys-red btn-table-del-row" title="Delete Bottom Row">⊟ -Row</button>
+                    <button class="btn-sys btn-sys-red btn-table-del-col" title="Delete Right Column">⊟ -Col</button>
                 </div>
                 <input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Author Credit (Optional)">
             `;
@@ -3007,11 +3007,11 @@ function renderBlockList() {
             const innerCount = block.content ? block.content.length : 0;
             html += `
                 <input type="text" class="editor-input" data-field="title" value="${block.title || ''}" placeholder="Accordion Title">
-                <div class="editor-row" style="margin-bottom: 0.5rem;">
+                <div class="editor-row editor-row-spaced-md">
                     <div>${getAlignUI(block.align, 'center')}</div>
                     <div><input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Author Credit (Optional)"></div>
                 </div>
-                <div style="padding: 1rem; border: 1px dashed #444; background: rgba(0,0,0,0.3); text-align: center; margin-bottom: 0.5rem;">
+                <div class="accordion-inner-block-wrapper">
                     <button class="btn-sys btn-sys-purple" onclick="window.activeAccordionPath.push(${index}); renderBlockList();">
                         ⮑ EDIT INNER BLOCKS (${innerCount})
                     </button>
@@ -3043,7 +3043,7 @@ function renderBlockList() {
             html += `
                 <div class="editor-row">
                     <div>
-                        <label style="font-size:0.65rem; color:#888;">Divider Style</label>
+                        <label class="block-field-label-sm">Divider Style</label>
                         <select class="editor-select" data-field="style">
                             <option value="diamond" ${currentStyle === 'diamond' ? 'selected' : ''}>Diamond (Default)</option>
                             <option value="solid" ${currentStyle === 'solid' ? 'selected' : ''}>Solid Line</option>
@@ -3058,7 +3058,7 @@ function renderBlockList() {
                         </select>
                     </div>
                     <div>
-                        <label style="font-size:0.65rem; color:#888;">Vertical Padding</label>
+                        <label class="block-field-label-sm">Vertical Padding</label>
                         <select class="editor-select" data-field="padding">
                             <option value="none" ${currentPad === 'none' ? 'selected' : ''}>None (0rem)</option>
                             <option value="small" ${currentPad === 'small' ? 'selected' : ''}>Small (1rem)</option>
@@ -3072,13 +3072,13 @@ function renderBlockList() {
         }
         else if (block.type === 'author') {
             html += `
-                <div class="editor-row" style="margin: 0;">
+                <div class="editor-row editor-row-nomargin">
                     <input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Contributor Name(s) (Comma separated)">
                 </div>
             `;
         }
         else {
-            html += `<p style="color: var(--text-muted); font-style: italic;">Complex block type (${block.type}) detected. Render raw JSON view here if needed.</p>`;
+            html += `<p class="block-unsupported-msg">Complex block type (${block.type}) detected. Render raw JSON view here if needed.</p>`;
         }
 
         html += `</div>`;
@@ -3134,7 +3134,7 @@ function renderFullOverviewPreview() {
             : `<div class="profile-portrait-missing">[No Portrait]</div>`;
 
         profileHTML = `
-            <aside class="wiki-section profile-card" style="align-self: flex-start;">
+            <aside class="wiki-section profile-card">
                 ${imgHTML}
                 <div class="profile-stats-container">${statsHTML}</div>
             </aside>
