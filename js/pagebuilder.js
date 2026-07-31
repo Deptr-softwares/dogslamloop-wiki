@@ -41,27 +41,26 @@ window.buildGlobalSidebarMenu = async function(containerId) {
 
         let html = '';
         for (const [category, items] of Object.entries(navData)) {
-            html += `<div class="sidebar-group-wrapper" style="margin-bottom: 0.75rem;">`;
-            html += `<div class="sidebar-nav-title" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;" onclick="this.nextElementSibling.classList.toggle('hidden')">
-                        ${category} <span style="font-size: 0.5rem; color: var(--text-muted);">▼</span>
+            html += `<div class="sidebar-group-wrapper">`;
+            html += `<div class="sidebar-nav-title sidebar-group-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                        ${category} <span class="sidebar-group-caret">▼</span>
                      </div>`;
-            html += `<ul class="toc-list hidden" style="margin-top: 0.5rem;">`;
+            html += `<ul class="toc-list hidden">`;
 
             items.forEach(item => {
                 let badge = '';
-                if (item.isWip) badge = ` <span class="update-badge badge-general" style="background-color: var(--accent-yellow); color: #000; margin-left: 0.5rem;">WIP</span>`;
-                if (item.isEA) badge = ` <span class="update-badge badge-general" style="background-color: hsl(28, 99%, 53%); margin-left: 0.5rem;">EA</span>`;
+                if (item.isWip) badge = ` <span class="update-badge badge-wip update-badge-inline">WIP</span>`;
+                if (item.isEA) badge = ` <span class="update-badge badge-ea update-badge-inline">EA</span>`;
 
                 let colorStyle = '';
                 if (category === 'Characters' && window.CHARACTER_COLORS && window.CHARACTER_COLORS[item.name]) {
                     colorStyle = `color: ${window.CHARACTER_COLORS[item.name]}; font-weight: bold;`;
                 }
 
-                // FIXED: Explicitly removed text-decoration to kill the underline
                 html += `
                     <li>
-                        <a href="${rootPath}${item.url}" class="btn-nav" style="text-decoration: none !important;">
-                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; ${colorStyle}">${item.name}</span>
+                        <a href="${rootPath}${item.url}" class="btn-nav">
+                            <span class="toc-link-text" style="${colorStyle}">${item.name}</span>
                             ${badge}
                         </a>
                     </li>
@@ -72,7 +71,7 @@ window.buildGlobalSidebarMenu = async function(containerId) {
         container.innerHTML = html;
     } catch (e) {
         console.error("Sidebar Menu Error:", e);
-        container.innerHTML = `<p class="loading-msg" style="color: #ef4444;">Menu unavailable.</p>`;
+        container.innerHTML = `<p class="loading-msg loading-msg-error">Menu unavailable.</p>`;
     }
 };
 
@@ -209,19 +208,19 @@ window.initSidebarEditButton = async function() {
 
     // --- V0.4 FULL ROLE ICON SUITE (2.5px Geometric SVG) ---
     // 1. Guest / Logged Out (Standard User)
-    const svgUser = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+    const svgUser = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
     // 2. Authenticated Normal User (User + Checkmark)
-    const svgAuth = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>`;
+    const svgAuth = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>`;
     // 3. Reviewer (The Eye / Observer)
-    const svgReviewer = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    const svgReviewer = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
     // 4. Trusted Editor (The Pen / Signature)
-    const svgTrusted = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
+    const svgTrusted = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
     // 5. Admin (The Crown)
-    const svgAdmin = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M2 9l4.5 6L9 7l5 10 3.5-8L22 9"></path><path d="M2 9h20v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"></path></svg>`;
-    
+    const svgAdmin = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M2 9l4.5 6L9 7l5 10 3.5-8L22 9"></path><path d="M2 9h20v11a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"></path></svg>`;
+
     // Core App Icons
-    const svgGear = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
-    const svgMail = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`;
+    const svgGear = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
+    const svgMail = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`;
 
     // --- ASSIGN ROLES & COLORS ---
     let loginIcon = svgUser; 
@@ -239,50 +238,47 @@ window.initSidebarEditButton = async function() {
     // Uses .btn-manga-icon and .btn-manga-text span wrappers so Layout.css knows how to collapse it natively
     const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : './';
     let html = '';
-    const btnStyle = "width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: flex-start; gap: 0.75rem; white-space: nowrap;";
-    const iconStyle = "display: flex; align-items: center; justify-content: center;";
-    
+
     // 1. OVERSEER PANEL (Pathing Fixed)
     const elevatedRoles = ['admin', 'reviewer', 'contributor', 'trusted_editor'];
     if (elevatedRoles.includes(userRole.toLowerCase())) {
         html += `
-            <button id="dock-btn-edit" class="btn-sys btn-sys-purple" style="${btnStyle}" onclick="window.location.href='${rootPath}admin.html'">
-                <span class="btn-manga-icon" style="${iconStyle}">${svgGear}</span>
-                <span class="btn-manga-text" style="overflow: hidden; text-overflow: ellipsis;">OVERSEER</span>
+            <button id="dock-btn-edit" class="btn-sys btn-sys-purple dock-action-btn" onclick="window.location.href='${rootPath}admin.html'">
+                <span class="btn-manga-icon dock-action-icon">${svgGear}</span>
+                <span class="btn-manga-text dock-action-text">OVERSEER</span>
             </button>`;
     }
 
     // 2. SYSTEM INBOX
     if (username !== 'LOGIN') {
-        let badgeHtml = unreadCount > 0 ? `<div class="dock-badge" style="position: absolute; top: -4px; right: -4px;"></div>` : ``;
+        let badgeHtml = unreadCount > 0 ? `<div class="dock-badge"></div>` : ``;
         html += `
-            <button id="dock-btn-inbox" class="btn-sys btn-sys-blue" style="${btnStyle} position: relative;">
-                <span class="btn-manga-icon" style="${iconStyle}">${svgMail}</span>
-                <span class="btn-manga-text" style="overflow: hidden; text-overflow: ellipsis;">INBOX</span>
+            <button id="dock-btn-inbox" class="btn-sys btn-sys-blue dock-action-btn dock-btn-inbox">
+                <span class="btn-manga-icon dock-action-icon">${svgMail}</span>
+                <span class="btn-manga-text dock-action-text">INBOX</span>
                 ${badgeHtml}
             </button>`;
     }
 
     // 3. PROFILE / LOGIN
     html += `
-        <button id="dock-btn-auth" class="btn-sys ${dynamicColorClass}" style="${btnStyle}">
-            <span class="btn-manga-icon" style="${iconStyle}">${loginIcon}</span>
-            <span class="btn-manga-text" style="overflow: hidden; text-overflow: ellipsis;">${username.toUpperCase()}</span>
+        <button id="dock-btn-auth" class="btn-sys ${dynamicColorClass} dock-action-btn">
+            <span class="btn-manga-icon dock-action-icon">${loginIcon}</span>
+            <span class="btn-manga-text dock-action-text">${username.toUpperCase()}</span>
         </button>`;
-    
+
     container.innerHTML = html;
 
     // --- RESTORE KO-FI ---
     if (existingKofi) {
         let targetNode = existingKofi.tagName === 'A' ? existingKofi : existingKofi.querySelector('a');
         if (targetNode) {
-            targetNode.className = 'btn-sys btn-sys-yellow';
-            targetNode.style.cssText = btnStyle + ' text-decoration: none;';
+            targetNode.className = 'btn-sys btn-sys-yellow dock-action-btn';
             if (!targetNode.querySelector('.btn-manga-icon')) {
-                const svgCoffee = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1.2rem; height: 1.2rem;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>`;
+                const svgCoffee = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>`;
                 targetNode.innerHTML = `
-                    <span class="btn-manga-icon" style="${iconStyle}">${svgCoffee}</span>
-                    <span class="kofi-text btn-manga-text" style="font-family: 'CC-Wild-Words', sans-serif;">SUPPORT KO-FI</span>
+                    <span class="btn-manga-icon dock-action-icon">${svgCoffee}</span>
+                    <span class="kofi-text btn-manga-text">SUPPORT KO-FI</span>
                 `;
             }
         }
@@ -322,9 +318,9 @@ window.initSidebarEditButton = async function() {
                             const bg = m.is_read ? 'transparent' : 'rgba(59, 130, 246, 0.1)';
                             const border = m.is_read ? 'var(--border-color)' : 'var(--accent-blue)';
                             msgsHtml += `
-                                <div style="background: ${bg}; border: 1px solid ${border}; padding: 0.75rem; border-radius: 4px;">
-                                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">${new Date(m.created_at).toLocaleDateString()}</div>
-                                    <div style="font-size: 0.85rem; color: var(--text-white);">${m.message}</div>
+                                <div class="inbox-message-card" style="--inbox-msg-bg: ${bg}; --inbox-msg-border: ${border};">
+                                    <div class="inbox-message-date">${new Date(m.created_at).toLocaleDateString()}</div>
+                                    <div class="inbox-message-text">${m.message}</div>
                                 </div>
                             `;
                         });
@@ -369,7 +365,7 @@ window.initRosterFilters = async function() {
     filterContainer.innerHTML = `
         <div class="filter-group"><span class="filter-label">Archetype</span><select id="filter-archetype" class="filter-select">${archetypes.map(a => `<option value="${a}">${a}</option>`).join('')}</select></div>
         <div class="filter-group"><span class="filter-label">Tier</span><select id="filter-tier" class="filter-select">${tiers.map(t => `<option value="${t}">${t}</option>`).join('')}</select></div>
-        <div class="filter-group" style="margin-left: auto;">
+        <div class="filter-group filter-group-right">
             <button id="filter-ea" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">EA Only</span></div></button>
             <button id="filter-base" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Base Only</span></div></button>
             <button id="filter-wip" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Hide WIP</span></div></button>
@@ -411,7 +407,7 @@ window.renderFilteredRoster = function() {
     });
 
     if (filteredChars.length === 0) {
-        rosterGrid.innerHTML = `<div class="empty-tab-msg" style="width: 100%; text-align: center; color: var(--text-muted); font-family: var(--text-mono);">No characters found matching these filters.</div>`;
+        rosterGrid.innerHTML = `<div class="empty-tab-msg roster-empty-msg">No characters found matching these filters.</div>`;
         return;
     }
 
@@ -419,24 +415,23 @@ window.renderFilteredRoster = function() {
     filteredChars.forEach(char => {
         let charColor = 'var(--bg-main)';
         let textColor = 'var(--text-white)';
-        let textOutline = 'text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 2px 2px 0px rgba(0,0,0,0.8);';
 
         if (window.CHARACTER_COLORS && window.CHARACTER_COLORS[char.name]) {
             charColor = window.CHARACTER_COLORS[char.name];
         }
 
         if (char.isBaseOnly) {
-            textColor = '#a1a1aa'; 
+            textColor = '#a1a1aa';
         }
 
         // --- Prepend the rootPath to the href ---
         html += `
             <a href="${rootPath}${char.url}" class="roster-card" style="background-color: ${charColor};">
-                ${char.isEA ? `<span class="ea-star-indicator" title="Early Access" style="color: ${textColor}; ${textOutline}">★</span>` : ''}
-                ${char.image ? `<img src="${char.image}" alt="${char.name}" style="width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; opacity: 0.5; filter: grayscale(100%); transition: opacity 0.2s;">` : ''}
-                <div class="roster-card-text" style="position: relative; z-index: 2; width: 100%; white-space: normal; padding: 0 0.25rem; color: ${textColor}; ${textOutline} font-weight: bold;">
+                ${char.isEA ? `<span class="ea-star-indicator" title="Early Access" style="color: ${textColor};">★</span>` : ''}
+                ${char.image ? `<img src="${char.image}" alt="${char.name}" class="roster-card-bg-image">` : ''}
+                <div class="roster-card-text" style="color: ${textColor};">
                     ${char.name}
-                    ${char.isWip ? `<br><span style="font-size: 0.55rem; font-family: var(--text-mono);">(WIP)</span>` : ''}
+                    ${char.isWip ? `<br><span class="roster-wip-tag">(WIP)</span>` : ''}
                 </div>
             </a>
         `;
@@ -454,24 +449,23 @@ window.buildSystemsDirectory = async function(containerId) {
         if (window.fetchJson) navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
         else { const res = await fetch(`${rootPath}data/navigation.json`); navData = await res.json(); }
 
-        // --- Increased gap between categories for breathing room ---
-        let html = '<div class="systems-grid-container" style="display: flex; flex-direction: column; gap: 2.5rem;">';
+        let html = '<div class="systems-grid-container">';
         const categories = Object.keys(navData).filter(k => k !== 'Characters');
-        
+
         categories.forEach((category) => {
             const items = navData[category];
             html += `
                 <div class="system-category-block">
-                    <h3 class="sidebar-master-title" style="margin-top: 0; margin-bottom: 1.25rem; border-bottom: 2px dashed var(--border-color);">${category}</h3>
+                    <h3 class="sidebar-master-title">${category}</h3>
 
-                    <div class="system-button-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.25rem;">
+                    <div class="system-button-grid">
             `;
             items.forEach(sys => {
                 // Swapped flat gray boxes for slanted interactive manga buttons natively inheriting the blue hover glow
                 html += `
-                    <button class="btn-manga btn-manga-slanted" style="width: 100%; padding: 0.6rem 1rem;" onclick="window.location.href='${rootPath}${sys.url}'">
-                        <div class="btn-manga-content" style="justify-content: center;">
-                            <span class="btn-manga-text" style="font-size: 0.85rem; letter-spacing: 1px;">${sys.name}</span>
+                    <button class="btn-manga btn-manga-slanted system-directory-btn" onclick="window.location.href='${rootPath}${sys.url}'">
+                        <div class="btn-manga-content">
+                            <span class="btn-manga-text">${sys.name}</span>
                         </div>
                     </button>
                 `;
@@ -533,16 +527,16 @@ window.refreshTOC = function() {
     }
 
     if (!targetArea) {
-        tocContainer.innerHTML = '<li><p class="loading-msg" style="padding: 0.25rem 0.75rem;">Nothing to index here.</p></li>';
+        tocContainer.innerHTML = '<li><p class="loading-msg loading-msg-toc">Nothing to index here.</p></li>';
         return;
     }
 
     // 2. The Expansive Header System
     // Added '.section-title' so it can index Dashboard headers!
     const headers = targetArea.querySelectorAll('.section-title, .skill-title, .strategy-title, .card-header-title, .wiki-block-heading');
-    
+
     if (headers.length === 0) {
-        tocContainer.innerHTML = '<li><p class="loading-msg" style="padding: 0.25rem 0.75rem;">Nothing to index here.</p></li>';
+        tocContainer.innerHTML = '<li><p class="loading-msg loading-msg-toc">Nothing to index here.</p></li>';
         return;
     }
 
@@ -583,8 +577,8 @@ window.refreshTOC = function() {
             // Fallback for orphaned minor headers
             tocHtml += `
                 <li>
-                    <a href="#${group.id}" class="btn-nav" style="text-decoration: none !important; padding-left: 1.5rem; font-size: 0.7rem; color: var(--text-muted); opacity: 0.7;" onclick="smoothScroll(event, '${group.id}')">
-                        <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${group.text}</span>
+                    <a href="#${group.id}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${group.id}')">
+                        <span class="toc-link-text">${group.text}</span>
                     </a>
                 </li>
             `;
@@ -593,35 +587,35 @@ window.refreshTOC = function() {
                 // Parent Header WITH a Toggle Button
                 tocHtml += `
                     <li>
-                        <div style="display: flex; position: relative;">
-                            <a href="#${group.id}" class="btn-nav" style="text-decoration: none !important; font-size: 0.75rem; color: var(--text-white); padding-right: 2rem;" onclick="smoothScroll(event, '${group.id}')">
-                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${group.text}</span>
+                        <div class="toc-group-row">
+                            <a href="#${group.id}" class="btn-nav toc-link-major-toggle" onclick="smoothScroll(event, '${group.id}')">
+                                <span class="toc-link-text">${group.text}</span>
                             </a>
-                            <button style="position: absolute; right: 0; top: 0; bottom: 1px; background: none; border: none; color: var(--text-muted); padding: 0 0.5rem; cursor: pointer; font-size: 0.5rem; z-index: 2; transition: color 0.2s;" onmouseover="this.style.color='var(--text-white)'" onmouseout="this.style.color='var(--text-muted)'" onclick="this.parentElement.nextElementSibling.classList.toggle('hidden')">
+                            <button class="toc-toggle-btn" onclick="this.parentElement.nextElementSibling.classList.toggle('hidden')">
                                 ▼
                             </button>
                         </div>
-                        <ul class="toc-sublist" style="list-style: none; padding: 0; margin: 0;">
+                        <ul class="toc-sublist">
                 `;
-                
+
                 // Render the Nested Children
                 group.children.forEach(child => {
                     tocHtml += `
                         <li>
-                            <a href="#${child.id}" class="btn-nav" style="text-decoration: none !important; padding-left: 1.5rem; font-size: 0.7rem; color: var(--text-muted); opacity: 0.7;" onclick="smoothScroll(event, '${child.id}')">
-                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${child.text}</span>
+                            <a href="#${child.id}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${child.id}')">
+                                <span class="toc-link-text">${child.text}</span>
                             </a>
                         </li>
                     `;
                 });
-                
+
                 tocHtml += `</ul></li>`;
             } else {
                 // Standard Parent Header (No Children, No Toggle Arrow)
                 tocHtml += `
                     <li>
-                        <a href="#${group.id}" class="btn-nav" style="text-decoration: none !important; font-size: 0.75rem; color: var(--text-white);" onclick="smoothScroll(event, '${group.id}')">
-                            <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">${group.text}</span>
+                        <a href="#${group.id}" class="btn-nav toc-link-major" onclick="smoothScroll(event, '${group.id}')">
+                            <span class="toc-link-text">${group.text}</span>
                         </a>
                     </li>
                 `;
