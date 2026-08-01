@@ -105,13 +105,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // Standard Menu Bindings
-            const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
-            const sidebar = document.getElementById('master-sidebar');
-            const backdrop = document.getElementById('mobile-backdrop');
-            if (mobileMenuBtn && sidebar && backdrop) {
-                mobileMenuBtn.addEventListener('click', () => { sidebar.classList.add('mobile-open'); backdrop.classList.add('active'); });
-                backdrop.addEventListener('click', () => { sidebar.classList.remove('mobile-open'); backdrop.classList.remove('active'); });
-            }
+            if (window.initMobileNav) window.initMobileNav();
 
             if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
             if (typeof window.initSidebarEditButton === 'function') await window.initSidebarEditButton();

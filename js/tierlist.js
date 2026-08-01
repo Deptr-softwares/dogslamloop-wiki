@@ -54,7 +54,6 @@ function getCharPortraitHTML(charId, isDraggable = false) {
 
     return `
         <div class="tier-portrait ${isDraggable ? 'draggable-portrait' : ''}"
-             ${isDraggable ? 'draggable="true"' : ''}
              data-char-id="${charId}"
              title="${charMeta.name}"
              style="background-color: ${charColor};"
@@ -247,17 +246,17 @@ window.renderTierEditorUI = function(container) {
     const activeTab = descData.tabs[activeIdx];
 
     // 1. TABS NAVIGATION (Styled to match screenshot)
-    let tabHTML = `<div class="daw-variant-tabs" style="margin-bottom: 1rem; overflow-x: auto; padding-bottom: 0.5rem; border-bottom: 1px solid #333; display: flex; align-items: center; gap: 0.25rem;">`;
+    let tabHTML = `<div class="daw-variant-tabs tier-editor-tabs-row">`;
     descData.tabs.forEach((tab, tIdx) => {
         let activeClass = tIdx === activeIdx ? 'active' : '';
-        let activeStyle = tIdx === activeIdx ? 'background: var(--accent-blue); color: #000; font-weight: bold;' : '';
-        
-        tabHTML += `<div style="display:inline-flex; align-items:center; position:relative;">`;
-        tabHTML += `<button class="daw-tab-btn ${activeClass}" onclick="window.switchEditorTierTab(${tIdx})" style="padding: 0.5rem 2rem 0.5rem 1rem; border-radius: 2px; ${activeStyle}">${tab.label.toUpperCase()}</button>`;
-        tabHTML += `<button onclick="window.removeEditorTierTab(${tIdx})" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; color: ${tIdx === activeIdx ? '#000' : '#ef4444'}; font-size:12px; cursor:pointer;" title="Delete Tab">✖</button>`;
+        let removeBtnClass = tIdx === activeIdx ? 'on-active-tab' : '';
+
+        tabHTML += `<div class="daw-tab-item">`;
+        tabHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${activeClass}" onclick="window.switchEditorTierTab(${tIdx})">${tab.label.toUpperCase()}</button>`;
+        tabHTML += `<button class="daw-tab-remove-btn ${removeBtnClass}" onclick="window.removeEditorTierTab(${tIdx})" title="Delete Tab">✖</button>`;
         tabHTML += `</div>`;
     });
-    tabHTML += `<button class="daw-tab-btn btn-sys btn-sys-green" style="font-size: 0.65rem; padding: 0.5rem 1rem;" onclick="window.addEditorTierTab()">+ ADD TAB</button>`;
+    tabHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addEditorTierTab()">+ ADD TAB</button>`;
     tabHTML += `</div>`;
 
     if (!activeTab) {
@@ -286,19 +285,19 @@ window.renderTierEditorUI = function(container) {
         }
 
         tiersHTML += `
-            <div style="margin-bottom: 1.5rem; border-left: 4px solid ${tier.color || '#555'}; padding-left: 0.5rem;">
-                
-                <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
-                    <input type="color" value="${tier.color ? tier.color.startsWith('#') ? tier.color : '#555555' : '#555555'}" onchange="window.updateTierMeta(${tIdx}, 'color', this.value)" style="width: 32px; height: 32px; cursor: pointer; border: 1px solid #333; padding: 0; background: none; flex-shrink: 0; border-radius: 4px;">
-                    <input type="text" class="editor-input" value="${tier.name || ''}" placeholder="Tier Name" oninput="window.updateTierMeta(${tIdx}, 'name', this.value)" style="margin:0; font-family: 'CC-Wild-Words', sans-serif; font-size: 1.1rem; flex: 1; background: #0a0a0a;">
-                    <div style="display: flex; gap: 0.25rem;">
-                        <button class="btn-sys btn-sys-regular" style="padding: 0.3rem 0.5rem;" onclick="window.moveTier(${tIdx}, -1)">▲</button>
-                        <button class="btn-sys btn-sys-regular" style="padding: 0.3rem 0.5rem;" onclick="window.moveTier(${tIdx}, 1)">▼</button>
-                        <button class="btn-sys btn-sys-red" style="padding: 0.3rem 0.5rem;" onclick="window.removeTier(${tIdx})">✖</button>
+            <div class="tier-editor-row" style="border-left: 4px solid ${tier.color || '#555'};">
+
+                <div class="tier-editor-row-header">
+                    <input type="color" class="tier-color-input" value="${tier.color ? tier.color.startsWith('#') ? tier.color : '#555555' : '#555555'}" onchange="window.updateTierMeta(${tIdx}, 'color', this.value)">
+                    <input type="text" class="editor-input tier-name-input" value="${tier.name || ''}" placeholder="Tier Name" oninput="window.updateTierMeta(${tIdx}, 'name', this.value)">
+                    <div class="tier-row-btn-group">
+                        <button class="btn-sys btn-sys-regular btn-sys-compact" onclick="window.moveTier(${tIdx}, -1)">▲</button>
+                        <button class="btn-sys btn-sys-regular btn-sys-compact" onclick="window.moveTier(${tIdx}, 1)">▼</button>
+                        <button class="btn-sys btn-sys-red btn-sys-compact" onclick="window.removeTier(${tIdx})">✖</button>
                     </div>
                 </div>
 
-                <div class="tier-dropzone" data-tier-idx="${tIdx}" style="background: rgba(0,0,0,0.2); border: 1px dashed #333; border-radius: 4px; padding: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-content: flex-start; min-height: 90px;">
+                <div class="tier-dropzone tier-row-dropzone" data-tier-idx="${tIdx}">
                     ${charsHTML}
                 </div>
             </div>
@@ -315,61 +314,61 @@ window.renderTierEditorUI = function(container) {
     activeTab.changelog.forEach((log, lIdx) => {
         const notesText = Array.isArray(log.notes) ? log.notes.join('\n') : (log.notes || '');
         changelogHTML += `
-            <div class="block-card" style="margin-bottom: 0.75rem; padding: 0.75rem; background: rgba(0,0,0,0.2); border-left: 4px solid var(--accent-blue);">
-                <div style="display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 0.5rem;">
-                    <div style="flex: 1;">
-                        <label style="font-size:0.65rem; color:#888;">Date / Title (e.g. 2026-06-20)</label>
-                        <input type="text" class="editor-input" value="${log.date || ''}" oninput="window.updateTierChangelog(${lIdx}, 'date', this.value)" style="margin:0; font-family: var(--text-mono); font-size: 0.85rem;">
+            <div class="tier-changelog-card">
+                <div class="tier-changelog-header-row">
+                    <div class="tier-changelog-date-field">
+                        <label class="editor-field-label-sm">Date / Title (e.g. 2026-06-20)</label>
+                        <input type="text" class="editor-input tier-changelog-date-input" value="${log.date || ''}" oninput="window.updateTierChangelog(${lIdx}, 'date', this.value)">
                     </div>
-                    <button class="btn-sys btn-sys-red" style="padding: 0.3rem 0.5rem; margin-top: 1.2rem;" onclick="window.removeTierChangelog(${lIdx})">✖</button>
+                    <button class="btn-sys btn-sys-red btn-sys-compact tier-changelog-delete-btn" onclick="window.removeTierChangelog(${lIdx})">✖</button>
                 </div>
                 <div>
-                    <label style="font-size:0.65rem; color:#888;">Patch Notes (New line for each bullet point)</label>
-                    <textarea class="editor-textarea" oninput="window.updateTierChangelog(${lIdx}, 'notes', this.value)" style="min-height: 80px; margin:0;">${notesText}</textarea>
+                    <label class="editor-field-label-sm">Patch Notes (New line for each bullet point)</label>
+                    <textarea class="editor-textarea tier-changelog-textarea" oninput="window.updateTierChangelog(${lIdx}, 'notes', this.value)">${notesText}</textarea>
                 </div>
             </div>
         `;
     });
 
-    const addChangelogBtn = activeTab.changelog.length < 5 
-        ? `<button class="btn-sys btn-sys-green" onclick="window.addTierChangelog()">+ ADD LOG</button>` 
-        : `<span style="color: #ef4444; font-size: 0.75rem; font-family: var(--text-mono); font-weight: bold;">MAX 5 LOGS REACHED</span>`;
+    const addChangelogBtn = activeTab.changelog.length < 5
+        ? `<button class="btn-sys btn-sys-green" onclick="window.addTierChangelog()">+ ADD LOG</button>`
+        : `<span class="tier-max-logs-msg">MAX 5 LOGS REACHED</span>`;
 
     // 5. ASSEMBLE FULL EDITOR
     container.innerHTML = `
         ${tabHTML}
-        
-        <div class="editor-row" style="margin-bottom: 1.5rem;">
-            <div style="flex: 1;">
-                <label style="font-size:0.65rem; color:#888;">Tab Name (Navigation)</label>
+
+        <div class="editor-row tier-tab-meta-row">
+            <div class="tier-tab-meta-field">
+                <label class="editor-field-label-sm">Tab Name (Navigation)</label>
                 <input type="text" class="editor-input" value="${activeTab.label || ''}" oninput="window.updateTierTabLabel(this.value)">
             </div>
-            <div style="flex: 1;">
-                <label style="font-size:0.65rem; color:#888;">Tab Slug ID (Internal)</label>
-                <input type="text" class="editor-input" value="${activeTab.id || ''}" disabled style="opacity: 0.5;">
+            <div class="tier-tab-meta-field">
+                <label class="editor-field-label-sm">Tab Slug ID (Internal)</label>
+                <input type="text" class="editor-input" value="${activeTab.id || ''}" disabled>
             </div>
         </div>
 
-        <div class="block-editor-container" style="margin-top: 0; margin-bottom: 1.5rem; border-top: 1px dashed #333; padding-top: 1rem;">
-            <div style="margin-bottom: 0.75rem;">
-                <span style="background: #fff; color: #000; font-family: var(--text-mono); font-size: 0.65rem; font-weight: bold; padding: 0.15rem 0.4rem; letter-spacing: 1px;">UNASSIGNED ROSTER</span>
+        <div class="tier-unassigned-container">
+            <div class="tier-unassigned-label-row">
+                <span class="block-type-badge tier-section-badge">UNASSIGNED ROSTER</span>
             </div>
-            <div class="tier-dropzone" data-tier-idx="unassigned" style="min-height: 80px; display: flex; flex-wrap: wrap; gap: 0.5rem; align-content: flex-start;">
+            <div class="tier-dropzone" data-tier-idx="unassigned">
                 ${poolHTML}
             </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.2rem; font-weight: bold; text-transform: uppercase;">TIER ROWS</span>
+        <div class="tier-section-header-row">
+            <span class="tier-section-title">TIER ROWS</span>
             <button class="btn-sys btn-sys-green" onclick="window.addTier()">+ ADD TIER</button>
         </div>
-        
+
         <div id="tier-rows-container">
             ${tiersHTML}
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; margin-top: 2rem;">
-            <span style="color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.2rem; font-weight: bold; text-transform: uppercase;">PUBLIC CHANGELOG</span>
+        <div class="tier-section-header-row tier-section-header-row-spaced">
+            <span class="tier-section-title">PUBLIC CHANGELOG</span>
             ${addChangelogBtn}
         </div>
         <div id="tier-changelog-container">
@@ -382,39 +381,139 @@ window.renderTierEditorUI = function(container) {
 };
 
 // --- DRAG AND DROP PHYSICS ENGINE ---
+// Pointer Events (not native HTML5 DnD) so the exact same code path drives
+// mouse and touch - native DnD never fires from a touch gesture at all, which
+// made this editor unusable on phones/tablets prior to this rewrite.
 window.bindTierDragAndDrop = function(container) {
     const draggables = container.querySelectorAll('.draggable-portrait');
-    const dropzones = container.querySelectorAll('.tier-dropzone');
+    const DRAG_THRESHOLD = 6; // px of movement before a press counts as a drag, not a tap
 
     draggables.forEach(el => {
-        el.addEventListener('dragstart', (e) => {
-            e.dataTransfer.setData('text/plain', e.target.closest('.draggable-portrait').dataset.charId);
-            setTimeout(() => e.target.style.opacity = '0.5', 0);
-        });
-        el.addEventListener('dragend', (e) => {
-            e.target.style.opacity = '1';
-            dropzones.forEach(z => z.style.backgroundColor = '');
-        });
-    });
+        el.addEventListener('pointerdown', (e) => {
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            e.preventDefault();
 
-    dropzones.forEach(zone => {
-        zone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            zone.style.backgroundColor = 'rgba(168, 85, 247, 0.1)'; // Purple highlight
-        });
-        zone.addEventListener('dragleave', () => {
-            zone.style.backgroundColor = '';
-        });
-        zone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            zone.style.backgroundColor = '';
-            
-            const charId = e.dataTransfer.getData('text/plain');
-            const targetTierIdx = zone.dataset.tierIdx;
-            
-            if (charId) {
-                window.moveCharToTier(charId, targetTierIdx);
+            const charId = el.dataset.charId;
+            const startX = e.clientX;
+            const startY = e.clientY;
+            let dragging = false;
+            let ghost = null;
+            let currentZone = null;
+            let lastX = startX;
+            let lastY = startY;
+            let scrollRAF = null;
+            let scrollParent = null;
+
+            el.setPointerCapture(e.pointerId);
+
+            function positionGhost() {
+                ghost.style.left = `${lastX}px`;
+                ghost.style.top = `${lastY}px`;
             }
+
+            function updateDropzone() {
+                const under = document.elementFromPoint(lastX, lastY);
+                const zone = under ? under.closest('.tier-dropzone') : null;
+                if (zone !== currentZone) {
+                    if (currentZone) currentZone.classList.remove('drag-over');
+                    if (zone) zone.classList.add('drag-over');
+                    currentZone = zone;
+                }
+            }
+
+            // The unassigned pool + tier rows can easily be taller than one
+            // screen, especially on mobile - without this, dragging a
+            // character from the top of the page down into a tier row (or
+            // vice versa) is impossible if both ends aren't visible at once.
+            // Re-checks the dropzone under the (stationary) pointer every
+            // frame while scrolling, since the page moves under it even
+            // though the pointer itself doesn't.
+            //
+            // edit.html uses an app-shell layout (body has overflow-y:
+            // hidden; an inner panel does the actual scrolling), so this
+            // walks up for the real scrollable ancestor instead of assuming
+            // window/document scroll.
+            function getScrollParent(node) {
+                let ancestor = node.parentElement;
+                while (ancestor) {
+                    const style = getComputedStyle(ancestor);
+                    if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && ancestor.scrollHeight > ancestor.clientHeight) {
+                        return ancestor;
+                    }
+                    ancestor = ancestor.parentElement;
+                }
+                return document.scrollingElement || document.documentElement;
+            }
+
+            const EDGE_ZONE = 60;
+            const MAX_SCROLL_SPEED = 16;
+            function autoScrollTick() {
+                if (!dragging) { scrollRAF = null; return; }
+                const rect = scrollParent.getBoundingClientRect();
+                const top = Math.max(rect.top, 0);
+                const bottom = Math.min(rect.bottom, window.innerHeight);
+                let delta = 0;
+                if (lastY < top + EDGE_ZONE) delta = -MAX_SCROLL_SPEED * (1 - (lastY - top) / EDGE_ZONE);
+                else if (lastY > bottom - EDGE_ZONE) delta = MAX_SCROLL_SPEED * (1 - (bottom - lastY) / EDGE_ZONE);
+
+                if (delta !== 0) {
+                    scrollParent.scrollTop += delta;
+                    updateDropzone();
+                }
+                scrollRAF = requestAnimationFrame(autoScrollTick);
+            }
+
+            function startDrag() {
+                dragging = true;
+                el.classList.add('tier-portrait-dragging');
+                scrollParent = getScrollParent(el);
+                ghost = el.cloneNode(true);
+                ghost.classList.add('tier-portrait-ghost');
+                document.body.appendChild(ghost);
+                positionGhost();
+                scrollRAF = requestAnimationFrame(autoScrollTick);
+            }
+
+            function cleanup() {
+                el.removeEventListener('pointermove', onMove);
+                el.removeEventListener('pointerup', onUp);
+                el.removeEventListener('pointercancel', onCancel);
+                el.classList.remove('tier-portrait-dragging');
+                if (ghost) { ghost.remove(); ghost = null; }
+                if (currentZone) { currentZone.classList.remove('drag-over'); }
+                if (scrollRAF) { cancelAnimationFrame(scrollRAF); scrollRAF = null; }
+            }
+
+            function onMove(ev) {
+                lastX = ev.clientX;
+                lastY = ev.clientY;
+
+                if (!dragging) {
+                    if (Math.abs(ev.clientX - startX) > DRAG_THRESHOLD || Math.abs(ev.clientY - startY) > DRAG_THRESHOLD) {
+                        startDrag();
+                    } else {
+                        return;
+                    }
+                }
+                positionGhost();
+                updateDropzone();
+            }
+
+            function onUp() {
+                const droppedZone = currentZone;
+                cleanup();
+                if (dragging && droppedZone) {
+                    window.moveCharToTier(charId, droppedZone.dataset.tierIdx);
+                }
+            }
+
+            function onCancel() {
+                cleanup();
+            }
+
+            el.addEventListener('pointermove', onMove);
+            el.addEventListener('pointerup', onUp);
+            el.addEventListener('pointercancel', onCancel);
         });
     });
 };

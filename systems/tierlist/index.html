@@ -136,14 +136,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // Mobile Menu Toggle Binding
-            const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
-            const sidebar = document.getElementById('master-sidebar');
-            const backdrop = document.getElementById('mobile-backdrop');
-
-            if (mobileMenuBtn && sidebar && backdrop) {
-                mobileMenuBtn.addEventListener('click', () => { sidebar.classList.add('mobile-open'); backdrop.classList.add('active'); });
-                backdrop.addEventListener('click', () => { sidebar.classList.remove('mobile-open'); backdrop.classList.remove('active'); });
-            }
+            if (window.initMobileNav) window.initMobileNav();
 
             // Boot the standard layout hooks
             if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');

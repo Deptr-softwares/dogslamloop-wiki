@@ -328,9 +328,74 @@
 .tier-changelog-empty { color: var(--text-muted); font-family: var(--text-mono); font-style: italic; }
 
 .tier-portrait { width: 60px; height: 60px; position: relative; border: 2px solid var(--border-color); box-shadow: 3px 3px 0px var(--manga-shadow, #000); cursor: pointer; overflow: hidden; display: flex; align-items: center; justify-content: center; text-align: center; flex-shrink: 0; }
-.tier-portrait.draggable-portrait { cursor: grab; }
+/* touch-action: none so a touch-drag on a portrait doesn't also scroll the
+   page - the Pointer Events engine in tierlist.js's bindTierDragAndDrop
+   owns the gesture entirely once it starts. */
+.tier-portrait.draggable-portrait { cursor: grab; touch-action: none; }
 .tier-portrait-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 3; pointer-events: none; }
 .tier-portrait-name { position: relative; z-index: 2; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.5rem; color: #fff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; word-wrap: break-word; line-height: 1.1; padding: 2px; }
+
+/* Floating clone that follows the pointer during a drag (mouse or touch),
+   created/destroyed by bindTierDragAndDrop. pointer-events: none so
+   elementFromPoint() hit-tests the real dropzone underneath it, not the
+   ghost itself. Compound selector: .tier-portrait's own base rule sets
+   position: relative at the same specificity. */
+.tier-portrait.tier-portrait-ghost { position: fixed; z-index: 9999; pointer-events: none; opacity: 0.9; transform: translate(-50%, -50%) scale(1.05); box-shadow: 6px 6px 0px rgba(0,0,0,0.5); }
+.tier-portrait-dragging { opacity: 0.4; }
+
+/* --- TIER LIST EDITOR (js/tierlist.js EDITOR BUILDER: renderTierEditorUI) --- */
+/* Compound: .daw-variant-tabs's own base rule sets border-bottom color/
+   padding-bottom at the same specificity. */
+.daw-variant-tabs.tier-editor-tabs-row { overflow-x: auto; padding-bottom: 0.5rem; border-bottom: 1px solid #333; align-items: center; }
+/* Compound: .daw-tab-remove-btn's own base rule sets color: #ef4444 at the
+   same specificity - needed when its parent tab is the active one, whose
+   background is already light (var(--accent-blue)). */
+.daw-tab-remove-btn.on-active-tab { color: #000; }
+
+.tier-editor-row { margin-bottom: 1.5rem; padding-left: 0.5rem; }
+.tier-editor-row-header { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+.tier-color-input { width: 32px; height: 32px; cursor: pointer; border: 1px solid #333; padding: 0; background: none; flex-shrink: 0; border-radius: 4px; }
+/* Compound: .editor-input's own base rule sets margin-bottom/background at
+   the same specificity. */
+.editor-input.tier-name-input { margin: 0; font-family: 'CC-Wild-Words', sans-serif; font-size: 1.1rem; flex: 1; background: #0a0a0a; }
+.tier-row-btn-group { display: flex; gap: 0.25rem; }
+/* Compound: .btn-sys's own base rule sets padding at the same specificity. */
+.btn-sys.btn-sys-compact { padding: 0.3rem 0.5rem; }
+
+/* Base rule for .tier-dropzone was previously 100% inline (JS-hardcoded on
+   every render) - both the per-tier rows and the unassigned pool now share
+   this, with tier rows getting the taller .tier-row-dropzone modifier. */
+.tier-dropzone { background: rgba(0,0,0,0.2); border: 1px dashed #333; border-radius: 4px; padding: 0.75rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-content: flex-start; min-height: 80px; }
+.tier-dropzone.tier-row-dropzone { min-height: 90px; }
+/* Highlight while a drag is hovering this zone - previously a direct
+   zone.style.backgroundColor write from the native-DnD dragover/dragleave
+   handlers; now a class toggled by the Pointer Events engine. */
+.tier-dropzone.drag-over { background-color: rgba(168, 85, 247, 0.1); }
+
+.tier-changelog-card { margin-bottom: 0.75rem; padding: 0.75rem; background: rgba(0,0,0,0.2); border-left: 4px solid var(--accent-blue); }
+.tier-changelog-header-row { display: flex; gap: 0.5rem; align-items: flex-start; margin-bottom: 0.5rem; }
+.tier-changelog-date-field { flex: 1; }
+/* Compound: .editor-input's own base rule sets margin-bottom at the same
+   specificity. */
+.editor-input.tier-changelog-date-input { margin: 0; font-family: var(--text-mono); font-size: 0.85rem; }
+.btn-sys.btn-sys-compact.tier-changelog-delete-btn { margin-top: 1.2rem; }
+/* Compound: .editor-textarea's own base rule sets margin-bottom/min-height
+   at the same specificity. */
+.editor-textarea.tier-changelog-textarea { min-height: 80px; margin: 0; }
+.tier-max-logs-msg { color: #ef4444; font-size: 0.75rem; font-family: var(--text-mono); font-weight: bold; }
+
+.editor-row.tier-tab-meta-row { margin-bottom: 1.5rem; }
+.tier-tab-meta-field { flex: 1; }
+
+.tier-unassigned-container { margin-top: 0; margin-bottom: 1.5rem; border-top: 1px dashed #333; padding-top: 1rem; }
+.tier-unassigned-label-row { margin-bottom: 0.75rem; }
+/* Compound: .block-type-badge's own base rule sets padding at the same
+   specificity. */
+.block-type-badge.tier-section-badge { padding: 0.15rem 0.4rem; letter-spacing: 1px; }
+
+.tier-section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.tier-section-header-row.tier-section-header-row-spaced { margin-top: 2rem; }
+.tier-section-title { color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.2rem; font-weight: bold; text-transform: uppercase; }
 
 /* Footer & Credits */
 .footer-grid-section { margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 2rem; }
@@ -451,8 +516,11 @@
 .system-content-grid-section { padding: 0 0.5rem; }
 .wiki-section-clip { overflow: hidden; }
 
-/* Media Formatting Helpers */
-.wiki-media { border-radius: 4px; border: 1px solid var(--border-color); }
+/* Media Formatting Helpers. max-width: 100% is a universal safety net (any
+   viewport) against getMediaAttributes' inline contributor-set width -
+   without it, a pixel width authored while looking at a wide desktop
+   preview can overflow any narrower column it's later viewed in. */
+.wiki-media { border-radius: 4px; border: 1px solid var(--border-color); max-width: 100%; }
 .wiki-media-left { float: left; margin: 0.5rem 1.5rem 1rem 0; }
 .wiki-media-right { float: right; margin: 0.5rem 0 1rem 1.5rem; }
 .wiki-media-center { display: block; margin: 1.5rem auto; }
@@ -532,3 +600,47 @@
     .global-sidebar-left.collapsed .dock-badge { width: 14px; height: 14px; }
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Phone-width typography & spacing (deliberately narrower than the 1023px
+   nav-switch breakpoint above - tablets have plenty of room for the desktop
+   sizing, this is specifically for phone-class viewports). Contributor
+   feedback 2026-08-04: desktop-sized heading/padding values applied
+   unscaled made every page feel cramped - .main-content-area's 2rem padding
+   plus .wiki-section's own 1.5rem compounded to ~56px eaten on each side of
+   a ~375px screen, and .character-title's fixed 3.5rem routinely wrapped to
+   3 lines. */
+@media (max-width: 640px) {
+    .main-content-area { padding: 1rem; }
+    .wiki-section, .changelog-box { padding: 1rem; }
+    .character-title { font-size: 1.9rem; }
+    .home-main-title { font-size: 1.5rem; }
+
+    /* description.js block-level media (image/video/youtube/embed): the
+       max-width safety net above stops true overflow, but a contributor-set
+       percentage width (reasonable against a wide desktop column) still
+       renders tiny against a narrow phone column, and a floated
+       left/right image leaves almost no room for text beside it. Forcing
+       full-width + dropping the float makes every media block predictable
+       on phones regardless of what width/align a contributor chose for
+       desktop. Needs !important - customWidth is an inline style, which
+       always wins over a plain stylesheet rule. */
+    .wiki-media { width: 100% !important; max-width: 100% !important; }
+    .wiki-media-left, .wiki-media-right { float: none; margin: 1rem 0; }
+
+    /* Profile card (js/description.js's character overview aside) sits
+       beside .profile-text-wrapper in a flex row on desktop. On mobile we
+       want a plain single-column stack - not flex-direction: column, which
+       still leaves both children as flex items subject to Chromium's flex
+       automatic-minimum-size sizing pass for replaced (image) content.
+       Confirmed directly: with flex-direction: column, a percentage-width
+       .profile-portrait inside .profile-card left the card's own
+       offsetHeight (407px) shorter than its actual scrollHeight (456px) -
+       the last stat row rendered outside the visible border, worse for
+       low-resolution source images since intrinsic image size feeds that
+       calculation. Dropping to display: block sidesteps the whole
+       flex-sizing bug class entirely - a plain block child is just 100%
+       width and auto height, no two-pass replaced-content sizing involved,
+       exactly matching every other .wiki-section on the page. */
+    .profile-top-split { display: block; }
+    .profile-card { max-width: none; margin-bottom: 1.5rem; }
+}

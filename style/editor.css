@@ -119,6 +119,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 .editor-input:focus, .editor-textarea:focus {
     outline: none; border-color: var(--accent-blue); background: rgba(0,0,0,0.5); color: #fff;
 }
+.editor-input:disabled, .editor-textarea:disabled { opacity: 0.5; }
 .editor-textarea { min-height: 50px; resize: vertical; line-height: 1.4; }
 .editor-row { display: flex; gap: 0.25rem; }
 .editor-row > div { flex: 1; }
@@ -241,6 +242,18 @@ input[type="checkbox"]:checked {
     box-shadow: 0 3px 0 0 var(--accent-blue) !important;
     z-index: 20;
 }
+/* Small pill that follows the pointer during a block-list drag (add-block-btn
+   or drag-handle reorder), created/destroyed by bindBlockDragSource in
+   js/editor.js. pointer-events: none so elementFromPoint() hit-tests the
+   real card underneath it, not the ghost itself. */
+.block-drag-ghost {
+    position: fixed; z-index: 9999; pointer-events: none;
+    transform: translate(12px, 12px);
+    background: var(--bg-main, #050505); border: 2px solid var(--accent-blue); color: #fff;
+    font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; text-transform: uppercase;
+    padding: 0.4rem 0.75rem; box-shadow: 4px 4px 0px var(--manga-shadow, #000); white-space: nowrap;
+}
+.block-card.block-card-dragging { opacity: 0.4; }
 .block-header:active {
     cursor: grabbing !important;
 }
@@ -557,13 +570,16 @@ input[type="checkbox"]:checked {
 /* Compound: .block-type-badge's own base rule sets color: #000 at the same specificity. */
 .block-type-badge.block-type-badge-positive { color: #22c55e; }
 .block-type-badge.block-type-badge-negative { color: #ef4444; }
-.strategy-toolbar-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-.strategy-toolbar-actions { display: flex; gap: 0.5rem; }
+.strategy-toolbar-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+.strategy-toolbar-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 .accordion-back-label { color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
 .accordion-back-title { color: #fff; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; }
 .block-type-row { display: flex; align-items: center; gap: 0.5rem; }
-.drag-handle { color: #666; font-size: 1rem; line-height: 1; cursor: grab; }
+/* touch-action: none so a touch-drag on the handle doesn't also scroll the
+   page - startBlockPointerDrag (js/editor.js) owns the gesture entirely
+   once it starts. */
+.drag-handle { color: #666; font-size: 1rem; line-height: 1; cursor: grab; touch-action: none; }
 /* Compound: .editor-select's own base rule sets border/padding at the same specificity. */
 .editor-select.block-type-selector { cursor: pointer; border: none; outline: none; padding-right: 0.2rem; }
 /* Compound: .editor-input's own base rule sets font-family/color at the same specificity. */
@@ -893,7 +909,12 @@ select.editor-select.manga-initialized {
         left: 0;
         z-index: 50;
         background-color: #000;
-        padding: 1rem !important; /* Smaller padding */
+        /* No padding here - .main-content-area (a direct child) already
+           supplies content padding, exactly matching the real live page's
+           structure. Padding on both compounded into a real bug: the mobile
+           preview read narrower/more cramped than the actual published page
+           it's supposed to be a faithful preview of. */
+        padding: 0 !important;
     }
 
     /* 3. Toggled State (Show Preview, Hide Editor) */
@@ -1062,6 +1083,10 @@ select.editor-select.manga-initialized {
 
 /* Add Block Button Sizing Override (Even tighter) */
 .add-block-btn { padding: 0.35rem 0.6rem; font-size: 0.65rem; border-color: #333; }
+/* touch-action: none only on the actual drag sources in the add-block popup
+   toolbar - .add-block-btn is reused elsewhere (DAW stat/branch buttons)
+   that aren't drag sources and shouldn't lose native touch scrolling. */
+#add-block-popup .add-block-btn { touch-action: none; }
 
 /* --- WORKSPACE SCROLL ENGINE --- */
 #interactive-builder {

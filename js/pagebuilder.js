@@ -19,6 +19,23 @@ window.initSidebarToggle = function() {
     }
 };
 
+window.initMobileNav = function() {
+    const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.getElementById('master-sidebar');
+    const backdrop = document.getElementById('mobile-backdrop');
+
+    if (mobileMenuBtn && sidebar && backdrop) {
+        mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.add('mobile-open');
+            backdrop.classList.add('active');
+        });
+        backdrop.addEventListener('click', () => {
+            sidebar.classList.remove('mobile-open');
+            backdrop.classList.remove('active');
+        });
+    }
+};
+
 window.buildGlobalSidebarMenu = async function(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;

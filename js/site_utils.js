@@ -142,7 +142,11 @@ window.initTooltip = function() {
             frameTooltip.style.border = '2px solid var(--border-color, #333)';
             frameTooltip.style.padding = '0.75rem 1rem';
             frameTooltip.style.boxShadow = '6px 6px 0px var(--manga-shadow, #000)';
-            frameTooltip.style.maxWidth = '320px';
+            // min() with a viewport-relative term so a long callout can never
+            // be wider than the screen itself on a narrow phone - a fixed
+            // 320px max-width left no room for positionTooltip's flip logic
+            // to keep it on-screen once content pushed close to that width.
+            frameTooltip.style.maxWidth = 'min(320px, calc(100vw - 2rem))';
             frameTooltip.style.color = 'var(--text-white, #fff)';
             frameTooltip.style.fontFamily = 'var(--text-mono)';
             frameTooltip.style.fontSize = '0.75rem';
@@ -153,8 +157,40 @@ window.initTooltip = function() {
     }
 };
 
-// Binds hover/move/leave listeners that show titleHtml in the shared tooltip,
-// with boundary physics so it flips away from the right/bottom viewport edges.
+// Positions the shared tooltip near (x, y), flipping away from the right/bottom
+// viewport edges. Shared by the mouse and touch bindings below.
+function positionTooltip(x, y) {
+    const box = frameTooltip.getBoundingClientRect();
+    const margin = 8; // keeps it off the exact viewport edge
+
+    if (x + 15 + box.width > window.innerWidth) x -= box.width + 15; else x += 15;
+    if (y + 15 + box.height > window.innerHeight) y -= box.height + 15; else y += 15;
+
+    // Final safety clamp: on a narrow phone, a long callout's tooltip can be
+    // wide enough that flipping to the other side of the cursor still isn't
+    // enough room - always pin it fully inside the viewport as a last resort,
+    // regardless of how the flip above landed.
+    x = Math.min(Math.max(x, margin), window.innerWidth - box.width - margin);
+    y = Math.min(Math.max(y, margin), window.innerHeight - box.height - margin);
+
+    frameTooltip.style.left = x + 'px';
+    frameTooltip.style.top = y + 'px';
+}
+
+// Tapping outside whichever element currently owns the tooltip closes it.
+// Registered once (lazily, alongside the tooltip element itself) rather than
+// per-bindTooltip call, since bindTooltip runs once per phase/callout.
+let tooltipOwner = null;
+function closeTooltipIfOutside(target) {
+    if (frameTooltip && tooltipOwner && !tooltipOwner.contains(target)) {
+        frameTooltip.style.display = 'none';
+        tooltipOwner = null;
+    }
+}
+
+// Binds hover/move/leave listeners (desktop) plus a tap-to-toggle listener
+// (touch, which never fires mouseenter/mousemove/mouseleave on real devices)
+// that show titleHtml in the shared tooltip.
 window.bindTooltip = function(element, titleHtml) {
     element.addEventListener('mouseenter', () => {
         window.initTooltip();
@@ -163,22 +199,36 @@ window.bindTooltip = function(element, titleHtml) {
     });
 
     element.addEventListener('mousemove', (e) => {
-        if (frameTooltip) {
-            // Use clientX/Y instead of pageX/Y so scrolling doesn't break the fixed position!
-            let x = e.clientX + 15;
-            let y = e.clientY + 15;
-            const box = frameTooltip.getBoundingClientRect();
-
-            if (x + box.width > window.innerWidth) x = e.clientX - box.width - 15;
-            if (y + box.height > window.innerHeight) y = e.clientY - box.height - 15;
-
-            frameTooltip.style.left = x + 'px';
-            frameTooltip.style.top = y + 'px';
-        }
+        if (frameTooltip) positionTooltip(e.clientX, e.clientY);
     });
 
     element.addEventListener('mouseleave', () => {
         if (frameTooltip) frameTooltip.style.display = 'none';
+    });
+
+    element.addEventListener('touchend', (e) => {
+        // Prevents the browser's synthetic mouse/click compatibility events
+        // from double-firing this same toggle right after touchend.
+        e.preventDefault();
+        window.initTooltip();
+
+        if (!document._tooltipOutsideTapBound) {
+            document.addEventListener('touchstart', (ev) => closeTooltipIfOutside(ev.target));
+            document._tooltipOutsideTapBound = true;
+        }
+
+        if (tooltipOwner === element && frameTooltip.style.display === 'block') {
+            frameTooltip.style.display = 'none';
+            tooltipOwner = null;
+            return;
+        }
+
+        frameTooltip.innerHTML = titleHtml;
+        frameTooltip.style.display = 'block';
+        tooltipOwner = element;
+
+        const touch = e.changedTouches[0];
+        positionTooltip(touch.clientX, touch.clientY);
     });
 };
 

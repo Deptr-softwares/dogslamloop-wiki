@@ -1,6 +1,31 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.5",
+      "date": "01/08/2026",
+      "type": "site",
+      "title": "The 'Mobile Support' update",
+      "description": "A dedicated pass making both the reader-facing wiki and the contributor editor actually usable on phones.",
+      "changes": [
+        "Added mobile navigation to the homepage and all character pages (previously missing entirely below 1024px width)",
+        "Centralized the mobile nav code so it behaves consistently across every page type",
+        "Character page titles now use a proper heading level for accessibility",
+        "Fixed hover tooltips (frame data, callouts) not working at all on touch devices",
+        "Fixed tooltips rendering off-screen when they had a lot of content",
+        "Fixed images/videos/embeds either overflowing the screen or shrinking down to nothing on mobile",
+        "Fixed the character profile box being a different width than the rest of the page on mobile",
+        "Fixed a bug where low-resolution character portraits pushed profile stats outside their box",
+        "Reduced oversized text and padding across the site so mobile pages don't feel as cramped",
+        "Rewrote the tier list editor's drag-and-drop so it actually works on touch devices (it was completely broken before)",
+        "Added auto-scroll while dragging in the tier list editor, so you can drag across a long list on a small screen",
+        "Rewrote the content block editor's drag-and-drop (adding/reordering blocks) to support touch",
+        "Fixed the editor's live preview looking narrower/more cramped than the actual live page",
+        "Fixed the editor's toolbar buttons overflowing off-screen on narrow phones",
+        "Fixed frame data timeline phases becoming impossible to tap on narrow screens",
+        "Cleaned up ~40 leftover inline styles in the tier list editor"
+      ]
+    },
+    {
       "version": "Beta v0.4",
       "date": "21/07/2026",
       "type": "site",

@@ -33,6 +33,16 @@
 </head>
 <body class="site-body p-0">
 
+    <!-- MOBILE NAVIGATION -->
+    <div class="mobile-top-bar">
+        <a href="index.html" class="mobile-logo-link">
+            <img src="medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
+            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+        </a>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+    </div>
+    <div class="mobile-backdrop" id="mobile-backdrop"></div>
+
     <div class="site-layout">
         
         <aside class="global-sidebar-left" id="master-sidebar">
@@ -242,6 +252,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             // 1. Boot the Sidebar Toggle logic
             if (window.initSidebarToggle) window.initSidebarToggle();
+            if (window.initMobileNav) window.initMobileNav();
 
             // 2. Fire all async builders concurrently
             if (window.loadUpdateLogs) loadUpdateLogs('site-updates-dashboard', 2);
