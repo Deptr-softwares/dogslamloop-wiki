@@ -24,6 +24,16 @@
 </head>
 <body class="site-body p-0">
 
+    <!-- MOBILE NAVIGATION -->
+    <div class="mobile-top-bar">
+        <a href="../../index.html" class="mobile-logo-link">
+            <img src="../../medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
+            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+        </a>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+    </div>
+    <div class="mobile-backdrop" id="mobile-backdrop"></div>
+
     <div class="site-layout">
         
         <aside class="global-sidebar-left" id="master-sidebar">
@@ -64,7 +74,7 @@
             <header class="character-header">
                 <div id="character-alerts-container" class="character-alerts-container"></div>
                 
-                <h2 class="character-title">Register</h2>
+                <h1 class="character-title">Register</h1>
 
                 <nav class="character-nav">
                     <button id="nav-overview" class="btn-manga btn-manga-slanted active"><div class="btn-manga-content"><span class="btn-manga-text">Overview & Strategy</span></div></button>
@@ -122,6 +132,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             // 1. Boot the Master Global Sidebars
             if (window.initSidebarToggle) window.initSidebarToggle();
+            if (window.initMobileNav) window.initMobileNav();
             if (window.buildGlobalSidebarMenu) window.buildGlobalSidebarMenu('global-sidebar-nav');
             if (window.initSidebarEditButton) window.initSidebarEditButton();
             if (window.initTabEditorButtons) window.initTabEditorButtons('register', 'character');

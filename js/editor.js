@@ -1650,7 +1650,7 @@ function initDawEditor(containerId, moveData) {
                             </div>
                             
                         </div>
-                        <div class="daw-track">${phasesHtml}</div>
+                        <div class="daw-track" style="min-width: ${totalScale * 5}px;">${phasesHtml}</div>
                     </div>
                 `;
             });
@@ -2246,19 +2246,19 @@ function initStrategyBlockBuilder(containerId, initialData) {
             <div class="add-block-menu-wrapper">
                 <div class="add-block-popup" id="add-block-popup">
                     <div class="add-block-popup-title">Text & Media</div>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="heading" draggable="true">+ Heading</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="paragraph" draggable="true">+ Paragraph</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="table" draggable="true">+ Table</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="list" draggable="true">+ List</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="image" draggable="true">+ Image</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="video" draggable="true">+ Video</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="youtube" draggable="true">+ YouTube</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="heading">+ Heading</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="paragraph">+ Paragraph</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="table">+ Table</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="list">+ List</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="image">+ Image</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="video">+ Video</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="youtube">+ YouTube</button>
                     <div class="add-block-popup-title add-block-popup-title-spaced">Components</div>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="callout" draggable="true">+ Callout</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="combo" draggable="true">+ Combo</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="accordion" draggable="true">+ Accordion</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="divider" draggable="true">+ Divider</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="author" draggable="true">+ Author</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="callout">+ Callout</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="combo">+ Combo</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="accordion">+ Accordion</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="divider">+ Divider</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="author">+ Author</button>
                 </div>
                 <button class="btn-sys btn-sys-green btn-add-block-toggle" id="btn-toggle-add-menu">
                     <span class="add-block-icon">⨁</span> ADD BLOCK
@@ -2266,9 +2266,6 @@ function initStrategyBlockBuilder(containerId, initialData) {
             </div>
         </div>
     `;
-
-    let draggedItemIndex = null;
-    let draggedBlockType = null;
 
     // --- HISTORY BINDINGS ---
     const btnUndo = container.querySelector('#btn-undo');
@@ -2584,121 +2581,157 @@ function initStrategyBlockBuilder(containerId, initialData) {
         }
     });
 
-    popupMenu.querySelectorAll('.add-block-btn').forEach(btn => {
-        btn.addEventListener('dragstart', (e) => {
-            draggedBlockType = e.target.getAttribute('data-type');
-            e.dataTransfer.effectAllowed = 'copy';
-            e.dataTransfer.setData('text/plain', 'toolbar-btn'); 
-            popupMenu.classList.remove('active'); 
-        });
-        btn.addEventListener('dragend', () => {
-            draggedBlockType = null;
-            blockList.querySelectorAll('.block-card').forEach(c => c.classList.remove('drag-over-top', 'drag-over-bottom'));
-        });
-    });
-
     // --- DRAG AND DROP PHYSICS ---
-    blockList.addEventListener('mousedown', (e) => {
-        if (e.target.classList.contains('drag-handle')) {
-            const card = e.target.closest('.block-card');
-            if (card) card.setAttribute('draggable', 'true');
-        }
-    });
+    // Pointer Events (not native HTML5 DnD) so the exact same code path
+    // drives mouse and touch - native DnD never fires from a touch gesture
+    // at all. Two sources feed the same drop logic: a toolbar .add-block-btn
+    // (spawns a new block) or a card's .drag-handle (reorders it). The tap
+    // fallback for adding a block (popupMenu 'click' above) and the ▲/▼
+    // move buttons already cover touch without dragging at all - this only
+    // fixes the drag gesture itself.
+    const DRAG_THRESHOLD = 6; // px of movement before a press counts as a drag, not a tap
 
-    blockList.addEventListener('mouseup', () => {
-        blockList.querySelectorAll('.block-card').forEach(c => c.removeAttribute('draggable'));
-    });
+    function computeDropTarget(clientX, clientY) {
+        const under = document.elementFromPoint(clientX, clientY);
+        const card = under ? under.closest('.block-card') : null;
+        if (!card) return { card: null, dropIndex: null, isBottom: false };
+        const bounding = card.getBoundingClientRect();
+        const isBottom = clientY > bounding.y + bounding.height / 2;
+        const cardIndex = parseInt(card.getAttribute('data-index'));
+        return { card, dropIndex: isBottom ? cardIndex + 1 : cardIndex, isBottom };
+    }
 
-    blockList.addEventListener('dragstart', (e) => {
-        const card = e.target.closest('.block-card');
-        if(card) {
-            if(['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(e.target.tagName)) {
-                e.preventDefault();
-                return;
-            }
-            draggedItemIndex = parseInt(card.getAttribute('data-index'));
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', 'card');
-            setTimeout(() => card.style.opacity = '0.4', 0);
-        }
-    });
+    function finishBlockDrop(payload, dropIndex) {
+        const activeBlocks = window.getActiveBlocks();
 
-    blockList.addEventListener('dragover', (e) => {
-        e.preventDefault(); 
-        const card = e.target.closest('.block-card');
-        if(card) {
-            const bounding = card.getBoundingClientRect();
-            const offset = bounding.y + (bounding.height / 2);
-            if (e.clientY > offset) {
-                card.classList.add('drag-over-bottom');
-                card.classList.remove('drag-over-top');
-            } else {
-                card.classList.add('drag-over-top');
-                card.classList.remove('drag-over-bottom');
-            }
-        }
-    });
-
-    blockList.addEventListener('dragleave', (e) => {
-        const card = e.target.closest('.block-card');
-        if(card) card.classList.remove('drag-over-top', 'drag-over-bottom');
-    });
-
-    blockList.addEventListener('dragend', (e) => {
-        const card = e.target.closest('.block-card');
-        if(card) card.style.opacity = '1';
-        draggedItemIndex = null;
-        blockList.querySelectorAll('.block-card').forEach(c => {
-            c.classList.remove('drag-over-top', 'drag-over-bottom');
-            c.removeAttribute('draggable'); 
-        });
-    });
-
-    blockList.addEventListener('drop', (e) => {
-        e.preventDefault();
-        
-        const activeBlocks = window.getActiveBlocks(); 
-        
-        const card = e.target.closest('.block-card');
-        blockList.querySelectorAll('.block-card').forEach(c => {
-            c.classList.remove('drag-over-top', 'drag-over-bottom');
-            c.removeAttribute('draggable'); 
-        });
-
-        if (card) {
-            let dropIndex = parseInt(card.getAttribute('data-index'));
-            const bounding = card.getBoundingClientRect();
-            const offset = bounding.y + (bounding.height / 2);
-            
-            if (e.clientY > offset) dropIndex++; 
-
-            if (draggedBlockType) {
-                window.saveBlockHistory(); // Save BEFORE mutating
-                const newBlock = window.spawnBlockWithAuthor(draggedBlockType);
-                activeBlocks.splice(dropIndex, 0, newBlock);
-                renderBlockList();
-                updateLivePreview(true); // Tell it to skip saving history again
-            } 
-            else if (draggedItemIndex !== null) {
-                if (draggedItemIndex < dropIndex) dropIndex--; 
-                if (draggedItemIndex !== dropIndex) {
-                    window.saveBlockHistory();
-                    const item = activeBlocks.splice(draggedItemIndex, 1)[0];
-                    activeBlocks.splice(dropIndex, 0, item);
-                    renderBlockList();
-                    updateLivePreview(true);
-                }
-            }
-        } else if (draggedBlockType) {
+        if (payload.blockType) {
+            window.saveBlockHistory(); // Save BEFORE mutating
+            const newBlock = window.spawnBlockWithAuthor(payload.blockType);
+            if (dropIndex === null) activeBlocks.push(newBlock);
+            else activeBlocks.splice(dropIndex, 0, newBlock);
+            renderBlockList();
+            updateLivePreview(true); // Tell it to skip saving history again
+        } else if (dropIndex !== null) {
+            let target = dropIndex;
+            if (payload.fromIndex < target) target--;
+            if (payload.fromIndex !== target) {
                 window.saveBlockHistory();
-                const newBlock = window.spawnBlockWithAuthor(draggedBlockType);
-                activeBlocks.push(newBlock);
+                const item = activeBlocks.splice(payload.fromIndex, 1)[0];
+                activeBlocks.splice(target, 0, item);
                 renderBlockList();
                 updateLivePreview(true);
+            }
         }
-        
-        draggedItemIndex = null;
-        draggedBlockType = null;
+        // Reordering onto empty space (no card under the pointer) is a no-op,
+        // same as the previous native-DnD drop handler.
+    }
+
+    // ghostLabel: text shown in the small pill that follows the pointer.
+    // Runs the full drag lifecycle for one pointerdown. Takes the real,
+    // trusted pointerdown event directly (rather than being an
+    // addEventListener wrapper) so it can be reused both for a direct
+    // listener (add-block-btn) and a delegated one (drag-handle, which only
+    // exists inside re-rendered .block-card elements) without ever
+    // redispatching a synthetic PointerEvent - setPointerCapture() throws on
+    // synthetic/untrusted pointer events, so the capturing element must
+    // receive the browser's own original event.
+    function startBlockPointerDrag(e, el, payload, ghostLabel) {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        e.preventDefault();
+
+        const startX = e.clientX, startY = e.clientY;
+        let dragging = false;
+        let ghost = null;
+        let currentCard = null;
+        let lastDropIndex = null;
+        let sourceCard = null;
+
+        el.setPointerCapture(e.pointerId);
+
+        function positionGhost(ev) {
+            ghost.style.left = `${ev.clientX}px`;
+            ghost.style.top = `${ev.clientY}px`;
+        }
+
+        function updateHighlight(ev) {
+            const { card, dropIndex, isBottom } = computeDropTarget(ev.clientX, ev.clientY);
+            if (card !== currentCard) {
+                if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
+                currentCard = card;
+            }
+            if (card) {
+                card.classList.toggle('drag-over-bottom', isBottom);
+                card.classList.toggle('drag-over-top', !isBottom);
+            }
+            lastDropIndex = dropIndex;
+        }
+
+        function startDrag(ev) {
+            dragging = true;
+            popupMenu.classList.remove('active');
+            if (payload.fromIndex !== undefined) {
+                sourceCard = blockList.querySelector(`.block-card[data-index="${payload.fromIndex}"]`);
+                if (sourceCard) sourceCard.classList.add('block-card-dragging');
+            }
+            ghost = document.createElement('div');
+            ghost.className = 'block-drag-ghost';
+            ghost.textContent = ghostLabel;
+            document.body.appendChild(ghost);
+            positionGhost(ev);
+        }
+
+        function cleanup() {
+            el.removeEventListener('pointermove', onMove);
+            el.removeEventListener('pointerup', onUp);
+            el.removeEventListener('pointercancel', onCancel);
+            if (sourceCard) sourceCard.classList.remove('block-card-dragging');
+            if (ghost) { ghost.remove(); ghost = null; }
+            if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
+        }
+
+        function onMove(ev) {
+            if (!dragging) {
+                if (Math.abs(ev.clientX - startX) > DRAG_THRESHOLD || Math.abs(ev.clientY - startY) > DRAG_THRESHOLD) {
+                    startDrag(ev);
+                } else {
+                    return;
+                }
+            }
+            positionGhost(ev);
+            updateHighlight(ev);
+        }
+
+        function onUp() {
+            const dropIndex = lastDropIndex;
+            cleanup();
+            if (dragging) finishBlockDrop(payload, dropIndex);
+        }
+
+        function onCancel() {
+            cleanup();
+        }
+
+        el.addEventListener('pointermove', onMove);
+        el.addEventListener('pointerup', onUp);
+        el.addEventListener('pointercancel', onCancel);
+    }
+
+    popupMenu.querySelectorAll('.add-block-btn').forEach(btn => {
+        const blockType = btn.getAttribute('data-type');
+        btn.addEventListener('pointerdown', (e) => {
+            startBlockPointerDrag(e, btn, { blockType }, `+ ${blockType}`);
+        });
+    });
+
+    // Delegated: .drag-handle only exists inside re-rendered .block-card
+    // elements, so this listens on the persistent blockList container
+    // instead of re-binding per card on every render.
+    blockList.addEventListener('pointerdown', (e) => {
+        const handle = e.target.closest('.drag-handle');
+        if (!handle) return;
+        const card = handle.closest('.block-card');
+        if (!card) return;
+        startBlockPointerDrag(e, handle, { fromIndex: parseInt(card.getAttribute('data-index')) }, 'Move block');
     });
 
     let typingTimer;
