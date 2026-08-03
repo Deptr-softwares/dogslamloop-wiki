@@ -162,7 +162,7 @@
 }
 .global-sidebar-left.collapsed .sidebar-action-dock { padding: 0 0.5rem 1.5rem 0.5rem; gap: 1rem; }
 
-/* Auth/dock action buttons (js/pagebuilder.js initSidebarEditButton) */
+/* Auth/dock action buttons (js/pagebuilder.js initAuthDock) */
 .kofi-text { font-family: 'CC-Wild-Words', sans-serif; }
 .dock-role-icon { width: 1.2rem; height: 1.2rem; }
 .dock-action-btn {

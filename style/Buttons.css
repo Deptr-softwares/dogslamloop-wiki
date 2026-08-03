@@ -183,3 +183,15 @@ button {
     color: var(--accent-blue-hover);
     transform: translateX(3px);
 }
+
+/* =========================================
+   MOBILE TOUCH TARGETS
+   Below 1024px (the same breakpoint the sidebar switches to mobile
+   mode at), bump tappable buttons up toward the ~44px guideline
+   without changing their desktop padding/font-size.
+   ========================================= */
+@media (max-width: 1023px) {
+    .btn-sys, .btn-manga, .filter-toggle {
+        min-height: 44px;
+    }
+}

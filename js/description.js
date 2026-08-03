@@ -883,5 +883,4 @@ window.initLazyMedia = function(rootElement = document) {
 };
 
 window.loadPageDescriptions = loadPageDescriptions;
-window.loadCharacterDescriptions = loadPageDescriptions;
 window.populateTextSection = populateTextSection;

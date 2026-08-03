@@ -243,9 +243,9 @@ input[type="checkbox"]:checked {
     z-index: 20;
 }
 /* Small pill that follows the pointer during a block-list drag (add-block-btn
-   or drag-handle reorder), created/destroyed by bindBlockDragSource in
-   js/editor.js. pointer-events: none so elementFromPoint() hit-tests the
-   real card underneath it, not the ghost itself. */
+   or drag-handle reorder), created/destroyed by startBlockPointerDrag in
+   js/editor-blocks.js. pointer-events: none so elementFromPoint() hit-tests
+   the real card underneath it, not the ghost itself. */
 .block-drag-ghost {
     position: fixed; z-index: 9999; pointer-events: none;
     transform: translate(12px, 12px);
@@ -424,7 +424,7 @@ input[type="checkbox"]:checked {
     justify-content: flex-end;
 }
 
-/* --- QA MODAL (js/editor.js openQAModal) --- */
+/* --- QA MODAL (js/editor-core.js openQAModal) --- */
 .editor-intercept-label { color: #a855f7; }
 .qa-modal-elevated { z-index: 10005; }
 /* Compound selector: .auth-modal-box's own base rule also sets width (400px)
@@ -446,7 +446,7 @@ input[type="checkbox"]:checked {
 .qa-textarea-short { min-height: 80px; }
 .qa-textarea-long { min-height: 150px; }
 
-/* --- CUSTOM CONFIRM MODAL non-danger variant (js/editor.js customConfirm) ---
+/* --- CUSTOM CONFIRM MODAL non-danger variant (js/editor-core.js customConfirm) ---
    .submit-btn's own base rule already provides color/border-color:
    var(--accent-blue) - only the transparent background is a genuine
    addition here. Compound selector (not a bare .submit-btn-outline) since
@@ -455,7 +455,7 @@ input[type="checkbox"]:checked {
    same bug the tierlist.js PR caught in .tier-nav-overall-btn. */
 .submit-btn.submit-btn-outline { background-color: transparent; }
 
-/* --- MOVE ID MODAL (js/editor.js promptForMoveId) --- */
+/* --- MOVE ID MODAL (js/editor-tabs.js promptForMoveId) --- */
 .move-id-modal-elevated { z-index: 10006; }
 .auth-modal-box.move-id-modal-box { border-top-color: #22c55e; width: 100%; max-width: 400px; }
 .move-id-modal-title { color: #22c55e; font-family: 'CC-Wild-Words', sans-serif; }
@@ -469,7 +469,7 @@ input[type="checkbox"]:checked {
 .tierlist-preview-disabled-title { color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; letter-spacing: 1px; }
 .tierlist-preview-disabled-text { font-family: var(--text-mono); font-size: 0.85rem; max-width: 400px; line-height: 1.5; }
 
-/* --- EDITOR TAB NAV BARS (js/editor.js initFullTabEditor: moves/overview/
+/* --- EDITOR TAB NAV BARS (js/editor-tabs.js initFullTabEditor: moves/overview/
    matchups/counterplay sub-nav rows). Compound selector against
    .daw-variant-tabs: its own base rule sets margin-bottom/border-bottom/
    padding-bottom at the same single-class specificity. --- */
@@ -497,7 +497,7 @@ input[type="checkbox"]:checked {
    at the same specificity - genuinely different here (0, not 1rem). */
 .block-editor-container.block-editor-container-tight { margin-top: 0; margin-bottom: 1rem; }
 
-/* --- DAW FRAME EDITOR (js/editor.js initDawEditor) --- */
+/* --- DAW FRAME EDITOR (js/editor-framedata.js initDawEditor) --- */
 .daw-empty-notice { color: var(--text-muted); font-size: 0.85rem; padding-bottom: 1rem; }
 .editor-row-spaced-sm { margin-bottom: 0.25rem; }
 .daw-stat-actions { display: flex; align-items: center; gap: 0.5rem; width: auto; flex: 0 0 auto; }
@@ -559,8 +559,8 @@ input[type="checkbox"]:checked {
 .editor-select option.daw-option-cyan-400 { color: var(--track-color-cyan-400); }
 .editor-select option.daw-option-gray-400 { color: var(--track-color-gray-400); }
 
-/* --- CONTENT BLOCK BUILDER (js/editor.js initProfileEditor, initPlaystyleEditor,
-   initStrategyBlockBuilder, renderBlockList) --- */
+/* --- CONTENT BLOCK BUILDER (js/editor-tabs.js initProfileEditor, initPlaystyleEditor;
+   js/editor-blocks.js initStrategyBlockBuilder, renderBlockList) --- */
 /* Compound selectors: .block-editor-container's own base rule sets
    margin-top: 1rem at the same specificity - same lesson as .block-editor-container-tight. */
 .block-editor-container.block-editor-container-notop { margin-top: 0; }
@@ -577,7 +577,7 @@ input[type="checkbox"]:checked {
 .accordion-back-title { color: #fff; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; }
 .block-type-row { display: flex; align-items: center; gap: 0.5rem; }
 /* touch-action: none so a touch-drag on the handle doesn't also scroll the
-   page - startBlockPointerDrag (js/editor.js) owns the gesture entirely
+   page - startBlockPointerDrag (js/editor-blocks.js) owns the gesture entirely
    once it starts. */
 .drag-handle { color: #666; font-size: 1rem; line-height: 1; cursor: grab; touch-action: none; }
 /* Compound: .editor-select's own base rule sets border/padding at the same specificity. */
@@ -953,6 +953,17 @@ select.editor-select.manga-initialized {
     .editor-header { padding: 0.5rem 0.75rem !important; }
     .editor-title { font-size: 0.8rem; }
     .editor-subtitle { font-size: 0.55rem; }
+
+    /* Buttons.css's site-wide 44px mobile touch-target minimum ate ~80px
+       of workspace here specifically: the header's 5-button toolbar
+       already wraps to 2 rows on narrow screens (by width, independent of
+       button height), and the HUB/SHOW PREVIEW pair stacks in a column -
+       so the 44px floor compounded 4x in a header that's fighting hard to
+       stay out of the way of the actual editing workspace below it.
+       Exempted back to the original compact size. */
+    .editor-header .btn-sys {
+        min-height: 0;
+    }
     
     .action-panel { 
         padding: 0.5rem !important; 
@@ -987,6 +998,7 @@ select.editor-select.manga-initialized {
     
     /* Stack the media gallery controls on mobile */
     .media-modal-footer {
+        display: flex !important;
         flex-direction: column;
         gap: 1rem !important;
         align-items: stretch !important;
@@ -1149,10 +1161,10 @@ select.editor-select.manga-initialized {
     padding-bottom: 0.5rem;
     margin: 0;
 }
-/* js/editor.js's raw/JSON diff branch (renderDiffView) - the border/
+/* js/editor-sync.js's raw/JSON diff branch (renderDiffView) - the border/
    box-shadow differ from the default (inline-blocks) .diff-container above. */
 .diff-container.diff-container-raw { border: 2px solid var(--border-color, #333); box-shadow: 6px 6px 0px var(--manga-shadow, #000); }
-/* Referenced by js/admin.js's own diff view too (<div class="diff-inline-
+/* Referenced by js/admin-preview.js's own diff view too (<div class="diff-inline-
    target">) but never had a CSS rule until this pass. */
 .diff-inline-target { width: 100%; }
 .editor-diff-empty-msg { color: var(--text-muted); font-style: italic; border: 1px dashed #333; padding: 2rem; text-align: center; }
@@ -1200,13 +1212,22 @@ del.diff-del {
 }
 .diff-stacked-label.old { color: #ef4444; }
 .diff-stacked-label.new { color: #22c55e; }
-/* Referenced by js/admin.js's own raw/JSON diff view too (<pre class="diff-
+
+/* Structured field-diff (js/admin-diff.js's renderStructuredDiff) - replaces
+   the stacked-JSON layout above for admin.html's move-stats/metadata diffs
+   specifically (Phase 2 of the reviewer-workflow redesign). */
+.diff-structured { display: flex; flex-direction: column; gap: 0.5rem; }
+.diff-field-row { font-family: var(--text-mono); font-size: 0.8rem; line-height: 1.6; padding: 0.4rem 0.6rem; background: rgba(255,255,255,0.02); border-left: 2px solid #333; }
+.diff-field-key { color: var(--text-muted); font-weight: bold; margin-right: 0.4rem; }
+.diff-field-nested { margin-top: 0.4rem; margin-left: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.diff-field-unchanged { color: var(--text-muted); font-style: italic; border-left-color: transparent; }
+/* Referenced by js/admin-preview.js's own raw/JSON diff view too (<pre class="diff-
    stacked-pre old/new">) but never had a CSS rule until this pass. */
 .diff-stacked-pre { font-family: var(--text-mono); font-size: 0.65rem; margin: 0; }
 .diff-stacked-pre.old { color: #fca5a5; }
 .diff-stacked-pre.new { color: #86efac; }
 
-/* --- LOCAL DRAFT MANAGER (js/editor.js openDraftManager) --- */
+/* --- LOCAL DRAFT MANAGER (js/editor-drafts.js openDraftManager) --- */
 .draft-empty-msg { color: #666; font-family: var(--text-mono); font-size: 0.8rem; text-align: center; padding: 2rem 0; border: 1px dashed #333; }
 .draft-row { display: flex; justify-content: space-between; align-items: center; background: #050505; border: 1px solid #333; padding: 1rem; margin-bottom: 0.5rem; border-left: 3px solid var(--accent-blue); }
 .draft-row-label { color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.25rem; }
@@ -1223,7 +1244,7 @@ del.diff-del {
 .draft-active-badge { color: #22c55e; font-family: var(--text-mono); font-size: 0.65rem; padding: 0.4rem 0.8rem; border: 1px solid #22c55e; }
 .btn-action-delete.draft-discard-btn { background: transparent; padding: 0.4rem 0.8rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.65rem; }
 
-/* --- SYSTEM PAGE EDITOR (js/editor.js renderSystemEditor) ---
+/* --- SYSTEM PAGE EDITOR (js/editor-system.js renderSystemEditor) ---
    The tab/section-tab row reuses .daw-tab-item/.daw-tab-btn-removable/
    .daw-tab-remove-btn (initFullTabEditor's tab-with-a-remove-button
    pattern) and .daw-editor-nav-row, all already established. */

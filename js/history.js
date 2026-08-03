@@ -3,6 +3,19 @@ window.currentHistoryIndex = 0;
 
 // applyDeltaToData is defined once, in site_utils.js (loaded before this file).
 
+// Duplicated from js/admin-core.js rather than shared, matching this
+// codebase's existing precedent (see js/owner.js's kickUser, js/submissions.js,
+// js/recent-changes.js) of small per-file duplication over new cross-file
+// coupling - admin-core.js isn't loaded on this page.
+function escapeHtml(str) {
+    return String(str === null || str === undefined ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // --- RELATIVE PATH CLEANER ---
 // Converts "../../medias/..." to "medias/..." so images load correctly from the root directory!
 const cleanPaths = (obj) => {
@@ -18,8 +31,9 @@ const cleanPaths = (obj) => {
 
 document.addEventListener('DOMContentLoaded', async () => {
     if (window.initSidebarToggle) window.initSidebarToggle();
+    if (window.initMobileNav) window.initMobileNav();
     if (window.buildGlobalSidebarMenu) window.buildGlobalSidebarMenu('global-sidebar-nav');
-    if (window.initSidebarEditButton) window.initSidebarEditButton(); 
+    if (window.initAuthDock) window.initAuthDock();
 
     const urlParams = new URLSearchParams(window.location.search);
     const pageId = urlParams.get('page');
@@ -79,7 +93,7 @@ window.renderRevision = async function(index) {
     const qa = rev.qa_metadata || {};
     const reviewer = qa.reviewed_by || 'Legacy System';
 
-    let scopeText = rev.is_delta ? `Target Scope: ${rev.target_scope.toUpperCase()} [${rev.target_key}]` : `Target Scope: FULL OVERWRITE`;
+    let scopeText = rev.is_delta ? `Target Scope: ${escapeHtml(rev.target_scope.toUpperCase())} [${escapeHtml(rev.target_key)}]` : `Target Scope: FULL OVERWRITE`;
     if (rev.target_scope === 'multi') scopeText = `Target Scope: BATCHED MULTI-EDIT (${rev.delta_payload.length} targets)`;
 
     // --- RENDER PAGINATION & METADATA CARD ---
@@ -98,15 +112,15 @@ window.renderRevision = async function(index) {
                     <div style="font-size: 0.75rem; color: var(--accent-blue); font-family: var(--text-mono); margin-top: 0.25rem;">${dateStr}</div>
                 </div>
                 <div style="text-align: right; font-size: 0.75rem; font-family: var(--text-mono); color: var(--text-muted);">
-                    <div style="margin-bottom: 0.25rem;">Author: <strong style="color: #fff; font-size: 0.85rem;">${rev.author_name}</strong></div>
-                    <div>Approved By: <strong style="color: #34d399; font-size: 0.85rem;">${reviewer}</strong></div>
+                    <div style="margin-bottom: 0.25rem;">Author: <strong style="color: #fff; font-size: 0.85rem;">${escapeHtml(rev.author_name)}</strong></div>
+                    <div>Approved By: <strong style="color: #34d399; font-size: 0.85rem;">${escapeHtml(reviewer)}</strong></div>
                 </div>
             </div>
-            
+
             <div style="font-size: 0.85rem; color: #d1d5db; line-height: 1.6; font-family: var(--text-mono);">
                 <div style="margin-bottom: 0.75rem; display: inline-block; background: #222; padding: 0.25rem 0.5rem; border-radius: 2px; color: #a855f7;">${scopeText}</div><br>
                 <strong style="color: #fff; text-transform: uppercase;">Public Changelog:</strong><br>
-                ${(qa.changelog || 'No notes provided.').replace(/\n/g, '<br>')}
+                ${escapeHtml(qa.changelog || 'No notes provided.').replace(/\n/g, '<br>')}
             </div>
         </div>
     `;

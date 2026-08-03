@@ -103,7 +103,8 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
     // all (e.g. the changelog/collaborators pages aren't wired to the CMS) -
     // don't show a button that leads nowhere. 'open'/'elevated' pages still
     // show it; elevated ones are blocked at submit time instead (see
-    // js/editor.js's page_permissions check), matching how staff-only pages
+    // js/editor-core.js's page_permissions check, in its submit-pipeline
+    // DOMContentLoaded handler), matching how staff-only pages
     // work in most CMSes - browsable, gated on save.
     try {
         const navData = typeof window.fetchNavigationData === 'function' ? await window.fetchNavigationData() : null;
@@ -199,8 +200,14 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
     }
 };
 
-window.initSidebarEditButton = async function() {
-    let container = document.getElementById('sidebar-dynamic-dock') 
+// Builds the sidebar's auth/profile dock (login state, role icon, OVERSEER
+// link, INBOX button, Ko-fi restore) - NOT an "edit this page" button,
+// despite this function's former name (initSidebarEditButton). That's
+// initTabEditorButtons above, which builds the actual per-page Edit/History
+// buttons into a separate DOM container. Renamed 2026-08-02 after the two
+// were confused for each other - see project memory for the backstory.
+window.initAuthDock = async function() {
+    let container = document.getElementById('sidebar-dynamic-dock')
                  || document.getElementById('auth-dock-container')
                  || document.getElementById('auth-btn-container');
                  
@@ -261,7 +268,11 @@ window.initSidebarEditButton = async function() {
     let html = '';
 
     // 1. OVERSEER PANEL (Pathing Fixed)
-    const elevatedRoles = ['admin', 'reviewer', 'contributor', 'trusted_editor'];
+    // Must match admin.html's own RBAC gate (js/admin-core.js) exactly -
+    // admin/reviewer only. Previously also listed contributor/trusted_editor,
+    // which showed a working-looking button that dead-ended at admin.html's
+    // access-denied screen for those roles.
+    const elevatedRoles = ['admin', 'reviewer'];
     if (elevatedRoles.includes(userRole.toLowerCase())) {
         html += `
             <button id="dock-btn-edit" class="btn-sys btn-sys-purple dock-action-btn" onclick="window.location.href='${rootPath}admin.html'">
@@ -281,7 +292,17 @@ window.initSidebarEditButton = async function() {
             </button>`;
     }
 
-    // 3. PROFILE / LOGIN
+    // 3. MY SUBMISSIONS (self-service - any logged-in user, not role-gated)
+    if (username !== 'LOGIN') {
+        const svgSubmissions = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>`;
+        html += `
+            <button id="dock-btn-submissions" class="btn-sys btn-sys-regular dock-action-btn" onclick="window.location.href='${rootPath}submissions.html'">
+                <span class="btn-manga-icon dock-action-icon">${svgSubmissions}</span>
+                <span class="btn-manga-text dock-action-text">MY SUBMISSIONS</span>
+            </button>`;
+    }
+
+    // 4. PROFILE / LOGIN
     html += `
         <button id="dock-btn-auth" class="btn-sys ${dynamicColorClass} dock-action-btn">
             <span class="btn-manga-icon dock-action-icon">${loginIcon}</span>
@@ -541,8 +562,15 @@ window.refreshTOC = function() {
     if (!tocContainer) return;
 
     // 1. Target the active tab (Character Pages) OR the main content area (Dashboards)
-    let targetArea = document.querySelector('main > div[id^="tab-"]:not(.hidden)');
-    
+    // Scoped to .main-content-area rather than assuming it's <main> itself -
+    // true on character/system pages, but on admin.html .main-content-area
+    // (#preview-content-area) sits three levels deep inside a differently-
+    // classed <main> (.live-preview-pane), so the old "main > ..." selector
+    // never matched there and silently fell through to indexing every tab
+    // at once (hidden ones included), rendering every heading on the page
+    // as a TOC entry instead of just the active tab's.
+    let targetArea = document.querySelector('.main-content-area > div[id^="tab-"]:not(.hidden)');
+
     if (!targetArea) {
         targetArea = document.querySelector('.main-content-area');
     }

@@ -18,8 +18,19 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 </head>
 <body class="site-body p-0">
+
+    <!-- MOBILE NAVIGATION -->
+    <div class="mobile-top-bar">
+        <a href="index.html" class="mobile-logo-link">
+            <img src="medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
+            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+        </a>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+    </div>
+    <div class="mobile-backdrop" id="mobile-backdrop"></div>
+
     <div class="site-layout">
-        
+
         <aside class="global-sidebar-left" id="master-sidebar">
             <div class="sidebar-header-top">
                 <img src="medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
@@ -52,6 +63,9 @@
         </main>
 
         <aside class="local-sidebar-right">
+            <div class="sidebar-master-title">Sitewide</div>
+            <a href="recent-changes.html" class="btn-nav" style="margin-bottom: 1.5rem;">→ View All Recent Changes</a>
+
             <div class="sidebar-master-title">On this tab</div>
             <ul class="toc-list" id="dynamic-toc">
                 <li><p class="loading-msg">Loading contents...</p></li>

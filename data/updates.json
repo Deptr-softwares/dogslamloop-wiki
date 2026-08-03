@@ -1,6 +1,33 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.6",
+      "date": "03/08/2026",
+      "type": "site",
+      "title": "The 'Trust & Transparency' update",
+      "description": "A big pass on the review system so nothing you submit ever just disappears, plus finishing off mobile support for the rest of the site.",
+      "changes": [
+        "Added a new 'Recent Changes' page — see every approved edit across the whole wiki in one place",
+        "Added a new 'My Submissions' page — see every edit you've submitted and what happened to it (pending, approved, declined, or withdrawn), no need to ask a reviewer anymore",
+        "You can now edit or take back your own pending submission yourself",
+        "Reviewers can now ask for specific changes on a submission instead of just approving it, rejecting it, or rewriting it themselves — you'll see clearly when this happens",
+        "Reviewers can now see a page's past versions and roll one back with a single click if something goes wrong",
+        "Declined and withdrawn submissions are no longer deleted outright, so there's a record of what was tried before",
+        "Pending edits in the review queue now show roughly what changed (and how big the edit is) before a reviewer even opens them",
+        "Frame data and stat changes now show up as a real, readable comparison in the review queue instead of two walls of raw text",
+        "Added mobile navigation to the page history view (was missing entirely)",
+        "Fixed the media library in the editor being basically unusable on mobile",
+        "Made buttons across the site easier to tap on phones",
+        "Fixed a bug where staff with more than one role could randomly get logged out of the review queue",
+        "Fixed voting on a submission resetting your current view back to the top",
+        "Fixed a stale button state after posting in a ticket discussion",
+        "Fixed the 'Revoke Access' button in the owner tools, which never actually worked",
+        "Fixed a bug in the ticket-merging tool that could silently delete unrelated content when merging multiple pending edits to the same page",
+        "Fixed a bug where going back to the review page after visiting another page could wrongly show 'access denied'",
+        "Various under-the-hood security improvements to how submitted content is displayed to reviewers"
+      ]
+    },
+    {
       "version": "Beta v0.5",
       "date": "01/08/2026",
       "type": "site",

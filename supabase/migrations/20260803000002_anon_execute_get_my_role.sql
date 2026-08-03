@@ -1,0 +1,16 @@
+-- Completes the previous two migrations. Verified live via a direct curl
+-- against the REST API with the anon key: the real error wasn't RLS
+-- denying the row, it was Postgres refusing to even evaluate the "Staff
+-- can view queue" policy's USING clause for the anon role, since
+-- get_my_role() only had EXECUTE granted to authenticated/postgres.
+-- Postgres has to evaluate every applicable SELECT policy's expression to
+-- compute their combined OR - if evaluating any one of them errors
+-- (here: "permission denied for function get_my_role"), the whole query
+-- fails, even though a different policy (the new "Public can view approved
+-- revisions" one) would have granted the row on its own.
+--
+-- Safe to grant: for an anonymous caller auth.uid() is NULL, so
+-- get_my_role() just returns NULL (no matching user_roles row) - the
+-- staff-only policy still correctly evaluates to false/NULL for anon,
+-- this only stops the permission-to-even-ask error.
+GRANT EXECUTE ON FUNCTION "public"."get_my_role"() TO "anon";

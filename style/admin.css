@@ -68,26 +68,50 @@
     background: hsla(217, 91%, 60%, 0.05);
 }
 
-/* --- CHANGED TAB INDICATOR --- */
-.tab-changed-indicator {
-    color: #eab308;
-    margin-left: auto;
-    font-size: 0.6rem;
-    animation: pulse 2s infinite;
-}
-
 #preview-nav-sidebar .nav-btn {
     display: flex;
     align-items: center;
 }
 
-/* Dynamically-created system/tierlist tab buttons (js/admin.js updateAdminSidebar) */
+/* Dynamically-created system/tierlist tab buttons (js/admin-diff.js updateAdminSidebar) */
 #preview-nav-sidebar .nav-btn.system-nav-btn { cursor: pointer; padding: 0.75rem 1rem; color: #d1d5db; font-size: 0.85rem; }
 
-@keyframes pulse {
-    0% { opacity: 0.5; }
-    50% { opacity: 1; }
-    100% { opacity: 0.5; }
+/* --- CHANGED TABS POPUP --- */
+/* Single dismissable notification (js/admin-diff.js showChangedTabsPopup),
+   replacing what used to be a pulsing dot glued onto each individual nav
+   button - those live in the sidebar, invisible while actually viewing the
+   preview on mobile. Sits in normal document flow directly below
+   .admin-live-header (not absolutely positioned over it) - an earlier
+   version floated over the pane's top-right corner and directly covered
+   the real INTERCEPT & EDIT / FORCE APPROVE / FORCE REJECT buttons that
+   live in that same corner, on every screen size. */
+#changed-tabs-popup {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    max-width: 420px;
+    margin: 0 0 1.5rem 0;
+    background: var(--bg-main, #050505);
+    border: 2px solid #eab308;
+    box-shadow: 4px 4px 0px var(--manga-shadow, #000);
+    padding: 0.75rem 1rem;
+    font-family: var(--text-mono);
+}
+.changed-tabs-popup-close {
+    background: none;
+    border: none;
+    color: #eab308;
+    cursor: pointer;
+    font-size: 0.65rem;
+    padding: 0.2rem;
+    flex-shrink: 0;
+}
+.changed-tabs-popup-title { color: #eab308; font-size: 0.65rem; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 0.35rem; }
+.changed-tabs-popup-body { color: #fff; font-size: 0.75rem; line-height: 1.4; }
+
+@media (max-width: 900px) {
+    #changed-tabs-popup { max-width: none; }
 }
 
 /* --- LAYOUT OVERRIDES --- */
@@ -103,17 +127,110 @@
     border-right: 1px solid #222;
 }
 
+/* --- OWNER TOOLS PAGE (owner.html, single-pane layout, js/owner.js) --- */
+/* .editor-workspace (editor.css) is built to be one of two flex children
+   alongside a .live-preview-pane sibling and defaults to a 30% width for
+   that reason - owner.html has no second pane, so left alone it would sit
+   in a narrow column with 70% of the screen empty. This override makes it
+   the page's only content, centered with a readable max width instead. */
+.owner-workspace { width: 100%; max-width: 640px; margin: 0 auto; border-right: none; }
+
 /* Main Content Area */
-.live-preview-pane.admin-main-pane { 
-    flex: 1; 
-    min-width: 0; 
-    padding: 2rem; 
-    overflow-y: scroll !important; 
-    overflow-x: auto; 
-    display: flex !important; 
-    flex-direction: column !important; 
-    justify-content: flex-start !important; 
-    align-items: stretch !important; 
+.live-preview-pane.admin-main-pane {
+    flex: 1;
+    min-width: 0;
+    padding: 2rem;
+    overflow-y: scroll !important;
+    overflow-x: auto;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+}
+
+/* This compound selector's own display:flex!important above (specificity
+   0-2-0) otherwise always wins over editor.css's plain .live-preview-pane
+   mobile-hide rule (0-1-0, also !important) - !important ties are broken by
+   specificity, not just source order, so the more specific admin-only rule
+   was silently keeping the preview pane visible at every width and made
+   the mobile show/hide toggle a no-op regardless of whether it was wired
+   up. Matching this rule's own specificity (repeating the compound
+   selector) is what actually lets the toggle take effect on mobile. */
+@media (max-width: 900px) {
+    /* .admin-sidebar's flex: 0 0 320px (below) is a fixed-width rule for
+       desktop's row-direction .editor-layout - flex-basis always tracks the
+       main axis, and editor.css's own mobile rule flips .editor-layout to
+       flex-direction: column, so that same 320px silently got reinterpreted
+       as a HEIGHT constraint instead of a width one. The sidebar's visible
+       height was stuck at exactly 320px regardless of viewport size,
+       leaving everything below it as dead space with no way to scroll to
+       it - not a "some queue items are cut off" bug, the whole rest of the
+       screen was unreachable. */
+    .admin-sidebar { flex: 1 1 auto; width: 100%; }
+
+    .live-preview-pane.admin-main-pane { display: none !important; padding-bottom: 4.5rem; }
+    body.mobile-preview-active .live-preview-pane.admin-main-pane { display: flex !important; }
+
+    /* Sticks the Pending/Live/Diff toggle to the bottom of the screen
+       instead of the top of the (often long) preview content, so reviewers
+       don't have to scroll all the way back up just to switch views - the
+       padding-bottom above reserves room so this never covers the last bit
+       of scrolled content. position: fixed (not sticky) because the bar
+       starts at the top of the content in source order; sticky only takes
+       effect once an element's normal flow position crosses the pinned
+       edge during scroll, which never happens from the top. */
+    /* body-prefixed: #version-toggle-bar's own base rule (further down this
+       file, "CONTENT VIEWERS" section) sets margin-bottom/padding-bottom/
+       border-bottom too, at equal ID-selector specificity - being later in
+       the file, it silently won every one of those three properties over
+       this block, no matter what this rule said, leaving a real 2rem gap
+       (the base rule's margin-bottom) between the bar and the true bottom
+       edge that the .mobile-back-to-editor fix below was measured against
+       and still collided with. The extra "body" type selector bumps this
+       rule's specificity above the base rule's so it wins regardless of
+       source order, matching how the rest of this codebase handles
+       specificity ties (compound selector, not source-order luck). */
+    body #version-toggle-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 60;
+        margin: 0;
+        padding: 0.6rem 0.5rem;
+        border-bottom: none;
+        border-top: 2px solid var(--accent-blue);
+        background: var(--bg-main, #050505);
+        box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    /* editor.css's .mobile-back-to-editor is bottom: 1.5rem; right: 1.5rem;
+       z-index: 100 - edit.html has nothing else pinned to the bottom, but
+       here it sits directly on top of #version-toggle-bar (which is only
+       z-index: 60), visually overlapping it and eating its clicks. Moved up
+       to clear the bar instead of fighting over the same corner. */
+    .mobile-back-to-editor {
+        bottom: 4.5rem;
+    }
+
+    /* .admin-live-header/#preview-action-buttons have no flex-wrap, so the
+       status text plus 2-3 action buttons (INTERCEPT & EDIT/FORCE APPROVE/
+       FORCE REJECT etc) simply overflow past the right edge of the screen
+       on mobile with nothing to scroll them into view - confirmed on a real
+       device, the reject/approve/open-ticket buttons were unreachable.
+       Stack status above actions, let the buttons wrap and share width. */
+    .admin-live-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+    #preview-action-buttons {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    #preview-action-buttons button {
+        flex: 1 1 auto;
+    }
 }
 
 /* --- HEADERS & NAV --- */
@@ -122,6 +239,11 @@
 .admin-title { color: var(--accent-blue); font-size: 1.1rem; margin: 0; text-transform: uppercase; }
 .admin-subtitle { font-size: 0.7rem; color: var(--text-muted); }
 .admin-hub-btn { padding: 0.3rem 0.6rem; font-size: 0.65rem; }
+.admin-header-actions-col { display: flex; gap: 0.5rem; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+/* Hidden by default; editor.css's #mobile-preview-toggle{display:block!important}
+   (inside its existing @media max-width:900px block) reveals it - same
+   mechanism edit.html already uses, just not previously wired up here. */
+.admin-mobile-preview-btn { display: none; font-size: 0.6rem; padding: 0.3rem; }
 .admin-sidebar-content { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; }
 
 #preview-nav-sidebar { display: block; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px dashed #333; }
@@ -151,9 +273,10 @@
     margin-top: 2rem;
 }
 
-/* --- SYSTEM ADMIN TOOLS --- */
-#admin-only-tools { display: block; margin-top: 2rem; border-top: 1px dashed #333; padding-top: 2rem; }
-.admin-tools-title { color: #a855f7; font-size: 0.9rem; margin: 0; text-transform: uppercase; }
+/* --- ADMIN/OWNER TOOL CARDS --- */
+/* Shared by owner.html (Personnel Management, Media GC) - not admin-page-
+   specific despite the file this lives in; admin.html only reuses .btn-sys/
+   .editor-input/etc for its own unrelated controls. */
 .admin-tool-card { position: relative; margin-bottom: 1rem; padding: 1rem; border-left: 3px solid; }
 .admin-tool-card.personnel { border-left-color: #a855f7; }
 .admin-tool-card.gc { border-left-color: #ef4444; }
@@ -207,11 +330,11 @@
 #preview-content-area.active { opacity: 1; pointer-events: auto; }
 #version-toggle-bar { justify-content: center; gap: 0.75rem; margin-bottom: 2rem; border-bottom: 1px dashed #222; padding-bottom: 1.5rem; flex-shrink: 0; width: 100%; box-sizing: border-box; display: flex; }
 
-/* --- ACCESS DENIED (js/admin.js kickUser) --- */
+/* --- ACCESS DENIED (js/admin-core.js kickUser, also js/owner.js) --- */
 .access-denied-screen { height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; flex-direction: column; background: #050505; }
 .access-denied-title { color: #ef4444; font-family: 'CC-Wild-Words', sans-serif; }
 
-/* --- QUEUE LOADING / ERROR / EMPTY STATES (js/admin.js loadQueue) --- */
+/* --- QUEUE LOADING / ERROR / EMPTY STATES (js/admin-queue.js loadQueue) --- */
 .admin-error-text { color: #ef4444; font-size: 0.75rem; }
 .admin-queue-empty-msg { border: 1px dashed #333; padding: 1.5rem 1rem; font-size: 0.7rem; }
 
@@ -225,6 +348,14 @@
 .badge-patch-delta { background: rgba(168,85,247,0.1); color: #a855f7; border: 1px solid #a855f7; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 .badge-legacy-overwrite { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 .badge-page-id { font-size: 0.5rem; background: #333; color: #fff; border: 1px solid #555; padding: 0.15rem 0.4rem; }
+
+/* Cheap size/risk hint (Phase 2 of the reviewer-workflow redesign) - a
+   rough S/M/L computed from the changed content's serialized byte length
+   at queue-load time, not an accurate diff size (that would mean diffing
+   every queue item against live data just to render the list). */
+.badge-size-s { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid #22c55e; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-size-m { background: rgba(234,179,8,0.1); color: #eab308; border: 1px solid #eab308; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-size-l { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 
 /* --- QUEUE CARD LAYOUT --- */
 .admin-queue-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -251,7 +382,7 @@
 /* --- TIERLIST ADMIN PREVIEW --- */
 .admin-changelog-container { margin-top: 2rem; }
 
-/* --- TICKET WORKSPACE (dynamic content, js/admin.js renderTicketWorkspace) --- */
+/* --- TICKET WORKSPACE (dynamic content, js/admin-tickets.js renderTicketWorkspace) --- */
 .ticket-score-value { font-size: 1.1rem; }
 .ticket-perk-note { color: #a855f7; font-weight: bold; }
 .ticket-requirement-text { color: #888; font-size: 0.75rem; }
@@ -264,7 +395,23 @@
 .ticket-chat-empty { color: #555; font-style: italic; }
 .ticket-chat-author { color: var(--accent-blue); }
 
-/* --- MERGE COMPILER (js/admin.js openMergeCompiler) --- */
+/* "Request Changes" chat entries (js/admin-actions.js requestChanges) - a
+   distinct callout instead of a plain chat line, so a specific ask doesn't
+   get lost scrolling past ordinary discussion messages. */
+.ticket-chat-changes-requested { background: rgba(234,179,8,0.08); border-left: 3px solid #eab308; padding: 0.5rem 0.75rem; margin: 0.35rem 0; }
+.ticket-chat-changes-requested-label { color: #eab308; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.25rem; }
+.ticket-chat-changes-requested-text { color: var(--text-white); }
+
+/* --- PAGE HISTORY (js/admin-history.js, Phase 5 of the reviewer-workflow
+   redesign - browse + restore past live versions) --- */
+.page-history-card { margin-bottom: 1rem; border-left: 4px solid var(--accent-yellow); }
+.page-history-card-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
+.page-history-card-title { margin: 0; color: var(--text-white); font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; }
+.page-history-card-editor { font-size: 0.75rem; color: var(--text-muted); font-family: var(--text-mono); margin-top: 0.25rem; }
+.page-history-card-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.page-history-diff { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border-color); }
+
+/* --- MERGE COMPILER (js/admin-merge-compiler.js openMergeCompiler) --- */
 .compiler-title-highlight { color: #fff; }
 .compiler-status-text { color: var(--text-muted); font-style: italic; text-align: center; padding: 2rem; }
 .compiler-empty-text { color: var(--text-muted); padding: 2rem; border: 1px dashed #333; text-align: center; }
