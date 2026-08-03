@@ -557,8 +557,8 @@ window.checkActiveSession = async () => {
     }
 
     // 2. Delegate to the unified PageBuilder Dock Engine!
-    if (typeof window.initSidebarEditButton === 'function') {
-        await window.initSidebarEditButton();
+    if (typeof window.initAuthDock === 'function') {
+        await window.initAuthDock();
     }
 };
 

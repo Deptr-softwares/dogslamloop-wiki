@@ -1,5 +1,5 @@
 // Coverage for Workstream B Tier 5 (pagebuilder.js): inline styles across
-// buildGlobalSidebarMenu, initSidebarEditButton, renderFilteredRoster,
+// buildGlobalSidebarMenu, initAuthDock, renderFilteredRoster,
 // buildSystemsDirectory, and refreshTOC extracted to CSS classes.
 //
 // Three real drift bugs were found and fixed along the way (each CSS class

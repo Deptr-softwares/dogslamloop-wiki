@@ -41,7 +41,12 @@
                         <h2 class="editor-title admin-title">STAFF OVERSEER</h2>
                         <span class="editor-subtitle admin-subtitle">Moderation & Revision Queue</span>
                     </div>
-                    <a href="index.html" class="btn-sys btn-sys-regular admin-hub-btn">HUB</a>
+                    <div class="admin-header-actions-col">
+                        <a id="owner-tools-link" href="owner.html" class="btn-sys btn-sys-regular admin-hub-btn hidden">OWNER TOOLS</a>
+                        <a href="recent-changes.html" class="btn-sys btn-sys-regular admin-hub-btn">RECENT CHANGES</a>
+                        <a href="index.html" class="btn-sys btn-sys-regular admin-hub-btn">HUB</a>
+                        <button id="mobile-preview-toggle" class="btn-sys btn-sys-blue admin-mobile-preview-btn" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
+                    </div>
                 </div>
             </div>
 
@@ -76,34 +81,16 @@
                     <p class="loading-msg admin-loading-msg">Authenticating RBAC...</p>
                 </div>
 
-                <div id="admin-only-tools" class="hidden">
-                    <div class="dashboard-header-split admin-split-header">
-                        <h3 class="section-title section-title-clean m-0 admin-tools-title">System Admin</h3>
-                    </div>
-                    <div class="update-log-item admin-tool-card personnel">
-                        <h3 class="update-title admin-tool-title personnel">Personnel Management</h3>
-                        <input type="email" id="target-email" placeholder="user@email.com" class="editor-input admin-input-full">
-                        <select id="target-role" class="editor-input admin-input-full select">
-                            <option value="reviewer">Clearance: Reviewer</option>
-                            <option value="admin">Clearance: Administrator</option>
-                            <option value="guest">Revoke Access (Guest)</option>
-                        </select>
-                        <button onclick="changeUserRole()" class="btn-sys btn-sys-purple admin-tool-btn personnel">UPDATE CLEARANCE</button>
-                        <div id="role-results" class="admin-tool-results"></div>
-                    </div>
-                    <div class="update-log-item admin-tool-card gc">
-                        <h3 class="update-title admin-tool-title gc">Media Garbage Collection</h3>
-                        <button id="btn-run-gc" onclick="runGarbageCollector()" class="btn-sys btn-sys-red admin-tool-btn gc">SCAN & PURGE MEDIA</button>
-                        <div id="gc-results" class="admin-tool-results"></div>
-                    </div>
-                </div>
-
             </div>
         </aside>
 
         <!-- RIGHT PANE: PREVIEW & REVIEW WORKSPACE -->
         <main class="live-preview-pane admin-main-pane">
-            
+
+            <button class="mobile-back-to-editor" onclick="window.toggleMobilePreview()">
+                <span style="font-size: 1rem; margin-right: 0.5rem;">←</span> BACK TO QUEUE
+            </button>
+
             <div class="editor-live-header admin-live-header">
                 <div class="admin-status-container">
                     <div class="status-dot online"></div>
@@ -141,6 +128,7 @@
                 <button id="btn-view-pending" onclick="switchVersionView('pending')" class="btn-sys btn-sys-blue version-toggle-btn pending">PENDING SUBMISSION</button>
                 <button id="btn-view-live" onclick="switchVersionView('live')" class="btn-sys btn-sys-green version-toggle-btn live">LIVE VERSION</button>
                 <button id="btn-view-diff" onclick="switchVersionView('diff')" class="btn-sys btn-sys-purple version-toggle-btn diff">DIFF VIEW</button>
+                <button id="btn-view-history" onclick="togglePageHistoryView()" class="btn-sys btn-sys-regular version-toggle-btn history">PAGE HISTORY</button>
             </div>
 
             <!-- SITE BODY WRAPPER: Perfectly mimics the live wiki constraints -->
@@ -231,6 +219,13 @@
     <script src="js/internalstyling.js"></script>
     <script src="js/tierlist.js"></script>
     
-    <script src="js/admin.js"></script>
+    <script src="js/admin-core.js"></script>
+    <script src="js/admin-queue.js"></script>
+    <script src="js/admin-diff.js"></script>
+    <script src="js/admin-preview.js"></script>
+    <script src="js/admin-tickets.js"></script>
+    <script src="js/admin-actions.js"></script>
+    <script src="js/admin-merge-compiler.js"></script>
+    <script src="js/admin-history.js"></script>
 </body>
 </html>

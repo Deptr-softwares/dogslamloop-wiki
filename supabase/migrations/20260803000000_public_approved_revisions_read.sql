@@ -1,0 +1,22 @@
+-- Found while building Phase 4 of the reviewer-workflow redesign (the
+-- public sitewide "Recent Changes" page, v0.6 item 4) - a real, previously
+-- unknown production bug, not something this phase introduced.
+--
+-- pending_revisions has never had a SELECT policy letting the public read
+-- approved rows. Only two SELECT policies exist: staff (admin/reviewer),
+-- and (as of the reviewer-workflow redesign's Phase 0) an author reading
+-- their own rows. history.html has always been meant to be public - its
+-- own page header says "Public history of all staff-approved revisions" -
+-- but an anonymous visitor's query has actually been failing with a 401
+-- this whole time. history.js's error handling doesn't distinguish
+-- "permission denied" from "genuinely no history for this page," so it
+-- silently displayed "No history recorded for this page yet" instead of
+-- surfacing the real problem - confirmed live against production before
+-- writing this migration, not just inferred from reading the policy list.
+--
+-- Purely additive: approved revisions are already meant to be public
+-- content, so this doesn't loosen anything that was meant to stay private,
+-- and RLS policies are permissive/OR'd, so it doesn't change what staff or
+-- authors can already do via the existing policies.
+CREATE POLICY "Public can view approved revisions" ON "public"."pending_revisions"
+FOR SELECT USING ("status" = 'approved');

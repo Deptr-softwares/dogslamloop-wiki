@@ -108,7 +108,7 @@
             if (window.initMobileNav) window.initMobileNav();
 
             if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
-            if (typeof window.initSidebarEditButton === 'function') await window.initSidebarEditButton();
+            if (typeof window.initAuthDock === 'function') await window.initAuthDock();
             if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
 
             if (typeof window.loadPageAlerts === 'function') await window.loadPageAlerts('updatelog');

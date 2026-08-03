@@ -1,0 +1,25 @@
+/* =========================================
+   RECENT-CHANGES.HTML - sitewide public "recent changes" feed
+   ========================================= */
+
+.recent-changes-pagination {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--bg-main); padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color); border-radius: 4px;
+}
+.recent-changes-page-label { font-family: var(--text-mono); font-size: 0.85rem; color: var(--text-white); }
+
+.change-card { margin-bottom: 1rem; border-left: 4px solid var(--accent-blue); }
+.change-card-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem;
+    border-bottom: 1px dashed var(--border-color);
+}
+.change-card-page-link { margin: 0; color: var(--text-white); font-family: 'CC-Wild-Words', sans-serif; font-size: 1.1rem; text-decoration: none; }
+.change-card-page-link:hover { color: var(--accent-blue); }
+.change-card-scope { font-size: 0.75rem; color: #a855f7; font-family: var(--text-mono); margin-top: 0.25rem; }
+.change-card-meta { text-align: right; font-size: 0.75rem; font-family: var(--text-mono); color: var(--text-muted); }
+.change-card-meta strong { color: #fff; font-size: 0.85rem; }
+.change-card-meta .reviewer { color: #34d399; }
+.change-card-changelog { font-size: 0.85rem; color: #d1d5db; line-height: 1.6; font-family: var(--text-mono); }
+.change-card-history-link { font-size: 0.75rem; margin-top: 0.75rem; display: inline-block; }

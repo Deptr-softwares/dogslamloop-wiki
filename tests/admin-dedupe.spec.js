@@ -1,6 +1,8 @@
-// Coverage for Workstream B Tier 5 (admin.js): inline styles extracted to
-// CSS classes across the queue list, ticket workspace, diff view, and
-// merge compiler. Most of admin.js's rendering only runs after a real
+// Coverage for Workstream B Tier 5 (admin.js, since split into
+// admin-core/queue/diff/preview/tickets/actions/merge-compiler.js as part
+// of the admin-page rework): inline styles extracted to CSS classes across
+// the queue list, ticket workspace, diff view, and merge compiler. Most of
+// that rendering only runs after a real
 // Supabase admin/reviewer session passes the RBAC gate in the
 // DOMContentLoaded handler - per this project's established testing
 // strategy, role-gated behavior isn't automated here (verified manually
@@ -75,7 +77,7 @@ test('#preview-content-area.active toggles opacity/pointer-events via classList 
   expect(states.enabled.pointerEvents).toBe('auto');
 });
 
-test('dynamically-created system-nav-btn (js/admin.js updateAdminSidebar) gets its styling from a class, not inline', async ({ page }) => {
+test('dynamically-created system-nav-btn (js/admin-diff.js updateAdminSidebar) gets its styling from a class, not inline', async ({ page }) => {
   await page.goto('/admin.html', { waitUntil: 'networkidle' });
   const result = await page.evaluate(() => {
     const sidebar = document.createElement('div');
@@ -91,4 +93,25 @@ test('dynamically-created system-nav-btn (js/admin.js updateAdminSidebar) gets i
   expect(result.hasInlineStyle).toBe(false);
   expect(result.cursor).toBe('pointer');
   expect(result.fontSize).toBe('13.6px'); // 0.85rem
+});
+
+test('real bug fix: window.escapeHtml (js/admin-core.js) neutralizes markup instead of letting it execute - contributor-controlled strings (author name, ticket chat, QA metadata, raw diff JSON) all pass through it before reaching innerHTML', async ({ page }) => {
+  // escapeHtml itself is defined at admin-core.js's top level, not inside
+  // the RBAC-gated DOMContentLoaded handler, so it's callable even for a
+  // logged-out visitor.
+  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  const result = await page.evaluate(() => {
+    const payload = `<img src=x onerror="window.__xssFired = true">`;
+    const container = document.createElement('div');
+    container.innerHTML = window.escapeHtml(payload);
+    document.body.appendChild(container);
+    const renderedText = container.textContent;
+    const hasRealImg = !!container.querySelector('img');
+    container.remove();
+    return { renderedText, hasRealImg, xssFired: window.__xssFired === true };
+  });
+
+  expect(result.xssFired).toBe(false);
+  expect(result.hasRealImg).toBe(false);
+  expect(result.renderedText).toBe('<img src=x onerror="window.__xssFired = true">');
 });

@@ -229,6 +229,9 @@
         </main>
 
         <aside class="local-sidebar-right">
+            <div class="sidebar-nav-title">Sitewide</div>
+            <a href="recent-changes.html" class="btn-nav" style="margin-bottom: 1.5rem;">→ View Wiki Edit History</a>
+
             <div class="sidebar-nav-title">On this page</div>
             <ul class="toc-list">
                 <li><a href="#about-section" class="btn-nav">About Us</a></li>
@@ -258,7 +261,7 @@
             if (window.loadUpdateLogs) loadUpdateLogs('site-updates-dashboard', 2);
             if (window.loadFAQ) loadFAQ('faq-dynamic-container');
             if (window.buildGlobalSidebarMenu) window.buildGlobalSidebarMenu('global-sidebar-nav');
-            if (window.initSidebarEditButton) window.initSidebarEditButton();
+            if (window.initAuthDock) window.initAuthDock();
             if (window.initRosterFilters) window.initRosterFilters();
             if (window.buildSystemsDirectory) window.buildSystemsDirectory('systems-grid');
 

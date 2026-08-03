@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Tools | Dogslamloop</title>
+
+    <!-- FOUNDATIONS -->
+    <link rel="stylesheet" href="style/Common.css">
+    <link rel="stylesheet" href="style/ColorCoding.css">
+
+    <!-- COMPONENTS -->
+    <link rel="stylesheet" href="style/Buttons.css">
+    <link rel="stylesheet" href="style/Modals.css">
+    <link rel="stylesheet" href="style/Forms.css">
+    <link rel="stylesheet" href="style/Badges.css">
+    <link rel="stylesheet" href="style/Alerts.css">
+    <link rel="stylesheet" href="style/Cards.css">
+
+    <!-- LAYOUT & OVERRIDES -->
+    <link rel="stylesheet" href="style/Layout.css">
+    <link rel="stylesheet" href="style/editor.css">
+    <link rel="stylesheet" href="style/admin.css">
+</head>
+<body class="admin-body">
+
+    <!--
+        Owner-only tools, split out of admin.html/js/admin.js. Currently
+        just Personnel Management + Media Garbage Collection - the two
+        things that were bolted onto the reviewer-workflow page but have
+        nothing to do with reviewing revisions. Intended to grow into where
+        the site owner edits structural content (homepage/dashboard blocks)
+        without touching raw code - kept to flat, self-contained <section>s
+        per tool for that reason; add a new one the same way rather than
+        building a tab system/plugin registry for two tools.
+    -->
+    <div class="editor-layout">
+        <aside class="editor-workspace owner-workspace">
+
+            <div class="editor-header admin-header">
+                <div class="admin-header-flex">
+                    <div>
+                        <h2 class="editor-title admin-title">OWNER TOOLS</h2>
+                        <span class="editor-subtitle admin-subtitle">Site Administration</span>
+                    </div>
+                    <div class="admin-header-actions-col">
+                        <a href="admin.html" class="btn-sys btn-sys-regular admin-hub-btn">OVERSEER</a>
+                        <a href="index.html" class="btn-sys btn-sys-regular admin-hub-btn">HUB</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-sidebar-content">
+
+                <section id="tool-personnel" class="update-log-item admin-tool-card personnel">
+                    <h3 class="update-title admin-tool-title personnel">Personnel Management</h3>
+                    <input type="email" id="target-email" placeholder="user@email.com" class="editor-input admin-input-full">
+                    <select id="target-role" class="editor-input admin-input-full select">
+                        <option value="reviewer">Clearance: Reviewer</option>
+                        <option value="admin">Clearance: Administrator</option>
+                        <option value="trusted_editor">Clearance: Trusted Editor</option>
+                        <option value="">Revoke All Access</option>
+                    </select>
+                    <button onclick="changeUserRole()" class="btn-sys btn-sys-purple admin-tool-btn personnel">UPDATE CLEARANCE</button>
+                    <div id="role-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-media-gc" class="update-log-item admin-tool-card gc">
+                    <h3 class="update-title admin-tool-title gc">Media Garbage Collection</h3>
+                    <button id="btn-run-gc" onclick="runGarbageCollector()" class="btn-sys btn-sys-red admin-tool-btn gc">SCAN & PURGE MEDIA</button>
+                    <div id="gc-results" class="admin-tool-results"></div>
+                </section>
+
+            </div>
+        </aside>
+    </div>
+
+    <!-- STANDARD CONFIRM MODAL -->
+    <div id="admin-confirm-modal" class="editor-modal-overlay modal-warning hidden" style="z-index: 10000;">
+        <div class="editor-modal-box auth-modal-box confirm-box">
+            <div class="auth-header admin-modal-header">
+                <h3 class="admin-modal-title confirm">SYSTEM CONFIRMATION</h3>
+            </div>
+            <div class="auth-body admin-modal-body">
+                <p id="admin-confirm-msg" class="admin-modal-msg"></p>
+                <div class="admin-modal-actions">
+                    <button id="btn-admin-confirm-cancel" class="btn-sys btn-sys-regular admin-modal-btn">CANCEL</button>
+                    <button id="btn-admin-confirm-ok" class="btn-sys btn-sys-yellow admin-modal-btn confirm-ok">CONFIRM</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/site_utils.js"></script>
+    <script src="js/site_meta.js"></script>
+    <script src="js/owner.js"></script>
+</body>
+</html>

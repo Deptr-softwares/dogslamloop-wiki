@@ -1,0 +1,24 @@
+/* =========================================
+   SUBMISSIONS.HTML - "MY SUBMISSIONS" (contributor self-service)
+   ========================================= */
+
+/* Status badges, built on Badges.css's shared .update-badge base class -
+   same pattern admin.css uses for its own queue-card badges, kept in a
+   dedicated file since this is the first page outside admin/editor tooling
+   to need submission-status colors. */
+.badge-status-pending { background-color: var(--accent-blue); color: #fff; }
+.badge-status-ticket-open { background-color: var(--accent-yellow); color: #000; }
+.badge-status-approved { background-color: hsl(132, 59%, 33%); color: #fff; }
+.badge-status-rejected { background-color: hsl(0, 74%, 47%); color: #fff; }
+.badge-status-withdrawn { background-color: var(--text-muted); color: #000; }
+.badge-status-changes-requested { background-color: #eab308; color: #000; }
+
+.submission-card { margin-bottom: 1rem; }
+.submission-card-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem; }
+.submission-badges-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; }
+.submission-meta { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); line-height: 1.6; }
+.submission-changelog { font-size: 0.85rem; color: var(--text-primary); line-height: 1.5; margin: 0.75rem 0; padding: 0.75rem; background: rgba(255,255,255,0.03); border-left: 3px solid var(--border-color); }
+.submission-rejection-reason { font-size: 0.85rem; color: #f87171; line-height: 1.5; margin: 0.75rem 0; padding: 0.75rem; background: rgba(239, 68, 68, 0.08); border-left: 3px solid #ef4444; }
+.submission-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
+
+.login-required-card { text-align: center; padding: 3rem 1.5rem; }

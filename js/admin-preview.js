@@ -1,0 +1,566 @@
+/**
+ * Dogslamloop Wiki - Admin Overseer: Preview (revision preview, pending/live/
+ * diff view switching)
+ *
+ * switchVersionView is kept as one function rather than split further -
+ * its diff-branch renderers (renderDiffBlock, applyInlineDiffToBlocks,
+ * renderDeltaDiff, formatScopeName) are closures over this function's own
+ * local variables (diffContainer, diffRenderQueue, rev), not top-level
+ * functions; separating them into another file would mean actually
+ * refactoring them into parameterized functions, not just moving code.
+ */
+
+// --- 3. THE PREVIEW & TICKET ENGINE ---
+async function previewRevision(revId) {
+    const rev = window.currentQueueData.find(r => r.id === revId);
+    if (!rev) return;
+
+    const { data: authorRoleData } = await window.supabaseClient.from('user_roles').select('role').eq('user_id', rev.author_id);
+    rev.author_roles = authorRoleData ? authorRoleData.map(r => r.role.toLowerCase()) : [];
+
+    window.activePreviewRevId = rev.id;
+    window.activePreviewCharId = rev.page_id;
+    window.activePreviewPageType = rev.page_type || 'character';
+    document.getElementById('preview-status-text').innerHTML = `REVIEWING: <strong class="admin-preview-status-highlight">${rev.page_id.toUpperCase()}</strong> (By ${window.escapeHtml(rev.author_name)})`;
+
+    updateActionButtons(rev);
+    document.getElementById('preview-nav-sidebar').classList.remove('hidden');
+
+    const { data: liveData } = await window.supabaseClient.from('page_data').select('desc_data, frame_data').eq('page_id', rev.page_id).single();
+    window.currentLiveDescData = liveData ? liveData.desc_data : {};
+    window.currentLiveFrameData = liveData ? liveData.frame_data : {};
+
+    if (rev.is_delta) {
+        const { newDesc, newFrame } = window.applyDeltaToData(
+            window.currentLiveDescData,
+            window.currentLiveFrameData,
+            rev.target_scope,
+            rev.target_key,
+            rev.delta_payload
+        );
+        window.currentPendingDescData = newDesc;
+        window.currentPendingFrameData = newFrame;
+    } else {
+        window.currentPendingDescData = rev.desc_data || {};
+        window.currentPendingFrameData = rev.frame_data || {};
+    }
+
+    // --- Trigger Document Explorer Sidebar rebuild ---
+    if (typeof window.updateAdminSidebar === 'function') window.updateAdminSidebar();
+
+    const toggleBar = document.getElementById('version-toggle-bar');
+    if (toggleBar) toggleBar.classList.remove('hidden');
+
+    calculateTabDiffs(rev);
+
+    if (window.activeChatChannel) { window.supabaseClient.removeChannel(window.activeChatChannel); }
+    window.activeTypers.clear();
+    if(typeof updateTypingText === 'function') updateTypingText();
+
+    if (rev.status === 'ticket_open') {
+        const ticketWorkspace = document.getElementById('ticket-workspace');
+        ticketWorkspace.classList.remove('hidden');
+        renderTicketWorkspace(rev, (rev.author_id === window.currentUserId), (rev.supporters || []).includes(window.currentUserId), (rev.opposers || []).includes(window.currentUserId));
+
+        window.activeChatChannel = window.supabaseClient.channel('ticket-' + rev.id)
+            .on('broadcast', { event: 'typing' }, payload => {
+                if(payload.payload.user !== window.currentUsername) {
+                    window.activeTypers.set(payload.payload.user, Date.now());
+                    if(typeof updateTypingText === 'function') updateTypingText();
+                }
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'pending_revisions', filter: 'id=eq.' + rev.id }, payload => {
+                const updatedRev = payload.new;
+                const localRev = window.currentQueueData.find(r => r.id === rev.id);
+
+                if (localRev) {
+                    localRev.supporters = updatedRev.supporters || [];
+                    localRev.opposers = updatedRev.opposers || [];
+                    localRev.ticket_chat = updatedRev.ticket_chat || [];
+
+                    if (window.activePreviewRevId === rev.id) {
+                        renderTicketWorkspace(localRev, (localRev.author_id === window.currentUserId), localRev.supporters.includes(window.currentUserId), localRev.opposers.includes(window.currentUserId));
+                        updateActionButtons(localRev);
+                    }
+                }
+            })
+            .subscribe();
+    } else {
+        document.getElementById('ticket-workspace').classList.add('hidden');
+    }
+
+    const contentArea = document.getElementById('preview-content-area');
+    contentArea.classList.add('active');
+
+    let initMode = 'pending';
+    if (rev.is_delta) {
+        initMode = 'diff';
+
+        let activeTabId = 'overview';
+        if (['matchup', 'counterplay'].includes(rev.target_scope)) activeTabId = `${rev.target_scope}s`;
+        else if (rev.target_scope === 'move') activeTabId = rev.target_key.split('::')[0];
+
+        document.querySelectorAll('#preview-nav-sidebar .nav-btn').forEach(btn => btn.classList.remove('active'));
+        const autoTab = document.getElementById(`nav-${activeTabId}`);
+        if (autoTab) autoTab.classList.add('active');
+    }
+
+    switchVersionView(initMode);
+
+    // --- QOL: AUTO-SCROLL TO TICKET WORKSPACE ---
+    setTimeout(() => {
+        const workspace = document.getElementById('ticket-workspace');
+        const actionBtns = document.getElementById('preview-action-buttons');
+        // If there's an open ticket chat, snap to it. Otherwise, snap to the review buttons.
+        if (workspace && !workspace.classList.contains('hidden')) {
+            workspace.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (actionBtns) {
+            actionBtns.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 150);
+}
+
+// --- VERSION COMPARISON ENGINE ---
+async function switchVersionView(mode) {
+    // Page History (js/admin-history.js) is a 4th, independently-toggled
+    // pane rather than a mode in this function's own pending/live/diff
+    // state machine (see the file header comment on why this function is
+    // kept whole) - hide it and reset its button whenever any of the three
+    // original modes gets picked, so switching away from history behaves
+    // consistently no matter which of the three buttons was clicked.
+    const historyContainer = document.getElementById('page-history-container');
+    if (historyContainer) historyContainer.classList.add('hidden');
+    const historyBtn = document.getElementById('btn-view-history');
+    if (historyBtn) historyBtn.className = 'btn-sys btn-sys-regular version-toggle-btn';
+
+    const btns = { 'pending': document.getElementById('btn-view-pending'), 'live': document.getElementById('btn-view-live'), 'diff': document.getElementById('btn-view-diff') };
+    Object.values(btns).forEach(b => {
+        if(!b) return;
+        b.className = 'btn-sys btn-sys-regular version-toggle-btn';
+    });
+
+    if(btns[mode]) {
+        if (mode === 'pending') btns[mode].classList.add('btn-sys-blue');
+        if (mode === 'live') btns[mode].classList.add('btn-sys-green');
+        if (mode === 'diff') btns[mode].classList.add('btn-sys-purple');
+    }
+
+    if (mode === 'pending') {
+        window.currentEditorDescData = window.currentPendingDescData;
+        window.cachedMasterFrameData = window.cachedMasterFrameData || {};
+        window.cachedMasterFrameData[window.activePreviewCharId] = window.currentPendingFrameData;
+    } else if (mode === 'live') {
+        window.currentEditorDescData = window.currentLiveDescData;
+        window.cachedMasterFrameData = window.cachedMasterFrameData || {};
+        window.cachedMasterFrameData[window.activePreviewCharId] = window.currentLiveFrameData;
+    }
+    if (mode === 'diff') {
+        // Universal clear for both Character AND System dynamically generated tabs
+        document.querySelectorAll('.tab-content, .wiki-tab-content').forEach(el => {
+            el.classList.add('hidden');
+        });
+        // Character-type revisions reuse admin.html's pre-existing static
+        // #tab-* divs, which never carry the .tab-content/.wiki-tab-content
+        // class the line above keys off (only dynamically-created
+        // system-type tabs do - see js/description.js), so entering diff
+        // mode never actually hid them: the old pending/live content and
+        // the new diff comparison rendered stacked on top of each other.
+        document.querySelectorAll('#preview-content-area > div[id^="tab-"]').forEach(el => {
+            el.classList.add('hidden');
+        });
+
+        let diffContainer = document.getElementById('admin-diff-container');
+        if (!diffContainer) {
+            diffContainer = document.createElement('div');
+            diffContainer.id = 'admin-diff-container';
+            // .tab-content alone (not paired with .wiki-tab-content, unlike
+            // js/description.js's unrelated system-page tab containers this
+            // was copied from) - .tab-content is what the hide/show sweep
+            // (this file, admin-preview.js:148/491) actually needs to key
+            // off; .wiki-tab-content additionally carries a display:flex;
+            // flex-wrap:wrap layout rule (style/Layout.css) that was never
+            // wanted here and forced the title/location-label/diff-content
+            // children into a wrapping row instead of normal vertical
+            // stacking - a real bug, found via a live screenshot.
+            diffContainer.className = 'tab-content';
+            const mainArea = document.querySelector('.main-content-area');
+            if (mainArea) mainArea.appendChild(diffContainer);
+        }
+
+        diffContainer.innerHTML = `<h2 class="section-title diff-view-title">REVISION COMPARISON</h2>`;
+        diffContainer.classList.remove('hidden');
+
+        const rev = window.currentQueueData.find(r => r.id === window.activePreviewRevId);
+        if (!rev) return;
+
+        let diffRenderQueue = [];
+
+        const formatScopeName = (scope) => {
+            const map = {
+                'move': 'Move Strategy & Frames',
+                'matchup': 'Matchup',
+                'counterplay': 'Counterplay',
+                'extra': 'Custom Tab',
+                'profile': 'Profile Metadata',
+                'playstyle': 'Playstyle',
+                'overview': 'Overview',
+                'strategy': 'General Strategy'
+            };
+            return map[scope] || scope;
+        };
+
+        if (rev.is_delta) {
+            const renderDeltaDiff = (scope, key, payload) => {
+                diffContainer.innerHTML += `<div class="diff-location-label">Suggested Edit Location: [ ${formatScopeName(scope).toUpperCase()} ➔ ${key.replace('::', ': ').toUpperCase()} ]</div>`;
+
+                if (['profile', 'playstyle', 'overview', 'strategy'].includes(scope)) {
+                    renderDiffBlock(formatScopeName(scope), window.currentLiveDescData[scope], payload);
+                }
+                else if (scope === 'extra') {
+                    const oldExtra = window.currentLiveDescData.extras?.find(e => e.title === key) || {};
+                    if (payload === null) {
+                        renderDiffBlock('Custom Tab Deleted', oldExtra, null, 'json');
+                    } else {
+                        if (oldExtra.title !== payload.title) renderDiffBlock('Custom Tab Title', { title: oldExtra.title }, { title: payload.title });
+                        renderDiffBlock('Custom Tab Strategy', oldExtra.content || [], payload.content || []);
+                    }
+                }
+                else if (scope === 'matchup') {
+                    const oldMu = window.currentLiveDescData.matchups?.find(m => m.opponent === key) || {};
+                    if (payload === null) {
+                        renderDiffBlock('Matchup Deleted', oldMu, null, 'json');
+                    } else {
+                        renderDiffBlock('Matchup Metadata', { opponent: oldMu.opponent, tier: oldMu.tier }, { opponent: payload.opponent, tier: payload.tier });
+                        renderDiffBlock('Matchup Strategy', oldMu.content || [], payload.content || []);
+                    }
+                }
+                else if (scope === 'counterplay') {
+                    const oldCp = window.currentLiveDescData.counterplay?.find(c => c.topic === key) || {};
+                    if (payload === null) {
+                        renderDiffBlock('Counterplay Deleted', oldCp, null, 'json');
+                    } else {
+                        renderDiffBlock('Counterplay Metadata', { topic: oldCp.topic, importance: oldCp.importance }, { topic: payload.topic, importance: payload.importance });
+                        renderDiffBlock('Counterplay Strategy', oldCp.content || [], payload.content || []);
+                    }
+                }
+                else if (scope === 'move') {
+                    const [cat, moveId] = key.split('::');
+                    const oldFrame = window.currentLiveFrameData[cat]?.find(m => m.id === moveId) || {};
+                    const oldDesc = window.currentLiveDescData.moveStrategies?.[moveId] || [];
+
+                    if (payload === null) {
+                        renderDiffBlock(`Move Deleted: ${moveId}`, oldFrame, null, 'json');
+                    } else {
+                        const newFrame = payload.frame_data || {};
+                        renderDiffBlock('Move Stats & Frames', oldFrame, newFrame);
+                        const newDesc = payload.desc_data || [];
+                        renderDiffBlock('Move Strategy Text', oldDesc, newDesc);
+                    }
+                }
+            };
+
+            // Recursively execute the render function for Batched multi-tickets!
+            if (rev.target_scope === 'multi') {
+                diffContainer.innerHTML += `<div class="diff-batch-banner">BATCHED MULTI-PAYLOAD DETECTED (${rev.delta_payload.length} EDITS)</div>`;
+                rev.delta_payload.forEach(edit => renderDeltaDiff(edit.scope, edit.key, edit.payload));
+            } else if (rev.target_scope === 'system_data') {
+                const oldTabs = window.currentLiveDescData.tabs || [];
+                const newTabs = rev.delta_payload.tabs || [];
+                const allTabIds = Array.from(new Set([...oldTabs.map(t=>t.tabId || t.id), ...newTabs.map(t=>t.tabId || t.id)]));
+
+                allTabIds.forEach(tabId => {
+                    const oTab = oldTabs.find(t => (t.tabId || t.id) === tabId) || { sections: [] };
+                    const nTab = newTabs.find(t => (t.tabId || t.id) === tabId) || { sections: [] };
+                    const tabLabel = nTab.tabLabel || nTab.label || oTab.tabLabel || oTab.label || tabId;
+
+                    if ((oTab.tabLabel || oTab.label) !== (nTab.tabLabel || nTab.label)) {
+                         renderDiffBlock(`Tab: ${tabId} Metadata`, { label: oTab.tabLabel || oTab.label }, { label: nTab.tabLabel || nTab.label });
+                    }
+
+                    if (window.activePreviewPageType === 'tierlist') {
+                         renderDiffBlock(`[${tabLabel}] ➔ Tiers`, oTab.tiers || [], nTab.tiers || [], 'json');
+                         renderDiffBlock(`[${tabLabel}] ➔ Changelog`, oTab.changelog || [], nTab.changelog || [], 'json');
+                    } else {
+                         const oSecs = oTab.sections || [];
+                         const nSecs = nTab.sections || [];
+                         const secMax = Math.max(oSecs.length, nSecs.length);
+
+                         for(let i=0; i < secMax; i++) {
+                              const oSec = oSecs[i] || {};
+                              const nSec = nSecs[i] || {};
+                              const secTitle = nSec.sectionTitle || oSec.sectionTitle || `Section ${i+1}`;
+
+                              if (oSec.layout !== nSec.layout || oSec.width !== nSec.width || oSec.alignment !== nSec.alignment) {
+                                   renderDiffBlock(`Layout: [${tabLabel}] ➔ ${secTitle}`,
+                                       { layout: oSec.layout, width: oSec.width, alignment: oSec.alignment },
+                                       { layout: nSec.layout, width: nSec.width, alignment: nSec.alignment }
+                                   );
+                              }
+                              renderDiffBlock(`[${tabLabel}] ➔ ${secTitle}`, oSec.blocks || [], nSec.blocks || []);
+                         }
+                    }
+                });
+            } else {
+                renderDeltaDiff(rev.target_scope, rev.target_key, rev.delta_payload);
+            }
+        } else {
+            if (window.changedTabs.length === 0) {
+                diffContainer.innerHTML += `<p class="diff-no-changes">No changes detected.</p>`;
+                return;
+            }
+            window.changedTabs.forEach(tab => {
+                const oldTab = getTabData(tab, 'live') || {};
+                const newTab = getTabData(tab, 'pending') || {};
+
+                if (tab === 'overview') {
+                    renderDiffBlock('Profile Metadata', oldTab.profile, newTab.profile);
+                    renderDiffBlock('Playstyle Details', oldTab.playstyle, newTab.playstyle);
+                    renderDiffBlock('Character Overview', oldTab.overview, newTab.overview);
+                    renderDiffBlock('General Strategy', oldTab.strategy, newTab.strategy);
+
+                    const oldExt = oldTab.extras || [];
+                    const newExt = newTab.extras || [];
+                    const extMax = Math.max(oldExt.length, newExt.length);
+                    for (let i = 0; i < extMax; i++) {
+                        const oT = oldExt[i]?.title; const nT = newExt[i]?.title;
+                        if (oT !== nT) renderDiffBlock(`Custom Tab Title (${i + 1})`, { title: oT }, { title: nT });
+                        renderDiffBlock(`Custom Tab Strategy: ${nT || oT || i}`, oldExt[i]?.content || [], newExt[i]?.content || []);
+                    }
+                } else if (tab === 'matchups') {
+                    const oldMu = Array.isArray(oldTab) ? oldTab : [];
+                    const newMu = Array.isArray(newTab) ? newTab : [];
+                    const muMax = Math.max(oldMu.length, newMu.length);
+                    for (let i = 0; i < muMax; i++) {
+                        const oM = oldMu[i]?.opponent; const nM = newMu[i]?.opponent;
+                        if (oM !== nM || oldMu[i]?.tier !== newMu[i]?.tier) {
+                            renderDiffBlock(`Matchup Metadata (${i + 1})`, { opponent: oM, tier: oldMu[i]?.tier }, { opponent: nM, tier: newMu[i]?.tier });
+                        }
+                        renderDiffBlock(`Matchup Strategy: ${nM || oM || 'Unknown'}`, oldMu[i]?.content || [], newMu[i]?.content || []);
+                    }
+                } else if (tab === 'counterplay') {
+                    const oldCp = Array.isArray(oldTab) ? oldTab : [];
+                    const newCp = Array.isArray(newTab) ? newTab : [];
+                    const cpMax = Math.max(oldCp.length, newCp.length);
+                    for (let i = 0; i < cpMax; i++) {
+                        const oC = oldCp[i]?.topic; const nC = newCp[i]?.topic;
+                        if (oC !== nC || oldCp[i]?.importance !== newCp[i]?.importance) {
+                            renderDiffBlock(`Counterplay Metadata (${i + 1})`, { topic: oC, importance: oldCp[i]?.importance }, { topic: nC, importance: newCp[i]?.importance });
+                        }
+                        renderDiffBlock(`Counterplay Strategy: ${nC || oC || 'Unknown'}`, oldCp[i]?.content || [], newCp[i]?.content || []);
+                    }
+                }
+                else if (['m1s', 'skills', 'specials'].includes(tab)) {
+                    const oldMoves = Array.isArray(oldTab) ? oldTab : [];
+                    const newMoves = Array.isArray(newTab) ? newTab : [];
+                    const allMoveIds = Array.from(new Set([...oldMoves.map(m=>m.id), ...newMoves.map(m=>m.id)]));
+
+                    allMoveIds.forEach(mId => {
+                        const oM = oldMoves.find(m => m.id === mId) || {};
+                        const nM = newMoves.find(m => m.id === mId) || {};
+                        if (JSON.stringify(oM) !== JSON.stringify(nM)) {
+                            renderDiffBlock(`Move Stats & Frames (${mId})`, oM, nM);
+                        }
+
+                        const oStrat = window.currentLiveDescData.moveStrategies?.[mId] || [];
+                        const nStrat = window.currentPendingDescData.moveStrategies?.[mId] || [];
+                        if (JSON.stringify(oStrat) !== JSON.stringify(nStrat)) {
+                            renderDiffBlock(`Move Strategy Text (${mId})`, oStrat, nStrat);
+                        }
+                    });
+                }
+            });
+        }
+
+        // --- CORE DIFF RENDERER ---
+        function renderDiffBlock(title, oldData, newData, context = '') {
+            const oldStr = JSON.stringify(oldData || null);
+            const newStr = JSON.stringify(newData || null);
+            if (oldStr === newStr) return;
+
+            const safeId = title.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase() + '-' + Math.floor(Math.random() * 10000);
+
+            if (Array.isArray(oldData) || Array.isArray(newData)) {
+                const oldBlocks = Array.isArray(oldData) ? oldData : [];
+                const newBlocks = Array.isArray(newData) ? newData : [];
+
+                const diffBlockContent = (b, oldB, newB) => {
+                    if (b.type === 'paragraph' || b.type === 'heading' || b.type === 'callout') {
+                        let oldText = Array.isArray(oldB.content) ? oldB.content.join('<br>') : (oldB.content || '');
+                        let newText = Array.isArray(newB.content) ? newB.content.join('<br>') : (newB.content || '');
+                        b.content = window.diffTextLCS(oldText, newText);
+                        if (b.type === 'callout') b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
+                    }
+                    else if (b.type === 'list') {
+                        const oldItems = oldB.items || [];
+                        const newItems = newB.items || [];
+                        if (!b.items) b.items = [];
+                        const maxLen = Math.max(oldItems.length, newItems.length);
+                        for (let j = 0; j < maxLen; j++) {
+                            b.items[j] = window.diffTextLCS(oldItems[j] || '', newItems[j] || '');
+                        }
+                    }
+                    else if (b.type === 'combo') {
+                        const oldSeq = oldB.sequence || [];
+                        const newSeq = newB.sequence || [];
+                        if (!b.sequence) b.sequence = [];
+                        const maxLen = Math.max(oldSeq.length, newSeq.length);
+                        for (let j = 0; j < maxLen; j++) {
+                            b.sequence[j] = window.diffTextLCS(oldSeq[j] || '', newSeq[j] || '');
+                        }
+                        b.damage = window.diffTextLCS(oldB.damage || '', newB.damage || '');
+                        b.note = window.diffTextLCS(oldB.note || '', newB.note || '');
+                    }
+                    else if (b.type === 'table') {
+                        const oldHeaders = oldB.headers || [];
+                        const newHeaders = newB.headers || [];
+                        if (!b.headers) b.headers = [];
+                        const hMax = Math.max(oldHeaders.length, newHeaders.length);
+                        for (let j = 0; j < hMax; j++) {
+                            b.headers[j] = window.diffTextLCS(oldHeaders[j] || '', newHeaders[j] || '');
+                        }
+
+                        const oldRows = oldB.rows || [];
+                        const newRows = newB.rows || [];
+                        if (!b.rows) b.rows = [];
+                        const rMax = Math.max(oldRows.length, newRows.length);
+                        for (let r = 0; r < rMax; r++) {
+                            if (!b.rows[r]) b.rows[r] = [];
+                            const oCols = oldRows[r] || [];
+                            const nCols = newRows[r] || [];
+                            const cMax = Math.max(oCols.length, nCols.length);
+                            for (let c = 0; c < cMax; c++) {
+                                b.rows[r][c] = window.diffTextLCS(oCols[c] || '', nCols[c] || '');
+                            }
+                        }
+                    }
+                    else if (b.type === 'accordion' || b.type === 'details') {
+                        b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
+                        b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
+                    }
+
+                    if (b.caption !== undefined) b.caption = window.diffTextLCS(oldB.caption || '', newB.caption || '');
+                    if (b.author !== undefined) b.author = window.diffTextLCS(oldB.author || '', newB.author || '');
+                };
+
+                const applyInlineDiffToBlocks = (oldArr, newArr) => {
+                    const diffedBlocks = [];
+                    const maxLen = Math.max((oldArr || []).length, (newArr || []).length);
+
+                    for (let i = 0; i < maxLen; i++) {
+                        const oldB = oldArr[i] || {};
+                        const newB = newArr[i] || null;
+
+                        if (newB && oldB.type && oldB.type !== newB.type) {
+                            let delB = JSON.parse(JSON.stringify(oldB));
+                            diffBlockContent(delB, oldB, {});
+                            diffedBlocks.push(delB);
+
+                            let addB = JSON.parse(JSON.stringify(newB));
+                            diffBlockContent(addB, {}, newB);
+                            diffedBlocks.push(addB);
+                            continue;
+                        }
+
+                        let b = newB ? JSON.parse(JSON.stringify(newB)) : JSON.parse(JSON.stringify(oldB));
+                        diffBlockContent(b, oldB, newB || {});
+                        diffedBlocks.push(b);
+                    }
+                    return diffedBlocks;
+                };
+
+                const diffedBlocks = applyInlineDiffToBlocks(oldBlocks, newBlocks);
+
+                diffContainer.innerHTML += `
+                    <div class="diff-container">
+                        <h3 class="diff-section-title">${title.toUpperCase()}</h3>
+                        <div id="diff-inline-${safeId}" class="diff-inline-target"></div>
+                    </div>
+                `;
+                diffRenderQueue.push(() => {
+                    if (typeof window.populateTextSection === 'function') window.populateTextSection(`diff-inline-${safeId}`, '', diffedBlocks, context);
+                });
+
+            } else {
+                // Structural field-by-field diff (move/frame data, profile/
+                // playstyle metadata, matchup/counterplay metadata) - used to
+                // be a raw two-column JSON dump here, which made a single
+                // changed frame number buried in an object as hard to spot as
+                // reading two unrelated walls of text. window.renderStructuredDiff
+                // (js/admin-diff.js) escapes every value it renders - this was
+                // the single highest-risk render in this file since it's the
+                // one place a reviewer sees a contributor's data essentially
+                // unprocessed.
+                diffContainer.innerHTML += `
+                    <div class="diff-container">
+                        <h3 class="diff-section-title">${title.toUpperCase()}</h3>
+                        ${window.renderStructuredDiff(oldData, newData)}
+                    </div>
+                `;
+            }
+        }
+
+        diffRenderQueue.forEach(fn => fn());
+        if(typeof window.applyInternalStyling === 'function') setTimeout(window.applyInternalStyling, 50);
+
+        // Render dynamic ToC for the Diff View!
+        setTimeout(updateAdminTOC, 200);
+        return;
+    }
+
+    // --- REBUILDING LIVE / PENDING VIEWS ---
+    document.querySelectorAll('.tab-content, .wiki-tab-content').forEach(el => el.innerHTML = '');
+
+    // Undo the diff-mode hide above (character-type #tab-overview et al. and
+    // #admin-diff-container aren't reset by anything else - nothing else
+    // ever un-hides #tab-overview after it, since the static markup only
+    // ever relied on it starting unhidden by default). Restores the same
+    // default (overview visible, everything else hidden) a fresh revision
+    // load already starts with, so returning here from diff mode looks
+    // identical to arriving here normally.
+    const diffContainerToHide = document.getElementById('admin-diff-container');
+    if (diffContainerToHide) diffContainerToHide.classList.add('hidden');
+    ['m1s', 'skills', 'specials', 'matchups', 'counterplay'].forEach(tab => {
+        const el = document.getElementById(`tab-${tab}`);
+        if (el) el.classList.add('hidden');
+    });
+    const overviewTabToShow = document.getElementById('tab-overview');
+    if (overviewTabToShow) overviewTabToShow.classList.remove('hidden');
+
+    window.currentEditorPageType = window.activePreviewPageType;
+
+    if (window.activePreviewPageType === 'tierlist') {
+        window.liveTierData = window.currentEditorDescData;
+
+        // Inject the required containers so tierlist.js has somewhere to render!
+        const overviewTab = document.getElementById('tab-overview');
+        if (overviewTab) {
+            overviewTab.innerHTML = `
+                <div id="tier-tabs-container"></div>
+                <div id="tier-list-ui"></div>
+                <div id="changelog-container" class="admin-changelog-container"></div>
+            `;
+            overviewTab.classList.remove('hidden');
+        }
+
+        if (typeof window.loadTierList === 'function') {
+            await window.loadTierList();
+        } else {
+            console.warn("tierlist.js is not loaded in Admin.html");
+        }
+        setTimeout(window.showChangedTabsPopup, 200);
+    } else {
+        if (typeof loadPageDescriptions === 'function') {
+            await loadPageDescriptions(window.activePreviewCharId, window.activePreviewPageType);
+            setTimeout(window.showChangedTabsPopup, 200);
+        }
+
+        if (window.activePreviewPageType !== 'system' && typeof loadMoveSection === 'function') {
+            await loadMoveSection(window.activePreviewCharId, 'm1s');
+            await loadMoveSection(window.activePreviewCharId, 'skills');
+            await loadMoveSection(window.activePreviewCharId, 'specials');
+        }
+    }
+
+    // Always scan for new Headers after rendering finishes
+    setTimeout(updateAdminTOC, 300);
+}

@@ -437,10 +437,5 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
     if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
 }
 
-async function loadCharacterSkills(characterId) {
-    return loadMoveSection(characterId, 'skills');
-}
-
 window.createPhase = createPhase;
 window.loadMoveSection = loadMoveSection;
-window.loadCharacterSkills = loadCharacterSkills;
