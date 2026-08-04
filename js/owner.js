@@ -24,11 +24,23 @@ window.addEventListener('pageshow', (event) => {
 document.addEventListener('DOMContentLoaded', async () => {
     if (!window.supabaseClient) return;
 
-    const { data: { session } } = await window.supabaseClient.auth.getSession();
+    // Same retry-before-denying resilience as admin-core.js's own gate - a
+    // single dropped request here used to permanently kick a legitimate
+    // admin to ACCESS DENIED with no recovery short of a manual refresh.
+    let { data: { session } } = await window.supabaseClient.auth.getSession();
+    if (!session) {
+        await new Promise(r => setTimeout(r, 600));
+        ({ data: { session } } = await window.supabaseClient.auth.getSession());
+    }
     if (!session) { kickUser(); return; }
 
-    const { data: roleData, error } = await window.supabaseClient
+    let { data: roleData, error } = await window.supabaseClient
         .from('user_roles').select('role').eq('user_id', session.user.id);
+    if (error) {
+        await new Promise(r => setTimeout(r, 600));
+        ({ data: roleData, error } = await window.supabaseClient
+            .from('user_roles').select('role').eq('user_id', session.user.id));
+    }
 
     const roles = (roleData && roleData.length > 0) ? roleData.map(r => r.role.toLowerCase()) : ['guest'];
 

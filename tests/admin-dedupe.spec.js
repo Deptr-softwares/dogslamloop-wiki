@@ -55,7 +55,12 @@ test('#preview-content-area.active toggles opacity/pointer-events via classList 
   // logged-out visitor (kickUser), so build a synthetic element with the
   // same id instead of relying on the page's own (now-gone) markup - this
   // still exercises the real CSS rule, just not the real admin.js flow.
+  // The gate retries a failed session/role check once (~600ms delay) before
+  // giving up, so wait for the real access-denied screen first - otherwise
+  // kickUser()'s innerHTML wipe can land mid-test and destroy this synthetic
+  // element out from under the assertions below.
   await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  await page.locator('.access-denied-screen').waitFor({ state: 'visible', timeout: 3000 });
   const states = await page.evaluate(() => {
     const el = document.createElement('div');
     el.id = 'preview-content-area';
