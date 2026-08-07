@@ -25,7 +25,10 @@ jobs:
 
       # The suite serves the repo with `python -m http.server` (see
       # playwright.config.js webServer) - preinstalled on ubuntu-latest, and
-      # reuseExistingServer is already CI-aware, so no config change is needed.
+      # reuseExistingServer is already CI-aware.
+      # visual.spec.js is skipped here (playwright.config.js testIgnore): its
+      # screenshot baselines are OS-specific, so the committed Windows set
+      # can never match a Linux runner. It stays a local-only CSS tool.
       - run: npx playwright test
 
       - if: ${{ !cancelled() }}
