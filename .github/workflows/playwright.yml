@@ -1,0 +1,36 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      # playwright.config.js only defines the chromium project, so the other
+      # browsers would just be dead download time.
+      - run: npx playwright install --with-deps chromium
+
+      # The suite serves the repo with `python -m http.server` (see
+      # playwright.config.js webServer) - preinstalled on ubuntu-latest, and
+      # reuseExistingServer is already CI-aware, so no config change is needed.
+      - run: npx playwright test
+
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

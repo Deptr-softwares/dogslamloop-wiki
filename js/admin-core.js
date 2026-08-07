@@ -57,6 +57,30 @@ window.toggleMobilePreview = function() {
     }
 };
 
+// Mobile-only header dropdown holding OWNER TOOLS/RECENT CHANGES/HUB (the
+// panel is display:none outside admin.css's max-width:900px block, so this is
+// inert on desktop even though the handler is always registered).
+window.toggleAdminMobileMenu = function() {
+    const panel = document.getElementById('admin-secondary-actions');
+    if (!panel) return;
+    const isOpen = panel.classList.toggle('open');
+
+    const btn = document.getElementById('admin-mobile-menu-toggle');
+    if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+};
+
+document.addEventListener('click', (event) => {
+    const panel = document.getElementById('admin-secondary-actions');
+    if (!panel || !panel.classList.contains('open')) return;
+
+    const btn = document.getElementById('admin-mobile-menu-toggle');
+    // The toggle's own handler runs first and would immediately be undone here.
+    if (panel.contains(event.target) || (btn && btn.contains(event.target))) return;
+
+    panel.classList.remove('open');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+});
+
 // --- TIME FORMATTER HELPER ---
 function timeSince(dateString) {
     const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
