@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found | Dogslamloop Wiki</title>
+
+    <!-- GitHub Pages serves this one file for ANY unmatched path, so the URL in
+         the address bar could be at any depth (/characters/Bogus/x, /a/b/c/d).
+         Without a base, every relative path here - and every path
+         getRootPath() computes for the sidebar nav - would resolve against
+         that arbitrary depth and 404 in turn. The site is served from the
+         domain root (see CNAME), so "/" is always the correct base. -->
+    <base href="/">
+
+    <link rel="icon" type="image/jpg" href="medias/images/DogslamloopIconGay.webp">
+
+    <link rel="stylesheet" href="style/Common.css">
+    <link rel="stylesheet" href="style/Layout.css">
+    <link rel="stylesheet" href="style/Cards.css">
+    <link rel="stylesheet" href="style/Buttons.css">
+    <link rel="stylesheet" href="style/Badges.css">
+    <link rel="stylesheet" href="style/ColorCoding.css">
+    <link rel="stylesheet" href="style/Alerts.css">
+    <link rel="stylesheet" href="style/Modals.css">
+</head>
+<body class="site-body p-0">
+
+    <!-- MOBILE NAVIGATION -->
+    <div class="mobile-top-bar">
+        <a href="/index.html" class="mobile-logo-link">
+            <img src="/medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
+            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+        </a>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+    </div>
+    <div class="mobile-backdrop" id="mobile-backdrop"></div>
+
+    <div class="site-layout">
+
+        <!-- LEFT SIDEBAR: GLOBAL NAVIGATION -->
+        <aside class="global-sidebar-left" id="master-sidebar">
+            <div class="sidebar-header-top">
+                <img src="/medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
+                <div class="sidebar-title-container">
+                    <a href="/index.html" class="site-title">dogslamloop wiki</a>
+                    <p class="site-subtitle">Alpha v0.4</p>
+                </div>
+            </div>
+
+            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar">☰</button>
+
+            <div class="sidebar-master-title">Navigation</div>
+
+            <div id="global-sidebar-nav">
+                <p class="loading-msg loading-msg-sm">Loading menu...</p>
+            </div>
+
+            <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
+
+            <div class="kofi-btn-wrapper" style="margin-top: 0.75rem;">
+                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow" style="width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1rem; height: 1rem;">
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line>
+                    </svg>
+                    <span class="kofi-text">SUPPORT KO-FI</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="main-content-area space-y-6">
+
+            <header class="home-main-header">
+                <h1 class="home-main-title">404 — Page Not Found</h1>
+            </header>
+
+            <section class="wiki-section">
+                <p class="strategy-paragraph">
+                    Whiffed. There's nothing at this address — the link might be out of date,
+                    or the page may have been renamed or moved.
+                </p>
+                <p class="strategy-paragraph">
+                    Try one of the hubs below, or use the navigation menu on the left.
+                </p>
+
+                <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem;">
+                    <a href="/index.html" class="btn-sys btn-sys-blue">MAIN DASHBOARD</a>
+                    <a href="/characters/index.html" class="btn-sys btn-sys-regular">CHARACTER DASHBOARD</a>
+                    <a href="/systems/index.html" class="btn-sys btn-sys-regular">SIDE DASHBOARD</a>
+                </div>
+            </section>
+
+            <section class="wiki-section">
+                <p class="strategy-paragraph" style="color: var(--text-muted); font-size: 0.85rem;">
+                    If you got here from a link on this site, that's a bug worth reporting —
+                    let <span style="color: #a855f7; font-family: var(--text-mono); font-weight: bold;">@deptr4869</span> know on Discord.
+                </p>
+            </section>
+
+        </main>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/js/site_utils.js"></script>
+    <script src="/js/site_meta.js"></script>
+    <script src="/js/pagebuilder.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (window.initMobileNav) window.initMobileNav();
+            if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
+            if (typeof window.initAuthDock === 'function') await window.initAuthDock();
+            if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
+        });
+    </script>
+</body>
+</html>

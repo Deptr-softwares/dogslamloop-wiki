@@ -168,7 +168,10 @@
        screen was unreachable. */
     .admin-sidebar { flex: 1 1 auto; width: 100%; }
 
-    .live-preview-pane.admin-main-pane { display: none !important; padding-bottom: 4.5rem; }
+    /* padding-bottom reserves room for the fixed #version-toggle-bar below so
+       it never covers the last of the scrolled content. Raised from 4.5rem
+       when that bar gained a second row (4 buttons wrapping 2x2, ~115px). */
+    .live-preview-pane.admin-main-pane { display: none !important; padding-bottom: 8rem; }
     body.mobile-preview-active .live-preview-pane.admin-main-pane { display: flex !important; }
 
     /* Sticks the Pending/Live/Diff toggle to the bottom of the screen
@@ -202,15 +205,33 @@
         border-top: 2px solid var(--accent-blue);
         background: var(--bg-main, #050505);
         box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.5);
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    /* The bar held 3 buttons when it was built; PAGE HISTORY was added as a
+       4th in v0.6 without revisiting mobile, which pushed it off the right
+       edge of the screen with no wrap and no way to scroll to it. Two rows of
+       two instead. white-space overrides .btn-sys's own nowrap so the longer
+       labels break inside their button rather than clipping. */
+    body #version-toggle-bar .version-toggle-btn {
+        flex: 1 1 calc(50% - 0.2rem);
+        font-size: 0.62rem;
+        padding: 0.5rem 0.4rem;
+        white-space: normal;
+        text-align: center;
     }
 
     /* editor.css's .mobile-back-to-editor is bottom: 1.5rem; right: 1.5rem;
        z-index: 100 - edit.html has nothing else pinned to the bottom, but
        here it sits directly on top of #version-toggle-bar (which is only
        z-index: 60), visually overlapping it and eating its clicks. Moved up
-       to clear the bar instead of fighting over the same corner. */
+       to clear the bar instead of fighting over the same corner.
+       Raised from 4.5rem alongside the pane's padding-bottom above: 4.5rem
+       cleared a single-row bar, but once the 4 buttons wrapped to two rows
+       (~115px) this button landed back on top of it and hid LIVE VERSION. */
     .mobile-back-to-editor {
-        bottom: 4.5rem;
+        bottom: 8rem;
     }
 
     /* .admin-live-header/#preview-action-buttons have no flex-wrap, so the
@@ -231,6 +252,83 @@
     #preview-action-buttons button {
         flex: 1 1 auto;
     }
+
+    /* .ticket-workspace is a 1:2 flex row (status/QA on the left, discussion
+       log on the right) with no mobile override at all until now - both
+       columns collapsed to roughly 150px each on a phone, which made the chat
+       log unreadable and squeezed the support/oppose buttons together. Stack
+       them; the vote buttons' existing flex:1 then has real width to share. */
+    /* body-prefixed for the same reason #version-toggle-bar above is: these
+       selectors all have plain base rules further down this file, and a media
+       query adds no specificity of its own - on an equal-specificity tie the
+       later rule wins, so an unprefixed .ticket-workspace here would silently
+       lose every property to its own base rule and this block would do
+       nothing. The extra type selector settles the tie by specificity instead
+       of source-order luck. Same applies to every rule below. */
+    body .ticket-workspace {
+        flex-direction: column;
+        gap: 1.25rem;
+        padding: 1rem;
+    }
+    body .ticket-left-col {
+        border-right: none;
+        padding-right: 0;
+        border-bottom: 1px dashed #333;
+        padding-bottom: 1.25rem;
+    }
+    body .ticket-right-col {
+        flex: 1 1 auto;
+    }
+
+    /* The header used to stack OWNER TOOLS / RECENT CHANGES / HUB / SHOW
+       PREVIEW as four full-width rows, burning most of a phone screen before
+       any queue content appeared. The three navigation links collapse behind
+       a single MENU button; SHOW PREVIEW stays out as the primary action, so
+       the whole header is one row. position: relative anchors the dropdown. */
+    body .admin-header-actions-col {
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        position: relative;
+    }
+    body .admin-mobile-menu-btn { display: inline-flex; }
+
+    /* Matches the .manga-select-options dropdown panel in editor.css - same
+       accent border + hard offset shadow, so this reads as the same component
+       family rather than a new one. */
+    body .admin-secondary-actions {
+        display: none;
+        position: absolute;
+        top: 100%;
+        right: 0;
+        margin-top: 0.5rem;
+        gap: 0;
+        align-items: stretch;
+        min-width: 180px;
+        background: #0a0a0a;
+        border: 2px solid var(--accent-blue);
+        border-top: 4px solid var(--accent-blue);
+        box-shadow: 8px 8px 0px var(--manga-shadow, #000);
+        z-index: 70;
+    }
+    body .admin-secondary-actions.open { display: flex; }
+
+    /* Inside the panel these stop being standalone buttons and become menu
+       rows - the individual borders/shadows/hover-lift would fight the panel's
+       own framing. */
+    .admin-secondary-actions .admin-hub-btn {
+        border: none;
+        border-bottom: 1px dashed #222;
+        box-shadow: none;
+        transform: none !important;
+        width: 100%;
+        margin: 0;
+        justify-content: flex-start;
+        text-align: left;
+        padding: 0.6rem 0.75rem;
+    }
+    .admin-secondary-actions .admin-hub-btn:last-child { border-bottom: none; }
 }
 
 /* --- HEADERS & NAV --- */
@@ -240,10 +338,18 @@
 .admin-subtitle { font-size: 0.7rem; color: var(--text-muted); }
 .admin-hub-btn { padding: 0.3rem 0.6rem; font-size: 0.65rem; }
 .admin-header-actions-col { display: flex; gap: 0.5rem; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+/* On desktop this wrapper is visually transparent - it reproduces exactly the
+   column-of-buttons the 3 links formed as direct children of
+   .admin-header-actions-col before they were grouped. It only becomes a real
+   (dropdown) container inside the mobile block further up this file. */
+.admin-secondary-actions { display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end; }
 /* Hidden by default; editor.css's #mobile-preview-toggle{display:block!important}
    (inside its existing @media max-width:900px block) reveals it - same
    mechanism edit.html already uses, just not previously wired up here. */
 .admin-mobile-preview-btn { display: none; font-size: 0.6rem; padding: 0.3rem; }
+/* Same default-hidden mechanism as .admin-mobile-preview-btn above, revealed
+   by this file's own mobile block - desktop never sees the MENU button. */
+.admin-mobile-menu-btn { display: none; font-size: 0.65rem; padding: 0.4rem 0.6rem; }
 .admin-sidebar-content { padding: 1.5rem; flex: 1; display: flex; flex-direction: column; }
 
 #preview-nav-sidebar { display: block; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px dashed #333; }

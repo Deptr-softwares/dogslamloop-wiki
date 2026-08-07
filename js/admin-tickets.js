@@ -156,6 +156,19 @@ async function postTicketMessage() {
 
     if (error) { adminAlert("Failed to send message: " + error.message); return; }
 
+    // Notify the author on the FIRST staff reply only - enough of a nudge to
+    // come look, without a notification per message once a real back-and-forth
+    // is under way. "First" = no prior message from anyone but the author.
+    const isAuthorsOwnTicket = rev.author_id === window.currentUserId;
+    const hadPriorStaffReply = currentChat.some(m => m.author !== rev.author_name);
+    if (!isAuthorsOwnTicket && !hadPriorStaffReply) {
+        await window.supabaseClient.from('user_notifications').insert([{
+            user_id: rev.author_id,
+            message: `Staff replied to the discussion on your "${rev.page_id.toUpperCase()}" revision.`,
+            link: 'submissions.html'
+        }]);
+    }
+
     rev.ticket_chat = newChat;
     // Previously missing the 4th (hasOpposed) argument, so the OPPOSE/REMOVE
     // OPPOSE button always reset to its default "OPPOSE" state after every

@@ -13,6 +13,8 @@ const PAGES = [
   { path: '/systems/tierlist/index.html', label: 'tierlist page (elevated)' },
   { path: '/systems/collaborators/index.html', label: 'locked page, not CMS-wired' },
   { path: '/systems/color-codes/index.html', label: 'locked page, no edit button in markup' },
+  { path: '/privacy-policy.html', label: 'privacy policy' },
+  { path: '/404.html', label: 'custom 404 page' },
 ];
 
 for (const { path, label } of PAGES) {

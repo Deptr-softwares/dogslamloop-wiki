@@ -406,6 +406,17 @@
 .contributors-header { display: flex; align-items: center; gap: 0.5rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.85rem; color: var(--text-white); text-transform: uppercase; border-bottom: 2px dashed var(--border-color); padding-bottom: 0.5rem; }
 .contributors-list { display: flex; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.25rem; }
 
+/* Sitewide footer (js/pagebuilder.js buildSiteFooter) - appended to <body>,
+   outside .site-layout, so it spans the full width below both sidebars rather
+   than sitting inside the content column. */
+.site-footer { border-top: 2px solid var(--border-color); background: var(--bg-main); padding: 1.5rem 2rem; margin-top: 2rem; }
+.site-footer-inner { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; max-width: 1000px; margin: 0 auto; font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); }
+.site-footer-link { color: var(--accent-blue); text-decoration: underline; }
+.site-footer-link:hover { color: var(--text-white); }
+/* Pushed to its own line on narrow screens by the flex-wrap above rather than
+   being hidden - it's the disclaimer, it should stay visible everywhere. */
+.site-footer-note { opacity: 0.7; }
+
 /* General Typography & Utility */
 .loading-msg { color: var(--text-muted); font-style: italic; margin: 0; }
 .wiki-block-heading { color: var(--text-white); font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; }

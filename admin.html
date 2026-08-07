@@ -42,9 +42,12 @@
                         <span class="editor-subtitle admin-subtitle">Moderation & Revision Queue</span>
                     </div>
                     <div class="admin-header-actions-col">
-                        <a id="owner-tools-link" href="owner.html" class="btn-sys btn-sys-regular admin-hub-btn hidden">OWNER TOOLS</a>
-                        <a href="recent-changes.html" class="btn-sys btn-sys-regular admin-hub-btn">RECENT CHANGES</a>
-                        <a href="index.html" class="btn-sys btn-sys-regular admin-hub-btn">HUB</a>
+                        <button id="admin-mobile-menu-toggle" class="btn-sys btn-sys-regular admin-mobile-menu-btn" onclick="window.toggleAdminMobileMenu()" aria-expanded="false">MENU ▾</button>
+                        <div id="admin-secondary-actions" class="admin-secondary-actions">
+                            <a id="owner-tools-link" href="owner.html" class="btn-sys btn-sys-regular admin-hub-btn hidden">OWNER TOOLS</a>
+                            <a href="recent-changes.html" class="btn-sys btn-sys-regular admin-hub-btn">RECENT CHANGES</a>
+                            <a href="index.html" class="btn-sys btn-sys-regular admin-hub-btn">HUB</a>
+                        </div>
                         <button id="mobile-preview-toggle" class="btn-sys btn-sys-blue admin-mobile-preview-btn" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
                     </div>
                 </div>

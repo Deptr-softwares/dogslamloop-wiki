@@ -1,6 +1,24 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.8",
+      "date": "07/08/2026",
+      "type": "site",
+      "title": "The 'Notifications Actually Work' update",
+      "description": "The inbox bell has never worked. It does now, so you'll finally hear back about the edits you submit. Plus the mod page is usable on a phone, and the site has a few pages it was missing.",
+      "changes": [
+        "The inbox bell in the sidebar now actually works — it has been showing 'No new messages' to everyone this whole time, no matter what. Every notification you were ever sent is still there and will show up now",
+        "You'll get told when your edit is approved or declined, when staff open a discussion on it, and when they first reply — no more checking back manually to find out",
+        "The little red dot for unread messages works too (it was reading from the wrong place and never appeared)",
+        "Marking a message as read now sticks instead of coming back unread next time",
+        "The moderation page is properly usable on a phone now — the discussion panel was squished into two tiny columns, one of the view buttons ran off the edge of the screen, and the header ate most of the screen before you could see anything",
+        "Long technical diffs no longer run off the side of the screen",
+        "Added a proper 404 page, so a broken link now lands somewhere with the menu still on it instead of a blank error",
+        "Added a footer with a privacy policy and the site's license",
+        "Behind the scenes: the site now tests itself automatically every time anything changes, so breakages get caught before they go live"
+      ]
+    },
+    {
       "version": "Beta v0.6",
       "date": "03/08/2026",
       "type": "site",

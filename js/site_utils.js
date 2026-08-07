@@ -690,6 +690,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+// Notification text is staff-authored free text (the approve/reject "Staff
+// Note" typed into admin.html's prompt, see js/admin-actions.js) and the link
+// is a stored string - neither is safe to drop straight into innerHTML. This
+// mattered the moment the modal below became reachable; before that it was a
+// dormant gap. Duplicated locally rather than imported: this file loads on
+// every page and has no dependency on admin-core.js, which owns the other
+// copy (same reasoning as js/history.js's own local copy).
+window.escapeHtml = function(str) {
+    return String(str === null || str === undefined ? '' : str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+};
+
 window.initNotifications = async function() {
     if (!window.supabaseClient) return;
     const { data: { session } } = await window.supabaseClient.auth.getSession();
@@ -717,23 +733,23 @@ window.initNotifications = async function() {
     let notifHTML = notifs.length === 0 
         ? `<div style="text-align: center; padding: 2.5rem; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.75rem;">Inbox is empty.</div>`
         : notifs.map(n => `
-            <div class="notif-item ${n.is_read ? 'read' : 'unread'}" id="notif-row-${n.id}"
-                 style="padding: 1rem 1.5rem; border-bottom: 1px dashed var(--border-color); background: ${n.is_read ? 'transparent' : 'rgba(59, 130, 246, 0.05)'}; cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden;" 
-                 onclick="markNotifRead('${n.id}', '${n.link || ''}')"
-                 onmouseover="this.style.background='rgba(255,255,255,0.05)'" 
+            <div class="notif-item ${n.is_read ? 'read' : 'unread'}" id="notif-row-${window.escapeHtml(n.id)}"
+                 data-notif-id="${window.escapeHtml(n.id)}" data-notif-link="${window.escapeHtml(n.link || '')}"
+                 style="padding: 1rem 1.5rem; border-bottom: 1px dashed var(--border-color); background: ${n.is_read ? 'transparent' : 'rgba(59, 130, 246, 0.05)'}; cursor: pointer; transition: all 0.2s ease; position: relative; overflow: hidden;"
+                 onmouseover="this.style.background='rgba(255,255,255,0.05)'"
                  onmouseout="this.style.background='${n.is_read ? 'transparent' : 'rgba(59, 130, 246, 0.05)'}'">
-                
+
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
                     <span style="font-size: 0.65rem; color: ${n.is_read ? 'var(--text-muted)' : 'var(--accent-blue)'}; font-family: var(--text-mono);">${new Date(n.created_at).toLocaleDateString()}</span>
-                    
+
                     <div style="display: flex; gap: 0.75rem; align-items: center;">
-                        ${!n.is_read ? `<span id="notif-dot-${n.id}" class="status-dot online" style="background: var(--accent-blue); color: var(--accent-blue); width: 8px; height: 8px;"></span>` : ''}
-                        <button onclick="deleteNotification('${n.id}', event)" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0; display:flex; transition:color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text-muted)'" title="Delete">
+                        ${!n.is_read ? `<span id="notif-dot-${window.escapeHtml(n.id)}" class="status-dot online" style="background: var(--accent-blue); color: var(--accent-blue); width: 8px; height: 8px;"></span>` : ''}
+                        <button data-notif-delete="${window.escapeHtml(n.id)}" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0; display:flex; transition:color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text-muted)'" title="Delete">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                         </button>
                     </div>
                 </div>
-                <p style="margin: 0; font-size: 0.85rem; color: ${n.is_read ? 'var(--text-primary)' : 'var(--text-white)'}; line-height: 1.5; padding-right: 1rem;">${n.message}</p>
+                <p style="margin: 0; font-size: 0.85rem; color: ${n.is_read ? 'var(--text-primary)' : 'var(--text-white)'}; line-height: 1.5; padding-right: 1rem;">${window.escapeHtml(n.message)}</p>
             </div>
         `).join('');
 
@@ -754,6 +770,34 @@ window.initNotifications = async function() {
             </div>
         </div>
     `;
+
+    // Delegated rather than inline onclick handlers: the row id/link are
+    // stored values, and building them into an onclick="" attribute makes the
+    // attribute itself an injection surface that HTML-escaping alone doesn't
+    // close (the browser unescapes before the JS parser ever sees it).
+    modal.onclick = (event) => {
+        const deleteBtn = event.target.closest('[data-notif-delete]');
+        if (deleteBtn) {
+            window.deleteNotification(deleteBtn.getAttribute('data-notif-delete'), event);
+            return;
+        }
+        const row = event.target.closest('[data-notif-id]');
+        if (row) {
+            window.markNotifRead(row.getAttribute('data-notif-id'), row.getAttribute('data-notif-link'));
+        }
+    };
+};
+
+// The dock's inbox button is built by js/pagebuilder.js's initAuthDock, which
+// runs BEFORE initNotifications in this file's own DOMContentLoaded handler -
+// so rather than depending on load order, re-fetch on every open. That also
+// means the list is always current instead of a page-load snapshot.
+window.openNotificationModal = async function() {
+    if (typeof window.initNotifications === 'function') {
+        await window.initNotifications();
+    }
+    const modal = document.getElementById('site-notification-modal');
+    if (modal) modal.classList.remove('hidden');
 };
 
 window.markNotifRead = async function(id, link) {
@@ -818,7 +862,10 @@ window.clearAllNotifications = async function() {
     if (!confirm("Are you sure you want to clear your entire inbox?")) return;
     
     // 1. Optimistic UI Wipe
-    const body = document.querySelector('#site-notification-modal .auth-body');
+    // .modal-body, not .auth-body - the modal this targets is built above with
+    // .modal-body, so the old selector never matched and the wipe silently did
+    // nothing (invisible until the modal became reachable at all).
+    const body = document.querySelector('#site-notification-modal .modal-body');
     const clearBtn = document.querySelector('#site-notification-modal button[onclick="clearAllNotifications()"]');
     
     if (body) {
