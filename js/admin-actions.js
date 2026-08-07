@@ -158,8 +158,21 @@ async function openTicketCurrentPreview() {
     if(!window.activePreviewRevId) return;
     if(!(await adminConfirm("Open a discussion ticket for this revision?"))) return;
 
+    const revData = window.currentQueueData.find(r => r.id === window.activePreviewRevId);
+
     // Update the database
     await window.supabaseClient.from('pending_revisions').update({ status: 'ticket_open' }).eq('id', window.activePreviewRevId);
+
+    // Until v0.8 nothing told the author a ticket had been opened - approve
+    // and reject were the only events that ever notified, so a submission
+    // could sit under discussion indefinitely with the author unaware.
+    if (revData && revData.author_id !== window.currentUserId) {
+        await window.supabaseClient.from('user_notifications').insert([{
+            user_id: revData.author_id,
+            message: `Staff opened a discussion on your "${revData.page_id.toUpperCase()}" revision. Check My Submissions to follow along.`,
+            link: 'submissions.html'
+        }]);
+    }
 
     // Silently reload the queue to update the badges in the background
     await loadQueue();

@@ -228,7 +228,11 @@ window.initAuthDock = async function() {
                 const { data: roleData } = await window.supabaseClient.from('user_roles').select('role').eq('user_id', session.user.id).single();
                 if (roleData) userRole = roleData.role;
                 
-                const { count } = await window.supabaseClient.from('system_inbox').select('*', { count: 'exact', head: true }).eq('recipient_id', session.user.id).eq('is_read', false);
+                // user_notifications, not system_inbox - the latter has no
+                // migration and has never existed, so this count was always 0
+                // and the badge never appeared no matter how many real
+                // notifications were waiting.
+                const { count } = await window.supabaseClient.from('user_notifications').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('is_read', false);
                 unreadCount = count || 0;
             }
         } catch (e) { console.warn("Auth sync skipped."); }
@@ -331,49 +335,15 @@ window.initAuthDock = async function() {
     const btnAuth = document.getElementById('dock-btn-auth');
     if (btnAuth && typeof window.openAuthModal === 'function') btnAuth.onclick = window.openAuthModal;
 
+    // Opens the real inbox modal built by js/site_utils.js's initNotifications.
+    // This used to build a second modal here, with the same literal
+    // id="site-notification-modal", reading the nonexistent system_inbox table -
+    // so the bell always reported an empty inbox while the working
+    // user_notifications data sat behind a modal nothing ever opened.
     const btnInbox = document.getElementById('dock-btn-inbox');
     if (btnInbox) {
-        btnInbox.onclick = async () => { 
-            const modalHtml = `
-                <div id="site-notification-modal" class="modal-overlay">
-                    <div class="modal-box modal-md accent-blue">
-                        <div class="modal-header"><h3>SYSTEM INBOX</h3></div>
-                        <div class="modal-body" id="inbox-dynamic-body"><p class='loading-msg'>Fetching messages...</p></div>
-                        <div class="modal-footer">
-                            <button id="close-inbox-btn" class="btn-sys btn-sys-regular">CLOSE</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-            document.getElementById('close-inbox-btn').onclick = () => document.getElementById('site-notification-modal').remove();
-
-            if (window.supabaseClient) {
-                const { data: { user } } = await window.supabaseClient.auth.getUser();
-                if (user) {
-                    const { data: messages } = await window.supabaseClient.from('system_inbox').select('*').eq('recipient_id', user.id).order('created_at', { ascending: false });
-                    if (!messages || messages.length === 0) {
-                        document.getElementById('inbox-dynamic-body').innerHTML = "<p class='loading-msg'>No new messages.</p>";
-                    } else {
-                        let msgsHtml = `<div class="space-y-2">`;
-                        messages.forEach(m => {
-                            const bg = m.is_read ? 'transparent' : 'rgba(59, 130, 246, 0.1)';
-                            const border = m.is_read ? 'var(--border-color)' : 'var(--accent-blue)';
-                            msgsHtml += `
-                                <div class="inbox-message-card" style="--inbox-msg-bg: ${bg}; --inbox-msg-border: ${border};">
-                                    <div class="inbox-message-date">${new Date(m.created_at).toLocaleDateString()}</div>
-                                    <div class="inbox-message-text">${m.message}</div>
-                                </div>
-                            `;
-                        });
-                        msgsHtml += `</div>`;
-                        document.getElementById('inbox-dynamic-body').innerHTML = msgsHtml;
-                        await window.supabaseClient.from('system_inbox').update({ is_read: true }).eq('recipient_id', user.id);
-                        const badge = document.querySelector('#dock-btn-inbox .dock-badge');
-                        if (badge) badge.remove();
-                    }
-                }
-            }
+        btnInbox.onclick = () => {
+            if (typeof window.openNotificationModal === 'function') window.openNotificationModal();
         };
     }
 };
