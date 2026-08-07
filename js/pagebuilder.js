@@ -717,3 +717,39 @@ window.loadPageAlerts = async function(pageId) {
         console.error("Failed to load page alerts:", e);
     }
 };
+
+// ==========================================
+// 6. SITEWIDE FOOTER
+// ==========================================
+
+// Injected rather than duplicated into 41 HTML files. The .site-layout guard
+// is what keeps it off edit.html/admin.html/owner.html: those three are the
+// only pages without that wrapper, and they load editor.css, whose
+// unconditional `body { overflow: hidden }` means anything appended to <body>
+// there could never be scrolled to anyway.
+window.buildSiteFooter = function() {
+    if (document.getElementById('site-footer')) return;
+    if (!document.querySelector('.site-layout')) return;
+
+    const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : './';
+
+    const footer = document.createElement('footer');
+    footer.id = 'site-footer';
+    footer.className = 'site-footer';
+    footer.innerHTML = `
+        <div class="site-footer-inner">
+            <span class="site-footer-copy">&copy; ${new Date().getFullYear()} Deptr</span>
+            <a href="${rootPath}privacy-policy.html" class="site-footer-link">Privacy Policy</a>
+            <a href="${rootPath}LICENSE" class="site-footer-link">License (MIT)</a>
+            <span class="site-footer-note">A fan-made wiki. Not affiliated with the game's developers.</span>
+        </div>
+    `;
+    document.body.appendChild(footer);
+};
+
+// This file's functions are otherwise all called explicitly by each page's own
+// inline script. The footer self-fires instead, matching site_utils.js's own
+// listener, so it lands everywhere without editing every page.
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof window.buildSiteFooter === 'function') window.buildSiteFooter();
+});
