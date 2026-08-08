@@ -422,6 +422,22 @@
    template was doing inline, so both templates were always meant to look the
    same here and the router just uses the class for both. */
 
+/* Site posts (blog + hotfix notes, js/posts.js). Post bodies reuse the wiki's
+   own .wiki-section block styling, so only the listing card and post header
+   need rules of their own. */
+.post-card { border: 2px solid var(--border-color); background: var(--bg-main); box-shadow: 6px 6px 0px var(--manga-shadow); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+.post-card-link { text-decoration: none; }
+.post-card-title { font-family: 'CC-Wild-Words', sans-serif; color: var(--text-white); margin: 0 0 0.5rem 0; font-size: 1.1rem; }
+.post-card-link:hover .post-card-title { color: var(--accent-blue); }
+.post-card-meta, .post-meta { display: flex; flex-wrap: wrap; gap: 1rem; font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); }
+.post-card-summary { margin: 0.75rem 0 0 0; color: var(--text-primary); line-height: 1.6; }
+.post-header { border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.post-title { font-family: 'CC-Wild-Words', sans-serif; color: var(--text-white); margin: 0 0 0.5rem 0; }
+.post-error { color: #ef4444; }
+/* Distinguishes a hotfix note from a versioned release entry in the Update
+   Log, where the two are deliberately interleaved. */
+.badge-hotfix { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid #eab308; }
+
 /* Sitewide footer (js/pagebuilder.js buildSiteFooter) - appended to <body>,
    outside .site-layout, so it spans the full width below both sidebars rather
    than sitting inside the content column. */

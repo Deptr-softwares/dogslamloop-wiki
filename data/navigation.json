@@ -359,6 +359,12 @@
       "cms_config": { "pageType": "system", "pageId": "updatelog", "editRole": "locked" }
     },
     {
+      "id": "blog",
+      "name": "Blog",
+      "url": "blog.html",
+      "cms_config": { "pageType": "hub", "pageId": "blog", "editRole": "locked" }
+    },
+    {
       "id": "recent-changes",
       "name": "Recent Changes",
       "url": "recent-changes.html",

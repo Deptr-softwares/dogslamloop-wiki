@@ -14,6 +14,7 @@ const PAGES = [
   { path: '/systems/collaborators/index.html', label: 'locked page, not CMS-wired' },
   { path: '/systems/color-codes/index.html', label: 'locked page, no edit button in markup' },
   { path: '/privacy-policy.html', label: 'privacy policy' },
+  { path: '/blog.html', label: 'blog' },
   { path: '/404.html', label: 'custom 404 page' },
 ];
 

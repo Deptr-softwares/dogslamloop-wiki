@@ -75,6 +75,12 @@
 
             <div id="character-alerts-container" class="character-alerts-container"></div>
 
+            <!-- Hotfix notes (js/posts.js, site_posts kind='hotfix'): small
+                 site changes that don't warrant a version bump. Above the
+                 versioned entries because they're the most recent news;
+                 renders nothing at all when there are none. -->
+            <div id="hotfix-container" class="space-y-4"></div>
+
             <!-- DYNAMIC INJECTION TARGET -->
             <div id="changelog-container">
                 <p class="loading-msg">Loading update logs...</p>
@@ -100,6 +106,11 @@
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
     <script src="../../js/home_widgets.js"></script>
+    <!-- description.js + internalstyling.js are needed here (unlike on the
+         homepage) because hotfix notes render their full block content. -->
+    <script src="../../js/description.js"></script>
+    <script src="../../js/internalstyling.js"></script>
+    <script src="../../js/posts.js"></script>
 
     <!-- DYNAMIC FETCH & RENDER SCRIPT -->
     <script>
@@ -112,6 +123,10 @@
             if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
 
             if (typeof window.loadPageAlerts === 'function') await window.loadPageAlerts('updatelog');
+
+            // Fired without await: hotfix notes are supplementary, and the
+            // versioned changelog below should never wait on them.
+            if (typeof window.loadHotfixPosts === 'function') window.loadHotfixPosts('hotfix-container');
 
             // --- V0.4 UPDATE LOG RENDERING ENGINE ---
             const container = document.getElementById('changelog-container');

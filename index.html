@@ -142,6 +142,19 @@
                     </div>
                 </section>
 
+                <section class="wiki-section main-dashboard" id="blog-section">
+                    <div class="dashboard-header-split">
+                        <h2 class="section-title section-title-clean m-0">From the Blog</h2>
+                        <a href="blog.html" class="btn-manga m-0" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">
+                            View All
+                        </a>
+                    </div>
+
+                    <div id="home-blog-posts" class="space-y-4">
+                        <p class="loading-msg">Fetching latest posts...</p>
+                    </div>
+                </section>
+
                 <section class="wiki-section">
                     <div class="dashboard-header-split">
                         <h2 class="section-title section-title-clean m-0">Game Info</h2>
@@ -264,6 +277,10 @@
     <script src="js/site_utils.js"></script>
     <script src="js/home_widgets.js"></script>
     <script src="js/pagebuilder.js"></script>
+    <!-- The homepage widget lists posts only (escaped title/summary/date), so
+         it needs neither description.js nor internalstyling.js - those are
+         only required where a post's block content is actually rendered. -->
+    <script src="js/posts.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -273,6 +290,7 @@
 
             // 2. Fire all async builders concurrently
             if (window.loadUpdateLogs) loadUpdateLogs('site-updates-dashboard', 2);
+            if (window.loadPostList) window.loadPostList('home-blog-posts', { kind: 'blog', limit: 2, emptyMessage: 'No posts yet.' });
             if (window.loadFAQ) loadFAQ('faq-dynamic-container');
             if (window.buildGlobalSidebarMenu) window.buildGlobalSidebarMenu('global-sidebar-nav');
             if (window.initAuthDock) window.initAuthDock();
