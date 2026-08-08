@@ -101,7 +101,10 @@ async function approveCurrentPreview() {
     const pageUrl = window.buildPageUrl(revData.page_id, revData.page_type);
 
     // Update Notification to include the Staff Note
-    await window.supabaseClient.from('user_notifications').insert([{
+    // author_id is NULL when the author's account has been anonymized -
+    // there is nobody left to notify, and the insert would violate
+    // user_notifications.user_id's foreign key.
+    if (revData.author_id) await window.supabaseClient.from('user_notifications').insert([{
         user_id: revData.author_id,
         message: `Your revision for "${revData.page_id.toUpperCase()}" has been approved! Staff Note: "${finalNote}"`,
         link: pageUrl
@@ -143,7 +146,8 @@ async function rejectCurrentPreview() {
 
     const pageUrl = window.buildPageUrl(revData.page_id, revData.page_type);
 
-    await window.supabaseClient.from('user_notifications').insert([{
+    // Skipped for an anonymized author - see the approve path above.
+    if (revData.author_id) await window.supabaseClient.from('user_notifications').insert([{
         user_id: revData.author_id,
         message: `Your revision for "${revData.page_id.toUpperCase()}" was declined. Staff Note: "${finalReason}"`,
         link: pageUrl
@@ -166,7 +170,7 @@ async function openTicketCurrentPreview() {
     // Until v0.8 nothing told the author a ticket had been opened - approve
     // and reject were the only events that ever notified, so a submission
     // could sit under discussion indefinitely with the author unaware.
-    if (revData && revData.author_id !== window.currentUserId) {
+    if (revData && revData.author_id && revData.author_id !== window.currentUserId) {
         await window.supabaseClient.from('user_notifications').insert([{
             user_id: revData.author_id,
             message: `Staff opened a discussion on your "${revData.page_id.toUpperCase()}" revision. Check My Submissions to follow along.`,

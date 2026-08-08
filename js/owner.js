@@ -55,6 +55,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (el) el.addEventListener('input', updateNewPagePreview);
     });
 
+    // Changing category changes which pages the new one can sit after.
+    const categoryEl = document.getElementById('new-page-category');
+    if (categoryEl) categoryEl.addEventListener('change', populatePositionOptions);
+
     await loadPersonnel();
     await loadSitePages();
     await loadPagePermissions();
@@ -268,7 +272,7 @@ async function loadSitePages() {
     if (!container) return;
 
     const { data, error } = await window.supabaseClient
-        .from('site_pages').select('page_id, name, url, category, page_type, status').order('category').order('sort_order');
+        .from('site_pages').select('page_id, name, url, category, page_type, status, sort_order').order('category').order('sort_order');
 
     if (error) {
         const notDeployed = error.code === 'PGRST205' || /schema cache/i.test(error.message || '');
@@ -291,6 +295,8 @@ async function loadSitePages() {
                 <span class="page-row-path">${ownerEscape(page.url)}</span>
             </div>
             <div class="personnel-row-actions">
+                <button class="btn-sys btn-sys-regular page-move-btn" data-page="${ownerEscape(page.page_id)}" data-dir="up" title="Move up">▲</button>
+                <button class="btn-sys btn-sys-regular page-move-btn" data-page="${ownerEscape(page.page_id)}" data-dir="down" title="Move down">▼</button>
                 ${page.status === 'archived'
                     ? `<button class="btn-sys btn-sys-green page-restore-btn" data-page="${ownerEscape(page.page_id)}">RESTORE</button>`
                     : `<button class="btn-sys btn-sys-yellow page-archive-btn" data-page="${ownerEscape(page.page_id)}">ARCHIVE</button>`}
@@ -304,8 +310,116 @@ async function loadSitePages() {
     container.querySelectorAll('.page-restore-btn').forEach(btn => {
         btn.addEventListener('click', () => setPageStatus(btn.dataset.page, 'live'));
     });
+    container.querySelectorAll('.page-move-btn').forEach(btn => {
+        btn.addEventListener('click', () => movePage(btn.dataset.page, btn.dataset.dir));
+    });
+
+    cachedSitePages = data;
+    populatePositionOptions();
 }
 window.loadSitePages = loadSitePages;
+
+// Kept so the position dropdown and the move buttons can reason about
+// neighbours without re-querying on every keystroke.
+let cachedSitePages = [];
+
+// Order within a category is sort_order, and the site's character list is
+// meaningful rather than alphabetical - it mirrors in-game release order,
+// full characters before base-only ones. So a new page frequently belongs in
+// the middle, not at the end.
+function populatePositionOptions() {
+    const select = document.getElementById('new-page-position');
+    const category = document.getElementById('new-page-category');
+    if (!select || !category) return;
+
+    const siblings = cachedSitePages.filter(p => p.category === category.value);
+    const current = select.value;
+
+    select.innerHTML = `<option value="">At the end of the category</option>`
+        + siblings.map(p => `<option value="${ownerEscape(p.page_id)}">After: ${ownerEscape(p.name)}</option>`).join('');
+
+    // Preserve the choice across a re-render if it is still valid.
+    if (current && siblings.some(p => p.page_id === current)) select.value = current;
+}
+
+/**
+ * Works out the sort_order for a page being inserted after `afterPageId`.
+ *
+ * sort_order is spaced by 10 so there is normally room to slot between two
+ * neighbours. When there is not - repeated insertions in the same spot
+ * eventually close the gap - the whole category is renumbered back to clean
+ * spacing first. Returning a fractional or duplicate value instead would
+ * quietly corrupt the ordering.
+ */
+async function resolveSortOrder(category, afterPageId) {
+    const siblings = cachedSitePages
+        .filter(p => p.category === category)
+        .sort((a, b) => a.sort_order - b.sort_order);
+
+    if (!afterPageId) {
+        const last = siblings[siblings.length - 1];
+        return { sortOrder: (last ? last.sort_order : -10) + 10, renumbered: false };
+    }
+
+    const idx = siblings.findIndex(p => p.page_id === afterPageId);
+    if (idx === -1) {
+        const last = siblings[siblings.length - 1];
+        return { sortOrder: (last ? last.sort_order : -10) + 10, renumbered: false };
+    }
+
+    const before = siblings[idx];
+    const after = siblings[idx + 1];
+
+    if (!after) return { sortOrder: before.sort_order + 10, renumbered: false };
+
+    const gap = after.sort_order - before.sort_order;
+    if (gap > 1) {
+        return { sortOrder: before.sort_order + Math.floor(gap / 2), renumbered: false };
+    }
+
+    // No room. Renumber the category to 0,10,20,... then insert into the
+    // freshly-created gap.
+    for (let i = 0; i < siblings.length; i++) {
+        const desired = i * 10;
+        if (siblings[i].sort_order !== desired) {
+            await window.supabaseClient.from('site_pages')
+                .update({ sort_order: desired }).eq('page_id', siblings[i].page_id);
+            siblings[i].sort_order = desired;
+        }
+    }
+    return { sortOrder: idx * 10 + 5, renumbered: true };
+}
+
+// Swaps a page with its neighbour. Simpler to reason about than recomputing
+// the whole category, and it is the operation people actually want after
+// realising something is one slot out of place.
+async function movePage(pageId, direction) {
+    const results = document.getElementById('pages-results');
+    const page = cachedSitePages.find(p => p.page_id === pageId);
+    if (!page) return;
+
+    const siblings = cachedSitePages
+        .filter(p => p.category === page.category)
+        .sort((a, b) => a.sort_order - b.sort_order);
+
+    const idx = siblings.findIndex(p => p.page_id === pageId);
+    const swapWith = direction === 'up' ? siblings[idx - 1] : siblings[idx + 1];
+    if (!swapWith) return;
+
+    results.innerHTML = 'Reordering...';
+
+    const a = window.supabaseClient.from('site_pages').update({ sort_order: swapWith.sort_order }).eq('page_id', page.page_id);
+    const b = window.supabaseClient.from('site_pages').update({ sort_order: page.sort_order }).eq('page_id', swapWith.page_id);
+    const [{ error: errA }, { error: errB }] = await Promise.all([a, b]);
+
+    if (errA || errB) {
+        results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape((errA || errB).message)}</span>`;
+        return;
+    }
+
+    results.innerHTML = `<span class="owner-success-text">Moved "${ownerEscape(page.name)}". Menus update after the next regeneration run.</span>`;
+    await loadSitePages();
+}
 
 async function setPageStatus(pageId, status) {
     const results = document.getElementById('pages-results');
@@ -348,11 +462,11 @@ async function createSitePage() {
 
     results.innerHTML = 'Creating...';
 
-    // sort_order goes to the end of its category. Spaced by 10 like the seed,
-    // so the page can be moved between two others later without renumbering.
-    const { data: siblings } = await window.supabaseClient
-        .from('site_pages').select('sort_order').eq('category', category).order('sort_order', { ascending: false }).limit(1);
-    const nextOrder = (siblings && siblings[0] ? siblings[0].sort_order : -10) + 10;
+    // Position matters: the character list mirrors in-game release order
+    // (full characters, then base-only), so a new page often belongs in the
+    // middle rather than at the end.
+    const afterPageId = document.getElementById('new-page-position').value;
+    const { sortOrder: nextOrder } = await resolveSortOrder(category, afterPageId);
 
     const { error } = await window.supabaseClient.from('site_pages').insert([{
         page_id: identity.pageId,
@@ -521,6 +635,50 @@ async function removePagePermission(pageId) {
     results.innerHTML = `<span class="owner-success-text">"${ownerEscape(pageId)}" is no longer restricted.</span>`;
     await loadPagePermissions();
 }
+
+// --- ACCOUNT DELETION (ANONYMIZE) ---
+// Owner-confirmed semantics: the account and email go, past edits stay and
+// are re-attributed. See 20260808000004_anonymize_user.sql - a plain delete
+// is impossible anyway, because pending_revisions.author_id's foreign key has
+// no ON DELETE clause and blocks it.
+
+async function anonymizeAccount() {
+    const input = document.getElementById('delete-account-email');
+    const results = document.getElementById('delete-account-results');
+    const email = input.value.trim();
+
+    if (!email) {
+        results.innerHTML = `<span class="admin-error-text">Enter the account's email address.</span>`;
+        return;
+    }
+
+    // Deliberately spells out what survives. The failure mode to avoid is an
+    // admin expecting a full erasure and being surprised later that the
+    // contributor's edits are still on the wiki under a placeholder.
+    const confirmed = await adminConfirm(
+        `Delete the account for ${email}?\n\n` +
+        `The account and email are removed permanently. Their past edits stay on the wiki, ` +
+        `shown as "Deleted user". This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    results.innerHTML = 'Deleting...';
+
+    const { data, error } = await window.supabaseClient.rpc('anonymize_user_by_email', { target_email: email });
+
+    if (error) {
+        const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
+        results.innerHTML = notDeployed
+            ? `<span class="admin-error-text">Account deletion isn't available yet - the database function hasn't been deployed. It arrives with the next migration.</span>`
+            : `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`;
+        return;
+    }
+
+    results.innerHTML = `<span class="owner-success-text">${ownerEscape(data)}</span>`;
+    input.value = '';
+    await loadPersonnel();
+}
+window.anonymizeAccount = anonymizeAccount;
 
 // --- MEDIA GARBAGE COLLECTION ---
 async function runGarbageCollector() {

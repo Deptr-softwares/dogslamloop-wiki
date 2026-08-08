@@ -6,9 +6,14 @@
 // a stub on the next regeneration run.
 const { test, expect } = require('@playwright/test');
 
+// sort_order mirrors the live seed's spacing of 10. The character list is
+// ordered by in-game release - full characters first, then base-only ones -
+// so inserting in the middle is the normal case, not an edge case.
 const PAGES = [
-  { page_id: 'boomcat', name: 'Boomcat', url: 'characters/Boomcat/index.html', category: 'Characters', page_type: 'character', status: 'live' },
-  { page_id: 'old_thing', name: 'Old Thing', url: 'systems/old-thing/index.html', category: 'Guides', page_type: 'system', status: 'archived' },
+  { page_id: 'vessel', name: 'Vessel', url: 'characters/Vessel/index.html', category: 'Characters', page_type: 'character', status: 'live', sort_order: 0 },
+  { page_id: 'boomcat', name: 'Boomcat', url: 'characters/Boomcat/index.html', category: 'Characters', page_type: 'character', status: 'live', sort_order: 10 },
+  { page_id: 'locust_guy', name: 'Locust Guy', url: 'characters/Locust_guy/index.html', category: 'Characters', page_type: 'character', status: 'live', sort_order: 20 },
+  { page_id: 'old_thing', name: 'Old Thing', url: 'systems/old-thing/index.html', category: 'Guides', page_type: 'system', status: 'archived', sort_order: 0 },
 ];
 
 async function mockPages(page, { rows = PAGES, insertError = null } = {}) {
@@ -119,7 +124,7 @@ test('creating a page inserts a complete registry row', async ({ page }) => {
   // New pages start flagged WIP rather than presenting an empty page as
   // finished, and land at the end of their category.
   expect(row.is_wip).toBe(true);
-  expect(row.sort_order).toBe(100);
+  expect(row.sort_order).toBe(30);
 });
 
 test('the create form previews the URL before you commit to it', async ({ page }) => {
@@ -167,4 +172,102 @@ test('an archived page offers restore instead of archive', async ({ page }) => {
   const row = page.locator('#pages-list .personnel-row').filter({ hasText: 'Old Thing' });
   await expect(row.locator('.page-restore-btn')).toBeVisible();
   await expect(row.locator('.page-archive-btn')).toHaveCount(0);
+});
+
+// --- ORDERING ---
+// The character list is not alphabetical: it mirrors in-game release order,
+// full characters before base-only ones. So releasing a new full character
+// means inserting it between the last full character and the first base-only
+// one - the middle, not the end.
+
+test('a new page can be inserted after a chosen sibling, not just appended', async ({ page }) => {
+  await mockPages(page);
+  await page.goto('/owner.html', { waitUntil: 'networkidle' });
+
+  // Slot the new character in after Vessel (0), before Boomcat (10).
+  await page.fill('#new-page-name', 'Crow Charmer');
+  await page.selectOption('#new-page-position', 'vessel');
+  await page.click('#btn-create-page');
+  await page.locator('#btn-admin-confirm-ok').click();
+  await page.waitForTimeout(300);
+
+  const writes = await page.evaluate(() => window.__pageWrites.filter(w => w.op === 'insert'));
+  const row = writes[0].payload[0];
+  // Midpoint of the 0/10 gap, so it sorts between them.
+  expect(row.sort_order).toBeGreaterThan(0);
+  expect(row.sort_order).toBeLessThan(10);
+});
+
+test('the position dropdown lists only siblings in the chosen category', async ({ page }) => {
+  await mockPages(page);
+  await page.goto('/owner.html', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(300);
+
+  let values = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('#new-page-position option')).map(o => o.value));
+  expect(values).toContain('vessel');
+  expect(values).toContain('boomcat');
+  // Old Thing is in Guides, not Characters.
+  expect(values).not.toContain('old_thing');
+
+  await page.selectOption('#new-page-category', 'Guides');
+  await page.waitForTimeout(200);
+  values = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('#new-page-position option')).map(o => o.value));
+  expect(values).toContain('old_thing');
+  expect(values).not.toContain('vessel');
+});
+
+test('an exhausted gap renumbers the category instead of colliding', async ({ page }) => {
+  // Repeated insertions in the same spot eventually close the gap. Returning
+  // a duplicate or fractional sort_order there would quietly corrupt the
+  // ordering, so the category is respaced first.
+  await mockPages(page, {
+    rows: [
+      { page_id: 'a', name: 'A', url: 'characters/A/index.html', category: 'Characters', page_type: 'character', status: 'live', sort_order: 0 },
+      { page_id: 'b', name: 'B', url: 'characters/B/index.html', category: 'Characters', page_type: 'character', status: 'live', sort_order: 1 },
+    ],
+  });
+  await page.goto('/owner.html', { waitUntil: 'networkidle' });
+
+  await page.fill('#new-page-name', 'Between');
+  await page.selectOption('#new-page-position', 'a');
+  await page.click('#btn-create-page');
+  await page.locator('#btn-admin-confirm-ok').click();
+  await page.waitForTimeout(400);
+
+  const writes = await page.evaluate(() => window.__pageWrites);
+  const renumbers = writes.filter(w => w.op === 'update' && w.payload.sort_order !== undefined);
+  const insert = writes.find(w => w.op === 'insert');
+
+  // B moves from 1 to 10, opening a real gap, and the new page lands inside it.
+  expect(renumbers.length).toBeGreaterThan(0);
+  expect(insert.payload[0].sort_order).toBe(5);
+});
+
+test('move up swaps a page with its neighbour', async ({ page }) => {
+  await mockPages(page);
+  await page.goto('/owner.html', { waitUntil: 'networkidle' });
+
+  const row = page.locator('#pages-list .personnel-row').filter({ hasText: 'Boomcat' });
+  await row.locator('.page-move-btn[data-dir="up"]').click();
+  await page.waitForTimeout(400);
+
+  const writes = await page.evaluate(() => window.__pageWrites.filter(w => w.op === 'update'));
+  // Boomcat (10) and Vessel (0) exchange positions.
+  expect(writes).toHaveLength(2);
+  const byPage = Object.fromEntries(writes.map(w => [w.val, w.payload.sort_order]));
+  expect(byPage.boomcat).toBe(0);
+  expect(byPage.vessel).toBe(10);
+});
+
+test('move does nothing at the boundaries', async ({ page }) => {
+  await mockPages(page);
+  await page.goto('/owner.html', { waitUntil: 'networkidle' });
+
+  // Vessel is first in Characters - there is nothing above it.
+  const first = page.locator('#pages-list .personnel-row').filter({ hasText: 'Vessel' });
+  await first.locator('.page-move-btn[data-dir="up"]').click();
+  await page.waitForTimeout(300);
+  expect(await page.evaluate(() => window.__pageWrites.filter(w => w.op === 'update'))).toHaveLength(0);
 });

@@ -106,6 +106,10 @@
                             <option value="Guides">Category: Guides</option>
                             <option value="Site Info">Category: Site Info</option>
                         </select>
+                        <label class="block-field-label-sm" for="new-page-position">POSITION</label>
+                        <select id="new-page-position" class="editor-input admin-input-full select">
+                            <option value="">At the end of the category</option>
+                        </select>
                         <p id="new-page-preview" class="admin-tool-hint"></p>
                         <button id="btn-create-page" onclick="createSitePage()" class="btn-sys btn-sys-green admin-tool-btn">CREATE PAGE</button>
                     </div>
@@ -135,6 +139,18 @@
                     </div>
 
                     <div id="permission-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-account-deletion" class="update-log-item admin-tool-card gc">
+                    <h3 class="update-title admin-tool-title gc">Delete an Account</h3>
+                    <p class="admin-tool-hint">
+                        Removes the account and its email address. Their past edits stay on the wiki,
+                        re-attributed to "Deleted user", so page history doesn't break.
+                        This can't be undone.
+                    </p>
+                    <input type="email" id="delete-account-email" placeholder="user@email.com" class="editor-input admin-input-full">
+                    <button id="btn-delete-account" onclick="anonymizeAccount()" class="btn-sys btn-sys-red admin-tool-btn gc">DELETE ACCOUNT</button>
+                    <div id="delete-account-results" class="admin-tool-results"></div>
                 </section>
 
                 <section id="tool-media-gc" class="update-log-item admin-tool-card gc">

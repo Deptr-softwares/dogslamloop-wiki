@@ -159,9 +159,12 @@ async function postTicketMessage() {
     // Notify the author on the FIRST staff reply only - enough of a nudge to
     // come look, without a notification per message once a real back-and-forth
     // is under way. "First" = no prior message from anyone but the author.
+    // author_id is NULL once an author's account has been anonymized - there
+    // is nobody left to notify, and the insert would violate
+    // user_notifications.user_id's foreign key.
     const isAuthorsOwnTicket = rev.author_id === window.currentUserId;
     const hadPriorStaffReply = currentChat.some(m => m.author !== rev.author_name);
-    if (!isAuthorsOwnTicket && !hadPriorStaffReply) {
+    if (rev.author_id && !isAuthorsOwnTicket && !hadPriorStaffReply) {
         await window.supabaseClient.from('user_notifications').insert([{
             user_id: rev.author_id,
             message: `Staff replied to the discussion on your "${rev.page_id.toUpperCase()}" revision.`,
