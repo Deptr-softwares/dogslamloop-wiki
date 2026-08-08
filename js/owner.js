@@ -49,7 +49,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Lets loadPersonnel mark the signed-in admin and enforce the
     // self-demotion guard without a second lookup.
     currentAdminUserId = session.user.id;
+
+    ['new-page-name', 'new-page-type'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateNewPagePreview);
+    });
+
     await loadPersonnel();
+    await loadSitePages();
     await loadPagePermissions();
 });
 
@@ -215,6 +222,167 @@ async function changeUserRole() {
     await applyRoleChange(email, newRole || '');
     document.getElementById('target-email').value = '';
 }
+
+// --- PAGES ---
+// site_pages is the registry data/navigation.json is generated from
+// (20260808000003_site_pages.sql). Creating a page here is an insert; the
+// regeneration workflow turns it into a nav entry and a stub file.
+//
+// Archiving rather than deleting is the default on purpose: an archived page
+// keeps a tombstone stub so existing links and Discord embeds resolve instead
+// of 404ing, and it simply stops appearing in menus.
+
+const STATUS_LABELS = { live: 'Live', draft: 'Draft', archived: 'Archived' };
+
+// Mirrors js/site_utils.js's buildPageUrl and the folder convention the
+// generator expects: characters/Capitalized_snake/, systems/lower-slug/.
+function derivePageIdentity(name, pageType) {
+    const pageId = String(name || '').toLowerCase().trim()
+        .replace(/[^\w\s-]/g, '').replace(/[\s-]+/g, '_').replace(/^_|_$/g, '');
+    if (!pageId) return null;
+
+    const folder = pageType === 'character'
+        ? pageId.charAt(0).toUpperCase() + pageId.slice(1)
+        : pageId.replace(/_/g, '-');
+    const url = pageType === 'character'
+        ? `characters/${folder}/index.html`
+        : `systems/${folder}/index.html`;
+    const navId = String(name).trim().replace(/\s+/g, '-');
+    return { pageId, url, navId };
+}
+window.derivePageIdentity = derivePageIdentity;
+
+function updateNewPagePreview() {
+    const el = document.getElementById('new-page-preview');
+    if (!el) return;
+    const name = document.getElementById('new-page-name').value;
+    const type = document.getElementById('new-page-type').value;
+    const identity = derivePageIdentity(name, type);
+    el.innerHTML = identity
+        ? `Will be created at <code>${ownerEscape(identity.url)}</code>`
+        : '';
+}
+
+async function loadSitePages() {
+    const container = document.getElementById('pages-list');
+    if (!container) return;
+
+    const { data, error } = await window.supabaseClient
+        .from('site_pages').select('page_id, name, url, category, page_type, status').order('category').order('sort_order');
+
+    if (error) {
+        const notDeployed = error.code === 'PGRST205' || /schema cache/i.test(error.message || '');
+        container.innerHTML = notDeployed
+            ? `<p class="admin-error-text">Page management isn't available yet - the <code>site_pages</code> table hasn't been deployed. It arrives with the next migration.</p>`
+            : `<p class="admin-error-text">Could not load pages: ${ownerEscape(error.message)}</p>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        container.innerHTML = `<p class="loading-msg">No pages registered.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.map(page => `
+        <div class="personnel-row">
+            <div class="personnel-row-main">
+                <span class="update-badge badge-status-${ownerEscape(page.status)}">${ownerEscape(STATUS_LABELS[page.status] || page.status)}</span>
+                <span class="personnel-email">${ownerEscape(page.name)}</span>
+                <span class="page-row-path">${ownerEscape(page.url)}</span>
+            </div>
+            <div class="personnel-row-actions">
+                ${page.status === 'archived'
+                    ? `<button class="btn-sys btn-sys-green page-restore-btn" data-page="${ownerEscape(page.page_id)}">RESTORE</button>`
+                    : `<button class="btn-sys btn-sys-yellow page-archive-btn" data-page="${ownerEscape(page.page_id)}">ARCHIVE</button>`}
+            </div>
+        </div>
+    `).join('');
+
+    container.querySelectorAll('.page-archive-btn').forEach(btn => {
+        btn.addEventListener('click', () => setPageStatus(btn.dataset.page, 'archived'));
+    });
+    container.querySelectorAll('.page-restore-btn').forEach(btn => {
+        btn.addEventListener('click', () => setPageStatus(btn.dataset.page, 'live'));
+    });
+}
+window.loadSitePages = loadSitePages;
+
+async function setPageStatus(pageId, status) {
+    const results = document.getElementById('pages-results');
+    const message = status === 'archived'
+        ? `Archive "${pageId}"? It will disappear from the menus, but its page will stay reachable so existing links don't break.`
+        : `Restore "${pageId}" to the menus?`;
+
+    if (!(await adminConfirm(message))) return;
+
+    results.innerHTML = 'Applying...';
+    const { error } = await window.supabaseClient
+        .from('site_pages').update({ status, updated_at: new Date().toISOString() }).eq('page_id', pageId);
+
+    if (error) {
+        results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`;
+        return;
+    }
+    results.innerHTML = `<span class="owner-success-text">"${ownerEscape(pageId)}" is now ${ownerEscape(STATUS_LABELS[status])}. It updates on the site after the next regeneration run.</span>`;
+    await loadSitePages();
+}
+
+async function createSitePage() {
+    const results = document.getElementById('pages-results');
+    const name = document.getElementById('new-page-name').value.trim();
+    const pageType = document.getElementById('new-page-type').value;
+    const category = document.getElementById('new-page-category').value;
+
+    if (!name) {
+        results.innerHTML = `<span class="admin-error-text">Give the page a name.</span>`;
+        return;
+    }
+
+    const identity = derivePageIdentity(name, pageType);
+    if (!identity) {
+        results.innerHTML = `<span class="admin-error-text">That name has no usable characters for a URL - try adding letters or numbers.</span>`;
+        return;
+    }
+
+    if (!(await adminConfirm(`Create "${name}" at ${identity.url}?`))) return;
+
+    results.innerHTML = 'Creating...';
+
+    // sort_order goes to the end of its category. Spaced by 10 like the seed,
+    // so the page can be moved between two others later without renumbering.
+    const { data: siblings } = await window.supabaseClient
+        .from('site_pages').select('sort_order').eq('category', category).order('sort_order', { ascending: false }).limit(1);
+    const nextOrder = (siblings && siblings[0] ? siblings[0].sort_order : -10) + 10;
+
+    const { error } = await window.supabaseClient.from('site_pages').insert([{
+        page_id: identity.pageId,
+        nav_id: identity.navId,
+        name,
+        url: identity.url,
+        category,
+        sort_order: nextOrder,
+        page_type: pageType,
+        edit_role: 'open',
+        // New pages are works in progress by definition - this puts the WIP
+        // badge on straight away rather than presenting an empty page as
+        // finished.
+        is_wip: true,
+    }]);
+
+    if (error) {
+        const duplicate = /duplicate key|unique/i.test(error.message || '');
+        results.innerHTML = `<span class="admin-error-text">${duplicate
+            ? `A page already exists at that address (${ownerEscape(identity.url)}). Pick a different name.`
+            : `Error: ${ownerEscape(error.message)}`}</span>`;
+        return;
+    }
+
+    results.innerHTML = `<span class="owner-success-text">Created "${ownerEscape(name)}". It appears on the site after the next regeneration run.</span>`;
+    document.getElementById('new-page-name').value = '';
+    updateNewPagePreview();
+    await loadSitePages();
+}
+window.createSitePage = createSitePage;
 
 // --- PAGE RESTRICTIONS ---
 // page_permissions gained a write path in v0.10

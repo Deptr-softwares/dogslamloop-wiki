@@ -55,6 +55,14 @@ jobs:
       - name: Refresh preview images from Supabase
         run: node scripts/fetch-previews.js --write
 
+      # navigation.json is generated too as of v0.10. buildNavigation is
+      # round-trip tested against the committed file, and this script refuses
+      # to write if the result fails validation - it drives every menu on the
+      # site, so a bad run here is the most damaging thing this workflow could
+      # do.
+      - name: Regenerate navigation from the page registry
+        run: node scripts/fetch-registry.js --write
+
       - name: Regenerate page stubs
         run: node scripts/generate-pages.js --write
 
