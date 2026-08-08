@@ -40,19 +40,28 @@ for (const dir of ROUTED_SYSTEM_PAGES) {
 
     const result = await page.evaluate(() => {
       const header = document.querySelector('.local-sidebar-right > div');
-      const editBtn = document.getElementById('btn-edit-current-tab');
+      const title = header.querySelector('.sidebar-master-title');
+      const btnGroup = document.getElementById('sidebar-btn-group');
       return {
         hasBaseClass: header.classList.contains('sidebar-tab-header'),
         flexDirection: getComputedStyle(header).flexDirection,
-        editBtnRight: editBtn.getBoundingClientRect().right,
-        viewportWidth: window.innerWidth,
+        titleBottom: title.getBoundingClientRect().bottom,
+        btnGroupTop: btnGroup.getBoundingClientRect().top,
       };
     });
 
     // The base class is what makes the compound rule match at all.
     expect(result.hasBaseClass).toBe(true);
     expect(result.flexDirection).toBe('column');
-    expect(result.editBtnRight).toBeLessThanOrEqual(result.viewportWidth);
+    // The property alone isn't proof, so also assert the structural
+    // consequence: the buttons occupy a row BELOW the title rather than
+    // sitting beside it and being pushed out of the sidebar.
+    //
+    // Deliberately not an absolute pixel check against the viewport width -
+    // button width depends on text metrics, and CI's Linux fonts render
+    // wider than a Windows dev machine's, so such a check passes locally and
+    // fails on the runner for reasons unrelated to the bug.
+    expect(result.btnGroupTop).toBeGreaterThanOrEqual(result.titleBottom);
   });
 }
 
@@ -64,15 +73,16 @@ for (const dir of CHARACTER_PAGES) {
 
     const result = await page.evaluate(() => {
       const header = document.querySelector('.local-sidebar-right > div');
-      const editBtn = document.getElementById('btn-edit-current-tab');
+      const title = header.querySelector('.sidebar-master-title');
+      const btnGroup = document.getElementById('sidebar-btn-group');
       return {
         flexDirection: getComputedStyle(header).flexDirection,
-        editBtnRight: editBtn.getBoundingClientRect().right,
-        viewportWidth: window.innerWidth,
+        titleBottom: title.getBoundingClientRect().bottom,
+        btnGroupTop: btnGroup.getBoundingClientRect().top,
       };
     });
 
     expect(result.flexDirection).toBe('column');
-    expect(result.editBtnRight).toBeLessThanOrEqual(result.viewportWidth);
+    expect(result.btnGroupTop).toBeGreaterThanOrEqual(result.titleBottom);
   });
 }
