@@ -94,7 +94,10 @@ test('character and system stubs load the script sets their page type needs', ()
 test('the committed stubs on disk match what the generator produces', () => {
   // The same check `npm run validate` runs in CI. Duplicated here so a stale
   // stub fails the local suite too, not only on push.
-  const { pages } = buildPages(nav);
+  // Must pass previews: the generator reads them for og:image, so omitting
+  // them here compares portrait-less output against portrait-bearing stubs.
+  const previews = require('../data/page-previews.json');
+  const { pages } = buildPages(nav, previews);
   const stale = pages.filter(page => {
     const abs = path.join(__dirname, '..', page.relPath);
     return !fs.existsSync(abs) || fs.readFileSync(abs, 'utf8') !== page.html;

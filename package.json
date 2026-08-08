@@ -2,7 +2,8 @@
   "scripts": {
     "test": "playwright test",
     "validate": "node scripts/validate-navigation.js && node scripts/generate-pages.js --check",
-    "generate": "node scripts/generate-pages.js --write"
+    "generate": "node scripts/generate-pages.js --write",
+    "refresh-previews": "node scripts/fetch-previews.js --write"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

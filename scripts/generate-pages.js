@@ -69,9 +69,26 @@ function describe(name, pageType) {
         : `A Jujutsu Shenanigans guide to ${name}, on the Dogslamloop wiki.`;
 }
 
-function socialTags({ name, relPath, pageType }) {
+function socialTags({ name, relPath, pageType, image }) {
     const url = `${SITE_ORIGIN}/${relPath}`;
     const description = describe(name, pageType);
+
+    // A character's own portrait makes a far more useful Discord preview than
+    // the site logo repeated 22 times. Portraits come from
+    // data/page-previews.json, refreshed from Supabase by
+    // scripts/fetch-previews.js - read here as a committed file so this
+    // generator stays offline and its --check stays deterministic.
+    //
+    // System pages and any character without a portrait fall back to the
+    // logo: emitting no og:image at all, or a broken one, is worse than a
+    // generic image.
+    const ogImage = image || DEFAULT_OG_IMAGE;
+
+    // summary_large_image only for real portraits. The site logo is ~194x134
+    // and upscales badly into a banner, so logo-backed pages keep the compact
+    // card.
+    const card = image ? 'summary_large_image' : TWITTER_CARD;
+
     return `    <meta name="description" content="${attr(description)}">
     <link rel="canonical" href="${attr(url)}">
 
@@ -80,8 +97,8 @@ function socialTags({ name, relPath, pageType }) {
     <meta property="og:title" content="${attr(name)}">
     <meta property="og:description" content="${attr(description)}">
     <meta property="og:url" content="${attr(url)}">
-    <meta property="og:image" content="${attr(DEFAULT_OG_IMAGE)}">
-    <meta name="twitter:card" content="${TWITTER_CARD}">`;
+    <meta property="og:image" content="${attr(ogImage)}">
+    <meta name="twitter:card" content="${card}">`;
 }
 
 // Pages that live under characters/ or systems/ but are hand-authored and
@@ -202,7 +219,7 @@ function docTitleFor(name, pageType) {
  * Turn navigation.json into the full set of files to write.
  * Pure: builds everything in memory, touches no disk.
  */
-function buildPages(nav) {
+function buildPages(nav, previews = {}) {
     const pages = [];
     const problems = [];
 
@@ -225,7 +242,12 @@ function buildPages(nav) {
                 continue;
             }
 
-            const social = socialTags({ name: entry.name, relPath, pageType: cms.pageType });
+            const social = socialTags({
+                name: entry.name,
+                relPath,
+                pageType: cms.pageType,
+                image: previews[cms.pageId],
+            });
             const html = cms.pageType === 'character'
                 ? characterStub({ pageId: cms.pageId, title: entry.name, docTitle: docTitleFor(entry.name, 'character'), social })
                 : systemStub({ pageId: cms.pageId, title: entry.name, docTitle: docTitleFor(entry.name, 'system'), social });
@@ -245,7 +267,15 @@ function main() {
     const navPath = path.join(ROOT, 'data', 'navigation.json');
     const nav = JSON.parse(fs.readFileSync(navPath, 'utf8'));
 
-    const { pages, problems } = buildPages(nav);
+    // Optional: pages simply fall back to the site logo if it is absent, so a
+    // fresh clone or a failed fetch degrades to v0.9's behaviour rather than
+    // breaking generation.
+    const previewsPath = path.join(ROOT, 'data', 'page-previews.json');
+    const previews = fs.existsSync(previewsPath)
+        ? JSON.parse(fs.readFileSync(previewsPath, 'utf8'))
+        : {};
+
+    const { pages, problems } = buildPages(nav, previews);
 
     if (problems.length > 0) {
         console.error('generate-pages FAILED - refusing to write:\n');
