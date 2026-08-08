@@ -139,3 +139,51 @@ window.loadFAQ = loadFAQ;
 window.getUpdateBadgeClass = getUpdateBadgeClass;
 window.buildUpdateTableHTML = buildUpdateTableHTML;
 window.buildUpdateChangesHTML = buildUpdateChangesHTML;
+/**
+ * Renders the main dashboard's Credits list.
+ *
+ * This used to be a hardcoded <ul> in index.html that duplicated
+ * systems/collaborators/collaborators_data.json by hand - and the two had
+ * already drifted, listing different people. Both now read the same file, so
+ * editing credits in owner.html updates both places.
+ */
+async function loadCredits(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // Reuses the existing dot palette so the list looks the way it always has;
+    // cycled by position rather than stored, since the colour carries no
+    // meaning.
+    const DOTS = ['dot-green', 'dot-blue', 'dot-yellow', 'dot-lime', 'dot-grey', 'dot-pink'];
+
+    const escapeHtml = (str) => String(str === null || str === undefined ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+    try {
+        const rootPath = window.getRootPath ? window.getRootPath() : './';
+        const data = await window.fetchJson(`${rootPath}systems/collaborators/collaborators_data.json`, { cache: true });
+
+        const people = [
+            ...(data.mainContributors || []).map(c => ({ name: c.name, note: c.role || c.description })),
+            ...(data.specialThanks || []).map(c => ({ name: c.name, note: c.reason })),
+        ];
+
+        if (people.length === 0) {
+            container.innerHTML = `<li><p class="loading-msg">No credits yet.</p></li>`;
+            return;
+        }
+
+        container.innerHTML = people.map((person, i) => `
+            <li>
+                <span class="dot-indicator ${DOTS[i % DOTS.length]}"></span>
+                <div><span class="credit-name">@${escapeHtml(person.name)}</span>${person.note ? ` - ${escapeHtml(person.note)}` : ''}</div>
+            </li>
+        `).join('');
+    } catch (error) {
+        console.error('Failed loading credits:', error);
+        container.innerHTML = `<li><p class="loading-msg">Could not load credits.</p></li>`;
+    }
+}
+
+window.loadCredits = loadCredits;

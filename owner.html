@@ -54,16 +54,150 @@
             <div class="admin-sidebar-content">
 
                 <section id="tool-personnel" class="update-log-item admin-tool-card personnel">
-                    <h3 class="update-title admin-tool-title personnel">Personnel Management</h3>
-                    <input type="email" id="target-email" placeholder="user@email.com" class="editor-input admin-input-full">
-                    <select id="target-role" class="editor-input admin-input-full select">
-                        <option value="reviewer">Clearance: Reviewer</option>
-                        <option value="admin">Clearance: Administrator</option>
-                        <option value="trusted_editor">Clearance: Trusted Editor</option>
-                        <option value="">Revoke All Access</option>
-                    </select>
-                    <button onclick="changeUserRole()" class="btn-sys btn-sys-purple admin-tool-btn personnel">UPDATE CLEARANCE</button>
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title personnel">Personnel</h3>
+                        <button onclick="loadPersonnel()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+
+                    <div id="personnel-roster" class="personnel-roster">
+                        <p class="loading-msg">Loading roster...</p>
+                    </div>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="target-email">GRANT ACCESS BY EMAIL</label>
+                        <input type="email" id="target-email" placeholder="user@email.com" class="editor-input admin-input-full">
+                        <select id="target-role" class="editor-input admin-input-full select">
+                            <option value="reviewer">Clearance: Reviewer</option>
+                            <option value="admin">Clearance: Administrator</option>
+                            <option value="trusted_editor">Clearance: Trusted Editor</option>
+                            <option value="contributor">Clearance: Contributor</option>
+                            <option value="">Revoke All Access</option>
+                        </select>
+                        <button onclick="changeUserRole()" class="btn-sys btn-sys-purple admin-tool-btn personnel">UPDATE CLEARANCE</button>
+                    </div>
+
                     <div id="role-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-pages" class="update-log-item admin-tool-card pages">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title pages">Pages</h3>
+                        <button onclick="loadSitePages()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">
+                        New pages appear on the site after the next regeneration run.
+                        <a href="https://github.com/Deptr-softwares/dogslamloop-wiki/actions/workflows/regenerate.yml" target="_blank" class="site-footer-link">Run it now →</a>
+                    </p>
+
+                    <div id="pages-list" class="permissions-list">
+                        <p class="loading-msg">Loading...</p>
+                    </div>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="new-page-name">ADD A PAGE</label>
+                        <input type="text" id="new-page-name" class="editor-input admin-input-full" placeholder="Display name, e.g. Crow Charmer">
+                        <select id="new-page-type" class="editor-input admin-input-full select">
+                            <option value="character">Character page</option>
+                            <option value="system">System / guide page</option>
+                        </select>
+                        <select id="new-page-category" class="editor-input admin-input-full select">
+                            <option value="Characters">Category: Characters</option>
+                            <option value="System Pages">Category: System Pages</option>
+                            <option value="Guides">Category: Guides</option>
+                            <option value="Site Info">Category: Site Info</option>
+                        </select>
+                        <label class="block-field-label-sm" for="new-page-position">POSITION</label>
+                        <select id="new-page-position" class="editor-input admin-input-full select">
+                            <option value="">At the end of the category</option>
+                        </select>
+                        <p id="new-page-preview" class="admin-tool-hint"></p>
+                        <button id="btn-create-page" onclick="createSitePage()" class="btn-sys btn-sys-green admin-tool-btn">CREATE PAGE</button>
+                    </div>
+
+                    <div id="pages-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-permissions" class="update-log-item admin-tool-card permissions">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title permissions">Page Restrictions</h3>
+                        <button onclick="loadPagePermissions()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">Restricted pages can only be edited by the clearance you set. Everything not listed here is open to any signed-in contributor.</p>
+
+                    <div id="permissions-list" class="permissions-list">
+                        <p class="loading-msg">Loading...</p>
+                    </div>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="permission-page">RESTRICT A PAGE</label>
+                        <select id="permission-page" class="editor-input admin-input-full select"></select>
+                        <select id="permission-role" class="editor-input admin-input-full select">
+                            <option value="trusted_editor">Requires: Trusted Editor</option>
+                            <option value="admin">Requires: Administrator</option>
+                        </select>
+                        <button onclick="addPagePermission()" class="btn-sys btn-sys-yellow admin-tool-btn">RESTRICT PAGE</button>
+                    </div>
+
+                    <div id="permission-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-faq" class="update-log-item admin-tool-card faq">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title faq">FAQ</h3>
+                        <button onclick="loadFaqEntries()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">Shown on the main dashboard. Updates on the site after the next regeneration run.</p>
+
+                    <div id="faq-admin-list" class="permissions-list">
+                        <p class="loading-msg">Loading...</p>
+                    </div>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="new-faq-question">ADD A QUESTION</label>
+                        <input type="text" id="new-faq-question" class="editor-input admin-input-full" placeholder="How do you measure frame data?">
+                        <label class="block-field-label-sm" for="new-faq-answer">ANSWER (blank line between paragraphs)</label>
+                        <textarea id="new-faq-answer" class="editor-textarea admin-input-full" rows="4" placeholder="Write the answer here."></textarea>
+                        <button id="btn-add-faq" onclick="addFaqEntry()" class="btn-sys btn-sys-green admin-tool-btn">ADD QUESTION</button>
+                    </div>
+
+                    <div id="faq-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-credits" class="update-log-item admin-tool-card faq">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title faq">Credits</h3>
+                        <button onclick="loadCollaborators()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">Drives both the Collaborators page and the Credits list on the main dashboard.</p>
+
+                    <div id="credits-admin-list" class="permissions-list">
+                        <p class="loading-msg">Loading...</p>
+                    </div>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="new-credit-name">ADD SOMEONE</label>
+                        <input type="text" id="new-credit-name" class="editor-input admin-input-full" placeholder="Name">
+                        <input type="text" id="new-credit-desc" class="editor-input admin-input-full" placeholder="What they did">
+                        <select id="new-credit-section" class="editor-input admin-input-full select">
+                            <option value="main">Main contributor (full card)</option>
+                            <option value="thanks">Special thanks (one line)</option>
+                        </select>
+                        <button id="btn-add-credit" onclick="addCollaborator()" class="btn-sys btn-sys-green admin-tool-btn">ADD</button>
+                    </div>
+
+                    <div id="credits-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-account-deletion" class="update-log-item admin-tool-card gc">
+                    <h3 class="update-title admin-tool-title gc">Delete an Account</h3>
+                    <p class="admin-tool-hint">
+                        Removes the account and its email address. Their past edits stay on the wiki,
+                        re-attributed to "Deleted user", so page history doesn't break.
+                        This can't be undone.
+                    </p>
+                    <input type="email" id="delete-account-email" placeholder="user@email.com" class="editor-input admin-input-full">
+                    <button id="btn-delete-account" onclick="anonymizeAccount()" class="btn-sys btn-sys-red admin-tool-btn gc">DELETE ACCOUNT</button>
+                    <div id="delete-account-results" class="admin-tool-results"></div>
                 </section>
 
                 <section id="tool-media-gc" class="update-log-item admin-tool-card gc">

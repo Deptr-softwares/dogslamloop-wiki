@@ -1,0 +1,102 @@
+name: Regenerate Pages
+
+# Refreshes generated artifacts from Supabase and commits them if anything
+# changed. Today that means character portraits for social previews
+# (data/page-previews.json) and the page stubs that embed them.
+#
+# workflow_dispatch is the primary path - press the button after changing a
+# portrait and it lands in a couple of minutes. The schedule is a backstop, not
+# the mechanism: GitHub delays scheduled runs on low-activity repos and
+# disables them entirely after 60 days of inactivity, so a tight cron buys
+# unreliability rather than freshness.
+#
+# Deliberately NOT `on: push`. That is loop avoidance at the structural level -
+# this workflow commits, and a push trigger would have it retrigger itself.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Once a day. Portraits change rarely, and the manual button covers "I
+    # just changed one and want it live now".
+    - cron: '0 4 * * *'
+
+# Required because this job commits. Nothing else here needs write access.
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Not secrets, deliberately. The anon key already ships inside
+      # js/site_utils.js and is therefore in the page source of every page on
+      # the site - storing it as a repository secret would be theatre.
+      #
+      # Explicitly NOT the service-role key: that bypasses all RLS, and
+      # putting one here would turn any repo compromise into a database
+      # compromise. Everything this job reads is already world-readable
+      # through the "Public Read Live Data" policy.
+      SUPABASE_URL: https://gtqswjspxymjdopljmfi.supabase.co
+      SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0cXN3anNweHltamRvcGxqbWZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMzQ1MDIsImV4cCI6MjA5NzkxMDUwMn0.6RsP5Ue1m9X8iGecXa245S3fEdYnDqML-QLux1KUAuw
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      # Refuses on an empty result set and reports any portrait that no longer
+      # resolves, so a transient outage cannot silently blank every preview
+      # image on the site.
+      - name: Refresh preview images from Supabase
+        run: node scripts/fetch-previews.js --write
+
+      # navigation.json is generated too as of v0.10. buildNavigation is
+      # round-trip tested against the committed file, and this script refuses
+      # to write if the result fails validation - it drives every menu on the
+      # site, so a bad run here is the most damaging thing this workflow could
+      # do.
+      - name: Regenerate navigation from the page registry
+        run: node scripts/fetch-registry.js --write
+
+      - name: Regenerate FAQ and credits
+        run: node scripts/fetch-content.js --write
+
+      - name: Regenerate page stubs
+        run: node scripts/generate-pages.js --write
+
+      - name: Validate
+        run: npm run validate
+
+      - run: npx playwright install --with-deps chromium
+
+      # Runs the suite BEFORE committing, which matters more than it looks:
+      # pushes made with GITHUB_TOKEN do not trigger other workflows, so the
+      # commit this job creates would never run playwright.yml. Relying on
+      # "the push-triggered suite will catch it" would be a safety net that
+      # silently does not exist. Validate then publish, not publish then hope.
+      - name: Test the regenerated tree
+        run: npx playwright test
+
+      - name: Commit if anything changed
+        run: |
+          if git diff --quiet; then
+            echo "Nothing to regenerate."
+            exit 0
+          fi
+          git config user.name  "dogslamloop-bot"
+          git config user.email "dogslamloop-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: regenerate page previews and stubs"
+          git push
+
+      - if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: regenerate-report
+          path: playwright-report/
+          retention-days: 14
