@@ -422,6 +422,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             // gets an opaque RLS rejection after filling in the QA modal, and
             // if it is tighter they are blocked from something the database
             // would have allowed.
+            // A 'viewer' is soft-banned: signed in and able to read, but
+            // blocked from submitting anything (see the "Guests can submit
+            // revisions" policy). Checked here so they are told before filling
+            // in the QA modal, rather than hitting an opaque RLS rejection at
+            // the very end. The database is still the real boundary.
+            const { data: ownRole } = await window.supabaseClient
+                .from('user_roles').select('role').eq('user_id', session.user.id).maybeSingle();
+            if ((ownRole?.role || '').trim().toLowerCase() === 'viewer') {
+                window.editorAlert("Your account can't submit edits right now. If you think that's a mistake, get in touch on Discord.");
+                return;
+            }
+
             const { data: permissionRow } = await window.supabaseClient
                 .from('page_permissions').select('page_id, required_role')
                 .eq('page_id', pageId.toLowerCase()).maybeSingle();

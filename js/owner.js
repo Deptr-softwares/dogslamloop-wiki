@@ -113,12 +113,15 @@ function ownerEscape(str) {
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// 'contributor' was removed in v0.11 - it gated nothing, so holding it and
+// holding no role at all were the same permission set. 'viewer' now means a
+// soft ban: signed in, can read, cannot submit. Labelled explicitly so it
+// cannot be mistaken for a neutral or default option in the dropdown.
 const ROLE_LABELS = {
     admin: 'Administrator',
     reviewer: 'Reviewer',
     trusted_editor: 'Trusted Editor',
-    contributor: 'Contributor',
-    viewer: 'Viewer',
+    viewer: 'Viewer (blocked from submitting)',
 };
 
 // Populated by loadPersonnel so the self-demotion guard below can recognise
