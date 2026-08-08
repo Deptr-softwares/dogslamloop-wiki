@@ -19,6 +19,12 @@ jobs:
 
       - run: npm ci
 
+      # Cheap and fails fast, so it runs before the browser download.
+      # Checks navigation.json's shape (this validator existed since v0.6 but
+      # was never wired into CI) and that every generated page stub is in sync
+      # with it - a stale stub means someone hand-edited a generated file.
+      - run: npm run validate
+
       # playwright.config.js only defines the chromium project, so the other
       # browsers would just be dead download time.
       - run: npx playwright install --with-deps chromium

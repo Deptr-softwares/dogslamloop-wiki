@@ -362,7 +362,7 @@
       "id": "recent-changes",
       "name": "Recent Changes",
       "url": "recent-changes.html",
-      "cms_config": { "pageType": "system", "pageId": "recent-changes", "editRole": "locked" }
+      "cms_config": { "pageType": "hub", "pageId": "recent-changes", "editRole": "locked" }
     },
     {
       "id": "collaborators",
