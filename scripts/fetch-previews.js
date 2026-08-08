@@ -137,7 +137,13 @@ async function main() {
 if (require.main === module) {
     main().catch(err => {
         console.error(`fetch-previews FAILED: ${err.message}`);
-        process.exit(1);
+        // process.exitCode rather than process.exit(1): this script has
+        // outstanding fetch handles, and forcing an immediate exit while
+        // libuv still holds them crashes the runtime on Windows
+        // ("Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)"),
+        // producing exit 127 instead of 1 and burying the real error.
+        // Setting exitCode lets Node unwind cleanly and still exit non-zero.
+        process.exitCode = 1;
     });
 }
 
