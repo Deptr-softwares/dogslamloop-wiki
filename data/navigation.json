@@ -297,7 +297,7 @@
     },
     {
       "id": "framedata",
-      "name": "Frame Data",
+      "name": "Frame data",
       "url": "systems/framedata/index.html",
       "isWip": true,
       "cms_config": { "pageType": "system", "pageId": "framedata", "editRole": "open" }
@@ -311,7 +311,7 @@
     },
     {
       "id": "evasive",
-      "name": "Evasive System",
+      "name": "Evasive",
       "url": "systems/evasive/index.html",
       "isWip": true,
       "cms_config": { "pageType": "system", "pageId": "evasive", "editRole": "open" }
@@ -359,10 +359,16 @@
       "cms_config": { "pageType": "system", "pageId": "updatelog", "editRole": "locked" }
     },
     {
+      "id": "blog",
+      "name": "Blog",
+      "url": "blog.html",
+      "cms_config": { "pageType": "hub", "pageId": "blog", "editRole": "locked" }
+    },
+    {
       "id": "recent-changes",
       "name": "Recent Changes",
       "url": "recent-changes.html",
-      "cms_config": { "pageType": "system", "pageId": "recent-changes", "editRole": "locked" }
+      "cms_config": { "pageType": "hub", "pageId": "recent-changes", "editRole": "locked" }
     },
     {
       "id": "collaborators",

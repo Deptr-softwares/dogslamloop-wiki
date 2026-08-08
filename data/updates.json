@@ -1,6 +1,20 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.9",
+      "date": "08/08/2026",
+      "type": "site",
+      "title": "The 'Link Previews & Blog' update",
+      "description": "Wiki links now show a proper preview when you paste them in Discord instead of showing nothing, and the site has a blog.",
+      "changes": [
+        "Paste a wiki link in Discord and it now shows a proper preview with the page name and a description, instead of just a bare link",
+        "The site has a blog now — find it in the sidebar under Site Info, with the latest posts also showing on the main dashboard",
+        "Small site updates that aren't big enough for a full version can now be posted as short notes, and show up in the Update Log",
+        "Fixed the Edit button on every system page rendering off the side of the screen on desktop, where you couldn't reach it",
+        "Behind the scenes: every character and system page is now built from one shared template instead of 30 near-identical copies, so pages stay consistent and new ones are far less work to add"
+      ]
+    },
+    {
       "version": "Beta v0.8",
       "date": "07/08/2026",
       "type": "site",

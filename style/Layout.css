@@ -406,6 +406,48 @@
 .contributors-header { display: flex; align-items: center; gap: 0.5rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.85rem; color: var(--text-white); text-transform: uppercase; border-bottom: 2px dashed var(--border-color); padding-bottom: 0.5rem; }
 .contributors-list { display: flex; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.25rem; }
 
+/* Router skeleton (js/page_router.js) - these replace inline styles that used
+   to live on the system-page template only. The character template relied on
+   classes for the same elements, so unifying the two skeletons meant lifting
+   the system page's inline rules up into real classes rather than picking one
+   template's look arbitrarily. Values are copied verbatim from the originals
+   (systems/m1-trading/index.html:50,52-53,65,88 pre-v0.9). */
+.sidebar-dynamic-dock { margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem; }
+.kofi-btn-wrapper-spaced { margin-top: 0.75rem; }
+.kofi-btn-full { width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; }
+.kofi-btn-full svg { width: 1rem; height: 1rem; }
+.system-back-row { margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+/* The right sidebar's header row needs no new rule: .sidebar-tab-header
+   (defined above, ~line 101) is already byte-identical to what the system
+   template was doing inline, so both templates were always meant to look the
+   same here and the router just uses the class for both. */
+
+/* Site posts (blog + hotfix notes, js/posts.js). Post bodies reuse the wiki's
+   own .wiki-section block styling, so only the listing card and post header
+   need rules of their own. */
+.post-card { border: 2px solid var(--border-color); background: var(--bg-main); box-shadow: 6px 6px 0px var(--manga-shadow); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+.post-card-link { text-decoration: none; }
+.post-card-title { font-family: 'CC-Wild-Words', sans-serif; color: var(--text-white); margin: 0 0 0.5rem 0; font-size: 1.1rem; }
+.post-card-link:hover .post-card-title { color: var(--accent-blue); }
+.post-card-meta, .post-meta { display: flex; flex-wrap: wrap; gap: 1rem; font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); }
+.post-card-summary { margin: 0.75rem 0 0 0; color: var(--text-primary); line-height: 1.6; }
+.post-header { border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+.post-title { font-family: 'CC-Wild-Words', sans-serif; color: var(--text-white); margin: 0 0 0.5rem 0; }
+.post-error { color: #ef4444; }
+/* Distinguishes a hotfix note from a versioned release entry in the Update
+   Log, where the two are deliberately interleaved. */
+.badge-hotfix { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid #eab308; }
+
+/* Post editor (post-editor.html) */
+.post-editor-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.post-editor-status { font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); margin: 0.75rem 0 0 0; min-height: 1em; }
+.post-editor-status.is-error { color: #ef4444; }
+.post-admin-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 0.6rem 0; border-bottom: 1px dashed var(--border-color); }
+.post-admin-row:last-child { border-bottom: none; }
+.post-admin-row-main { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.post-admin-row-title { color: var(--text-white); }
+.post-admin-row-actions { display: flex; gap: 0.4rem; }
+
 /* Sitewide footer (js/pagebuilder.js buildSiteFooter) - appended to <body>,
    outside .site-layout, so it spans the full width below both sidebars rather
    than sitting inside the content column. */

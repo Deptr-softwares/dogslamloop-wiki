@@ -133,7 +133,16 @@
    that reason - owner.html has no second pane, so left alone it would sit
    in a narrow column with 70% of the screen empty. This override makes it
    the page's only content, centered with a readable max width instead. */
-.owner-workspace { width: 100%; max-width: 640px; margin: 0 auto; border-right: none; }
+/* overflow-y is load-bearing: .editor-workspace (editor.css) sets
+   overflow: hidden because it expects an inner scroll region, and these
+   single-pane pages have none - so any content taller than the viewport was
+   simply unreachable. Harmless on owner.html, which is short, but it made
+   post-editor.html's Add Block button impossible to scroll to. */
+.owner-workspace { width: 100%; max-width: 640px; margin: 0 auto; border-right: none; overflow-y: auto; }
+
+/* post-editor.html is two-pane (form+blocks | live preview) but its form
+   needs more room than the 30% .editor-workspace default. */
+.post-editor-workspace { width: 42%; overflow-y: auto; }
 
 /* Main Content Area */
 .live-preview-pane.admin-main-pane {

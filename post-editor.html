@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Editor | Dogslamloop</title>
+    <link rel="icon" type="image/jpg" href="medias/images/DogslamloopIconGay.webp">
+
+    <link rel="stylesheet" href="style/Common.css">
+    <link rel="stylesheet" href="style/ColorCoding.css">
+    <link rel="stylesheet" href="style/Buttons.css">
+    <link rel="stylesheet" href="style/Modals.css">
+    <link rel="stylesheet" href="style/Forms.css">
+    <link rel="stylesheet" href="style/Badges.css">
+    <link rel="stylesheet" href="style/Alerts.css">
+    <link rel="stylesheet" href="style/Cards.css">
+    <link rel="stylesheet" href="style/Layout.css">
+    <link rel="stylesheet" href="style/editor.css">
+    <link rel="stylesheet" href="style/admin.css">
+</head>
+<body class="admin-body">
+
+    <!-- Modal shells for the two helpers this page defines locally instead of
+         pulling in js/editor-core.js (whose DOMContentLoaded boots the whole
+         page-revision editor and throws without a ?page= parameter). -->
+    <div id="editor-custom-modal" class="editor-modal-overlay modal-danger hidden">
+        <div class="editor-modal-box auth-modal-box">
+            <div class="auth-header"><h3>SYSTEM CONFIRMATION</h3></div>
+            <div class="auth-body auth-body-centered">
+                <p id="editor-modal-text" class="modal-prompt-text">Are you sure?</p>
+                <div class="modal-actions-centered">
+                    <button id="editor-modal-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
+                    <button id="editor-modal-confirm" class="btn-sys btn-sys-red btn-danger-fill">DELETE</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="editor-alert-modal" class="editor-modal-overlay alert-layer modal-warning hidden">
+        <div class="editor-modal-box auth-modal-box">
+            <div class="auth-header"><h3>SYSTEM WARNING</h3></div>
+            <div class="auth-body auth-body-centered">
+                <p id="editor-alert-msg" class="modal-prompt-text pre-wrap"></p>
+                <button onclick="document.getElementById('editor-alert-modal').classList.add('hidden')" class="btn-sys btn-sys-yellow">ACKNOWLEDGE</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="editor-layout">
+
+        <aside class="editor-workspace post-editor-workspace">
+
+            <div class="editor-header admin-header">
+                <div class="admin-header-flex">
+                    <div>
+                        <h2 class="editor-title admin-title">POST EDITOR</h2>
+                        <span class="editor-subtitle admin-subtitle">Blog &amp; hotfix notes</span>
+                    </div>
+                    <div class="admin-header-actions-col">
+                        <div id="admin-secondary-actions" class="admin-secondary-actions">
+                            <a href="owner.html" class="btn-sys btn-sys-regular admin-hub-btn">OWNER TOOLS</a>
+                            <a href="blog.html" class="btn-sys btn-sys-regular admin-hub-btn">VIEW BLOG</a>
+                            <a href="index.html" class="btn-sys btn-sys-regular admin-hub-btn">HUB</a>
+                        </div>
+                        <button id="mobile-preview-toggle" class="btn-sys btn-sys-blue admin-mobile-preview-btn" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-sidebar-content">
+
+                <section class="update-log-item admin-tool-card personnel">
+                    <h3 class="update-title admin-tool-title personnel" id="post-editor-mode">NEW POST</h3>
+
+                    <label class="block-field-label-sm" for="post-title">TITLE</label>
+                    <input type="text" id="post-title" class="editor-input admin-input-full" placeholder="What this post is about">
+
+                    <label class="block-field-label-sm" for="post-slug">URL SLUG</label>
+                    <input type="text" id="post-slug" class="editor-input admin-input-full" placeholder="auto-generated-from-title">
+
+                    <label class="block-field-label-sm" for="post-summary">SUMMARY (shown in listings)</label>
+                    <input type="text" id="post-summary" class="editor-input admin-input-full" placeholder="Optional one-line teaser">
+
+                    <label class="block-field-label-sm" for="post-kind">TYPE</label>
+                    <select id="post-kind" class="editor-input admin-input-full select">
+                        <option value="blog">Blog post — appears on blog.html and the homepage</option>
+                        <option value="hotfix">Hotfix note — appears in the Update Log</option>
+                    </select>
+
+                    <div class="post-editor-actions">
+                        <button onclick="window.savePostDraft()" class="btn-sys btn-sys-regular">SAVE DRAFT</button>
+                        <button onclick="window.publishPost()" class="btn-sys btn-sys-green">PUBLISH</button>
+                        <button onclick="window.resetPostForm()" class="btn-sys btn-sys-regular">NEW</button>
+                    </div>
+
+                    <p id="post-editor-status" class="post-editor-status"></p>
+                </section>
+
+                <section class="update-log-item admin-tool-card gc">
+                    <h3 class="update-title admin-tool-title gc">CONTENT</h3>
+                    <div id="post-block-builder"></div>
+                </section>
+
+                <section class="update-log-item admin-tool-card personnel">
+                    <h3 class="update-title admin-tool-title personnel">ALL POSTS</h3>
+                    <div id="post-admin-list" class="admin-tool-results">
+                        <p class="loading-msg">Loading...</p>
+                    </div>
+                </section>
+
+            </div>
+        </aside>
+
+        <div class="live-preview-pane">
+            <button class="mobile-back-to-editor" onclick="window.toggleMobilePreview()">
+                <span style="font-size: 1rem; margin-right: 0.5rem;">←</span> BACK TO EDITOR
+            </button>
+
+            <div class="preview-badge">PREVIEW</div>
+
+            <!-- Must be a real <main>: js/internalstyling.js watches <main>
+                 with a MutationObserver, and that is what expands the
+                 [b]/[color=]/[url=] shortcodes. Preview outside it would
+                 render unstyled and misrepresent the published result. -->
+            <main class="main-content-area space-y-6">
+                <div id="post-preview"></div>
+            </main>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/site_utils.js"></script>
+    <script src="js/site_meta.js"></script>
+    <script src="js/description.js"></script>
+    <script src="js/internalstyling.js"></script>
+    <!-- posts.js supplies renderPostBody, so the preview goes through exactly
+         the same render path as the published blog page. -->
+    <script src="js/posts.js"></script>
+    <script src="js/editor-blocks.js"></script>
+    <script src="js/editor-media.js"></script>
+
+    <script>
+        // Helpers editor-blocks.js expects from editor-core.js. Reimplemented
+        // here rather than loading that file, whose DOMContentLoaded boots the
+        // full page-revision editor and throws without a ?page= parameter.
+        window.editorAlert = function(message) {
+            document.getElementById('editor-alert-msg').textContent = message;
+            document.getElementById('editor-alert-modal').classList.remove('hidden');
+        };
+
+        window.customConfirm = function(message, confirmText = 'DELETE', isDanger = true) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('editor-custom-modal');
+                const confirmBtn = document.getElementById('editor-modal-confirm');
+                const cancelBtn = document.getElementById('editor-modal-cancel');
+
+                document.getElementById('editor-modal-text').textContent = message;
+                confirmBtn.textContent = confirmText;
+                confirmBtn.className = isDanger
+                    ? 'btn-sys btn-sys-red btn-danger-fill'
+                    : 'btn-sys btn-sys-green';
+                modal.classList.remove('hidden');
+
+                const cleanup = () => {
+                    modal.classList.add('hidden');
+                    confirmBtn.onclick = null;
+                    cancelBtn.onclick = null;
+                };
+                confirmBtn.onclick = () => { cleanup(); resolve(true); };
+                cancelBtn.onclick = () => { cleanup(); resolve(false); };
+            });
+        };
+
+        // Mobile pane toggle, same class contract editor.css already defines
+        // (body.mobile-preview-active + #mobile-preview-toggle).
+        window.toggleMobilePreview = function() {
+            document.body.classList.toggle('mobile-preview-active');
+            const btn = document.getElementById('mobile-preview-toggle');
+            if (btn) {
+                btn.textContent = document.body.classList.contains('mobile-preview-active')
+                    ? 'BACK TO EDITOR' : 'SHOW PREVIEW';
+            }
+        };
+
+        // editor-blocks.js calls updateLivePreview() by bare name from ~10
+        // sites after every block change. It is a top-level function
+        // declaration in js/editor-sync.js, which this page deliberately does
+        // not load (it belongs to the page-revision pipeline). Without a
+        // definition every block edit threw a ReferenceError and the block
+        // list stopped updating. Declaring it here both fixes that and is
+        // what actually drives the preview.
+        function updateLivePreview() {
+            const target = document.getElementById('post-preview');
+            if (!target) return;
+
+            const blocks = (typeof currentStrategyBlocks !== 'undefined' && Array.isArray(currentStrategyBlocks))
+                ? currentStrategyBlocks : [];
+
+            const titleEl = document.getElementById('post-title');
+            const summaryEl = document.getElementById('post-summary');
+            const title = titleEl ? titleEl.value.trim() : '';
+            const summary = summaryEl ? summaryEl.value.trim() : '';
+
+            const escape = (s) => String(s || '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+            target.innerHTML = `
+                <header class="post-header">
+                    <h1 class="post-title">${escape(title) || '<span class="loading-msg">Untitled post</span>'}</h1>
+                    <div class="post-meta">
+                        <span class="post-card-date">${escape(new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }))}</span>
+                        <span class="post-card-author">by ${escape(window.currentGlobalUsername || 'Staff')}</span>
+                    </div>
+                    ${summary ? `<p class="post-card-summary">${escape(summary)}</p>` : ''}
+                </header>
+            `;
+
+            if (blocks.length === 0) {
+                target.insertAdjacentHTML('beforeend',
+                    '<div class="wiki-section-empty">Add a block to see it here.</div>');
+                return;
+            }
+
+            // Same renderer the published blog page uses, so the preview is a
+            // real preview rather than an approximation.
+            if (typeof window.renderPostBody === 'function') window.renderPostBody(target, blocks);
+        }
+        window.updateLivePreview = updateLivePreview;
+    </script>
+
+    <script src="js/post-editor.js"></script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog | Dogslamloop Wiki</title>
+    <link rel="icon" type="image/jpg" href="medias/images/DogslamloopIconGay.webp">
+
+    <!-- Social/SEO metadata. Hand-maintained: this page is not produced by
+         scripts/generate-pages.js. Must be static - unfurlers don't run JS.
+         Individual posts share this page's tags; per-post OG would need the
+         posts to be generated as files, which is a v0.10 job. -->
+    <meta name="description" content="News, notes, and writing from the Dogslamloop wiki team.">
+    <link rel="canonical" href="https://dogslamloop.com/blog.html">
+    <meta property="og:site_name" content="Dogslamloop Wiki">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Blog | Dogslamloop Wiki">
+    <meta property="og:description" content="News, notes, and writing from the Dogslamloop wiki team.">
+    <meta property="og:url" content="https://dogslamloop.com/blog.html">
+    <meta property="og:image" content="https://dogslamloop.com/medias/images/DogslamloopIconGay.webp">
+    <meta name="twitter:card" content="summary">
+
+    <link rel="stylesheet" href="style/Common.css">
+    <link rel="stylesheet" href="style/Layout.css">
+    <link rel="stylesheet" href="style/Cards.css">
+    <link rel="stylesheet" href="style/Buttons.css">
+    <link rel="stylesheet" href="style/Badges.css">
+    <link rel="stylesheet" href="style/ColorCoding.css">
+    <link rel="stylesheet" href="style/Alerts.css">
+    <link rel="stylesheet" href="style/Modals.css">
+    <link rel="stylesheet" href="style/FrameData.css">
+</head>
+<body class="site-body p-0">
+
+    <!-- MOBILE NAVIGATION -->
+    <div class="mobile-top-bar">
+        <a href="index.html" class="mobile-logo-link">
+            <img src="medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
+            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+        </a>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+    </div>
+    <div class="mobile-backdrop" id="mobile-backdrop"></div>
+
+    <div class="site-layout">
+
+        <aside class="global-sidebar-left" id="master-sidebar">
+            <div class="sidebar-header-top">
+                <img src="medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
+                <div class="sidebar-title-container">
+                    <a href="index.html" class="site-title">dogslamloop wiki</a>
+                    <p class="site-subtitle">Alpha v0.4</p>
+                </div>
+            </div>
+
+            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar">☰</button>
+
+            <div class="sidebar-master-title">Navigation</div>
+
+            <div id="global-sidebar-nav">
+                <p class="loading-msg loading-msg-sm">Loading menu...</p>
+            </div>
+
+            <div id="sidebar-dynamic-dock" class="sidebar-dynamic-dock"></div>
+
+            <div class="kofi-btn-wrapper kofi-btn-wrapper-spaced">
+                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow kofi-btn-full">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square">
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line>
+                    </svg>
+                    <span class="kofi-text">SUPPORT KO-FI</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Content must live inside <main>: js/internalstyling.js watches it
+             with a MutationObserver, and that is what expands [b]/[color=]/
+             [url=] shortcodes in injected post content. -->
+        <main class="main-content-area space-y-6">
+
+            <div class="back-home-wrapper">
+                <a href="index.html" class="btn-ghost">← Back to Home</a>
+            </div>
+
+            <header class="home-main-header" id="blog-page-header">
+                <h1 class="home-main-title">Blog</h1>
+            </header>
+
+            <div id="blog-content"></div>
+
+        </main>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/site_utils.js"></script>
+    <script src="js/site_meta.js"></script>
+    <script src="js/pagebuilder.js"></script>
+    <script src="js/description.js"></script>
+    <script src="js/internalstyling.js"></script>
+    <script src="js/posts.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (window.initMobileNav) window.initMobileNav();
+            if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
+            if (typeof window.initAuthDock === 'function') await window.initAuthDock();
+            if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
+
+            const slug = new URLSearchParams(window.location.search).get('post');
+
+            if (slug) {
+                const found = await window.loadSinglePost('blog-content', slug);
+                if (found) {
+                    // The post supplies its own <h1>, so the page's generic
+                    // heading would be a duplicate.
+                    document.getElementById('blog-page-header').classList.add('hidden');
+                    return;
+                }
+                // Unknown or unpublished slug: show the list rather than an
+                // error, so a stale link still lands somewhere useful.
+                document.getElementById('blog-content').insertAdjacentHTML('beforebegin',
+                    '<div class="wiki-section-empty">That post could not be found. Here is everything else:</div>');
+            }
+
+            await window.loadPostList('blog-content', { kind: 'blog', emptyMessage: 'No posts yet. Check back soon.' });
+        });
+    </script>
+</body>
+</html>
