@@ -45,6 +45,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     const roles = (roleData && roleData.length > 0) ? roleData.map(r => r.role.toLowerCase()) : ['guest'];
 
     if (error || !roles.includes('admin')) { kickUser(); return; }
+
+    // Lets loadPersonnel mark the signed-in admin and enforce the
+    // self-demotion guard without a second lookup.
+    currentAdminUserId = session.user.id;
+    await loadPersonnel();
 });
 
 function kickUser() {
@@ -81,25 +86,126 @@ window.adminConfirm = function(message) {
 // "clear all roles" - passed through as SQL NULL, not the string 'guest'
 // the old (always-broken, since 'guest' was never a legal role value)
 // dropdown option used to send.
+// Escaping every interpolated value, including error.message and the RPC's
+// own returned string - both of which echo the email typed into the form.
+// Only an admin can reach this page, so this is self-XSS at worst, but the
+// standard held everywhere else in this codebase is "escape at every
+// innerHTML interpolation" and there is no reason for this file to be the
+// exception. Flagged as deferred cleanup when the security hotfix shipped;
+// done here now that the file is being rewritten anyway.
+function ownerEscape(str) {
+    return String(str === null || str === undefined ? '' : str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+const ROLE_LABELS = {
+    admin: 'Administrator',
+    reviewer: 'Reviewer',
+    trusted_editor: 'Trusted Editor',
+    contributor: 'Contributor',
+    viewer: 'Viewer',
+};
+
+// Populated by loadPersonnel so the self-demotion guard below can recognise
+// the signed-in admin without a second round trip.
+let currentAdminUserId = null;
+let adminCount = 0;
+
+async function loadPersonnel() {
+    const container = document.getElementById('personnel-roster');
+    if (!container) return;
+
+    container.innerHTML = `<p class="loading-msg">Loading roster...</p>`;
+
+    const { data, error } = await window.supabaseClient.rpc('list_personnel');
+
+    if (error) {
+        container.innerHTML = `<p class="admin-error-text">Could not load the roster: ${ownerEscape(error.message)}</p>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        container.innerHTML = `<p class="loading-msg">No roles assigned yet.</p>`;
+        return;
+    }
+
+    adminCount = data.filter(p => p.role === 'admin').length;
+
+    container.innerHTML = data.map(person => {
+        const isSelf = person.user_id === currentAdminUserId;
+        // The last admin demoting themselves locks everyone out of this page
+        // permanently - the only recovery is direct database access. Blocked
+        // in the UI rather than left as a trap.
+        const isLastAdmin = person.role === 'admin' && adminCount === 1;
+        return `
+        <div class="personnel-row">
+            <div class="personnel-row-main">
+                <span class="update-badge badge-role-${ownerEscape(person.role)}">${ownerEscape(ROLE_LABELS[person.role] || person.role)}</span>
+                <span class="personnel-email">${ownerEscape(person.email)}${isSelf ? ' <span class="personnel-self">(you)</span>' : ''}</span>
+            </div>
+            <div class="personnel-row-actions">
+                <select class="editor-input personnel-role-select" data-email="${ownerEscape(person.email)}" ${isLastAdmin ? 'disabled' : ''}>
+                    ${Object.entries(ROLE_LABELS).map(([value, label]) =>
+                        `<option value="${ownerEscape(value)}" ${value === person.role ? 'selected' : ''}>${ownerEscape(label)}</option>`
+                    ).join('')}
+                    <option value="">Revoke all access</option>
+                </select>
+                <button class="btn-sys btn-sys-regular personnel-apply-btn"
+                        data-email="${ownerEscape(person.email)}"
+                        ${isLastAdmin ? 'disabled title="You are the only admin - promote someone else first."' : ''}>APPLY</button>
+            </div>
+        </div>`;
+    }).join('');
+
+    // Delegated rather than inline onclick: the email is attacker-influenced
+    // in principle (it comes from auth.users) and building it into an
+    // onclick attribute is the exact pattern that made site_utils.js's
+    // notification modal an XSS risk in v0.8.
+    container.querySelectorAll('.personnel-apply-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const email = btn.dataset.email;
+            const select = container.querySelector(`.personnel-role-select[data-email="${CSS.escape(email)}"]`);
+            applyRoleChange(email, select ? select.value : '');
+        });
+    });
+}
+window.loadPersonnel = loadPersonnel;
+
+async function applyRoleChange(email, newRole) {
+    const results = document.getElementById('role-results');
+    const roleLabel = newRole ? (ROLE_LABELS[newRole] || newRole) : 'REVOKE ALL ACCESS';
+
+    if (!(await adminConfirm(`Change ${email}'s clearance to ${roleLabel}?`))) return;
+
+    results.innerHTML = 'Applying...';
+
+    const { data, error } = await window.supabaseClient.rpc('assign_role_by_email', {
+        target_email: email,
+        assigned_role: newRole || null,
+    });
+
+    if (error) {
+        results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`;
+        return;
+    }
+
+    results.innerHTML = `<span class="owner-success-text">${ownerEscape(data)}</span>`;
+    await loadPersonnel();
+}
+
 async function changeUserRole() {
     const email = document.getElementById('target-email').value.trim();
     const newRole = document.getElementById('target-role').value || null;
     const results = document.getElementById('role-results');
 
-    if (!email) { results.innerHTML = "<span style='color:#ef4444'>Please enter an email address.</span>"; return; }
-    const roleLabel = newRole ? newRole.toUpperCase() : 'REVOKE ALL ACCESS';
-    if (!(await adminConfirm(`Are you sure you want to change ${email}'s clearance to ${roleLabel}?`))) return;
-
-    results.innerHTML = "Processing override...";
-
-    const { data, error } = await window.supabaseClient.rpc('assign_role_by_email', { target_email: email, assigned_role: newRole });
-
-    if (error) {
-        results.innerHTML = `<span style='color:#ef4444'>Error: ${error.message}</span>`;
-    } else {
-        results.innerHTML = `<span style='color:#22c55e'>${data}</span>`;
-        document.getElementById('target-email').value = '';
+    if (!email) {
+        results.innerHTML = `<span class="admin-error-text">Please enter an email address.</span>`;
+        return;
     }
+
+    await applyRoleChange(email, newRole || '');
+    document.getElementById('target-email').value = '';
 }
 
 // --- MEDIA GARBAGE COLLECTION ---

@@ -54,15 +54,28 @@
             <div class="admin-sidebar-content">
 
                 <section id="tool-personnel" class="update-log-item admin-tool-card personnel">
-                    <h3 class="update-title admin-tool-title personnel">Personnel Management</h3>
-                    <input type="email" id="target-email" placeholder="user@email.com" class="editor-input admin-input-full">
-                    <select id="target-role" class="editor-input admin-input-full select">
-                        <option value="reviewer">Clearance: Reviewer</option>
-                        <option value="admin">Clearance: Administrator</option>
-                        <option value="trusted_editor">Clearance: Trusted Editor</option>
-                        <option value="">Revoke All Access</option>
-                    </select>
-                    <button onclick="changeUserRole()" class="btn-sys btn-sys-purple admin-tool-btn personnel">UPDATE CLEARANCE</button>
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title personnel">Personnel</h3>
+                        <button onclick="loadPersonnel()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+
+                    <div id="personnel-roster" class="personnel-roster">
+                        <p class="loading-msg">Loading roster...</p>
+                    </div>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="target-email">GRANT ACCESS BY EMAIL</label>
+                        <input type="email" id="target-email" placeholder="user@email.com" class="editor-input admin-input-full">
+                        <select id="target-role" class="editor-input admin-input-full select">
+                            <option value="reviewer">Clearance: Reviewer</option>
+                            <option value="admin">Clearance: Administrator</option>
+                            <option value="trusted_editor">Clearance: Trusted Editor</option>
+                            <option value="contributor">Clearance: Contributor</option>
+                            <option value="">Revoke All Access</option>
+                        </select>
+                        <button onclick="changeUserRole()" class="btn-sys btn-sys-purple admin-tool-btn personnel">UPDATE CLEARANCE</button>
+                    </div>
+
                     <div id="role-results" class="admin-tool-results"></div>
                 </section>
 
