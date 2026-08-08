@@ -76,7 +76,8 @@ test('changing a role calls the RPC with the right email and role', async ({ pag
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
 
   const row = page.locator('.personnel-row').filter({ hasText: 'reviewer@example.com' });
-  await row.locator('.personnel-role-select').selectOption('contributor');
+  // 'contributor' was retired in v0.11 - it gated nothing.
+  await row.locator('.personnel-role-select').selectOption('trusted_editor');
   await row.locator('.personnel-apply-btn').click();
 
   // adminConfirm gates the write.
@@ -85,7 +86,7 @@ test('changing a role calls the RPC with the right email and role', async ({ pag
 
   const calls = await page.evaluate(() => window.__rpcCalls.filter(c => c.name === 'assign_role_by_email'));
   expect(calls).toHaveLength(1);
-  expect(calls[0].params).toEqual({ target_email: 'reviewer@example.com', assigned_role: 'contributor' });
+  expect(calls[0].params).toEqual({ target_email: 'reviewer@example.com', assigned_role: 'trusted_editor' });
 });
 
 test('cancelling the confirm makes no change', async ({ page }) => {

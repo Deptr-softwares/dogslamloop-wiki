@@ -216,7 +216,12 @@ window.initAuthDock = async function() {
     let existingKofi = container.querySelector('.kofi-btn-wrapper, a[href*="Ko-fi"]');
 
     // --- AUTHENTICATION & SIDEBAR DOCK ---
-    let userRole = 'viewer'; let username = 'LOGIN'; let unreadCount = 0;
+    // 'none' rather than 'viewer' as the logged-out default: as of v0.11
+    // 'viewer' is a real role meaning "signed in but cannot submit", so using
+    // it as the anonymous placeholder would label every visitor with the ban
+    // role. Only drives the dock icon today, but it is the kind of default
+    // that quietly becomes a real bug the first time something gates on it.
+    let userRole = 'none'; let username = 'LOGIN'; let unreadCount = 0;
     if (window.supabaseClient) {
         try {
             // Fetch the FULL session so we can pass it to our universal name extractor
@@ -262,7 +267,7 @@ window.initAuthDock = async function() {
         const role = userRole.toLowerCase();
         if (role === 'admin') { loginIcon = svgAdmin; dynamicColorClass = "btn-sys-purple"; } 
         else if (role === 'trusted_editor') { loginIcon = svgTrusted; dynamicColorClass = "btn-sys-yellow"; }
-        else if (role === 'reviewer' || role === 'contributor') { loginIcon = svgReviewer; dynamicColorClass = "btn-sys-blue"; } 
+        else if (role === 'reviewer') { loginIcon = svgReviewer; dynamicColorClass = "btn-sys-blue"; } 
         else { loginIcon = svgAuth; dynamicColorClass = "btn-sys-green"; }
     }
 
