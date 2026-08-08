@@ -1,6 +1,19 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.10",
+      "date": "08/08/2026",
+      "type": "site",
+      "title": "The 'Maintenance' update",
+      "description": "Mostly behind-the-scenes tooling so the site can be run without editing code. The one thing you'll actually notice: character links now show that character's portrait when you paste them in Discord.",
+      "changes": [
+        "Paste a character link in Discord and the preview now shows that character's portrait instead of the wiki logo",
+        "Found and reported a broken portrait on Disaster Plants — the image had been dead on the page for over a month",
+        "Everything else this update is admin tooling: managing roles, adding and reordering pages, editing the FAQ and credits, and handling account deletion requests without going into the database by hand",
+        "The Credits list on the main dashboard and the Collaborators page were two separate lists that had drifted apart — they're now the same list"
+      ]
+    },
+    {
       "version": "Beta v0.9",
       "date": "08/08/2026",
       "type": "site",
