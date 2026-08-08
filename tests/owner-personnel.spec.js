@@ -304,3 +304,43 @@ test('an empty restriction list says so rather than looking broken', async ({ pa
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
   await expect(page.locator('#permissions-list')).toContainText('No pages are restricted');
 });
+
+test('an undeployed RPC reads as "not deployed yet", not as raw Postgres jargon', async ({ page }) => {
+  // The normal state between deploying code and merging the migration.
+  // PostgREST's own text ("Could not find the function public.list_personnel
+  // without parameters in the schema cache") reads like a crash to anyone who
+  // is not holding the schema in their head.
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'supabase', {
+      configurable: true,
+      get() { return window.__lib; },
+      set(lib) {
+        window.__lib = lib;
+        if (lib && lib.createClient && !lib.__patched) {
+          const orig = lib.createClient.bind(lib);
+          lib.createClient = (...args) => {
+            const client = orig(...args);
+            client.auth.getSession = async () => ({ data: { session: { user: { id: 'u1' }, access_token: 't' } } });
+            const origFrom = client.from.bind(client);
+            client.from = (table) => table === 'user_roles'
+              ? { select() { return this; }, eq: async () => ({ data: [{ role: 'admin' }], error: null }) }
+              : origFrom(table);
+            client.rpc = async () => ({
+              data: null,
+              error: {
+                code: 'PGRST202',
+                message: 'Could not find the function public.list_personnel without parameters in the schema cache',
+              },
+            });
+            return client;
+          };
+          lib.__patched = true;
+        }
+      },
+    });
+  });
+
+  await page.goto('/owner.html', { waitUntil: 'networkidle' });
+  await expect(page.locator('#personnel-roster')).toContainText("hasn't been deployed");
+  await expect(page.locator('#personnel-roster')).not.toContainText('schema cache');
+});

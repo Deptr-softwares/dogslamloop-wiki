@@ -122,7 +122,14 @@ async function loadPersonnel() {
     const { data, error } = await window.supabaseClient.rpc('list_personnel');
 
     if (error) {
-        container.innerHTML = `<p class="admin-error-text">Could not load the roster: ${ownerEscape(error.message)}</p>`;
+        // PGRST202 means the function is not in the schema cache - almost
+        // always "this migration has not been applied yet", which is the
+        // normal state between deploying the code and merging. Raw PostgREST
+        // text here reads like a crash; say what it actually means.
+        const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
+        container.innerHTML = notDeployed
+            ? `<p class="admin-error-text">The roster isn't available yet - the <code>list_personnel</code> database function hasn't been deployed. It arrives with the next migration.</p>`
+            : `<p class="admin-error-text">Could not load the roster: ${ownerEscape(error.message)}</p>`;
         return;
     }
 
