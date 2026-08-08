@@ -20,10 +20,15 @@
 // types.
 const { test, expect } = require('@playwright/test');
 
-// Extended to every system page as R2 converts them. m1-trading is the R1
-// pilot and the page the bug was measured on.
-const ROUTED_SYSTEM_PAGES = ['m1-trading'];
-const CHARACTER_PAGES = ['Boomcat'];
+// All 8 routed system pages - every one of them carried this bug. The four
+// bespoke system pages (collaborators, tierlist, updatelog, color-codes) are
+// deliberately excluded: they are hand-authored and outside the router, so
+// they are not covered by this fix.
+const ROUTED_SYSTEM_PAGES = [
+  'evasive', 'framedata', 'fundamentals', 'hud',
+  'm1-trading', 'starter-guide', 'terminologies', 'writing_guide',
+];
+const CHARACTER_PAGES = ['Boomcat', 'Vessel'];
 
 for (const dir of ROUTED_SYSTEM_PAGES) {
   test(`real bug fix: ${dir}'s sidebar header stacks, keeping the edit button on screen`, async ({ page }) => {

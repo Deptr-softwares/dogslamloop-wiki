@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vessel | Dogslamloop</title>
-    
+    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIconGay.webp">
+
     <link rel="stylesheet" href="../../style/Common.css">
     <link rel="stylesheet" href="../../style/ColorCoding.css">
-    
+
     <link rel="stylesheet" href="../../style/Buttons.css">
     <link rel="stylesheet" href="../../style/Modals.css">
     <link rel="stylesheet" href="../../style/Forms.css">
@@ -21,103 +22,12 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+    <script>window.PAGE_ROUTE = { pageId: "vessel", pageType: "character", title: "Vessel" };</script>
 </head>
 <body class="site-body p-0">
 
-    <!-- MOBILE NAVIGATION -->
-    <div class="mobile-top-bar">
-        <a href="../../index.html" class="mobile-logo-link">
-            <img src="../../medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
-            <h1 class="mobile-site-title">dogslamloop wiki</h1>
-        </a>
-        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
-    </div>
-    <div class="mobile-backdrop" id="mobile-backdrop"></div>
-
-    <div class="site-layout">
-        
-        <aside class="global-sidebar-left" id="master-sidebar">
-            <div class="sidebar-header-top">
-                <img src="../../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
-                <div class="sidebar-title-container">
-                    <a href="../../index.html" class="site-title">dogslamloop wiki</a>
-                    <p class="site-subtitle">Alpha v0.1</p>
-                </div>
-            </div>
-
-            <button class="sidebar-toggle-btn">☰</button>
-
-            <div class="sidebar-master-title">Navigation</div>
-            
-            <div id="global-sidebar-nav">
-                <p class="loading-msg loading-msg-sm">Loading menu...</p>
-            </div>
-
-            <div id="sidebar-dynamic-dock"></div>
-
-            <div class="kofi-btn-wrapper">
-                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square">
-                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line>
-                    </svg>
-                    <span class="kofi-text">Support Ko-fi</span>
-                </a>
-            </div>
-        </aside>
-
-        <main class="main-content-area space-y-6">
-            
-            <div class="back-home-wrapper">
-                <a href="../../index.html" class="btn-ghost">← Back to Home</a>
-            </div>
-            
-            <header class="character-header">
-                <div id="character-alerts-container" class="character-alerts-container"></div>
-                
-                <h1 class="character-title">Vessel</h1>
-
-                <nav class="character-nav">
-                    <button id="nav-overview" class="btn-manga btn-manga-slanted active"><div class="btn-manga-content"><span class="btn-manga-text">Overview & Strategy</span></div></button>
-                    <button id="nav-m1s" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">M1s</span></div></button>
-                    <button id="nav-skills" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Skills</span></div></button>
-                    <button id="nav-specials" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Specials</span></div></button>
-                    <button id="nav-matchups" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Matchups</span></div></button>
-                    <button id="nav-counterplay" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Counterplay</span></div></button>
-                    <button id="nav-gallery" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Gallery</span></div></button>
-
-                    <button id="btn-edit-current-tab-mobile" class="btn-sys btn-sys-regular tab-editor-btn-mobile">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                        EDIT TAB
-                    </button>
-                </nav>
-            </header>
-
-            <div id="tab-overview" class="tab-content"></div>
-            <div id="tab-m1s" class="tab-content hidden"></div>
-            <div id="tab-skills" class="vessel-content space-y-8 hidden"></div>
-            <div id="tab-specials" class="tab-content hidden"></div>
-            <div id="tab-matchups" class="vessel-content hidden"></div>
-            <div id="tab-counterplay" class="vessel-content hidden"></div>
-            <div id="tab-gallery" class="vessel-content hidden"></div>
-
-        </main>
-
-                <aside class="local-sidebar-right">
-            <div class="sidebar-tab-header">
-                <div class="sidebar-master-title">On this tab</div>
-                
-                <button id="btn-edit-current-tab" class="btn-sys btn-sys-regular tab-editor-btn-sidebar">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    EDIT TAB
-                </button>
-            </div>
-
-            <ul class="toc-list" id="dynamic-toc">
-                <li><p class="loading-msg">Loading contents...</p></li>
-            </ul>
-        </aside>
-
-    </div>
+    <script src="../../js/page_router.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -127,40 +37,7 @@
     <script src="../../js/framedata.js"></script>
     <script src="../../js/description.js"></script>
     <script src="../../js/internalstyling.js"></script>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // 1. Boot the Master Global Sidebars
-            if (window.initSidebarToggle) window.initSidebarToggle();
-            if (window.initMobileNav) window.initMobileNav();
-            if (window.buildGlobalSidebarMenu) window.buildGlobalSidebarMenu('global-sidebar-nav');
-            if (window.initAuthDock) window.initAuthDock(); 
 
-            if (window.initTabEditorButtons) window.initTabEditorButtons('vessel', 'character');
-
-            // 2. Setup Inner Tab Navigation
-            if (window.setupTabs) setupTabs('nav', 'tab', ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay', 'gallery'], 'major');
-
-            // 3. Fire all Data Fetchers Concurrently (No blocking 'await')
-            if (typeof window.loadMoveSection === 'function') {
-                window.loadMoveSection('vessel', 'skills');
-                window.loadMoveSection('vessel', 'm1s');
-                window.loadMoveSection('vessel', 'specials');
-            }
-
-            if (typeof window.loadPageDescriptions === 'function') {
-                window.loadPageDescriptions('vessel', 'character');
-            }
-
-            if (typeof window.loadPageAlerts === 'function') {
-                window.loadPageAlerts('vessel');
-            }
-
-            // 4. Delay the TOC mapping to ensure all content blocks have been injected
-            setTimeout(() => {
-                if (window.refreshTOC) window.refreshTOC();
-            }, 500);
-        });
-    </script>
+    <script src="../../js/page_boot.js"></script>
 </body>
 </html>
