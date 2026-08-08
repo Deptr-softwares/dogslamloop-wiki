@@ -415,14 +415,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             // just UX, the database is the real boundary. Reading from
             // page_permissions instead of a hardcoded array means adding a new
             // restricted page is a table row, not a code change.
-            const { data: permissionRow } = await window.supabaseClient.from('page_permissions').select('page_id').eq('page_id', pageId.toLowerCase()).maybeSingle();
+            // Selects required_role, not just page_id: as of v0.10 that column
+            // actually gates submission (see the "Guests can submit revisions"
+            // policy in 20260808000002_page_permissions_writable.sql). This
+            // check must mirror the policy exactly - if it is looser the user
+            // gets an opaque RLS rejection after filling in the QA modal, and
+            // if it is tighter they are blocked from something the database
+            // would have allowed.
+            const { data: permissionRow } = await window.supabaseClient
+                .from('page_permissions').select('page_id, required_role')
+                .eq('page_id', pageId.toLowerCase()).maybeSingle();
 
             if (permissionRow) {
                 const { data: roleData } = await window.supabaseClient.from('user_roles').select('role').eq('user_id', session.user.id).maybeSingle();
                 const userRole = (roleData?.role || 'guest').trim().toLowerCase();
+                const requiredRole = (permissionRow.required_role || 'trusted_editor').trim().toLowerCase();
 
-                if (userRole !== 'admin' && userRole !== 'trusted_editor') {
-                    window.editorAlert("READ ONLY: This is an exclusive systemic page. You require the 'Trusted Editor' or 'Admin' role to submit revisions here.");
+                // Admin clears every level; trusted_editor clears only pages
+                // asking for trusted_editor.
+                const allowed = userRole === 'admin'
+                    || (requiredRole === 'trusted_editor' && userRole === 'trusted_editor');
+
+                if (!allowed) {
+                    window.editorAlert(requiredRole === 'admin'
+                        ? "READ ONLY: This page is restricted to Admins."
+                        : "READ ONLY: This is an exclusive systemic page. You require the 'Trusted Editor' or 'Admin' role to submit revisions here.");
                     return;
                 }
             }

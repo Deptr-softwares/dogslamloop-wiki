@@ -395,9 +395,13 @@
 .admin-tool-card { position: relative; margin-bottom: 1rem; padding: 1rem; border-left: 3px solid; }
 .admin-tool-card.personnel { border-left-color: #a855f7; }
 .admin-tool-card.gc { border-left-color: #ef4444; }
+.admin-tool-card.permissions { border-left-color: #eab308; }
 .admin-tool-title { font-size: 0.8rem; margin: 0; text-transform: uppercase; }
 .admin-tool-title.personnel { color: #a855f7; }
 .admin-tool-title.gc { color: #ef4444; }
+.admin-tool-title.permissions { color: #eab308; }
+.admin-tool-hint { font-family: var(--text-mono); font-size: 0.68rem; color: var(--text-muted); line-height: 1.5; margin: 0.5rem 0 0 0; }
+.permissions-list { margin: 1rem 0; }
 
 /* --- PERSONNEL ROSTER (owner.html, js/owner.js loadPersonnel) --- */
 .admin-tool-header-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }

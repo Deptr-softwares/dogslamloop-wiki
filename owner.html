@@ -79,6 +79,30 @@
                     <div id="role-results" class="admin-tool-results"></div>
                 </section>
 
+                <section id="tool-permissions" class="update-log-item admin-tool-card permissions">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title permissions">Page Restrictions</h3>
+                        <button onclick="loadPagePermissions()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">Restricted pages can only be edited by the clearance you set. Everything not listed here is open to any signed-in contributor.</p>
+
+                    <div id="permissions-list" class="permissions-list">
+                        <p class="loading-msg">Loading...</p>
+                    </div>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="permission-page">RESTRICT A PAGE</label>
+                        <select id="permission-page" class="editor-input admin-input-full select"></select>
+                        <select id="permission-role" class="editor-input admin-input-full select">
+                            <option value="trusted_editor">Requires: Trusted Editor</option>
+                            <option value="admin">Requires: Administrator</option>
+                        </select>
+                        <button onclick="addPagePermission()" class="btn-sys btn-sys-yellow admin-tool-btn">RESTRICT PAGE</button>
+                    </div>
+
+                    <div id="permission-results" class="admin-tool-results"></div>
+                </section>
+
                 <section id="tool-media-gc" class="update-log-item admin-tool-card gc">
                     <h3 class="update-title admin-tool-title gc">Media Garbage Collection</h3>
                     <button id="btn-run-gc" onclick="runGarbageCollector()" class="btn-sys btn-sys-red admin-tool-btn gc">SCAN & PURGE MEDIA</button>

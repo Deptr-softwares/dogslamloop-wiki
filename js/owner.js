@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // self-demotion guard without a second lookup.
     currentAdminUserId = session.user.id;
     await loadPersonnel();
+    await loadPagePermissions();
 });
 
 function kickUser() {
@@ -206,6 +207,144 @@ async function changeUserRole() {
 
     await applyRoleChange(email, newRole || '');
     document.getElementById('target-email').value = '';
+}
+
+// --- PAGE RESTRICTIONS ---
+// page_permissions gained a write path in v0.10
+// (20260808000002_page_permissions_writable.sql), and required_role stopped
+// being decorative in the same migration. Before that, the only rows that
+// existed were three seeded by a migration, and the column nothing read.
+
+const PERMISSION_ROLE_LABELS = {
+    trusted_editor: 'Trusted Editor',
+    admin: 'Administrator',
+};
+
+async function loadPagePermissions() {
+    const container = document.getElementById('permissions-list');
+    if (!container) return;
+
+    const { data, error } = await window.supabaseClient
+        .from('page_permissions').select('page_id, required_role').order('page_id');
+
+    if (error) {
+        container.innerHTML = `<p class="admin-error-text">Could not load restrictions: ${ownerEscape(error.message)}</p>`;
+        return;
+    }
+
+    await populatePermissionPageOptions(data || []);
+
+    if (!data || data.length === 0) {
+        container.innerHTML = `<p class="loading-msg">No pages are restricted. Every page is open to signed-in contributors.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.map(row => `
+        <div class="personnel-row">
+            <div class="personnel-row-main">
+                <span class="update-badge badge-role-${ownerEscape(row.required_role)}">${ownerEscape(PERMISSION_ROLE_LABELS[row.required_role] || row.required_role)}</span>
+                <span class="personnel-email">${ownerEscape(row.page_id)}</span>
+            </div>
+            <div class="personnel-row-actions">
+                <select class="editor-input personnel-role-select" data-page="${ownerEscape(row.page_id)}">
+                    ${Object.entries(PERMISSION_ROLE_LABELS).map(([value, label]) =>
+                        `<option value="${ownerEscape(value)}" ${value === row.required_role ? 'selected' : ''}>${ownerEscape(label)}</option>`
+                    ).join('')}
+                </select>
+                <button class="btn-sys btn-sys-regular permission-apply-btn" data-page="${ownerEscape(row.page_id)}">APPLY</button>
+                <button class="btn-sys btn-sys-red permission-remove-btn" data-page="${ownerEscape(row.page_id)}">UNRESTRICT</button>
+            </div>
+        </div>
+    `).join('');
+
+    container.querySelectorAll('.permission-apply-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const pageId = btn.dataset.page;
+            const select = container.querySelector(`.personnel-role-select[data-page="${CSS.escape(pageId)}"]`);
+            setPagePermission(pageId, select ? select.value : 'trusted_editor');
+        });
+    });
+    container.querySelectorAll('.permission-remove-btn').forEach(btn => {
+        btn.addEventListener('click', () => removePagePermission(btn.dataset.page));
+    });
+}
+window.loadPagePermissions = loadPagePermissions;
+
+// Offers only pages that exist and are not already restricted, so the form
+// cannot create a row for a page id that was mistyped or has since been
+// renamed - a stray row would silently lock a page nobody can find.
+async function populatePermissionPageOptions(existing) {
+    const select = document.getElementById('permission-page');
+    if (!select) return;
+
+    const taken = new Set((existing || []).map(r => r.page_id));
+    let navData = null;
+    try {
+        navData = typeof window.fetchNavigationData === 'function' ? await window.fetchNavigationData() : null;
+    } catch (e) {
+        navData = null;
+    }
+
+    if (!navData) {
+        select.innerHTML = `<option value="">(could not load page list)</option>`;
+        return;
+    }
+
+    const options = Object.values(navData).flat()
+        .filter(e => e.cms_config && e.cms_config.pageId && !taken.has(e.cms_config.pageId))
+        .filter(e => ['character', 'system', 'tierlist'].includes(e.cms_config.pageType))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    select.innerHTML = options.length === 0
+        ? `<option value="">(every page is already restricted)</option>`
+        : options.map(e => `<option value="${ownerEscape(e.cms_config.pageId)}">${ownerEscape(e.name)}</option>`).join('');
+}
+
+async function setPagePermission(pageId, requiredRole) {
+    const results = document.getElementById('permission-results');
+    const label = PERMISSION_ROLE_LABELS[requiredRole] || requiredRole;
+
+    if (!(await adminConfirm(`Require ${label} clearance to edit "${pageId}"?`))) return;
+
+    results.innerHTML = 'Applying...';
+    const { error } = await window.supabaseClient
+        .from('page_permissions')
+        .upsert([{ page_id: pageId, required_role: requiredRole }], { onConflict: 'page_id' });
+
+    if (error) {
+        results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`;
+        return;
+    }
+    results.innerHTML = `<span class="owner-success-text">"${ownerEscape(pageId)}" now requires ${ownerEscape(label)}.</span>`;
+    await loadPagePermissions();
+}
+
+async function addPagePermission() {
+    const pageId = document.getElementById('permission-page').value;
+    const role = document.getElementById('permission-role').value;
+    const results = document.getElementById('permission-results');
+
+    if (!pageId) {
+        results.innerHTML = `<span class="admin-error-text">Pick a page to restrict.</span>`;
+        return;
+    }
+    await setPagePermission(pageId, role);
+}
+window.addPagePermission = addPagePermission;
+
+async function removePagePermission(pageId) {
+    const results = document.getElementById('permission-results');
+    if (!(await adminConfirm(`Remove the restriction on "${pageId}"? Any signed-in contributor will be able to submit edits.`))) return;
+
+    results.innerHTML = 'Removing...';
+    const { error } = await window.supabaseClient.from('page_permissions').delete().eq('page_id', pageId);
+
+    if (error) {
+        results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`;
+        return;
+    }
+    results.innerHTML = `<span class="owner-success-text">"${ownerEscape(pageId)}" is no longer restricted.</span>`;
+    await loadPagePermissions();
 }
 
 // --- MEDIA GARBAGE COLLECTION ---

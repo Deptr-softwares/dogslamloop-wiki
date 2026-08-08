@@ -185,3 +185,122 @@ test('a failed roster load reports the error instead of rendering an empty roste
   await expect(page.locator('#personnel-roster')).toContainText('Could not load the roster');
   await expect(page.locator('#personnel-roster')).toContainText('permission denied');
 });
+
+// --- PAGE RESTRICTIONS ---
+// page_permissions had no write path at all before v0.10, and required_role
+// was decorative: both gates only asked "is this page listed?" and then
+// required admin-or-trusted_editor. A column named required_role that nothing
+// reads is worse than no column, because it looks like configuration.
+
+const PERMISSIONS = [
+  { page_id: 'template', required_role: 'trusted_editor' },
+  { page_id: 'tierlist', required_role: 'trusted_editor' },
+];
+
+async function mockPermissions(page, { rows = PERMISSIONS, writeError = null } = {}) {
+  await page.addInitScript(({ rows, writeError }) => {
+    window.__writes = [];
+    Object.defineProperty(window, 'supabase', {
+      configurable: true,
+      get() { return window.__lib; },
+      set(lib) {
+        window.__lib = lib;
+        if (lib && lib.createClient && !lib.__patched) {
+          const orig = lib.createClient.bind(lib);
+          lib.createClient = (...args) => {
+            const client = orig(...args);
+            client.auth.getSession = async () => ({
+              data: { session: { user: { id: 'u-admin' }, access_token: 'tok' } },
+            });
+            const origFrom = client.from.bind(client);
+            client.from = (table) => {
+              if (table === 'user_roles') {
+                return { select() { return this; }, eq: async () => ({ data: [{ role: 'admin' }], error: null }) };
+              }
+              if (table === 'page_permissions') {
+                const chain = {
+                  select() { return chain; },
+                  order: async () => ({ data: rows, error: null }),
+                  upsert(payload) { window.__writes.push({ op: 'upsert', payload }); return Promise.resolve({ error: writeError }); },
+                  delete() { return { eq: (col, val) => { window.__writes.push({ op: 'delete', val }); return Promise.resolve({ error: writeError }); } }; },
+                };
+                return chain;
+              }
+              return origFrom(table);
+            };
+            client.rpc = async () => ({ data: [], error: null });
+            return client;
+          };
+          lib.__patched = true;
+        }
+      },
+    });
+  }, { rows, writeError });
+}
+
+test('restricted pages are listed with the clearance they require', async ({ page }) => {
+  await mockPermissions(page);
+  await page.goto('/owner.html', { waitUntil: 'networkidle' });
+
+  await expect(page.locator('#permissions-list .personnel-row')).toHaveCount(2);
+  await expect(page.locator('#permissions-list')).toContainText('template');
+  await expect(page.locator('#permissions-list')).toContainText('Trusted Editor');
+});
+
+test('raising a page to admin-only writes required_role, not just the page id', async ({ page }) => {
+  await mockPermissions(page);
+  await page.goto('/owner.html', { waitUntil: 'networkidle' });
+
+  const row = page.locator('#permissions-list .personnel-row').filter({ hasText: 'template' });
+  await row.locator('.personnel-role-select').selectOption('admin');
+  await row.locator('.permission-apply-btn').click();
+  await page.locator('#btn-admin-confirm-ok').click();
+  await page.waitForTimeout(300);
+
+  const writes = await page.evaluate(() => window.__writes);
+  expect(writes).toHaveLength(1);
+  expect(writes[0].op).toBe('upsert');
+  expect(writes[0].payload[0]).toEqual({ page_id: 'template', required_role: 'admin' });
+});
+
+test('unrestricting a page deletes its row, and is confirmed first', async ({ page }) => {
+  await mockPermissions(page);
+  await page.goto('/owner.html', { waitUntil: 'networkidle' });
+
+  const row = page.locator('#permissions-list .personnel-row').filter({ hasText: 'tierlist' });
+  await row.locator('.permission-remove-btn').click();
+  await page.locator('#btn-admin-confirm-cancel').click();
+  await page.waitForTimeout(200);
+  expect(await page.evaluate(() => window.__writes)).toHaveLength(0);
+
+  await row.locator('.permission-remove-btn').click();
+  await page.locator('#btn-admin-confirm-ok').click();
+  await page.waitForTimeout(300);
+
+  const writes = await page.evaluate(() => window.__writes);
+  expect(writes).toHaveLength(1);
+  expect(writes[0]).toEqual({ op: 'delete', val: 'tierlist' });
+});
+
+test('the restrict dropdown excludes pages that are already restricted', async ({ page }) => {
+  await mockPermissions(page);
+  await page.goto('/owner.html', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(400);
+
+  const values = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('#permission-page option')).map(o => o.value));
+
+  // Offering an already-restricted page would let you create a confusing
+  // duplicate-looking entry; offering a free-text field would let you create
+  // a row for a page id that does not exist, silently locking nothing.
+  expect(values).not.toContain('template');
+  expect(values).not.toContain('tierlist');
+  expect(values.length).toBeGreaterThan(0);
+  expect(values).toContain('boomcat');
+});
+
+test('an empty restriction list says so rather than looking broken', async ({ page }) => {
+  await mockPermissions(page, { rows: [] });
+  await page.goto('/owner.html', { waitUntil: 'networkidle' });
+  await expect(page.locator('#permissions-list')).toContainText('No pages are restricted');
+});
