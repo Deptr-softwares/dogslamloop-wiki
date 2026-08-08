@@ -297,7 +297,7 @@
     },
     {
       "id": "framedata",
-      "name": "Frame Data",
+      "name": "Frame data",
       "url": "systems/framedata/index.html",
       "isWip": true,
       "cms_config": { "pageType": "system", "pageId": "framedata", "editRole": "open" }
@@ -311,7 +311,7 @@
     },
     {
       "id": "evasive",
-      "name": "Evasive System",
+      "name": "Evasive",
       "url": "systems/evasive/index.html",
       "isWip": true,
       "cms_config": { "pageType": "system", "pageId": "evasive", "editRole": "open" }
