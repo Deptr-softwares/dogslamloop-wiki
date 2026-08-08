@@ -63,6 +63,9 @@ jobs:
       - name: Regenerate navigation from the page registry
         run: node scripts/fetch-registry.js --write
 
+      - name: Regenerate FAQ and credits
+        run: node scripts/fetch-content.js --write
+
       - name: Regenerate page stubs
         run: node scripts/generate-pages.js --write
 

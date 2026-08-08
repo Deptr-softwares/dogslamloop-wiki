@@ -211,39 +211,8 @@
                         </div>
                         
                         <div class="faq-scroll-box scroll-sm" style="margin-top: 1rem;">
-                            <ul class="credits-list">
-                                <li>
-                                    <span class="dot-indicator dot-green"></span>
-                                    <div><span class="credit-name">@Deptr</span> - Site owner and developer</div>
-                                </li>
-                                <li>
-                                    <span class="dot-indicator dot-blue"></span>
-                                    <div><span class="credit-name">@Mrt1</span> - Frame Data and such</div>
-                                </li>
-                                <li>
-                                    <span class="dot-indicator dot-yellow"></span>
-                                    <div><span class="credit-name">@Air Putrifier</span> - Strategies and resource and such</div>
-                                </li>
-                                <li>
-                                    <span class="dot-indicator dot-lime"></span>
-                                    <div><span class="credit-name">@PositiveHA</span> - Strategies and testing and such</div>
-                                </li>
-                                <li>
-                                    <span class="dot-indicator dot-grey"></span>
-                                    <div><span class="credit-name">@Demi</span> - Strategies and testing and such</div>
-                                </li>
-                                <li>
-                                    <span class="dot-indicator dot-blue"></span>
-                                    <div><span class="credit-name">@Kigtus</span> - Allowance to borrow from the wiki resource and such</div>
-                                </li>
-                                <li>
-                                    <span class="dot-indicator dot-pink"></span>
-                                    <div><span class="credit-name">@SerialKiller4F</span> - Strategies and testing and such</div>
-                                </li>
-                                <li>
-                                    <span class="dot-indicator dot-yellow"></span>
-                                    <div><span class="credit-name">@FUNNY_NAME_2</span> - Suggestions and such</div>
-                                </li>
+                            <ul class="credits-list" id="credits-dynamic-list">
+                                <li><p class="loading-msg">Loading credits...</p></li>
                             </ul>
                         </div>
                     </section>
@@ -292,6 +261,7 @@
             if (window.loadUpdateLogs) loadUpdateLogs('site-updates-dashboard', 2);
             if (window.loadPostList) window.loadPostList('home-blog-posts', { kind: 'blog', limit: 2, emptyMessage: 'No posts yet.' });
             if (window.loadFAQ) loadFAQ('faq-dynamic-container');
+            if (window.loadCredits) loadCredits('credits-dynamic-list');
             if (window.buildGlobalSidebarMenu) window.buildGlobalSidebarMenu('global-sidebar-nav');
             if (window.initAuthDock) window.initAuthDock();
             if (window.initRosterFilters) window.initRosterFilters();

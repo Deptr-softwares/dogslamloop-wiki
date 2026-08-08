@@ -397,11 +397,13 @@
 .admin-tool-card.gc { border-left-color: #ef4444; }
 .admin-tool-card.permissions { border-left-color: #eab308; }
 .admin-tool-card.pages { border-left-color: #22c55e; }
+.admin-tool-card.faq { border-left-color: #3b82f6; }
 .admin-tool-title { font-size: 0.8rem; margin: 0; text-transform: uppercase; }
 .admin-tool-title.personnel { color: #a855f7; }
 .admin-tool-title.gc { color: #ef4444; }
 .admin-tool-title.permissions { color: #eab308; }
 .admin-tool-title.pages { color: #22c55e; }
+.admin-tool-title.faq { color: var(--accent-blue); }
 .page-row-path { font-family: var(--text-mono); font-size: 0.62rem; color: var(--text-muted); overflow-wrap: anywhere; }
 .badge-status-live { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid #22c55e; }
 .badge-status-draft { background: rgba(136,136,136,0.15); color: #888; border: 1px solid #888; }

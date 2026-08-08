@@ -141,6 +141,53 @@
                     <div id="permission-results" class="admin-tool-results"></div>
                 </section>
 
+                <section id="tool-faq" class="update-log-item admin-tool-card faq">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title faq">FAQ</h3>
+                        <button onclick="loadFaqEntries()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">Shown on the main dashboard. Updates on the site after the next regeneration run.</p>
+
+                    <div id="faq-admin-list" class="permissions-list">
+                        <p class="loading-msg">Loading...</p>
+                    </div>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="new-faq-question">ADD A QUESTION</label>
+                        <input type="text" id="new-faq-question" class="editor-input admin-input-full" placeholder="How do you measure frame data?">
+                        <label class="block-field-label-sm" for="new-faq-answer">ANSWER (blank line between paragraphs)</label>
+                        <textarea id="new-faq-answer" class="editor-textarea admin-input-full" rows="4" placeholder="Write the answer here."></textarea>
+                        <button id="btn-add-faq" onclick="addFaqEntry()" class="btn-sys btn-sys-green admin-tool-btn">ADD QUESTION</button>
+                    </div>
+
+                    <div id="faq-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-credits" class="update-log-item admin-tool-card faq">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title faq">Credits</h3>
+                        <button onclick="loadCollaborators()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">Drives both the Collaborators page and the Credits list on the main dashboard.</p>
+
+                    <div id="credits-admin-list" class="permissions-list">
+                        <p class="loading-msg">Loading...</p>
+                    </div>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="new-credit-name">ADD SOMEONE</label>
+                        <input type="text" id="new-credit-name" class="editor-input admin-input-full" placeholder="Name">
+                        <input type="text" id="new-credit-desc" class="editor-input admin-input-full" placeholder="What they did">
+                        <select id="new-credit-section" class="editor-input admin-input-full select">
+                            <option value="main">Main contributor (full card)</option>
+                            <option value="thanks">Special thanks (one line)</option>
+                        </select>
+                        <button id="btn-add-credit" onclick="addCollaborator()" class="btn-sys btn-sys-green admin-tool-btn">ADD</button>
+                    </div>
+
+                    <div id="credits-results" class="admin-tool-results"></div>
+                </section>
+
                 <section id="tool-account-deletion" class="update-log-item admin-tool-card gc">
                     <h3 class="update-title admin-tool-title gc">Delete an Account</h3>
                     <p class="admin-tool-hint">

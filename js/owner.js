@@ -62,6 +62,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadPersonnel();
     await loadSitePages();
     await loadPagePermissions();
+    await loadFaqEntries();
+    await loadCollaborators();
 });
 
 function kickUser() {
@@ -634,6 +636,159 @@ async function removePagePermission(pageId) {
     }
     results.innerHTML = `<span class="owner-success-text">"${ownerEscape(pageId)}" is no longer restricted.</span>`;
     await loadPagePermissions();
+}
+
+// --- FAQ ---
+// data/faq.json was a static file, so changing an answer meant a commit. The
+// runtime still fetches plain JSON (js/home_widgets.js loadFAQ) - the
+// regeneration workflow writes it back out from site_faq.
+
+function contentNotDeployedMessage(error, what) {
+    const notDeployed = error.code === 'PGRST205' || /schema cache/i.test(error.message || '');
+    return notDeployed
+        ? `<p class="admin-error-text">${what} editing isn't available yet - its table hasn't been deployed. It arrives with the next migration.</p>`
+        : `<p class="admin-error-text">Could not load: ${ownerEscape(error.message)}</p>`;
+}
+
+async function loadFaqEntries() {
+    const container = document.getElementById('faq-admin-list');
+    if (!container) return;
+
+    const { data, error } = await window.supabaseClient
+        .from('site_faq').select('id, question, paragraphs, sort_order').order('sort_order');
+
+    if (error) { container.innerHTML = contentNotDeployedMessage(error, 'FAQ'); return; }
+
+    if (!data || data.length === 0) {
+        container.innerHTML = `<p class="loading-msg">No FAQ entries yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.map(row => `
+        <div class="personnel-row">
+            <div class="personnel-row-main">
+                <span class="personnel-email">${ownerEscape(row.question)}</span>
+            </div>
+            <div class="personnel-row-actions">
+                <button class="btn-sys btn-sys-red faq-delete-btn" data-id="${ownerEscape(row.id)}">DELETE</button>
+            </div>
+        </div>
+    `).join('');
+
+    container.querySelectorAll('.faq-delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteFaqEntry(btn.dataset.id));
+    });
+}
+window.loadFaqEntries = loadFaqEntries;
+
+async function addFaqEntry() {
+    const results = document.getElementById('faq-results');
+    const question = document.getElementById('new-faq-question').value.trim();
+    const answer = document.getElementById('new-faq-answer').value;
+
+    if (!question) { results.innerHTML = `<span class="admin-error-text">Enter a question.</span>`; return; }
+
+    // Blank lines separate paragraphs, matching how the renderer emits one
+    // <p> per array entry.
+    const paragraphs = answer.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+    if (paragraphs.length === 0) { results.innerHTML = `<span class="admin-error-text">Enter an answer.</span>`; return; }
+
+    const { data: last } = await window.supabaseClient
+        .from('site_faq').select('sort_order').order('sort_order', { ascending: false }).limit(1);
+    const sortOrder = (last && last[0] ? last[0].sort_order : -10) + 10;
+
+    const { error } = await window.supabaseClient
+        .from('site_faq').insert([{ question, paragraphs, sort_order: sortOrder }]);
+
+    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`; return; }
+
+    results.innerHTML = `<span class="owner-success-text">Added. It appears on the site after the next regeneration run.</span>`;
+    document.getElementById('new-faq-question').value = '';
+    document.getElementById('new-faq-answer').value = '';
+    await loadFaqEntries();
+}
+window.addFaqEntry = addFaqEntry;
+
+async function deleteFaqEntry(id) {
+    const results = document.getElementById('faq-results');
+    if (!(await adminConfirm('Delete this FAQ entry?'))) return;
+
+    const { error } = await window.supabaseClient.from('site_faq').delete().eq('id', id);
+    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`; return; }
+
+    results.innerHTML = `<span class="owner-success-text">Deleted.</span>`;
+    await loadFaqEntries();
+}
+
+// --- CREDITS / COLLABORATORS ---
+// Single source for both the Collaborators page and the main dashboard's
+// Credits list, which used to be a hand-maintained duplicate in index.html.
+
+async function loadCollaborators() {
+    const container = document.getElementById('credits-admin-list');
+    if (!container) return;
+
+    const { data, error } = await window.supabaseClient
+        .from('site_collaborators').select('id, name, description, section, sort_order').order('sort_order');
+
+    if (error) { container.innerHTML = contentNotDeployedMessage(error, 'Credits'); return; }
+
+    if (!data || data.length === 0) {
+        container.innerHTML = `<p class="loading-msg">Nobody credited yet.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.map(row => `
+        <div class="personnel-row">
+            <div class="personnel-row-main">
+                <span class="update-badge ${row.section === 'main' ? 'badge-role-admin' : 'badge-role-contributor'}">${row.section === 'main' ? 'Contributor' : 'Thanks'}</span>
+                <span class="personnel-email">${ownerEscape(row.name)}</span>
+            </div>
+            <div class="personnel-row-actions">
+                <button class="btn-sys btn-sys-red credit-delete-btn" data-id="${ownerEscape(row.id)}">REMOVE</button>
+            </div>
+        </div>
+    `).join('');
+
+    container.querySelectorAll('.credit-delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteCollaborator(btn.dataset.id));
+    });
+}
+window.loadCollaborators = loadCollaborators;
+
+async function addCollaborator() {
+    const results = document.getElementById('credits-results');
+    const name = document.getElementById('new-credit-name').value.trim();
+    const description = document.getElementById('new-credit-desc').value.trim();
+    const section = document.getElementById('new-credit-section').value;
+
+    if (!name) { results.innerHTML = `<span class="admin-error-text">Enter a name.</span>`; return; }
+
+    const { data: last } = await window.supabaseClient
+        .from('site_collaborators').select('sort_order').eq('section', section).order('sort_order', { ascending: false }).limit(1);
+    const sortOrder = (last && last[0] ? last[0].sort_order : -10) + 10;
+
+    const { error } = await window.supabaseClient
+        .from('site_collaborators').insert([{ name, description, section, sort_order: sortOrder }]);
+
+    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`; return; }
+
+    results.innerHTML = `<span class="owner-success-text">Added ${ownerEscape(name)}.</span>`;
+    document.getElementById('new-credit-name').value = '';
+    document.getElementById('new-credit-desc').value = '';
+    await loadCollaborators();
+}
+window.addCollaborator = addCollaborator;
+
+async function deleteCollaborator(id) {
+    const results = document.getElementById('credits-results');
+    if (!(await adminConfirm('Remove this person from the credits?'))) return;
+
+    const { error } = await window.supabaseClient.from('site_collaborators').delete().eq('id', id);
+    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`; return; }
+
+    results.innerHTML = `<span class="owner-success-text">Removed.</span>`;
+    await loadCollaborators();
 }
 
 // --- ACCOUNT DELETION (ANONYMIZE) ---

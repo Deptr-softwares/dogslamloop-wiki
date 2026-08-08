@@ -8,7 +8,10 @@
       "avatar": "/medias/images/DestroymanFront.webp",
       "description": "Pretty much the sole dev of Dogslamloop, worked on almost every feature in the site, and some double checking of frame data.",
       "links": [
-        { "name": "GitHub", "url": "https://github.com/Deptr-softwares" }
+        {
+          "name": "GitHub",
+          "url": "https://github.com/Deptr-softwares"
+        }
       ]
     },
     {
@@ -37,7 +40,10 @@
       "avatar": "/medias/images/nickpfp.webp",
       "description": "Written a lot of strategy entries for the site, awesome mobile player as well.",
       "links": [
-        { "name": "YouTube", "url": "https://www.youtube.com/@CrailsheimTS" }
+        {
+          "name": "YouTube",
+          "url": "https://www.youtube.com/@CrailsheimTS"
+        }
       ]
     },
     {
@@ -48,15 +54,33 @@
       "avatar": "/medias/images/OrochimaruKunfoPop.webp",
       "description": "Figured out the 4-frames rule for M1 trading stuff, among other things as well.",
       "links": [
-        { "name": "YouTube", "url": "https://www.youtube.com/@PositiveHA" }
+        {
+          "name": "YouTube",
+          "url": "https://www.youtube.com/@PositiveHA"
+        }
       ]
     }
   ],
   "specialThanks": [
-    { "name": "FUNNY_NAME_2", "reason": "Suggested the color format for the frame data" },
-    { "name": "Kigtus", "reason": "Owner of the Unofficial JJS wiki who allowed us to borrow their resource" },
-    { "name": "Nova", "reason": "I think he helped Nickolas4F right?" },
-    { "name": "Demi", "reason": "I think she helped PositiveHA right?" },
-    { "name": "Boomcat", "reason": "Everything" }
+    {
+      "name": "FUNNY_NAME_2",
+      "reason": "Suggested the color format for the frame data"
+    },
+    {
+      "name": "Kigtus",
+      "reason": "Owner of the Unofficial JJS wiki who allowed us to borrow their resource"
+    },
+    {
+      "name": "Nova",
+      "reason": "I think he helped Nickolas4F right?"
+    },
+    {
+      "name": "Demi",
+      "reason": "I think she helped PositiveHA right?"
+    },
+    {
+      "name": "Boomcat",
+      "reason": "Everything"
+    }
   ]
 }
