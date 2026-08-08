@@ -222,3 +222,33 @@ test('slugify produces url-safe slugs and survives awkward titles', async ({ pag
   expect(results.unicode).toBe('hllo-wrld');
   expect(results.empty).toBe('');
 });
+
+test('post-editor defines updateLivePreview, which editor-blocks.js calls by bare name', async ({ page }) => {
+  // editor-blocks.js calls updateLivePreview() from ~10 sites after every
+  // block change. It is declared in js/editor-sync.js, which post-editor.html
+  // deliberately does not load - so without a local declaration every block
+  // edit threw a ReferenceError and the block list silently stopped updating.
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await page.goto('/post-editor.html', { waitUntil: 'domcontentloaded' });
+
+  const defined = await page.evaluate(() => typeof window.updateLivePreview === 'function');
+  expect(defined).toBe(true);
+
+  // Calling it with no blocks and no session must not throw either.
+  await page.evaluate(() => window.updateLivePreview());
+  expect(errors).toEqual([]);
+});
+
+test('post-editor workspace can scroll to its own content', async ({ page }) => {
+  // .editor-workspace sets overflow:hidden expecting an inner scroll region.
+  // Without an explicit overflow-y here the Add Block control sat below the
+  // fold with no way to reach it.
+  await page.goto('/post-editor.html', { waitUntil: 'domcontentloaded' });
+  const overflowY = await page.evaluate(() => {
+    const ws = document.querySelector('.post-editor-workspace');
+    return ws ? getComputedStyle(ws).overflowY : null;
+  });
+  expect(overflowY).toBe('auto');
+});

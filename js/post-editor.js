@@ -76,6 +76,7 @@ window.resetPostForm = function() {
     if (typeof initStrategyBlockBuilder === 'function') {
         initStrategyBlockBuilder('post-block-builder', []);
     }
+    if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
     setStatus('');
 };
 
@@ -132,6 +133,7 @@ window.editPost = async function(id) {
     if (typeof initStrategyBlockBuilder === 'function') {
         initStrategyBlockBuilder('post-block-builder', Array.isArray(data.content) ? data.content : []);
     }
+    if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
     setStatus(`Loaded "${data.title}".`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 };
@@ -242,6 +244,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     slugInput.addEventListener('input', () => { slugTouched = true; });
     titleInput.addEventListener('input', () => {
         if (!slugTouched && !window.currentEditingPostId) slugInput.value = window.slugify(titleInput.value);
+    });
+
+    // The preview shows the title/summary too, so it has to refresh as those
+    // are typed, not only on block changes.
+    ['post-title', 'post-summary'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', () => {
+            if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
+        });
     });
 
     window.resetPostForm();
