@@ -196,3 +196,29 @@ test('the homepage shows the latest posts', async ({ page }) => {
   const q = await page.evaluate(() => window.__lastPostQuery);
   expect(q.kind).toBe('blog');
 });
+
+test('post-editor.html denies access to non-admins', async ({ page }) => {
+  // The page writes directly to site_posts with no review step, so its gate
+  // matters more than a read-only page's.
+  await page.goto('/post-editor.html', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.access-denied-screen')).toHaveCount(1, { timeout: 5000 });
+});
+
+test('slugify produces url-safe slugs and survives awkward titles', async ({ page }) => {
+  await page.goto('/post-editor.html', { waitUntil: 'domcontentloaded' });
+  const results = await page.evaluate(() => ({
+    simple: window.slugify('Frame Data Pass on Vessel'),
+    punctuation: window.slugify("Vessel's 5H -- what changed?!"),
+    collapsing: window.slugify('  Multiple   spaces  '),
+    unicode: window.slugify('Héllo Wörld'),
+    empty: window.slugify(''),
+  }));
+
+  expect(results.simple).toBe('frame-data-pass-on-vessel');
+  expect(results.punctuation).toBe('vessels-5h-what-changed');
+  expect(results.collapsing).toBe('multiple-spaces');
+  // Accented characters are stripped rather than transliterated - acceptable
+  // for an owner-editable field that is shown and can be corrected by hand.
+  expect(results.unicode).toBe('hllo-wrld');
+  expect(results.empty).toBe('');
+});
