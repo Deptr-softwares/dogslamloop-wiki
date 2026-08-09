@@ -1,8 +1,8 @@
 {
   "scripts": {
     "test": "playwright test",
-    "validate": "node scripts/validate-navigation.js && node scripts/generate-pages.js --check && node scripts/generate-sitemap.js --check",
-    "generate": "node scripts/generate-pages.js --write && node scripts/generate-sitemap.js --write",
+    "validate": "node scripts/validate-navigation.js && node scripts/generate-pages.js --check && node scripts/generate-sitemap.js --check && node scripts/generate-hub-meta.js --check",
+    "generate": "node scripts/generate-pages.js --write && node scripts/generate-sitemap.js --write && node scripts/generate-hub-meta.js --write",
     "refresh-previews": "node scripts/fetch-previews.js --write",
     "refresh-registry": "node scripts/fetch-registry.js --write",
     "refresh-content": "node scripts/fetch-content.js --write"

@@ -1,4 +1,18 @@
 {
   "version": "Beta v0.10",
-  "tagline": "The Competitive JJS Wiki"
+  "tagline": "The Competitive JJS Wiki",
+  "hubs": {
+    "character-hub": {
+      "title": "Character Dashboard",
+      "description": "Every Jujutsu Shenanigans character, with frame data, matchups, and strategy for each."
+    },
+    "main-hub": {
+      "title": "Dogslamloop Wiki",
+      "description": "Frame data, matchups, and strategy guides for Jujutsu Shenanigans - a community-run competitive wiki."
+    },
+    "systems-hub": {
+      "title": "Systems & Guides Hub",
+      "description": "Guides to the systems behind Jujutsu Shenanigans - frame data, HUD, evasion, M1 trading, and more."
+    }
+  }
 }

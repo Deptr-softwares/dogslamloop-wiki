@@ -21,6 +21,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const FAQ_PATH = path.join(ROOT, 'data', 'faq.json');
 const COLLAB_PATH = path.join(ROOT, 'systems', 'collaborators', 'collaborators_data.json');
+const META_PATH = path.join(ROOT, 'data', 'site_meta.json');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://gtqswjspxymjdopljmfi.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
@@ -71,6 +72,40 @@ function buildCollaborators(rows) {
     };
 }
 
+/**
+ * Pure. The site_meta singleton row in, the exact site_meta.json shape out.
+ *
+ * version and tagline keep their existing keys and position because
+ * js/site_meta.js reads them at runtime on every page; `hubs` is additive and
+ * no runtime code touches it. It rides in this file rather than getting its
+ * own because it is a few hundred bytes, it shares a source row, and a second
+ * artifact would mean a second thing to keep in sync for no benefit -
+ * scripts/generate-hub-meta.js reads it from here at build time.
+ */
+function buildSiteMeta(row) {
+    const hubs = {};
+    // Sorted so the output is stable regardless of jsonb key ordering. An
+    // unstable key order would show up as a spurious diff on every run and,
+    // worse, as a false "stale" in the generator's --check.
+    for (const key of Object.keys(row.hubs || {}).sort()) {
+        const hub = row.hubs[key] || {};
+        hubs[key] = { title: hub.title || '', description: hub.description || '' };
+    }
+    return { version: row.version, tagline: row.tagline, hubs };
+}
+
+async function fetchSingleton(table) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*&limit=1`, {
+        headers: { apikey: SUPABASE_ANON_KEY },
+    });
+    if (!res.ok) throw new Error(`Supabase returned HTTP ${res.status} for ${table}: ${await res.text()}`);
+    const rows = await res.json();
+    if (!Array.isArray(rows) || rows.length === 0) {
+        throw new Error(`Refusing to continue: ${table} returned no row.`);
+    }
+    return rows[0];
+}
+
 async function fetchTable(table) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*&order=sort_order`, {
         headers: { apikey: SUPABASE_ANON_KEY },
@@ -98,14 +133,16 @@ function writeIfChanged(filePath, value, label, write, results) {
 async function main() {
     const write = process.argv.includes('--write');
 
-    const [faqRows, collabRows] = await Promise.all([
+    const [faqRows, collabRows, metaRow] = await Promise.all([
         fetchTable('site_faq'),
         fetchTable('site_collaborators'),
+        fetchSingleton('site_meta'),
     ]);
 
     const results = [];
     writeIfChanged(FAQ_PATH, buildFaq(faqRows), 'faq.json', write, results);
     writeIfChanged(COLLAB_PATH, buildCollaborators(collabRows), 'collaborators_data.json', write, results);
+    writeIfChanged(META_PATH, buildSiteMeta(metaRow), 'site_meta.json', write, results);
 
     console.log(`fetch-content: ${results.join(', ')}.`);
 }
@@ -117,4 +154,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { buildFaq, buildCollaborators };
+module.exports = { buildFaq, buildCollaborators, buildSiteMeta };
