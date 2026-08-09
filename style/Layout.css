@@ -25,9 +25,102 @@
     .lg\:col-span-2 { grid-column: span 2 / span 2; } 
 }
 
-@media (min-width: 1350px) { 
-    .grid-layout-3col { grid-template-columns: repeat(3, minmax(0, 1fr)); } 
+@media (min-width: 1350px) {
+    .grid-layout-3col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Two columns rather than three, for the v0.11 dashboard widgets. Stacks
+   below the same 900px breakpoint the 3-col grid uses, so the hubs and the
+   homepage change shape at the same width. */
+.grid-layout-2col { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+@media (min-width: 900px) {
+    .grid-layout-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* --- DASHBOARD WIDGETS (js/dashboards.js) --- */
+
+/* Reading path / contribute steps. An <ol> so the order is in the markup and
+   not just the styling - it is the point of the section. */
+.reading-path { list-style: none; margin: 1rem 0 0; padding: 0; counter-reset: step; }
+.reading-step {
+    counter-increment: step;
+    position: relative;
+    padding: 0.6rem 0 0.6rem 2.5rem;
+    border-bottom: 2px dashed var(--border-color);
+}
+.reading-step:last-child { border-bottom: none; }
+.reading-step::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0.6rem;
+    width: 1.7rem;
+    text-align: center;
+    font-family: var(--text-mono);
+    font-weight: bold;
+    color: var(--accent-blue);
+}
+.reading-step-title { display: block; color: var(--text-white); font-weight: bold; text-decoration: none; }
+a.reading-step-title:hover { color: var(--accent-blue); }
+.reading-step-desc { display: block; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+/* Needs-work and recent-edit lists share a row shape: a name, then muted
+   detail that wraps under it when there is no room. */
+.needs-work-list, .recent-edit-list { list-style: none; margin: 0; padding: 0; }
+.needs-work-row, .recent-edit-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 2px dashed var(--border-color);
+}
+.needs-work-row:last-child, .recent-edit-row:last-child { border-bottom: none; }
+.needs-work-name, .recent-edit-name { color: var(--text-white); text-decoration: none; font-weight: bold; }
+.needs-work-name:hover, .recent-edit-name:hover { color: var(--accent-blue); }
+.needs-work-missing, .recent-edit-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: var(--text-mono);
+    text-align: right;
+}
+.needs-work-more { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.75rem; }
+
+/* Tier snapshot: a coloured tier label, then that tier's characters. */
+.tier-snapshot-row { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.5rem 0; }
+.tier-snapshot-label {
+    flex: 0 0 2.5rem;
+    text-align: center;
+    padding: 0.2rem 0;
+    font-family: var(--text-mono);
+    font-weight: bold;
+    color: #000;
+    border: 2px solid var(--border-color);
+}
+.tier-snapshot-names { display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; }
+.tier-snapshot-name { font-size: 0.8rem; color: var(--text-primary); text-decoration: none; }
+.tier-snapshot-name:hover { color: var(--accent-blue); }
+
+/* Site statistics. auto-fit so three stats sit in a row on desktop and wrap
+   to two-plus-one on a narrow card, without a media query per breakpoint. */
+.wiki-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 1rem; }
+.wiki-stat { text-align: center; }
+.wiki-stat-value {
+    display: block;
+    font-family: 'Finger-Paint', sans-serif;
+    font-size: 1.75rem;
+    color: var(--accent-blue);
+    text-shadow: 2px 2px 0px var(--manga-shadow);
+}
+.wiki-stat-label { display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-family: var(--text-mono); }
+
+/* Glossary peek. */
+.glossary-list { margin: 0; }
+.glossary-row { padding: 0.5rem 0; border-bottom: 2px dashed var(--border-color); }
+.glossary-row:last-child { border-bottom: none; }
+.glossary-term { color: var(--text-white); font-weight: bold; margin: 0; }
+.glossary-def { color: var(--text-muted); font-size: 0.85rem; margin: 0.15rem 0 0; }
 
 /* --- 2. SIDEBARS (Left & Right) --- */
 .global-sidebar-left {

@@ -113,6 +113,48 @@
                 </div>
             </section>
 
+            <div class="grid-layout-2col">
+
+                <section class="wiki-section" id="tierlist-section">
+                    <div class="dashboard-header-split">
+                        <h2 class="section-title section-title-clean m-0">Community Tier List</h2>
+                        <a href="../systems/tierlist/index.html" class="btn-manga m-0" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">
+                            View All
+                        </a>
+                    </div>
+                    <p class="admin-tool-hint">Community opinion, not settled fact.</p>
+
+                    <div id="tier-snapshot" class="faq-scroll-box scroll-lg">
+                        <p class="loading-msg">Loading the tier list...</p>
+                    </div>
+                </section>
+
+                <section class="wiki-section" id="recent-edits-section">
+                    <div class="dashboard-header-split">
+                        <h2 class="section-title section-title-clean m-0">Recently Updated</h2>
+                        <a href="../recent-changes.html" class="btn-manga m-0" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">
+                            View All
+                        </a>
+                    </div>
+
+                    <div id="recent-character-edits">
+                        <p class="loading-msg">Checking for recent edits...</p>
+                    </div>
+                </section>
+
+            </div>
+
+            <section class="wiki-section" id="needs-work-section">
+                <h2 class="section-title">Pages That Need Work</h2>
+                <p class="strategy-paragraph" style="color: var(--text-primary);">
+                    Sections nobody has written yet. Pick one you know well &mdash; anyone signed in can contribute.
+                </p>
+
+                <div id="needs-work">
+                    <p class="loading-msg">Working out what is missing...</p>
+                </div>
+            </section>
+
         </main>
 
         <!-- RIGHT SIDEBAR: PAGE NAVIGATION -->
@@ -139,6 +181,7 @@
     <script src="../js/description.js"></script>
     <script src="../js/internalstyling.js"></script>
     <script src="../js/hub_content.js"></script>
+    <script src="../js/dashboards.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -159,6 +202,14 @@
             if (typeof window.initRosterFilters === 'function') {
                 await window.initRosterFilters();
             }
+
+            // 2b. Dashboard widgets. Fired together rather than awaited in
+            // turn: they query different tables and none depends on another,
+            // so serialising them would only stack their latencies. Each
+            // renders its own error, so one failing cannot take out the rest.
+            if (window.buildTierSnapshot) window.buildTierSnapshot('tier-snapshot');
+            if (window.buildRecentCharacterEdits) window.buildRecentCharacterEdits('recent-character-edits');
+            if (window.buildNeedsWork) window.buildNeedsWork('needs-work');
             
             // 3. BOOT THE TABLE OF CONTENTS
             if (typeof window.applyHubHeadings === 'function') {

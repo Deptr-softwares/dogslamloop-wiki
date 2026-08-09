@@ -112,6 +112,97 @@
                 </div>
             </section>
 
+            <!-- Static markup, not generated from navigation.json. The order
+                 and the one-line summaries are an editorial judgement about
+                 what to learn first - the registry knows these pages exist but
+                 has no opinion on which to read before which. -->
+            <section class="wiki-section" id="start-here-section">
+                <h2 class="section-title" data-heading-key="startHere">Start Here</h2>
+                <p class="strategy-paragraph" style="color: var(--text-primary);">
+                    New to the game, or new to thinking about it competitively? Read these in order.
+                </p>
+
+                <ol class="reading-path">
+                    <li class="reading-step">
+                        <a href="starter-guide/index.html" class="reading-step-title">Starter Guide</a>
+                        <span class="reading-step-desc">What the game is, and what you should be doing in a match.</span>
+                    </li>
+                    <li class="reading-step">
+                        <a href="hud/index.html" class="reading-step-title">HUD</a>
+                        <span class="reading-step-desc">Reading the screen: cooldowns, meters, and what the numbers mean.</span>
+                    </li>
+                    <li class="reading-step">
+                        <a href="fundamentals/index.html" class="reading-step-title">Fundamentals</a>
+                        <span class="reading-step-desc">Spacing, timing, and the habits that decide most matches.</span>
+                    </li>
+                    <li class="reading-step">
+                        <a href="framedata/index.html" class="reading-step-title">Frame Data</a>
+                        <span class="reading-step-desc">Startup, active and recovery &mdash; how to read every move page on this wiki.</span>
+                    </li>
+                    <li class="reading-step">
+                        <a href="evasive/index.html" class="reading-step-title">Evasive</a>
+                        <span class="reading-step-desc">I-frames, dodging, and getting out of trouble.</span>
+                    </li>
+                    <li class="reading-step">
+                        <a href="m1-trading/index.html" class="reading-step-title">M1 Trading</a>
+                        <span class="reading-step-desc">The 4-frame rule, and who wins when two attacks land together.</span>
+                    </li>
+                </ol>
+            </section>
+
+            <!-- Hidden until the Terminologies page has real content. Its only
+                 tab currently holds a placeholder paragraph, and a glossary box
+                 advertising an empty glossary is worse than no box. -->
+            <section class="wiki-section" id="glossary-section" hidden>
+                <div class="dashboard-header-split">
+                    <h2 class="section-title section-title-clean m-0">Terminology</h2>
+                    <a href="terminologies/index.html" class="btn-manga m-0" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">
+                        View All
+                    </a>
+                </div>
+                <div id="glossary-peek"></div>
+            </section>
+
+            <div class="grid-layout-2col">
+
+                <section class="wiki-section" id="contribute-section">
+                    <h2 class="section-title" data-heading-key="contribute">How to Contribute</h2>
+                    <p class="strategy-paragraph" style="color: var(--text-primary);">
+                        Anyone signed in can propose an edit. A reviewer checks it before it goes live,
+                        so there is nothing you can break.
+                    </p>
+                    <ol class="reading-path">
+                        <li class="reading-step">
+                            <span class="reading-step-title">Sign in</span>
+                            <span class="reading-step-desc">Use the button at the bottom of the sidebar.</span>
+                        </li>
+                        <li class="reading-step">
+                            <span class="reading-step-title">Open a page and press EDIT</span>
+                            <span class="reading-step-desc">Every character and system page has one.</span>
+                        </li>
+                        <li class="reading-step">
+                            <a href="writing_guide/index.html" class="reading-step-title">Follow the Writing Guide</a>
+                            <span class="reading-step-desc">House style, and how frame data should be recorded.</span>
+                        </li>
+                        <li class="reading-step">
+                            <a href="../submissions.html" class="reading-step-title">Track your submissions</a>
+                            <span class="reading-step-desc">See what was approved, and what a reviewer asked about.</span>
+                        </li>
+                    </ol>
+                </section>
+
+                <section class="wiki-section" id="stats-section">
+                    <h2 class="section-title" data-heading-key="stats">The Wiki So Far</h2>
+                    <div id="wiki-stats">
+                        <p class="loading-msg">Counting...</p>
+                    </div>
+                    <p class="admin-tool-hint" style="margin-top: 1rem;">
+                        <a href="../recent-changes.html" class="site-footer-link">See what changed recently &rarr;</a>
+                    </p>
+                </section>
+
+            </div>
+
         </main>
 
         <!-- RIGHT SIDEBAR: PAGE NAVIGATION -->
@@ -137,6 +228,7 @@
     <script src="../js/description.js"></script>
     <script src="../js/internalstyling.js"></script>
     <script src="../js/hub_content.js"></script>
+    <script src="../js/dashboards.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -155,6 +247,15 @@
             // 2. BOOT THE SYSTEMS ENGINE
             if (typeof window.buildSystemsDirectory === 'function') {
                 await window.buildSystemsDirectory('systems-grid');
+            }
+
+            // 2b. Dashboard widgets, fired together - different tables, no
+            // dependencies between them, and each renders its own error.
+            if (window.buildWikiStats) window.buildWikiStats('wiki-stats');
+            // Awaited: it un-hides its section, and the ToC below must not be
+            // built before the page knows which sections exist.
+            if (window.buildTerminologyPeek) {
+                await window.buildTerminologyPeek('glossary-section', 'glossary-peek');
             }
             
             // 3. BOOT THE TABLE OF CONTENTS
