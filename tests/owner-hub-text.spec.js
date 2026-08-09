@@ -1,16 +1,16 @@
 // Coverage for the Dashboard Text tool (owner.html + js/owner-hub-text.js).
 //
 // Hub prose was originally routed through edit.html. That was wrong for a
-// reason the owner identified: the editor's preview builds a system-page
-// layout, so it structurally could not show the roster grid, FAQ and Credits
-// that a dashboard's text has to be read against. A probe confirmed it also
-// carried leftover matchups/counterplay tab containers and a generic "Editing
-// Section" title.
+// reason the owner identified: the editor is built around character and system
+// pages, and a probe confirmed it showed a generic "Editing Section" title,
+// leftover matchups/counterplay tab containers, and a system-page preview that
+// could never show the roster grid a dashboard's text is read against.
 //
-// So the preview here is an iframe of the REAL dashboard. These tests drive it
-// end to end - type in the textarea, assert the text appears inside the frame
-// alongside the page's own sections - because a preview that silently stops
-// updating looks identical to one that has nothing to show yet.
+// The first replacement over-corrected into an iframe preview of the real
+// dashboard. Removed - the owner had raised the preview to explain why the
+// editor was the wrong tool, not to ask for one. Plain fields are the ask, so
+// these tests cover exactly that: the form loads what is stored, and saving
+// writes the right shape.
 
 const { test, expect } = require('@playwright/test');
 
@@ -90,32 +90,7 @@ test('loads the stored text into the form', async ({ page }) => {
     expect(errors).toEqual([]);
 });
 
-test('typing updates the preview, shown against the real dashboard', async ({ page }) => {
-    await mockOwner(page);
-    await openOwner(page);
 
-    await page.fill('#hub-text-body', 'A brand new introduction.\n\nAnd a second paragraph.');
-
-    const frame = page.frameLocator('#hub-preview-frame');
-    await expect(frame.locator('#about-body')).toContainText('A brand new introduction.', { timeout: 8000 });
-    await expect(frame.locator('#about-body')).toContainText('And a second paragraph.');
-
-    // The point of an iframe preview: the surrounding page is really there.
-    await expect(frame.locator('#roster-section')).toBeVisible();
-    await expect(frame.locator('#faq-section')).toBeVisible();
-    await expect(frame.locator('.home-main-title')).toHaveText('Main Dashboard');
-});
-
-test('the preview never writes to the database', async ({ page }) => {
-    await mockOwner(page);
-    await openOwner(page);
-
-    await page.fill('#hub-text-body', 'Typed but not saved.');
-    const frame = page.frameLocator('#hub-preview-frame');
-    await expect(frame.locator('#about-body')).toContainText('Typed but not saved.', { timeout: 8000 });
-
-    expect(await page.evaluate(() => window.__hubWrites)).toEqual([]);
-});
 
 test('saving writes paragraphs into the slot, keyed on page_id', async ({ page }) => {
     await mockOwner(page);
@@ -140,30 +115,4 @@ test('saving writes paragraphs into the slot, keyed on page_id', async ({ page }
     ]);
 });
 
-test('switching dashboard repoints the preview at that page', async ({ page }) => {
-    await mockOwner(page);
-    await openOwner(page);
 
-    await page.selectOption('#hub-text-select', 'character-hub');
-
-    const frame = page.frameLocator('#hub-preview-frame');
-    await expect(frame.locator('.home-main-title')).toHaveText('Character Dashboard', { timeout: 8000 });
-    await expect(frame.locator('.roster-card').first()).toBeVisible();
-});
-
-test('a dashboard opened directly ignores preview messages', async ({ page }) => {
-    // The receiver is an authoring aid. A top-level page a visitor is reading
-    // must not be paintable by anything, same-origin or not.
-    await page.goto('/index.html', { waitUntil: 'networkidle' });
-
-    await page.evaluate(() => {
-        window.postMessage({
-            type: 'dsl-hub-preview',
-            containerId: 'about-body',
-            blocks: [{ type: 'paragraph', content: 'INJECTED' }],
-        }, window.location.origin);
-    });
-    await page.waitForTimeout(300);
-
-    await expect(page.locator('#about-body')).not.toContainText('INJECTED');
-});

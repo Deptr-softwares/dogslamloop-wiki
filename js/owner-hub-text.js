@@ -1,53 +1,40 @@
 /**
  * Dogslamloop Wiki - Owner Tools: Dashboard Text
  *
- * Editing for the prose on the three hub dashboards, with a live preview of
- * the real page beside it.
+ * Plain fields for the prose on the three hub dashboards. Pick a dashboard,
+ * pick a section, type, save.
  *
- * This replaced routing hub text through edit.html. The editor loaded and
- * saved a hub row correctly, but it is built around character and system
- * pages: it showed leftover matchups/counterplay tab containers, a generic
- * "Editing Section" title, and - the reason that mattered - a preview that
- * renders a system-page layout. A dashboard's whole point is the sections
- * around the text, and the editor structurally could not show them.
+ * Hub text was originally routed through edit.html. That was wrong: the
+ * editor is built around character and system pages, so it showed a generic
+ * "Editing Section" title, leftover matchups/counterplay tab containers, and a
+ * system-page preview that could never show the roster grid and widgets a
+ * dashboard's text is actually read against.
  *
- * So the preview here is an iframe of the actual dashboard, and edits are
- * posted into it as they are typed. There is no second renderer to drift out
- * of sync with the real page, because there is no second renderer.
+ * The first replacement over-corrected into an iframe preview of the real
+ * dashboard. That was removed: the owner had raised the preview to explain why
+ * the editor was the wrong tool, not to ask for one. A form is the whole ask.
  *
  * Storage is unchanged: page_data rows keyed by hub id, tabs used as named
- * slots. Admins write live data directly here (the "Admin Write Live Data"
- * policy on page_data), rather than going through the review queue - hub copy
- * is site chrome, and an admin reviewing their own one-line edit is ceremony.
+ * slots. Admins write live data directly (the "Admin Write Live Data" policy
+ * on page_data) rather than going through the review queue - hub copy is site
+ * chrome, and an admin reviewing their own one-line edit is ceremony.
  */
 
 // Declared here rather than read from the row, so a slot can be filled before
-// it exists in the database. Stage 3 adds the Side Dashboard's reading path
-// and contribute sections by extending this list.
+// it exists in the database.
 const HUB_SLOTS = {
-    'main-hub': {
-        file: 'index.html',
-        slots: [{ id: 'about', label: 'About Us', container: 'about-body' }],
-    },
-    'character-hub': {
-        file: 'characters/index.html',
-        slots: [{ id: 'intro', label: 'Roster Overview', container: 'about-section' }],
-    },
-    'systems-hub': {
-        file: 'systems/index.html',
-        slots: [{ id: 'intro', label: 'Introduction', container: 'about-section' }],
-    },
+    'main-hub': { slots: [{ id: 'about', label: 'About Us' }] },
+    'character-hub': { slots: [{ id: 'intro', label: 'Roster Overview' }] },
+    'systems-hub': { slots: [{ id: 'intro', label: 'Introduction' }] },
 };
 
 let hubRows = {};        // pageId -> desc_data
-let previewTimer = null;
 
 function hubTextEls() {
     return {
         hub: document.getElementById('hub-text-select'),
         slot: document.getElementById('hub-slot-select'),
         body: document.getElementById('hub-text-body'),
-        frame: document.getElementById('hub-preview-frame'),
         results: document.getElementById('hub-text-results'),
     };
 }
@@ -90,7 +77,6 @@ async function loadHubText() {
     results.innerHTML = '';
     renderSlotOptions();
     fillSlotText();
-    refreshHubPreview();
 }
 
 function renderSlotOptions() {
@@ -107,53 +93,6 @@ function fillSlotText() {
     const tab = (desc.tabs || []).find(t => t && t.tabId === currentSlot().id);
     const blocks = tab ? (tab.sections || []).flatMap(s => (s && s.blocks) || []) : [];
     body.value = blocksToText(blocks);
-}
-
-/**
- * Points the iframe at the right dashboard and pushes the current text in.
- *
- * Reloads only when the page actually changes - re-pointing the frame on every
- * keystroke would restart the roster and widget fetches each time.
- */
-function refreshHubPreview() {
-    const { hub, frame } = hubTextEls();
-    if (!frame) return;
-
-    const wanted = HUB_SLOTS[hub.value].file;
-    if (frame.dataset.showing !== wanted) {
-        frame.dataset.showing = wanted;
-        frame.src = wanted;
-        frame.addEventListener('load', () => postPreview(), { once: true });
-        return;
-    }
-    postPreview();
-}
-
-function postPreview() {
-    const { body, frame } = hubTextEls();
-    if (!frame || !frame.contentWindow) return;
-
-    const payload = {
-        type: 'dsl-hub-preview',
-        containerId: currentSlot().container,
-        blocks: textToBlocks(body.value),
-    };
-
-    // Headings come from the Site Metadata card when it is loaded, so the
-    // preview reflects every unsaved change on the page rather than just this
-    // card's.
-    const headings = {};
-    document.querySelectorAll('.meta-heading-input').forEach(input => {
-        headings[input.dataset.headingKey] = input.value;
-    });
-    if (Object.keys(headings).length > 0) payload.headings = headings;
-
-    frame.contentWindow.postMessage(payload, window.location.origin);
-}
-
-function scheduleHubPreview() {
-    clearTimeout(previewTimer);
-    previewTimer = setTimeout(postPreview, 300);
 }
 
 async function saveHubText() {
@@ -197,12 +136,11 @@ async function saveHubText() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    const { hub, slot, body } = hubTextEls();
+    const { hub, slot } = hubTextEls();
     if (!hub) return;   // not on owner.html
 
     hub.addEventListener('change', () => loadHubText());
-    slot.addEventListener('change', () => { fillSlotText(); refreshHubPreview(); });
-    body.addEventListener('input', scheduleHubPreview);
+    slot.addEventListener('change', () => fillSlotText());
 
     loadHubText();
 });

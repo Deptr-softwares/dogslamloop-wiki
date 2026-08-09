@@ -107,7 +107,11 @@
                  contents indexes .section-title, so a heading inside the
                  replaceable region would vanish from the ToC. -->
             <section class="wiki-section" id="about-section">
-                <h2 class="section-title section-title-clean" data-heading-key="about">About Us</h2>
+                <!-- Plain .section-title, not .section-title-clean: the clean
+                     variant strips the bottom border and exists for headings
+                     that share a row with a button. This one stands alone, so
+                     it keeps the divider the other two dashboards have. -->
+                <h2 class="section-title" data-heading-key="about">About Us</h2>
                 <div id="about-body">
                     <p class="text-gray-300 text-sm leading-relaxed m-0">
                         <span class="font-bold text-white italic">Jujutsu Shenanigans</span> is a casual (shenanigans) battleground game on Roblox. However, this hub provides in-depth frame data, and strategy breakdowns to help all users, Tier 5 and Tier 1, to get better at the game via better understanding of the game.

@@ -147,9 +147,7 @@
                         <button onclick="loadHubText()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
                     </div>
                     <p class="admin-tool-hint">
-                        The intro text on each dashboard. The preview is the real page, so you see your text
-                        with the roster, guides and everything else around it. Leave a blank line between
-                        paragraphs. Saves go live immediately.
+                        The intro text on each dashboard. Leave a blank line between paragraphs. Saves go live immediately.
                     </p>
 
                     <div class="personnel-add">
@@ -300,20 +298,6 @@
 
             </div>
         </aside>
-
-        <!-- The preview is the real dashboard in an iframe, not a
-             reproduction of it. That is the whole point: dashboard text only
-             makes sense surrounded by the roster, guides and widgets, and any
-             separate renderer would drift away from the actual pages.
-             js/hub_content.js on the framed page listens for the edits.
-             Hidden on mobile by editor.css's .live-preview-pane rule. -->
-        <main class="live-preview-pane owner-preview-pane">
-            <div class="admin-tool-header-row">
-                <h3 class="update-title admin-tool-title faq">Live Preview</h3>
-                <span class="admin-tool-hint m-0">Unsaved changes shown here only.</span>
-            </div>
-            <iframe id="hub-preview-frame" class="hub-preview-frame" title="Dashboard live preview"></iframe>
-        </main>
     </div>
 
     <!-- STANDARD CONFIRM MODAL -->
