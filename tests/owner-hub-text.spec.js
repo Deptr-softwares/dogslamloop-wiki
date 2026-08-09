@@ -78,6 +78,8 @@ async function openOwner(page) {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('content'));
     await expect(page.locator('#hub-text-body')).toHaveValue('The committed intro paragraph.', { timeout: 5000 });
     return errors;
 }

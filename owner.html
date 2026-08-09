@@ -25,14 +25,20 @@
 <body class="admin-body">
 
     <!--
-        Owner-only tools, split out of admin.html/js/admin.js. Currently
-        just Personnel Management + Media Garbage Collection - the two
-        things that were bolted onto the reviewer-workflow page but have
-        nothing to do with reviewing revisions. Intended to grow into where
-        the site owner edits structural content (homepage/dashboard blocks)
-        without touching raw code - kept to flat, self-contained <section>s
-        per tool for that reason; add a new one the same way rather than
-        building a tab system/plugin registry for two tools.
+        Owner-only tools, split out of admin.html/js/admin.js: the things
+        bolted onto the reviewer-workflow page that have nothing to do with
+        reviewing revisions.
+
+        Each tool is still a flat, self-contained <section> - add a new one
+        the same way. As of v0.11 they sit inside four .owner-group wrappers
+        (People / Pages / Content / Danger Zone) because ten tools in one
+        scroll had no way to find anything. An earlier comment here argued
+        against "building a tab system for two tools", which was right at two
+        and stopped being right somewhere around six. js/owner-nav.js does the
+        switching; it is a show/hide, not a router.
+
+        To add a tool: drop a <section> into the group it belongs to. Nothing
+        needs registering.
     -->
     <div class="editor-layout">
         <aside class="editor-workspace owner-workspace">
@@ -51,8 +57,17 @@
                 </div>
             </div>
 
-            <div class="admin-sidebar-content">
 
+            <nav class="owner-nav" id="owner-nav" aria-label="Owner tool groups">
+                <button class="owner-nav-btn active" data-group="people">People</button>
+                <button class="owner-nav-btn" data-group="pages">Pages</button>
+                <button class="owner-nav-btn" data-group="content">Content</button>
+                <button class="owner-nav-btn owner-nav-btn-danger" data-group="danger">Danger Zone</button>
+            </nav>
+
+            <div class="admin-sidebar-content owner-tool-area">
+
+                <div class="owner-group" data-group="people">
                 <section id="tool-personnel" class="update-log-item admin-tool-card personnel">
                     <div class="admin-tool-header-row">
                         <h3 class="update-title admin-tool-title personnel">Personnel</h3>
@@ -78,7 +93,9 @@
 
                     <div id="role-results" class="admin-tool-results"></div>
                 </section>
+                </div>
 
+                <div class="owner-group" data-group="pages" hidden>
                 <section id="tool-pages" class="update-log-item admin-tool-card pages">
                     <div class="admin-tool-header-row">
                         <h3 class="update-title admin-tool-title pages">Pages</h3>
@@ -140,7 +157,9 @@
 
                     <div id="permission-results" class="admin-tool-results"></div>
                 </section>
+                </div>
 
+                <div class="owner-group" data-group="content" hidden>
                 <section id="tool-hub-text" class="update-log-item admin-tool-card faq">
                     <div class="admin-tool-header-row">
                         <h3 class="update-title admin-tool-title faq">Dashboard Text</h3>
@@ -277,7 +296,9 @@
 
                     <div id="credits-results" class="admin-tool-results"></div>
                 </section>
+                </div>
 
+                <div class="owner-group" data-group="danger" hidden>
                 <section id="tool-account-deletion" class="update-log-item admin-tool-card gc">
                     <h3 class="update-title admin-tool-title gc">Delete an Account</h3>
                     <p class="admin-tool-hint">
@@ -295,6 +316,7 @@
                     <button id="btn-run-gc" onclick="runGarbageCollector()" class="btn-sys btn-sys-red admin-tool-btn gc">SCAN & PURGE MEDIA</button>
                     <div id="gc-results" class="admin-tool-results"></div>
                 </section>
+                </div>
 
             </div>
         </aside>
@@ -323,5 +345,6 @@
     <!-- After owner.js: both use its ownerEscape and contentNotDeployedMessage. -->
     <script src="js/owner-site-meta.js"></script>
     <script src="js/owner-hub-text.js"></script>
+    <script src="js/owner-nav.js"></script>
 </body>
 </html>

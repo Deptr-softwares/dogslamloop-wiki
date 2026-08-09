@@ -91,6 +91,8 @@ async function openOwner(page) {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('content'));
     // The RBAC gate retries once over ~600ms before denying, so wait on the
     // populated field rather than a fixed timeout.
     await expect(page.locator('#meta-version')).toHaveValue('Beta v0.10', { timeout: 5000 });
@@ -207,6 +209,8 @@ test('a missing table reports the pre-migration state, not a crash', async ({ pa
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
     await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('content'));
 
     await expect(page.locator('#site-meta-results')).toContainText("hasn't been deployed", { timeout: 5000 });
     expect(errors).toEqual([]);

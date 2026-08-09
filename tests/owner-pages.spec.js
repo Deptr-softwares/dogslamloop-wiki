@@ -81,6 +81,8 @@ async function mockPages(page, { rows = PAGES, insertError = null } = {}) {
 test('derivePageIdentity builds the folder convention each page type uses', async ({ page }) => {
   await mockPages(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   const results = await page.evaluate(() => ({
     character: window.derivePageIdentity('Crow Charmer', 'character'),
@@ -106,6 +108,8 @@ test('derivePageIdentity builds the folder convention each page type uses', asyn
 test('creating a page inserts a complete registry row', async ({ page }) => {
   await mockPages(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   await page.fill('#new-page-name', 'Crow Charmer');
   await page.selectOption('#new-page-type', 'character');
@@ -130,6 +134,8 @@ test('creating a page inserts a complete registry row', async ({ page }) => {
 test('the create form previews the URL before you commit to it', async ({ page }) => {
   await mockPages(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   await page.fill('#new-page-name', 'Crow Charmer');
   await expect(page.locator('#new-page-preview')).toContainText('characters/Crow_charmer/index.html');
@@ -138,6 +144,8 @@ test('the create form previews the URL before you commit to it', async ({ page }
 test('a duplicate page reports the collision in plain language', async ({ page }) => {
   await mockPages(page, { insertError: { message: 'duplicate key value violates unique constraint "site_pages_url_key"' } });
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   await page.fill('#new-page-name', 'Boomcat');
   await page.click('#btn-create-page');
@@ -153,6 +161,8 @@ test('archiving sets status rather than deleting the row', async ({ page }) => {
   // embeds resolve instead of 404ing - deletion would break them.
   await mockPages(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   const row = page.locator('#pages-list .personnel-row').filter({ hasText: 'Boomcat' });
   await row.locator('.page-archive-btn').click();
@@ -168,6 +178,8 @@ test('archiving sets status rather than deleting the row', async ({ page }) => {
 test('an archived page offers restore instead of archive', async ({ page }) => {
   await mockPages(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   const row = page.locator('#pages-list .personnel-row').filter({ hasText: 'Old Thing' });
   await expect(row.locator('.page-restore-btn')).toBeVisible();
@@ -183,6 +195,8 @@ test('an archived page offers restore instead of archive', async ({ page }) => {
 test('a new page can be inserted after a chosen sibling, not just appended', async ({ page }) => {
   await mockPages(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   // Slot the new character in after Vessel (0), before Boomcat (10).
   await page.fill('#new-page-name', 'Crow Charmer');
@@ -201,6 +215,8 @@ test('a new page can be inserted after a chosen sibling, not just appended', asy
 test('the position dropdown lists only siblings in the chosen category', async ({ page }) => {
   await mockPages(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
   await page.waitForTimeout(300);
 
   let values = await page.evaluate(() =>
@@ -229,6 +245,8 @@ test('an exhausted gap renumbers the category instead of colliding', async ({ pa
     ],
   });
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   await page.fill('#new-page-name', 'Between');
   await page.selectOption('#new-page-position', 'a');
@@ -248,6 +266,8 @@ test('an exhausted gap renumbers the category instead of colliding', async ({ pa
 test('move up swaps a page with its neighbour', async ({ page }) => {
   await mockPages(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   const row = page.locator('#pages-list .personnel-row').filter({ hasText: 'Boomcat' });
   await row.locator('.page-move-btn[data-dir="up"]').click();
@@ -264,6 +284,8 @@ test('move up swaps a page with its neighbour', async ({ page }) => {
 test('move does nothing at the boundaries', async ({ page }) => {
   await mockPages(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   // Vessel is first in Characters - there is nothing above it.
   const first = page.locator('#pages-list .personnel-row').filter({ hasText: 'Vessel' });
