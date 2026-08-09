@@ -217,4 +217,59 @@ window.renderGameInfo = async function(containerId) {
     return true;
 };
 
+// --- ORDERED STEP LISTS -----------------------------------------------
+//
+// Start Here and How to Contribute. Curated rather than generated: the page
+// registry knows these guides exist but has no opinion on which to read first,
+// and that opinion is the entire value of the section - so it is owner-edited
+// from owner.html rather than derived from navigation.json.
+//
+// Same fallback rule as everything else here: the static markup shipped in the
+// page stays unless site_meta has a list to put in its place.
+window.renderHubList = async function(pageId, listId, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return false;
+
+    let meta;
+    try {
+        const rootPath = window.getRootPath ? window.getRootPath() : './';
+        meta = await window.fetchJson(`${rootPath}data/site_meta.json`, { cache: true });
+    } catch (e) {
+        return false;
+    }
+
+    const lists = ((meta.hubs || {})[pageId] || {}).lists || {};
+    const steps = Array.isArray(lists[listId]) ? lists[listId] : [];
+    if (steps.length === 0) return false;
+
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
+    // Only relative paths and http(s). A step's url is owner-authored, but an
+    // href is where a bad value becomes executable rather than merely broken.
+    const safeHref = (url) => {
+        const raw = String(url == null ? '' : url).trim();
+        if (raw === '') return null;
+        if (/^https?:\/\//i.test(raw)) return raw;
+        if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return null;   // any other scheme
+        return raw;
+    };
+
+    container.innerHTML = steps.map(step => {
+        const href = safeHref(step.url);
+        // A step with no link is still a step - "Sign in" is an instruction,
+        // not a page.
+        const title = href
+            ? `<a href="${esc(href)}" class="reading-step-title">${esc(step.title)}</a>`
+            : `<span class="reading-step-title">${esc(step.title)}</span>`;
+        return `
+            <li class="reading-step">
+                ${title}
+                ${step.description ? `<span class="reading-step-desc">${esc(step.description)}</span>` : ''}
+            </li>
+        `;
+    }).join('');
+
+    return true;
+};
+
 window.__hubInternals = { blocksForSlot };

@@ -117,6 +117,22 @@ INSERT INTO "public"."site_meta" ("id", "version", "tagline", "hubs", "game_info
             "headings": {
                 "about": "Info, Guides & Resources",
                 "guides": "System Directories"
+            },
+            "lists": {
+                "startHere": [
+                    {"title": "Starter Guide", "url": "starter-guide/index.html", "description": "What the game is, and what you should be doing in a match."},
+                    {"title": "HUD", "url": "hud/index.html", "description": "Reading the screen: cooldowns, meters, and what the numbers mean."},
+                    {"title": "Fundamentals", "url": "fundamentals/index.html", "description": "Spacing, timing, and the habits that decide most matches."},
+                    {"title": "Frame Data", "url": "framedata/index.html", "description": "Startup, active and recovery - how to read every move page on this wiki."},
+                    {"title": "Evasive", "url": "evasive/index.html", "description": "I-frames, dodging, and getting out of trouble."},
+                    {"title": "M1 Trading", "url": "m1-trading/index.html", "description": "The 4-frame rule, and who wins when two attacks land together."}
+                ],
+                "contribute": [
+                    {"title": "Sign in", "url": "", "description": "Use the button at the bottom of the sidebar."},
+                    {"title": "Open a page and press EDIT", "url": "", "description": "Every character and system page has one."},
+                    {"title": "Follow the Writing Guide", "url": "writing_guide/index.html", "description": "House style, and how frame data should be recorded."},
+                    {"title": "Track your submissions", "url": "../submissions.html", "description": "See what was approved, and what a reviewer asked about."}
+                ]
             }
         }
     }'::jsonb,

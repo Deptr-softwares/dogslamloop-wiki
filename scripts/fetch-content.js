@@ -99,6 +99,11 @@ function buildSiteMeta(row) {
             title: hub.title || '',
             description: hub.description || '',
             headings: sortedObject(hub.headings),
+            // Ordered step lists (Start Here, How to Contribute). Arrays keep
+            // their authored order - it is the entire point of these - so they
+            // are passed through rather than sorted like the key/value maps
+            // above.
+            lists: sortedObject(hub.lists),
         };
     }
 

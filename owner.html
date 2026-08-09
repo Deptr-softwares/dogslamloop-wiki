@@ -134,6 +134,40 @@
                     <div id="pages-results" class="admin-tool-results"></div>
                 </section>
 
+                <section id="tool-page-meta" class="update-log-item admin-tool-card pages">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title pages">Page Details</h3>
+                        <button onclick="loadPageMeta()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">
+                        The flags and labels shown on roster cards and in the sidebar. Archetype, tier and
+                        release date apply to characters only. Appears on the site after the next regeneration run.
+                    </p>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="page-meta-select">PAGE</label>
+                        <select id="page-meta-select" class="editor-input admin-input-full select">
+                            <option value="">Loading...</option>
+                        </select>
+
+                        <div id="page-meta-flags" class="page-meta-flags"></div>
+
+                        <div id="page-meta-character-fields" hidden>
+                            <label class="block-field-label-sm" for="page-meta-archetype">ARCHETYPE</label>
+                            <input type="text" id="page-meta-archetype" class="editor-input admin-input-full" placeholder="Rushdown, Zoner, ...">
+
+                            <label class="block-field-label-sm" for="page-meta-tier">TIER</label>
+                            <input type="text" id="page-meta-tier" class="editor-input admin-input-full" placeholder="S, A, B, ...">
+
+                            <label class="block-field-label-sm" for="page-meta-release">RELEASE DATE</label>
+                            <input type="text" id="page-meta-release" class="editor-input admin-input-full" placeholder="e.g. 2026-04-12, or a patch name">
+                        </div>
+                    </div>
+
+                    <button id="btn-save-page-meta" onclick="savePageMeta()" class="btn-sys btn-sys-green admin-tool-btn">SAVE DETAILS</button>
+                    <div id="page-meta-results" class="admin-tool-results"></div>
+                </section>
+
                 <section id="tool-permissions" class="update-log-item admin-tool-card permissions">
                     <div class="admin-tool-header-row">
                         <h3 class="update-title admin-tool-title permissions">Page Restrictions</h3>
@@ -186,6 +220,32 @@
 
                     <button id="btn-save-hub-text" onclick="saveHubText()" class="btn-sys btn-sys-green admin-tool-btn">SAVE TEXT</button>
                     <div id="hub-text-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-hub-lists" class="update-log-item admin-tool-card faq">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title faq">Dashboard Steps</h3>
+                        <button onclick="loadHubLists()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">
+                        The numbered lists on the Side Dashboard. Order is the order you put them in.
+                        Leave the link blank for a step that is an instruction rather than a page.
+                        Live immediately.
+                    </p>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="hub-list-select">LIST</label>
+                        <select id="hub-list-select" class="editor-input admin-input-full select">
+                            <option value="startHere">Start Here</option>
+                            <option value="contribute">How to Contribute</option>
+                        </select>
+                    </div>
+
+                    <div id="hub-list-steps" class="permissions-list"></div>
+                    <button onclick="addHubListStep()" class="btn-sys btn-sys-regular admin-tool-btn">+ ADD STEP</button>
+
+                    <button id="btn-save-hub-lists" onclick="saveHubLists()" class="btn-sys btn-sys-green admin-tool-btn">SAVE STEPS</button>
+                    <div id="hub-list-results" class="admin-tool-results"></div>
                 </section>
 
                 <section id="tool-site-meta" class="update-log-item admin-tool-card faq">
@@ -345,6 +405,8 @@
     <!-- After owner.js: both use its ownerEscape and contentNotDeployedMessage. -->
     <script src="js/owner-site-meta.js"></script>
     <script src="js/owner-hub-text.js"></script>
+    <script src="js/owner-hub-lists.js"></script>
+    <script src="js/owner-page-meta.js"></script>
     <script src="js/owner-nav.js"></script>
 </body>
 </html>

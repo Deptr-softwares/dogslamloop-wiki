@@ -203,6 +203,12 @@
 .owner-tool-area .admin-tool-results:empty { display: none; }
 .owner-tool-area .personnel-add { display: flex; flex-direction: column; gap: 0.5rem; }
 
+/* Page Details flags. Checkbox and label on one line, wrapping as a group so
+   a narrow card stacks them rather than clipping the labels. */
+.page-meta-flags { display: flex; flex-direction: column; gap: 0.4rem; margin: 0.5rem 0; }
+.page-meta-flag { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; }
+.page-meta-flag input { width: auto; margin: 0; }
+
 /* post-editor.html is two-pane (form+blocks | live preview) but its form
    needs more room than the 30% .editor-workspace default. */
 .post-editor-workspace { width: 42%; overflow-y: auto; }

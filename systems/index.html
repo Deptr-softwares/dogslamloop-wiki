@@ -122,7 +122,7 @@
                     New to the game, or new to thinking about it competitively? Read these in order.
                 </p>
 
-                <ol class="reading-path">
+                <ol class="reading-path" id="start-here-list">
                     <li class="reading-step">
                         <a href="starter-guide/index.html" class="reading-step-title">Starter Guide</a>
                         <span class="reading-step-desc">What the game is, and what you should be doing in a match.</span>
@@ -171,7 +171,7 @@
                         Anyone signed in can propose an edit. A reviewer checks it before it goes live,
                         so there is nothing you can break.
                     </p>
-                    <ol class="reading-path">
+                    <ol class="reading-path" id="contribute-list">
                         <li class="reading-step">
                             <span class="reading-step-title">Sign in</span>
                             <span class="reading-step-desc">Use the button at the bottom of the sidebar.</span>
@@ -252,6 +252,10 @@
             // 2b. Dashboard widgets, fired together - different tables, no
             // dependencies between them, and each renders its own error.
             if (window.buildWikiStats) window.buildWikiStats('wiki-stats');
+            if (window.renderHubList) {
+                window.renderHubList('systems-hub', 'startHere', 'start-here-list');
+                window.renderHubList('systems-hub', 'contribute', 'contribute-list');
+            }
             // Awaited: it un-hides its section, and the ToC below must not be
             // built before the page knows which sections exist.
             if (window.buildTerminologyPeek) {
