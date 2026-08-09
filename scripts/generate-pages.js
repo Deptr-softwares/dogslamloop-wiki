@@ -10,8 +10,13 @@
  *
  * Deliberately offline: this reads navigation.json, not the database. R4
  * makes navigation.json itself a generated artifact (from the site_pages
- * table); this script stays the last step of that pipeline either way, so it
- * has one input and one job.
+ * table); this script stays the last step of that pipeline either way.
+ *
+ * As of v0.11 it has a second input, data/archived-pages.json, and archived
+ * pages get a tombstone stub instead of their normal one. They need a separate
+ * input because fetch-registry.js drops non-live rows from navigation.json, so
+ * an archived page is invisible to this script's primary input by design. That
+ * gap is what let an archived page keep serving its full original content.
  *
  * Usage:
  *   node scripts/generate-pages.js            # report only (same as --check)
@@ -207,6 +212,66 @@ ${social}
 `;
 }
 
+/**
+ * The stub an archived page serves.
+ *
+ * HTTP 200 with an explanation, deliberately, rather than deleting the file so
+ * the URL 404s. Links to this page already exist in Discord messages, in
+ * search results and on other wiki pages, and a 404 tells whoever follows one
+ * nothing about what happened. This is the behaviour
+ * 20260808000003_site_pages.sql described from the start and that nothing ever
+ * implemented - before this, an archived page kept serving its full original
+ * content indefinitely.
+ *
+ * noindex is the one thing here that must not be dropped: without it the
+ * tombstone competes in search with whatever replaced the page.
+ *
+ * Self-contained apart from the shared stylesheets - no router, no Supabase,
+ * no page_boot. An archived page has no content to load, and booting the whole
+ * stack to render one paragraph is how a tombstone acquires a way to break.
+ */
+function tombstoneStub({ name, hubPath, hubLabel }) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    ${MARKER}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${attr(name)} (archived) | ${attr(SITE_NAME)}</title>
+    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIconGay.webp">
+
+    <meta name="robots" content="noindex, follow">
+    <meta name="description" content="${attr(`${name} has been archived on the Dogslamloop wiki.`)}">
+
+    <link rel="stylesheet" href="../../style/Common.css">
+    <link rel="stylesheet" href="../../style/ColorCoding.css">
+    <link rel="stylesheet" href="../../style/Buttons.css">
+    <link rel="stylesheet" href="../../style/Layout.css">
+</head>
+<body class="site-body p-0">
+
+    <main class="main-content-area space-y-6">
+        <header class="home-main-header">
+            <h1 class="home-main-title">Page archived</h1>
+        </header>
+
+        <section class="wiki-section">
+            <p class="strategy-paragraph m-0" style="color: var(--text-primary);">
+                <strong>${attr(name)}</strong> is no longer part of the wiki. The page was
+                archived, so this link still works, but there is nothing here to read any more.
+            </p>
+        </section>
+
+        <div>
+            <a href="../../${hubPath}" class="btn-ghost">&larr; Back to ${attr(hubLabel)}</a>
+        </div>
+    </main>
+
+</body>
+</html>
+`;
+}
+
 // A page's <title> suffix differs by type, matching what the hand-authored
 // files used: characters said "| Dogslamloop", system pages said
 // "| Dogslamloop Wiki". Preserved rather than unified, so this script's output
@@ -219,9 +284,10 @@ function docTitleFor(name, pageType) {
  * Turn navigation.json into the full set of files to write.
  * Pure: builds everything in memory, touches no disk.
  */
-function buildPages(nav, previews = {}) {
+function buildPages(nav, previews = {}, archived = {}) {
     const pages = [];
     const problems = [];
+    const livePaths = new Set();
 
     for (const [category, entries] of Object.entries(nav)) {
         if (!Array.isArray(entries)) continue;
@@ -253,7 +319,46 @@ function buildPages(nav, previews = {}) {
                 : systemStub({ pageId: cms.pageId, title: entry.name, docTitle: docTitleFor(entry.name, 'system'), social });
 
             pages.push({ relPath, html, pageId: cms.pageId, pageType: cms.pageType });
+            livePaths.add(relPath);
         }
+    }
+
+    // Archived pages, from data/archived-pages.json. They are absent from
+    // navigation.json by design (fetch-registry.js drops non-live rows), which
+    // is why they need their own input rather than a flag on a nav entry.
+    for (const [pageId, info] of Object.entries(archived)) {
+        if (!info || !info.url) continue;
+
+        const relPath = info.url.replace(/\\/g, '/');
+        if (NEVER_TOUCH.has(relPath)) continue;
+
+        // Only two-level page directories get a tombstone. A root-level or
+        // external URL has no stub for this script to own, and writing one
+        // would mean inventing a file the site never had.
+        if (!/^(characters|systems)\/[^/]+\/index\.html$/.test(relPath)) continue;
+
+        // navigation.json and archived-pages.json are written by the same run
+        // of fetch-registry.js, so disagreeing about one page means one of them
+        // was hand-edited or a run was interrupted. Refusing is right: the
+        // alternative is silently picking one and either resurrecting a
+        // tombstoned page or archiving a live one.
+        if (livePaths.has(relPath)) {
+            problems.push(`"${relPath}" is archived in archived-pages.json but still live in navigation.json; refusing to guess which is current.`);
+            continue;
+        }
+
+        const isCharacter = relPath.startsWith('characters/');
+        pages.push({
+            relPath,
+            html: tombstoneStub({
+                name: info.name || pageId,
+                hubPath: isCharacter ? 'characters/index.html' : 'systems/index.html',
+                hubLabel: isCharacter ? 'Character Dashboard' : 'Side Dashboard',
+            }),
+            pageId,
+            pageType: info.pageType || (isCharacter ? 'character' : 'system'),
+            archived: true,
+        });
     }
 
     return { pages, problems };
@@ -275,7 +380,15 @@ function main() {
         ? JSON.parse(fs.readFileSync(previewsPath, 'utf8'))
         : {};
 
-    const { pages, problems } = buildPages(nav, previews);
+    // Optional, like page-previews.json: a repo with no archived pages simply
+    // has no manifest, and generation degrades to pre-v0.11 behaviour rather
+    // than failing.
+    const archivedPath = path.join(ROOT, 'data', 'archived-pages.json');
+    const archived = fs.existsSync(archivedPath)
+        ? JSON.parse(fs.readFileSync(archivedPath, 'utf8'))
+        : {};
+
+    const { pages, problems } = buildPages(nav, previews, archived);
 
     if (problems.length > 0) {
         console.error('generate-pages FAILED - refusing to write:\n');
@@ -341,4 +454,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { buildPages, MARKER, NEVER_TOUCH };
+module.exports = { buildPages, tombstoneStub, MARKER, NEVER_TOUCH };

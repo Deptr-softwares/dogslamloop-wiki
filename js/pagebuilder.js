@@ -56,11 +56,20 @@ window.buildGlobalSidebarMenu = async function(containerId) {
 
         if (!navData) throw new Error("Navigation configuration missing.");
 
+        // navigation.json is owner-editable via site_pages as of v0.10, and
+        // this menu renders on every page on the site - the widest reach of
+        // the three consumers of that file. Escaped at every interpolation.
+        //
+        // The header's onclick stays: it interpolates nothing, so it is static
+        // markup rather than the user-influenced-handler pattern CLAUDE.md
+        // rules out.
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
         let html = '';
         for (const [category, items] of Object.entries(navData)) {
             html += `<div class="sidebar-group-wrapper">`;
             html += `<div class="sidebar-nav-title sidebar-group-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
-                        ${category} <span class="sidebar-group-caret">▼</span>
+                        ${esc(category)} <span class="sidebar-group-caret">▼</span>
                      </div>`;
             html += `<ul class="toc-list hidden">`;
 
@@ -76,8 +85,8 @@ window.buildGlobalSidebarMenu = async function(containerId) {
 
                 html += `
                     <li>
-                        <a href="${rootPath}${item.url}" class="btn-nav">
-                            <span class="toc-link-text" style="${colorStyle}">${item.name}</span>
+                        <a href="${esc(rootPath + item.url)}" class="btn-nav">
+                            <span class="toc-link-text" style="${colorStyle}">${esc(item.name)}</span>
                             ${badge}
                         </a>
                     </li>
@@ -442,12 +451,17 @@ window.renderFilteredRoster = function() {
         }
 
         // --- Prepend the rootPath to the href ---
+        // Names, URLs and image paths are all owner-editable through
+        // owner.html as of v0.10, so they are escaped at every interpolation
+        // rather than trusted for being "internal" data.
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
         html += `
-            <a href="${rootPath}${char.url}" class="roster-card" style="background-color: ${charColor};">
+            <a href="${esc(rootPath + char.url)}" class="roster-card" style="background-color: ${charColor};">
                 ${char.isEA ? `<span class="ea-star-indicator" title="Early Access" style="color: ${textColor};">★</span>` : ''}
-                ${char.image ? `<img src="${char.image}" alt="${char.name}" class="roster-card-bg-image">` : ''}
+                ${char.image ? `<img src="${esc(char.image)}" alt="${esc(char.name)}" class="roster-card-bg-image">` : ''}
                 <div class="roster-card-text" style="color: ${textColor};">
-                    ${char.name}
+                    ${esc(char.name)}
                     ${char.isWip ? `<br><span class="roster-wip-tag">(WIP)</span>` : ''}
                 </div>
             </a>
@@ -466,6 +480,10 @@ window.buildSystemsDirectory = async function(containerId) {
         if (window.fetchJson) navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
         else { const res = await fetch(`${rootPath}data/navigation.json`); navData = await res.json(); }
 
+        // Category names are owner-authored too - they come straight from
+        // site_pages.category - so they get the same treatment as page names.
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
         let html = '<div class="systems-grid-container">';
         const categories = Object.keys(navData).filter(k => k !== 'Characters');
 
@@ -473,16 +491,23 @@ window.buildSystemsDirectory = async function(containerId) {
             const items = navData[category];
             html += `
                 <div class="system-category-block">
-                    <h3 class="sidebar-master-title">${category}</h3>
+                    <h3 class="sidebar-master-title">${esc(category)}</h3>
 
                     <div class="system-button-grid">
             `;
             items.forEach(sys => {
-                // Swapped flat gray boxes for slanted interactive manga buttons natively inheriting the blue hover glow
+                // Swapped flat gray boxes for slanted interactive manga buttons natively inheriting the blue hover glow.
+                //
+                // data-href + a delegated listener rather than an inline
+                // onclick: since v0.10 these names and URLs come from
+                // site_pages, which an admin edits through owner.html, so a
+                // page named with an apostrophe used to break the handler
+                // outright. Building owner-supplied values into an inline
+                // onclick is the pattern CLAUDE.md rules out.
                 html += `
-                    <button class="btn-manga btn-manga-slanted system-directory-btn" onclick="window.location.href='${rootPath}${sys.url}'">
+                    <button class="btn-manga btn-manga-slanted system-directory-btn" data-href="${esc(rootPath + sys.url)}">
                         <div class="btn-manga-content">
-                            <span class="btn-manga-text">${sys.name}</span>
+                            <span class="btn-manga-text">${esc(sys.name)}</span>
                         </div>
                     </button>
                 `;
@@ -491,6 +516,13 @@ window.buildSystemsDirectory = async function(containerId) {
         });
         html += '</div>';
         container.innerHTML = html;
+
+        container.querySelectorAll('.system-directory-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const href = btn.dataset.href;
+                if (href) window.location.href = href;
+            });
+        });
     } catch(e) {
         console.error("Systems Grid Error:", e);
     }
