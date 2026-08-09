@@ -86,11 +86,14 @@
             <!-- ALERTS INJECTION TARGET -->
             <div id="character-alerts-container" class="character-alerts-container"></div>
 
+            <!-- Editable at edit.html?page=systems-hub&type=system. This
+                 markup is the fallback; js/hub_content.js replaces it only
+                 when the CMS has content for the slot. -->
             <section class="wiki-section" id="about-section">
                 <!-- Removed section-title-clean to keep the blue bottom border -->
                 <h2 class="section-title">Info, Guides & Resources</h2>
                 <p class="strategy-paragraph m-0" style="color: var(--text-primary);">
-                    Welcome to the Side Dashboard. Here, we will go over the general information of the wiki itself and more misc stuff, but there is nothing here for now beside the directories section.
+                    Welcome to the Side Dashboard. This is where the wiki explains itself: how the site works, how to read it, and how to help build it.
                 </p>
             </section>
             
@@ -127,11 +130,20 @@
     <script src="../js/site_utils.js"></script>
     <script src="../js/site_meta.js"></script>
     <script src="../js/pagebuilder.js"></script>
+    <!-- Needed to render the hub's authored prose: generateHTMLForBlocks
+         lives in description.js and relies on internalstyling.js. -->
+    <script src="../js/description.js"></script>
+    <script src="../js/internalstyling.js"></script>
+    <script src="../js/hub_content.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // Mobile Menu Toggle Binding
             if (window.initMobileNav) window.initMobileNav();
+
+            // 0. Hub prose from the CMS. Fired without awaiting: it replaces
+            // its own container and nothing below depends on it.
+            if (window.renderHubSlot) window.renderHubSlot('systems-hub', 'intro', 'about-section');
 
             // 1. Alerts Hook
             if (typeof window.loadPageAlerts === 'function') {

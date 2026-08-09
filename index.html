@@ -95,6 +95,10 @@
                 <h1 class="home-main-title">Main Dashboard</h1>
             </header>
 
+            <!-- Editable at edit.html?page=main-hub&type=system. The markup
+                 below is the fallback: js/hub_content.js replaces it only when
+                 the CMS actually has content, so a database outage degrades to
+                 this text rather than an empty panel. -->
             <section class="wiki-section" id="about-section">
                 <p class="text-gray-300 text-sm leading-relaxed m-0">
                     <strong class="text-white">About Us:</strong> <span class="font-bold text-white italic">Jujutsu Shenanigans</span> is a casual (shenanigans) battleground game on Roblox. However, this hub provides in-depth frame data, and strategy breakdowns to help all users, Tier 5 and Tier 1, to get better at the game via better understanding of the game.
@@ -246,10 +250,14 @@
     <script src="js/site_utils.js"></script>
     <script src="js/home_widgets.js"></script>
     <script src="js/pagebuilder.js"></script>
-    <!-- The homepage widget lists posts only (escaped title/summary/date), so
-         it needs neither description.js nor internalstyling.js - those are
-         only required where a post's block content is actually rendered. -->
+    <!-- The homepage post widget lists posts only (escaped title/summary/date)
+         and needs neither of these. The About Us section does: it renders
+         authored blocks through generateHTMLForBlocks, which lives in
+         description.js and relies on internalstyling.js for inline markup. -->
+    <script src="js/description.js"></script>
+    <script src="js/internalstyling.js"></script>
     <script src="js/posts.js"></script>
+    <script src="js/hub_content.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -266,6 +274,7 @@
             if (window.initAuthDock) window.initAuthDock();
             if (window.initRosterFilters) window.initRosterFilters();
             if (window.buildSystemsDirectory) window.buildSystemsDirectory('systems-grid');
+            if (window.renderHubSlot) window.renderHubSlot('main-hub', 'about', 'about-section');
 
             setTimeout(() => {
                 if (window.refreshTOC) window.refreshTOC();
