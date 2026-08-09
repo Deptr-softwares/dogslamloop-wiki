@@ -95,7 +95,7 @@
                  when the CMS has content for the slot. -->
             <section class="wiki-section" id="about-section">
                 <!-- Removed section-title-clean to keep the blue bottom border -->
-                <h2 class="section-title">Info, Guides & Resources</h2>
+                <h2 class="section-title" data-heading-key="about">Info, Guides &amp; Resources</h2>
                 <p class="strategy-paragraph m-0" style="color: var(--text-primary);">
                     Welcome to the Side Dashboard. This is where the wiki explains itself: how the site works, how to read it, and how to help build it.
                 </p>
@@ -103,9 +103,7 @@
             
             <section class="wiki-section" id="guides-section">
                 <div class="header-split-wrapper">
-                    <h2 class="section-title section-title-flex m-0">
-                        System Directories
-                    </h2>
+                    <h2 class="section-title section-title-flex m-0" data-heading-key="guides">System Directories</h2>
                 </div>
 
                 <!-- Your pagebuilder.js automatically injects the grid here -->
@@ -160,6 +158,9 @@
             }
             
             // 3. BOOT THE TABLE OF CONTENTS
+            if (typeof window.applyHubHeadings === 'function') {
+                await window.applyHubHeadings('systems-hub');
+            }
             if (typeof window.refreshTOC === 'function') {
                 setTimeout(window.refreshTOC, 100);
             }

@@ -4,15 +4,58 @@
   "hubs": {
     "character-hub": {
       "title": "Character Dashboard",
-      "description": "Every Jujutsu Shenanigans character, with frame data, matchups, and strategy for each."
+      "description": "Every Jujutsu Shenanigans character, with frame data, matchups, and strategy for each.",
+      "headings": {
+        "about": "Roster Overview",
+        "roster": "Select a Character"
+      }
     },
     "main-hub": {
       "title": "Dogslamloop Wiki",
-      "description": "Frame data, matchups, and strategy guides for Jujutsu Shenanigans - a community-run competitive wiki."
+      "description": "Frame data, matchups, and strategy guides for Jujutsu Shenanigans - a community-run competitive wiki.",
+      "headings": {
+        "about": "About Us",
+        "blog": "From the Blog",
+        "credits": "Credits",
+        "faq": "Frequently Asked Questions (FAQ)",
+        "gameinfo": "Game Info",
+        "navigation": "Guides & Such",
+        "roster": "Characters",
+        "updates": "Recent Changes"
+      }
     },
     "systems-hub": {
       "title": "Systems & Guides Hub",
-      "description": "Guides to the systems behind Jujutsu Shenanigans - frame data, HUD, evasion, M1 trading, and more."
+      "description": "Guides to the systems behind Jujutsu Shenanigans - frame data, HUD, evasion, M1 trading, and more.",
+      "headings": {
+        "about": "Info, Guides & Resources",
+        "guides": "System Directories"
+      }
     }
+  },
+  "gameInfo": {
+    "title": "Jujutsu\nShenanigans",
+    "fields": [
+      {
+        "label": "Developers",
+        "value": "Tze's Shenanigans",
+        "subtext": "(Tze, Imed, Frost)"
+      },
+      {
+        "label": "Platform",
+        "value": "Roblox (PC, Mobile, Console, VR)"
+      }
+    ],
+    "linksLabel": "Official Links",
+    "links": [
+      {
+        "name": "Roblox Game Page",
+        "url": "https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans"
+      },
+      {
+        "name": "Official Discord",
+        "url": "https://discord.gg/nyTYVCDMBF"
+      }
+    ]
   }
 }

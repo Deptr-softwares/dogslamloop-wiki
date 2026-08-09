@@ -597,6 +597,17 @@ window.refreshTOC = function() {
     }
 
     // 3. Build the Hierarchical Tree
+    //
+    // Labels are read with textContent and written back with innerHTML below,
+    // which is a double-decode: a heading whose text is the literal string
+    // "<img src=x onerror=...>" would be inert in the heading and live in the
+    // ToC. Headings reach this from two directions - CMS block content, and
+    // (as of v0.11) owner-set section titles from site_meta - so the label is
+    // escaped here. A ToC entry is a label, not markup; a heading containing
+    // <b>Bold</b> already arrives as "Bold" via textContent, so this changes
+    // nothing for legitimate content.
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
     let tocStructure = [];
     let currentGroup = null;
 
@@ -610,7 +621,17 @@ window.refreshTOC = function() {
         }
         
         const isMinor = header.classList.contains('wiki-block-heading');
-        const itemData = { id: header.id, text: header.textContent.trim() };
+
+        // A heading can contain controls - the dashboards nest a "View More"
+        // link inside their section titles - and their text is not part of the
+        // heading. Without this the homepage ToC reads "Characters View More
+        // ➔". Falls back to the full text for a heading that is itself a link,
+        // where stripping would leave nothing.
+        const labelSource = header.cloneNode(true);
+        labelSource.querySelectorAll('a, button').forEach(el => el.remove());
+        const label = labelSource.textContent.trim() || header.textContent.trim();
+
+        const itemData = { id: header.id, text: label };
 
         if (!isMinor) {
             // Create a new major group
@@ -633,8 +654,8 @@ window.refreshTOC = function() {
             // Fallback for orphaned minor headers
             tocHtml += `
                 <li>
-                    <a href="#${group.id}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${group.id}')">
-                        <span class="toc-link-text">${group.text}</span>
+                    <a href="#${esc(group.id)}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${esc(group.id)}')">
+                        <span class="toc-link-text">${esc(group.text)}</span>
                     </a>
                 </li>
             `;
@@ -644,8 +665,8 @@ window.refreshTOC = function() {
                 tocHtml += `
                     <li>
                         <div class="toc-group-row">
-                            <a href="#${group.id}" class="btn-nav toc-link-major-toggle" onclick="smoothScroll(event, '${group.id}')">
-                                <span class="toc-link-text">${group.text}</span>
+                            <a href="#${esc(group.id)}" class="btn-nav toc-link-major-toggle" onclick="smoothScroll(event, '${esc(group.id)}')">
+                                <span class="toc-link-text">${esc(group.text)}</span>
                             </a>
                             <button class="toc-toggle-btn" onclick="this.parentElement.nextElementSibling.classList.toggle('hidden')">
                                 ▼
@@ -658,8 +679,8 @@ window.refreshTOC = function() {
                 group.children.forEach(child => {
                     tocHtml += `
                         <li>
-                            <a href="#${child.id}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${child.id}')">
-                                <span class="toc-link-text">${child.text}</span>
+                            <a href="#${esc(child.id)}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${esc(child.id)}')">
+                                <span class="toc-link-text">${esc(child.text)}</span>
                             </a>
                         </li>
                     `;
@@ -670,8 +691,8 @@ window.refreshTOC = function() {
                 // Standard Parent Header (No Children, No Toggle Arrow)
                 tocHtml += `
                     <li>
-                        <a href="#${group.id}" class="btn-nav toc-link-major" onclick="smoothScroll(event, '${group.id}')">
-                            <span class="toc-link-text">${group.text}</span>
+                        <a href="#${esc(group.id)}" class="btn-nav toc-link-major" onclick="smoothScroll(event, '${esc(group.id)}')">
+                            <span class="toc-link-text">${esc(group.text)}</span>
                         </a>
                     </li>
                 `;

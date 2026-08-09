@@ -118,4 +118,103 @@ window.renderHubSlots = async function(pageId, slots) {
     );
 };
 
+// --- SECTION HEADINGS -------------------------------------------------
+//
+// Rendered at runtime, not through the marked region that handles <title> and
+// OG tags. Headings are body content: no unfurler reads them, so the
+// build-time machinery buys nothing, and the static markup already in the page
+// works as the fallback. A heading is only replaced when site_meta actually
+// carries a value for its key.
+//
+// Elements opt in with data-heading-key, so this can never rewrite a heading
+// that was not meant to be editable.
+window.applyHubHeadings = async function(pageId) {
+    const targets = document.querySelectorAll('[data-heading-key]');
+    if (targets.length === 0) return 0;
+
+    let meta;
+    try {
+        const rootPath = window.getRootPath ? window.getRootPath() : './';
+        meta = await window.fetchJson(`${rootPath}data/site_meta.json`, { cache: true });
+    } catch (e) {
+        return 0;   // keep the static headings
+    }
+
+    const headings = ((meta.hubs || {})[pageId] || {}).headings || {};
+    let applied = 0;
+
+    targets.forEach(el => {
+        const value = headings[el.dataset.headingKey];
+        // textContent, not innerHTML: a heading is a string, and this is the
+        // one place owner-authored text meets the DOM without going through
+        // the block renderer's escaping.
+        if (typeof value === 'string' && value.trim() !== '') {
+            el.textContent = value;
+            applied++;
+        }
+    });
+    return applied;
+};
+
+// --- GAME INFO PANEL --------------------------------------------------
+//
+// Structured fields rather than authored blocks. The block editor is built for
+// prose, and pushing a labelled field list through it would produce a
+// paragraph that only looks like one - losing .game-info-label, the subtext
+// styling and the mobile layout.
+//
+// Same fallback rule as everything else here: the static markup stays unless
+// there is real data to replace it with.
+window.renderGameInfo = async function(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return false;
+
+    let meta;
+    try {
+        const rootPath = window.getRootPath ? window.getRootPath() : './';
+        meta = await window.fetchJson(`${rootPath}data/site_meta.json`, { cache: true });
+    } catch (e) {
+        return false;
+    }
+
+    const info = meta.gameInfo || {};
+    const fields = Array.isArray(info.fields) ? info.fields : [];
+    const links = Array.isArray(info.links) ? info.links : [];
+    if (fields.length === 0 && links.length === 0) return false;
+
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
+    // Only http(s) survives. These URLs are admin-authored, but an href is the
+    // one field here that becomes executable if it starts with "javascript:",
+    // and a scheme allowlist costs nothing.
+    const safeHref = (url) => {
+        const raw = String(url == null ? '' : url).trim();
+        return /^https?:\/\//i.test(raw) ? raw : '#';
+    };
+
+    let html = fields.map(field => `
+        <div>
+            <span class="game-info-label">${esc(field.label)}</span>
+            <span class="text-gray-300">${esc(field.value)}</span>
+            ${field.subtext ? `<span class="game-info-subtext">${esc(field.subtext)}</span>` : ''}
+        </div>
+    `).join('');
+
+    if (links.length > 0) {
+        html += `
+            <div class="game-info-footer">
+                <span class="game-info-label mb-2">${esc(info.linksLabel || 'Official Links')}</span>
+                <div class="space-y-2">
+                    ${links.map(link => `
+                        <a href="${esc(safeHref(link.url))}" target="_blank" rel="noopener noreferrer" class="game-info-link">▶ ${esc(link.name)}</a>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    container.innerHTML = html;
+    return true;
+};
+
 window.__hubInternals = { blocksForSlot };

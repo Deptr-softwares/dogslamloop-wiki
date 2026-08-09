@@ -83,15 +83,39 @@ function buildCollaborators(rows) {
  * scripts/generate-hub-meta.js reads it from here at build time.
  */
 function buildSiteMeta(row) {
+    // Sorted at every level so the output is stable regardless of jsonb key
+    // ordering. An unstable key order would show up as a spurious diff on
+    // every run and, worse, as a false "stale" in generate-hub-meta --check.
+    const sortedObject = (obj) => {
+        const out = {};
+        for (const key of Object.keys(obj || {}).sort()) out[key] = obj[key];
+        return out;
+    };
+
     const hubs = {};
-    // Sorted so the output is stable regardless of jsonb key ordering. An
-    // unstable key order would show up as a spurious diff on every run and,
-    // worse, as a false "stale" in the generator's --check.
     for (const key of Object.keys(row.hubs || {}).sort()) {
         const hub = row.hubs[key] || {};
-        hubs[key] = { title: hub.title || '', description: hub.description || '' };
+        hubs[key] = {
+            title: hub.title || '',
+            description: hub.description || '',
+            headings: sortedObject(hub.headings),
+        };
     }
-    return { version: row.version, tagline: row.tagline, hubs };
+
+    const gameInfo = row.game_info || {};
+    return {
+        version: row.version,
+        tagline: row.tagline,
+        hubs,
+        gameInfo: {
+            title: gameInfo.title || '',
+            // Arrays keep their authored order - it is meaningful here, unlike
+            // object key order.
+            fields: Array.isArray(gameInfo.fields) ? gameInfo.fields : [],
+            linksLabel: gameInfo.linksLabel || 'Official Links',
+            links: Array.isArray(gameInfo.links) ? gameInfo.links : [],
+        },
+    };
 }
 
 async function fetchSingleton(table) {

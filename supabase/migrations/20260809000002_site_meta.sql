@@ -33,10 +33,27 @@ CREATE TABLE IF NOT EXISTS "public"."site_meta" (
     "version" text NOT NULL,
     "tagline" text NOT NULL,
     -- Keyed by hub page id: main-hub, character-hub, systems-hub. Each value
-    -- is {title, description}. jsonb rather than three sets of columns
-    -- because the hubs are a list that could grow, while version/tagline are
-    -- genuinely singular.
+    -- is {title, description, headings}. jsonb rather than three sets of
+    -- columns because the hubs are a list that could grow, while
+    -- version/tagline are genuinely singular.
+    --
+    -- `headings` maps a section's data-heading-key to its text. Section
+    -- headings are rendered at runtime rather than through the marked region,
+    -- because they are body content rather than metadata - an unfurler never
+    -- reads them, and the static markup stays in place as the fallback.
     "hubs" jsonb NOT NULL DEFAULT '{}'::jsonb,
+    -- The homepage's Game Info panel: developers, platform, official links.
+    --
+    -- Structured fields rather than authored blocks, deliberately. The block
+    -- editor is built for prose; forcing a labelled field list through it
+    -- would produce a paragraph that merely looks like one, losing the
+    -- game-info-label styling and the mobile layout with it. This gets a form
+    -- in owner.html instead, the way FAQ and Credits already do.
+    --
+    -- The practical driver is `links`: a Discord invite is the one value here
+    -- that expires or gets rotated, and changing it currently needs a commit
+    -- and a deploy.
+    "game_info" jsonb NOT NULL DEFAULT '{}'::jsonb,
     "updated_at" timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT "site_meta_singleton" CHECK ("id" = true)
 );
@@ -67,22 +84,52 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "public"."site_meta" TO "authentic
 -- Seeded from what is committed today, so the first regeneration run produces
 -- no diff. version/tagline are copied verbatim from data/site_meta.json; the
 -- hub strings are copied verbatim from the three pages' current <head>.
-INSERT INTO "public"."site_meta" ("id", "version", "tagline", "hubs") VALUES (
+INSERT INTO "public"."site_meta" ("id", "version", "tagline", "hubs", "game_info") VALUES (
     true,
     'Beta v0.10',
     'The Competitive JJS Wiki',
     '{
         "main-hub": {
             "title": "Dogslamloop Wiki",
-            "description": "Frame data, matchups, and strategy guides for Jujutsu Shenanigans - a community-run competitive wiki."
+            "description": "Frame data, matchups, and strategy guides for Jujutsu Shenanigans - a community-run competitive wiki.",
+            "headings": {
+                "about": "About Us",
+                "roster": "Characters",
+                "navigation": "Guides & Such",
+                "updates": "Recent Changes",
+                "blog": "From the Blog",
+                "gameinfo": "Game Info",
+                "faq": "Frequently Asked Questions (FAQ)",
+                "credits": "Credits"
+            }
         },
         "character-hub": {
             "title": "Character Dashboard",
-            "description": "Every Jujutsu Shenanigans character, with frame data, matchups, and strategy for each."
+            "description": "Every Jujutsu Shenanigans character, with frame data, matchups, and strategy for each.",
+            "headings": {
+                "about": "Roster Overview",
+                "roster": "Select a Character"
+            }
         },
         "systems-hub": {
             "title": "Systems & Guides Hub",
-            "description": "Guides to the systems behind Jujutsu Shenanigans - frame data, HUD, evasion, M1 trading, and more."
+            "description": "Guides to the systems behind Jujutsu Shenanigans - frame data, HUD, evasion, M1 trading, and more.",
+            "headings": {
+                "about": "Info, Guides & Resources",
+                "guides": "System Directories"
+            }
         }
+    }'::jsonb,
+    '{
+        "title": "Jujutsu\nShenanigans",
+        "fields": [
+            {"label": "Developers", "value": "Tze''s Shenanigans", "subtext": "(Tze, Imed, Frost)"},
+            {"label": "Platform", "value": "Roblox (PC, Mobile, Console, VR)"}
+        ],
+        "linksLabel": "Official Links",
+        "links": [
+            {"name": "Roblox Game Page", "url": "https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans"},
+            {"name": "Official Discord", "url": "https://discord.gg/nyTYVCDMBF"}
+        ]
     }'::jsonb
 ) ON CONFLICT ("id") DO NOTHING;
