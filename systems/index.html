@@ -96,9 +96,11 @@
             <section class="wiki-section" id="about-section">
                 <!-- Removed section-title-clean to keep the blue bottom border -->
                 <h2 class="section-title" data-heading-key="about">Info, Guides &amp; Resources</h2>
-                <p class="strategy-paragraph m-0" style="color: var(--text-primary);">
-                    Welcome to the Side Dashboard. This is where the wiki explains itself: how the site works, how to read it, and how to help build it.
-                </p>
+                <div id="about-body">
+                    <p class="strategy-paragraph m-0" style="color: var(--text-primary);">
+                        Welcome to the Side Dashboard. This is where the wiki explains itself: how the site works, how to read it, and how to help build it.
+                    </p>
+                </div>
             </section>
             
             <section class="wiki-section" id="guides-section">
@@ -237,7 +239,7 @@
 
             // 0. Hub prose from the CMS. Fired without awaiting: it replaces
             // its own container and nothing below depends on it.
-            if (window.renderHubSlot) window.renderHubSlot('systems-hub', 'intro', 'about-section');
+            if (window.renderHubSlot) window.renderHubSlot('systems-hub', 'intro', 'about-body');
 
             // 1. Alerts Hook
             if (typeof window.loadPageAlerts === 'function') {

@@ -252,15 +252,60 @@ test('a non-http scheme in a step link is refused', async ({ page }) => {
     expect(await page.evaluate(() => window.__writes.filter(w => w.table === 'site_meta'))).toEqual([]);
 });
 
+
+/**
+ * Hub pages read the site_meta TABLE first as of the post-v0.11 fix, falling
+ * back to data/site_meta.json. Mocking only the file would leave the real
+ * database answering, so both are mocked here.
+ */
+async function mockRenderedMeta(page, mutate) {
+    await page.route('**/data/site_meta.json*', async route => {
+        const meta = await (await route.fetch()).json();
+        mutate(meta);
+        await route.fulfill({ json: meta });
+    });
+
+    const fs = require('fs');
+    const path = require('path');
+    const base = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'site_meta.json'), 'utf8'));
+    mutate(base);
+
+    await page.addInitScript((meta) => {
+        Object.defineProperty(window, 'supabase', {
+            configurable: true,
+            get() { return window.__lib; },
+            set(lib) {
+                window.__lib = lib;
+                if (lib && lib.createClient && !lib.__patched) {
+                    const orig = lib.createClient.bind(lib);
+                    lib.createClient = (...args) => {
+                        const client = orig(...args);
+                        const origFrom = client.from.bind(client);
+                        client.from = (table) => {
+                            if (table !== 'site_meta') return origFrom(table);
+                            const chain = {
+                                select() { return chain; },
+                                limit() { return chain; },
+                                maybeSingle: async () => ({ data: { hubs: meta.hubs, game_info: meta.gameInfo }, error: null }),
+                            };
+                            return chain;
+                        };
+                        return client;
+                    };
+                    lib.__patched = true;
+                }
+            },
+        });
+    }, base);
+}
+
 // ---------------------------------------------------------------- rendering
 
 test('the Side Dashboard renders its steps from site_meta', async ({ page }) => {
-    await page.route('**/data/site_meta.json*', async route => {
-        const meta = await (await route.fetch()).json();
+    await mockRenderedMeta(page, meta => {
         meta.hubs['systems-hub'].lists.startHere = [
             { title: 'A Curated First Step', url: 'hud/index.html', description: 'Chosen by the owner.' },
         ];
-        await route.fulfill({ json: meta });
     });
 
     await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
@@ -272,11 +317,7 @@ test('the Side Dashboard renders its steps from site_meta', async ({ page }) => 
 });
 
 test('the Side Dashboard keeps its static steps when site_meta has none', async ({ page }) => {
-    await page.route('**/data/site_meta.json*', async route => {
-        const meta = await (await route.fetch()).json();
-        meta.hubs['systems-hub'].lists = {};
-        await route.fulfill({ json: meta });
-    });
+    await mockRenderedMeta(page, meta => { meta.hubs['systems-hub'].lists = {}; });
 
     await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
     await expect(page.locator('#start-here-list')).toContainText('Starter Guide');
@@ -284,12 +325,10 @@ test('the Side Dashboard keeps its static steps when site_meta has none', async 
 });
 
 test('a hostile step cannot inject markup or a javascript href', async ({ page }) => {
-    await page.route('**/data/site_meta.json*', async route => {
-        const meta = await (await route.fetch()).json();
+    await mockRenderedMeta(page, meta => {
         meta.hubs['systems-hub'].lists.startHere = [
             { title: '<img src=x onerror=window.__xss=1>', url: 'javascript:window.__xss=1', description: 'x' },
         ];
-        await route.fulfill({ json: meta });
     });
 
     await page.goto('/systems/index.html', { waitUntil: 'networkidle' });

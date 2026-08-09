@@ -138,6 +138,27 @@ test.describe('collapsible controls report their state', () => {
     });
 });
 
+test.describe('hub section headings survive their CMS content', () => {
+    // v0.11 shipped with renderHubSlot targeting #about-section on both
+    // sub-hubs - the whole section, including its <h2>. So the moment the CMS
+    // row existed, "Roster Overview" and "Info, Guides & Resources" were
+    // deleted from the live pages. The homepage was fine only because it
+    // happened to target an inner div.
+    //
+    // This lives in the accessibility spec because a section losing its
+    // heading is a document-outline defect, not just a visual one.
+    for (const path of ['/index.html', '/characters/index.html', '/systems/index.html']) {
+        test(`${path} keeps a heading inside #about-section`, async ({ page }) => {
+            await page.goto(path, { waitUntil: 'networkidle' });
+
+            const section = page.locator('#about-section');
+            await expect(section).toHaveCount(1);
+            await expect(section.locator('h2')).toHaveCount(1);
+            await expect(section.locator('h2')).not.toBeEmpty();
+        });
+    }
+});
+
 test.describe('landmarks', () => {
     test('the two sidebars are distinguishable', async ({ page }) => {
         await page.goto('/characters/index.html', { waitUntil: 'networkidle' });
