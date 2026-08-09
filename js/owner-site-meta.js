@@ -118,7 +118,7 @@ async function saveSiteMeta() {
     }
 
     siteMetaRow.hubs = hubs;
-    results.innerHTML = '<span class="owner-success-text">Saved. Version, tagline and headings are live immediately; titles and descriptions appear after the next regeneration run.</span>';
+    results.innerHTML = '<span class="owner-success-text">Saved. Headings are live now; titles, descriptions, the version and the tagline appear after the next regeneration run.</span>';
 }
 
 function gameInfo() {
@@ -255,7 +255,7 @@ async function saveGameInfo() {
 
     siteMetaRow.game_info = info;
     renderGameInfoAdmin();
-    results.innerHTML = '<span class="owner-success-text">Saved. Live on the main dashboard after the next regeneration run.</span>';
+    results.innerHTML = '<span class="owner-success-text">Saved. Live on the main dashboard now.</span>';
 }
 
 document.addEventListener('DOMContentLoaded', () => {

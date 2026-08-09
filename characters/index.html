@@ -95,9 +95,11 @@
                  when the CMS has content for the slot. -->
             <section class="wiki-section" id="about-section">
                 <h2 class="section-title" data-heading-key="about">Roster Overview</h2>
-                <p class="strategy-paragraph m-0" style="color: var(--text-primary);">
-                    Welcome to the Character Dashboard. Here you can find general information for every character in the game. Select a character below to view their dedicated wiki page.
-                </p>
+                <div id="about-body">
+                    <p class="strategy-paragraph m-0" style="color: var(--text-primary);">
+                        Welcome to the Character Dashboard. Here you can find general information for every character in the game. Select a character below to view their dedicated wiki page.
+                    </p>
+                </div>
             </section>
             
             <section class="wiki-section" id="roster-section">
@@ -192,7 +194,7 @@
             // 0. Hub prose from the CMS. Fired without awaiting: it replaces
             // its own container and nothing below depends on it, so blocking
             // the roster on it would only delay the page.
-            if (window.renderHubSlot) window.renderHubSlot('character-hub', 'intro', 'about-section');
+            if (window.renderHubSlot) window.renderHubSlot('character-hub', 'intro', 'about-body');
 
             // 1. Alerts Hook
             if (typeof window.loadPageAlerts === 'function') {

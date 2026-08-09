@@ -274,9 +274,14 @@ test('the reading path is ordered and every step resolves', async ({ page }) => 
     await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
 
     const steps = page.locator('#start-here-section .reading-step');
-    await expect(steps).toHaveCount(6);
-    await expect(steps.first()).toContainText('Starter Guide');
+    await expect(steps.first()).toBeVisible();
+    expect(await steps.count()).toBeGreaterThan(2);
 
+    // Deliberately does not assert WHICH guide comes first. The list is
+    // owner-curated from owner.html, so pinning its contents here would mean a
+    // red suite every time the reading order is rethought - which is the one
+    // thing that section exists to allow.
+    //
     // An <ol>, so the order is in the markup rather than only in the styling.
     expect(await page.locator('#start-here-section ol.reading-path').count()).toBe(1);
 

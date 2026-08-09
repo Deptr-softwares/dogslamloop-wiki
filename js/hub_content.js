@@ -22,6 +22,61 @@
 // one object.
 const hubDataCache = {};
 
+/**
+ * Site metadata for the three things this file renders: section headings, the
+ * dashboard step lists, and the Game Info panel.
+ *
+ * Reads the site_meta table directly, falling back to data/site_meta.json.
+ *
+ * It originally read only the JSON file, which was wrong in a way the owner
+ * hit immediately: that file is a committed artifact refreshed by the
+ * regeneration workflow, so a save in owner.html reached the database and
+ * changed nothing on the site. Worse, the tool said "Live immediately".
+ *
+ * The table is the source of truth, so it is what gets read. The JSON stays as
+ * the fallback, which also keeps this working if Supabase is briefly
+ * unreachable.
+ *
+ * Only the three hub pages load this file, and they already query Supabase
+ * several times each, so this is one more round trip on three pages - not on
+ * all forty. js/site_meta.js still reads the JSON for the version and tagline
+ * in the sidebar, which render on every page and genuinely do not need to be
+ * instant.
+ */
+let siteMetaPromise = null;
+
+function fetchSiteMeta() {
+    if (siteMetaPromise) return siteMetaPromise;
+
+    siteMetaPromise = (async () => {
+        const rootPath = window.getRootPath ? window.getRootPath() : './';
+
+        if (window.supabaseClient) {
+            try {
+                const { data, error } = await window.supabaseClient
+                    .from('site_meta').select('hubs, game_info').limit(1).maybeSingle();
+
+                if (!error && data) {
+                    // Normalised to the JSON file's shape, so every caller
+                    // below reads one thing regardless of where it came from.
+                    return { hubs: data.hubs || {}, gameInfo: data.game_info || {} };
+                }
+            } catch (e) {
+                // Falls through to the committed file.
+            }
+        }
+
+        try {
+            const json = await window.fetchJson(`${rootPath}data/site_meta.json`, { cache: true });
+            return { hubs: json.hubs || {}, gameInfo: json.gameInfo || {} };
+        } catch (e) {
+            return { hubs: {}, gameInfo: {} };
+        }
+    })();
+
+    return siteMetaPromise;
+}
+
 async function fetchHubData(pageId) {
     if (hubDataCache[pageId] !== undefined) return hubDataCache[pageId];
 
@@ -132,14 +187,7 @@ window.applyHubHeadings = async function(pageId) {
     const targets = document.querySelectorAll('[data-heading-key]');
     if (targets.length === 0) return 0;
 
-    let meta;
-    try {
-        const rootPath = window.getRootPath ? window.getRootPath() : './';
-        meta = await window.fetchJson(`${rootPath}data/site_meta.json`, { cache: true });
-    } catch (e) {
-        return 0;   // keep the static headings
-    }
-
+    const meta = await fetchSiteMeta();
     const headings = ((meta.hubs || {})[pageId] || {}).headings || {};
     let applied = 0;
 
@@ -169,14 +217,7 @@ window.renderGameInfo = async function(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return false;
 
-    let meta;
-    try {
-        const rootPath = window.getRootPath ? window.getRootPath() : './';
-        meta = await window.fetchJson(`${rootPath}data/site_meta.json`, { cache: true });
-    } catch (e) {
-        return false;
-    }
-
+    const meta = await fetchSiteMeta();
     const info = meta.gameInfo || {};
     const fields = Array.isArray(info.fields) ? info.fields : [];
     const links = Array.isArray(info.links) ? info.links : [];
@@ -230,14 +271,7 @@ window.renderHubList = async function(pageId, listId, containerId) {
     const container = document.getElementById(containerId);
     if (!container) return false;
 
-    let meta;
-    try {
-        const rootPath = window.getRootPath ? window.getRootPath() : './';
-        meta = await window.fetchJson(`${rootPath}data/site_meta.json`, { cache: true });
-    } catch (e) {
-        return false;
-    }
-
+    const meta = await fetchSiteMeta();
     const lists = ((meta.hubs || {})[pageId] || {}).lists || {};
     const steps = Array.isArray(lists[listId]) ? lists[listId] : [];
     if (steps.length === 0) return false;

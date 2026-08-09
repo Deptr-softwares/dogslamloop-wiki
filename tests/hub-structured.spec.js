@@ -16,10 +16,53 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const committedMeta = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'site_meta.json'), 'utf8'));
 
+/**
+ * Mocks BOTH sources of site metadata.
+ *
+ * As of the post-v0.11 fix, hub pages read the site_meta table and fall back
+ * to data/site_meta.json only if that fails. Mocking the file alone would
+ * leave the real database answering, so these tests would assert against
+ * production data.
+ *
+ * The trailing * on the route matters: fetchJson appends a cache-buster, so a
+ * pattern without it never matches.
+ */
 async function mockSiteMeta(page, meta) {
-    // Trailing * matters: fetchJson appends a cache-buster, so a pattern
-    // without it never matches and the real file loads instead.
     await page.route('**/data/site_meta.json*', route => route.fulfill({ json: meta }));
+
+    await page.addInitScript((meta) => {
+        Object.defineProperty(window, 'supabase', {
+            configurable: true,
+            get() { return window.__lib; },
+            set(lib) {
+                window.__lib = lib;
+                if (lib && lib.createClient && !lib.__patched) {
+                    const orig = lib.createClient.bind(lib);
+                    lib.createClient = (...args) => {
+                        const client = orig(...args);
+                        const origFrom = client.from.bind(client);
+                        client.from = (table) => {
+                            if (table !== 'site_meta') return origFrom(table);
+                            const chain = {
+                                select() { return chain; },
+                                limit() { return chain; },
+                                // The table's column is game_info; the JSON
+                                // file's key is gameInfo. Same data, and the
+                                // renderer normalises both.
+                                maybeSingle: async () => ({
+                                    data: { hubs: meta.hubs, game_info: meta.gameInfo },
+                                    error: null,
+                                }),
+                            };
+                            return chain;
+                        };
+                        return client;
+                    };
+                    lib.__patched = true;
+                }
+            },
+        });
+    }, meta);
 }
 
 test.describe('homepage table of contents', () => {
