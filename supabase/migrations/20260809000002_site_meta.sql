@@ -86,7 +86,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "public"."site_meta" TO "authentic
 -- hub strings are copied verbatim from the three pages' current <head>.
 INSERT INTO "public"."site_meta" ("id", "version", "tagline", "hubs", "game_info") VALUES (
     true,
-    'Beta v0.10',
+    'Beta v0.11',
     'The Competitive JJS Wiki',
     '{
         "main-hub": {
