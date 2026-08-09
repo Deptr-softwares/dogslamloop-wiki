@@ -7,15 +7,57 @@
 // 1. SIDEBAR & NAVIGATION BUILDERS
 // ==========================================
 
+/**
+ * Skip-to-content link, injected on every page.
+ *
+ * Done here rather than in each page's markup because every page loads this
+ * file, and there are 30 generated stubs plus a dozen hand-authored pages -
+ * a link that exists on 41 of 42 pages is worse than useless, because a
+ * keyboard user learns to expect it.
+ *
+ * Without it, reaching the first paragraph of a character page means tabbing
+ * through the whole sidebar menu - roughly 40 links - on every single page.
+ */
+window.initSkipLink = function() {
+    if (document.querySelector('.skip-link')) return;
+
+    const main = document.querySelector('main.main-content-area') || document.querySelector('main');
+    if (!main) return;
+
+    if (!main.id) main.id = 'main-content';
+
+    const link = document.createElement('a');
+    link.className = 'skip-link';
+    link.href = `#${main.id}`;
+    link.textContent = 'Skip to content';
+
+    // A plain in-page href moves the reading position but not always keyboard
+    // focus, so the next Tab can resume from the top of the page again.
+    link.addEventListener('click', (event) => {
+        event.preventDefault();
+        main.setAttribute('tabindex', '-1');
+        main.focus();
+        main.scrollIntoView();
+    });
+
+    document.body.insertBefore(link, document.body.firstChild);
+};
+
 window.initSidebarToggle = function() {
     const toggleBtn = document.querySelector('.sidebar-toggle-btn');
     const sidebar = document.getElementById('master-sidebar');
-    
+
     if (toggleBtn && sidebar) {
-        toggleBtn.addEventListener('click', () => { 
+        toggleBtn.addEventListener('click', () => {
             // The True Despawn Toggle
-            sidebar.classList.toggle('collapsed'); 
+            const collapsed = sidebar.classList.toggle('collapsed');
+            // The button's label is "Collapse sidebar" in the markup; once it
+            // has collapsed the sidebar it does the opposite, and a screen
+            // reader would otherwise keep announcing the wrong action.
+            toggleBtn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+            toggleBtn.setAttribute('aria-expanded', String(!collapsed));
         });
+        toggleBtn.setAttribute('aria-expanded', String(!sidebar.classList.contains('collapsed')));
     }
 };
 
@@ -25,13 +67,23 @@ window.initMobileNav = function() {
     const backdrop = document.getElementById('mobile-backdrop');
 
     if (mobileMenuBtn && sidebar && backdrop) {
-        mobileMenuBtn.addEventListener('click', () => {
-            sidebar.classList.add('mobile-open');
-            backdrop.classList.add('active');
-        });
-        backdrop.addEventListener('click', () => {
-            sidebar.classList.remove('mobile-open');
-            backdrop.classList.remove('active');
+        const setOpen = (open) => {
+            sidebar.classList.toggle('mobile-open', open);
+            backdrop.classList.toggle('active', open);
+            mobileMenuBtn.setAttribute('aria-expanded', String(open));
+            mobileMenuBtn.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+        };
+
+        mobileMenuBtn.addEventListener('click', () => setOpen(true));
+        backdrop.addEventListener('click', () => setOpen(false));
+
+        // Escape closes it. Without this the only way out is a tap on the
+        // backdrop, which a keyboard user has no way to reach.
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && sidebar.classList.contains('mobile-open')) {
+                setOpen(false);
+                mobileMenuBtn.focus();
+            }
         });
     }
 };
@@ -56,12 +108,25 @@ window.buildGlobalSidebarMenu = async function(containerId) {
 
         if (!navData) throw new Error("Navigation configuration missing.");
 
+        // navigation.json is owner-editable via site_pages as of v0.10, and
+        // this menu renders on every page on the site - the widest reach of
+        // the three consumers of that file. Escaped at every interpolation.
+        //
+        // The header's onclick stays: it interpolates nothing, so it is static
+        // markup rather than the user-influenced-handler pattern CLAUDE.md
+        // rules out.
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
         let html = '';
         for (const [category, items] of Object.entries(navData)) {
+            // A <button> rather than a <div>: it is operated by click, so it
+            // has to be reachable by keyboard and announced as a control.
+            // aria-expanded carries the open/closed state, which the caret
+            // conveys visually and conveyed to nobody else.
             html += `<div class="sidebar-group-wrapper">`;
-            html += `<div class="sidebar-nav-title sidebar-group-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
-                        ${category} <span class="sidebar-group-caret">▼</span>
-                     </div>`;
+            html += `<button type="button" class="sidebar-nav-title sidebar-group-header" aria-expanded="false">
+                        ${esc(category)} <span class="sidebar-group-caret" aria-hidden="true">▼</span>
+                     </button>`;
             html += `<ul class="toc-list hidden">`;
 
             items.forEach(item => {
@@ -76,8 +141,8 @@ window.buildGlobalSidebarMenu = async function(containerId) {
 
                 html += `
                     <li>
-                        <a href="${rootPath}${item.url}" class="btn-nav">
-                            <span class="toc-link-text" style="${colorStyle}">${item.name}</span>
+                        <a href="${esc(rootPath + item.url)}" class="btn-nav">
+                            <span class="toc-link-text" style="${colorStyle}">${esc(item.name)}</span>
                             ${badge}
                         </a>
                     </li>
@@ -86,6 +151,16 @@ window.buildGlobalSidebarMenu = async function(containerId) {
             html += `</ul></div>`;
         }
         container.innerHTML = html;
+
+        // Delegated, replacing the inline onclick these headers used to carry.
+        container.querySelectorAll('.sidebar-group-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const list = header.nextElementSibling;
+                if (!list) return;
+                const open = list.classList.toggle('hidden') === false;
+                header.setAttribute('aria-expanded', String(open));
+            });
+        });
     } catch (e) {
         console.error("Sidebar Menu Error:", e);
         container.innerHTML = `<p class="loading-msg loading-msg-error">Menu unavailable.</p>`;
@@ -442,12 +517,17 @@ window.renderFilteredRoster = function() {
         }
 
         // --- Prepend the rootPath to the href ---
+        // Names, URLs and image paths are all owner-editable through
+        // owner.html as of v0.10, so they are escaped at every interpolation
+        // rather than trusted for being "internal" data.
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
         html += `
-            <a href="${rootPath}${char.url}" class="roster-card" style="background-color: ${charColor};">
+            <a href="${esc(rootPath + char.url)}" class="roster-card" style="background-color: ${charColor};">
                 ${char.isEA ? `<span class="ea-star-indicator" title="Early Access" style="color: ${textColor};">★</span>` : ''}
-                ${char.image ? `<img src="${char.image}" alt="${char.name}" class="roster-card-bg-image">` : ''}
+                ${char.image ? `<img src="${esc(char.image)}" alt="${esc(char.name)}" class="roster-card-bg-image">` : ''}
                 <div class="roster-card-text" style="color: ${textColor};">
-                    ${char.name}
+                    ${esc(char.name)}
                     ${char.isWip ? `<br><span class="roster-wip-tag">(WIP)</span>` : ''}
                 </div>
             </a>
@@ -466,6 +546,10 @@ window.buildSystemsDirectory = async function(containerId) {
         if (window.fetchJson) navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
         else { const res = await fetch(`${rootPath}data/navigation.json`); navData = await res.json(); }
 
+        // Category names are owner-authored too - they come straight from
+        // site_pages.category - so they get the same treatment as page names.
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
         let html = '<div class="systems-grid-container">';
         const categories = Object.keys(navData).filter(k => k !== 'Characters');
 
@@ -473,16 +557,23 @@ window.buildSystemsDirectory = async function(containerId) {
             const items = navData[category];
             html += `
                 <div class="system-category-block">
-                    <h3 class="sidebar-master-title">${category}</h3>
+                    <h3 class="sidebar-master-title">${esc(category)}</h3>
 
                     <div class="system-button-grid">
             `;
             items.forEach(sys => {
-                // Swapped flat gray boxes for slanted interactive manga buttons natively inheriting the blue hover glow
+                // Swapped flat gray boxes for slanted interactive manga buttons natively inheriting the blue hover glow.
+                //
+                // data-href + a delegated listener rather than an inline
+                // onclick: since v0.10 these names and URLs come from
+                // site_pages, which an admin edits through owner.html, so a
+                // page named with an apostrophe used to break the handler
+                // outright. Building owner-supplied values into an inline
+                // onclick is the pattern CLAUDE.md rules out.
                 html += `
-                    <button class="btn-manga btn-manga-slanted system-directory-btn" onclick="window.location.href='${rootPath}${sys.url}'">
+                    <button class="btn-manga btn-manga-slanted system-directory-btn" data-href="${esc(rootPath + sys.url)}">
                         <div class="btn-manga-content">
-                            <span class="btn-manga-text">${sys.name}</span>
+                            <span class="btn-manga-text">${esc(sys.name)}</span>
                         </div>
                     </button>
                 `;
@@ -491,6 +582,13 @@ window.buildSystemsDirectory = async function(containerId) {
         });
         html += '</div>';
         container.innerHTML = html;
+
+        container.querySelectorAll('.system-directory-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const href = btn.dataset.href;
+                if (href) window.location.href = href;
+            });
+        });
     } catch(e) {
         console.error("Systems Grid Error:", e);
     }
@@ -565,6 +663,17 @@ window.refreshTOC = function() {
     }
 
     // 3. Build the Hierarchical Tree
+    //
+    // Labels are read with textContent and written back with innerHTML below,
+    // which is a double-decode: a heading whose text is the literal string
+    // "<img src=x onerror=...>" would be inert in the heading and live in the
+    // ToC. Headings reach this from two directions - CMS block content, and
+    // (as of v0.11) owner-set section titles from site_meta - so the label is
+    // escaped here. A ToC entry is a label, not markup; a heading containing
+    // <b>Bold</b> already arrives as "Bold" via textContent, so this changes
+    // nothing for legitimate content.
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
     let tocStructure = [];
     let currentGroup = null;
 
@@ -578,7 +687,17 @@ window.refreshTOC = function() {
         }
         
         const isMinor = header.classList.contains('wiki-block-heading');
-        const itemData = { id: header.id, text: header.textContent.trim() };
+
+        // A heading can contain controls - the dashboards nest a "View More"
+        // link inside their section titles - and their text is not part of the
+        // heading. Without this the homepage ToC reads "Characters View More
+        // ➔". Falls back to the full text for a heading that is itself a link,
+        // where stripping would leave nothing.
+        const labelSource = header.cloneNode(true);
+        labelSource.querySelectorAll('a, button').forEach(el => el.remove());
+        const label = labelSource.textContent.trim() || header.textContent.trim();
+
+        const itemData = { id: header.id, text: label };
 
         if (!isMinor) {
             // Create a new major group
@@ -601,8 +720,8 @@ window.refreshTOC = function() {
             // Fallback for orphaned minor headers
             tocHtml += `
                 <li>
-                    <a href="#${group.id}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${group.id}')">
-                        <span class="toc-link-text">${group.text}</span>
+                    <a href="#${esc(group.id)}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${esc(group.id)}')">
+                        <span class="toc-link-text">${esc(group.text)}</span>
                     </a>
                 </li>
             `;
@@ -612,11 +731,12 @@ window.refreshTOC = function() {
                 tocHtml += `
                     <li>
                         <div class="toc-group-row">
-                            <a href="#${group.id}" class="btn-nav toc-link-major-toggle" onclick="smoothScroll(event, '${group.id}')">
-                                <span class="toc-link-text">${group.text}</span>
+                            <a href="#${esc(group.id)}" class="btn-nav toc-link-major-toggle" onclick="smoothScroll(event, '${esc(group.id)}')">
+                                <span class="toc-link-text">${esc(group.text)}</span>
                             </a>
-                            <button class="toc-toggle-btn" onclick="this.parentElement.nextElementSibling.classList.toggle('hidden')">
-                                ▼
+                            <button type="button" class="toc-toggle-btn" aria-expanded="true"
+                                    aria-label="Toggle subsections of ${esc(group.text)}">
+                                <span aria-hidden="true">▼</span>
                             </button>
                         </div>
                         <ul class="toc-sublist">
@@ -626,8 +746,8 @@ window.refreshTOC = function() {
                 group.children.forEach(child => {
                     tocHtml += `
                         <li>
-                            <a href="#${child.id}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${child.id}')">
-                                <span class="toc-link-text">${child.text}</span>
+                            <a href="#${esc(child.id)}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${esc(child.id)}')">
+                                <span class="toc-link-text">${esc(child.text)}</span>
                             </a>
                         </li>
                     `;
@@ -638,8 +758,8 @@ window.refreshTOC = function() {
                 // Standard Parent Header (No Children, No Toggle Arrow)
                 tocHtml += `
                     <li>
-                        <a href="#${group.id}" class="btn-nav toc-link-major" onclick="smoothScroll(event, '${group.id}')">
-                            <span class="toc-link-text">${group.text}</span>
+                        <a href="#${esc(group.id)}" class="btn-nav toc-link-major" onclick="smoothScroll(event, '${esc(group.id)}')">
+                            <span class="toc-link-text">${esc(group.text)}</span>
                         </a>
                     </li>
                 `;
@@ -648,6 +768,17 @@ window.refreshTOC = function() {
     });
     
     tocContainer.innerHTML = tocHtml;
+
+    // Delegated, replacing the inline onclick these toggles used to carry, and
+    // keeping aria-expanded in step with the caret.
+    tocContainer.querySelectorAll('.toc-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const sublist = btn.parentElement && btn.parentElement.nextElementSibling;
+            if (!sublist) return;
+            const open = sublist.classList.toggle('hidden') === false;
+            btn.setAttribute('aria-expanded', String(open));
+        });
+    });
 };
 
 // Smooth scroll with offset to prevent headers from hiding under the top of the screen
@@ -732,6 +863,13 @@ window.loadPageAlerts = async function(pageId) {
 // only pages without that wrapper, and they load editor.css, whose
 // unconditional `body { overflow: hidden }` means anything appended to <body>
 // there could never be scrolled to anyway.
+// The skip link is injected here rather than from each page's own boot block,
+// so it cannot be present on 41 pages and missing from the 42nd - which is
+// worse than not having one, because a keyboard user learns to expect it.
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.initSkipLink) window.initSkipLink();
+});
+
 window.buildSiteFooter = function() {
     if (document.getElementById('site-footer')) return;
     if (!document.querySelector('.site-layout')) return;

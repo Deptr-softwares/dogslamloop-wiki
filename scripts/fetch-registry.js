@@ -26,6 +26,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const NAV_PATH = path.join(ROOT, 'data', 'navigation.json');
+const ARCHIVED_PATH = path.join(ROOT, 'data', 'archived-pages.json');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://gtqswjspxymjdopljmfi.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
@@ -83,6 +84,42 @@ function buildNavigation(rows) {
         out[category] = byCategory[category]
             .sort((a, b) => a.sort - b.sort)
             .map(x => x.entry);
+    }
+    return out;
+}
+
+/**
+ * Pure: registry rows in, the archived-pages manifest out.
+ *
+ * buildNavigation drops archived rows, which is correct for menus but left the
+ * rest of the pipeline unable to see them at all. Before this, archiving a
+ * page removed it from every menu while generate-pages.js - whose only input
+ * is navigation.json - carried on knowing nothing about it, so the page's
+ * existing stub stayed on disk serving HTTP 200 with its full original
+ * content. It never 404'd and it never became a tombstone.
+ *
+ * This manifest is the missing channel, and it has two consumers:
+ *   - generate-pages.js, which writes the tombstone stub.
+ *   - the front-end, which hides leftover entry points that do not come from
+ *     navigation.json (matchup and counterplay cards on other character pages,
+ *     tier-list rows) when hideEntryPoints is set.
+ *
+ * Keyed by page_id to match data/page-previews.json.
+ */
+function buildArchived(rows) {
+    const out = {};
+    for (const row of rows) {
+        if (row.status !== 'archived') continue;
+        out[row.page_id] = {
+            name: row.name,
+            url: row.url,
+            pageType: row.page_type,
+            navId: row.nav_id,
+            // Defaults false so archiving on its own stays reversible and
+            // low-consequence: the page becomes a tombstone, but references to
+            // it elsewhere stay visible until this is deliberately turned on.
+            hideEntryPoints: row.hide_entry_points === true,
+        };
     }
     return out;
 }
@@ -145,18 +182,34 @@ async function main() {
     const next = JSON.stringify(nav, null, 2) + '\n';
     const current = fs.existsSync(NAV_PATH) ? fs.readFileSync(NAV_PATH, 'utf8') : null;
 
-    if (current === next) {
+    const nextArchived = JSON.stringify(buildArchived(rows), null, 2) + '\n';
+    const currentArchived = fs.existsSync(ARCHIVED_PATH) ? fs.readFileSync(ARCHIVED_PATH, 'utf8') : null;
+
+    const navChanged = current !== next;
+    const archivedChanged = currentArchived !== nextArchived;
+
+    if (!navChanged && !archivedChanged) {
         console.log(`fetch-registry: no change (${rows.length} rows).`);
         return;
     }
 
     if (!write) {
-        console.log(`fetch-registry: would update data/navigation.json (${rows.length} rows).`);
+        if (navChanged) console.log(`fetch-registry: would update data/navigation.json (${rows.length} rows).`);
+        if (archivedChanged) console.log('fetch-registry: would update data/archived-pages.json.');
         return;
     }
 
-    fs.writeFileSync(NAV_PATH, next);
-    console.log(`fetch-registry: wrote navigation.json from ${rows.length} rows.`);
+    // navigation.json first: it is the higher-blast-radius artifact and has
+    // already passed validation at this point, so a crash between the two
+    // writes leaves the menus correct and only the archive manifest stale.
+    if (navChanged) {
+        fs.writeFileSync(NAV_PATH, next);
+        console.log(`fetch-registry: wrote navigation.json from ${rows.length} rows.`);
+    }
+    if (archivedChanged) {
+        fs.writeFileSync(ARCHIVED_PATH, nextArchived);
+        console.log('fetch-registry: wrote archived-pages.json.');
+    }
 }
 
 if (require.main === module) {
@@ -168,4 +221,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { buildNavigation, validateNavigation };
+module.exports = { buildNavigation, buildArchived, validateNavigation };

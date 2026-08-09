@@ -74,16 +74,16 @@
     <div class="mobile-top-bar">
         <a href="${ROOT}index.html" class="mobile-logo-link">
             <img src="${ROOT}medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
-            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+            <span class="mobile-site-title">dogslamloop wiki</span>
         </a>
-        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">☰</button>
     </div>
     <div class="mobile-backdrop" id="mobile-backdrop"></div>`;
     }
 
     function leftSidebar() {
         return `
-        <aside class="global-sidebar-left" id="master-sidebar">
+        <aside class="global-sidebar-left" id="master-sidebar" aria-label="Site navigation">
             <div class="sidebar-header-top">
                 <img src="${ROOT}medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
@@ -92,7 +92,7 @@
                 </div>
             </div>
 
-            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar">☰</button>
+            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar" aria-label="Collapse sidebar">☰</button>
 
             <div class="sidebar-master-title">Navigation</div>
 
@@ -113,7 +113,7 @@
 
     function rightSidebar(label) {
         return `
-        <aside class="local-sidebar-right">
+        <aside class="local-sidebar-right" aria-label="On this page">
             <div class="sidebar-tab-header">
                 <div class="sidebar-master-title">${esc(label)}</div>
 

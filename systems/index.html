@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Systems & Guides Hub | Dogslamloop Wiki</title>
+    <!-- Owner-editable, regenerated from site_meta. Static because unfurlers
+         don't run JS. Between the markers belongs to
+         scripts/generate-hub-meta.js. -->
+    <!-- BEGIN GENERATED: hub-meta - scripts/generate-hub-meta.js - do not edit by hand -->
+    <title>Systems &amp; Guides Hub | Dogslamloop Wiki</title>
     <link rel="icon" type="image/webp" href="../medias/images/DogslamloopIconGay.webp">
 
-    <!-- Social/SEO metadata. Hand-maintained: this hub is not produced by
-         scripts/generate-pages.js. Must be static - unfurlers don't run JS. -->
     <meta name="description" content="Guides to the systems behind Jujutsu Shenanigans - frame data, HUD, evasion, M1 trading, and more.">
     <link rel="canonical" href="https://dogslamloop.com/systems/index.html">
+
     <meta property="og:site_name" content="Dogslamloop Wiki">
     <meta property="og:type" content="website">
     <meta property="og:title" content="Systems &amp; Guides Hub">
@@ -17,6 +20,7 @@
     <meta property="og:url" content="https://dogslamloop.com/systems/index.html">
     <meta property="og:image" content="https://dogslamloop.com/medias/images/DogslamloopIconGay.webp">
     <meta name="twitter:card" content="summary">
+    <!-- END GENERATED: hub-meta -->
 
     <!-- THE NEW MODULAR DESIGN SYSTEM -->
     <link rel="stylesheet" href="../style/Common.css">
@@ -34,16 +38,16 @@
     <div class="mobile-top-bar">
         <a href="../index.html" class="mobile-logo-link">
             <img src="../medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
-            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+            <span class="mobile-site-title">dogslamloop wiki</span>
         </a>
-        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">☰</button>
     </div>
     <div class="mobile-backdrop" id="mobile-backdrop"></div>
 
     <div class="site-layout">
         
         <!-- LEFT SIDEBAR: GLOBAL NAVIGATION -->
-        <aside class="global-sidebar-left" id="master-sidebar">
+        <aside class="global-sidebar-left" id="master-sidebar" aria-label="Site navigation">
             <div class="sidebar-header-top">
                 <img src="../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
@@ -52,7 +56,7 @@
                 </div>
             </div>
 
-            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar">☰</button>
+            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar" aria-label="Collapse sidebar">☰</button>
 
             <div class="sidebar-master-title">Navigation</div>
             
@@ -86,19 +90,20 @@
             <!-- ALERTS INJECTION TARGET -->
             <div id="character-alerts-container" class="character-alerts-container"></div>
 
+            <!-- Editable from owner.html (Dashboard Text), which previews it in place. This
+                 markup is the fallback; js/hub_content.js replaces it only
+                 when the CMS has content for the slot. -->
             <section class="wiki-section" id="about-section">
                 <!-- Removed section-title-clean to keep the blue bottom border -->
-                <h2 class="section-title">Info, Guides & Resources</h2>
+                <h2 class="section-title" data-heading-key="about">Info, Guides &amp; Resources</h2>
                 <p class="strategy-paragraph m-0" style="color: var(--text-primary);">
-                    Welcome to the Side Dashboard. Here, we will go over the general information of the wiki itself and more misc stuff, but there is nothing here for now beside the directories section.
+                    Welcome to the Side Dashboard. This is where the wiki explains itself: how the site works, how to read it, and how to help build it.
                 </p>
             </section>
             
             <section class="wiki-section" id="guides-section">
                 <div class="header-split-wrapper">
-                    <h2 class="section-title section-title-flex m-0">
-                        System Directories
-                    </h2>
+                    <h2 class="section-title section-title-flex m-0" data-heading-key="guides">System Directories</h2>
                 </div>
 
                 <!-- Your pagebuilder.js automatically injects the grid here -->
@@ -107,10 +112,101 @@
                 </div>
             </section>
 
+            <!-- Static markup, not generated from navigation.json. The order
+                 and the one-line summaries are an editorial judgement about
+                 what to learn first - the registry knows these pages exist but
+                 has no opinion on which to read before which. -->
+            <section class="wiki-section" id="start-here-section">
+                <h2 class="section-title" data-heading-key="startHere">Start Here</h2>
+                <p class="strategy-paragraph" style="color: var(--text-primary);">
+                    New to the game, or new to thinking about it competitively? Read these in order.
+                </p>
+
+                <ol class="reading-path" id="start-here-list">
+                    <li class="reading-step">
+                        <a href="starter-guide/index.html" class="reading-step-title">Starter Guide</a>
+                        <span class="reading-step-desc">What the game is, and what you should be doing in a match.</span>
+                    </li>
+                    <li class="reading-step">
+                        <a href="hud/index.html" class="reading-step-title">HUD</a>
+                        <span class="reading-step-desc">Reading the screen: cooldowns, meters, and what the numbers mean.</span>
+                    </li>
+                    <li class="reading-step">
+                        <a href="fundamentals/index.html" class="reading-step-title">Fundamentals</a>
+                        <span class="reading-step-desc">Spacing, timing, and the habits that decide most matches.</span>
+                    </li>
+                    <li class="reading-step">
+                        <a href="framedata/index.html" class="reading-step-title">Frame Data</a>
+                        <span class="reading-step-desc">Startup, active and recovery &mdash; how to read every move page on this wiki.</span>
+                    </li>
+                    <li class="reading-step">
+                        <a href="evasive/index.html" class="reading-step-title">Evasive</a>
+                        <span class="reading-step-desc">I-frames, dodging, and getting out of trouble.</span>
+                    </li>
+                    <li class="reading-step">
+                        <a href="m1-trading/index.html" class="reading-step-title">M1 Trading</a>
+                        <span class="reading-step-desc">The 4-frame rule, and who wins when two attacks land together.</span>
+                    </li>
+                </ol>
+            </section>
+
+            <!-- Hidden until the Terminologies page has real content. Its only
+                 tab currently holds a placeholder paragraph, and a glossary box
+                 advertising an empty glossary is worse than no box. -->
+            <section class="wiki-section" id="glossary-section" hidden>
+                <div class="dashboard-header-split">
+                    <h2 class="section-title section-title-clean m-0">Terminology</h2>
+                    <a href="terminologies/index.html" class="btn-manga m-0" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">
+                        View All
+                    </a>
+                </div>
+                <div id="glossary-peek"></div>
+            </section>
+
+            <div class="grid-layout-2col">
+
+                <section class="wiki-section" id="contribute-section">
+                    <h2 class="section-title" data-heading-key="contribute">How to Contribute</h2>
+                    <p class="strategy-paragraph" style="color: var(--text-primary);">
+                        Anyone signed in can propose an edit. A reviewer checks it before it goes live,
+                        so there is nothing you can break.
+                    </p>
+                    <ol class="reading-path" id="contribute-list">
+                        <li class="reading-step">
+                            <span class="reading-step-title">Sign in</span>
+                            <span class="reading-step-desc">Use the button at the bottom of the sidebar.</span>
+                        </li>
+                        <li class="reading-step">
+                            <span class="reading-step-title">Open a page and press EDIT</span>
+                            <span class="reading-step-desc">Every character and system page has one.</span>
+                        </li>
+                        <li class="reading-step">
+                            <a href="writing_guide/index.html" class="reading-step-title">Follow the Writing Guide</a>
+                            <span class="reading-step-desc">House style, and how frame data should be recorded.</span>
+                        </li>
+                        <li class="reading-step">
+                            <a href="../submissions.html" class="reading-step-title">Track your submissions</a>
+                            <span class="reading-step-desc">See what was approved, and what a reviewer asked about.</span>
+                        </li>
+                    </ol>
+                </section>
+
+                <section class="wiki-section" id="stats-section">
+                    <h2 class="section-title" data-heading-key="stats">The Wiki So Far</h2>
+                    <div id="wiki-stats">
+                        <p class="loading-msg">Counting...</p>
+                    </div>
+                    <p class="admin-tool-hint" style="margin-top: 1rem;">
+                        <a href="../recent-changes.html" class="site-footer-link">See what changed recently &rarr;</a>
+                    </p>
+                </section>
+
+            </div>
+
         </main>
 
         <!-- RIGHT SIDEBAR: PAGE NAVIGATION -->
-        <aside class="local-sidebar-right">
+        <aside class="local-sidebar-right" aria-label="On this page">
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);">
                 <div class="sidebar-master-title" style="margin: 0; padding: 0; border: none;">On this page</div>
             </div>
@@ -127,11 +223,21 @@
     <script src="../js/site_utils.js"></script>
     <script src="../js/site_meta.js"></script>
     <script src="../js/pagebuilder.js"></script>
+    <!-- Needed to render the hub's authored prose: generateHTMLForBlocks
+         lives in description.js and relies on internalstyling.js. -->
+    <script src="../js/description.js"></script>
+    <script src="../js/internalstyling.js"></script>
+    <script src="../js/hub_content.js"></script>
+    <script src="../js/dashboards.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // Mobile Menu Toggle Binding
             if (window.initMobileNav) window.initMobileNav();
+
+            // 0. Hub prose from the CMS. Fired without awaiting: it replaces
+            // its own container and nothing below depends on it.
+            if (window.renderHubSlot) window.renderHubSlot('systems-hub', 'intro', 'about-section');
 
             // 1. Alerts Hook
             if (typeof window.loadPageAlerts === 'function') {
@@ -142,8 +248,24 @@
             if (typeof window.buildSystemsDirectory === 'function') {
                 await window.buildSystemsDirectory('systems-grid');
             }
+
+            // 2b. Dashboard widgets, fired together - different tables, no
+            // dependencies between them, and each renders its own error.
+            if (window.buildWikiStats) window.buildWikiStats('wiki-stats');
+            if (window.renderHubList) {
+                window.renderHubList('systems-hub', 'startHere', 'start-here-list');
+                window.renderHubList('systems-hub', 'contribute', 'contribute-list');
+            }
+            // Awaited: it un-hides its section, and the ToC below must not be
+            // built before the page knows which sections exist.
+            if (window.buildTerminologyPeek) {
+                await window.buildTerminologyPeek('glossary-section', 'glossary-peek');
+            }
             
             // 3. BOOT THE TABLE OF CONTENTS
+            if (typeof window.applyHubHeadings === 'function') {
+                await window.applyHubHeadings('systems-hub');
+            }
             if (typeof window.refreshTOC === 'function') {
                 setTimeout(window.refreshTOC, 100);
             }

@@ -60,16 +60,16 @@
     <div class="mobile-top-bar">
         <a href="../../index.html" class="mobile-logo-link">
             <img src="../../medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
-            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+            <span class="mobile-site-title">dogslamloop wiki</span>
         </a>
-        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">☰</button>
     </div>
     <div class="mobile-backdrop" id="mobile-backdrop"></div>
 
     <div class="site-layout">
         
         <!-- LEFT SIDEBAR -->
-        <aside class="global-sidebar-left" id="master-sidebar">
+        <aside class="global-sidebar-left" id="master-sidebar" aria-label="Site navigation">
             <div class="sidebar-header-top">
                 <img src="../../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
@@ -78,7 +78,7 @@
                 </div>
             </div>
 
-            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar">☰</button>
+            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar" aria-label="Collapse sidebar">☰</button>
 
             <div class="sidebar-master-title">Navigation</div>
             
@@ -214,7 +214,7 @@
         </main>
 
         <!-- RIGHT SIDEBAR -->
-        <aside class="local-sidebar-right">
+        <aside class="local-sidebar-right" aria-label="On this page">
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);">
                 <div class="sidebar-master-title" style="margin: 0; padding: 0; border: none; text-transform: uppercase;">ON THIS PAGE</div>
             </div>

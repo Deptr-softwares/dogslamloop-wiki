@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Owner-editable, regenerated from site_meta. Static because unfurlers
+         don't run JS. Between the markers belongs to
+         scripts/generate-hub-meta.js. -->
+    <!-- BEGIN GENERATED: hub-meta - scripts/generate-hub-meta.js - do not edit by hand -->
     <title>Character Dashboard | Dogslamloop Wiki</title>
-    <link rel="icon" type="image/jpg" href="../medias/images/DogslamloopIconGay.webp">
+    <link rel="icon" type="image/webp" href="../medias/images/DogslamloopIconGay.webp">
 
-    <!-- Social/SEO metadata. Hand-maintained: this hub is not produced by
-         scripts/generate-pages.js. Must be static - unfurlers don't run JS. -->
     <meta name="description" content="Every Jujutsu Shenanigans character, with frame data, matchups, and strategy for each.">
     <link rel="canonical" href="https://dogslamloop.com/characters/index.html">
+
     <meta property="og:site_name" content="Dogslamloop Wiki">
     <meta property="og:type" content="website">
     <meta property="og:title" content="Character Dashboard">
@@ -17,6 +20,7 @@
     <meta property="og:url" content="https://dogslamloop.com/characters/index.html">
     <meta property="og:image" content="https://dogslamloop.com/medias/images/DogslamloopIconGay.webp">
     <meta name="twitter:card" content="summary">
+    <!-- END GENERATED: hub-meta -->
 
     <!-- THE NEW MODULAR DESIGN SYSTEM -->
     <link rel="stylesheet" href="../style/Common.css">
@@ -34,16 +38,16 @@
     <div class="mobile-top-bar">
         <a href="../index.html" class="mobile-logo-link">
             <img src="../medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
-            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+            <span class="mobile-site-title">dogslamloop wiki</span>
         </a>
-        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">☰</button>
     </div>
     <div class="mobile-backdrop" id="mobile-backdrop"></div>
 
     <div class="site-layout">
         
         <!-- LEFT SIDEBAR: GLOBAL NAVIGATION -->
-        <aside class="global-sidebar-left" id="master-sidebar">
+        <aside class="global-sidebar-left" id="master-sidebar" aria-label="Site navigation">
             <div class="sidebar-header-top">
                 <img src="../medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
@@ -52,7 +56,7 @@
                 </div>
             </div>
 
-            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar">☰</button>
+            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar" aria-label="Collapse sidebar">☰</button>
 
             <div class="sidebar-master-title">Navigation</div>
             
@@ -86,18 +90,19 @@
 
             <div id="character-alerts-container" class="character-alerts-container"></div>
 
+            <!-- Editable from owner.html (Dashboard Text), which previews it in place. This
+                 markup is the fallback; js/hub_content.js replaces it only
+                 when the CMS has content for the slot. -->
             <section class="wiki-section" id="about-section">
-                <h2 class="section-title">Roster Overview</h2>
+                <h2 class="section-title" data-heading-key="about">Roster Overview</h2>
                 <p class="strategy-paragraph m-0" style="color: var(--text-primary);">
-                    Welcome to the Character Dashboard. Here you can find general information for every character in the game. Select a character below to view their dedicated wiki page. Later on this dashboard will be expanded.
+                    Welcome to the Character Dashboard. Here you can find general information for every character in the game. Select a character below to view their dedicated wiki page.
                 </p>
             </section>
             
             <section class="wiki-section" id="roster-section">
                 <div class="header-split-wrapper">
-                    <h2 class="section-title section-title-flex m-0">
-                        Select a Character
-                    </h2>
+                    <h2 class="section-title section-title-flex m-0" data-heading-key="roster">Select a Character</h2>
                     <!-- FILTER BAR TARGET (Handled by pagebuilder.js) -->
                     <div id="roster-filter-bar" class="filter-bar-inline"></div>
                 </div>
@@ -108,10 +113,53 @@
                 </div>
             </section>
 
+            <div class="grid-layout-2col">
+
+                <section class="wiki-section" id="tierlist-section">
+                    <div class="dashboard-header-split">
+                        <h2 class="section-title section-title-clean m-0">Community Tier List</h2>
+                        <a href="../systems/tierlist/index.html" class="btn-manga m-0" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">
+                            View All
+                        </a>
+                    </div>
+                    <p class="admin-tool-hint">Community opinion, not settled fact.</p>
+
+                    <div id="tier-snapshot" class="faq-scroll-box scroll-lg">
+                        <p class="loading-msg">Loading the tier list...</p>
+                    </div>
+                </section>
+
+                <section class="wiki-section" id="recent-edits-section">
+                    <div class="dashboard-header-split">
+                        <h2 class="section-title section-title-clean m-0">Recently Updated</h2>
+                        <a href="../recent-changes.html" class="btn-manga m-0" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">
+                            View All
+                        </a>
+                    </div>
+
+                    <div id="recent-character-edits">
+                        <p class="loading-msg">Checking for recent edits...</p>
+                    </div>
+                </section>
+
+            </div>
+
+            <section class="wiki-section" id="needs-work-section">
+                <h2 class="section-title">Pages That Need Work</h2>
+                <p class="strategy-paragraph" style="color: var(--text-primary);">
+                    Pages marked as work in progress, with the sections that are not finished listed
+                    beside each. Pick one you know well &mdash; anyone signed in can contribute.
+                </p>
+
+                <div id="needs-work">
+                    <p class="loading-msg">Working out what is missing...</p>
+                </div>
+            </section>
+
         </main>
 
         <!-- RIGHT SIDEBAR: PAGE NAVIGATION -->
-        <aside class="local-sidebar-right">
+        <aside class="local-sidebar-right" aria-label="On this page">
             <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);">
                 <div class="sidebar-master-title" style="margin: 0; padding: 0; border: none;">On this page</div>
             </div>
@@ -129,11 +177,22 @@
     <script src="../js/site_utils.js"></script>
     <script src="../js/site_meta.js"></script>
     <script src="../js/pagebuilder.js"></script>
+    <!-- Needed to render the hub's authored prose: generateHTMLForBlocks
+         lives in description.js and relies on internalstyling.js. -->
+    <script src="../js/description.js"></script>
+    <script src="../js/internalstyling.js"></script>
+    <script src="../js/hub_content.js"></script>
+    <script src="../js/dashboards.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // Mobile Menu Toggle Binding
             if (window.initMobileNav) window.initMobileNav();
+
+            // 0. Hub prose from the CMS. Fired without awaiting: it replaces
+            // its own container and nothing below depends on it, so blocking
+            // the roster on it would only delay the page.
+            if (window.renderHubSlot) window.renderHubSlot('character-hub', 'intro', 'about-section');
 
             // 1. Alerts Hook
             if (typeof window.loadPageAlerts === 'function') {
@@ -144,8 +203,19 @@
             if (typeof window.initRosterFilters === 'function') {
                 await window.initRosterFilters();
             }
+
+            // 2b. Dashboard widgets. Fired together rather than awaited in
+            // turn: they query different tables and none depends on another,
+            // so serialising them would only stack their latencies. Each
+            // renders its own error, so one failing cannot take out the rest.
+            if (window.buildTierSnapshot) window.buildTierSnapshot('tier-snapshot');
+            if (window.buildRecentCharacterEdits) window.buildRecentCharacterEdits('recent-character-edits');
+            if (window.buildNeedsWork) window.buildNeedsWork('needs-work');
             
             // 3. BOOT THE TABLE OF CONTENTS
+            if (typeof window.applyHubHeadings === 'function') {
+                await window.applyHubHeadings('character-hub');
+            }
             if (typeof window.refreshTOC === 'function') {
                 setTimeout(window.refreshTOC, 100);
             }

@@ -138,7 +138,76 @@
    single-pane pages have none - so any content taller than the viewport was
    simply unreachable. Harmless on owner.html, which is short, but it made
    post-editor.html's Add Block button impossible to scroll to. */
-.owner-workspace { width: 100%; max-width: 640px; margin: 0 auto; border-right: none; overflow-y: auto; }
+/* v0.11 widened this from 640px. That cap dated from when owner.html had two
+   tools; at ten it left most of a desktop screen empty while the forms inside
+   were cramped. */
+.owner-workspace { width: 100%; max-width: 1100px; margin: 0 auto; border-right: none; overflow-y: auto; }
+
+/* --- OWNER TOOL GROUPS ---
+   Ten tools in one scroll had no way to find anything, and the list grows
+   every version. These four groups are the navigation.
+
+   Everything below is scoped to .owner-tool-area on purpose: .admin-tool-card,
+   .editor-input and .admin-tool-btn are all shared with admin.html, and this
+   project has been bitten before by changing a shared class for one consumer.
+   Nothing here can reach the reviewer workflow. */
+.owner-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.owner-nav-btn {
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.6rem 1.1rem;
+    min-height: 44px;                    /* matches the mobile touch-target floor */
+    color: var(--text-muted);
+    background: var(--bg-main);
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+.owner-nav-btn:hover { color: var(--text-white); border-color: var(--accent-blue); }
+.owner-nav-btn.active {
+    color: var(--text-white);
+    border-color: var(--accent-blue);
+    box-shadow: 3px 3px 0px var(--manga-shadow);
+}
+/* Destructive tools should not look like editing tools even in the nav. */
+.owner-nav-btn-danger.active { border-color: #ef4444; }
+.owner-nav-btn-danger:hover { border-color: #ef4444; }
+
+.owner-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1.25rem;
+    align-items: start;
+}
+/* 0-2-0 beats the UA stylesheet's [hidden] rule, which display: grid above
+   would otherwise override - leaving every group visible at once. */
+.owner-group[hidden] { display: none; }
+
+.owner-group[data-group="danger"] .admin-tool-card { border-left: 4px solid #ef4444; }
+
+/* Consistent forms: one column, full-width controls, no stray results box. */
+.owner-tool-area .admin-tool-card { display: flex; flex-direction: column; gap: 0.75rem; }
+.owner-tool-area .editor-input,
+.owner-tool-area .editor-textarea,
+.owner-tool-area .admin-tool-btn { width: 100%; }
+.owner-tool-area .admin-tool-results:empty { display: none; }
+.owner-tool-area .personnel-add { display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* Page Details flags. Checkbox and label on one line, wrapping as a group so
+   a narrow card stacks them rather than clipping the labels. */
+.page-meta-flags { display: flex; flex-direction: column; gap: 0.4rem; margin: 0.5rem 0; }
+.page-meta-flag { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; }
+.page-meta-flag input { width: auto; margin: 0; }
 
 /* post-editor.html is two-pane (form+blocks | live preview) but its form
    needs more room than the 30% .editor-workspace default. */

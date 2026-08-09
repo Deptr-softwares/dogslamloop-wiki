@@ -51,6 +51,8 @@ async function mockOwnerFor(page, { rpcResult } = {}) {
 test('deleting an account calls the anonymize RPC with the email', async ({ page }) => {
   await mockOwnerFor(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('danger'));
 
   await page.fill('#delete-account-email', 'someone@example.com');
   await page.click('#btn-delete-account');
@@ -68,6 +70,8 @@ test('the confirmation states what survives, not just that it is permanent', asy
   // erasure and being surprised later that the edits are still there.
   await mockOwnerFor(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('danger'));
 
   await page.fill('#delete-account-email', 'someone@example.com');
   await page.click('#btn-delete-account');
@@ -81,6 +85,8 @@ test('the confirmation states what survives, not just that it is permanent', asy
 test('cancelling deletes nothing', async ({ page }) => {
   await mockOwnerFor(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('danger'));
 
   await page.fill('#delete-account-email', 'someone@example.com');
   await page.click('#btn-delete-account');
@@ -94,6 +100,8 @@ test('cancelling deletes nothing', async ({ page }) => {
 test('an empty email is rejected before the confirm appears', async ({ page }) => {
   await mockOwnerFor(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('danger'));
 
   await page.click('#btn-delete-account');
   await page.waitForTimeout(200);
@@ -107,6 +115,8 @@ test('the RPC refusing (e.g. last admin) surfaces its reason', async ({ page }) 
     rpcResult: { data: null, error: { code: '42501', message: 'Refusing to anonymize the only remaining admin.' } },
   });
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('danger'));
 
   await page.fill('#delete-account-email', 'owner@example.com');
   await page.click('#btn-delete-account');

@@ -61,6 +61,8 @@ async function mockOwner(page, { roster = ROSTER, sessionUserId = 'u-admin', rpc
 test('the roster lists everyone with a role, most privileged first', async ({ page }) => {
   await mockOwner(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('people'));
 
   await expect(page.locator('.personnel-row')).toHaveCount(3);
   await expect(page.locator('.personnel-email').first()).toContainText('owner@example.com');
@@ -74,6 +76,8 @@ test('the roster lists everyone with a role, most privileged first', async ({ pa
 test('changing a role calls the RPC with the right email and role', async ({ page }) => {
   await mockOwner(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('people'));
 
   const row = page.locator('.personnel-row').filter({ hasText: 'reviewer@example.com' });
   // 'contributor' was retired in v0.11 - it gated nothing.
@@ -92,6 +96,8 @@ test('changing a role calls the RPC with the right email and role', async ({ pag
 test('cancelling the confirm makes no change', async ({ page }) => {
   await mockOwner(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('people'));
 
   const row = page.locator('.personnel-row').filter({ hasText: 'editor@example.com' });
   await row.locator('.personnel-apply-btn').click();
@@ -112,6 +118,8 @@ test('the only admin cannot demote themselves out of the site', async ({ page })
     ],
   });
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('people'));
 
   const adminRow = page.locator('.personnel-row').filter({ hasText: 'owner@example.com' });
   await expect(adminRow.locator('.personnel-apply-btn')).toBeDisabled();
@@ -125,6 +133,8 @@ test('the only admin cannot demote themselves out of the site', async ({ page })
     ],
   });
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('people'));
   const firstAdmin = page.locator('.personnel-row').filter({ hasText: 'owner@example.com' });
   await expect(firstAdmin.locator('.personnel-apply-btn')).toBeEnabled();
 });
@@ -141,6 +151,8 @@ test('roster values are escaped, including the RPC error path', async ({ page })
   });
 
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('people'));
   await page.waitForTimeout(300);
 
   expect(await page.evaluate(() => window.__xss)).toBeUndefined();
@@ -183,6 +195,8 @@ test('a failed roster load reports the error instead of rendering an empty roste
   });
 
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('people'));
   await expect(page.locator('#personnel-roster')).toContainText('Could not load the roster');
   await expect(page.locator('#personnel-roster')).toContainText('permission denied');
 });
@@ -242,6 +256,8 @@ async function mockPermissions(page, { rows = PERMISSIONS, writeError = null } =
 test('restricted pages are listed with the clearance they require', async ({ page }) => {
   await mockPermissions(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   await expect(page.locator('#permissions-list .personnel-row')).toHaveCount(2);
   await expect(page.locator('#permissions-list')).toContainText('template');
@@ -251,6 +267,8 @@ test('restricted pages are listed with the clearance they require', async ({ pag
 test('raising a page to admin-only writes required_role, not just the page id', async ({ page }) => {
   await mockPermissions(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   const row = page.locator('#permissions-list .personnel-row').filter({ hasText: 'template' });
   await row.locator('.personnel-role-select').selectOption('admin');
@@ -267,6 +285,8 @@ test('raising a page to admin-only writes required_role, not just the page id', 
 test('unrestricting a page deletes its row, and is confirmed first', async ({ page }) => {
   await mockPermissions(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   const row = page.locator('#permissions-list .personnel-row').filter({ hasText: 'tierlist' });
   await row.locator('.permission-remove-btn').click();
@@ -286,6 +306,8 @@ test('unrestricting a page deletes its row, and is confirmed first', async ({ pa
 test('the restrict dropdown excludes pages that are already restricted', async ({ page }) => {
   await mockPermissions(page);
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
   await page.waitForTimeout(400);
 
   const values = await page.evaluate(() =>
@@ -303,6 +325,8 @@ test('the restrict dropdown excludes pages that are already restricted', async (
 test('an empty restriction list says so rather than looking broken', async ({ page }) => {
   await mockPermissions(page, { rows: [] });
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
   await expect(page.locator('#permissions-list')).toContainText('No pages are restricted');
 });
 
@@ -342,6 +366,8 @@ test('an undeployed RPC reads as "not deployed yet", not as raw Postgres jargon'
   });
 
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
+    // owner.html groups its tools as of v0.11; select the one under test.
+    await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('people'));
   await expect(page.locator('#personnel-roster')).toContainText("hasn't been deployed");
   await expect(page.locator('#personnel-roster')).not.toContainText('schema cache');
 });

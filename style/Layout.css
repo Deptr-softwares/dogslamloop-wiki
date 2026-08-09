@@ -25,9 +25,102 @@
     .lg\:col-span-2 { grid-column: span 2 / span 2; } 
 }
 
-@media (min-width: 1350px) { 
-    .grid-layout-3col { grid-template-columns: repeat(3, minmax(0, 1fr)); } 
+@media (min-width: 1350px) {
+    .grid-layout-3col { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* Two columns rather than three, for the v0.11 dashboard widgets. Stacks
+   below the same 900px breakpoint the 3-col grid uses, so the hubs and the
+   homepage change shape at the same width. */
+.grid-layout-2col { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+@media (min-width: 900px) {
+    .grid-layout-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* --- DASHBOARD WIDGETS (js/dashboards.js) --- */
+
+/* Reading path / contribute steps. An <ol> so the order is in the markup and
+   not just the styling - it is the point of the section. */
+.reading-path { list-style: none; margin: 1rem 0 0; padding: 0; counter-reset: step; }
+.reading-step {
+    counter-increment: step;
+    position: relative;
+    padding: 0.6rem 0 0.6rem 2.5rem;
+    border-bottom: 2px dashed var(--border-color);
+}
+.reading-step:last-child { border-bottom: none; }
+.reading-step::before {
+    content: counter(step);
+    position: absolute;
+    left: 0;
+    top: 0.6rem;
+    width: 1.7rem;
+    text-align: center;
+    font-family: var(--text-mono);
+    font-weight: bold;
+    color: var(--accent-blue);
+}
+.reading-step-title { display: block; color: var(--text-white); font-weight: bold; text-decoration: none; }
+a.reading-step-title:hover { color: var(--accent-blue); }
+.reading-step-desc { display: block; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+/* Needs-work and recent-edit lists share a row shape: a name, then muted
+   detail that wraps under it when there is no room. */
+.needs-work-list, .recent-edit-list { list-style: none; margin: 0; padding: 0; }
+.needs-work-row, .recent-edit-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 2px dashed var(--border-color);
+}
+.needs-work-row:last-child, .recent-edit-row:last-child { border-bottom: none; }
+.needs-work-name, .recent-edit-name { color: var(--text-white); text-decoration: none; font-weight: bold; }
+.needs-work-name:hover, .recent-edit-name:hover { color: var(--accent-blue); }
+.needs-work-missing, .recent-edit-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: var(--text-mono);
+    text-align: right;
+}
+.needs-work-more { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.75rem; }
+
+/* Tier snapshot: a coloured tier label, then that tier's characters. */
+.tier-snapshot-row { display: flex; align-items: flex-start; gap: 0.75rem; padding: 0.5rem 0; }
+.tier-snapshot-label {
+    flex: 0 0 2.5rem;
+    text-align: center;
+    padding: 0.2rem 0;
+    font-family: var(--text-mono);
+    font-weight: bold;
+    color: #000;
+    border: 2px solid var(--border-color);
+}
+.tier-snapshot-names { display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; }
+.tier-snapshot-name { font-size: 0.8rem; color: var(--text-primary); text-decoration: none; }
+.tier-snapshot-name:hover { color: var(--accent-blue); }
+
+/* Site statistics. auto-fit so three stats sit in a row on desktop and wrap
+   to two-plus-one on a narrow card, without a media query per breakpoint. */
+.wiki-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 1rem; }
+.wiki-stat { text-align: center; }
+.wiki-stat-value {
+    display: block;
+    font-family: 'Finger-Paint', sans-serif;
+    font-size: 1.75rem;
+    color: var(--accent-blue);
+    text-shadow: 2px 2px 0px var(--manga-shadow);
+}
+.wiki-stat-label { display: block; font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-family: var(--text-mono); }
+
+/* Glossary peek. */
+.glossary-list { margin: 0; }
+.glossary-row { padding: 0.5rem 0; border-bottom: 2px dashed var(--border-color); }
+.glossary-row:last-child { border-bottom: none; }
+.glossary-term { color: var(--text-white); font-weight: bold; margin: 0; }
+.glossary-def { color: var(--text-muted); font-size: 0.85rem; margin: 0.15rem 0 0; }
 
 /* --- 2. SIDEBARS (Left & Right) --- */
 .global-sidebar-left {
@@ -131,9 +224,26 @@
 /* Collapsible category groups in the global sidebar menu (js/pagebuilder.js
    buildGlobalSidebarMenu) */
 .sidebar-group-wrapper { margin-bottom: 0.75rem; }
+/* A <button> as of v0.11 - it is operated by click, so it has to be reachable
+   by keyboard and announced as a control. That brings UA button styling with
+   it, reset here.
+
+   Scoped to the compound selector deliberately: plain .sidebar-nav-title is
+   still a <div> in several places (the "Sitewide" heading on the homepage,
+   admin.html's preview sidebar), and a reset on the bare class would restyle
+   all of them. */
 .sidebar-nav-title.sidebar-group-header {
     cursor: pointer; display: flex; justify-content: space-between;
     align-items: center; margin-bottom: 0;
+    width: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
 }
 .sidebar-group-caret { font-size: 0.5rem; color: var(--text-muted); }
 .sidebar-group-wrapper .toc-list { margin-top: 0.5rem; }
@@ -482,6 +592,67 @@
 .space-y-4 > * + * { margin-top: 1rem; }
 .space-y-2 > * + * { margin-top: 0.5rem; }
 .hidden { display: none !important; }
+
+/* --- ACCESSIBILITY (v0.11) --- */
+
+/* Visually hidden but still announced. The clip-path/1px combination is used
+   rather than display:none or visibility:hidden, both of which remove the
+   element from the accessibility tree entirely - which is the opposite of
+   what this is for. */
+.sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Injected by pagebuilder.js on every page. Off-screen until focused, so a
+   keyboard user's first Tab offers a way past ~40 sidebar links instead of
+   walking through them on every page. */
+.skip-link {
+    position: absolute;
+    top: -100px;
+    left: 0.5rem;
+    z-index: 10001;
+    padding: 0.75rem 1.25rem;
+    background: var(--bg-secondary);
+    color: var(--text-white);
+    border: 2px solid var(--accent-blue);
+    font-family: var(--text-mono);
+    text-decoration: none;
+    transition: top 0.15s;
+}
+.skip-link:focus { top: 0.5rem; }
+
+/* There was no keyboard focus indicator anywhere outside form inputs, so a
+   keyboard user could not tell where they were. :focus-visible rather than
+   :focus, so a mouse click does not leave a ring behind. */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible,
+summary:focus-visible {
+    outline: 3px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+/* The brand in the mobile bar stopped being an <h1> - every page had two, and
+   a logo is not the page heading. It kept an <h1>'s block layout, so that is
+   restored explicitly rather than left to inherit an inline default. */
+.mobile-site-title { display: block; }
+
+/* Respect a reduced-motion preference. The site's transitions are decorative
+   and several run on hover across a whole roster grid at once. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
 
 /* Tab content panes (used across editor.js/admin.js/history.js/description.js) -
    explicit so removing .hidden doesn't rely on the browser's implicit default. */

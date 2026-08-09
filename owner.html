@@ -25,14 +25,20 @@
 <body class="admin-body">
 
     <!--
-        Owner-only tools, split out of admin.html/js/admin.js. Currently
-        just Personnel Management + Media Garbage Collection - the two
-        things that were bolted onto the reviewer-workflow page but have
-        nothing to do with reviewing revisions. Intended to grow into where
-        the site owner edits structural content (homepage/dashboard blocks)
-        without touching raw code - kept to flat, self-contained <section>s
-        per tool for that reason; add a new one the same way rather than
-        building a tab system/plugin registry for two tools.
+        Owner-only tools, split out of admin.html/js/admin.js: the things
+        bolted onto the reviewer-workflow page that have nothing to do with
+        reviewing revisions.
+
+        Each tool is still a flat, self-contained <section> - add a new one
+        the same way. As of v0.11 they sit inside four .owner-group wrappers
+        (People / Pages / Content / Danger Zone) because ten tools in one
+        scroll had no way to find anything. An earlier comment here argued
+        against "building a tab system for two tools", which was right at two
+        and stopped being right somewhere around six. js/owner-nav.js does the
+        switching; it is a show/hide, not a router.
+
+        To add a tool: drop a <section> into the group it belongs to. Nothing
+        needs registering.
     -->
     <div class="editor-layout">
         <aside class="editor-workspace owner-workspace">
@@ -51,8 +57,17 @@
                 </div>
             </div>
 
-            <div class="admin-sidebar-content">
 
+            <nav class="owner-nav" id="owner-nav" aria-label="Owner tool groups">
+                <button class="owner-nav-btn active" data-group="people">People</button>
+                <button class="owner-nav-btn" data-group="pages">Pages</button>
+                <button class="owner-nav-btn" data-group="content">Content</button>
+                <button class="owner-nav-btn owner-nav-btn-danger" data-group="danger">Danger Zone</button>
+            </nav>
+
+            <div class="admin-sidebar-content owner-tool-area">
+
+                <div class="owner-group" data-group="people">
                 <section id="tool-personnel" class="update-log-item admin-tool-card personnel">
                     <div class="admin-tool-header-row">
                         <h3 class="update-title admin-tool-title personnel">Personnel</h3>
@@ -78,7 +93,9 @@
 
                     <div id="role-results" class="admin-tool-results"></div>
                 </section>
+                </div>
 
+                <div class="owner-group" data-group="pages" hidden>
                 <section id="tool-pages" class="update-log-item admin-tool-card pages">
                     <div class="admin-tool-header-row">
                         <h3 class="update-title admin-tool-title pages">Pages</h3>
@@ -117,6 +134,40 @@
                     <div id="pages-results" class="admin-tool-results"></div>
                 </section>
 
+                <section id="tool-page-meta" class="update-log-item admin-tool-card pages">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title pages">Page Details</h3>
+                        <button onclick="loadPageMeta()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">
+                        The flags and labels shown on roster cards and in the sidebar. Archetype, tier and
+                        release date apply to characters only. Appears on the site after the next regeneration run.
+                    </p>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="page-meta-select">PAGE</label>
+                        <select id="page-meta-select" class="editor-input admin-input-full select">
+                            <option value="">Loading...</option>
+                        </select>
+
+                        <div id="page-meta-flags" class="page-meta-flags"></div>
+
+                        <div id="page-meta-character-fields" hidden>
+                            <label class="block-field-label-sm" for="page-meta-archetype">ARCHETYPE</label>
+                            <input type="text" id="page-meta-archetype" class="editor-input admin-input-full" placeholder="Rushdown, Zoner, ...">
+
+                            <label class="block-field-label-sm" for="page-meta-tier">TIER</label>
+                            <input type="text" id="page-meta-tier" class="editor-input admin-input-full" placeholder="S, A, B, ...">
+
+                            <label class="block-field-label-sm" for="page-meta-release">RELEASE DATE</label>
+                            <input type="text" id="page-meta-release" class="editor-input admin-input-full" placeholder="e.g. 2026-04-12, or a patch name">
+                        </div>
+                    </div>
+
+                    <button id="btn-save-page-meta" onclick="savePageMeta()" class="btn-sys btn-sys-green admin-tool-btn">SAVE DETAILS</button>
+                    <div id="page-meta-results" class="admin-tool-results"></div>
+                </section>
+
                 <section id="tool-permissions" class="update-log-item admin-tool-card permissions">
                     <div class="admin-tool-header-row">
                         <h3 class="update-title admin-tool-title permissions">Page Restrictions</h3>
@@ -139,6 +190,124 @@
                     </div>
 
                     <div id="permission-results" class="admin-tool-results"></div>
+                </section>
+                </div>
+
+                <div class="owner-group" data-group="content" hidden>
+                <section id="tool-hub-text" class="update-log-item admin-tool-card faq">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title faq">Dashboard Text</h3>
+                        <button onclick="loadHubText()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">
+                        The intro text on each dashboard. Leave a blank line between paragraphs. Saves go live immediately.
+                    </p>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="hub-text-select">DASHBOARD</label>
+                        <select id="hub-text-select" class="editor-input admin-input-full select">
+                            <option value="main-hub">Main Dashboard</option>
+                            <option value="character-hub">Character Dashboard</option>
+                            <option value="systems-hub">Side Dashboard</option>
+                        </select>
+
+                        <label class="block-field-label-sm" for="hub-slot-select">SECTION</label>
+                        <select id="hub-slot-select" class="editor-input admin-input-full select"></select>
+
+                        <label class="block-field-label-sm" for="hub-text-body">TEXT</label>
+                        <textarea id="hub-text-body" class="editor-textarea admin-input-full" rows="6"></textarea>
+                    </div>
+
+                    <button id="btn-save-hub-text" onclick="saveHubText()" class="btn-sys btn-sys-green admin-tool-btn">SAVE TEXT</button>
+                    <div id="hub-text-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-hub-lists" class="update-log-item admin-tool-card faq">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title faq">Dashboard Steps</h3>
+                        <button onclick="loadHubLists()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">
+                        The numbered lists on the Side Dashboard. Order is the order you put them in.
+                        Leave the link blank for a step that is an instruction rather than a page.
+                        Live immediately.
+                    </p>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="hub-list-select">LIST</label>
+                        <select id="hub-list-select" class="editor-input admin-input-full select">
+                            <option value="startHere">Start Here</option>
+                            <option value="contribute">How to Contribute</option>
+                        </select>
+                    </div>
+
+                    <div id="hub-list-steps" class="permissions-list"></div>
+                    <button onclick="addHubListStep()" class="btn-sys btn-sys-regular admin-tool-btn">+ ADD STEP</button>
+
+                    <button id="btn-save-hub-lists" onclick="saveHubLists()" class="btn-sys btn-sys-green admin-tool-btn">SAVE STEPS</button>
+                    <div id="hub-list-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-site-meta" class="update-log-item admin-tool-card faq">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title faq">Site Metadata</h3>
+                        <button onclick="loadSiteMeta()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">
+                        The version and tagline in every sidebar, plus each dashboard's title, search description
+                        and section headings. Titles and descriptions are what Discord and Google show, so they
+                        only change on the site after the next regeneration run.
+                    </p>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="meta-version">VERSION</label>
+                        <input type="text" id="meta-version" class="editor-input admin-input-full" placeholder="Beta v0.11">
+                        <label class="block-field-label-sm" for="meta-tagline">TAGLINE</label>
+                        <input type="text" id="meta-tagline" class="editor-input admin-input-full" placeholder="The Competitive JJS Wiki">
+                    </div>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="meta-hub-select">DASHBOARD</label>
+                        <select id="meta-hub-select" class="editor-input admin-input-full select">
+                            <option value="main-hub">Main Dashboard</option>
+                            <option value="character-hub">Character Dashboard</option>
+                            <option value="systems-hub">Side Dashboard</option>
+                        </select>
+
+                        <label class="block-field-label-sm" for="meta-hub-title">TITLE (browser tab and link previews)</label>
+                        <input type="text" id="meta-hub-title" class="editor-input admin-input-full">
+
+                        <label class="block-field-label-sm" for="meta-hub-description">DESCRIPTION (search results and link previews)</label>
+                        <textarea id="meta-hub-description" class="editor-textarea admin-input-full" rows="2"></textarea>
+
+                        <label class="block-field-label-sm">SECTION HEADINGS</label>
+                        <div id="meta-hub-headings" class="permissions-list"></div>
+                    </div>
+
+                    <button id="btn-save-site-meta" onclick="saveSiteMeta()" class="btn-sys btn-sys-green admin-tool-btn">SAVE METADATA</button>
+                    <div id="site-meta-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-game-info" class="update-log-item admin-tool-card faq">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title faq">Game Info</h3>
+                        <button onclick="loadSiteMeta()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">
+                        The panel on the main dashboard. Mainly here so the Discord invite can be replaced when it
+                        expires without needing a code change. Links must start with http:// or https://.
+                    </p>
+
+                    <label class="block-field-label-sm">FACTS</label>
+                    <div id="game-info-fields-admin" class="permissions-list"></div>
+                    <button onclick="addGameInfoField()" class="btn-sys btn-sys-regular admin-tool-btn">+ ADD FACT</button>
+
+                    <label class="block-field-label-sm">LINKS</label>
+                    <div id="game-info-links-admin" class="permissions-list"></div>
+                    <button onclick="addGameInfoLink()" class="btn-sys btn-sys-regular admin-tool-btn">+ ADD LINK</button>
+
+                    <button id="btn-save-game-info" onclick="saveGameInfo()" class="btn-sys btn-sys-green admin-tool-btn">SAVE GAME INFO</button>
+                    <div id="game-info-results" class="admin-tool-results"></div>
                 </section>
 
                 <section id="tool-faq" class="update-log-item admin-tool-card faq">
@@ -187,7 +356,9 @@
 
                     <div id="credits-results" class="admin-tool-results"></div>
                 </section>
+                </div>
 
+                <div class="owner-group" data-group="danger" hidden>
                 <section id="tool-account-deletion" class="update-log-item admin-tool-card gc">
                     <h3 class="update-title admin-tool-title gc">Delete an Account</h3>
                     <p class="admin-tool-hint">
@@ -205,6 +376,7 @@
                     <button id="btn-run-gc" onclick="runGarbageCollector()" class="btn-sys btn-sys-red admin-tool-btn gc">SCAN & PURGE MEDIA</button>
                     <div id="gc-results" class="admin-tool-results"></div>
                 </section>
+                </div>
 
             </div>
         </aside>
@@ -230,5 +402,11 @@
     <script src="js/site_utils.js"></script>
     <script src="js/site_meta.js"></script>
     <script src="js/owner.js"></script>
+    <!-- After owner.js: both use its ownerEscape and contentNotDeployedMessage. -->
+    <script src="js/owner-site-meta.js"></script>
+    <script src="js/owner-hub-text.js"></script>
+    <script src="js/owner-hub-lists.js"></script>
+    <script src="js/owner-page-meta.js"></script>
+    <script src="js/owner-nav.js"></script>
 </body>
 </html>

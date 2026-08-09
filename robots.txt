@@ -1,0 +1,31 @@
+# Dogslamloop Wiki - https://dogslamloop.com
+#
+# The wiki content is meant to be indexed; the staff and authoring tools are
+# not. Everything disallowed below is either a tool that requires signing in,
+# or a page whose content is a view onto data indexed elsewhere - indexing them
+# splits ranking between duplicates and puts admin URLs in search results.
+#
+# This is not a security control. Every one of these pages is protected by RLS
+# and an RBAC gate; robots.txt only asks well-behaved crawlers not to list
+# them.
+
+User-agent: *
+
+# Staff and authoring tools.
+Disallow: /admin.html
+Disallow: /owner.html
+Disallow: /edit.html
+Disallow: /post-editor.html
+Disallow: /submissions.html
+
+# Revision views. The underlying pages are indexed on their own URLs, so these
+# are duplicate content with a staff-facing frame around them.
+Disallow: /history.html
+
+# Query-string variants of the editor, so a crawler that finds a deep link
+# does not enumerate every page id.
+Disallow: /edit.html?*
+
+Allow: /
+
+Sitemap: https://dogslamloop.com/sitemap.xml

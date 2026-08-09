@@ -1,6 +1,29 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.11",
+      "date": "08/09/2026",
+      "type": "site",
+      "title": "The 'Dashboard' update",
+      "description": "Mostly about finding things. The Character and Side Dashboards were pretty much empty shells with a grid on them, so this update actually fills them in. The site also works properly with a keyboard now, and search engines can finally read it.",
+      "changes": [
+        "Added the community tier list to the Character Dashboard, so you can see where everyone sits without opening another page",
+        "Added a Recently Updated list, so you can tell what changed since you last looked",
+        "Added a Pages That Need Work list, showing which characters still need writing and exactly which sections are missing. Pick one you know and go",
+        "Added a Start Here reading path to the Side Dashboard. Six guides in the order that actually makes sense if you are new, instead of a wall of links",
+        "Added a How to Contribute section explaining how editing works. Short version: anyone signed in can propose an edit, a reviewer checks it, and you cannot break anything",
+        "Added live wiki stats, so you can see how many pages, edits and contributors there are",
+        "Made the whole site usable with just a keyboard, including a skip to content link so you do not have to tab through the entire sidebar on every page",
+        "Added proper screen reader support. Buttons now say what they do, and collapsible menus say whether they are open",
+        "Made the site respect reduced motion if you have that turned on in your OS",
+        "Added a sitemap and a robots.txt, so Google can index the wiki properly instead of guessing. Staff pages are left out of both, so admin tools will not turn up in search results",
+        "Fixed what happens when a page gets retired. It used to stay fully readable at its old link forever, and now it shows a short \"this page has been archived\" notice instead. Old Discord links still work, they just tell you the truth",
+        "Made the dashboard text, the site tagline, the page titles that show in Discord previews and the Game Info panel all editable without touching code",
+        "Made character page details editable too, so things like the work in progress flag, archetype, tier and release date",
+        "Cleaned up the owner tools page, because ten tools in one long scroll had stopped being findable"
+      ]
+    },
+    {
       "version": "Beta v0.10",
       "date": "08/08/2026",
       "type": "site",

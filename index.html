@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Title and social/SEO metadata are owner-editable and regenerated from
+         the site_meta table. Static rather than runtime-injected because
+         Discord/Twitter/Facebook unfurlers do not run JavaScript. Everything
+         between the markers belongs to scripts/generate-hub-meta.js. -->
+    <!-- BEGIN GENERATED: hub-meta - scripts/generate-hub-meta.js - do not edit by hand -->
     <title>Dogslamloop Wiki</title>
-    <link rel="icon" type="image/jpg" href="/medias/images/DogslamloopIconGay.webp">
+    <link rel="icon" type="image/webp" href="/medias/images/DogslamloopIconGay.webp">
 
-    <!-- Social/SEO metadata. Hand-maintained here because this page is not
-         produced by scripts/generate-pages.js - keep in sync with the tags
-         that script emits. Must be static: Discord/Twitter/Facebook unfurlers
-         do not run JavaScript, so runtime-injected tags are never seen. -->
     <meta name="description" content="Frame data, matchups, and strategy guides for Jujutsu Shenanigans - a community-run competitive wiki.">
     <link rel="canonical" href="https://dogslamloop.com/">
+
     <meta property="og:site_name" content="Dogslamloop Wiki">
     <meta property="og:type" content="website">
     <meta property="og:title" content="Dogslamloop Wiki">
@@ -19,6 +21,7 @@
     <meta property="og:url" content="https://dogslamloop.com/">
     <meta property="og:image" content="https://dogslamloop.com/medias/images/DogslamloopIconGay.webp">
     <meta name="twitter:card" content="summary">
+    <!-- END GENERATED: hub-meta -->
 
     <!-- 1. FOUNDATIONS -->
     <link rel="stylesheet" href="style/Common.css">
@@ -51,15 +54,15 @@
     <div class="mobile-top-bar">
         <a href="index.html" class="mobile-logo-link">
             <img src="medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
-            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+            <span class="mobile-site-title">dogslamloop wiki</span>
         </a>
-        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">☰</button>
     </div>
     <div class="mobile-backdrop" id="mobile-backdrop"></div>
 
     <div class="site-layout">
         
-        <aside class="global-sidebar-left" id="master-sidebar">
+        <aside class="global-sidebar-left" id="master-sidebar" aria-label="Site navigation">
             <div class="sidebar-header-top">
                 <img src="/medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
@@ -68,7 +71,7 @@
                 </div>
             </div>
 
-            <button class="sidebar-toggle-btn">☰</button>
+            <button class="sidebar-toggle-btn" aria-label="Collapse sidebar">☰</button>
 
             <div class="sidebar-master-title">Navigation</div>
             
@@ -95,16 +98,34 @@
                 <h1 class="home-main-title">Main Dashboard</h1>
             </header>
 
+            <!-- Prose is editable from owner.html (Dashboard Text); the
+                 heading text comes from site_meta. Both keep the markup below
+                 as their fallback, so an outage degrades to this rather than
+                 to an empty panel.
+                 The heading lives OUTSIDE #about-body deliberately: the slot
+                 renderer replaces its container wholesale, and the table of
+                 contents indexes .section-title, so a heading inside the
+                 replaceable region would vanish from the ToC. -->
             <section class="wiki-section" id="about-section">
-                <p class="text-gray-300 text-sm leading-relaxed m-0">
-                    <strong class="text-white">About Us:</strong> <span class="font-bold text-white italic">Jujutsu Shenanigans</span> is a casual (shenanigans) battleground game on Roblox. However, this hub provides in-depth frame data, and strategy breakdowns to help all users, Tier 5 and Tier 1, to get better at the game via better understanding of the game.
-                </p>
+                <!-- Plain .section-title, not .section-title-clean: the clean
+                     variant strips the bottom border and exists for headings
+                     that share a row with a button. This one stands alone, so
+                     it keeps the divider the other two dashboards have. -->
+                <h2 class="section-title" data-heading-key="about">About Us</h2>
+                <div id="about-body">
+                    <p class="text-gray-300 text-sm leading-relaxed m-0">
+                        <span class="font-bold text-white italic">Jujutsu Shenanigans</span> is a casual (shenanigans) battleground game on Roblox. However, this hub provides in-depth frame data, and strategy breakdowns to help all users, Tier 5 and Tier 1, to get better at the game via better understanding of the game.
+                    </p>
+                </div>
             </section>
             
             <section class="wiki-section" id="roster-section">
                 <div class="header-split-wrapper">
+                    <!-- data-heading-key goes on the span, not the <h2>:
+                         applyHubHeadings sets textContent, which on the <h2>
+                         would delete the link nested inside it. -->
                     <h2 class="section-title section-title-flex m-0">
-                        Characters
+                        <span data-heading-key="roster">Characters</span>
                         <!-- REFACTORED: hub-link is now btn-ghost -->
                         <a href="characters/index.html" class="btn-ghost">View More ➔</a>
                     </h2>
@@ -118,7 +139,7 @@
                 
                 <section class="wiki-section" id="navigation-section">
                     <div class="dashboard-header-split">
-                        <h2 class="section-title section-title-clean m-0">Guides & Such</h2>
+                        <h2 class="section-title section-title-clean m-0" data-heading-key="navigation">Guides &amp; Such</h2>
                         <a href="systems/index.html" class="btn-ghost" style="font-size: 0.65rem; text-transform: uppercase;">View More ➔</a>
                     </div>
                     
@@ -131,7 +152,7 @@
 
                 <section class="wiki-section main-dashboard" id="updates-section">
                     <div class="dashboard-header-split">
-                        <h2 class="section-title section-title-clean m-0">Recent Changes</h2>
+                        <h2 class="section-title section-title-clean m-0" data-heading-key="updates">Recent Changes</h2>
                         <a href="systems/updatelog/index.html" class="btn-manga m-0" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">
                             View All
                         </a>
@@ -144,7 +165,7 @@
 
                 <section class="wiki-section main-dashboard" id="blog-section">
                     <div class="dashboard-header-split">
-                        <h2 class="section-title section-title-clean m-0">From the Blog</h2>
+                        <h2 class="section-title section-title-clean m-0" data-heading-key="blog">From the Blog</h2>
                         <a href="blog.html" class="btn-manga m-0" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">
                             View All
                         </a>
@@ -155,9 +176,9 @@
                     </div>
                 </section>
 
-                <section class="wiki-section">
+                <section class="wiki-section" id="gameinfo-section">
                     <div class="dashboard-header-split">
-                        <h2 class="section-title section-title-clean m-0">Game Info</h2>
+                        <h2 class="section-title section-title-clean m-0" data-heading-key="gameinfo">Game Info</h2>
                     </div>
                     
                     <div class="faq-scroll-box scroll-lg">
@@ -170,7 +191,12 @@
                             </h3>
                         </div>
 
-                        <div class="space-y-4 text-sm">
+                        <!-- Editable from owner.html; js/hub_content.js
+                             replaces this only when site_meta has data. The
+                             Discord invite is the field that actually drives
+                             this being editable - it expires or gets rotated,
+                             and changing it used to need a deploy. -->
+                        <div class="space-y-4 text-sm" id="game-info-fields">
                             <div>
                                 <span class="game-info-label">Developers</span>
                                 <span class="text-gray-300">Tze's Shenanigans</span>
@@ -183,8 +209,8 @@
                             <div class="game-info-footer">
                                 <span class="game-info-label mb-2">Official Links</span>
                                 <div class="space-y-2">
-                                    <a href="https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans" target="_blank" class="game-info-link">▶ Roblox Game Page</a>
-                                    <a href="https://discord.gg/nyTYVCDMBF" target="_blank" class="game-info-link">▶ Official Discord</a>
+                                    <a href="https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans" target="_blank" rel="noopener noreferrer" class="game-info-link">▶ Roblox Game Page</a>
+                                    <a href="https://discord.gg/nyTYVCDMBF" target="_blank" rel="noopener noreferrer" class="game-info-link">▶ Official Discord</a>
                                 </div>
                             </div>
                         </div>
@@ -196,7 +222,7 @@
                 
                 <section class="wiki-section lg:col-span-2" id="faq-section">
                     <div class="dashboard-header-split">
-                        <h2 class="section-title section-title-clean m-0 text-xl">Frequently Asked Questions (FAQ)</h2>
+                        <h2 class="section-title section-title-clean m-0 text-xl" data-heading-key="faq">Frequently Asked Questions (FAQ)</h2>
                     </div>
                     
                     <div id="faq-dynamic-container" class="faq-scroll-box space-y-4" style="margin-top: 1rem;">
@@ -205,9 +231,9 @@
                 </section>
 
                 <div class="space-y-6">
-                    <section class="wiki-section">
+                    <section class="wiki-section" id="credits-section">
                         <div class="dashboard-header-split">
-                            <h2 class="section-title section-title-clean m-0">Credits</h2>
+                            <h2 class="section-title section-title-clean m-0" data-heading-key="credits">Credits</h2>
                         </div>
                         
                         <div class="faq-scroll-box scroll-sm" style="margin-top: 1rem;">
@@ -224,17 +250,19 @@
             </div>
         </main>
 
-        <aside class="local-sidebar-right">
+        <aside class="local-sidebar-right" aria-label="On this page">
             <div class="sidebar-nav-title">Sitewide</div>
             <a href="recent-changes.html" class="btn-nav" style="margin-bottom: 1.5rem;">→ View Wiki Edit History</a>
 
+            <!-- Built by refreshTOC from the page's real headings, like every
+                 other page on the site. This used to be a hardcoded list, and
+                 the homepage already called refreshTOC() on a timer - but with
+                 no #dynamic-toc element that call had never done anything, so
+                 the list could only drift. It had: #blog-section shipped in
+                 v0.9 and was never added to it. -->
             <div class="sidebar-nav-title">On this page</div>
-            <ul class="toc-list">
-                <li><a href="#about-section" class="btn-nav">About Us</a></li>
-                <li><a href="#roster-section" class="btn-nav">Characters</a></li>
-                <li><a href="#navigation-section" class="btn-nav">Navigation & Guides</a></li>
-                <li><a href="#updates-section" class="btn-nav">Recent Changes</a></li>
-                <li><a href="#faq-section" class="btn-nav">FAQ</a></li>
+            <ul class="toc-list" id="dynamic-toc">
+                <li><p class="loading-msg">Loading contents...</p></li>
             </ul>
         </aside>
 
@@ -246,10 +274,14 @@
     <script src="js/site_utils.js"></script>
     <script src="js/home_widgets.js"></script>
     <script src="js/pagebuilder.js"></script>
-    <!-- The homepage widget lists posts only (escaped title/summary/date), so
-         it needs neither description.js nor internalstyling.js - those are
-         only required where a post's block content is actually rendered. -->
+    <!-- The homepage post widget lists posts only (escaped title/summary/date)
+         and needs neither of these. The About Us section does: it renders
+         authored blocks through generateHTMLForBlocks, which lives in
+         description.js and relies on internalstyling.js for inline markup. -->
+    <script src="js/description.js"></script>
+    <script src="js/internalstyling.js"></script>
     <script src="js/posts.js"></script>
+    <script src="js/hub_content.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -266,10 +298,16 @@
             if (window.initAuthDock) window.initAuthDock();
             if (window.initRosterFilters) window.initRosterFilters();
             if (window.buildSystemsDirectory) window.buildSystemsDirectory('systems-grid');
+            if (window.renderHubSlot) window.renderHubSlot('main-hub', 'about', 'about-body');
+            if (window.renderGameInfo) window.renderGameInfo('game-info-fields');
 
-            setTimeout(() => {
+            // Headings must land before the ToC is built, or it indexes the
+            // static text and disagrees with what the page shows. Both read
+            // the same cached site_meta.json, so this is one fetch.
+            (async () => {
+                if (window.applyHubHeadings) await window.applyHubHeadings('main-hub');
                 if (window.refreshTOC) window.refreshTOC();
-            }, 500);
+            })();
         });
     </script>
 </body>

@@ -48,6 +48,54 @@ async function fetchNavigationData() {
     return fetchJson(`${getRootPath()}data/navigation.json?v=1.0`, { cache: true });
 }
 
+// --- ARCHIVED PAGES ---
+// Lives next to fetchNavigationData because it answers the question that file
+// cannot: navigation.json contains only live pages, so anything reading it is
+// already safe from archived ones, and anything NOT reading it is not.
+//
+// The unsafe readers are the ones that reach into page_data or the revision
+// feed directly - matchup and counterplay cards on other character pages,
+// tier-list rows, and the v0.11 dashboard widgets. Those keep linking to a
+// page that has been archived, because nothing ever told them.
+//
+// Returns {} on any failure, deliberately. A missing or malformed manifest
+// should degrade to "nothing is hidden", which is the pre-v0.11 behaviour -
+// not blank out a roster or throw partway through rendering a page.
+async function fetchArchivedPages() {
+    try {
+        const data = await fetchJson(`${getRootPath()}data/archived-pages.json?v=1.0`, { cache: true });
+        return (data && typeof data === 'object') ? data : {};
+    } catch (e) {
+        return {};
+    }
+}
+
+/**
+ * True when a page is archived AND has been explicitly marked to have its
+ * remaining references hidden.
+ *
+ * Archiving alone deliberately does not hide references: it stays a cheap,
+ * reversible decision, while scrubbing a character out of every matchup table
+ * on the site is a heavier one that has to be opted into per page.
+ *
+ * Accepts either a page_id ('boomcat') or a nav_id ('Boomcat'), because the
+ * callers genuinely differ - page_data is keyed by page_id, while the tier
+ * list stores nav_ids.
+ */
+window.isEntryPointHidden = function(archivedMap, key) {
+    if (!archivedMap || !key) return false;
+
+    const direct = archivedMap[key];
+    if (direct) return direct.hideEntryPoints === true;
+
+    for (const info of Object.values(archivedMap)) {
+        if (info && info.navId === key) return info.hideEntryPoints === true;
+    }
+    return false;
+};
+
+window.fetchArchivedPages = fetchArchivedPages;
+
 // --- DELTA INJECTION ENGINE ---
 // Shared by admin.js, editor.js, and history.js, which each need to
 // reconstruct a full description/frame-data object from a stored
