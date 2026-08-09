@@ -45,8 +45,7 @@ INSERT INTO "public"."page_data" ("page_id", "page_type", "desc_data", "frame_da
                 "width": 100,
                 "alignment": "left",
                 "blocks": [
-                    {"type": "heading", "size": "h2", "align": "left", "content": "About Us"},
-                    {"type": "paragraph", "align": "left", "content": "Jujutsu Shenanigans is a casual (shenanigans) battleground game on Roblox. However, this hub provides in-depth frame data, and strategy breakdowns to help all users, Tier 5 and Tier 1, to get better at the game via better understanding of the game."}
+                                        {"type": "paragraph", "align": "left", "content": "Jujutsu Shenanigans is a casual (shenanigans) battleground game on Roblox. However, this hub provides in-depth frame data, and strategy breakdowns to help all users, Tier 5 and Tier 1, to get better at the game via better understanding of the game."}
                 ]
             }]
         }]
@@ -62,8 +61,7 @@ INSERT INTO "public"."page_data" ("page_id", "page_type", "desc_data", "frame_da
                 "width": 100,
                 "alignment": "left",
                 "blocks": [
-                    {"type": "heading", "size": "h2", "align": "left", "content": "Roster Overview"},
-                    {"type": "paragraph", "align": "left", "content": "Welcome to the Character Dashboard. Here you can find general information for every character in the game. Select a character below to view their dedicated wiki page."}
+                                        {"type": "paragraph", "align": "left", "content": "Welcome to the Character Dashboard. Here you can find general information for every character in the game. Select a character below to view their dedicated wiki page."}
                 ]
             }]
         }]
@@ -79,8 +77,7 @@ INSERT INTO "public"."page_data" ("page_id", "page_type", "desc_data", "frame_da
                 "width": 100,
                 "alignment": "left",
                 "blocks": [
-                    {"type": "heading", "size": "h2", "align": "left", "content": "Info, Guides & Resources"},
-                    {"type": "paragraph", "align": "left", "content": "Welcome to the Side Dashboard. This is where the wiki explains itself: how the site works, how to read it, and how to help build it."}
+                                        {"type": "paragraph", "align": "left", "content": "Welcome to the Side Dashboard. This is where the wiki explains itself: how the site works, how to read it, and how to help build it."}
                 ]
             }]
         }]

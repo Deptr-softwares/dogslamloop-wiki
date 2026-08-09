@@ -217,4 +217,53 @@ window.renderGameInfo = async function(containerId) {
     return true;
 };
 
+// --- LIVE PREVIEW RECEIVER --------------------------------------------
+//
+// owner.html embeds the real dashboard in an iframe and posts edits into it as
+// they are typed. The point is that there is no separate preview renderer to
+// drift: what you see is this page, with its actual roster grid, FAQ and
+// Credits around the text being edited.
+//
+// This replaced editing hub text through edit.html. The editor could load and
+// save a hub row correctly, but its preview builds a system-page layout, so it
+// structurally could not show the dashboard's other sections - and it carried
+// leftover matchups/counterplay containers that mean nothing on a hub.
+//
+// Three guards, in order of what each stops:
+//   1. Same-origin only. A cross-origin frame must not be able to paint
+//      content into a page on this domain.
+//   2. Framed only. Nothing should be able to drive a dashboard a visitor is
+//      reading at the top level; this is an authoring aid, not a feature.
+//   3. Preview never writes. It paints the DOM and nothing else - saving is a
+//      separate, explicit action in owner.html.
+window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin) return;
+    if (window.parent === window) return;
+
+    const msg = event.data;
+    if (!msg || msg.type !== 'dsl-hub-preview') return;
+
+    if (Array.isArray(msg.blocks) && msg.containerId) {
+        const container = document.getElementById(msg.containerId);
+        if (container && typeof window.generateHTMLForBlocks === 'function') {
+            const body = document.createElement('div');
+            body.innerHTML = window.generateHTMLForBlocks(msg.blocks, '');
+            container.innerHTML = '';
+            container.appendChild(body);
+            if (typeof window.initLazyMedia === 'function') window.initLazyMedia(body);
+        }
+    }
+
+    if (msg.headings && typeof msg.headings === 'object') {
+        document.querySelectorAll('[data-heading-key]').forEach(el => {
+            const value = msg.headings[el.dataset.headingKey];
+            if (typeof value === 'string' && value.trim() !== '') el.textContent = value;
+        });
+    }
+
+    // Tell the parent the frame is listening, so it can stop waiting on load
+    // timing rather than guessing at it.
+    if (msg.ping) event.source.postMessage({ type: 'dsl-hub-preview-ready' }, event.origin);
+});
+
 window.__hubInternals = { blocksForSlot };

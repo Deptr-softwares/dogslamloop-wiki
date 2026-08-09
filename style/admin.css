@@ -140,6 +140,33 @@
    post-editor.html's Add Block button impossible to scroll to. */
 .owner-workspace { width: 100%; max-width: 640px; margin: 0 auto; border-right: none; overflow-y: auto; }
 
+/* v0.11: owner.html gained a second pane for the Dashboard Text live preview,
+   so it is no longer strictly single-pane. .owner-workspace above keeps its
+   640px cap and stops being centered once a sibling exists - margin: 0 auto
+   would otherwise push it away from the preview it belongs beside. */
+.owner-workspace:not(:only-child) { margin: 0; }
+
+.owner-preview-pane {
+    flex: 1;
+    min-width: 0;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    /* The iframe scrolls its own document; a scrollbar on the pane as well
+       would give the preview two of them. */
+    overflow: hidden;
+}
+
+.hub-preview-frame {
+    flex: 1;
+    width: 100%;
+    min-height: 0;
+    border: 2px solid var(--border-color);
+    box-shadow: 4px 4px 0px var(--manga-shadow);
+    background: var(--bg-main);
+}
+
 /* post-editor.html is two-pane (form+blocks | live preview) but its form
    needs more room than the 30% .editor-workspace default. */
 .post-editor-workspace { width: 42%; overflow-y: auto; }

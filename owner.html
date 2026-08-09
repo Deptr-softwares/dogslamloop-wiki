@@ -141,6 +141,36 @@
                     <div id="permission-results" class="admin-tool-results"></div>
                 </section>
 
+                <section id="tool-hub-text" class="update-log-item admin-tool-card faq">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title faq">Dashboard Text</h3>
+                        <button onclick="loadHubText()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">
+                        The intro text on each dashboard. The preview is the real page, so you see your text
+                        with the roster, guides and everything else around it. Leave a blank line between
+                        paragraphs. Saves go live immediately.
+                    </p>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="hub-text-select">DASHBOARD</label>
+                        <select id="hub-text-select" class="editor-input admin-input-full select">
+                            <option value="main-hub">Main Dashboard</option>
+                            <option value="character-hub">Character Dashboard</option>
+                            <option value="systems-hub">Side Dashboard</option>
+                        </select>
+
+                        <label class="block-field-label-sm" for="hub-slot-select">SECTION</label>
+                        <select id="hub-slot-select" class="editor-input admin-input-full select"></select>
+
+                        <label class="block-field-label-sm" for="hub-text-body">TEXT</label>
+                        <textarea id="hub-text-body" class="editor-textarea admin-input-full" rows="6"></textarea>
+                    </div>
+
+                    <button id="btn-save-hub-text" onclick="saveHubText()" class="btn-sys btn-sys-green admin-tool-btn">SAVE TEXT</button>
+                    <div id="hub-text-results" class="admin-tool-results"></div>
+                </section>
+
                 <section id="tool-site-meta" class="update-log-item admin-tool-card faq">
                     <div class="admin-tool-header-row">
                         <h3 class="update-title admin-tool-title faq">Site Metadata</h3>
@@ -270,6 +300,20 @@
 
             </div>
         </aside>
+
+        <!-- The preview is the real dashboard in an iframe, not a
+             reproduction of it. That is the whole point: dashboard text only
+             makes sense surrounded by the roster, guides and widgets, and any
+             separate renderer would drift away from the actual pages.
+             js/hub_content.js on the framed page listens for the edits.
+             Hidden on mobile by editor.css's .live-preview-pane rule. -->
+        <main class="live-preview-pane owner-preview-pane">
+            <div class="admin-tool-header-row">
+                <h3 class="update-title admin-tool-title faq">Live Preview</h3>
+                <span class="admin-tool-hint m-0">Unsaved changes shown here only.</span>
+            </div>
+            <iframe id="hub-preview-frame" class="hub-preview-frame" title="Dashboard live preview"></iframe>
+        </main>
     </div>
 
     <!-- STANDARD CONFIRM MODAL -->
@@ -292,7 +336,8 @@
     <script src="js/site_utils.js"></script>
     <script src="js/site_meta.js"></script>
     <script src="js/owner.js"></script>
-    <!-- After owner.js: uses its ownerEscape and contentNotDeployedMessage. -->
+    <!-- After owner.js: both use its ownerEscape and contentNotDeployedMessage. -->
     <script src="js/owner-site-meta.js"></script>
+    <script src="js/owner-hub-text.js"></script>
 </body>
 </html>

@@ -13,6 +13,26 @@
 // row for these pages and the fallback is what visitors get. That is expected.
 
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
+
+test('the seeded hub slots contain no heading blocks', () => {
+    // Each hub page renders its heading as static markup outside the
+    // replaceable container, so the ToC can index it and so it can be renamed
+    // from owner.html. A heading block inside the slot would therefore render
+    // a SECOND copy of the same words directly beneath the first.
+    //
+    // This was live in the seed until the owner's live preview showed
+    // "ABOUT US / About Us" stacked. The specs missed it because they mock
+    // their own slot content rather than reading the seed, so the seed is
+    // asserted directly here.
+    const sql = fs.readFileSync(
+        path.join(__dirname, '..', 'supabase', 'migrations', '20260809000001_hub_content.sql'),
+        'utf8'
+    );
+    expect(sql).toContain('"type": "paragraph"');
+    expect(sql).not.toContain('"type": "heading"');
+});
 
 const HUBS = [
     { path: '/index.html', pageId: 'main-hub', slot: 'about', fallback: 'casual (shenanigans) battleground' },
