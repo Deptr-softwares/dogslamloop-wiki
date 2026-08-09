@@ -428,16 +428,6 @@
       }
     },
     {
-      "id": "source-code",
-      "name": "Source Code",
-      "url": "https://github.com/Deptr-softwares/dogslamloop-wiki",
-      "cms_config": {
-        "pageType": "external",
-        "pageId": "source-code",
-        "editRole": "locked"
-      }
-    },
-    {
       "id": "updatelog",
       "name": "Update Log",
       "url": "systems/updatelog/index.html",
