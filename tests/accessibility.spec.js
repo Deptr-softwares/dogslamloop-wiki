@@ -78,12 +78,21 @@ test.describe('skip link', () => {
     test('it is the first thing a keyboard user reaches, and it moves focus', async ({ page }) => {
         await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
 
-        await page.keyboard.press('Tab');
-        await expect(page.locator('.skip-link')).toBeFocused();
+        const link = page.locator('.skip-link');
 
-        // Visible only once focused - it must not sit on the page permanently.
-        const top = await page.locator('.skip-link').evaluate(el => el.getBoundingClientRect().top);
-        expect(top).toBeGreaterThanOrEqual(0);
+        // Off-screen until focused - it must not sit on the page permanently.
+        // Checked before the Tab, while nothing has moved.
+        await expect(link).not.toBeInViewport();
+
+        await page.keyboard.press('Tab');
+        await expect(link).toBeFocused();
+
+        // toBeInViewport retries, which matters: .skip-link animates in over
+        // 0.15s, and a one-shot getBoundingClientRect() samples mid-transition.
+        // That passed on Windows and failed on the slower CI runner - the
+        // "assert structure, not pixels" rule in the writing-tests skill,
+        // ignored and immediately punished.
+        await expect(link).toBeInViewport();
 
         await page.keyboard.press('Enter');
         // Focus has to actually land in main, or the next Tab resumes from the
