@@ -224,9 +224,26 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 /* Collapsible category groups in the global sidebar menu (js/pagebuilder.js
    buildGlobalSidebarMenu) */
 .sidebar-group-wrapper { margin-bottom: 0.75rem; }
+/* A <button> as of v0.11 - it is operated by click, so it has to be reachable
+   by keyboard and announced as a control. That brings UA button styling with
+   it, reset here.
+
+   Scoped to the compound selector deliberately: plain .sidebar-nav-title is
+   still a <div> in several places (the "Sitewide" heading on the homepage,
+   admin.html's preview sidebar), and a reset on the bare class would restyle
+   all of them. */
 .sidebar-nav-title.sidebar-group-header {
     cursor: pointer; display: flex; justify-content: space-between;
     align-items: center; margin-bottom: 0;
+    width: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    text-transform: inherit;
+    letter-spacing: inherit;
 }
 .sidebar-group-caret { font-size: 0.5rem; color: var(--text-muted); }
 .sidebar-group-wrapper .toc-list { margin-top: 0.5rem; }
@@ -575,6 +592,67 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .space-y-4 > * + * { margin-top: 1rem; }
 .space-y-2 > * + * { margin-top: 0.5rem; }
 .hidden { display: none !important; }
+
+/* --- ACCESSIBILITY (v0.11) --- */
+
+/* Visually hidden but still announced. The clip-path/1px combination is used
+   rather than display:none or visibility:hidden, both of which remove the
+   element from the accessibility tree entirely - which is the opposite of
+   what this is for. */
+.sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Injected by pagebuilder.js on every page. Off-screen until focused, so a
+   keyboard user's first Tab offers a way past ~40 sidebar links instead of
+   walking through them on every page. */
+.skip-link {
+    position: absolute;
+    top: -100px;
+    left: 0.5rem;
+    z-index: 10001;
+    padding: 0.75rem 1.25rem;
+    background: var(--bg-secondary);
+    color: var(--text-white);
+    border: 2px solid var(--accent-blue);
+    font-family: var(--text-mono);
+    text-decoration: none;
+    transition: top 0.15s;
+}
+.skip-link:focus { top: 0.5rem; }
+
+/* There was no keyboard focus indicator anywhere outside form inputs, so a
+   keyboard user could not tell where they were. :focus-visible rather than
+   :focus, so a mouse click does not leave a ring behind. */
+a:focus-visible,
+button:focus-visible,
+[tabindex]:focus-visible,
+summary:focus-visible {
+    outline: 3px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+/* The brand in the mobile bar stopped being an <h1> - every page had two, and
+   a logo is not the page heading. It kept an <h1>'s block layout, so that is
+   restored explicitly rather than left to inherit an inline default. */
+.mobile-site-title { display: block; }
+
+/* Respect a reduced-motion preference. The site's transitions are decorative
+   and several run on hover across a whole roster grid at once. */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
 
 /* Tab content panes (used across editor.js/admin.js/history.js/description.js) -
    explicit so removing .hidden doesn't rely on the browser's implicit default. */

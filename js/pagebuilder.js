@@ -7,15 +7,57 @@
 // 1. SIDEBAR & NAVIGATION BUILDERS
 // ==========================================
 
+/**
+ * Skip-to-content link, injected on every page.
+ *
+ * Done here rather than in each page's markup because every page loads this
+ * file, and there are 30 generated stubs plus a dozen hand-authored pages -
+ * a link that exists on 41 of 42 pages is worse than useless, because a
+ * keyboard user learns to expect it.
+ *
+ * Without it, reaching the first paragraph of a character page means tabbing
+ * through the whole sidebar menu - roughly 40 links - on every single page.
+ */
+window.initSkipLink = function() {
+    if (document.querySelector('.skip-link')) return;
+
+    const main = document.querySelector('main.main-content-area') || document.querySelector('main');
+    if (!main) return;
+
+    if (!main.id) main.id = 'main-content';
+
+    const link = document.createElement('a');
+    link.className = 'skip-link';
+    link.href = `#${main.id}`;
+    link.textContent = 'Skip to content';
+
+    // A plain in-page href moves the reading position but not always keyboard
+    // focus, so the next Tab can resume from the top of the page again.
+    link.addEventListener('click', (event) => {
+        event.preventDefault();
+        main.setAttribute('tabindex', '-1');
+        main.focus();
+        main.scrollIntoView();
+    });
+
+    document.body.insertBefore(link, document.body.firstChild);
+};
+
 window.initSidebarToggle = function() {
     const toggleBtn = document.querySelector('.sidebar-toggle-btn');
     const sidebar = document.getElementById('master-sidebar');
-    
+
     if (toggleBtn && sidebar) {
-        toggleBtn.addEventListener('click', () => { 
+        toggleBtn.addEventListener('click', () => {
             // The True Despawn Toggle
-            sidebar.classList.toggle('collapsed'); 
+            const collapsed = sidebar.classList.toggle('collapsed');
+            // The button's label is "Collapse sidebar" in the markup; once it
+            // has collapsed the sidebar it does the opposite, and a screen
+            // reader would otherwise keep announcing the wrong action.
+            toggleBtn.setAttribute('aria-label', collapsed ? 'Expand sidebar' : 'Collapse sidebar');
+            toggleBtn.setAttribute('aria-expanded', String(!collapsed));
         });
+        toggleBtn.setAttribute('aria-expanded', String(!sidebar.classList.contains('collapsed')));
     }
 };
 
@@ -25,13 +67,23 @@ window.initMobileNav = function() {
     const backdrop = document.getElementById('mobile-backdrop');
 
     if (mobileMenuBtn && sidebar && backdrop) {
-        mobileMenuBtn.addEventListener('click', () => {
-            sidebar.classList.add('mobile-open');
-            backdrop.classList.add('active');
-        });
-        backdrop.addEventListener('click', () => {
-            sidebar.classList.remove('mobile-open');
-            backdrop.classList.remove('active');
+        const setOpen = (open) => {
+            sidebar.classList.toggle('mobile-open', open);
+            backdrop.classList.toggle('active', open);
+            mobileMenuBtn.setAttribute('aria-expanded', String(open));
+            mobileMenuBtn.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
+        };
+
+        mobileMenuBtn.addEventListener('click', () => setOpen(true));
+        backdrop.addEventListener('click', () => setOpen(false));
+
+        // Escape closes it. Without this the only way out is a tap on the
+        // backdrop, which a keyboard user has no way to reach.
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && sidebar.classList.contains('mobile-open')) {
+                setOpen(false);
+                mobileMenuBtn.focus();
+            }
         });
     }
 };
@@ -67,10 +119,14 @@ window.buildGlobalSidebarMenu = async function(containerId) {
 
         let html = '';
         for (const [category, items] of Object.entries(navData)) {
+            // A <button> rather than a <div>: it is operated by click, so it
+            // has to be reachable by keyboard and announced as a control.
+            // aria-expanded carries the open/closed state, which the caret
+            // conveys visually and conveyed to nobody else.
             html += `<div class="sidebar-group-wrapper">`;
-            html += `<div class="sidebar-nav-title sidebar-group-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
-                        ${esc(category)} <span class="sidebar-group-caret">▼</span>
-                     </div>`;
+            html += `<button type="button" class="sidebar-nav-title sidebar-group-header" aria-expanded="false">
+                        ${esc(category)} <span class="sidebar-group-caret" aria-hidden="true">▼</span>
+                     </button>`;
             html += `<ul class="toc-list hidden">`;
 
             items.forEach(item => {
@@ -95,6 +151,16 @@ window.buildGlobalSidebarMenu = async function(containerId) {
             html += `</ul></div>`;
         }
         container.innerHTML = html;
+
+        // Delegated, replacing the inline onclick these headers used to carry.
+        container.querySelectorAll('.sidebar-group-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const list = header.nextElementSibling;
+                if (!list) return;
+                const open = list.classList.toggle('hidden') === false;
+                header.setAttribute('aria-expanded', String(open));
+            });
+        });
     } catch (e) {
         console.error("Sidebar Menu Error:", e);
         container.innerHTML = `<p class="loading-msg loading-msg-error">Menu unavailable.</p>`;
@@ -668,8 +734,9 @@ window.refreshTOC = function() {
                             <a href="#${esc(group.id)}" class="btn-nav toc-link-major-toggle" onclick="smoothScroll(event, '${esc(group.id)}')">
                                 <span class="toc-link-text">${esc(group.text)}</span>
                             </a>
-                            <button class="toc-toggle-btn" onclick="this.parentElement.nextElementSibling.classList.toggle('hidden')">
-                                ▼
+                            <button type="button" class="toc-toggle-btn" aria-expanded="true"
+                                    aria-label="Toggle subsections of ${esc(group.text)}">
+                                <span aria-hidden="true">▼</span>
                             </button>
                         </div>
                         <ul class="toc-sublist">
@@ -701,6 +768,17 @@ window.refreshTOC = function() {
     });
     
     tocContainer.innerHTML = tocHtml;
+
+    // Delegated, replacing the inline onclick these toggles used to carry, and
+    // keeping aria-expanded in step with the caret.
+    tocContainer.querySelectorAll('.toc-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const sublist = btn.parentElement && btn.parentElement.nextElementSibling;
+            if (!sublist) return;
+            const open = sublist.classList.toggle('hidden') === false;
+            btn.setAttribute('aria-expanded', String(open));
+        });
+    });
 };
 
 // Smooth scroll with offset to prevent headers from hiding under the top of the screen
@@ -785,6 +863,13 @@ window.loadPageAlerts = async function(pageId) {
 // only pages without that wrapper, and they load editor.css, whose
 // unconditional `body { overflow: hidden }` means anything appended to <body>
 // there could never be scrolled to anyway.
+// The skip link is injected here rather than from each page's own boot block,
+// so it cannot be present on 41 pages and missing from the 42nd - which is
+// worse than not having one, because a keyboard user learns to expect it.
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.initSkipLink) window.initSkipLink();
+});
+
 window.buildSiteFooter = function() {
     if (document.getElementById('site-footer')) return;
     if (!document.querySelector('.site-layout')) return;

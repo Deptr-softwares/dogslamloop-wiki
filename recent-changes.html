@@ -17,15 +17,15 @@
     <div class="mobile-top-bar">
         <a href="index.html" class="mobile-logo-link">
             <img src="medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
-            <h1 class="mobile-site-title">dogslamloop wiki</h1>
+            <span class="mobile-site-title">dogslamloop wiki</span>
         </a>
-        <button class="mobile-menu-btn" id="mobile-menu-toggle">☰</button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">☰</button>
     </div>
     <div class="mobile-backdrop" id="mobile-backdrop"></div>
 
     <div class="site-layout">
 
-        <aside class="global-sidebar-left" id="master-sidebar">
+        <aside class="global-sidebar-left" id="master-sidebar" aria-label="Site navigation">
             <div class="sidebar-header-top">
                 <img src="medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
@@ -33,7 +33,7 @@
                     <p class="site-subtitle">Alpha v0.4</p>
                 </div>
             </div>
-            <button class="sidebar-toggle-btn">☰</button>
+            <button class="sidebar-toggle-btn" aria-label="Collapse sidebar">☰</button>
             <div class="sidebar-master-title">Navigation</div>
             <div id="global-sidebar-nav"><p class="loading-msg loading-msg-sm">Loading menu...</p></div>
             <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
