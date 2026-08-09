@@ -112,7 +112,7 @@ async function mockDashboards(page, { completeness = COMPLETENESS, revisions = R
 
 // ---------------------------------------------------------------- needs work
 
-test('needs-work lists incomplete characters, worst first', async ({ page }) => {
+test('needs-work lists work-in-progress characters, least complete first', async ({ page }) => {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
 
@@ -132,12 +132,31 @@ test('needs-work lists incomplete characters, worst first', async ({ page }) => 
     // Honored One is missing 8 sections, Vessel 2 - so Honored One sorts first.
     expect(names.indexOf('Honored One')).toBeLessThan(names.indexOf('Vessel'));
     expect(names.indexOf('Honored One')).toBeGreaterThanOrEqual(0);
-    // Boomcat is complete and must not appear at all.
+    // Boomcat is not flagged work-in-progress in navigation.json, so it must
+    // not appear regardless of how complete it is.
     expect(names).not.toContain('Boomcat');
 
     await expect(rows.filter({ hasText: 'Vessel' })).toContainText('Matchups');
     await expect(rows.filter({ hasText: 'Vessel' })).toContainText('Counterplay');
     expect(errors).toEqual([]);
+});
+
+test('a work-in-progress page with nothing missing still appears', async ({ page }) => {
+    // is_wip is an editorial judgement, not a measurement - a page can be
+    // structurally complete and still be flagged as needing work.
+    const complete = ['vessel', 'honored_one'].map(page_id => ({
+        page_id, page_type: 'character', has_profile: true, has_overview: true, has_playstyle: true,
+        has_m1s: true, has_skills: true, has_specials: true, has_strategy: true,
+        has_matchups: true, has_counterplay: true,
+    }));
+
+    await mockDashboards(page, { completeness: complete });
+    await page.goto('/characters/index.html', { waitUntil: 'networkidle' });
+    await expect(page.locator('#needs-work .needs-work-row').first()).toBeVisible();
+
+    await page.evaluate(() => window.buildNeedsWork('needs-work', 100));
+    const rows = page.locator('#needs-work .needs-work-row');
+    await expect(rows.filter({ hasText: 'Vessel' })).toContainText('in progress');
 });
 
 test('the list is capped, and says how many it left out', async ({ page }) => {
@@ -148,7 +167,7 @@ test('the list is capped, and says how many it left out', async ({ page }) => {
     await expect(page.locator('#needs-work .needs-work-more')).toContainText('more');
 });
 
-test('a character with no completeness row at all counts as needing everything', async ({ page }) => {
+test('a work-in-progress page with no completeness row counts as missing everything', async ({ page }) => {
     // register has no page_data row in production. It must appear, not vanish.
     await mockDashboards(page, { completeness: [] });
     await page.goto('/characters/index.html', { waitUntil: 'networkidle' });

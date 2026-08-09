@@ -71,6 +71,7 @@ async function liveCharacters() {
             name: entry.name,
             navId: entry.id,
             url: rootPath + entry.url,
+            isWip: entry.isWip === true,
         };
     }
     return out;
@@ -79,10 +80,22 @@ async function liveCharacters() {
 // ---------------------------------------------------------------- what needs work
 
 /**
- * Characters with unwritten sections, most-incomplete first.
+ * Characters the owner has flagged as work in progress.
  *
- * Reads the page_completeness view rather than page_data: the same information
- * is a few hundred bytes there and 385 KB here.
+ * The list is driven by is_wip, not by measured completeness. That is a
+ * deliberate choice by the owner and the right one: "needs work" is an
+ * editorial judgement, and a page can be structurally complete while still
+ * being wrong, or be missing a section nobody intends to write.
+ *
+ * Completeness still supplies the *detail* - which sections are empty - so the
+ * panel says what to do rather than only who to do it to. That comes from the
+ * page_completeness view rather than page_data, where the same information
+ * costs 385 KB.
+ *
+ * is_wip is editable from owner.html's Page Details card. Until v0.11 it was
+ * unmaintainable, and it shows: 21 of 22 characters carry it, so this list is
+ * near-total until those flags get curated. That is now a data task rather
+ * than a code one.
  */
 window.buildNeedsWork = async function(containerId, limit = 6) {
     const container = document.getElementById(containerId);
@@ -101,20 +114,20 @@ window.buildNeedsWork = async function(containerId, limit = 6) {
         (data || []).forEach(row => { byId[row.page_id] = row; });
 
         const rows = Object.entries(characters)
-            // A character with no page_data row at all still needs work - it
-            // needs it most. register is exactly this case.
             .filter(([pageId]) => pageId !== 'template')
+            .filter(([, info]) => info.isWip)
             .filter(([pageId]) => !window.isEntryPointHidden(archived, pageId))
             .map(([pageId, info]) => {
+                // A character with no page_data row at all is missing
+                // everything, not nothing. register is exactly this case.
                 const row = byId[pageId] || {};
                 const missing = CHARACTER_SECTIONS.filter(s => !row[s.key]);
                 return { ...info, pageId, missing };
             })
-            .filter(c => c.missing.length > 0)
             .sort((a, b) => b.missing.length - a.missing.length || a.name.localeCompare(b.name));
 
         if (rows.length === 0) {
-            container.innerHTML = `<p class="wiki-section-empty">Every character page is complete. Remarkable.</p>`;
+            container.innerHTML = `<p class="wiki-section-empty">Nothing is flagged as work in progress right now.</p>`;
             return;
         }
 
@@ -124,7 +137,14 @@ window.buildNeedsWork = async function(containerId, limit = 6) {
                 ${shown.map(c => `
                     <li class="needs-work-row">
                         <a href="${esc(c.url)}" class="needs-work-name">${esc(c.name)}</a>
-                        <span class="needs-work-missing">${c.missing.map(m => esc(m.label)).join(', ')}</span>
+                        <span class="needs-work-missing">${
+                            // A page can be flagged in progress with every
+                            // section already written - the flag is a
+                            // judgement, not a measurement.
+                            c.missing.length > 0
+                                ? c.missing.map(m => esc(m.label)).join(', ')
+                                : 'in progress'
+                        }</span>
                     </li>
                 `).join('')}
             </ul>
