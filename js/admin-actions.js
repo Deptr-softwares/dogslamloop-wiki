@@ -14,16 +14,24 @@ window.editCurrentTicket = async function() {
     // Attach the special editTicket flag
     let url = `edit.html?char=${rev.page_id}&editTicket=${rev.id}`;
 
-    // Smart Routing: If it's a Delta Patch, jump exactly to the tab/move they edited!
-    if (rev.is_delta) {
-        let tab = 'overview';
-        if (['matchup', 'counterplay'].includes(rev.target_scope)) tab = rev.target_scope + 's';
-        else if (rev.target_scope === 'move') {
-            tab = rev.target_key.split('::')[0];
-            const moveId = rev.target_key.split('::')[1];
-            url += `&tab=${tab}&move=${moveId}`;
-        }
-        if (rev.target_scope !== 'move') url += `&tab=${tab}`;
+    // Open the editor on whatever tab the reviewer is currently reading.
+    //
+    // This used to derive a single tab from rev.target_scope, guarded by
+    // `if (rev.is_delta)` - so a merged or legacy ticket appended no &tab=
+    // at all and editor-core.js fell back to Overview, no matter what had
+    // actually been edited. That is why intercepting a skill revision was
+    // impossible. A merged ticket now spans several scopes anyway, so there
+    // is no single correct target to derive; the tab the reviewer chose in
+    // the strip is the honest answer.
+    const activeTabBtn = document.querySelector('#preview-tab-nav .btn-manga.active');
+    const activeTab = activeTabBtn ? activeTabBtn.id.replace('nav-', '') : null;
+    if (activeTab) url += `&tab=${encodeURIComponent(activeTab)}`;
+
+    // Single-move tickets keep their deep link into the exact move, which
+    // the tab strip cannot express on its own.
+    if (rev.is_delta && rev.target_scope === 'move' && rev.target_key) {
+        const [moveTab, moveId] = rev.target_key.split('::');
+        if (moveTab === activeTab && moveId) url += `&move=${encodeURIComponent(moveId)}`;
     }
 
     // Launch the Editor in a new tab

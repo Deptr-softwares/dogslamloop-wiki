@@ -258,6 +258,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.currentEditorFrameData = frameData;
 
         if (moveId) {
+            // This branch skips initFullTabEditor, which is where the tab
+            // strip normally syncs itself - so do it here too, or deep-
+            // linking to a single move leaves the strip unrendered.
+            if (typeof window.renderEditorTabNav === 'function') window.renderEditorTabNav(tabId);
+
             const moveStats = frameData ? frameData[tabId]?.find(m => m.id === moveId) : null;
             const moveStrats = descData ? descData.moveStrategies?.[moveId] : null;
             initPerMoveEditor(moveId, moveStats, moveStrats);

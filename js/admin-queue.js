@@ -231,12 +231,16 @@ function resetPreviewState() {
     const changedTabsPopup = document.getElementById('changed-tabs-popup');
     if (changedTabsPopup) changedTabsPopup.remove();
 
+    const tabNav = document.getElementById('preview-tab-nav');
+    if (tabNav) tabNav.classList.add('hidden');
+
     ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'].forEach(tab => {
         const el = document.getElementById(`tab-${tab}`);
         const btn = document.getElementById(`nav-${tab}`);
         if (el) { el.innerHTML = ''; el.classList.add('hidden'); }
         if (btn) {
             btn.classList.remove('active');
+            btn.classList.remove('tab-changed'); // Markers belong to the revision just closed
             btn.classList.remove('hidden'); // Restore default display visibility
         }
     });

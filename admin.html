@@ -56,17 +56,6 @@
             <div class="admin-sidebar-content">
                 
                 <div id="preview-nav-sidebar" class="hidden">
-                    <div class="dashboard-header-split admin-split-header">
-                        <h3 class="section-title section-title-clean m-0 admin-section-title">Document Explorer</h3>
-                    </div>
-                    <div class="admin-nav-col">
-                        <button id="nav-overview" class="nav-btn active">Overview & Strategy</button>
-                        <button id="nav-m1s" class="nav-btn">M1s</button>
-                        <button id="nav-skills" class="nav-btn">Skills</button>
-                        <button id="nav-specials" class="nav-btn">Specials</button>
-                        <button id="nav-matchups" class="nav-btn">Matchups</button>
-                        <button id="nav-counterplay" class="nav-btn">Counterplay</button>
-                    </div>
                     <div class="admin-toc-container">
                         <div class="sidebar-nav-title">ON THIS PAGE</div>
                         <ul class="toc-list" id="dynamic-toc">
@@ -137,6 +126,18 @@
             <!-- SITE BODY WRAPPER: Perfectly mimics the live wiki constraints -->
             <div class="site-body" style="width: 100%; min-height: 100%; box-sizing: border-box;">
                 <div class="max-w-7xl">
+                    <!-- Revision tabs, in the same shape and position the live
+                         character and system pages use. These IDs are what
+                         setupTabs('nav', 'tab', ...) binds to, and what
+                         updateAdminSidebar appends dynamic system tabs into. -->
+                    <nav id="preview-tab-nav" class="admin-preview-tab-nav hidden" aria-label="Revision sections">
+                        <button id="nav-overview" class="btn-manga btn-manga-slanted active"><div class="btn-manga-content"><span class="btn-manga-text">Overview &amp; Strategy</span></div></button>
+                        <button id="nav-m1s" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">M1s</span></div></button>
+                        <button id="nav-skills" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Skills</span></div></button>
+                        <button id="nav-specials" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Specials</span></div></button>
+                        <button id="nav-matchups" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Matchups</span></div></button>
+                        <button id="nav-counterplay" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Counterplay</span></div></button>
+                    </nav>
                     <div class="main-content-area" id="preview-content-area">
                         <div id="tab-overview"></div>
                         <div id="tab-m1s" class="hidden"></div>

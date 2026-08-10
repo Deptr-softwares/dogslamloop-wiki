@@ -3,6 +3,71 @@
  * (custom/extra tabs, moves, matchups, counterplay, profile/playstyle)
  */
 
+// --- MAJOR TAB NAVIGATION ---
+// The editor had no way to change major tab at all: currentEditorTabId was
+// read from ?tab= once at boot (js/editor-core.js) and never moved again.
+// Landing on the wrong tab - which is what every intercept of a non-delta
+// ticket did - meant hand-editing the URL or giving up, so intercepting a
+// skill revision was effectively impossible. This is the same strip, in the
+// same shape, as the live character page's nav.
+const EDITOR_MAJOR_TABS = ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'];
+
+window.renderEditorTabNav = function(activeTabId) {
+    const nav = document.getElementById('editor-tab-nav');
+    if (!nav) return;
+
+    // System and tierlist pages bail out of initFullTabEditor into their own
+    // builders, which manage their own tabs - a character strip above them
+    // would offer tabs those page types do not have.
+    if (window.currentEditorPageType === 'system' || window.currentEditorPageType === 'tierlist') {
+        nav.classList.add('hidden');
+        return;
+    }
+
+    nav.classList.remove('hidden');
+    EDITOR_MAJOR_TABS.forEach(tabId => {
+        const btn = document.getElementById(`edit-nav-${tabId}`);
+        if (btn) btn.classList.toggle('active', tabId === activeTabId);
+    });
+};
+
+window.switchEditorTab = async function(tabId) {
+    if (tabId === window.currentEditorTabId) return;
+
+    // currentStrategyBlocks is a buffer that is only written back into
+    // desc_data on sync (js/editor-sync.js), so switching without flushing
+    // first silently drops whatever is being edited right now.
+    if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
+
+    // Clear the sub-selection state before crossing the boundary. All three
+    // sub-tab loaders below flush the *previous* selection's blocks into
+    // desc_data on entry - so arriving at Overview with a stale
+    // currentOverviewSection of 'strategy' would write the matchup blocks
+    // still sitting in the buffer into descData.strategy. The flush above
+    // has already saved the real content by this point.
+    window.currentOverviewSection = null;
+    window.currentMatchupIndex = undefined;
+    window.currentCounterplayIndex = undefined;
+
+    // The preview pane keeps one visible tab; editor-core un-hides only the
+    // booted one, so the switch has to move it.
+    const previousPreviewTab = document.getElementById(`tab-${window.currentEditorTabId}`);
+    if (previousPreviewTab) previousPreviewTab.classList.add('hidden');
+    const nextPreviewTab = document.getElementById(`tab-${tabId}`);
+    if (nextPreviewTab) nextPreviewTab.classList.remove('hidden');
+
+    window.renderEditorTabNav(tabId);
+    initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+
+    // Keep the URL honest - the editor boots from ?tab=, so a reload should
+    // land where the strip says it is. A leftover &move= would reopen a move
+    // belonging to the tab just left.
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tabId);
+    url.searchParams.delete('move');
+    window.history.replaceState({}, '', url);
+};
+
 // --- CUSTOM TAB MANAGEMENT ---
 window.addExtraTab = async function() {
     await window.triggerManualSync();
@@ -38,6 +103,10 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
     window.currentEditorDescData = descData || {};
     window.currentEditorTabId = tabId;
     window.currentEditorCharId = charId;
+
+    // Every entry point into a major tab lands here, including the boot
+    // route in editor-core.js, so the strip stays in step with the URL.
+    if (typeof window.renderEditorTabNav === 'function') window.renderEditorTabNav(tabId);
 
     // --- Reroute to the new System Builder UI ---
     if (window.currentEditorPageType === 'system') {

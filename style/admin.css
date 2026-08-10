@@ -1,35 +1,50 @@
-/* --- VERTICAL DOCUMENT TABS --- */
-#preview-nav-sidebar .nav-btn {
-    transform: none;
-    box-shadow: none;
-    border: 1px solid #222;
-    border-left: 3px solid transparent;
-    border-radius: 0;
-    background: rgba(255, 255, 255, 0.02);
-    width: 100%;
-    text-align: left;
-    justify-content: flex-start;
-    padding: 0.6rem 0.75rem; 
-    margin-bottom: -1px; /* Tighter gaps, overlaps borders cleanly */
-    font-family: var(--text-mono);
-    color: var(--text-muted);
-    font-size: 0.75rem; 
-    transition: background 0.1s, border-color 0.1s, color 0.1s;
+/* --- REVISION TAB STRIP ---
+   The reviewer used to navigate a revision through a vertical list in the
+   left sidebar, which meant scrolling the sidebar to change section while
+   reading the content. This is the same top strip the live character and
+   system pages use, in the same place, so reviewing a revision navigates
+   like reading the page it will become.
+
+   Deliberately its own class rather than reusing .character-nav: that one
+   is scoped to .character-header on purpose (see style/Layout.css) because
+   history.html and the tier list reuse it with a different margin
+   convention. Nothing here touches .btn-manga itself, which is shared by
+   the roster filters, the systems directory and the tier list. */
+.admin-preview-tab-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--accent-blue);
 }
 
-#preview-nav-sidebar .nav-btn:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text-white);
+/* Marks the tabs a revision actually changed. Before, that information
+   lived only in a dismissible "Modifications Detected" popup listing tab
+   names as text - which a reviewer had to hold in their head while
+   navigating. It matters most on a merged ticket, where several tabs are
+   touched at once and there is no single target to jump to. */
+.admin-preview-tab-nav .btn-manga.tab-changed .btn-manga-text::after {
+    content: '';
+    display: inline-block;
+    width: 0.45rem;
+    height: 0.45rem;
+    margin-left: 0.4rem;
+    vertical-align: 0.15rem;
+    border-radius: 50%;
+    background: var(--accent-blue);
 }
 
-#preview-nav-sidebar .nav-btn.active {
-    background: rgba(59, 130, 246, 0.1);
-    border-color: #333;
-    border-left-color: var(--accent-blue) !important;
-    color: var(--text-white);
-    font-weight: bold;
-    z-index: 2; /* Brings active border above others */
+.admin-preview-tab-nav .btn-manga.tab-changed {
+    border-color: var(--accent-blue);
 }
+
+/* The vertical .nav-btn rules that used to sit here are gone with the
+   sidebar tab list they styled - both the static character tabs and the
+   dynamically-created system ones now render in .admin-preview-tab-nav
+   above. The sidebar keeps the "On This Page" table of contents, which is
+   a different thing: headings within the tab you are already reading. */
 
 /* --- SIDEBAR TABLE OF CONTENTS --- */
 #preview-nav-sidebar .sidebar-nav-title {
@@ -67,14 +82,6 @@
     color: var(--text-white);
     background: hsla(217, 91%, 60%, 0.05);
 }
-
-#preview-nav-sidebar .nav-btn {
-    display: flex;
-    align-items: center;
-}
-
-/* Dynamically-created system/tierlist tab buttons (js/admin-diff.js updateAdminSidebar) */
-#preview-nav-sidebar .nav-btn.system-nav-btn { cursor: pointer; padding: 0.75rem 1rem; color: #d1d5db; font-size: 0.85rem; }
 
 /* --- CHANGED TABS POPUP --- */
 /* Single dismissable notification (js/admin-diff.js showChangedTabsPopup),
