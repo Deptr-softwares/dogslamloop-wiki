@@ -153,6 +153,23 @@ window.openMergeCompiler = async function(pageId) {
         const selectedTicketIds = new Set();
         const contributors = new Set();
 
+        // The merged ticket ships as a multi-scope delta, not a snapshot.
+        // A snapshot is taken here, at compile time, and applied later, at
+        // approval time - so every submission approved in that window is
+        // silently overwritten by stale data. Emitting one scoped patch per
+        // accepted conflict means approval injects exactly the sections that
+        // were chosen and leaves everything else at whatever it is by then.
+        //
+        // 'multi' is not a new format: js/editor-core.js already batches a
+        // contributor's independent edits this way, window.applyDeltaToData
+        // unpacks it recursively (js/site_utils.js), and the diff, preview,
+        // history and recent-changes views all branch on it already.
+        const batchedDeltas = [];
+
+        // applyDeltaToData's array scopes are singular; the compiler's are the
+        // property names they live under.
+        const DELTA_SCOPE_FOR_ARRAY = { extras: 'extra', matchups: 'matchup', counterplay: 'counterplay' };
+
         conflicts.forEach(c => {
             const selVal = document.getElementById(`compiler-sel-${c.sectionId}`).value;
             if (selVal === 'live') return;
@@ -165,6 +182,7 @@ window.openMergeCompiler = async function(pageId) {
 
             if (c.type === 'desc') {
                 masterDesc[c.sectionId] = chosenOpt.data;
+                batchedDeltas.push({ scope: c.sectionId, key: null, payload: chosenOpt.data });
             }
             else if (c.type === 'array_item') {
                 // Identity-based, matching scanArray above - find by keyProp,
@@ -184,6 +202,16 @@ window.openMergeCompiler = async function(pageId) {
                 } else {
                     masterDesc[arrName].push(chosenOpt.data);
                 }
+
+                // undefined means the chosen ticket had no version of this item,
+                // i.e. it deleted it. applyDeltaToData reads null as "delete";
+                // undefined would drop out of the JSON payload entirely and
+                // apply as a no-op, quietly resurrecting the deleted item.
+                batchedDeltas.push({
+                    scope: DELTA_SCOPE_FOR_ARRAY[arrName],
+                    key,
+                    payload: chosenOpt.data === undefined ? null : chosenOpt.data
+                });
             }
             else if (c.type === 'move') {
                 const cat = chosenOpt.data.cat;
@@ -206,6 +234,15 @@ window.openMergeCompiler = async function(pageId) {
                 if (!masterDesc.moveStrategies) masterDesc.moveStrategies = {};
                 if (stratData) masterDesc.moveStrategies[moveId] = stratData;
                 else delete masterDesc.moveStrategies[moveId];
+
+                // Same {frame_data, desc_data} shape the editor's own move
+                // deltas use, keyed "category::moveId" - applyDeltaToData
+                // splits on "::" to find the category array.
+                batchedDeltas.push({
+                    scope: 'move',
+                    key: `${cat}::${moveId}`,
+                    payload: moveData ? { frame_data: moveData, desc_data: stratData || [] } : null
+                });
             }
         });
 
@@ -222,19 +259,50 @@ window.openMergeCompiler = async function(pageId) {
         const authorsList = Array.from(contributors).join(', ');
         const finalAuthorName = `Staff Merge (Credits: ${authorsList})`;
 
+        // Every contributor's changelog and evidence carries through, attributed.
+        // This used to be replaced by a one-line synthetic summary, which threw
+        // away the audit trail of who verified what and kept only the last
+        // ticket's evidence - the exact thing a reviewer needs to judge a merge.
+        const CONFIDENCE_RANK = { low: 0, medium: 1, high: 2 };
+        const qaSources = chosenTickets.map(t => ({
+            name: t.author_name || 'Contributor',
+            qa: t.qa_metadata || {}
+        }));
+
+        const mergedChangelog = [
+            `System Merge: unified edits from ${contributors.size} contributor${contributors.size === 1 ? '' : 's'}.`,
+            ...qaSources.map(s => `--- ${s.name} ---\n${s.qa.changelog || '(no changelog provided)'}`)
+        ].join('\n\n');
+
+        const mergedEvidence = qaSources
+            .filter(s => s.qa.evidence)
+            .map(s => `--- ${s.name} ---\n${s.qa.evidence}`)
+            .join('\n\n');
+
+        // The merge is only as trustworthy as its least certain source, so take
+        // the lowest rather than asserting "high" over someone's own "low".
+        const mergedConfidence = qaSources.reduce((lowest, s) => {
+            const rank = CONFIDENCE_RANK[s.qa.confidence];
+            if (rank === undefined) return lowest;
+            return (lowest === null || rank < CONFIDENCE_RANK[lowest]) ? s.qa.confidence : lowest;
+        }, null) || 'medium';
+
         const payload = {
+            // Kept as the legacy fallback, matching the shape editor-core.js's
+            // buildPayload emits - delta_payload is what actually applies.
             desc_data: masterDesc,
             frame_data: masterFrame,
-            is_delta: false,
-            target_scope: null,
-            target_key: null,
+            is_delta: true,
+            target_scope: 'multi',
+            target_key: 'batch',
+            delta_payload: batchedDeltas,
             author_id: window.currentUserId,
             author_name: finalAuthorName,
             status: 'ticket_open',
             qa_metadata: {
-                changelog: `System Merge: Unified edits from ${contributors.size} contributors.`,
-                confidence: "high",
-                evidence: masterTicket.qa_metadata?.evidence || ""
+                changelog: mergedChangelog,
+                confidence: mergedConfidence,
+                evidence: mergedEvidence
             }
         };
 

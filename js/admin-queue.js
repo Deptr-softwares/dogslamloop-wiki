@@ -110,7 +110,14 @@ async function loadQueue() {
             // move edits on the same character and they all look identical
             // until opened.
             let targetLabel = rev.target_scope ? rev.target_scope.toUpperCase() : '';
-            if (rev.target_key) {
+            if (rev.target_scope === 'multi') {
+                // A batched or merged ticket carries a list of scopes, so there
+                // is no single target to name - count them instead, matching the
+                // "BATCHED MULTI-EDIT (N targets)" wording history.html and
+                // recent-changes.html already use. "MULTI: batch" said nothing.
+                const targetCount = Array.isArray(rev.delta_payload) ? rev.delta_payload.length : 0;
+                targetLabel = `${targetCount} TARGET${targetCount === 1 ? '' : 'S'}`;
+            } else if (rev.target_key) {
                 if (rev.target_scope === 'move' && rev.target_key.includes('::')) {
                     const [moveCategory, moveId] = rev.target_key.split('::');
                     targetLabel = `${moveCategory.toUpperCase()}: ${moveId}`;
