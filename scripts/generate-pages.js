@@ -249,7 +249,7 @@ ${social}
  * page hosts one of the owner's own tools and loads js/tool_page.js. Neither
  * needs framedata.js, and neither needs the character stylesheet set.
  */
-function mediaStub({ pageId, title, docTitle, social, pageType, script, extraStyles = '' }) {
+function mediaStub({ pageId, title, docTitle, social, pageType, script, extraScript = null, extraStyles = '' }) {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -282,7 +282,8 @@ ${social}
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
     <script src="../../js/description.js"></script>
-    <script src="../../js/${script}"></script>
+    <script src="../../js/${script}"></script>${extraScript ? `
+    <script src="../../js/${extraScript}"></script>` : ''}
 
     <script src="../../js/page_boot.js"></script>
 </body>
@@ -362,7 +363,11 @@ function docTitleFor(name, pageType) {
  * Turn navigation.json into the full set of files to write.
  * Pure: builds everything in memory, touches no disk.
  */
-function buildPages(nav, previews = {}, archived = {}) {
+// toolScripts: the set of page ids that have their own js/tools/<id>.js.
+// Passed in rather than read from disk here so buildPages stays pure and its
+// --check stays deterministic - the same reason previews arrives as a
+// committed artifact rather than a live query.
+function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set()) {
     const pages = [];
     const problems = [];
     const livePaths = new Set();
@@ -405,7 +410,16 @@ function buildPages(nav, previews = {}, archived = {}) {
             } else if (cms.pageType === 'gallery') {
                 html = mediaStub({ ...stubArgs, pageType: 'gallery', script: 'gallery.js' });
             } else if (cms.pageType === 'tool') {
-                html = mediaStub({ ...stubArgs, pageType: 'tool', script: 'tool_page.js' });
+                // A tool that has its own script loads it alongside the host,
+                // which then hands the page over to it. Tools without one
+                // (the ID Reader is genuinely just a link) fall through to the
+                // host's link/embed shell.
+                html = mediaStub({
+                    ...stubArgs,
+                    pageType: 'tool',
+                    script: 'tool_page.js',
+                    extraScript: toolScripts.has(cms.pageId) ? `tools/${cms.pageId}.js` : null,
+                });
             } else {
                 html = systemStub(stubArgs);
             }
@@ -480,7 +494,15 @@ function main() {
         ? JSON.parse(fs.readFileSync(archivedPath, 'utf8'))
         : {};
 
-    const { pages, problems } = buildPages(nav, previews, archived);
+    // Scanned once here rather than inside buildPages, which stays pure.
+    const toolsDir = path.join(ROOT, 'js', 'tools');
+    const toolScripts = new Set(
+        fs.existsSync(toolsDir)
+            ? fs.readdirSync(toolsDir).filter(f => f.endsWith('.js')).map(f => f.replace(/\.js$/, ''))
+            : []
+    );
+
+    const { pages, problems } = buildPages(nav, previews, archived, toolScripts);
 
     if (problems.length > 0) {
         console.error('generate-pages FAILED - refusing to write:\n');

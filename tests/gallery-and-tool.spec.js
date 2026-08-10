@@ -214,6 +214,79 @@ async function mountTool(page, descData) {
   }, descData);
 }
 
+test('a tool with its own script takes over the page', async ({ page }) => {
+  // The reason tool pages are a host rather than a renderer: a tool is an
+  // application, not a document. The Certified Tier List has its own data
+  // model and submission flow; only the ID Reader is genuinely just a link.
+  await page.goto('/systems/hud/', { waitUntil: 'networkidle' });
+  await page.addScriptTag({ path: 'js/tool_page.js' });
+
+  const result = await page.evaluate(async () => {
+    document.body.innerHTML = '<main class="main-content-area"></main>';
+    window.PAGE_ROUTE = { pageId: 'certified_tierlist', pageType: 'tool', title: 'Certified Tier List' };
+    window.supabaseClient = {
+      from() {
+        return {
+          select() { return this; },
+          eq() { return this; },
+          maybeSingle: async () => ({ data: { desc_data: { tool: { url: 'https://example.test' } } }, error: null }),
+        };
+      },
+    };
+
+    let receivedCtx = null;
+    window.registerWikiTool('certified_tierlist', async (mount, ctx) => {
+      receivedCtx = ctx;
+      mount.innerHTML = '<div id="my-tool">the real tool</div>';
+    });
+
+    await window.renderToolPage('certified_tierlist');
+    return {
+      rendered: !!document.getElementById('my-tool'),
+      // The fallback must not also render - the tool owns the mount.
+      fallbackLink: !!document.querySelector('.tool-launch-btn'),
+      ctxPageId: receivedCtx && receivedCtx.pageId,
+      // Config reaches the tool, so it is configurable from owner tools
+      // without a code change.
+      ctxUrl: receivedCtx && receivedCtx.config.url,
+    };
+  });
+
+  expect(result.rendered).toBe(true);
+  expect(result.fallbackLink, 'a registered tool owns its mount').toBe(false);
+  expect(result.ctxPageId).toBe('certified_tierlist');
+  expect(result.ctxUrl).toBe('https://example.test');
+});
+
+test('a tool that throws does not take the page prose down with it', async ({ page }) => {
+  await page.goto('/systems/hud/', { waitUntil: 'networkidle' });
+  await page.addScriptTag({ path: 'js/tool_page.js' });
+
+  const result = await page.evaluate(async () => {
+    document.body.innerHTML = '<main class="main-content-area"></main>';
+    window.PAGE_ROUTE = { pageId: 'broken_tool', pageType: 'tool', title: 'Broken' };
+    window.supabaseClient = {
+      from() {
+        return {
+          select() { return this; },
+          eq() { return this; },
+          maybeSingle: async () => ({ data: { desc_data: { tool: { url: 'https://example.test' } } }, error: null }),
+        };
+      },
+    };
+    window.registerWikiTool('broken_tool', async () => { throw new Error('boom'); });
+    await window.renderToolPage('broken_tool');
+    return {
+      saidSo: document.getElementById('tool-mount').textContent.includes('failed to load'),
+      // The link still renders, so the page is not a dead end.
+      fallbackLink: !!document.querySelector('.tool-launch-btn'),
+    };
+  });
+
+  expect(result.saidSo).toBe(true);
+  expect(result.fallbackLink).toBe(true);
+});
+
 test('a tool page links out by default and does not embed', async ({ page }) => {
   await mountTool(page, { tool: { url: 'https://tools.example.test/id-reader' } });
 
@@ -262,5 +335,5 @@ test('an embedded tool is sandboxed, and still offers the link as an escape hatc
 
 test('a tool page with no tool yet says what to do about it', async ({ page }) => {
   await mountTool(page, {});
-  await expect(page.locator('#tool-frame')).toContainText('No tool linked yet');
+  await expect(page.locator('#tool-mount')).toContainText('No tool linked yet');
 });
