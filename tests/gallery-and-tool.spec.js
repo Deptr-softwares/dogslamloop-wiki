@@ -114,9 +114,6 @@ test('a gallery renders every item, video and image alike', async ({ page }) => 
       .buildGalleryCard({ name: 'X', src: '/a.mp4' })
       .querySelector('video')
       .hasAttribute('data-lazy-src'),
-    // What the promotion leaves behind: a real, playable source.
-    promotedSrcs: Array.from(document.querySelectorAll('.gallery-card video'))
-      .map(v => v.getAttribute('src')),
     // <video> has no alt attribute; the label has to go somewhere real.
     ariaLabels: Array.from(document.querySelectorAll('.gallery-card video')).map(v => v.getAttribute('aria-label')),
     count: document.getElementById('gallery-count').textContent,
@@ -126,8 +123,16 @@ test('a gallery renders every item, video and image alike', async ({ page }) => 
   expect(result.videos, '.mp4 and .webm').toBe(2);
   expect(result.images, '.gif stays an image, and .png').toBe(2);
   expect(result.builtLazy, 'a card is built armed for the lazy observer').toBe(true);
-  expect(result.promotedSrcs, 'and the observer swapped in the real sources')
-    .toEqual(['/medias/videos/wave.mp4', '/medias/videos/salute.webm']);
+
+  // Retrying assertions, not a one-shot read: initLazyMedia promotes
+  // data-lazy-src via an IntersectionObserver callback, which fires
+  // asynchronously after layout. Reading src straight after render passed
+  // locally and failed on the slower CI runner, where the observer had not
+  // run yet - the same race as the v0.11 skip-link geometry read.
+  await expect(page.locator('.gallery-card video').first())
+    .toHaveAttribute('src', '/medias/videos/wave.mp4');
+  await expect(page.locator('.gallery-card video').nth(1))
+    .toHaveAttribute('src', '/medias/videos/salute.webm');
   expect(result.ariaLabels).toEqual(['Wave', 'Salute']);
   expect(result.count).toBe('4 total');
 });
