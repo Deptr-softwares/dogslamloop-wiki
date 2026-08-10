@@ -176,6 +176,35 @@
                     </div>
                 </section>
 
+                <!-- Others and Tools sit on the second grid row, directly
+                     under Guides & Such and Recent Changes, which pushes Game
+                     Info to the right of that row. Both fill from
+                     navigation.json by category, so a page created in owner
+                     tools appears here after the next regeneration run. -->
+                <section class="wiki-section" id="others-section">
+                    <div class="dashboard-header-split">
+                        <h2 class="section-title section-title-clean m-0" data-heading-key="others">Others</h2>
+                    </div>
+
+                    <div class="faq-scroll-box scroll-lg">
+                        <div id="others-grid">
+                            <p class="loading-msg loading-msg-md">Loading...</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="wiki-section" id="tools-section">
+                    <div class="dashboard-header-split">
+                        <h2 class="section-title section-title-clean m-0" data-heading-key="tools">Tools</h2>
+                    </div>
+
+                    <div class="faq-scroll-box scroll-lg">
+                        <div id="tools-grid">
+                            <p class="loading-msg loading-msg-md">Loading...</p>
+                        </div>
+                    </div>
+                </section>
+
                 <section class="wiki-section" id="gameinfo-section">
                     <div class="dashboard-header-split">
                         <h2 class="section-title section-title-clean m-0" data-heading-key="gameinfo">Game Info</h2>
@@ -298,6 +327,10 @@
             if (window.initAuthDock) window.initAuthDock();
             if (window.initRosterFilters) window.initRosterFilters();
             if (window.buildSystemsDirectory) window.buildSystemsDirectory('systems-grid');
+            if (window.buildCategoryColumn) {
+                window.buildCategoryColumn('others-grid', 'Others');
+                window.buildCategoryColumn('tools-grid', 'Tools');
+            }
             if (window.renderHubSlot) window.renderHubSlot('main-hub', 'about', 'about-body');
             if (window.renderGameInfo) window.renderGameInfo('game-info-fields');
 
