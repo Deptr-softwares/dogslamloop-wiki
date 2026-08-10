@@ -10,16 +10,18 @@
 // ticket did - meant hand-editing the URL or giving up, so intercepting a
 // skill revision was effectively impossible. This is the same strip, in the
 // same shape, as the live character page's nav.
-const EDITOR_MAJOR_TABS = ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'];
+const EDITOR_MAJOR_TABS = ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay', 'ultimateAtk'];
 
 window.renderEditorTabNav = function(activeTabId) {
     const nav = document.getElementById('editor-tab-nav');
     if (!nav) return;
 
-    // System and tierlist pages bail out of initFullTabEditor into their own
-    // builders, which manage their own tabs - a character strip above them
-    // would offer tabs those page types do not have.
-    if (window.currentEditorPageType === 'system' || window.currentEditorPageType === 'tierlist') {
+    // System, tierlist and gallery pages bail out of initFullTabEditor into
+    // their own builders, which manage their own tabs - a character strip
+    // above them would offer tabs those page types do not have. Gallery was
+    // missing from this list when the type shipped, so its editor showed six
+    // character tabs that did nothing.
+    if (['system', 'tierlist', 'gallery', 'tool'].includes(window.currentEditorPageType)) {
         nav.classList.add('hidden');
         return;
     }
@@ -147,7 +149,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         return;
     }
 
-    const frameTabs = ['m1s', 'skills', 'specials'];
+    const frameTabs = window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials'];
 
     // Note: window.currentEditor* was previously assigned a second time here,
     // byte-identical to the assignment at the top of this function - a

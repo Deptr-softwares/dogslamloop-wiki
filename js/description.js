@@ -510,11 +510,18 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
 async function loadPageDescriptions(pageId, pageType = 'character', modeId = null) {
     try {
         let data = null;
-        
+
+        // Set when the object came from the editor, which has already narrowed
+        // it to the state being edited (js/editor-modes.js). Resolving it a
+        // second time below would look for a modeData bucket inside a bucket
+        // and render the preview empty.
+        let dataIsPreScoped = false;
+
         // 1. Check Editor Cache (For Live Preview pane)
         if (window.currentEditorDescData) {
             data = window.currentEditorDescData;
-        } 
+            dataIsPreScoped = true;
+        }
         else {
             // 2. Check Supabase Cloud Database
             if (typeof window.fetchCloudCharacterData === 'function') {
@@ -721,7 +728,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
             // kit's. resolveModeDesc hands `data` straight back for the base
             // mode - which is every character that declares no modes - so this
             // is a no-op for all 22 pages that exist today.
-            const activeMode = modeId || window.activeCharacterMode || null;
+            const activeMode = dataIsPreScoped ? null : (modeId || window.activeCharacterMode || null);
             if (typeof window.resolveModeDesc === 'function') {
                 data = window.resolveModeDesc(data, activeMode);
             }

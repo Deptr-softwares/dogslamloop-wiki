@@ -492,6 +492,68 @@ input[type="checkbox"]:checked {
 .tierlist-preview-disabled-title { color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; letter-spacing: 1px; }
 .tierlist-preview-disabled-text { font-family: var(--text-mono); font-size: 0.85rem; max-width: 400px; line-height: 1.5; }
 
+/* --- CHARACTER STATE TOGGLE (edit.html, driven by js/editor-modes.js) ---
+   Sits above the major tab strip, mirroring the live page exactly: the
+   chips are style/Layout.css's .character-mode-chip, deliberately shared so
+   the editor and the page a contributor is previewing look the same.
+
+   That makes this the second consumer of .character-mode-chip - the first
+   being .character-mode-bar on character pages. Nothing below overrides the
+   chip itself; only the bar's spacing and the two editor-only additions
+   (the + STATE button and the rename/delete row) live here. */
+.editor-mode-bar { margin-top: 0; margin-bottom: 0.25rem; }
+
+/* Outlined rather than filled: it creates a state, it does not select one,
+   and it must not read as a fourth state sitting next to the real ones. */
+.character-mode-chip.editor-mode-add {
+    background: transparent;
+    border-style: dashed;
+    color: var(--text-muted);
+}
+.character-mode-chip.editor-mode-add:hover {
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
+.editor-mode-controls {
+    display: flex;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.65rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+.editor-mode-controls.hidden { display: none; }
+
+.editor-mode-label-field { display: flex; flex-direction: column; gap: 0.2rem; }
+.editor-mode-label-field span {
+    font-family: var(--text-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.editor-mode-label-field input {
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+    color: var(--text-white);
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+}
+
+/* The id, shown because it is what a shared link carries and it never
+   changes when the name does. */
+.editor-mode-id-hint {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-right: auto;
+    padding-bottom: 0.35rem;
+}
+
 /* --- MAJOR TAB STRIP (edit.html, driven by switchEditorTab) ---
    Sits directly above the .daw-variant-tabs sub-nav, giving the editor the
    same two-level hierarchy the live page has: major tab, then sub-tab.

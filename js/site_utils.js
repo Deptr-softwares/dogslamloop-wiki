@@ -181,6 +181,23 @@ window.resolveModeDesc = function(descData, modeId) {
     });
 };
 
+// Splits a possibly state-wrapped delta into the state it targets and the
+// plain scope underneath. Everything that reads a revision's scope to decide
+// what to show - the queue label, the changed-tab markers, the preview's
+// opening tab, the editor's intercept path - has to look past the wrapper, and
+// they must all split it the same way.
+//
+// Returns modeId: null for an ordinary delta, so callers can treat the result
+// uniformly rather than branching on the scope first.
+window.unwrapModeDelta = function(scope, key) {
+    if (scope !== 'mode' || typeof key !== 'string') return { modeId: null, scope, key };
+
+    const parts = key.split('::');
+    const modeId = parts.shift();
+    const innerScope = parts.shift() || '';
+    return { modeId, scope: innerScope, key: parts.join('::') || 'full' };
+};
+
 // --- DELTA INJECTION ENGINE ---
 // Shared by admin.js, editor.js, and history.js, which each need to
 // reconstruct a full description/frame-data object from a stored

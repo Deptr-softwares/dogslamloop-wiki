@@ -109,7 +109,13 @@ async function loadQueue() {
             // "MOVE: 5H" beats "[PATCH: MOVE]" when the queue has ten pending
             // move edits on the same character and they all look identical
             // until opened.
-            let targetLabel = rev.target_scope ? rev.target_scope.toUpperCase() : '';
+            // A character-state edit is wrapped, so the raw scope reads "MODE"
+            // for every one of them. Unwrap and name the state instead: which
+            // kit an edit targets is the first thing a reviewer needs.
+            const unwrapped = window.unwrapModeDelta(rev.target_scope, rev.target_key);
+            const statePrefix = unwrapped.modeId ? `${unwrapped.modeId.toUpperCase()} / ` : '';
+
+            let targetLabel = unwrapped.scope ? unwrapped.scope.toUpperCase() : '';
             if (rev.target_scope === 'multi') {
                 // A batched or merged ticket carries a list of scopes, so there
                 // is no single target to name - count them instead, matching the
@@ -118,11 +124,11 @@ async function loadQueue() {
                 const targetCount = Array.isArray(rev.delta_payload) ? rev.delta_payload.length : 0;
                 targetLabel = `${targetCount} TARGET${targetCount === 1 ? '' : 'S'}`;
             } else if (rev.target_key) {
-                if (rev.target_scope === 'move' && rev.target_key.includes('::')) {
-                    const [moveCategory, moveId] = rev.target_key.split('::');
-                    targetLabel = `${moveCategory.toUpperCase()}: ${moveId}`;
+                if (unwrapped.scope === 'move' && unwrapped.key.includes('::')) {
+                    const [moveCategory, moveId] = unwrapped.key.split('::');
+                    targetLabel = `${statePrefix}${moveCategory.toUpperCase()}: ${moveId}`;
                 } else {
-                    targetLabel = `${targetLabel}: ${rev.target_key}`;
+                    targetLabel = `${statePrefix}${targetLabel}: ${unwrapped.key}`;
                 }
             }
             const deltaBadge = rev.is_delta
