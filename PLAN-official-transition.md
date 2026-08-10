@@ -200,6 +200,30 @@ Per the project's own rule, a batch of bug fixes ships as `fix/…` with no vers
 
 ---
 
+## 3d. What shipped, 2026-08-10
+
+The whole batch, in five commits on `fix/reviewer-workflow`. 451 specs pass; `npm run validate` clean.
+
+**Every reported bug is fixed, but only two of the six were the thing they looked like.** Reproducing before fixing was worth it twice over:
+
+- The "Editing null" section was **not** a Profile/Playstyle bug. `updateLivePreview` read `urlParams.get('tab')` raw while `editor-core.js` boots with `urlParams.get('tab') || 'overview'`, so opening the editor without a `?tab=` gave the two different answers. It reads `currentEditorTabId` now, the same thing `triggerManualSync` already used.
+- "Alt text does not persist" was **three** defects. It persisted fine in the data; `<video>` simply has no `alt` attribute, so alt entered against a video-media move rendered nowhere (it carries `aria-label` now). Chasing that surfaced the mp4 problem the owner reported separately — video detection ran `endsWith` on the whole URL and knew only mp4/webm, so `clip.mp4?t=123` and `.mov` fell to the `<img>` branch. **And that branch was broken anyway**: it emitted `data-lazy-src`, but `initLazyMedia` only ever promotes `video[data-lazy-src]` and `iframe[data-lazy-src]`, never `img` — so every static skill-card image had been rendering with no source at all.
+
+**Four injection points were found and fixed while in the area**, none of them reported. Author badges (`description.js`, on every character and system page); the Profile and Playstyle forms, which interpolate submitted values into `value=""` and which a reviewer renders *someone else's* text through when intercepting; the skill card's metadata; and `move.id` built into an inline `onclick`, where a quote in an id closed the handler. The escaping is deliberately narrow — block *content* stays rich HTML, because contributors write formatted prose and flattening it would break every page.
+
+**Two decisions changed on contact with the code:**
+
+- The **multi-scope delta needed no migration** — the format already existed and was already in production. See the SHIPPED note under §3b.
+- The **navigation work widened to `edit.html`** on the owner's clarification, and that turned out to be where the real blocker was. See the SHIPPED note under §3b.
+
+**Cooldown perk, decided by the owner:** remove it entirely for `trusted_editor`/`reviewer`/`admin`, **but as a toggle in owner tools rather than a constant** — a perk switch that can be pulled without a migration if a staff account is compromised. New `site_settings` singleton (separate from `site_meta`, which is content and gets regenerated into a committed public artifact). The trigger's role test is a positive `IN`, so the NULL `get_my_role()` returns for a roleless user fails safe on its own.
+
+**One thing to know about the contributor-list change:** it is a DOM pass over the finished tab, not a value threaded through callers, because four different code paths build those sections and some are asynchronous. It also catches the accordion footers a caller-level version would miss. Sorted alphabetically rather than left in document order — a nested footer renders *before* its enclosing section's, so document order never matched authoring order and never could.
+
+**Still unverified, and cannot be verified before merge:** the migration. Migrations apply on merge, and Playwright cannot reach RLS, grants or triggers. Probe after merging — anon read of `site_settings` should succeed, a non-admin write should fail, an admin write should succeed, and a `trusted_editor` should be able to submit twice inside three minutes.
+
+---
+
 ## 4. Proposed sequencing
 
 Ordered by **what unblocks the 30-person team**, because that is now the binding constraint. Content written before the structural work gets rewritten after it.
