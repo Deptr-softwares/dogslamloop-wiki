@@ -727,6 +727,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                         payloadsToInsert.push(buildPayload(d.scope, d.key, d.payload));
                     });
                 }
+                // --- Tool Payload ---
+                // Config and prose ship as separate scopes: the config is the
+                // owner's and the prose is everyone's, so a contributor fixing
+                // the intro must not be able to carry a URL change with it.
+                else if (pageType === 'tool') {
+                    await window.triggerManualSync();
+                    window.buildToolDeltas(window.currentEditorDescData, window.originalCloudDescData)
+                        .forEach(d => payloadsToInsert.push(buildPayload(d.scope, d.key, d.payload)));
+                }
                 // --- System Payload ---
                 else if (pageType === 'system' || pageType === 'tierlist') {
                     await window.triggerManualSync(); 

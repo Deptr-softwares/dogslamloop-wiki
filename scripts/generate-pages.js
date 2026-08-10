@@ -75,7 +75,7 @@ const GENERATED_PAGE_TYPES = new Set(['character', 'system', 'gallery', 'tool'])
 // the unfurler has no page context to resolve them against.
 const SITE_ORIGIN = 'https://dogslamloop.com';  // matches CNAME
 const SITE_NAME = 'Dogslamloop Wiki';
-const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/medias/images/DogslamloopIconGay.webp`;
+const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/medias/images/DogslamloopIcon.webp`;
 
 // `summary` rather than `summary_large_image`: the site logo is ~194x134, and
 // claiming a large banner for a small image renders as an ugly upscale.
@@ -157,7 +157,7 @@ function characterStub({ pageId, title, docTitle, social }) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${docTitle}</title>
-    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIconGay.webp">
+    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
 
 ${social}
 
@@ -208,7 +208,7 @@ function systemStub({ pageId, title, docTitle, social }) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${docTitle}</title>
-    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIconGay.webp">
+    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
 
 ${social}
 
@@ -259,7 +259,7 @@ function mediaStub({ pageId, title, docTitle, social, pageType, script, extraScr
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${docTitle}</title>
-    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIconGay.webp">
+    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
 
 ${social}
 
@@ -319,7 +319,7 @@ function tombstoneStub({ name, hubPath, hubLabel }) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${attr(name)} (archived) | ${attr(SITE_NAME)}</title>
-    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIconGay.webp">
+    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
 
     <meta name="robots" content="noindex, follow">
     <meta name="description" content="${attr(`${name} has been archived on the Dogslamloop wiki.`)}">

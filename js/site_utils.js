@@ -395,8 +395,14 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
     // The prose above a gallery, and the tool config on a tool page. Whole-
     // value replacements, like profile/playstyle - they are single objects,
     // not lists with identities.
-    else if (scope === 'gallery_intro') {
+    // The prose around a gallery or a tool. 'gallery_intro' is the original
+    // name and is kept because tickets carrying it may already be queued; new
+    // submissions use the plain key, which reads correctly on both page types.
+    else if (scope === 'gallery_intro' || scope === 'intro') {
         newDesc.intro = payload;
+    }
+    else if (scope === 'notes') {
+        newDesc.notes = payload;
     }
     else if (scope === 'tool_config') {
         newDesc.tool = payload;

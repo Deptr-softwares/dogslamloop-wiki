@@ -120,7 +120,13 @@ test.describe('character pages', () => {
         'MAIN.main-content-area.space-y-6',
         'ASIDE.local-sidebar-right',
       ]);
-      expect(sig.tabs).toEqual(EXPECTED_CHARACTER_TABS);
+      // js/character_modes.js appends an Ultimate tab at runtime for
+      // base-only characters, once it has read the page registry - so whether
+      // it is present here depends on a network response, not on the router.
+      // This spec is about what the router builds, so that tab is filtered
+      // out rather than asserted either way. tests/character-modes.spec.js
+      // owns the claim that it appears when it should.
+      expect(sig.tabs.filter(t => t.id !== 'tab-ultimateAtk')).toEqual(EXPECTED_CHARACTER_TABS);
       for (const id of REQUIRED_CHROME_IDS) {
         expect(sig.chrome[id], `missing #${id}`).toBe(true);
       }

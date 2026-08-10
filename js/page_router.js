@@ -73,7 +73,7 @@
         return `
     <div class="mobile-top-bar">
         <a href="${ROOT}index.html" class="mobile-logo-link">
-            <img src="${ROOT}medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
+            <img src="${ROOT}medias/images/DogslamloopIcon.webp" class="mobile-logo-img" alt="Logo">
             <span class="mobile-site-title">dogslamloop wiki</span>
         </a>
         <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">☰</button>
@@ -85,7 +85,7 @@
         return `
         <aside class="global-sidebar-left" id="master-sidebar" aria-label="Site navigation">
             <div class="sidebar-header-top">
-                <img src="${ROOT}medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
+                <img src="${ROOT}medias/images/DogslamloopIcon.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
                     <a href="${ROOT}index.html" class="site-title">dogslamloop wiki</a>
                     <p class="site-subtitle">Alpha v0.4</p>

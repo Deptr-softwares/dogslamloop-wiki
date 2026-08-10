@@ -119,6 +119,15 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         return;
     }
 
+    // --- Reroute to the Tool setup ---
+    // A tool page is a link or an app plus two blocks of prose, not tabs of
+    // sections - routing it through the system builder would offer a tab
+    // structure the renderer never reads.
+    if (window.currentEditorPageType === 'tool') {
+        if (typeof window.renderToolEditor === 'function') window.renderToolEditor(builder);
+        return;
+    }
+
     // --- Reroute to the new System Builder UI ---
     if (window.currentEditorPageType === 'system') {
         if (window.currentSystemTabIdx === undefined) {

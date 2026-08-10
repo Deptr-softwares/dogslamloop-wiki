@@ -84,6 +84,11 @@ window.renderToolPage = async function(pageId) {
     const main = document.querySelector('.main-content-area');
     if (!main) return;
 
+    // The editor re-renders on every keystroke, and without this each pass
+    // would stack another shell underneath the last.
+    const previous = main.querySelector('.tool-shell');
+    if (previous) previous.remove();
+
     const shell = document.createElement('div');
     shell.className = 'tool-shell';
     shell.innerHTML = `
@@ -93,8 +98,11 @@ window.renderToolPage = async function(pageId) {
     `;
     main.appendChild(shell);
 
-    let data = null;
-    if (window.supabaseClient) {
+    // The editor's own object wins, same convention as description.js and
+    // framedata.js - that is what makes the live preview pane show unsaved
+    // work rather than whatever is currently in the database.
+    let data = window.currentEditorDescData || null;
+    if (!data && window.supabaseClient) {
         const { data: row } = await window.supabaseClient
             .from('page_data').select('desc_data').eq('page_id', pageId).maybeSingle();
         data = row ? row.desc_data : null;

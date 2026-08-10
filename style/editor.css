@@ -502,6 +502,20 @@ input[type="checkbox"]:checked {
 .tierlist-preview-disabled-title { color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; letter-spacing: 1px; }
 .tierlist-preview-disabled-text { font-family: var(--text-mono); font-size: 0.85rem; max-width: 400px; line-height: 1.5; }
 
+/* --- TOOL PAGE SETUP (js/editor-tool.js) ---
+   Short explanations sitting under a control rather than a tooltip on it: the
+   two things worth saying here (an embed can silently render blank, and a
+   tool with its own renderer ignores the link settings) are exactly the kind
+   of thing someone only discovers after it has already confused them. */
+.tool-editor-hint {
+    margin: 0.4rem 0 0;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+.tool-embed-toggle { margin-top: 0.85rem; }
+
 /* --- PORTRAIT CROP FOCUS (js/editor-tabs.js renderProfileForm) ---
    Character portraits render as a fixed square (style/Layout.css
    .profile-portrait), so a non-square source is cropped. These nine dots aim
