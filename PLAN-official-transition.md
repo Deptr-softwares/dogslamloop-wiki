@@ -114,6 +114,26 @@ Root cause for 3 is `js/editor-sync.js:252`, `` const sectionTitle = `Editing ${
 - **The cancel button does nothing when intercepting a revision.** Same area as the P0; likely worth fixing together.
 - **Alt text on skill-card profiles (`framedata.js`) does not persist** despite entering it and syncing. Also an accessibility regression, which matters more now that v0.11 established a baseline.
 
+### Decided: merged tickets become multi-scope deltas
+
+**Owner's call.** Rather than one snapshot, a merge emits a delta carrying a **list** of scopes, so it injects each contributor's change without touching anything else. That removes the overwrite risk at the root instead of guarding against it.
+
+Consequences to design for:
+
+- `applyDeltaToData` (`js/site_utils.js`) currently takes a single `scope`/`key`/`payload`. It gains a list form. It is shared by `admin.js`, `editor.js` and `history.js` for live preview, revision merging and history replay respectively — **all three must handle both shapes**, since existing single-scope tickets stay in the queue and in `page_history` forever.
+- `pending_revisions.target_scope`/`target_key` are scalar columns used for the queue's `[PATCH: …]` badge (`js/admin-queue.js:112-123`). A multi-scope ticket needs either a list column or a sentinel plus the list inside `delta_payload`.
+- The queue badge and the size hint both read those columns, so both need a multi-scope branch.
+
+### Decided: reviewers navigate revisions by top tabs, not the document explorer
+
+**Owner's request.** Today the reviewer navigates a revision through the document explorer in the left workspace, which is inefficient. It should use a top navigation bar of tabs, mirroring how live character and system pages already work.
+
+**This also fixes a confirmed bug, and is required by the decision above.**
+
+`js/admin-actions.js:17` guards its "Smart Routing" behind `if (rev.is_delta)`. A merged ticket is `is_delta: false`, so **no `&tab=` is ever appended**, and `js/editor-core.js:33` falls back to `'overview'`. So intercepting *any* non-delta ticket dumps the reviewer on Overview regardless of what was actually edited — which is why intercepting a skill revision is currently impossible.
+
+The two decisions interlock: once a merge is a **multi-scope** delta, single-target smart routing is not merely broken but meaningless — there is no one tab to jump to. Top-tab navigation is what replaces it. Build them together.
+
 ### P1 — found while investigating, not reported
 
 **Author badges are interpolated unescaped.** `js/description.js:364` builds `<span class="author-badge">${a}</span>` where `a` comes from `block.author.split(',')`. Author strings ride along inside submitted block data, so this is contributor-reachable and violates the project's own "escape at every `innerHTML` interpolation" rule. It renders on every character and system page. Fix with the reviewer-workflow batch.
