@@ -266,11 +266,14 @@ const STATUS_LABELS = { live: 'Live', draft: 'Draft', archived: 'Archived' };
 // Keeping page_type as-is also means no migration: the CHECK constraint on
 // site_pages.page_type is untouched, and site_pages.url already stores the
 // full path, so the directory needs no column of its own.
+// A directory lists the types it can hold, not one type: others/ takes both
+// ordinary system pages (gamemodes, easter eggs) and the gallery that Emotes
+// needs. The first entry is the default when the type changes.
 const PAGE_DIRECTORIES = {
-    characters: { label: 'characters/ - character pages', pageType: 'character' },
-    systems: { label: 'systems/ - systems and guides', pageType: 'system' },
-    others: { label: 'others/ - gamemodes, emotes, easter eggs', pageType: 'system' },
-    tools: { label: 'tools/ - interactive tools', pageType: 'system' },
+    characters: { label: 'characters/ - character pages', pageTypes: ['character'] },
+    systems: { label: 'systems/ - systems and guides', pageTypes: ['system'] },
+    others: { label: 'others/ - gamemodes, emotes, easter eggs', pageTypes: ['system', 'gallery'] },
+    tools: { label: 'tools/ - your own tools', pageTypes: ['tool'] },
 };
 window.PAGE_DIRECTORIES = PAGE_DIRECTORIES;
 
@@ -279,8 +282,11 @@ function derivePageIdentity(name, pageType, directory) {
         .replace(/[^\w\s-]/g, '').replace(/[\s-]+/g, '_').replace(/^_|_$/g, '');
     if (!pageId) return null;
 
-    // Defaulting from page_type keeps every existing caller working unchanged.
-    const dir = PAGE_DIRECTORIES[directory] ? directory : (pageType === 'character' ? 'characters' : 'systems');
+    // Defaulting from page_type keeps every existing caller working unchanged,
+    // and gives a new type somewhere sensible to land when no folder is named.
+    const dir = PAGE_DIRECTORIES[directory]
+        ? directory
+        : (Object.keys(PAGE_DIRECTORIES).find(d => PAGE_DIRECTORIES[d].pageTypes.includes(pageType)) || 'systems');
 
     // Character folders are Capitalised_like_this; everything else is
     // kebab-case. That split is historical but it is what the 22 existing
@@ -310,10 +316,10 @@ function populateDirectoryOptions() {
         .map(([dir, meta]) => `<option value="${ownerEscape(dir)}">${ownerEscape(meta.label)}</option>`)
         .join('');
 
-    const suits = current && PAGE_DIRECTORIES[current] && PAGE_DIRECTORIES[current].pageType === pageType;
+    const suits = current && PAGE_DIRECTORIES[current] && PAGE_DIRECTORIES[current].pageTypes.includes(pageType);
     select.value = suits
         ? current
-        : Object.keys(PAGE_DIRECTORIES).find(d => PAGE_DIRECTORIES[d].pageType === pageType) || 'systems';
+        : Object.keys(PAGE_DIRECTORIES).find(d => PAGE_DIRECTORIES[d].pageTypes.includes(pageType)) || 'systems';
 }
 
 function updateNewPagePreview() {

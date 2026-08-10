@@ -62,6 +62,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
+    // --- GALLERY AND TOOL PAGES ---
+    // Same shell as a system page, filled by their own renderer instead of
+    // description.js's tab engine. Handled before the system branch rather
+    // than inside it: both fetch the same page_data row but do entirely
+    // different things with desc_data, and folding that into
+    // loadPageDescriptions would mean a third mode in a function that already
+    // has two.
+    if (pageType === 'gallery' || pageType === 'tool') {
+        if (window.initMobileNav) window.initMobileNav();
+
+        const render = pageType === 'gallery' ? window.renderGalleryPage : window.renderToolPage;
+        if (typeof render === 'function') await render(pageId);
+
+        if (typeof window.loadPageAlerts === 'function') await window.loadPageAlerts(pageId);
+        if (typeof window.initTabEditorButtons === 'function') window.initTabEditorButtons(pageId, pageType);
+
+        if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
+        if (typeof window.initAuthDock === 'function') await window.initAuthDock();
+        if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
+        return;
+    }
+
     // --- SYSTEM PAGES ---
     // Sequential and awaited, matching the original system-page behaviour.
     if (window.initMobileNav) window.initMobileNav();
