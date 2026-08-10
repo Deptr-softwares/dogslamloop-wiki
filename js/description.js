@@ -359,9 +359,15 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
 
     // --- AUTHOR FOOTER ---
     if (sectionAuthors.size > 0) {
-        // Wrap each author in a badge span
+        // Escaped, unlike the block content above it. Block content is
+        // deliberately rich HTML - contributors write formatted prose, and
+        // paragraphs even run a keybind substitution over it - but an author
+        // name is an identity label, never markup. It rides along inside
+        // submitted block data as block.author, so it is contributor-reachable
+        // on every character and system page, and it was going into innerHTML
+        // raw.
         const authorBadges = Array.from(sectionAuthors)
-            .map(a => `<span class="author-badge">${a}</span>`)
+            .map(a => `<span class="author-badge">${window.escapeHtml(a)}</span>`)
             .join('');
         
         contentHTML += `
@@ -386,6 +392,69 @@ function getAlignStyle(align) {
     if (align) styleStr += ` text-align: ${align};`;
     return `style="${styleStr}"`;
 }
+
+// Raises contributor credit from per-section to per-tab.
+//
+// generateHTMLForBlocks already aggregates authors, but only within one call -
+// so a tab built from several sections got a footer per section, and an
+// accordion got another one nested inside it, since the recursive call starts
+// its own author set. Five badges partway down the Overview tab is noise, and
+// the same name repeated in three footers is worse.
+//
+// Done as a DOM pass over the finished tab rather than by threading an author
+// set through every caller: the sections are built by four different code
+// paths (overview, matchups, counterplay, move strategies), some of them
+// asynchronously, and this way each one only has to say "I'm done" rather than
+// hand its authors back. It also picks up the nested accordion footers, which
+// a caller-level version would miss.
+//
+// Deliberately not applied to blog posts (js/posts.js) - a post has one author
+// and its footer belongs where it is.
+window.consolidateTabContributors = function(root) {
+    if (!root) return;
+
+    const footers = root.querySelectorAll('.aggregated-contributors-footer');
+    if (footers.length === 0) return;
+
+    // Set, because the same person usually wrote several sections of a tab.
+    //
+    // Sorted rather than left in document order: a nested accordion emits its
+    // footer inside the accordion body, which lands *before* the enclosing
+    // section's own footer, so document order does not match authoring order
+    // and never can. Alphabetical is at least honest about being a credits
+    // list rather than a sequence.
+    const authors = new Set();
+    footers.forEach(footer => {
+        footer.querySelectorAll('.author-badge').forEach(badge => {
+            const name = badge.textContent.trim();
+            if (name) authors.add(name);
+        });
+        footer.remove();
+    });
+
+    const ordered = Array.from(authors).sort((a, b) => a.localeCompare(b));
+
+    if (authors.size === 0) return;
+
+    const footer = document.createElement('div');
+    footer.className = 'aggregated-contributors-footer tab-contributors-footer';
+    // textContent per badge, so a contributor name is never parsed as markup -
+    // same reason generateHTMLForBlocks escapes them.
+    const header = document.createElement('div');
+    header.className = 'contributors-header';
+    header.innerHTML = `<span class="contributors-icon">👥</span><span class="contributors-text">Contributors</span>`;
+    const list = document.createElement('div');
+    list.className = 'contributors-list';
+    ordered.forEach(name => {
+        const badge = document.createElement('span');
+        badge.className = 'author-badge';
+        badge.textContent = name;
+        list.appendChild(badge);
+    });
+    footer.appendChild(header);
+    footer.appendChild(list);
+    root.appendChild(footer);
+};
 
 function populateTextSection(containerId, sectionTitle, blocks, contextClass = '') {
     const container = document.getElementById(containerId);
@@ -612,6 +681,10 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                     const clearFix = document.createElement('div');
                     clearFix.className = 'flex-row-break';
                     tabContainer.appendChild(clearFix);
+
+                    // After the clear-fix, so the footer sits below the
+                    // floated section content rather than beside it.
+                    window.consolidateTabContributors(tabContainer);
                 } else {
                     tabContainer.innerHTML = `<div class="wiki-section-empty wiki-section-empty-flex">This section has not been written yet.</div>`;
                 }
@@ -712,6 +785,8 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                         }
                     });
                 }
+
+                window.consolidateTabContributors(overviewContainer);
             }
 
             // --- 2. MATCHUPS TAB ---
@@ -761,6 +836,8 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                             contentWrapper.innerHTML = `<p class="empty-notes-msg">No notes recorded for this matchup.</p>`;
                         }
                     });
+
+                    window.consolidateTabContributors(matchupsContainer);
                 }
             }
 
@@ -810,6 +887,8 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                             contentWrapper.innerHTML = `<p class="empty-notes-msg">No specific counterplay details recorded.</p>`;
                         }
                     });
+
+                    window.consolidateTabContributors(counterplayContainer);
                 } else {
                      counterplayContainer.innerHTML = `
                         <div class="empty-tab-msg">
@@ -825,6 +904,12 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                     for (const [moveId, blocks] of Object.entries(data.moveStrategies)) {
                         populateTextSection(`strategy-${moveId}`, 'Move Overview and Strategy', blocks, 'move-strategy');
                     }
+                    // Deferred behind the same 300ms wait as the sections
+                    // themselves, since the move cards these render into are
+                    // built by js/framedata.js on its own schedule.
+                    ['m1s', 'skills', 'specials'].forEach(tab => {
+                        window.consolidateTabContributors(document.getElementById(`tab-${tab}`));
+                    });
                     if (typeof applyInternalStyling === 'function') applyInternalStyling();
                     if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
                 }, 300); 

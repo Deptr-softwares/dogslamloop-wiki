@@ -164,31 +164,59 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             // --- 2. MEDIA & VIDEO FALLBACK ---
             let mediaContent = `<div class="skill-media-missing">[ Missing Media ]</div>`;
             if (move.media?.src) {
-                const srcLower = move.media.src.toLowerCase();
-                const isVideo = srcLower.endsWith('.mp4') || srcLower.endsWith('.webm');
-                const filename = move.media.src.split('/').pop();
-                
+                // Extension is read off the path, not the whole URL. A raw
+                // endsWith missed anything carrying a query string or
+                // fragment - "clip.mp4?t=123" is ordinary for storage URLs -
+                // and only knew mp4/webm, while the media library accepts
+                // anything video/*. Those all fell through to the <img>
+                // branch, which cannot play a video: that is why mp4 looked
+                // unsupported in skill cards.
+                const path = move.media.src.split(/[?#]/)[0].toLowerCase();
+                const isVideo = ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => path.endsWith(ext));
+                // .gif stays an image on purpose - it animates on its own.
+                const filename = path.split('/').pop();
+                const esc = window.escapeHtml;
+                const altText = move.media.alt || '';
+
                 if (isVideo) {
                     // Injecting lazy-loading to prevent memory nukes!
+                    //
+                    // aria-label, not alt: <video> has no alt attribute, so
+                    // alt text entered against a video-media move used to go
+                    // nowhere at all - which is how "alt text does not
+                    // persist" was reported. It persisted fine in the data;
+                    // it just had nothing to render into. Plenty of skill
+                    // media is .mp4/.webm, so this was the common case.
                     mediaContent = `
-                        <video data-lazy-src="${move.media.src}" class="skill-media-img" autoplay loop muted playsinline style="object-fit: cover;" preload="none"></video>
-                        <span class="skill-media-filename">${filename}</span>`;
+                        <video data-lazy-src="${esc(move.media.src)}" class="skill-media-img"${altText ? ` aria-label="${esc(altText)}"` : ''} autoplay loop muted playsinline style="object-fit: cover;" preload="none"></video>
+                        <span class="skill-media-filename">${esc(filename)}</span>`;
                 } else {
+                    // Native loading="lazy" with a real src, matching how
+                    // description.js renders wiki images. This carried
+                    // data-lazy-src before, but initLazyMedia only ever
+                    // promoted video[data-lazy-src] and iframe[data-lazy-src]
+                    // - never img - so every static image in a skill card
+                    // rendered with no source at all.
                     mediaContent = `
-                        <img data-lazy-src="${move.media.src}" alt="${move.media.alt || ''}" class="skill-media-img">
-                        <span class="skill-media-filename">${filename}</span>`;
+                        <img src="${esc(move.media.src)}" alt="${esc(altText)}" class="skill-media-img" loading="lazy">
+                        <span class="skill-media-filename">${esc(filename)}</span>`;
                 }
             }
 
             card.innerHTML = `
                 <div class="skill-entry-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
-                        <h2 class="skill-title">${move.name || 'Unknown Move'}</h2>
-                        <span class="skill-subtitle">Input: ${move.input || 'N/A'} | Skill Type: ${move.type || 'N/A'} | Damage Type: ${move.damageType || 'N/A'} | ${move.variant || ''}</span>
+                        <h2 class="skill-title">${window.escapeHtml(move.name || 'Unknown Move')}</h2>
+                        <span class="skill-subtitle">Input: ${window.escapeHtml(move.input || 'N/A')} | Skill Type: ${window.escapeHtml(move.type || 'N/A')} | Damage Type: ${window.escapeHtml(move.damageType || 'N/A')} | ${window.escapeHtml(move.variant || '')}</span>
                     </div>
 
-                    <button class="btn-sys btn-sys-regular" 
-                            onclick="window.location.href='../../edit.html?page=${pageId}&type=${pageType}&tab=${sectionType}&move=${move.id}'" 
+                    <!-- move.id is contributor-submitted and used to be built
+                         straight into an inline onclick, where a quote closed
+                         the handler and ran whatever followed, on every
+                         character page. Wired below from a data attribute
+                         instead, per the project's own rule. -->
+                    <button class="btn-sys btn-sys-regular skill-edit-move-btn"
+                            data-move-id="${window.escapeHtml(move.id || '')}"
                             style="display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.6rem;">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         Edit Move
@@ -206,7 +234,17 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             `;
 
             container.appendChild(card);
-            
+
+            const editBtn = card.querySelector('.skill-edit-move-btn');
+            if (editBtn) {
+                editBtn.addEventListener('click', () => {
+                    const params = new URLSearchParams({
+                        page: pageId, type: pageType, tab: sectionType, move: editBtn.dataset.moveId || '',
+                    });
+                    window.location.href = `../../edit.html?${params}`;
+                });
+            }
+
             const rightCol = document.getElementById(`right-col-${move.id}`);
             const pendingTabs = [];
 

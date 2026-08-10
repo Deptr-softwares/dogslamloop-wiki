@@ -84,20 +84,50 @@ test('#preview-content-area.active toggles opacity/pointer-events via classList 
 
 test('dynamically-created system-nav-btn (js/admin-diff.js updateAdminSidebar) gets its styling from a class, not inline', async ({ page }) => {
   await page.goto('/admin.html', { waitUntil: 'networkidle' });
+
+  // Drives the real generator rather than a hand-built stand-in. These
+  // buttons used to be bare <div class="nav-btn system-nav-btn"> styled by a
+  // sidebar-scoped rule; they render in the top revision strip now and take
+  // the same .btn-manga shape as the static character tabs beside them.
   const result = await page.evaluate(() => {
-    const sidebar = document.createElement('div');
-    sidebar.id = 'preview-nav-sidebar';
-    const nav = document.createElement('div');
-    nav.className = 'nav-btn system-nav-btn';
-    sidebar.appendChild(nav);
-    document.body.appendChild(sidebar);
-    const cs = { cursor: getComputedStyle(nav).cursor, fontSize: getComputedStyle(nav).fontSize, hasInlineStyle: nav.hasAttribute('style') };
-    sidebar.remove();
-    return cs;
+    document.body.innerHTML = `
+      <nav id="preview-tab-nav" class="admin-preview-tab-nav">
+        <button id="nav-overview" class="btn-manga btn-manga-slanted active"><div class="btn-manga-content"><span class="btn-manga-text">Overview</span></div></button>
+      </nav>
+    `;
+
+    window.activePreviewPageType = 'system';
+    window.currentPendingDescData = {
+      // Contributor-submitted, so it must arrive as text and not as markup.
+      tabs: [{ tabId: 'mechanics', tabLabel: '<img src=x onerror="window.__xss=1">Mechanics' }],
+    };
+    window.currentLiveDescData = {};
+
+    window.updateAdminSidebar();
+
+    const btn = document.getElementById('nav-mechanics');
+    return {
+      exists: !!btn,
+      tagName: btn ? btn.tagName : null,
+      inStrip: !!(btn && btn.closest('#preview-tab-nav')),
+      isManga: !!(btn && btn.classList.contains('btn-manga')),
+      hasInlineStyle: btn ? btn.hasAttribute('style') : true,
+      cursor: btn ? getComputedStyle(btn).cursor : null,
+      label: btn ? btn.textContent : null,
+      injectedImg: !!(btn && btn.querySelector('img')),
+      xss: !!window.__xss,
+    };
   });
+
+  expect(result.exists).toBe(true);
+  expect(result.tagName, 'a real button, not a div dressed as one').toBe('BUTTON');
+  expect(result.inStrip).toBe(true);
+  expect(result.isManga, 'same shape as the static tabs beside it').toBe(true);
   expect(result.hasInlineStyle).toBe(false);
   expect(result.cursor).toBe('pointer');
-  expect(result.fontSize).toBe('13.6px'); // 0.85rem
+  expect(result.label).toContain('Mechanics');
+  expect(result.injectedImg, 'tab labels are contributor-submitted').toBe(false);
+  expect(result.xss).toBe(false);
 });
 
 test('real bug fix: window.escapeHtml (js/admin-core.js) neutralizes markup instead of letting it execute - contributor-controlled strings (author name, ticket chat, QA metadata, raw diff JSON) all pass through it before reaching innerHTML', async ({ page }) => {

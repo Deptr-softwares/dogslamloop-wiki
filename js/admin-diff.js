@@ -227,9 +227,52 @@ function calculateTabDiffs(rev) {
     }
 
     window.showChangedTabsPopup();
+    if (typeof window.markChangedRevisionTabs === 'function') window.markChangedRevisionTabs();
 }
 
-// --- DYNAMIC DOCUMENT EXPLORER ---
+// --- REVISION TAB STRIP ---
+// Selects a tab in the strip and shows its content, without needing a real
+// click. setupTabs (js/pagebuilder.js) only reacts to click events, so the
+// old code - which set .active on a nav button and nothing else - left the
+// strip pointing at one tab while the content pane showed another.
+window.setActiveRevisionTab = function(tabId) {
+    const nav = document.getElementById('preview-tab-nav');
+    if (!nav) return;
+
+    const target = document.getElementById(`nav-${tabId}`);
+    if (!target) return;
+
+    nav.querySelectorAll('.btn-manga').forEach(btn => btn.classList.remove('active'));
+    target.classList.add('active');
+
+    document.querySelectorAll('#preview-content-area > div[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+    const content = document.getElementById(`tab-${tabId}`);
+    if (content) content.classList.remove('hidden');
+};
+
+// Marks which tabs the revision actually changed. This information already
+// existed as window.changedTabs but was only surfaced as a dismissible
+// popup listing tab names in prose, which the reviewer had to memorise
+// before navigating. It matters most on a merged ticket, which touches
+// several tabs at once and so has no single target to route to.
+//
+// A per-button marker was tried before and removed because the buttons then
+// lived in the sidebar, invisible while reading the preview on mobile. They
+// are above the content now, which is what makes this worth doing again.
+window.markChangedRevisionTabs = function() {
+    const nav = document.getElementById('preview-tab-nav');
+    if (!nav) return;
+
+    nav.querySelectorAll('.btn-manga').forEach(btn => btn.classList.remove('tab-changed'));
+    (window.changedTabs || []).forEach(tabId => {
+        const btn = document.getElementById(`nav-${tabId}`);
+        if (btn) btn.classList.add('tab-changed');
+    });
+};
+
+// --- DYNAMIC REVISION TABS ---
+// Appends into whatever holds #nav-overview, which is now the top strip
+// (#preview-tab-nav) rather than the sidebar column it was written for.
 window.updateAdminSidebar = function() {
     const navOverviewBtn = document.getElementById('nav-overview');
     const navContainer = navOverviewBtn ? navOverviewBtn.parentElement : null;
@@ -254,10 +297,22 @@ window.updateAdminSidebar = function() {
             const tabId = tab.tabId || tab.id;
             const tabLabel = tab.tabLabel || tab.label || tabId;
             tabIds.push(tabId);
-            const btn = document.createElement('div');
+            // Same markup as the static character tabs above it and as the
+            // live system page's own nav (js/description.js) - a bare <div>
+            // here rendered unstyled once these moved into the manga strip.
+            // Built as nodes rather than innerHTML because tabLabel comes
+            // from contributor-submitted desc_data.
+            const btn = document.createElement('button');
             btn.id = `nav-${tabId}`;
-            btn.className = `nav-btn system-nav-btn ${idx === 0 ? 'active' : ''}`;
-            btn.textContent = tabLabel;
+            btn.className = `btn-manga btn-manga-slanted system-nav-btn ${idx === 0 ? 'active' : ''}`;
+
+            const content = document.createElement('div');
+            content.className = 'btn-manga-content';
+            const text = document.createElement('span');
+            text.className = 'btn-manga-text';
+            text.textContent = tabLabel;
+            content.appendChild(text);
+            btn.appendChild(content);
 
             navContainer.appendChild(btn);
 

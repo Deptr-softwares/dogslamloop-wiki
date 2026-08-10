@@ -3,6 +3,71 @@
  * (custom/extra tabs, moves, matchups, counterplay, profile/playstyle)
  */
 
+// --- MAJOR TAB NAVIGATION ---
+// The editor had no way to change major tab at all: currentEditorTabId was
+// read from ?tab= once at boot (js/editor-core.js) and never moved again.
+// Landing on the wrong tab - which is what every intercept of a non-delta
+// ticket did - meant hand-editing the URL or giving up, so intercepting a
+// skill revision was effectively impossible. This is the same strip, in the
+// same shape, as the live character page's nav.
+const EDITOR_MAJOR_TABS = ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'];
+
+window.renderEditorTabNav = function(activeTabId) {
+    const nav = document.getElementById('editor-tab-nav');
+    if (!nav) return;
+
+    // System and tierlist pages bail out of initFullTabEditor into their own
+    // builders, which manage their own tabs - a character strip above them
+    // would offer tabs those page types do not have.
+    if (window.currentEditorPageType === 'system' || window.currentEditorPageType === 'tierlist') {
+        nav.classList.add('hidden');
+        return;
+    }
+
+    nav.classList.remove('hidden');
+    EDITOR_MAJOR_TABS.forEach(tabId => {
+        const btn = document.getElementById(`edit-nav-${tabId}`);
+        if (btn) btn.classList.toggle('active', tabId === activeTabId);
+    });
+};
+
+window.switchEditorTab = async function(tabId) {
+    if (tabId === window.currentEditorTabId) return;
+
+    // currentStrategyBlocks is a buffer that is only written back into
+    // desc_data on sync (js/editor-sync.js), so switching without flushing
+    // first silently drops whatever is being edited right now.
+    if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
+
+    // Clear the sub-selection state before crossing the boundary. All three
+    // sub-tab loaders below flush the *previous* selection's blocks into
+    // desc_data on entry - so arriving at Overview with a stale
+    // currentOverviewSection of 'strategy' would write the matchup blocks
+    // still sitting in the buffer into descData.strategy. The flush above
+    // has already saved the real content by this point.
+    window.currentOverviewSection = null;
+    window.currentMatchupIndex = undefined;
+    window.currentCounterplayIndex = undefined;
+
+    // The preview pane keeps one visible tab; editor-core un-hides only the
+    // booted one, so the switch has to move it.
+    const previousPreviewTab = document.getElementById(`tab-${window.currentEditorTabId}`);
+    if (previousPreviewTab) previousPreviewTab.classList.add('hidden');
+    const nextPreviewTab = document.getElementById(`tab-${tabId}`);
+    if (nextPreviewTab) nextPreviewTab.classList.remove('hidden');
+
+    window.renderEditorTabNav(tabId);
+    initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+
+    // Keep the URL honest - the editor boots from ?tab=, so a reload should
+    // land where the strip says it is. A leftover &move= would reopen a move
+    // belonging to the tab just left.
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tabId);
+    url.searchParams.delete('move');
+    window.history.replaceState({}, '', url);
+};
+
 // --- CUSTOM TAB MANAGEMENT ---
 window.addExtraTab = async function() {
     await window.triggerManualSync();
@@ -38,6 +103,10 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
     window.currentEditorDescData = descData || {};
     window.currentEditorTabId = tabId;
     window.currentEditorCharId = charId;
+
+    // Every entry point into a major tab lands here, including the boot
+    // route in editor-core.js, so the strip stays in step with the URL.
+    if (typeof window.renderEditorTabNav === 'function') window.renderEditorTabNav(tabId);
 
     // --- Reroute to the new System Builder UI ---
     if (window.currentEditorPageType === 'system') {
@@ -676,34 +745,139 @@ function initPerMoveEditor(moveId, statsData, strategyData) {
     updateLivePreview();
 }
 
+// --- STRUCTURED-FORM SUPPORT (Profile / Playstyle) ---
+// These two tabs edit a structured object rather than a block array, so they
+// return early from loadOverviewSectionIntoEditor without ever reaching
+// initBlockEditor - and with it they lost the Media Library button and the
+// undo/redo stack every other editor tab has. Reported as two separate bugs;
+// it is one gap, and this closes it for both tabs at once.
+
+// Same markup and classes as the block editor's toolbar so the two are
+// visually identical. No CLEAR ALL: there is no block list to clear, and
+// wiping a whole profile from a toolbar button is not a thing anyone wants.
+function structuredFormToolbar() {
+    return `
+        <div class="strategy-toolbar-row">
+            <div>
+                <button class="btn-sys btn-sys-blue" data-form-media title="Open Media Manager">📁 MEDIA LIBRARY</button>
+            </div>
+            <div class="strategy-toolbar-actions">
+                <button class="btn-sys btn-sys-regular" data-form-undo title="Undo" disabled>⮌ UNDO</button>
+                <button class="btn-sys btn-sys-regular" data-form-redo title="Redo" disabled>⮎ REDO</button>
+            </div>
+        </div>
+    `;
+}
+
+// A snapshot stack over a plain object, mirroring editor-blocks.js's block
+// history (same 50-entry cap, same truncate-on-new-branch behaviour) but
+// keyed on the form object, which is what these tabs actually edit.
+// apply() receives the restored state and is responsible for writing it back
+// and re-rendering.
+function createFormHistory(initialState, apply) {
+    let stack = [JSON.parse(JSON.stringify(initialState))];
+    let index = 0;
+    let undoBtn = null;
+    let redoBtn = null;
+
+    const refresh = () => {
+        if (undoBtn) undoBtn.disabled = index <= 0;
+        if (redoBtn) redoBtn.disabled = index >= stack.length - 1;
+    };
+
+    return {
+        // Called after every re-render, because re-rendering replaces the
+        // toolbar's buttons along with the rest of the form.
+        bindButtons(u, r) { undoBtn = u; redoBtn = r; refresh(); },
+        record(state) {
+            const str = JSON.stringify(state);
+            if (str === JSON.stringify(stack[index])) return;
+            stack = stack.slice(0, index + 1);
+            stack.push(JSON.parse(str));
+            if (stack.length > 50) stack.shift(); else index++;
+            refresh();
+        },
+        undo() {
+            if (index <= 0) return;
+            index--;
+            apply(JSON.parse(JSON.stringify(stack[index])));
+            refresh();
+        },
+        redo() {
+            if (index >= stack.length - 1) return;
+            index++;
+            apply(JSON.parse(JSON.stringify(stack[index])));
+            refresh();
+        },
+    };
+}
+
+function bindStructuredFormToolbar(container, history) {
+    const media = container.querySelector('[data-form-media]');
+    if (media) {
+        media.addEventListener('click', () => {
+            // The gallery copies a URL to the clipboard on click rather than
+            // writing back into a field, so it needs no target plumbing -
+            // the same binding initBlockEditor uses.
+            document.getElementById('media-modal-overlay').classList.remove('hidden');
+            if (typeof window.loadMediaGallery === 'function') window.loadMediaGallery();
+        });
+    }
+
+    const undo = container.querySelector('[data-form-undo]');
+    const redo = container.querySelector('[data-form-redo]');
+    if (undo) undo.addEventListener('click', () => history.undo());
+    if (redo) redo.addEventListener('click', () => history.redo());
+    history.bindButtons(undo, redo);
+}
+
 function initProfileEditor(containerId, profileData) {
     const container = document.getElementById(containerId);
     if (!profileData) profileData = {};
     if (!profileData.stats) profileData.stats = [];
 
+    // Mutated in place rather than reassigned: the object identity is shared
+    // with currentEditorDescData.profile.
+    const history = createFormHistory(profileData, (restored) => {
+        profileData.image = restored.image;
+        profileData.stats = restored.stats || [];
+        window.currentEditorDescData.profile = profileData;
+        renderProfileForm();
+        updateLivePreview();
+    });
+
     const triggerSync = () => {
         window.currentEditorDescData.profile = profileData;
         clearTimeout(window.typingTimer);
-        window.typingTimer = setTimeout(() => { updateLivePreview(); }, 400);
+        window.typingTimer = setTimeout(() => {
+            // Snapshot on the same debounce as the preview, so typing a word
+            // costs one history entry rather than one per keystroke.
+            history.record(profileData);
+            updateLivePreview();
+        }, 400);
     };
 
     const renderProfileForm = () => {
         let statsHtml = '';
         profileData.stats.forEach((stat, idx) => {
+            // Escaped: a reviewer intercepting a submission loads someone
+            // else's data into this form, and an unescaped value= closes the
+            // attribute on the first double quote.
             statsHtml += `
                 <div class="editor-row editor-row-spaced-sm">
-                    <div><input type="text" class="editor-input stat-label" data-idx="${idx}" value="${stat.label}" placeholder="Label (e.g. Archetype)"></div>
-                    <div><input type="text" class="editor-input stat-val" data-idx="${idx}" value="${stat.value}" placeholder="Value (e.g. M1 Merchant)"></div>
+                    <div><input type="text" class="editor-input stat-label" data-idx="${idx}" value="${window.escapeHtml(stat.label)}" placeholder="Label (e.g. Archetype)"></div>
+                    <div><input type="text" class="editor-input stat-val" data-idx="${idx}" value="${window.escapeHtml(stat.value)}" placeholder="Value (e.g. M1 Merchant)"></div>
                     <button class="btn-sys btn-sys-red btn-del-stat" data-idx="${idx}" title="Remove Stat">✖</button>
                 </div>
             `;
         });
 
         container.innerHTML = `
+            ${structuredFormToolbar()}
             <div class="block-editor-container block-editor-container-notop">
                 <div class="block-card">
                     <div class="block-header"><span class="block-type-badge">PORTRAIT IMAGE</span></div>
-                    <input type="text" class="editor-input" id="profile-image-input" value="${profileData.image || ''}" placeholder="Image Path/URL (e.g. /medias/images/Portrait.webp)">
+                    <input type="text" class="editor-input" id="profile-image-input" value="${window.escapeHtml(profileData.image || '')}" placeholder="Image Path/URL (e.g. /medias/images/Portrait.webp)">
                 </div>
 
                 <div class="block-card">
@@ -715,6 +889,8 @@ function initProfileEditor(containerId, profileData) {
                 </div>
             </div>
         `;
+
+        bindStructuredFormToolbar(container, history);
 
         container.querySelector('#profile-image-input').addEventListener('input', (e) => {
             profileData.image = e.target.value; triggerSync();
@@ -746,26 +922,40 @@ function initPlaystyleEditor(containerId, playstyleData) {
     if (!playstyleData.likes) playstyleData.likes = [];
     if (!playstyleData.dislikes) playstyleData.dislikes = [];
 
+    const history = createFormHistory(playstyleData, (restored) => {
+        playstyleData.likes = restored.likes || [];
+        playstyleData.dislikes = restored.dislikes || [];
+        window.currentEditorDescData.playstyle = playstyleData;
+        renderForm();
+        updateLivePreview();
+    });
+
     const triggerSync = () => {
         window.currentEditorDescData.playstyle = playstyleData;
         clearTimeout(window.typingTimer);
-        window.typingTimer = setTimeout(() => { updateLivePreview(); }, 400);
+        window.typingTimer = setTimeout(() => {
+            history.record(playstyleData);
+            updateLivePreview();
+        }, 400);
     };
 
     const renderForm = () => {
+        // Escaped for the same reason as the profile form above - a reviewer
+        // intercepting a submission renders someone else's text here.
         let likesHtml = playstyleData.likes.map((item, idx) => `
             <div class="editor-row editor-row-spaced-sm">
-                <input type="text" class="editor-input like-inp" data-idx="${idx}" value="${item}" placeholder="e.g. Fast-paced rushdown">
+                <input type="text" class="editor-input like-inp" data-idx="${idx}" value="${window.escapeHtml(item)}" placeholder="e.g. Fast-paced rushdown">
                 <button class="btn-sys btn-sys-red btn-del-like" data-idx="${idx}">✖</button>
             </div>`).join('');
 
         let dislikesHtml = playstyleData.dislikes.map((item, idx) => `
             <div class="editor-row editor-row-spaced-sm">
-                <input type="text" class="editor-input dislike-inp" data-idx="${idx}" value="${item}" placeholder="e.g. Long-ranged zoning">
+                <input type="text" class="editor-input dislike-inp" data-idx="${idx}" value="${window.escapeHtml(item)}" placeholder="e.g. Long-ranged zoning">
                 <button class="btn-sys btn-sys-red btn-del-dislike" data-idx="${idx}">✖</button>
             </div>`).join('');
 
         container.innerHTML = `
+            ${structuredFormToolbar()}
             <div class="block-editor-container block-editor-container-splitgrid">
                 <div class="block-card block-card-split">
                     <div class="block-header">
@@ -783,6 +973,8 @@ function initPlaystyleEditor(containerId, playstyleData) {
                 </div>
             </div>
         `;
+
+        bindStructuredFormToolbar(container, history);
 
         container.querySelectorAll('.like-inp').forEach(inp => inp.addEventListener('input', (e) => {
             playstyleData.likes[e.target.dataset.idx] = e.target.value; triggerSync();

@@ -215,12 +215,20 @@ function initDawEditor(containerId, moveData) {
                             </div>
                             <div>
                                 <label class="editor-field-label-sm">Frame Type</label>
+                                <!-- Must stay in step with the nine tick types the
+                                     site's own legend defines (js/framedata.js) and
+                                     systems/color-codes documents. InSkill Stun and
+                                     Inactive were both styled and documented but had
+                                     no way to be authored, so contributors either
+                                     omitted them or recorded something else. -->
                                 <select class="editor-select" id="insp-class">
                                     <option value="bg-tick-start" ${p.styleClass==='bg-tick-start'?'selected':''}>Startup (Blue)</option>
                                     <option value="bg-tick-active" ${p.styleClass==='bg-tick-active'?'selected':''}>Active (Red)</option>
+                                    <option value="bg-tick-inactive" ${p.styleClass==='bg-tick-inactive'?'selected':''}>Inactive (Yellow) - between Active frames</option>
                                     <option value="bg-tick-recov" ${p.styleClass==='bg-tick-recov'?'selected':''}>Recovery (Purple)</option>
                                     <option value="bg-tick-blockendlag" ${p.styleClass==='bg-tick-blockendlag'?'selected':''}>Block Endlag (Pink)</option>
                                     <option value="bg-tick-selfstun" ${p.styleClass==='bg-tick-selfstun'?'selected':''}>Self Stun (Green)</option>
+                                    <option value="bg-tick-inskillstun" ${p.styleClass==='bg-tick-inskillstun'?'selected':''}>InSkill Stun (Dark Orange) - can still move</option>
                                     <option value="bg-tick-targetstun" ${p.styleClass==='bg-tick-targetstun'?'selected':''}>Target Stun (Dark Red)</option>
                                     <option value="bg-tick-misc" ${p.styleClass==='bg-tick-misc'?'selected':''}>Misc (Teal)</option>
                                     <option value="bg-transparent" ${p.styleClass==='bg-transparent'?'selected':''}>Transparent / Gap</option>

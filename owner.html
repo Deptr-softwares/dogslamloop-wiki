@@ -93,6 +93,24 @@
 
                     <div id="role-results" class="admin-tool-results"></div>
                 </section>
+
+                <section id="tool-staff-perks" class="update-log-item admin-tool-card personnel">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title personnel">Staff Perks</h3>
+                        <button onclick="loadStaffPerks()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">Perks for Trusted Editors, Reviewers and Admins. These change what the database enforces, not just what the editor shows &mdash; turning one off takes effect on the next submission.</p>
+
+                    <label class="owner-perk-row" for="perk-cooldown-bypass">
+                        <input type="checkbox" id="perk-cooldown-bypass">
+                        <span>
+                            <strong>Skip the 3-minute submission cooldown</strong>
+                            <span class="owner-perk-note">Contributors without a role still wait 3 minutes between submissions. Turn this off if a staff account is ever compromised.</span>
+                        </span>
+                    </label>
+
+                    <div id="staff-perks-results" class="admin-tool-results"></div>
+                </section>
                 </div>
 
                 <div class="owner-group" data-group="pages" hidden>
@@ -408,6 +426,7 @@
     <script src="js/owner-hub-text.js"></script>
     <script src="js/owner-hub-lists.js"></script>
     <script src="js/owner-page-meta.js"></script>
+    <script src="js/owner-staff-perks.js"></script>
     <script src="js/owner-nav.js"></script>
 </body>
 </html>

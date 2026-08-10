@@ -110,7 +110,14 @@ async function loadQueue() {
             // move edits on the same character and they all look identical
             // until opened.
             let targetLabel = rev.target_scope ? rev.target_scope.toUpperCase() : '';
-            if (rev.target_key) {
+            if (rev.target_scope === 'multi') {
+                // A batched or merged ticket carries a list of scopes, so there
+                // is no single target to name - count them instead, matching the
+                // "BATCHED MULTI-EDIT (N targets)" wording history.html and
+                // recent-changes.html already use. "MULTI: batch" said nothing.
+                const targetCount = Array.isArray(rev.delta_payload) ? rev.delta_payload.length : 0;
+                targetLabel = `${targetCount} TARGET${targetCount === 1 ? '' : 'S'}`;
+            } else if (rev.target_key) {
                 if (rev.target_scope === 'move' && rev.target_key.includes('::')) {
                     const [moveCategory, moveId] = rev.target_key.split('::');
                     targetLabel = `${moveCategory.toUpperCase()}: ${moveId}`;
@@ -224,12 +231,16 @@ function resetPreviewState() {
     const changedTabsPopup = document.getElementById('changed-tabs-popup');
     if (changedTabsPopup) changedTabsPopup.remove();
 
+    const tabNav = document.getElementById('preview-tab-nav');
+    if (tabNav) tabNav.classList.add('hidden');
+
     ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'].forEach(tab => {
         const el = document.getElementById(`tab-${tab}`);
         const btn = document.getElementById(`nav-${tab}`);
         if (el) { el.innerHTML = ''; el.classList.add('hidden'); }
         if (btn) {
             btn.classList.remove('active');
+            btn.classList.remove('tab-changed'); // Markers belong to the revision just closed
             btn.classList.remove('hidden'); // Restore default display visibility
         }
     });

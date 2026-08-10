@@ -157,13 +157,26 @@
                     </div>
                 </div>
                 <div class="header-actions" style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.5rem;">
-                    <button class="btn-sys btn-sys-regular" onclick="window.history.back()">Cancel</button>
+                    <button class="btn-sys btn-sys-regular" onclick="window.cancelEditor()">Cancel</button>
                     <button class="btn-sys btn-sys-blue" onclick="window.openDraftManager()">Drafts</button>
                     <button class="btn-sys btn-sys-yellow" onclick="window.triggerManualSync()">Sync/Save</button>
                     <button id="btn-toggle-diff" class="btn-sys btn-sys-purple" onclick="window.toggleDiffMode()">Diff View</button>
                     <button id="submit-payload-btn" class="btn-sys btn-sys-green">Submit</button>
                 </div>
             </div>
+
+            <!-- Major tab navigation, in the same shape the live character
+                 page uses. Populated/activated by renderEditorTabNav in
+                 js/editor-tabs.js; hidden for system and tierlist pages,
+                 whose builders manage their own tabs. -->
+            <nav id="editor-tab-nav" class="editor-tab-nav hidden" aria-label="Character sections">
+                <button id="edit-nav-overview" class="btn-manga btn-manga-slanted active" onclick="window.switchEditorTab('overview')"><div class="btn-manga-content"><span class="btn-manga-text">Overview</span></div></button>
+                <button id="edit-nav-m1s" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('m1s')"><div class="btn-manga-content"><span class="btn-manga-text">M1s</span></div></button>
+                <button id="edit-nav-skills" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('skills')"><div class="btn-manga-content"><span class="btn-manga-text">Skills</span></div></button>
+                <button id="edit-nav-specials" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('specials')"><div class="btn-manga-content"><span class="btn-manga-text">Specials</span></div></button>
+                <button id="edit-nav-matchups" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('matchups')"><div class="btn-manga-content"><span class="btn-manga-text">Matchups</span></div></button>
+                <button id="edit-nav-counterplay" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('counterplay')"><div class="btn-manga-content"><span class="btn-manga-text">Counterplay</span></div></button>
+            </nav>
 
             <div id="interactive-builder"></div>
         </div>

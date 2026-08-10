@@ -242,6 +242,29 @@ input[type="checkbox"]:checked {
     box-shadow: 0 3px 0 0 var(--accent-blue) !important;
     z-index: 20;
 }
+
+/* Marks where a block landed after a reorder. Fades rather than sitting
+   there, so it reads as "this just happened" instead of as a selection
+   state - a reorder used to give no feedback at all beyond the list
+   re-rendering, which in a long section meant hunting for the block. */
+.block-card.block-just-moved {
+    animation: block-moved-flash 1.4s ease-out;
+}
+
+@keyframes block-moved-flash {
+    0%   { box-shadow: 0 0 0 2px var(--accent-blue); background: hsla(217, 91%, 60%, 0.18); }
+    70%  { box-shadow: 0 0 0 2px var(--accent-blue); background: hsla(217, 91%, 60%, 0.08); }
+    100% { box-shadow: 0 0 0 0 transparent; background: transparent; }
+}
+
+/* The flash is decorative; anyone who asked for less motion just gets the
+   outline, held briefly, with no animation. */
+@media (prefers-reduced-motion: reduce) {
+    .block-card.block-just-moved {
+        animation: none;
+        box-shadow: 0 0 0 2px var(--accent-blue);
+    }
+}
 /* Small pill that follows the pointer during a block-list drag (add-block-btn
    or drag-handle reorder), created/destroyed by startBlockPointerDrag in
    js/editor-blocks.js. pointer-events: none so elementFromPoint() hit-tests
@@ -468,6 +491,28 @@ input[type="checkbox"]:checked {
 .tierlist-preview-disabled-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
 .tierlist-preview-disabled-title { color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; letter-spacing: 1px; }
 .tierlist-preview-disabled-text { font-family: var(--text-mono); font-size: 0.85rem; max-width: 400px; line-height: 1.5; }
+
+/* --- MAJOR TAB STRIP (edit.html, driven by switchEditorTab) ---
+   Sits directly above the .daw-variant-tabs sub-nav, giving the editor the
+   same two-level hierarchy the live page has: major tab, then sub-tab.
+   Scoped to its own class rather than reusing .character-nav, which is
+   deliberately scoped to .character-header in style/Layout.css. Nothing
+   here touches .btn-manga itself - that is shared with the roster filters,
+   the systems directory and the tier list. */
+.editor-tab-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+    margin-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--accent-blue);
+}
+
+/* The editor pane is narrow and shares its width with the preview, so the
+   strip runs at the sub-nav's type scale rather than the live page's. */
+.editor-tab-nav .btn-manga { padding: 0.3rem 0.7rem; }
+.editor-tab-nav .btn-manga-text { font-size: 0.7rem; }
 
 /* --- EDITOR TAB NAV BARS (js/editor-tabs.js initFullTabEditor: moves/overview/
    matchups/counterplay sub-nav rows). Compound selector against

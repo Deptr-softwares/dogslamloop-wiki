@@ -515,6 +515,11 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .aggregated-contributors-footer::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background-color: var(--accent-blue); }
 .contributors-header { display: flex; align-items: center; gap: 0.5rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.85rem; color: var(--text-white); text-transform: uppercase; border-bottom: 2px dashed var(--border-color); padding-bottom: 0.5rem; }
 .contributors-list { display: flex; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.25rem; }
+/* One footer per tab (consolidateTabContributors in js/description.js), not
+   one per section. It is the last thing in the tab now, so it takes the full
+   width regardless of the float/flex layout the sections above it used, and
+   ends the tab rather than interrupting it. */
+.tab-contributors-footer { width: 100%; flex-basis: 100%; margin-top: 3rem; }
 
 /* Router skeleton (js/page_router.js) - these replace inline styles that used
    to live on the system-page template only. The character template relied on

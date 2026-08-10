@@ -25,6 +25,7 @@ async function previewRevision(revId) {
 
     updateActionButtons(rev);
     document.getElementById('preview-nav-sidebar').classList.remove('hidden');
+    document.getElementById('preview-tab-nav').classList.remove('hidden');
 
     const { data: liveData } = await window.supabaseClient.from('page_data').select('desc_data, frame_data').eq('page_id', rev.page_id).single();
     window.currentLiveDescData = liveData ? liveData.desc_data : {};
@@ -96,13 +97,23 @@ async function previewRevision(revId) {
     if (rev.is_delta) {
         initMode = 'diff';
 
-        let activeTabId = 'overview';
-        if (['matchup', 'counterplay'].includes(rev.target_scope)) activeTabId = `${rev.target_scope}s`;
-        else if (rev.target_scope === 'move') activeTabId = rev.target_key.split('::')[0];
+        // A merged or batched ticket carries several scopes, so there is no
+        // single tab to open onto - land on the first one it touched and let
+        // the strip's changed-tab markers show the rest. calculateTabDiffs
+        // (js/admin-diff.js) already resolves every scope in a 'multi'
+        // payload to its tab, so reuse that rather than re-deriving it.
+        let activeTabId = null;
+        if (rev.target_scope === 'multi') {
+            activeTabId = (window.changedTabs || [])[0] || 'overview';
+        } else if (['matchup', 'counterplay'].includes(rev.target_scope)) {
+            activeTabId = `${rev.target_scope}s`;
+        } else if (rev.target_scope === 'move') {
+            activeTabId = rev.target_key.split('::')[0];
+        } else {
+            activeTabId = 'overview';
+        }
 
-        document.querySelectorAll('#preview-nav-sidebar .nav-btn').forEach(btn => btn.classList.remove('active'));
-        const autoTab = document.getElementById(`nav-${activeTabId}`);
-        if (autoTab) autoTab.classList.add('active');
+        window.setActiveRevisionTab(activeTabId);
     }
 
     switchVersionView(initMode);

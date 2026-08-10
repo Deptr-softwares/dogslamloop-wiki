@@ -17,6 +17,43 @@ window.toggleMobilePreview = function() {
     }
 };
 
+// --- LEAVING THE EDITOR ---
+// Cancel used to be a bare window.history.back(). A reviewer intercepting a
+// ticket arrives via window.open(..., '_blank') from admin.html, and a fresh
+// tab has no history entry to go back to - so the button did nothing at all,
+// which is exactly how it was reported. Each step in cancelEditor below is a
+// real exit; the chain only exists because no single one covers every way in.
+// Where cancel lands when there is no history and no opener - a deep link
+// straight into the editor, from a bookmark or a pasted URL. Separate from
+// cancelEditor so the choice can be asserted without stubbing navigation.
+window.editorExitDestination = function(search = window.location.search) {
+    const params = new URLSearchParams(search);
+    const pageId = params.get('page') || params.get('char');
+    const pageType = params.get('type') || 'character';
+
+    // Staff go back to the queue they were working; everyone else to the page.
+    if (params.get('editTicket')) return 'admin.html';
+    if (pageId) return `${pageType === 'character' ? 'characters' : 'systems'}/${encodeURIComponent(pageId)}/`;
+    return 'index.html';
+};
+
+window.cancelEditor = function() {
+    // Opened by script from the review queue: closing reveals admin.html
+    // underneath, which is where the reviewer wants to be.
+    if (window.opener && !window.opener.closed) {
+        window.close();
+        return;
+    }
+
+    // Navigated to normally - length 1 means this tab has been nowhere else.
+    if (window.history.length > 1) {
+        window.history.back();
+        return;
+    }
+
+    window.location.href = window.editorExitDestination();
+};
+
 // applyDeltaToData is defined once, in site_utils.js (loaded before this file).
 // diffTextLCS, triggerManualSync, updateLivePreview, toggleDiffMode, and
 // renderDiffView all moved to js/editor-sync.js.
@@ -258,6 +295,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.currentEditorFrameData = frameData;
 
         if (moveId) {
+            // This branch skips initFullTabEditor, which is where the tab
+            // strip normally syncs itself - so do it here too, or deep-
+            // linking to a single move leaves the strip unrendered.
+            if (typeof window.renderEditorTabNav === 'function') window.renderEditorTabNav(tabId);
+
             const moveStats = frameData ? frameData[tabId]?.find(m => m.id === moveId) : null;
             const moveStrats = descData ? descData.moveStrategies?.[moveId] : null;
             initPerMoveEditor(moveId, moveStats, moveStrats);
@@ -456,9 +498,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            const COOLDOWN_MINUTES = 3; 
+            // Mirrors check_revision_rate_limit()'s bypass exactly
+            // (supabase/migrations/20260810000000_staff_cooldown_perk.sql).
+            // The trigger is the real boundary; this is only about which
+            // message the contributor sees. If the two disagree, staff either
+            // get a friendly wait the server would have allowed, or a raw
+            // Postgres exception where they expected the friendly wait.
+            const STAFF_ROLES = ['trusted_editor', 'reviewer', 'admin'];
+            let skipsCooldown = false;
+            if (STAFF_ROLES.includes((ownRole?.role || '').trim().toLowerCase())) {
+                const { data: settings } = await window.supabaseClient
+                    .from('site_settings').select('staff_bypass_submission_cooldown').maybeSingle();
+                // Absent row or a failed read means enforce, matching the
+                // trigger's COALESCE.
+                skipsCooldown = settings?.staff_bypass_submission_cooldown === true;
+            }
+
+            const COOLDOWN_MINUTES = 3;
             const lastSubmitTime = localStorage.getItem('wiki_last_submit_time');
-            if (lastSubmitTime && !window.activeEditTicketId) { 
+            if (lastSubmitTime && !window.activeEditTicketId && !skipsCooldown) {
                 const timeSinceLastSubmit = Date.now() - parseInt(lastSubmitTime, 10);
                 const cooldownMs = COOLDOWN_MINUTES * 60 * 1000;
                 if (timeSinceLastSubmit < cooldownMs) {
