@@ -179,7 +179,18 @@ function updateLivePreview(skipHistory = false) {
     }
 
     const urlParams = new URLSearchParams(window.location.search);
-    const tabId = urlParams.get('tab');
+    // window.currentEditorTabId is the authoritative tab, the same thing
+    // triggerManualSync above reads. This used to take urlParams.get('tab')
+    // raw, which disagreed with editor-core.js's own `urlParams.get('tab') ||
+    // 'overview'` boot default - so opening the editor without a ?tab= gave
+    // the editor 'overview' and gave this function null. null matched no
+    // branch below, fell through to the generic else, and built a phantom
+    // "tab-null" section titled "Editing null" out of currentStrategyBlocks,
+    // which still held the previous section's blocks. That is the reported
+    // uneditable section that copied the last section's contents, and the
+    // reason the preview looked like it was not picking up new content when
+    // intercepting a ticket that carried no &tab=.
+    const tabId = window.currentEditorTabId || urlParams.get('tab') || 'overview';
     const frameTabs = ['m1s', 'skills', 'specials'];
 
     if (frameTabs.includes(tabId)) {

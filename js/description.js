@@ -359,9 +359,15 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
 
     // --- AUTHOR FOOTER ---
     if (sectionAuthors.size > 0) {
-        // Wrap each author in a badge span
+        // Escaped, unlike the block content above it. Block content is
+        // deliberately rich HTML - contributors write formatted prose, and
+        // paragraphs even run a keybind substitution over it - but an author
+        // name is an identity label, never markup. It rides along inside
+        // submitted block data as block.author, so it is contributor-reachable
+        // on every character and system page, and it was going into innerHTML
+        // raw.
         const authorBadges = Array.from(sectionAuthors)
-            .map(a => `<span class="author-badge">${a}</span>`)
+            .map(a => `<span class="author-badge">${window.escapeHtml(a)}</span>`)
             .join('');
         
         contentHTML += `
