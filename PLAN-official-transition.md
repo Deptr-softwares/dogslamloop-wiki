@@ -238,6 +238,23 @@ Mostly invisible to players, and the most urgent work in this document.
 4. **Data-layer Phase 0, revised.** With 30 contributors, waiting up to 24 hours to see a new page is intolerable. Auto-trigger regeneration on save via `repository_dispatch` — minutes, not a day. **Note the reversal:** `V0.12-DEVLOG.md` currently says `navigation.json` should become a live database read. That is wrong now — with a 1.4M-member Discord, per-visitor database reads for the sidebar put quota and bandwidth on the critical path of a site GitHub Pages serves free from a CDN.
 5. **Site-wide progress view** in owner tools. "Pages That Need Work" covers characters only; with 30 people working through ~35 pages you need one view of done / in progress / untouched. This is the daily control surface.
 
+6. **Media aspect ratios: square the skill cards and the character portraits** (owner, 2026-08-10).
+
+   Small, but **it belongs in v0.12 rather than later** for the same reason everything else here does: the team is about to upload skill media for ~20 characters. Nothing needs re-uploading if the ratio changes afterwards — cropping happens at render time — but contributors *compose* clips to look right in the box they can see, and changing the box shape afterwards means asking them to recompose. Cheaper to settle first.
+
+   Current state, checked rather than assumed:
+
+   - **Skill cards** (`js/framedata.js` → `.skill-media-wrapper`, `style/FrameData.css:34`) are `aspect-ratio: 16 / 9` with `object-fit: cover` on the media. So they already crop; the ask is to change the box to **1:1**.
+   - **Character portraits** (`js/description.js` → `.profile-portrait`, `style/Layout.css:406`) have **no `aspect-ratio` and no `object-fit` at all** — just `width: 100%`. They render at the file's natural shape, so a tall portrait makes a tall card and a wide one makes a short one. This is why the owner expects "some custom cropping": there is currently no crop to adjust, and adding `1:1` + `object-fit: cover` will start cropping images that have never been cropped before. **Expect existing portraits to need re-framing, and check them against the live site before shipping.**
+
+   **The open design question is the fallback.** *"Fallback to 16:9 if the cropping takes a bit too much of the profile"* cannot be expressed in CSS alone — it is a per-media judgement. Three ways, in rough order of preference:
+
+   1. **Automatic, from natural dimensions.** On load, compare the media's intrinsic ratio to 1:1; past some threshold (wider than ~4:3, or taller than ~3:4), fall back to 16:9 rather than discarding half the frame. No authoring burden, works for the media already uploaded — but a contributor cannot override it, and the page shape changes after the media loads unless the ratio is known up front.
+   2. **A per-move override** (`media.ratio: 'square' | 'wide'`) authored in the editor next to the existing alt-text field. Predictable and controllable; costs a field and a migration-free `desc_data`/`frame_data` addition.
+   3. **Both** — automatic default, explicit override when it guesses wrong. Most work, and probably the right end state.
+
+   Worth deciding before implementing, since option 2 adds an editor field that the content team would rather learn once.
+
 ### v0.13 — Everything else in the game
 
 The visible expansion.
