@@ -42,6 +42,13 @@
 
     const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s === null || s === undefined ? '' : s));
 
+    // js/site_utils.js is cached for an hour by GitHub Pages while this file is
+    // new, so the first load after a deploy can pair a fresh copy of this file
+    // with an hour-old copy of that one. Local fallbacks for the two trivial
+    // predicates, and a hard bail in init below, so that skew costs the toggle
+    // rather than the page.
+    const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === 'base'));
+
     async function findNavEntry(pageId) {
         if (typeof window.fetchNavigationData !== 'function') return null;
         try {
@@ -116,7 +123,7 @@
     // null, undefined and 'base' all name the same state - the top-level data.
     // Comparing them raw would make a bare page URL look like a mode change
     // away from `base` and redraw the whole page for nothing.
-    const sameMode = (a, b) => (window.isBaseMode(a) && window.isBaseMode(b)) || a === b;
+    const sameMode = (a, b) => (isBase(a) && isBase(b)) || a === b;
 
     window.switchCharacterMode = async function(modeId) {
         if (sameMode(modeId, window.activeCharacterMode)) return;
@@ -149,7 +156,7 @@
         // drops the parameter rather than writing ?mode=base, so the canonical
         // URL of a character page stays the bare one.
         const url = new URL(window.location.href);
-        if (window.isBaseMode(modeId)) url.searchParams.delete('mode');
+        if (isBase(modeId)) url.searchParams.delete('mode');
         else url.searchParams.set('mode', modeId);
         window.history.replaceState({}, '', url);
 
@@ -169,6 +176,11 @@
     }
 
     window.initCharacterModes = async function(pageId) {
+        if (typeof window.getCharacterModes !== 'function') {
+            console.warn('[Modes] site_utils.js is older than this file (likely a cached copy). The state toggle is off for this load; reload to restore it.');
+            return;
+        }
+
         const [cloud, navEntry] = await Promise.all([
             typeof window.fetchCloudCharacterData === 'function' ? window.fetchCloudCharacterData(pageId) : null,
             findNavEntry(pageId),

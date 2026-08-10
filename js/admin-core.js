@@ -9,6 +9,37 @@
  * admin-*.js file has already registered its top-level functions).
  */
 
+// --- STALE-DEPENDENCY STAND-INS ---
+// GitHub Pages serves js/ with max-age=3600, so the first load after a deploy
+// can pair a fresh admin-*.js with an hour-old js/site_utils.js. On 2026-08-10
+// exactly that took the whole editor down: a new module called a new shared
+// helper that the cached copy did not have yet, and the TypeError went straight
+// through the boot try/catch.
+//
+// js/site_utils.js now carries a content-hash query so this should not recur -
+// these are the second line of defence, and they are the real implementations
+// verbatim, so behaviour is identical either way. They install only when
+// missing and disappear the moment the cache catches up. This file is the
+// right home: it is the first of admin.html's script set to load.
+if (typeof window.isBaseMode !== 'function') {
+    window.isBaseMode = (modeId) => !modeId || modeId === 'base';
+}
+if (typeof window.getCharacterModes !== 'function') {
+    window.getCharacterModes = (frameData) => {
+        const modes = frameData && Array.isArray(frameData.modes) ? frameData.modes : [];
+        return modes.filter(m => m && m.id).map(m => ({ id: String(m.id), label: String(m.label || m.id) }));
+    };
+}
+if (typeof window.unwrapModeDelta !== 'function') {
+    window.unwrapModeDelta = (scope, key) => {
+        if (scope !== 'mode' || typeof key !== 'string') return { modeId: null, scope, key };
+        const parts = key.split('::');
+        const modeId = parts.shift();
+        const innerScope = parts.shift() || '';
+        return { modeId, scope: innerScope, key: parts.join('::') || 'full' };
+    };
+}
+
 window.currentQueueData = [];
 window.activePreviewRevId = null;
 window.activePreviewCharId = null;

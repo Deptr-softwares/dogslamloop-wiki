@@ -458,7 +458,30 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .profile-stat-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); }
 .profile-stat-label { color: #8b949e; font-size: 0.9rem; }
 .profile-stat-val { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
-.profile-portrait { width: 100%; border-radius: 4px; margin-bottom: 1rem; border: 1px solid var(--border-color); }
+/* Square, always. A roster of portraits at whatever shape each source happened
+   to be is the single most visible inconsistency on the character pages, and
+   unlike skill media a portrait has one obvious subject - so cropping to a
+   fixed shape is safe as long as the crop can be aimed.
+
+   --portrait-focus is that aim: description.js sets it from
+   desc_data.profile.imageFocus, which the editor exposes as a nine-point
+   picker. Defaults to dead centre, which is right for most portraits and
+   wrong for the ones where the character's head sits high in the frame. */
+.profile-portrait {
+    width: 100%; aspect-ratio: 1 / 1;
+    object-fit: cover; object-position: var(--portrait-focus, 50% 50%);
+    border-radius: 4px; margin-bottom: 1rem; border: 1px solid var(--border-color);
+}
+/* Had no rule at all before - an unstyled div rendering bare "[No Portrait]"
+   text. Now that the portrait next to it is a fixed square, the placeholder
+   has to hold the same space or a character without art collapses its whole
+   profile card. Same dashed-box language as .skill-media-missing. */
+.profile-portrait-missing {
+    aspect-ratio: 1 / 1; width: 100%; margin-bottom: 1rem;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px dashed var(--border-color); border-radius: 4px;
+    color: var(--text-muted); font-family: var(--text-mono); font-size: 0.875rem;
+}
 
 /* Tier List Layout (js/tierlist.js LIVE RENDERER: loadTierList/switchLiveTierTab).
    .tier-tabs/.tier-row/.tier-label/.tier-characters/.tier-char-tooltip were

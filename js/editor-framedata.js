@@ -55,8 +55,23 @@ function initDawEditor(containerId, moveData) {
                         <div><input type="text" class="editor-input meta-inp" data-field="variant" value="${moveData.variant || ''}" placeholder="Variant (e.g. Standard)"></div>
                     </div>
                     <div class="editor-row mt-2">
-                        <div><input type="text" class="editor-input meta-inp" data-field="media.src" value="${moveData.media.src || ''}" placeholder="Media Src (e.g. /medias/images/m1.png)"></div>
-                        <div><input type="text" class="editor-input meta-inp" data-field="media.alt" value="${moveData.media.alt || ''}" placeholder="Media Alt Text"></div>
+                        <div><input type="text" class="editor-input meta-inp" data-field="media.src" value="${window.escapeHtml(moveData.media.src || '')}" placeholder="Media Src (e.g. /medias/images/m1.png)"></div>
+                        <div><input type="text" class="editor-input meta-inp" data-field="media.alt" value="${window.escapeHtml(moveData.media.alt || '')}" placeholder="Media Alt Text"></div>
+                    </div>
+                    <!-- Auto measures the file and picks the box that fits it.
+                         The override is for media whose subject sits off to one
+                         side, where the measurement is right about the shape
+                         and wrong about what matters in it. -->
+                    <div class="editor-row mt-2">
+                        <div>
+                            <label class="editor-field-label" for="move-media-framing">Media box shape</label>
+                            <select id="move-media-framing" class="editor-input meta-inp" data-field="media.framing">
+                                <option value="auto"${!moveData.media.framing || moveData.media.framing === 'auto' ? ' selected' : ''}>Auto — match the file</option>
+                                <option value="wide"${moveData.media.framing === 'wide' ? ' selected' : ''}>Wide (16:9)</option>
+                                <option value="square"${moveData.media.framing === 'square' ? ' selected' : ''}>Square (1:1)</option>
+                                <option value="tall"${moveData.media.framing === 'tall' ? ' selected' : ''}>Tall (3:4)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -315,12 +330,42 @@ function initDawEditor(containerId, moveData) {
         bindDawEvents(container, currentObj);
     }
 
+    // Stale dimensions are worse than none - they would frame the box for the
+    // previous file - so they are cleared the moment the src changes and only
+    // rewritten once the new source actually measures. A src typed one
+    // character at a time therefore spends most of its life with no dimensions
+    // rather than the wrong ones.
+    let dimensionTimer = null;
+    function captureMediaDimensions(moveData, src) {
+        moveData.media.width = null;
+        moveData.media.height = null;
+
+        clearTimeout(dimensionTimer);
+        if (!src || typeof window.measureMediaSource !== 'function') return;
+
+        dimensionTimer = setTimeout(async () => {
+            const size = await window.measureMediaSource(src).catch(() => null);
+            // The field may have moved on while the network was busy.
+            if (!size || moveData.media.src !== src) return;
+            moveData.media.width = size.width;
+            moveData.media.height = size.height;
+        }, 600);
+    }
+
     function bindDawEvents(container, currentObj) {
         container.querySelectorAll('.meta-inp').forEach(inp => {
             inp.addEventListener('input', (e) => {
                 let field = e.target.dataset.field;
                 if(field.startsWith('media.')) moveData.media[field.split('.')[1]] = e.target.value;
                 else moveData[field] = e.target.value;
+
+                // Recording the media's real size here is what lets a skill
+                // card pick its box shape before the file has loaded. It has
+                // to happen at paste time: the media library hands out URLs to
+                // copy rather than inserting files, so the upload path never
+                // sees this move. Debounced, because this fires per keystroke
+                // and each attempt is a network request.
+                if (field === 'media.src') captureMediaDimensions(moveData, e.target.value);
             });
         });
 

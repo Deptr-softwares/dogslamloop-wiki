@@ -889,6 +889,28 @@ function initProfileEditor(containerId, profileData) {
                 <div class="block-card">
                     <div class="block-header"><span class="block-type-badge">PORTRAIT IMAGE</span></div>
                     <input type="text" class="editor-input" id="profile-image-input" value="${window.escapeHtml(profileData.image || '')}" placeholder="Image Path/URL (e.g. /medias/images/Portrait.webp)">
+
+                    <!-- Portraits render as a fixed square now, so a source
+                         that is not square gets cropped. This aims the crop:
+                         nine points, matching object-position's own keywords,
+                         because a character whose head sits high in the frame
+                         loses it to a centre crop. Preview alongside, so the
+                         choice is visible rather than guessed at. -->
+                    <div class="portrait-focus-row">
+                        <div>
+                            <span class="editor-field-label">Crop focus</span>
+                            <div class="portrait-focus-grid" id="portrait-focus-grid">
+                                ${window.PORTRAIT_FOCUS_VALUES.map(value => `
+                                    <button type="button" class="portrait-focus-dot${(profileData.imageFocus || 'center center') === value ? ' active' : ''}"
+                                            data-focus="${value}" title="${value}" aria-label="Focus ${value}"></button>`).join('')}
+                            </div>
+                        </div>
+                        <div class="portrait-focus-preview">
+                            ${profileData.image
+                                ? `<img src="${window.escapeHtml(profileData.image)}" alt="Portrait crop preview" id="portrait-focus-img" style="object-position: ${window.PORTRAIT_FOCUS_VALUES.includes(profileData.imageFocus) ? profileData.imageFocus : 'center center'};">`
+                                : `<span class="portrait-focus-empty">No image yet</span>`}
+                        </div>
+                    </div>
                 </div>
 
                 <div class="block-card">
@@ -905,6 +927,26 @@ function initProfileEditor(containerId, profileData) {
 
         container.querySelector('#profile-image-input').addEventListener('input', (e) => {
             profileData.image = e.target.value; triggerSync();
+            const preview = container.querySelector('#portrait-focus-img');
+            if (preview) preview.src = e.target.value;
+        });
+
+        // Delegated, and the value comes from a whitelist rather than the
+        // attribute being trusted - this string ends up inside a style
+        // attribute on the live page.
+        container.querySelectorAll('.portrait-focus-dot').forEach(dot => {
+            dot.addEventListener('click', () => {
+                const value = dot.dataset.focus;
+                if (!window.PORTRAIT_FOCUS_VALUES.includes(value)) return;
+
+                profileData.imageFocus = value;
+                container.querySelectorAll('.portrait-focus-dot').forEach(d => d.classList.toggle('active', d === dot));
+
+                const preview = container.querySelector('#portrait-focus-img');
+                if (preview) preview.style.objectPosition = value;
+
+                triggerSync();
+            });
         });
 
         container.querySelectorAll('.stat-label').forEach(inp => inp.addEventListener('input', (e) => {

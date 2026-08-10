@@ -36,6 +36,13 @@
 
     const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
 
+    // Local fallbacks for the two trivial predicates this module leans on, so
+    // an hour-old cached site_utils.js cannot throw partway through a render.
+    // A one-line duplicate of a one-line predicate is cheaper than a module
+    // that dies when its dependency is a deploy behind.
+    const BASE = () => (typeof window.BASE_MODE_ID === 'string' ? window.BASE_MODE_ID : 'base');
+    const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === BASE()));
+
     // --- STATE ---
     // The masters. currentEditor* are views onto these.
     window.editorMasterDescData = null;
@@ -52,7 +59,7 @@
     // stays pristine and "this mode had nothing live" reads as an empty object.
     function writableView(master, modeId) {
         if (!master) return {};
-        if (window.isBaseMode(modeId)) return master;
+        if (isBase(modeId)) return master;
         if (!master.modeData) master.modeData = {};
         if (!master.modeData[modeId]) master.modeData[modeId] = {};
         return master.modeData[modeId];
@@ -60,7 +67,7 @@
 
     function readonlyView(master, modeId) {
         if (!master) return {};
-        if (window.isBaseMode(modeId)) return master;
+        if (isBase(modeId)) return master;
         return (master.modeData && master.modeData[modeId]) || {};
     }
 
@@ -85,13 +92,28 @@
     // and unwrapped once in applyDeltaToData - the nine scopes in between
     // never learn modes exist.
     window.scopeEditorDelta = function(scope, key) {
-        if (window.isBaseMode(window.editorActiveMode)) return { scope, key };
+        if (isBase(window.editorActiveMode)) return { scope, key };
         return { scope: 'mode', key: `${window.editorActiveMode}::${scope}::${key}` };
     };
 
     // --- MODE MANAGEMENT ---
     function declaredModes() {
+        if (typeof window.getCharacterModes !== 'function') return [];
         return window.getCharacterModes(window.editorMasterFrameData || {});
+    }
+
+    // site_utils.js is cached for an hour by GitHub Pages, and this file is
+    // new - so the first load after a deploy can pair a fresh copy of this
+    // file with an hour-old copy of that one. Calling into it bare threw
+    // straight through editor-core.js's boot try/catch and took the whole
+    // editor down with it ("Editor failed to initialize context", reported on
+    // the live site 2026-08-10). Every other cross-file call in this codebase
+    // is written `if (typeof window.x === 'function')` for exactly this
+    // reason; these two modules skipped it.
+    function sharedHelpersReady() {
+        return typeof window.getCharacterModes === 'function'
+            && typeof window.isBaseMode === 'function'
+            && typeof window.BASE_MODE_ID === 'string';
     }
 
     // Ids are the delta keys and the ?mode= in shared links, so they are fixed
@@ -116,7 +138,7 @@
         // "the top level, with nothing declared about it". Declare it too, or
         // the toggle has one button and no way back to the base kit.
         if (!Array.isArray(master.modes) || master.modes.length === 0) {
-            master.modes = [{ id: window.BASE_MODE_ID, label: 'Base Kit' }];
+            master.modes = [{ id: BASE(), label: 'Base Kit' }];
         }
 
         const existing = declaredModes();
@@ -150,7 +172,7 @@
     };
 
     window.deleteEditorMode = async function() {
-        if (window.isBaseMode(window.editorActiveMode)) return;
+        if (isBase(window.editorActiveMode)) return;
 
         const doomed = window.editorActiveMode;
         const label = (declaredModes().find(m => m.id === doomed) || {}).label || doomed;
@@ -174,7 +196,7 @@
         }
         if (desc && desc.modeData) delete desc.modeData[doomed];
 
-        await window.setEditorMode(window.BASE_MODE_ID);
+        await window.setEditorMode(BASE());
     };
 
     // --- SWITCHING ---
@@ -193,7 +215,7 @@
         window.currentMatchupIndex = undefined;
         window.currentCounterplayIndex = undefined;
 
-        window.editorActiveMode = window.isBaseMode(modeId) ? window.BASE_MODE_ID : modeId;
+        window.editorActiveMode = isBase(modeId) ? BASE() : modeId;
         window.applyEditorModeView();
 
         renderEditorModeBar();
@@ -232,7 +254,7 @@
         }
 
         const modes = declaredModes();
-        const active = window.editorActiveMode || window.BASE_MODE_ID;
+        const active = window.editorActiveMode || BASE();
 
         bar.classList.remove('hidden');
 
@@ -248,7 +270,7 @@
 
         if (!controls) return;
 
-        if (modes.length === 0 || window.isBaseMode(active)) {
+        if (modes.length === 0 || isBase(active)) {
             controls.classList.add('hidden');
             controls.innerHTML = '';
             return;
@@ -320,8 +342,18 @@
         window.originalCloudMasterDesc = window.originalCloudDescData;
         window.originalCloudMasterFrame = window.originalCloudFrameData;
 
+        // A stale cached site_utils.js means states cannot work this load.
+        // Leaving currentEditor* exactly as editor-core.js set them - the whole
+        // page objects - degrades to the pre-states editor, which edits the
+        // base kit correctly. The next reload picks up the fresh file.
+        if (!sharedHelpersReady()) {
+            console.warn('[Editor] Shared helpers are older than this file (likely a cached copy). Character states are off for this load; reload to restore them.');
+            window.editorActiveMode = BASE();
+            return;
+        }
+
         if (!editorSupportsModes()) {
-            window.editorActiveMode = window.BASE_MODE_ID;
+            window.editorActiveMode = BASE();
             return;
         }
 
@@ -342,7 +374,7 @@
         const requested = fromTicket || new URLSearchParams(window.location.search).get('mode');
         const valid = modes.some(m => m.id === requested);
 
-        window.editorActiveMode = valid ? requested : window.BASE_MODE_ID;
+        window.editorActiveMode = valid ? requested : BASE();
         window.applyEditorModeView();
 
         renderEditorModeBar();

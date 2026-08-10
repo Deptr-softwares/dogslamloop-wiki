@@ -567,12 +567,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // Both resolvers hand the object straight back for the
                     // base mode, which is every page with no states.
                     const mode = window.editorActiveMode;
-                    const liveDesc = window.resolveModeDesc
-                        ? (window.isBaseMode(mode) ? liveData.desc_data : (liveData.desc_data?.modeData || {})[mode] || {})
-                        : liveData.desc_data;
-                    const liveFrame = window.isBaseMode(mode)
-                        ? liveData.frame_data
-                        : (liveData.frame_data?.modeData || {})[mode] || {};
+                    const onBase = typeof window.isBaseMode === 'function'
+                        ? window.isBaseMode(mode) : (!mode || mode === 'base');
+                    const liveDesc = onBase ? liveData.desc_data : (liveData.desc_data?.modeData || {})[mode] || {};
+                    const liveFrame = onBase ? liveData.frame_data : (liveData.frame_data?.modeData || {})[mode] || {};
 
                     if (pageType === 'system' || pageType === 'tierlist') {
                         hasCollision = isDiff(liveDesc, window.originalCloudDescData);

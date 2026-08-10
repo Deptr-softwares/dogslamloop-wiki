@@ -256,6 +256,18 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
 
             container.appendChild(card);
 
+            // Shape the box to the media rather than cropping the media to the
+            // box. Runs after append so the element is measurable, and hooks
+            // load/loadedmetadata because a lazy video reports nothing until
+            // the card scrolls into view.
+            if (typeof window.applyMediaFraming === 'function') {
+                window.applyMediaFraming(
+                    card.querySelector('.skill-media-img'),
+                    card.querySelector('.skill-media-wrapper'),
+                    move.media
+                );
+            }
+
             const editBtn = card.querySelector('.skill-edit-move-btn');
             if (editBtn) {
                 editBtn.addEventListener('click', () => {

@@ -104,6 +104,89 @@ window.isEntryPointHidden = function(archivedMap, key) {
 
 window.fetchArchivedPages = fetchArchivedPages;
 
+// --- MEDIA FRAMING ---
+// Skill-card media used to sit in a fixed 16:9 box whatever shape the source
+// was, so a square still or a phone-captured clip got pillarboxed into a strip.
+//
+// The rule the owner chose is "square only when it fits": the box matches the
+// source rather than the source being cropped to match the box. A 16:9 clip
+// keeps its 16:9 box and loses nothing; a near-square still gets a square box;
+// a tall capture gets a 3:4 box, which bounds the card height without
+// discarding most of the frame.
+//
+// 16:9 stays the CSS default, so an unmeasured or broken source looks exactly
+// as it does today and the common case never has to flip after layout.
+window.MEDIA_WIDE_THRESHOLD = 1.5;
+window.MEDIA_TALL_THRESHOLD = 0.75;
+
+// 'auto' measures; the other three are the contributor overriding the measure,
+// which matters for media whose subject sits off-centre.
+window.MEDIA_FRAMING_OPTIONS = ['auto', 'wide', 'square', 'tall'];
+
+// The nine-point focal grid for a cropped portrait, as literal
+// object-position values. A whitelist rather than free text on purpose: this
+// lands inside a style attribute, and escaping alone would not stop a crafted
+// value from closing the declaration and adding its own.
+window.PORTRAIT_FOCUS_VALUES = [
+    'left top', 'center top', 'right top',
+    'left center', 'center center', 'right center',
+    'left bottom', 'center bottom', 'right bottom',
+];
+
+window.framingForRatio = function(ratio) {
+    if (!ratio || !isFinite(ratio)) return null;
+    if (ratio >= window.MEDIA_WIDE_THRESHOLD) return 'wide';
+    if (ratio <= window.MEDIA_TALL_THRESHOLD) return 'tall';
+    return 'square';
+};
+
+// `media` is the move's own media object: { src, framing, width, height }.
+// Resolved in that order of confidence - an explicit framing, then stored
+// dimensions, then measuring the file once it loads.
+window.applyMediaFraming = function(mediaEl, wrapperEl, media) {
+    if (!wrapperEl) return;
+    const opts = (media && typeof media === 'object') ? media : { framing: media };
+
+    const set = (name) => {
+        wrapperEl.classList.remove('is-square', 'is-tall');
+        if (name === 'square') wrapperEl.classList.add('is-square');
+        else if (name === 'tall') wrapperEl.classList.add('is-tall');
+        // 'wide' is the bare class, so there is nothing to add.
+    };
+
+    if (opts.framing && opts.framing !== 'auto' && window.MEDIA_FRAMING_OPTIONS.includes(opts.framing)) {
+        set(opts.framing);
+        return;
+    }
+
+    // Stored dimensions settle the box before the file has loaded, which
+    // matters because skill media is lazy AND sits in a hidden tab: a lazy
+    // image inside display:none never loads at all until the tab is opened, so
+    // measurement alone means the box corrects itself in front of the reader
+    // the first time they click Skills. Media uploaded through the library
+    // records these; anything older falls through to measuring.
+    const stored = window.framingForRatio(
+        opts.width && opts.height ? Number(opts.width) / Number(opts.height) : null
+    );
+    if (stored) set(stored);
+
+    if (!mediaEl) return;
+
+    const measure = () => {
+        // naturalWidth for <img>, videoWidth for <video> - both are 0 until the
+        // source has actually loaded, and skill-card videos are lazy, so this
+        // may not resolve until the card scrolls into view.
+        const w = mediaEl.naturalWidth || mediaEl.videoWidth;
+        const h = mediaEl.naturalHeight || mediaEl.videoHeight;
+        const framing = window.framingForRatio(w && h ? w / h : null);
+        if (framing) set(framing);
+    };
+
+    measure();
+    mediaEl.addEventListener('load', measure);
+    mediaEl.addEventListener('loadedmetadata', measure);
+};
+
 // --- CHARACTER MODES ---
 // A full character fights out of more than one kit: a base kit, plus one or
 // two ultimate modes that replace their whole moveset. Those are *states* of
