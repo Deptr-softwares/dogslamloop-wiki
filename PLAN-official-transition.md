@@ -124,6 +124,21 @@ Consequences to design for:
 - `pending_revisions.target_scope`/`target_key` are scalar columns used for the queue's `[PATCH: …]` badge (`js/admin-queue.js:112-123`). A multi-scope ticket needs either a list column or a sentinel plus the list inside `delta_payload`.
 - The queue badge and the size hint both read those columns, so both need a multi-scope branch.
 
+#### SHIPPED, 2026-08-10 — and it needed no migration
+
+**The list form already existed and was already in production.** `js/site_utils.js:108-116` holds a "Smart Batch Unpacker": `target_scope: 'multi'` with `delta_payload` as an array of `{scope, key, payload}`, applied recursively. `js/editor-core.js:672-681` already emits it whenever a contributor makes more than one independent edit in a session, and `admin-diff.js`, `admin-preview.js`, `history.js` and `recent-changes.js` all branch on `'multi'` already.
+
+**Only the merge compiler was bypassing it.** So the schema question above — list column versus sentinel-plus-payload — was moot: no new column, no migration, no change of meaning for existing tickets. The earlier lean toward a nullable `target_list` jsonb came from not having read `applyDeltaToData` closely enough.
+
+What actually changed:
+
+- The compiler emits one delta per accepted conflict (`js/admin-merge-compiler.js`), keeping `masterDesc`/`masterFrame` as the legacy fallback exactly as `editor-core.js`'s `buildPayload` does.
+- Array scopes are mapped singular (`extras` → `extra`), and a chosen version of `undefined` — meaning that ticket deleted the item — is normalised to `null`, since `undefined` drops out of JSON entirely and would apply as a no-op, quietly resurrecting the deleted item.
+- QA notes fixed in the same payload object: every contributor's changelog and evidence carries through attributed, and confidence takes the **lowest** of its sources instead of a hardcoded `"high"`.
+- The queue badge counts targets instead of printing `MULTI: batch`.
+
+Covered by `tests/admin-merge-delta.spec.js`. The discriminating test moves live data on *after* the merge is compiled and then applies the ticket through the same branch `admin-actions.js` uses — a snapshot loses the intervening work, a delta keeps it. Verified failing against the pre-fix code with exactly that symptom.
+
 ### Decided: reviewers navigate revisions by top tabs, not the document explorer
 
 **Owner's request.** Today the reviewer navigates a revision through the document explorer in the left workspace, which is inefficient. It should use a top navigation bar of tabs, mirroring how live character and system pages already work.
@@ -133,6 +148,22 @@ Consequences to design for:
 `js/admin-actions.js:17` guards its "Smart Routing" behind `if (rev.is_delta)`. A merged ticket is `is_delta: false`, so **no `&tab=` is ever appended**, and `js/editor-core.js:33` falls back to `'overview'`. So intercepting *any* non-delta ticket dumps the reviewer on Overview regardless of what was actually edited — which is why intercepting a skill revision is currently impossible.
 
 The two decisions interlock: once a merge is a **multi-scope** delta, single-target smart routing is not merely broken but meaningless — there is no one tab to jump to. Top-tab navigation is what replaces it. Build them together.
+
+#### SHIPPED, 2026-08-10 — and the editor needed it more than the reviewer did
+
+**Owner clarified mid-build:** *"I just want how the navigation buttons work in the page itself to be the same in the editor as well."* So this covers **both** `admin.html` and `edit.html`, not the review pane alone.
+
+That turned out to be the more important half. **`edit.html` had no major-tab navigation whatsoever** — `currentEditorTabId` was read from `?tab=` once at boot (`js/editor-core.js`) and never moved again; the `daw-tab-btn` rows are *sub*-navigation within a major tab. So the routing bug and the missing control compounded: intercept dropped the reviewer on Overview, and once there the only way out was hand-editing the URL. That, not the routing alone, is why intercepting a skill revision was impossible.
+
+Both pages now carry the same `.btn-manga.btn-manga-slanted` strip the live pages use. Specifics worth remembering:
+
+- **Intercept follows the tab the reviewer is reading** rather than deriving one, which is the only honest answer once a ticket spans several scopes. Single-move tickets keep their `&move=` deep link.
+- **Changed-tab markers are back on the buttons.** They were removed once before because the buttons lived in the sidebar and were invisible on mobile while reading the preview (see the comment on `.changed-tabs-popup` in `style/admin.css`). Being above the content is what makes them work. `window.changedTabs` already resolved every scope of a `'multi'` payload to its tab, so nothing new had to be computed.
+- **A latent data-corruption bug had to be fixed to make editor tab switching safe.** All three sub-tab loaders (`loadOverviewSectionIntoEditor`, `loadMatchupIntoEditor`, `loadCounterplayIntoEditor`) flush the *previous* selection's blocks into `desc_data` on entry. Crossing a major-tab boundary with stale sub-state meant arriving at Overview with `currentOverviewSection` still `'strategy'` and writing the **matchup's** blocks into `descData.strategy`. `switchEditorTab` clears all three after syncing. Confirmed load-bearing by removing the guard and watching `MATCHUP CONTENT` land in General Strategy.
+- `switchEditorTab` calls `triggerManualSync()` first — `currentStrategyBlocks` is a buffer that only writes back on sync — and rewrites `?tab=` via `replaceState` so a reload lands where the strip says.
+- **System and tierlist pages do not get the strip:** they bail out of `initFullTabEditor` into their own builders, which manage their own tabs.
+
+Covered by `tests/revision-tab-nav.spec.js` (7 specs, both surfaces). One note for future test work: the admin layout spec asserts against the **served HTML** via `request.get`, not the live DOM — `admin.html`'s RBAC gate replaces `document.body` asynchronously, and reading static structure from a loaded page is a race that passes in isolation and fails under parallel load.
 
 ### P1 — found while investigating, not reported
 
