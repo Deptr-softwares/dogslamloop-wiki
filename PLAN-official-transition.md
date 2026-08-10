@@ -238,7 +238,9 @@ Mostly invisible to players, and the most urgent work in this document.
 > - Item 3 in full — category creation unblocked, `others/`/`tools/` folders, `gallery` and `tool` page types with their own renderers, and a gallery editor (upload + name into a bin, one delta per item so contributors cannot collide).
 > - **The two Main Dashboard columns, pulled forward from v0.13.** Others under Guides & Such, Tools under Recent Changes, Game Info to the right. They fill from `navigation.json` by category, so no new data source.
 >
-> **Not started:** items 1 (character modes), 2 (qualitative frame data), 4 (regeneration on save), 5 (site-wide progress view), 6 (media aspect ratios). Plus a **tool-page editor** — `desc_data.tool` has a renderer but nothing writes it — and the eleven `others/` pages and two tools, which are content rather than code.
+> **In review:** item 1 (character modes and the Ultimate tab) as [PR #43](https://github.com/Deptr-softwares/dogslamloop-wiki/pull/43) — the live-page toggle, the editor's `+ STATE` control, mode-scoped deltas, and the review path (preview, diff, queue label, merge compiler) all in one batch. No migration; `frame_data`/`desc_data` are jsonb.
+>
+> **Not started:** items 2 (qualitative frame data), 4 (regeneration on save), 5 (site-wide progress view), 6 (media aspect ratios). Plus a **tool-page editor** — `desc_data.tool` has a renderer but nothing writes it — and the eleven `others/` pages and two tools, which are content rather than code.
 >
 > **Two corrections this batch produced, both recorded above:** the 1.4M figure is Discord *membership*, not traffic, and should not be used to argue against database reads; and the regeneration step is gated by GitHub Pages needing a real file at every URL, not by `navigation.json` — which is why moving that file to the cloud would not have fixed the feedback loop.
 
