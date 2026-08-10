@@ -19,9 +19,15 @@ const SITE_UTILS = path.join(__dirname, '..', 'js', 'site_utils.js');
 
 // Eight hex characters is ~4 billion values, far past what a cache key needs
 // to distinguish, and short enough to keep the script tags readable.
+//
+// Line endings are normalised before hashing, and that is not cosmetic: this
+// repo stores LF but checks out CRLF on Windows, so hashing the bytes on disk
+// gave one version on a developer's machine and a different one on the Linux
+// CI runner - which made `npm run validate` fail on a tree that was correct.
+// Found the first time this shipped.
 function siteUtilsVersion() {
-    const source = fs.readFileSync(SITE_UTILS);
-    return crypto.createHash('sha256').update(source).digest('hex').slice(0, 8);
+    const source = fs.readFileSync(SITE_UTILS, 'utf8').replace(/\r\n/g, '\n');
+    return crypto.createHash('sha256').update(source, 'utf8').digest('hex').slice(0, 8);
 }
 
 // Rewrites any existing ?v= as well as an unstamped tag, so re-running is
