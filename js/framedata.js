@@ -90,8 +90,8 @@ function createPhase(phaseObj, totalScale) {
 
 window.cachedMasterFrameData = window.cachedMasterFrameData || {}; 
 
-async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageType = 'character') {
-    if (pageType === 'system') return; 
+async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageType = 'character', modeId = null) {
+    if (pageType === 'system') return;
 
     try {
         let data = null;
@@ -127,14 +127,35 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
         const container = document.getElementById(`tab-${sectionType}`);
         if (!container) return;
 
-        let movesArray = data[sectionType] || [];
+        // A full character's ultimate modes replace the whole moveset, so which
+        // array this tab renders depends on the active mode. resolveModeFrame
+        // hands back `data` itself for the base mode, which is every character
+        // that declares no modes - so this is a no-op for all of them.
+        const activeMode = modeId || window.activeCharacterMode || null;
+        const scopedData = typeof window.resolveModeFrame === 'function'
+            ? window.resolveModeFrame(data, activeMode)
+            : data;
+
+        let movesArray = scopedData[sectionType] || [];
 
         // If the editor passes a specific move ID, strip out the others so only that move renders.
         if (targetMoveId) {
             movesArray = movesArray.filter(move => move.id === targetMoveId);
         }
 
-        container.innerHTML = ''; 
+        container.innerHTML = '';
+
+        // An empty move tab used to render as a blank white void with no
+        // explanation - indistinguishable from a page that failed to load.
+        // It became worth naming once modes arrived: switching to an ultimate
+        // state whose Skills have not been written yet is a normal, expected
+        // thing to land on, not a broken page.
+        // No early return: the legend below is skipped on its own for an empty
+        // array, the render loop does nothing, and the lazy-media and TOC
+        // passes after the try block still need to run.
+        if (movesArray.length === 0 && !targetMoveId) {
+            container.innerHTML = `<div class="empty-tab-msg">Nothing has been recorded here yet.</div>`;
+        }
 
         const hasFrameData = movesArray.some(move => move.variants);
         if (hasFrameData) {

@@ -204,7 +204,12 @@ function calculateTabDiffs(rev) {
         });
     } else {
         if (rev && rev.is_delta) {
-            const addScopeTab = (scope, key) => {
+            const addScopeTab = (rawScope, rawKey) => {
+                // A character-state edit wraps one of the scopes below. The tab
+                // it changed is the inner scope's tab - without unwrapping,
+                // every state edit marked Overview and nothing else.
+                const { scope, key } = window.unwrapModeDelta(rawScope, rawKey);
+
                 let targetTab = 'overview';
                 if (['profile', 'playstyle', 'overview', 'strategy', 'extra'].includes(scope)) targetTab = 'overview';
                 else if (scope === 'matchup') targetTab = 'matchups';

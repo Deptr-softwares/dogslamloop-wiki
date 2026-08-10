@@ -323,6 +323,61 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     align-items: center;
 }
 
+/* The character mode toggle (js/character_modes.js): which kit - base, or one
+   of the ultimate states - every tab below is describing.
+
+   Deliberately NOT .btn-manga. The tab strip directly underneath is built from
+   .btn-manga-slanted, and two rows of the same button in the same corner would
+   read as one twelve-item nav where the top row happened to wrap. These are
+   flatter, smaller and yellow-accented so the hierarchy is legible at a
+   glance: pick a state, then pick a tab within it. Yellow because
+   --accent-blue is already spoken for by the tab strip's own active state.
+
+   Hidden entirely for the 22 characters that declare no modes, so nothing
+   about the existing pages moves. */
+.character-mode-bar {
+    display: flex; flex-wrap: wrap; gap: 0.4rem;
+    margin-top: 1.25rem;
+}
+.character-mode-bar.hidden { display: none; }
+
+.character-mode-chip {
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 0.4rem 0.9rem;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    box-shadow: 3px 3px 0px var(--manga-shadow);
+    cursor: pointer;
+    transition: color 0.12s, border-color 0.12s, transform 0.12s;
+}
+
+.character-mode-chip:hover {
+    color: var(--text-white);
+    border-color: var(--accent-yellow);
+}
+
+.character-mode-chip.active {
+    color: var(--bg-main);
+    background: var(--accent-yellow);
+    border-color: var(--accent-yellow);
+    font-weight: 700;
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0px var(--manga-shadow);
+}
+
+.character-mode-chip:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+@media (max-width: 600px) {
+    .character-mode-chip { font-size: 0.65rem; padding: 0.35rem 0.7rem; }
+}
+
 .header-split-wrapper, .dashboard-header-split {
     display: flex; justify-content: space-between; align-items: flex-end;
     border-bottom: 2px solid var(--accent-blue); padding-bottom: 0.75rem;

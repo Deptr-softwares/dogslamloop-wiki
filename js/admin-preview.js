@@ -31,6 +31,20 @@ async function previewRevision(revId) {
     window.currentLiveDescData = liveData ? liveData.desc_data : {};
     window.currentLiveFrameData = liveData ? liveData.frame_data : {};
 
+    // Which character state this revision edits, so the preview opens on it.
+    // Without this a reviewer approving an ultimate-state edit is shown the
+    // base kit, where nothing has changed - the worst possible thing to put in
+    // front of someone about to click Approve.
+    window.activePreviewMode = null;
+    if (rev.is_delta) {
+        if (rev.target_scope === 'mode') {
+            window.activePreviewMode = window.unwrapModeDelta(rev.target_scope, rev.target_key).modeId;
+        } else if (rev.target_scope === 'multi' && Array.isArray(rev.delta_payload)) {
+            const stateEdit = rev.delta_payload.find(e => e && e.scope === 'mode');
+            if (stateEdit) window.activePreviewMode = window.unwrapModeDelta(stateEdit.scope, stateEdit.key).modeId;
+        }
+    }
+
     if (rev.is_delta) {
         const { newDesc, newFrame } = window.applyDeltaToData(
             window.currentLiveDescData,
@@ -102,13 +116,15 @@ async function previewRevision(revId) {
         // the strip's changed-tab markers show the rest. calculateTabDiffs
         // (js/admin-diff.js) already resolves every scope in a 'multi'
         // payload to its tab, so reuse that rather than re-deriving it.
+        const unwrapped = window.unwrapModeDelta(rev.target_scope, rev.target_key);
+
         let activeTabId = null;
         if (rev.target_scope === 'multi') {
             activeTabId = (window.changedTabs || [])[0] || 'overview';
-        } else if (['matchup', 'counterplay'].includes(rev.target_scope)) {
-            activeTabId = `${rev.target_scope}s`;
-        } else if (rev.target_scope === 'move') {
-            activeTabId = rev.target_key.split('::')[0];
+        } else if (['matchup', 'counterplay'].includes(unwrapped.scope)) {
+            activeTabId = `${unwrapped.scope}s`;
+        } else if (unwrapped.scope === 'move') {
+            activeTabId = unwrapped.key.split('::')[0];
         } else {
             activeTabId = 'overview';
         }
@@ -156,12 +172,22 @@ async function switchVersionView(mode) {
         if (mode === 'diff') btns[mode].classList.add('btn-sys-purple');
     }
 
+    // The renderers narrow to a character state through this, exactly as the
+    // live page does. currentEditorDescData is handed over already narrowed
+    // (js/description.js treats an editor-supplied object as final), while the
+    // frame cache stays whole because loadMoveSection resolves it itself.
+    const previewMode = window.activePreviewMode || null;
+    window.activeCharacterMode = previewMode;
+    const narrow = (full) => (window.isBaseMode(previewMode)
+        ? full
+        : ((full && full.modeData) || {})[previewMode] || {});
+
     if (mode === 'pending') {
-        window.currentEditorDescData = window.currentPendingDescData;
+        window.currentEditorDescData = narrow(window.currentPendingDescData);
         window.cachedMasterFrameData = window.cachedMasterFrameData || {};
         window.cachedMasterFrameData[window.activePreviewCharId] = window.currentPendingFrameData;
     } else if (mode === 'live') {
-        window.currentEditorDescData = window.currentLiveDescData;
+        window.currentEditorDescData = narrow(window.currentLiveDescData);
         window.cachedMasterFrameData = window.cachedMasterFrameData || {};
         window.cachedMasterFrameData[window.activePreviewCharId] = window.currentLiveFrameData;
     }
@@ -221,14 +247,23 @@ async function switchVersionView(mode) {
         };
 
         if (rev.is_delta) {
-            const renderDeltaDiff = (scope, key, payload) => {
-                diffContainer.innerHTML += `<div class="diff-location-label">Suggested Edit Location: [ ${formatScopeName(scope).toUpperCase()} ➔ ${key.replace('::', ': ').toUpperCase()} ]</div>`;
+            const renderDeltaDiff = (rawScope, rawKey, payload) => {
+                // A character-state edit wraps one of the scopes below, and the
+                // live side it has to be compared against lives in modeData -
+                // not at the top level. Comparing against the base kit would
+                // show the reviewer a diff wrong in both directions: additions
+                // that already exist, and deletions that never happened.
+                const { modeId, scope, key } = window.unwrapModeDelta(rawScope, rawKey);
+                const liveDesc = modeId ? ((window.currentLiveDescData.modeData || {})[modeId] || {}) : window.currentLiveDescData;
+                const liveFrame = modeId ? ((window.currentLiveFrameData.modeData || {})[modeId] || {}) : window.currentLiveFrameData;
+                const where = modeId ? modeId.toUpperCase() + ' / ' : '';
+                diffContainer.innerHTML += `<div class="diff-location-label">Suggested Edit Location: [ ${where}${formatScopeName(scope).toUpperCase()} ➔ ${key.replace('::', ': ').toUpperCase()} ]</div>`;
 
                 if (['profile', 'playstyle', 'overview', 'strategy'].includes(scope)) {
-                    renderDiffBlock(formatScopeName(scope), window.currentLiveDescData[scope], payload);
+                    renderDiffBlock(formatScopeName(scope), liveDesc[scope], payload);
                 }
                 else if (scope === 'extra') {
-                    const oldExtra = window.currentLiveDescData.extras?.find(e => e.title === key) || {};
+                    const oldExtra = liveDesc.extras?.find(e => e.title === key) || {};
                     if (payload === null) {
                         renderDiffBlock('Custom Tab Deleted', oldExtra, null, 'json');
                     } else {
@@ -237,7 +272,7 @@ async function switchVersionView(mode) {
                     }
                 }
                 else if (scope === 'matchup') {
-                    const oldMu = window.currentLiveDescData.matchups?.find(m => m.opponent === key) || {};
+                    const oldMu = liveDesc.matchups?.find(m => m.opponent === key) || {};
                     if (payload === null) {
                         renderDiffBlock('Matchup Deleted', oldMu, null, 'json');
                     } else {
@@ -246,7 +281,7 @@ async function switchVersionView(mode) {
                     }
                 }
                 else if (scope === 'counterplay') {
-                    const oldCp = window.currentLiveDescData.counterplay?.find(c => c.topic === key) || {};
+                    const oldCp = liveDesc.counterplay?.find(c => c.topic === key) || {};
                     if (payload === null) {
                         renderDiffBlock('Counterplay Deleted', oldCp, null, 'json');
                     } else {
@@ -256,8 +291,8 @@ async function switchVersionView(mode) {
                 }
                 else if (scope === 'move') {
                     const [cat, moveId] = key.split('::');
-                    const oldFrame = window.currentLiveFrameData[cat]?.find(m => m.id === moveId) || {};
-                    const oldDesc = window.currentLiveDescData.moveStrategies?.[moveId] || [];
+                    const oldFrame = liveFrame[cat]?.find(m => m.id === moveId) || {};
+                    const oldDesc = liveDesc.moveStrategies?.[moveId] || [];
 
                     if (payload === null) {
                         renderDiffBlock(`Move Deleted: ${moveId}`, oldFrame, null, 'json');

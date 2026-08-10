@@ -46,6 +46,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.loadMoveSection(pageId, 'specials');
         }
 
+        // Alongside them, not before: it decides whether this character has a
+        // mode toggle or an Ultimate tab, and both are additions to a page
+        // that renders perfectly well without them. Blocking the moveset on
+        // that question would make every character page wait for an answer
+        // that is "no" for all 22 of them today.
+        if (typeof window.initCharacterModes === 'function') {
+            window.initCharacterModes(pageId);
+        }
+
         if (typeof window.loadPageDescriptions === 'function') {
             window.loadPageDescriptions(pageId, 'character');
         }

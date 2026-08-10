@@ -190,6 +190,7 @@ ${social}
     <script src="../../js/pagebuilder.js"></script>
     <script src="../../js/framedata.js"></script>
     <script src="../../js/description.js"></script>
+    <script src="../../js/character_modes.js"></script>
     <script src="../../js/internalstyling.js"></script>
 
     <script src="../../js/page_boot.js"></script>

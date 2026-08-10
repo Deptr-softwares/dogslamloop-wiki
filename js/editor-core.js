@@ -263,6 +263,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
+        // Before the preview is built, so a ?mode= link opens the editor on
+        // the state it names rather than rendering the base kit and then
+        // snapping. This takes ownership of window.currentEditorDescData and
+        // currentEditorFrameData: from here they are views onto the master
+        // objects, and for the base mode they are the master objects.
+        if (typeof window.initEditorModes === 'function') {
+            await window.initEditorModes(pageId, descData, frameData);
+        }
+
         // --- INTERCEPT UI OVERRIDES ---
         if (window.interceptedTicketData) {
             titleEl.innerHTML = `<span class="editor-intercept-label">Intercepting Submission</span>`;
@@ -275,11 +284,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             subTitleEl.textContent = `${pageDisplay} / ${tabId}`;
         }
 
-        // 2. BUILD THE PREVIEW DOM 
-        if (['m1s', 'skills', 'specials'].includes(tabId) && typeof window.loadMoveSection === 'function') {
-            let activeMoveId = moveId; 
-            if (!activeMoveId && frameData && frameData[tabId] && frameData[tabId].length > 0) {
-                activeMoveId = frameData[tabId][0].id;
+        // 2. BUILD THE PREVIEW DOM
+        // Reads the mode view rather than the master: on a character with
+        // states, the first move of the *active* state is the one to open.
+        const modeFrame = window.currentEditorFrameData || frameData;
+        if ((window.FRAME_MOVE_CATEGORIES || []).includes(tabId) && typeof window.loadMoveSection === 'function') {
+            let activeMoveId = moveId;
+            if (!activeMoveId && modeFrame && modeFrame[tabId] && modeFrame[tabId].length > 0) {
+                activeMoveId = modeFrame[tabId][0].id;
             }
             try { await window.loadMoveSection(pageId, tabId, activeMoveId, pageType); } catch(e) { console.warn("Move section build skipped:", e); }
         }
@@ -290,9 +302,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // 3. ROUTE TO THE CORRECT EDITOR
         window.currentEditorTabId = tabId;
-        window.currentEditorCharId = pageId; 
-        window.currentEditorDescData = descData;
-        window.currentEditorFrameData = frameData;
+        window.currentEditorCharId = pageId;
+
+        // applyEditorModeView owns these two now, and re-points them at the
+        // active state's slice. Assigning the masters here instead would undo
+        // the view and send every edit into the base kit.
+        if (typeof window.applyEditorModeView === 'function') {
+            window.applyEditorModeView();
+        } else {
+            window.currentEditorDescData = descData;
+            window.currentEditorFrameData = frameData;
+        }
+
+        const editDesc = window.currentEditorDescData;
+        const editFrame = window.currentEditorFrameData;
 
         if (moveId) {
             // This branch skips initFullTabEditor, which is where the tab
@@ -300,15 +323,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             // linking to a single move leaves the strip unrendered.
             if (typeof window.renderEditorTabNav === 'function') window.renderEditorTabNav(tabId);
 
-            const moveStats = frameData ? frameData[tabId]?.find(m => m.id === moveId) : null;
-            const moveStrats = descData ? descData.moveStrategies?.[moveId] : null;
+            const moveStats = editFrame ? editFrame[tabId]?.find(m => m.id === moveId) : null;
+            const moveStrats = editDesc ? editDesc.moveStrategies?.[moveId] : null;
             initPerMoveEditor(moveId, moveStats, moveStrats);
             setTimeout(() => {
                 const previewCard = document.querySelector(`.live-preview-pane #strategy-${moveId}`);
                 if (previewCard) previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 300);
         } else {
-            initFullTabEditor(pageId, tabId, descData, frameData);
+            initFullTabEditor(pageId, tabId, editDesc, editFrame);
         }
 
     } catch (error) {
@@ -536,34 +559,49 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const tabId = window.currentEditorTabId;
                     const isDiff = (objA, objB) => JSON.stringify(objA || null) !== JSON.stringify(objB || null);
 
+                    // originalCloudDescData is the *active state's* slice, so
+                    // the row just read has to be narrowed the same way before
+                    // the two are compared - otherwise editing an ultimate
+                    // state compares its matchups against the base kit's and
+                    // warns about a collision on every single submission.
+                    // Both resolvers hand the object straight back for the
+                    // base mode, which is every page with no states.
+                    const mode = window.editorActiveMode;
+                    const liveDesc = window.resolveModeDesc
+                        ? (window.isBaseMode(mode) ? liveData.desc_data : (liveData.desc_data?.modeData || {})[mode] || {})
+                        : liveData.desc_data;
+                    const liveFrame = window.isBaseMode(mode)
+                        ? liveData.frame_data
+                        : (liveData.frame_data?.modeData || {})[mode] || {};
+
                     if (pageType === 'system' || pageType === 'tierlist') {
-                        hasCollision = isDiff(liveData.desc_data, window.originalCloudDescData);
+                        hasCollision = isDiff(liveDesc, window.originalCloudDescData);
                     }
 
-                    if (['m1s', 'skills', 'specials'].includes(tabId)) {
+                    if ((window.FRAME_MOVE_CATEGORIES || []).includes(tabId)) {
                         let moveId = new URLSearchParams(window.location.search).get('move');
                         if (!moveId) {
                             const activeBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
                             if (activeBtn) moveId = activeBtn.id.replace('move-nav-', '');
                         }
                         if (moveId) {
-                            hasCollision = isDiff(liveData.desc_data?.moveStrategies?.[moveId], window.originalCloudDescData?.moveStrategies?.[moveId]) || 
-                                           isDiff((liveData.frame_data?.[tabId] || []).find(m => m.id === moveId), (window.originalCloudFrameData?.[tabId] || []).find(m => m.id === moveId));
+                            hasCollision = isDiff(liveDesc?.moveStrategies?.[moveId], window.originalCloudDescData?.moveStrategies?.[moveId]) || 
+                                           isDiff((liveFrame?.[tabId] || []).find(m => m.id === moveId), (window.originalCloudFrameData?.[tabId] || []).find(m => m.id === moveId));
                         }
                     } else if (tabId === 'overview') {
                         const sec = window.currentOverviewSection || 'overview';
-                        if (sec === 'profile') hasCollision = isDiff(liveData.desc_data?.profile, window.originalCloudDescData?.profile);
-                        else if (sec === 'playstyle') hasCollision = isDiff(liveData.desc_data?.playstyle, window.originalCloudDescData?.playstyle);
-                        else if (sec === 'overview') hasCollision = isDiff(liveData.desc_data?.overview, window.originalCloudDescData?.overview);
-                        else if (sec === 'strategy') hasCollision = isDiff(liveData.desc_data?.strategy, window.originalCloudDescData?.strategy);
+                        if (sec === 'profile') hasCollision = isDiff(liveDesc?.profile, window.originalCloudDescData?.profile);
+                        else if (sec === 'playstyle') hasCollision = isDiff(liveDesc?.playstyle, window.originalCloudDescData?.playstyle);
+                        else if (sec === 'overview') hasCollision = isDiff(liveDesc?.overview, window.originalCloudDescData?.overview);
+                        else if (sec === 'strategy') hasCollision = isDiff(liveDesc?.strategy, window.originalCloudDescData?.strategy);
                         else if (sec.startsWith('extra-')) {
                             const idx = parseInt(sec.split('-')[1]);
-                            hasCollision = isDiff(liveData.desc_data?.extras?.[idx], window.originalCloudDescData?.extras?.[idx]);
+                            hasCollision = isDiff(liveDesc?.extras?.[idx], window.originalCloudDescData?.extras?.[idx]);
                         }
                     } else if (tabId === 'matchups' && window.currentMatchupIndex !== undefined) {
-                        hasCollision = isDiff(liveData.desc_data?.matchups?.[window.currentMatchupIndex], window.originalCloudDescData?.matchups?.[window.currentMatchupIndex]);
+                        hasCollision = isDiff(liveDesc?.matchups?.[window.currentMatchupIndex], window.originalCloudDescData?.matchups?.[window.currentMatchupIndex]);
                     } else if (tabId === 'counterplay' && window.currentCounterplayIndex !== undefined) {
-                        hasCollision = isDiff(liveData.desc_data?.counterplay?.[window.currentCounterplayIndex], window.originalCloudDescData?.counterplay?.[window.currentCounterplayIndex]);
+                        hasCollision = isDiff(liveDesc?.counterplay?.[window.currentCounterplayIndex], window.originalCloudDescData?.counterplay?.[window.currentCounterplayIndex]);
                     }
 
                     if (hasCollision) {
@@ -596,14 +634,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // A helper to quickly spawn standardized payload objects
             const buildPayload = (targetScope, targetKey, deltaPayload) => {
+                // A character-state edit is wrapped here, once, and unwrapped
+                // once in applyDeltaToData. 'multi' is the envelope around
+                // deltas that have each already been wrapped, so wrapping it
+                // again would nest a batch inside a state.
+                // 'modes' is the page-level list of which states exist - it
+                // belongs to the character, not to any one of them.
+                const unwrappable = targetScope === 'multi' || targetScope === 'modes';
+                const scoped = (unwrappable || typeof window.scopeEditorDelta !== 'function')
+                    ? { scope: targetScope, key: targetKey }
+                    : window.scopeEditorDelta(targetScope, targetKey);
+
                 return {
                     page_id: pageId,
                     page_type: pageType,
-                    desc_data: window.currentEditorDescData, // Legacy fallback included
-                    frame_data: pageType === 'system' ? null : window.currentEditorFrameData,
+                    // The legacy fallback is the whole page, not the slice of
+                    // it currently being edited - anything reading this field
+                    // instead of the delta expects a complete object.
+                    desc_data: window.editorMasterDescData || window.currentEditorDescData,
+                    frame_data: pageType === 'system' ? null : (window.editorMasterFrameData || window.currentEditorFrameData),
                     is_delta: true,
-                    target_scope: targetScope,
-                    target_key: targetKey,
+                    target_scope: scoped.scope,
+                    target_key: scoped.key,
                     delta_payload: deltaPayload,
                     author_id: session.user.id,
                     author_name: window.currentGlobalUsername || "Contributor",
@@ -613,10 +665,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 1. IF INTERCEPTING: Strictly update the single intercepted ticket
             if (window.interceptedTicketData) {
-                const scope = window.interceptedTicketData.target_scope;
-                const key = window.interceptedTicketData.target_key;
+                let scope = window.interceptedTicketData.target_scope;
+                let key = window.interceptedTicketData.target_key;
+
+                // Unwrap a character-state ticket back to the plain scope it
+                // wraps. initEditorModes has already switched the editor into
+                // that state, so currentEditor* below are the right slice and
+                // buildPayload re-wraps on the way out.
+                if (scope === 'mode' && typeof key === 'string') {
+                    const parts = key.split('::');
+                    parts.shift();
+                    scope = parts.shift();
+                    key = parts.join('::') || 'full';
+                }
+
                 let dPayload = {};
-                
+
                 if (scope === 'move') {
                     const [cat, mId] = key.split('::');
                     dPayload = {
@@ -634,6 +698,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             } 
             // 2. NORMAL SUBMISSION: Multi-Payload Diff Scanner
             else {
+                // --- Which states exist ---
+                // Page-level, so it is scanned before the per-tab branches
+                // rather than under one of them. Without this a contributor
+                // could add an ultimate state, write a full kit into it, and
+                // have every content delta land in modeData while the
+                // declaration never shipped - leaving the work in the database
+                // with no toggle on the page to reach it.
+                if (!['system', 'tierlist', 'gallery', 'tool'].includes(pageType)) {
+                    const localModes = (window.editorMasterFrameData || {}).modes;
+                    const cloudModes = (window.originalCloudMasterFrame || {}).modes;
+                    if (isDiff(localModes, cloudModes)) {
+                        payloadsToInsert.push(buildPayload('modes', 'full', localModes || null));
+                    }
+                }
+
                 // --- Gallery Payload ---
                 // One delta per item, keyed by name, rather than one payload
                 // carrying the whole list. That is what makes a gallery safe
@@ -659,7 +738,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
                 // --- CHARACTER PAYLOAD ENGINE ---
-                else if (['m1s', 'skills', 'specials'].includes(tabId)) {
+                else if ((window.FRAME_MOVE_CATEGORIES || []).includes(tabId)) {
                     const localMoves = window.currentEditorFrameData[tabId] || [];
                     const cloudMoves = window.originalCloudFrameData[tabId] || [];
                     

@@ -195,6 +195,14 @@
                  page uses. Populated/activated by renderEditorTabNav in
                  js/editor-tabs.js; hidden for system and tierlist pages,
                  whose builders manage their own tabs. -->
+            <!-- Character state toggle, in the same shape and the same place
+                 as the live page's (js/character_modes.js) - which is what
+                 contributors are looking at when they decide what to write.
+                 Populated by js/editor-modes.js; hidden unless the character
+                 has more than one state. -->
+            <div id="editor-mode-bar" class="character-mode-bar editor-mode-bar hidden" aria-label="Character state"></div>
+            <div id="editor-mode-controls" class="editor-mode-controls hidden"></div>
+
             <nav id="editor-tab-nav" class="editor-tab-nav hidden" aria-label="Character sections">
                 <button id="edit-nav-overview" class="btn-manga btn-manga-slanted active" onclick="window.switchEditorTab('overview')"><div class="btn-manga-content"><span class="btn-manga-text">Overview</span></div></button>
                 <button id="edit-nav-m1s" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('m1s')"><div class="btn-manga-content"><span class="btn-manga-text">M1s</span></div></button>
@@ -202,6 +210,10 @@
                 <button id="edit-nav-specials" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('specials')"><div class="btn-manga-content"><span class="btn-manga-text">Specials</span></div></button>
                 <button id="edit-nav-matchups" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('matchups')"><div class="btn-manga-content"><span class="btn-manga-text">Matchups</span></div></button>
                 <button id="edit-nav-counterplay" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('counterplay')"><div class="btn-manga-content"><span class="btn-manga-text">Counterplay</span></div></button>
+                <!-- Base-only characters only: their ultimate is a single big
+                     attack rather than a state. Un-hidden by js/editor-modes.js
+                     once the registry says so. -->
+                <button id="edit-nav-ultimateAtk" class="btn-manga btn-manga-slanted hidden" onclick="window.switchEditorTab('ultimateAtk')"><div class="btn-manga-content"><span class="btn-manga-text">Ultimate</span></div></button>
             </nav>
 
             <div id="interactive-builder"></div>
@@ -223,6 +235,7 @@
                     <div id="tab-specials" class="tab-content hidden"></div>
                     <div id="tab-matchups" class="vessel-content hidden"></div>
                     <div id="tab-counterplay" class="vessel-content hidden"></div>
+                    <div id="tab-ultimateAtk" class="vessel-content hidden"></div>
                 </div>
             </main>
         </div>
@@ -235,6 +248,7 @@
     <script src="js/framedata.js"></script>
     <script src="js/description.js"></script>
     <script src="js/internalstyling.js"></script>
+    <script src="js/editor-modes.js"></script>
     <script src="js/editor-core.js"></script>
     <script src="js/editor-tabs.js"></script>
     <script src="js/editor-framedata.js"></script>

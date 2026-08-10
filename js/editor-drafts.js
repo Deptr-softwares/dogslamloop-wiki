@@ -35,8 +35,14 @@ window.saveLocalDraft = function() {
         charId: window.currentEditorCharId,
         tabId: tabId,
         moveId: moveId,
-        desc_data: window.currentEditorDescData,
-        frame_data: window.currentEditorFrameData
+        // The master, not the slice. On a character with ultimate states
+        // currentEditorDescData is a view onto one of them, and saving that
+        // would restore a draft containing only that state - silently losing
+        // the base kit and every other state the moment it was reloaded.
+        // Identical objects for a character with no states.
+        desc_data: window.editorMasterDescData || window.currentEditorDescData,
+        frame_data: window.editorMasterFrameData || window.currentEditorFrameData,
+        mode: window.editorActiveMode || null
     };
 
     try {

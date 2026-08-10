@@ -32,29 +32,73 @@ window.openMergeCompiler = async function(pageId) {
     const isDiff = (a, b) => JSON.stringify(a || null) !== JSON.stringify(b || null);
     const conflicts = [];
 
-    const addConflict = (sectionId, sectionName, type, lData, lStratData = null) => {
-        let existing = conflicts.find(c => c.sectionId === sectionId);
+    // A character with ultimate states has a whole second (or third) set of
+    // everything below, living under modeData. Scanning only the top level
+    // meant a merge silently dropped every state edit it swept up - the same
+    // data-loss class as the compile-time snapshot this file was rewritten to
+    // remove. Each conflict therefore carries the state it belongs to, and the
+    // scan runs once per state.
+    const narrow = (obj, modeId) => (modeId ? ((obj && obj.modeData) || {})[modeId] || {} : (obj || {}));
+
+    const statesIn = (frame) => window.getCharacterModes(frame || {})
+        .map(m => m.id)
+        .filter(id => !window.isBaseMode(id));
+
+    const addConflict = (sectionId, sectionName, type, lData, lStratData = null, modeId = null) => {
+        // Prefixed so the same section in two states stays two conflicts with
+        // two distinct <select> ids.
+        const scopedId = modeId ? `state_${String(modeId).replace(/[^a-zA-Z0-9]/g, '_')}__${sectionId}` : sectionId;
+        let existing = conflicts.find(c => c.sectionId === scopedId);
         if (!existing) {
-            existing = { sectionId, sectionName, type, liveData: lData, liveStratData: lStratData, options: [] };
+            existing = {
+                sectionId: scopedId, modeId,
+                sectionName: modeId ? `[${String(modeId).toUpperCase()}] ${sectionName}` : sectionName,
+                type, liveData: lData, liveStratData: lStratData, options: [],
+            };
             conflicts.push(existing);
         }
         return existing;
     };
 
     tickets.forEach(t => {
-        let tDesc = t.desc_data || {};
-        let tFrame = t.frame_data || {};
+        let tFullDesc = t.desc_data || {};
+        let tFullFrame = t.frame_data || {};
 
         if (t.is_delta) {
             const patched = window.applyDeltaToData(liveDesc, liveFrame, t.target_scope, t.target_key, t.delta_payload);
-            tDesc = patched.newDesc;
-            tFrame = patched.newFrame;
+            tFullDesc = patched.newDesc;
+            tFullFrame = patched.newFrame;
         }
 
-        if (isDiff(tDesc.profile, liveDesc.profile)) addConflict('profile', 'Profile Metadata', 'desc', liveDesc.profile).options.push({ ticket: t, data: tDesc.profile });
-        if (isDiff(tDesc.playstyle, liveDesc.playstyle)) addConflict('playstyle', 'Playstyle Details', 'desc', liveDesc.playstyle).options.push({ ticket: t, data: tDesc.playstyle });
-        if (isDiff(tDesc.overview, liveDesc.overview)) addConflict('overview', 'Character Overview', 'desc', liveDesc.overview).options.push({ ticket: t, data: tDesc.overview });
-        if (isDiff(tDesc.strategy, liveDesc.strategy)) addConflict('strategy', 'General Strategy', 'desc', liveDesc.strategy).options.push({ ticket: t, data: tDesc.strategy });
+        // Which states exist is page-level, not per-state. It has to travel
+        // through a merge on its own: dropping it would leave a contributor's
+        // state content merged into modeData with no toggle on the page able
+        // to reach it.
+        if (isDiff(tFullFrame.modes, liveFrame.modes)) {
+            addConflict('modes', 'Character States (which kits exist)', 'modes', liveFrame.modes)
+                .options.push({ ticket: t, data: tFullFrame.modes });
+        }
+
+        // The union: a ticket that declares a brand new state has to be scanned
+        // for it even though live has never heard of it.
+        const states = [null, ...new Set([...statesIn(liveFrame), ...statesIn(tFullFrame)])];
+
+        states.forEach(modeId => scanOneState(t, modeId, tFullDesc, tFullFrame));
+    });
+
+    function scanOneState(t, modeId, tFullDesc, tFullFrame) {
+        const tDesc = narrow(tFullDesc, modeId);
+        const tFrame = narrow(tFullFrame, modeId);
+        const lDesc = narrow(liveDesc, modeId);
+        const lFrame = narrow(liveFrame, modeId);
+
+        const liveDescData = lDesc;
+        const liveFrameData = lFrame;
+
+        if (isDiff(tDesc.profile, liveDescData.profile)) addConflict('profile', 'Profile Metadata', 'desc', liveDescData.profile, null, modeId).options.push({ ticket: t, data: tDesc.profile });
+        if (isDiff(tDesc.playstyle, liveDescData.playstyle)) addConflict('playstyle', 'Playstyle Details', 'desc', liveDescData.playstyle, null, modeId).options.push({ ticket: t, data: tDesc.playstyle });
+        if (isDiff(tDesc.overview, liveDescData.overview)) addConflict('overview', 'Character Overview', 'desc', liveDescData.overview, null, modeId).options.push({ ticket: t, data: tDesc.overview });
+        if (isDiff(tDesc.strategy, liveDescData.strategy)) addConflict('strategy', 'General Strategy', 'desc', liveDescData.strategy, null, modeId).options.push({ ticket: t, data: tDesc.strategy });
 
         // Identity-based (matches window.applyDeltaToData's own extras/
         // matchups/counterplay handling in site_utils.js - findIndex by
@@ -81,28 +125,33 @@ window.openMergeCompiler = async function(pageId) {
                 const lItem = lItems.find(item => item?.[keyProp] === key);
                 if (isDiff(tItem, lItem)) {
                     const safeKey = String(key ?? 'untitled').replace(/[^a-zA-Z0-9]/g, '_');
-                    addConflict(`${arrName}_${safeKey}`, `${labelName}: ${key || 'Untitled'}`, 'array_item', lItem, { arrName, key, keyProp }).options.push({ ticket: t, data: tItem });
+                    addConflict(`${arrName}_${safeKey}`, `${labelName}: ${key || 'Untitled'}`, 'array_item', lItem, { arrName, key, keyProp }, modeId).options.push({ ticket: t, data: tItem });
                 }
             });
         };
 
-        scanArray('extras', 'Custom Tab', tDesc.extras, liveDesc.extras, 'title');
-        scanArray('matchups', 'Matchup', tDesc.matchups, liveDesc.matchups, 'opponent');
-        scanArray('counterplay', 'Counterplay', tDesc.counterplay, liveDesc.counterplay, 'topic');
+        scanArray('extras', 'Custom Tab', tDesc.extras, liveDescData.extras, 'title');
+        scanArray('matchups', 'Matchup', tDesc.matchups, liveDescData.matchups, 'opponent');
+        scanArray('counterplay', 'Counterplay', tDesc.counterplay, liveDescData.counterplay, 'topic');
 
-        ['m1s', 'skills', 'specials'].forEach(cat => {
+        (window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials']).forEach(cat => {
             const tMoves = tFrame[cat] || [];
-            const lMoves = liveFrame[cat] || [];
+            const lMoves = liveFrameData[cat] || [];
             const allMoveIds = new Set([...tMoves.map(m=>m.id), ...lMoves.map(m=>m.id)]);
 
             allMoveIds.forEach(moveId => {
                 const tMove = tMoves.find(m => m.id === moveId);
                 const lMove = lMoves.find(m => m.id === moveId);
                 const tStrat = (tDesc.moveStrategies || {})[moveId];
-                const lStrat = (liveDesc.moveStrategies || {})[moveId];
+                const lStrat = (liveDescData.moveStrategies || {})[moveId];
 
                 if (isDiff(tMove, lMove) || isDiff(tStrat, lStrat)) {
-                    addConflict(`move_${cat}_${moveId}`, `Move: ${cat.toUpperCase()} / ${moveId}`, 'move', { move: lMove, cat: cat }, lStrat).options.push({
+                    const conflict = addConflict(`move_${cat}_${moveId}`, `Move: ${cat.toUpperCase()} / ${moveId}`, 'move', { move: lMove, cat: cat }, lStrat, modeId);
+                    // Recorded rather than parsed back out of sectionId, which
+                    // now carries a state prefix and a move id that may itself
+                    // contain underscores.
+                    conflict.moveId = moveId;
+                    conflict.options.push({
                         ticket: t,
                         data: { move: tMove, cat: cat },
                         stratData: tStrat
@@ -110,7 +159,7 @@ window.openMergeCompiler = async function(pageId) {
                 }
             });
         });
-    });
+    }
 
     if (conflicts.length === 0) {
         body.innerHTML = `<p class="compiler-empty-text">No mergeable changes detected in these tickets. They may be functionally identical to the live database.</p>`;
@@ -170,6 +219,21 @@ window.openMergeCompiler = async function(pageId) {
         // property names they live under.
         const DELTA_SCOPE_FOR_ARRAY = { extras: 'extra', matchups: 'matchup', counterplay: 'counterplay' };
 
+        // A conflict inside an ultimate state writes into that state's bucket
+        // and ships as a mode-wrapped delta - the same wrapper the editor emits
+        // (js/editor-modes.js scopeEditorDelta) and applyDeltaToData unwraps.
+        const sliceOf = (master, modeId) => {
+            if (!modeId) return master;
+            if (!master.modeData) master.modeData = {};
+            if (!master.modeData[modeId]) master.modeData[modeId] = {};
+            return master.modeData[modeId];
+        };
+        const pushDelta = (modeId, scope, key, payload) => {
+            batchedDeltas.push(modeId
+                ? { scope: 'mode', key: `${modeId}::${scope}::${key === null ? 'full' : key}`, payload }
+                : { scope, key, payload });
+        };
+
         conflicts.forEach(c => {
             const selVal = document.getElementById(`compiler-sel-${c.sectionId}`).value;
             if (selVal === 'live') return;
@@ -180,9 +244,19 @@ window.openMergeCompiler = async function(pageId) {
             selectedTicketIds.add(selVal);
             contributors.add(chosenOpt.ticket.author_name);
 
-            if (c.type === 'desc') {
-                masterDesc[c.sectionId] = chosenOpt.data;
-                batchedDeltas.push({ scope: c.sectionId, key: null, payload: chosenOpt.data });
+            const descSlice = sliceOf(masterDesc, c.modeId);
+            const frameSlice = sliceOf(masterFrame, c.modeId);
+
+            if (c.type === 'modes') {
+                masterFrame.modes = chosenOpt.data;
+                batchedDeltas.push({ scope: 'modes', key: 'full', payload: chosenOpt.data || null });
+            }
+            else if (c.type === 'desc') {
+                // sectionId carries the state prefix; the property name is what
+                // comes after it.
+                const prop = c.modeId ? c.sectionId.split('__').pop() : c.sectionId;
+                descSlice[prop] = chosenOpt.data;
+                pushDelta(c.modeId, prop, null, chosenOpt.data);
             }
             else if (c.type === 'array_item') {
                 // Identity-based, matching scanArray above - find by keyProp,
@@ -193,56 +267,48 @@ window.openMergeCompiler = async function(pageId) {
                 // writing undefined into whatever happened to sit at a given
                 // index.
                 const { arrName, key, keyProp } = c.liveStratData;
-                if (!masterDesc[arrName]) masterDesc[arrName] = [];
-                const existingIdx = masterDesc[arrName].findIndex(item => item?.[keyProp] === key);
+                if (!descSlice[arrName]) descSlice[arrName] = [];
+                const existingIdx = descSlice[arrName].findIndex(item => item?.[keyProp] === key);
                 if (chosenOpt.data === undefined) {
-                    if (existingIdx > -1) masterDesc[arrName].splice(existingIdx, 1);
+                    if (existingIdx > -1) descSlice[arrName].splice(existingIdx, 1);
                 } else if (existingIdx > -1) {
-                    masterDesc[arrName][existingIdx] = chosenOpt.data;
+                    descSlice[arrName][existingIdx] = chosenOpt.data;
                 } else {
-                    masterDesc[arrName].push(chosenOpt.data);
+                    descSlice[arrName].push(chosenOpt.data);
                 }
 
                 // undefined means the chosen ticket had no version of this item,
                 // i.e. it deleted it. applyDeltaToData reads null as "delete";
                 // undefined would drop out of the JSON payload entirely and
                 // apply as a no-op, quietly resurrecting the deleted item.
-                batchedDeltas.push({
-                    scope: DELTA_SCOPE_FOR_ARRAY[arrName],
-                    key,
-                    payload: chosenOpt.data === undefined ? null : chosenOpt.data
-                });
+                pushDelta(c.modeId, DELTA_SCOPE_FOR_ARRAY[arrName], key,
+                    chosenOpt.data === undefined ? null : chosenOpt.data);
             }
             else if (c.type === 'move') {
                 const cat = chosenOpt.data.cat;
                 const moveData = chosenOpt.data.move;
                 const stratData = chosenOpt.stratData;
+                const moveId = c.moveId;
 
-                const prefix = `move_${cat}_`;
-                const moveId = c.sectionId.substring(prefix.length);
-
-                if (!masterFrame[cat]) masterFrame[cat] = [];
-                const existingIdx = masterFrame[cat].findIndex(m => m.id === moveId);
+                if (!frameSlice[cat]) frameSlice[cat] = [];
+                const existingIdx = frameSlice[cat].findIndex(m => m.id === moveId);
 
                 if (moveData) {
-                    if (existingIdx > -1) masterFrame[cat][existingIdx] = moveData;
-                    else masterFrame[cat].push(moveData);
+                    if (existingIdx > -1) frameSlice[cat][existingIdx] = moveData;
+                    else frameSlice[cat].push(moveData);
                 } else {
-                    if (existingIdx > -1) masterFrame[cat].splice(existingIdx, 1);
+                    if (existingIdx > -1) frameSlice[cat].splice(existingIdx, 1);
                 }
 
-                if (!masterDesc.moveStrategies) masterDesc.moveStrategies = {};
-                if (stratData) masterDesc.moveStrategies[moveId] = stratData;
-                else delete masterDesc.moveStrategies[moveId];
+                if (!descSlice.moveStrategies) descSlice.moveStrategies = {};
+                if (stratData) descSlice.moveStrategies[moveId] = stratData;
+                else delete descSlice.moveStrategies[moveId];
 
                 // Same {frame_data, desc_data} shape the editor's own move
                 // deltas use, keyed "category::moveId" - applyDeltaToData
                 // splits on "::" to find the category array.
-                batchedDeltas.push({
-                    scope: 'move',
-                    key: `${cat}::${moveId}`,
-                    payload: moveData ? { frame_data: moveData, desc_data: stratData || [] } : null
-                });
+                pushDelta(c.modeId, 'move', `${cat}::${moveId}`,
+                    moveData ? { frame_data: moveData, desc_data: stratData || [] } : null);
             }
         });
 

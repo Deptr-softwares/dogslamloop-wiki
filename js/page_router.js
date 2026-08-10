@@ -148,6 +148,8 @@
 
                 <h1 class="character-title">${esc(route.title || route.pageId)}</h1>
 
+                <div id="character-mode-bar" class="character-mode-bar hidden" role="tablist" aria-label="Character mode"></div>
+
                 <nav class="character-nav">${navButtons}
 
                     <button id="btn-edit-current-tab-mobile" class="btn-sys btn-sys-regular tab-editor-btn-mobile">

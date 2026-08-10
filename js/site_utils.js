@@ -104,6 +104,100 @@ window.isEntryPointHidden = function(archivedMap, key) {
 
 window.fetchArchivedPages = fetchArchivedPages;
 
+// --- CHARACTER MODES ---
+// A full character fights out of more than one kit: a base kit, plus one or
+// two ultimate modes that replace their whole moveset. Those are *states* of
+// one character, not separate characters, so they share a page and swap the
+// tab contents underneath a toggle.
+//
+// The model is additive on purpose - all 22 characters that exist today
+// declare no modes at all and must keep rendering byte-identically:
+//
+//   frame_data.modes    = [{id:'base', label:'Base Kit'}, {id:'shrine', ...}]
+//   frame_data.modeData = { shrine: { m1s: [], skills: [], specials: [] } }
+//   desc_data.modeData  = { shrine: { profile, overview, matchups, ... } }
+//
+// Declaration (`modes`) is deliberately separate from content (`modeData`):
+// renaming or reordering the toggle then never rewrites a single block, and a
+// mode's content is addressable by a stable id rather than an array position.
+//
+// BASE_MODE_ID is reserved and always means "the existing top level". That is
+// what makes the whole thing free for every page already in the database: no
+// modes declared means one implicit base mode, which is exactly what the
+// top-level m1s/skills/specials already are.
+window.BASE_MODE_ID = 'base';
+
+// The frame-data arrays that hold moves. `ultimateAtk` is the fourth, added
+// for base-only characters: they have no modes to switch between, their
+// ultimate being a single big attack rather than a whole replacement kit, so
+// it renders as one extra tab instead.
+window.FRAME_MOVE_CATEGORIES = ['m1s', 'skills', 'specials', 'ultimateAtk'];
+
+// The declared modes, or [] when a character has none. Callers should treat []
+// and "one mode called base" as the same thing - the difference only decides
+// whether a toggle is worth drawing.
+window.getCharacterModes = function(frameData) {
+    const modes = frameData && Array.isArray(frameData.modes) ? frameData.modes : [];
+    return modes.filter(m => m && m.id).map(m => ({
+        id: String(m.id),
+        label: String(m.label || m.id),
+    }));
+};
+
+window.isBaseMode = function(modeId) {
+    return !modeId || modeId === window.BASE_MODE_ID;
+};
+
+// The frame data a given mode renders from. Non-base modes carry their own
+// move arrays and nothing else - a mode with no skills written yet shows an
+// empty Skills tab, which is the honest answer. Falling back to the base kit
+// there would silently claim the ultimate has the same moves as the base.
+window.resolveModeFrame = function(frameData, modeId) {
+    const base = frameData || {};
+    if (window.isBaseMode(modeId)) return base;
+
+    const scoped = (base.modeData && base.modeData[modeId]) || {};
+    const out = { modes: base.modes };
+    window.FRAME_MOVE_CATEGORIES.forEach(cat => { out[cat] = scoped[cat] || []; });
+    out.moveStrategies = scoped.moveStrategies;
+    return out;
+};
+
+// The description data a given mode renders from.
+//
+// `profile` is the one key that falls back to the base mode, and the exception
+// is deliberate: it is the character's identity card - portrait, archetype,
+// health - not an analysis of the kit. A mode that has not overridden its
+// portrait should show the character, not an empty box. Everything else
+// (overview, strategy, matchups, counterplay) is kit-specific by definition
+// and renders empty until someone writes it for that mode.
+window.resolveModeDesc = function(descData, modeId) {
+    const base = descData || {};
+    if (window.isBaseMode(modeId)) return base;
+
+    const scoped = (base.modeData && base.modeData[modeId]) || {};
+    return Object.assign({}, scoped, {
+        profile: scoped.profile || base.profile,
+    });
+};
+
+// Splits a possibly state-wrapped delta into the state it targets and the
+// plain scope underneath. Everything that reads a revision's scope to decide
+// what to show - the queue label, the changed-tab markers, the preview's
+// opening tab, the editor's intercept path - has to look past the wrapper, and
+// they must all split it the same way.
+//
+// Returns modeId: null for an ordinary delta, so callers can treat the result
+// uniformly rather than branching on the scope first.
+window.unwrapModeDelta = function(scope, key) {
+    if (scope !== 'mode' || typeof key !== 'string') return { modeId: null, scope, key };
+
+    const parts = key.split('::');
+    const modeId = parts.shift();
+    const innerScope = parts.shift() || '';
+    return { modeId, scope: innerScope, key: parts.join('::') || 'full' };
+};
+
 // --- DELTA INJECTION ENGINE ---
 // Shared by admin.js, editor.js, and history.js, which each need to
 // reconstruct a full description/frame-data object from a stored
@@ -120,6 +214,50 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             newDesc = res.newDesc;
             newFrame = res.newFrame;
         });
+        return { newDesc, newFrame };
+    }
+
+    // --- MODE UNWRAPPER (a delta aimed at one character state) ---
+    // Key shape: `<modeId>::<innerScope>[::<innerKey>]`, payload identical to
+    // whatever the inner scope normally carries. Rather than duplicating all
+    // nine branches below with a mode-aware twin, this peels the mode off and
+    // recurses against that mode's own sub-objects, then puts them back.
+    // Adding a scope later therefore costs nothing here.
+    //
+    // A base-mode delta never reaches this branch - the editor emits the plain
+    // scope for base, so every ticket ever submitted keeps applying unchanged.
+    if (scope === 'mode' && typeof key === 'string') {
+        const firstSep = key.indexOf('::');
+        if (firstSep === -1) return { newDesc, newFrame };
+
+        const modeId = key.slice(0, firstSep);
+        const rest = key.slice(firstSep + 2);
+        const secondSep = rest.indexOf('::');
+        const innerScope = secondSep === -1 ? rest : rest.slice(0, secondSep);
+        const innerKey = secondSep === -1 ? 'full' : rest.slice(secondSep + 2);
+
+        if (window.isBaseMode(modeId)) {
+            return window.applyDeltaToData(newDesc, newFrame, innerScope, innerKey, payload);
+        }
+
+        if (!newDesc.modeData) newDesc.modeData = {};
+        if (!newFrame.modeData) newFrame.modeData = {};
+
+        const res = window.applyDeltaToData(
+            newDesc.modeData[modeId] || {},
+            newFrame.modeData[modeId] || {},
+            innerScope, innerKey, payload
+        );
+
+        newDesc.modeData[modeId] = res.newDesc;
+        newFrame.modeData[modeId] = res.newFrame;
+        return { newDesc, newFrame };
+    }
+
+    // The toggle itself: which states exist, and what they are called. Held
+    // apart from the content so renaming a mode cannot touch a single block.
+    if (scope === 'modes') {
+        newFrame.modes = payload;
         return { newDesc, newFrame };
     }
 
@@ -702,7 +840,27 @@ window.initializeMangaSelects = function() {
 };
 
 // --- SUPABASE CLOUD DATA FETCHER ---
+// In-flight requests are shared, not cached: the entry is dropped the moment
+// it settles, so a later call always re-reads. A character page boot fires
+// four callers at once (three loadMoveSection tabs plus loadPageDescriptions,
+// and js/character_modes.js makes five) for the same single row, and without
+// this they were four separate round-trips. Deduping only what is currently
+// in flight keeps that saving without ever serving stale data after a save.
+const inFlightPageData = new Map();
+
 window.fetchCloudCharacterData = async function(pageId) {
+    if (inFlightPageData.has(pageId)) return inFlightPageData.get(pageId);
+
+    const request = fetchCloudCharacterDataUncached(pageId);
+    inFlightPageData.set(pageId, request);
+    try {
+        return await request;
+    } finally {
+        inFlightPageData.delete(pageId);
+    }
+};
+
+async function fetchCloudCharacterDataUncached(pageId) {
     // Failsafe: If Supabase isn't connected, immediately fall back to local files
     if (!window.supabaseClient) return null;
     
@@ -729,7 +887,7 @@ window.fetchCloudCharacterData = async function(pageId) {
         console.error("Unexpected cloud connection error:", err);
         return null;
     }
-};
+}
 
 // Use Capture phase to close dropdowns before drag-and-drop eats the click
 document.addEventListener('mousedown', (e) => {
