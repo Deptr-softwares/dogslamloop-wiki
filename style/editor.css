@@ -201,6 +201,16 @@ input[type="checkbox"]:checked {
 .daw-phase-block { position: relative; height: 100%; box-sizing: border-box; border-right: 1px solid #000; cursor: pointer; transition: filter 0.1s; display: flex; align-items: center; justify-content: center; font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; color: rgba(255,255,255,0.8); overflow: hidden; white-space: nowrap; }
 .daw-phase-block:hover { color: #fff; filter: brightness(1.2); }
 .daw-phase-block.selected { border: 2px solid #fff; z-index: 10; }
+
+/* A phase recorded as an estimate rather than counted. The live bar shows this
+   by having no frame divisions at all; the editor track has no divisions to
+   drop, so it says so in the block's own label ("~Short") and softens the
+   fill - enough for a contributor scanning a track to see which phases still
+   need someone to actually count them. */
+.daw-phase-block.daw-phase-estimated {
+    opacity: 0.75;
+    font-style: italic;
+}
 .daw-inspector { background: #0a0a0a; padding: 1rem; border: 1px solid #222; border-left: 3px solid #ef4444; border-radius: 0; }
 .live-preview-pane .edit-move-btn { display: none !important; }
 

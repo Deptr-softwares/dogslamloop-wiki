@@ -22,6 +22,16 @@ const frameDataLegendHTML = `
             <div class="legend-item"><span class="legend-swatch span-iframe-melee"></span><div><span class="legend-name">Melee I-Frames</span></div></div>
             <div class="legend-item"><span class="legend-swatch span-rhc"></span><div><span class="legend-name">Reverse Hitcancel</span></div></div>
         </div>
+
+        <!-- The one thing on this page that is a convention rather than a
+             colour. It has to be stated once, or a reader has no way to learn
+             that a smooth block means "nobody counted this". -->
+        <p class="legend-estimate-note">
+            <span class="legend-swatch legend-swatch-estimate bg-tick-recov"></span>
+            A bar divided into single frames was <strong>counted</strong>. A smooth block with no
+            divisions is an <strong>estimate</strong> - someone recorded how it feels, not how many
+            frames it lasts. Hover it for the wording.
+        </p>
     </section>
 `;
 
@@ -39,13 +49,49 @@ const windowTypes = {
 // this file), and shared with description.js's inline callout tooltips.
 
 // Core frame section generator
+// --- QUALITATIVE FRAME DATA ---
+// A pro who knows how an endlag *feels* should be able to record it without
+// counting frames. Seven steps, the owner's own wording, ordered from nothing
+// to unrecoverable.
+//
+// `frames` is a nominal weight for layout only. It exists so an estimated
+// phase occupies believable space next to measured ones - it is never shown as
+// a number and must never be read as one, which is exactly why an estimated
+// phase renders with no tick divisions: the ticks are the visual language for
+// "counted", so their absence says "estimated" with no legend required. That
+// is the owner's design, and it is better than a marker plus styling because
+// it also withholds the per-frame view, which would be meaningless here.
+window.FRAME_ESTIMATES = [
+    { id: 'none', label: 'Non-existent', frames: 0 },
+    { id: 'very-short', label: 'Very short', frames: 3 },
+    { id: 'short', label: 'Short', frames: 8 },
+    { id: 'mid', label: 'Mid', frames: 16 },
+    { id: 'high', label: 'High', frames: 28 },
+    { id: 'very-high', label: 'Very high', frames: 45 },
+    { id: 'rip', label: 'RIP', frames: 70 },
+];
+
+window.frameEstimate = function(id) {
+    if (!id) return null;
+    return (window.FRAME_ESTIMATES || []).find(e => e.id === id) || null;
+};
+
+// The frames a phase occupies on the timeline, measured or estimated.
+window.phaseWeight = function(phaseObj) {
+    const estimate = window.frameEstimate(phaseObj && phaseObj.estimate);
+    if (estimate) return estimate.frames;
+    return Number(phaseObj && phaseObj.duration) || 0;
+};
+
 function createPhase(phaseObj, totalScale) {
     const phase = document.createElement('div');
-    phase.style.position = 'relative'; 
+    phase.style.position = 'relative';
     let styleClass = phaseObj.styleClass || '';
 
-    phase.className = `phase-section ${styleClass}`;
-    phase.style.width = `${(phaseObj.duration / totalScale) * 100}%`;
+    const estimate = window.frameEstimate(phaseObj.estimate);
+
+    phase.className = `phase-section ${styleClass}${estimate ? ' phase-estimated' : ''}`;
+    phase.style.width = `${(window.phaseWeight(phaseObj) / totalScale) * 100}%`;
 
     // --- STACKABLE OVERLAYS (Gradient Glows) ---
     let activeOverlays = [];
@@ -65,8 +111,15 @@ function createPhase(phaseObj, totalScale) {
     });
 
     // --- CUSTOM TOOLTIPS ---
-    if (phaseObj.label) {
-        let tooltipContent = `<strong>${phaseObj.label}</strong>`;
+    if (phaseObj.label || estimate) {
+        let tooltipContent = `<strong>${phaseObj.label || (estimate ? estimate.label : '')}</strong>`;
+
+        // Said in words as well as shown by the missing divisions. Somebody
+        // reading a hover has already decided they want the detail, and the
+        // one detail an estimate must not hide is that it is an estimate.
+        if (estimate) {
+            tooltipContent += `<br><span class="tooltip-desc tooltip-desc-estimate">Estimated: ${estimate.label.toLowerCase()} - not frame-counted</span>`;
+        }
         
         if (activeOverlays.length > 0) {
             let uniqueOverlays = Array.from(new Set(activeOverlays));
@@ -79,12 +132,16 @@ function createPhase(phaseObj, totalScale) {
         window.bindTooltip(phase, tooltipContent);
     }
 
-    for (let i = 0; i < phaseObj.duration; i++) {
-        const tick = document.createElement('div');
-        tick.className = 'frame-tick';
-        phase.appendChild(tick);
+    // No ticks for an estimate - that absence IS the marker. Drawing them would
+    // claim a per-frame breakdown nobody measured.
+    if (!estimate) {
+        for (let i = 0; i < phaseObj.duration; i++) {
+            const tick = document.createElement('div');
+            tick.className = 'frame-tick';
+            phase.appendChild(tick);
+        }
     }
-    
+
     return phase;
 }
 

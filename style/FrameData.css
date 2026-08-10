@@ -115,6 +115,38 @@
 .phase-section:hover { opacity: 0.8; }
 .frame-tick { flex-grow: 1; height: 100%; border-right: 1px solid #000000; }
 
+/* A qualitative phase: recorded as "short" or "high" rather than counted.
+   js/framedata.js appends no .frame-tick children for one, so the block is
+   simply solid - and that absence is the whole marker. The frame divisions
+   are this site's visual language for "measured", so a bar without them
+   reads as an estimate without needing a key.
+
+   No hatching, no dashed border, no badge: the owner's call, and the right
+   one. Anything added here would compete with the tick colours, which carry
+   the actual meaning.
+
+   min-width only so a "Non-existent" estimate - nominally zero frames - still
+   leaves a visible mark rather than vanishing, since "there is no recovery on
+   this move" is a real thing to record. */
+.phase-section.phase-estimated { min-width: 3px; }
+
+.legend-estimate-note {
+    margin: 1rem 0 0;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+}
+.legend-estimate-note strong { color: var(--text-white); }
+/* Inline rather than the grid's block swatch, and deliberately undivided so
+   the note demonstrates the thing it describes. */
+.legend-swatch-estimate {
+    display: inline-block; width: 2.5rem; height: 0.85rem;
+    vertical-align: middle; margin-right: 0.4rem;
+}
+
 .hit-user-bar-style { border-bottom: none; }
 .hit-target-bar-style { border-top: none; border-style: dashed; border-color: var(--border-color); }
 .empty-frame-data-msg { margin-top: 0; border: 1px dashed var(--border-color); background-color: transparent; padding: 2rem; }
