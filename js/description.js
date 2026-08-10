@@ -755,8 +755,20 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                         });
                     }
 
-                    const imgHTML = data.profile.image 
-                        ? `<img src="${data.profile.image}" class="profile-portrait" alt="Character Portrait">` 
+                    // The portrait is a fixed square, so the crop has to be
+                    // aimable - imageFocus is the nine-point choice made in the
+                    // editor, fed to object-position through a custom property.
+                    // Whitelisted rather than escaped: this string lands inside
+                    // a style attribute, where escaping alone does not stop a
+                    // crafted value from closing the declaration and adding its
+                    // own.
+                    const focus = (window.PORTRAIT_FOCUS_VALUES || []).includes(data.profile.imageFocus)
+                        ? data.profile.imageFocus
+                        : null;
+                    const focusStyle = focus ? ` style="--portrait-focus: ${focus};"` : '';
+
+                    const imgHTML = data.profile.image
+                        ? `<img src="${window.escapeHtml(data.profile.image)}" class="profile-portrait" alt="Character Portrait"${focusStyle}>`
                         : `<div class="profile-portrait-missing">[No Portrait]</div>`;
 
                     profileHTML = `

@@ -238,9 +238,13 @@ Mostly invisible to players, and the most urgent work in this document.
 > - Item 3 in full — category creation unblocked, `others/`/`tools/` folders, `gallery` and `tool` page types with their own renderers, and a gallery editor (upload + name into a bin, one delta per item so contributors cannot collide).
 > - **The two Main Dashboard columns, pulled forward from v0.13.** Others under Guides & Such, Tools under Recent Changes, Game Info to the right. They fill from `navigation.json` by category, so no new data source.
 >
-> **In review:** item 1 (character modes and the Ultimate tab) as [PR #43](https://github.com/Deptr-softwares/dogslamloop-wiki/pull/43) — the live-page toggle, the editor's `+ STATE` control, mode-scoped deltas, and the review path (preview, diff, queue label, merge compiler) all in one batch. No migration; `frame_data`/`desc_data` are jsonb.
+> **Shipped since:** item 1 (character modes and the Ultimate tab, [PR #43](https://github.com/Deptr-softwares/dogslamloop-wiki/pull/43)); items 2, 4 and 6 plus the tool-page editor ([PR #44](https://github.com/Deptr-softwares/dogslamloop-wiki/pull/44)). Item 4 landed as the `404.html` live-page fallback rather than regeneration-on-save — see below. No migrations in either.
 >
-> **Not started:** items 2 (qualitative frame data), 4 (regeneration on save), 5 (site-wide progress view), 6 (media aspect ratios). Plus a **tool-page editor** — `desc_data.tool` has a renderer but nothing writes it — and the eleven `others/` pages and two tools, which are content rather than code.
+> **Moved to v0.13, owner's call 2026-08-11:** item 5, the site-wide progress view. It is the only v0.12 item not built, and it belongs next to the content push it exists to track.
+>
+> **Still content, not code:** the eleven `others/` pages and two tools.
+>
+> **One thing v0.12 produced that was not on the list:** a deploy cache skew took the editor down live. GitHub Pages serves `js/` with `max-age=3600`, so a new module can load against an hour-old `js/site_utils.js`. That file now carries a content-hash query and the modules degrade rather than throw.
 >
 > **Two corrections this batch produced, both recorded above:** the 1.4M figure is Discord *membership*, not traffic, and should not be used to argue against database reads; and the regeneration step is gated by GitHub Pages needing a real file at every URL, not by `navigation.json` — which is why moving that file to the cloud would not have fixed the feedback loop.
 
@@ -262,7 +266,7 @@ Mostly invisible to players, and the most urgent work in this document.
 
    This is also the concrete case for **v0.12 item 4**: today the choice is the manual `workflow_dispatch` button or waiting for the 04:00 cron, and the owner hit that lag within minutes of creating their first Others page.
 4. **Data-layer Phase 0, revised.** With 30 contributors, waiting up to 24 hours to see a new page is intolerable. Auto-trigger regeneration on save via `repository_dispatch` — minutes, not a day. **Note the reversal:** `V0.12-DEVLOG.md` currently says `navigation.json` should become a live database read. That is wrong now — with a 1.4M-member Discord, per-visitor database reads for the sidebar put quota and bandwidth on the critical path of a site GitHub Pages serves free from a CDN.
-5. **Site-wide progress view** in owner tools. "Pages That Need Work" covers characters only; with 30 people working through ~35 pages you need one view of done / in progress / untouched. This is the daily control surface.
+5. ~~**Site-wide progress view** in owner tools~~ — **moved to v0.13** (owner, 2026-08-11). Unbuilt, and the only v0.12 item that is. It belongs beside the content push it exists to measure rather than ahead of it.
 
 6. **Media aspect ratios: square the skill cards and the character portraits** (owner, 2026-08-10).
 
@@ -289,8 +293,9 @@ The visible expansion.
 2. ~~**The Emotes gallery page type**~~ — **shipped in v0.12.** The renderer, the search, and media submission all exist. What remains here is the Emotes *page* and its content.
 3. **The other ten `others/` pages** scaffolded; content is the team's.
 4. ~~**The "Others" and "Tools" columns**~~ — **shipped in v0.12**, pulled forward. The Main Dashboard layout rework beyond those two columns is still open.
-5. **Skill Builder ID Reader** linked in. Needs the tool-page editor first, since nothing currently writes `desc_data.tool`.
-6. **Certified Tier List** — the free-submit community ranking. Registers against the tool host that shipped in v0.12; the anti-brigading rules from v0.14 item 3 apply to it and should be designed with it, not after.
+5. **Site-wide progress view** in owner tools — **moved here from v0.12** (owner, 2026-08-11). "Pages That Need Work" covers characters only; with 30 people working through ~35 pages you need one view of done / in progress / untouched. This is the daily control surface, and it is more useful once the `others/` pages exist to appear in it.
+6. **Skill Builder ID Reader** linked in. The tool-page editor it needed shipped in v0.12, so this is now just the config plus a link.
+7. **Certified Tier List** — the free-submit community ranking. Registers against the tool host that shipped in v0.12; the anti-brigading rules from v0.14 item 3 apply to it and should be designed with it, not after.
 
 ### v0.14 — Community
 

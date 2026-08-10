@@ -16,6 +16,19 @@
 // --- DAW FRAME EDITOR ENGINE ---
 const DAW_TRACK_COLOR_CLASSES = ['text-red-400', 'text-red-600', 'text-blue-400', 'text-green-400', 'text-green-500', 'text-purple-400', 'text-orange-400', 'text-cyan-400', 'text-gray-400'];
 
+// The estimate whose nominal weight sits closest to a frame count, used when a
+// contributor switches a phase from counted to estimated. Nearest rather than
+// first, so the bar keeps its shape across the switch.
+function closestEstimate(frames) {
+    const scale = window.FRAME_ESTIMATES || [];
+    if (scale.length === 0) return 'mid';
+
+    const target = Number(frames) || 0;
+    return scale.reduce((best, entry) =>
+        Math.abs(entry.frames - target) < Math.abs(best.frames - target) ? entry : best
+    ).id;
+}
+
 function initDawEditor(containerId, moveData) {
     const container = document.getElementById(containerId);
     if (!moveData) {
@@ -55,8 +68,23 @@ function initDawEditor(containerId, moveData) {
                         <div><input type="text" class="editor-input meta-inp" data-field="variant" value="${moveData.variant || ''}" placeholder="Variant (e.g. Standard)"></div>
                     </div>
                     <div class="editor-row mt-2">
-                        <div><input type="text" class="editor-input meta-inp" data-field="media.src" value="${moveData.media.src || ''}" placeholder="Media Src (e.g. /medias/images/m1.png)"></div>
-                        <div><input type="text" class="editor-input meta-inp" data-field="media.alt" value="${moveData.media.alt || ''}" placeholder="Media Alt Text"></div>
+                        <div><input type="text" class="editor-input meta-inp" data-field="media.src" value="${window.escapeHtml(moveData.media.src || '')}" placeholder="Media Src (e.g. /medias/images/m1.png)"></div>
+                        <div><input type="text" class="editor-input meta-inp" data-field="media.alt" value="${window.escapeHtml(moveData.media.alt || '')}" placeholder="Media Alt Text"></div>
+                    </div>
+                    <!-- Auto measures the file and picks the box that fits it.
+                         The override is for media whose subject sits off to one
+                         side, where the measurement is right about the shape
+                         and wrong about what matters in it. -->
+                    <div class="editor-row mt-2">
+                        <div>
+                            <label class="editor-field-label" for="move-media-framing">Media box shape</label>
+                            <select id="move-media-framing" class="editor-input meta-inp" data-field="media.framing">
+                                <option value="auto"${!moveData.media.framing || moveData.media.framing === 'auto' ? ' selected' : ''}>Auto — match the file</option>
+                                <option value="wide"${moveData.media.framing === 'wide' ? ' selected' : ''}>Wide (16:9)</option>
+                                <option value="square"${moveData.media.framing === 'square' ? ' selected' : ''}>Square (1:1)</option>
+                                <option value="tall"${moveData.media.framing === 'tall' ? ' selected' : ''}>Tall (3:4)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -129,7 +157,12 @@ function initDawEditor(containerId, moveData) {
                 if (!bar.phases) bar.phases = [];
 
                 bar.phases.forEach((p, pIdx) => {
-                    let widthPct = (p.duration / totalScale) * 100;
+                    // An estimated phase has no frame count, so its width comes
+                    // from the nominal weight of its label and its block reads
+                    // "~Short" rather than a number it does not have.
+                    const estimate = typeof window.frameEstimate === 'function' ? window.frameEstimate(p.estimate) : null;
+                    const weight = typeof window.phaseWeight === 'function' ? window.phaseWeight(p) : (p.duration || 0);
+                    let widthPct = (weight / totalScale) * 100;
                     let isSelected = (bIdx === selectedBarIdx && pIdx === selectedPhaseIdx);
 
                     let bgClassMap = {
@@ -141,10 +174,10 @@ function initDawEditor(containerId, moveData) {
                     let phaseColor = bgClassMap[p.styleClass] || "#555";
 
                     phasesHtml += `
-                        <div class="daw-phase-block ${isSelected ? 'selected' : ''}"
+                        <div class="daw-phase-block ${isSelected ? 'selected' : ''}${estimate ? ' daw-phase-estimated' : ''}"
                                 style="width: ${widthPct}%; background-color: ${phaseColor};"
                                 onclick="window.selectDawPhase(${bIdx}, ${pIdx})">
-                            <span class="daw-phase-block-duration">${p.duration}f</span>
+                            <span class="daw-phase-block-duration">${estimate ? '~' + window.escapeHtml(estimate.label) : p.duration + 'f'}</span>
                         </div>
                     `;
                 });
@@ -210,8 +243,25 @@ function initDawEditor(containerId, moveData) {
                         </div>
                         <div class="editor-row">
                             <div>
-                                <label class="editor-field-label-sm">Duration (Frames)</label>
-                                <input type="number" class="editor-input" id="insp-duration" value="${p.duration}">
+                                <!-- Not everyone counts frames. A player who
+                                     knows how an endlag feels can record that
+                                     instead, and the bar renders it as a solid
+                                     block with no divisions so a reader can
+                                     always tell the two apart. -->
+                                <label class="editor-field-label-sm">How this was recorded</label>
+                                <select class="editor-select" id="insp-measure-mode">
+                                    <option value="counted" ${!p.estimate ? 'selected' : ''}>Counted - exact frames</option>
+                                    <option value="estimated" ${p.estimate ? 'selected' : ''}>Estimated - how it feels</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="editor-field-label-sm" id="insp-amount-label">${p.estimate ? 'Estimate' : 'Duration (Frames)'}</label>
+                                <input type="number" class="editor-input ${p.estimate ? 'hidden' : ''}" id="insp-duration" value="${p.duration || 0}">
+                                <select class="editor-select ${p.estimate ? '' : 'hidden'}" id="insp-estimate">
+                                    ${(window.FRAME_ESTIMATES || []).map(e =>
+                                        `<option value="${e.id}" ${p.estimate === e.id ? 'selected' : ''}>${window.escapeHtml(e.label)}</option>`
+                                    ).join('')}
+                                </select>
                             </div>
                             <div>
                                 <label class="editor-field-label-sm">Frame Type</label>
@@ -315,12 +365,42 @@ function initDawEditor(containerId, moveData) {
         bindDawEvents(container, currentObj);
     }
 
+    // Stale dimensions are worse than none - they would frame the box for the
+    // previous file - so they are cleared the moment the src changes and only
+    // rewritten once the new source actually measures. A src typed one
+    // character at a time therefore spends most of its life with no dimensions
+    // rather than the wrong ones.
+    let dimensionTimer = null;
+    function captureMediaDimensions(moveData, src) {
+        moveData.media.width = null;
+        moveData.media.height = null;
+
+        clearTimeout(dimensionTimer);
+        if (!src || typeof window.measureMediaSource !== 'function') return;
+
+        dimensionTimer = setTimeout(async () => {
+            const size = await window.measureMediaSource(src).catch(() => null);
+            // The field may have moved on while the network was busy.
+            if (!size || moveData.media.src !== src) return;
+            moveData.media.width = size.width;
+            moveData.media.height = size.height;
+        }, 600);
+    }
+
     function bindDawEvents(container, currentObj) {
         container.querySelectorAll('.meta-inp').forEach(inp => {
             inp.addEventListener('input', (e) => {
                 let field = e.target.dataset.field;
                 if(field.startsWith('media.')) moveData.media[field.split('.')[1]] = e.target.value;
                 else moveData[field] = e.target.value;
+
+                // Recording the media's real size here is what lets a skill
+                // card pick its box shape before the file has loaded. It has
+                // to happen at paste time: the media library hands out URLs to
+                // copy rather than inserting files, so the upload path never
+                // sees this move. Debounced, because this fires per keystroke
+                // and each attempt is a network request.
+                if (field === 'media.src') captureMediaDimensions(moveData, e.target.value);
             });
         });
 
@@ -393,6 +473,35 @@ function initDawEditor(containerId, moveData) {
 
         if (inspDur) inspDur.addEventListener('change', (e) => {
             currentObj.bars[selectedBarIdx].phases[selectedPhaseIdx].duration = parseInt(e.target.value) || 0;
+            renderDaw();
+        });
+
+        const inspMode = container.querySelector('#insp-measure-mode');
+        const inspEstimate = container.querySelector('#insp-estimate');
+
+        if (inspMode) inspMode.addEventListener('change', (e) => {
+            const phase = currentObj.bars[selectedBarIdx].phases[selectedPhaseIdx];
+
+            if (e.target.value === 'estimated') {
+                // Seeded from the frame count already entered, so switching to
+                // an estimate keeps the shape of the bar rather than snapping
+                // it to whatever happens to be first in the list. The number is
+                // then dropped: keeping it would leave a count in the data that
+                // nothing displays and a reviewer might trust.
+                phase.estimate = closestEstimate(phase.duration);
+                delete phase.duration;
+            } else {
+                // The other direction restores a real number from the estimate's
+                // nominal weight - a starting point to correct, not a claim.
+                const estimate = window.frameEstimate(phase.estimate);
+                phase.duration = estimate ? estimate.frames : 0;
+                delete phase.estimate;
+            }
+            renderDaw();
+        });
+
+        if (inspEstimate) inspEstimate.addEventListener('change', (e) => {
+            currentObj.bars[selectedBarIdx].phases[selectedPhaseIdx].estimate = e.target.value;
             renderDaw();
         });
         if (inspClass) inspClass.addEventListener('change', (e) => {

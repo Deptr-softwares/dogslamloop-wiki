@@ -13,7 +13,7 @@
          domain root (see CNAME), so "/" is always the correct base. -->
     <base href="/">
 
-    <link rel="icon" type="image/jpg" href="medias/images/DogslamloopIconGay.webp">
+    <link rel="icon" type="image/jpg" href="medias/images/DogslamloopIcon.webp">
 
     <link rel="stylesheet" href="style/Common.css">
     <link rel="stylesheet" href="style/Layout.css">
@@ -23,13 +23,15 @@
     <link rel="stylesheet" href="style/ColorCoding.css">
     <link rel="stylesheet" href="style/Alerts.css">
     <link rel="stylesheet" href="style/Modals.css">
+    <link rel="stylesheet" href="style/Forms.css">
+    <link rel="stylesheet" href="style/FrameData.css">
 </head>
 <body class="site-body p-0">
 
     <!-- MOBILE NAVIGATION -->
     <div class="mobile-top-bar">
         <a href="/index.html" class="mobile-logo-link">
-            <img src="/medias/images/DogslamloopIconGay.webp" class="mobile-logo-img" alt="Logo">
+            <img src="/medias/images/DogslamloopIcon.webp" class="mobile-logo-img" alt="Logo">
             <span class="mobile-site-title">dogslamloop wiki</span>
         </a>
         <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">☰</button>
@@ -41,7 +43,7 @@
         <!-- LEFT SIDEBAR: GLOBAL NAVIGATION -->
         <aside class="global-sidebar-left" id="master-sidebar" aria-label="Site navigation">
             <div class="sidebar-header-top">
-                <img src="/medias/images/DogslamloopIconGay.webp" alt="Site Logo" class="sidebar-site-logo">
+                <img src="/medias/images/DogslamloopIcon.webp" alt="Site Logo" class="sidebar-site-logo">
                 <div class="sidebar-title-container">
                     <a href="/index.html" class="site-title">dogslamloop wiki</a>
                     <p class="site-subtitle">Alpha v0.4</p>
@@ -103,12 +105,39 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/js/site_utils.js"></script>
+    <script src="/js/site_utils.js?v=0717c3ee"></script>
     <script src="/js/site_meta.js"></script>
     <script src="/js/pagebuilder.js"></script>
 
+    <!-- The full page-rendering set, so an unmatched URL that turns out to be
+         a real page can be rendered here rather than 404ing until the next
+         regeneration run. page_router.js and page_boot.js both no-op without a
+         window.PAGE_ROUTE, which this page does not define - page_rescue.js
+         sets one only if the registry says the URL belongs to a live page. -->
+    <script src="/js/page_router.js"></script>
+    <script src="/js/framedata.js"></script>
+    <script src="/js/description.js"></script>
+    <script src="/js/character_modes.js"></script>
+    <script src="/js/gallery.js"></script>
+    <script src="/js/tool_page.js"></script>
+    <script src="/js/internalstyling.js"></script>
+    <script src="/js/page_boot.js"></script>
+    <script src="/js/page_rescue.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
+            // Try the rescue first. If it renders, it has replaced this page's
+            // chrome with the real page's and run its own boot, so the 404
+            // wiring below would be building a sidebar into a container that
+            // no longer exists.
+            let rescued = false;
+            try {
+                rescued = await window.initPageRescue();
+            } catch (err) {
+                console.warn('[404] Live-page lookup failed; showing the ordinary 404.', err);
+            }
+            if (rescued) return;
+
             if (window.initMobileNav) window.initMobileNav();
             if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
             if (typeof window.initAuthDock === 'function') await window.initAuthDock();

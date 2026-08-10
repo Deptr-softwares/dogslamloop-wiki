@@ -30,12 +30,24 @@
 .skill-right-col { padding: 1.5rem; box-sizing: border-box; }
 @media (min-width: 1280px) { .skill-right-col { width: 66.666667%; } }
 
-/* Media Box */
-.skill-media-wrapper { 
-    width: 100%; aspect-ratio: 16 / 9; background-color: var(--bg-secondary); 
-    border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; 
-    margin-bottom: 1rem; overflow: hidden; position: relative; box-shadow: 4px 4px 0px var(--manga-shadow); 
+/* Media Box
+   The box matches the source rather than the source being cropped to match
+   the box (js/site_utils.js applyMediaFraming). 16:9 stays the bare default
+   for two reasons: it is what every existing card already looks like, and it
+   is the measured outcome for most gameplay capture - so nothing flips shape
+   after layout in the common case. The two modifiers below are added once the
+   media reports its real dimensions, or immediately when a contributor has
+   set an explicit framing on the move. */
+.skill-media-wrapper {
+    width: 100%; aspect-ratio: 16 / 9; background-color: var(--bg-secondary);
+    border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1rem; overflow: hidden; position: relative; box-shadow: 4px 4px 0px var(--manga-shadow);
 }
+.skill-media-wrapper.is-square { aspect-ratio: 1 / 1; }
+/* 3:4 rather than the source's own ratio: a 9:16 phone capture given its true
+   shape would be taller than the stats box beside it and push the whole card
+   apart. This bounds the height while still keeping three quarters of it. */
+.skill-media-wrapper.is-tall { aspect-ratio: 3 / 4; }
 .skill-media-wrapper-empty { background-color: transparent !important; }
 .skill-media-missing { 
     display: flex; height: 100%; width: 100%; align-items: center; justify-content: center; 
@@ -102,6 +114,38 @@
 .phase-section { display: flex; height: 100%; cursor: pointer; transition: opacity 0.2s; }
 .phase-section:hover { opacity: 0.8; }
 .frame-tick { flex-grow: 1; height: 100%; border-right: 1px solid #000000; }
+
+/* A qualitative phase: recorded as "short" or "high" rather than counted.
+   js/framedata.js appends no .frame-tick children for one, so the block is
+   simply solid - and that absence is the whole marker. The frame divisions
+   are this site's visual language for "measured", so a bar without them
+   reads as an estimate without needing a key.
+
+   No hatching, no dashed border, no badge: the owner's call, and the right
+   one. Anything added here would compete with the tick colours, which carry
+   the actual meaning.
+
+   min-width only so a "Non-existent" estimate - nominally zero frames - still
+   leaves a visible mark rather than vanishing, since "there is no recovery on
+   this move" is a real thing to record. */
+.phase-section.phase-estimated { min-width: 3px; }
+
+.legend-estimate-note {
+    margin: 1rem 0 0;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+}
+.legend-estimate-note strong { color: var(--text-white); }
+/* Inline rather than the grid's block swatch, and deliberately undivided so
+   the note demonstrates the thing it describes. */
+.legend-swatch-estimate {
+    display: inline-block; width: 2.5rem; height: 0.85rem;
+    vertical-align: middle; margin-right: 0.4rem;
+}
 
 .hit-user-bar-style { border-bottom: none; }
 .hit-target-bar-style { border-top: none; border-style: dashed; border-color: var(--border-color); }

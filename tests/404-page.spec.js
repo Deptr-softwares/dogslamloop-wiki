@@ -39,7 +39,7 @@ test('404.html resolves its assets from the site root regardless of the URL dept
 
   expect(resolved.base).toBe('/');
   expect(new URL(resolved.firstHubLink).pathname).toBe('/index.html');
-  expect(new URL(resolved.logo).pathname).toBe('/medias/images/DogslamloopIconGay.webp');
+  expect(new URL(resolved.logo).pathname).toBe('/medias/images/DogslamloopIcon.webp');
 });
 
 test('404.html gets the sitewide footer like any other content page', async ({ page }) => {

@@ -75,3 +75,19 @@
 .inline-callout-btn .callout-icon {
     font-size: 0.85rem;
 }
+/* The banner on a page rescued by js/page_rescue.js - one that exists in the
+   registry but has no generated file yet, so it is being rendered by 404.html.
+   Says so plainly rather than letting the page pass for published: the
+   response is still HTTP 404, so nothing will index or unfurl it until the
+   next regeneration run. */
+.rescue-banner {
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
+    background: var(--bg-secondary);
+    border: 2px dashed var(--accent-yellow);
+    color: var(--text-primary);
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    line-height: 1.6;
+}
+.rescue-banner strong { color: var(--accent-yellow); }

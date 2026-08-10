@@ -15,8 +15,14 @@
  * how every page loads.
  */
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const route = window.PAGE_ROUTE;
+/**
+ * The boot sequence, as a function.
+ *
+ * Callable rather than only DOMContentLoaded-driven because js/page_rescue.js
+ * boots a page long after that event has fired: on a 404 the route is not
+ * known until Supabase has been asked what lives at the requested URL.
+ */
+window.runPageBoot = async function (route) {
     if (!route) return;
 
     const { pageId, pageType } = route;
@@ -116,4 +122,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
     if (typeof window.initAuthDock === 'function') await window.initAuthDock();
     if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
+};
+
+// Guarded on PAGE_ROUTE for the same reason js/page_router.js is: a page that
+// resolves its own route later loads this file without one, and calls
+// runPageBoot itself when it knows.
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.PAGE_ROUTE) window.runPageBoot(window.PAGE_ROUTE);
 });

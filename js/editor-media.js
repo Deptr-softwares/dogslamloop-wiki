@@ -21,6 +21,55 @@ function convertToWebP(file, newName) {
 }
 
 /**
+ * The pixel dimensions of a piece of media, as { width, height } or null.
+ *
+ * Accepts a File (measured from an object URL, so it costs no extra request)
+ * or a URL string (measured from the network, which is what the move editor
+ * needs because the media library hands out URLs to paste rather than
+ * inserting files directly).
+ *
+ * Videos need a <video> and its loadedmetadata event; images need an <img> and
+ * its load event - there is no one element that answers for both. Anything the
+ * browser cannot decode resolves to null, which callers treat as "measure it
+ * at render time instead".
+ */
+window.measureMediaSource = function(source) {
+    return new Promise((resolve) => {
+        if (!source) { resolve(null); return; }
+
+        const isFile = typeof source !== 'string';
+        if (isFile && !source.type) { resolve(null); return; }
+
+        const isVideo = isFile
+            ? source.type.startsWith('video/')
+            : ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => String(source).split(/[?#]/)[0].toLowerCase().endsWith(ext));
+
+        if (isFile && !isVideo && !source.type.startsWith('image/')) { resolve(null); return; }
+
+        const url = isFile ? URL.createObjectURL(source) : source;
+        const el = document.createElement(isVideo ? 'video' : 'img');
+        const done = (value) => { if (isFile) URL.revokeObjectURL(url); resolve(value); };
+
+        // A file that never fires either event would leave the upload hanging
+        // forever, and dimensions are an optimisation - not worth blocking on.
+        const timer = setTimeout(() => done(null), 5000);
+
+        const finish = () => {
+            clearTimeout(timer);
+            const width = el.naturalWidth || el.videoWidth;
+            const height = el.naturalHeight || el.videoHeight;
+            done(width && height ? { width, height } : null);
+        };
+
+        el.addEventListener(isVideo ? 'loadedmetadata' : 'load', finish, { once: true });
+        el.addEventListener('error', () => { clearTimeout(timer); done(null); }, { once: true });
+
+        if (isVideo) el.preload = 'metadata';
+        el.src = url;
+    });
+};
+
+/**
  * Uploads one file to the wiki-media bucket and returns its public URL.
  *
  * Extracted from the Media Library's own drop zone so the gallery editor can
@@ -84,7 +133,22 @@ Rename your file (e.g. append "_v2") before uploading, so you do not break pages
         if (error) return { error: 'Upload failed: ' + error.message };
 
         const { data: publicUrlData } = window.supabaseClient.storage.from('wiki-media').getPublicUrl(finalName);
-        return { name: finalName, url: publicUrlData ? publicUrlData.publicUrl : '' };
+
+        // Dimensions travel with the file so a skill card can pick its box
+        // shape before the media has loaded. Without them the box starts 16:9
+        // and corrects itself in front of the reader the first time they open
+        // the tab - skill media is lazy and lives inside a hidden tab, so it
+        // genuinely does not load until then. Measured from the local file, so
+        // it costs no extra request; a failure here is not worth failing an
+        // upload over, hence the null fallback.
+        const dimensions = await window.measureMediaSource(finalFile).catch(() => null);
+
+        return {
+            name: finalName,
+            url: publicUrlData ? publicUrlData.publicUrl : '',
+            width: dimensions ? dimensions.width : null,
+            height: dimensions ? dimensions.height : null,
+        };
     } catch (err) {
         console.error(err);
         return { error: 'Action failed: ' + err.message };

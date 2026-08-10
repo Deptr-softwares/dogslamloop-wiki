@@ -567,12 +567,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // Both resolvers hand the object straight back for the
                     // base mode, which is every page with no states.
                     const mode = window.editorActiveMode;
-                    const liveDesc = window.resolveModeDesc
-                        ? (window.isBaseMode(mode) ? liveData.desc_data : (liveData.desc_data?.modeData || {})[mode] || {})
-                        : liveData.desc_data;
-                    const liveFrame = window.isBaseMode(mode)
-                        ? liveData.frame_data
-                        : (liveData.frame_data?.modeData || {})[mode] || {};
+                    const onBase = typeof window.isBaseMode === 'function'
+                        ? window.isBaseMode(mode) : (!mode || mode === 'base');
+                    const liveDesc = onBase ? liveData.desc_data : (liveData.desc_data?.modeData || {})[mode] || {};
+                    const liveFrame = onBase ? liveData.frame_data : (liveData.frame_data?.modeData || {})[mode] || {};
 
                     if (pageType === 'system' || pageType === 'tierlist') {
                         hasCollision = isDiff(liveDesc, window.originalCloudDescData);
@@ -728,6 +726,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                     window.buildGalleryDeltas(localItems, cloudItems).forEach(d => {
                         payloadsToInsert.push(buildPayload(d.scope, d.key, d.payload));
                     });
+                }
+                // --- Tool Payload ---
+                // Config and prose ship as separate scopes: the config is the
+                // owner's and the prose is everyone's, so a contributor fixing
+                // the intro must not be able to carry a URL change with it.
+                else if (pageType === 'tool') {
+                    await window.triggerManualSync();
+                    window.buildToolDeltas(window.currentEditorDescData, window.originalCloudDescData)
+                        .forEach(d => payloadsToInsert.push(buildPayload(d.scope, d.key, d.payload)));
                 }
                 // --- System Payload ---
                 else if (pageType === 'system' || pageType === 'tierlist') {

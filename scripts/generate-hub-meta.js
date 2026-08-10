@@ -35,7 +35,7 @@ const END = '<!-- END GENERATED: hub-meta -->';
 
 const SITE_ORIGIN = 'https://dogslamloop.com';   // matches CNAME
 const SITE_NAME = 'Dogslamloop Wiki';
-const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/medias/images/DogslamloopIconGay.webp`;
+const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/medias/images/DogslamloopIcon.webp`;
 
 // hub id -> where its page lives and how deep it sits. The relative icon href
 // differs by depth, and getting it wrong silently breaks the favicon rather
@@ -78,8 +78,8 @@ function buildRegion(hubId, meta) {
     const docTitle = hub.suffixTitle ? `${title} | ${SITE_NAME}` : title;
     const description = meta.description || '';
     const iconHref = hub.depth === 0
-        ? '/medias/images/DogslamloopIconGay.webp'
-        : `${'../'.repeat(hub.depth)}medias/images/DogslamloopIconGay.webp`;
+        ? '/medias/images/DogslamloopIcon.webp'
+        : `${'../'.repeat(hub.depth)}medias/images/DogslamloopIcon.webp`;
 
     return [
         BEGIN,

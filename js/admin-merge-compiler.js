@@ -40,9 +40,9 @@ window.openMergeCompiler = async function(pageId) {
     // scan runs once per state.
     const narrow = (obj, modeId) => (modeId ? ((obj && obj.modeData) || {})[modeId] || {} : (obj || {}));
 
-    const statesIn = (frame) => window.getCharacterModes(frame || {})
+    const statesIn = (frame) => (typeof window.getCharacterModes === 'function' ? window.getCharacterModes(frame || {}) : [])
         .map(m => m.id)
-        .filter(id => !window.isBaseMode(id));
+        .filter(id => id && id !== 'base');
 
     const addConflict = (sectionId, sectionName, type, lData, lStratData = null, modeId = null) => {
         // Prefixed so the same section in two states stays two conflicts with

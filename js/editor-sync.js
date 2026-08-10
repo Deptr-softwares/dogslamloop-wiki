@@ -84,6 +84,15 @@ window.triggerManualSync = async function() {
         // Tierlist handles its own data binding natively via oninput
         if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
         return; 
+    } else if (window.currentEditorPageType === 'tool') {
+        // Intro and notes are ordinary block arrays behind one buffer, so the
+        // flush has to know which of the two is on screen.
+        if (typeof window.flushToolBlocks === 'function') window.flushToolBlocks();
+        if (typeof window.renderToolPage === 'function' && window.currentEditorCharId) {
+            window.renderToolPage(window.currentEditorCharId);
+        }
+        if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
+        return;
     }
 
     // --- CHARACTER SYNC LOGIC ---
@@ -131,6 +140,15 @@ window.triggerManualSync = async function() {
 function updateLivePreview(skipHistory = false) {
     if (!skipHistory && typeof window.saveBlockHistory === 'function') {
         window.saveBlockHistory();
+    }
+
+    if (window.currentEditorPageType === 'tool') {
+        if (typeof window.flushToolBlocks === 'function') window.flushToolBlocks();
+        if (typeof window.renderToolPage === 'function' && window.currentEditorCharId) {
+            window.renderToolPage(window.currentEditorCharId);
+        }
+        if (!skipHistory && typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
+        return;
     }
 
     // --- Safely sync the blocks and bypass Character Preview logic ---
