@@ -55,9 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (el) el.addEventListener('input', updateNewPagePreview);
     });
 
-    // Changing category changes which pages the new one can sit after.
-    const categoryEl = document.getElementById('new-page-category');
-    if (categoryEl) categoryEl.addEventListener('change', populatePositionOptions);
+    wireCategoryField();
 
     await loadPersonnel();
     await loadSitePages();
@@ -321,7 +319,11 @@ async function loadSitePages() {
     });
 
     cachedSitePages = data;
+    // Order matters: both of these read knownCategories(), which derives from
+    // the cache assigned on the line above.
+    populateCategoryOptions();
     populatePositionOptions();
+    updateCategoryNote();
 }
 window.loadSitePages = loadSitePages;
 
@@ -333,12 +335,69 @@ let cachedSitePages = [];
 // meaningful rather than alphabetical - it mirrors in-game release order,
 // full characters before base-only ones. So a new page frequently belongs in
 // the middle, not at the end.
+// The category field is free text with a datalist. site_pages.category has no
+// CHECK constraint and navigation.json is keyed by the string verbatim
+// (js/pagebuilder.js builds one sidebar group per key), so "Guides" and
+// "guides " would render as two separate groups. Existing spellings are
+// offered first, and canonicaliseCategory below adopts one on save.
+function knownCategories() {
+    return [...new Set(cachedSitePages.map(p => p.category).filter(Boolean))].sort();
+}
+
+function populateCategoryOptions() {
+    const list = document.getElementById('page-category-options');
+    if (!list) return;
+    list.innerHTML = knownCategories()
+        .map(c => `<option value="${ownerEscape(c)}"></option>`).join('');
+}
+
+// Trims, then adopts an existing category's exact spelling if one matches
+// case-insensitively. Returns the canonical string, so a new category is only
+// ever created when the owner genuinely typed something new.
+function canonicaliseCategory(raw) {
+    const trimmed = String(raw || '').trim().replace(/\s+/g, ' ');
+    if (!trimmed) return '';
+    const match = knownCategories().find(c => c.toLowerCase() === trimmed.toLowerCase());
+    return match || trimmed;
+}
+
+// Says plainly when the typed value will create a new sidebar group, so that
+// is a deliberate act rather than a typo nobody notices until the nav renders.
+function updateCategoryNote() {
+    const note = document.getElementById('new-page-category-note');
+    const input = document.getElementById('new-page-category');
+    if (!note || !input) return;
+
+    const value = canonicaliseCategory(input.value);
+    if (!value) { note.textContent = ''; return; }
+
+    note.textContent = knownCategories().includes(value)
+        ? `Goes into the existing "${value}" section.`
+        : `New category. "${value}" becomes its own section in the sidebar.`;
+}
+
+// Changing category changes which pages the new one can sit after, and
+// whether it is creating a section or joining one.
+//
+// 'input' rather than 'change': this is a text field with a datalist now, so
+// it has to react to typing as well as to picking a suggestion. Named and
+// exported rather than inlined into the DOMContentLoaded handler so the
+// binding can be re-applied to a rebuilt form.
+function wireCategoryField() {
+    const categoryEl = document.getElementById('new-page-category');
+    if (!categoryEl) return;
+    categoryEl.addEventListener('input', () => {
+        populatePositionOptions();
+        updateCategoryNote();
+    });
+}
+
 function populatePositionOptions() {
     const select = document.getElementById('new-page-position');
     const category = document.getElementById('new-page-category');
     if (!select || !category) return;
 
-    const siblings = cachedSitePages.filter(p => p.category === category.value);
+    const siblings = cachedSitePages.filter(p => p.category === canonicaliseCategory(category.value));
     const current = select.value;
 
     select.innerHTML = `<option value="">At the end of the category</option>`
@@ -451,10 +510,18 @@ async function createSitePage() {
     const results = document.getElementById('pages-results');
     const name = document.getElementById('new-page-name').value.trim();
     const pageType = document.getElementById('new-page-type').value;
-    const category = document.getElementById('new-page-category').value;
+    const category = canonicaliseCategory(document.getElementById('new-page-category').value);
 
     if (!name) {
         results.innerHTML = `<span class="admin-error-text">Give the page a name.</span>`;
+        return;
+    }
+
+    // Free text means it can be left empty, which a select could not do. An
+    // empty category would key navigation.json on "" and render a nameless
+    // sidebar group.
+    if (!category) {
+        results.innerHTML = `<span class="admin-error-text">Pick a category, or type a new one.</span>`;
         return;
     }
 

@@ -113,7 +113,7 @@ test('creating a page inserts a complete registry row', async ({ page }) => {
 
   await page.fill('#new-page-name', 'Crow Charmer');
   await page.selectOption('#new-page-type', 'character');
-  await page.selectOption('#new-page-category', 'Characters');
+  await page.fill('#new-page-category', 'Characters');
   await page.click('#btn-create-page');
   await page.locator('#btn-admin-confirm-ok').click();
   await page.waitForTimeout(300);
@@ -148,6 +148,9 @@ test('a duplicate page reports the collision in plain language', async ({ page }
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   await page.fill('#new-page-name', 'Boomcat');
+  // Stated explicitly: the category field is free text now and starts empty,
+  // rather than a <select> silently defaulting to Characters.
+  await page.fill('#new-page-category', 'Characters');
   await page.click('#btn-create-page');
   await page.locator('#btn-admin-confirm-ok').click();
   await page.waitForTimeout(300);
@@ -200,6 +203,7 @@ test('a new page can be inserted after a chosen sibling, not just appended', asy
 
   // Slot the new character in after Vessel (0), before Boomcat (10).
   await page.fill('#new-page-name', 'Crow Charmer');
+  await page.fill('#new-page-category', 'Characters');
   await page.selectOption('#new-page-position', 'vessel');
   await page.click('#btn-create-page');
   await page.locator('#btn-admin-confirm-ok').click();
@@ -217,6 +221,7 @@ test('the position dropdown lists only siblings in the chosen category', async (
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
+  await page.fill('#new-page-category', 'Characters');
   await page.waitForTimeout(300);
 
   let values = await page.evaluate(() =>
@@ -226,7 +231,7 @@ test('the position dropdown lists only siblings in the chosen category', async (
   // Old Thing is in Guides, not Characters.
   expect(values).not.toContain('old_thing');
 
-  await page.selectOption('#new-page-category', 'Guides');
+  await page.fill('#new-page-category', 'Guides');
   await page.waitForTimeout(200);
   values = await page.evaluate(() =>
     Array.from(document.querySelectorAll('#new-page-position option')).map(o => o.value));
@@ -249,6 +254,7 @@ test('an exhausted gap renumbers the category instead of colliding', async ({ pa
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
 
   await page.fill('#new-page-name', 'Between');
+  await page.fill('#new-page-category', 'Characters');
   await page.selectOption('#new-page-position', 'a');
   await page.click('#btn-create-page');
   await page.locator('#btn-admin-confirm-ok').click();
