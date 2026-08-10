@@ -507,7 +507,7 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
     }
 }
 
-async function loadPageDescriptions(pageId, pageType = 'character') {
+async function loadPageDescriptions(pageId, pageType = 'character', modeId = null) {
     try {
         let data = null;
         
@@ -714,6 +714,18 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
         // THE CHARACTER PAGE ENGINE (Legacy Strict Architecture)
         // =====================================================================
         else {
+            // Narrow `data` to the active character mode before anything below
+            // reads it. A full character's ultimate modes carry their own
+            // overview, matchups and counterplay, and every reference in this
+            // branch should see that state's write-up rather than the base
+            // kit's. resolveModeDesc hands `data` straight back for the base
+            // mode - which is every character that declares no modes - so this
+            // is a no-op for all 22 pages that exist today.
+            const activeMode = modeId || window.activeCharacterMode || null;
+            if (typeof window.resolveModeDesc === 'function') {
+                data = window.resolveModeDesc(data, activeMode);
+            }
+
             // --- 1. OVERVIEW & STRATEGY TAB ---
             const overviewContainer = document.getElementById('tab-overview');
             if (overviewContainer) {
@@ -907,7 +919,7 @@ async function loadPageDescriptions(pageId, pageType = 'character') {
                     // Deferred behind the same 300ms wait as the sections
                     // themselves, since the move cards these render into are
                     // built by js/framedata.js on its own schedule.
-                    ['m1s', 'skills', 'specials'].forEach(tab => {
+                    (window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials']).forEach(tab => {
                         window.consolidateTabContributors(document.getElementById(`tab-${tab}`));
                     });
                     if (typeof applyInternalStyling === 'function') applyInternalStyling();

@@ -659,17 +659,42 @@ window.buildSystemsDirectory = async function(containerId) {
 // ==========================================
 
 // Restored: Tab switching logic for the Character Pages
+// Tab groups are registered rather than closed over, because a tab can now
+// arrive after the group is first wired: the Ultimate tab is injected at
+// runtime by js/character_modes.js once the data says the character is
+// base-only, which is long after page_boot.js set the strip up. Re-calling
+// setupTabs with the fuller list extends the group in place - the click
+// handler reads the live id list, so the buttons bound first still know to
+// hide the tab added later.
+//
+// Boundness is marked on the button element, not held in a set here, so that
+// a rebuilt strip (admin.html replaces its whole tab DOM per revision) gets
+// fresh listeners on its fresh nodes instead of being wrongly skipped.
+const tabGroupRegistry = new Map();
+
 window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = 'minor') {
-    tabIds.forEach(tabId => {
+    const groupKey = `${buttonGroupType}|${contentPrefix}`;
+
+    let group = tabGroupRegistry.get(groupKey);
+    if (!group) {
+        group = { ids: [] };
+        tabGroupRegistry.set(groupKey, group);
+    }
+    tabIds.forEach(id => { if (!group.ids.includes(id)) group.ids.push(id); });
+
+    group.ids.forEach(tabId => {
         const button = document.getElementById(`${buttonGroupType}-${tabId}`);
         if (!button) return;
+        if (button.dataset.tabBound === groupKey) return;
+        button.dataset.tabBound = groupKey;
 
         button.addEventListener('click', () => {
-            // Hide all tabs
-            tabIds.forEach(id => {
+            // Hide all tabs. Read from the group, not the tabIds this call was
+            // given - a later registration may have added more.
+            group.ids.forEach(id => {
                 const btn = document.getElementById(`${buttonGroupType}-${id}`);
                 const content = document.getElementById(`${contentPrefix}-${id}`);
-                
+
                 if (btn) btn.classList.remove('active');
                 if (content) content.classList.add('hidden');
             });
