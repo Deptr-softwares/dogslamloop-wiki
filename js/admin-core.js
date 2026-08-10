@@ -108,7 +108,12 @@ window.adminAlert = function(message) {
     document.getElementById('btn-admin-alert-ok').onclick = () => { modal.classList.add('hidden'); };
 };
 
-window.adminPrompt = function(message, title = "SYSTEM PROMPT", confirmText = "CONFIRM", isDanger = false) {
+// placeholder is a parameter because all three moderation actions share this
+// one modal, and its textarea used to carry the reject wording ("Explain why
+// this revision was declined...") hardcoded in admin.html. Approving a
+// revision therefore asked the reviewer to justify a decline, in red. Working
+// through a queue at speed, that is wording someone eventually acts on.
+window.adminPrompt = function(message, title = "SYSTEM PROMPT", confirmText = "CONFIRM", isDanger = false, placeholder = "Type your note here...") {
     return new Promise((resolve) => {
         const modal = document.getElementById('admin-prompt-modal');
 
@@ -123,7 +128,10 @@ window.adminPrompt = function(message, title = "SYSTEM PROMPT", confirmText = "C
         // Dynamic Text Injection
         if (titleEl) titleEl.textContent = title;
         if (msgEl) msgEl.textContent = message;
-        if (input) input.value = '';
+        if (input) {
+            input.value = '';
+            input.placeholder = placeholder;
+        }
         if (btnOk) btnOk.textContent = confirmText;
 
         // Safe Class Replacement

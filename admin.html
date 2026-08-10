@@ -205,7 +205,10 @@
             </div>
             <div class="auth-body" style="text-align: left; padding: 1.5rem;">
                 <p id="admin-prompt-msg" style="font-family: var(--text-mono); font-size: 0.85rem; color: var(--text-white); margin: 0 0 1rem 0; line-height: 1.6;"></p>
-                <textarea id="admin-prompt-input" class="editor-textarea" rows="3" placeholder="Explain why this revision was declined..." style="width: 100%; box-sizing: border-box; resize: none; font-size: 0.75rem; padding: 0.75rem; margin-bottom: 0;"></textarea>
+                <!-- Placeholder is set per action by window.adminPrompt - all
+                     three moderation actions share this modal, so a hardcoded
+                     one asked approvers to justify a decline. -->
+                <textarea id="admin-prompt-input" class="editor-textarea" rows="3" placeholder="Type your note here..." style="width: 100%; box-sizing: border-box; resize: none; font-size: 0.75rem; padding: 0.75rem; margin-bottom: 0;"></textarea>
                 <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
                     <button id="btn-admin-prompt-cancel" class="btn-sys btn-sys-regular" style="flex: 1;">CANCEL</button>
                     <button id="btn-admin-prompt-ok" class="btn-sys btn-sys-red btn-danger-fill" style="flex: 1;">DECLINE TICKET</button>

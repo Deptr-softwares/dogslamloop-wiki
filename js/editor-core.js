@@ -17,6 +17,43 @@ window.toggleMobilePreview = function() {
     }
 };
 
+// --- LEAVING THE EDITOR ---
+// Cancel used to be a bare window.history.back(). A reviewer intercepting a
+// ticket arrives via window.open(..., '_blank') from admin.html, and a fresh
+// tab has no history entry to go back to - so the button did nothing at all,
+// which is exactly how it was reported. Each step below is a real exit; the
+// chain only exists because no single one covers every way in.
+// Where cancel lands when there is no history and no opener - a deep link
+// straight into the editor, from a bookmark or a pasted URL. Separate from
+// cancelEditor so the choice can be asserted without stubbing navigation.
+window.editorExitDestination = function(search = window.location.search) {
+    const params = new URLSearchParams(search);
+    const pageId = params.get('page') || params.get('char');
+    const pageType = params.get('type') || 'character';
+
+    // Staff go back to the queue they were working; everyone else to the page.
+    if (params.get('editTicket')) return 'admin.html';
+    if (pageId) return `${pageType === 'character' ? 'characters' : 'systems'}/${encodeURIComponent(pageId)}/`;
+    return 'index.html';
+};
+
+window.cancelEditor = function() {
+    // Opened by script from the review queue: closing reveals admin.html
+    // underneath, which is where the reviewer wants to be.
+    if (window.opener && !window.opener.closed) {
+        window.close();
+        return;
+    }
+
+    // Navigated to normally - length 1 means this tab has been nowhere else.
+    if (window.history.length > 1) {
+        window.history.back();
+        return;
+    }
+
+    window.location.href = window.editorExitDestination();
+};
+
 // applyDeltaToData is defined once, in site_utils.js (loaded before this file).
 // diffTextLCS, triggerManualSync, updateLivePreview, toggleDiffMode, and
 // renderDiffView all moved to js/editor-sync.js.

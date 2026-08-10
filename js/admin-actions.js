@@ -49,7 +49,7 @@ async function approveCurrentPreview() {
         ? "Provide an optional staff note (or leave blank to force merge immediately):"
         : "Provide an optional staff note for the author (or leave blank):";
 
-    const approvalNote = await window.adminPrompt(msg, "APPROVE REVISION", "MERGE TICKET", false);
+    const approvalNote = await window.adminPrompt(msg, "APPROVE REVISION", "MERGE TICKET", false, "Optional note for the author, e.g. what you verified...");
     if (approvalNote === null) return; // User clicked Cancel
 
     const finalNote = approvalNote.trim() !== '' ? approvalNote.trim() : "Approved and merged.";
@@ -131,7 +131,7 @@ async function rejectCurrentPreview() {
     const updatedQA = revData.qa_metadata || {};
 
     if (!isSelfWithdraw) {
-        const reason = await window.adminPrompt(`Please provide a reason for declining this ${revData.page_id.toUpperCase()} revision:`, "REJECT REVISION", "DECLINE TICKET", true);
+        const reason = await window.adminPrompt(`Please provide a reason for declining this ${revData.page_id.toUpperCase()} revision:`, "REJECT REVISION", "DECLINE TICKET", true, "Explain why this revision was declined...");
         if (reason === null) return;
         finalReason = reason === '' ? 'No specific reason provided.' : reason;
         updatedQA.reviewed_by = window.currentUsername;
@@ -212,7 +212,7 @@ async function requestChanges() {
     const rev = window.currentQueueData.find(r => r.id === window.activePreviewRevId);
     if (!rev) return;
 
-    const note = await window.adminPrompt("What changes would you like the author to make?", "REQUEST CHANGES", "SEND REQUEST", false);
+    const note = await window.adminPrompt("What changes would you like the author to make?", "REQUEST CHANGES", "SEND REQUEST", false, "Describe what needs changing before this can be approved...");
     if (note === null || note.trim() === '') return; // Cancel, or nothing actually written
 
     // Ensure the ticket is open so the author (and other staff) can see the
