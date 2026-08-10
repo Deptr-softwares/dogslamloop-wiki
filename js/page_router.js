@@ -21,17 +21,20 @@
  * registers first, so applyCharacterTheme still runs before the boot).
  */
 
-(function () {
-    const route = window.PAGE_ROUTE;
+window.buildPageSkeleton = function (route, rootPath) {
     if (!route || !route.pageId || !route.pageType) {
         console.error('[Router] window.PAGE_ROUTE missing or incomplete; page cannot render.');
-        return;
+        return null;
     }
 
     // Stubs live two levels deep (characters/<Name>/, systems/<slug>/). Kept
     // as a literal rather than derived, because getRootPath() (site_utils.js)
     // has not loaded yet at this point - this script runs before it by design.
-    const ROOT = '../../';
+    //
+    // 404.html passes its own root: it is served from an arbitrary depth for
+    // any unmatched URL and carries <base href="/">, so two levels up is the
+    // wrong answer there and '/' is always the right one.
+    const ROOT = rootPath || '../../';
 
     // The 7 character tabs, hardcoded here instead of copy-pasted into 22
     // files. `gallery` currently has no handler anywhere and renders empty -
@@ -207,10 +210,23 @@ ${isCharacter ? characterMain() : systemMain()}
 ${hasToc ? rightSidebar(isCharacter ? 'On this tab' : 'On this page') : ''}
     </div>`;
 
-    // insertAdjacentHTML('beforebegin') on the currently-executing script is
-    // the safe mid-parse insertion: it writes before this <script> element
-    // without disturbing the parser's insertion point. Assigning to
-    // document.body.innerHTML here would destroy the not-yet-parsed rest of
-    // the document, including the script tags below this one.
-    document.currentScript.insertAdjacentHTML('beforebegin', skeleton);
+    return skeleton;
+};
+
+// The parse-time path, used by every generated stub.
+//
+// insertAdjacentHTML('beforebegin') on the currently-executing script is the
+// safe mid-parse insertion: it writes before this <script> element without
+// disturbing the parser's insertion point. Assigning to document.body.innerHTML
+// here would destroy the not-yet-parsed rest of the document, including the
+// script tags below this one.
+//
+// Guarded on PAGE_ROUTE so the same file can be loaded by a page that decides
+// its route later - js/page_rescue.js does exactly that, and calls
+// buildPageSkeleton itself once it knows what it is rendering.
+(function () {
+    if (!window.PAGE_ROUTE) return;
+
+    const skeleton = window.buildPageSkeleton(window.PAGE_ROUTE);
+    if (skeleton) document.currentScript.insertAdjacentHTML('beforebegin', skeleton);
 })();
