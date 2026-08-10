@@ -232,6 +232,18 @@ Ordered by **what unblocks the 30-person team**, because that is now the binding
 
 Mostly invisible to players, and the most urgent work in this document.
 
+> **STATUS 2026-08-10: roughly half shipped, as [PR #41](https://github.com/Deptr-softwares/dogslamloop-wiki/pull/41) (merged).**
+>
+> **Done:**
+> - Item 3 in full — category creation unblocked, `others/`/`tools/` folders, `gallery` and `tool` page types with their own renderers, and a gallery editor (upload + name into a bin, one delta per item so contributors cannot collide).
+> - **The two Main Dashboard columns, pulled forward from v0.13.** Others under Guides & Such, Tools under Recent Changes, Game Info to the right. They fill from `navigation.json` by category, so no new data source.
+>
+> **In review:** item 1 (character modes and the Ultimate tab) as [PR #43](https://github.com/Deptr-softwares/dogslamloop-wiki/pull/43) — the live-page toggle, the editor's `+ STATE` control, mode-scoped deltas, and the review path (preview, diff, queue label, merge compiler) all in one batch. No migration; `frame_data`/`desc_data` are jsonb.
+>
+> **Not started:** items 2 (qualitative frame data), 4 (regeneration on save), 5 (site-wide progress view), 6 (media aspect ratios). Plus a **tool-page editor** — `desc_data.tool` has a renderer but nothing writes it — and the eleven `others/` pages and two tools, which are content rather than code.
+>
+> **Two corrections this batch produced, both recorded above:** the 1.4M figure is Discord *membership*, not traffic, and should not be used to argue against database reads; and the regeneration step is gated by GitHub Pages needing a real file at every URL, not by `navigation.json` — which is why moving that file to the cloud would not have fixed the feedback loop.
+
 1. **Character modes** (full characters) and the **Ultimate tab** (base-only). Blocks all character content. `route.tabs` already exists as a per-page override (`js/page_router.js:57`) and move IDs are already namespaced (`boomcat-first-m1`), so `desc_data.moveStrategies` needs no change. Model additively: optional `frame_data.modes`, absent means the existing top-level *is* the base mode, so all 22 existing characters keep working untouched.
 2. **Qualitative frame data.** A throughput multiplier for the team, and it removes the dependency on devs supplying numbers — which may never arrive.
 3. **New page types and directories.** `gallery` and `tool` added to the CHECK; `others/` and `tools/` added to the generator; the hardcoded category dropdown in `owner.html` replaced with something that accepts new categories.
@@ -273,11 +285,12 @@ Mostly invisible to players, and the most urgent work in this document.
 
 The visible expansion.
 
-1. **Media moderation and upload limits** — pulled forward from the old v0.13, because the Emotes gallery depends on it. User-submitted media at Discord scale without size limits or review is the single most obvious way to get hurt.
-2. **The Emotes gallery page type** — search, sort, media submission.
+1. **Media moderation and upload limits** — pulled forward from the old v0.13, because the Emotes gallery depends on it. User-submitted media at Discord scale without size limits or review is the single most obvious way to get hurt. **Now more urgent than when written:** the gallery editor shipped in v0.12, so contributors can already upload media to a gallery, with no size cap and no review of the file itself.
+2. ~~**The Emotes gallery page type**~~ — **shipped in v0.12.** The renderer, the search, and media submission all exist. What remains here is the Emotes *page* and its content.
 3. **The other ten `others/` pages** scaffolded; content is the team's.
-4. **The "Others" and "Tools" columns** and the Main Dashboard layout rework.
-5. **Skill Builder ID Reader** linked in.
+4. ~~**The "Others" and "Tools" columns**~~ — **shipped in v0.12**, pulled forward. The Main Dashboard layout rework beyond those two columns is still open.
+5. **Skill Builder ID Reader** linked in. Needs the tool-page editor first, since nothing currently writes `desc_data.tool`.
+6. **Certified Tier List** — the free-submit community ranking. Registers against the tool host that shipped in v0.12; the anti-brigading rules from v0.14 item 3 apply to it and should be designed with it, not after.
 
 ### v0.14 — Community
 
