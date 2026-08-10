@@ -2,6 +2,95 @@
  * Dogslamloop Wiki - Editor: Media Library (upload, gallery, WebP conversion)
  */
 
+function convertToWebP(file, newName) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = URL.createObjectURL(file);
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            canvas.toBlob((blob) => {
+                resolve(new File([blob], newName, { type: "image/webp" }));
+            }, 'image/webp', 0.9);
+        };
+        img.onerror = () => reject(new Error("Invalid image file."));
+    });
+}
+
+/**
+ * Uploads one file to the wiki-media bucket and returns its public URL.
+ *
+ * Extracted from the Media Library's own drop zone so the gallery editor can
+ * upload without reimplementing any of it. Three rules matter and all of them
+ * are easy to get subtly wrong twice:
+ *
+ *   - Videos and GIFs keep their original extension; only static images are
+ *     converted to WebP. Converting a GIF would kill the animation, and
+ *     "convert everything" is the obvious wrong simplification.
+ *   - An upload that would overwrite an existing filename is refused, because
+ *     the old name is already live on wiki pages pointing at the old content.
+ *   - A failed conversion falls back to the original file rather than
+ *     aborting - a slightly larger image beats no image.
+ *
+ * onStatus is optional and exists so a caller can show progress in whatever
+ * element it owns.
+ */
+window.uploadWikiMedia = async function(file, onStatus = () => {}) {
+    if (!window.supabaseClient) return { error: 'Not connected to the database.' };
+
+    const lastDotIndex = file.name.lastIndexOf('.');
+    const baseName = lastDotIndex !== -1 ? file.name.substring(0, lastDotIndex) : file.name;
+    const originalExt = lastDotIndex !== -1 ? file.name.substring(lastDotIndex).toLowerCase() : '';
+
+    const isVideo = file.type.startsWith('video/');
+    const isGif = file.type.includes('gif');
+
+    const needsConversion = !isVideo && !isGif && originalExt !== '.webp';
+    let finalName = baseName + (needsConversion ? '.webp' : originalExt);
+
+    // The gallery editor can be open without the Media Library ever having
+    // been rendered, so the known-file list may not be populated. Fetch it
+    // rather than skipping the overwrite guard, which is the one check here
+    // that protects content already live.
+    let known = window.currentMediaFiles;
+    if (!Array.isArray(known) || known.length === 0) {
+        const { data } = await window.supabaseClient.storage.from('wiki-media').list('', { limit: 1000 });
+        known = data || [];
+    }
+    if (known.some(f => f.name.toLowerCase() === finalName.toLowerCase())) {
+        return { error: `A file named "${finalName}" already exists in the Cloud.
+
+Rename your file (e.g. append "_v2") before uploading, so you do not break pages already using the old one.` };
+    }
+
+    let finalFile = file;
+    try {
+        if (needsConversion) {
+            onStatus('Converting image to WEBP...');
+            try {
+                finalFile = await convertToWebP(file, finalName);
+            } catch (convErr) {
+                console.warn("WebP conversion failed, falling back to original file:", convErr);
+                finalFile = file;
+                finalName = file.name;
+            }
+        }
+
+        onStatus('Uploading to Cloud...');
+        const { error } = await window.supabaseClient.storage.from('wiki-media').upload(finalName, finalFile);
+        if (error) return { error: 'Upload failed: ' + error.message };
+
+        const { data: publicUrlData } = window.supabaseClient.storage.from('wiki-media').getPublicUrl(finalName);
+        return { name: finalName, url: publicUrlData ? publicUrlData.publicUrl : '' };
+    } catch (err) {
+        console.error(err);
+        return { error: 'Action failed: ' + err.message };
+    }
+};
+
 // --- MEDIA LIBRARY SYSTEM ---
 window.initMediaLibrary = function() {
     const dropZone = document.getElementById('media-upload-zone');
@@ -13,23 +102,6 @@ window.initMediaLibrary = function() {
 
     window.currentMediaFiles = [];
 
-    function convertToWebP(file, newName) {
-        return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.src = URL.createObjectURL(file);
-            img.onload = () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                canvas.toBlob((blob) => {
-                    resolve(new File([blob], newName, { type: "image/webp" }));
-                }, 'image/webp', 0.9);
-            };
-            img.onerror = () => reject(new Error("Invalid image file."));
-        });
-    }
 
     window.currentMediaPage = 1;
     window.mediaItemsPerPage = 24;
@@ -171,69 +243,22 @@ window.initMediaLibrary = function() {
     });
 
     // Upload Logic
+    // Thin UI wrapper. All the actual rules - extension handling, WebP
+    // conversion, the overwrite guard - live in window.uploadWikiMedia below
+    // so the gallery editor can upload without reimplementing any of it.
     async function handleUpload(file) {
-        if (!window.supabaseClient) return;
-
-        // Extract base name and original extension
-        const lastDotIndex = file.name.lastIndexOf('.');
-        const baseName = lastDotIndex !== -1 ? file.name.substring(0, lastDotIndex) : file.name;
-        const originalExt = lastDotIndex !== -1 ? file.name.substring(lastDotIndex).toLowerCase() : '';
-
-        const isVideo = file.type.startsWith('video/');
-        const isGif = file.type.includes('gif');
-
-        // Preserve original extensions for videos and GIFs. Only convert static images to .webp.
-        let newExt = originalExt;
-        if (!isVideo && !isGif && originalExt !== '.webp') {
-            newExt = '.webp';
-        }
-
-        let finalName = baseName + newExt;
-
-        // 1. GATEKEEPER: Prevent Overwrites
-        const exists = window.currentMediaFiles.some(f => f.name.toLowerCase() === finalName.toLowerCase());
-        if (exists) {
-            window.editorAlert(`A file named "${finalName}" already exists in the Cloud!\n\nPlease rename your file on your computer (e.g., append "_v2" or "_updated" to the end) before uploading to ensure you do not break live Wiki pages.`);
-            return;
-        }
-
-        const dropZone = document.getElementById('media-upload-zone');
         const uploadText = document.getElementById('media-upload-text');
-        const oldText = uploadText.textContent;
-        uploadText.style.color = "var(--accent-blue)";
+        const oldText = uploadText ? uploadText.textContent : '';
+        if (uploadText) uploadText.style.color = "var(--accent-blue)";
 
-        let finalFile = file;
+        const result = await window.uploadWikiMedia(file, (status) => {
+            if (uploadText) uploadText.textContent = status;
+        });
 
-        try {
-            // 2. CONVERSION ROUTING (Images Only)
-            if (!isVideo && !isGif && originalExt !== '.webp') {
-                uploadText.textContent = "Converting Image to WEBP...";
-                try {
-                    finalFile = await convertToWebP(file, finalName);
-                } catch (convErr) {
-                    console.warn("WebP conversion failed, falling back to original file:", convErr);
-                    finalFile = file;
-                    finalName = file.name; // Revert to original extension on failure
-                }
-            }
+        if (uploadText) { uploadText.textContent = oldText; uploadText.style.color = ""; }
 
-            // 3. SECURE CLOUD UPLOAD
-            uploadText.textContent = "Uploading to Cloud...";
-            const { error } = await window.supabaseClient.storage.from('wiki-media').upload(finalName, finalFile);
-
-            if (error) {
-                console.error("Upload error:", error);
-                window.editorAlert("Upload failed: " + error.message);
-            } else {
-                window.loadMediaGallery(); // Instantly refresh the grid
-            }
-        } catch (err) {
-            console.error(err);
-            window.editorAlert("Action Failed: " + err.message);
-        }
-
-        uploadText.textContent = oldText;
-        uploadText.style.color = "";
+        if (result.error) { window.editorAlert(result.error); return; }
+        window.loadMediaGallery(); // Instantly refresh the grid
     }
 
     btnRefresh.addEventListener('click', window.loadMediaGallery);

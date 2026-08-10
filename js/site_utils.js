@@ -158,6 +158,28 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             if (idx > -1) newDesc.counterplay[idx] = payload; else newDesc.counterplay.push(payload);
         }
     }
+    // One delta per gallery item, keyed by name. A gallery is the one page
+    // type where many people add many small things independently - thirty
+    // contributors submitting an emote each must never collide, and they
+    // cannot if each submission only ever names its own item.
+    else if (scope === 'gallery_item') {
+        if (!newDesc.items) newDesc.items = [];
+        if (payload === null) {
+            newDesc.items = newDesc.items.filter(i => i.name !== key);
+        } else {
+            const idx = newDesc.items.findIndex(i => i.name === key);
+            if (idx > -1) newDesc.items[idx] = payload; else newDesc.items.push(payload);
+        }
+    }
+    // The prose above a gallery, and the tool config on a tool page. Whole-
+    // value replacements, like profile/playstyle - they are single objects,
+    // not lists with identities.
+    else if (scope === 'gallery_intro') {
+        newDesc.intro = payload;
+    }
+    else if (scope === 'tool_config') {
+        newDesc.tool = payload;
+    }
     else if (scope === 'move') {
         const [cat, moveId] = key.split('::');
         if (payload === null) {

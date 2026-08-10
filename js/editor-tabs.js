@@ -108,6 +108,15 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
     // route in editor-core.js, so the strip stays in step with the URL.
     if (typeof window.renderEditorTabNav === 'function') window.renderEditorTabNav(tabId);
 
+    // --- Reroute to the Gallery bin ---
+    // Before the system branch: a gallery is a flat list of media with names,
+    // not tabs of blocks, and routing it through the block editor would be
+    // three screens of machinery for two fields.
+    if (window.currentEditorPageType === 'gallery') {
+        if (typeof window.renderGalleryEditor === 'function') window.renderGalleryEditor(builder);
+        return;
+    }
+
     // --- Reroute to the new System Builder UI ---
     if (window.currentEditorPageType === 'system') {
         if (window.currentSystemTabIdx === undefined) {
