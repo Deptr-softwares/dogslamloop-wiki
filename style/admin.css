@@ -499,6 +499,36 @@
 .personnel-role-select { margin: 0; font-size: 0.7rem; padding: 0.3rem; }
 .personnel-add { border-top: 1px dashed var(--border-color); padding-top: 1rem; margin-top: 1rem; }
 .owner-success-text { color: #22c55e; }
+
+/* Staff Perks toggle rows (js/owner-staff-perks.js). A <label> wrapping the
+   checkbox, so the whole row including the explanation is a hit target -
+   these sit next to destructive role controls and deserve to be hard to
+   catch by accident, not easy to miss. */
+.owner-perk-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px dashed #333;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--text-mono);
+    font-size: 0.8rem;
+    color: var(--text-white);
+}
+
+.owner-perk-row:hover { border-color: var(--accent-blue); }
+.owner-perk-row input[type="checkbox"] { margin-top: 0.15rem; flex-shrink: 0; }
+.owner-perk-row input[type="checkbox"]:disabled { cursor: not-allowed; }
+.owner-perk-row:has(input:disabled) { opacity: 0.55; cursor: not-allowed; }
+
+.owner-perk-note {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    line-height: 1.5;
+}
 /* Role colours reuse the palette the rest of the admin tooling already uses
    for clearance levels, so a role reads the same wherever it appears. */
 .badge-role-admin { background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid #a855f7; }

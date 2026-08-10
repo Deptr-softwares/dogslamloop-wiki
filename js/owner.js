@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadPagePermissions();
     await loadFaqEntries();
     await loadCollaborators();
+    if (typeof loadStaffPerks === 'function') await loadStaffPerks();
 });
 
 function kickUser() {

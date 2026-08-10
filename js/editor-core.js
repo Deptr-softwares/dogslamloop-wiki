@@ -21,8 +21,8 @@ window.toggleMobilePreview = function() {
 // Cancel used to be a bare window.history.back(). A reviewer intercepting a
 // ticket arrives via window.open(..., '_blank') from admin.html, and a fresh
 // tab has no history entry to go back to - so the button did nothing at all,
-// which is exactly how it was reported. Each step below is a real exit; the
-// chain only exists because no single one covers every way in.
+// which is exactly how it was reported. Each step in cancelEditor below is a
+// real exit; the chain only exists because no single one covers every way in.
 // Where cancel lands when there is no history and no opener - a deep link
 // straight into the editor, from a bookmark or a pasted URL. Separate from
 // cancelEditor so the choice can be asserted without stubbing navigation.
@@ -498,9 +498,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
 
-            const COOLDOWN_MINUTES = 3; 
+            // Mirrors check_revision_rate_limit()'s bypass exactly
+            // (supabase/migrations/20260810000000_staff_cooldown_perk.sql).
+            // The trigger is the real boundary; this is only about which
+            // message the contributor sees. If the two disagree, staff either
+            // get a friendly wait the server would have allowed, or a raw
+            // Postgres exception where they expected the friendly wait.
+            const STAFF_ROLES = ['trusted_editor', 'reviewer', 'admin'];
+            let skipsCooldown = false;
+            if (STAFF_ROLES.includes((ownRole?.role || '').trim().toLowerCase())) {
+                const { data: settings } = await window.supabaseClient
+                    .from('site_settings').select('staff_bypass_submission_cooldown').maybeSingle();
+                // Absent row or a failed read means enforce, matching the
+                // trigger's COALESCE.
+                skipsCooldown = settings?.staff_bypass_submission_cooldown === true;
+            }
+
+            const COOLDOWN_MINUTES = 3;
             const lastSubmitTime = localStorage.getItem('wiki_last_submit_time');
-            if (lastSubmitTime && !window.activeEditTicketId) { 
+            if (lastSubmitTime && !window.activeEditTicketId && !skipsCooldown) {
                 const timeSinceLastSubmit = Date.now() - parseInt(lastSubmitTime, 10);
                 const cooldownMs = COOLDOWN_MINUTES * 60 * 1000;
                 if (timeSinceLastSubmit < cooldownMs) {

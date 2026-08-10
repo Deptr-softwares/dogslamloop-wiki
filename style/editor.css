@@ -242,6 +242,29 @@ input[type="checkbox"]:checked {
     box-shadow: 0 3px 0 0 var(--accent-blue) !important;
     z-index: 20;
 }
+
+/* Marks where a block landed after a reorder. Fades rather than sitting
+   there, so it reads as "this just happened" instead of as a selection
+   state - a reorder used to give no feedback at all beyond the list
+   re-rendering, which in a long section meant hunting for the block. */
+.block-card.block-just-moved {
+    animation: block-moved-flash 1.4s ease-out;
+}
+
+@keyframes block-moved-flash {
+    0%   { box-shadow: 0 0 0 2px var(--accent-blue); background: hsla(217, 91%, 60%, 0.18); }
+    70%  { box-shadow: 0 0 0 2px var(--accent-blue); background: hsla(217, 91%, 60%, 0.08); }
+    100% { box-shadow: 0 0 0 0 transparent; background: transparent; }
+}
+
+/* The flash is decorative; anyone who asked for less motion just gets the
+   outline, held briefly, with no animation. */
+@media (prefers-reduced-motion: reduce) {
+    .block-card.block-just-moved {
+        animation: none;
+        box-shadow: 0 0 0 2px var(--accent-blue);
+    }
+}
 /* Small pill that follows the pointer during a block-list drag (add-block-btn
    or drag-handle reorder), created/destroyed by startBlockPointerDrag in
    js/editor-blocks.js. pointer-events: none so elementFromPoint() hit-tests

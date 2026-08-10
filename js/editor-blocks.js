@@ -508,16 +508,38 @@ function initStrategyBlockBuilder(containerId, initialData) {
         return { card, dropIndex: isBottom ? cardIndex + 1 : cardIndex, isBottom };
     }
 
+    // Marks where a block landed. Without it a reorder gives no feedback
+    // beyond the list re-rendering, and in a long section that means hunting
+    // for the block you just moved. Applied after a frame so the class lands
+    // on the freshly-rendered card rather than the one it replaced.
+    function flashMovedBlock(index) {
+        requestAnimationFrame(() => {
+            const card = document.querySelector(`#block-list .block-card[data-index="${index}"]`);
+            if (!card) return;
+            card.classList.remove('block-just-moved');
+            void card.offsetWidth; // restart the animation if the same card moves twice
+            card.classList.add('block-just-moved');
+            setTimeout(() => card.classList.remove('block-just-moved'), 1400);
+        });
+    }
+
     function finishBlockDrop(payload, dropIndex) {
         const activeBlocks = window.getActiveBlocks();
 
         if (payload.blockType) {
             window.saveBlockHistory(); // Save BEFORE mutating
             const newBlock = window.spawnBlockWithAuthor(payload.blockType);
-            if (dropIndex === null) activeBlocks.push(newBlock);
-            else activeBlocks.splice(dropIndex, 0, newBlock);
+            let landedAt;
+            if (dropIndex === null) {
+                activeBlocks.push(newBlock);
+                landedAt = activeBlocks.length - 1;
+            } else {
+                activeBlocks.splice(dropIndex, 0, newBlock);
+                landedAt = dropIndex;
+            }
             renderBlockList();
             updateLivePreview(true); // Tell it to skip saving history again
+            flashMovedBlock(landedAt);
         } else if (dropIndex !== null) {
             let target = dropIndex;
             if (payload.fromIndex < target) target--;
@@ -527,6 +549,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 activeBlocks.splice(target, 0, item);
                 renderBlockList();
                 updateLivePreview(true);
+                flashMovedBlock(target);
             }
         }
         // Reordering onto empty space (no card under the pointer) is a no-op,
