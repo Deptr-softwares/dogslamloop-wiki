@@ -93,11 +93,17 @@ test('derivePageIdentity builds the folder convention each page type uses', asyn
 
   // Characters live in Capitalized_snake folders, system pages in
   // lower-hyphen ones - matching what buildPageUrl and the generator expect.
+  //
+  // `directory` is now part of the return: where a page lives is a separate
+  // decision from how it renders, so others/ and tools/ can exist. Called
+  // with two arguments as here, it still falls back to the page type.
   expect(results.character).toEqual({
     pageId: 'crow_charmer', url: 'characters/Crow_charmer/index.html', navId: 'Crow-Charmer',
+    directory: 'characters',
   });
   expect(results.system).toEqual({
     pageId: 'm1_trading', url: 'systems/m1-trading/index.html', navId: 'M1-Trading',
+    directory: 'systems',
   });
   expect(results.punctuation.pageId).toBe('vessels_guide');
   // A name with no usable characters must not silently produce a page at

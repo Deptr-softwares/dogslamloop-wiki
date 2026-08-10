@@ -135,6 +135,11 @@
                             <option value="character">Character page</option>
                             <option value="system">System / guide page</option>
                         </select>
+                        <!-- Where the page lives, which is a separate question
+                             from how it renders. Populated from
+                             PAGE_DIRECTORIES in js/owner.js. -->
+                        <label class="block-field-label-sm" for="new-page-directory">FOLDER</label>
+                        <select id="new-page-directory" class="editor-input admin-input-full select"></select>
                         <!-- An input with a datalist, not a select: site_pages.category
                              is free-form text with no CHECK constraint, so the database
                              has always accepted new categories - the four hardcoded

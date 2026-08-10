@@ -50,10 +50,21 @@ document.addEventListener('DOMContentLoaded', async () => {
     // self-demotion guard without a second lookup.
     currentAdminUserId = session.user.id;
 
-    ['new-page-name', 'new-page-type'].forEach(id => {
+    populateDirectoryOptions();
+
+    ['new-page-name', 'new-page-type', 'new-page-directory'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', updateNewPagePreview);
     });
+
+    // Changing the page type re-suits the folder before the preview reads it.
+    const typeEl = document.getElementById('new-page-type');
+    if (typeEl) {
+        typeEl.addEventListener('change', () => {
+            populateDirectoryOptions();
+            updateNewPagePreview();
+        });
+    }
 
     wireCategoryField();
 
@@ -244,28 +255,74 @@ const STATUS_LABELS = { live: 'Live', draft: 'Draft', archived: 'Archived' };
 
 // Mirrors js/site_utils.js's buildPageUrl and the folder convention the
 // generator expects: characters/Capitalized_snake/, systems/lower-slug/.
-function derivePageIdentity(name, pageType) {
+// Where a page lives, kept separate from how it renders.
+//
+// These were the same thing until now: page_type decided the directory, so
+// "Others" and "Tools" pages were impossible without inventing render types
+// for them. They are different questions. An Emotes page lives in others/ and
+// renders exactly like a system page - tabs of blocks, which js/page_boot.js
+// already treats as the default for anything that is not a character.
+//
+// Keeping page_type as-is also means no migration: the CHECK constraint on
+// site_pages.page_type is untouched, and site_pages.url already stores the
+// full path, so the directory needs no column of its own.
+const PAGE_DIRECTORIES = {
+    characters: { label: 'characters/ - character pages', pageType: 'character' },
+    systems: { label: 'systems/ - systems and guides', pageType: 'system' },
+    others: { label: 'others/ - gamemodes, emotes, easter eggs', pageType: 'system' },
+    tools: { label: 'tools/ - interactive tools', pageType: 'system' },
+};
+window.PAGE_DIRECTORIES = PAGE_DIRECTORIES;
+
+function derivePageIdentity(name, pageType, directory) {
     const pageId = String(name || '').toLowerCase().trim()
         .replace(/[^\w\s-]/g, '').replace(/[\s-]+/g, '_').replace(/^_|_$/g, '');
     if (!pageId) return null;
 
-    const folder = pageType === 'character'
+    // Defaulting from page_type keeps every existing caller working unchanged.
+    const dir = PAGE_DIRECTORIES[directory] ? directory : (pageType === 'character' ? 'characters' : 'systems');
+
+    // Character folders are Capitalised_like_this; everything else is
+    // kebab-case. That split is historical but it is what the 22 existing
+    // character URLs look like, so it stays.
+    const folder = dir === 'characters'
         ? pageId.charAt(0).toUpperCase() + pageId.slice(1)
         : pageId.replace(/_/g, '-');
-    const url = pageType === 'character'
-        ? `characters/${folder}/index.html`
-        : `systems/${folder}/index.html`;
+    const url = `${dir}/${folder}/index.html`;
     const navId = String(name).trim().replace(/\s+/g, '-');
-    return { pageId, url, navId };
+    return { pageId, url, navId, directory: dir };
 }
 window.derivePageIdentity = derivePageIdentity;
+
+// Fills the folder list, and keeps it in step with the page type: picking
+// "Character page" should not leave the folder on tools/. Only nudges the
+// selection when the current one does not suit the type, so an explicit
+// choice of others/ for a system page survives.
+function populateDirectoryOptions() {
+    const select = document.getElementById('new-page-directory');
+    const typeEl = document.getElementById('new-page-type');
+    if (!select || !typeEl) return;
+
+    const pageType = typeEl.value;
+    const current = select.value;
+
+    select.innerHTML = Object.entries(PAGE_DIRECTORIES)
+        .map(([dir, meta]) => `<option value="${ownerEscape(dir)}">${ownerEscape(meta.label)}</option>`)
+        .join('');
+
+    const suits = current && PAGE_DIRECTORIES[current] && PAGE_DIRECTORIES[current].pageType === pageType;
+    select.value = suits
+        ? current
+        : Object.keys(PAGE_DIRECTORIES).find(d => PAGE_DIRECTORIES[d].pageType === pageType) || 'systems';
+}
 
 function updateNewPagePreview() {
     const el = document.getElementById('new-page-preview');
     if (!el) return;
     const name = document.getElementById('new-page-name').value;
     const type = document.getElementById('new-page-type').value;
-    const identity = derivePageIdentity(name, type);
+    const directory = (document.getElementById('new-page-directory') || {}).value;
+    const identity = derivePageIdentity(name, type, directory);
     el.innerHTML = identity
         ? `Will be created at <code>${ownerEscape(identity.url)}</code>`
         : '';
@@ -525,7 +582,8 @@ async function createSitePage() {
         return;
     }
 
-    const identity = derivePageIdentity(name, pageType);
+    const directory = (document.getElementById('new-page-directory') || {}).value;
+    const identity = derivePageIdentity(name, pageType, directory);
     if (!identity) {
         results.innerHTML = `<span class="admin-error-text">That name has no usable characters for a URL - try adding letters or numbers.</span>`;
         return;
