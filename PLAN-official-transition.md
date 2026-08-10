@@ -242,7 +242,13 @@ Mostly invisible to players, and the most urgent work in this document.
 
    **Decision: both types, with generator support, in v0.12.** Not hand-authored. The `tierlist` precedent is a hand-written page in `NEVER_TOUCH` (`generate-pages.js` bails on any type that is not `character` or `system`), which does not scale to a gallery per gamemode or a page per tool.
 
-   The two Main Dashboard columns stay in **v0.13**, where they sit immediately after the eleven `others/` pages are scaffolded — built earlier they would be ~14 links to pages that do not exist. Note this is not the same as invisible: `buildGlobalSidebarMenu` groups straight from `navigation.json`, so a page created with category "Others" appears in the global sidebar the moment it exists.
+   The two Main Dashboard columns stay in **v0.13**, where they sit immediately after the eleven `others/` pages are scaffolded — built earlier they would be ~14 links to pages that do not exist.
+
+   **Correction, 2026-08-10.** An earlier note here claimed a page created with category "Others" "appears in the global sidebar the moment it exists". **That is wrong.** The sidebar reads `data/navigation.json`, a committed artifact regenerated from `site_pages` by `scripts/fetch-registry.js` — so a new page appears only after a regeneration run, exactly as `owner.html` says when it creates one. What *is* true is the narrower claim: a **new category** needs no code change, because `buildGlobalSidebarMenu` groups by whatever keys exist in the file.
+
+   **Blocker found the same way, worth knowing before merging.** `generate-pages.js` calls `process.exit(1)` on a path it does not recognise. `others/` and `tools/` only became recognised on this branch, so **a page already created under `others/` will fail the regeneration workflow on `main` until this branch lands** — not merely fail to appear. Merge first, then regenerate.
+
+   This is also the concrete case for **v0.12 item 4**: today the choice is the manual `workflow_dispatch` button or waiting for the 04:00 cron, and the owner hit that lag within minutes of creating their first Others page.
 4. **Data-layer Phase 0, revised.** With 30 contributors, waiting up to 24 hours to see a new page is intolerable. Auto-trigger regeneration on save via `repository_dispatch` — minutes, not a day. **Note the reversal:** `V0.12-DEVLOG.md` currently says `navigation.json` should become a live database read. That is wrong now — with a 1.4M-member Discord, per-visitor database reads for the sidebar put quota and bandwidth on the critical path of a site GitHub Pages serves free from a CDN.
 5. **Site-wide progress view** in owner tools. "Pages That Need Work" covers characters only; with 30 people working through ~35 pages you need one view of done / in progress / untouched. This is the daily control surface.
 
