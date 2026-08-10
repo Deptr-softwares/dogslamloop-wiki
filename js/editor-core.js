@@ -634,8 +634,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             } 
             // 2. NORMAL SUBMISSION: Multi-Payload Diff Scanner
             else {
+                // --- Gallery Payload ---
+                // One delta per item, keyed by name, rather than one payload
+                // carrying the whole list. That is what makes a gallery safe
+                // with thirty contributors: two people adding different
+                // emotes touch different keys and can never collide, and a
+                // reviewer approving one does not drag the other's
+                // half-finished work along with it.
+                if (pageType === 'gallery') {
+                    const localItems = (typeof window.getGalleryEditorItems === 'function'
+                        ? window.getGalleryEditorItems() : []) || [];
+                    const cloudItems = (window.originalCloudDescData && window.originalCloudDescData.items) || [];
+
+                    window.buildGalleryDeltas(localItems, cloudItems).forEach(d => {
+                        payloadsToInsert.push(buildPayload(d.scope, d.key, d.payload));
+                    });
+                }
                 // --- System Payload ---
-                if (pageType === 'system' || pageType === 'tierlist') {
+                else if (pageType === 'system' || pageType === 'tierlist') {
                     await window.triggerManualSync(); 
                     // Only push if something actually changed!
                     if (isDiff(window.currentEditorDescData, window.originalCloudDescData)) {

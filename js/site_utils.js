@@ -4,15 +4,23 @@
 
 const fetchPromiseCache = {};
 
+// Counts directory depth rather than naming the directories. The old version
+// tested for '/characters/' and '/systems/' explicitly and returned './' for
+// anything else - so a page under any new directory (others/, tools/) would
+// resolve every data fetch and asset path against the wrong root and 404.
+// Depth works for a directory that does not exist yet, which is the point.
+//
+// The site is served from the domain root (GitHub Pages with a custom domain,
+// and the test server likewise), so path segments map directly to depth.
 function getRootPath() {
-    const path = window.location.pathname;
+    const segments = window.location.pathname.split('/').filter(Boolean);
 
-    if (path.endsWith('/characters/index.html') || path.endsWith('/characters/')) return '../';
-    if (path.includes('/characters/')) return '../../';
-    if (path.endsWith('/systems/index.html') || path.endsWith('/systems/')) return '../';
-    if (path.includes('/systems/')) return '../../';
+    // Drop a trailing filename so /systems/hud/index.html and /systems/hud/
+    // are the same depth. A dot is the only thing separating the two here:
+    // directory names on this site never contain one.
+    if (segments.length && segments[segments.length - 1].includes('.')) segments.pop();
 
-    return './';
+    return segments.length ? '../'.repeat(segments.length) : './';
 }
 
 async function fetchJson(url, options = {}) {
@@ -149,6 +157,28 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             const idx = newDesc.counterplay.findIndex(c => c.topic === key);
             if (idx > -1) newDesc.counterplay[idx] = payload; else newDesc.counterplay.push(payload);
         }
+    }
+    // One delta per gallery item, keyed by name. A gallery is the one page
+    // type where many people add many small things independently - thirty
+    // contributors submitting an emote each must never collide, and they
+    // cannot if each submission only ever names its own item.
+    else if (scope === 'gallery_item') {
+        if (!newDesc.items) newDesc.items = [];
+        if (payload === null) {
+            newDesc.items = newDesc.items.filter(i => i.name !== key);
+        } else {
+            const idx = newDesc.items.findIndex(i => i.name === key);
+            if (idx > -1) newDesc.items[idx] = payload; else newDesc.items.push(payload);
+        }
+    }
+    // The prose above a gallery, and the tool config on a tool page. Whole-
+    // value replacements, like profile/playstyle - they are single objects,
+    // not lists with identities.
+    else if (scope === 'gallery_intro') {
+        newDesc.intro = payload;
+    }
+    else if (scope === 'tool_config') {
+        newDesc.tool = payload;
     }
     else if (scope === 'move') {
         const [cat, moveId] = key.split('::');

@@ -536,6 +536,63 @@ window.renderFilteredRoster = function() {
     rosterGrid.innerHTML = html;
 };
 
+// Categories that get their own Main Dashboard column, so they are not also
+// listed inside the "Guides & Such" box. Named here rather than in index.html
+// because both consumers - that box and the columns themselves - have to agree
+// on the same list.
+window.OWN_COLUMN_CATEGORIES = ['Others', 'Tools'];
+
+/**
+ * Renders one category's pages as a column of buttons.
+ *
+ * Same shape as the buttons inside buildSystemsDirectory, because these are
+ * the same thing - a link to a page - just grouped into their own dashboard
+ * column instead of a shared box.
+ *
+ * A category with no pages yet renders a short line rather than an empty box,
+ * so a column that is coming but not filled reads as deliberate.
+ */
+window.buildCategoryColumn = async function(containerId, category) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    try {
+        const rootPath = window.getRootPath ? window.getRootPath() : './';
+        const navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
+        const items = (navData && navData[category]) || [];
+
+        if (items.length === 0) {
+            container.innerHTML = `<p class="loading-msg loading-msg-md">Nothing here yet.</p>`;
+            return;
+        }
+
+        // data-href + a delegated listener, not an inline onclick: these names
+        // and URLs come from site_pages, which an admin edits.
+        container.innerHTML = `<div class="system-button-grid">` + items.map(item => {
+            let badge = '';
+            if (item.isWip) badge = ` <span class="update-badge badge-wip update-badge-inline">WIP</span>`;
+            return `
+                <button class="btn-manga btn-manga-slanted system-directory-btn" data-href="${esc(rootPath + item.url)}">
+                    <div class="btn-manga-content">
+                        <span class="btn-manga-text">${esc(item.name)}${badge}</span>
+                    </div>
+                </button>`;
+        }).join('') + `</div>`;
+
+        container.querySelectorAll('.system-directory-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const href = btn.dataset.href;
+                if (href) window.location.href = href;
+            });
+        });
+    } catch (e) {
+        console.error(`Category column "${category}" failed:`, e);
+        container.innerHTML = `<p class="loading-msg loading-msg-error">Unavailable.</p>`;
+    }
+};
+
 window.buildSystemsDirectory = async function(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -551,7 +608,10 @@ window.buildSystemsDirectory = async function(containerId) {
         const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
 
         let html = '<div class="systems-grid-container">';
-        const categories = Object.keys(navData).filter(k => k !== 'Characters');
+        // Others and Tools have their own Main Dashboard columns, so they are
+        // excluded here rather than being listed twice on the same page.
+        const categories = Object.keys(navData)
+            .filter(k => k !== 'Characters' && !window.OWN_COLUMN_CATEGORIES.includes(k));
 
         categories.forEach((category) => {
             const items = navData[category];

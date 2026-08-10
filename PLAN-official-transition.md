@@ -235,8 +235,39 @@ Mostly invisible to players, and the most urgent work in this document.
 1. **Character modes** (full characters) and the **Ultimate tab** (base-only). Blocks all character content. `route.tabs` already exists as a per-page override (`js/page_router.js:57`) and move IDs are already namespaced (`boomcat-first-m1`), so `desc_data.moveStrategies` needs no change. Model additively: optional `frame_data.modes`, absent means the existing top-level *is* the base mode, so all 22 existing characters keep working untouched.
 2. **Qualitative frame data.** A throughput multiplier for the team, and it removes the dependency on devs supplying numbers — which may never arrive.
 3. **New page types and directories.** `gallery` and `tool` added to the CHECK; `others/` and `tools/` added to the generator; the hardcoded category dropdown in `owner.html` replaced with something that accepts new categories.
+
+   **Shipped in two parts, 2026-08-10.** The category dropdown and the directories landed first, and turned out smaller than written here: `page_type` was *deciding* the directory, so splitting those two questions unblocked `others/` and `tools/` with **no migration and no renderer change** — `js/page_boot.js` has only a character branch and an everything-else branch, so a page in `others/` already renders as a system page. The real hazard was `getRootPath()`, which hardcoded the same two directory names and returned `'./'` for anything else; a page under a new directory would have resolved `navigation.json`, portraits and every stylesheet against the wrong root.
+
+   **Correction, owner 2026-08-10 — `gallery` was deferred on a wrong assumption.** It was held back on the belief that it was a *larger* renderer arriving with v0.13's Emotes work, so content authored earlier would be rewritten. It is the opposite: **`gallery` is a simplified system page**, built to hold a large volume of gif/video, plus an **internal search bar**. That inverts the argument — it needs to exist *before* the Emotes page is written, not after. `tool` likewise marks the owner's own tools in `tools/`, which the directory alone does not express.
+
+   **Decision: both types, with generator support, in v0.12.** Not hand-authored. The `tierlist` precedent is a hand-written page in `NEVER_TOUCH` (`generate-pages.js` bails on any type that is not `character` or `system`), which does not scale to a gallery per gamemode or a page per tool.
+
+   The two Main Dashboard columns stay in **v0.13**, where they sit immediately after the eleven `others/` pages are scaffolded — built earlier they would be ~14 links to pages that do not exist.
+
+   **Correction, 2026-08-10.** An earlier note here claimed a page created with category "Others" "appears in the global sidebar the moment it exists". **That is wrong.** The sidebar reads `data/navigation.json`, a committed artifact regenerated from `site_pages` by `scripts/fetch-registry.js` — so a new page appears only after a regeneration run, exactly as `owner.html` says when it creates one. What *is* true is the narrower claim: a **new category** needs no code change, because `buildGlobalSidebarMenu` groups by whatever keys exist in the file.
+
+   **Blocker found the same way, worth knowing before merging.** `generate-pages.js` calls `process.exit(1)` on a path it does not recognise. `others/` and `tools/` only became recognised on this branch, so **a page already created under `others/` will fail the regeneration workflow on `main` until this branch lands** — not merely fail to appear. Merge first, then regenerate.
+
+   This is also the concrete case for **v0.12 item 4**: today the choice is the manual `workflow_dispatch` button or waiting for the 04:00 cron, and the owner hit that lag within minutes of creating their first Others page.
 4. **Data-layer Phase 0, revised.** With 30 contributors, waiting up to 24 hours to see a new page is intolerable. Auto-trigger regeneration on save via `repository_dispatch` — minutes, not a day. **Note the reversal:** `V0.12-DEVLOG.md` currently says `navigation.json` should become a live database read. That is wrong now — with a 1.4M-member Discord, per-visitor database reads for the sidebar put quota and bandwidth on the critical path of a site GitHub Pages serves free from a CDN.
 5. **Site-wide progress view** in owner tools. "Pages That Need Work" covers characters only; with 30 people working through ~35 pages you need one view of done / in progress / untouched. This is the daily control surface.
+
+6. **Media aspect ratios: square the skill cards and the character portraits** (owner, 2026-08-10).
+
+   Small, but **it belongs in v0.12 rather than later** for the same reason everything else here does: the team is about to upload skill media for ~20 characters. Nothing needs re-uploading if the ratio changes afterwards — cropping happens at render time — but contributors *compose* clips to look right in the box they can see, and changing the box shape afterwards means asking them to recompose. Cheaper to settle first.
+
+   Current state, checked rather than assumed:
+
+   - **Skill cards** (`js/framedata.js` → `.skill-media-wrapper`, `style/FrameData.css:34`) are `aspect-ratio: 16 / 9` with `object-fit: cover` on the media. So they already crop; the ask is to change the box to **1:1**.
+   - **Character portraits** (`js/description.js` → `.profile-portrait`, `style/Layout.css:406`) have **no `aspect-ratio` and no `object-fit` at all** — just `width: 100%`. They render at the file's natural shape, so a tall portrait makes a tall card and a wide one makes a short one. This is why the owner expects "some custom cropping": there is currently no crop to adjust, and adding `1:1` + `object-fit: cover` will start cropping images that have never been cropped before. **Expect existing portraits to need re-framing, and check them against the live site before shipping.**
+
+   **The open design question is the fallback.** *"Fallback to 16:9 if the cropping takes a bit too much of the profile"* cannot be expressed in CSS alone — it is a per-media judgement. Three ways, in rough order of preference:
+
+   1. **Automatic, from natural dimensions.** On load, compare the media's intrinsic ratio to 1:1; past some threshold (wider than ~4:3, or taller than ~3:4), fall back to 16:9 rather than discarding half the frame. No authoring burden, works for the media already uploaded — but a contributor cannot override it, and the page shape changes after the media loads unless the ratio is known up front.
+   2. **A per-move override** (`media.ratio: 'square' | 'wide'`) authored in the editor next to the existing alt-text field. Predictable and controllable; costs a field and a migration-free `desc_data`/`frame_data` addition.
+   3. **Both** — automatic default, explicit override when it guesses wrong. Most work, and probably the right end state.
+
+   Worth deciding before implementing, since option 2 adds an editor field that the content team would rather learn once.
 
 ### v0.13 — Everything else in the game
 

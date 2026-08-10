@@ -873,3 +873,55 @@ summary:focus-visible {
     .profile-top-split { display: block; }
     .profile-card { max-width: none; margin-bottom: 1.5rem; }
 }
+/* --- GALLERY PAGES (page_type 'gallery', js/gallery.js) ---
+   A flat searchable grid rather than tabs of blocks. auto-fill with a minmax
+   floor so the same markup gives four columns on a desktop and one on a
+   phone, without a breakpoint per size - a gallery's item count is the thing
+   that varies, not its layout. */
+.gallery-shell { display: flex; flex-direction: column; gap: 1.5rem; }
+.gallery-intro:empty { display: none; }
+
+.gallery-toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem;
+    padding-bottom: 1rem; border-bottom: 2px solid var(--accent-blue);
+}
+.gallery-search-label {
+    font-family: var(--text-mono); font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: 1px; color: var(--accent-blue);
+}
+.gallery-search { flex: 1 1 220px; margin: 0; min-width: 0; }
+.gallery-count { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); }
+
+.gallery-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem;
+}
+
+.gallery-card {
+    margin: 0; background: var(--bg-main); border: 2px solid var(--border-color);
+    box-shadow: 4px 4px 0px var(--manga-shadow); display: flex; flex-direction: column;
+}
+.gallery-card-media {
+    width: 100%; aspect-ratio: 1 / 1; overflow: hidden; background: var(--bg-secondary);
+    display: flex; align-items: center; justify-content: center;
+}
+.gallery-media { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery-media-missing {
+    font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted);
+}
+.gallery-card-caption {
+    padding: 0.6rem 0.75rem; display: flex; flex-direction: column; gap: 0.2rem;
+    border-top: 2px solid var(--border-color);
+}
+.gallery-card-name { color: var(--text-white); font-weight: bold; font-size: 0.85rem; word-break: break-word; }
+.gallery-card-note { color: var(--text-muted); font-size: 0.7rem; font-family: var(--text-mono); }
+
+/* --- TOOL PAGES (page_type 'tool', js/tool_page.js) ---
+   The tool leads; prose sits around it. */
+.tool-shell { display: flex; flex-direction: column; gap: 1.5rem; }
+.tool-intro:empty, .tool-notes:empty { display: none; }
+.tool-frame { display: flex; flex-direction: column; align-items: flex-start; gap: 1rem; }
+.tool-embed {
+    width: 100%; border: 2px solid var(--border-color);
+    box-shadow: 4px 4px 0px var(--manga-shadow); background: var(--bg-secondary);
+}
+.tool-launch-btn { text-decoration: none; }

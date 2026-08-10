@@ -89,6 +89,32 @@
         </div>
     </div>
 
+    <!-- GALLERY: ADD ITEM -->
+    <!-- Two fields on purpose. Everything else about a gallery item is
+         optional and editable in the bin behind this modal. -->
+    <div id="gallery-item-modal" class="editor-modal-overlay hidden" style="z-index: 10005;">
+        <div class="editor-modal-box auth-modal-box">
+            <div class="auth-header">
+                <h3>ADD A GALLERY ITEM</h3>
+            </div>
+            <div class="auth-body" style="padding: 1.5rem; text-align: left;">
+                <div class="editor-row" style="flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
+                    <label class="block-field-label-sm" for="gallery-item-file">FILE</label>
+                    <input type="file" id="gallery-item-file" class="editor-input" accept="image/*,video/*">
+                </div>
+                <div class="editor-row" style="flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <label class="block-field-label-sm" for="gallery-item-name">NAME</label>
+                    <input type="text" id="gallery-item-name" class="editor-input" placeholder="e.g. Wave" autocomplete="off" spellcheck="false">
+                </div>
+                <p id="gallery-item-status" class="admin-tool-hint"></p>
+            </div>
+            <div class="editor-modal-actions" style="border-top: 1px dashed #333; padding-top: 1rem; justify-content: flex-end; gap: 1rem;">
+                <button id="gallery-item-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
+                <button id="gallery-item-confirm" class="btn-sys btn-sys-green">ADD</button>
+            </div>
+        </div>
+    </div>
+
     <div id="media-modal-overlay" class="editor-modal-overlay hidden">
         <div class="editor-modal-box media-modal-box">
             <div class="auth-header">
@@ -218,6 +244,8 @@
     <script src="js/editor-drafts.js"></script>
     <script src="js/editor-media.js"></script>
     <script src="js/editor-system.js"></script>
+    <script src="js/gallery.js"></script>
+    <script src="js/editor-gallery.js"></script>
     <script src="js/tierlist.js"></script>
 </body>
 </html>

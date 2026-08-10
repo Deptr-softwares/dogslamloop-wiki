@@ -134,13 +134,26 @@
                         <select id="new-page-type" class="editor-input admin-input-full select">
                             <option value="character">Character page</option>
                             <option value="system">System / guide page</option>
+                            <option value="gallery">Gallery page (lots of media, searchable)</option>
+                            <option value="tool">Tool page (one of your own tools)</option>
                         </select>
-                        <select id="new-page-category" class="editor-input admin-input-full select">
-                            <option value="Characters">Category: Characters</option>
-                            <option value="System Pages">Category: System Pages</option>
-                            <option value="Guides">Category: Guides</option>
-                            <option value="Site Info">Category: Site Info</option>
-                        </select>
+                        <!-- Where the page lives, which is a separate question
+                             from how it renders. Populated from
+                             PAGE_DIRECTORIES in js/owner.js. -->
+                        <label class="block-field-label-sm" for="new-page-directory">FOLDER</label>
+                        <select id="new-page-directory" class="editor-input admin-input-full select"></select>
+                        <!-- An input with a datalist, not a select: site_pages.category
+                             is free-form text with no CHECK constraint, so the database
+                             has always accepted new categories - the four hardcoded
+                             options here were the only thing preventing one. The list
+                             is filled from the categories that actually exist, so the
+                             common case is still one click. -->
+                        <label class="block-field-label-sm" for="new-page-category">CATEGORY</label>
+                        <input type="text" id="new-page-category" class="editor-input admin-input-full"
+                               list="page-category-options" autocomplete="off" spellcheck="false"
+                               placeholder="Pick one, or type a new category">
+                        <datalist id="page-category-options"></datalist>
+                        <p id="new-page-category-note" class="admin-tool-hint"></p>
                         <label class="block-field-label-sm" for="new-page-position">POSITION</label>
                         <select id="new-page-position" class="editor-input admin-input-full select">
                             <option value="">At the end of the category</option>

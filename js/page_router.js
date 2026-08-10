@@ -188,12 +188,21 @@ ${tabDivs}
 
     const isCharacter = route.pageType === 'character';
 
+    // Gallery and tool pages reuse the system shell: a back link, a title and
+    // the alerts container, with the body filled at runtime. What differs is
+    // which script fills it (js/gallery.js, js/tool_page.js), not the frame
+    // around it - so there is nothing here for them to override.
+    //
+    // The right sidebar is a table of contents over headings, which a gallery
+    // does not have: its own search box is how you find something in it.
+    const hasToc = route.pageType !== 'gallery';
+
     const skeleton = `${mobileNav()}
 
     <div class="site-layout">
 ${leftSidebar()}
 ${isCharacter ? characterMain() : systemMain()}
-${rightSidebar(isCharacter ? 'On this tab' : 'On this page')}
+${hasToc ? rightSidebar(isCharacter ? 'On this tab' : 'On this page') : ''}
     </div>`;
 
     // insertAdjacentHTML('beforebegin') on the currently-executing script is
