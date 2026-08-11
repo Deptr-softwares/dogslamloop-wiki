@@ -299,7 +299,7 @@ The visible expansion.
 4. ~~**The "Others" and "Tools" columns**~~ — **shipped in v0.12**, pulled forward. The Main Dashboard layout rework beyond those two columns is still open.
 5. **Site-wide progress view** in owner tools — **moved here from v0.12** (owner, 2026-08-11). "Pages That Need Work" covers characters only; with 30 people working through ~35 pages you need one view of done / in progress / untouched. This is the daily control surface, and it is more useful once the `others/` pages exist to appear in it.
 6. **Skill Builder ID Reader** linked in. The tool-page editor it needed shipped in v0.12, so this is now just the config plus a link.
-7. **Certified Tier List** — the free-submit community ranking. Registers against the tool host that shipped in v0.12; the anti-brigading rules from v0.14 item 3 apply to it and should be designed with it, not after.
+7. ~~**Certified Tier List**~~ — **moved to v0.14** (owner, 2026-08-11), to be built alongside the anti-brigading rather than ahead of it. A free-submit ranking with no rate limiting and no visible sample size, pointed at a 1.4M-member Discord under an official banner, produces a number nobody should trust — and the fix is the same work as v0.14 item 3, so splitting them across two versions would have meant building it twice.
 
 8. **Submitting more than one tab at once.** Contributors edit three tabs, press Submit once, and only the tab they were standing on becomes a ticket — the rest stays as a local draft they never asked for. Observed repeatedly by the owner once the tab strip made moving between tabs easy. v0.12 shipped a "One tab per submission" notice at the top of the workspace as a stopgap; **this item retires it.**
 
@@ -322,7 +322,7 @@ The visible expansion.
 
 1. **Per-character discussion threads** (or full forums, if that is the call).
 2. **Moderator capability** and moderation UI.
-3. **Free-submit community tier list.** Needs anti-brigading from day one — one submission per account, rate limiting, and a visible sample size. With 1.4M people it will be brigaded, and an averaged ranking with no vote count is meaningless.
+3. **Certified Tier List, with anti-brigading built in** — **moved down from v0.13** (owner, 2026-08-11). One submission per account, rate limiting, and a visible sample size, designed with the feature rather than bolted on. With 1.4M people it will be brigaded, and an averaged ranking with no vote count is meaningless. The tool host it registers against shipped in v0.12, so the remaining work is the ranking itself plus these rules.
 4. **Abuse-resistance UI**, rate limiting, contributor leaderboard.
 
 ### v0.15 — The original v0.12
