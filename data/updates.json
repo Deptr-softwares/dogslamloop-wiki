@@ -5,21 +5,18 @@
       "date": "08/11/2026",
       "type": "site",
       "title": "The 'Ultimate Mode' update",
-      "description": "Character pages can finally handle characters who change form. There is a toggle above the tabs for anyone with an ultimate mode, a separate Ultimate tab for the ones whose ultimate is a single big attack, and frame data no longer has to be exact to be worth writing down. A lot of this is scaffolding waiting on the team to fill it in, so some of it will look empty for a bit.",
+      "description": "Character pages can now handle characters with more than one mode. Frame data can also be written as an estimate when nobody has counted the exact frames.",
       "changes": [
-        "Characters with an ultimate mode now have a toggle above the tabs. Each mode gets its own moves, matchups and write-up, so the base kit and the ultimate kit stop fighting over the same page",
-        "Characters whose ultimate is one big attack get an Ultimate tab instead, since a whole second moveset would be overkill for a single move",
-        "Sharing a link while you are looking at an ultimate mode now opens on that mode, instead of dumping the reader back on the base kit",
-        "Frame data can now be recorded as how something feels - short, mid, high, RIP - when nobody has sat down and counted it. Those show as a smooth bar with no frame ticks, so you can always tell at a glance what was actually measured and what is somebody's estimate",
-        "Skill clips are no longer squeezed into the same box regardless of shape. A widescreen clip stays widescreen, a square one stays square, and a phone-shaped one stops getting its top and bottom cut off",
-        "Character portraits are all the same shape now, and whoever uploads one can aim the crop, so nobody loses their head to it",
-        "Added Others and Tools columns to the main dashboard, for the pages that were never really guides or characters",
-        "Added gallery pages: a searchable grid built for a lot of gifs and videos, which is what the emotes page needed",
-        "Added tool pages, for the tools that live on this site rather than being linked out to",
-        "An empty section now says it is empty instead of showing you a blank space and letting you wonder whether it broke",
-        "Behind the scenes: fixed a bug where merging several people's submissions could quietly throw one of them away, and reviewers now see the exact part of a page an edit touches instead of the base version of it",
-        "Behind the scenes: a page you create now works immediately at its link, instead of being unreachable until a scheduled job ran",
-        "Behind the scenes: fixed the editor breaking for about an hour after each update, which turned out to be browsers holding onto an old copy of one file"
+        "Characters with an ultimate mode now have a mode toggle above the tabs, and each mode has its own moves, matchups and write-up",
+        "Characters whose ultimate is a single attack now have an Ultimate tab instead of a mode toggle",
+        "Character page links can now point at a specific mode",
+        "Frame data can now be recorded as an estimate: non-existent, very short, short, mid, high, very high, or RIP",
+        "Estimated frame data shows as a solid bar with no frame ticks, so it never looks like counted frame data",
+        "Skill card media is now 1:1, unless the uploaded file is 3:2 or wider, which keeps the 16:9 box. Files taller than 3:4 get a 3:4 box",
+        "Character portraits are now 1:1, with an adjustable crop position",
+        "Added an Others column and a Tools column to the Main Dashboard",
+        "Empty sections now say they are empty instead of showing blank space",
+        "Changed a few things under the hood"
       ]
     },
     {

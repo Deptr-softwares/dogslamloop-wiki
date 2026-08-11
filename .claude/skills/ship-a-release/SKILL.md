@@ -36,34 +36,71 @@ Full suite green after every phase. `npm test` and `npm run validate`.
   "date": "08/08/2026",
   "type": "site",
   "title": "The 'Maintenance' update",
-  "description": "One or two sentences, plain language, what a player would notice.",
-  "changes": ["Casual, non-technical lines. What changed from the reader's side."]
+  "description": "One or two sentences. What changed about the site.",
+  "changes": ["One visible change per line."]
 }
 ```
 
-Tone: casual, concrete, no jargon. Say what someone would *notice*. A release with nothing user-visible should say so plainly rather than dressing up internals — the owner has explicitly asked for this.
+**The reader is a player using the wiki. Not the owner, and not you.**
+
+The v0.12 entry was rewritten because it failed this. It read as a summary of
+the dev log: it announced page types nobody sees, it listed the merge compiler
+and a caching bug, and it said "you" over and over when the only person "you"
+could mean was the owner. That is the failure mode to watch for — the work you
+found hardest is not the work a reader noticed.
+
+Five rules:
+
+1. **Every line is something a visitor can picture on the site.** If a reader
+   cannot point at where it changed, it does not get a line.
+
+2. **Never write "you" for the owner.** "A page you create now works
+   immediately" is addressed to one person. Write about the site instead:
+   "Character portraits are now 1:1."
+
+3. **Casual means simple and short, not jokey.** No "that's a big one", no
+   "nobody loses their head to it". No explaining an internal problem the
+   reader has never seen — they have not read the scripts and would not
+   recognise them.
+
+4. **Numbers are good. Use them.** "Skill card media is now 1:1, unless the
+   uploaded file is 3:2 or wider, which keeps the 16:9 box" beats any
+   adjective describing the same thing.
+
+5. **Everything invisible collapses into one line** at the end: "Changed a few
+   things under the hood." Not one line per internal fix. And when a change has
+   both an invisible cause and a visible result, write the result — the Others
+   and Tools columns are the change; the page types behind them are not.
+
+A release with nothing user-visible should say so plainly rather than dressing
+up internals — the owner has explicitly asked for this.
 
 Verify it renders on `/systems/updatelog/index.html` before shipping.
 
 ## Discord post
 
-Provide a copy-paste block. Same content as the changelog, reorganised under bracketed headings:
+Provide a copy-paste block. Same content as the changelog, grouped under
+headings. Discord markdown, so the asterisks are load-bearing.
 
 ```
-v0.10
-The 'Maintenance' Update
+**v0.10** **The 'Maintenance' Update**
 
 One or two sentences of context.
 
-[Category]
-- change
-- change
+**[Category]**
+change
+change
 
-[Behind the Scenes]
-- change
+**[Category]**
+change
 ```
 
-Categories are a presentation layer only — `updates.json` has no category field.
+- `**` around the version, the title and each `[Category]` — that is what
+  bolds them in Discord.
+- **No hyphens and no bullet characters.** Lines that are already short and
+  plain read faster without them.
+- Categories are a presentation layer only — `updates.json` has no category
+  field.
 
 ## PR
 
