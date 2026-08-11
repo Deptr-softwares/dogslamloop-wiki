@@ -297,6 +297,14 @@ The visible expansion.
 6. **Skill Builder ID Reader** linked in. The tool-page editor it needed shipped in v0.12, so this is now just the config plus a link.
 7. **Certified Tier List** — the free-submit community ranking. Registers against the tool host that shipped in v0.12; the anti-brigading rules from v0.14 item 3 apply to it and should be designed with it, not after.
 
+**Added by the owner 2026-08-11:**
+
+10. **Make clearing orphaned media safe.** `runMediaGC` deletes the whole bucket if any of its three reference queries errors — see the devlog. Guard it before anything else touches media.
+11. **Multi-file upload in the media library.** One file at a time today, which is what produced seven raw clips uploaded one by one in fifty minutes.
+12. **Two new matchup tiers:** Slight Disadvantage and Slight Advantage, between the existing Disadvantage/Advantage and Equal.
+13. **Two renamed matchup tiers:** Unloseable → Dominating, Unwinnable → Hopeless. Less absolutist. **This is a data change, not a wording change** — 32 live entries use the old words, and `page_history` must not be rewritten. Detail in the devlog.
+14. **Character and frame-type colours in the editor's colour presets.** `window.CHARACTER_COLORS` and `window.FRAME_COLORS` already exist; the preset row is seven hardcoded swatches that know about neither.
+
 ### v0.14 — Community
 
 1. **Per-character discussion threads** (or full forums, if that is the call).
