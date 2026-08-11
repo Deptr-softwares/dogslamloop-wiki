@@ -251,3 +251,85 @@ test('the editor offers exactly the seven the renderer knows', async ({ page }) 
   const known = await page.evaluate(() => window.FRAME_ESTIMATES.map(e => e.id));
   expect(offered).toEqual(known);
 });
+
+// --- SHIPPED BROKEN IN v0.12, FIXED AS A HOTFIX ---
+
+test('an estimated phase is actually coloured', async ({ page }) => {
+  // It shipped invisible. The colour rules in style/ColorCoding.css were
+  // written as `.bg-tick-X .frame-tick` - they paint the divisions, and an
+  // estimate has none, so the block rendered at exactly the right width and
+  // completely transparent. Reported as "the qualitative frame data did not
+  // show up at all".
+  await mockPageData(page, { frame: MIXED, desc: { overview: [] } });
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#nav-skills').click();
+
+  const estimated = page.locator('#tab-skills .phase-section.phase-estimated').first();
+  await expect(estimated).toBeVisible();
+
+  const painted = await estimated.evaluate(el => getComputedStyle(el).backgroundColor);
+  expect(painted, 'a transparent block is the bug this covers').not.toBe('rgba(0, 0, 0, 0)');
+  expect(painted).not.toBe('transparent');
+
+  // And it is still the block that carries the colour, not reintroduced ticks.
+  await expect(estimated.locator('.frame-tick')).toHaveCount(0);
+});
+
+test('the inspector shows only the control for the mode in use', async ({ page }) => {
+  // Rendering both and hiding one does not work: initializeMangaSelects
+  // replaces a .editor-select with a *sibling* wrapper, so hiding the select
+  // left its custom dropdown on screen - an estimate picker sitting next to a
+  // frame count, which is what was reported.
+  await openMoveEditor(page, JSON.parse(JSON.stringify(MIXED)));
+  await expect(page.locator('.daw-phase-block')).toHaveCount(2);
+
+  const state = await page.evaluate(async () => {
+    const snap = () => ({
+      duration: !!document.querySelector('#insp-duration'),
+      estimate: !!document.querySelector('#insp-estimate'),
+      strayDropdown: !!document.querySelector('#insp-estimate + .manga-select-wrapper'),
+    });
+    window.selectDawPhase(0, 0);
+    await new Promise(r => setTimeout(r, 300));
+    const counted = snap();
+    window.selectDawPhase(0, 1);
+    await new Promise(r => setTimeout(r, 300));
+    return { counted, estimated: snap() };
+  });
+
+  expect(state.counted).toEqual({ duration: true, estimate: false, strayDropdown: false });
+  expect(state.estimated.estimate).toBe(true);
+  expect(state.estimated.duration).toBe(false);
+});
+
+test('nothing in the phase inspector escapes the workspace', async ({ page }) => {
+  // Three controls shared one row and the Frame Type dropdown ran off the
+  // edge of the editor pane. They are one per row now.
+  await openMoveEditor(page, JSON.parse(JSON.stringify(MIXED)));
+  await expect(page.locator('.daw-phase-block')).toHaveCount(2);
+
+  const overflowing = await page.evaluate(async () => {
+    window.selectDawPhase(0, 0);
+    await new Promise(r => setTimeout(r, 300));
+
+    const inspector = document.querySelector('.daw-inspector');
+    const pane = inspector.closest('.editor-workspace') || inspector.parentElement;
+    const paneRight = pane.getBoundingClientRect().right;
+
+    return Array.from(inspector.querySelectorAll('select, input, .manga-select-wrapper'))
+      .filter(el => el.getBoundingClientRect().right > paneRight + 1)
+      .map(el => el.id || el.className);
+  });
+
+  expect(overflowing).toEqual([]);
+});
+
+test('the legend states the convention in the owner\'s wording', async ({ page }) => {
+  await mockPageData(page, { frame: MIXED, desc: { overview: [] } });
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+  await page.locator('#nav-skills').click();
+
+  const note = page.locator('#tab-skills .legend-estimate-note');
+  await expect(note).toContainText('divided into single frames was counted');
+  await expect(note).toContainText('hover over it for more');
+});

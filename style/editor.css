@@ -1480,3 +1480,22 @@ del.diff-del {
 .gallery-bin-fields { display: flex; flex-direction: column; gap: 0.35rem; flex: 1; min-width: 0; }
 .gallery-bin-fields .editor-input { margin: 0; font-size: 0.75rem; }
 .gallery-bin-remove { flex-shrink: 0; padding: 0.3rem 0.5rem; }
+
+/* "One tab per submission" (edit.html). Sits at the top of the workspace
+   column, above the state toggle and tab strip - not in the left sidebar,
+   which is chrome rather than the thing being worked on.
+
+   Deliberately quiet: it is a standing fact about how the editor works, not a
+   warning about the current state, so it must not compete with the alerts that
+   are. Remove it when v0.13 makes multi-tab submission possible. */
+.editor-scope-tip {
+    margin: 0 0 0.75rem;
+    padding: 0.5rem 0.7rem;
+    background: var(--bg-secondary);
+    border-left: 3px solid var(--accent-yellow);
+    color: var(--text-muted);
+    font-family: var(--text-mono);
+    font-size: 0.68rem;
+    line-height: 1.5;
+}
+.editor-scope-tip strong { color: var(--text-primary); }

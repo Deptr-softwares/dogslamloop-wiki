@@ -62,17 +62,26 @@
 }
 
 /* --- 2. FRAME DATA TIMING COLORS ---
-   Each rule also matches .legend-swatch so the frame-data legend
-   (js/framedata.js) can reuse these classes instead of inline styles. */
-.bg-tick-start .frame-tick, .legend-swatch.bg-tick-start { background-color: var(--frame-color-start); }   /* Startup */
-.bg-tick-active .frame-tick, .legend-swatch.bg-tick-active { background-color: var(--frame-color-active); }       /* Active Frames */
-.bg-tick-recov .frame-tick, .legend-swatch.bg-tick-recov { background-color: var(--frame-color-recov); }  /* Recovery / Whiff Endlag */
-.bg-tick-selfstun .frame-tick, .legend-swatch.bg-tick-selfstun { background-color: var(--frame-color-selfstun); }/* Self Stun */
-.bg-tick-inskillstun .frame-tick, .legend-swatch.bg-tick-inskillstun { background-color: var(--frame-color-inskillstun); }  /* InSkill Stun */
-.bg-tick-targetstun .frame-tick, .legend-swatch.bg-tick-targetstun { background-color: var(--frame-color-targetstun); }    /* Target Stun*/
-.bg-tick-misc .frame-tick, .legend-swatch.bg-tick-misc { background-color: var(--frame-color-misc); }    /* Misc variable frames */
-.bg-tick-blockendlag .frame-tick, .legend-swatch.bg-tick-blockendlag { background-color: var(--frame-color-blockendlag); } /* Block Endlag */
-.bg-tick-inactive .frame-tick, .legend-swatch.bg-tick-inactive { background-color: var(--frame-color-inactive); }    /* Inactive Frames */
+   Each rule matches three things for the same reason - one definition of a
+   colour, reused rather than duplicated:
+
+     .bg-tick-X .frame-tick   the divisions of a counted phase
+     .phase-estimated         the whole block of an estimated phase, which has
+                              no divisions to colour (js/framedata.js appends
+                              no ticks for one). Without this an estimate
+                              rendered at the correct width and completely
+                              transparent - reported as "the qualitative frame
+                              data did not show up at all".
+     .legend-swatch           the frame-data legend */
+.bg-tick-start .frame-tick, .phase-estimated.bg-tick-start, .legend-swatch.bg-tick-start { background-color: var(--frame-color-start); }   /* Startup */
+.bg-tick-active .frame-tick, .phase-estimated.bg-tick-active, .legend-swatch.bg-tick-active { background-color: var(--frame-color-active); }       /* Active Frames */
+.bg-tick-recov .frame-tick, .phase-estimated.bg-tick-recov, .legend-swatch.bg-tick-recov { background-color: var(--frame-color-recov); }  /* Recovery / Whiff Endlag */
+.bg-tick-selfstun .frame-tick, .phase-estimated.bg-tick-selfstun, .legend-swatch.bg-tick-selfstun { background-color: var(--frame-color-selfstun); }/* Self Stun */
+.bg-tick-inskillstun .frame-tick, .phase-estimated.bg-tick-inskillstun, .legend-swatch.bg-tick-inskillstun { background-color: var(--frame-color-inskillstun); }  /* InSkill Stun */
+.bg-tick-targetstun .frame-tick, .phase-estimated.bg-tick-targetstun, .legend-swatch.bg-tick-targetstun { background-color: var(--frame-color-targetstun); }    /* Target Stun*/
+.bg-tick-misc .frame-tick, .phase-estimated.bg-tick-misc, .legend-swatch.bg-tick-misc { background-color: var(--frame-color-misc); }    /* Misc variable frames */
+.bg-tick-blockendlag .frame-tick, .phase-estimated.bg-tick-blockendlag, .legend-swatch.bg-tick-blockendlag { background-color: var(--frame-color-blockendlag); } /* Block Endlag */
+.bg-tick-inactive .frame-tick, .phase-estimated.bg-tick-inactive, .legend-swatch.bg-tick-inactive { background-color: var(--frame-color-inactive); }    /* Inactive Frames */
 
 /* --- 3. STACKABLE WINDOW OVERLAYS ---
    Each rule also matches .legend-swatch for the same reason as above. */

@@ -78,7 +78,7 @@ function initDawEditor(containerId, moveData) {
                     <div class="editor-row mt-2">
                         <div>
                             <label class="editor-field-label" for="move-media-framing">Media box shape</label>
-                            <select id="move-media-framing" class="editor-input meta-inp" data-field="media.framing">
+                            <select id="move-media-framing" class="editor-select" data-field="media.framing">
                                 <option value="auto"${!moveData.media.framing || moveData.media.framing === 'auto' ? ' selected' : ''}>Auto — match the file</option>
                                 <option value="wide"${moveData.media.framing === 'wide' ? ' selected' : ''}>Wide (16:9)</option>
                                 <option value="square"${moveData.media.framing === 'square' ? ' selected' : ''}>Square (1:1)</option>
@@ -255,14 +255,25 @@ function initDawEditor(containerId, moveData) {
                                 </select>
                             </div>
                             <div>
-                                <label class="editor-field-label-sm" id="insp-amount-label">${p.estimate ? 'Estimate' : 'Duration (Frames)'}</label>
-                                <input type="number" class="editor-input ${p.estimate ? 'hidden' : ''}" id="insp-duration" value="${p.duration || 0}">
-                                <select class="editor-select ${p.estimate ? '' : 'hidden'}" id="insp-estimate">
+                                <!-- Only the control for the mode in use is
+                                     rendered. Rendering both and hiding one
+                                     does not work here: initializeMangaSelects
+                                     replaces a .editor-select with a sibling
+                                     wrapper, so a hidden class on the select
+                                     itself left its custom dropdown on screen -
+                                     which is why an estimate picker appeared
+                                     next to a frame count. -->
+                                <label class="editor-field-label-sm">${p.estimate ? 'Estimate' : 'Duration (Frames)'}</label>
+                                ${p.estimate ? `
+                                <select class="editor-select" id="insp-estimate">
                                     ${(window.FRAME_ESTIMATES || []).map(e =>
                                         `<option value="${e.id}" ${p.estimate === e.id ? 'selected' : ''}>${window.escapeHtml(e.label)}</option>`
                                     ).join('')}
-                                </select>
+                                </select>` : `
+                                <input type="number" class="editor-input" id="insp-duration" value="${p.duration || 0}">`}
                             </div>
+                        </div>
+                        <div class="editor-row">
                             <div>
                                 <label class="editor-field-label-sm">Frame Type</label>
                                 <!-- Must stay in step with the nine tick types the
@@ -474,6 +485,14 @@ function initDawEditor(containerId, moveData) {
         if (inspDur) inspDur.addEventListener('change', (e) => {
             currentObj.bars[selectedBarIdx].phases[selectedPhaseIdx].duration = parseInt(e.target.value) || 0;
             renderDaw();
+        });
+
+        // Bound on `change`, not with the .meta-inp `input` handlers above:
+        // initializeMangaSelects hides the native <select> behind a custom
+        // dropdown that only ever dispatches `change`.
+        const framingSel = container.querySelector('#move-media-framing');
+        if (framingSel) framingSel.addEventListener('change', (e) => {
+            moveData.media.framing = e.target.value;
         });
 
         const inspMode = container.querySelector('#insp-measure-mode');
