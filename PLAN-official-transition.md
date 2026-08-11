@@ -289,7 +289,11 @@ Mostly invisible to players, and the most urgent work in this document.
 
 The visible expansion.
 
-1. **Media moderation and upload limits** — pulled forward from the old v0.13, because the Emotes gallery depends on it. User-submitted media at Discord scale without size limits or review is the single most obvious way to get hurt. **Now more urgent than when written:** the gallery editor shipped in v0.12, so contributors can already upload media to a gallery, with no size cap and no review of the file itself.
+1. **Media moderation and upload limits.** **Re-scoped by the owner 2026-08-11, and smaller than written.** Two of the original fears do not hold: anonymous uploads are blocked by RLS (probed live), the bucket already enforces a MIME allowlist, and a 15 MB cap is in place. Measured state: 198 files, 346 MB.
+
+   What the owner actually wants is deliberately light — **unchecked media stays fully usable and visible**, a queue in admin lists what nobody has looked at, reviewers and the owner work through it, and a flagged item becomes unrenderable. **Deletion stays the owner's**, optionally extended via a capability column (item 9) rather than a new role. Everything in the bucket today is already owner-approved and must be seeded as checked, not presented as a backlog.
+
+   Two findings worth carrying into the build, detailed in `V0.13-DEVLOG.md`: `runMediaGC` in `js/owner.js` can delete the entire bucket if any of its three queries errors, so it must not be automated before that is guarded; and "unrenderable" is client-side only, so a blocked file still sits at its public storage URL — decide whether blocking also moves the object.
 2. ~~**The Emotes gallery page type**~~ — **shipped in v0.12.** The renderer, the search, and media submission all exist. What remains here is the Emotes *page* and its content.
 3. **The other ten `others/` pages** scaffolded; content is the team's.
 4. ~~**The "Others" and "Tools" columns**~~ — **shipped in v0.12**, pulled forward. The Main Dashboard layout rework beyond those two columns is still open.
@@ -297,7 +301,16 @@ The visible expansion.
 6. **Skill Builder ID Reader** linked in. The tool-page editor it needed shipped in v0.12, so this is now just the config plus a link.
 7. **Certified Tier List** — the free-submit community ranking. Registers against the tool host that shipped in v0.12; the anti-brigading rules from v0.14 item 3 apply to it and should be designed with it, not after.
 
+8. **Submitting more than one tab at once.** Contributors edit three tabs, press Submit once, and only the tab they were standing on becomes a ticket — the rest stays as a local draft they never asked for. Observed repeatedly by the owner once the tab strip made moving between tabs easy. v0.12 shipped a "One tab per submission" notice at the top of the workspace as a stopgap; **this item retires it.**
+
+   **Most of the machinery already exists.** `js/editor-core.js` already collapses several deltas into one `multi` ticket whenever a single tab produces more than one, and the reviewer side already renders a `multi` ticket with per-scope diffs and changed-tab markers. What is missing is only that the payload scan runs against `window.currentEditorTabId` instead of every tab: the per-tab branches (moves / overview / matchups / counterplay) need lifting into a function called once per tab, and the pre-submit collision check needs the same treatment.
+
+   Two things to settle while building it: the QA modal collects one changelog for what becomes one ticket, which is probably right but should be a deliberate choice; and a contributor who edited two *character states* produces deltas across both, which batch correctly but leave the reviewer's preview opening on only one of them.
+
+9. **Capability columns for per-user perks.** Confirmed by the owner 2026-08-11 as the general mechanism, not just the moderator case: **one role per user stays**, and anything extra is a boolean on `user_roles` (`can_moderate`, `can_delete_media`, and so on). `UNIQUE(user_id)` and `get_my_role()` are untouched, which is the whole point — multi-role previously broke `get_my_role()` with *"more than one row returned by a subquery"* and took out that user's access everywhere. Roles stay a hierarchy; perks bolt on.
+
 **Added by the owner 2026-08-11:**
+
 
 10. **Make clearing orphaned media safe.** `runMediaGC` deletes the whole bucket if any of its three reference queries errors — see the devlog. Guard it before anything else touches media.
 11. **Multi-file upload in the media library.** One file at a time today, which is what produced seven raw clips uploaded one by one in fifty minutes.
