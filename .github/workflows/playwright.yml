@@ -6,28 +6,94 @@ on:
   pull_request:
     branches: [main]
 
+# A new push to the same PR makes the run in progress irrelevant. PR #44 ran
+# the full suite four times for one PR because each follow-up commit started
+# another, and the first three were answering a question nobody was asking any
+# more.
+#
+# Scoped so main is never cancelled: a push to main is a deploy, and its result
+# is the record of whether that deploy is green.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # fetch-depth: 0 so the docs-only check below can diff against the base.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Is this change only documentation?
+      #
+      # NOT `paths-ignore` at the workflow level, deliberately. The branch
+      # ruleset *requires* this check, and a required check that never runs
+      # blocks a PR forever rather than passing it. So the job always runs and
+      # always reports - it just skips the expensive half.
+      #
+      # Only `.md` counts. data/updates.json is rendered by the site and is not
+      # documentation; being conservative here costs five minutes, while being
+      # loose costs a bug reaching main untested.
+      - id: changed
+        run: |
+          BASE="${{ github.base_ref }}"
+          if [ -n "$BASE" ]; then
+            RANGE="origin/$BASE...HEAD"
+          else
+            RANGE="${{ github.event.before }}..HEAD"
+          fi
+
+          FILES=$(git diff --name-only $RANGE 2>/dev/null || echo "")
+          echo "Changed files:"
+          echo "$FILES"
+
+          if [ -n "$FILES" ] && [ -z "$(echo "$FILES" | grep -v '\.md$')" ]; then
+            echo "docs_only=true" >> "$GITHUB_OUTPUT"
+            echo "-> documentation only; the browser suite is skipped."
+          else
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
       - run: npm ci
 
-      # Cheap and fails fast, so it runs before the browser download.
-      # Checks navigation.json's shape (this validator existed since v0.6 but
-      # was never wired into CI) and that every generated page stub is in sync
-      # with it - a stale stub means someone hand-edited a generated file.
+      # Cheap and fails fast, so it runs before the browser download - and it
+      # runs even for a docs-only change, because a check that asserts nothing
+      # is worse than no check. Checks navigation.json's shape, that every
+      # generated page stub is in sync with it, and that js/site_utils.js
+      # carries its current content hash.
       - run: npm run validate
 
+      # The browsers are ~150MB and identical between runs. Keyed on the
+      # Playwright version because a cached browser from an older release is
+      # not compatible with a newer one.
+      - id: pw-version
+        if: steps.changed.outputs.docs_only != 'true'
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - id: pw-cache
+        if: steps.changed.outputs.docs_only != 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw-version.outputs.version }}
+
       # playwright.config.js only defines the chromium project, so the other
-      # browsers would just be dead download time.
-      - run: npx playwright install --with-deps chromium
+      # browsers would just be dead download time. On a cache hit the browser
+      # is already there but its OS libraries are not - those live in the
+      # runner image, not the cache, so install-deps still has to run.
+      - if: steps.changed.outputs.docs_only != 'true' && steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - if: steps.changed.outputs.docs_only != 'true' && steps.pw-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
 
       # The suite serves the repo with `python -m http.server` (see
       # playwright.config.js webServer) - preinstalled on ubuntu-latest, and
@@ -35,9 +101,10 @@ jobs:
       # visual.spec.js is skipped here (playwright.config.js testIgnore): its
       # screenshot baselines are OS-specific, so the committed Windows set
       # can never match a Linux runner. It stays a local-only CSS tool.
-      - run: npx playwright test
+      - if: steps.changed.outputs.docs_only != 'true'
+        run: npx playwright test
 
-      - if: ${{ !cancelled() }}
+      - if: ${{ !cancelled() && steps.changed.outputs.docs_only != 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
