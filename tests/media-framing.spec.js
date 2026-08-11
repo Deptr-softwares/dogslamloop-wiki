@@ -248,6 +248,16 @@ async function openProfileForm(page, profile) {
   }, profile);
 }
 
+// The framing control is a .editor-select, so initializeMangaSelects hides the
+// native element behind a custom dropdown. force on the option click because
+// the dropdown animates open and Playwright otherwise waits for it to stop
+// moving - the element is real and already open, it is just mid-transition.
+async function pickFraming(page, label) {
+  const wrapper = page.locator('#move-media-framing + .manga-select-wrapper');
+  await wrapper.locator('.manga-select-trigger').click();
+  await wrapper.locator('.manga-option', { hasText: label }).first().click({ force: true });
+}
+
 test('the crop focus picker writes the value the renderer reads', async ({ page }) => {
   await openProfileForm(page, { image: img(400, 900), stats: [] });
 
@@ -291,10 +301,47 @@ test('the move editor can override a box shape', async ({ page }) => {
     initFullTabEditor('testchar', 'skills', window.currentEditorDescData, window.currentEditorFrameData);
   });
 
-  const select = page.locator('#move-media-framing');
-  await expect(select).toHaveValue('auto');
+  await expect(page.locator('#move-media-framing')).toHaveValue('auto');
+  await pickFraming(page, 'Square');
 
-  await select.selectOption('square');
   const stored = await page.evaluate(() => window.currentEditorFrameData.skills[0].media.framing);
   expect(stored).toBe('square');
+});
+
+test('the media box shape selector uses the site dropdown, not the browser one', async ({ page }) => {
+  // It shipped as a bare .editor-input, so it rendered as an OS select while
+  // every other control on the page used the custom one. Moving it to
+  // .editor-select also moves it off the .meta-inp `input` handler, because
+  // the custom dropdown only ever dispatches `change` - so the binding has to
+  // move with it or the choice silently stops being recorded.
+  await page.goto('/edit.html?char=testchar&tab=skills', { waitUntil: 'domcontentloaded' });
+  await page.evaluate(() => {
+    window.currentEditorPageType = 'character';
+    window.currentEditorCharId = 'testchar';
+    window.currentEditorDescData = { moveStrategies: {} };
+    window.currentEditorFrameData = {
+      m1s: [], specials: [],
+      skills: [{ id: 'm', name: 'Move', stats: [], media: { src: 'x.webp', alt: '' } }],
+    };
+    initFullTabEditor('testchar', 'skills', window.currentEditorDescData, window.currentEditorFrameData);
+  });
+
+  await expect(page.locator('#move-media-framing + .manga-select-wrapper')).toHaveCount(1);
+  await pickFraming(page, 'Square');
+
+  expect(await page.evaluate(() => window.currentEditorFrameData.skills[0].media.framing)).toBe('square');
+});
+
+test('the media library filter uses the site dropdown too', async ({ page }) => {
+  await page.goto('/edit.html?char=testchar&tab=overview', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#media-filter-select + .manga-select-wrapper')).toHaveCount(1);
+});
+
+test('the editor says a submission covers one tab', async ({ page }) => {
+  // Surprising enough to be worth stating: the editor keeps work across tabs,
+  // but Submit only sends the tab you are on. Multi-tab submission is v0.13.
+  await page.goto('/edit.html?char=testchar&tab=overview', { waitUntil: 'domcontentloaded' });
+  const tip = page.locator('.editor-scope-tip');
+  await expect(tip).toBeVisible();
+  await expect(tip).toContainText('One tab per submission');
 });

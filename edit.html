@@ -123,7 +123,7 @@
             <div class="auth-body media-modal-body">
                 <div class="media-toolbar">
                     <input type="text" id="media-search-input" class="editor-input media-search-input" placeholder="Search by filename..." autocomplete="off" spellcheck="false">
-                    <select id="media-filter-select" class="editor-input media-filter-select">
+                    <select id="media-filter-select" class="editor-select media-filter-select">
                         <option value="all">All Media</option>
                         <option value="image">Images (WEBP/PNG/JPG)</option>
                         <option value="video">Videos & GIFs</option>
@@ -190,6 +190,17 @@
                     <button id="submit-payload-btn" class="btn-sys btn-sys-green">Submit</button>
                 </div>
             </div>
+
+            <!-- One submission covers one tab. The editor lets you move
+                 freely between tabs and everything you type is kept, but only
+                 the tab you are on when you press Submit becomes a ticket -
+                 so work on another tab is saved locally and never sent. That
+                 is genuinely surprising, and until v0.13 makes multi-tab
+                 submission possible the honest fix is to say so. -->
+            <p class="editor-scope-tip">
+                <strong>One tab per submission.</strong>
+                Submit sends the tab you are currently on. Switch tabs and submit again to send another.
+            </p>
 
             <!-- Major tab navigation, in the same shape the live character
                  page uses. Populated/activated by renderEditorTabNav in

@@ -29,8 +29,7 @@ const frameDataLegendHTML = `
         <p class="legend-estimate-note">
             <span class="legend-swatch legend-swatch-estimate bg-tick-recov"></span>
             A bar divided into single frames was <strong>counted</strong>. A smooth block with no
-            divisions is an <strong>estimate</strong> - someone recorded how it feels, not how many
-            frames it lasts. Hover it for the wording.
+            divisions is an <strong>estimate</strong>, hover over it for more.
         </p>
     </section>
 `;

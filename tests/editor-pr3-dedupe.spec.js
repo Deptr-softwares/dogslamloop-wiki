@@ -49,7 +49,12 @@ test('real bug fix: changing the track color select keeps .daw-track-color-selec
 test('real bug fix: changing the track color no longer drops .manga-initialized, so a later DOM-mutation rescan does not double-wrap the select', async ({ page }) => {
   await page.evaluate(() => window.initializeMangaSelects());
   const select = page.locator('#daw-test-container .daw-track-color');
-  await expect(page.locator('#daw-test-container .manga-select-wrapper')).toHaveCount(1);
+  // Scoped to this select's own wrapper. The container holds the whole DAW
+  // editor, which as of v0.12 has a second .editor-select in the move
+  // metadata card (media box shape) - so counting every wrapper in the
+  // container stopped being a statement about double-wrapping.
+  const wrapper = page.locator('#daw-test-container .daw-track-color + .manga-select-wrapper');
+  await expect(wrapper).toHaveCount(1);
 
   await select.evaluate(el => {
     el.value = 'text-blue-400';
@@ -60,14 +65,17 @@ test('real bug fix: changing the track color no longer drops .manga-initialized,
   // initializeMangaSelects() after some later, unrelated DOM mutation.
   await page.evaluate(() => window.initializeMangaSelects());
 
-  await expect(page.locator('#daw-test-container .manga-select-wrapper')).toHaveCount(1); // not duplicated
+  await expect(wrapper).toHaveCount(1); // not duplicated
   expect(await select.evaluate(el => el.classList.contains('manga-initialized'))).toBe(true);
   expect(await select.evaluate(el => el.classList.contains('text-red-400'))).toBe(false); // old marker cleared
 });
 
 test('real bug fix: the manga-select custom dropdown colors its option rows from the .daw-option-* CSS classes, not a (removed) inline style', async ({ page }) => {
   await page.evaluate(() => window.initializeMangaSelects());
-  const wrapper = page.locator('#daw-test-container .manga-select-wrapper').first();
+  // The track-colour select specifically - .first() used to be it, but the move
+  // metadata card now contributes a wrapper of its own that has no colour
+  // options in it at all.
+  const wrapper = page.locator('#daw-test-container .daw-track-color + .manga-select-wrapper');
   const redOptionColor = await wrapper.locator('.manga-option', { hasText: 'Red (L)' }).evaluate(el => el.style.color);
 
   // Compare against a synthetic option nested in a real .editor-select: bare
