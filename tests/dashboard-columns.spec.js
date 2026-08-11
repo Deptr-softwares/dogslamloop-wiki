@@ -6,6 +6,11 @@
 // column after the next regeneration run.
 const { test, expect } = require('@playwright/test');
 
+// "Others" is the column, not a category. A page belongs to one of the
+// sub-groups (Gamemodes, Servers, Misc) directly, which is why these fixtures
+// file pages under Gamemodes rather than Others. tests/others-column.spec.js
+// owns the sub-grouping behaviour itself.
+
 test('the dashboard has an Others and a Tools column, in the right places', async ({ page }) => {
   await page.goto('/', { waitUntil: 'networkidle' });
 
@@ -36,7 +41,7 @@ test('a column lists the pages in its category, as working links', async ({ page
     contentType: 'application/json',
     body: JSON.stringify({
       Characters: [],
-      Others: [
+      Gamemodes: [
         { id: 'Emotes', name: 'Emotes', url: 'others/emotes/index.html', cms_config: { pageId: 'emotes', pageType: 'gallery' } },
         { id: 'Duels', name: 'Duels', url: 'others/duels/index.html', isWip: true, cms_config: { pageId: 'duels', pageType: 'system' } },
       ],
@@ -62,13 +67,13 @@ test('a column lists the pages in its category, as working links', async ({ page
   expect(href).toBe('./others/emotes/index.html');
 });
 
-test('Others and Tools are not listed twice, in their column and in Guides & Such', async ({ page }) => {
+test('column categories are not listed twice, in their column and in Guides & Such', async ({ page }) => {
   await page.route('**/data/navigation.json*', route => route.fulfill({
     contentType: 'application/json',
     body: JSON.stringify({
       Characters: [],
       Guides: [{ id: 'HUD', name: 'HUD', url: 'systems/hud/index.html', cms_config: { pageId: 'hud', pageType: 'system' } }],
-      Others: [{ id: 'Emotes', name: 'Emotes', url: 'others/emotes/index.html', cms_config: { pageId: 'emotes', pageType: 'gallery' } }],
+      Gamemodes: [{ id: 'Emotes', name: 'Emotes', url: 'others/emotes/index.html', cms_config: { pageId: 'emotes', pageType: 'gallery' } }],
       Tools: [{ id: 'ID-Reader', name: 'ID Reader', url: 'tools/id-reader/index.html', cms_config: { pageId: 'id_reader', pageType: 'tool' } }],
     }),
   }));
@@ -79,7 +84,8 @@ test('Others and Tools are not listed twice, in their column and in Guides & Suc
   // exclusion these would appear in both places on the same screen.
   const systemsBoxHeadings = await page.locator('#systems-grid .system-category-block h3').allTextContents();
   expect(systemsBoxHeadings).toEqual(['Guides']);
-  expect(systemsBoxHeadings).not.toContain('Others');
+  // The sub-group name is the category, so that is what must not reappear.
+  expect(systemsBoxHeadings).not.toContain('Gamemodes');
   expect(systemsBoxHeadings).not.toContain('Tools');
 });
 
@@ -101,7 +107,7 @@ test('page names in a column are escaped', async ({ page }) => {
     contentType: 'application/json',
     body: JSON.stringify({
       Characters: [],
-      Others: [{ id: 'x', name: '<img src=x onerror="window.__colXss=1">Sneaky', url: 'others/x/index.html', cms_config: { pageId: 'x', pageType: 'system' } }],
+      Gamemodes: [{ id: 'x', name: '<img src=x onerror="window.__colXss=1">Sneaky', url: 'others/x/index.html', cms_config: { pageId: 'x', pageType: 'system' } }],
     }),
   }));
 

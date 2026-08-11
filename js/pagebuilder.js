@@ -540,7 +540,20 @@ window.renderFilteredRoster = function() {
 // listed inside the "Guides & Such" box. Named here rather than in index.html
 // because both consumers - that box and the columns themselves - have to agree
 // on the same list.
-window.OWN_COLUMN_CATEGORIES = ['Others', 'Tools'];
+//
+// The Others column is sub-grouped: one column, several labelled groups, each
+// group a `site_pages.category`. There is no separate "Others" category -
+// a page belongs to Gamemodes, Servers or Misc directly, which is why the one
+// page created so far was already filed correctly.
+//
+// Adding a group here is the whole change: it appears in the column and
+// disappears from the Side Dashboard's directory in one move. That second half
+// is the part that bites - a category the column renders but this list omits
+// would appear twice on the same screen.
+window.OTHERS_SUBGROUPS = ['Gamemodes', 'Servers', 'Misc'];
+window.TOOLS_SUBGROUPS = ['Tools'];
+
+window.OWN_COLUMN_CATEGORIES = [...window.OTHERS_SUBGROUPS, ...window.TOOLS_SUBGROUPS];
 
 /**
  * Renders one category's pages as a column of buttons.
@@ -552,34 +565,54 @@ window.OWN_COLUMN_CATEGORIES = ['Others', 'Tools'];
  * A category with no pages yet renders a short line rather than an empty box,
  * so a column that is coming but not filled reads as deliberate.
  */
-window.buildCategoryColumn = async function(containerId, category) {
+window.buildCategoryColumn = async function(containerId, categories) {
     const container = document.getElementById(containerId);
     if (!container) return;
+
+    // Accepts one category or several. Several renders each as a labelled
+    // sub-group inside the one column.
+    const groups = Array.isArray(categories) ? categories : [categories];
 
     try {
         const rootPath = window.getRootPath ? window.getRootPath() : './';
         const navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
         const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
 
-        const items = (navData && navData[category]) || [];
+        const populated = groups
+            .map(name => ({ name, items: (navData && navData[name]) || [] }))
+            .filter(g => g.items.length > 0);
 
-        if (items.length === 0) {
+        if (populated.length === 0) {
             container.innerHTML = `<p class="loading-msg loading-msg-md">Nothing here yet.</p>`;
             return;
         }
 
+        // A heading only when there is more than one group to tell apart. A
+        // lone "Tools" heading inside a section already titled Tools is noise.
+        const showHeadings = groups.length > 1;
+
+        // An empty group renders nothing at all rather than a bare heading -
+        // a promise of content is worse than silence.
         // data-href + a delegated listener, not an inline onclick: these names
         // and URLs come from site_pages, which an admin edits.
-        container.innerHTML = `<div class="system-button-grid">` + items.map(item => {
-            let badge = '';
-            if (item.isWip) badge = ` <span class="update-badge badge-wip update-badge-inline">WIP</span>`;
-            return `
+        container.innerHTML = populated.map(group => {
+            const heading = showHeadings
+                ? `<h3 class="column-subgroup-title">${esc(group.name)}</h3>`
+                : '';
+
+            const buttons = group.items.map(item => {
+                let badge = '';
+                if (item.isWip) badge = ` <span class="update-badge badge-wip update-badge-inline">WIP</span>`;
+                return `
                 <button class="btn-manga btn-manga-slanted system-directory-btn" data-href="${esc(rootPath + item.url)}">
                     <div class="btn-manga-content">
                         <span class="btn-manga-text">${esc(item.name)}${badge}</span>
                     </div>
                 </button>`;
-        }).join('') + `</div>`;
+            }).join('');
+
+            return `${heading}<div class="system-button-grid">${buttons}</div>`;
+        }).join('');
 
         container.querySelectorAll('.system-directory-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -588,7 +621,7 @@ window.buildCategoryColumn = async function(containerId, category) {
             });
         });
     } catch (e) {
-        console.error(`Category column "${category}" failed:`, e);
+        console.error(`Category column "${groups.join(', ')}" failed:`, e);
         container.innerHTML = `<p class="loading-msg loading-msg-error">Unavailable.</p>`;
     }
 };
