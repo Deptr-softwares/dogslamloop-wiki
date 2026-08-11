@@ -41,6 +41,12 @@ Full suite green after every phase. `npm test` and `npm run validate`.
 }
 ```
 
+**Ask the owner what to call the update before writing the entry.** The name
+is theirs, not a summary to be derived from the diff — v0.12 was drafted as
+"The 'Ultimate Mode' update" and the owner renamed it to "The 'General'
+update", because they know what the release means to the community and the
+changelog does not. One question, before the entry, not after.
+
 **The reader is a player using the wiki. Not the owner, and not you.**
 
 The v0.12 entry was rewritten because it failed this. It read as a summary of

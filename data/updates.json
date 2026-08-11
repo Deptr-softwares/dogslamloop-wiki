@@ -4,7 +4,7 @@
       "version": "Beta v0.12",
       "date": "08/11/2026",
       "type": "site",
-      "title": "The 'Ultimate Mode' update",
+      "title": "The 'General' update",
       "description": "Character pages can now handle characters with more than one mode. Frame data can also be written as an estimate when nobody has counted the exact frames.",
       "changes": [
         "Characters with an ultimate mode now have a mode toggle above the tabs, and each mode has its own moves, matchups and write-up",
