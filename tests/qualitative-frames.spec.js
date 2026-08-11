@@ -176,13 +176,39 @@ test('a move with no estimates renders exactly as it did before', async ({ page 
 // (initializeMangaSelects in site_utils.js) which hides the native element, so
 // selectOption cannot reach them. This drives what a contributor actually
 // clicks: the trigger, then the option.
+// The custom dropdown (initializeMangaSelects) hides the native select behind a
+// wrapper, and keeps its options display:none until the wrapper has the `open`
+// class. Two things make a naive click-then-click flaky, and both bit in CI:
+//
+//   - The editor re-renders on its own schedule, and the MutationObserver that
+//     builds these wrappers replaces the node - so the wrapper opened by the
+//     first click may not be the wrapper the second click lands in.
+//   - `force: true` does not rescue it. Force skips actionability checks, but a
+//     display:none element still has no box to click, which is exactly the
+//     "Element is not visible" CI reported.
+//
+// So: assert the open state between the clicks, and re-open once if the
+// wrapper was swapped underneath us. Deterministic rather than hopeful.
+async function openMangaDropdown(wrapper) {
+  await wrapper.locator('.manga-select-trigger').click();
+  try {
+    await expect(wrapper).toHaveClass(/open/, { timeout: 2000 });
+  } catch {
+    await wrapper.locator('.manga-select-trigger').click();
+    await expect(wrapper).toHaveClass(/open/);
+  }
+}
+
 async function pickManga(page, selectId, optionText) {
   const wrapper = page.locator(`#${selectId} + .manga-select-wrapper`);
-  await wrapper.locator('.manga-select-trigger').click();
+  await openMangaDropdown(wrapper);
   await wrapper.locator('.manga-option', { hasText: optionText }).first().click();
 }
 
 async function openMoveEditor(page, frameData) {
+  // Same reason as the dropdown helper above: an unmocked page_data fetch
+  // lands mid-test and re-renders the builder underneath the clicks.
+  await mockPageData(page, { desc: { overview: [] }, frame: { m1s: [], skills: [], specials: [] } });
   await page.goto('/edit.html?char=testchar&tab=skills', { waitUntil: 'networkidle' });
   await page.evaluate((frame) => {
     window.currentEditorPageType = 'character';

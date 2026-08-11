@@ -328,8 +328,8 @@
             if (window.initRosterFilters) window.initRosterFilters();
             if (window.buildSystemsDirectory) window.buildSystemsDirectory('systems-grid');
             if (window.buildCategoryColumn) {
-                window.buildCategoryColumn('others-grid', 'Others');
-                window.buildCategoryColumn('tools-grid', 'Tools');
+                window.buildCategoryColumn('others-grid', window.OTHERS_SUBGROUPS);
+                window.buildCategoryColumn('tools-grid', window.TOOLS_SUBGROUPS);
             }
             if (window.renderHubSlot) window.renderHubSlot('main-hub', 'about', 'about-body');
             if (window.renderGameInfo) window.renderGameInfo('game-info-fields');

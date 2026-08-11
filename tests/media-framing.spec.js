@@ -231,6 +231,10 @@ test('a character with no portrait keeps its card shape', async ({ page }) => {
 // The renderer can only honour what someone can actually set.
 
 async function openProfileForm(page, profile) {
+  // Mocked so the editor's own page_data fetch resolves immediately. Left
+  // unmocked it lands mid-test and re-renders the builder, which replaces the
+  // custom dropdown wrappers between a click and the click that follows it.
+  await mockPageData(page, { desc: { overview: [] }, frame: { m1s: [], skills: [], specials: [] } });
   await page.goto('/edit.html?char=testchar&tab=overview', { waitUntil: 'networkidle' });
   await page.evaluate((profile) => {
     window.currentEditorPageType = 'character';
@@ -248,14 +252,33 @@ async function openProfileForm(page, profile) {
   }, profile);
 }
 
-// The framing control is a .editor-select, so initializeMangaSelects hides the
-// native element behind a custom dropdown. force on the option click because
-// the dropdown animates open and Playwright otherwise waits for it to stop
-// moving - the element is real and already open, it is just mid-transition.
+// The custom dropdown (initializeMangaSelects) hides the native select behind a
+// wrapper, and keeps its options display:none until the wrapper has the `open`
+// class. Two things make a naive click-then-click flaky, and both bit in CI:
+//
+//   - The editor re-renders on its own schedule, and the MutationObserver that
+//     builds these wrappers replaces the node - so the wrapper opened by the
+//     first click may not be the wrapper the second click lands in.
+//   - `force: true` does not rescue it. Force skips actionability checks, but a
+//     display:none element still has no box to click, which is exactly the
+//     "Element is not visible" CI reported.
+//
+// So: assert the open state between the clicks, and re-open once if the
+// wrapper was swapped underneath us. Deterministic rather than hopeful.
+async function openMangaDropdown(wrapper) {
+  await wrapper.locator('.manga-select-trigger').click();
+  try {
+    await expect(wrapper).toHaveClass(/open/, { timeout: 2000 });
+  } catch {
+    await wrapper.locator('.manga-select-trigger').click();
+    await expect(wrapper).toHaveClass(/open/);
+  }
+}
+
 async function pickFraming(page, label) {
   const wrapper = page.locator('#move-media-framing + .manga-select-wrapper');
-  await wrapper.locator('.manga-select-trigger').click();
-  await wrapper.locator('.manga-option', { hasText: label }).first().click({ force: true });
+  await openMangaDropdown(wrapper);
+  await wrapper.locator('.manga-option', { hasText: label }).first().click();
 }
 
 test('the crop focus picker writes the value the renderer reads', async ({ page }) => {
@@ -314,6 +337,7 @@ test('the media box shape selector uses the site dropdown, not the browser one',
   // .editor-select also moves it off the .meta-inp `input` handler, because
   // the custom dropdown only ever dispatches `change` - so the binding has to
   // move with it or the choice silently stops being recorded.
+  await mockPageData(page, { desc: { overview: [] }, frame: { m1s: [], skills: [], specials: [] } });
   await page.goto('/edit.html?char=testchar&tab=skills', { waitUntil: 'domcontentloaded' });
   await page.evaluate(() => {
     window.currentEditorPageType = 'character';

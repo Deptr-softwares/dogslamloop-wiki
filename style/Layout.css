@@ -1003,3 +1003,24 @@ summary:focus-visible {
     box-shadow: 4px 4px 0px var(--manga-shadow); background: var(--bg-secondary);
 }
 .tool-launch-btn { text-decoration: none; }
+
+/* Sub-group heading inside a Main Dashboard column (js/pagebuilder.js
+   buildCategoryColumn). The Others column is one column holding several
+   groups - Gamemodes, Servers, Misc - so each needs a label, while a
+   single-group column renders none.
+
+   Quieter than .sidebar-master-title: it divides a column rather than titling
+   a section, and the section above it already has the real heading. */
+.column-subgroup-title {
+    margin: 1.25rem 0 0.5rem;
+    font-family: var(--text-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.3rem;
+}
+/* The first group sits directly under the section header, which already has
+   its own spacing. */
+.column-subgroup-title:first-child { margin-top: 0; }
