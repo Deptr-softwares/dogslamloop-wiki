@@ -80,7 +80,14 @@ async function captureSignature(page) {
         ? Array.from(layout.children).map(el =>
             el.tagName + (el.className ? '.' + el.className.trim().split(/\s+/).join('.') : ''))
         : null,
-      tabs: Array.from(document.querySelectorAll('[id^="tab-"]')).map(el => ({
+      // Direct children of the content area only. A bare [id^="tab-"] also
+      // matches the nested variant tabs js/framedata.js builds inside a skill
+      // card (tab-<move>-<variant>), so whether this passed depended on
+      // whether the live frame data happened to arrive before the snapshot -
+      // it failed CI intermittently on one character at a time. The router's
+      // panels are the only tab elements it owns, and they are always direct
+      // children.
+      tabs: Array.from(document.querySelectorAll('.main-content-area > [id^="tab-"]')).map(el => ({
         id: el.id,
         classes: Array.from(el.classList),
       })),
