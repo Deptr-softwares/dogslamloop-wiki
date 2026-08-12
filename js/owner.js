@@ -189,8 +189,52 @@ async function loadPersonnel() {
                         data-email="${ownerEscape(person.email)}"
                         ${isLastAdmin ? 'disabled title="You are the only admin - promote someone else first."' : ''}>APPLY</button>
             </div>
+            <!--
+                Capabilities are extras on top of a role, never a second role:
+                user_roles has UNIQUE(user_id) precisely because holding two
+                broke get_my_role() for that user everywhere. A checkbox here
+                writes a column, so that constraint is untouched.
+            -->
+            <label class="personnel-capability" title="Skips the 3-minute wait between submissions for this person only.">
+                <input type="checkbox" class="personnel-capability-box"
+                       data-email="${ownerEscape(person.email)}"
+                       data-capability="bypass_cooldown"
+                       ${person.bypass_cooldown ? 'checked' : ''}>
+                <span>Skip submission cooldown</span>
+            </label>
         </div>`;
     }).join('');
+
+    // Same delegated pattern as the APPLY button, and for the same reason:
+    // the email comes from auth.users and must never reach an inline handler.
+    container.querySelectorAll('.personnel-capability-box').forEach(box => {
+        box.addEventListener('change', async () => {
+            const email = box.dataset.email;
+            const capability = box.dataset.capability;
+            const enabled = box.checked;
+            const results = document.getElementById('role-results');
+
+            box.disabled = true;
+            const { data, error } = await window.supabaseClient.rpc('set_user_capability', {
+                target_email: email, capability, enabled,
+            });
+            box.disabled = false;
+
+            if (error) {
+                // Put the box back rather than leaving it showing a state the
+                // database does not have - the same rule the staff perk switch
+                // follows.
+                box.checked = !enabled;
+                const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
+                results.innerHTML = notDeployed
+                    ? `<span class="admin-error-text">Capabilities aren't available yet - the <code>set_user_capability</code> function hasn't been deployed. It arrives with the next migration.</span>`
+                    : `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`;
+                return;
+            }
+
+            results.innerHTML = `<span class="owner-success-text">${ownerEscape(data)}</span>`;
+        });
+    });
 
     // Delegated rather than inline onclick: the email is attacker-influenced
     // in principle (it comes from auth.users) and building it into an
