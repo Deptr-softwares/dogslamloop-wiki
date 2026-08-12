@@ -216,14 +216,19 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 
 .sidebar-nav-title {
     font-family: 'CC-Wild-Words', sans-serif; font-size: 0.85rem; color: var(--accent-blue);
-    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; margin-top: 0.5rem;
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; margin-top: 0.35rem;
     text-shadow: 1px 1px 0px var(--manga-shadow);
 }
 .sidebar-nav-title:first-child { margin-top: 0; }
 
 /* Collapsible category groups in the global sidebar menu (js/pagebuilder.js
    buildGlobalSidebarMenu) */
-.sidebar-group-wrapper { margin-bottom: 0.75rem; }
+/* Tightened 2026-08-12. The sidebar carried five categories until the
+   sub-grouped Others column shipped and Gamemodes / Misc / Servers joined it,
+   which pushed the Ko-fi button below the fold. This buys the rows back
+   without touching font size, and the list keeps growing as others/ fills, so
+   the spacing is deliberately proportional rather than a one-off nudge. */
+.sidebar-group-wrapper { margin-bottom: 0.35rem; }
 /* A <button> as of v0.11 - it is operated by click, so it has to be reachable
    by keyboard and announced as a control. That brings UA button styling with
    it, reset here.
@@ -240,13 +245,24 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     background: none;
     border: none;
     text-align: left;
-    font: inherit;
-    color: inherit;
+
+    /* Was `font: inherit; color: inherit`, which is what a UA button reset
+       usually wants - but this selector is 0-2-0 and .sidebar-nav-title is
+       0-1-0, so those two lines beat the title styling they sit inside and
+       the group headers rendered in the body font and body colour. The
+       neighbouring "NAVIGATION" heading is a plain <div>, kept its styling,
+       and made the difference look intentional.
+
+       Stated explicitly instead. --accent-blue is re-pointed per character by
+       js/site_meta.js, so the headers now follow the page's own accent rather
+       than a fixed blue. */
+    font-family: 'Finger-Paint', sans-serif;
+    color: var(--accent-blue);
     text-transform: inherit;
     letter-spacing: inherit;
 }
 .sidebar-group-caret { font-size: 0.5rem; color: var(--text-muted); }
-.sidebar-group-wrapper .toc-list { margin-top: 0.5rem; }
+.sidebar-group-wrapper .toc-list { margin-top: 0.3rem; }
 
 .toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.25rem; }
 

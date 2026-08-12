@@ -365,9 +365,13 @@ input[type="checkbox"]:checked {
     left: 0;
     background: #0a0a0a;
     border: 1px solid #333;
-    padding: 0.5rem;
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+    padding: 0.6rem;
+    /* Square and hard-shadowed, like the rest of the editor chrome. It kept a
+       6px radius and a soft blur from when it was one row of seven swatches
+       and read as a small popup; at three labelled sections it reads as a
+       panel, and looked borrowed from somewhere else. */
+    border-radius: 0;
+    box-shadow: 4px 4px 0px var(--manga-shadow, #000);
     z-index: 100;
     /* Was min-width: 140px with seven swatches in it. The picker now offers
        the character and frame-data palettes too (~45), and this popup opens
@@ -377,6 +381,13 @@ input[type="checkbox"]:checked {
     min-width: 248px;
     max-height: 320px;
     overflow-y: auto;
+    /* Positioning is handled in js/editor-blocks.js (keepColorPopupOnScreen),
+       not here: the popup overflows the editor pane by an amount that depends
+       on where along the toolbar the button sits, which no static rule knows.
+       An earlier attempt reserved a scrollbar gutter here on the theory that
+       the popup's own scrollbar was doing the clipping. Measurement said
+       otherwise - the pane clips it - and the extra padding only made the
+       popup wider, so it is gone. */
 }
 .format-select {
     background: transparent; color: #d1d5db; border: 1px solid #333; height: 28px;
@@ -392,11 +403,25 @@ input[type="checkbox"]:checked {
 .format-btn-color-trigger { display: flex; align-items: center; gap: 0.35rem; padding: 0 0.5rem; }
 .format-color-wrapper { position: relative; display: inline-flex; align-items: center; }
 .format-color-swatch-icon { width: 12px; height: 12px; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); border-radius: 50%; }
-.format-color-popup-label { font-size: 0.65rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; }
+.format-color-popup-label { font-family: var(--text-mono); font-size: 0.6rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.08em; }
 /* Separates the groups without putting a gap above the first one. */
 .format-color-presets-row + .format-color-popup-label { margin-top: 0.6rem; }
 .format-color-presets-row { display: flex; gap: 4px; margin-bottom: 0.5rem; flex-wrap: wrap; }
-.color-preset-btn { width: 20px; height: 20px; border-radius: 4px; border: 1px solid #222; cursor: pointer; }
+/* Square, to match the editor. The hover outline is the only affordance a
+   swatch can carry - it has no label and no icon, so without one there is
+   nothing to say it is a control rather than a colour sample. */
+.color-preset-btn {
+    width: 20px; height: 20px;
+    border-radius: 0;
+    border: 1px solid #333;
+    cursor: pointer;
+    padding: 0;
+    transition: outline-color 0.12s ease, transform 0.12s ease;
+    outline: 2px solid transparent;
+    outline-offset: -1px;
+}
+.color-preset-btn:hover { outline-color: var(--text-white, #fff); transform: translateY(-1px); }
+.color-preset-btn:focus-visible { outline-color: var(--accent-blue); }
 .format-color-custom-row { border-top: 1px solid #333; padding-top: 0.5rem; display: flex; align-items: center; justify-content: space-between; }
 .format-color-custom-label { font-size: 0.75rem; color: #ccc; }
 .format-color-custom-input { background: none; border: none; width: 24px; height: 24px; cursor: pointer; padding: 0; outline: none; }
