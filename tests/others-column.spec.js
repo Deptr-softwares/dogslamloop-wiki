@@ -40,7 +40,7 @@ test('the sub-groups are the categories, in the order declared', async ({ page }
     tools: window.TOOLS_SUBGROUPS,
   }));
   expect(groups.others).toEqual(['Gamemodes', 'Servers', 'Misc']);
-  expect(groups.tools).toEqual(['Tools']);
+  expect(groups.tools).toEqual(['Tools', 'Creators', 'Community']);
 });
 
 test('the Others column renders a heading per populated sub-group', async ({ page }) => {
@@ -112,5 +112,31 @@ test('a sub-group page is never listed twice on the same screen', async ({ page 
   await expect(directory).toContainText('M1 Trading');
   for (const name of ['Roulette', 'Duels', 'Private Servers', 'ID Reader']) {
     await expect(directory, `${name} belongs to a column, not the directory`).not.toContainText(name);
+  }
+});
+
+test('the Tools column is sub-grouped by audience, like the Others column', async ({ page }) => {
+  // The first two tool pages were filed under Creators and Community. A
+  // category the column does not list is not merely missing from it - it
+  // falls through to the Side Dashboard's generic directory instead, which
+  // is where both of them landed.
+  await mockNav(page, {
+    ...NAV,
+    Creators: [{ id: 'IDReader', name: 'Skill Builder ID Reader', url: 'tools/skill-builder-id-reader/index.html', cms_config: { pageType: 'tool', pageId: 'skill_builder_id_reader' } }],
+    Community: [{ id: 'FreeTier', name: 'Free Submit Tier List', url: 'tools/free-submit-tier-list/index.html', cms_config: { pageType: 'tool', pageId: 'free_submit_tier_list' } }],
+    Tools: [],
+  });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const tools = page.locator('#tools-grid');
+  await expect(tools.locator('.column-subgroup-title')).toHaveText(['Creators', 'Community']);
+  await expect(tools.locator('.system-directory-btn')).toHaveText([
+    /Skill Builder ID Reader/, /Free Submit Tier List/,
+  ]);
+
+  // And the same "never listed twice" rule the Others column has.
+  const owned = await page.evaluate(() => window.OWN_COLUMN_CATEGORIES);
+  for (const group of ['Creators', 'Community']) {
+    expect(owned, `${group} must be excluded from the systems directory`).toContain(group);
   }
 });
