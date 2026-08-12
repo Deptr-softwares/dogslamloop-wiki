@@ -971,64 +971,242 @@ async function anonymizeAccount() {
 window.anonymizeAccount = anonymizeAccount;
 
 // --- MEDIA GARBAGE COLLECTION ---
+//
+// This tool works by elimination: a file whose name appears nowhere in the
+// page data is unused, so it can go. Every hazard here lives in that
+// inversion. A reference query that fails, or one that quietly returns only
+// its first page, is indistinguishable from "nothing references this file" -
+// and the answer it produces is "delete the entire media library". The first
+// version of this checked neither case and reported the result in green, as a
+// success.
+//
+// So nothing is deleted except on evidence actually held:
+//
+//   * every read is error-checked, and a failed read aborts the whole run
+//   * every read is paged to exhaustion, so a server-side row cap can never
+//     be mistaken for the end of the table
+//   * the corpus is sanity-checked before it is trusted - a wiki with live
+//     pages cannot legitimately reference nothing
+//   * scanning and deleting are separate clicks, and the confirmation names
+//     the count
+//
+// The name matching itself is unchanged, and deliberately errs towards
+// keeping files: a short name occurring inside a longer one counts as
+// referenced, which wastes storage rather than losing it.
+
+// PostgREST caps rows per request and that cap is a server setting this repo
+// does not control, so pages are requested explicitly rather than assuming
+// one request returns a whole table.
+const GC_PAGE_SIZE = 200;
+
+// A runaway stop. If paging ever stops advancing, this ends the loop with an
+// error instead of hanging the browser or scanning against a partial read.
+const GC_MAX_ROWS = 50000;
+
+// Past this share of the library a sweep stops looking like cleanup and
+// starts looking like a broken scan. Still allowed - a first run can
+// legitimately be large - but the confirmation has to say so.
+const GC_BULK_SHARE = 0.25;
+
+// What the last scan found. Held so that the click which deletes is never the
+// click which decided what to delete, and cleared the moment the bucket may
+// have changed underneath it.
+let gcOrphans = null;
+
+// Ordered, because an unordered range() is not stable between requests: rows
+// can shift between pages, and a reference that slips through the gap becomes
+// a file deleted as an orphan. All three tables have an `id`.
+async function gcFetchAllRows(table, columns) {
+    const rows = [];
+    for (let from = 0; from < GC_MAX_ROWS; from += GC_PAGE_SIZE) {
+        const { data, error } = await window.supabaseClient
+            .from(table)
+            .select(columns)
+            .order('id', { ascending: true })
+            .range(from, from + GC_PAGE_SIZE - 1);
+
+        if (error) throw new Error(`Could not read ${table} - ${error.message}`);
+        if (!data) throw new Error(`Could not read ${table} - the request came back with nothing.`);
+
+        rows.push(...data);
+        if (data.length < GC_PAGE_SIZE) return rows;
+    }
+    throw new Error(`${table} returned more rows than this tool will scan at once.`);
+}
+
+async function gcListBucket() {
+    const files = [];
+    for (let offset = 0; offset < GC_MAX_ROWS; offset += GC_PAGE_SIZE) {
+        const { data, error } = await window.supabaseClient.storage
+            .from('wiki-media')
+            .list('', { limit: GC_PAGE_SIZE, offset, sortBy: { column: 'name', order: 'asc' } });
+
+        if (error) throw new Error(`Could not list the media library - ${error.message}`);
+        if (!data) throw new Error('Could not list the media library - the request came back with nothing.');
+
+        files.push(...data);
+        if (data.length < GC_PAGE_SIZE) return files;
+    }
+    throw new Error('The media library holds more files than this tool will scan at once.');
+}
+
+// Every form a file name takes in stored JSON - some URLs are saved raw,
+// others encoded, depending on which editor wrote them.
+function gcNameVariants(name) {
+    return [...new Set([
+        name,
+        encodeURI(name),
+        encodeURIComponent(name),
+        name.replace(/ /g, '%20'),
+    ])];
+}
+
+async function gcFindOrphans(report) {
+    report('Listing the media library...');
+    const files = (await gcListBucket()).filter(f => !f.name.startsWith('.'));
+    if (files.length === 0) return { files: [], orphans: [] };
+
+    report(`${files.length} files found. Reading live, pending and history data...`);
+
+    // Cast to text server-side: these are large JSONB columns and the only
+    // thing wanted from them is a substring search.
+    const [live, pending, history] = await Promise.all([
+        gcFetchAllRows('page_data', 'desc_data::text, frame_data::text'),
+        gcFetchAllRows('pending_revisions', 'desc_data::text, frame_data::text, delta_payload::text'),
+        gcFetchAllRows('page_history', 'desc_data::text, frame_data::text'),
+    ]);
+
+    // A wiki with live pages cannot reference nothing. If it reads that way
+    // the scan is wrong, not the library - and acting on it would take every
+    // file in one click.
+    if (live.length === 0) {
+        throw new Error('No live page data came back. Refusing to read an empty result as an empty wiki.');
+    }
+
+    const chunks = [];
+    const collect = (rows, fields) => rows.forEach(row => {
+        const text = fields.map(field => row[field] || '').join('');
+        if (text) chunks.push(text);
+    });
+    collect(live, ['desc_data', 'frame_data']);
+    collect(pending, ['desc_data', 'frame_data', 'delta_payload']);
+    collect(history, ['desc_data', 'frame_data']);
+
+    if (chunks.length === 0) {
+        throw new Error('The page data came back empty. Refusing to read that as "nothing is referenced".');
+    }
+
+    report(`Checking ${files.length} files against ${chunks.length} records...`);
+
+    // Names drop out of the map as they are found, so nothing is searched for
+    // twice and a library that is entirely in use finishes early.
+    const unmatched = new Map(files.map(f => [f.name, gcNameVariants(f.name)]));
+    for (const chunk of chunks) {
+        for (const [name, variants] of unmatched) {
+            if (variants.some(variant => chunk.includes(variant))) unmatched.delete(name);
+        }
+        if (unmatched.size === 0) break;
+    }
+
+    return { files, orphans: files.filter(f => unmatched.has(f.name)) };
+}
+
+// Single point of truth for "is there anything to delete". Every path that
+// invalidates the scan calls this with null, so the delete button cannot
+// outlive the list that justified it.
+function gcSetOrphans(orphans, bucketSize) {
+    gcOrphans = (orphans && orphans.length) ? { files: orphans, bucketSize } : null;
+
+    const purgeBtn = document.getElementById('btn-purge-gc');
+    if (!purgeBtn) return;
+
+    purgeBtn.hidden = !gcOrphans;
+    if (gcOrphans) {
+        purgeBtn.textContent = `DELETE ${orphans.length} UNUSED ${orphans.length === 1 ? 'FILE' : 'FILES'}`;
+    }
+}
+
 async function runGarbageCollector() {
     const btn = document.getElementById('btn-run-gc');
     const results = document.getElementById('gc-results');
 
-    if(!(await adminConfirm("SYSTEM WARNING: Scan and permanently delete any unlinked cloud files?"))) return;
+    // Any earlier finding is void the moment a new scan starts.
+    gcSetOrphans(null);
 
-    btn.textContent = "SCANNING..."; btn.disabled = true;
-    results.innerHTML = "Fetching files from cloud storage...<br>";
+    btn.textContent = 'SCANNING...';
+    btn.disabled = true;
+    results.innerHTML = '';
+    const report = (line) => { results.innerHTML += `${ownerEscape(line)}<br>`; };
 
     try {
-        const { data: storageFiles, error: storageErr } = await window.supabaseClient.storage.from('wiki-media').list('', { limit: 1000 });
-        if (storageErr) throw storageErr;
+        const { files, orphans } = await gcFindOrphans(report);
 
-        const actualFiles = storageFiles.filter(f => !f.name.startsWith('.'));
-        if (actualFiles.length === 0) {
-            results.innerHTML += "<span style='color:#22c55e'>Bucket is empty. Clean.</span>";
-            btn.textContent = "SCAN & PURGE MEDIA"; btn.disabled = false;
-            return;
-        }
-
-        results.innerHTML += "Analyzing Live, Pending, and History data...<br>";
-
-        // Fetch as raw text using Supabase text casting to prevent massive JSON object parsing
-        const [ {data: liveData}, {data: pendingData}, {data: historyData} ] = await Promise.all([
-            window.supabaseClient.from('page_data').select('desc_data::text, frame_data::text'),
-            window.supabaseClient.from('pending_revisions').select('desc_data::text, frame_data::text, delta_payload::text'),
-            window.supabaseClient.from('page_history').select('desc_data::text, frame_data::text')
-        ]);
-
-        // Safely extract and concatenate without triggering JSON.stringify Memory Leaks
-        let massiveDataString = "";
-
-        (liveData || []).forEach(row => { massiveDataString += (row.desc_data || '') + (row.frame_data || ''); });
-        (pendingData || []).forEach(row => { massiveDataString += (row.desc_data || '') + (row.frame_data || '') + (row.delta_payload || ''); });
-        (historyData || []).forEach(row => { massiveDataString += (row.desc_data || '') + (row.frame_data || ''); });
-
-        const orphanedFiles = actualFiles.filter(file => {
-            const rawName = file.name;
-            const encodedURI = encodeURI(rawName);
-            const encodedComponent = encodeURIComponent(rawName);
-            const spaceEncoded = rawName.replace(/ /g, '%20');
-
-            return !massiveDataString.includes(rawName) &&
-                   !massiveDataString.includes(encodedURI) &&
-                   !massiveDataString.includes(encodedComponent) &&
-                   !massiveDataString.includes(spaceEncoded);
-        });
-
-        if (orphanedFiles.length === 0) {
-            results.innerHTML += "<span style='color:#22c55e'>All files actively linked.</span>";
+        if (files.length === 0) {
+            results.innerHTML += `<span class="owner-success-text">The media library is empty.</span>`;
+        } else if (orphans.length === 0) {
+            results.innerHTML += `<span class="owner-success-text">All ${files.length} files are still linked. Nothing to clean up.</span>`;
         } else {
-            const fileNamesToDelete = orphanedFiles.map(f => f.name);
-            const { error: delErr } = await window.supabaseClient.storage.from('wiki-media').remove(fileNamesToDelete);
-            if (delErr) throw delErr;
-            results.innerHTML += `<span style='color:#22c55e'>Deleted ${orphanedFiles.length} orphaned files.</span>`;
+            const list = orphans.map(f => `<li>${ownerEscape(f.name)}</li>`).join('');
+            results.innerHTML +=
+                `<span class="gc-orphan-count">${orphans.length} of ${files.length} files are unused:</span>` +
+                `<ul class="gc-orphan-list">${list}</ul>`;
+            gcSetOrphans(orphans, files.length);
         }
     } catch (err) {
-        results.innerHTML += `<span style='color:#ef4444'>Error: ${err.message}</span>`;
+        results.innerHTML += `<span class="admin-error-text">Stopped, nothing deleted: ${ownerEscape(err.message)}</span>`;
     }
-    btn.textContent = "SCAN & PURGE MEDIA"; btn.disabled = false;
+
+    btn.textContent = 'SCAN FOR UNUSED MEDIA';
+    btn.disabled = false;
 }
+window.runGarbageCollector = runGarbageCollector;
+
+async function purgeOrphanedMedia() {
+    const purgeBtn = document.getElementById('btn-purge-gc');
+    const results = document.getElementById('gc-results');
+
+    // The scan's list is the only thing that authorises a deletion. No list,
+    // no deletion - including a list already spent on an earlier purge.
+    if (!gcOrphans) {
+        results.innerHTML += `<span class="admin-error-text">Nothing to delete. Run a scan first.</span>`;
+        return;
+    }
+
+    const { files, bucketSize } = gcOrphans;
+    const share = bucketSize ? files.length / bucketSize : 0;
+    const bulkWarning = share > GC_BULK_SHARE
+        ? `\n\nThat is ${Math.round(share * 100)}% of the media library (${files.length} of ${bucketSize} files). ` +
+          `A scan flagging most of the library is usually a broken scan rather than a dirty library, so check the list first.`
+        : '';
+
+    const confirmed = await adminConfirm(
+        `Permanently delete ${files.length} unused ${files.length === 1 ? 'file' : 'files'}?\n\n` +
+        `No live page, pending revision or history entry links to them. This cannot be undone.` +
+        bulkWarning
+    );
+    if (!confirmed) return;
+
+    purgeBtn.disabled = true;
+    purgeBtn.textContent = 'DELETING...';
+
+    const names = files.map(f => f.name);
+    const { data, error } = await window.supabaseClient.storage.from('wiki-media').remove(names);
+
+    // Spent either way: after a partial delete the list no longer describes
+    // the library, so the next delete has to be earned by a fresh scan.
+    gcSetOrphans(null);
+    purgeBtn.disabled = false;
+
+    if (error) {
+        results.innerHTML += `<span class="admin-error-text">Deletion failed: ${ownerEscape(error.message)}</span>`;
+        return;
+    }
+
+    // remove() reports what it actually removed, which is not always
+    // everything it was handed.
+    const removed = Array.isArray(data) ? data.length : names.length;
+    results.innerHTML += removed < names.length
+        ? `<span class="admin-error-text">Deleted ${removed} of ${names.length} files. Scan again to see what is left.</span>`
+        : `<span class="owner-success-text">Deleted ${removed} unused ${removed === 1 ? 'file' : 'files'}.</span>`;
+}
+window.purgeOrphanedMedia = purgeOrphanedMedia;

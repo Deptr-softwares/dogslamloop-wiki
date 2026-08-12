@@ -405,7 +405,13 @@
 
                 <section id="tool-media-gc" class="update-log-item admin-tool-card gc">
                     <h3 class="update-title admin-tool-title gc">Media Garbage Collection</h3>
-                    <button id="btn-run-gc" onclick="runGarbageCollector()" class="btn-sys btn-sys-red admin-tool-btn gc">SCAN & PURGE MEDIA</button>
+                    <p class="admin-tool-hint">
+                        Finds files in the media library that no page links to any more.
+                        Scanning changes nothing - deleting is a second, separate step,
+                        and it lists what it found first.
+                    </p>
+                    <button id="btn-run-gc" onclick="runGarbageCollector()" class="btn-sys btn-sys-regular admin-tool-btn gc">SCAN FOR UNUSED MEDIA</button>
+                    <button id="btn-purge-gc" onclick="purgeOrphanedMedia()" class="btn-sys btn-sys-red admin-tool-btn gc" hidden>DELETE UNUSED FILES</button>
                     <div id="gc-results" class="admin-tool-results"></div>
                 </section>
                 </div>

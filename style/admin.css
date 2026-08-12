@@ -542,6 +542,16 @@
 .admin-tool-btn { font-size: 0.7rem; padding: 0.4rem; width: 100%; margin-top: 0.5rem; }
 .admin-tool-results { margin-top: 0.75rem; font-family: var(--text-mono); font-size: 0.7rem; color: #888; line-height: 1.4; }
 
+/* --- MEDIA GARBAGE COLLECTION (js/owner.js) --- */
+/* Stated explicitly: .owner-group once set display:grid and beat the UA
+   stylesheet's [hidden] rule, leaving every tool group on screen at once.
+   Nothing here sets display, so [hidden] already works - this pins it, since
+   the button it hides is the one that deletes files. */
+.admin-tool-btn[hidden] { display: none; }
+.gc-orphan-count { color: #eab308; }
+.gc-orphan-list { margin: 0.35rem 0 0 0; padding: 0.4rem 0.4rem 0.4rem 1.4rem; max-height: 9rem; overflow-y: auto; border: 1px dashed #333; }
+.gc-orphan-list li { word-break: break-all; }
+
 /* --- LIVE PREVIEW AREA --- */
 .admin-live-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #222; flex-shrink: 0; width: 100%; box-sizing: border-box; }
 .admin-status-container { display: flex; align-items: center; }
