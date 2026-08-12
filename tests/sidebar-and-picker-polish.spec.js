@@ -80,11 +80,41 @@ test('the colour picker is square and hard-shadowed like the rest of the editor'
 
     expect(popup.radius, 'square corners').toBe('0px');
     expect(popup.shadow, 'a hard offset shadow, not a blur').toMatch(/0px 4px 4px|4px 4px 0px/);
+});
 
-    // The rightmost swatch column used to sit under the popup's own
-    // scrollbar. Either mechanism is acceptable; having neither is not.
-    const reserved = popup.gutter === 'stable' || popup.paddingRight > popup.paddingLeft;
-    expect(reserved, 'space is reserved for the scrollbar').toBe(true);
+test('the open picker stays inside the pane that clips it', async ({ page }) => {
+    // Asserts the symptom, not a mechanism. The first fix for this pinned
+    // "a scrollbar gutter is reserved", which passed while the popup was
+    // still visibly cut off - it was the editor pane clipping it, not the
+    // popup's own scrollbar. Measured: popup 216->491, pane ends at 383.
+    await page.route('**/rest/v1/page_data*', route =>
+        route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
+    await page.goto('/edit.html?char=testchar&tab=overview', { waitUntil: 'networkidle' });
+
+    await page.evaluate(() => {
+        window.initStrategyBlockBuilder('interactive-builder', [{ type: 'paragraph', content: 'Hello' }]);
+    });
+    await expect(page.locator('.format-btn-color-trigger').first()).toBeVisible();
+    await page.locator('.format-btn-color-trigger').first().click();
+
+    const fit = await page.evaluate(() => {
+        const popup = document.querySelector('.format-color-popup');
+        let clipper = popup.parentElement;
+        while (clipper && clipper !== document.body) {
+            const style = getComputedStyle(clipper);
+            if (/(auto|scroll|hidden)/.test(style.overflowX + style.overflowY)) break;
+            clipper = clipper.parentElement;
+        }
+        const bounds = (clipper && clipper !== document.body)
+            ? clipper.getBoundingClientRect()
+            : { left: 0, right: window.innerWidth };
+        const box = popup.getBoundingClientRect();
+        return { overflowRight: Math.round(box.right - bounds.right), overflowLeft: Math.round(bounds.left - box.left), width: Math.round(box.width) };
+    });
+
+    expect(fit.width, 'the popup really is wide enough for this to matter').toBeGreaterThan(200);
+    expect(fit.overflowRight, 'no swatch column past the right edge').toBeLessThanOrEqual(0);
+    expect(fit.overflowLeft, 'and it was not shoved out the other side').toBeLessThanOrEqual(0);
 });
 
 test('a preset swatch is square and shows it is clickable', async ({ page }) => {

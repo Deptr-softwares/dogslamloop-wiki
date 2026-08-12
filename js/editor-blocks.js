@@ -446,10 +446,43 @@ function initStrategyBlockBuilder(containerId, initialData) {
     const colorBtn = container.querySelector('#btn-format-color');
     const colorPopup = container.querySelector('#format-color-popup');
 
+    // Pulls the popup back inside whatever clips it.
+    //
+    // Measured rather than assumed, after a first attempt fixed the wrong
+    // thing: the popup opens at the toolbar button and runs 275px wide, while
+    // the editor pane that clips it is ~383px - so from a button partway
+    // along the toolbar it overflowed by ~108px and the last swatch column
+    // was cut off. It was NOT the popup's own scrollbar, which is what the
+    // earlier CSS change guessed at.
+    //
+    // Done here rather than in CSS because the overflow depends on where the
+    // button sits and how wide the pane is, neither of which a static rule
+    // knows. left is reset first so reopening never compounds a previous
+    // shift, and the clamp is one-directional: it only ever pulls left, so a
+    // popup that already fits is untouched.
+    function keepColorPopupOnScreen(popup) {
+        popup.style.left = '';
+
+        let clipper = popup.parentElement;
+        while (clipper && clipper !== document.body) {
+            const style = getComputedStyle(clipper);
+            if (/(auto|scroll|hidden)/.test(style.overflowX + style.overflowY)) break;
+            clipper = clipper.parentElement;
+        }
+        const bounds = (clipper && clipper !== document.body)
+            ? clipper.getBoundingClientRect()
+            : { left: 0, right: window.innerWidth };
+        const limit = Math.min(bounds.right, window.innerWidth) - 8;
+
+        const overflow = popup.getBoundingClientRect().right - limit;
+        if (overflow > 0) popup.style.left = `${-overflow}px`;
+    }
+
     if (colorBtn && colorPopup) {
         colorBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             colorPopup.classList.toggle('hidden');
+            if (!colorPopup.classList.contains('hidden')) keepColorPopupOnScreen(colorPopup);
         });
 
         colorPopup.addEventListener('click', (e) => {

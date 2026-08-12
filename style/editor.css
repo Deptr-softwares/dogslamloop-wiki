@@ -381,13 +381,13 @@ input[type="checkbox"]:checked {
     min-width: 248px;
     max-height: 320px;
     overflow-y: auto;
-    /* The rightmost swatch column sat underneath this popup's own scrollbar.
-       Reserving the gutter is the fix rather than moving the popup left: the
-       clipping comes from inside it, so shifting it would carry the problem
-       along. padding-right is the fallback for browsers without
-       scrollbar-gutter, and is harmless where it is supported. */
-    scrollbar-gutter: stable;
-    padding-right: calc(0.6rem + 6px);
+    /* Positioning is handled in js/editor-blocks.js (keepColorPopupOnScreen),
+       not here: the popup overflows the editor pane by an amount that depends
+       on where along the toolbar the button sits, which no static rule knows.
+       An earlier attempt reserved a scrollbar gutter here on the theory that
+       the popup's own scrollbar was doing the clipping. Measurement said
+       otherwise - the pane clips it - and the extra padding only made the
+       popup wider, so it is gone. */
 }
 .format-select {
     background: transparent; color: #d1d5db; border: 1px solid #333; height: 28px;
