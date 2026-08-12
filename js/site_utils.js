@@ -216,6 +216,128 @@ window.BASE_MODE_ID = 'base';
 // it renders as one extra tab instead.
 window.FRAME_MOVE_CATEGORIES = ['m1s', 'skills', 'specials', 'ultimateAtk'];
 
+// --- BLOCKED MEDIA ---
+//
+// A reviewer flagging a file has to actually get it off the page, and the
+// pages render contributor media from seven different places across five
+// files (skill cards, image blocks, video blocks, profile portraits, gallery
+// items, roster cards, tier portraits). Editing each one means the next
+// render site added forgets, and "forgot" here means flagged media keeps
+// showing.
+//
+// So this works on the DOM rather than on the seven call sites: sweep what is
+// already there, then watch for what arrives. Tab switches, lazy loads and
+// mode toggles all rebuild media long after boot, and an observer catches
+// those without every renderer having to know this feature exists.
+//
+// The cost is bounded by the thing that makes it acceptable: **if nothing is
+// flagged, nothing runs.** No sweep, no observer, no listeners. That is the
+// normal state of the site, and flagged media is meant to be rare.
+//
+// This is a rendering guard, not a security control. The file still sits at
+// its public storage URL - anyone holding the direct link keeps it. Taking it
+// down for real is deleting the object, which stays the owner's job.
+const BLOCKED_MEDIA_NOTICE = 'Media removed by a moderator';
+
+let blockedMediaPromise = null;
+
+// Returns a Set of blocked object paths, and an empty one on any failure.
+// Deliberately fail-open: a moderation table that cannot be read must not
+// blank out every image on the wiki, which is the failure mode of guessing
+// the other way.
+window.fetchBlockedMedia = function() {
+    if (blockedMediaPromise) return blockedMediaPromise;
+
+    blockedMediaPromise = (async () => {
+        try {
+            if (!window.supabaseClient) return new Set();
+            const { data, error } = await window.supabaseClient
+                .from('media_moderation').select('path').eq('status', 'flagged');
+            if (error || !Array.isArray(data)) return new Set();
+            return new Set(data.map(row => row.path).filter(Boolean));
+        } catch (e) {
+            return new Set();
+        }
+    })();
+
+    return blockedMediaPromise;
+};
+
+// Matches on the trailing path segment rather than the whole URL: the same
+// object is referenced as a raw name, percent-encoded, and occasionally with
+// a query string, and all three end in the object's own name.
+window.isBlockedMediaSrc = function(src, blocked) {
+    if (!src || !blocked || !blocked.size) return false;
+
+    const withoutQuery = String(src).split(/[?#]/)[0];
+    const lastSegment = withoutQuery.substring(withoutQuery.lastIndexOf('/') + 1);
+    if (!lastSegment) return false;
+
+    if (blocked.has(lastSegment)) return true;
+    try {
+        return blocked.has(decodeURIComponent(lastSegment));
+    } catch (e) {
+        // A malformed escape sequence is not a match, and must not throw
+        // mid-sweep and leave the rest of the page unswept.
+        return false;
+    }
+};
+
+function replaceWithBlockedNotice(element) {
+    if (!element || !element.parentNode) return;
+    const notice = document.createElement('div');
+    notice.className = 'media-blocked-notice';
+    // textContent, not innerHTML - and the string is a constant anyway.
+    notice.textContent = BLOCKED_MEDIA_NOTICE;
+    element.parentNode.replaceChild(notice, element);
+}
+
+window.sweepBlockedMedia = function(root, blocked) {
+    if (!root || !blocked || !blocked.size) return 0;
+
+    // data-lazy-src as well as src: videos on this site carry their real URL
+    // there until something scrolls them into view, so checking src alone
+    // would miss every clip until the moment it started playing.
+    const candidates = root.querySelectorAll
+        ? root.querySelectorAll('img[src], video[src], video[data-lazy-src], source[src]')
+        : [];
+
+    let removed = 0;
+    candidates.forEach(element => {
+        const src = element.getAttribute('src') || element.getAttribute('data-lazy-src');
+        if (!window.isBlockedMediaSrc(src, blocked)) return;
+        // A <source> lives inside the media element it belongs to; replacing
+        // the source alone would leave a broken player behind.
+        replaceWithBlockedNotice(element.tagName === 'SOURCE' ? element.parentNode : element);
+        removed += 1;
+    });
+    return removed;
+};
+
+window.initBlockedMediaGuard = async function() {
+    const blocked = await window.fetchBlockedMedia();
+    if (!blocked.size) return null;
+
+    window.sweepBlockedMedia(document, blocked);
+
+    const observer = new MutationObserver(mutations => {
+        for (const mutation of mutations) {
+            mutation.addedNodes.forEach(node => {
+                if (node.nodeType !== 1) return;
+                window.sweepBlockedMedia(node, blocked);
+                // The node itself, when media is appended directly rather
+                // than as part of a rendered subtree.
+                if (node.matches && node.matches('img[src], video[src], video[data-lazy-src]')) {
+                    const src = node.getAttribute('src') || node.getAttribute('data-lazy-src');
+                    if (window.isBlockedMediaSrc(src, blocked)) replaceWithBlockedNotice(node);
+                }
+            });
+        }
+    });
+    observer.observe(document.documentElement, { childList: true, subtree: true });
+    return observer;
+};
+
 // --- MATCHUP TIERS ---
 //
 // One list, because this vocabulary is read in three places that have to
@@ -1035,6 +1157,13 @@ document.addEventListener('mousedown', (e) => {
 // Initial run & Dynamic Observer
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(window.initializeMangaSelects, 100);
+
+    // Started here rather than from page_boot.js because this file is the only
+    // one loaded by every page - the hand-authored ones (tier list,
+    // collaborators, the hubs) never go through the boot sequence, and
+    // flagged media has to come off those too. Returns immediately when
+    // nothing is flagged, which is the normal case.
+    if (typeof window.initBlockedMediaGuard === 'function') window.initBlockedMediaGuard();
 
     const observer = new MutationObserver((mutations) => {
         let shouldInit = false;
