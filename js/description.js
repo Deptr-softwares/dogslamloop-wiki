@@ -829,21 +829,23 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 if (data.matchups && data.matchups.length > 0) {
                     data.matchups.forEach(mu => {
 
-                        const tierColors = {
-                            "Unwinnable": "#dc2626", "Extreme Disadvantage": "#ef4444",
-                            "Disadvantage": "#fb923c", "Equal": "#9ca3af",
-                            "Advantage": "#4ade80", "Extreme Advantage": "#22c55e",
-                            "Unloseable": "#22d3ee"
-                        };
-                        const tierColor = tierColors[mu.tier] || "#ffffff";
+                        // window.MATCHUP_TIERS (js/site_utils.js) is the one
+                        // definition; resolveMatchupTier also maps the two
+                        // words v0.13 renamed, so history replay and anything
+                        // submitted before the rename still renders.
+                        const tier = window.resolveMatchupTier(mu.tier);
 
                         const muSection = document.createElement('section');
                         muSection.className = 'wiki-section wiki-section-clip';
 
+                        // The colour comes from the tier table, never from the
+                        // stored string, so nothing contributor-written lands
+                        // inside a style attribute. The two visible strings are
+                        // escaped - both are contributor-submitted.
                         let muHTML = `
                             <div class="card-header-flex">
-                                <h3 class="card-header-title">vs. ${mu.opponent}</h3>
-                                <span class="card-tier-label" style="color: ${tierColor};">${mu.tier}</span>
+                                <h3 class="card-header-title">vs. ${window.escapeHtml(mu.opponent || 'Unknown')}</h3>
+                                <span class="card-tier-label" style="color: ${tier.color};">${window.escapeHtml(tier.id)}</span>
                             </div>
                         `;
 
