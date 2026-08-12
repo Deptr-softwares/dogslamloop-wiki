@@ -551,7 +551,15 @@ window.renderFilteredRoster = function() {
 // is the part that bites - a category the column renders but this list omits
 // would appear twice on the same screen.
 window.OTHERS_SUBGROUPS = ['Gamemodes', 'Servers', 'Misc'];
-window.TOOLS_SUBGROUPS = ['Tools'];
+// Sub-grouped by who the tool is for, the same mechanism the Others column
+// uses. 'Tools' stays first for anything general; 'Creators' is for tools that
+// operate on things people build (the Skill Builder ID Reader decodes moveset
+// ids), and 'Community' for tools anyone visiting the site can just use.
+//
+// These have to match the categories on the rows, not the other way round: a
+// category the column does not list falls through to the Side Dashboard's
+// generic directory, which is where both tool pages landed before this.
+window.TOOLS_SUBGROUPS = ['Tools', 'Creators', 'Community'];
 
 window.OWN_COLUMN_CATEGORIES = [...window.OTHERS_SUBGROUPS, ...window.TOOLS_SUBGROUPS];
 
@@ -589,7 +597,12 @@ window.buildCategoryColumn = async function(containerId, categories) {
 
         // A heading only when there is more than one group to tell apart. A
         // lone "Tools" heading inside a section already titled Tools is noise.
-        const showHeadings = groups.length > 1;
+        //
+        // Counted on what is POPULATED, not what is declared. Declaring three
+        // Tools sub-groups while only one has pages would otherwise put that
+        // redundant heading back - which is the state this column is in
+        // whenever a category exists but nobody has filed a page under it yet.
+        const showHeadings = populated.length > 1;
 
         // An empty group renders nothing at all rather than a bare heading -
         // a promise of content is worse than silence.
