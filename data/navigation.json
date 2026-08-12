@@ -537,6 +537,120 @@
         "pageId": "roulette",
         "editRole": "open"
       }
+    },
+    {
+      "id": "Duels",
+      "name": "Duels",
+      "url": "others/duels/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "system",
+        "pageId": "duels",
+        "editRole": "open"
+      }
+    },
+    {
+      "id": "Creator-Clash",
+      "name": "Creator Clash",
+      "url": "others/creator-clash/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "system",
+        "pageId": "creator_clash",
+        "editRole": "open"
+      }
+    }
+  ],
+  "Misc": [
+    {
+      "id": "Awakening-System",
+      "name": "Awakening System",
+      "url": "others/awakening-system/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "system",
+        "pageId": "awakening_system",
+        "editRole": "open"
+      }
+    },
+    {
+      "id": "Parkour-System",
+      "name": "Parkour System",
+      "url": "others/parkour-system/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "system",
+        "pageId": "parkour_system",
+        "editRole": "open"
+      }
+    },
+    {
+      "id": "Lost-Medias",
+      "name": "Lost Medias",
+      "url": "others/lost-medias/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "system",
+        "pageId": "lost_medias",
+        "editRole": "open"
+      }
+    },
+    {
+      "id": "Emotes",
+      "name": "Emotes",
+      "url": "others/emotes/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "gallery",
+        "pageId": "emotes",
+        "editRole": "open"
+      }
+    }
+  ],
+  "Servers": [
+    {
+      "id": "Custom-Servers",
+      "name": "Custom Servers",
+      "url": "others/custom-servers/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "system",
+        "pageId": "custom_servers",
+        "editRole": "open"
+      }
+    },
+    {
+      "id": "Private-Servers",
+      "name": "Private Servers",
+      "url": "others/private-servers/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "system",
+        "pageId": "private_servers",
+        "editRole": "open"
+      }
+    },
+    {
+      "id": "Game-Settings",
+      "name": "Game Settings",
+      "url": "others/game-settings/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "system",
+        "pageId": "game_settings",
+        "editRole": "open"
+      }
+    },
+    {
+      "id": "Skill-Builder",
+      "name": "Skill Builder",
+      "url": "others/skill-builder/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "system",
+        "pageId": "skill_builder",
+        "editRole": "open"
+      }
     }
   ]
 }
