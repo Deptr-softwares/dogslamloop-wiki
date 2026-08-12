@@ -64,7 +64,7 @@ const PAGE_PATH_RE = new RegExp(`^(${PAGE_DIRECTORIES.join('|')})/[^/]+/index\\.
 // gallery and tool are generated rather than following the tierlist precedent
 // of a hand-written file - that does not scale to a gallery per gamemode or a
 // page per tool.
-const GENERATED_PAGE_TYPES = new Set(['character', 'system', 'gallery', 'tool']);
+const { GENERATED_PAGE_TYPES } = require(path.join(__dirname, 'page-types.js'));
 
 // Social/SEO metadata has to be in the served HTML, not injected at runtime:
 // Discord, Twitter and Facebook unfurlers do not execute JavaScript, so tags

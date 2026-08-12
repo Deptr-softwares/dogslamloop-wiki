@@ -109,15 +109,16 @@ test('a moved block is marked where it lands', async ({ page }) => {
   // startBlockPointerDrag calls setPointerCapture, which throws on synthetic
   // (untrusted) pointer events - a constraint the source comments in
   // js/editor-blocks.js already call out.
-  await page.evaluate(async () => {
+  await page.evaluate(() => {
     document.body.innerHTML = '<div id="block-host"></div>';
     window.initStrategyBlockBuilder('block-host', [
       { type: 'paragraph', content: 'First' },
       { type: 'paragraph', content: 'Second' },
       { type: 'paragraph', content: 'Third' },
     ]);
-    await new Promise(r => setTimeout(r, 150));
   });
+
+  await expect(page.locator('#block-list .block-card')).toHaveCount(3);
 
   const before = await page.locator('#block-list .block-just-moved').count();
   expect(before, 'nothing is marked before a move').toBe(0);
@@ -125,8 +126,30 @@ test('a moved block is marked where it lands', async ({ page }) => {
   const handle = page.locator('#block-list .block-card').first().locator('.drag-handle');
   const lastCard = page.locator('#block-list .block-card').last();
 
-  const handleBox = await handle.boundingBox();
-  const lastBox = await lastCard.boundingBox();
+  // This drag is driven by real coordinates, so it can only be measured once
+  // the layout has stopped moving - and it does move after the builder
+  // renders. A block card holds several .editor-select elements, and
+  // initializeMangaSelects (js/site_utils.js) replaces each one with a custom
+  // wrapper of a different height, triggered by its own MutationObserver.
+  //
+  // This used to be a flat 150ms sleep, which is a guess at how long that
+  // takes. It held on a fast machine and lost on a loaded CI runner: the
+  // boxes were read, the selects were swapped, every card shifted, and the
+  // mouse then pressed wherever the handle used to be. Waiting for two
+  // consecutive identical measurements waits for the actual condition.
+  const settled = async (locator, label) => {
+    let previous = null;
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const box = await locator.boundingBox();
+      if (previous && box && box.y === previous.y && box.height === previous.height) return box;
+      previous = box;
+      await page.waitForTimeout(40);
+    }
+    throw new Error(`${label} never settled into a stable position`);
+  };
+
+  const handleBox = await settled(handle, 'the drag handle');
+  const lastBox = await settled(lastCard, 'the last block card');
   expect(handleBox, 'the drag handle should be laid out and reachable').not.toBeNull();
 
   await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
