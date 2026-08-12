@@ -383,11 +383,13 @@ test('the media library filter uses the site dropdown too', async ({ page }) => 
   await expect(page.locator('#media-filter-select + .manga-select-wrapper')).toHaveCount(1);
 });
 
-test('the editor says a submission covers one tab', async ({ page }) => {
-  // Surprising enough to be worth stating: the editor keeps work across tabs,
-  // but Submit only sends the tab you are on. Multi-tab submission is v0.13.
+test('the editor says a submission covers every tab', async ({ page }) => {
+  // Inverted in v0.13, when multi-tab submission landed. The line stays
+  // because the old behaviour trained people to submit tab by tab, and a
+  // silent change would leave them still doing it.
   await page.goto('/edit.html?char=testchar&tab=overview', { waitUntil: 'domcontentloaded' });
   const tip = page.locator('.editor-scope-tip');
   await expect(tip).toBeVisible();
-  await expect(tip).toContainText('One tab per submission');
+  await expect(tip).toContainText('every tab');
+  await expect(tip, 'the old stopgap wording is gone').not.toContainText('One tab per submission');
 });
