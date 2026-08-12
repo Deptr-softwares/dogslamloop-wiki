@@ -297,7 +297,7 @@ The visible expansion.
 2. ~~**The Emotes gallery page type**~~ — **shipped in v0.12.** The renderer, the search, and media submission all exist. What remains here is the Emotes *page* and its content.
 3. **The other ten `others/` pages** scaffolded; content is the team's.
 4. ~~**The "Others" and "Tools" columns**~~ — **shipped in v0.12**, pulled forward. The Main Dashboard layout rework beyond those two columns is still open.
-5. **Site-wide progress view** in owner tools — **moved here from v0.12** (owner, 2026-08-11). "Pages That Need Work" covers characters only; with 30 people working through ~35 pages you need one view of done / in progress / untouched. This is the daily control surface, and it is more useful once the `others/` pages exist to appear in it.
+5. ~~**Site-wide progress view** in owner tools~~ — **dropped** (owner, 2026-08-12): "I feel that is unnecessary." Cut rather than deferred, so it should not reappear in a later version's scope. "Pages That Need Work" remains the only progress surface.
 6. **Skill Builder ID Reader** linked in. The tool-page editor it needed shipped in v0.12, so this is now just the config plus a link.
 7. ~~**Certified Tier List**~~ — **moved to v0.14** (owner, 2026-08-11), to be built alongside the anti-brigading rather than ahead of it. A free-submit ranking with no rate limiting and no visible sample size, pointed at a 1.4M-member Discord under an official banner, produces a number nobody should trust — and the fix is the same work as v0.14 item 3, so splitting them across two versions would have meant building it twice.
 
