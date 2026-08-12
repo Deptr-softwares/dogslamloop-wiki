@@ -723,3 +723,22 @@
 .compiler-conflict-title { font-family: 'CC-Wild-Words', sans-serif; font-size: 0.8rem; color: #fff; margin-bottom: 0.5rem; text-transform: uppercase; }
 #btn-compiler-confirm:disabled { opacity: 0.5; }
 .version-toggle-btn { font-size: 0.7rem; padding: 0.5rem 1.25rem; }
+/* --- PER-USER CAPABILITIES (js/owner.js loadPersonnel) --- */
+/* A capability is an extra on top of a role, so it sits under the role row
+   rather than beside it - beside would read as an alternative to the role
+   select, which is exactly the confusion user_roles' UNIQUE(user_id) exists
+   to prevent. */
+.personnel-capability {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed #222;
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    color: #888;
+    cursor: pointer;
+}
+.personnel-capability:hover { color: var(--text-white); }
+.personnel-capability-box { cursor: pointer; }
