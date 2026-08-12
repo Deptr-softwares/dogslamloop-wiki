@@ -279,7 +279,14 @@ window.initMediaLibrary = function() {
 
             let mediaHTML = isVideo
                 ? `<video src="${url}" loop muted playsinline preload="metadata" class="media-thumbnail-media"></video>`
-                : `<img src="${url}" class="media-thumbnail-media">`;
+                // loading="lazy" is the whole of the library's loading fix -
+                // it already pages at 24 and videos already use
+                // preload="metadata", so this was the one place still
+                // fetching everything on the page up front. Deliberately not
+                // click-to-reveal like the moderation queue: picking media
+                // means looking at it, and hiding it behind a click would
+                // trade real usability for a saving already mostly banked.
+                : `<img src="${url}" class="media-thumbnail-media" loading="lazy">`;
 
             const badgeHTML = (isVideo || isGif)
                 ? `<div class="media-thumbnail-badge">${isVideo ? 'VIDEO' : 'GIF'}</div>`

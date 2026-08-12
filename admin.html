@@ -73,6 +73,36 @@
                     <p class="loading-msg admin-loading-msg">Authenticating RBAC...</p>
                 </div>
 
+                <!--
+                    Media moderation (v0.13 item 1). Sits below the revision
+                    queue rather than beside it: both are "things waiting for a
+                    reviewer", and splitting them across screens would mean
+                    remembering to go and look at the second one.
+                -->
+                <div class="dashboard-header-split admin-split-header media-queue-header">
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Media Queue</h3>
+                    <button onclick="loadMediaQueue()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Load</button>
+                </div>
+
+                <div class="media-queue-filters">
+                    <select id="media-queue-status" class="editor-select media-queue-filter">
+                        <option value="unchecked">Unchecked</option>
+                        <option value="flagged">Flagged</option>
+                        <option value="approved">Approved</option>
+                        <option value="all">All media</option>
+                    </select>
+                    <select id="media-queue-usage" class="editor-select media-queue-filter">
+                        <option value="all">Any usage</option>
+                        <option value="unused">Nothing references it</option>
+                        <option value="history">Only in history/pending</option>
+                        <option value="live">Used on a live page</option>
+                    </select>
+                </div>
+
+                <div id="media-queue-container" class="space-y-4">
+                    <p class="admin-queue-empty-msg">Press Load to fetch the media list.</p>
+                </div>
+
             </div>
         </aside>
 
@@ -234,5 +264,6 @@
     <script src="js/admin-actions.js"></script>
     <script src="js/admin-merge-compiler.js"></script>
     <script src="js/admin-history.js"></script>
+    <script src="js/admin-media-queue.js"></script>
 </body>
 </html>
