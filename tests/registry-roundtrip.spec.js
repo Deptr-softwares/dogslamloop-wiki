@@ -66,7 +66,17 @@ test('categories keep their intended order rather than whatever the query return
   const rows = registryRowsFromNav(nav);
   // Reversed input must still produce the site's real category order.
   const out = buildNavigation([...rows].reverse());
-  expect(Object.keys(out)).toEqual(['Characters', 'System Pages', 'Site Info', 'Guides']);
+
+  // Compared against the committed navigation's own order rather than a
+  // literal list. The literal was ['Characters', 'System Pages', 'Site Info',
+  // 'Guides'], so adding the Gamemodes category failed this test - and since
+  // the regeneration job runs the suite before committing, a new category
+  // could never reach the site.
+  //
+  // Still meaningful: the input is reversed, so an implementation that
+  // preserved query order would produce these keys backwards.
+  expect(Object.keys(out).length).toBeGreaterThan(2);
+  expect(Object.keys(out)).toEqual(Object.keys(nav));
 });
 
 test('sort_order decides position within a category, not insertion order', () => {

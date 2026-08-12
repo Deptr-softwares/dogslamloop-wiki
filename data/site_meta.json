@@ -1,5 +1,5 @@
 {
-  "version": "Beta v0.11",
+  "version": "Beta v0.12",
   "tagline": "The Competitive JJS Wiki",
   "hubs": {
     "character-hub": {
@@ -13,7 +13,7 @@
     },
     "main-hub": {
       "title": "Dogslamloop Wiki",
-      "description": "Frame data, matchups, and strategy guides for Jujutsu Shenanigans - a community-run competitive wiki.",
+      "description": "Frame data, and strategy guides for Jujutsu Shenanigans: a community-run competitive wiki.",
       "headings": {
         "about": "About Us",
         "blog": "From the Blog",
@@ -36,56 +36,56 @@
       "lists": {
         "contribute": [
           {
-            "title": "Sign in",
             "url": "",
+            "title": "Sign in",
             "description": "Use the button at the bottom of the sidebar."
           },
           {
-            "title": "Open a page and press EDIT",
             "url": "",
+            "title": "Open a page and press EDIT",
             "description": "Every character and system page has one."
           },
           {
-            "title": "Follow the Writing Guide",
             "url": "writing_guide/index.html",
+            "title": "Follow the Writing Guide",
             "description": "House style, and how frame data should be recorded."
           },
           {
-            "title": "Track your submissions",
             "url": "../submissions.html",
+            "title": "Track your submissions",
             "description": "See what was approved, and what a reviewer asked about."
           }
         ],
         "startHere": [
           {
-            "title": "Starter Guide",
+            "url": "hud/index.html",
+            "title": "HUD",
+            "description": "What is going on in the UI."
+          },
+          {
             "url": "starter-guide/index.html",
+            "title": "Starter Guide",
             "description": "What the game is, and what you should be doing in a match."
           },
           {
-            "title": "HUD",
-            "url": "hud/index.html",
-            "description": "Reading the screen: cooldowns, meters, and what the numbers mean."
-          },
-          {
-            "title": "Fundamentals",
             "url": "fundamentals/index.html",
-            "description": "Spacing, timing, and the habits that decide most matches."
+            "title": "Fundamentals",
+            "description": "The basic skills that everyone should know."
           },
           {
-            "title": "Frame Data",
-            "url": "framedata/index.html",
-            "description": "Startup, active and recovery - how to read every move page on this wiki."
-          },
-          {
-            "title": "Evasive",
-            "url": "evasive/index.html",
-            "description": "I-frames, dodging, and getting out of trouble."
-          },
-          {
-            "title": "M1 Trading",
             "url": "m1-trading/index.html",
-            "description": "The 4-frame rule, and who wins when two attacks land together."
+            "title": "M1 Trading",
+            "description": "The 4-frame rule, and kinda everything about M1 trading at high level"
+          },
+          {
+            "url": "evasive/index.html",
+            "title": "Evasive",
+            "description": "How to evasice punish like a pro"
+          },
+          {
+            "url": "framedata/index.html",
+            "title": "Frame Data",
+            "description": "How to interpret frame data on this wiki."
           }
         ]
       }
@@ -97,7 +97,7 @@
       {
         "label": "Developers",
         "value": "Tze's Shenanigans",
-        "subtext": "(Tze, Imed, Frost)"
+        "subtext": "(Tze, Imed, Frost, Fahooey)"
       },
       {
         "label": "Platform",
@@ -107,12 +107,12 @@
     "linksLabel": "Official Links",
     "links": [
       {
-        "name": "Roblox Game Page",
-        "url": "https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans"
+        "url": "https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans",
+        "name": "Roblox Game Page"
       },
       {
-        "name": "Official Discord",
-        "url": "https://discord.gg/nyTYVCDMBF"
+        "url": "https://discord.gg/nyTYVCDMBF",
+        "name": "Official Discord"
       }
     ]
   }

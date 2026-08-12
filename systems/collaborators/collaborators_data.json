@@ -9,8 +9,8 @@
       "description": "Pretty much the sole dev of Dogslamloop, worked on almost every feature in the site, and some double checking of frame data.",
       "links": [
         {
-          "name": "GitHub",
-          "url": "https://github.com/Deptr-softwares"
+          "url": "https://github.com/Deptr-softwares",
+          "name": "GitHub"
         }
       ]
     },
@@ -41,8 +41,8 @@
       "description": "Written a lot of strategy entries for the site, awesome mobile player as well.",
       "links": [
         {
-          "name": "YouTube",
-          "url": "https://www.youtube.com/@CrailsheimTS"
+          "url": "https://www.youtube.com/@CrailsheimTS",
+          "name": "YouTube"
         }
       ]
     },
@@ -55,8 +55,8 @@
       "description": "Figured out the 4-frames rule for M1 trading stuff, among other things as well.",
       "links": [
         {
-          "name": "YouTube",
-          "url": "https://www.youtube.com/@PositiveHA"
+          "url": "https://www.youtube.com/@PositiveHA",
+          "name": "YouTube"
         }
       ]
     }
