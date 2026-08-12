@@ -152,6 +152,24 @@ test('a moved block is marked where it lands', async ({ page }) => {
   const lastBox = await settled(lastCard, 'the last block card');
   expect(handleBox, 'the drag handle should be laid out and reachable').not.toBeNull();
 
+  // Record the marker as it appears, instead of looking for it afterwards.
+  //
+  // .block-just-moved is added inside a requestAnimationFrame and removed
+  // 1400ms later (js/editor-blocks.js). Reading it once after the drop means
+  // racing that window: locally the machine always won, and on CI it lost -
+  // the drag itself succeeded, the order assertion passed, and only the
+  // marker count came back 0. An observer cannot miss it, however slow the
+  // runner is.
+  await page.evaluate(() => {
+    window.__movedMarks = [];
+    new MutationObserver(() => {
+      document.querySelectorAll('#block-list .block-just-moved').forEach(card => {
+        const index = card.getAttribute('data-index');
+        if (!window.__movedMarks.includes(index)) window.__movedMarks.push(index);
+      });
+    }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+  });
+
   await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
   await page.mouse.down();
   // Past the 6px DRAG_THRESHOLD, then into the bottom half of the last card
@@ -160,19 +178,20 @@ test('a moved block is marked where it lands', async ({ page }) => {
   await page.mouse.move(lastBox.x + lastBox.width / 2, lastBox.y + lastBox.height - 4, { steps: 5 });
   await page.mouse.up();
 
-  const result = await page.evaluate(() => {
-    const marked = Array.from(document.querySelectorAll('#block-list .block-just-moved'));
-    return {
-      order: window.getActiveBlocks().map(b => b.content),
-      markedCount: marked.length,
-      markedIndex: marked[0]?.getAttribute('data-index'),
-      lastIndex: String(window.getActiveBlocks().length - 1),
-    };
-  });
+  // The observer fires on a microtask after the rAF that adds the class, so
+  // this waits for the record rather than assuming it is already written.
+  await expect
+    .poll(() => page.evaluate(() => window.__movedMarks.length), { timeout: 10000 })
+    .toBe(1);
+
+  const result = await page.evaluate(() => ({
+    order: window.getActiveBlocks().map(b => b.content),
+    marks: window.__movedMarks,
+    lastIndex: String(window.getActiveBlocks().length - 1),
+  }));
 
   expect(result.order, 'the block actually moved to the end').toEqual(['Second', 'Third', 'First']);
-  expect(result.markedCount, 'exactly one block is marked').toBe(1);
-  expect(result.markedIndex, 'and it is the one that moved').toBe(result.lastIndex);
+  expect(result.marks, 'exactly the block that moved is marked').toEqual([result.lastIndex]);
 });
 
 test('the staff cooldown perk is a switch the owner can see and flip', async ({ page }) => {

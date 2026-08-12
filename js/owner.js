@@ -718,7 +718,16 @@ async function populatePermissionPageOptions(existing) {
 
     const options = Object.values(navData).flat()
         .filter(e => e.cms_config && e.cms_config.pageId && !taken.has(e.cms_config.pageId))
-        .filter(e => ['character', 'system', 'tierlist'].includes(e.cms_config.pageType))
+        // Every page type that has an editor behind it, which is the real
+        // criterion for "can its editing be restricted". 'hub' and 'external'
+        // are excluded because there is nothing to edit: a hub is
+        // hand-authored and an external entry is a link with no page.
+        //
+        // gallery and tool were missing until 2026-08-12 - they shipped in
+        // v0.12 with their own editors, and this list was not updated, so the
+        // owner's Emotes gallery could never be locked to trusted editors.
+        // Same omission that broke the regeneration validators.
+        .filter(e => ['character', 'system', 'tierlist', 'gallery', 'tool'].includes(e.cms_config.pageType))
         .sort((a, b) => a.name.localeCompare(b.name));
 
     select.innerHTML = options.length === 0
