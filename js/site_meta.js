@@ -58,6 +58,29 @@ window.CHARACTER_COLORS = {
         'iframe-swarm': readVar('--window-color-iframe-swarm'),
         'iframe-complete': readVar('--window-color-iframe-complete')
     };
+
+    // Display names for the two dictionaries above, so anything offering these
+    // colours as a choice calls them what the frame-data legend calls them.
+    // The wording is taken from that legend (js/framedata.js) rather than
+    // invented - "InSkill Stun" and "Melee I-Frames" are the terms the people
+    // maintaining this data actually use.
+    window.FRAME_COLOR_LABELS = {
+        'bg-tick-start': 'Startup',
+        'bg-tick-active': 'Active',
+        'bg-tick-recov': 'Recovery',
+        'bg-tick-selfstun': 'Self Stun',
+        'bg-tick-inskillstun': 'InSkill Stun',
+        'bg-tick-targetstun': 'Target Stun',
+        'bg-tick-misc': 'Misc',
+        'bg-tick-blockendlag': 'Block Endlag',
+        'bg-tick-inactive': 'Inactive',
+        'reverse-hitcancel': 'Reverse Hitcancel',
+        'iframe-melee': 'Melee I-Frames',
+        'iframe-bullet': 'Bullet I-Frames',
+        'iframe-explosion': 'Explosion I-Frames',
+        'iframe-swarm': 'Swarm I-Frames',
+        'iframe-complete': 'Complete I-Frames'
+    };
 })();
 
 /**

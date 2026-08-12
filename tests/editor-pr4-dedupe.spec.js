@@ -64,7 +64,11 @@ test('strategy toolbar: format buttons, color popup, and add-block menu render w
   expect(await italicBtn.evaluate(el => getComputedStyle(el).fontStyle)).toBe('italic');
 
   const presets = page.locator('#strategy-test .color-preset-btn');
-  await expect(presets).toHaveCount(7);
+  // A floor since v0.13 item 14, which added the character and frame-data
+  // palettes to the picker. This test is about inline styles being removed,
+  // not about how many colours are offered - and the count now tracks the
+  // character roster, which the owner adds to.
+  expect(await presets.count()).toBeGreaterThanOrEqual(7);
   const firstStyle = await presets.first().getAttribute('style');
   expect(firstStyle.trim()).toBe('background: hsl(3, 93%, 63%);'); // only the genuinely-per-preset value stays inline
   expect(await presets.first().evaluate(el => getComputedStyle(el).width)).toBe('20px');

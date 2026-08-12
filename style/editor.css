@@ -369,7 +369,14 @@ input[type="checkbox"]:checked {
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.8);
     z-index: 100;
-    min-width: 140px;
+    /* Was min-width: 140px with seven swatches in it. The picker now offers
+       the character and frame-data palettes too (~45), and this popup opens
+       upward from the toolbar - so left to grow it runs off the top of the
+       screen and the last group becomes unreachable. Wide enough for nine per
+       row, then it scrolls. */
+    min-width: 248px;
+    max-height: 320px;
+    overflow-y: auto;
 }
 .format-select {
     background: transparent; color: #d1d5db; border: 1px solid #333; height: 28px;
@@ -386,6 +393,8 @@ input[type="checkbox"]:checked {
 .format-color-wrapper { position: relative; display: inline-flex; align-items: center; }
 .format-color-swatch-icon { width: 12px; height: 12px; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); border-radius: 50%; }
 .format-color-popup-label { font-size: 0.65rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; }
+/* Separates the groups without putting a gap above the first one. */
+.format-color-presets-row + .format-color-popup-label { margin-top: 0.6rem; }
 .format-color-presets-row { display: flex; gap: 4px; margin-bottom: 0.5rem; flex-wrap: wrap; }
 .color-preset-btn { width: 20px; height: 20px; border-radius: 4px; border: 1px solid #222; cursor: pointer; }
 .format-color-custom-row { border-top: 1px solid #333; padding-top: 0.5rem; display: flex; align-items: center; justify-content: space-between; }

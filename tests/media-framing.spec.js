@@ -231,25 +231,31 @@ test('a character with no portrait keeps its card shape', async ({ page }) => {
 // The renderer can only honour what someone can actually set.
 
 async function openProfileForm(page, profile) {
-  // Mocked so the editor's own page_data fetch resolves immediately. Left
-  // unmocked it lands mid-test and re-renders the builder, which replaces the
-  // custom dropdown wrappers between a click and the click that follows it.
-  await mockPageData(page, { desc: { overview: [] }, frame: { m1s: [], skills: [], specials: [] } });
+  // The mock must return the SAME data the test seeds. Mocking merely so the
+  // fetch resolves is not enough: the boot renders whatever the mock returned,
+  // the test renders what it seeded, and if those differ the builder is
+  // rendered twice with different content and the later one wins. That is
+  // what replaces a dropdown wrapper between a click and the click after it,
+  // and it surfaces as "element is not visible" rather than as a data problem.
+  const desc = {
+    overview: [], strategy: [], extras: [], matchups: [], counterplay: [], moveStrategies: {},
+    profile, playstyle: { likes: [], dislikes: [] },
+  };
+  const frame = { m1s: [], skills: [], specials: [] };
+
+  await mockPageData(page, { desc, frame });
   await page.goto('/edit.html?char=testchar&tab=overview', { waitUntil: 'networkidle' });
-  await page.evaluate((profile) => {
+  await page.evaluate(({ desc, frame }) => {
     window.currentEditorPageType = 'character';
     window.currentEditorCharId = 'testchar';
     window.currentOverviewSection = null;
     window.currentMatchupIndex = undefined;
     window.currentCounterplayIndex = undefined;
-    window.currentEditorDescData = {
-      overview: [], strategy: [], extras: [], matchups: [], counterplay: [], moveStrategies: {},
-      profile, playstyle: { likes: [], dislikes: [] },
-    };
-    window.currentEditorFrameData = { m1s: [], skills: [], specials: [] };
+    window.currentEditorDescData = JSON.parse(JSON.stringify(desc));
+    window.currentEditorFrameData = JSON.parse(JSON.stringify(frame));
     initFullTabEditor('testchar', 'overview', window.currentEditorDescData, window.currentEditorFrameData);
     window.loadOverviewSectionIntoEditor('profile');
-  }, profile);
+  }, { desc, frame });
 }
 
 // The custom dropdown (initializeMangaSelects) hides the native select behind a
@@ -337,18 +343,34 @@ test('the media box shape selector uses the site dropdown, not the browser one',
   // .editor-select also moves it off the .meta-inp `input` handler, because
   // the custom dropdown only ever dispatches `change` - so the binding has to
   // move with it or the choice silently stops being recorded.
-  await mockPageData(page, { desc: { overview: [] }, frame: { m1s: [], skills: [], specials: [] } });
-  await page.goto('/edit.html?char=testchar&tab=skills', { waitUntil: 'domcontentloaded' });
-  await page.evaluate(() => {
+  // The mock returns exactly what the test seeds, and that is the fix for a
+  // flake this test carried for two versions. It used to mock an EMPTY skills
+  // array and then seed a move on top - so the page's own boot rendered no
+  // move form while the test rendered one, and whichever landed last won. The
+  // symptom was the dropdown wrapper being swapped between opening it and
+  // clicking an option, which reads as a mysterious "element is not visible".
+  //
+  // Adding the mock in v0.12 made it worse rather than better, because it
+  // introduced a second render that disagreed. Two sources of truth that
+  // agree have no ordering to get wrong.
+  const FRAME = {
+    m1s: [], specials: [],
+    skills: [{ id: 'm', name: 'Move', stats: [], media: { src: 'x.webp', alt: '' } }],
+  };
+  // networkidle, not domcontentloaded. Matching data is necessary but not
+  // sufficient: the boot re-renders the builder regardless, and a re-render
+  // between opening the dropdown and clicking an option throws away the
+  // wrapper's `open` class, so the option is genuinely not visible. Waiting
+  // for boot to finish first means there is no second render left to land.
+  await mockPageData(page, { desc: { moveStrategies: {} }, frame: FRAME });
+  await page.goto('/edit.html?char=testchar&tab=skills', { waitUntil: 'networkidle' });
+  await page.evaluate((frame) => {
     window.currentEditorPageType = 'character';
     window.currentEditorCharId = 'testchar';
     window.currentEditorDescData = { moveStrategies: {} };
-    window.currentEditorFrameData = {
-      m1s: [], specials: [],
-      skills: [{ id: 'm', name: 'Move', stats: [], media: { src: 'x.webp', alt: '' } }],
-    };
+    window.currentEditorFrameData = JSON.parse(JSON.stringify(frame));
     initFullTabEditor('testchar', 'skills', window.currentEditorDescData, window.currentEditorFrameData);
-  });
+  }, FRAME);
 
   await expect(page.locator('#move-media-framing + .manga-select-wrapper')).toHaveCount(1);
   await pickFraming(page, 'Square');
