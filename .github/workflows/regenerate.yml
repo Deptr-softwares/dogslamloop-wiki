@@ -41,7 +41,30 @@ jobs:
       SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0cXN3anNweHltamRvcGxqbWZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMzQ1MDIsImV4cCI6MjA5NzkxMDUwMn0.6RsP5Ue1m9X8iGecXa245S3fEdYnDqML-QLux1KUAuw
 
     steps:
+      # Checked out over SSH with a deploy key, not the default GITHUB_TOKEN.
+      #
+      # The "main: require CI" ruleset requires the `test` check on anything
+      # landing on main, and a direct push carries no check run - so it can
+      # never satisfy the rule and is rejected outright. This job has to push:
+      # regenerating artifacts and then not committing them is the same as not
+      # running.
+      #
+      # A bypass entry is therefore needed, and it has to name an identity the
+      # bypass list can actually hold. The default GITHUB_TOKEN identity
+      # (github-actions[bot]) is not one: it is not a user, a team, or an
+      # installed app, so it cannot be added. A deploy key can, and is already
+      # in the list.
+      #
+      # A deploy key is also the narrowest option available here. It belongs to
+      # this repository rather than to a person, so it cannot reach anything
+      # else the owner can - which a personal access token would.
+      #
+      # Verification still happens: this job runs the full suite before it
+      # commits. The bypass skips a check the job performs on itself, not a
+      # check nobody performed.
       - uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.REGEN_DEPLOY_KEY }}
 
       - uses: actions/setup-node@v4
         with:
