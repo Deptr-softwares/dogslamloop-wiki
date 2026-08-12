@@ -18,11 +18,45 @@ test('generates a stub for every routable character and system page', () => {
   const { pages, problems } = buildPages(nav);
 
   expect(problems).toEqual([]);
-  // 22 character pages + 8 system pages. Template and the four bespoke system
-  // pages are excluded by NEVER_TOUCH; the hubs are not two-level page paths.
-  expect(pages).toHaveLength(30);
-  expect(pages.filter(p => p.pageType === 'character')).toHaveLength(22);
-  expect(pages.filter(p => p.pageType === 'system')).toHaveLength(8);
+
+  // Every stub traces back to a navigation entry - the generator must not
+  // invent pages. Template and the bespoke system pages are excluded by
+  // NEVER_TOUCH; the hubs are not two-level page paths.
+  const navUrls = Object.values(nav).flat().map(entry => String(entry.url || '').replace(/\\/g, '/'));
+  for (const page of pages) {
+    expect(navUrls, `${page.relPath} was generated but no navigation entry asks for it`)
+      .toContain(page.relPath);
+  }
+
+  // Floors, not equalities. This used to pin exact totals (30 / 22 / 8), so
+  // the day the owner created the first others/ page the suite went red -
+  // and because the regeneration job runs the suite before committing, that
+  // failure silently stopped every regeneration for three days. A count that
+  // tracks content the owner controls does not belong in a test.
+  expect(pages.length).toBeGreaterThanOrEqual(30);
+  expect(pages.filter(p => p.pageType === 'character').length).toBeGreaterThanOrEqual(22);
+  expect(pages.filter(p => p.pageType === 'system').length).toBeGreaterThanOrEqual(8);
+});
+
+test('a newly registered page gets a stub without anyone editing the tests', () => {
+  // The actual regression being locked down: creating a page is something
+  // the owner does from the owner tools, and it must not need a developer.
+  const before = buildPages(nav).pages.length;
+
+  const extended = JSON.parse(JSON.stringify(nav));
+  const firstCategory = Object.keys(extended)[0];
+  extended[firstCategory] = [...extended[firstCategory], {
+    id: 'BrandNew',
+    name: 'Brand New',
+    url: 'others/brand-new/index.html',
+    cms_config: { pageType: 'system', pageId: 'brand-new' },
+  }];
+
+  const { pages, problems } = buildPages(extended);
+
+  expect(problems).toEqual([]);
+  expect(pages).toHaveLength(before + 1);
+  expect(pages.map(p => p.relPath)).toContain('others/brand-new/index.html');
 });
 
 test('never generates a hand-authored page', () => {

@@ -66,8 +66,24 @@ jobs:
       - name: Regenerate FAQ and credits
         run: node scripts/fetch-content.js --write
 
-      - name: Regenerate page stubs
-        run: node scripts/generate-pages.js --write
+      # `npm run generate`, not generate-pages alone. This step used to write
+      # one of the five artifacts the next step checks, which made the job
+      # structurally unable to succeed at the only times it had work to do:
+      # fetching a new or renamed page leaves sitemap.xml and the hub meta
+      # tags stale, and Validate fails on them before anything is committed.
+      #
+      # That is exactly what happened. The Roulette page arrived on 2026-08-09
+      # and every scheduled run from then to 2026-08-12 died on
+      # "generate-sitemap --check FAILED", so nothing regenerated for three
+      # days - including a site version the owner had already changed.
+      #
+      # The invariant to keep: whatever `npm run validate` checks, `npm run
+      # generate` writes, and this step runs the latter. Adding a --check to
+      # validate without a matching --write in generate breaks this job, and
+      # it breaks it silently, because a passing run and a run with nothing
+      # to do look identical from the outside.
+      - name: Regenerate stubs, sitemap, hub meta and asset stamps
+        run: npm run generate
 
       - name: Validate
         run: npm run validate

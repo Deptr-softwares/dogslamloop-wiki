@@ -525,5 +525,18 @@
         "editRole": "elevated"
       }
     }
+  ],
+  "Gamemodes": [
+    {
+      "id": "Roulette",
+      "name": "Roulette",
+      "url": "others/roulette/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "system",
+        "pageId": "roulette",
+        "editRole": "open"
+      }
+    }
   ]
 }

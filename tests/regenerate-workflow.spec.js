@@ -1,0 +1,75 @@
+// The regenerate workflow's write set must cover its check set.
+//
+// This exists because of a three-day silent outage. `.github/workflows/
+// regenerate.yml` regenerated page stubs and then ran `npm run validate`,
+// which checks five artifacts - so the moment a fetch changed anything that
+// only `generate-sitemap` or `generate-hub-meta` produces, Validate failed and
+// the job exited before committing anything.
+//
+// The failure mode is what makes it worth a test. The job could only pass
+// when it had nothing to do, and "passed with nothing to do" and "worked" are
+// indistinguishable from the outside. A page renamed on 2026-08-09 broke it,
+// and it went unnoticed until someone asked why a site version they had
+// changed in the owner tools was not on the site.
+//
+// So: anything `validate` checks, `generate` must write. Adding a --check
+// without its --write breaks the regeneration job, not the test suite, which
+// is why the assertion lives here rather than being left to reviewers.
+const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
+
+const ROOT = path.join(__dirname, '..');
+const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+const workflow = fs.readFileSync(path.join(ROOT, '.github/workflows/regenerate.yml'), 'utf8');
+
+// "node scripts/generate-sitemap.js --check" -> "generate-sitemap"
+function scriptsWithFlag(command, flag) {
+    return [...String(command || '').matchAll(/node\s+scripts\/([\w-]+)\.js\s+--(\w+)/g)]
+        .filter(match => match[2] === flag)
+        .map(match => match[1]);
+}
+
+test('every artifact validate checks is one generate writes', async () => {
+    const checked = scriptsWithFlag(pkg.scripts.validate, 'check');
+    const written = scriptsWithFlag(pkg.scripts.generate, 'write');
+
+    // Sanity: a regex that silently matched nothing would make this vacuous.
+    expect(checked.length).toBeGreaterThan(1);
+
+    for (const script of checked) {
+        expect(written, `${script} is checked by validate but never written by generate`).toContain(script);
+    }
+});
+
+test('the regenerate workflow runs the whole generate script', async () => {
+    // Not a hand-picked subset of it. That subset was the bug: one of five.
+    expect(workflow).toContain('npm run generate');
+    expect(workflow).toContain('npm run validate');
+
+    // A lone generate-pages call is how this regressed the first time.
+    expect(workflow).not.toMatch(/run:\s*node scripts\/generate-pages\.js --write/);
+});
+
+test('the workflow generates before it validates', async () => {
+    // Reversed, it would check artifacts it is about to rewrite and fail on
+    // exactly the runs that had work to do - which is the original bug with
+    // the steps in a different order.
+    expect(workflow.indexOf('npm run generate')).toBeLessThan(workflow.indexOf('npm run validate'));
+});
+
+test('the workflow fetches fresh data before generating from it', async () => {
+    const lastFetch = Math.max(
+        workflow.indexOf('fetch-previews.js'),
+        workflow.indexOf('fetch-registry.js'),
+        workflow.indexOf('fetch-content.js'),
+    );
+    expect(lastFetch).toBeGreaterThan(-1);
+    expect(lastFetch).toBeLessThan(workflow.indexOf('npm run generate'));
+});
+
+test('the workflow still commits only after the suite has run', async () => {
+    // Pushes made with GITHUB_TOKEN do not trigger other workflows, so the
+    // commit this job creates would never be tested by playwright.yml.
+    expect(workflow.indexOf('npx playwright test')).toBeLessThan(workflow.indexOf('git commit'));
+});
