@@ -542,6 +542,44 @@
 .admin-tool-btn { font-size: 0.7rem; padding: 0.4rem; width: 100%; margin-top: 0.5rem; }
 .admin-tool-results { margin-top: 0.75rem; font-family: var(--text-mono); font-size: 0.7rem; color: #888; line-height: 1.4; }
 
+/* --- MEDIA MODERATION QUEUE (js/admin-media-queue.js) --- */
+/* Deliberately text-first. The media itself is not in the DOM until a
+   reviewer presses VIEW, so these rows have to be readable and sortable
+   without any thumbnail at all - a queue of newly recorded skill clips is the
+   heaviest content in the bucket and rendering twenty to choose one is the
+   wrong default. */
+.media-queue-header { margin-top: 2rem; }
+.media-queue-filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+.media-queue-filter { flex: 1; font-size: 0.7rem; padding: 0.35rem; min-width: 0; }
+.media-queue-summary { font-family: var(--text-mono); font-size: 0.7rem; color: #888; margin: 0 0 0.75rem 0; }
+
+.media-queue-row { border: 1px solid #222; border-left: 3px solid #333; padding: 0.6rem 0.75rem; background: hsl(0, 0%, 3%); }
+.media-queue-row-flagged { border-left-color: #ef4444; }
+.media-queue-row-approved { border-left-color: #22c55e; }
+.media-queue-row-unchecked { border-left-color: #eab308; }
+
+.media-queue-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+.media-queue-name { font-family: var(--text-mono); font-size: 0.72rem; color: #fff; word-break: break-all; }
+.media-queue-status-unchecked { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid #eab308; }
+.media-queue-status-approved { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid #22c55e; }
+.media-queue-status-flagged { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid #ef4444; }
+
+.media-queue-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.35rem; font-family: var(--text-mono); font-size: 0.65rem; color: #888; }
+/* The usage answer is the most useful sort in a 316-file bucket, so it is
+   coloured rather than left as one more grey line. */
+.media-queue-usage-live { color: #22c55e; }
+.media-queue-usage-history { color: #eab308; }
+.media-queue-usage-unused { color: #f97316; }
+.media-queue-pages { display: block; margin-top: 0.25rem; font-family: var(--text-mono); font-size: 0.62rem; color: #666; word-break: break-word; }
+.media-queue-note { margin: 0.4rem 0 0 0; font-family: var(--text-mono); font-size: 0.65rem; color: #ef4444; }
+
+.media-queue-preview:empty { display: none; }
+.media-queue-preview { margin-top: 0.6rem; }
+.media-queue-media { width: 100%; max-height: 220px; object-fit: contain; background: #000; border: 1px solid #222; display: block; }
+
+.media-queue-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem; }
+.media-queue-btn { font-size: 0.62rem; padding: 0.3rem 0.6rem; }
+
 /* --- MEDIA GARBAGE COLLECTION (js/owner.js) --- */
 /* Stated explicitly: .owner-group once set display:grid and beat the UA
    stylesheet's [hidden] rule, leaving every tool group on screen at once.
