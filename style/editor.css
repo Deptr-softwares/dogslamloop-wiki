@@ -823,6 +823,37 @@ input[type="checkbox"]:checked {
 .media-thumbnail-badge { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.85); color: var(--accent-blue); font-size: 0.55rem; padding: 2px 4px; font-family: var(--text-mono); border: 1px solid var(--accent-blue); z-index: 5; }
 .media-thumbnail-filename { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.85); color: #fff; font-size: 0.65rem; font-family: var(--text-mono); padding: 4px 6px; box-sizing: border-box; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top: 1px solid #333; z-index: 5; }
 
+/* --- MEDIA LIBRARY UPLOAD QUEUE (js/editor-media.js handleUploads) --- */
+/* Per-file status for a batch upload. Capped and scrollable because a drop
+   of thirty files should not push the upload zone and the pager off screen -
+   the controls have to stay reachable while the run is going. */
+.media-upload-queue {
+    max-height: 7rem;
+    overflow-y: auto;
+    margin: 0.5rem 0;
+    border: 1px dashed #333;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+}
+.media-upload-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.25rem 0.5rem;
+    border-bottom: 1px solid #1a1a1a;
+}
+.media-upload-row:last-child { border-bottom: none; }
+.media-upload-row-name { color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Bounded rather than flex-shrink: 0 - a rejection reason is a sentence, and
+   at its natural width it pushes the file name out of the row entirely. */
+.media-upload-row-detail { color: #888; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.media-upload-row-queued .media-upload-row-name { color: #888; }
+.media-upload-row-working .media-upload-row-detail { color: var(--accent-blue); }
+.media-upload-row-done .media-upload-row-detail { color: #22c55e; }
+/* A failure has to survive the rest of the run finishing on top of it. */
+.media-upload-row-failed .media-upload-row-detail { color: #ef4444; }
+.media-upload-row-failed .media-upload-row-name { color: #ef4444; }
+
 /* --- CUSTOM MODAL THEMES --- */
 .editor-modal-overlay { z-index: 10000; }
 .editor-modal-overlay.alert-layer { z-index: 10001; }
