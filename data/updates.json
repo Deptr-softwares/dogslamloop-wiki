@@ -1,6 +1,27 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.13",
+      "date": "08/12/2026",
+      "type": "site",
+      "title": "The 'New Toys' update",
+      "description": "A Tools column, ten new pages under Others, and a wider matchup scale. The editor picks up multi-file uploads and can send every tab you edited in one go.",
+      "changes": [
+        "Added a Tools column with the Skill Builder ID Reader and the Free Submit Tier List",
+        "Added ten pages under Others, including Duels, Emotes, Private Servers, Lost Medias and Game Settings",
+        "The Others column is now split into Gamemodes, Servers and Misc",
+        "Two new matchup tiers, Slight Disadvantage and Slight Advantage, bringing the scale to nine",
+        "Unwinnable is now called Hopeless, and Unloseable is now called Dominating",
+        "Submitting an edit now sends every tab that was changed, not only the tab that is open",
+        "The media library uploads several files at once instead of one at a time",
+        "MP4 uploads are turned off. A WebM of the same clip is usually 4-5x smaller, and MP4s already on the wiki keep playing",
+        "The editor's colour picker now offers every character colour and every frame type colour",
+        "Media flagged by a reviewer no longer shows anywhere on the site",
+        "Sidebar categories are easier to tell apart, and take the colour of the character page they are on",
+        "Changed a few things under the hood"
+      ]
+    },
+    {
       "version": "Beta v0.12",
       "date": "08/11/2026",
       "type": "site",
