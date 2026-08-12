@@ -80,6 +80,19 @@ ALTER FUNCTION "public"."check_revision_rate_limit"() OWNER TO "postgres";
 -- The roster needs to show the flag, so list_personnel returns it. Same
 -- SECURITY DEFINER shape and the same checklist as the original: caller check
 -- first, revoke the inherited grant, pin search_path, grant explicitly.
+--
+-- DROP first, and this is not optional. list_personnel already returns four
+-- columns; adding a fifth changes its return type, and CREATE OR REPLACE
+-- cannot do that - Postgres raises 42P13 "cannot change return type of
+-- existing function". The first version of this migration omitted the DROP,
+-- failed on exactly that, and because migrations run in a transaction it took
+-- the column, the trigger and the new RPC down with it: the merge went
+-- through, the PR was green, and nothing reached the database.
+--
+-- Dropping also drops the grants, which is why they are restated below rather
+-- than assumed to survive.
+DROP FUNCTION IF EXISTS "public"."list_personnel"();
+
 CREATE OR REPLACE FUNCTION "public"."list_personnel"()
 RETURNS TABLE (
     "user_id" uuid,
