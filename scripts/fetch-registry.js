@@ -24,6 +24,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { VALID_PAGE_TYPES, VALID_EDIT_ROLES } = require(path.join(__dirname, 'page-types.js'));
+
 const ROOT = path.join(__dirname, '..');
 const NAV_PATH = path.join(ROOT, 'data', 'navigation.json');
 const ARCHIVED_PATH = path.join(ROOT, 'data', 'archived-pages.json');
@@ -126,8 +128,6 @@ function buildArchived(rows) {
 
 /** Re-runs validate-navigation.js's rules without shelling out. */
 function validateNavigation(nav) {
-    const VALID_PAGE_TYPES = new Set(['character', 'system', 'tierlist', 'hub', 'external']);
-    const VALID_EDIT_ROLES = new Set(['open', 'elevated', 'locked']);
     const errors = [];
     const seen = new Map();
 

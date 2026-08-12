@@ -9,8 +9,7 @@
 const path = require('path');
 const nav = require(path.join(__dirname, '..', 'data', 'navigation.json'));
 
-const VALID_PAGE_TYPES = new Set(['character', 'system', 'tierlist', 'hub', 'external']);
-const VALID_EDIT_ROLES = new Set(['open', 'elevated', 'locked']);
+const { VALID_PAGE_TYPES, VALID_EDIT_ROLES } = require(path.join(__dirname, 'page-types.js'));
 
 const errors = [];
 const seenPageIds = new Map();
