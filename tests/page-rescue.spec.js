@@ -73,8 +73,15 @@ function mockRegistry(page, rows, { pageData = {} } = {}) {
 //
 // history.replaceState first, so anything reading location.pathname (and the
 // asset paths that fall out of it) sees the deep URL rather than /404.html.
+//
+// networkidle, not domcontentloaded: 404.html boots its own sidebar from
+// navigation.json, and starting the rescue while that is still in flight
+// makes the result depend on which finishes first. It held locally and lost
+// under load - 3 failures in 32 runs at 8 workers - and the tests it lost
+// were the ones asserting the plain 404 survives, including one that reads
+// the sidebar the boot had not built yet.
 async function rescueAt(page, pathname) {
-  await page.goto('/404.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/404.html', { waitUntil: 'networkidle' });
   await page.evaluate(async (p) => {
     history.replaceState({}, '', p);
     await window.initPageRescue(p);
@@ -93,7 +100,7 @@ test('every URL form of the same page is looked up', async ({ page }) => {
   // People paste all three, and GitHub Pages resolves a directory to its
   // index.html - so a lookup that only understood one form would rescue the
   // page for some visitors and not others.
-  await page.goto('/404.html', { waitUntil: 'domcontentloaded' });
+  await page.goto('/404.html', { waitUntil: 'networkidle' });
 
   const forms = await page.evaluate(() => ({
     withIndex: window.rescueCandidatePaths('/others/gamemodes/index.html'),
@@ -213,9 +220,16 @@ test('a rescued character page gets the full character skeleton', async ({ page 
 
   await rescueAt(page, '/characters/Newcomer/index.html');
 
-  await expect(page.locator('.character-title')).toHaveText('Newcomer');
-  await expect(page.locator('.character-nav .btn-manga')).toHaveCount(7);
-  await expect(page.locator('#tab-overview')).toContainText('Brand new.');
+  // Longer than the 5s default on purpose. A character page boots its
+  // fetches concurrently with a deliberate 500ms TOC delay (js/page_boot.js),
+  // so this content arrives well after initPageRescue resolves - and on a
+  // loaded runner the default was the binding constraint rather than
+  // anything being wrong. This was the last failure left in this file at
+  // 8 workers, and the one CI failed on.
+  const booted = { timeout: 15000 };
+  await expect(page.locator('.character-title')).toHaveText('Newcomer', booted);
+  await expect(page.locator('.character-nav .btn-manga')).toHaveCount(7, booted);
+  await expect(page.locator('#tab-overview')).toContainText('Brand new.', booted);
 });
 
 test('the rescued page resolves its assets from the site root', async ({ page }) => {

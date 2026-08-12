@@ -3,6 +3,7 @@
 // page's Edit button renders, and loadPageAlerts must match pages by their
 // canonical pageId, not the old display-name-ish id field.
 const { test, expect } = require('@playwright/test');
+const { VALID_PAGE_TYPES, VALID_EDIT_ROLES } = require('../scripts/page-types.js');
 
 test('navigation.json validates cleanly', async ({ page }) => {
   const response = await page.goto('/data/navigation.json');
@@ -14,8 +15,13 @@ test('navigation.json validates cleanly', async ({ page }) => {
       expect(entry.cms_config.pageId, `${entry.id} missing pageId`).toBeTruthy();
       expect(seen.has(entry.cms_config.pageId), `duplicate pageId ${entry.cms_config.pageId}`).toBeFalsy();
       seen.add(entry.cms_config.pageId);
-      expect(['character', 'system', 'tierlist', 'hub', 'external']).toContain(entry.cms_config.pageType);
-      expect(['open', 'elevated', 'locked']).toContain(entry.cms_config.editRole);
+      // From scripts/page-types.js, not restated. This line held a fourth
+      // copy of the vocabulary and was the last thing standing between the
+      // owner and a working regeneration run: it went stale exactly like the
+      // two validators did, and only failed once navigation.json actually
+      // contained a gallery page.
+      expect([...VALID_PAGE_TYPES]).toContain(entry.cms_config.pageType);
+      expect([...VALID_EDIT_ROLES]).toContain(entry.cms_config.editRole);
     }
   }
 });

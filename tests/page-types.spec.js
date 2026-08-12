@@ -79,13 +79,36 @@ test('every generated page type is a valid one', async () => {
     }
 });
 
-test('the vocabulary is defined once', async () => {
-    // The failure was three copies of one list, two of them stale. Anything
-    // re-declaring it locally puts the wedge straight back.
-    const scriptDir = path.join(__dirname, '..', 'scripts');
-    for (const file of fs.readdirSync(scriptDir).filter(f => f.endsWith('.js') && f !== 'page-types.js')) {
-        const source = fs.readFileSync(path.join(scriptDir, file), 'utf8');
-        expect(source, `${file} redeclares the page-type list`).not.toMatch(/VALID_PAGE_TYPES\s*=/);
-        expect(source, `${file} redeclares the generated-type list`).not.toMatch(/GENERATED_PAGE_TYPES\s*=/);
+test('the vocabulary is defined once, anywhere in the repo', async () => {
+    // The first version of this test scanned only scripts/ and matched on the
+    // constant's NAME. It passed while a fourth copy sat in
+    // tests/routing.spec.js as a bare array literal - which then failed the
+    // regeneration run for a second time, on the same underlying gap.
+    //
+    // So this looks for the shape of the list rather than a name, across
+    // every directory that can hold one. 'tierlist' and 'external' together
+    // are the signature: no other list in this codebase pairs them, because
+    // 'external' only ever appears as a page type.
+    const roots = ['scripts', 'tests', 'js'];
+    const offenders = [];
+
+    for (const root of roots) {
+        const dir = path.join(__dirname, '..', root);
+        for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.js'))) {
+            if (root === 'scripts' && file === 'page-types.js') continue;
+            // This file, which has to name both words to explain the rule.
+            if (root === 'tests' && file === 'page-types.spec.js') continue;
+
+            const source = fs.readFileSync(path.join(dir, file), 'utf8');
+            // A literal listing both, on one line - an inline copy of the
+            // valid-types vocabulary.
+            const inline = source.split('\n').some(line =>
+                /['"]tierlist['"]/.test(line) && /['"]external['"]/.test(line));
+            const named = /VALID_PAGE_TYPES\s*=|GENERATED_PAGE_TYPES\s*=/.test(source);
+
+            if (inline || named) offenders.push(`${root}/${file}`);
+        }
     }
+
+    expect(offenders, 'these re-declare the page-type vocabulary instead of importing it').toEqual([]);
 });
