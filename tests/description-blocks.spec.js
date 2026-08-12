@@ -65,8 +65,16 @@ test('callout badge picks up real :hover CSS from Alerts.css using --callout-col
   expect(beforeTopBorder).not.toBe(leftBorder);
 
   await badge.hover();
-  await page.waitForTimeout(250); // let the 0.15s CSS transition settle
-  const afterTopBorder = await badge.evaluate(el => getComputedStyle(el).borderTopColor);
+
+  // Polled, not slept. This was a flat 250ms wait for a 0.15s transition,
+  // which assumes the transition starts the instant hover() returns - true on
+  // a fast machine, false on a loaded CI runner where the hover is processed
+  // late, and the read then lands mid-transition on a colour that is neither
+  // the start nor the end. Waiting for the value the rule actually produces
+  // needs no estimate of how long it takes to get there.
+  //
   // On hover, Alerts.css's :hover rule tints every edge with --callout-color.
-  expect(afterTopBorder).toBe('rgb(251, 146, 60)');
+  await expect
+    .poll(() => badge.evaluate(el => getComputedStyle(el).borderTopColor), { timeout: 5000 })
+    .toBe('rgb(251, 146, 60)');
 });

@@ -13,7 +13,7 @@ Frame data, i-frames, matchup tiers and M1 trading are domain terms with real ga
 ## Deploy model
 
 - **Push to `main` deploys immediately.** No staging environment.
-- A branch ruleset requires the `test` check to pass before merge. Direct pushes to `main` are still allowed for small edits.
+- A branch ruleset (`main: require CI`, active since 2026-08-08) requires the `test` check. **Direct pushes to `main` are rejected** — a push carries no check run, so it can never satisfy the rule. Everything lands through a PR, including the regeneration job, which needs a bypass actor to push its generated artifacts. That bypass must be the **GitHub Actions app**: `actions/checkout` authenticates as `github-actions[bot]` over HTTPS, so a Deploy keys bypass does not apply to it.
 - **Migrations apply on merge, not on deploy.** Between pushing branch code and merging, anything database-backed will look broken — a missing table or `PGRST202 / schema cache` error is the expected state, not a bug.
 
 ## Commands

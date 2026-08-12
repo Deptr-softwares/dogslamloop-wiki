@@ -16,6 +16,20 @@ module.exports = defineConfig({
   testIgnore: process.env.CI ? ['**/visual.spec.js'] : [],
   fullyParallel: true,
   reporter: 'list',
+  // A suite this size cannot be all-or-nothing on a single attempt. With ~650
+  // tests, even a 0.1% per-test flake rate means 1 - 0.999^650 ~= 48% of runs
+  // show exactly one failure - which is what CI did repeatedly through v0.13,
+  // a different test each time while local runs stayed clean.
+  //
+  // Retries are not a way to stop looking. A test that passes on retry is
+  // reported as "flaky" rather than silently green, so it stays visible and
+  // fixable; what it no longer does is block a merge on a timing window that
+  // closed on a shared runner. Three genuine ones were found and fixed this
+  // way in v0.13 (a 1400ms marker, a boot race, a CSS transition), and each
+  // was a real defect in the test rather than in the site.
+  //
+  // Zero locally: a flake on a fast machine is worth seeing immediately.
+  retries: process.env.CI ? 2 : 0,
   use: {
     baseURL: 'http://localhost:8123',
     trace: 'retain-on-failure',
