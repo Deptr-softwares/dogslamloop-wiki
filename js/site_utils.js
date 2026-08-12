@@ -216,6 +216,51 @@ window.BASE_MODE_ID = 'base';
 // it renders as one extra tab instead.
 window.FRAME_MOVE_CATEGORIES = ['m1s', 'skills', 'specials', 'ultimateAtk'];
 
+// --- MATCHUP TIERS ---
+//
+// One list, because this vocabulary is read in three places that have to
+// agree: the live page (js/description.js), the editor's preview
+// (js/editor-previews.js) and the editor's own dropdown (js/editor-tabs.js).
+// It used to be two colour maps and a separate option array, which is how a
+// rename half-lands - the dropdown offers a word the renderer has no colour
+// for, and the tier renders white.
+//
+// Ordered worst-to-best from the point of view of the character whose page it
+// is, and read in that order by all three.
+window.MATCHUP_TIERS = [
+    { id: 'Hopeless',             color: '#dc2626' },
+    { id: 'Extreme Disadvantage', color: '#ef4444' },
+    { id: 'Disadvantage',         color: '#fb923c' },
+    { id: 'Slight Disadvantage',  color: '#fbbf24' },
+    { id: 'Equal',                color: '#9ca3af' },
+    { id: 'Slight Advantage',     color: '#a3e635' },
+    { id: 'Advantage',            color: '#4ade80' },
+    { id: 'Extreme Advantage',    color: '#22c55e' },
+    { id: 'Dominating',           color: '#22d3ee' },
+];
+
+// Permanent, not a migration leftover.
+//
+// The v0.13 migration renames these two words in page_data, but deliberately
+// does not touch page_history or pending_revisions: both are records of what
+// somebody actually submitted and a reviewer actually approved, and editing
+// them to say something else falsifies that record. So old revisions replay
+// with the old words for as long as the history exists, and they have to keep
+// rendering.
+window.MATCHUP_TIER_ALIASES = {
+    'Unwinnable': 'Hopeless',
+    'Unloseable': 'Dominating',
+};
+
+// Always returns something renderable. An unrecognised tier keeps its own
+// wording and renders white rather than being silently rewritten to a
+// neighbouring difficulty - a matchup rating is a claim about the game, and
+// guessing at one is worse than showing that nobody has set it properly.
+window.resolveMatchupTier = function(tier) {
+    const name = window.MATCHUP_TIER_ALIASES[tier] || tier || 'Equal';
+    return window.MATCHUP_TIERS.find(t => t.id === name) || { id: name, color: '#ffffff' };
+};
+
 // The declared modes, or [] when a character has none. Callers should treat []
 // and "one mode called base" as the same thing - the difference only decides
 // whether a toggle is worth drawing.

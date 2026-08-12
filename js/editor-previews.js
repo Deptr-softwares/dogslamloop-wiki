@@ -102,13 +102,9 @@ function renderMatchupsPreview() {
     }
 
     descData.matchups.forEach(mu => {
-        const tierColors = {
-            "Unwinnable": "#dc2626", "Extreme Disadvantage": "#ef4444",
-            "Disadvantage": "#fb923c", "Equal": "#9ca3af",
-            "Advantage": "#4ade80", "Extreme Advantage": "#22c55e",
-            "Unloseable": "#22d3ee"
-        };
-        const tierColor = tierColors[mu.tier] || "#ffffff";
+        // Same single definition the live page reads (js/site_utils.js), so
+        // the preview cannot disagree with what publishing will produce.
+        const tier = window.resolveMatchupTier(mu.tier);
         const safeOpponent = (mu.opponent || 'Unknown').replace(/\s+/g, '-');
 
         const muSection = document.createElement('section');
@@ -117,8 +113,8 @@ function renderMatchupsPreview() {
 
         let muHTML = `
             <div class="card-header-flex">
-                <h3 class="card-header-title">vs. ${mu.opponent || 'Unknown'}</h3>
-                <span class="card-tier-label" style="color: ${tierColor};">${mu.tier || 'Equal'}</span>
+                <h3 class="card-header-title">vs. ${window.escapeHtml(mu.opponent || 'Unknown')}</h3>
+                <span class="card-tier-label" style="color: ${tier.color};">${window.escapeHtml(tier.id)}</span>
             </div>
         `;
 

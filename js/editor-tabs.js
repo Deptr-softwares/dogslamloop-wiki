@@ -656,8 +656,22 @@ window.loadMatchupIntoEditor = function(idx) {
     const matchup = window.currentEditorDescData.matchups[idx];
     const container = document.getElementById('matchup-editor-container');
 
-    const tierOptions = ["Unwinnable", "Extreme Disadvantage", "Disadvantage", "Equal", "Advantage", "Extreme Advantage", "Unloseable"];
-    let tierHTML = tierOptions.map(t => `<option value="${t}" ${matchup.tier === t ? 'selected' : ''}>${t}</option>`).join('');
+    // Offered options come from the one definition in js/site_utils.js. The
+    // stored value is resolved through it first, for two reasons: a matchup
+    // written before the v0.13 rename still says "Unwinnable", and a matchup
+    // whose tier is junk (one live entry reads "Aerial Circling tier") is not
+    // in the list at all. In both cases an unresolved value would match no
+    // option, so the browser would display the first one - showing a tier
+    // nobody set, on a control that only writes when touched.
+    const currentTier = window.resolveMatchupTier(matchup.tier);
+    const offered = window.MATCHUP_TIERS.some(t => t.id === currentTier.id)
+        ? window.MATCHUP_TIERS
+        : [currentTier, ...window.MATCHUP_TIERS];
+
+    let tierHTML = offered.map(t => {
+        const value = window.escapeHtml(t.id);
+        return `<option value="${value}" ${t.id === currentTier.id ? 'selected' : ''}>${value}</option>`;
+    }).join('');
 
     container.innerHTML = `
         <div class="block-editor-container block-editor-container-tight">
@@ -666,7 +680,7 @@ window.loadMatchupIntoEditor = function(idx) {
                 <div class="editor-row">
                     <div>
                         <label class="editor-field-label-sm">Opponent Name</label>
-                        <input type="text" class="editor-input" value="${matchup.opponent || ''}" oninput="window.updateMatchupMeta(${idx}, 'opponent', this.value)" placeholder="e.g. Gojo">
+                        <input type="text" class="editor-input" value="${window.escapeHtml(matchup.opponent || '')}" oninput="window.updateMatchupMeta(${idx}, 'opponent', this.value)" placeholder="e.g. Gojo">
                     </div>
                     <div>
                         <label class="editor-field-label-sm">Difficulty Tier</label>
