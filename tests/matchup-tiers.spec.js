@@ -41,12 +41,16 @@ const FRAME = { m1s: [], skills: [], specials: [] };
 
 // The live page renders matchups inside loadPageDescriptions, which reads
 // window.currentEditorDescData first - the same path the editor preview uses.
+//
+// Seeded before navigation, deliberately. Setting it afterwards and calling
+// the renderer leaves the page's own boot still in flight, and its render
+// lands on top of the seeded one - which passes in isolation and fails under
+// a loaded suite. Seeding first means the boot render and this one read the
+// same data, so there is no ordering to get wrong.
 async function renderLive(page, desc) {
+    await page.addInitScript((data) => { window.currentEditorDescData = data; }, desc);
     await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
-    await page.evaluate(async (data) => {
-        window.currentEditorDescData = data;
-        await window.loadPageDescriptions('boomcat');
-    }, desc);
+    await page.evaluate(() => window.loadPageDescriptions('boomcat'));
 }
 
 const labels = (page) => page.locator('#tab-matchups .card-tier-label');
