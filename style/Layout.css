@@ -779,6 +779,27 @@ summary:focus-visible {
 /* Wiki content blocks: image/video, callout tooltip content, table, accordion
    (js/description.js generateHTMLForBlocks) */
 .wiki-block-image { width: 100%; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow, #000); }
+
+/* Stands in for media a moderator has flagged (js/site_utils.js
+   sweepBlockedMedia). Says what happened rather than leaving a gap, because
+   a silently missing image reads as the wiki being broken - and it replaces
+   elements in wildly different contexts (skill cards, gallery tiles, inline
+   blocks), so it sizes to whatever it lands in rather than assuming one. */
+.media-blocked-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+    width: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+    border: 1px dashed #ef4444;
+    background: rgba(239, 68, 68, 0.06);
+    color: #ef4444;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    text-align: center;
+}
 .wiki-figcaption { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; font-style: italic; }
 .wiki-video-embed { width: 100%; aspect-ratio: 16/9; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow); background: #050505; border: none; display: block; }
 .wiki-video-native { width: 100%; background: #050505; display: block; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow); }
