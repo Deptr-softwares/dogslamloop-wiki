@@ -87,7 +87,11 @@ window.measureMediaSource = function(source) {
  * onStatus is optional and exists so a caller can show progress in whatever
  * element it owns.
  */
-window.uploadWikiMedia = async function(file, onStatus = () => {}) {
+// alsoKnown is the batch's own history: names uploaded earlier in the same
+// run, which the bucket listing below was taken before. Without it, two
+// images called logo.png and logo.jpg both resolve to logo.webp and the
+// second one gets a raw storage error instead of the guard's explanation.
+window.uploadWikiMedia = async function(file, onStatus = () => {}, alsoKnown = []) {
     if (!window.supabaseClient) return { error: 'Not connected to the database.' };
 
     const lastDotIndex = file.name.lastIndexOf('.');
@@ -96,6 +100,24 @@ window.uploadWikiMedia = async function(file, onStatus = () => {}) {
 
     const isVideo = file.type.startsWith('video/');
     const isGif = file.type.includes('gif');
+
+    // MP4 uploads are refused (owner, 2026-08-12). This is an upload gate and
+    // nothing else: every MP4 already on the wiki keeps playing, the library
+    // still lists them, and no renderer changed. The site did not stop
+    // supporting the format - it stopped accepting new ones.
+    //
+    // The reason is bytes. Measured across the whole library on 2026-08-11,
+    // MP4 was 18% of the files and 56% of the total size, averaging 4.6x a
+    // WebM. Format is a far bigger lever here than any size cap.
+    //
+    // Tested on the extension as well as the type, because a file renamed by
+    // hand arrives with an empty or mismatched type and a MIME-only check
+    // would wave it through.
+    if (file.type === 'video/mp4' || originalExt === '.mp4') {
+        return { error: `MP4 uploads are turned off - convert the clip to WebM first.
+
+A WebM of the same clip is usually 4-5x smaller and plays exactly the same on the site. MP4s already on the wiki keep working; this only applies to new uploads.` };
+    }
 
     const needsConversion = !isVideo && !isGif && originalExt !== '.webp';
     let finalName = baseName + (needsConversion ? '.webp' : originalExt);
@@ -109,7 +131,8 @@ window.uploadWikiMedia = async function(file, onStatus = () => {}) {
         const { data } = await window.supabaseClient.storage.from('wiki-media').list('', { limit: 1000 });
         known = data || [];
     }
-    if (known.some(f => f.name.toLowerCase() === finalName.toLowerCase())) {
+    const taken = [...known.map(f => f.name), ...alsoKnown];
+    if (taken.some(name => String(name).toLowerCase() === finalName.toLowerCase())) {
         return { error: `A file named "${finalName}" already exists in the Cloud.
 
 Rename your file (e.g. append "_v2") before uploading, so you do not break pages already using the old one.` };
@@ -308,21 +331,96 @@ window.initMediaLibrary = function() {
 
     // Upload Logic
     // Thin UI wrapper. All the actual rules - extension handling, WebP
-    // conversion, the overwrite guard - live in window.uploadWikiMedia below
+    // conversion, the overwrite guard - live in window.uploadWikiMedia above
     // so the gallery editor can upload without reimplementing any of it.
-    async function handleUpload(file) {
+    //
+    // The handler used to read files[0] and drop the rest, on a library whose
+    // whole use is bulk: seven clips uploaded one at a time inside fifty
+    // minutes, measured 2026-08-09.
+    //
+    // Sequential rather than parallel, deliberately. The overwrite guard reads
+    // a snapshot of the bucket, so uploads in flight together can both pass it
+    // for the same name; and the WebP conversion is canvas work competing for
+    // the same main thread anyway.
+    let uploadInProgress = false;
+
+    function renderUploadQueue(entries) {
+        const box = document.getElementById('media-upload-queue');
+        if (!box) return;
+
+        box.hidden = entries.length === 0;
+        // File names come from the uploader's disk, so they are escaped like
+        // any other value reaching innerHTML.
+        box.innerHTML = entries.map(entry => `
+            <div class="media-upload-row media-upload-row-${entry.state}">
+                <span class="media-upload-row-name">${window.escapeHtml(entry.name)}</span>
+                <span class="media-upload-row-detail">${window.escapeHtml(entry.detail)}</span>
+            </div>
+        `).join('');
+    }
+
+    async function handleUploads(files) {
+        if (!files.length) return;
+
+        // A second batch starting mid-run would interleave with the first and
+        // race the same overwrite guard.
+        if (uploadInProgress) {
+            window.editorAlert('An upload is already running. Wait for it to finish before starting another.');
+            return;
+        }
+        uploadInProgress = true;
+
         const uploadText = document.getElementById('media-upload-text');
         const oldText = uploadText ? uploadText.textContent : '';
         if (uploadText) uploadText.style.color = "var(--accent-blue)";
 
-        const result = await window.uploadWikiMedia(file, (status) => {
-            if (uploadText) uploadText.textContent = status;
-        });
+        const entries = files.map(file => ({ name: file.name, state: 'queued', detail: 'Waiting' }));
+        renderUploadQueue(entries);
+
+        // Names accepted so far this run. The bucket listing the guard uses
+        // was taken before any of them existed.
+        const uploadedNames = [];
+
+        for (let i = 0; i < files.length; i++) {
+            const entry = entries[i];
+            entry.state = 'working';
+            entry.detail = 'Starting...';
+            renderUploadQueue(entries);
+            if (uploadText) uploadText.textContent = `Uploading ${i + 1} of ${files.length}...`;
+
+            const result = await window.uploadWikiMedia(
+                files[i],
+                (status) => { entry.detail = status; renderUploadQueue(entries); },
+                uploadedNames
+            );
+
+            // One rejected file does not cancel the rest. A duplicate name
+            // halfway through a run of ten used to mean starting the run over.
+            if (result.error) {
+                entry.state = 'failed';
+                entry.detail = String(result.error).split('\n')[0];
+            } else {
+                entry.state = 'done';
+                entry.detail = result.name;
+                uploadedNames.push(result.name);
+            }
+            renderUploadQueue(entries);
+        }
 
         if (uploadText) { uploadText.textContent = oldText; uploadText.style.color = ""; }
+        uploadInProgress = false;
 
-        if (result.error) { window.editorAlert(result.error); return; }
-        window.loadMediaGallery(); // Instantly refresh the grid
+        // Once, at the end - refreshing per file re-lists the whole bucket
+        // between every upload.
+        if (uploadedNames.length > 0) await window.loadMediaGallery();
+
+        const failed = entries.filter(entry => entry.state === 'failed');
+        if (failed.length > 0) {
+            window.editorAlert(
+                `${uploadedNames.length} of ${files.length} uploaded.\n\nNot uploaded:\n` +
+                failed.map(entry => `• ${entry.name} - ${entry.detail}`).join('\n')
+            );
+        }
     }
 
     btnRefresh.addEventListener('click', window.loadMediaGallery);
@@ -334,7 +432,11 @@ window.initMediaLibrary = function() {
     });
 
     fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) handleUpload(e.target.files[0]);
+        const files = Array.from(e.target.files);
+        // Cleared before handling, so picking the same file again still fires
+        // a change event - otherwise a retry after a failure looks dead.
+        e.target.value = '';
+        handleUploads(files);
     });
 
     dropZone.addEventListener('dragover', (e) => {
@@ -350,7 +452,7 @@ window.initMediaLibrary = function() {
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropZone.classList.remove('media-upload-zone-dragover');
-        if (e.dataTransfer.files.length > 0) handleUpload(e.dataTransfer.files[0]);
+        handleUploads(Array.from(e.dataTransfer.files));
     });
 };
 
