@@ -193,15 +193,15 @@
                 </div>
             </div>
 
-            <!-- One submission covers one tab. The editor lets you move
-                 freely between tabs and everything you type is kept, but only
-                 the tab you are on when you press Submit becomes a ticket -
-                 so work on another tab is saved locally and never sent. That
-                 is genuinely surprising, and until v0.13 makes multi-tab
-                 submission possible the honest fix is to say so. -->
+            <!-- This used to read "One tab per submission", because only the
+                 open tab became a ticket and work on the others was silently
+                 dropped. v0.13 scans every tab, so the notice is now the
+                 opposite reassurance: keep editing across tabs, one Submit
+                 sends the lot. Kept as a line rather than removed, since the
+                 old behaviour trained people to submit tab by tab. -->
             <p class="editor-scope-tip">
-                <strong>One tab per submission.</strong>
-                Submit sends the tab you are currently on. Switch tabs and submit again to send another.
+                <strong>One submission covers every tab.</strong>
+                Edit as many tabs as you like &mdash; Submit sends everything you changed, as one request.
             </p>
 
             <!-- Major tab navigation, in the same shape the live character

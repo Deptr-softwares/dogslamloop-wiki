@@ -745,76 +745,93 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
                 // --- CHARACTER PAYLOAD ENGINE ---
-                else if ((window.FRAME_MOVE_CATEGORIES || []).includes(tabId)) {
-                    const localMoves = window.currentEditorFrameData[tabId] || [];
-                    const cloudMoves = window.originalCloudFrameData[tabId] || [];
-                    
-                    localMoves.forEach(m => {
-                        const oldFrame = cloudMoves.find(old => old.id === m.id);
-                        const oldDesc = window.originalCloudDescData.moveStrategies?.[m.id];
-                        const newDesc = window.currentEditorDescData.moveStrategies?.[m.id];
+                //
+                // Scans EVERY tab, not just the open one. This used to be a
+                // chain of `else if (tabId === ...)`, so a contributor who
+                // edited Overview, then Skills, then Matchups and pressed
+                // Submit once shipped only whatever tab happened to be open -
+                // the other two were silently dropped. The v0.12 "One tab per
+                // submission" notice was the stopgap; this retires it.
+                //
+                // Nothing had to be fetched to make this work: the editor
+                // already holds the whole desc_data/frame_data object and only
+                // switches which slice it renders, and switchEditorTab flushes
+                // the open block buffer before moving. So every tab's edits are
+                // already in memory by the time Submit is pressed - the scan
+                // just never looked at them.
+                //
+                // Still one delta per section, so the reviewer side is
+                // unchanged: several deltas from one submission become a
+                // `multi` ticket, which admin already compiles and renders.
+                else {
+                    const scanMoveTab = (moveTab) => {
+                        const localMoves = (window.currentEditorFrameData || {})[moveTab] || [];
+                        const cloudMoves = (window.originalCloudFrameData || {})[moveTab] || [];
 
-                        if (isDiff(m, oldFrame) || isDiff(newDesc, oldDesc)) {
-                            payloadsToInsert.push(buildPayload('move', `${tabId}::${m.id}`, {
-                                frame_data: m,
-                                desc_data: newDesc || []
-                            }));
-                        }
-                    });
-                    
-                    cloudMoves.forEach(oldM => {
-                        if (!localMoves.find(m => m.id === oldM.id)) {
-                            payloadsToInsert.push(buildPayload('move', `${tabId}::${oldM.id}`, null));
-                        }
-                    });
-                } else if (tabId === 'overview') {
-                    ['profile', 'playstyle', 'overview', 'strategy'].forEach(sec => {
-                        if (isDiff(window.currentEditorDescData[sec], window.originalCloudDescData[sec])) {
-                            payloadsToInsert.push(buildPayload(sec, 'full', window.currentEditorDescData[sec]));
-                        }
-                    });
-                    
-                    const localExtras = window.currentEditorDescData.extras || [];
-                    const cloudExtras = window.originalCloudDescData.extras || [];
-                    
-                    localExtras.forEach(ext => {
-                        const oldExt = cloudExtras.find(o => o.title === ext.title);
-                        if (isDiff(ext, oldExt)) payloadsToInsert.push(buildPayload('extra', ext.title, ext));
-                    });
-                    
-                    cloudExtras.forEach(oldExt => {
-                        if (!localExtras.find(e => e.title === oldExt.title)) {
-                            payloadsToInsert.push(buildPayload('extra', oldExt.title, null));
-                        }
-                    });
-                } else if (tabId === 'matchups') {
-                    const localMus = window.currentEditorDescData.matchups || [];
-                    const cloudMus = window.originalCloudDescData.matchups || [];
-                    
-                    localMus.forEach(mu => {
-                        const oldMu = cloudMus.find(o => o.opponent === mu.opponent);
-                        if (isDiff(mu, oldMu)) payloadsToInsert.push(buildPayload('matchup', mu.opponent, mu));
-                    });
-                    
-                    cloudMus.forEach(oldMu => {
-                        if (!localMus.find(m => m.opponent === oldMu.opponent)) {
-                            payloadsToInsert.push(buildPayload('matchup', oldMu.opponent, null));
-                        }
-                    });
-                } else if (tabId === 'counterplay') {
-                    const localCps = window.currentEditorDescData.counterplay || [];
-                    const cloudCps = window.originalCloudDescData.counterplay || [];
-                    
-                    localCps.forEach(cp => {
-                        const oldCp = cloudCps.find(o => o.topic === cp.topic);
-                        if (isDiff(cp, oldCp)) payloadsToInsert.push(buildPayload('counterplay', cp.topic, cp));
-                    });
-                    
-                    cloudCps.forEach(oldCp => {
-                        if (!localCps.find(c => c.topic === oldCp.topic)) {
-                            payloadsToInsert.push(buildPayload('counterplay', oldCp.topic, null));
-                        }
-                    });
+                        localMoves.forEach(m => {
+                            const oldFrame = cloudMoves.find(old => old.id === m.id);
+                            const oldDesc = window.originalCloudDescData.moveStrategies?.[m.id];
+                            const newDesc = window.currentEditorDescData.moveStrategies?.[m.id];
+
+                            if (isDiff(m, oldFrame) || isDiff(newDesc, oldDesc)) {
+                                payloadsToInsert.push(buildPayload('move', `${moveTab}::${m.id}`, {
+                                    frame_data: m,
+                                    desc_data: newDesc || []
+                                }));
+                            }
+                        });
+
+                        cloudMoves.forEach(oldM => {
+                            if (!localMoves.find(m => m.id === oldM.id)) {
+                                payloadsToInsert.push(buildPayload('move', `${moveTab}::${oldM.id}`, null));
+                            }
+                        });
+                    };
+
+                    const scanOverview = () => {
+                        ['profile', 'playstyle', 'overview', 'strategy'].forEach(sec => {
+                            if (isDiff(window.currentEditorDescData[sec], window.originalCloudDescData[sec])) {
+                                payloadsToInsert.push(buildPayload(sec, 'full', window.currentEditorDescData[sec]));
+                            }
+                        });
+
+                        const localExtras = window.currentEditorDescData.extras || [];
+                        const cloudExtras = window.originalCloudDescData.extras || [];
+
+                        localExtras.forEach(ext => {
+                            const oldExt = cloudExtras.find(o => o.title === ext.title);
+                            if (isDiff(ext, oldExt)) payloadsToInsert.push(buildPayload('extra', ext.title, ext));
+                        });
+
+                        cloudExtras.forEach(oldExt => {
+                            if (!localExtras.find(e => e.title === oldExt.title)) {
+                                payloadsToInsert.push(buildPayload('extra', oldExt.title, null));
+                            }
+                        });
+                    };
+
+                    // Matchups and counterplay are the same shape, keyed by a
+                    // different field.
+                    const scanKeyedList = (field, keyField, scope) => {
+                        const local = window.currentEditorDescData[field] || [];
+                        const cloud = window.originalCloudDescData[field] || [];
+
+                        local.forEach(entry => {
+                            const old = cloud.find(o => o[keyField] === entry[keyField]);
+                            if (isDiff(entry, old)) payloadsToInsert.push(buildPayload(scope, entry[keyField], entry));
+                        });
+
+                        cloud.forEach(old => {
+                            if (!local.find(e => e[keyField] === old[keyField])) {
+                                payloadsToInsert.push(buildPayload(scope, old[keyField], null));
+                            }
+                        });
+                    };
+
+                    (window.FRAME_MOVE_CATEGORIES || []).forEach(scanMoveTab);
+                    scanOverview();
+                    scanKeyedList('matchups', 'opponent', 'matchup');
+                    scanKeyedList('counterplay', 'topic', 'counterplay');
                 }
 
                 if (payloadsToInsert.length === 0 && !window.interceptedTicketData) {
