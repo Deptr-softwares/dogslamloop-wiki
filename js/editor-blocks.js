@@ -14,6 +14,73 @@
  * and editor-framedata.js's initDawEditor.
  */
 
+// --- COLOUR PRESETS ---
+//
+// The picker used to offer seven hardcoded swatches while the site's two real
+// palettes already existed and were used everywhere else, so colouring text to
+// match a character or a frame phase meant reading a hex out of the CSS by
+// hand.
+//
+// Built at render time rather than as a module constant. FRAME_COLORS and
+// WINDOW_COLORS are read out of CSS custom properties by an IIFE in
+// js/site_meta.js, so anything evaluated while this file parses can capture
+// them before ColorCoding.css has been applied - a constant here would be a
+// row of empty strings.
+
+// The original seven. Kept as their own group because they are the neutral
+// choices, and a writer who wants "just red" should not have to find one
+// among two dozen character colours.
+const BASIC_PRESET_COLORS = [
+    'hsl(3, 93%, 63%)', 'hsl(217, 91%, 60%)', 'hsl(127, 59%, 58%)', 'hsl(261, 86%, 86%)',
+    'hsl(39, 100%, 50%)', 'hsl(180, 100%, 50%)', 'hsl(0, 0%, 50%)',
+];
+
+// Whitelisted rather than escaped, because these land inside a style
+// attribute where escaping alone would not stop a value closing the
+// declaration and adding its own. Everything here comes from our own
+// dictionaries today; the check costs one line and survives someone editing a
+// CSS custom property later.
+const SAFE_CSS_COLOR = /^(#[0-9a-f]{3,8}|(?:hsla?|rgba?)\([0-9%.,\s/-]+\))$/i;
+
+function colorPresetGroups() {
+    const fromDictionary = (dict) => Object.entries(dict || {}).map(([key, color]) => ({
+        color: String(color || '').trim(),
+        // Falls back to the key so a colour added to the dictionary without a
+        // label still appears, rather than silently vanishing from the picker.
+        label: (window.FRAME_COLOR_LABELS || {})[key] || key,
+    }));
+
+    const groups = [
+        { label: 'Basic', swatches: BASIC_PRESET_COLORS.map(color => ({ color, label: color })) },
+        {
+            label: 'Characters',
+            swatches: Object.entries(window.CHARACTER_COLORS || {})
+                .map(([label, color]) => ({ color: String(color || '').trim(), label })),
+        },
+        {
+            label: 'Frame types',
+            swatches: [
+                ...fromDictionary(window.FRAME_COLORS),
+                ...fromDictionary(window.WINDOW_COLORS),
+            ],
+        },
+    ];
+
+    // A missing CSS variable reads as an empty string, which would render an
+    // invisible swatch that applies no colour when clicked.
+    return groups
+        .map(group => ({ ...group, swatches: group.swatches.filter(s => SAFE_CSS_COLOR.test(s.color)) }))
+        .filter(group => group.swatches.length > 0);
+}
+
+function colorPresetsHTML() {
+    return colorPresetGroups().map(group => `
+                        <div class="format-color-popup-label">${window.escapeHtml(group.label)}</div>
+                        <div class="format-color-presets-row">
+                            ${group.swatches.map(swatch => `<button class="color-preset-btn" data-color="${window.escapeHtml(swatch.color)}" style="background: ${swatch.color};" title="${window.escapeHtml(swatch.label)}"></button>`).join('')}
+                        </div>`).join('');
+}
+
 // --- BLOCK BUILDER STATE ---
 let currentStrategyBlocks = [];
 let blockHistory = [];
@@ -132,16 +199,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
                         <div class="format-color-swatch-icon"></div> 🎨
                     </button>
                     <div id="format-color-popup" class="format-color-popup hidden">
-                        <div class="format-color-popup-label">Presets</div>
-                        <div class="format-color-presets-row">
-                            <button class="color-preset-btn" data-color="hsl(3, 93%, 63%)" style="background: hsl(3, 93%, 63%);"></button>
-                            <button class="color-preset-btn" data-color="hsl(217, 91%, 60%)" style="background: hsl(217, 91%, 60%);"></button>
-                            <button class="color-preset-btn" data-color="hsl(127, 59%, 58%)" style="background: hsl(127, 59%, 58%);"></button>
-                            <button class="color-preset-btn" data-color="hsl(261, 86%, 86%)" style="background: hsl(261, 86%, 86%);"></button>
-                            <button class="color-preset-btn" data-color="hsl(39, 100%, 50%)" style="background: hsl(39, 100%, 50%);"></button>
-                            <button class="color-preset-btn" data-color="hsl(180, 100%, 50%)" style="background: hsl(180, 100%, 50%);"></button>
-                            <button class="color-preset-btn" data-color="hsl(0, 0%, 50%)" style="background: hsl(0, 0%, 50%);"></button>
-                        </div>
+                        ${colorPresetsHTML()}
                         <div class="format-color-custom-row">
                             <span class="format-color-custom-label">Custom Hex</span>
                             <input type="color" id="format-custom-color" value="#ffffff" class="format-color-custom-input">
