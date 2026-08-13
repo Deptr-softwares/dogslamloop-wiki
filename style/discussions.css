@@ -1,0 +1,239 @@
+/* --- PER-CHARACTER DISCUSSION THREADS (v0.14 item 1) ---
+
+   Its own file rather than an addition to Layout.css or Cards.css. Nothing
+   here is shared with another surface, and the classes this project has had
+   trouble with (.btn-sys, .btn-manga, .character-mode-chip) are exactly the
+   ones used across contexts that do not reference each other. The only shared
+   classes below are the two button ones, used as-is with no overrides.
+
+   Visually this is deliberately quieter than the article above it. A
+   discussion is readers talking about the page, not part of it, and matching
+   the frame-data cards' weight would make the two compete. */
+
+.discussion-section {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 2px solid var(--border-color);
+}
+
+.discussion-title {
+    margin-bottom: 1.25rem;
+}
+
+/* --- COMPOSER --- */
+
+.discussion-composer {
+    margin-bottom: 1.5rem;
+}
+
+.discussion-composer-heading {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-blue);
+    margin-bottom: 0.4rem;
+}
+
+.discussion-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    color: var(--text-white);
+    font-family: inherit;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    padding: 0.75rem;
+    resize: vertical;
+}
+
+.discussion-textarea:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+}
+
+.discussion-composer-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.discussion-composer-status {
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.discussion-status-error {
+    color: #ef4444;
+}
+
+/* --- SIGN-IN PROMPT AND EMPTY STATE --- */
+
+.discussion-signin {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    background: var(--bg-secondary);
+    border: 2px dashed var(--border-color);
+    padding: 0.9rem 1.1rem;
+    margin-bottom: 1.5rem;
+}
+
+.discussion-signin-text {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* An empty thread is the state most readers meet first, and it decides
+   whether the feature reads as alive or broken. Styled as an invitation -
+   dashed, roomy, centred - rather than as an error box. */
+.discussion-empty {
+    text-align: center;
+    padding: 2rem 1rem;
+    border: 2px dashed var(--border-color);
+}
+
+.discussion-empty-title {
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 1rem;
+    color: var(--text-white);
+    margin: 0 0 0.4rem 0;
+}
+
+.discussion-empty-body {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    max-width: 34rem;
+    margin-inline: auto;
+}
+
+.discussion-error {
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* --- POSTS --- */
+
+.discussion-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.discussion-post {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    box-shadow: 3px 3px 0px var(--manga-shadow);
+    padding: 0.9rem 1.1rem;
+}
+
+.discussion-post-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    margin-bottom: 0.4rem;
+}
+
+.discussion-author {
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    font-weight: bold;
+    letter-spacing: 0.04em;
+    color: var(--accent-blue);
+}
+
+.discussion-time {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.discussion-body {
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--text-white);
+    overflow-wrap: break-word;
+}
+
+.discussion-body-removed {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.discussion-post-removed {
+    opacity: 0.75;
+}
+
+/* The target of a reply notification, so landing on the page puts the post
+   somebody was told about under an obvious marker rather than merely
+   somewhere on screen. */
+.discussion-post-linked {
+    border-color: var(--accent-yellow);
+}
+
+.discussion-post-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.discussion-action-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.discussion-action-btn:hover {
+    color: var(--accent-blue);
+}
+
+.discussion-action-danger:hover {
+    color: #ef4444;
+}
+
+/* --- REPLIES ---
+   One level only, so a single indent is the whole depth story. The left rule
+   is what carries it: no nesting to communicate, just membership. */
+
+.discussion-replies {
+    margin-top: 0.9rem;
+    padding-left: 1rem;
+    border-left: 2px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.discussion-reply {
+    padding: 0.5rem 0;
+}
+
+.discussion-more {
+    margin-top: 1.25rem;
+}
+
+@media (max-width: 700px) {
+    .discussion-section {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+    }
+    /* The indent is worth less than the reading width on a phone. */
+    .discussion-replies {
+        padding-left: 0.6rem;
+    }
+}
