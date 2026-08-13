@@ -297,6 +297,8 @@ window.initAuthDock = async function() {
     // role. Only drives the dock icon today, but it is the kind of default
     // that quietly becomes a real bug the first time something gates on it.
     let userRole = 'none'; let username = 'LOGIN'; let unreadCount = 0;
+    // A capability, not a role - see the OVERSEER button below.
+    let canModerate = false;
     if (window.supabaseClient) {
         try {
             // Fetch the FULL session so we can pass it to our universal name extractor
@@ -305,8 +307,13 @@ window.initAuthDock = async function() {
                 // Uses the unified Site Utils function to grab your exact Profile Name
                 username = typeof window.getDisplayName === 'function' ? window.getDisplayName(session) : session.user.email.split('@')[0];
                 
-                const { data: roleData } = await window.supabaseClient.from('user_roles').select('role').eq('user_id', session.user.id).single();
+                // select('*'): the OVERSEER button below is gated on a
+                // capability column as well as on the role, and naming columns
+                // here would break the whole dock on any deploy where this
+                // file is newer than the database.
+                const { data: roleData } = await window.supabaseClient.from('user_roles').select('*').eq('user_id', session.user.id).single();
                 if (roleData) userRole = roleData.role;
+                if (roleData && roleData.can_moderate === true) canModerate = true;
                 
                 // user_notifications, not system_inbox - the latter has no
                 // migration and has never existed, so this count was always 0
@@ -352,12 +359,19 @@ window.initAuthDock = async function() {
     let html = '';
 
     // 1. OVERSEER PANEL (Pathing Fixed)
-    // Must match admin.html's own RBAC gate (js/admin-core.js) exactly -
-    // admin/reviewer only. Previously also listed contributor/trusted_editor,
-    // which showed a working-looking button that dead-ended at admin.html's
-    // access-denied screen for those roles.
+    // Must match admin.html's own RBAC gate (js/admin-core.js) exactly.
+    // Previously this also listed contributor/trusted_editor, which showed a
+    // working-looking button that dead-ended at admin.html's access-denied
+    // screen - so the two lists drifting apart has cost this project once
+    // already, and they are changed together or not at all.
+    //
+    // can_moderate joined the list on 2026-08-13. It is a capability rather
+    // than a role: user_roles has UNIQUE(user_id) because a second row broke
+    // get_my_role() for that user everywhere, so "let this person moderate"
+    // must never become a second role. admin-core.js scopes what they see once
+    // they arrive - reports only, no revision or media queue.
     const elevatedRoles = ['admin', 'reviewer'];
-    if (elevatedRoles.includes(userRole.toLowerCase())) {
+    if (elevatedRoles.includes(userRole.toLowerCase()) || canModerate) {
         html += `
             <button id="dock-btn-edit" class="btn-sys btn-sys-purple dock-action-btn" onclick="window.location.href='${rootPath}admin.html'">
                 <span class="btn-manga-icon dock-action-icon">${svgGear}</span>

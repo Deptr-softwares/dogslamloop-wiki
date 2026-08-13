@@ -872,3 +872,10 @@
     font-size: 0.62rem;
     color: var(--text-muted);
 }
+
+/* Moderator-only view (v0.14). A moderator is on the staff page to work the
+   report queue and nothing else, so the control that swaps to the revision
+   preview on mobile has nothing to swap to. The queues themselves are hidden
+   by js/admin-core.js rather than here, because that has to happen before
+   anything loads - a CSS rule would let them flash in first. */
+body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
