@@ -151,7 +151,21 @@ window.buildPageSkeleton = function (route, rootPath) {
 
                 <h1 class="character-title">${esc(route.title || route.pageId)}</h1>
 
-                <div id="character-mode-bar" class="character-mode-bar hidden" role="tablist" aria-label="Character mode"></div>
+                <!-- The state chips and the jump-to-discussion button share a
+                     row, but the button is a SIBLING of the bar rather than a
+                     child of it. #character-mode-bar hides itself entirely for
+                     a character with fewer than two states, which is 20 of the
+                     22 - putting the button inside it would mean the button
+                     only existed on the two characters that happen to have an
+                     ultimate. -->
+                <div class="character-toolbar">
+                    <div id="character-mode-bar" class="character-mode-bar hidden" role="tablist" aria-label="Character mode"></div>
+
+                    <button type="button" id="btn-jump-discussion" class="btn-sys btn-sys-regular btn-jump-discussion" aria-label="Jump to the discussion">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                        <span id="jump-discussion-count" class="jump-discussion-count"></span>
+                    </button>
+                </div>
 
                 <nav class="character-nav">${navButtons}
 

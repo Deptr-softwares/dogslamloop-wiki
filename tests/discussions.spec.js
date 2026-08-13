@@ -38,8 +38,11 @@ const post = (over = {}) => ({
 // a small hand-rolled chain rather than a Proxy because these tests care about
 // WHICH filters were applied - .is('parent_id', null) versus .in('parent_id',
 // ids) is the difference between two queries with different meanings.
-async function mockThread(page, { rows = [], session = null, role = null, insertError = null, rpcError = null } = {}) {
-    await page.addInitScript(({ rows, session, role, insertError, rpcError }) => {
+async function mockThread(page, {
+    rows = [], session = null, role = null, roleRow = null,
+    insertError = null, rpcError = null, selectError = null, count = null,
+} = {}) {
+    await page.addInitScript(({ rows, session, role, roleRow, insertError, rpcError, selectError, count }) => {
         window.__inserts = [];
         window.__rpcCalls = [];
 
@@ -60,27 +63,32 @@ async function mockThread(page, { rows = [], session = null, role = null, insert
 
                     client.rpc = async (name, params) => {
                         window.__rpcCalls.push({ name, params });
-                        if (name === 'remove_my_discussion_post') {
-                            return rpcError ? { data: null, error: rpcError } : { data: 'Post removed.', error: null };
+                        if (name === 'remove_my_discussion_post' || name === 'moderate_discussion_post') {
+                            return rpcError ? { data: null, error: rpcError } : { data: 'ok', error: null };
                         }
                         return { data: null, error: null };
                     };
 
                     client.from = (table) => {
                         if (table === 'user_roles') {
+                            // roleRow carries the whole row, capabilities and
+                            // all, because the client reads can_moderate off
+                            // it. `role` alone stays supported for the tests
+                            // that only care about the soft ban.
+                            const row = roleRow || (role ? { role } : null);
                             const chain = {
                                 select() { return this; },
                                 eq() { return this; },
-                                maybeSingle: async () => ({ data: role ? { role } : null, error: null }),
-                                then: (resolve) => resolve({ data: role ? [{ role }] : [], error: null }),
+                                maybeSingle: async () => ({ data: row, error: null }),
+                                then: (resolve) => resolve({ data: row ? [row] : [], error: null }),
                             };
                             return chain;
                         }
 
                         if (table === 'page_discussions') {
-                            const q = { topLevelOnly: false, parents: null };
+                            const q = { topLevelOnly: false, parents: null, head: false };
                             const chain = {
-                                select() { return this; },
+                                select(_cols, opts) { if (opts && opts.head) q.head = true; return this; },
                                 eq() { return this; },
                                 is(col, val) { if (col === 'parent_id' && val === null) q.topLevelOnly = true; return this; },
                                 in(col, vals) { if (col === 'parent_id') q.parents = vals; return this; },
@@ -91,6 +99,11 @@ async function mockThread(page, { rows = [], session = null, role = null, insert
                                     return Promise.resolve(insertError ? { data: null, error: insertError } : { data: payload, error: null });
                                 },
                                 then(resolve) {
+                                    if (selectError) return resolve({ data: null, error: selectError });
+                                    // The count query is head-only: no rows, a
+                                    // count, and that is the whole response.
+                                    if (q.head) return resolve({ data: null, count, error: null });
+
                                     let out;
                                     if (q.parents) out = rows.filter(r => q.parents.includes(r.parent_id));
                                     else if (q.topLevelOnly) out = rows.filter(r => r.parent_id === null);
@@ -118,7 +131,7 @@ async function mockThread(page, { rows = [], session = null, role = null, insert
                 };
             },
         });
-    }, { rows, session, role, insertError, rpcError });
+    }, { rows, session, role, roleRow, insertError, rpcError, selectError, count });
 }
 
 const SESSION = { user: { id: 'u-me', email: 'reader@site.test' }, access_token: 't' };
@@ -410,4 +423,154 @@ test('a missing table degrades to a message instead of a broken section', async 
     await expect(page.locator('.discussion-error')).toContainText('not available');
     await expect(page.locator('.discussion-post')).toHaveCount(0);
     expect(pageErrors).toEqual([]);
+});
+
+// --- MODERATION (v0.14 item 2) -------------------------------------------
+//
+// Same split as above, and it matters more here. Everything below proves which
+// controls a moderator is offered and what they send. NONE of it proves that a
+// non-moderator is refused - can_moderate() and the RPC's own caller check do
+// that, and neither is reachable from a browser.
+
+test('an ordinary contributor is offered no moderation controls', async ({ page }) => {
+    await mockThread(page, { rows: [post()], session: SESSION, role: null });
+    await open(page);
+
+    await expect(page.locator('[data-moderate]')).toHaveCount(0);
+    await expect(page.locator('[data-reply-to]'), 'but can still take part').toHaveCount(1);
+});
+
+test('the capability grants moderation without granting a role', async ({ page }) => {
+    // The point of can_moderate: moderating threads should not require handing
+    // somebody the whole revision queue.
+    await mockThread(page, {
+        rows: [post({ id: 'p1' })],
+        session: SESSION,
+        role: 'trusted_editor',
+        roleRow: { role: 'trusted_editor', can_moderate: true },
+    });
+    await open(page);
+
+    await expect(page.locator('#post-p1 [data-mod-action="hide"]')).toHaveCount(1);
+    await expect(page.locator('#post-p1 [data-mod-action="remove"]')).toHaveCount(1);
+});
+
+test('moderating requires a reason, which is what makes the log an audit', async ({ page }) => {
+    await mockThread(page, {
+        rows: [post({ id: 'p1' })],
+        session: SESSION, role: 'reviewer',
+        roleRow: { role: 'reviewer', can_moderate: false },
+    });
+    await open(page);
+
+    await page.click('#post-p1 [data-mod-action="remove"]');
+    await expect(page.locator('.discussion-mod-form')).toBeVisible();
+
+    // Submitting empty must not reach the database at all.
+    await page.click('.discussion-mod-confirm');
+    await expect(page.locator('.discussion-mod-form .discussion-composer-status')).toContainText('reason is required');
+    expect(await page.evaluate(() => window.__rpcCalls.length)).toBe(0);
+
+    await page.fill('.discussion-mod-reason', 'Targeted harassment');
+    await page.click('.discussion-mod-confirm');
+
+    const calls = await page.evaluate(() => window.__rpcCalls);
+    expect(calls).toEqual([{
+        name: 'moderate_discussion_post',
+        params: { p_post_id: 'p1', p_action: 'remove', p_reason: 'Targeted harassment' },
+    }]);
+});
+
+test('restore needs no reason - putting something back requires no justification', async ({ page }) => {
+    await mockThread(page, {
+        rows: [post({ id: 'p1', status: 'removed_by_staff', body: '' })],
+        session: SESSION, role: 'admin',
+        roleRow: { role: 'admin', can_moderate: false },
+    });
+    await open(page);
+
+    await page.click('#post-p1 [data-mod-action="restore"]');
+    await expect(page.locator('.discussion-mod-reason'), 'no reason field at all').toHaveCount(0);
+    await page.click('.discussion-mod-confirm');
+
+    const calls = await page.evaluate(() => window.__rpcCalls);
+    expect(calls[0].params).toEqual({ p_post_id: 'p1', p_action: 'restore', p_reason: null });
+});
+
+test('a hidden post shows a moderator its text under an unmistakable marker', async ({ page }) => {
+    // Readers never receive this row - the SELECT policy filters it out. A
+    // moderator does, and has to be able to tell at a glance that it is
+    // already down, or they moderate it twice.
+    await mockThread(page, {
+        rows: [post({ id: 'p1', status: 'hidden', body: 'borderline take' })],
+        session: SESSION, role: 'reviewer',
+        roleRow: { role: 'reviewer', can_moderate: false },
+    });
+    await open(page);
+
+    await expect(page.locator('#post-p1 .discussion-hidden-badge')).toContainText('HIDDEN');
+    await expect(page.locator('#post-p1 > .discussion-body')).toContainText('borderline take');
+    await expect(page.locator('#post-p1 [data-mod-action="restore"]')).toHaveCount(1);
+    await expect(page.locator('#post-p1 [data-mod-action="hide"]'), 'already hidden').toHaveCount(0);
+});
+
+test('staff cannot restore what an author chose to withdraw', async ({ page }) => {
+    // Deliberate: putting somebody's words back after they retracted them is
+    // not moderation.
+    await mockThread(page, {
+        rows: [post({ id: 'p1', status: 'removed_by_author', body: '' })],
+        session: SESSION, role: 'admin',
+        roleRow: { role: 'admin', can_moderate: false },
+    });
+    await open(page);
+
+    await expect(page.locator('#post-p1 [data-moderate]')).toHaveCount(0);
+});
+
+// --- THE JUMP BUTTON ------------------------------------------------------
+
+test('the jump button sits on the state row and reaches the discussion', async ({ page }) => {
+    await mockThread(page, { rows: [post()], session: null, count: 4 });
+    await open(page);
+
+    const layout = await page.evaluate(() => {
+        const btn = document.getElementById('btn-jump-discussion');
+        const bar = document.getElementById('character-mode-bar');
+        return {
+            exists: !!btn,
+            sharesRowWithModeBar: !!(btn && bar && btn.parentElement === bar.parentElement),
+            insideModeBar: !!(bar && btn && bar.contains(btn)),
+        };
+    });
+
+    expect(layout.exists).toBe(true);
+    expect(layout.sharesRowWithModeBar).toBe(true);
+    // The bar hides itself for a character with fewer than two states, which
+    // is 20 of the 22. A button inside it would exist on two pages.
+    expect(layout.insideModeBar).toBe(false);
+
+    await page.click('#btn-jump-discussion');
+    await expect(page.locator('#discussion-section')).toBeInViewport();
+});
+
+test('the jump button shows a count, and nothing at all when there is none', async ({ page }) => {
+    await mockThread(page, { rows: [post()], session: null, count: 7 });
+    await open(page);
+    await expect(page.locator('#jump-discussion-count')).toHaveText('7');
+
+    await page.goto('about:blank');
+    await mockThread(page, { rows: [], session: null, count: 0 });
+    await open(page);
+    // An explicit "0" reads as a dead feature. Silence does not.
+    await expect(page.locator('#jump-discussion-count')).toHaveText('');
+});
+
+test('the jump button still scrolls when the thread fails to load', async ({ page }) => {
+    // A control that does nothing because a query failed is worse than no
+    // control, so it is wired before anything is fetched.
+    await mockThread(page, { rows: [], session: null, selectError: { code: 'PGRST205', message: 'nope' } });
+    await page.goto(PAGE, { waitUntil: 'networkidle' });
+
+    await page.click('#btn-jump-discussion');
+    await expect(page.locator('#discussion-section')).toBeInViewport();
 });

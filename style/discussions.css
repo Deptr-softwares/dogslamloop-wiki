@@ -10,10 +10,59 @@
    discussion is readers talking about the page, not part of it, and matching
    the frame-data cards' weight would make the two compete. */
 
+/* --- THE HEADER ROW ---
+   Holds the state chips and the jump-to-discussion button side by side. The
+   button is a sibling of #character-mode-bar rather than a child, because that
+   bar hides itself for a character with fewer than two states - which is 20 of
+   the 22 - and the button has to exist on all of them.
+
+   The row's own top margin replaces the one .character-mode-bar carries, so
+   the spacing under the title is identical whether or not the chips render.
+   Scoped to .character-toolbar, since .character-mode-bar is shared with the
+   editor and the admin preview and neither of those sits in a toolbar. */
+.character-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+}
+
+.character-toolbar .character-mode-bar {
+    margin-top: 0;
+}
+
+/* Square, so it reads as an icon control rather than one more labelled button
+   competing with the state chips beside it. */
+.btn-jump-discussion {
+    gap: 0.35rem;
+    padding: 0.4rem;
+    min-width: 2rem;
+    min-height: 2rem;
+    flex-shrink: 0;
+    /* Pushed right even when the mode bar is hidden and there is no flex
+       sibling to space against. */
+    margin-left: auto;
+}
+
+.jump-discussion-count:empty {
+    display: none;
+}
+
+.jump-discussion-count {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    font-weight: bold;
+    padding-right: 0.15rem;
+}
+
 .discussion-section {
     margin-top: 3rem;
     padding-top: 2rem;
     border-top: 2px solid var(--border-color);
+    /* The jump button scrolls here, so the heading must not land under any
+       sticky chrome. */
+    scroll-margin-top: 1.5rem;
 }
 
 .discussion-title {
@@ -204,6 +253,61 @@
 
 .discussion-action-danger:hover {
     color: #ef4444;
+}
+
+/* --- MODERATION ---
+   Only ever rendered for a moderator, so nothing here is scoped defensively
+   against ordinary readers seeing it - the server filters hidden rows out of
+   their result set entirely, which is a stronger guarantee than a CSS rule. */
+
+.discussion-action-mod:hover {
+    color: var(--accent-yellow);
+}
+
+/* A hidden post is invisible to readers but sits in the thread for staff, so
+   it needs to be unmistakable at a glance - otherwise a moderator reads it as
+   live and moderates it twice. */
+.discussion-hidden-badge {
+    display: inline-block;
+    font-family: var(--text-mono);
+    font-size: 0.6rem;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    color: #000;
+    background: var(--accent-yellow);
+    padding: 0.1rem 0.4rem;
+    margin-bottom: 0.4rem;
+}
+
+.discussion-mod-form {
+    margin-top: 0.6rem;
+    padding: 0.7rem;
+    border: 2px dashed var(--accent-yellow);
+}
+
+.discussion-mod-heading {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent-yellow);
+    margin-bottom: 0.45rem;
+}
+
+.discussion-mod-reason {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--bg-main);
+    border: 2px solid var(--border-color);
+    color: var(--text-white);
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 0.5rem;
+}
+
+.discussion-mod-reason:focus {
+    outline: none;
+    border-color: var(--accent-yellow);
 }
 
 /* --- REPLIES ---

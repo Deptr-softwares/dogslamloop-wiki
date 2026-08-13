@@ -36,6 +36,7 @@
         offset: 0,
         session: null,
         role: undefined,   // undefined = not looked up, null = signed in with no role
+        canModerate: false,
         exhausted: false,
         lastPostAt: 0,
         replyingTo: null,
@@ -90,18 +91,28 @@
             state.session = null;
         }
 
-        if (!state.session) { state.role = undefined; return; }
+        if (!state.session) { state.role = undefined; state.canModerate = false; return; }
 
         try {
+            // select('*') rather than naming columns: this row gains a column
+            // every time a capability is added, and an explicit list would
+            // break the whole thread render on any deploy where the client is
+            // newer than the database.
             const { data } = await client()
-                .from('user_roles').select('role')
+                .from('user_roles').select('*')
                 .eq('user_id', state.session.user.id).maybeSingle();
             // null is a real answer and a common one: signed in, no role, which
             // is every ordinary contributor. Distinct from `undefined`, which
             // means nobody is signed in.
             state.role = data ? data.role : null;
+            // Mirrors public.can_moderate() in the migration. The client copy
+            // only decides which buttons to draw; the RPC is what refuses.
+            state.canModerate = !!data && (
+                data.role === 'admin' || data.role === 'reviewer' || data.can_moderate === true
+            );
         } catch (e) {
             state.role = null;
+            state.canModerate = false;
         }
     }
 
@@ -146,6 +157,91 @@
 
     // --- RENDERING ---
 
+    // --- MODERATION CONTROLS ---
+    //
+    // One builder for posts and replies. They diverged once already on the
+    // delete button and the two copies have to say the same thing about who
+    // may do what, so there is only one copy of it.
+    function appendModerationControls(actions, entry) {
+        if (!state.canModerate) return;
+
+        const hidden = entry.status === 'hidden';
+        const removed = entry.status === 'removed_by_staff' || entry.status === 'hidden';
+
+        if (!removed && entry.status === 'visible') {
+            const hide = el('button', 'discussion-action-btn discussion-action-mod', 'Hide');
+            hide.type = 'button';
+            hide.dataset.moderate = entry.id;
+            hide.dataset.modAction = 'hide';
+            actions.appendChild(hide);
+
+            const remove = el('button', 'discussion-action-btn discussion-action-danger', 'Remove');
+            remove.type = 'button';
+            remove.dataset.moderate = entry.id;
+            remove.dataset.modAction = 'remove';
+            actions.appendChild(remove);
+        }
+
+        // Restore is offered for anything staff took down. Deliberately not for
+        // 'removed_by_author': staff putting somebody's words back after they
+        // chose to withdraw them is not moderation.
+        if (hidden || entry.status === 'removed_by_staff') {
+            const restore = el('button', 'discussion-action-btn discussion-action-mod', 'Restore');
+            restore.type = 'button';
+            restore.dataset.moderate = entry.id;
+            restore.dataset.modAction = 'restore';
+            actions.appendChild(restore);
+        }
+    }
+
+    // A reason is required by the RPC for hide and remove, so it is asked for
+    // inline rather than through a dialog. Native prompt() is the only
+    // alternative available on a character page - editor-core.js's modal
+    // helpers are not loaded here - and a required field somebody can dismiss
+    // with Escape is not really required.
+    function renderModerationForm(postId, action) {
+        const form = el('form', 'discussion-mod-form');
+        form.dataset.modPost = postId;
+        form.dataset.modAction = action;
+
+        // The input below is marked required for assistive technology, but
+        // native validation would swallow the submit event before the handler
+        // runs - so the "reason is required" message would appear in a browser
+        // bubble while every other message in this file appears in the status
+        // line. One error channel, so the field is validated by hand.
+        form.noValidate = true;
+
+        const label = action === 'restore'
+            ? 'Put this post back?'
+            : `Reason for ${action === 'hide' ? 'hiding' : 'removing'} this post`;
+        form.appendChild(el('div', 'discussion-mod-heading', label));
+
+        if (action !== 'restore') {
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'discussion-mod-reason';
+            input.maxLength = 300;
+            input.required = true;
+            input.placeholder = 'Recorded in the moderation log — required';
+            input.setAttribute('aria-label', 'Moderation reason');
+            form.appendChild(input);
+        }
+
+        const row = el('div', 'discussion-composer-row');
+        const go = el('button', 'btn-sys btn-sys-red discussion-mod-confirm', action.toUpperCase());
+        go.type = 'submit';
+        row.appendChild(go);
+
+        const cancel = el('button', 'btn-sys btn-sys-regular', 'CANCEL');
+        cancel.type = 'button';
+        cancel.dataset.cancelMod = 'true';
+        row.appendChild(cancel);
+
+        row.appendChild(el('span', 'discussion-composer-status'));
+        form.appendChild(row);
+        return form;
+    }
+
     function renderPost(post, replies) {
         const removed = post.status !== 'visible';
 
@@ -158,7 +254,17 @@
         wrap.appendChild(head);
 
         const body = el('div', 'discussion-body');
-        if (removed) {
+        if (post.status === 'hidden') {
+            // Only a moderator can see this at all - the SELECT policy filters
+            // the row out for everyone else - so the body is shown intact
+            // under a marker rather than replaced by a placeholder.
+            //
+            // Appended, not insertBefore(badge, body): body is not a child of
+            // wrap yet at this point, and insertBefore against a non-child
+            // throws - taking the whole thread render down with it.
+            wrap.appendChild(el('span', 'discussion-hidden-badge', 'HIDDEN FROM READERS'));
+            setTextWithBreaks(body, post.body);
+        } else if (removed) {
             body.classList.add('discussion-body-removed');
             body.textContent = post.status === 'removed_by_staff'
                 ? '[removed by a moderator]'
@@ -170,7 +276,7 @@
 
         const actions = el('div', 'discussion-post-actions');
 
-        if (isSignedIn() && !isBanned()) {
+        if (isSignedIn() && !isBanned() && post.status === 'visible') {
             const replyBtn = el('button', 'discussion-action-btn', 'Reply');
             replyBtn.type = 'button';
             // data- attribute plus a delegated listener, never an inline
@@ -180,13 +286,15 @@
             actions.appendChild(replyBtn);
         }
 
-        const isMine = !removed && state.session && post.author_id === state.session.user.id;
+        const isMine = post.status === 'visible' && state.session && post.author_id === state.session.user.id;
         if (isMine) {
             const delBtn = el('button', 'discussion-action-btn discussion-action-danger', 'Delete');
             delBtn.type = 'button';
             delBtn.dataset.removePost = post.id;
             actions.appendChild(delBtn);
         }
+
+        appendModerationControls(actions, post);
 
         if (actions.childNodes.length) wrap.appendChild(actions);
 
@@ -210,7 +318,10 @@
         wrap.appendChild(head);
 
         const body = el('div', 'discussion-body');
-        if (removed) {
+        if (reply.status === 'hidden') {
+            wrap.appendChild(el('span', 'discussion-hidden-badge', 'HIDDEN FROM READERS'));
+            setTextWithBreaks(body, reply.body);
+        } else if (removed) {
             body.classList.add('discussion-body-removed');
             body.textContent = reply.status === 'removed_by_staff'
                 ? '[removed by a moderator]'
@@ -220,14 +331,18 @@
         }
         wrap.appendChild(body);
 
-        if (!removed && state.session && reply.author_id === state.session.user.id) {
-            const actions = el('div', 'discussion-post-actions');
+        const actions = el('div', 'discussion-post-actions');
+
+        if (reply.status === 'visible' && state.session && reply.author_id === state.session.user.id) {
             const delBtn = el('button', 'discussion-action-btn discussion-action-danger', 'Delete');
             delBtn.type = 'button';
             delBtn.dataset.removePost = reply.id;
             actions.appendChild(delBtn);
-            wrap.appendChild(actions);
         }
+
+        appendModerationControls(actions, reply);
+
+        if (actions.childNodes.length) wrap.appendChild(actions);
 
         return wrap;
     }
@@ -434,6 +549,59 @@
         await draw();
     }
 
+    function openModerationForm(postId, action) {
+        const root = document.getElementById('discussion-section');
+        if (!root) return;
+
+        const existing = root.querySelector('.discussion-mod-form');
+        if (existing) existing.remove();
+
+        const target = document.getElementById(`post-${postId}`);
+        if (!target) return;
+
+        const form = renderModerationForm(postId, action);
+        const actions = target.querySelector('.discussion-post-actions');
+        if (actions) actions.insertAdjacentElement('afterend', form);
+        else target.appendChild(form);
+
+        const input = form.querySelector('.discussion-mod-reason');
+        if (input) input.focus();
+    }
+
+    async function submitModeration(form) {
+        const action = form.dataset.modAction;
+        const postId = form.dataset.modPost;
+        const input = form.querySelector('.discussion-mod-reason');
+        const reason = input ? input.value.trim() : null;
+
+        // Checked here so the message arrives beside the field rather than as
+        // a database error. The RPC refuses an empty reason regardless - this
+        // is the courtesy copy, not the rule.
+        if (action !== 'restore' && !reason) {
+            setStatus('A reason is required — it goes in the moderation log.', true);
+            return;
+        }
+
+        const confirmBtn = form.querySelector('.discussion-mod-confirm');
+        if (confirmBtn) confirmBtn.disabled = true;
+        setStatus('Applying…');
+
+        const { error } = await client().rpc('moderate_discussion_post', {
+            p_post_id: postId,
+            p_action: action,
+            p_reason: reason || null,
+        });
+
+        if (confirmBtn) confirmBtn.disabled = false;
+
+        if (error) { setStatus(error.message || 'Could not moderate that post.', true); return; }
+
+        state.offset = 0;
+        state.exhausted = false;
+        await draw();
+        updateJumpCount();
+    }
+
     function openReply(postId) {
         const root = document.getElementById('discussion-section');
         if (!root) return;
@@ -475,6 +643,16 @@
             const remove = e.target.closest('[data-remove-post]');
             if (remove) { await removePost(remove.dataset.removePost); return; }
 
+            const moderate = e.target.closest('[data-moderate]');
+            if (moderate) { openModerationForm(moderate.dataset.moderate, moderate.dataset.modAction); return; }
+
+            const cancelMod = e.target.closest('[data-cancel-mod]');
+            if (cancelMod) {
+                const form = cancelMod.closest('.discussion-mod-form');
+                if (form) form.remove();
+                return;
+            }
+
             const more = e.target.closest('[data-load-more]');
             if (more) {
                 state.offset += PAGE_SIZE;
@@ -487,6 +665,9 @@
         });
 
         root.addEventListener('submit', async (e) => {
+            const mod = e.target.closest('.discussion-mod-form');
+            if (mod) { e.preventDefault(); await submitModeration(mod); return; }
+
             const form = e.target.closest('.discussion-composer');
             if (!form) return;
             e.preventDefault();
@@ -506,8 +687,61 @@
         target.classList.add('discussion-post-linked');
     }
 
+    // --- THE JUMP BUTTON ---
+    //
+    // Wired before anything is fetched, so scrolling works even when the
+    // thread itself fails to load. A control that does nothing because a query
+    // failed is worse than no control.
+    function wireJumpButton() {
+        const btn = document.getElementById('btn-jump-discussion');
+        if (!btn || btn.dataset.wired === 'true') return;
+        btn.dataset.wired = 'true';
+
+        btn.addEventListener('click', () => {
+            const target = document.getElementById('discussion-section');
+            if (!target) return;
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+
+    // A bare icon gives nobody a reason to press it. The count is the whole
+    // argument for going down there, so the button carries it - and says
+    // nothing at all rather than "0" when the thread is empty, because an
+    // explicit zero reads as a dead feature.
+    async function updateJumpCount() {
+        const label = document.getElementById('jump-discussion-count');
+        const btn = document.getElementById('btn-jump-discussion');
+        if (!label) return;
+
+        let count = null;
+        try {
+            const res = await client()
+                .from('page_discussions')
+                .select('id', { count: 'exact', head: true })
+                .eq('page_id', state.pageId)
+                .eq('status', 'visible');
+            if (!res.error) count = res.count;
+        } catch (e) {
+            count = null;
+        }
+
+        if (typeof count !== 'number' || count <= 0) {
+            label.textContent = '';
+            if (btn) btn.setAttribute('aria-label', 'Jump to the discussion');
+            return;
+        }
+
+        label.textContent = String(count);
+        if (btn) btn.setAttribute('aria-label', `Jump to the discussion (${count})`);
+    }
+
     window.initPageDiscussions = async function (pageId) {
         const root = document.getElementById('discussion-section');
+
+        // The button is wired even when the section is missing, so a page that
+        // somehow has one without the other still behaves predictably.
+        wireJumpButton();
+
         if (!root || !client() || !pageId) return;
 
         state.pageId = pageId;
@@ -517,6 +751,7 @@
         await loadViewer();
         wire(root);
         await draw();
+        updateJumpCount();
         setTimeout(honourHashTarget, 300);
     };
 })();
