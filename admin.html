@@ -103,6 +103,30 @@
                     <p class="admin-queue-empty-msg">Press Load to fetch the media list.</p>
                 </div>
 
+                <!--
+                    Reports (v0.14 item 6). Third queue in the same column, for
+                    the same reason the media queue joined the revision queue:
+                    they are all "things waiting for a reviewer", and splitting
+                    them across screens means forgetting to check one.
+                -->
+                <div class="dashboard-header-split admin-split-header media-queue-header">
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Reports</h3>
+                    <button onclick="loadReportQueue()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Load</button>
+                </div>
+
+                <div class="media-queue-filters">
+                    <select id="report-queue-status" class="editor-select media-queue-filter">
+                        <option value="open">Open</option>
+                        <option value="actioned">Actioned</option>
+                        <option value="dismissed">Dismissed</option>
+                        <option value="all">All reports</option>
+                    </select>
+                </div>
+
+                <div id="report-queue-container" class="space-y-4">
+                    <p class="admin-queue-empty-msg">Press Load to fetch reports.</p>
+                </div>
+
             </div>
         </aside>
 
@@ -273,5 +297,6 @@
     <script src="js/admin-merge-compiler.js"></script>
     <script src="js/admin-history.js"></script>
     <script src="js/admin-media-queue.js"></script>
+    <script src="js/admin-reports.js"></script>
 </body>
 </html>

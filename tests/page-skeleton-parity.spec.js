@@ -133,7 +133,31 @@ test.describe('character pages', () => {
       // This spec is about what the router builds, so that tab is filtered
       // out rather than asserted either way. tests/character-modes.spec.js
       // owns the claim that it appears when it should.
-      expect(sig.tabs.filter(t => t.id !== 'tab-ultimateAtk')).toEqual(EXPECTED_CHARACTER_TABS);
+      const routerTabs = sig.tabs.filter(t => t.id !== 'tab-ultimateAtk');
+
+      // Ids and their order are the router's alone, and asserted exactly.
+      expect(routerTabs.map(t => t.id)).toEqual(EXPECTED_CHARACTER_TABS.map(t => t.id));
+
+      // Classes are asserted as a superset, not an exact match, and this is a
+      // race fix rather than a loosening.
+      //
+      // loadPageDescriptions (js/description.js:740/827/881) adds
+      // 'vessel-content space-y-6' to #tab-overview, #tab-matchups and
+      // #tab-counterplay once the page's data arrives. The boot fires it
+      // without awaiting, so whether it has run by the time this snapshot is
+      // taken depends on how fast a network response came back - which made
+      // this test fail on a different two or three characters every run, and
+      // pass on the rest for no reason anyone could point at.
+      //
+      // The router's own classes are still asserted individually, including
+      // the load-bearing asymmetry (#tab-skills gets space-y-8 while
+      // #tab-overview gets plain .tab-content). What is no longer asserted is
+      // the absence of classes the render layer legitimately adds afterwards,
+      // which was never this spec's claim to make.
+      EXPECTED_CHARACTER_TABS.forEach((expectedTab, i) => {
+        expect(routerTabs[i].classes, `#${expectedTab.id} lost a router class`)
+          .toEqual(expect.arrayContaining(expectedTab.classes));
+      });
       for (const id of REQUIRED_CHROME_IDS) {
         expect(sig.chrome[id], `missing #${id}`).toBe(true);
       }

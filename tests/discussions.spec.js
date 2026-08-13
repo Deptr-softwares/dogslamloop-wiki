@@ -63,8 +63,15 @@ async function mockThread(page, {
 
                     client.rpc = async (name, params) => {
                         window.__rpcCalls.push({ name, params });
-                        if (name === 'remove_my_discussion_post' || name === 'moderate_discussion_post') {
-                            return rpcError ? { data: null, error: rpcError } : { data: 'ok', error: null };
+                        // Every RPC this file drives, so a test that seeds an
+                        // rpcError gets it wherever it points. Listing them
+                        // rather than failing everything keeps the auth and
+                        // page_data calls the boot makes out of it.
+                        if (['remove_my_discussion_post', 'moderate_discussion_post',
+                             'report_discussion_post'].includes(name)) {
+                            return rpcError
+                                ? { data: null, error: rpcError }
+                                : { data: name === 'report_discussion_post' ? 'Thanks - a moderator will take a look.' : 'ok', error: null };
                         }
                         return { data: null, error: null };
                     };
@@ -573,4 +580,113 @@ test('the jump button still scrolls when the thread fails to load', async ({ pag
 
     await page.click('#btn-jump-discussion');
     await expect(page.locator('#discussion-section')).toBeInViewport();
+});
+
+// --- REPORTING (v0.14 item 6) ---------------------------------------------
+
+test('reporting is offered on other people\'s visible posts only', async ({ page }) => {
+    await mockThread(page, {
+        rows: [
+            post({ id: 'theirs', author_id: 'u-other' }),
+            post({ id: 'mine', author_id: 'u-me' }),
+            post({ id: 'gone', author_id: 'u-other', status: 'removed_by_author', body: '' }),
+        ],
+        session: SESSION, role: null,
+    });
+    await open(page);
+
+    await expect(page.locator('#post-theirs [data-report-post]')).toHaveCount(1);
+    // Reporting your own post is a support ticket, not a report - and the RPC
+    // refuses it, so offering the button would be offering a failure.
+    await expect(page.locator('#post-mine [data-report-post]')).toHaveCount(0);
+    await expect(page.locator('#post-gone [data-report-post]'), 'already down').toHaveCount(0);
+});
+
+test('a moderator gets moderation controls instead of a report button', async ({ page }) => {
+    // Reporting something to yourself is a queue entry nobody needs.
+    await mockThread(page, {
+        rows: [post({ id: 'p1', author_id: 'u-other' })],
+        session: SESSION, role: 'reviewer',
+        roleRow: { role: 'reviewer', can_moderate: false },
+    });
+    await open(page);
+
+    await expect(page.locator('#post-p1 [data-report-post]')).toHaveCount(0);
+    await expect(page.locator('#post-p1 [data-mod-action="remove"]')).toHaveCount(1);
+});
+
+test('a signed-out reader cannot report', async ({ page }) => {
+    await mockThread(page, { rows: [post()], session: null });
+    await open(page);
+    await expect(page.locator('[data-report-post]')).toHaveCount(0);
+});
+
+test('a viewer cannot report either - the soft ban covers it', async ({ page }) => {
+    // A report costs a moderator attention, which is exactly the resource a
+    // banned account would spend maliciously.
+    await mockThread(page, { rows: [post()], session: SESSION, role: 'viewer' });
+    await open(page);
+    await expect(page.locator('[data-report-post]')).toHaveCount(0);
+});
+
+test('the report form offers conduct categories and no "this is wrong"', async ({ page }) => {
+    // Deliberate and domain-specific: on a frame-data wiki "this is wrong" is
+    // the most common complaint and the least actionable by moderation. A
+    // thread is where being wrong gets argued with. Offering the category
+    // would fill the queue with disagreements and train moderators to skim.
+    await mockThread(page, { rows: [post({ id: 'p1' })], session: SESSION, role: null });
+    await open(page);
+
+    await page.click('#post-p1 [data-report-post]');
+    const options = await page.locator('.discussion-report-reason option')
+        .evaluateAll(opts => opts.map(o => o.value));
+
+    expect(options).toEqual(['spam', 'harassment', 'off_topic', 'other']);
+    expect(options).not.toContain('incorrect');
+    expect(options).not.toContain('misinformation');
+});
+
+test('a report sends the reason and note, then confirms', async ({ page }) => {
+    await mockThread(page, { rows: [post({ id: 'p1' })], session: SESSION, role: null });
+    await open(page);
+
+    await page.click('#post-p1 [data-report-post]');
+    await page.selectOption('.discussion-report-reason', 'harassment');
+    await page.fill('.discussion-report-note', 'targeting a specific person');
+    await page.click('.discussion-report-confirm');
+
+    const calls = await page.evaluate(() => window.__rpcCalls);
+    expect(calls).toEqual([{
+        name: 'report_discussion_post',
+        params: { p_post_id: 'p1', p_reason: 'harassment', p_note: 'targeting a specific person' },
+    }]);
+
+    // The form is replaced, so nobody is left wondering whether it sent.
+    await expect(page.locator('.discussion-report-sent')).toBeVisible();
+    await expect(page.locator('.discussion-report-form')).toHaveCount(0);
+});
+
+test('an optional note is sent as null rather than an empty string', async ({ page }) => {
+    await mockThread(page, { rows: [post({ id: 'p1' })], session: SESSION, role: null });
+    await open(page);
+
+    await page.click('#post-p1 [data-report-post]');
+    await page.click('.discussion-report-confirm');
+
+    const calls = await page.evaluate(() => window.__rpcCalls);
+    expect(calls[0].params).toEqual({ p_post_id: 'p1', p_reason: 'spam', p_note: null });
+});
+
+test('a refused report says so and leaves the form open', async ({ page }) => {
+    await mockThread(page, {
+        rows: [post({ id: 'p1' })], session: SESSION, role: null,
+        rpcError: { code: '53400', message: 'You have filed several reports just now - give the moderators a moment.' },
+    });
+    await open(page);
+
+    await page.click('#post-p1 [data-report-post]');
+    await page.click('.discussion-report-confirm');
+
+    await expect(page.locator('.discussion-report-form .discussion-composer-status')).toContainText('several reports');
+    await expect(page.locator('.discussion-report-form'), 'still there to retry').toHaveCount(1);
 });
