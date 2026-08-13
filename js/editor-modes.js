@@ -364,8 +364,10 @@
         // A reviewer intercepting a ticket must land on the state that ticket
         // edits, not on the base kit - otherwise their corrections are written
         // into the wrong state and submitted back over the base one. The
-        // ticket wins over ?mode= because admin.html opens the editor by
-        // ticket id and never appends a mode.
+        // ticket wins over ?mode=: admin.html now appends the state the
+        // reviewer was reading (js/admin-actions.js), but a mode-scoped ticket
+        // states outright which one it edits, and that is the stronger signal
+        // of the two when they disagree.
         const intercepted = window.interceptedTicketData;
         const fromTicket = (intercepted && intercepted.target_scope === 'mode' && typeof intercepted.target_key === 'string')
             ? intercepted.target_key.split('::')[0]
