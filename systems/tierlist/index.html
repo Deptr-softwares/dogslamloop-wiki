@@ -9,6 +9,7 @@
     <!-- v0.4 Modular CSS Engine -->
     <link rel="stylesheet" href="../../style/Common.css">
     <link rel="stylesheet" href="../../style/Layout.css">
+    <link rel="stylesheet" href="../../style/certified-tier-lists.css">
     <link rel="stylesheet" href="../../style/Cards.css">
     <link rel="stylesheet" href="../../style/Buttons.css">
     <link rel="stylesheet" href="../../style/Badges.css">
@@ -81,7 +82,10 @@
 
             <section class="wiki-section" style="margin-bottom: 2rem;">
                 <p class="strategy-paragraph" style="color: var(--text-muted);">
-                    These tier lists evaluate the character's overall strength in certain contexts: Overall strength here means stuff like damage, neutral, evasive bait, blah blah blah. I am writing up a serious overview later.
+                    Every list here belongs to one person. Frame data is measurable; a tier list is an
+                    opinion, and an unattributed ranking quietly presents the second as the first. So each
+                    one is credited by name, carries the reasoning behind it, and records a note for every
+                    character that moves.
                 </p>
             </section>
             
@@ -132,6 +136,7 @@
     
     <!-- Custom Tier List Engine -->
     <script src="../../js/tierlist.js"></script>
+    <script src="../../js/certified-tier-lists.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -147,9 +152,12 @@
             // IMPORTANT: We register this as 'tierlist', not 'system', to protect the JSON!
             if (typeof window.initTabEditorButtons === 'function') window.initTabEditorButtons('tierlist', 'tierlist');
             
-            // Trigger our custom tier list fetcher
-            if (typeof window.loadTierList === 'function') {
-                window.loadTierList();
+            // v0.14: the page is now N per-person lists rather than the
+            // 22-tab desc_data shape. js/tierlist.js still loads because the
+            // admin preview and the existing editor render the old shape from
+            // page_data, which is deliberately left in place.
+            if (typeof window.loadCertifiedTierLists === 'function') {
+                window.loadCertifiedTierLists();
             }
         });
     </script>
