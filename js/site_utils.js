@@ -778,6 +778,68 @@ function resolveSupabaseTarget() {
     return target;
 }
 
+// An on-page banner, not just a console warning, and it was added after the
+// override drew blood on its first day of use.
+//
+// What happened: a preview branch was created, tested, and then deleted - and
+// the override stayed in localStorage pointing at a project that no longer
+// existed. Every request failed, login stopped working, and nothing on screen
+// said why. A console warning is invisible to somebody who is not already
+// suspicious, and the whole failure mode of this feature is not being
+// suspicious of a page that looks completely normal.
+//
+// So: impossible to miss, and one click to undo.
+function showOverrideBanner(url) {
+    const paint = () => {
+        if (!document.body || document.getElementById('dsl-override-banner')) return;
+
+        const bar = document.createElement('div');
+        bar.id = 'dsl-override-banner';
+        bar.setAttribute('role', 'status');
+        bar.style.cssText = [
+            'position:fixed', 'left:0', 'bottom:0', 'z-index:2147483647',
+            'background:#eab308', 'color:#000', 'font-family:monospace',
+            'font-size:11px', 'padding:6px 10px', 'display:flex',
+            'align-items:center', 'gap:10px', 'max-width:100vw',
+            'box-sizing:border-box', 'border-top:2px solid #000',
+        ].join(';');
+
+        let host = url;
+        try { host = new URL(url).hostname; } catch (e) { /* keep the raw string */ }
+
+        const label = document.createElement('strong');
+        label.textContent = `LOCAL SUPABASE OVERRIDE → ${host}`;
+        bar.appendChild(label);
+
+        // The page most likely to be confusing, called out by name. index.html
+        // is the only page on the site carrying a CSP, and its connect-src
+        // pins the production project - so requests from here are blocked no
+        // matter what the client was built with.
+        const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+        if (csp && csp.getAttribute('content') && csp.getAttribute('content').includes('connect-src')
+            && !csp.getAttribute('content').includes(host)) {
+            const warn = document.createElement('span');
+            warn.textContent = "— this page's CSP blocks it; use any other page";
+            bar.appendChild(warn);
+        }
+
+        const clear = document.createElement('button');
+        clear.type = 'button';
+        clear.textContent = 'USE PRODUCTION';
+        clear.style.cssText = 'font:inherit;cursor:pointer;padding:2px 8px;border:2px solid #000;background:#fff';
+        clear.addEventListener('click', () => {
+            try { window.localStorage.removeItem('dsl_supabase_override'); } catch (e) { /* ignore */ }
+            window.location.reload();
+        });
+        bar.appendChild(clear);
+
+        document.body.appendChild(bar);
+    };
+
+    if (document.body) paint();
+    else document.addEventListener('DOMContentLoaded', paint);
+}
+
 // Attach client to the global window object so editor.js can use it later
 window.supabaseClient = null;
 try {
@@ -790,6 +852,7 @@ try {
             // it is production - or the reverse - is the one way this helps
             // nobody, so it says so on every single page load.
             console.warn(`[Supabase] LOCAL OVERRIDE ACTIVE -> ${target.url}. This is not production.`);
+            showOverrideBanner(target.url);
         }
     }
 } catch (e) {
