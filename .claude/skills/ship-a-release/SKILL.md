@@ -8,6 +8,34 @@ disable-model-invocation: true
 
 This has side effects (commits, PRs, branch deletion). Run it when asked, not on inference.
 
+## Where work lands
+
+**`next-update` is the integration branch. `main` is production.**
+
+GitHub Pages serves `main`, so every merge there is a live deploy that readers
+see. Item PRs therefore target `next-update`, and users see one change per
+release instead of one per item.
+
+| | target | who sees it |
+|---|---|---|
+| An item, a fix, a chore | `next-update` | nobody yet |
+| A release | `main` | everyone, immediately |
+
+**A release is one PR from `next-update` to `main`**, carrying the changelog
+entry and the version bump with it. That PR is the deploy.
+
+Two things follow, and both matter:
+
+- **CI must list the target branch.** `playwright.yml` triggers on `main` and
+  `next-update`. A PR targeting a branch not named there runs no tests, and
+  GitHub shows it green because nothing ran.
+- **Migrations apply on merge to `main`, so a release applies the whole
+  accumulated batch at once.** Each was verified alone on its own Supabase
+  preview branch; the release PR touches `supabase/` too, so it gets a preview
+  branch that runs the entire set together against a fresh copy of production.
+  **Read that check before merging a release** — it is the only thing that
+  catches two independently-valid migrations conflicting in sequence.
+
 ## Naming the branch
 
 **Version numbers come from the roadmap only.** Check `project_dogslamloop_v1_roadmap` in memory before naming anything. A version belongs to a release that is already planned there.
@@ -27,6 +55,10 @@ Append to the current version's devlog at the repo root (`V0.N-DEVLOG.md`) as ph
 Full suite green after every phase. `npm test` and `npm run validate`.
 
 ## Changelog
+
+Written as part of the release PR, not shipped separately afterwards — the
+entry, the version bump and the code all land in the same merge, so the site
+never announces a version it is not running.
 
 `data/updates.json`, newest entry first:
 
@@ -112,7 +144,16 @@ change
 
 Body should cover: what shipped, anything found along the way that was broken rather than merely missing, decisions a reviewer would otherwise have to reverse-engineer, and an explicit section for what needs the owner **after** merge (live probes, things only they can verify).
 
-## After the owner says they merged
+## After the owner merges an item into `next-update`
+
+Nothing is live yet, so there are no probes to run and no version to bump.
+Delete the item branch once `mergedAt` is confirmed non-null, and carry on.
+
+Migrations merged here have **not** reached production. Anything database-backed
+stays broken on the live site until the release, which is expected rather than a
+regression to chase.
+
+## After the owner merges a release into `main`
 
 **Verify before deleting anything:**
 
@@ -130,7 +171,14 @@ git merge-base --is-ancestor <commit> origin/main   # confirm it really landed
 git branch -d <branch> && git push origin --delete <branch>
 ```
 
-**Live-probe anything migration-backed** — migrations apply on merge, so this is the first moment the database matches the code. See the `supabase-migration` skill for the probe procedure.
+**Live-probe anything migration-backed** — migrations apply on merge to `main`,
+so this is the first moment production matches the code, and it covers every
+migration accumulated since the last release rather than one.
+
+A green PR proves the client half works against mocks; it says nothing about
+whether the SQL ran. v0.13's capability migration failed with `42P13`, rolled
+back, and left a green PR and an empty database. See the `supabase-migration`
+skill for the probe procedure.
 
 Rotate the devlog: `git mv V0.N-DEVLOG.md devlogs/` and start the next one.
 

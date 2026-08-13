@@ -12,10 +12,13 @@ Frame data, i-frames, matchup tiers and M1 trading are domain terms with real ga
 
 ## Deploy model
 
+- **`next-update` is the integration branch; `main` is production.** Pages serves `main`, so every merge there is a live deploy. Item PRs target `next-update`; a release is one PR from `next-update` to `main` carrying the changelog and version bump. Readers see one change per release rather than one per item.
+- **CI triggers on `main` and `next-update` only.** A PR targeting anything else runs no tests, and reports green because nothing ran.
 - **Push to `main` deploys immediately.** No staging environment.
 - A branch ruleset (`main: require CI`, active since 2026-08-08) requires the `test` check. **Direct pushes to `main` are rejected** — a push carries no check run, so it can never satisfy the rule. Everything lands through a PR.
 - **Except the regeneration job**, which must push its generated artifacts. It checks out over SSH with a deploy key (`secrets.REGEN_DEPLOY_KEY`), and that deploy key is in the ruleset's bypass list. The default `GITHUB_TOKEN` identity cannot be used for this: `github-actions[bot]` is not a user, team or installed app, so no bypass list can name it. The job runs the full suite before committing, so the bypass skips a check the job performs on itself.
-- **Migrations apply on merge, not on deploy.** Between pushing branch code and merging, anything database-backed will look broken — a missing table or `PGRST202 / schema cache` error is the expected state, not a bug.
+- **Migrations apply on merge to `main`, so at release time the whole accumulated batch applies at once.** Between writing a migration and the release, anything database-backed looks broken — a missing table or `PGRST202 / schema cache` error is the expected state, not a bug.
+- **Supabase branching verifies migrations before they reach production.** Automatic branching is on, scoped by *Supabase changes only*, so a PR touching `supabase/` gets a preview database and the migrations run against it; a PR touching only CSS or JS gets none. The release PR touches `supabase/` too, so it runs the entire accumulated set together — the only check that catches two independently-valid migrations conflicting in sequence. Branching compute sits outside the org spend cap, and a preview branch lives as long as its PR stays open.
 
 ## Commands
 
