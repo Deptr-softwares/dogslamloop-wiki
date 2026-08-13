@@ -120,3 +120,78 @@ test('an active override announces itself on every load', async ({ page }) => {
     expect(notice).toContain('abcdefghijklmnop');
     expect(notice).toContain('not production');
 });
+
+// --- THE BANNER ---
+//
+// Added after the override drew blood on its first day. A preview branch was
+// created, tested, then deleted - and the override stayed in localStorage
+// pointing at a project that no longer existed. Every request failed, login
+// stopped working, and nothing on screen said why.
+//
+// A console warning is invisible to somebody who is not already suspicious,
+// and the failure mode of this feature is precisely not being suspicious of a
+// page that looks completely normal.
+
+test('an active override is impossible to miss on the page itself', async ({ page }) => {
+    await withOverride(page, PREVIEW);
+    await page.goto('/systems/tierlist/index.html', { waitUntil: 'domcontentloaded' });
+
+    const banner = page.locator('#dsl-override-banner');
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText('LOCAL SUPABASE OVERRIDE');
+    await expect(banner).toContainText('abcdefghijklmnop.supabase.co');
+});
+
+test('no banner when there is no override', async ({ page }) => {
+    await withOverride(page, null);
+    await page.goto('/systems/tierlist/index.html', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#dsl-override-banner')).toHaveCount(0);
+});
+
+test('one click puts the page back on production', async ({ page }) => {
+    // The whole recovery, without needing to know the localStorage key or that
+    // there is a console.
+    //
+    // Seeded through the page rather than addInitScript: an init script runs on
+    // every document load, so it would re-write the override during the reload
+    // and the banner could never be observed clearing itself. The harness would
+    // have hidden the exact behaviour under test.
+    await page.goto('/systems/tierlist/index.html', { waitUntil: 'domcontentloaded' });
+    await page.evaluate((v) => window.localStorage.setItem('dsl_supabase_override', JSON.stringify(v)), PREVIEW);
+    await page.reload({ waitUntil: 'domcontentloaded' });
+
+    await expect(page.locator('#dsl-override-banner')).toBeVisible();
+
+    await page.click('#dsl-override-banner button');
+    await page.waitForLoadState('domcontentloaded');
+
+    await expect(page.locator('#dsl-override-banner')).toHaveCount(0);
+    const target = await targetOf(page);
+    expect(target.url).toContain(PROD_HOST);
+
+    const stored = await page.evaluate(() => window.localStorage.getItem('dsl_supabase_override'));
+    expect(stored).toBeNull();
+});
+
+test('the one page with a CSP says so, because it blocks the override regardless', async ({ page }) => {
+    // index.html is the only page on the site carrying a CSP, and its
+    // connect-src pins the production project - so requests from there fail no
+    // matter what the client was built with. That is a confusing thing to
+    // discover from a wall of console errors.
+    await withOverride(page, PREVIEW);
+    await page.goto('/index.html', { waitUntil: 'domcontentloaded' });
+
+    const banner = page.locator('#dsl-override-banner');
+    await expect(banner).toBeVisible();
+    await expect(banner).toContainText("CSP blocks it");
+    await expect(banner).toContainText('use any other page');
+});
+
+test('pages without a CSP do not claim to be blocked', async ({ page }) => {
+    await withOverride(page, PREVIEW);
+    await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+
+    const banner = page.locator('#dsl-override-banner');
+    await expect(banner).toBeVisible();
+    await expect(banner).not.toContainText('CSP blocks it');
+});
