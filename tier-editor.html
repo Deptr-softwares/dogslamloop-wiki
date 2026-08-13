@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tier List Editor | Dogslamloop</title>
+
+    <!-- FOUNDATIONS -->
+    <link rel="stylesheet" href="style/Common.css">
+    <link rel="stylesheet" href="style/ColorCoding.css">
+
+    <!-- COMPONENTS -->
+    <link rel="stylesheet" href="style/Buttons.css">
+    <link rel="stylesheet" href="style/Modals.css">
+    <link rel="stylesheet" href="style/Forms.css">
+    <link rel="stylesheet" href="style/Badges.css">
+    <link rel="stylesheet" href="style/Alerts.css">
+    <link rel="stylesheet" href="style/Cards.css">
+    <link rel="stylesheet" href="style/FrameData.css">
+
+    <!-- LAYOUT & OVERRIDES -->
+    <link rel="stylesheet" href="style/Layout.css">
+    <link rel="stylesheet" href="style/editor.css">
+    <link rel="stylesheet" href="style/certified-tier-lists.css">
+    <link rel="stylesheet" href="style/tier-editor.css">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+</head>
+<body class="admin-body">
+
+    <!--
+        Its own page rather than a branch inside edit.html, and the reason is
+        the permission model rather than convenience. edit.html is the
+        contributor editor: everything written there becomes a pending revision
+        that a reviewer approves. A tier list is not reviewed - it belongs to
+        one named person who publishes it directly - so routing it through that
+        page would mean a second workflow living inside a file whose entire
+        shape is the first one.
+
+        The two-pane layout, the block editor and the button families are all
+        reused; only the workflow differs.
+    -->
+    <div class="editor-layout">
+
+        <!-- LEFT: THE WORKSPACE -->
+        <aside class="editor-workspace admin-sidebar">
+
+            <div class="editor-header admin-header">
+                <div class="admin-header-flex">
+                    <div>
+                        <h2 class="editor-title admin-title">TIER LIST EDITOR</h2>
+                        <span class="editor-subtitle admin-subtitle" id="tier-editor-subtitle">Loading...</span>
+                    </div>
+                    <div class="admin-header-actions-col">
+                        <div class="admin-secondary-actions">
+                            <a href="systems/tierlist/index.html" class="btn-sys btn-sys-regular admin-hub-btn">VIEW PAGE</a>
+                            <a href="index.html" class="btn-sys btn-sys-regular admin-hub-btn">HUB</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="admin-sidebar-content">
+
+                <!--
+                    The gate on saving. Every character that moved appears here
+                    and demands a note before SAVE will do anything - a
+                    validation rule rather than a field somebody may ignore.
+                -->
+                <div class="dashboard-header-split admin-split-header">
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Unsaved moves</h3>
+                    <span id="tier-move-count" class="tier-move-count">0</span>
+                </div>
+
+                <div id="tier-pending-moves" class="tier-pending-moves">
+                    <p class="admin-queue-empty-msg">Drag a character to another tier and it will appear here.</p>
+                </div>
+
+                <div class="tier-save-row">
+                    <button id="btn-save-tier-list" class="btn-sys btn-sys-green tier-save-btn" disabled>SAVE</button>
+                    <span id="tier-save-status" class="tier-save-status"></span>
+                </div>
+
+                <div class="dashboard-header-split admin-split-header">
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Tiers</h3>
+                    <button id="btn-add-tier" class="btn-sys btn-sys-regular admin-refresh-btn">+ TIER</button>
+                </div>
+
+                <div id="tier-controls" class="tier-controls"></div>
+
+                <div class="dashboard-header-split admin-split-header">
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Reasoning</h3>
+                </div>
+
+                <p class="tier-reasoning-hint">
+                    The long-form argument for this list. Same editor the rest of the wiki uses, so
+                    headings, images, callouts and colour shortcodes all work.
+                </p>
+
+                <div id="strategy-block-target" class="block-editor-host"></div>
+
+            </div>
+        </aside>
+
+        <!-- RIGHT: THE LIST -->
+        <main class="live-preview-pane admin-main-pane">
+
+            <div class="editor-live-header admin-live-header">
+                <div class="admin-status-container">
+                    <div class="status-dot online"></div>
+                    <span id="tier-editor-status" class="admin-status-text">Drag characters between tiers.</span>
+                </div>
+            </div>
+
+            <div class="site-body tier-editor-body">
+                <div class="max-w-7xl">
+                    <div id="tier-editor-board" class="tier-editor-board"></div>
+
+                    <!--
+                        Everyone not currently placed. Dragging out of a tier
+                        returns a character here rather than deleting them, so
+                        "not ranked" stays a state somebody can be in.
+                    -->
+                    <div class="tier-tray-header">
+                        <h3 class="section-title section-title-clean m-0">Unranked</h3>
+                    </div>
+                    <div id="tier-editor-tray" class="tier-editor-tray ctl-chars"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/site_utils.js?v=124cc73f"></script>
+    <script src="js/site_meta.js"></script>
+    <script src="js/pagebuilder.js"></script>
+    <script src="js/description.js"></script>
+    <script src="js/internalstyling.js"></script>
+    <script src="js/editor-blocks.js"></script>
+    <script src="js/editor-media.js"></script>
+    <script src="js/tier-editor.js"></script>
+</body>
+</html>

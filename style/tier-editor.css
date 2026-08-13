@@ -1,0 +1,109 @@
+/* --- TIER LIST EDITOR (v0.14 item 3) ---
+   Reuses the two-pane editor shell, the .ctl-* row classes from the public
+   page, and .tier-portrait. Only what is specific to editing lives here. */
+
+.tier-editor-body { width: 100%; padding: 1.5rem; box-sizing: border-box; }
+
+.tier-editor-board { margin-bottom: 2rem; }
+
+/* Taller than the read-only row: a drop target that is only as tall as its
+   contents is nearly impossible to hit when the tier is empty. */
+.tier-editor-row .ctl-chars { min-height: 96px; }
+
+.tier-dropzone-hot {
+    outline: 2px dashed var(--accent-blue);
+    outline-offset: -4px;
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.tier-tray-header { margin-bottom: 0.5rem; }
+
+.tier-editor-tray {
+    border: 2px dashed var(--border-color);
+    min-height: 96px;
+}
+
+/* --- PENDING MOVES ---
+   The gate on saving, so it sits above the tier controls and the reasoning
+   editor rather than below them. Yellow because it is a thing to resolve. */
+.tier-pending-moves { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.tier-move {
+    border: 2px solid #eab308;
+    background: rgba(234, 179, 8, 0.05);
+    padding: 0.6rem 0.7rem;
+}
+
+.tier-move-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.tier-move-char {
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    font-weight: bold;
+    color: var(--text-white);
+}
+
+.tier-move-arrow {
+    font-family: var(--text-mono);
+    font-size: 0.68rem;
+    color: #eab308;
+}
+
+.tier-move-note { width: 100%; box-sizing: border-box; font-size: 0.78rem; }
+
+.tier-move-count {
+    font-family: var(--text-mono);
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #eab308;
+}
+
+.tier-save-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0.9rem 0 1.5rem 0;
+    flex-wrap: wrap;
+}
+
+.tier-save-btn { min-width: 6rem; }
+
+.tier-save-status {
+    font-family: var(--text-mono);
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+/* --- TIER CONTROLS --- */
+.tier-controls { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.5rem; }
+
+.tier-control-row { display: flex; align-items: center; gap: 0.35rem; }
+
+.tier-control-name { flex: 1; min-width: 0; font-size: 0.78rem; }
+
+.tier-control-color {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 2px solid var(--border-color);
+    background: none;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.tier-control-btn { padding: 0.3rem 0.45rem; font-size: 0.65rem; flex-shrink: 0; }
+
+.tier-reasoning-hint {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 0 0 0.75rem 0;
+    line-height: 1.5;
+}
+
+.block-editor-host { margin-bottom: 2rem; }
