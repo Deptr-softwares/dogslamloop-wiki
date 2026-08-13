@@ -69,6 +69,14 @@ window.runPageBoot = async function (route) {
             window.loadPageAlerts(pageId);
         }
 
+        // Fired alongside the rest rather than awaited, for the same reason
+        // the mode toggle is: the thread sits below the tabs and nothing above
+        // it depends on the answer. A slow discussion query must never be what
+        // delays the frame data somebody came here to read.
+        if (typeof window.initPageDiscussions === 'function') {
+            window.initPageDiscussions(pageId);
+        }
+
         // 4. Delay the TOC mapping so every content block has been injected.
         setTimeout(() => {
             if (window.refreshTOC) window.refreshTOC();

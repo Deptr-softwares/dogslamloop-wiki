@@ -164,6 +164,14 @@ window.buildPageSkeleton = function (route, rootPath) {
 
 ${tabDivs}
 
+            <!-- The discussion thread, below the tabs rather than as one more
+                 tab. A tab is a section of the article; this is the readers
+                 talking about it, and burying a conversation behind a button
+                 nobody clicks is how a discussion feature dies quietly.
+                 Filled by js/discussions.js, which renders nothing at all if
+                 the table is unreachable. -->
+            <section id="discussion-section" class="discussion-section" aria-label="Discussion"></section>
+
         </main>`;
     }
 
