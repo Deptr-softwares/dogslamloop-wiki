@@ -136,11 +136,23 @@ window.renderStructuredDiff = function(oldObj, newObj) {
 // Previously defined twice, byte-identical, further down the old single
 // admin.js (a Gemini copy-paste artifact) - one definition here.
 function getTabData(tab, mode) {
-    const isFrame = ['m1s', 'skills', 'specials'].includes(tab);
-    const liveDesc = window.currentLiveDescData || {};
-    const liveFrame = window.currentLiveFrameData || {};
-    const pendDesc = window.currentPendingDescData || {};
-    const pendFrame = window.currentPendingFrameData || {};
+    const isFrame = (window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials']).includes(tab);
+
+    // Narrowed to the character state the preview is showing. Without this,
+    // every tab of an ultimate state was compared against the base kit's -
+    // so an edit inside a state read as a wholesale rewrite of the page, and
+    // an untouched base kit read as unchanged even when the revision was
+    // entirely about a state.
+    const activeMode = window.activePreviewMode || null;
+    const scopeDesc = (full) => (typeof window.resolveModeDesc === 'function'
+        ? window.resolveModeDesc(full || {}, activeMode) : (full || {}));
+    const scopeFrame = (full) => (typeof window.resolveModeFrame === 'function'
+        ? window.resolveModeFrame(full || {}, activeMode) : (full || {}));
+
+    const liveDesc = scopeDesc(window.currentLiveDescData);
+    const liveFrame = scopeFrame(window.currentLiveFrameData);
+    const pendDesc = scopeDesc(window.currentPendingDescData);
+    const pendFrame = scopeFrame(window.currentPendingFrameData);
 
     const dataObj = mode === 'live' ? (isFrame ? liveFrame : liveDesc) : (isFrame ? pendFrame : pendDesc);
 
@@ -154,23 +166,47 @@ function getTabData(tab, mode) {
 // looking at the preview on mobile (see window.toggleMobilePreview in
 // admin-core.js), so the old indicators were invisible right when they
 // mattered most.
-const CHANGED_TAB_LABELS = { overview: 'Overview & Strategy', m1s: 'M1s', skills: 'Skills', specials: 'Specials', matchups: 'Matchups', counterplay: 'Counterplay' };
+const CHANGED_TAB_LABELS = { overview: 'Overview & Strategy', m1s: 'M1s', skills: 'Skills', specials: 'Specials', ultimateAtk: 'Ultimate', matchups: 'Matchups', counterplay: 'Counterplay' };
 
 window.showChangedTabsPopup = function() {
     const existing = document.getElementById('changed-tabs-popup');
     if (existing) existing.remove();
 
     const tabs = window.changedTabs || [];
-    if (tabs.length === 0) return;
 
-    const labels = tabs.map(t => CHANGED_TAB_LABELS[t] || t).join(', ');
+    // States this revision changed other than the one on screen. This is the
+    // line that stops the whole class of bug: an edit inside an ultimate state
+    // leaves every tab of the base kit identical, so without it the reviewer
+    // is shown a page that is genuinely unchanged and told nothing about why.
+    const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === 'base'));
+    const active = window.activePreviewMode || null;
+    const otherStates = (window.changedModes || [])
+        .filter(id => !((isBase(id) && isBase(active)) || id === active));
+
+    if (tabs.length === 0 && otherStates.length === 0) return;
+
+    const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s === null || s === undefined ? '' : s));
+    const labels = tabs.map(t => esc(CHANGED_TAB_LABELS[t] || t)).join(', ');
+
+    // Contributor-authored state labels reach this markup.
+    const stateNames = otherStates
+        .map(id => esc(typeof window.previewStateLabel === 'function' ? window.previewStateLabel(id) : id))
+        .join(', ');
+
+    let body = '';
+    if (tabs.length) body += `<div class="changed-tabs-popup-body">${labels}</div>`;
+    if (otherStates.length) {
+        body += `<div class="changed-tabs-popup-body changed-tabs-popup-states">`
+            + `Also changed in another state: ${stateNames}. Use the state toggle above the tabs.`
+            + `</div>`;
+    }
 
     const popup = document.createElement('div');
     popup.id = 'changed-tabs-popup';
     popup.innerHTML = `
         <div>
             <div class="changed-tabs-popup-title">Modifications Detected</div>
-            <div class="changed-tabs-popup-body">${labels}</div>
+            ${body}
         </div>
         <button class="changed-tabs-popup-close" title="Dismiss" onclick="this.parentElement.remove()">✖</button>
     `;
@@ -189,7 +225,11 @@ window.showChangedTabsPopup = function() {
     }
 };
 
-function calculateTabDiffs(rev) {
+// showPopup is false when this is re-run after a character-state switch
+// (js/admin-modes.js): the markers have to be recomputed for the state now on
+// screen, but re-announcing the same revision every time the reviewer looks at
+// another state would be noise.
+function calculateTabDiffs(rev, showPopup = true) {
     window.changedTabs = [];
 
     if (window.activePreviewPageType === 'system' || window.activePreviewPageType === 'tierlist') {
@@ -204,11 +244,21 @@ function calculateTabDiffs(rev) {
         });
     } else {
         if (rev && rev.is_delta) {
+            const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === 'base'));
+            const active = window.activePreviewMode || null;
+
             const addScopeTab = (rawScope, rawKey) => {
                 // A character-state edit wraps one of the scopes below. The tab
                 // it changed is the inner scope's tab - without unwrapping,
                 // every state edit marked Overview and nothing else.
-                const { scope, key } = window.unwrapModeDelta(rawScope, rawKey);
+                const { modeId, scope, key } = window.unwrapModeDelta(rawScope, rawKey);
+
+                // A marker means "changed in the state you are looking at".
+                // A batched ticket can span several states, and marking the
+                // union would point the reviewer at tabs that are identical in
+                // the state on screen. The states themselves are marked on the
+                // toggle instead (js/admin-modes.js).
+                if (!((isBase(modeId) && isBase(active)) || modeId === active)) return;
 
                 let targetTab = 'overview';
                 if (['profile', 'playstyle', 'overview', 'strategy', 'extra'].includes(scope)) targetTab = 'overview';
@@ -222,7 +272,7 @@ function calculateTabDiffs(rev) {
             if (rev.target_scope === 'multi') rev.delta_payload.forEach(edit => addScopeTab(edit.scope, edit.key));
             else addScopeTab(rev.target_scope, rev.target_key);
         } else {
-            const tabs = ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'];
+            const tabs = ['overview', 'm1s', 'skills', 'specials', 'ultimateAtk', 'matchups', 'counterplay'];
             tabs.forEach(tab => {
                 const liveStr = JSON.stringify(getTabData(tab, 'live') || {});
                 const pendStr = JSON.stringify(getTabData(tab, 'pending') || {});
@@ -231,7 +281,7 @@ function calculateTabDiffs(rev) {
         }
     }
 
-    window.showChangedTabsPopup();
+    if (showPopup) window.showChangedTabsPopup();
     if (typeof window.markChangedRevisionTabs === 'function') window.markChangedRevisionTabs();
 }
 

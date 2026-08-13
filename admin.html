@@ -160,6 +160,13 @@
                          character and system pages use. These IDs are what
                          setupTabs('nav', 'tab', ...) binds to, and what
                          updateAdminSidebar appends dynamic system tabs into. -->
+                    <!-- Character states. Same chips as the live page and the
+                         editor, in the same place: above the tab strip,
+                         because the tabs mean different things depending on
+                         which state is selected. Built by
+                         js/admin-modes.js and hidden for every page that
+                         declares no states, which is most of them. -->
+                    <div id="preview-mode-bar" class="character-mode-bar admin-preview-mode-bar hidden" role="tablist" aria-label="Character state"></div>
                     <nav id="preview-tab-nav" class="admin-preview-tab-nav hidden" aria-label="Revision sections">
                         <button id="nav-overview" class="btn-manga btn-manga-slanted active"><div class="btn-manga-content"><span class="btn-manga-text">Overview &amp; Strategy</span></div></button>
                         <button id="nav-m1s" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">M1s</span></div></button>
@@ -259,6 +266,7 @@
     <script src="js/admin-core.js"></script>
     <script src="js/admin-queue.js"></script>
     <script src="js/admin-diff.js"></script>
+    <script src="js/admin-modes.js"></script>
     <script src="js/admin-preview.js"></script>
     <script src="js/admin-tickets.js"></script>
     <script src="js/admin-actions.js"></script>

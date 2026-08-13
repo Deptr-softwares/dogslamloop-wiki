@@ -40,6 +40,35 @@
     border-color: var(--accent-blue);
 }
 
+/* --- CHARACTER STATE TOGGLE ---
+   The same .character-mode-chip the live page and the editor use, so a
+   reviewer picks a state with the control they already know. Only the
+   spacing and the changed-marker are admin-specific, and both are scoped to
+   #preview-mode-bar: .character-mode-chip is shared with js/character_modes.js
+   and js/editor-modes.js, and neither of those wants a review marker. */
+.admin-preview-mode-bar {
+    margin-top: 0;
+    margin-bottom: 0.9rem;
+}
+
+/* Which states the revision touched. Deliberately the same blue dot the tab
+   strip uses for changed tabs - it is the same claim one level up, and a
+   second visual language for it would just be something else to learn. */
+#preview-mode-bar .character-mode-chip.tab-changed {
+    border-color: var(--accent-blue);
+}
+
+#preview-mode-bar .character-mode-chip.tab-changed::after {
+    content: '';
+    display: inline-block;
+    width: 0.45rem;
+    height: 0.45rem;
+    margin-left: 0.4rem;
+    vertical-align: 0.05rem;
+    border-radius: 50%;
+    background: var(--accent-blue);
+}
+
 /* The vertical .nav-btn rules that used to sit here are gone with the
    sidebar tab list they styled - both the static character tabs and the
    dynamically-created system ones now render in .admin-preview-tab-nav
@@ -116,6 +145,12 @@
 }
 .changed-tabs-popup-title { color: #eab308; font-size: 0.65rem; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 0.35rem; }
 .changed-tabs-popup-body { color: #fff; font-size: 0.75rem; line-height: 1.4; }
+
+/* The one line a reviewer has to read when the tabs in front of them are
+   genuinely unchanged because the edit is in another character state.
+   Yellow to match the state toggle it points at, rather than the white of
+   the tab list above it. */
+.changed-tabs-popup-states { color: #eab308; margin-top: 0.4rem; }
 
 @media (max-width: 900px) {
     #changed-tabs-popup { max-width: none; }

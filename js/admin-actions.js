@@ -27,6 +27,14 @@ window.editCurrentTicket = async function() {
     const activeTab = activeTabBtn ? activeTabBtn.id.replace('nav-', '') : null;
     if (activeTab) url += `&tab=${encodeURIComponent(activeTab)}`;
 
+    // ...and on whatever character state they are reading, for the same
+    // reason. A reviewer who has switched to an ultimate state and then
+    // intercepts would otherwise land on the base kit and write their
+    // corrections into the wrong state. editor-modes.js still lets a
+    // mode-scoped ticket override this, which is the stronger signal of the
+    // two when they disagree.
+    if (window.activePreviewMode) url += `&mode=${encodeURIComponent(window.activePreviewMode)}`;
+
     // Single-move tickets keep their deep link into the exact move, which
     // the tab strip cannot express on its own.
     if (rev.is_delta && rev.target_scope === 'move' && rev.target_key) {
