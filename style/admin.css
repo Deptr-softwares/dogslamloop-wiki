@@ -777,3 +777,98 @@
 }
 .personnel-capability:hover { color: var(--text-white); }
 .personnel-capability-box { cursor: pointer; }
+
+/* --- REPORT QUEUE (v0.14 item 6) ---
+   Third queue in the sidebar column, deliberately built from the same pieces
+   as the media queue above it rather than a new visual language: a reviewer
+   working through three queues should not have to learn three layouts. */
+.report-card {
+    background: var(--bg-secondary, #111);
+    border: 2px solid var(--border-color, #333);
+    padding: 0.75rem 0.85rem;
+}
+
+.report-card-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.4rem;
+}
+
+.report-reason-badge { background: #eab308; color: #000; }
+
+/* The single most useful signal in the queue: three reports on one post is a
+   different situation from one, and it should be readable without counting
+   rows. Red rather than yellow because it is the thing to look at first. */
+.report-count-badge { background: #ef4444; color: #000; }
+
+.report-page {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    color: var(--accent-blue);
+    font-weight: bold;
+}
+
+.report-time {
+    font-family: var(--text-mono);
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+
+.report-meta {
+    font-family: var(--text-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+}
+
+.report-note {
+    font-size: 0.75rem;
+    color: #eab308;
+    margin-bottom: 0.5rem;
+    overflow-wrap: break-word;
+}
+
+/* The reported text itself. Bordered on the left so it reads as a quotation
+   of somebody else's words rather than as the moderator's own interface. */
+.report-quote {
+    margin: 0 0 0.5rem 0;
+    padding: 0.4rem 0 0.4rem 0.7rem;
+    border-left: 3px solid var(--border-color, #333);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: #fff;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    max-height: 12rem;
+    overflow-y: auto;
+}
+
+.report-quote-down { opacity: 0.65; font-style: italic; }
+
+.report-already,
+.report-resolved {
+    font-family: var(--text-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.report-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.report-action-btn { font-size: 0.6rem; padding: 0.3rem 0.5rem; }
+
+.report-action-status {
+    font-family: var(--text-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+}

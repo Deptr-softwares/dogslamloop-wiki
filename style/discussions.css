@@ -310,6 +310,48 @@
     border-color: var(--accent-yellow);
 }
 
+/* --- REPORTING ---
+   Yellow like the moderation form, because both are "this goes to staff", and
+   deliberately less loud than the red of a destructive action - reporting is
+   asking someone to look, not doing something irreversible. */
+
+.discussion-report-form {
+    margin-top: 0.6rem;
+    padding: 0.7rem;
+    border: 2px dashed #eab308;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.discussion-report-reason,
+.discussion-report-note {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--bg-main);
+    border: 2px solid var(--border-color);
+    color: var(--text-white);
+    font-family: inherit;
+    font-size: 0.8rem;
+    padding: 0.5rem;
+}
+
+.discussion-report-reason:focus,
+.discussion-report-note:focus {
+    outline: none;
+    border-color: #eab308;
+}
+
+/* Replaces the form once sent, so nobody is left wondering whether it went. */
+.discussion-report-sent {
+    margin-top: 0.6rem;
+    padding: 0.6rem 0.7rem;
+    border: 2px solid #eab308;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    color: #eab308;
+}
+
 /* --- REPLIES ---
    One level only, so a single indent is the whole depth story. The left rule
    is what carries it: no nesting to communicate, just membership. */

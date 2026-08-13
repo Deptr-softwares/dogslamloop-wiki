@@ -157,11 +157,133 @@
 
     // --- RENDERING ---
 
+    // --- REPORTING ---
+    //
+    // Moderators removing posts they happen to see does not scale to 1.4M
+    // people. This is what turns moderation from patrolling into a queue.
+    //
+    // Deliberately no "incorrect" category. On a frame-data wiki "this is
+    // wrong" is the most common complaint and the least actionable by
+    // moderation - a thread is exactly where being wrong should be argued
+    // with. Offering it would fill the queue with disagreements and train
+    // moderators to skim, which is how a real harassment report gets missed.
+    const REPORT_REASONS = [
+        { id: 'spam', label: 'Spam or advertising' },
+        { id: 'harassment', label: 'Harassment or abuse' },
+        { id: 'off_topic', label: 'Off topic for this page' },
+        { id: 'other', label: 'Something else' },
+    ];
+
+    function renderReportForm(postId) {
+        const form = el('form', 'discussion-report-form');
+        // Deliberately NOT data-report-post: that is the trigger button's
+        // attribute, and the delegated click handler matches the nearest
+        // ancestor carrying it. With the same name on both, clicking Send
+        // inside the form matched the form and re-opened it instead of
+        // submitting - the submit event never fired at all.
+        form.dataset.reportFor = postId;
+        form.noValidate = true;
+
+        form.appendChild(el('div', 'discussion-mod-heading', 'Report this post'));
+
+        const select = document.createElement('select');
+        select.className = 'discussion-report-reason';
+        select.setAttribute('aria-label', 'Reason');
+        REPORT_REASONS.forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r.id;
+            opt.textContent = r.label;
+            select.appendChild(opt);
+        });
+        form.appendChild(select);
+
+        const note = document.createElement('input');
+        note.type = 'text';
+        note.className = 'discussion-report-note';
+        note.maxLength = 500;
+        note.placeholder = 'Anything else the moderators should know (optional)';
+        note.setAttribute('aria-label', 'Additional detail');
+        form.appendChild(note);
+
+        const row = el('div', 'discussion-composer-row');
+        const go = el('button', 'btn-sys btn-sys-yellow discussion-report-confirm', 'SEND REPORT');
+        go.type = 'submit';
+        row.appendChild(go);
+
+        const cancel = el('button', 'btn-sys btn-sys-regular', 'CANCEL');
+        cancel.type = 'button';
+        cancel.dataset.cancelReport = 'true';
+        row.appendChild(cancel);
+
+        row.appendChild(el('span', 'discussion-composer-status'));
+        form.appendChild(row);
+        return form;
+    }
+
+    function openReportForm(postId) {
+        const root = document.getElementById('discussion-section');
+        if (!root) return;
+
+        const existing = root.querySelector('.discussion-report-form');
+        if (existing) existing.remove();
+
+        const target = document.getElementById(`post-${postId}`);
+        if (!target) return;
+
+        const actions = target.querySelector('.discussion-post-actions');
+        const form = renderReportForm(postId);
+        if (actions) actions.insertAdjacentElement('afterend', form);
+        else target.appendChild(form);
+
+        const select = form.querySelector('.discussion-report-reason');
+        if (select) select.focus();
+    }
+
+    async function submitReport(form) {
+        const postId = form.dataset.reportFor;
+        const reason = form.querySelector('.discussion-report-reason').value;
+        const note = form.querySelector('.discussion-report-note').value.trim();
+
+        const confirmBtn = form.querySelector('.discussion-report-confirm');
+        if (confirmBtn) confirmBtn.disabled = true;
+        setStatus('Sending…');
+
+        const { data, error } = await client().rpc('report_discussion_post', {
+            p_post_id: postId,
+            p_reason: reason,
+            p_note: note || null,
+        });
+
+        if (confirmBtn) confirmBtn.disabled = false;
+
+        if (error) { setStatus(error.message || 'Could not send that report.', true); return; }
+
+        // Replaced rather than left open, so nobody sits there wondering
+        // whether it went. The message is the same whether this was a new
+        // report or a duplicate - see the RPC's comment on why.
+        form.replaceWith(el('div', 'discussion-report-sent', data || 'Thanks — a moderator will take a look.'));
+    }
+
     // --- MODERATION CONTROLS ---
     //
     // One builder for posts and replies. They diverged once already on the
     // delete button and the two copies have to say the same thing about who
     // may do what, so there is only one copy of it.
+    // Offered on anything still visible that is not yours, to anyone signed in
+    // who is not soft-banned. Not offered to moderators on posts they can
+    // already act on directly - reporting something to yourself is a queue
+    // entry nobody needs.
+    function appendReportControl(actions, entry) {
+        if (!isSignedIn() || isBanned() || state.canModerate) return;
+        if (entry.status !== 'visible') return;
+        if (state.session && entry.author_id === state.session.user.id) return;
+
+        const btn = el('button', 'discussion-action-btn', 'Report');
+        btn.type = 'button';
+        btn.dataset.reportPost = entry.id;
+        actions.appendChild(btn);
+    }
+
     function appendModerationControls(actions, entry) {
         if (!state.canModerate) return;
 
@@ -294,6 +416,7 @@
             actions.appendChild(delBtn);
         }
 
+        appendReportControl(actions, post);
         appendModerationControls(actions, post);
 
         if (actions.childNodes.length) wrap.appendChild(actions);
@@ -340,6 +463,7 @@
             actions.appendChild(delBtn);
         }
 
+        appendReportControl(actions, reply);
         appendModerationControls(actions, reply);
 
         if (actions.childNodes.length) wrap.appendChild(actions);
@@ -643,6 +767,16 @@
             const remove = e.target.closest('[data-remove-post]');
             if (remove) { await removePost(remove.dataset.removePost); return; }
 
+            const report = e.target.closest('[data-report-post]');
+            if (report) { openReportForm(report.dataset.reportPost); return; }
+
+            const cancelReport = e.target.closest('[data-cancel-report]');
+            if (cancelReport) {
+                const form = cancelReport.closest('.discussion-report-form');
+                if (form) form.remove();
+                return;
+            }
+
             const moderate = e.target.closest('[data-moderate]');
             if (moderate) { openModerationForm(moderate.dataset.moderate, moderate.dataset.modAction); return; }
 
@@ -665,6 +799,9 @@
         });
 
         root.addEventListener('submit', async (e) => {
+            const rep = e.target.closest('.discussion-report-form');
+            if (rep) { e.preventDefault(); await submitReport(rep); return; }
+
             const mod = e.target.closest('.discussion-mod-form');
             if (mod) { e.preventDefault(); await submitModeration(mod); return; }
 
