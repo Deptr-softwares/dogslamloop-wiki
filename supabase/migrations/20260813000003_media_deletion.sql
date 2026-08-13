@@ -60,17 +60,35 @@ GRANT EXECUTE ON FUNCTION "public"."can_delete_media"() TO "authenticated";
 -- --------------------------------------------------------------------------
 --
 -- Storage rules for this project have lived in the Supabase dashboard rather
--- than in migrations, which means they are invisible to code review and absent
--- from any preview branch. This one is declared here so the rule that governs
--- irreversible deletion is at least readable in the repository.
+-- than in migrations, which means they were invisible to code review and
+-- absent from every preview branch. Checked against the dashboard on
+-- 2026-08-13, the bucket had exactly four policies, all for `authenticated`:
 --
--- IMPORTANT, AND THE REASON FOR THE DIAGNOSTIC BELOW: permissive policies are
--- OR'd together. If a broader DELETE policy already exists on storage.objects,
--- adding this one narrows nothing at all. The NOTICE lists whatever else is
--- there so it shows up in the migration output instead of being assumed.
--- Nothing is dropped automatically - an 'ALL' policy on storage.objects is
--- typically what permits uploads and reads too, and dropping it blind would
--- break every contributor's ability to add an image.
+--     Auth Upload      INSERT   bucket_id = 'wiki-media'
+--     Auth Update      UPDATE   bucket_id = 'wiki-media'
+--     Auth Delete      DELETE   bucket_id = 'wiki-media'
+--     Auth List Media  SELECT   bucket_id = 'wiki-media'
+--
+-- So DELETE was open to ANY SIGNED-IN ACCOUNT. Not staff - anyone who had
+-- registered could have emptied the bucket, and the site is about to be
+-- pointed at by a 1.4M-member Discord.
+--
+-- This also means the first draft of this migration was useless. It added a
+-- second, narrower DELETE policy - and permissive policies are OR'd, so
+-- "Auth Delete" would have kept saying yes and can_delete_media would have
+-- shipped as pure decoration: a checkbox in owner tools that controlled
+-- nothing while looking exactly like the two capabilities that do.
+--
+-- So the existing policy is REPLACED rather than supplemented. Same name, so
+-- the dashboard still shows one obvious DELETE rule rather than two that have
+-- to be read together to work out what is permitted.
+--
+-- Only DELETE is touched here. INSERT and SELECT are how contributors upload
+-- and how the editor lists the library, and both must stay open to any signed-
+-- in user. UPDATE is a separate question - it permits renaming an object,
+-- which breaks every reference to it - but nothing in the app uses it, and
+-- narrowing it belongs in its own change rather than riding along with this
+-- one.
 DO $$
 DECLARE
     other record;
@@ -81,26 +99,49 @@ BEGIN
         FROM pg_policies
         WHERE schemaname = 'storage' AND tablename = 'objects'
           AND cmd IN ('DELETE', 'ALL')
-          AND policyname <> 'Only media deleters can delete wiki media'
+          AND policyname <> 'Auth Delete'
     LOOP
         found_any := true;
-        RAISE NOTICE 'storage.objects already has a % policy "%" for roles % - permissive policies are OR''d, so it may still allow deletes this migration is trying to restrict.',
+        RAISE WARNING 'storage.objects has another % policy "%" for roles %. Permissive policies are OR''d, so it may still allow deletes this migration is trying to restrict.',
             other.cmd, other.policyname, other.roles;
     END LOOP;
 
     IF NOT found_any THEN
-        RAISE NOTICE 'storage.objects has no other DELETE or ALL policy - the new policy is the only delete path.';
+        RAISE NOTICE 'storage.objects has no other DELETE or ALL policy - "Auth Delete" is the only delete path.';
     END IF;
 END $$;
 
-DROP POLICY IF EXISTS "Only media deleters can delete wiki media" ON "storage"."objects";
-
-CREATE POLICY "Only media deleters can delete wiki media" ON "storage"."objects"
-    FOR DELETE TO "authenticated"
-    USING (
-        "bucket_id" = 'wiki-media'
-        AND "public"."can_delete_media"()
-    );
+-- Altered if present, created if not, and the branch matters.
+--
+-- Production HAS "Auth Delete" - it was made in the dashboard. A preview
+-- branch does NOT, because preview databases are built from these migrations
+-- and the dashboard policies were never in them. An unconditional ALTER would
+-- therefore fail on exactly the check that exists to verify this, and an
+-- unconditional CREATE would fail on production. Neither half can be assumed.
+--
+-- ALTER rather than DROP + CREATE on the production path, so there is never a
+-- moment where the bucket has no delete policy at all.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'storage' AND tablename = 'objects'
+          AND policyname = 'Auth Delete'
+    ) THEN
+        EXECUTE $q$
+            ALTER POLICY "Auth Delete" ON "storage"."objects"
+            USING ("bucket_id" = 'wiki-media'::text AND "public"."can_delete_media"())
+        $q$;
+        RAISE NOTICE 'Narrowed the existing "Auth Delete" policy to require can_delete_media().';
+    ELSE
+        EXECUTE $q$
+            CREATE POLICY "Auth Delete" ON "storage"."objects"
+            FOR DELETE TO "authenticated"
+            USING ("bucket_id" = 'wiki-media'::text AND "public"."can_delete_media"())
+        $q$;
+        RAISE NOTICE 'Created "Auth Delete" - this database had no delete policy for wiki-media.';
+    END IF;
+END $$;
 
 
 -- --------------------------------------------------------------------------
