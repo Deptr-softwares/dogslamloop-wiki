@@ -879,3 +879,49 @@
    by js/admin-core.js rather than here, because that has to happen before
    anything loads - a CSS rule would let them flash in first. */
 body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
+
+/* --- MEDIA DELETION (v0.14 item 5) ---
+   Inline rather than a modal, because the confirmation has to show the file
+   name and its usage together and a one-line prompt cannot. Red-bordered and
+   roomy: this is the only irreversible action in the panel and should not look
+   like the approve/flag buttons above it. */
+.media-queue-confirm {
+    margin-top: 0.6rem;
+    padding: 0.7rem;
+    border: 2px solid #ef4444;
+    background: rgba(239, 68, 68, 0.06);
+}
+
+.media-queue-confirm.hidden { display: none; }
+
+.media-queue-confirm-title {
+    margin: 0 0 0.4rem 0;
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    font-weight: bold;
+    color: #ef4444;
+    overflow-wrap: anywhere;
+}
+
+.media-queue-confirm-body {
+    margin: 0 0 0.4rem 0;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+/* Used on a live page: deleting breaks something that exists right now. */
+.media-queue-confirm-danger { color: #fca5a5; font-weight: bold; }
+
+.media-queue-confirm-final {
+    margin: 0 0 0.5rem 0;
+    font-family: var(--text-mono);
+    font-size: 0.68rem;
+    color: #ef4444;
+}
+
+.media-queue-confirm-status {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}

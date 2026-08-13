@@ -268,6 +268,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const canModerate = !!roleRow && roleRow.can_moderate === true;
     const isReviewStaff = roles.includes('admin') || roles.includes('reviewer');
 
+    // Deliberately narrower than moderation, and mirrors public.can_delete_media():
+    // admin or the explicit flag, with no fall-back to reviewer. Reviewing a
+    // revision and destroying a file are different amounts of trust, and this
+    // is the only irreversible action in the panel.
+    window.currentUserCanDeleteMedia = roles.includes('admin')
+        || (!!roleRow && roleRow.can_delete_media === true);
+
     if (error || (!isReviewStaff && !canModerate)) { kickUser(); return; }
 
     window.currentUserId = session.user.id;

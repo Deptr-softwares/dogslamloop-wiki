@@ -17,8 +17,8 @@
 const { test, expect } = require('@playwright/test');
 
 const ROSTER = [
-    { user_id: 'u-admin', email: 'owner@site.test', role: 'admin', joined_at: '2026-01-01T00:00:00Z', bypass_cooldown: false, can_moderate: false },
-    { user_id: 'u-ed', email: 'editor@site.test', role: 'trusted_editor', joined_at: '2026-02-01T00:00:00Z', bypass_cooldown: true, can_moderate: false },
+    { user_id: 'u-admin', email: 'owner@site.test', role: 'admin', joined_at: '2026-01-01T00:00:00Z', bypass_cooldown: false, can_moderate: false, can_delete_media: false },
+    { user_id: 'u-ed', email: 'editor@site.test', role: 'trusted_editor', joined_at: '2026-02-01T00:00:00Z', bypass_cooldown: true, can_moderate: false, can_delete_media: false },
 ];
 
 async function openOwner(page, { rpcError = null } = {}) {
@@ -95,13 +95,27 @@ test('every declared capability gets its own independent box', async ({ page }) 
     await openOwner(page);
 
     const row = page.locator('.personnel-row').filter({ hasText: 'editor@site.test' });
-    await expect(row.locator('.personnel-capability-box')).toHaveCount(2);
 
+    // Asserted as the exact set rather than a count, so adding a capability
+    // means updating one list here instead of a number that says nothing about
+    // which ones are meant to exist.
     const capabilities = await row.locator('.personnel-capability-box')
         .evaluateAll(boxes => boxes.map(b => b.dataset.capability));
-    expect(capabilities.sort()).toEqual(['bypass_cooldown', 'can_moderate']);
+    expect(capabilities.sort()).toEqual(['bypass_cooldown', 'can_delete_media', 'can_moderate']);
 
     await expect(boxFor(page, 'editor@site.test', 'can_moderate')).not.toBeChecked();
+});
+
+test('deleting media is not implied by any role except admin', async ({ page }) => {
+    // Deliberately narrower than moderation, which reviewers get for free.
+    // This is the only irreversible action on the site, so it is granted one
+    // person at a time.
+    await openOwner(page);
+
+    await expect(boxFor(page, 'owner@site.test', 'can_delete_media'),
+        'an admin can already delete').toBeDisabled();
+    await expect(boxFor(page, 'editor@site.test', 'can_delete_media'),
+        'everybody else is granted it explicitly').toBeEnabled();
 });
 
 test('moderation is not offered as a capability to roles that already have it', async ({ page }) => {

@@ -217,6 +217,20 @@ async function loadPersonnel() {
                        ${person.role === 'admin' || person.role === 'reviewer' ? 'disabled title="Comes with the role."' : ''}>
                 <span>Moderate discussions</span>
             </label>
+            <!--
+                Deliberately NOT implied by reviewer, unlike moderation. This
+                is the only irreversible action on the site - the file is gone
+                from storage - so it is granted one person at a time rather
+                than arriving with a role.
+            -->
+            <label class="personnel-capability" title="Lets this person permanently delete files from the media bucket. Not implied by any role except admin.">
+                <input type="checkbox" class="personnel-capability-box"
+                       data-email="${ownerEscape(person.email)}"
+                       data-capability="can_delete_media"
+                       ${person.can_delete_media ? 'checked' : ''}
+                       ${person.role === 'admin' ? 'disabled title="Comes with the role."' : ''}>
+                <span>Delete media</span>
+            </label>
         </div>`;
     }).join('');
 

@@ -201,7 +201,11 @@ window.renderMediaQueue = function() {
                     <button class="btn-sys btn-sys-green media-queue-btn" data-action="approve">APPROVE</button>
                     <button class="btn-sys btn-sys-red media-queue-btn" data-action="flag">FLAG</button>
                     ${row.status !== 'unchecked' ? `<button class="btn-sys btn-sys-regular media-queue-btn" data-action="reset">RESET</button>` : ''}
+                    ${window.currentUserCanDeleteMedia
+                        ? `<button class="btn-sys btn-sys-red media-queue-btn media-queue-delete" data-action="delete">DELETE</button>`
+                        : ''}
                 </div>
+                <div class="media-queue-confirm hidden"></div>
             </div>`;
     }).join('');
 };
@@ -306,7 +310,10 @@ document.addEventListener('click', async (event) => {
         if (await setMediaStatus(path, 'flagged', note)) {
             updateLocalRow(path, 'flagged', note);
             window.renderMediaQueue();
-            window.adminAlert('Flagged. It will stop rendering on the site, but the file still exists at its storage URL - deleting it is the owner\'s call.');
+            // Wording updated in v0.14: deletion is now a button on this row
+            // rather than something only the owner could arrange, so the alert
+            // points at it instead of implying there is nothing to be done.
+            window.adminAlert('Flagged. It will stop rendering on the site, but the file still exists at its storage URL. Use DELETE to remove it for good.');
         }
         return;
     }
@@ -316,8 +323,148 @@ document.addEventListener('click', async (event) => {
             updateLocalRow(path, 'unchecked', null);
             window.renderMediaQueue();
         }
+        return;
     }
+
+    if (action === 'delete') { openDeleteConfirm(row, path); return; }
+    if (action === 'delete-cancel') { closeDeleteConfirm(row); return; }
+    if (action === 'delete-confirm') { await deleteMedia(row, path); return; }
 });
+
+// --- DELETION (v0.14 item 5) ---
+//
+// Inline rather than through adminPrompt, and that is the point: this is the
+// only irreversible action in the panel, so the confirmation has to show the
+// file's name and its usage together, which a one-line text prompt cannot.
+//
+// The usage line is deliberately worded as what was FOUND. media_usage()
+// answers by extracting references, which is fast and can miss an unusual
+// form; the garbage collector answers the same question by conservative
+// substring matching precisely so its mistakes fall towards keeping files
+// alive. "Nothing references it" therefore means "nothing was found", never
+// "safe to delete", and the person about to destroy a file is exactly who
+// needs to be told the difference.
+function openDeleteConfirm(row, path) {
+    const box = row.querySelector('.media-queue-confirm');
+    if (!box) return;
+
+    // One confirmation open at a time, so a stray click cannot land on a
+    // different row's CONFIRM than the one just read.
+    document.querySelectorAll('.media-queue-confirm').forEach(other => {
+        if (other !== box) { other.classList.add('hidden'); other.innerHTML = ''; }
+    });
+
+    const usage = usageOf(path);
+    const liveCount = usage.livePages.length;
+
+    box.classList.remove('hidden');
+    box.innerHTML = '';
+
+    const title = document.createElement('p');
+    title.className = 'media-queue-confirm-title';
+    // textContent: the file name is contributor-supplied.
+    title.textContent = `Delete ${path}?`;
+    box.appendChild(title);
+
+    const warn = document.createElement('p');
+    warn.className = 'media-queue-confirm-body';
+    if (liveCount > 0) {
+        warn.classList.add('media-queue-confirm-danger');
+        warn.textContent = `This file is used on ${liveCount} live page${liveCount === 1 ? '' : 's'}: `
+            + `${usage.livePages.join(', ')}. Deleting it will break ${liveCount === 1 ? 'that page' : 'those pages'}.`;
+    } else if (usage.otherRefs > 0) {
+        warn.textContent = 'No live page uses this, but it still appears in page history or a pending revision. '
+            + 'Restoring one of those later would restore a broken reference.';
+    } else {
+        warn.textContent = 'Nothing was found referencing this file. That is not the same as nothing using it — '
+            + 'references are found by extraction, which can miss an unusual form.';
+    }
+    box.appendChild(warn);
+
+    const final = document.createElement('p');
+    final.className = 'media-queue-confirm-final';
+    final.textContent = 'The file is removed from storage permanently. This cannot be undone.';
+    box.appendChild(final);
+
+    const actions = document.createElement('div');
+    actions.className = 'media-queue-actions';
+
+    const confirm = document.createElement('button');
+    confirm.className = 'btn-sys btn-sys-red media-queue-btn';
+    confirm.dataset.action = 'delete-confirm';
+    confirm.textContent = liveCount > 0 ? 'DELETE ANYWAY' : 'DELETE PERMANENTLY';
+    actions.appendChild(confirm);
+
+    const cancel = document.createElement('button');
+    cancel.className = 'btn-sys btn-sys-regular media-queue-btn';
+    cancel.dataset.action = 'delete-cancel';
+    cancel.textContent = 'CANCEL';
+    actions.appendChild(cancel);
+
+    const status = document.createElement('span');
+    status.className = 'media-queue-confirm-status';
+    actions.appendChild(status);
+
+    box.appendChild(actions);
+}
+
+function closeDeleteConfirm(row) {
+    const box = row.querySelector('.media-queue-confirm');
+    if (!box) return;
+    box.classList.add('hidden');
+    box.innerHTML = '';
+}
+
+// Storage first, then the bookkeeping.
+//
+// That order is deliberate. If the object delete fails, nothing else has
+// happened and the row is untouched. If the bookkeeping fails afterwards, the
+// file is genuinely gone and the queue says so loudly rather than pretending
+// the delete failed - which would invite a second attempt at a file that no
+// longer exists.
+async function deleteMedia(row, path) {
+    const box = row.querySelector('.media-queue-confirm');
+    const status = box ? box.querySelector('.media-queue-confirm-status') : null;
+    const buttons = box ? box.querySelectorAll('.media-queue-btn') : [];
+
+    const say = (text, isError) => {
+        if (!status) return;
+        status.textContent = text || '';
+        status.classList.toggle('admin-error-text', !!isError);
+    };
+
+    buttons.forEach(b => { b.disabled = true; });
+    say('Deleting…');
+
+    const { error: storageError } = await window.supabaseClient.storage
+        .from('wiki-media').remove([path]);
+
+    if (storageError) {
+        buttons.forEach(b => { b.disabled = false; });
+        say(storageError.message || 'Storage refused the delete.', true);
+        return;
+    }
+
+    const usage = usageOf(path);
+    const note = usage.livePages.length
+        ? `Was used on: ${usage.livePages.join(', ')}`
+        : (usage.otherRefs > 0 ? 'Referenced only in history or pending revisions' : 'No references found');
+
+    const { error: recordError } = await window.supabaseClient
+        .rpc('record_media_deletion', { p_path: path, p_note: note });
+
+    // Gone from storage either way, so it leaves the list either way.
+    mediaQueueRows = mediaQueueRows.filter(r => r.name !== path);
+    mediaQueueUsage.delete(decodeMediaRef(path));
+    window.renderMediaQueue();
+
+    if (recordError) {
+        window.adminAlert(
+            `The file was deleted, but its queue record could not be settled: ${recordError.message}\n\n`
+            + 'The file is gone. Press Load to refresh the queue.'
+        );
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     ['media-queue-status', 'media-queue-usage'].forEach(id => {
