@@ -1,10 +1,14 @@
 name: Playwright Tests
 
+# next-update is where work lands; main is production and only receives a
+# release PR. Both are listed deliberately: a PR targeting a branch that is
+# not named here runs NO tests at all, and GitHub reports the PR green because
+# nothing ran rather than because anything passed.
 on:
   push:
-    branches: [main]
+    branches: [main, next-update]
   pull_request:
-    branches: [main]
+    branches: [main, next-update]
 
 # A new push to the same PR makes the run in progress irrelevant. PR #44 ran
 # the full suite four times for one PR because each follow-up commit started
