@@ -94,6 +94,47 @@ test.describe('homepage table of contents', () => {
         expect(characters).not.toContain('View More');
     });
 
+    // The other half of that rule, and a regression the first half caused.
+    //
+    // refreshTOC used to strip `a, button` outright. v0.14 made
+    // js/internalstyling.js wrap character mentions in a link, so every
+    // matchup heading became "vs. <a>Honored One</a>" and the whole Matchups
+    // ToC indexed as a column of "vs." with no names. The only two that
+    // survived were the two never wrapped: the page's own character, which the
+    // linker skips, and a misspelled opponent, which matches nothing.
+    //
+    // A link the AUTHOR wrote into a heading is prose; a button-styled one is
+    // furniture. Only furniture is stripped.
+    test('a linked character name stays in its ToC entry', async ({ page }) => {
+        await page.addInitScript((data) => { window.currentEditorDescData = data; }, {
+            overview: [], strategy: [], extras: [], counterplay: [], moveStrategies: {},
+            matchups: [
+                { opponent: 'Honored One', tier: 'Equal', content: [] },
+                { opponent: 'Vessel', tier: 'Equal', content: [] },
+            ],
+        });
+
+        await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+        await page.evaluate(() => window.loadPageDescriptions('boomcat'));
+        await page.evaluate(() => document.getElementById('nav-matchups').click());
+
+        // The mentions have to actually be linked, or this passes for the
+        // wrong reason - it is the stripping of those links that broke it.
+        await expect
+            .poll(async () => page.locator('#tab-matchups a.sc-char-link').count(), { timeout: 15000 })
+            .toBeGreaterThan(0);
+
+        await page.evaluate(() => window.refreshTOC());
+
+        const labels = await page.locator('#dynamic-toc a').allTextContents();
+        const joined = labels.join(' | ');
+
+        expect(joined).toContain('Honored One');
+        expect(joined).toContain('Vessel');
+        // Not a column of bare "vs." entries.
+        expect(labels.filter(l => l.trim() === 'vs.')).toEqual([]);
+    });
+
     test('every entry points at a target that exists', async ({ page }) => {
         await page.goto('/index.html', { waitUntil: 'networkidle' });
 
