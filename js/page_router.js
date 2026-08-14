@@ -122,9 +122,14 @@ window.buildPageSkeleton = function (route, rootPath) {
         </aside>`;
     }
 
-    function rightSidebar(label) {
+    // withToc is separate from the sidebar itself, because this aside is two
+    // things: a table of contents, and the ONLY place the Edit and History
+    // buttons live. A gallery genuinely has no headings to index - but it is
+    // still a page somebody has to be able to edit, and since v0.14 removed
+    // the duplicate mobile pair there is nowhere else to put them.
+    function rightSidebar(label, withToc = true) {
         return `
-        <aside class="local-sidebar-right" aria-label="On this page">
+        <aside class="local-sidebar-right" aria-label="${withToc ? 'On this page' : 'Page tools'}">
             <div class="sidebar-tab-header">
                 <div class="sidebar-master-title">${esc(label)}</div>
 
@@ -133,10 +138,10 @@ window.buildPageSkeleton = function (route, rootPath) {
                     EDIT ${label === 'On this tab' ? 'TAB' : 'PAGE'}
                 </button>
             </div>
-
+${withToc ? `
             <ul class="toc-list" id="dynamic-toc">
                 <li><p class="loading-msg">Loading contents...</p></li>
-            </ul>
+            </ul>` : ''}
         </aside>`;
     }
 
@@ -217,8 +222,13 @@ ${tabDivs}
     // which script fills it (js/gallery.js, js/tool_page.js), not the frame
     // around it - so there is nothing here for them to override.
     //
-    // The right sidebar is a table of contents over headings, which a gallery
-    // does not have: its own search box is how you find something in it.
+    // A gallery has no headings to index - its own search box is how you find
+    // something in it - so it gets the sidebar WITHOUT the contents list.
+    //
+    // It used to get no sidebar at all, which is why the Emotes page had no
+    // edit button and nobody could contribute to it: #btn-edit-current-tab
+    // lives in there, initTabEditorButtons ran, found nothing, and did nothing.
+    // Dropping the whole aside to drop the list threw the buttons out with it.
     const hasToc = route.pageType !== 'gallery';
 
     const skeleton = `${mobileNav()}
@@ -226,7 +236,7 @@ ${tabDivs}
     <div class="site-layout">
 ${leftSidebar()}
 ${isCharacter ? characterMain() : systemMain()}
-${hasToc ? rightSidebar(isCharacter ? 'On this tab' : 'On this page') : ''}
+${rightSidebar(isCharacter ? 'On this tab' : (hasToc ? 'On this page' : 'This page'), hasToc)}
     </div>`;
 
     return skeleton;
