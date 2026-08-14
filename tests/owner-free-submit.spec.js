@@ -18,6 +18,7 @@ const SETTINGS = {
     free_submit_min_age_days: 7,
     free_submit_min_contributions: 1,
     free_submit_min_votes: 10,
+    free_submit_tie_break: 'lower',
 };
 
 async function mockOwner(page, { row = SETTINGS, loadError = null } = {}) {
@@ -85,7 +86,35 @@ test('the current settings load into the form', async ({ page }) => {
     await expect(page.locator('#fs-setting-open')).toHaveValue('true');
     await expect(page.locator('#fs-setting-contrib')).toHaveValue('1');
     await expect(page.locator('#fs-setting-floor')).toHaveValue('10');
+    await expect(page.locator('#fs-setting-tie')).toHaveValue('lower');
     expect(errors).toEqual([]);
+});
+
+test('the tie-break switch saves the chosen side', async ({ page }) => {
+    await mockOwner(page);
+    await openPanel(page);
+
+    await page.selectOption('#fs-setting-tie', 'higher');
+    await page.click('#btn-save-free-submit');
+
+    await expect(page.locator('#fs-setting-results')).toContainText('Saved');
+    const { payload } = (await page.evaluate(() => window.__fsWrites))[0];
+    expect(payload.free_submit_tie_break).toBe('higher');
+});
+
+test('a database older than the client keeps its setting instead of losing it', async ({ page }) => {
+    // The column is absent, so the select reads undefined. Passing that
+    // through would write the string "undefined" and trip the CHECK, turning a
+    // routine save into a raw Postgres error.
+    const { free_submit_tie_break, ...older } = SETTINGS;
+    await mockOwner(page, { row: older });
+    await openPanel(page);
+
+    await expect(page.locator('#fs-setting-tie')).toHaveValue('lower');
+
+    await page.click('#btn-save-free-submit');
+    const { payload } = (await page.evaluate(() => window.__fsWrites))[0];
+    expect(payload.free_submit_tie_break).toBe('lower');
 });
 
 test('closing voting writes false, not a truthy string', async ({ page }) => {

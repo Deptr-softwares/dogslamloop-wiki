@@ -173,6 +173,49 @@ test.describe('the board', () => {
         await expect(pending.locator('.fs-pending-note')).toContainText('10 needed');
     });
 
+    // Owner's call, 2026-08-14: within a tier, strongest on the left. A tier
+    // row is otherwise an unordered heap, and "which of these three B-tiers is
+    // the best B" is a real question a reader asks of a tier list.
+    test('inside a tier, characters run strongest to weakest left to right', async ({ page }) => {
+        await mockTool(page, {
+            rankings: [
+                // Returned worst-first on purpose, so passing cannot come from
+                // the page simply echoing the order the RPC handed it back.
+                { character_id: CHARS[0], vote_count: 40, median_tier: 'B', median_rank: 3.6, distribution: { B: 40 }, ranked: true },
+                { character_id: CHARS[1], vote_count: 40, median_tier: 'B', median_rank: 4.4, distribution: { B: 40 }, ranked: true },
+                { character_id: CHARS[2], vote_count: 40, median_tier: 'B', median_rank: 4.0, distribution: { B: 40 }, ranked: true },
+            ],
+        });
+        await page.goto(PAGE);
+
+        const bRow = page.locator('.fs-tier-row').filter({ has: page.locator('.fs-tier-label', { hasText: /^B$/ }) });
+        // evaluateAll does NOT auto-wait, so the board has to be settled first
+        // or this reads a half-rendered row under load and blames the sort.
+        await expect(bRow.locator('.fs-entry')).toHaveCount(3);
+
+        const order = await bRow.locator('.fs-entry').evaluateAll(
+            nodes => nodes.map(n => n.dataset.character));
+        expect(order).toEqual([CHARS[1], CHARS[2], CHARS[0]]);
+    });
+
+    test('two characters the community rates the same are split by sample size', async ({ page }) => {
+        await mockTool(page, {
+            rankings: [
+                { character_id: CHARS[0], vote_count: 12, median_tier: 'A', median_rank: 5, distribution: { A: 12 }, ranked: true },
+                { character_id: CHARS[1], vote_count: 300, median_tier: 'A', median_rank: 5, distribution: { A: 300 }, ranked: true },
+            ],
+        });
+        await page.goto(PAGE);
+
+        const aRow = page.locator('.fs-tier-row').filter({ has: page.locator('.fs-tier-label', { hasText: /^A$/ }) });
+        await expect(aRow.locator('.fs-entry')).toHaveCount(2);
+
+        const order = await aRow.locator('.fs-entry').evaluateAll(
+            nodes => nodes.map(n => n.dataset.character));
+        // The better-attested one leads, rather than the order being arbitrary.
+        expect(order).toEqual([CHARS[1], CHARS[0]]);
+    });
+
     test('every character on the roster appears somewhere, voted or not', async ({ page }) => {
         await mockTool(page, { rankings: [] });
         await page.goto(PAGE);
@@ -440,6 +483,29 @@ test.describe('the migration', () => {
     test('the writing RPC is closed to anonymous callers outright', () => {
         expect(sql).toMatch(/REVOKE ALL ON FUNCTION "public"\."submit_tier_votes"\(jsonb\) FROM "anon";/);
         expect(sql).not.toMatch(/GRANT EXECUTE ON FUNCTION "public"\."submit_tier_votes"\(jsonb\) TO "anon";/);
+    });
+
+    // The owner's switch, 2026-08-14. The claim worth pinning is not that a
+    // setting exists, but that BOTH answers still return a tier somebody
+    // actually voted - which is why the option is which middle vote wins
+    // rather than disc-versus-cont.
+    test('both tie-break settings place a character on a real vote', () => {
+        expect(sql).toContain('percentile_disc(0.5) WITHIN GROUP (ORDER BY c.rank)');
+        expect(sql).toContain('percentile_disc(0.5) WITHIN GROUP (ORDER BY c.rank DESC)');
+        // Never rounded into a tier nobody chose.
+        expect(sql).not.toMatch(/round\s*\(\s*.*cont_rank/i);
+        expect(sql).not.toMatch(/(ceil|floor)\s*\(\s*.*cont_rank/i);
+    });
+
+    test('the tie-break column only accepts the two offered answers', () => {
+        expect(sql).toMatch(/CHECK\s*\(\s*"free_submit_tie_break" = ANY \(ARRAY\['lower'::text, 'higher'::text\]\)\s*\)/);
+    });
+
+    test('the continuous median is used for ordering and never for placement', () => {
+        // It is joined to a tier through low_rank/high_rank, never cont_rank -
+        // cont_rank for an even split is a number like 4.5, which is not a tier.
+        expect(sql).toMatch(/ON t\.rank = CASE WHEN s\.tie_break = 'higher' THEN a\.high_rank ELSE a\.low_rank END/);
+        expect(sql).not.toMatch(/t\.rank = a\.cont_rank/);
     });
 
     test('the soft ban is honoured with IS NOT DISTINCT FROM, not =', () => {

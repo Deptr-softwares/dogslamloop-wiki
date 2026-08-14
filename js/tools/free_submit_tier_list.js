@@ -187,8 +187,11 @@
             ranked.get(row.median_tier).push(id);
         });
 
-        // Within a tier, by the continuous median - see the migration for why
-        // that rather than a mean.
+        // Within a tier, strongest first and so left to right across the row.
+        // Sorted by the continuous median rather than a mean - see the
+        // migration for why. Ties fall back to the sample size, so of two
+        // characters the community rates identically the better-attested one
+        // leads.
         ranked.forEach(list => list.sort((a, b) => {
             const ra = Number((state.rankings.get(a) || {}).median_rank) || 0;
             const rb = Number((state.rankings.get(b) || {}).median_rank) || 0;

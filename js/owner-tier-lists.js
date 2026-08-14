@@ -168,7 +168,7 @@ window.loadFreeSubmitSettings = async function () {
 
     const { data, error } = await window.supabaseClient
         .from('tier_page_settings')
-        .select('free_submit_open, free_submit_min_age_days, free_submit_min_contributions, free_submit_min_votes')
+        .select('free_submit_open, free_submit_min_age_days, free_submit_min_contributions, free_submit_min_votes, free_submit_tie_break')
         .maybeSingle();
 
     if (error || !data) {
@@ -182,6 +182,10 @@ window.loadFreeSubmitSettings = async function () {
     document.getElementById('fs-setting-age').value = data.free_submit_min_age_days;
     document.getElementById('fs-setting-contrib').value = data.free_submit_min_contributions;
     document.getElementById('fs-setting-floor').value = data.free_submit_min_votes;
+    // Defaulted here as well as in the schema: a client newer than the database
+    // reads undefined, and an empty select would then save 'undefined' over a
+    // perfectly good setting.
+    document.getElementById('fs-setting-tie').value = data.free_submit_tie_break === 'higher' ? 'higher' : 'lower';
 };
 
 async function saveFreeSubmitSettings() {
@@ -202,6 +206,10 @@ async function saveFreeSubmitSettings() {
         return;
     }
 
+    // Whitelisted rather than passed through, because the column has a CHECK
+    // constraint and a rejected write would surface as a raw Postgres error.
+    const tie = (document.getElementById('fs-setting-tie') || {}).value === 'higher' ? 'higher' : 'lower';
+
     const { error } = await window.supabaseClient
         .from('tier_page_settings')
         .update({
@@ -209,6 +217,7 @@ async function saveFreeSubmitSettings() {
             free_submit_min_age_days: age,
             free_submit_min_contributions: contrib,
             free_submit_min_votes: votes,
+            free_submit_tie_break: tie,
             updated_at: new Date().toISOString(),
         })
         .eq('id', true);

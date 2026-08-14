@@ -105,10 +105,27 @@ ALTER TABLE "public"."tier_page_settings"
     -- Below this a character is returned with its votes but flagged unranked,
     -- so the page can say "12 votes so far" instead of presenting three
     -- people's opinion as the community's.
-    ADD COLUMN IF NOT EXISTS "free_submit_min_votes" integer NOT NULL DEFAULT 10;
+    ADD COLUMN IF NOT EXISTS "free_submit_min_votes" integer NOT NULL DEFAULT 10,
+    -- Which side of a dead-even split wins. Owner's call, 2026-08-14.
+    --
+    -- It only ever matters when a character's votes divide exactly in half
+    -- between two tiers, which needs an even number of voters; every other
+    -- character is decided by its middle vote either way. Both settings return
+    -- a tier somebody actually voted - see the ranking function for why that
+    -- rules out the obvious third option.
+    ADD COLUMN IF NOT EXISTS "free_submit_tie_break" text NOT NULL DEFAULT 'lower';
+
+ALTER TABLE "public"."tier_page_settings"
+    DROP CONSTRAINT IF EXISTS "tier_page_settings_tie_break_check";
+ALTER TABLE "public"."tier_page_settings"
+    ADD CONSTRAINT "tier_page_settings_tie_break_check"
+    CHECK ("free_submit_tie_break" = ANY (ARRAY['lower'::text, 'higher'::text]));
 
 COMMENT ON COLUMN "public"."tier_page_settings"."free_submit_open" IS
     'The emergency stop for the community ranking. False hides the ballot and refuses new votes; the published ranking stays readable.';
+
+COMMENT ON COLUMN "public"."tier_page_settings"."free_submit_tie_break" IS
+    'When a character''s votes split exactly evenly between two tiers, which one wins. Only affects that case.';
 
 
 -- --------------------------------------------------------------------------
@@ -404,19 +421,26 @@ GRANT EXECUTE ON FUNCTION "public"."submit_tier_votes"(jsonb) TO "authenticated"
 -- THE RANKING
 -- --------------------------------------------------------------------------
 --
--- Two medians, and they are doing different jobs.
+-- Three medians, doing two jobs.
 --
---   percentile_disc(0.5) returns an ACTUAL OBSERVED VALUE - a tier somebody
---   really voted. That is what a character is placed in. An interpolated
---   result would invent a "B+" that is on nobody's ballot and on no scale this
---   site uses.
+-- PLACEMENT uses percentile_disc, which returns an ACTUAL OBSERVED VALUE - a
+-- tier somebody really voted. Taken ascending it is the lower of the two
+-- middle votes; taken descending it is the upper one. For an odd number of
+-- voters they are the same value, so the choice below only ever changes a
+-- character whose votes divide exactly in half between two tiers.
 --
---   percentile_cont(0.5) interpolates, and is used ONLY to order characters
---   within the tier they landed in. Without it a tier is an unordered heap;
---   with a mean instead of it, the ordering would reintroduce exactly the
---   sensitivity to extreme votes that choosing a median was meant to remove.
---   Both numbers are medians, so shifting either still takes more than half
---   the electorate.
+--   THAT is the switch, and it is the honest version of one. percentile_cont
+--   cannot place a character, because for an even split it returns something
+--   like 4.5 - a "B+" that is on nobody's ballot and on no scale this site
+--   uses. Rounding it is worse still: with middles two tiers apart it lands on
+--   a tier NOBODY voted. Both settings here return a real vote.
+--
+-- ORDERING WITHIN A TIER uses percentile_cont, and only that. Without it a
+-- tier is an unordered heap; with a mean instead, the ordering would
+-- reintroduce exactly the sensitivity to extreme votes that choosing a median
+-- was meant to remove. Every number here is a median, so shifting any of them
+-- still takes more than half the electorate - which is why the plain average
+-- is deliberately not one of the options.
 --
 -- SECURITY DEFINER because the underlying rows are readable only by their own
 -- voter. It returns counts and no identities, which is the whole distinction:
@@ -434,11 +458,11 @@ LANGUAGE "sql" SECURITY DEFINER
 STABLE
 SET "search_path" TO 'public'
 AS $$
-    WITH floor_votes AS (
-        SELECT COALESCE(
-            (SELECT free_submit_min_votes FROM public.tier_page_settings WHERE id = true),
-            10
-        ) AS n
+    settings AS (
+        SELECT COALESCE(s.free_submit_min_votes, 10) AS floor_votes,
+               COALESCE(s.free_submit_tie_break, 'lower') AS tie_break
+          FROM (SELECT 1) AS one
+          LEFT JOIN public.tier_page_settings s ON s.id = true
     ),
     counted AS (
         SELECT v.character_id, v.tier, t.rank
@@ -448,7 +472,10 @@ AS $$
     agg AS (
         SELECT c.character_id,
                COUNT(*)::integer AS vote_count,
-               (percentile_disc(0.5) WITHIN GROUP (ORDER BY c.rank))::integer AS disc_rank,
+               -- The lower of the two middle votes, and the upper one. Equal
+               -- whenever the number of voters is odd.
+               (percentile_disc(0.5) WITHIN GROUP (ORDER BY c.rank))::integer AS low_rank,
+               (percentile_disc(0.5) WITHIN GROUP (ORDER BY c.rank DESC))::integer AS high_rank,
                (percentile_cont(0.5) WITHIN GROUP (ORDER BY c.rank))::numeric AS cont_rank
           FROM counted c
          GROUP BY c.character_id
@@ -466,11 +493,16 @@ AS $$
            t.tier,
            a.cont_rank,
            COALESCE(d.distribution, '{}'::jsonb),
-           a.vote_count >= f.n
+           a.vote_count >= s.floor_votes
       FROM agg a
-      CROSS JOIN floor_votes f
+      CROSS JOIN settings s
       LEFT JOIN dist d ON d.character_id = a.character_id
-      LEFT JOIN public.free_submit_tiers t ON t.rank = a.disc_rank
+      -- The switch. 'lower' is the default and the cautious answer: a
+      -- character only reaches the higher tier if more than half the voters
+      -- put them there.
+      LEFT JOIN public.free_submit_tiers t
+             ON t.rank = CASE WHEN s.tie_break = 'higher' THEN a.high_rank ELSE a.low_rank END
+     -- Strongest first, which the page renders left to right within each tier.
      ORDER BY a.cont_rank DESC, a.vote_count DESC, a.character_id;
 $$;
 

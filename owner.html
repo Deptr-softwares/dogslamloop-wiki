@@ -459,6 +459,20 @@
                             Below this a character is shown as unplaced rather than ranked, so three
                             people's opinion is never presented as the community's.
                         </p>
+
+                        <!-- The only calculation choice offered, and both
+                             answers still land on a tier somebody voted. -->
+                        <label class="block-field-label-sm" for="fs-setting-tie">IF THE VOTES SPLIT DEAD EVEN BETWEEN TWO TIERS</label>
+                        <select id="fs-setting-tie" class="editor-input admin-input-full select">
+                            <option value="lower">Put them in the lower tier</option>
+                            <option value="higher">Put them in the higher tier</option>
+                        </select>
+                        <p class="admin-tool-hint">
+                            Only changes anything for a character whose votes divide exactly in half —
+                            everyone else is decided by the middle vote either way. The lower tier is
+                            the cautious answer: a character only moves up if more than half the
+                            voters put them there.
+                        </p>
                     </div>
 
                     <div class="admin-tool-row">
