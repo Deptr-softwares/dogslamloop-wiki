@@ -200,21 +200,44 @@ test.describe('keyboard focus is visible', () => {
     });
 });
 
-test('the mobile menu reports its state and closes on Escape', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 800 });
-    await page.goto('/index.html', { waitUntil: 'networkidle' });
+// Both mobile drawer controls, since 2026-08-14. The bar used to have one
+// button and a link home; it now has two buttons, because the table of
+// contents was unreachable on a phone and the link was the site's second route
+// to the Main Dashboard. Whichever control a reader uses, the same three
+// things have to hold - the state is announced, the label says what the next
+// press does, and Escape gets them out.
+//
+// The behaviour of the drawers themselves lives in mobile-drawers.spec.js.
+// What is asserted here is only what a screen reader and a keyboard need.
+const MOBILE_DRAWERS = [
+    { id: '#mobile-nav-toggle', panel: '#master-sidebar', label: 'navigation menu' },
+    { id: '#mobile-menu-toggle', panel: '.local-sidebar-right', label: 'table of contents' },
+];
 
-    const btn = page.locator('#mobile-menu-toggle');
-    await expect(btn).toHaveAttribute('aria-expanded', 'false');
-    await expect(btn).toHaveAttribute('aria-label', 'Open navigation menu');
+for (const drawer of MOBILE_DRAWERS) {
+    test(`the mobile ${drawer.label} control reports its state and closes on Escape`, async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 800 });
+        await page.goto('/index.html', { waitUntil: 'networkidle' });
 
-    await btn.click();
-    await expect(btn).toHaveAttribute('aria-expanded', 'true');
-    await expect(btn).toHaveAttribute('aria-label', 'Close navigation menu');
+        const btn = page.locator(drawer.id);
+        await expect(btn).toHaveAttribute('aria-expanded', 'false');
+        await expect(btn).toHaveAttribute('aria-label', `Open ${drawer.label}`);
 
-    // Previously the only way out was tapping the backdrop, which a keyboard
-    // user cannot reach.
-    await page.keyboard.press('Escape');
-    await expect(btn).toHaveAttribute('aria-expanded', 'false');
-    await expect(page.locator('#master-sidebar')).not.toHaveClass(/mobile-open/);
-});
+        // aria-controls has to name something that is actually on the page -
+        // pointing at a missing id is worse than omitting it, because a screen
+        // reader offers a jump that goes nowhere.
+        const controls = await btn.getAttribute('aria-controls');
+        expect(controls).toBeTruthy();
+        await expect(page.locator(`#${controls}`)).toHaveCount(1);
+
+        await btn.click();
+        await expect(btn).toHaveAttribute('aria-expanded', 'true');
+        await expect(btn).toHaveAttribute('aria-label', `Close ${drawer.label}`);
+
+        // Previously the only way out was tapping the backdrop, which a
+        // keyboard user cannot reach.
+        await page.keyboard.press('Escape');
+        await expect(btn).toHaveAttribute('aria-expanded', 'false');
+        await expect(page.locator(drawer.panel)).not.toHaveClass(/mobile-open/);
+    });
+}

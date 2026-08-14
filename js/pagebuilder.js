@@ -61,29 +61,86 @@ window.initSidebarToggle = function() {
     }
 };
 
+// TWO DRAWERS, ONE BACKDROP.
+//
+// The mobile bar used to be a link home plus a burger that opened the left
+// sidebar, and the table of contents was display:none below 1024px - simply
+// unreachable on a phone, on a wiki whose longest pages are the ones a phone
+// reader most needs to jump around inside.
+//
+// Owner's call, 2026-08-14: the site name opens the LEFT drawer and the burger
+// opens the RIGHT one. Nothing is lost by dropping the link home, because the
+// left drawer carries its own "dogslamloop wiki" link to the Main Dashboard -
+// the bar was the site's second route to the same place, and it was spending
+// the control a reader needed for the contents.
+//
+// The mapping is spatial on purpose: the control on the left opens the drawer
+// on the left. Anything else is a coin toss for a thumb.
 window.initMobileNav = function() {
-    const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
-    const sidebar = document.getElementById('master-sidebar');
+    const navBtn = document.getElementById('mobile-nav-toggle');
+    const tocBtn = document.getElementById('mobile-menu-toggle');
+    const left = document.getElementById('master-sidebar');
+    const right = document.querySelector('.local-sidebar-right');
     const backdrop = document.getElementById('mobile-backdrop');
 
-    if (mobileMenuBtn && sidebar && backdrop) {
-        const setOpen = (open) => {
-            sidebar.classList.toggle('mobile-open', open);
-            backdrop.classList.toggle('active', open);
-            mobileMenuBtn.setAttribute('aria-expanded', String(open));
-            mobileMenuBtn.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
-        };
+    if (!backdrop) return;
 
-        mobileMenuBtn.addEventListener('click', () => setOpen(true));
-        backdrop.addEventListener('click', () => setOpen(false));
+    // Five pages carry the mobile bar and have no contents at all - 404, the
+    // blog index, the privacy policy, recent changes, submissions. A button
+    // that opens an empty drawer is worse than no button, and the left drawer
+    // is still reachable from the site name, so nothing is stranded.
+    if (tocBtn && !right) tocBtn.hidden = true;
 
-        // Escape closes it. Without this the only way out is a tap on the
-        // backdrop, which a keyboard user has no way to reach.
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && sidebar.classList.contains('mobile-open')) {
-                setOpen(false);
-                mobileMenuBtn.focus();
-            }
+    // aria-controls needs a target that exists, and the right sidebar has no
+    // id of its own on any page. Given one here rather than in fourteen files.
+    if (right) {
+        if (!right.id) right.id = 'mobile-toc-drawer';
+        if (tocBtn) tocBtn.setAttribute('aria-controls', right.id);
+    }
+
+    const panels = [
+        { el: left, btn: navBtn, open: 'Open navigation menu', close: 'Close navigation menu' },
+        { el: right, btn: tocBtn, open: 'Open table of contents', close: 'Close table of contents' },
+    ].filter(p => p.el && p.btn);
+
+    // Only ever one at a time: they slide in from opposite edges over the same
+    // backdrop, and two open at once would leave the reader looking at a strip
+    // of page between them.
+    const setOpen = (target, open) => {
+        panels.forEach(p => {
+            const isOpen = open && p === target;
+            p.el.classList.toggle('mobile-open', isOpen);
+            p.btn.setAttribute('aria-expanded', String(isOpen));
+            p.btn.setAttribute('aria-label', isOpen ? p.close : p.open);
+        });
+        backdrop.classList.toggle('active', open);
+    };
+
+    panels.forEach(p => {
+        p.btn.addEventListener('click', () => {
+            // Toggle rather than always-open: the same control that opened it
+            // is the one a thumb reaches for to put it away.
+            setOpen(p, !p.el.classList.contains('mobile-open'));
+        });
+    });
+
+    backdrop.addEventListener('click', () => setOpen(null, false));
+
+    // Escape closes whichever is open. Without this the only way out is a tap
+    // on the backdrop, which a keyboard user has no way to reach.
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        const openPanel = panels.find(p => p.el.classList.contains('mobile-open'));
+        if (!openPanel) return;
+        setOpen(null, false);
+        openPanel.btn.focus();
+    });
+
+    // Following a contents link should put the drawer away - otherwise the
+    // reader lands on the heading they picked with it still covering the page.
+    if (right) {
+        right.addEventListener('click', (event) => {
+            if (event.target.closest('a')) setOpen(null, false);
         });
     }
 };
