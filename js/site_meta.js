@@ -22,11 +22,50 @@ window.CHARACTER_COLORS = {
     "Locust Guy": "hsl(100, 100%, 75%)",
     "Star Rage": "hsl(240, 100%, 83%)",
     "Aspiring Mangaka": "hsl(0, 100%, 96%)",
-    "Mangaka": "hsl(0, 100%, 96%)", // Fallback for short-name text mentions
     "Lucky Coward": "hsl(272, 43%, 64%)",
     "Crow Charmer": "hsl(233, 39%, 23%)",
     "Black Death": "hsl(352, 49%, 27%)",
     "Boomcat": "hsl(0, 1%, 75%)"
+};
+
+// Every other name the community uses for a character, owner-supplied
+// 2026-08-14. js/internalstyling.js highlights and links these exactly as it
+// does the canonical name, using the canonical name's colour.
+//
+// A SEPARATE MAP RATHER THAN MORE KEYS IN CHARACTER_COLORS. "Mangaka" used to
+// live in that dictionary with a comment explaining it was a text fallback,
+// which meant anything iterating the roster saw a character that does not
+// exist. A colour dictionary should describe the roster; this describes how
+// people write about it.
+//
+// Canonical names must match CHARACTER_COLORS exactly - that is the join.
+window.CHARACTER_ALIASES = {
+    "Honored One":       ["Gojo", "Gojo Satoru", "Satoru Gojo", "Blue Judas"],
+    // The list as supplied had "Itadori Yuji" twice; read as the two orderings.
+    "Vessel":            ["Itadori Yuji", "Yuji Itadori", "Yuji", "Red Judas"],
+    "Restless Gambler":  ["Kinji Hakari", "Hakari Kinji", "Hakari", "Tuca Donka"],
+    "Ten Shadows":       ["Fushiguro Megumi", "Megumi Fushiguro", "Megumi", "Potential Man"],
+    "Perfection":        ["Mahito", "Mahitoes", "Purifier"],
+    "Blood Manipulator": ["Choso", "Nchoso", "Loving and Caring Brother"],
+    "Switcher":          ["Aoi Todo", "Todo Aoi", "Todo", "Menace to Society"],
+    "Defense Attorney":  ["Hiromi Higuruma", "Higuruma Hiromi", "Higuruma", "Higgy", "Greedy Lawyer"],
+    "Cursed Partners":   ["Yuta Okkotsu", "Okkotsu Yuta", "Yuta", "JJK OC"],
+    "Puppet Master":     ["Ultimate Mechamaru", "Mechamaru", "Kokichi Muta", "Muta Kokichi", "Kokichi", "Larping Individual"],
+    "Head of the Hei":   ["Zenin Naoya", "Naoya Zenin", "Naoya", "Bubble Pop Electric"],
+    // "enjoys beating the life out of" was supplied and then withdrawn: it is
+    // a sentence fragment, so it fired mid-prose - "Nanami enjoys beating the
+    // life out of curses" would colour and link the middle of that sentence.
+    "Salaryman":         ["Kento Nanami", "Nanami Kento", "Nanami"],
+    "Disaster Plants":   ["Hanami", "Peaceful Gardener"],
+    "True Cannon":       ["Ryu Ishigori", "Ishigori Ryu", "Ryu", "Jane Juliet"],
+    "Register":          ["Reggie Star", "Reggie"],
+    "Locust Guy":        ["Ko Guy", "MIT Researcher"],
+    "Star Rage":         ["Yuki Tsukumo", "Tsukumo Yuki", "Yuki", "Bass da da da"],
+    "Aspiring Mangaka":  ["Charles Bernard", "Tatsuki Fujimoto", "Mangaka", "Charles"],
+    "Lucky Coward":      ["Haruta Shigemo", "Shigemo Haruta", "Haruta", "Kind Scholar"],
+    "Crow Charmer":      ["Mei Mei"],
+    "Black Death":       ["Kurourushi", "Kuro", "I love the taste of iron"]
+    // Boomcat has none on purpose - it is the owner's joke character.
 };
 
 // Frame Data & Window/Overlay Color Dictionaries.

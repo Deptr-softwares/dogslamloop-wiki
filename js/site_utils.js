@@ -721,11 +721,139 @@ window.buildPageUrl = function(pageId, pageType) {
 const SUPABASE_URL = 'https://gtqswjspxymjdopljmfi.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd0cXN3anNweHltamRvcGxqbWZpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMzQ1MDIsImV4cCI6MjA5NzkxMDUwMn0.6RsP5Ue1m9X8iGecXa245S3fEdYnDqML-QLux1KUAuw';
 
+// --- LOCAL-ONLY BACKEND OVERRIDE (v0.14) ---
+//
+// Points a locally served copy of the site at a different Supabase project -
+// in practice a branching preview database - so a feature can be clicked
+// through against real Postgres before its migration ever reaches production.
+//
+// This exists because of a gap the test suite cannot close. Every auth spec in
+// this project mocks Supabase and never touches a database, so RLS predicates,
+// grant gaps, trigger ordering and RPC guards are all unverified until
+// somebody uses them. Supabase branching proves a migration APPLIES; it does
+// not prove the feature WORKS, and those are different claims. Without this,
+// the first real click on a release's worth of policies happens on production.
+//
+// GUARDED TWICE, and both guards are deliberate:
+//
+//   1. The hostname must be localhost or a loopback address. dogslamloop.com
+//      can never satisfy this, whatever is in storage.
+//   2. A localStorage key must be set by hand. Visiting a local copy does not
+//      opt you in; you have to have asked for it.
+//
+// Neither guard depends on a build flag or an environment variable, because
+// this site has neither - it is static files served as-is, so the check has to
+// be something true of the running page.
+//
+// Usage, in the console of a locally served page:
+//   localStorage.setItem('dsl_supabase_override',
+//     JSON.stringify({ url: 'https://<ref>.supabase.co', key: '<anon key>' }));
+//   location.reload();
+//
+// Clear it with localStorage.removeItem('dsl_supabase_override').
+function resolveSupabaseTarget() {
+    const target = { url: SUPABASE_URL, key: SUPABASE_KEY, overridden: false };
+
+    const host = window.location.hostname;
+    const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '';
+    if (!isLocal) return target;
+
+    try {
+        const raw = window.localStorage.getItem('dsl_supabase_override');
+        if (!raw) return target;
+
+        const parsed = JSON.parse(raw);
+        // A malformed override must fall back to production rather than
+        // leaving the page with no backend at all.
+        if (!parsed || typeof parsed.url !== 'string' || typeof parsed.key !== 'string') return target;
+        if (!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(parsed.url)) return target;
+
+        target.url = parsed.url.replace(/\/$/, '');
+        target.key = parsed.key;
+        target.overridden = true;
+    } catch (e) {
+        // Storage can throw in a locked-down context. Production is the answer.
+    }
+
+    return target;
+}
+
+// An on-page banner, not just a console warning, and it was added after the
+// override drew blood on its first day of use.
+//
+// What happened: a preview branch was created, tested, and then deleted - and
+// the override stayed in localStorage pointing at a project that no longer
+// existed. Every request failed, login stopped working, and nothing on screen
+// said why. A console warning is invisible to somebody who is not already
+// suspicious, and the whole failure mode of this feature is not being
+// suspicious of a page that looks completely normal.
+//
+// So: impossible to miss, and one click to undo.
+function showOverrideBanner(url) {
+    const paint = () => {
+        if (!document.body || document.getElementById('dsl-override-banner')) return;
+
+        const bar = document.createElement('div');
+        bar.id = 'dsl-override-banner';
+        bar.setAttribute('role', 'status');
+        bar.style.cssText = [
+            'position:fixed', 'left:0', 'bottom:0', 'z-index:2147483647',
+            'background:#eab308', 'color:#000', 'font-family:monospace',
+            'font-size:11px', 'padding:6px 10px', 'display:flex',
+            'align-items:center', 'gap:10px', 'max-width:100vw',
+            'box-sizing:border-box', 'border-top:2px solid #000',
+        ].join(';');
+
+        let host = url;
+        try { host = new URL(url).hostname; } catch (e) { /* keep the raw string */ }
+
+        const label = document.createElement('strong');
+        label.textContent = `LOCAL SUPABASE OVERRIDE → ${host}`;
+        bar.appendChild(label);
+
+        // The page most likely to be confusing, called out by name. index.html
+        // is the only page on the site carrying a CSP, and its connect-src
+        // pins the production project - so requests from here are blocked no
+        // matter what the client was built with.
+        const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+        if (csp && csp.getAttribute('content') && csp.getAttribute('content').includes('connect-src')
+            && !csp.getAttribute('content').includes(host)) {
+            const warn = document.createElement('span');
+            warn.textContent = "— this page's CSP blocks it; use any other page";
+            bar.appendChild(warn);
+        }
+
+        const clear = document.createElement('button');
+        clear.type = 'button';
+        clear.textContent = 'USE PRODUCTION';
+        clear.style.cssText = 'font:inherit;cursor:pointer;padding:2px 8px;border:2px solid #000;background:#fff';
+        clear.addEventListener('click', () => {
+            try { window.localStorage.removeItem('dsl_supabase_override'); } catch (e) { /* ignore */ }
+            window.location.reload();
+        });
+        bar.appendChild(clear);
+
+        document.body.appendChild(bar);
+    };
+
+    if (document.body) paint();
+    else document.addEventListener('DOMContentLoaded', paint);
+}
+
 // Attach client to the global window object so editor.js can use it later
 window.supabaseClient = null;
 try {
-    if (window.supabase && SUPABASE_URL.startsWith('http')) {
-        window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const target = resolveSupabaseTarget();
+    if (window.supabase && target.url.startsWith('http')) {
+        window.supabaseClient = window.supabase.createClient(target.url, target.key);
+        window.supabaseIsOverridden = target.overridden;
+        if (target.overridden) {
+            // Loud on purpose. Testing against a preview database and thinking
+            // it is production - or the reverse - is the one way this helps
+            // nobody, so it says so on every single page load.
+            console.warn(`[Supabase] LOCAL OVERRIDE ACTIVE -> ${target.url}. This is not production.`);
+            showOverrideBanner(target.url);
+        }
     }
 } catch (e) {
     console.error("Failed to connect to global Supabase instance:", e);

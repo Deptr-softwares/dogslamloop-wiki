@@ -31,20 +31,6 @@ async function previewRevision(revId) {
     window.currentLiveDescData = liveData ? liveData.desc_data : {};
     window.currentLiveFrameData = liveData ? liveData.frame_data : {};
 
-    // Which character state this revision edits, so the preview opens on it.
-    // Without this a reviewer approving an ultimate-state edit is shown the
-    // base kit, where nothing has changed - the worst possible thing to put in
-    // front of someone about to click Approve.
-    window.activePreviewMode = null;
-    if (rev.is_delta) {
-        if (rev.target_scope === 'mode') {
-            window.activePreviewMode = window.unwrapModeDelta(rev.target_scope, rev.target_key).modeId;
-        } else if (rev.target_scope === 'multi' && Array.isArray(rev.delta_payload)) {
-            const stateEdit = rev.delta_payload.find(e => e && e.scope === 'mode');
-            if (stateEdit) window.activePreviewMode = window.unwrapModeDelta(stateEdit.scope, stateEdit.key).modeId;
-        }
-    }
-
     if (rev.is_delta) {
         const { newDesc, newFrame } = window.applyDeltaToData(
             window.currentLiveDescData,
@@ -60,11 +46,23 @@ async function previewRevision(revId) {
         window.currentPendingFrameData = rev.frame_data || {};
     }
 
+    // Character states, after both versions are in memory and before anything
+    // renders: picks which state the preview opens on, draws the state
+    // toggle, and injects the Ultimate tab if this revision has one. See
+    // js/admin-modes.js for why the preview needs its own copy of this rather
+    // than js/character_modes.js.
+    if (typeof window.initPreviewStates === 'function') window.initPreviewStates(rev);
+
     // --- Trigger Document Explorer Sidebar rebuild ---
     if (typeof window.updateAdminSidebar === 'function') window.updateAdminSidebar();
 
     const toggleBar = document.getElementById('version-toggle-bar');
     if (toggleBar) toggleBar.classList.remove('hidden');
+
+    // A media clip and a revision share this pane, so opening one puts the
+    // other away. Without this a reviewer picks a revision and gets the clip
+    // they were last looking at, still sitting on top of it.
+    if (typeof window.closeMediaPreview === 'function') window.closeMediaPreview();
 
     calculateTabDiffs(rev);
 
@@ -149,6 +147,11 @@ async function previewRevision(revId) {
 
 // --- VERSION COMPARISON ENGINE ---
 async function switchVersionView(mode) {
+    // Remembered so switching character state can redraw whichever comparison
+    // the reviewer was already in (js/admin-modes.js) instead of snapping
+    // them back to a default.
+    window.activePreviewViewMode = mode;
+
     // Page History (js/admin-history.js) is a 4th, independently-toggled
     // pane rather than a mode in this function's own pending/live/diff
     // state machine (see the file header comment on why this function is
@@ -178,9 +181,14 @@ async function switchVersionView(mode) {
     // frame cache stays whole because loadMoveSection resolves it itself.
     const previewMode = window.activePreviewMode || null;
     window.activeCharacterMode = previewMode;
-    const narrow = (full) => (window.isBaseMode(previewMode)
-        ? full
-        : ((full && full.modeData) || {})[previewMode] || {});
+    // resolveModeDesc rather than reaching into modeData directly, so the
+    // preview inherits the one documented exception: a state that has not
+    // overridden the portrait shows the character's, not an empty box. Reading
+    // the bucket raw showed a state with no profile of its own as a page with
+    // no character on it, which is not what approving it would produce.
+    const narrow = (full) => (typeof window.resolveModeDesc === 'function'
+        ? window.resolveModeDesc(full || {}, previewMode)
+        : (window.isBaseMode(previewMode) ? full : ((full && full.modeData) || {})[previewMode] || {}));
 
     if (mode === 'pending') {
         window.currentEditorDescData = narrow(window.currentPendingDescData);
@@ -395,10 +403,18 @@ async function switchVersionView(mode) {
                         renderDiffBlock(`Counterplay Strategy: ${nC || oC || 'Unknown'}`, oldCp[i]?.content || [], newCp[i]?.content || []);
                     }
                 }
-                else if (['m1s', 'skills', 'specials'].includes(tab)) {
+                else if ((window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials']).includes(tab)) {
                     const oldMoves = Array.isArray(oldTab) ? oldTab : [];
                     const newMoves = Array.isArray(newTab) ? newTab : [];
                     const allMoveIds = Array.from(new Set([...oldMoves.map(m=>m.id), ...newMoves.map(m=>m.id)]));
+
+                    // Narrowed to the state on screen, like getTabData above
+                    // it. Reading the top level here compared a state's move
+                    // strategies against the base kit's, which reported edits
+                    // in both directions that nobody had made.
+                    const scopedDesc = (full) => (typeof window.resolveModeDesc === 'function'
+                        ? window.resolveModeDesc(full || {}, window.activePreviewMode || null)
+                        : (full || {}));
 
                     allMoveIds.forEach(mId => {
                         const oM = oldMoves.find(m => m.id === mId) || {};
@@ -407,8 +423,8 @@ async function switchVersionView(mode) {
                             renderDiffBlock(`Move Stats & Frames (${mId})`, oM, nM);
                         }
 
-                        const oStrat = window.currentLiveDescData.moveStrategies?.[mId] || [];
-                        const nStrat = window.currentPendingDescData.moveStrategies?.[mId] || [];
+                        const oStrat = scopedDesc(window.currentLiveDescData).moveStrategies?.[mId] || [];
+                        const nStrat = scopedDesc(window.currentPendingDescData).moveStrategies?.[mId] || [];
                         if (JSON.stringify(oStrat) !== JSON.stringify(nStrat)) {
                             renderDiffBlock(`Move Strategy Text (${mId})`, oStrat, nStrat);
                         }
@@ -565,7 +581,7 @@ async function switchVersionView(mode) {
     // identical to arriving here normally.
     const diffContainerToHide = document.getElementById('admin-diff-container');
     if (diffContainerToHide) diffContainerToHide.classList.add('hidden');
-    ['m1s', 'skills', 'specials', 'matchups', 'counterplay'].forEach(tab => {
+    ['m1s', 'skills', 'specials', 'ultimateAtk', 'matchups', 'counterplay'].forEach(tab => {
         const el = document.getElementById(`tab-${tab}`);
         if (el) el.classList.add('hidden');
     });
@@ -604,6 +620,12 @@ async function switchVersionView(mode) {
             await loadMoveSection(window.activePreviewCharId, 'm1s');
             await loadMoveSection(window.activePreviewCharId, 'skills');
             await loadMoveSection(window.activePreviewCharId, 'specials');
+            // Only when the tab exists - js/admin-modes.js injects it for a
+            // revision that actually has ultimate moves, and loadMoveSection
+            // bails on a missing container anyway.
+            if (document.getElementById('tab-ultimateAtk')) {
+                await loadMoveSection(window.activePreviewCharId, 'ultimateAtk');
+            }
         }
     }
 

@@ -153,3 +153,59 @@ body {
 .items-start { align-items: flex-start !important; }
 .text-white { color: var(--text-white) !important; }
 .text-xl { font-size: 1.25rem !important; }
+/* --- SHORTCODE OUTPUT (js/internalstyling.js) ---
+
+   These replace the inline styles that engine used to write, 2026-08-14. It
+   builds markup by string replacement over contributor text, and every inline
+   style it wrote was one more place a value had to be trusted. Only the two
+   genuinely dynamic colours stay inline, and both are validated before they
+   get there.
+
+   Named sc- rather than added to an existing family: they are produced by one
+   engine, and a change to any of them is a change to what a shortcode means. */
+.sc-b { color: var(--text-white); }
+.sc-i { font-style: italic; }
+.sc-u { text-decoration: underline; text-underline-offset: 2px; }
+.sc-s { text-decoration: line-through; opacity: 0.6; }
+
+.sc-code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+    font-family: var(--text-mono);
+    color: var(--text-white);
+    font-size: 0.85em;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+/* Bold is the shared part; the colour itself is the inline half. */
+.sc-color, .sc-auto { font-weight: bold; }
+.sc-timing { font-family: var(--text-mono); font-weight: bold; }
+
+.wiki-link {
+    color: var(--accent-blue);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 0.1s;
+}
+
+/* Keyboard/input tokens: [kbd]M1[/kbd]. A fighting-game wiki types these
+   constantly and they used to render as prose. */
+.sc-kbd {
+    display: inline-block;
+    padding: 0.05rem 0.35rem;
+    border: 1px solid var(--border-color);
+    border-bottom-width: 2px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.07);
+    font-family: var(--text-mono);
+    font-size: 0.85em;
+    color: var(--text-white);
+    line-height: 1.4;
+}
+
+/* A character mention that resolved to a page. The colour is on the span
+   inside, which is the character's own - so this only adds the affordance,
+   never a second colour fighting the first. */
+.sc-char-link { text-decoration: none; }
+.sc-char-link:hover { text-decoration: underline; text-underline-offset: 2px; }

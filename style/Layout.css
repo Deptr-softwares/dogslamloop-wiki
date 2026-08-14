@@ -178,7 +178,14 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 }
 
 /* Sidebar Internal Layouts */
-.sidebar-master-title {
+/* Shared with .column-subgroup-title deliberately, as ONE declaration block
+   rather than two matching ones. Both label a group of pages inside a Main
+   Dashboard column - Site Info in Guides & Such, Gamemodes in Others - and
+   until 2026-08-14 they were styled apart: Finger-Paint 1.15rem here, mono
+   0.68rem there, sitting in side-by-side columns. Two rules that must agree
+   are two rules that will not. */
+.sidebar-master-title,
+.column-subgroup-title {
     font-family: 'Finger-Paint', sans-serif;
     font-size: 1.15rem;
     color: var(--text-white);
@@ -291,8 +298,22 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 /* Auth/dock action buttons (js/pagebuilder.js initAuthDock) */
 .kofi-text { font-family: 'CC-Wild-Words', sans-serif; }
 .dock-role-icon { width: 1.2rem; height: 1.2rem; }
+/* Deliberately declares NO padding and NO font-size, 2026-08-14.
+
+   Both used to be here (0.75rem / 0.85rem) and both fought .btn-sys in
+   Buttons.css (0.4rem 0.75rem / 0.7rem) at identical 0-1-0 specificity - so
+   the winner was decided by which stylesheet the page happened to load last.
+   Generated character stubs put Layout.css after Buttons.css and system stubs
+   put it before, which is why the SAME button rendered 45px tall on a
+   character page and 34px on a system page.
+
+   Leaving both out settles it: .btn-sys supplies them everywhere, the dock is
+   compact on every page type, and there is nothing left to tie. That was the
+   owner's ask - the sub-categories added enough sidebar rows to push Ko-fi
+   below the fold again, and four buttons losing 11px each buys the space back
+   without shrinking anything the reader navigates by. */
 .dock-action-btn {
-    width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex;
+    width: 100%; display: flex;
     align-items: center; justify-content: flex-start; gap: 0.75rem;
     white-space: nowrap; text-decoration: none;
 }
@@ -313,8 +334,11 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     gap: 0.75rem; padding-top: 2rem;
 }
 .kofi-btn-wrapper { margin-top: 0.75rem; }
+/* Same treatment as .dock-action-btn above: sizing left to .btn-sys, so Ko-fi
+   matches the four buttons it is stacked with instead of standing 8px taller
+   in the same dock. */
 .kofi-btn-wrapper .btn-sys {
-    width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex;
+    width: 100%; display: flex;
     align-items: center; justify-content: center; gap: 0.5rem;
 }
 .kofi-btn-wrapper svg { width: 1rem; height: 1rem; }
@@ -410,7 +434,15 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 /* Grids & Galleries */
 .roster-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
 .systems-grid-container { display: flex; flex-direction: column; gap: 2.5rem; }
-.system-button-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.25rem; }
+/* Tightened from a uniform 1.25rem, 2026-08-14. The buttons read as scattered
+   cards at that spacing rather than as one list.
+
+   The floor is the hover state, not taste: .btn-manga-slanted:hover moves the
+   button translate(-2px, -2px) and grows its shadow to 4px, so a button paints
+   6px past its resting box on the bottom and right. Row gap 0.65rem (10.4px)
+   and column gap 0.9rem (14.4px) both clear that, with the column gap kept
+   larger because skewX(-10deg) also leans each button roughly 3px sideways. */
+.system-button-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.65rem 0.9rem; }
 
 /* Systems directory grid (js/pagebuilder.js buildSystemsDirectory) */
 .system-category-block .sidebar-master-title { margin-top: 0; margin-bottom: 1.25rem; border-bottom: 2px dashed var(--border-color); }
@@ -623,7 +655,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
    (systems/m1-trading/index.html:50,52-53,65,88 pre-v0.9). */
 .sidebar-dynamic-dock { margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem; }
 .kofi-btn-wrapper-spaced { margin-top: 0.75rem; }
-.kofi-btn-full { width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; }
+.kofi-btn-full { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; }
 .kofi-btn-full svg { width: 1rem; height: 1rem; }
 .system-back-row { margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 /* The right sidebar's header row needs no new rule: .sidebar-tab-header
@@ -847,6 +879,43 @@ summary:focus-visible {
 .combo-container { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 1.5rem 0; }
 .combo-meta-group { display: flex; align-items: center; gap: 0.75rem; }
 
+/* The rest of the combo block, moved out of style/FrameData.css on
+   2026-08-15. The container above lived here and the nodes lived there, so
+   the block was only fully styled on a character page - the one page type
+   that loads FrameData.css. A combo authored on a guide, a gallery or a
+   tool page rendered as an unstyled row of words.
+
+   These are authored-BLOCK styles: generateHTMLForBlocks emits them, and
+   every page type that renders blocks needs them. Frame data is a
+   different thing that happens to also show combos. */
+/* --- 6. COMBO STRINGS --- */
+.combo-node {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #0a0a0a; border: 2px solid #444; border-bottom: 4px solid #333; 
+    color: var(--text-white); padding: 0.35rem 0.8rem; font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;
+    border-radius: 4px; text-shadow: 1px 1px 0px #000; transition: all 0.1s; cursor: default;
+}
+.combo-node:hover {
+    border-color: var(--accent-blue); border-bottom-color: var(--accent-blue); color: var(--accent-blue);
+    transform: translateY(2px); border-bottom-width: 2px;
+}
+.combo-arrow { color: var(--text-muted); stroke-width: 3px; opacity: 0.5; }
+.combo-note {
+    background: rgba(255,255,255,0.05); border: 1px dashed #444; color: #aaa;
+    font-family: var(--text-mono); font-size: 0.75rem; padding: 0.25rem 0.5rem;
+}
+.combo-damage { color: hsl(3, 93%, 63%); font-family: var(--text-mono); font-weight: bold; font-size: 1.1rem; text-shadow: 2px 2px 0px #000; }
+
+/* Heading for an authored strategy block, moved here for the same reason. */
+.strategy-title { 
+    font-family: 'Finger-Paint', sans-serif;
+    font-size: 1rem; color: var(--accent-blue); 
+    margin-bottom: 1rem; padding-bottom: 0.5rem; margin-top: 0; text-shadow: 1px 1px 0px #000; 
+    display: inline-block; border-bottom: 2px solid var(--accent-blue);
+}
+
+
 .wiki-blocks-clearfix { clear: both; display: table; width: 100%; }
 .wiki-section-empty { padding: 1.5rem; text-align: center; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.85rem; font-style: italic; border-top: 1px dashed var(--border-color); }
 .wiki-section-empty-flex { flex-basis: 100%; }
@@ -874,21 +943,15 @@ summary:focus-visible {
 .mobile-top-bar { display: none; }
 .mobile-backdrop { display: none; }
 
-/* Mobile-exclusive "EDIT TAB"/"EDIT PAGE" button injected into
-   .character-nav, and its dynamically-created History sibling
-   (js/pagebuilder.js initTabEditorButtons) - a class instead of an ID
-   selector so both buttons share one visibility rule. Was previously
-   ID-scoped to #btn-edit-current-tab-mobile only, which meant the cloned
-   History button (js/pagebuilder.js used to copy its style.cssText) had
-   no matching override and stayed permanently hidden wherever the source
-   markup included an inline display: none (every system page but one). */
-.tab-editor-btn-mobile { display: none !important; font-size: 0.7rem; padding: 0.4rem 0.75rem; align-items: center; gap: 0.4rem; }
-@media (max-width: 900px) {
-    .tab-editor-btn-mobile.is-active { display: flex !important; }
-}
-#mobile-btn-group { display: flex; gap: 0.5rem; margin-left: auto; }
+/* .tab-editor-btn-mobile and #mobile-btn-group were removed on 2026-08-14
+   along with the buttons they styled. They existed because the sidebar
+   holding the real Edit and History pair was display:none below 1024px, so a
+   phone got a second copy of both in the page body. The contents are a drawer
+   now and carry that pair with them, which left the copies a tab row wide on
+   the narrowest screen the site serves, one tap further away than the drawer.
+   tests/mobile-drawers.spec.js pins that they do not come back. */
 
-/* Desktop right-sidebar "EDIT TAB"/"EDIT PAGE" + History buttons
+/* Right-sidebar "EDIT TAB"/"EDIT PAGE" + History buttons
    (js/pagebuilder.js initTabEditorButtons). Un-hidden via .is-active
    instead of a direct style.display write, matching the mobile pattern
    above. */
@@ -918,6 +981,28 @@ summary:focus-visible {
     .global-sidebar-left.mobile-open { transform: translateX(0); }
     .sidebar-toggle-btn { display: none !important; }
 
+    /* The table of contents, which below 1024px was display:none and therefore
+       simply did not exist on a phone - on a wiki whose longest pages are the
+       ones a phone reader most needs to jump around inside.
+
+       Mirrors the left drawer exactly, from the opposite edge. Both are
+       position:fixed, so the off-screen transform costs no horizontal scroll:
+       fixed boxes are outside the document's scrollable overflow region. */
+    .local-sidebar-right {
+        display: block; position: fixed; top: 0; right: 0;
+        width: 280px; max-width: 85vw; height: 100vh;
+        padding: 2rem 1.5rem; box-sizing: border-box;
+        background-color: var(--bg-main); z-index: 50;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: -8px 0px 0px var(--manga-shadow);
+        border-left: 2px solid var(--accent-blue);
+        border-right: none;
+        overflow-y: auto;
+    }
+
+    .local-sidebar-right.mobile-open { transform: translateX(0); }
+
     .mobile-backdrop {
         display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
         background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(4px); z-index: 45;
@@ -925,10 +1010,25 @@ summary:focus-visible {
 
     .mobile-backdrop.active { display: block; animation: fadeIn 0.2s ease-out; }
     
-    .mobile-logo-link { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
+    /* A <button> since 2026-08-14 - it opens the navigation drawer rather than
+       going home. The UA button styling is reset explicitly rather than with
+       `font: inherit; color: inherit`: this is the same trap the v0.13 sidebar
+       group headers fell into, where those two lines quietly beat the title
+       styling they were meant to leave alone. */
+    .mobile-logo-link {
+        display: flex; align-items: center; gap: 0.75rem; text-decoration: none;
+        background: none; border: none; padding: 0; margin: 0;
+        text-align: left; cursor: pointer;
+    }
     .mobile-logo-img { width: 32px; height: 32px; border: 2px solid var(--border-color); box-shadow: 2px 2px 0px #000; object-fit: cover; }
-    .mobile-site-title { font-size: 1.25rem; margin: 0; line-height: 1; color: var(--text-white); }
-    .mobile-menu-btn { background: none; border: none; color: var(--text-white); font-size: 1.75rem; padding: 0; }
+    /* Was inheriting the body font, which made the one piece of branding on a
+       phone the only place the wiki's own typeface was missing. */
+    .mobile-site-title {
+        font-family: 'Finger-Paint', sans-serif;
+        font-size: 1.05rem; margin: 0; line-height: 1.15; color: var(--text-white);
+    }
+    .mobile-menu-btn { background: none; border: none; color: var(--text-white); font-size: 1.75rem; padding: 0; cursor: pointer; }
+    .mobile-menu-btn[hidden] { display: none; }
     
     .mobile-edit-fab {
         display: flex !important; align-items: center; justify-content: center;
@@ -1046,17 +1146,14 @@ summary:focus-visible {
    groups - Gamemodes, Servers, Misc - so each needs a label, while a
    single-group column renders none.
 
-   Quieter than .sidebar-master-title: it divides a column rather than titling
-   a section, and the section above it already has the real heading. */
+   Typography comes from the block it shares with .sidebar-master-title above,
+   because the sibling column's headings ARE that class and the owner's
+   requirement is that all of them agree. Only the spacing is its own: this
+   divides a column into groups, where the systems grid gets its separation
+   from .systems-grid-container's gap instead. */
 .column-subgroup-title {
-    margin: 1.25rem 0 0.5rem;
-    font-family: var(--text-mono);
-    font-size: 0.68rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.3rem;
+    margin: 2rem 0 1.25rem;
+    border-bottom: 2px dashed var(--border-color);
 }
 /* The first group sits directly under the section header, which already has
    its own spacing. */

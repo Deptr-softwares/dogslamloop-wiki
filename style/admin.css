@@ -40,6 +40,35 @@
     border-color: var(--accent-blue);
 }
 
+/* --- CHARACTER STATE TOGGLE ---
+   The same .character-mode-chip the live page and the editor use, so a
+   reviewer picks a state with the control they already know. Only the
+   spacing and the changed-marker are admin-specific, and both are scoped to
+   #preview-mode-bar: .character-mode-chip is shared with js/character_modes.js
+   and js/editor-modes.js, and neither of those wants a review marker. */
+.admin-preview-mode-bar {
+    margin-top: 0;
+    margin-bottom: 0.9rem;
+}
+
+/* Which states the revision touched. Deliberately the same blue dot the tab
+   strip uses for changed tabs - it is the same claim one level up, and a
+   second visual language for it would just be something else to learn. */
+#preview-mode-bar .character-mode-chip.tab-changed {
+    border-color: var(--accent-blue);
+}
+
+#preview-mode-bar .character-mode-chip.tab-changed::after {
+    content: '';
+    display: inline-block;
+    width: 0.45rem;
+    height: 0.45rem;
+    margin-left: 0.4rem;
+    vertical-align: 0.05rem;
+    border-radius: 50%;
+    background: var(--accent-blue);
+}
+
 /* The vertical .nav-btn rules that used to sit here are gone with the
    sidebar tab list they styled - both the static character tabs and the
    dynamically-created system ones now render in .admin-preview-tab-nav
@@ -116,6 +145,12 @@
 }
 .changed-tabs-popup-title { color: #eab308; font-size: 0.65rem; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 0.35rem; }
 .changed-tabs-popup-body { color: #fff; font-size: 0.75rem; line-height: 1.4; }
+
+/* The one line a reviewer has to read when the tabs in front of them are
+   genuinely unchanged because the edit is in another character state.
+   Yellow to match the state toggle it points at, rather than the white of
+   the tab list above it. */
+.changed-tabs-popup-states { color: #eab308; margin-top: 0.4rem; }
 
 @media (max-width: 900px) {
     #changed-tabs-popup { max-width: none; }
@@ -573,9 +608,70 @@
 .media-queue-pages { display: block; margin-top: 0.25rem; font-family: var(--text-mono); font-size: 0.62rem; color: #666; word-break: break-word; }
 .media-queue-note { margin: 0.4rem 0 0 0; font-family: var(--text-mono); font-size: 0.65rem; color: #ef4444; }
 
+/* The inline preview, which is now the PHONE arrangement only. Above 900px a
+   clip opens in the main pane instead - see .media-preview-panel below. */
 .media-queue-preview:empty { display: none; }
 .media-queue-preview { margin-top: 0.6rem; }
 .media-queue-media { width: 100%; max-height: 220px; object-fit: contain; background: #000; border: 1px solid #222; display: block; }
+
+/* --- MEDIA PREVIEW IN THE MAIN PANE (v0.14 fine-tuning, 2026-08-14) ---
+
+   A reviewer deciding whether a clip belongs on the wiki was judging it inside
+   a queue row, in the narrowest column on the page. It opens here instead, in
+   the pane a revision preview uses - which is the part of the screen that has
+   room to actually look at something. */
+.media-preview-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+    box-shadow: 4px 4px 0px var(--manga-shadow);
+    margin-bottom: 1rem;
+}
+
+.media-preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* The file name is contributor-supplied and can be long. It wraps rather than
+   pushing CLOSE off the edge - the same failure the tier list sidebar header
+   had. */
+.media-preview-name {
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    color: var(--text-white);
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+.media-preview-stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    border: 1px solid #222;
+    min-height: 240px;
+}
+
+/* Bounded by the viewport rather than the file: a 4K screenshot should not
+   push the CLOSE button off the top of the pane. */
+.media-preview-media {
+    max-width: 100%;
+    max-height: 65vh;
+    object-fit: contain;
+    display: block;
+}
+
+/* One pane, one thing in it. A clip stacked above a half-rendered page is
+   worse than either on its own, and the reviewer did not ask for both. */
+body.media-preview-open #version-toggle-bar,
+body.media-preview-open .admin-main-pane > .site-body { display: none !important; }
 
 .media-queue-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem; }
 .media-queue-btn { font-size: 0.62rem; padding: 0.3rem 0.6rem; }
@@ -742,3 +838,151 @@
 }
 .personnel-capability:hover { color: var(--text-white); }
 .personnel-capability-box { cursor: pointer; }
+
+/* --- REPORT QUEUE (v0.14 item 6) ---
+   Third queue in the sidebar column, deliberately built from the same pieces
+   as the media queue above it rather than a new visual language: a reviewer
+   working through three queues should not have to learn three layouts. */
+.report-card {
+    background: var(--bg-secondary, #111);
+    border: 2px solid var(--border-color, #333);
+    padding: 0.75rem 0.85rem;
+}
+
+.report-card-head {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.4rem;
+}
+
+.report-reason-badge { background: #eab308; color: #000; }
+
+/* The single most useful signal in the queue: three reports on one post is a
+   different situation from one, and it should be readable without counting
+   rows. Red rather than yellow because it is the thing to look at first. */
+.report-count-badge { background: #ef4444; color: #000; }
+
+.report-page {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    color: var(--accent-blue);
+    font-weight: bold;
+}
+
+.report-time {
+    font-family: var(--text-mono);
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+
+.report-meta {
+    font-family: var(--text-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+}
+
+.report-note {
+    font-size: 0.75rem;
+    color: #eab308;
+    margin-bottom: 0.5rem;
+    overflow-wrap: break-word;
+}
+
+/* The reported text itself. Bordered on the left so it reads as a quotation
+   of somebody else's words rather than as the moderator's own interface. */
+.report-quote {
+    margin: 0 0 0.5rem 0;
+    padding: 0.4rem 0 0.4rem 0.7rem;
+    border-left: 3px solid var(--border-color, #333);
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: #fff;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    max-height: 12rem;
+    overflow-y: auto;
+}
+
+.report-quote-down { opacity: 0.65; font-style: italic; }
+
+.report-already,
+.report-resolved {
+    font-family: var(--text-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.report-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.report-action-btn { font-size: 0.6rem; padding: 0.3rem 0.5rem; }
+
+.report-action-status {
+    font-family: var(--text-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+}
+
+/* Moderator-only view (v0.14). A moderator is on the staff page to work the
+   report queue and nothing else, so the control that swaps to the revision
+   preview on mobile has nothing to swap to. The queues themselves are hidden
+   by js/admin-core.js rather than here, because that has to happen before
+   anything loads - a CSS rule would let them flash in first. */
+body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
+
+/* --- MEDIA DELETION (v0.14 item 5) ---
+   Inline rather than a modal, because the confirmation has to show the file
+   name and its usage together and a one-line prompt cannot. Red-bordered and
+   roomy: this is the only irreversible action in the panel and should not look
+   like the approve/flag buttons above it. */
+.media-queue-confirm {
+    margin-top: 0.6rem;
+    padding: 0.7rem;
+    border: 2px solid #ef4444;
+    background: rgba(239, 68, 68, 0.06);
+}
+
+.media-queue-confirm.hidden { display: none; }
+
+.media-queue-confirm-title {
+    margin: 0 0 0.4rem 0;
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    font-weight: bold;
+    color: #ef4444;
+    overflow-wrap: anywhere;
+}
+
+.media-queue-confirm-body {
+    margin: 0 0 0.4rem 0;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-muted);
+}
+
+/* Used on a live page: deleting breaks something that exists right now. */
+.media-queue-confirm-danger { color: #fca5a5; font-weight: bold; }
+
+.media-queue-confirm-final {
+    margin: 0 0 0.5rem 0;
+    font-family: var(--text-mono);
+    font-size: 0.68rem;
+    color: #ef4444;
+}
+
+.media-queue-confirm-status {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}

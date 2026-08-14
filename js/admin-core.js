@@ -240,23 +240,58 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (!session) { kickUser(); return; }
 
-    // Fetch ALL roles assigned to the user
+    // Fetch ALL roles assigned to the user.
+    //
+    // select('*') rather than select('role'): capabilities are columns on this
+    // row, and this gate now reads can_moderate as well. Naming columns would
+    // mean editing this query every time a capability is added, and getting a
+    // 400 on the deploy where the client is newer than the database - which on
+    // this page means locking staff out.
     let { data: roleData, error } = await window.supabaseClient
-        .from('user_roles').select('role').eq('user_id', session.user.id);
+        .from('user_roles').select('*').eq('user_id', session.user.id);
     if (error) {
         await new Promise(r => setTimeout(r, 600));
         ({ data: roleData, error } = await window.supabaseClient
-            .from('user_roles').select('role').eq('user_id', session.user.id));
+            .from('user_roles').select('*').eq('user_id', session.user.id));
     }
 
-    const roles = (roleData && roleData.length > 0) ? roleData.map(r => r.role.toLowerCase()) : ['guest'];
+    const roleRow = (roleData && roleData.length > 0) ? roleData[0] : null;
+    const roles = roleRow ? roleData.map(r => r.role.toLowerCase()) : ['guest'];
 
-    // Check if the array contains at least one of the required access roles
-    if (error || (!roles.includes('admin') && !roles.includes('reviewer'))) { kickUser(); return; }
+    // Moderators get in, and this is deliberately a CAPABILITY rather than a
+    // new role - user_roles has UNIQUE(user_id) precisely because a second row
+    // broke get_my_role() for that user everywhere.
+    //
+    // The owner's reasoning, 2026-08-13: this is THE staff page, so somebody
+    // who moderates belongs on it. What they should not see is the revision
+    // queue and the media queue, because neither is their job.
+    const canModerate = !!roleRow && roleRow.can_moderate === true;
+    const isReviewStaff = roles.includes('admin') || roles.includes('reviewer');
+
+    // Deliberately narrower than moderation, and mirrors public.can_delete_media():
+    // admin or the explicit flag, with no fall-back to reviewer. Reviewing a
+    // revision and destroying a file are different amounts of trust, and this
+    // is the only irreversible action in the panel.
+    window.currentUserCanDeleteMedia = roles.includes('admin')
+        || (!!roleRow && roleRow.can_delete_media === true);
+
+    if (error || (!isReviewStaff && !canModerate)) { kickUser(); return; }
 
     window.currentUserId = session.user.id;
     window.currentUserRoles = roles;
+    window.currentUserCanModerate = canModerate || isReviewStaff;
+    // Moderator-only: in the building, but not on the review team.
+    window.currentUserIsModeratorOnly = !isReviewStaff && canModerate;
     window.currentUsername = window.getDisplayName ? window.getDisplayName(session) : "Staff";
+
+    // Scope the page down before anything loads, so a moderator never sees a
+    // queue flash into view and disappear.
+    //
+    // This is presentation, not security. pending_revisions and the media
+    // tables have their own RLS, and a moderator-only account cannot read them
+    // whatever this does - hiding them is about not showing somebody a job
+    // that is not theirs, not about preventing access.
+    if (window.currentUserIsModeratorOnly) applyModeratorScope();
 
     // Personnel Management / Media GC moved to owner.html (admin-only) -
     // this just reveals the nav link to get there, not an inline tools panel.
@@ -314,11 +349,52 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    loadQueue();
+    // A moderator has no revision queue to load, and calling it would put an
+    // RLS denial in the panel where their reports should be.
+    if (!window.currentUserIsModeratorOnly) loadQueue();
 });
 
 function kickUser() {
     document.body.innerHTML = `<div class="access-denied-screen"><h1 class="access-denied-title">ACCESS DENIED</h1></div>`;
+}
+
+// Narrows the Overseer to the one queue a moderator is here for.
+//
+// Hides rather than deletes, so nothing else on the page has to learn that
+// these containers might be absent - loadQueue, renderMediaQueue and the
+// preview engine all still find their elements and write into them harmlessly.
+// Deleting them would turn every unguarded getElementById in five files into a
+// null dereference for one class of user.
+function applyModeratorScope() {
+    document.body.classList.add('admin-moderator-only');
+
+    // The two queues that are not their job. Each header is the element
+    // immediately before its container, so both are found from the container
+    // rather than by adding ids to markup that has none.
+    ['queue-container', 'media-queue-container'].forEach(id => {
+        const container = document.getElementById(id);
+        if (!container) return;
+        container.classList.add('hidden');
+
+        let node = container.previousElementSibling;
+        while (node && !node.classList.contains('admin-split-header')) {
+            node.classList.add('hidden');
+            node = node.previousElementSibling;
+        }
+        if (node) node.classList.add('hidden');
+    });
+
+    // The preview pane exists to review revisions. Left in place - see the
+    // note above on why nothing is deleted - but told what it is for, rather
+    // than sitting there saying "Select a revision..." to somebody who will
+    // never be shown one.
+    const status = document.getElementById('preview-status-text');
+    if (status) status.textContent = 'Moderation view — reports are handled from the queue on the left.';
+
+    // Load the reports immediately. For a moderator this is the entire page,
+    // and making them press Load first would be asking them to open the thing
+    // they came for.
+    if (typeof window.loadReportQueue === 'function') window.loadReportQueue();
 }
 
 function updateTypingText() {

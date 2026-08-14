@@ -33,7 +33,18 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     position: relative;
 }
 
-/* --- SLEEK HEADER UI --- */
+/* --- SLEEK HEADER UI ---
+
+   These rules replace the inline styles that used to carry the whole header,
+   2026-08-14. They had to come out to make the header collapsible: a class
+   cannot fold away what an inline style is holding open.
+
+   Scoped through .editor-header-top / .editor-header-titles rather than styling
+   bare .editor-title and .editor-subtitle. Those two class names are also on
+   admin.html's heading, where .admin-title supplies the look at the SAME 0-1-0
+   specificity - so a bare rule here would be settled by which stylesheet that
+   page happens to load last. That is the exact trap the sidebar dock fell into
+   two days ago. */
 .editor-header {
     flex-shrink: 0;
     display: flex;
@@ -45,6 +56,88 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     background: #050505;
     z-index: 50;
 }
+
+.editor-header-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+}
+
+.editor-header-titles { flex: 1; min-width: 0; }
+
+.editor-header-titles .editor-title {
+    margin: 0;
+    font-family: var(--text-manga);
+    color: #fff;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.editor-header-titles .editor-subtitle {
+    display: block;
+    color: var(--accent-blue);
+    font-size: 0.75rem;
+    font-family: var(--text-mono);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.editor-header-side {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.editor-hub-link { padding: 0.2rem 0.4rem; font-size: 0.6rem; }
+
+/* Shown only by the mobile media query further down, which is what the inline
+   display:none used to do. */
+.editor-mobile-preview-btn { display: none; font-size: 0.6rem; padding: 0.3rem; }
+
+.header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+/* --- COLLAPSING THE HEADER (owner's fine-tuning item, 2026-08-14) ---
+
+   The title, the subtitle, HUB and four of the five action buttons fold away.
+   Submit does not: it is the one control you cannot make somebody expand a
+   panel to reach, and a contributor who has finished writing should never have
+   to hunt for it.
+
+   The tab strip below is deliberately outside this. You collapse the chrome to
+   get room for writing, and you still switch tabs while writing. */
+.editor-chrome-toggle {
+    background: none;
+    border: 1px solid #333;
+    color: var(--accent-blue);
+    font-size: 0.7rem;
+    line-height: 1;
+    padding: 0.25rem 0.4rem;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.editor-chrome-toggle:hover { border-color: var(--accent-blue); }
+
+.editor-header.is-collapsed { padding-top: 0.4rem; padding-bottom: 0.4rem; gap: 0; }
+.editor-header.is-collapsed .editor-subtitle,
+.editor-header.is-collapsed .editor-header-side,
+.editor-header.is-collapsed .header-actions > .btn-sys:not(#submit-payload-btn) { display: none; }
+
+/* Collapsed, the two rows become one: the title on the left, Submit on the
+   right. */
+.editor-header.is-collapsed { flex-direction: row; align-items: center; gap: 0.6rem; }
+.editor-header.is-collapsed .editor-header-top { flex: 1; min-width: 0; align-items: center; }
+.editor-header.is-collapsed .editor-title { font-size: 0.85rem; }
+.editor-header.is-collapsed .header-actions { flex-shrink: 0; }
 
 .editor-title-group h1 { 
     margin: 0; font-size: 1.25rem; color: #fff; text-transform: uppercase; letter-spacing: 1px; font-family: var(--text-manga); 
@@ -379,8 +472,19 @@ input[type="checkbox"]:checked {
        screen and the last group becomes unreachable. Wide enough for nine per
        row, then it scrolls. */
     min-width: 248px;
+    /* The popup itself no longer scrolls: .format-color-presets-scroll does,
+       so the custom picker below it stays pinned and visible. It used to be
+       inside the scrolling region and sat under the fold.
+
+       320px is a CEILING, not a preference. The popup opens upward from the
+       toolbar, and at 420px its top reached into the editor's tab strip -
+       which paints over it, so the upper swatches resolved as visible and
+       enabled and then swallowed every click. Pinning the picker is what
+       makes the smaller height affordable: the swatches lose the room, and
+       they are the part that is allowed to scroll. */
     max-height: 320px;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     /* Positioning is handled in js/editor-blocks.js (keepColorPopupOnScreen),
        not here: the popup overflows the editor pane by an amount that depends
        on where along the toolbar the button sits, which no static rule knows.
@@ -422,9 +526,84 @@ input[type="checkbox"]:checked {
 }
 .color-preset-btn:hover { outline-color: var(--text-white, #fff); transform: translateY(-1px); }
 .color-preset-btn:focus-visible { outline-color: var(--accent-blue); }
-.format-color-custom-row { border-top: 1px solid #333; padding-top: 0.5rem; display: flex; align-items: center; justify-content: space-between; }
+.format-color-custom-row { border-top: 1px solid #333; padding-top: 0.5rem; display: flex; align-items: center; gap: 0.4rem; }
 .format-color-custom-label { font-size: 0.75rem; color: #ccc; }
-.format-color-custom-input { background: none; border: none; width: 24px; height: 24px; cursor: pointer; padding: 0; outline: none; }
+
+/* --- THE VISUAL COLOUR PICKER (v0.14) ---
+
+   Replaces <input type="color">, which opened the operating system's own
+   colour dialog over the wiki. Drawn with CSS gradients rather than a canvas:
+   the maths is four lines in js/editor-blocks.js and a canvas would be a
+   second way to draw the same square.
+
+   The saturation/brightness square is one hue-coloured background with white
+   painted left-to-right and black bottom-to-top over it, which is exactly what
+   an HSV square is. */
+.cp-surface {
+    position: relative;
+    width: 100%;
+    /* Shorter than a comfortable picker would be, to buy the swatch list back
+       some of the room the pinned picker takes from it. */
+    height: 88px;
+    margin: 0.35rem 0;
+    border: 1px solid #333;
+    cursor: crosshair;
+    touch-action: none;
+    background-image:
+        linear-gradient(to top, #000, rgba(0, 0, 0, 0)),
+        linear-gradient(to right, #fff, rgba(255, 255, 255, 0));
+}
+
+.cp-hue {
+    position: relative;
+    width: 100%;
+    height: 14px;
+    border: 1px solid #333;
+    cursor: ew-resize;
+    touch-action: none;
+    background-image: linear-gradient(to right,
+        #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
+}
+
+.cp-hue:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+
+/* One thumb style for both surfaces. transform centres it on its own
+   coordinate so the point under the cursor is the colour picked, not the
+   corner of a box near it. */
+.cp-thumb {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #000;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.cp-hue-thumb { top: 50%; height: 16px; width: 8px; border-radius: 2px; }
+
+.cp-preview {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    border: 1px solid #333;
+    display: inline-block;
+}
+
+.cp-hex {
+    flex: 1;
+    min-width: 0;
+    background: #050505;
+    border: 1px solid #333;
+    color: var(--text-white);
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    padding: 0.25rem 0.35rem;
+    box-sizing: border-box;
+}
+
+.cp-apply { flex-shrink: 0; font-size: 0.6rem; padding: 0.25rem 0.45rem; }
 
 /* --- ADD BLOCK POPUP MENU --- */
 .add-block-menu-wrapper { position: relative; }
@@ -1009,123 +1188,6 @@ input[type="checkbox"]:checked {
     font-family: var(--text-mono); font-size: 0.75rem; box-sizing: border-box;
 }
 
-/* Hide the native select once our JS engine wraps it */
-select.editor-select.manga-initialized {
-    display: none !important;
-}
-
-.manga-select-wrapper {
-    position: relative;
-    width: 100%;
-    user-select: none;
-    margin-bottom: 0.25rem;
-    
-    /* THE FIX: Stops the wrapper from crushing the DAW footer */
-    flex: 1;
-    min-width: 0; 
-}
-
-/* The visible button */
-.manga-select-trigger {
-    position: relative;
-    display: block; 
-    background: #050505;
-    border: 1px solid #333; 
-    padding: 0.3rem 1.5rem 0.3rem 0.4rem; 
-    color: var(--text-white);
-    font-family: var(--text-mono);
-    font-size: 0.75rem;
-    font-weight: bold;
-    text-transform: uppercase;
-    cursor: pointer;
-    box-shadow: 2px 2px 0px var(--manga-shadow); 
-    transition: all 0.1s ease;
-    box-sizing: border-box;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.manga-select-trigger:hover, 
-.manga-select-wrapper.open .manga-select-trigger {
-    border-color: var(--accent-blue);
-    transform: translate(-2px, -2px);
-    box-shadow: 4px 4px 0px var(--accent-blue);
-}
-
-/* The dropdown arrow */
-.manga-select-trigger::after {
-    content: '▼';
-    position: absolute;
-    right: 0.5rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.6rem;
-    color: var(--accent-blue);
-    transition: transform 0.2s ease;
-}
-
-.manga-select-wrapper.open .manga-select-trigger::after {
-    transform: translateY(-50%) rotate(180deg);
-}
-
-/* The dropdown menu */
-.manga-select-options {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    margin-top: 0.5rem;
-    background: #0a0a0a;
-    border: 2px solid var(--accent-blue);
-    border-top: 4px solid var(--accent-blue);
-    box-shadow: 8px 8px 0px var(--manga-shadow);
-    z-index: 10010; 
-    display: none;
-    flex-direction: column;
-    max-height: 250px;
-    overflow-y: auto;
-}
-
-.manga-select-wrapper.open .manga-select-options {
-    display: flex;
-    animation: menuPop 0.1s ease-out;
-}
-
-@keyframes menuPop {
-    0% { opacity: 0; transform: translateY(-10px); }
-    100% { opacity: 1; transform: translateY(0); }
-}
-
-/* Individual list items */
-.manga-option {
-    padding: 0.6rem 0.75rem;
-    font-family: var(--text-mono);
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    border-bottom: 1px dashed #222;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.manga-option:last-child {
-    border-bottom: none;
-}
-
-/* Slide-right hover effect */
-.manga-option:hover {
-    background: var(--accent-blue);
-    color: #000 !important; 
-    font-weight: bold;
-    padding-left: 1.5rem; 
-}
-
-.manga-option.selected {
-    color: var(--text-white);
-    background: rgba(255, 255, 255, 0.05);
-    border-left: 3px solid var(--accent-blue);
-}
-
 .mobile-back-to-editor { display: none; } /* Hidden on Desktop */
 
 @media (max-width: 900px) {
@@ -1554,8 +1616,9 @@ del.diff-del {
    warning about the current state, so it must not compete with the alerts that
    are. Remove it when v0.13 makes multi-tab submission possible. */
 .editor-scope-tip {
+    position: relative;
     margin: 0 0 0.75rem;
-    padding: 0.5rem 0.7rem;
+    padding: 0.5rem 2rem 0.5rem 0.7rem;
     background: var(--bg-secondary);
     border-left: 3px solid var(--accent-yellow);
     color: var(--text-muted);
@@ -1564,3 +1627,41 @@ del.diff-del {
     line-height: 1.5;
 }
 .editor-scope-tip strong { color: var(--text-primary); }
+
+/* Dismissible since 2026-08-14. It is a thing you read once, and it was
+   charging every later edit for that. Right padding above keeps the text off
+   the button rather than letting it run underneath. */
+.editor-tip-dismiss {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.35rem;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0.1rem 0.3rem;
+    cursor: pointer;
+}
+.editor-tip-dismiss:hover { color: var(--text-white); }
+
+/* Only the swatch groups scroll; the custom picker under them is pinned. */
+.format-color-presets-scroll {
+    overflow-y: auto;
+    min-height: 0;
+    flex: 1 1 auto;
+    margin-bottom: 0.35rem;
+}
+
+/* Heads the custom picker. Deliberately not .format-color-popup-label, which
+   labels a swatch group - there are exactly three of those and a fourth
+   would misdescribe the picker as a palette. */
+.cp-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-family: var(--text-mono);
+    border-top: 1px solid #333;
+    padding-top: 0.4rem;
+}

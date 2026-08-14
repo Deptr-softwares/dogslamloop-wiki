@@ -171,6 +171,7 @@ ${social}
     <link rel="stylesheet" href="../../style/Alerts.css">
     <link rel="stylesheet" href="../../style/Cards.css">
     <link rel="stylesheet" href="../../style/FrameData.css">
+    <link rel="stylesheet" href="../../style/discussions.css">
 
     <link rel="stylesheet" href="../../style/Layout.css">
 
@@ -192,6 +193,7 @@ ${social}
     <script src="../../js/framedata.js"></script>
     <script src="../../js/description.js"></script>
     <script src="../../js/character_modes.js"></script>
+    <script src="../../js/discussions.js"></script>
     <script src="../../js/internalstyling.js"></script>
 
     <script src="../../js/page_boot.js"></script>
@@ -232,6 +234,7 @@ ${social}
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
     <script src="../../js/description.js"></script>
+    <script src="../../js/internalstyling.js"></script>
 
     <script src="../../js/page_boot.js"></script>
 </body>
@@ -284,6 +287,7 @@ ${social}
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
     <script src="../../js/description.js"></script>
+    <script src="../../js/internalstyling.js"></script>
     <script src="../../js/${script}"></script>${extraScript ? `
     <script src="../../js/${extraScript}"></script>` : ''}
 
@@ -366,10 +370,32 @@ function docTitleFor(name, pageType) {
  * Pure: builds everything in memory, touches no disk.
  */
 // toolScripts: the set of page ids that have their own js/tools/<id>.js.
-// Passed in rather than read from disk here so buildPages stays pure and its
-// --check stays deterministic - the same reason previews arrives as a
+// toolStyles: the same for style/tools/<id>.css.
+// Both passed in rather than read from disk here so buildPages stays pure and
+// its --check stays deterministic - the same reason previews arrives as a
 // committed artifact rather than a live query.
-function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set()) {
+//
+// A tool gets its own stylesheet rather than a <style> block written by its
+// script, which is the shape v0.13 spent six PRs removing from editor.js.
+// The disk half, kept out of buildPages so that stays pure - and EXPORTED, so
+// the suite's "committed stubs match what the generator produces" check scans
+// the same directories the CLI does. A test that built its own empty sets
+// would compare script-less output against the real stubs and call them stale,
+// which is the same trap page-previews.json already sprang once.
+function scanToolAssets(root = ROOT) {
+    const scan = (dir, ext) => new Set(
+        fs.existsSync(dir)
+            ? fs.readdirSync(dir).filter(f => f.endsWith(ext)).map(f => f.slice(0, -ext.length))
+            : []
+    );
+
+    return {
+        toolScripts: scan(path.join(root, 'js', 'tools'), '.js'),
+        toolStyles: scan(path.join(root, 'style', 'tools'), '.css'),
+    };
+}
+
+function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set(), toolStyles = new Set()) {
     const pages = [];
     const problems = [];
     const livePaths = new Set();
@@ -421,6 +447,9 @@ function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set()) 
                     pageType: 'tool',
                     script: 'tool_page.js',
                     extraScript: toolScripts.has(cms.pageId) ? `tools/${cms.pageId}.js` : null,
+                    extraStyles: toolStyles.has(cms.pageId)
+                        ? `\n    <link rel="stylesheet" href="../../style/tools/${cms.pageId}.css">`
+                        : '',
                 });
             } else {
                 html = systemStub(stubArgs);
@@ -502,15 +531,9 @@ function main() {
         ? JSON.parse(fs.readFileSync(archivedPath, 'utf8'))
         : {};
 
-    // Scanned once here rather than inside buildPages, which stays pure.
-    const toolsDir = path.join(ROOT, 'js', 'tools');
-    const toolScripts = new Set(
-        fs.existsSync(toolsDir)
-            ? fs.readdirSync(toolsDir).filter(f => f.endsWith('.js')).map(f => f.replace(/\.js$/, ''))
-            : []
-    );
+    const { toolScripts, toolStyles } = scanToolAssets();
 
-    const { pages, problems } = buildPages(nav, previews, archived, toolScripts);
+    const { pages, problems } = buildPages(nav, previews, archived, toolScripts, toolStyles);
 
     if (problems.length > 0) {
         console.error('generate-pages FAILED - refusing to write:\n');
@@ -576,4 +599,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { buildPages, tombstoneStub, MARKER, NEVER_TOUCH, PAGE_DIRECTORIES };
+module.exports = { buildPages, scanToolAssets, tombstoneStub, MARKER, NEVER_TOUCH, PAGE_DIRECTORIES };

@@ -73,6 +73,154 @@ function colorPresetGroups() {
         .filter(group => group.swatches.length > 0);
 }
 
+// --- THE VISUAL COLOUR PICKER (owner's fine-tuning item, 2026-08-13) ---
+//
+// Replaces <input type="color">, which opens the OPERATING SYSTEM's colour
+// dialog on top of the wiki: a different palette, different conventions, and
+// on some platforms a modal that steals the text selection the toolbar is
+// about to wrap.
+//
+// A saturation/brightness surface plus a hue slider, drawn with CSS gradients
+// rather than a canvas - the maths is four lines and a canvas would be a
+// second way to draw the same square.
+//
+// The output goes through the same applyFormat('color', hex) path the preset
+// swatches use, so the write side was already built and tested.
+
+function hsvToHex(h, s, v) {
+    const f = (n) => {
+        const k = (n + h / 60) % 6;
+        const x = v - v * s * Math.max(0, Math.min(k, 4 - k, 1));
+        return Math.round(x * 255).toString(16).padStart(2, '0');
+    };
+    return `#${f(5)}${f(3)}${f(1)}`;
+}
+
+function hexToHsv(hex) {
+    const match = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i.exec(String(hex || '').trim());
+    if (!match) return null;
+
+    let digits = match[1];
+    if (digits.length === 3) digits = digits.split('').map(c => c + c).join('');
+
+    const [r, g, b] = [0, 2, 4].map(i => parseInt(digits.slice(i, i + 2), 16) / 255);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const d = max - min;
+
+    let h = 0;
+    if (d !== 0) {
+        if (max === r) h = ((g - b) / d) % 6;
+        else if (max === g) h = (b - r) / d + 2;
+        else h = (r - g) / d + 4;
+        h = (h * 60 + 360) % 360;
+    }
+    return { h, s: max === 0 ? 0 : d / max, v: max };
+}
+
+function initColorPicker(container, onPick) {
+    const surface = container.querySelector('#cp-surface');
+    const surfaceThumb = container.querySelector('#cp-surface-thumb');
+    const hue = container.querySelector('#cp-hue');
+    const hueThumb = container.querySelector('#cp-hue-thumb');
+    const preview = container.querySelector('#cp-preview');
+    const hexField = container.querySelector('#cp-hex');
+    const apply = container.querySelector('#cp-apply');
+
+    if (!surface || !hue || !hexField || !apply) return;
+
+    const state = { h: 0, s: 0, v: 1 };
+
+    function paint(updateField = true) {
+        const hex = hsvToHex(state.h, state.s, state.v);
+
+        surface.style.backgroundColor = `hsl(${state.h}, 100%, 50%)`;
+        surfaceThumb.style.left = `${state.s * 100}%`;
+        surfaceThumb.style.top = `${(1 - state.v) * 100}%`;
+        surfaceThumb.style.backgroundColor = hex;
+
+        hueThumb.style.left = `${(state.h / 360) * 100}%`;
+        hue.setAttribute('aria-valuenow', String(Math.round(state.h)));
+
+        preview.style.backgroundColor = hex;
+        if (updateField) hexField.value = hex;
+    }
+
+    // Pointer events rather than mouse events, so a stylus and a finger work
+    // too; setPointerCapture is what keeps a drag alive after the pointer
+    // leaves the small square.
+    function drag(el, onMove) {
+        const handle = (event) => {
+            const rect = el.getBoundingClientRect();
+            // A hidden popup measures 0x0, and 0/0 is NaN - which would reach
+            // the hex through Math.round and produce "#NaNNaNNaN". Nothing
+            // should move while the surface is not on screen anyway.
+            if (!rect.width || !rect.height) return;
+
+            const x = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+            const y = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+            onMove(x, y);
+            paint();
+        };
+
+        el.addEventListener('pointerdown', (event) => {
+            // The toolbar already suppresses mousedown to protect the text
+            // selection; this is the same guard for the drag itself.
+            event.preventDefault();
+
+            // The colour is applied FIRST and the capture attempted after.
+            // setPointerCapture throws when the id is not an active pointer,
+            // and doing it first meant that throw aborted the handler before
+            // it had done anything - one click, no colour, and an exception in
+            // the console rather than a visible failure.
+            handle(event);
+            try { el.setPointerCapture(event.pointerId); } catch (e) { /* drag is click-only */ }
+        });
+        el.addEventListener('pointermove', (event) => {
+            if (el.hasPointerCapture && el.hasPointerCapture(event.pointerId)) handle(event);
+        });
+        el.addEventListener('pointerup', (event) => {
+            try { el.releasePointerCapture(event.pointerId); } catch (e) { /* never captured */ }
+        });
+    }
+
+    drag(surface, (x, y) => { state.s = x; state.v = 1 - y; });
+    drag(hue, (x) => { state.h = x * 360; });
+
+    // Keyboard, because a drag surface with no arrow keys is unusable without
+    // a pointer and this is the only way to reach a hue.
+    hue.addEventListener('keydown', (event) => {
+        const step = event.shiftKey ? 10 : 1;
+        if (event.key === 'ArrowLeft') state.h = (state.h - step + 360) % 360;
+        else if (event.key === 'ArrowRight') state.h = (state.h + step) % 360;
+        else return;
+        event.preventDefault();
+        paint();
+    });
+
+    // Typing a hex is still allowed - it is how somebody pastes a colour from
+    // somewhere else, and it drives the surface rather than bypassing it.
+    hexField.addEventListener('input', () => {
+        const parsed = hexToHsv(hexField.value);
+        if (!parsed) return;
+        Object.assign(state, parsed);
+        paint(false);
+    });
+
+    hexField.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter') return;
+        event.preventDefault();
+        apply.click();
+    });
+
+    apply.addEventListener('click', () => {
+        const hex = hexToHsv(hexField.value) ? hexField.value.trim() : hsvToHex(state.h, state.s, state.v);
+        onPick(hex.startsWith('#') ? hex : `#${hex}`);
+    });
+
+    paint();
+}
+
 function colorPresetsHTML() {
     return colorPresetGroups().map(group => `
                         <div class="format-color-popup-label">${window.escapeHtml(group.label)}</div>
@@ -193,16 +341,51 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 <button class="format-btn format-btn-strikethrough" data-tag="s" title="Strikethrough">S</button>
                 <button class="format-btn format-btn-code" data-tag="code" title="Inline Code">&lt;&gt;</button>
                 <button class="format-btn" data-tag="url" title="Turn text into a link">🔗</button>
+                <!-- The two shortcodes v0.14 added to js/internalstyling.js.
+                     They rendered on the page from the day they shipped and
+                     had no way to be typed except by hand, which is the same
+                     as not existing for most contributors. -->
+                <button class="format-btn format-btn-kbd" data-tag="kbd" title="Key or input, e.g. M1">⌨</button>
+                <button class="format-btn format-btn-noauto" data-tag="noauto" title="Stop automatic colouring here — for when a character name is just a word">🚫</button>
 
                 <div class="format-color-wrapper">
                     <button class="format-btn format-btn-color-trigger" id="btn-format-color" title="Apply Color to Highlighted Text">
                         <div class="format-color-swatch-icon"></div> 🎨
                     </button>
                     <div id="format-color-popup" class="format-color-popup hidden">
+                        <!-- Only the swatches scroll. The custom picker below
+                             is pinned, because it used to be inside the
+                             scrolling region: the popup caps at 320px, the
+                             ~45 preset swatches already fill that, and the
+                             surface and the USE button sat under the fold.
+                             Opening the picker showed nothing but swatches. -->
+                        <div class="format-color-presets-scroll">
                         ${colorPresetsHTML()}
+                        </div>
+                        <!-- A saturation/brightness surface and a hue slider,
+                             replacing <input type="color">. That input opens
+                             the OPERATING SYSTEM's colour dialog on top of the
+                             wiki - a different palette, a different set of
+                             conventions, and on some platforms a modal that
+                             steals the selection the toolbar is about to wrap.
+                             Owner's call, 2026-08-13. -->
+                        <!-- Its own class, not .format-color-popup-label: that
+                             one labels a SWATCH GROUP, and there are exactly
+                             three of those. Reusing it made the picker read as
+                             a fourth palette. -->
+                        <div class="cp-label">Custom</div>
+                        <div class="cp-surface" id="cp-surface">
+                            <div class="cp-thumb" id="cp-surface-thumb"></div>
+                        </div>
+                        <div class="cp-hue" id="cp-hue" role="slider" tabindex="0"
+                             aria-label="Hue" aria-valuemin="0" aria-valuemax="359" aria-valuenow="0">
+                            <div class="cp-thumb cp-hue-thumb" id="cp-hue-thumb"></div>
+                        </div>
                         <div class="format-color-custom-row">
-                            <span class="format-color-custom-label">Custom Hex</span>
-                            <input type="color" id="format-custom-color" value="#ffffff" class="format-color-custom-input">
+                            <span class="cp-preview" id="cp-preview"></span>
+                            <input type="text" id="cp-hex" class="cp-hex" value="#ffffff"
+                                   maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex colour">
+                            <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
                         </div>
                     </div>
                 </div>
@@ -493,9 +676,8 @@ function initStrategyBlockBuilder(containerId, initialData) {
             }
         });
 
-        const customColorInput = container.querySelector('#format-custom-color');
-        customColorInput.addEventListener('change', (e) => {
-            applyFormat('color', e.target.value);
+        initColorPicker(container, (hex) => {
+            applyFormat('color', hex);
             colorPopup.classList.add('hidden');
         });
 

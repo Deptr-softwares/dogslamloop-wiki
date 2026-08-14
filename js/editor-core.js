@@ -17,6 +17,74 @@ window.toggleMobilePreview = function() {
     }
 };
 
+// --- RECLAIMING EDITOR SPACE (owner's fine-tuning item, 2026-08-14) ---
+//
+// Two controls that answer the same complaint: the top of the editor was
+// spending vertical space on things a contributor reads once and then writes
+// underneath for an hour.
+//
+// Both remember their state in localStorage, which is per-browser rather than
+// per-account on purpose - this is a preference about a screen, not a fact
+// about a person, and storing it server-side would mean a round trip before
+// the editor could draw itself.
+const EDITOR_CHROME_KEY = 'dsl_editor_chrome_collapsed';
+const EDITOR_TIP_KEY = 'dsl_editor_tip_dismissed';
+
+// localStorage throws outright in a few real configurations - Safari's private
+// mode historically, and any browser with site data blocked. A contributor
+// with cookies off should still get a working editor, just one that forgets.
+function editorPrefRead(key) {
+    try { return window.localStorage.getItem(key) === '1'; } catch (e) { return false; }
+}
+
+function editorPrefWrite(key, on) {
+    try {
+        if (on) window.localStorage.setItem(key, '1');
+        else window.localStorage.removeItem(key);
+    } catch (e) { /* preference is lost, the control still works this session */ }
+}
+
+window.setEditorChromeCollapsed = function (collapsed) {
+    const header = document.getElementById('editor-header');
+    const toggle = document.getElementById('btn-collapse-chrome');
+    if (!header || !toggle) return;
+
+    header.classList.toggle('is-collapsed', collapsed);
+    toggle.textContent = collapsed ? '▸' : '▾';
+    toggle.setAttribute('aria-expanded', String(!collapsed));
+    toggle.title = collapsed ? 'Expand the editor header' : 'Collapse the editor header';
+    editorPrefWrite(EDITOR_CHROME_KEY, collapsed);
+};
+
+window.setEditorTipDismissed = function (dismissed) {
+    const tip = document.getElementById('editor-scope-tip');
+    if (!tip) return;
+    tip.classList.toggle('hidden', dismissed);
+    editorPrefWrite(EDITOR_TIP_KEY, dismissed);
+};
+
+window.initEditorChrome = function () {
+    const toggle = document.getElementById('btn-collapse-chrome');
+    const dismiss = document.getElementById('btn-dismiss-tip');
+    if (!toggle && !dismiss) return;
+
+    // Applied before any listener is bound, so the editor opens the way it was
+    // left rather than flashing the full header first.
+    window.setEditorChromeCollapsed(editorPrefRead(EDITOR_CHROME_KEY));
+    window.setEditorTipDismissed(editorPrefRead(EDITOR_TIP_KEY));
+
+    if (toggle) {
+        toggle.addEventListener('click', () => {
+            const header = document.getElementById('editor-header');
+            window.setEditorChromeCollapsed(!header.classList.contains('is-collapsed'));
+        });
+    }
+
+    if (dismiss) dismiss.addEventListener('click', () => window.setEditorTipDismissed(true));
+};
+
+document.addEventListener('DOMContentLoaded', window.initEditorChrome);
+
 // --- LEAVING THE EDITOR ---
 // Cancel used to be a bare window.history.back(). A reviewer intercepting a
 // ticket arrives via window.open(..., '_blank') from admin.html, and a fresh

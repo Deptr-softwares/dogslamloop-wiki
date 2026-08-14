@@ -202,6 +202,35 @@ async function loadPersonnel() {
                        ${person.bypass_cooldown ? 'checked' : ''}>
                 <span>Skip submission cooldown</span>
             </label>
+            <!--
+                The second capability, following the pattern the first one set.
+                Admins and reviewers can already moderate by virtue of their
+                role, so this box is what grants it to everybody else - which
+                is the point: moderating threads should not require handing
+                somebody the whole revision queue.
+            -->
+            <label class="personnel-capability" title="Lets this person hide or remove discussion posts. Admins and reviewers can already do this.">
+                <input type="checkbox" class="personnel-capability-box"
+                       data-email="${ownerEscape(person.email)}"
+                       data-capability="can_moderate"
+                       ${person.can_moderate ? 'checked' : ''}
+                       ${person.role === 'admin' || person.role === 'reviewer' ? 'disabled title="Comes with the role."' : ''}>
+                <span>Moderate discussions</span>
+            </label>
+            <!--
+                Deliberately NOT implied by reviewer, unlike moderation. This
+                is the only irreversible action on the site - the file is gone
+                from storage - so it is granted one person at a time rather
+                than arriving with a role.
+            -->
+            <label class="personnel-capability" title="Lets this person permanently delete files from the media bucket. Not implied by any role except admin.">
+                <input type="checkbox" class="personnel-capability-box"
+                       data-email="${ownerEscape(person.email)}"
+                       data-capability="can_delete_media"
+                       ${person.can_delete_media ? 'checked' : ''}
+                       ${person.role === 'admin' ? 'disabled title="Comes with the role."' : ''}>
+                <span>Delete media</span>
+            </label>
         </div>`;
     }).join('');
 

@@ -57,10 +57,11 @@ test('deleting an account calls the anonymize RPC with the email', async ({ page
   await page.fill('#delete-account-email', 'someone@example.com');
   await page.click('#btn-delete-account');
   await page.locator('#btn-admin-confirm-ok').click();
-  await page.waitForTimeout(300);
+  await expect.poll(() => page.evaluate(
+    () => window.__rpcCalls.filter(c => c.name === 'anonymize_user_by_email').length
+  )).toBe(1);
 
   const calls = await page.evaluate(() => window.__rpcCalls.filter(c => c.name === 'anonymize_user_by_email'));
-  expect(calls).toHaveLength(1);
   expect(calls[0].params).toEqual({ target_email: 'someone@example.com' });
   await expect(page.locator('#delete-account-results')).toContainText('re-attributed');
 });
@@ -91,6 +92,9 @@ test('cancelling deletes nothing', async ({ page }) => {
   await page.fill('#delete-account-email', 'someone@example.com');
   await page.click('#btn-delete-account');
   await page.locator('#btn-admin-confirm-cancel').click();
+  // Kept deliberately: this asserts nothing ever happens, and there is no
+  // event for "still hasn't". A bounded window is the honest tool for a
+  // negative - polling can only wait for something to appear.
   await page.waitForTimeout(200);
 
   const calls = await page.evaluate(() => window.__rpcCalls.filter(c => c.name === 'anonymize_user_by_email'));
@@ -104,8 +108,8 @@ test('an empty email is rejected before the confirm appears', async ({ page }) =
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('danger'));
 
   await page.click('#btn-delete-account');
-  await page.waitForTimeout(200);
 
+  // No wait: toContainText auto-waits.
   await expect(page.locator('#delete-account-results')).toContainText("Enter the account's email");
   await expect(page.locator('#admin-confirm-modal')).toBeHidden();
 });
@@ -121,7 +125,6 @@ test('the RPC refusing (e.g. last admin) surfaces its reason', async ({ page }) 
   await page.fill('#delete-account-email', 'owner@example.com');
   await page.click('#btn-delete-account');
   await page.locator('#btn-admin-confirm-ok').click();
-  await page.waitForTimeout(300);
 
   await expect(page.locator('#delete-account-results')).toContainText('only remaining admin');
 });

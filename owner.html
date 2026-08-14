@@ -62,6 +62,7 @@
                 <button class="owner-nav-btn active" data-group="people">People</button>
                 <button class="owner-nav-btn" data-group="pages">Pages</button>
                 <button class="owner-nav-btn" data-group="content">Content</button>
+                <button class="owner-nav-btn" data-group="tierlists">Tier Lists</button>
                 <button class="owner-nav-btn owner-nav-btn-danger" data-group="danger">Danger Zone</button>
             </nav>
 
@@ -390,6 +391,98 @@
                 </section>
                 </div>
 
+                <div class="owner-group" data-group="tierlists" hidden>
+                <section id="tool-tier-page-intro" class="update-log-item admin-tool-card">
+                    <h3 class="update-title admin-tool-title">Page Introduction</h3>
+                    <p class="admin-tool-desc">
+                        The text at the top of the tier list page, before anybody is picked.
+                        It is hidden while a person's list is open — theirs replaces it.
+                    </p>
+
+                    <div id="tier-page-intro-editor" class="block-editor-host"></div>
+
+                    <div class="admin-tool-row">
+                        <button id="btn-save-tier-page-intro" class="btn-sys btn-sys-green admin-tool-btn">SAVE INTRODUCTION</button>
+                    </div>
+
+                    <div id="tier-page-intro-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-tier-assign" class="update-log-item admin-tool-card personnel">
+                    <h3 class="update-title admin-tool-title personnel">Who Has a Tier List</h3>
+                    <p class="admin-tool-desc">
+                        Assigning a list also grants <strong>trusted_editor</strong> if the person has no role yet.
+                        Somebody who is already an admin or reviewer keeps what they have.
+                    </p>
+
+                    <div id="tier-assign-roster" class="space-y-4">
+                        <p class="loading-msg admin-loading-msg">Loading...</p>
+                    </div>
+
+                    <div class="admin-tool-row">
+                        <input type="email" id="tier-assign-email" class="editor-input admin-tool-input" placeholder="their account email">
+                        <input type="text" id="tier-assign-slug" class="editor-input admin-tool-input" placeholder="url slug, e.g. frameperfect">
+                        <button id="btn-assign-tier-list" class="btn-sys btn-sys-green admin-tool-btn">ASSIGN</button>
+                    </div>
+
+                    <div id="tier-assign-results" class="admin-tool-results"></div>
+                </section>
+
+                <section id="tool-free-submit" class="update-log-item admin-tool-card">
+                    <h3 class="update-title admin-tool-title">Community Ranking</h3>
+                    <p class="admin-tool-desc">
+                        The Free Submit tier list. Closing voting hides the ballot and refuses new
+                        ratings — the published ranking stays readable, because deleting the
+                        community's answer is a much bigger act than pausing new ones.
+                    </p>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="fs-setting-open">VOTING</label>
+                        <select id="fs-setting-open" class="editor-input admin-input-full select">
+                            <option value="true">Open</option>
+                            <option value="false">Closed</option>
+                        </select>
+
+                        <!-- Either one is enough. An established reader who has
+                             never edited still gets a say, and a brand-new
+                             account whose edit was approved has already been
+                             vouched for by a human. -->
+                        <label class="block-field-label-sm" for="fs-setting-age">ACCOUNT AGE TO VOTE (DAYS)</label>
+                        <input type="number" min="0" id="fs-setting-age" class="editor-input admin-input-full">
+
+                        <label class="block-field-label-sm" for="fs-setting-contrib">OR THIS MANY APPROVED EDITS</label>
+                        <input type="number" min="0" id="fs-setting-contrib" class="editor-input admin-input-full">
+
+                        <label class="block-field-label-sm" for="fs-setting-floor">VOTES NEEDED TO PLACE A CHARACTER</label>
+                        <input type="number" min="1" id="fs-setting-floor" class="editor-input admin-input-full">
+                        <p class="admin-tool-hint">
+                            Below this a character is shown as unplaced rather than ranked, so three
+                            people's opinion is never presented as the community's.
+                        </p>
+
+                        <!-- The only calculation choice offered, and both
+                             answers still land on a tier somebody voted. -->
+                        <label class="block-field-label-sm" for="fs-setting-tie">IF THE VOTES SPLIT DEAD EVEN BETWEEN TWO TIERS</label>
+                        <select id="fs-setting-tie" class="editor-input admin-input-full select">
+                            <option value="lower">Put them in the lower tier</option>
+                            <option value="higher">Put them in the higher tier</option>
+                        </select>
+                        <p class="admin-tool-hint">
+                            Only changes anything for a character whose votes divide exactly in half —
+                            everyone else is decided by the middle vote either way. The lower tier is
+                            the cautious answer: a character only moves up if more than half the
+                            voters put them there.
+                        </p>
+                    </div>
+
+                    <div class="admin-tool-row">
+                        <button id="btn-save-free-submit" class="btn-sys btn-sys-green admin-tool-btn">SAVE SETTINGS</button>
+                    </div>
+
+                    <div id="fs-setting-results" class="admin-tool-results"></div>
+                </section>
+                </div>
+
                 <div class="owner-group" data-group="danger" hidden>
                 <section id="tool-account-deletion" class="update-log-item admin-tool-card gc">
                     <h3 class="update-title admin-tool-title gc">Delete an Account</h3>
@@ -437,8 +530,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/site_utils.js?v=ffe8c821"></script>
+    <script src="js/site_utils.js?v=81cf2979"></script>
     <script src="js/site_meta.js"></script>
+    <script src="js/editor-blocks.js"></script>
     <script src="js/owner.js"></script>
     <!-- After owner.js: both use its ownerEscape and contentNotDeployedMessage. -->
     <script src="js/owner-site-meta.js"></script>
@@ -446,6 +540,7 @@
     <script src="js/owner-hub-lists.js"></script>
     <script src="js/owner-page-meta.js"></script>
     <script src="js/owner-staff-perks.js"></script>
+    <script src="js/owner-tier-lists.js"></script>
     <script src="js/owner-nav.js"></script>
 </body>
 </html>

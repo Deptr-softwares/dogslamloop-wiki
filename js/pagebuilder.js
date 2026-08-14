@@ -61,29 +61,86 @@ window.initSidebarToggle = function() {
     }
 };
 
+// TWO DRAWERS, ONE BACKDROP.
+//
+// The mobile bar used to be a link home plus a burger that opened the left
+// sidebar, and the table of contents was display:none below 1024px - simply
+// unreachable on a phone, on a wiki whose longest pages are the ones a phone
+// reader most needs to jump around inside.
+//
+// Owner's call, 2026-08-14: the site name opens the LEFT drawer and the burger
+// opens the RIGHT one. Nothing is lost by dropping the link home, because the
+// left drawer carries its own "dogslamloop wiki" link to the Main Dashboard -
+// the bar was the site's second route to the same place, and it was spending
+// the control a reader needed for the contents.
+//
+// The mapping is spatial on purpose: the control on the left opens the drawer
+// on the left. Anything else is a coin toss for a thumb.
 window.initMobileNav = function() {
-    const mobileMenuBtn = document.getElementById('mobile-menu-toggle');
-    const sidebar = document.getElementById('master-sidebar');
+    const navBtn = document.getElementById('mobile-nav-toggle');
+    const tocBtn = document.getElementById('mobile-menu-toggle');
+    const left = document.getElementById('master-sidebar');
+    const right = document.querySelector('.local-sidebar-right');
     const backdrop = document.getElementById('mobile-backdrop');
 
-    if (mobileMenuBtn && sidebar && backdrop) {
-        const setOpen = (open) => {
-            sidebar.classList.toggle('mobile-open', open);
-            backdrop.classList.toggle('active', open);
-            mobileMenuBtn.setAttribute('aria-expanded', String(open));
-            mobileMenuBtn.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
-        };
+    if (!backdrop) return;
 
-        mobileMenuBtn.addEventListener('click', () => setOpen(true));
-        backdrop.addEventListener('click', () => setOpen(false));
+    // Five pages carry the mobile bar and have no contents at all - 404, the
+    // blog index, the privacy policy, recent changes, submissions. A button
+    // that opens an empty drawer is worse than no button, and the left drawer
+    // is still reachable from the site name, so nothing is stranded.
+    if (tocBtn && !right) tocBtn.hidden = true;
 
-        // Escape closes it. Without this the only way out is a tap on the
-        // backdrop, which a keyboard user has no way to reach.
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && sidebar.classList.contains('mobile-open')) {
-                setOpen(false);
-                mobileMenuBtn.focus();
-            }
+    // aria-controls needs a target that exists, and the right sidebar has no
+    // id of its own on any page. Given one here rather than in fourteen files.
+    if (right) {
+        if (!right.id) right.id = 'mobile-toc-drawer';
+        if (tocBtn) tocBtn.setAttribute('aria-controls', right.id);
+    }
+
+    const panels = [
+        { el: left, btn: navBtn, open: 'Open navigation menu', close: 'Close navigation menu' },
+        { el: right, btn: tocBtn, open: 'Open table of contents', close: 'Close table of contents' },
+    ].filter(p => p.el && p.btn);
+
+    // Only ever one at a time: they slide in from opposite edges over the same
+    // backdrop, and two open at once would leave the reader looking at a strip
+    // of page between them.
+    const setOpen = (target, open) => {
+        panels.forEach(p => {
+            const isOpen = open && p === target;
+            p.el.classList.toggle('mobile-open', isOpen);
+            p.btn.setAttribute('aria-expanded', String(isOpen));
+            p.btn.setAttribute('aria-label', isOpen ? p.close : p.open);
+        });
+        backdrop.classList.toggle('active', open);
+    };
+
+    panels.forEach(p => {
+        p.btn.addEventListener('click', () => {
+            // Toggle rather than always-open: the same control that opened it
+            // is the one a thumb reaches for to put it away.
+            setOpen(p, !p.el.classList.contains('mobile-open'));
+        });
+    });
+
+    backdrop.addEventListener('click', () => setOpen(null, false));
+
+    // Escape closes whichever is open. Without this the only way out is a tap
+    // on the backdrop, which a keyboard user has no way to reach.
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        const openPanel = panels.find(p => p.el.classList.contains('mobile-open'));
+        if (!openPanel) return;
+        setOpen(null, false);
+        openPanel.btn.focus();
+    });
+
+    // Following a contents link should put the drawer away - otherwise the
+    // reader lands on the heading they picked with it still covering the page.
+    if (right) {
+        right.addEventListener('click', (event) => {
+            if (event.target.closest('a')) setOpen(null, false);
         });
     }
 };
@@ -167,10 +224,13 @@ window.buildGlobalSidebarMenu = async function(containerId) {
     }
 };
 
-// Universal Tab Editor Buttons (Handles Desktop Sidebar & Mobile Nav)
+// The per-page Edit and History buttons, built into the table of contents.
+//
+// One pair, not two. They used to be duplicated into the page body for phones
+// because the contents sidebar was display:none below 1024px; it is a drawer
+// now, and it goes everywhere the reader does.
 window.initTabEditorButtons = async function(pageId, pageType = 'character') {
     const sidebarBtn = document.getElementById('btn-edit-current-tab');
-    const mobileBtn = document.getElementById('btn-edit-current-tab-mobile');
 
     if (!pageId) return;
 
@@ -239,40 +299,15 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
         }
     }
 
-    // 2. Hook up the Mobile Nav Buttons (Grouped Layout)
-    if (mobileBtn) {
-        mobileBtn.classList.add('is-active');
-        mobileBtn.onclick = handleEditClick;
-
-        const parentDiv = mobileBtn.parentNode;
-
-        let mobBtnGroup = document.getElementById('mobile-btn-group');
-        if (!mobBtnGroup) {
-            mobBtnGroup = document.createElement('div');
-            mobBtnGroup.id = 'mobile-btn-group';
-
-            parentDiv.insertBefore(mobBtnGroup, mobileBtn);
-            mobBtnGroup.appendChild(mobileBtn);
-
-            // Real bug fixed here: this used to clone mobileBtn.style.cssText,
-            // which on system pages included a leftover inline
-            // "display: none" (present on those pages' static markup).
-            // #btn-edit-current-tab-mobile had a matching ID-specific CSS
-            // override to force it visible, but #btn-history-current-tab-mobile
-            // had no such override - so the cloned inline style permanently
-            // hid the History button on every system page except tierlist
-            // (the one page whose markup happened not to include it).
-            // Sharing .tab-editor-btn-mobile (style/Layout.css) instead of
-            // cloning makes both buttons' visibility rule live in one place.
-            const histBtnMob = document.createElement('button');
-            histBtnMob.id = 'btn-history-current-tab-mobile';
-            histBtnMob.className = 'btn-sys btn-sys-regular tab-editor-btn-mobile is-active';
-            histBtnMob.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> HISTORY`;
-            histBtnMob.onclick = handleHistoryClick;
-
-            mobBtnGroup.insertBefore(histBtnMob, mobileBtn);
-        }
-    }
+    // There is no mobile pair any more. Both buttons used to be duplicated
+    // into the page body for phones, because the right sidebar they live in
+    // was display:none below 1024px and there was no other way to reach them.
+    //
+    // The table of contents became a drawer on 2026-08-14, and it carries this
+    // same button group - so the copies in the body were a second set of the
+    // same two controls, one tap further from the reader's thumb than the
+    // drawer they now sit in, and taking up the width of a tab row on the
+    // narrowest screen the site serves. Owner's call: they go.
 };
 
 // Builds the sidebar's auth/profile dock (login state, role icon, OVERSEER
@@ -297,6 +332,8 @@ window.initAuthDock = async function() {
     // role. Only drives the dock icon today, but it is the kind of default
     // that quietly becomes a real bug the first time something gates on it.
     let userRole = 'none'; let username = 'LOGIN'; let unreadCount = 0;
+    // A capability, not a role - see the OVERSEER button below.
+    let canModerate = false;
     if (window.supabaseClient) {
         try {
             // Fetch the FULL session so we can pass it to our universal name extractor
@@ -305,8 +342,13 @@ window.initAuthDock = async function() {
                 // Uses the unified Site Utils function to grab your exact Profile Name
                 username = typeof window.getDisplayName === 'function' ? window.getDisplayName(session) : session.user.email.split('@')[0];
                 
-                const { data: roleData } = await window.supabaseClient.from('user_roles').select('role').eq('user_id', session.user.id).single();
+                // select('*'): the OVERSEER button below is gated on a
+                // capability column as well as on the role, and naming columns
+                // here would break the whole dock on any deploy where this
+                // file is newer than the database.
+                const { data: roleData } = await window.supabaseClient.from('user_roles').select('*').eq('user_id', session.user.id).single();
                 if (roleData) userRole = roleData.role;
+                if (roleData && roleData.can_moderate === true) canModerate = true;
                 
                 // user_notifications, not system_inbox - the latter has no
                 // migration and has never existed, so this count was always 0
@@ -352,12 +394,19 @@ window.initAuthDock = async function() {
     let html = '';
 
     // 1. OVERSEER PANEL (Pathing Fixed)
-    // Must match admin.html's own RBAC gate (js/admin-core.js) exactly -
-    // admin/reviewer only. Previously also listed contributor/trusted_editor,
-    // which showed a working-looking button that dead-ended at admin.html's
-    // access-denied screen for those roles.
+    // Must match admin.html's own RBAC gate (js/admin-core.js) exactly.
+    // Previously this also listed contributor/trusted_editor, which showed a
+    // working-looking button that dead-ended at admin.html's access-denied
+    // screen - so the two lists drifting apart has cost this project once
+    // already, and they are changed together or not at all.
+    //
+    // can_moderate joined the list on 2026-08-13. It is a capability rather
+    // than a role: user_roles has UNIQUE(user_id) because a second row broke
+    // get_my_role() for that user everywhere, so "let this person moderate"
+    // must never become a second role. admin-core.js scopes what they see once
+    // they arrive - reports only, no revision or media queue.
     const elevatedRoles = ['admin', 'reviewer'];
-    if (elevatedRoles.includes(userRole.toLowerCase())) {
+    if (elevatedRoles.includes(userRole.toLowerCase()) || canModerate) {
         html += `
             <button id="dock-btn-edit" class="btn-sys btn-sys-purple dock-action-btn" onclick="window.location.href='${rootPath}admin.html'">
                 <span class="btn-manga-icon dock-action-icon">${svgGear}</span>
@@ -455,8 +504,13 @@ window.initRosterFilters = async function() {
     const tiers = ['All', ...new Set(masterRosterData.map(c => c.tier).filter(t => t && t !== "TBD"))];
 
     filterContainer.innerHTML = `
-        <div class="filter-group"><span class="filter-label">Archetype</span><select id="filter-archetype" class="filter-select">${archetypes.map(a => `<option value="${a}">${a}</option>`).join('')}</select></div>
-        <div class="filter-group"><span class="filter-label">Tier</span><select id="filter-tier" class="filter-select">${tiers.map(t => `<option value="${t}">${t}</option>`).join('')}</select></div>
+        <!-- editor-select is the opt-in marker window.initializeMangaSelects
+             looks for, and these two were the only dropdowns on the site
+             without it - so they alone still summoned the operating system's
+             own dropdown over the wiki's palette. Paired with a layout class
+             the same way #media-filter-select already is. -->
+        <div class="filter-group"><span class="filter-label">Archetype</span><select id="filter-archetype" class="filter-select editor-select">${archetypes.map(a => `<option value="${a}">${a}</option>`).join('')}</select></div>
+        <div class="filter-group"><span class="filter-label">Tier</span><select id="filter-tier" class="filter-select editor-select">${tiers.map(t => `<option value="${t}">${t}</option>`).join('')}</select></div>
         <div class="filter-group filter-group-right">
             <button id="filter-ea" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">EA Only</span></div></button>
             <button id="filter-base" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Base Only</span></div></button>
@@ -819,13 +873,24 @@ window.refreshTOC = function() {
         
         const isMinor = header.classList.contains('wiki-block-heading');
 
-        // A heading can contain controls - the dashboards nest a "View More"
+        // A heading can contain CONTROLS - the dashboards nest a "View More"
         // link inside their section titles - and their text is not part of the
         // heading. Without this the homepage ToC reads "Characters View More
-        // ➔". Falls back to the full text for a heading that is itself a link,
-        // where stripping would leave nothing.
+        // ➔". Falls back to the full text for a heading that is itself a
+        // control, where stripping would leave nothing.
+        //
+        // Controls, not every anchor. This used to strip `a, button` outright,
+        // which was fine until js/internalstyling.js started wrapping
+        // character mentions in a link (v0.14): every matchup heading is
+        // "vs. <a>Honored One</a>", so the whole ToC indexed as a column of
+        // "vs." with no names. The two that survived are the two that were
+        // never wrapped - the page's own character, which the linker skips,
+        // and a misspelled opponent, which matches no character at all.
+        //
+        // A link the AUTHOR wrote into a heading is prose and its text belongs
+        // in the label; a button-styled one is furniture and does not.
         const labelSource = header.cloneNode(true);
-        labelSource.querySelectorAll('a, button').forEach(el => el.remove());
+        labelSource.querySelectorAll('button, a[class*="btn-"]').forEach(el => el.remove());
         const label = labelSource.textContent.trim() || header.textContent.trim();
 
         const itemData = { id: header.id, text: label };

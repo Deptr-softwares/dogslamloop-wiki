@@ -103,6 +103,30 @@
                     <p class="admin-queue-empty-msg">Press Load to fetch the media list.</p>
                 </div>
 
+                <!--
+                    Reports (v0.14 item 6). Third queue in the same column, for
+                    the same reason the media queue joined the revision queue:
+                    they are all "things waiting for a reviewer", and splitting
+                    them across screens means forgetting to check one.
+                -->
+                <div class="dashboard-header-split admin-split-header media-queue-header">
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Reports</h3>
+                    <button onclick="loadReportQueue()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Load</button>
+                </div>
+
+                <div class="media-queue-filters">
+                    <select id="report-queue-status" class="editor-select media-queue-filter">
+                        <option value="open">Open</option>
+                        <option value="actioned">Actioned</option>
+                        <option value="dismissed">Dismissed</option>
+                        <option value="all">All reports</option>
+                    </select>
+                </div>
+
+                <div id="report-queue-container" class="space-y-4">
+                    <p class="admin-queue-empty-msg">Press Load to fetch reports.</p>
+                </div>
+
             </div>
         </aside>
 
@@ -146,6 +170,28 @@
                 </div> 
             </div>
 
+            <!--
+                MEDIA PREVIEW (v0.14 fine-tuning, 2026-08-14).
+
+                A flagged clip used to open inside its own row in the queue
+                column, which is the narrowest part of the page - a reviewer
+                deciding whether a video belongs on the wiki was judging it at
+                roughly a third of the width they had available.
+
+                It opens here instead, in the same pane a revision preview
+                uses, and for the same reason: this is where there is room to
+                actually look at something. The queue keeps the inline
+                behaviour on a phone, where there is no second pane to move it
+                to and the current arrangement already works.
+            -->
+            <div id="media-preview-panel" class="media-preview-panel hidden">
+                <div class="media-preview-head">
+                    <span id="media-preview-name" class="media-preview-name"></span>
+                    <button type="button" id="media-preview-close" class="btn-sys btn-sys-regular">CLOSE</button>
+                </div>
+                <div id="media-preview-stage" class="media-preview-stage"></div>
+            </div>
+
             <div id="version-toggle-bar" class="hidden">
                 <button id="btn-view-pending" onclick="switchVersionView('pending')" class="btn-sys btn-sys-blue version-toggle-btn pending">PENDING SUBMISSION</button>
                 <button id="btn-view-live" onclick="switchVersionView('live')" class="btn-sys btn-sys-green version-toggle-btn live">LIVE VERSION</button>
@@ -160,6 +206,13 @@
                          character and system pages use. These IDs are what
                          setupTabs('nav', 'tab', ...) binds to, and what
                          updateAdminSidebar appends dynamic system tabs into. -->
+                    <!-- Character states. Same chips as the live page and the
+                         editor, in the same place: above the tab strip,
+                         because the tabs mean different things depending on
+                         which state is selected. Built by
+                         js/admin-modes.js and hidden for every page that
+                         declares no states, which is most of them. -->
+                    <div id="preview-mode-bar" class="character-mode-bar admin-preview-mode-bar hidden" role="tablist" aria-label="Character state"></div>
                     <nav id="preview-tab-nav" class="admin-preview-tab-nav hidden" aria-label="Revision sections">
                         <button id="nav-overview" class="btn-manga btn-manga-slanted active"><div class="btn-manga-content"><span class="btn-manga-text">Overview &amp; Strategy</span></div></button>
                         <button id="nav-m1s" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">M1s</span></div></button>
@@ -248,7 +301,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/site_utils.js?v=ffe8c821"></script>
+    <script src="js/site_utils.js?v=81cf2979"></script>
     <script src="js/site_meta.js"></script>
     <script src="js/pagebuilder.js"></script>
     <script src="js/framedata.js"></script>
@@ -259,11 +312,13 @@
     <script src="js/admin-core.js"></script>
     <script src="js/admin-queue.js"></script>
     <script src="js/admin-diff.js"></script>
+    <script src="js/admin-modes.js"></script>
     <script src="js/admin-preview.js"></script>
     <script src="js/admin-tickets.js"></script>
     <script src="js/admin-actions.js"></script>
     <script src="js/admin-merge-compiler.js"></script>
     <script src="js/admin-history.js"></script>
     <script src="js/admin-media-queue.js"></script>
+    <script src="js/admin-reports.js"></script>
 </body>
 </html>

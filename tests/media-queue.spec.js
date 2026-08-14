@@ -118,23 +118,86 @@ test('no media is loaded until a reviewer asks for it', async ({ page }) => {
     await openQueue(page);
 
     await expect(page.locator('#media-queue-container img, #media-queue-container video')).toHaveCount(0);
+    await expect(page.locator('#media-preview-stage video, #media-preview-stage img')).toHaveCount(0);
 
     await rowFor(page, 'NewClip.webm').locator('[data-action="view"]').click();
 
-    const media = rowFor(page, 'NewClip.webm').locator('video.media-queue-media');
+    // On a desktop it opens in the main pane, not the row - see the block
+    // below. What this test is about is that nothing was fetched until asked.
+    const media = page.locator('#media-preview-stage video');
     await expect(media).toHaveCount(1);
     await expect(media).toHaveAttribute('src', 'https://example.test/NewClip.webm');
 
     // Only the row that was asked for.
-    await expect(rowFor(page, 'OldOrphan.webm').locator('video, img')).toHaveCount(0);
+    await expect(page.locator('.media-queue-row video, .media-queue-row img')).toHaveCount(0);
 });
 
-test('viewing twice puts it away again', async ({ page }) => {
+// --------------------------------------------------------------------------
+// WHERE A CLIP OPENS (v0.14 fine-tuning, 2026-08-14)
+// --------------------------------------------------------------------------
+//
+// A reviewer deciding whether a clip belongs on the wiki was judging it inside
+// a queue row - the narrowest column on the page. It opens in the main pane
+// now, which is the part of the screen with room to look at something.
+//
+// The phone keeps the inline behaviour: there is no second pane there, and the
+// owner's instruction was explicit that mobile already works.
+
+test('on a desktop a clip opens in the main pane, not in the queue row', async ({ page }) => {
     await openQueue(page);
+
+    await rowFor(page, 'NewClip.webm').locator('[data-action="view"]').click();
+
+    const panel = page.locator('#media-preview-panel');
+    await expect(panel).toBeVisible();
+    await expect(page.locator('#media-preview-name')).toHaveText('NewClip.webm');
+    await expect(panel.locator('video')).toHaveAttribute('src', 'https://example.test/NewClip.webm');
+
+    // Wider than the queue column it used to be crammed into - which is the
+    // entire point, and the thing a "the panel exists" assertion would miss.
+    const [panelBox, queueBox] = await Promise.all([
+        panel.boundingBox(),
+        page.locator('#media-queue-container').boundingBox(),
+    ]);
+    expect(panelBox.width).toBeGreaterThan(queueBox.width);
+
+    // Nothing rendered into the row.
+    await expect(rowFor(page, 'NewClip.webm').locator('.media-queue-media')).toHaveCount(0);
+});
+
+test('closing empties the panel rather than only hiding it', async ({ page }) => {
+    await openQueue(page);
+    await rowFor(page, 'NewClip.webm').locator('[data-action="view"]').click();
+    await expect(page.locator('#media-preview-panel')).toBeVisible();
+
+    await page.locator('#media-preview-close').click();
+
+    await expect(page.locator('#media-preview-panel')).toBeHidden();
+    // A hidden <video> keeps playing. A reviewer hearing audio from a clip
+    // they closed has no way to find it again.
+    await expect(page.locator('#media-preview-stage video')).toHaveCount(0);
+});
+
+test('opening a second clip replaces the first', async ({ page }) => {
+    await openQueue(page);
+
+    await rowFor(page, 'NewClip.webm').locator('[data-action="view"]').click();
+    await rowFor(page, 'OldOrphan.webm').locator('[data-action="view"]').click();
+
+    await expect(page.locator('#media-preview-stage video')).toHaveCount(1);
+    await expect(page.locator('#media-preview-name')).toHaveText('OldOrphan.webm');
+});
+
+test('on a phone a clip still opens inside its row, and viewing twice puts it away', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openQueue(page);
+
     const view = rowFor(page, 'NewClip.webm').locator('[data-action="view"]');
 
     await view.click();
     await expect(rowFor(page, 'NewClip.webm').locator('.media-queue-media')).toHaveCount(1);
+    // Not moved to the pane, which does not exist as a usable surface here.
+    await expect(page.locator('#media-preview-panel')).toBeHidden();
 
     await view.click();
     await expect(rowFor(page, 'NewClip.webm').locator('.media-queue-media')).toHaveCount(0);

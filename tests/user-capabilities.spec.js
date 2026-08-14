@@ -17,8 +17,8 @@
 const { test, expect } = require('@playwright/test');
 
 const ROSTER = [
-    { user_id: 'u-admin', email: 'owner@site.test', role: 'admin', joined_at: '2026-01-01T00:00:00Z', bypass_cooldown: false },
-    { user_id: 'u-ed', email: 'editor@site.test', role: 'trusted_editor', joined_at: '2026-02-01T00:00:00Z', bypass_cooldown: true },
+    { user_id: 'u-admin', email: 'owner@site.test', role: 'admin', joined_at: '2026-01-01T00:00:00Z', bypass_cooldown: false, can_moderate: false, can_delete_media: false },
+    { user_id: 'u-ed', email: 'editor@site.test', role: 'trusted_editor', joined_at: '2026-02-01T00:00:00Z', bypass_cooldown: true, can_moderate: false, can_delete_media: false },
 ];
 
 async function openOwner(page, { rpcError = null } = {}) {
@@ -72,14 +72,73 @@ async function openOwner(page, { rpcError = null } = {}) {
     await expect(page.locator('.personnel-row').first()).toBeVisible();
 }
 
-const boxFor = (page, email) => page.locator(`.personnel-capability-box[data-email="${email}"]`);
+// Addressed by capability as well as by person. There is more than one
+// capability now, so `.personnel-capability-box[data-email=...]` alone matches
+// two checkboxes in the same row - an ambiguous selector silently testing
+// whichever one happens to come first, which this project has been caught by
+// before.
+const boxFor = (page, email, capability = 'bypass_cooldown') =>
+    page.locator(`.personnel-capability-box[data-email="${email}"][data-capability="${capability}"]`);
 
 test('each person gets a capability toggle reflecting the stored flag', async ({ page }) => {
     await openOwner(page);
 
-    await expect(page.locator('.personnel-capability-box')).toHaveCount(2);
+    await expect(page.locator('.personnel-capability-box[data-capability="bypass_cooldown"]')).toHaveCount(2);
     await expect(boxFor(page, 'owner@site.test')).not.toBeChecked();
     await expect(boxFor(page, 'editor@site.test')).toBeChecked();
+});
+
+test('every declared capability gets its own independent box', async ({ page }) => {
+    // The design's whole point: capabilities are columns, so adding one is a
+    // new checkbox rather than a new role. UNIQUE(user_id) on user_roles is
+    // what makes that distinction load bearing.
+    await openOwner(page);
+
+    const row = page.locator('.personnel-row').filter({ hasText: 'editor@site.test' });
+
+    // Asserted as the exact set rather than a count, so adding a capability
+    // means updating one list here instead of a number that says nothing about
+    // which ones are meant to exist.
+    const capabilities = await row.locator('.personnel-capability-box')
+        .evaluateAll(boxes => boxes.map(b => b.dataset.capability));
+    expect(capabilities.sort()).toEqual(['bypass_cooldown', 'can_delete_media', 'can_moderate']);
+
+    await expect(boxFor(page, 'editor@site.test', 'can_moderate')).not.toBeChecked();
+});
+
+test('deleting media is not implied by any role except admin', async ({ page }) => {
+    // Deliberately narrower than moderation, which reviewers get for free.
+    // This is the only irreversible action on the site, so it is granted one
+    // person at a time.
+    await openOwner(page);
+
+    await expect(boxFor(page, 'owner@site.test', 'can_delete_media'),
+        'an admin can already delete').toBeDisabled();
+    await expect(boxFor(page, 'editor@site.test', 'can_delete_media'),
+        'everybody else is granted it explicitly').toBeEnabled();
+});
+
+test('moderation is not offered as a capability to roles that already have it', async ({ page }) => {
+    // An admin can moderate by virtue of being an admin. A tickable box that
+    // changes nothing is worse than no box: it invites somebody to untick it
+    // and believe they have taken the power away.
+    await openOwner(page);
+
+    await expect(boxFor(page, 'owner@site.test', 'can_moderate')).toBeDisabled();
+    await expect(boxFor(page, 'editor@site.test', 'can_moderate')).toBeEnabled();
+});
+
+test('the moderation capability writes through the same RPC', async ({ page }) => {
+    await openOwner(page);
+
+    await boxFor(page, 'editor@site.test', 'can_moderate').check();
+
+    const call = await page.evaluate(() => window.__rpcCalls.filter(c => c.name === 'set_user_capability').pop());
+    expect(call.params).toEqual({
+        target_email: 'editor@site.test',
+        capability: 'can_moderate',
+        enabled: true,
+    });
 });
 
 test('a capability is granted through the RPC, not a direct table write', async ({ page }) => {
@@ -140,5 +199,13 @@ test('the capability sits with the role, not as an alternative to it', async ({ 
 
     const row = page.locator('.personnel-row').filter({ hasText: 'editor@site.test' });
     await expect(row.locator('.personnel-role-select')).toHaveCount(1);
-    await expect(row.locator('.personnel-capability-box')).toHaveCount(1);
+    // One role select, and capabilities alongside it rather than as more
+    // options inside it. The count of capabilities is asserted separately -
+    // what matters here is that they never became role values.
+    await expect(row.locator('.personnel-capability-box').first()).toBeVisible();
+
+    const roleOptions = await row.locator('.personnel-role-select option')
+        .evaluateAll(opts => opts.map(o => o.value));
+    expect(roleOptions).not.toContain('bypass_cooldown');
+    expect(roleOptions).not.toContain('can_moderate');
 });

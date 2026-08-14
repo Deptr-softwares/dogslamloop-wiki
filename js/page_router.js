@@ -75,11 +75,19 @@ window.buildPageSkeleton = function (route, rootPath) {
     function mobileNav() {
         return `
     <div class="mobile-top-bar">
-        <a href="${ROOT}index.html" class="mobile-logo-link">
-            <img src="${ROOT}medias/images/DogslamloopIcon.webp" class="mobile-logo-img" alt="Logo">
+        <!-- A button, not a link home. On a phone the sidebar it opens carries
+             its own "dogslamloop wiki" link to the Main Dashboard, so the bar
+             linking there too was the site's second route to the same place -
+             and it was spending the one control a reader could reach the
+             navigation with. Owner's call, 2026-08-14.
+
+             Left control opens the LEFT drawer, right control opens the RIGHT
+             one, which is the only mapping a thumb can guess. -->
+        <button type="button" class="mobile-logo-link" id="mobile-nav-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">
+            <img src="${ROOT}medias/images/DogslamloopIcon.webp" class="mobile-logo-img" alt="">
             <span class="mobile-site-title">dogslamloop wiki</span>
-        </a>
-        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">☰</button>
+        </button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open table of contents" aria-expanded="false">☰</button>
     </div>
     <div class="mobile-backdrop" id="mobile-backdrop"></div>`;
     }
@@ -114,9 +122,14 @@ window.buildPageSkeleton = function (route, rootPath) {
         </aside>`;
     }
 
-    function rightSidebar(label) {
+    // withToc is separate from the sidebar itself, because this aside is two
+    // things: a table of contents, and the ONLY place the Edit and History
+    // buttons live. A gallery genuinely has no headings to index - but it is
+    // still a page somebody has to be able to edit, and since v0.14 removed
+    // the duplicate mobile pair there is nowhere else to put them.
+    function rightSidebar(label, withToc = true) {
         return `
-        <aside class="local-sidebar-right" aria-label="On this page">
+        <aside class="local-sidebar-right" aria-label="${withToc ? 'On this page' : 'Page tools'}">
             <div class="sidebar-tab-header">
                 <div class="sidebar-master-title">${esc(label)}</div>
 
@@ -125,10 +138,10 @@ window.buildPageSkeleton = function (route, rootPath) {
                     EDIT ${label === 'On this tab' ? 'TAB' : 'PAGE'}
                 </button>
             </div>
-
+${withToc ? `
             <ul class="toc-list" id="dynamic-toc">
                 <li><p class="loading-msg">Loading contents...</p></li>
-            </ul>
+            </ul>` : ''}
         </aside>`;
     }
 
@@ -151,18 +164,34 @@ window.buildPageSkeleton = function (route, rootPath) {
 
                 <h1 class="character-title">${esc(route.title || route.pageId)}</h1>
 
-                <div id="character-mode-bar" class="character-mode-bar hidden" role="tablist" aria-label="Character mode"></div>
+                <!-- The state chips and the jump-to-discussion button share a
+                     row, but the button is a SIBLING of the bar rather than a
+                     child of it. #character-mode-bar hides itself entirely for
+                     a character with fewer than two states, which is 20 of the
+                     22 - putting the button inside it would mean the button
+                     only existed on the two characters that happen to have an
+                     ultimate. -->
+                <div class="character-toolbar">
+                    <div id="character-mode-bar" class="character-mode-bar hidden" role="tablist" aria-label="Character mode"></div>
 
-                <nav class="character-nav">${navButtons}
-
-                    <button id="btn-edit-current-tab-mobile" class="btn-sys btn-sys-regular tab-editor-btn-mobile">
-                        ${EDIT_ICON_LG}
-                        EDIT TAB
+                    <button type="button" id="btn-jump-discussion" class="btn-sys btn-sys-regular btn-jump-discussion" aria-label="Jump to the discussion">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                        <span id="jump-discussion-count" class="jump-discussion-count"></span>
                     </button>
-                </nav>
+                </div>
+
+                <nav class="character-nav">${navButtons}</nav>
             </header>
 
 ${tabDivs}
+
+            <!-- The discussion thread, below the tabs rather than as one more
+                 tab. A tab is a section of the article; this is the readers
+                 talking about it, and burying a conversation behind a button
+                 nobody clicks is how a discussion feature dies quietly.
+                 Filled by js/discussions.js, which renders nothing at all if
+                 the table is unreachable. -->
+            <section id="discussion-section" class="discussion-section" aria-label="Discussion"></section>
 
         </main>`;
     }
@@ -175,11 +204,6 @@ ${tabDivs}
 
             <div class="system-back-row">
                 <a href="${ROOT}systems/index.html" class="btn-ghost">← Back to Systems Hub</a>
-
-                <button id="btn-edit-current-tab-mobile" class="btn-sys btn-sys-regular tab-editor-btn-mobile">
-                    ${EDIT_ICON}
-                    EDIT PAGE
-                </button>
             </div>
 
             <header class="home-main-header">
@@ -198,8 +222,13 @@ ${tabDivs}
     // which script fills it (js/gallery.js, js/tool_page.js), not the frame
     // around it - so there is nothing here for them to override.
     //
-    // The right sidebar is a table of contents over headings, which a gallery
-    // does not have: its own search box is how you find something in it.
+    // A gallery has no headings to index - its own search box is how you find
+    // something in it - so it gets the sidebar WITHOUT the contents list.
+    //
+    // It used to get no sidebar at all, which is why the Emotes page had no
+    // edit button and nobody could contribute to it: #btn-edit-current-tab
+    // lives in there, initTabEditorButtons ran, found nothing, and did nothing.
+    // Dropping the whole aside to drop the list threw the buttons out with it.
     const hasToc = route.pageType !== 'gallery';
 
     const skeleton = `${mobileNav()}
@@ -207,7 +236,7 @@ ${tabDivs}
     <div class="site-layout">
 ${leftSidebar()}
 ${isCharacter ? characterMain() : systemMain()}
-${hasToc ? rightSidebar(isCharacter ? 'On this tab' : 'On this page') : ''}
+${rightSidebar(isCharacter ? 'On this tab' : (hasToc ? 'On this page' : 'This page'), hasToc)}
     </div>`;
 
     return skeleton;

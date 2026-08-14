@@ -173,18 +173,30 @@
 
     <div class="editor-layout">
         <div class="editor-workspace">
-            <div class="editor-header">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div style="flex: 1; min-width: 0;">
-                        <h2 class="editor-title" id="editor-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--text-manga); color: #fff; margin: 0; text-transform: uppercase;">Loading...</h2>
-                        <span class="editor-subtitle" id="editor-subtitle" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; color: var(--accent-blue); font-size: 0.75rem; font-family: var(--text-mono);">Connecting to database...</span>
+            <!-- COLLAPSIBLE, owner's fine-tuning item 2026-08-14. The
+                 title, the subtitle, HUB and four of the five action buttons
+                 fold away, because none of them are what a contributor is
+                 looking at while they write. Submit stays: it is the one
+                 control you cannot make somebody expand a panel to reach.
+
+                 The tab strip below is deliberately NOT part of this. You
+                 collapse the chrome to get room for writing, and you still
+                 switch tabs while writing. -->
+            <div class="editor-header" id="editor-header">
+                <div class="editor-header-top">
+                    <button type="button" id="btn-collapse-chrome" class="editor-chrome-toggle"
+                            aria-expanded="true" aria-controls="editor-header"
+                            title="Collapse the editor header">▾</button>
+                    <div class="editor-header-titles">
+                        <h2 class="editor-title" id="editor-title">Loading...</h2>
+                        <span class="editor-subtitle" id="editor-subtitle">Connecting to database...</span>
                     </div>
-                    <div style="display: flex; gap: 0.5rem; flex-direction: column; align-items: flex-end; flex-shrink: 0;">
-                        <a href="index.html" class="btn-sys btn-sys-regular" style="padding: 0.2rem 0.4rem; font-size: 0.6rem;">HUB</a>
-                        <button id="mobile-preview-toggle" class="btn-sys btn-sys-blue" style="display: none; font-size: 0.6rem; padding: 0.3rem;" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
+                    <div class="editor-header-side">
+                        <a href="index.html" class="btn-sys btn-sys-regular editor-hub-link">HUB</a>
+                        <button id="mobile-preview-toggle" class="btn-sys btn-sys-blue editor-mobile-preview-btn" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
                     </div>
                 </div>
-                <div class="header-actions" style="display: flex; flex-wrap: wrap; gap: 0.25rem; margin-top: 0.5rem;">
+                <div class="header-actions">
                     <button class="btn-sys btn-sys-regular" onclick="window.cancelEditor()">Cancel</button>
                     <button class="btn-sys btn-sys-blue" onclick="window.openDraftManager()">Drafts</button>
                     <button class="btn-sys btn-sys-yellow" onclick="window.triggerManualSync()">Sync/Save</button>
@@ -198,10 +210,14 @@
                  dropped. v0.13 scans every tab, so the notice is now the
                  opposite reassurance: keep editing across tabs, one Submit
                  sends the lot. Kept as a line rather than removed, since the
-                 old behaviour trained people to submit tab by tab. -->
-            <p class="editor-scope-tip">
+                 old behaviour trained people to submit tab by tab.
+
+                 Dismissible since 2026-08-14 - it is a thing you need to read
+                 once, and it was charging every later edit for that. -->
+            <p class="editor-scope-tip" id="editor-scope-tip">
                 <strong>One submission covers every tab.</strong>
                 Edit as many tabs as you like &mdash; Submit sends everything you changed, as one request.
+                <button type="button" id="btn-dismiss-tip" class="editor-tip-dismiss" aria-label="Dismiss this tip">&times;</button>
             </p>
 
             <!-- Major tab navigation, in the same shape the live character
@@ -255,7 +271,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/site_utils.js?v=ffe8c821"></script>
+    <script src="js/site_utils.js?v=81cf2979"></script>
     <script src="js/site_meta.js"></script>
     <script src="js/pagebuilder.js"></script>
     <script src="js/framedata.js"></script>

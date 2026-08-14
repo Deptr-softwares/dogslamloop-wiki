@@ -20,11 +20,11 @@
 
     <!-- MOBILE NAVIGATION -->
     <div class="mobile-top-bar">
-        <a href="../../index.html" class="mobile-logo-link">
-            <img src="../../medias/images/DogslamloopIcon.webp" class="mobile-logo-img" alt="Logo">
+        <button type="button" class="mobile-logo-link" id="mobile-nav-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">
+            <img src="../../medias/images/DogslamloopIcon.webp" class="mobile-logo-img" alt="">
             <span class="mobile-site-title">dogslamloop wiki</span>
-        </a>
-        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">☰</button>
+        </button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open table of contents" aria-expanded="false">☰</button>
     </div>
     <div class="mobile-backdrop" id="mobile-backdrop"></div>
 
@@ -51,7 +51,7 @@
             <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
 
             <div class="kofi-btn-wrapper" style="margin-top: 0.75rem;">
-                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow" style="width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none;">
+                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow kofi-btn-full">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1rem; height: 1rem;">
                         <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line>
                     </svg>
@@ -102,7 +102,7 @@
 
     <!-- V0.4 SYSTEM SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../../js/site_utils.js?v=ffe8c821"></script>
+    <script src="../../js/site_utils.js?v=81cf2979"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
     <script src="../../js/home_widgets.js"></script>

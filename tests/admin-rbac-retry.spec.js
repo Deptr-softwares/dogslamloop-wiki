@@ -86,10 +86,12 @@ test('real bug fix: admin.html recovers from a getSession() outage that clears b
   await mockAuth(page, { sessionFailWindowMs: 300, roleResults: [{ data: [{ role: 'reviewer' }], error: null }] });
 
   await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1200);
-
+  // The gate retries once over ~600ms. Wait for the thing that proves it
+  // finished - an attached queue - rather than for a duration that has to
+  // out-guess it. The denial check then means something: it is asserted after
+  // the gate has settled, not merely 1200ms later.
+  await expect(page.locator('#queue-container')).toBeAttached({ timeout: 15000 });
   expect(await page.locator('.access-denied-screen').count()).toBe(0);
-  await expect(page.locator('#queue-container')).toBeAttached();
 });
 
 test('admin.html still denies access when getSession() has no session for the whole load (genuinely logged out)', async ({ page }) => {
@@ -98,9 +100,8 @@ test('admin.html still denies access when getSession() has no session for the wh
   await mockAuth(page, { sessionFailWindowMs: 999999, roleResults: [{ data: [], error: null }] });
 
   await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1200);
-
-  expect(await page.locator('.access-denied-screen').count()).toBe(1);
+  // toHaveCount auto-waits, so the denial screen appearing IS the signal.
+  await expect(page.locator('.access-denied-screen')).toHaveCount(1, { timeout: 15000 });
 });
 
 test('real bug fix: admin.html recovers from one failed user_roles lookup instead of permanently denying access', async ({ page }) => {
@@ -113,10 +114,12 @@ test('real bug fix: admin.html recovers from one failed user_roles lookup instea
   });
 
   await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1200);
-
+  // The gate retries once over ~600ms. Wait for the thing that proves it
+  // finished - an attached queue - rather than for a duration that has to
+  // out-guess it. The denial check then means something: it is asserted after
+  // the gate has settled, not merely 1200ms later.
+  await expect(page.locator('#queue-container')).toBeAttached({ timeout: 15000 });
   expect(await page.locator('.access-denied-screen').count()).toBe(0);
-  await expect(page.locator('#queue-container')).toBeAttached();
 });
 
 test('admin.html denies access immediately (no retry delay) when the role lookup succeeds but grants no elevated role', async ({ page }) => {
@@ -140,8 +143,6 @@ test('real bug fix: owner.html recovers from a getSession() outage that clears b
   await mockAuth(page, { sessionFailWindowMs: 300, roleResults: [{ data: [{ role: 'admin' }], error: null }] });
 
   await page.goto('/owner.html', { waitUntil: 'domcontentloaded' });
-  await page.waitForTimeout(1200);
-
+  await expect(page.locator('#tool-personnel')).toBeAttached({ timeout: 15000 });
   expect(await page.locator('.access-denied-screen').count()).toBe(0);
-  await expect(page.locator('#tool-personnel')).toBeAttached();
 });
