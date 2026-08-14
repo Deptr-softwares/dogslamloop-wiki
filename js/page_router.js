@@ -75,11 +75,19 @@ window.buildPageSkeleton = function (route, rootPath) {
     function mobileNav() {
         return `
     <div class="mobile-top-bar">
-        <a href="${ROOT}index.html" class="mobile-logo-link">
-            <img src="${ROOT}medias/images/DogslamloopIcon.webp" class="mobile-logo-img" alt="Logo">
+        <!-- A button, not a link home. On a phone the sidebar it opens carries
+             its own "dogslamloop wiki" link to the Main Dashboard, so the bar
+             linking there too was the site's second route to the same place -
+             and it was spending the one control a reader could reach the
+             navigation with. Owner's call, 2026-08-14.
+
+             Left control opens the LEFT drawer, right control opens the RIGHT
+             one, which is the only mapping a thumb can guess. -->
+        <button type="button" class="mobile-logo-link" id="mobile-nav-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">
+            <img src="${ROOT}medias/images/DogslamloopIcon.webp" class="mobile-logo-img" alt="">
             <span class="mobile-site-title">dogslamloop wiki</span>
-        </a>
-        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">☰</button>
+        </button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open table of contents" aria-expanded="false">☰</button>
     </div>
     <div class="mobile-backdrop" id="mobile-backdrop"></div>`;
     }

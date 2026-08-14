@@ -950,6 +950,28 @@ summary:focus-visible {
     .global-sidebar-left.mobile-open { transform: translateX(0); }
     .sidebar-toggle-btn { display: none !important; }
 
+    /* The table of contents, which below 1024px was display:none and therefore
+       simply did not exist on a phone - on a wiki whose longest pages are the
+       ones a phone reader most needs to jump around inside.
+
+       Mirrors the left drawer exactly, from the opposite edge. Both are
+       position:fixed, so the off-screen transform costs no horizontal scroll:
+       fixed boxes are outside the document's scrollable overflow region. */
+    .local-sidebar-right {
+        display: block; position: fixed; top: 0; right: 0;
+        width: 280px; max-width: 85vw; height: 100vh;
+        padding: 2rem 1.5rem; box-sizing: border-box;
+        background-color: var(--bg-main); z-index: 50;
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: -8px 0px 0px var(--manga-shadow);
+        border-left: 2px solid var(--accent-blue);
+        border-right: none;
+        overflow-y: auto;
+    }
+
+    .local-sidebar-right.mobile-open { transform: translateX(0); }
+
     .mobile-backdrop {
         display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
         background: rgba(10, 10, 10, 0.8); backdrop-filter: blur(4px); z-index: 45;
@@ -957,10 +979,25 @@ summary:focus-visible {
 
     .mobile-backdrop.active { display: block; animation: fadeIn 0.2s ease-out; }
     
-    .mobile-logo-link { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
+    /* A <button> since 2026-08-14 - it opens the navigation drawer rather than
+       going home. The UA button styling is reset explicitly rather than with
+       `font: inherit; color: inherit`: this is the same trap the v0.13 sidebar
+       group headers fell into, where those two lines quietly beat the title
+       styling they were meant to leave alone. */
+    .mobile-logo-link {
+        display: flex; align-items: center; gap: 0.75rem; text-decoration: none;
+        background: none; border: none; padding: 0; margin: 0;
+        text-align: left; cursor: pointer;
+    }
     .mobile-logo-img { width: 32px; height: 32px; border: 2px solid var(--border-color); box-shadow: 2px 2px 0px #000; object-fit: cover; }
-    .mobile-site-title { font-size: 1.25rem; margin: 0; line-height: 1; color: var(--text-white); }
-    .mobile-menu-btn { background: none; border: none; color: var(--text-white); font-size: 1.75rem; padding: 0; }
+    /* Was inheriting the body font, which made the one piece of branding on a
+       phone the only place the wiki's own typeface was missing. */
+    .mobile-site-title {
+        font-family: 'Finger-Paint', sans-serif;
+        font-size: 1.05rem; margin: 0; line-height: 1.15; color: var(--text-white);
+    }
+    .mobile-menu-btn { background: none; border: none; color: var(--text-white); font-size: 1.75rem; padding: 0; cursor: pointer; }
+    .mobile-menu-btn[hidden] { display: none; }
     
     .mobile-edit-fab {
         display: flex !important; align-items: center; justify-content: center;
