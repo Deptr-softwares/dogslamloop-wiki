@@ -234,6 +234,7 @@ ${social}
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
     <script src="../../js/description.js"></script>
+    <script src="../../js/internalstyling.js"></script>
 
     <script src="../../js/page_boot.js"></script>
 </body>
@@ -286,6 +287,7 @@ ${social}
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
     <script src="../../js/description.js"></script>
+    <script src="../../js/internalstyling.js"></script>
     <script src="../../js/${script}"></script>${extraScript ? `
     <script src="../../js/${extraScript}"></script>` : ''}
 
