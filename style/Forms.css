@@ -34,3 +34,136 @@
     box-shadow: 2px 2px 0px var(--manga-shadow);
     cursor: pointer;
 }
+
+
+/* --- THE MANGA DROPDOWN WIDGET ---
+
+   window.initializeMangaSelects (js/site_utils.js) hides every
+   select.editor-select and builds this in its place.
+
+   Moved here from style/editor.css on 2026-08-14. It lived there because the
+   editor was the only thing using it, and that stopped being true: the
+   Character Dashboard's Archetype and Tier filters are the same control on a
+   page that has no business loading the editor's stylesheet. Every page that
+   loaded editor.css already loads this file, so the move costs them nothing.
+
+   Deliberately NOT moved: the .editor-select base rule. editor.css declares
+   it twice, and pulling the later copy into a file that loads FIRST would
+   silently hand the win to the earlier one. */
+
+/* Hide the native select once our JS engine wraps it */
+select.editor-select.manga-initialized {
+    display: none !important;
+}
+
+.manga-select-wrapper {
+    position: relative;
+    width: 100%;
+    user-select: none;
+    margin-bottom: 0.25rem;
+    
+    /* THE FIX: Stops the wrapper from crushing the DAW footer */
+    flex: 1;
+    min-width: 0; 
+}
+
+/* The visible button */
+.manga-select-trigger {
+    position: relative;
+    display: block; 
+    background: #050505;
+    border: 1px solid #333; 
+    padding: 0.3rem 1.5rem 0.3rem 0.4rem; 
+    color: var(--text-white);
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 2px 2px 0px var(--manga-shadow); 
+    transition: all 0.1s ease;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.manga-select-trigger:hover, 
+.manga-select-wrapper.open .manga-select-trigger {
+    border-color: var(--accent-blue);
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0px var(--accent-blue);
+}
+
+/* The dropdown arrow */
+.manga-select-trigger::after {
+    content: '▼';
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: var(--accent-blue);
+    transition: transform 0.2s ease;
+}
+
+.manga-select-wrapper.open .manga-select-trigger::after {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+/* The dropdown menu */
+.manga-select-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 0.5rem;
+    background: #0a0a0a;
+    border: 2px solid var(--accent-blue);
+    border-top: 4px solid var(--accent-blue);
+    box-shadow: 8px 8px 0px var(--manga-shadow);
+    z-index: 10010; 
+    display: none;
+    flex-direction: column;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.manga-select-wrapper.open .manga-select-options {
+    display: flex;
+    animation: menuPop 0.1s ease-out;
+}
+
+@keyframes menuPop {
+    0% { opacity: 0; transform: translateY(-10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Individual list items */
+.manga-option {
+    padding: 0.6rem 0.75rem;
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    border-bottom: 1px dashed #222;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.manga-option:last-child {
+    border-bottom: none;
+}
+
+/* Slide-right hover effect */
+.manga-option:hover {
+    background: var(--accent-blue);
+    color: #000 !important; 
+    font-weight: bold;
+    padding-left: 1.5rem; 
+}
+
+.manga-option.selected {
+    color: var(--text-white);
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 3px solid var(--accent-blue);
+}
