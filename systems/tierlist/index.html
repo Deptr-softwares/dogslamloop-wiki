@@ -67,11 +67,14 @@
             <div style="margin-bottom:1rem; display: flex; justify-content: space-between; align-items: center;">
                 <a href="../index.html" class="btn-ghost">← Back to Systems Hub</a>
                 
-                <!-- MOBILE EDIT BUTTON -->
-                <button id="btn-edit-current-tab-mobile" class="btn-sys btn-sys-regular tab-editor-btn-mobile">
+                <!-- MOBILE EDIT BUTTON. An <a>, not a <button>: nothing binds
+                     a handler to it any more, because initTabEditorButtons is
+                     no longer called on this page. Left as a plain link so the
+                     phone keeps a route to the editor. -->
+                <a id="btn-edit-current-tab-mobile" class="btn-sys btn-sys-regular tab-editor-btn-mobile" href="../../tier-editor.html">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    EDIT TIER LIST
-                </button>
+                    EDIT MY LIST
+                </a>
             </div>
 
             <header class="home-main-header">
@@ -123,14 +126,34 @@
 
         <!-- RIGHT SIDEBAR: PAGE NAVIGATION -->
         <aside class="local-sidebar-right" aria-label="On this page">
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid var(--border-color);">
-                <div class="sidebar-master-title" style="margin: 0; padding: 0; border: none;">On this page</div>
-                
-                <!-- DESKTOP EDIT BUTTON -->
-                <button id="btn-edit-current-tab" class="btn-sys btn-sys-regular tab-editor-btn-sidebar">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    EDIT PAGE
-                </button>
+            <!--
+                Stacked rather than a single space-between row. The old layout
+                put the title and the buttons on one line with no wrapping, and
+                initTabEditorButtons injects a second (HISTORY) button beside
+                the first - so on this sidebar's width the pair ran straight off
+                the right edge of the window.
+
+                The title gets its own line and the buttons wrap under it, which
+                also means a third button later costs nothing.
+            -->
+            <div class="tierlist-sidebar-header">
+                <div class="sidebar-master-title tierlist-sidebar-title">On this page</div>
+                <div class="tierlist-sidebar-actions">
+                    <!--
+                        Points at tier-editor.html, not edit.html. The old
+                        button routed to the contributor editor, which edits the
+                        page_data row holding the retired 22-tab shape - so it
+                        opened the wrong editor on data nothing renders any more.
+
+                        Not hidden for readers: tier-editor.html says plainly
+                        that no list is assigned to you, which is a better answer
+                        than a button that is missing for reasons nobody explains.
+                    -->
+                    <a id="btn-edit-current-tab" class="btn-sys btn-sys-regular tab-editor-btn-sidebar" href="../../tier-editor.html">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        EDIT MY LIST
+                    </a>
+                </div>
             </div>
 
             <ul class="toc-list" id="dynamic-toc">
@@ -173,8 +196,12 @@
             if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
             if (typeof window.loadPageAlerts === 'function') await window.loadPageAlerts('tierlist');
             
-            // IMPORTANT: We register this as 'tierlist', not 'system', to protect the JSON!
-            if (typeof window.initTabEditorButtons === 'function') window.initTabEditorButtons('tierlist', 'tierlist');
+            // initTabEditorButtons is deliberately NOT called here any more.
+            // It wires #btn-edit-current-tab to edit.html and injects a HISTORY
+            // button pointed at history.html - both of which act on the
+            // page_data row holding the retired 22-tab shape. The tier lists
+            // live in their own tables now, with their own editor and their own
+            // per-move changelog on the page itself.
             
             // v0.14: the page is now N per-person lists rather than the
             // 22-tab desc_data shape. js/tierlist.js still loads because the

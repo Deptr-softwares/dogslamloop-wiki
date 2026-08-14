@@ -223,3 +223,38 @@
 }
 
 .ctl-intro-body p:last-child { margin-bottom: 0; }
+
+/* --- THE SIDEBAR HEADER ---
+   Was one space-between row with no wrapping, holding a title and however many
+   buttons got injected beside it - which ran off the right edge of the window
+   as soon as there were two. Stacked instead, so the buttons wrap under the
+   title and a third one later costs nothing. */
+.tierlist-sidebar-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.tierlist-sidebar-title {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.tierlist-sidebar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    max-width: 100%;
+}
+
+.tierlist-sidebar-actions .btn-sys {
+    gap: 0.3rem;
+    min-width: 0;
+    /* The label may wrap rather than force the row wider than the sidebar. */
+    white-space: normal;
+}

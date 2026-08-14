@@ -388,3 +388,66 @@ test('the block renderer is present on this page at all', async ({ page }) => {
     const available = await page.evaluate(() => typeof window.generateHTMLForBlocks === 'function');
     expect(available, 'js/description.js must be loaded for the block sections to render').toBe(true);
 });
+
+// --- THE STOREFRONT (v0.14) ----------------------------------------------
+//
+// The foundations were reworked over several PRs and the page's own chrome was
+// left behind: its edit button still pointed at the contributor editor, and
+// its sidebar header ran off the right edge of the window.
+
+test('the edit button opens the tier list editor, not the page editor', async ({ page, request }) => {
+    // The old button routed to edit.html, which edits the page_data row holding
+    // the retired 22-tab shape - so it opened the wrong editor on data nothing
+    // renders any more.
+    const html = await (await request.get(PAGE)).text();
+    await page.goto('about:blank');
+
+    const wiring = await page.evaluate((html) => {
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const btn = doc.getElementById('btn-edit-current-tab');
+        return {
+            exists: !!btn,
+            href: btn ? btn.getAttribute('href') : null,
+            // The id is kept - tests/routing.spec.js asserts elevated pages
+            // still offer an edit affordance, and that is still true. What had
+            // to change is the destination, and that nothing re-binds it.
+            mobileHref: (doc.getElementById('btn-edit-current-tab-mobile') || {}).getAttribute
+                ? doc.getElementById('btn-edit-current-tab-mobile').getAttribute('href') : null,
+            callsOldWiring: html.includes('initTabEditorButtons('),
+        };
+    }, html);
+
+    expect(wiring.exists).toBe(true);
+    expect(wiring.href).toContain('tier-editor.html');
+    expect(wiring.href).not.toContain('edit.html');
+    expect(wiring.mobileHref, 'a phone needs the same route').toContain('tier-editor.html');
+    expect(wiring.callsOldWiring, 'nothing re-points it at edit.html/history.html').toBe(false);
+});
+
+test('the sidebar header stays inside the window', async ({ page }) => {
+    // The reported symptom: title and buttons on one non-wrapping row, running
+    // past the right edge. Measured against the viewport rather than compared
+    // to a pixel value, so it is not an OS-dependent assertion.
+    await mockLists(page, { lists: [list()] });
+    await open(page);
+
+    const overflow = await page.evaluate(() => {
+        const header = document.querySelector('.tierlist-sidebar-header');
+        if (!header) return { missing: true };
+        const rect = header.getBoundingClientRect();
+        const widest = Array.from(header.querySelectorAll('*'))
+            .reduce((max, el) => Math.max(max, el.getBoundingClientRect().right), 0);
+        return {
+            missing: false,
+            headerRight: rect.right,
+            widestChildRight: widest,
+            viewportWidth: window.innerWidth,
+            documentScrolls: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+        };
+    });
+
+    expect(overflow.missing).toBe(false);
+    expect(overflow.widestChildRight).toBeLessThanOrEqual(overflow.viewportWidth);
+    expect(overflow.headerRight).toBeLessThanOrEqual(overflow.viewportWidth);
+    expect(overflow.documentScrolls, 'nothing pushes the page sideways').toBe(false);
+});
