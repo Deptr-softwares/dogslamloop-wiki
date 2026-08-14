@@ -469,8 +469,13 @@ window.initRosterFilters = async function() {
     const tiers = ['All', ...new Set(masterRosterData.map(c => c.tier).filter(t => t && t !== "TBD"))];
 
     filterContainer.innerHTML = `
-        <div class="filter-group"><span class="filter-label">Archetype</span><select id="filter-archetype" class="filter-select">${archetypes.map(a => `<option value="${a}">${a}</option>`).join('')}</select></div>
-        <div class="filter-group"><span class="filter-label">Tier</span><select id="filter-tier" class="filter-select">${tiers.map(t => `<option value="${t}">${t}</option>`).join('')}</select></div>
+        <!-- editor-select is the opt-in marker window.initializeMangaSelects
+             looks for, and these two were the only dropdowns on the site
+             without it - so they alone still summoned the operating system's
+             own dropdown over the wiki's palette. Paired with a layout class
+             the same way #media-filter-select already is. -->
+        <div class="filter-group"><span class="filter-label">Archetype</span><select id="filter-archetype" class="filter-select editor-select">${archetypes.map(a => `<option value="${a}">${a}</option>`).join('')}</select></div>
+        <div class="filter-group"><span class="filter-label">Tier</span><select id="filter-tier" class="filter-select editor-select">${tiers.map(t => `<option value="${t}">${t}</option>`).join('')}</select></div>
         <div class="filter-group filter-group-right">
             <button id="filter-ea" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">EA Only</span></div></button>
             <button id="filter-base" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Base Only</span></div></button>

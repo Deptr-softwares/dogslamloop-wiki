@@ -178,7 +178,14 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 }
 
 /* Sidebar Internal Layouts */
-.sidebar-master-title {
+/* Shared with .column-subgroup-title deliberately, as ONE declaration block
+   rather than two matching ones. Both label a group of pages inside a Main
+   Dashboard column - Site Info in Guides & Such, Gamemodes in Others - and
+   until 2026-08-14 they were styled apart: Finger-Paint 1.15rem here, mono
+   0.68rem there, sitting in side-by-side columns. Two rules that must agree
+   are two rules that will not. */
+.sidebar-master-title,
+.column-subgroup-title {
     font-family: 'Finger-Paint', sans-serif;
     font-size: 1.15rem;
     color: var(--text-white);
@@ -291,8 +298,22 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 /* Auth/dock action buttons (js/pagebuilder.js initAuthDock) */
 .kofi-text { font-family: 'CC-Wild-Words', sans-serif; }
 .dock-role-icon { width: 1.2rem; height: 1.2rem; }
+/* Deliberately declares NO padding and NO font-size, 2026-08-14.
+
+   Both used to be here (0.75rem / 0.85rem) and both fought .btn-sys in
+   Buttons.css (0.4rem 0.75rem / 0.7rem) at identical 0-1-0 specificity - so
+   the winner was decided by which stylesheet the page happened to load last.
+   Generated character stubs put Layout.css after Buttons.css and system stubs
+   put it before, which is why the SAME button rendered 45px tall on a
+   character page and 34px on a system page.
+
+   Leaving both out settles it: .btn-sys supplies them everywhere, the dock is
+   compact on every page type, and there is nothing left to tie. That was the
+   owner's ask - the sub-categories added enough sidebar rows to push Ko-fi
+   below the fold again, and four buttons losing 11px each buys the space back
+   without shrinking anything the reader navigates by. */
 .dock-action-btn {
-    width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex;
+    width: 100%; display: flex;
     align-items: center; justify-content: flex-start; gap: 0.75rem;
     white-space: nowrap; text-decoration: none;
 }
@@ -313,8 +334,11 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     gap: 0.75rem; padding-top: 2rem;
 }
 .kofi-btn-wrapper { margin-top: 0.75rem; }
+/* Same treatment as .dock-action-btn above: sizing left to .btn-sys, so Ko-fi
+   matches the four buttons it is stacked with instead of standing 8px taller
+   in the same dock. */
 .kofi-btn-wrapper .btn-sys {
-    width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex;
+    width: 100%; display: flex;
     align-items: center; justify-content: center; gap: 0.5rem;
 }
 .kofi-btn-wrapper svg { width: 1rem; height: 1rem; }
@@ -410,7 +434,15 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 /* Grids & Galleries */
 .roster-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
 .systems-grid-container { display: flex; flex-direction: column; gap: 2.5rem; }
-.system-button-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.25rem; }
+/* Tightened from a uniform 1.25rem, 2026-08-14. The buttons read as scattered
+   cards at that spacing rather than as one list.
+
+   The floor is the hover state, not taste: .btn-manga-slanted:hover moves the
+   button translate(-2px, -2px) and grows its shadow to 4px, so a button paints
+   6px past its resting box on the bottom and right. Row gap 0.65rem (10.4px)
+   and column gap 0.9rem (14.4px) both clear that, with the column gap kept
+   larger because skewX(-10deg) also leans each button roughly 3px sideways. */
+.system-button-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.65rem 0.9rem; }
 
 /* Systems directory grid (js/pagebuilder.js buildSystemsDirectory) */
 .system-category-block .sidebar-master-title { margin-top: 0; margin-bottom: 1.25rem; border-bottom: 2px dashed var(--border-color); }
@@ -623,7 +655,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
    (systems/m1-trading/index.html:50,52-53,65,88 pre-v0.9). */
 .sidebar-dynamic-dock { margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem; }
 .kofi-btn-wrapper-spaced { margin-top: 0.75rem; }
-.kofi-btn-full { width: 100%; padding: 0.75rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; }
+.kofi-btn-full { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; }
 .kofi-btn-full svg { width: 1rem; height: 1rem; }
 .system-back-row { margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 /* The right sidebar's header row needs no new rule: .sidebar-tab-header
@@ -1046,17 +1078,14 @@ summary:focus-visible {
    groups - Gamemodes, Servers, Misc - so each needs a label, while a
    single-group column renders none.
 
-   Quieter than .sidebar-master-title: it divides a column rather than titling
-   a section, and the section above it already has the real heading. */
+   Typography comes from the block it shares with .sidebar-master-title above,
+   because the sibling column's headings ARE that class and the owner's
+   requirement is that all of them agree. Only the spacing is its own: this
+   divides a column into groups, where the systems grid gets its separation
+   from .systems-grid-container's gap instead. */
 .column-subgroup-title {
-    margin: 1.25rem 0 0.5rem;
-    font-family: var(--text-mono);
-    font-size: 0.68rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.3rem;
+    margin: 2rem 0 1.25rem;
+    border-bottom: 2px dashed var(--border-color);
 }
 /* The first group sits directly under the section header, which already has
    its own spacing. */
