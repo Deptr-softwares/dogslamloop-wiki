@@ -64,17 +64,12 @@
         <!-- MAIN CONTENT AREA -->
         <main class="main-content-area space-y-6">
             
-            <div style="margin-bottom:1rem; display: flex; justify-content: space-between; align-items: center;">
+            <!-- No mobile edit button here since 2026-08-14. It existed
+                 because the sidebar holding the real one was display:none on a
+                 phone; that sidebar is a drawer now, and .tierlist-sidebar-actions
+                 travels with it. -->
+            <div style="margin-bottom:1rem; display: flex; align-items: center;">
                 <a href="../index.html" class="btn-ghost">← Back to Systems Hub</a>
-                
-                <!-- MOBILE EDIT BUTTON. An <a>, not a <button>: nothing binds
-                     a handler to it any more, because initTabEditorButtons is
-                     no longer called on this page. Left as a plain link so the
-                     phone keeps a route to the editor. -->
-                <a id="btn-edit-current-tab-mobile" class="btn-sys btn-sys-regular tab-editor-btn-mobile" href="../../tier-editor.html">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    EDIT MY LIST
-                </a>
             </div>
 
             <header class="home-main-header">

@@ -170,6 +170,28 @@
                 </div> 
             </div>
 
+            <!--
+                MEDIA PREVIEW (v0.14 fine-tuning, 2026-08-14).
+
+                A flagged clip used to open inside its own row in the queue
+                column, which is the narrowest part of the page - a reviewer
+                deciding whether a video belongs on the wiki was judging it at
+                roughly a third of the width they had available.
+
+                It opens here instead, in the same pane a revision preview
+                uses, and for the same reason: this is where there is room to
+                actually look at something. The queue keeps the inline
+                behaviour on a phone, where there is no second pane to move it
+                to and the current arrangement already works.
+            -->
+            <div id="media-preview-panel" class="media-preview-panel hidden">
+                <div class="media-preview-head">
+                    <span id="media-preview-name" class="media-preview-name"></span>
+                    <button type="button" id="media-preview-close" class="btn-sys btn-sys-regular">CLOSE</button>
+                </div>
+                <div id="media-preview-stage" class="media-preview-stage"></div>
+            </div>
+
             <div id="version-toggle-bar" class="hidden">
                 <button id="btn-view-pending" onclick="switchVersionView('pending')" class="btn-sys btn-sys-blue version-toggle-btn pending">PENDING SUBMISSION</button>
                 <button id="btn-view-live" onclick="switchVersionView('live')" class="btn-sys btn-sys-green version-toggle-btn live">LIVE VERSION</button>

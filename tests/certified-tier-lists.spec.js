@@ -411,8 +411,11 @@ test('the edit button opens the tier list editor, not the page editor', async ({
             // The id is kept - tests/routing.spec.js asserts elevated pages
             // still offer an edit affordance, and that is still true. What had
             // to change is the destination, and that nothing re-binds it.
-            mobileHref: (doc.getElementById('btn-edit-current-tab-mobile') || {}).getAttribute
-                ? doc.getElementById('btn-edit-current-tab-mobile').getAttribute('href') : null,
+            //
+            // There is no separate mobile copy any more: the sidebar this
+            // button lives in became a drawer on 2026-08-14, so a phone
+            // reaches this exact element rather than a duplicate of it.
+            mobileDuplicate: !!doc.getElementById('btn-edit-current-tab-mobile'),
             callsOldWiring: html.includes('initTabEditorButtons('),
         };
     }, html);
@@ -420,7 +423,7 @@ test('the edit button opens the tier list editor, not the page editor', async ({
     expect(wiring.exists).toBe(true);
     expect(wiring.href).toContain('tier-editor.html');
     expect(wiring.href).not.toContain('edit.html');
-    expect(wiring.mobileHref, 'a phone needs the same route').toContain('tier-editor.html');
+    expect(wiring.mobileDuplicate, 'the drawer carries the real button now').toBe(false);
     expect(wiring.callsOldWiring, 'nothing re-points it at edit.html/history.html').toBe(false);
 });
 

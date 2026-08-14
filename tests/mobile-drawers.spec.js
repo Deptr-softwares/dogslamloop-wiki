@@ -81,6 +81,40 @@ test.describe('on a phone', () => {
         await expect(page.locator('#master-sidebar')).not.toHaveClass(/mobile-open/);
     });
 
+    // The drawer is now the ONLY route to Edit and History on a phone. The
+    // page body carried a duplicate pair until 2026-08-14, removed because
+    // this exists - so if the drawer ever stops carrying them, a phone reader
+    // loses both outright rather than falling back to anything.
+    test('the contents drawer carries the Edit and History pair', async ({ page }) => {
+        await page.goto(PAGE, { waitUntil: 'networkidle' });
+
+        const drawer = page.locator('.local-sidebar-right');
+        await page.locator('#mobile-menu-toggle').click();
+        await expect(drawer).toHaveClass(/mobile-open/);
+
+        await expect(drawer.locator('#btn-edit-current-tab')).toBeVisible();
+        await expect(drawer.locator('#btn-history-current-tab')).toBeVisible();
+
+        // Inside the drawer's own box, not merely a descendant pushed off it
+        // by the narrower width.
+        //
+        // Both boxes are read in ONE evaluate, and only once the slide has
+        // settled. Two separate boundingBox() calls during the 0.3s transition
+        // sample the drawer and the button at different offsets and report a
+        // 12px overflow that is entirely the animation.
+        await expect.poll(async () => drawer.evaluate(el =>
+            Math.round(el.getBoundingClientRect().x))).toBe(110);
+
+        const fits = await drawer.evaluate(el => {
+            const d = el.getBoundingClientRect();
+            return ['btn-edit-current-tab', 'btn-history-current-tab'].map(id => {
+                const b = document.getElementById(id).getBoundingClientRect();
+                return b.x >= d.x - 1 && b.x + b.width <= d.x + d.width + 1;
+            });
+        });
+        expect(fits).toEqual([true, true]);
+    });
+
     test('following a contents link puts the drawer away', async ({ page }) => {
         await page.goto(PAGE, { waitUntil: 'networkidle' });
 

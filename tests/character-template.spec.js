@@ -66,59 +66,44 @@ test('desktop sidebar: Edit and History buttons render via .tab-editor-btn-sideb
   expect(editCs.fontSize).toBe('9.6px'); // 0.6rem
 });
 
-test('real bug fix: mobile nav History button is now visible on system pages (previously permanently display: none)', async ({ page }) => {
-  await page.setViewportSize({ width: 375, height: 800 });
-  await page.goto('/systems/hud/index.html', { waitUntil: 'networkidle' });
-  const editBtn = page.locator('#btn-edit-current-tab-mobile');
-  const histBtn = page.locator('#btn-history-current-tab-mobile');
-  expect(await editBtn.evaluate(el => el.hasAttribute('style'))).toBe(false);
-  expect(await histBtn.evaluate(el => el.hasAttribute('style'))).toBe(false);
-  expect(await editBtn.evaluate(el => getComputedStyle(el).display)).toBe('flex');
-  expect(await histBtn.evaluate(el => getComputedStyle(el).display)).toBe('flex'); // was 'none' before the fix
-});
-
-// Re-pointed 2026-08-14. The subject is the CSS - a per-page <style> block
-// that duplicated the shared rules and made these buttons render differently
-// on one page than another - and it needs two pages that both carry the pair.
+// THE MOBILE PAIR IS GONE, 2026-08-14, and four tests went with it.
 //
-// systems/tierlist was one of them until v0.14, when it stopped calling
-// initTabEditorButtons: its Edit button now goes to tier-editor.html and its
-// History button is gone entirely, because history.html browses the page_data
-// row holding the retired 22-tab shape. A system page that still uses the
-// shared wiring makes the same claim without depending on that.
-test('mobile nav Edit/History buttons render identically on a character page and on a system page (the embedded per-page <style> duplicate removed)', async ({ page }) => {
+// They guarded a real historical bug - initTabEditorButtons cloned
+// style.cssText onto the History button, which carried a stale inline
+// display:none and hid it on every system page but one - and they guarded the
+// phantom-duplicate follow-on at desktop width. Both were fixed by giving the
+// two buttons one shared class.
+//
+// The buttons themselves now do not exist. They only ever existed because the
+// sidebar holding the real pair was display:none below 1024px; the contents
+// became a drawer and carry that pair with them, so the copies in the page
+// body were a second set of the same two controls, a tab row wide on the
+// narrowest screen the site serves.
+//
+// Tests for DOM that is gone assert nothing, so what remains is the claim that
+// matters: they do not come back. That a phone can still REACH Edit and
+// History is asserted in mobile-drawers.spec.js, against the drawer.
+test('no page re-introduces a second Edit/History pair in the body', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
-  for (const url of ['/characters/Boomcat/index.html', '/systems/hud/index.html']) {
+
+  for (const url of ['/characters/Boomcat/index.html', '/systems/hud/index.html', '/systems/tierlist/index.html']) {
     await page.goto(url, { waitUntil: 'networkidle' });
-    const editBtn = page.locator('#btn-edit-current-tab-mobile');
-    const histBtn = page.locator('#btn-history-current-tab-mobile');
-    expect(await editBtn.evaluate(el => el.hasAttribute('style')), url).toBe(false);
-    expect(await editBtn.evaluate(el => getComputedStyle(el).display), url).toBe('flex');
-    expect(await histBtn.evaluate(el => getComputedStyle(el).display), url).toBe('flex');
-    expect(await editBtn.evaluate(el => getComputedStyle(el).fontSize), url).toBe('11.2px'); // 0.7rem
+
+    await expect(page.locator('#btn-edit-current-tab-mobile'), url).toHaveCount(0);
+    await expect(page.locator('#btn-history-current-tab-mobile'), url).toHaveCount(0);
+    await expect(page.locator('.tab-editor-btn-mobile'), url).toHaveCount(0);
+    await expect(page.locator('#mobile-btn-group'), url).toHaveCount(0);
   }
 });
 
-test('real bug fix: mobile History button clone no longer leaks through as a phantom duplicate button at desktop width', async ({ page }) => {
-  // The old style.cssText clone never set an explicit display on the
-  // History button, and only #btn-edit-current-tab-mobile itself (not its
-  // #btn-history-current-tab-mobile clone) had an ID-specific
-  // "display: none !important" override - so on every character page, at
-  // every viewport width, .btn-sys's own display: inline-flex leaked
-  // through and the cloned History button rendered as a stray extra
-  // button inside nav.character-nav, wrapping onto its own row below the
-  // tabs. Now both buttons share .tab-editor-btn-mobile's single
-  // display: none !important rule.
-  await page.setViewportSize({ width: 1280, height: 720 });
-  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
-  const histBtnMobile = page.locator('#btn-history-current-tab-mobile');
-  expect(await histBtnMobile.evaluate(el => getComputedStyle(el).display)).toBe('none'); // was 'inline-flex' before the fix
-});
+// The stylesheet has to lose the rules too. Dead CSS outliving its markup is
+// what tierlist-live-dedupe.spec.js exists to police, and this is the same
+// shape one file over.
+test('the stylesheet drops the rules for the buttons that were removed', async ({ page, request }) => {
+  const css = await (await request.get('/style/Layout.css')).text();
 
-test('desktop width: mobile-exclusive Edit/History buttons stay hidden regardless of .is-active', async ({ page }) => {
-  await page.setViewportSize({ width: 1400, height: 900 });
-  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
-  const editBtn = page.locator('#btn-edit-current-tab-mobile');
-  expect(await editBtn.evaluate(el => el.classList.contains('is-active'))).toBe(true);
-  expect(await editBtn.evaluate(el => getComputedStyle(el).display)).toBe('none'); // the unconditional !important rule outside the media query
+  // The comment recording the removal is allowed to name them; a rule is not.
+  const rules = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  expect(rules).not.toContain('.tab-editor-btn-mobile');
+  expect(rules).not.toContain('#mobile-btn-group');
 });

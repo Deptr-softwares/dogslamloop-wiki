@@ -67,7 +67,7 @@ const EXPECTED_CHARACTER_TABS = [
 const REQUIRED_CHROME_IDS = [
   'master-sidebar', 'global-sidebar-nav', 'sidebar-dynamic-dock',
   'mobile-menu-toggle', 'mobile-backdrop', 'dynamic-toc',
-  'character-alerts-container', 'btn-edit-current-tab', 'btn-edit-current-tab-mobile',
+  'character-alerts-container', 'btn-edit-current-tab',
 ];
 
 async function captureSignature(page) {
@@ -94,7 +94,7 @@ async function captureSignature(page) {
       chrome: Object.fromEntries(
         ['master-sidebar', 'global-sidebar-nav', 'sidebar-dynamic-dock',
          'mobile-menu-toggle', 'mobile-backdrop', 'dynamic-toc',
-         'character-alerts-container', 'btn-edit-current-tab', 'btn-edit-current-tab-mobile']
+         'character-alerts-container', 'btn-edit-current-tab']
           .map(id => [id, !!document.getElementById(id)])
       ),
       // js/pagebuilder.js:120 resolves the active tab through this exact
