@@ -154,12 +154,84 @@ async function assignTierList() {
     window.loadTierListRoster();
 }
 
+// --- THE COMMUNITY RANKING ---
+//
+// The knobs for the Free Submit tier list, which live on the same singleton as
+// the page introduction. They are settings rather than constants because the
+// failure they guard against arrives without warning: when a brigade is under
+// way the useful response is to close voting from here within a minute, not to
+// write a migration and wait for a release.
+
+window.loadFreeSubmitSettings = async function () {
+    const openField = document.getElementById('fs-setting-open');
+    if (!openField || !window.supabaseClient) return;
+
+    const { data, error } = await window.supabaseClient
+        .from('tier_page_settings')
+        .select('free_submit_open, free_submit_min_age_days, free_submit_min_contributions, free_submit_min_votes')
+        .maybeSingle();
+
+    if (error || !data) {
+        tierToolSay('fs-setting-results', tierNotDeployed(error)
+            ? 'The community ranking arrives with the next release.'
+            : `Could not load: ${error ? error.message : 'no settings row'}`, true);
+        return;
+    }
+
+    openField.value = data.free_submit_open ? 'true' : 'false';
+    document.getElementById('fs-setting-age').value = data.free_submit_min_age_days;
+    document.getElementById('fs-setting-contrib').value = data.free_submit_min_contributions;
+    document.getElementById('fs-setting-floor').value = data.free_submit_min_votes;
+};
+
+async function saveFreeSubmitSettings() {
+    const num = (id, floor) => {
+        const raw = parseInt((document.getElementById(id) || {}).value, 10);
+        return Number.isFinite(raw) && raw >= floor ? raw : null;
+    };
+
+    const age = num('fs-setting-age', 0);
+    const contrib = num('fs-setting-contrib', 0);
+    const votes = num('fs-setting-floor', 1);
+
+    // Refused here rather than silently coerced. A blank age field written as 0
+    // would open voting to every account ever made, which is the exact failure
+    // the gate exists to prevent.
+    if (age === null || contrib === null || votes === null) {
+        tierToolSay('fs-setting-results', 'Every number must be filled in, and the vote floor must be at least 1.', true);
+        return;
+    }
+
+    const { error } = await window.supabaseClient
+        .from('tier_page_settings')
+        .update({
+            free_submit_open: (document.getElementById('fs-setting-open') || {}).value === 'true',
+            free_submit_min_age_days: age,
+            free_submit_min_contributions: contrib,
+            free_submit_min_votes: votes,
+            updated_at: new Date().toISOString(),
+        })
+        .eq('id', true);
+
+    if (error) {
+        tierToolSay('fs-setting-results', tierNotDeployed(error)
+            ? 'The community ranking arrives with the next release.'
+            : `Save failed: ${error.message}`, true);
+        return;
+    }
+
+    tierToolSay('fs-setting-results', 'Saved. It applies to the next vote.');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const save = document.getElementById('btn-save-tier-page-intro');
     if (save) save.addEventListener('click', saveTierPageIntro);
 
     const assign = document.getElementById('btn-assign-tier-list');
     if (assign) assign.addEventListener('click', assignTierList);
+
+    const saveFs = document.getElementById('btn-save-free-submit');
+    if (saveFs) saveFs.addEventListener('click', saveFreeSubmitSettings);
 
     // Loaded when the group is first opened rather than at boot: the block
     // editor is heavy, and the whole point of the owner-group split is that a
@@ -171,6 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!btn) return;
             if (!tierPageIntroLoaded) window.loadTierPageIntro();
             window.loadTierListRoster();
+            window.loadFreeSubmitSettings();
         });
     }
 });

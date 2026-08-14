@@ -427,6 +427,46 @@
 
                     <div id="tier-assign-results" class="admin-tool-results"></div>
                 </section>
+
+                <section id="tool-free-submit" class="update-log-item admin-tool-card">
+                    <h3 class="update-title admin-tool-title">Community Ranking</h3>
+                    <p class="admin-tool-desc">
+                        The Free Submit tier list. Closing voting hides the ballot and refuses new
+                        ratings — the published ranking stays readable, because deleting the
+                        community's answer is a much bigger act than pausing new ones.
+                    </p>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="fs-setting-open">VOTING</label>
+                        <select id="fs-setting-open" class="editor-input admin-input-full select">
+                            <option value="true">Open</option>
+                            <option value="false">Closed</option>
+                        </select>
+
+                        <!-- Either one is enough. An established reader who has
+                             never edited still gets a say, and a brand-new
+                             account whose edit was approved has already been
+                             vouched for by a human. -->
+                        <label class="block-field-label-sm" for="fs-setting-age">ACCOUNT AGE TO VOTE (DAYS)</label>
+                        <input type="number" min="0" id="fs-setting-age" class="editor-input admin-input-full">
+
+                        <label class="block-field-label-sm" for="fs-setting-contrib">OR THIS MANY APPROVED EDITS</label>
+                        <input type="number" min="0" id="fs-setting-contrib" class="editor-input admin-input-full">
+
+                        <label class="block-field-label-sm" for="fs-setting-floor">VOTES NEEDED TO PLACE A CHARACTER</label>
+                        <input type="number" min="1" id="fs-setting-floor" class="editor-input admin-input-full">
+                        <p class="admin-tool-hint">
+                            Below this a character is shown as unplaced rather than ranked, so three
+                            people's opinion is never presented as the community's.
+                        </p>
+                    </div>
+
+                    <div class="admin-tool-row">
+                        <button id="btn-save-free-submit" class="btn-sys btn-sys-green admin-tool-btn">SAVE SETTINGS</button>
+                    </div>
+
+                    <div id="fs-setting-results" class="admin-tool-results"></div>
+                </section>
                 </div>
 
                 <div class="owner-group" data-group="danger" hidden>
