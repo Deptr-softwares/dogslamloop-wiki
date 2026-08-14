@@ -1,0 +1,311 @@
+/* --- FREE SUBMIT TIER LIST (v0.14 item 4) ---
+
+   The community's ranking. Its own stylesheet under style/tools/, picked up by
+   the generator the same way js/tools/<page id>.js is - a tool is an
+   application rather than a document, and the alternative is a <style> block
+   written from JavaScript, which is the shape v0.13 spent six PRs removing
+   from editor.js.
+
+   Namespaced fs- throughout. The certified lists use ctl- and the retired
+   renderer uses tier-list-*; three features sharing a class prefix is how a
+   fix to one silently reaches the others.
+
+   .tier-portrait is the one deliberate reuse, same as the certified page: it
+   is the same character icon, and a second class for the same thing drifts. */
+
+.fs-tool {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+}
+
+.fs-section-title {
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 1rem;
+    color: var(--accent-blue);
+    text-transform: uppercase;
+    margin: 0 0 0.75rem 0;
+}
+
+/* --- THE BOARD --- */
+
+.fs-tier-row {
+    display: flex;
+    align-items: stretch;
+    border: 2px solid var(--border-color);
+    border-bottom: none;
+    background: var(--bg-secondary);
+}
+
+.fs-board .fs-tier-row:last-child { border-bottom: 2px solid var(--border-color); }
+
+.fs-tier-label {
+    width: 92px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 1.5rem;
+    color: #000;
+    text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5);
+    border-right: 2px solid var(--bg-secondary);
+    box-shadow: inset -4px 0px 8px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    padding: 0.25rem;
+}
+
+/* The unplaced row. Deliberately not coloured like a tier - it is not one, and
+   giving it a tier's swatch would read as an F by another name. */
+.fs-tier-label-pending {
+    background: var(--bg-primary);
+    color: var(--text-muted);
+    text-shadow: none;
+    border: 2px dashed var(--border-color);
+}
+
+.fs-tier-body {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.5rem;
+    align-items: flex-start;
+    align-content: flex-start;
+    min-height: 92px;
+}
+
+.fs-tier-empty {
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-style: italic;
+    align-self: center;
+}
+
+/* --- ONE CHARACTER ON THE BOARD ---
+   A button, because it is one: selecting it opens the distribution below. */
+.fs-entry {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.2rem;
+    background: none;
+    border: 2px solid transparent;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+}
+
+.fs-entry:hover { border-color: var(--accent-blue); }
+
+.fs-entry-selected { border-color: var(--accent-blue); background: rgba(255, 255, 255, 0.05); }
+
+/* The sample size on the face of every character, not in a tooltip. "S tier"
+   from nine people and from four hundred are different claims, and this is the
+   only thing on the board that tells them apart. */
+.fs-entry-count {
+    font-family: var(--text-mono);
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.fs-tier-row-pending .fs-tier-body { flex-direction: column; }
+
+.fs-pending-note {
+    margin: 0;
+    font-family: var(--text-mono);
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.fs-pending-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+/* --- THE DISTRIBUTION ---
+   A median reports the middle, and a split community and a unanimous one have
+   the same middle. This is what tells them apart. */
+
+.fs-detail {
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+    padding: 0.9rem 1rem;
+}
+
+.fs-detail-hint {
+    margin: 0;
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.fs-detail-title {
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 1.05rem;
+    color: var(--text-white);
+    margin: 0 0 0.2rem 0;
+}
+
+.fs-detail-summary {
+    margin: 0 0 0.75rem 0;
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    color: var(--accent-blue);
+}
+
+.fs-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.fs-chart-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fs-chart-key {
+    width: 1.6rem;
+    flex-shrink: 0;
+    text-align: center;
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.75rem;
+    color: #000;
+    border: 2px solid var(--border-color);
+}
+
+.fs-chart-track {
+    flex: 1;
+    height: 0.85rem;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.fs-chart-fill {
+    display: block;
+    height: 100%;
+    min-width: 0;
+}
+
+.fs-chart-count {
+    width: 2.5rem;
+    flex-shrink: 0;
+    text-align: right;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* --- THE BALLOT --- */
+
+.fs-ballot-hint,
+.fs-gate-note,
+.fs-gate-why {
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: var(--text-muted);
+    margin: 0 0 0.75rem 0;
+}
+
+/* The refusal itself reads as a statement rather than an error - it is a rule,
+   and the reader has not done anything wrong by not meeting it yet. */
+.fs-gate-note {
+    color: var(--text-white);
+    border-left: 3px solid var(--accent-blue);
+    padding-left: 0.8rem;
+}
+
+.fs-gate-why { font-size: 0.76rem; font-style: italic; }
+
+.fs-ballot {
+    display: flex;
+    flex-direction: column;
+    border: 2px solid var(--border-color);
+    border-bottom: none;
+}
+
+.fs-ballot-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    border-bottom: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.fs-ballot-who {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 0;
+}
+
+.fs-ballot-name {
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-white);
+    overflow-wrap: anywhere;
+}
+
+.fs-ballot-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+}
+
+.fs-choice {
+    min-width: 2.1rem;
+    padding: 0.3rem 0.4rem;
+    background: transparent;
+    border: 2px solid var(--border-color);
+    color: var(--text-white);
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.fs-choice:hover { background: rgba(255, 255, 255, 0.08); }
+
+.fs-choice-on { color: #000; text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.4); }
+
+.fs-choice-clear.fs-choice-on {
+    background: var(--border-color);
+    color: var(--text-white);
+    text-shadow: none;
+}
+
+.fs-ballot-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 0.9rem;
+}
+
+.fs-ballot-status {
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+@media (max-width: 700px) {
+    .fs-tier-label { width: 58px; font-size: 1.1rem; }
+    .fs-tier-body { min-height: 76px; }
+
+    /* The ballot stacks: a portrait, a name and seven buttons do not fit on a
+       phone row, and squeezing them makes every choice a mis-tap. */
+    .fs-ballot-row { flex-direction: column; align-items: flex-start; }
+    .fs-ballot-choices { width: 100%; }
+    .fs-choice { flex: 1; min-width: 2.4rem; padding: 0.45rem 0.3rem; }
+}
