@@ -107,3 +107,9 @@
 }
 
 .block-editor-host { margin-bottom: 2rem; }
+
+/* One block editor, two documents - see js/tier-editor.js. The switch has to
+   read as "which am I writing", not as a pair of actions, so the inactive one
+   stays visibly a tab rather than a button that does something. */
+.tier-doc-switch { display: flex; gap: 0.4rem; margin-bottom: 0.6rem; }
+.tier-doc-btn { flex: 1; font-size: 0.62rem; }

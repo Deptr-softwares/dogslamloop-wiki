@@ -110,6 +110,36 @@
         return wrap;
     }
 
+    // --- THE PAGE INTRODUCTION ---
+    //
+    // Owner-editable, and hidden the moment a person is picked. That hiding is
+    // the point rather than a tidy-up: while somebody's list is open, the
+    // introduction above it should be theirs, not the page's. Two introductions
+    // stacked would make every list read as a subsection of the owner's page,
+    // which is the opposite of what attributing them was for.
+    function setPageIntroVisible(visible) {
+        const section = document.getElementById('tier-page-intro');
+        if (section) section.classList.toggle('hidden', !visible);
+    }
+
+    async function loadPageIntro() {
+        const body = document.getElementById('tier-page-intro-body');
+        if (!body || typeof window.generateHTMLForBlocks !== 'function') return;
+
+        try {
+            const { data, error } = await client()
+                .from('tier_page_settings').select('intro').maybeSingle();
+            // The markup already in the page is the fallback and matches what
+            // the migration seeds, so a failed fetch leaves the reader with the
+            // right words rather than a blank band.
+            if (error || !data || !Array.isArray(data.intro) || !data.intro.length) return;
+            body.innerHTML = window.generateHTMLForBlocks(data.intro);
+            if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
+        } catch (e) {
+            /* keep the fallback */
+        }
+    }
+
     // --- THE PICKER ---
     function renderPicker() {
         const nav = document.getElementById('tier-tabs-container');
@@ -146,6 +176,8 @@
     function renderNobodySelected() {
         const ui = document.getElementById('tier-list-ui');
         if (!ui) return;
+
+        setPageIntroVisible(true);
 
         ui.innerHTML = '';
         const box = el('div', 'ctl-nobody');
@@ -191,6 +223,8 @@
             state.loaded.set(slug, row);
         }
 
+        setPageIntroVisible(false);
+
         ui.innerHTML = '';
 
         const header = el('div', 'ctl-header');
@@ -198,6 +232,20 @@
         if (row.blurb) header.appendChild(el('p', 'ctl-blurb', row.blurb));
         header.appendChild(el('span', 'ctl-updated', timeAgo(row.updated_at)));
         ui.appendChild(header);
+
+        // Their introduction, above the tiers. Written by them and nobody
+        // else - it never passes through the reviewer queue, because a signed
+        // tier list is opinion rather than wiki content somebody approves.
+        const intro = Array.isArray(row.intro) ? row.intro : [];
+        if (intro.length && typeof window.generateHTMLForBlocks === 'function') {
+            const box = el('section', 'ctl-intro');
+            box.appendChild(el('h3', 'ctl-subheading', 'Tier List Introduction'));
+            const body = el('div', 'ctl-intro-body');
+            body.innerHTML = window.generateHTMLForBlocks(intro);
+            box.appendChild(body);
+            ui.appendChild(box);
+            if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
+        }
 
         const tiers = Array.isArray(row.tiers) ? row.tiers : [];
         if (!tiers.length) {
@@ -293,6 +341,7 @@
         if (!ui || !client()) return;
 
         await loadRoster();
+        loadPageIntro();
 
         // Only what the picker needs. The placements are the bulk of the data
         // and are fetched per list on click.

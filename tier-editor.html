@@ -90,13 +90,25 @@
 
                 <div id="tier-controls" class="tier-controls"></div>
 
+                <!--
+                    One block editor, two documents. initStrategyBlockBuilder
+                    keeps a single module-level buffer, so two builders cannot
+                    exist at once - switching flushes the open one and loads the
+                    other, which is exactly what editor-tabs.js does when it
+                    crosses a tab boundary.
+                -->
                 <div class="dashboard-header-split admin-split-header">
-                    <h3 class="section-title section-title-clean m-0 admin-section-title">Reasoning</h3>
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Writing</h3>
                 </div>
 
-                <p class="tier-reasoning-hint">
-                    The long-form argument for this list. Same editor the rest of the wiki uses, so
-                    headings, images, callouts and colour shortcodes all work.
+                <div class="tier-doc-switch">
+                    <button type="button" id="btn-doc-intro" class="btn-sys btn-sys-blue tier-doc-btn active" data-doc="intro">INTRODUCTION</button>
+                    <button type="button" id="btn-doc-reasoning" class="btn-sys btn-sys-regular tier-doc-btn" data-doc="reasoning">REASONING</button>
+                </div>
+
+                <p class="tier-reasoning-hint" id="tier-doc-hint">
+                    Shown at the top of your list, in place of the page's own introduction. Yours alone —
+                    it does not go through the review queue.
                 </p>
 
                 <div id="strategy-block-target" class="block-editor-host"></div>

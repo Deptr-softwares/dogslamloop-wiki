@@ -205,3 +205,56 @@
     .ctl-label { width: 64px; font-size: 1.1rem; }
     .ctl-chars { min-height: 68px; }
 }
+
+/* --- THE PER-PERSON INTRODUCTION (v0.14) ---
+   Sits above the tiers and replaces the page's own introduction while a list
+   is open, so a reader meets that person before their ranking. Bordered on the
+   left rather than boxed: it is the author speaking, not a callout. */
+.ctl-intro {
+    margin-bottom: 1.5rem;
+    padding-left: 0.9rem;
+    border-left: 3px solid var(--accent-blue);
+}
+
+.ctl-intro-body {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--text-muted);
+}
+
+.ctl-intro-body p:last-child { margin-bottom: 0; }
+
+/* --- THE SIDEBAR HEADER ---
+   Was one space-between row with no wrapping, holding a title and however many
+   buttons got injected beside it - which ran off the right edge of the window
+   as soon as there were two. Stacked instead, so the buttons wrap under the
+   title and a third one later costs nothing. */
+.tierlist-sidebar-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.tierlist-sidebar-title {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.tierlist-sidebar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    max-width: 100%;
+}
+
+.tierlist-sidebar-actions .btn-sys {
+    gap: 0.3rem;
+    min-width: 0;
+    /* The label may wrap rather than force the row wider than the sidebar. */
+    white-space: normal;
+}

@@ -77,9 +77,18 @@ test('real bug fix: mobile nav History button is now visible on system pages (pr
   expect(await histBtn.evaluate(el => getComputedStyle(el).display)).toBe('flex'); // was 'none' before the fix
 });
 
-test('mobile nav Edit/History buttons render identically on a character page and on tierlist (its embedded per-page <style> duplicate removed)', async ({ page }) => {
+// Re-pointed 2026-08-14. The subject is the CSS - a per-page <style> block
+// that duplicated the shared rules and made these buttons render differently
+// on one page than another - and it needs two pages that both carry the pair.
+//
+// systems/tierlist was one of them until v0.14, when it stopped calling
+// initTabEditorButtons: its Edit button now goes to tier-editor.html and its
+// History button is gone entirely, because history.html browses the page_data
+// row holding the retired 22-tab shape. A system page that still uses the
+// shared wiring makes the same claim without depending on that.
+test('mobile nav Edit/History buttons render identically on a character page and on a system page (the embedded per-page <style> duplicate removed)', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
-  for (const url of ['/characters/Boomcat/index.html', '/systems/tierlist/index.html']) {
+  for (const url of ['/characters/Boomcat/index.html', '/systems/hud/index.html']) {
     await page.goto(url, { waitUntil: 'networkidle' });
     const editBtn = page.locator('#btn-edit-current-tab-mobile');
     const histBtn = page.locator('#btn-history-current-tab-mobile');
