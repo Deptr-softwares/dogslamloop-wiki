@@ -873,13 +873,24 @@ window.refreshTOC = function() {
         
         const isMinor = header.classList.contains('wiki-block-heading');
 
-        // A heading can contain controls - the dashboards nest a "View More"
+        // A heading can contain CONTROLS - the dashboards nest a "View More"
         // link inside their section titles - and their text is not part of the
         // heading. Without this the homepage ToC reads "Characters View More
-        // ➔". Falls back to the full text for a heading that is itself a link,
-        // where stripping would leave nothing.
+        // ➔". Falls back to the full text for a heading that is itself a
+        // control, where stripping would leave nothing.
+        //
+        // Controls, not every anchor. This used to strip `a, button` outright,
+        // which was fine until js/internalstyling.js started wrapping
+        // character mentions in a link (v0.14): every matchup heading is
+        // "vs. <a>Honored One</a>", so the whole ToC indexed as a column of
+        // "vs." with no names. The two that survived are the two that were
+        // never wrapped - the page's own character, which the linker skips,
+        // and a misspelled opponent, which matches no character at all.
+        //
+        // A link the AUTHOR wrote into a heading is prose and its text belongs
+        // in the label; a button-styled one is furniture and does not.
         const labelSource = header.cloneNode(true);
-        labelSource.querySelectorAll('a, button').forEach(el => el.remove());
+        labelSource.querySelectorAll('button, a[class*="btn-"]').forEach(el => el.remove());
         const label = labelSource.textContent.trim() || header.textContent.trim();
 
         const itemData = { id: header.id, text: label };

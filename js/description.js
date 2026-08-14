@@ -893,10 +893,22 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                         const cpSection = document.createElement('section');
                         cpSection.className = 'wiki-section wiki-section-clip';
 
+                        // Escaped, 2026-08-15. This is the same card shape as
+                        // the matchup one twenty lines up, which was escaped
+                        // in v0.13 while this was deliberately left alone to
+                        // keep that PR to its two items. Both values are
+                        // contributor-submitted and land in an innerHTML sink,
+                        // so "<img src=x onerror=...>" as a counterplay topic
+                        // executed on the live page.
+                        //
+                        // impColor is not escaped because it is not
+                        // interpolated: it comes from the hardcoded map above
+                        // with a fixed fallback, so cp.importance selects a
+                        // colour rather than supplying one.
                         let cpHTML = `
                             <div class="card-header-flex">
-                                <h3 class="card-header-title">${cp.topic}</h3>
-                                <span class="card-tier-label" style="color: ${impColor};">${cp.importance}</span>
+                                <h3 class="card-header-title">${window.escapeHtml(cp.topic || 'Unknown')}</h3>
+                                <span class="card-tier-label" style="color: ${impColor};">${window.escapeHtml(cp.importance || '')}</span>
                             </div>
                         `;
 

@@ -879,6 +879,43 @@ summary:focus-visible {
 .combo-container { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 1.5rem 0; }
 .combo-meta-group { display: flex; align-items: center; gap: 0.75rem; }
 
+/* The rest of the combo block, moved out of style/FrameData.css on
+   2026-08-15. The container above lived here and the nodes lived there, so
+   the block was only fully styled on a character page - the one page type
+   that loads FrameData.css. A combo authored on a guide, a gallery or a
+   tool page rendered as an unstyled row of words.
+
+   These are authored-BLOCK styles: generateHTMLForBlocks emits them, and
+   every page type that renders blocks needs them. Frame data is a
+   different thing that happens to also show combos. */
+/* --- 6. COMBO STRINGS --- */
+.combo-node {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: #0a0a0a; border: 2px solid #444; border-bottom: 4px solid #333; 
+    color: var(--text-white); padding: 0.35rem 0.8rem; font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;
+    border-radius: 4px; text-shadow: 1px 1px 0px #000; transition: all 0.1s; cursor: default;
+}
+.combo-node:hover {
+    border-color: var(--accent-blue); border-bottom-color: var(--accent-blue); color: var(--accent-blue);
+    transform: translateY(2px); border-bottom-width: 2px;
+}
+.combo-arrow { color: var(--text-muted); stroke-width: 3px; opacity: 0.5; }
+.combo-note {
+    background: rgba(255,255,255,0.05); border: 1px dashed #444; color: #aaa;
+    font-family: var(--text-mono); font-size: 0.75rem; padding: 0.25rem 0.5rem;
+}
+.combo-damage { color: hsl(3, 93%, 63%); font-family: var(--text-mono); font-weight: bold; font-size: 1.1rem; text-shadow: 2px 2px 0px #000; }
+
+/* Heading for an authored strategy block, moved here for the same reason. */
+.strategy-title { 
+    font-family: 'Finger-Paint', sans-serif;
+    font-size: 1rem; color: var(--accent-blue); 
+    margin-bottom: 1rem; padding-bottom: 0.5rem; margin-top: 0; text-shadow: 1px 1px 0px #000; 
+    display: inline-block; border-bottom: 2px solid var(--accent-blue);
+}
+
+
 .wiki-blocks-clearfix { clear: both; display: table; width: 100%; }
 .wiki-section-empty { padding: 1.5rem; text-align: center; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.85rem; font-style: italic; border-top: 1px dashed var(--border-color); }
 .wiki-section-empty-flex { flex-basis: 100%; }
