@@ -122,10 +122,13 @@ test('creating a page inserts a complete registry row', async ({ page }) => {
   await page.fill('#new-page-category', 'Characters');
   await page.click('#btn-create-page');
   await page.locator('#btn-admin-confirm-ok').click();
-  await page.waitForTimeout(300);
+  // Polled, not slept on. The write is async, so a fixed wait is either
+  // longer than it needs to be or - on a loaded runner - shorter.
+  await expect.poll(() =>
+    page.evaluate(() => window.__pageWrites.filter(w => w.op === 'insert').length)
+  ).toBe(1);
 
   const writes = await page.evaluate(() => window.__pageWrites.filter(w => w.op === 'insert'));
-  expect(writes).toHaveLength(1);
   const row = writes[0].payload[0];
   expect(row.page_id).toBe('crow_charmer');
   expect(row.url).toBe('characters/Crow_charmer/index.html');
@@ -159,8 +162,8 @@ test('a duplicate page reports the collision in plain language', async ({ page }
   await page.fill('#new-page-category', 'Characters');
   await page.click('#btn-create-page');
   await page.locator('#btn-admin-confirm-ok').click();
-  await page.waitForTimeout(300);
 
+  // No wait: toContainText auto-waits, and the sleep only delayed the failure.
   await expect(page.locator('#pages-results')).toContainText('already exists at that address');
   await expect(page.locator('#pages-results')).not.toContainText('unique constraint');
 });
@@ -176,10 +179,11 @@ test('archiving sets status rather than deleting the row', async ({ page }) => {
   const row = page.locator('#pages-list .personnel-row').filter({ hasText: 'Boomcat' });
   await row.locator('.page-archive-btn').click();
   await page.locator('#btn-admin-confirm-ok').click();
-  await page.waitForTimeout(300);
+  await expect.poll(() =>
+    page.evaluate(() => window.__pageWrites.filter(w => w.op === 'update').length)
+  ).toBe(1);
 
   const writes = await page.evaluate(() => window.__pageWrites.filter(w => w.op === 'update'));
-  expect(writes).toHaveLength(1);
   expect(writes[0].payload.status).toBe('archived');
   expect(writes[0].val).toBe('boomcat');
 });
@@ -213,7 +217,9 @@ test('a new page can be inserted after a chosen sibling, not just appended', asy
   await page.selectOption('#new-page-position', 'vessel');
   await page.click('#btn-create-page');
   await page.locator('#btn-admin-confirm-ok').click();
-  await page.waitForTimeout(300);
+  await expect.poll(() =>
+    page.evaluate(() => window.__pageWrites.filter(w => w.op === 'insert').length)
+  ).toBe(1);
 
   const writes = await page.evaluate(() => window.__pageWrites.filter(w => w.op === 'insert'));
   const row = writes[0].payload[0];
@@ -228,20 +234,26 @@ test('the position dropdown lists only siblings in the chosen category', async (
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
   await page.fill('#new-page-category', 'Characters');
-  await page.waitForTimeout(300);
+
+  // The dropdown repopulates from the category; poll for the content rather
+  // than guessing how long that takes.
+  await expect.poll(() => page.evaluate(() =>
+    Array.from(document.querySelectorAll('#new-page-position option')).map(o => o.value)
+  )).toContain('vessel');
 
   let values = await page.evaluate(() =>
     Array.from(document.querySelectorAll('#new-page-position option')).map(o => o.value));
-  expect(values).toContain('vessel');
   expect(values).toContain('boomcat');
   // Old Thing is in Guides, not Characters.
   expect(values).not.toContain('old_thing');
 
   await page.fill('#new-page-category', 'Guides');
-  await page.waitForTimeout(200);
+  await expect.poll(() => page.evaluate(() =>
+    Array.from(document.querySelectorAll('#new-page-position option')).map(o => o.value)
+  )).toContain('old_thing');
+
   values = await page.evaluate(() =>
     Array.from(document.querySelectorAll('#new-page-position option')).map(o => o.value));
-  expect(values).toContain('old_thing');
   expect(values).not.toContain('vessel');
 });
 
@@ -264,7 +276,9 @@ test('an exhausted gap renumbers the category instead of colliding', async ({ pa
   await page.selectOption('#new-page-position', 'a');
   await page.click('#btn-create-page');
   await page.locator('#btn-admin-confirm-ok').click();
-  await page.waitForTimeout(400);
+  await expect.poll(() =>
+    page.evaluate(() => window.__pageWrites.some(w => w.op === 'insert'))
+  ).toBe(true);
 
   const writes = await page.evaluate(() => window.__pageWrites);
   const renumbers = writes.filter(w => w.op === 'update' && w.payload.sort_order !== undefined);
@@ -283,11 +297,12 @@ test('move up swaps a page with its neighbour', async ({ page }) => {
 
   const row = page.locator('#pages-list .personnel-row').filter({ hasText: 'Boomcat' });
   await row.locator('.page-move-btn[data-dir="up"]').click();
-  await page.waitForTimeout(400);
+  await expect.poll(() =>
+    page.evaluate(() => window.__pageWrites.filter(w => w.op === 'update').length)
+  ).toBe(2);
 
-  const writes = await page.evaluate(() => window.__pageWrites.filter(w => w.op === 'update'));
   // Boomcat (10) and Vessel (0) exchange positions.
-  expect(writes).toHaveLength(2);
+  const writes = await page.evaluate(() => window.__pageWrites.filter(w => w.op === 'update'));
   const byPage = Object.fromEntries(writes.map(w => [w.val, w.payload.sort_order]));
   expect(byPage.boomcat).toBe(0);
   expect(byPage.vessel).toBe(10);
@@ -302,6 +317,11 @@ test('move does nothing at the boundaries', async ({ page }) => {
   // Vessel is first in Characters - there is nothing above it.
   const first = page.locator('#pages-list .personnel-row').filter({ hasText: 'Vessel' });
   await first.locator('.page-move-btn[data-dir="up"]').click();
+
+  // The one wait in this file that stays. Every other assertion here waits for
+  // something to APPEAR, which polling does better; this one asserts nothing
+  // ever appears, and there is no event for "still hasn't happened". A bounded
+  // window is the honest tool for a negative.
   await page.waitForTimeout(300);
   expect(await page.evaluate(() => window.__pageWrites.filter(w => w.op === 'update'))).toHaveLength(0);
 });
