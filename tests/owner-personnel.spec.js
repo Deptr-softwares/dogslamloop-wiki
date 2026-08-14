@@ -86,10 +86,11 @@ test('changing a role calls the RPC with the right email and role', async ({ pag
 
   // adminConfirm gates the write.
   await page.locator('#btn-admin-confirm-ok').click();
-  await page.waitForTimeout(300);
+  await expect.poll(() => page.evaluate(
+    () => window.__rpcCalls.filter(c => c.name === 'assign_role_by_email').length
+  )).toBe(1);
 
   const calls = await page.evaluate(() => window.__rpcCalls.filter(c => c.name === 'assign_role_by_email'));
-  expect(calls).toHaveLength(1);
   expect(calls[0].params).toEqual({ target_email: 'reviewer@example.com', assigned_role: 'trusted_editor' });
 });
 
@@ -102,6 +103,9 @@ test('cancelling the confirm makes no change', async ({ page }) => {
   const row = page.locator('.personnel-row').filter({ hasText: 'editor@example.com' });
   await row.locator('.personnel-apply-btn').click();
   await page.locator('#btn-admin-confirm-cancel').click();
+  // Kept deliberately: this asserts nothing ever happens, and there is no
+  // event for "still hasn't". A bounded window is the honest tool for a
+  // negative - polling can only wait for something to appear.
   await page.waitForTimeout(200);
 
   const calls = await page.evaluate(() => window.__rpcCalls.filter(c => c.name === 'assign_role_by_email'));
@@ -153,7 +157,8 @@ test('roster values are escaped, including the RPC error path', async ({ page })
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('people'));
-  await page.waitForTimeout(300);
+  // Wait for the roster to render, then check what it rendered AS.
+  await expect(page.locator('#personnel-roster')).not.toBeEmpty();
 
   expect(await page.evaluate(() => window.__xss)).toBeUndefined();
   const rosterHtml = await page.locator('#personnel-roster').innerHTML();
@@ -163,7 +168,7 @@ test('roster values are escaped, including the RPC error path', async ({ page })
   // And the error branch, which interpolates error.message.
   await page.locator('.personnel-apply-btn').click();
   await page.locator('#btn-admin-confirm-ok').click();
-  await page.waitForTimeout(300);
+  await expect(page.locator('#role-results')).not.toBeEmpty();
   expect(await page.evaluate(() => window.__xss2)).toBeUndefined();
   const resultsHtml = await page.locator('#role-results').innerHTML();
   expect(resultsHtml).not.toContain('<script>');
@@ -274,10 +279,9 @@ test('raising a page to admin-only writes required_role, not just the page id', 
   await row.locator('.personnel-role-select').selectOption('admin');
   await row.locator('.permission-apply-btn').click();
   await page.locator('#btn-admin-confirm-ok').click();
-  await page.waitForTimeout(300);
+  await expect.poll(() => page.evaluate(() => window.__writes.length)).toBe(1);
 
   const writes = await page.evaluate(() => window.__writes);
-  expect(writes).toHaveLength(1);
   expect(writes[0].op).toBe('upsert');
   expect(writes[0].payload[0]).toEqual({ page_id: 'template', required_role: 'admin' });
 });
@@ -291,15 +295,17 @@ test('unrestricting a page deletes its row, and is confirmed first', async ({ pa
   const row = page.locator('#permissions-list .personnel-row').filter({ hasText: 'tierlist' });
   await row.locator('.permission-remove-btn').click();
   await page.locator('#btn-admin-confirm-cancel').click();
+  // Kept deliberately: this asserts nothing ever happens, and there is no
+  // event for "still hasn't". A bounded window is the honest tool for a
+  // negative - polling can only wait for something to appear.
   await page.waitForTimeout(200);
   expect(await page.evaluate(() => window.__writes)).toHaveLength(0);
 
   await row.locator('.permission-remove-btn').click();
   await page.locator('#btn-admin-confirm-ok').click();
-  await page.waitForTimeout(300);
+  await expect.poll(() => page.evaluate(() => window.__writes.length)).toBe(1);
 
   const writes = await page.evaluate(() => window.__writes);
-  expect(writes).toHaveLength(1);
   expect(writes[0]).toEqual({ op: 'delete', val: 'tierlist' });
 });
 
@@ -308,7 +314,9 @@ test('the restrict dropdown excludes pages that are already restricted', async (
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
-  await page.waitForTimeout(400);
+  await expect.poll(() => page.evaluate(() =>
+    document.querySelectorAll('#permission-page option').length
+  )).toBeGreaterThan(0);
 
   const values = await page.evaluate(() =>
     Array.from(document.querySelectorAll('#permission-page option')).map(o => o.value));
