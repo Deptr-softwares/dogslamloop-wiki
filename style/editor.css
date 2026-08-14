@@ -472,8 +472,19 @@ input[type="checkbox"]:checked {
        screen and the last group becomes unreachable. Wide enough for nine per
        row, then it scrolls. */
     min-width: 248px;
+    /* The popup itself no longer scrolls: .format-color-presets-scroll does,
+       so the custom picker below it stays pinned and visible. It used to be
+       inside the scrolling region and sat under the fold.
+
+       320px is a CEILING, not a preference. The popup opens upward from the
+       toolbar, and at 420px its top reached into the editor's tab strip -
+       which paints over it, so the upper swatches resolved as visible and
+       enabled and then swallowed every click. Pinning the picker is what
+       makes the smaller height affordable: the swatches lose the room, and
+       they are the part that is allowed to scroll. */
     max-height: 320px;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     /* Positioning is handled in js/editor-blocks.js (keepColorPopupOnScreen),
        not here: the popup overflows the editor pane by an amount that depends
        on where along the toolbar the button sits, which no static rule knows.
@@ -515,9 +526,84 @@ input[type="checkbox"]:checked {
 }
 .color-preset-btn:hover { outline-color: var(--text-white, #fff); transform: translateY(-1px); }
 .color-preset-btn:focus-visible { outline-color: var(--accent-blue); }
-.format-color-custom-row { border-top: 1px solid #333; padding-top: 0.5rem; display: flex; align-items: center; justify-content: space-between; }
+.format-color-custom-row { border-top: 1px solid #333; padding-top: 0.5rem; display: flex; align-items: center; gap: 0.4rem; }
 .format-color-custom-label { font-size: 0.75rem; color: #ccc; }
-.format-color-custom-input { background: none; border: none; width: 24px; height: 24px; cursor: pointer; padding: 0; outline: none; }
+
+/* --- THE VISUAL COLOUR PICKER (v0.14) ---
+
+   Replaces <input type="color">, which opened the operating system's own
+   colour dialog over the wiki. Drawn with CSS gradients rather than a canvas:
+   the maths is four lines in js/editor-blocks.js and a canvas would be a
+   second way to draw the same square.
+
+   The saturation/brightness square is one hue-coloured background with white
+   painted left-to-right and black bottom-to-top over it, which is exactly what
+   an HSV square is. */
+.cp-surface {
+    position: relative;
+    width: 100%;
+    /* Shorter than a comfortable picker would be, to buy the swatch list back
+       some of the room the pinned picker takes from it. */
+    height: 88px;
+    margin: 0.35rem 0;
+    border: 1px solid #333;
+    cursor: crosshair;
+    touch-action: none;
+    background-image:
+        linear-gradient(to top, #000, rgba(0, 0, 0, 0)),
+        linear-gradient(to right, #fff, rgba(255, 255, 255, 0));
+}
+
+.cp-hue {
+    position: relative;
+    width: 100%;
+    height: 14px;
+    border: 1px solid #333;
+    cursor: ew-resize;
+    touch-action: none;
+    background-image: linear-gradient(to right,
+        #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%);
+}
+
+.cp-hue:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+
+/* One thumb style for both surfaces. transform centres it on its own
+   coordinate so the point under the cursor is the colour picked, not the
+   corner of a box near it. */
+.cp-thumb {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #000;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+.cp-hue-thumb { top: 50%; height: 16px; width: 8px; border-radius: 2px; }
+
+.cp-preview {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    border: 1px solid #333;
+    display: inline-block;
+}
+
+.cp-hex {
+    flex: 1;
+    min-width: 0;
+    background: #050505;
+    border: 1px solid #333;
+    color: var(--text-white);
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    padding: 0.25rem 0.35rem;
+    box-sizing: border-box;
+}
+
+.cp-apply { flex-shrink: 0; font-size: 0.6rem; padding: 0.25rem 0.45rem; }
 
 /* --- ADD BLOCK POPUP MENU --- */
 .add-block-menu-wrapper { position: relative; }
@@ -1558,3 +1644,24 @@ del.diff-del {
     cursor: pointer;
 }
 .editor-tip-dismiss:hover { color: var(--text-white); }
+
+/* Only the swatch groups scroll; the custom picker under them is pinned. */
+.format-color-presets-scroll {
+    overflow-y: auto;
+    min-height: 0;
+    flex: 1 1 auto;
+    margin-bottom: 0.35rem;
+}
+
+/* Heads the custom picker. Deliberately not .format-color-popup-label, which
+   labels a swatch group - there are exactly three of those and a fourth
+   would misdescribe the picker as a palette. */
+.cp-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-family: var(--text-mono);
+    border-top: 1px solid #333;
+    padding-top: 0.4rem;
+}

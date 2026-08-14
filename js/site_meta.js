@@ -52,11 +52,10 @@ window.CHARACTER_ALIASES = {
     "Cursed Partners":   ["Yuta Okkotsu", "Okkotsu Yuta", "Yuta", "JJK OC"],
     "Puppet Master":     ["Ultimate Mechamaru", "Mechamaru", "Kokichi Muta", "Muta Kokichi", "Kokichi", "Larping Individual"],
     "Head of the Hei":   ["Zenin Naoya", "Naoya Zenin", "Naoya", "Bubble Pop Electric"],
-    // "enjoys beating the life out of" is a sentence fragment, not a name, so
-    // it fires mid-prose - "Nanami enjoys beating the life out of curses"
-    // colours and links the middle of that sentence. Kept because it was
-    // supplied; [noauto]...[/noauto] is the escape hatch when it misfires.
-    "Salaryman":         ["Kento Nanami", "Nanami Kento", "Nanami", "enjoys beating the life out of"],
+    // "enjoys beating the life out of" was supplied and then withdrawn: it is
+    // a sentence fragment, so it fired mid-prose - "Nanami enjoys beating the
+    // life out of curses" would colour and link the middle of that sentence.
+    "Salaryman":         ["Kento Nanami", "Nanami Kento", "Nanami"],
     "Disaster Plants":   ["Hanami", "Peaceful Gardener"],
     "True Cannon":       ["Ryu Ishigori", "Ishigori Ryu", "Ryu", "Jane Juliet"],
     "Register":          ["Reggie Star", "Reggie"],
