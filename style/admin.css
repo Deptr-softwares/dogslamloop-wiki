@@ -608,9 +608,70 @@
 .media-queue-pages { display: block; margin-top: 0.25rem; font-family: var(--text-mono); font-size: 0.62rem; color: #666; word-break: break-word; }
 .media-queue-note { margin: 0.4rem 0 0 0; font-family: var(--text-mono); font-size: 0.65rem; color: #ef4444; }
 
+/* The inline preview, which is now the PHONE arrangement only. Above 900px a
+   clip opens in the main pane instead - see .media-preview-panel below. */
 .media-queue-preview:empty { display: none; }
 .media-queue-preview { margin-top: 0.6rem; }
 .media-queue-media { width: 100%; max-height: 220px; object-fit: contain; background: #000; border: 1px solid #222; display: block; }
+
+/* --- MEDIA PREVIEW IN THE MAIN PANE (v0.14 fine-tuning, 2026-08-14) ---
+
+   A reviewer deciding whether a clip belongs on the wiki was judging it inside
+   a queue row, in the narrowest column on the page. It opens here instead, in
+   the pane a revision preview uses - which is the part of the screen that has
+   room to actually look at something. */
+.media-preview-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+    box-shadow: 4px 4px 0px var(--manga-shadow);
+    margin-bottom: 1rem;
+}
+
+.media-preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* The file name is contributor-supplied and can be long. It wraps rather than
+   pushing CLOSE off the edge - the same failure the tier list sidebar header
+   had. */
+.media-preview-name {
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    color: var(--text-white);
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+.media-preview-stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    border: 1px solid #222;
+    min-height: 240px;
+}
+
+/* Bounded by the viewport rather than the file: a 4K screenshot should not
+   push the CLOSE button off the top of the pane. */
+.media-preview-media {
+    max-width: 100%;
+    max-height: 65vh;
+    object-fit: contain;
+    display: block;
+}
+
+/* One pane, one thing in it. A clip stacked above a half-rendered page is
+   worse than either on its own, and the reviewer did not ask for both. */
+body.media-preview-open #version-toggle-bar,
+body.media-preview-open .admin-main-pane > .site-body { display: none !important; }
 
 .media-queue-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem; }
 .media-queue-btn { font-size: 0.62rem; padding: 0.3rem 0.6rem; }

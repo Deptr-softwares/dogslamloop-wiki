@@ -210,9 +210,80 @@ window.renderMediaQueue = function() {
     }).join('');
 };
 
+// Built as elements rather than innerHTML so the URL is never parsed as
+// markup, and set through .src so it cannot carry attributes.
+function buildMediaElement(path, className) {
+    const { data } = window.supabaseClient.storage.from('wiki-media').getPublicUrl(path);
+    const isVideo = /\.(webm|mp4|mov|ogv)$/i.test(path);
+
+    const media = document.createElement(isVideo ? 'video' : 'img');
+    media.className = className;
+    media.src = data ? data.publicUrl : '';
+    if (isVideo) {
+        media.controls = true;
+        media.muted = true;
+        media.loop = true;
+    } else {
+        media.alt = path;
+    }
+    return media;
+}
+
+// The same 900px the admin layout already splits on, asked at click time
+// rather than at load: a reviewer who rotates a tablet gets the arrangement
+// that fits the width they now have.
+function hasPreviewPane() {
+    return window.matchMedia('(min-width: 901px)').matches
+        && !!document.getElementById('media-preview-panel');
+}
+
+window.closeMediaPreview = function () {
+    const panel = document.getElementById('media-preview-panel');
+    if (!panel) return;
+    // Emptied, not just hidden. A hidden <video> keeps playing, and a reviewer
+    // hearing audio from a clip they closed has no way to find it.
+    document.getElementById('media-preview-stage').innerHTML = '';
+    panel.classList.add('hidden');
+    document.body.classList.remove('media-preview-open');
+};
+
+function showMediaInPane(path) {
+    const panel = document.getElementById('media-preview-panel');
+    const stage = document.getElementById('media-preview-stage');
+    if (!panel || !stage) return false;
+
+    document.getElementById('media-preview-name').textContent = path;
+    stage.innerHTML = '';
+    stage.appendChild(buildMediaElement(path, 'media-preview-media'));
+
+    panel.classList.remove('hidden');
+    // The class the revision preview is hidden by while this is open - one
+    // pane, one thing in it, rather than a clip stacked above a page render.
+    document.body.classList.add('media-preview-open');
+
+    // On a tablet in the queue view the pane is off-screen until the reviewer
+    // switches to it, so opening a clip has to take them there.
+    if (typeof window.toggleMobilePreview === 'function'
+        && document.getElementById('mobile-preview-toggle')
+        && getComputedStyle(document.getElementById('mobile-preview-toggle')).display !== 'none'
+        && !document.body.classList.contains('mobile-preview-active')) {
+        window.toggleMobilePreview();
+    }
+
+    panel.scrollIntoView({ block: 'nearest' });
+    return true;
+}
+
 // The click-to-reveal half of the owner's first decision. Nothing is fetched
 // until this runs, and it runs once per row.
 function revealMedia(row, path) {
+    // Desktop: the big pane, where there is room to judge a clip. Phone: in
+    // the row, unchanged - there is no second pane there and it already works.
+    if (hasPreviewPane()) {
+        showMediaInPane(path);
+        return;
+    }
+
     const target = row.querySelector('.media-queue-preview');
     if (!target) return;
 
@@ -222,25 +293,8 @@ function revealMedia(row, path) {
         return;
     }
 
-    const { data } = window.supabaseClient.storage.from('wiki-media').getPublicUrl(path);
-    const url = data ? data.publicUrl : '';
-    const isVideo = /\.(webm|mp4|mov|ogv)$/i.test(path);
-
-    // Built as elements rather than innerHTML so the URL is never parsed as
-    // markup, and set through .src so it cannot carry attributes.
-    const media = document.createElement(isVideo ? 'video' : 'img');
-    media.className = 'media-queue-media';
-    media.src = url;
-    if (isVideo) {
-        media.controls = true;
-        media.muted = true;
-        media.loop = true;
-    } else {
-        media.alt = path;
-    }
-
     target.innerHTML = '';
-    target.appendChild(media);
+    target.appendChild(buildMediaElement(path, 'media-queue-media'));
     target.dataset.loaded = 'true';
 }
 
@@ -472,5 +526,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // change, not input: initializeMangaSelects replaces these with a
         // custom dropdown that only ever dispatches change.
         if (select) select.addEventListener('change', window.renderMediaQueue);
+    });
+
+    const close = document.getElementById('media-preview-close');
+    if (close) close.addEventListener('click', window.closeMediaPreview);
+
+    // Escape, because the panel covers the pane the reviewer was reading.
+    document.addEventListener('keydown', (event) => {
+        if (event.key !== 'Escape') return;
+        const panel = document.getElementById('media-preview-panel');
+        if (panel && !panel.classList.contains('hidden')) window.closeMediaPreview();
     });
 });

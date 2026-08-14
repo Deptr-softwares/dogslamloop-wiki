@@ -175,13 +175,7 @@ window.buildPageSkeleton = function (route, rootPath) {
                     </button>
                 </div>
 
-                <nav class="character-nav">${navButtons}
-
-                    <button id="btn-edit-current-tab-mobile" class="btn-sys btn-sys-regular tab-editor-btn-mobile">
-                        ${EDIT_ICON_LG}
-                        EDIT TAB
-                    </button>
-                </nav>
+                <nav class="character-nav">${navButtons}</nav>
             </header>
 
 ${tabDivs}
@@ -205,11 +199,6 @@ ${tabDivs}
 
             <div class="system-back-row">
                 <a href="${ROOT}systems/index.html" class="btn-ghost">← Back to Systems Hub</a>
-
-                <button id="btn-edit-current-tab-mobile" class="btn-sys btn-sys-regular tab-editor-btn-mobile">
-                    ${EDIT_ICON}
-                    EDIT PAGE
-                </button>
             </div>
 
             <header class="home-main-header">

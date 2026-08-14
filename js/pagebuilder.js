@@ -224,10 +224,13 @@ window.buildGlobalSidebarMenu = async function(containerId) {
     }
 };
 
-// Universal Tab Editor Buttons (Handles Desktop Sidebar & Mobile Nav)
+// The per-page Edit and History buttons, built into the table of contents.
+//
+// One pair, not two. They used to be duplicated into the page body for phones
+// because the contents sidebar was display:none below 1024px; it is a drawer
+// now, and it goes everywhere the reader does.
 window.initTabEditorButtons = async function(pageId, pageType = 'character') {
     const sidebarBtn = document.getElementById('btn-edit-current-tab');
-    const mobileBtn = document.getElementById('btn-edit-current-tab-mobile');
 
     if (!pageId) return;
 
@@ -296,40 +299,15 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
         }
     }
 
-    // 2. Hook up the Mobile Nav Buttons (Grouped Layout)
-    if (mobileBtn) {
-        mobileBtn.classList.add('is-active');
-        mobileBtn.onclick = handleEditClick;
-
-        const parentDiv = mobileBtn.parentNode;
-
-        let mobBtnGroup = document.getElementById('mobile-btn-group');
-        if (!mobBtnGroup) {
-            mobBtnGroup = document.createElement('div');
-            mobBtnGroup.id = 'mobile-btn-group';
-
-            parentDiv.insertBefore(mobBtnGroup, mobileBtn);
-            mobBtnGroup.appendChild(mobileBtn);
-
-            // Real bug fixed here: this used to clone mobileBtn.style.cssText,
-            // which on system pages included a leftover inline
-            // "display: none" (present on those pages' static markup).
-            // #btn-edit-current-tab-mobile had a matching ID-specific CSS
-            // override to force it visible, but #btn-history-current-tab-mobile
-            // had no such override - so the cloned inline style permanently
-            // hid the History button on every system page except tierlist
-            // (the one page whose markup happened not to include it).
-            // Sharing .tab-editor-btn-mobile (style/Layout.css) instead of
-            // cloning makes both buttons' visibility rule live in one place.
-            const histBtnMob = document.createElement('button');
-            histBtnMob.id = 'btn-history-current-tab-mobile';
-            histBtnMob.className = 'btn-sys btn-sys-regular tab-editor-btn-mobile is-active';
-            histBtnMob.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> HISTORY`;
-            histBtnMob.onclick = handleHistoryClick;
-
-            mobBtnGroup.insertBefore(histBtnMob, mobileBtn);
-        }
-    }
+    // There is no mobile pair any more. Both buttons used to be duplicated
+    // into the page body for phones, because the right sidebar they live in
+    // was display:none below 1024px and there was no other way to reach them.
+    //
+    // The table of contents became a drawer on 2026-08-14, and it carries this
+    // same button group - so the copies in the body were a second set of the
+    // same two controls, one tap further from the reader's thumb than the
+    // drawer they now sit in, and taking up the width of a tab row on the
+    // narrowest screen the site serves. Owner's call: they go.
 };
 
 // Builds the sidebar's auth/profile dock (login state, role icon, OVERSEER

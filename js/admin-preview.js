@@ -59,6 +59,11 @@ async function previewRevision(revId) {
     const toggleBar = document.getElementById('version-toggle-bar');
     if (toggleBar) toggleBar.classList.remove('hidden');
 
+    // A media clip and a revision share this pane, so opening one puts the
+    // other away. Without this a reviewer picks a revision and gets the clip
+    // they were last looking at, still sitting on top of it.
+    if (typeof window.closeMediaPreview === 'function') window.closeMediaPreview();
+
     calculateTabDiffs(rev);
 
     if (window.activeChatChannel) { window.supabaseClient.removeChannel(window.activeChatChannel); }
