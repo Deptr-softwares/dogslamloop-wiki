@@ -272,3 +272,119 @@ test('the intro explains why the lists are attributed', async ({ page, request }
     expect(html).toContain('belongs to one person');
     expect(html).toMatch(/opinion/i);
 });
+
+// --- INTRODUCTIONS (v0.14 owner tools) -----------------------------------
+//
+// Two introductions exist and only one is ever on screen: the page's own,
+// shown before anybody is picked, and the author's, shown in its place once
+// somebody is. That swap is the feature - two stacked would make every list
+// read as a subsection of the owner's page, which is the opposite of what
+// attributing them was for.
+
+test('the page introduction shows while nobody is picked', async ({ page }) => {
+    await mockLists(page, { lists: [list()] });
+    await open(page);
+
+    await expect(page.locator('#tier-page-intro')).toBeVisible();
+    await expect(page.locator('.ctl-intro')).toHaveCount(0);
+});
+
+test('picking a person swaps the page introduction for theirs', async ({ page }) => {
+    await mockLists(page, {
+        lists: [list({ intro: [{ type: 'paragraph', content: 'I play zoners and rate them kindly.' }] })],
+    });
+    await open(page);
+
+    await page.click('[data-list-slug="owner"]');
+
+    await expect(page.locator('#tier-page-intro'), 'the page speaks until somebody else does').toBeHidden();
+    const intro = page.locator('.ctl-intro');
+    await expect(intro).toBeVisible();
+    await expect(intro).toContainText('Tier List Introduction');
+    await expect(intro).toContainText('zoners');
+});
+
+test('the introduction sits above the tiers, not below them', async ({ page }) => {
+    // A reader should meet the author before the ranking, and the reasoning
+    // only after it - otherwise the argument arrives before the thing it is
+    // about.
+    await mockLists(page, {
+        lists: [list({ intro: [{ type: 'paragraph', content: 'who I am' }] })],
+    });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+
+    const order = await page.evaluate(() => {
+        const intro = document.querySelector('.ctl-intro');
+        const firstRow = document.querySelector('.ctl-row');
+        return !!(intro && firstRow
+            && (intro.compareDocumentPosition(firstRow) & Node.DOCUMENT_POSITION_FOLLOWING));
+    });
+    expect(order).toBe(true);
+});
+
+test('going back to nobody brings the page introduction back', async ({ page }) => {
+    await mockLists(page, {
+        lists: [list({ intro: [{ type: 'paragraph', content: 'mine' }] })],
+    });
+    await open(page, `${PAGE}?list=owner`);
+
+    await expect(page.locator('#tier-page-intro')).toBeHidden();
+
+    // Reloading without the parameter is how a reader gets back to the picker.
+    await page.goto(PAGE, { waitUntil: 'networkidle' });
+    await expect(page.locator('#tier-page-intro')).toBeVisible();
+});
+
+test('a list with no introduction simply has none', async ({ page }) => {
+    // Nobody is obliged to write one, and an empty bordered box would read as
+    // something failing to load.
+    await mockLists(page, { lists: [list({ intro: [] })] });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+
+    await expect(page.locator('.ctl-intro')).toHaveCount(0);
+    await expect(page.locator('.ctl-row')).toHaveCount(3);
+});
+
+test('the reasoning actually renders, which it could not before', async ({ page }) => {
+    // A regression test for a bug that shipped in PR #81 and was invisible for
+    // a day: js/description.js was not loaded on this page, so
+    // generateHTMLForBlocks did not exist and the reasoning section could
+    // never have rendered at all.
+    //
+    // Thirteen tests missed it because every fixture had `reasoning: []`. An
+    // empty array takes the same branch as a missing renderer, so the tests
+    // agreed with the bug. This one supplies content, which is the only way
+    // the difference is observable.
+    await mockLists(page, {
+        lists: [list({
+            reasoning: [
+                { type: 'heading', content: 'On the top tier' },
+                { type: 'paragraph', content: 'Ten Shadows wins neutral for free.' },
+            ],
+        })],
+    });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+
+    const reasoning = page.locator('.ctl-reasoning');
+    await expect(reasoning).toBeVisible();
+    await expect(reasoning).toContainText('On the top tier');
+    await expect(reasoning).toContainText('wins neutral for free');
+
+    // Rendered as real markup by the site's own block renderer, not dumped as
+    // text - which is the whole reason for reusing it.
+    const headings = await reasoning.locator('h1, h2, h3, h4').count();
+    expect(headings).toBeGreaterThan(0);
+});
+
+test('the block renderer is present on this page at all', async ({ page }) => {
+    // The direct form of the same check. Both introductions and the reasoning
+    // depend on it, and its absence degrades silently to rendering nothing.
+    await mockLists(page, { lists: [list()] });
+    await open(page);
+
+    const available = await page.evaluate(() => typeof window.generateHTMLForBlocks === 'function');
+    expect(available, 'js/description.js must be loaded for the block sections to render').toBe(true);
+});

@@ -34,6 +34,10 @@
         notes: new Map(),    // page_id -> note typed for its pending move
         canEdit: false,
         drag: null,
+        // Two documents, one block editor. See switchDoc.
+        activeDoc: 'intro',
+        intro: [],
+        reasoning: [],
     };
 
     const client = () => window.supabaseClient;
@@ -429,6 +433,48 @@
     }
     window.tierEditorPlace = placeCharacter;
 
+    // --- TWO DOCUMENTS, ONE BLOCK EDITOR ---
+    //
+    // initStrategyBlockBuilder keeps a single module-level buffer
+    // (currentStrategyBlocks in js/editor-blocks.js), so two builders cannot
+    // exist at the same time. Switching therefore has to flush the open one
+    // before loading the other - exactly what editor-tabs.js does when it
+    // crosses a tab boundary, and the bug it fixed there was one tab's blocks
+    // being written into another's.
+    const DOC_HINTS = {
+        intro: "Shown at the top of your list, in place of the page's own introduction. Yours alone — it does not go through the review queue.",
+        reasoning: 'The long-form argument for your placements, shown under the changelog. Same editor the rest of the wiki uses.',
+    };
+
+    function flushOpenDoc() {
+        if (typeof window.getActiveBlocks !== 'function') return;
+        const blocks = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+        state[state.activeDoc] = blocks;
+    }
+
+    function switchDoc(doc) {
+        if (doc !== 'intro' && doc !== 'reasoning') return;
+        if (doc === state.activeDoc) return;
+
+        flushOpenDoc();
+        state.activeDoc = doc;
+
+        document.querySelectorAll('.tier-doc-btn').forEach(btn => {
+            const on = btn.dataset.doc === doc;
+            btn.classList.toggle('active', on);
+            btn.classList.toggle('btn-sys-blue', on);
+            btn.classList.toggle('btn-sys-regular', !on);
+        });
+
+        const hint = document.getElementById('tier-doc-hint');
+        if (hint) hint.textContent = DOC_HINTS[doc];
+
+        if (typeof initStrategyBlockBuilder === 'function') {
+            initStrategyBlockBuilder('strategy-block-target', state[doc]);
+        }
+    }
+    window.tierEditorSwitchDoc = switchDoc;
+
     // --- SAVING ---
 
     async function save() {
@@ -441,17 +487,17 @@
         if (save) save.disabled = true;
         setStatus('Saving…');
 
-        // The reasoning buffer lives in js/editor-blocks.js and only reaches a
-        // caller when read out - the same flush every other editor surface
-        // does before it writes.
-        const reasoning = typeof window.getActiveBlocks === 'function'
-            ? JSON.parse(JSON.stringify(window.getActiveBlocks()))
-            : (state.list.reasoning || []);
+        // Whichever document is open only reaches state when read out, so it
+        // is flushed first. Without this, saving while the introduction is open
+        // would write a stale reasoning and silently drop everything just
+        // typed into the introduction.
+        flushOpenDoc();
 
         const { data, error } = await client().rpc('save_tier_list', {
             p_list_id: state.list.id,
             p_tiers: state.tiers,
-            p_reasoning: reasoning,
+            p_reasoning: state.reasoning,
+            p_intro: state.intro,
             p_changes: moves.map(m => ({
                 character_id: m.id,
                 from_tier: m.from,
@@ -525,9 +571,17 @@
 
         renderBoard();
 
+        state.intro = Array.isArray(data.intro) ? JSON.parse(JSON.stringify(data.intro)) : [];
+        state.reasoning = Array.isArray(data.reasoning) ? JSON.parse(JSON.stringify(data.reasoning)) : [];
+        state.activeDoc = 'intro';
+
         if (typeof initStrategyBlockBuilder === 'function') {
-            initStrategyBlockBuilder('strategy-block-target', data.reasoning || []);
+            initStrategyBlockBuilder('strategy-block-target', state.intro);
         }
+
+        document.querySelectorAll('.tier-doc-btn').forEach(btn => {
+            btn.addEventListener('click', () => switchDoc(btn.dataset.doc));
+        });
 
         const board = document.querySelector('.editor-layout');
         if (board) {

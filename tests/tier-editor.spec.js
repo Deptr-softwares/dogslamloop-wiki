@@ -272,3 +272,65 @@ test('character names in the editor are never parsed as markup', async ({ page }
     expect(result.imgs).toBe(0);
     expect(result.label).toContain('<img');
 });
+
+// --- THE TWO DOCUMENTS (v0.14 owner tools) -------------------------------
+//
+// One block editor, two documents. initStrategyBlockBuilder keeps a single
+// module-level buffer, so switching has to flush the open one before loading
+// the other - and the bug that pattern exists to prevent, in editor-tabs.js,
+// was one tab's blocks being written into another's.
+
+test('the editor opens on the introduction, which is what a new author writes first', async ({ page }) => {
+    await openEditor(page);
+
+    await expect(page.locator('#btn-doc-intro')).toHaveClass(/active/);
+    await expect(page.locator('#btn-doc-reasoning')).not.toHaveClass(/active/);
+    await expect(page.locator('#tier-doc-hint')).toContainText('does not go through the review queue');
+});
+
+test('switching documents changes what the hint describes', async ({ page }) => {
+    await openEditor(page);
+
+    await page.click('#btn-doc-reasoning');
+    await expect(page.locator('#btn-doc-reasoning')).toHaveClass(/active/);
+    await expect(page.locator('#btn-doc-intro')).not.toHaveClass(/active/);
+    await expect(page.locator('#tier-doc-hint')).toContainText('under the changelog');
+});
+
+test('saving sends both documents, whichever one is open', async ({ page }) => {
+    // The failure this guards: saving while the introduction is open used to
+    // mean writing a stale reasoning and silently dropping everything just
+    // typed. The flush is what makes both correct regardless of which is open.
+    await openEditor(page, {
+        list: {
+            ...LIST,
+            intro: [{ type: 'paragraph', content: 'INTRO TEXT' }],
+            reasoning: [{ type: 'paragraph', content: 'REASONING TEXT' }],
+        },
+    });
+
+    await saveBtn(page).click();
+
+    const call = await page.evaluate(() => window.__rpcCalls.find(c => c.name === 'save_tier_list'));
+    expect(JSON.stringify(call.params.p_intro)).toContain('INTRO TEXT');
+    expect(JSON.stringify(call.params.p_reasoning)).toContain('REASONING TEXT');
+});
+
+test('switching away and back does not lose the other document', async ({ page }) => {
+    await openEditor(page, {
+        list: {
+            ...LIST,
+            intro: [{ type: 'paragraph', content: 'INTRO TEXT' }],
+            reasoning: [{ type: 'paragraph', content: 'REASONING TEXT' }],
+        },
+    });
+
+    await page.click('#btn-doc-reasoning');
+    await page.click('#btn-doc-intro');
+    await saveBtn(page).click();
+
+    const call = await page.evaluate(() => window.__rpcCalls.find(c => c.name === 'save_tier_list'));
+    expect(JSON.stringify(call.params.p_intro)).toContain('INTRO TEXT');
+    expect(JSON.stringify(call.params.p_reasoning), 'the document not on screen survived the round trip')
+        .toContain('REASONING TEXT');
+});

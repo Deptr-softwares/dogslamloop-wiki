@@ -80,13 +80,25 @@
 
             <div id="character-alerts-container" class="character-alerts-container"></div>
 
-            <section class="wiki-section" style="margin-bottom: 2rem;">
-                <p class="strategy-paragraph" style="color: var(--text-muted);">
-                    Every list here belongs to one person. Frame data is measurable; a tier list is an
-                    opinion, and an unattributed ranking quietly presents the second as the first. So each
-                    one is credited by name, carries the reasoning behind it, and records a note for every
-                    character that moves.
-                </p>
+            <!--
+                The page's own introduction, owner-editable from owner.html and
+                stored in tier_page_settings. Hidden by js/certified-tier-lists.js
+                the moment a person is picked, so their list reads as their space
+                rather than a subsection of somebody else's page.
+
+                The markup below is the fallback, and it matches what the
+                migration seeds - so the page says the right thing before the
+                fetch lands, and keeps saying it if the fetch never does.
+            -->
+            <section class="wiki-section" id="tier-page-intro" style="margin-bottom: 2rem;">
+                <div id="tier-page-intro-body">
+                    <p class="strategy-paragraph" style="color: var(--text-muted);">
+                        Every list here belongs to one person. Frame data is measurable; a tier list is an
+                        opinion, and an unattributed ranking quietly presents the second as the first. So each
+                        one is credited by name, carries the reasoning behind it, and records a note for every
+                        character that moves.
+                    </p>
+                </div>
             </section>
             
             <section class="wiki-section">
@@ -135,6 +147,18 @@
     <script src="../../js/pagebuilder.js"></script>
     
     <!-- Custom Tier List Engine -->
+    <!--
+        description.js is loaded for generateHTMLForBlocks alone, which renders
+        the block arrays behind each list's introduction and reasoning. It has
+        no DOMContentLoaded handler of its own, so it behaves as a library here
+        rather than booting anything.
+
+        Its absence was a real bug: the reasoning section shipped in PR #81 and
+        could never have rendered, because the function that renders it was not
+        on the page. Every test fixture had an empty reasoning array, so nothing
+        caught it.
+    -->
+    <script src="../../js/description.js"></script>
     <script src="../../js/tierlist.js"></script>
     <script src="../../js/certified-tier-lists.js"></script>
 
