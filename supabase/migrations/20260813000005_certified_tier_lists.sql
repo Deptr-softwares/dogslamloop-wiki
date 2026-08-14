@@ -333,10 +333,20 @@ BEGIN
 
     -- Oldest admin, which on this site is the owner. If there is somehow none,
     -- the list is still created and credited, just unowned until assigned.
+    --
+    -- Ordered by auth.users.created_at, NOT user_roles.created_at. That column
+    -- does not exist - user_roles is (user_id, role) plus v0.13's capability
+    -- flags and has never carried a timestamp. Referencing it failed with
+    -- 42703 on the v0.14 release and took the five migrations after this one
+    -- down with it.
+    --
+    -- The account's age is the better proxy anyway: when the role was assigned
+    -- is not recorded anywhere, but when the owner signed up is.
     SELECT ur.user_id INTO owner_uid
       FROM public.user_roles ur
+      JOIN auth.users u ON u.id = ur.user_id
      WHERE ur.role = 'admin'
-     ORDER BY ur.created_at
+     ORDER BY u.created_at
      LIMIT 1;
 
     SELECT COALESCE(

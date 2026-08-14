@@ -1,6 +1,29 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.14",
+      "date": "08/15/2026",
+      "type": "site",
+      "title": "The 'Community' update",
+      "description": "Every character page has a discussion at the bottom. Tier lists are credited to the people who write them, and there is a new one ranked by everyone's votes.",
+      "changes": [
+        "Every character page now has a discussion at the bottom, with one level of replies and a notification when somebody answers",
+        "Posts can be reported, and staff can hide a post without being able to rewrite it",
+        "The Certified Tier List is now one list per person, each credited by name with their reasoning underneath",
+        "Every character that moves up or down a certified list carries a short note explaining the move",
+        "Added the Free Submit Tier List, ranked by everyone's votes, showing how many people voted and how the votes were split",
+        "One vote per account, and the ranking uses the middle vote rather than the average, so a group voting together cannot swing it",
+        "On a phone the contents list is reachable at last: the menu icon opens it, and the site name opens the navigation",
+        "Character names written into a page now link to that character, including nicknames like Gojo, Higuruma and Reggie",
+        "The Emotes page can be edited now",
+        "The editor has its own colour picker instead of the operating system's, plus buttons for keyboard keys and for turning automatic colouring off",
+        "The editor header folds away and the tip above it can be dismissed, leaving about 190px more room to write in",
+        "Dashboard column headings share one font and size, and the sidebar buttons are smaller so the Ko-fi button fits on screen again",
+        "Combo strings now show properly on guide and tool pages, not only character pages",
+        "Changed a few things under the hood"
+      ]
+    },
+    {
       "version": "Beta v0.13",
       "date": "08/12/2026",
       "type": "site",
