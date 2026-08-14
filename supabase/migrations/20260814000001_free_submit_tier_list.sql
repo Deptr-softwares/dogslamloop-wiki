@@ -458,7 +458,7 @@ LANGUAGE "sql" SECURITY DEFINER
 STABLE
 SET "search_path" TO 'public'
 AS $$
-    settings AS (
+    WITH settings AS (
         SELECT COALESCE(s.free_submit_min_votes, 10) AS floor_votes,
                COALESCE(s.free_submit_tie_break, 'lower') AS tie_break
           FROM (SELECT 1) AS one

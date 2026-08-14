@@ -145,3 +145,39 @@ test('no migration reads a column its table does not have', () => {
     // Deduplicated: the same bad reference inside a loop is one mistake.
     expect([...new Set(problems)]).toEqual([]);
 });
+
+// A LANGUAGE sql function body must begin with a statement.
+//
+// 20260814000001 defined get_free_submit_rankings with a body starting
+// `settings AS (` - the WITH was lost when that CTE replaced an earlier one
+// during the tie-break change. Postgres raised 42601 at migration time, and
+// nothing here noticed for two reasons: the migration never ran (005 was
+// failing ahead of it), and Playwright does not parse SQL.
+//
+// Narrow on purpose. It does not attempt to validate SQL; it checks the one
+// thing that is unambiguous - the first token - which is exactly the shape a
+// half-finished CTE rename leaves behind.
+test('every sql function body starts with a statement, not a bare CTE', () => {
+    const problems = [];
+
+    for (const { file, sql } of migrationSql()) {
+        const re = /LANGUAGE\s+"?sql"?\b[\s\S]{0,400}?AS\s+\$\$([\s\S]*?)\$\$/gi;
+        let m;
+        while ((m = re.exec(sql))) {
+            const body = m[1]
+                .replace(/--[^\n]*/g, ' ')
+                .replace(/\/\*[\s\S]*?\*\//g, ' ')
+                .trim();
+            if (!body) continue;
+
+            const first = (body.match(/^[a-z_]+/i) || [''])[0].toUpperCase();
+            const starters = ['WITH', 'SELECT', 'INSERT', 'UPDATE', 'DELETE', 'VALUES', 'TABLE'];
+            if (!starters.includes(first)) {
+                problems.push(`${file}: a sql function body starts with "${first}"`
+                    + ` — expected one of ${starters.join(', ')}`);
+            }
+        }
+    }
+
+    expect(problems).toEqual([]);
+});
