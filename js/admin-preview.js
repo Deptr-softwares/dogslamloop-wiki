@@ -265,7 +265,17 @@ async function switchVersionView(mode) {
                 const liveDesc = modeId ? ((window.currentLiveDescData.modeData || {})[modeId] || {}) : window.currentLiveDescData;
                 const liveFrame = modeId ? ((window.currentLiveFrameData.modeData || {})[modeId] || {}) : window.currentLiveFrameData;
                 const where = modeId ? modeId.toUpperCase() + ' / ' : '';
-                diffContainer.innerHTML += `<div class="diff-location-label">Suggested Edit Location: [ ${where}${formatScopeName(scope).toUpperCase()} ➔ ${key.replace('::', ': ').toUpperCase()} ]</div>`;
+
+                // `key` was interpolated straight into `key.replace(...)`, which
+                // threw on a null key and took the whole batch render down with
+                // it - see the forEach below. The merge compiler emits null for
+                // a base-kit section conflict where the editor emits 'full', so
+                // every merged ticket containing one showed only the entries
+                // ahead of it. Tickets already in the queue still carry null
+                // keys, so this coercion is what makes them reviewable at all.
+                const keyLabel = String(key === null || key === undefined ? 'full' : key)
+                    .replace('::', ': ').toUpperCase();
+                diffContainer.innerHTML += `<div class="diff-location-label">Suggested Edit Location: [ ${where}${formatScopeName(scope).toUpperCase()} ➔ ${keyLabel} ]</div>`;
 
                 if (['profile', 'playstyle', 'overview', 'strategy'].includes(scope)) {
                     renderDiffBlock(formatScopeName(scope), liveDesc[scope], payload);
@@ -316,7 +326,25 @@ async function switchVersionView(mode) {
             // Recursively execute the render function for Batched multi-tickets!
             if (rev.target_scope === 'multi') {
                 diffContainer.innerHTML += `<div class="diff-batch-banner">BATCHED MULTI-PAYLOAD DETECTED (${rev.delta_payload.length} EDITS)</div>`;
-                rev.delta_payload.forEach(edit => renderDeltaDiff(edit.scope, edit.key, edit.payload));
+
+                // One entry must not be able to hide the others. This loop was
+                // a bare forEach, so a single throw inside renderDeltaDiff
+                // abandoned every remaining edit - the banner still counted
+                // them, so the ticket read as "5 EDITS" while showing 2, with
+                // nothing to say the other 3 existed. A reviewer approving that
+                // is approving changes they were never shown.
+                rev.delta_payload.forEach((edit, i) => {
+                    try {
+                        renderDeltaDiff(edit.scope, edit.key, edit.payload);
+                    } catch (err) {
+                        console.error('[Diff] Edit', i + 1, 'failed to render:', err, edit);
+                        const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s));
+                        diffContainer.innerHTML += `<div class="diff-location-label">`
+                            + `Edit ${i + 1} of ${rev.delta_payload.length} could not be displayed`
+                            + ` (scope: ${esc(edit && edit.scope)}). It is still part of this ticket.`
+                            + `</div>`;
+                    }
+                });
             } else if (rev.target_scope === 'system_data') {
                 const oldTabs = window.currentLiveDescData.tabs || [];
                 const newTabs = rev.delta_payload.tabs || [];

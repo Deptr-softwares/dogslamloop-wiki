@@ -264,7 +264,13 @@ function calculateTabDiffs(rev, showPopup = true) {
                 if (['profile', 'playstyle', 'overview', 'strategy', 'extra'].includes(scope)) targetTab = 'overview';
                 else if (scope === 'matchup') targetTab = 'matchups';
                 else if (scope === 'counterplay') targetTab = 'counterplay';
-                else if (scope === 'move') targetTab = key.split('::')[0];
+                // Coerced for the same reason as the diff renderer: a null key
+                // reaching here would throw inside the changed-tabs scan, and
+                // that scan feeds the popup telling a reviewer which tabs to
+                // look at. Losing it silently is how a batch looks smaller than
+                // it is. A move always has a key, so this is a guard rather
+                // than a behaviour change.
+                else if (scope === 'move') targetTab = String(key || '').split('::')[0] || 'overview';
 
                 if (!window.changedTabs.includes(targetTab)) window.changedTabs.push(targetTab);
             };
