@@ -30,6 +30,25 @@ function scriptsWithFlag(command, flag) {
         .map(match => match[1]);
 }
 
+// Guards, not generators.
+//
+// The rule above is about ARTIFACTS: something generate writes and validate
+// then checks, where a check with no write stalls the regeneration job. A
+// guard is different. It validates something the job never writes, so it
+// cannot stall it - `lock-migrations --check` reads supabase/migrations, which
+// no regeneration step touches, and passes there unconditionally.
+//
+// Giving one of these a --write in `generate` would be actively harmful rather
+// than merely redundant, which is why they are exempted here instead of being
+// made to fit. Each entry says what breaks if it is "fixed" the obvious way.
+const GUARDS_NOT_ARTIFACTS = new Map([
+    ['lock-migrations',
+     'the migration lock exists so that editing an already-pushed migration '
+     + 'fails loudly. Adding it to `generate` would have the nightly '
+     + 'regeneration job re-lock any edited migration automatically - the '
+     + 'check would go green forever and protect nothing.'],
+]);
+
 test('every artifact validate checks is one generate writes', async () => {
     const checked = scriptsWithFlag(pkg.scripts.validate, 'check');
     const written = scriptsWithFlag(pkg.scripts.generate, 'write');
@@ -38,7 +57,20 @@ test('every artifact validate checks is one generate writes', async () => {
     expect(checked.length).toBeGreaterThan(1);
 
     for (const script of checked) {
+        if (GUARDS_NOT_ARTIFACTS.has(script)) continue;
         expect(written, `${script} is checked by validate but never written by generate`).toContain(script);
+    }
+});
+
+// The exemption list must not quietly become a place to park real artifacts.
+// A guard that DOES have a --write in generate is not a guard; it is an
+// artifact that was mislabelled, and the rule above should be applying to it.
+test('nothing on the guard list is secretly a generated artifact', async () => {
+    const written = scriptsWithFlag(pkg.scripts.generate, 'write');
+
+    for (const [script, why] of GUARDS_NOT_ARTIFACTS) {
+        expect(written, `${script} is exempted as a guard but generate writes it — ${why}`)
+            .not.toContain(script);
     }
 });
 

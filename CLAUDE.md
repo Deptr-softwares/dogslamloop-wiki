@@ -15,16 +15,19 @@ Frame data, i-frames, matchup tiers and M1 trading are domain terms with real ga
 - **`next-update` is the integration branch; `main` is production.** Pages serves `main`, so every merge there is a live deploy. Item PRs target `next-update`; a release is one PR from `next-update` to `main` carrying the changelog and version bump. Readers see one change per release rather than one per item.
 - **CI triggers on `main` and `next-update` only.** A PR targeting anything else runs no tests, and reports green because nothing ran.
 - **Push to `main` deploys immediately.** No staging environment.
-- A branch ruleset (`main: require CI`, active since 2026-08-08) requires the `test` check. **Direct pushes to `main` are rejected** — a push carries no check run, so it can never satisfy the rule. Everything lands through a PR.
+- **Both branches carry a ruleset requiring `test` and `Supabase Preview`** (`main: require CI` since 2026-08-08, `next-update: require CI` since 2026-08-14; `Supabase Preview` added to both on 2026-08-15 after a release merged over a red one). **Direct pushes to either are rejected** — a push carries no check run, so it can never satisfy the rule. Everything lands through a PR. `Supabase Preview` reports `SKIPPED` rather than nothing on a PR that touches no SQL, which is why requiring it does not deadlock CSS-only work.
 - **Except the regeneration job**, which must push its generated artifacts. It checks out over SSH with a deploy key (`secrets.REGEN_DEPLOY_KEY`), and that deploy key is in the ruleset's bypass list. The default `GITHUB_TOKEN` identity cannot be used for this: `github-actions[bot]` is not a user, team or installed app, so no bypass list can name it. The job runs the full suite before committing, so the bypass skips a check the job performs on itself.
 - **Migrations apply on merge to `main`, so at release time the whole accumulated batch applies at once.** Between writing a migration and the release, anything database-backed looks broken — a missing table or `PGRST202 / schema cache` error is the expected state, not a bug.
 - **Supabase branching verifies migrations before they reach production.** Automatic branching is on, scoped by *Supabase changes only*, so a PR touching `supabase/` gets a preview database and the migrations run against it; a PR touching only CSS or JS gets none. The release PR touches `supabase/` too, so it runs the entire accumulated set together — the only check that catches two independently-valid migrations conflicting in sequence. Branching compute sits outside the org spend cap, and a preview branch lives as long as its PR stays open.
+- **A green preview does not mean the migration is correct.** It records each migration by version and never re-runs it, so *editing a migration you already pushed is verified by nothing* — `supabase/migrations.lock.json` exists to catch that. And a preview has production's schema plus **only the rows the migrations insert** — never any *content*, so a code path guarded by owner- or contributor-authored data is never executed there. Both of these shipped broken migrations in v0.14. The `supabase-migration` skill has the detail.
+- **`supabase/seed.sql` runs on branch creation and on local `db reset`, never on `db push`.** It gives a preview branch two accounts with known passwords (one admin, one deliberately roleless) so RLS, grants and RPC guards can be probed for real. It runs *after* migrations, so it cannot help a migration that reads data at migration time.
 
 ## Commands
 
 ```
 npm test                  # Playwright suite
-npm run validate          # navigation + generated-stub check (runs in CI)
+npm run validate          # migration lock + navigation + generated-stub check (runs in CI)
+npm run lock-migrations   # re-record migration checksums (only when re-locking is intended)
 npm run generate          # rewrite page stubs from navigation.json
 npm run refresh-previews  # pull portrait URLs from Supabase
 npm run refresh-registry  # rewrite navigation.json from site_pages

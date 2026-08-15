@@ -181,3 +181,60 @@ test('every sql function body starts with a statement, not a bare CTE', () => {
 
     expect(problems).toEqual([]);
 });
+
+// Every callable function revokes the grant Postgres hands out for free.
+//
+// CREATE FUNCTION grants EXECUTE to PUBLIC. Every new RPC is therefore
+// callable by `anon` from the moment it exists, over the public REST endpoint,
+// with the anon key that ships in js/site_utils.js. On 2026-08-07 that was not
+// theoretical: assign_role_by_email could be called by anybody, and it
+// assigned roles.
+//
+// Trigger functions are excluded. They are invoked by their trigger rather
+// than over PostgREST, and calling one directly raises "can only be called as
+// a trigger" - a PUBLIC grant on them reaches nothing.
+test('every callable function revokes EXECUTE from PUBLIC in the same migration', () => {
+    // Each entry is a function that predates this rule and was closed
+    // elsewhere. Keyed file:function, so the SAME function added to a new file
+    // without a REVOKE is still reported.
+    const LEGACY = new Map([
+        // The baseline dump, and the role-model rewrite four days later. Both
+        // predate the incident. Closed by 20260807000001, which revokes from
+        // PUBLIC, anon AND authenticated - it is admin-only now.
+        ['20260727000000_remote_schema.sql:assign_role_by_email', 'closed by 20260807000001'],
+        ['20260801000000_role_model_fix.sql:assign_role_by_email', 'closed by 20260807000001'],
+        // Revoked in the baseline at line 302 and never re-granted. This file
+        // redefines it with CREATE OR REPLACE, which preserves the existing
+        // ACL, so the revoke still holds.
+        ['20260801000000_role_model_fix.sql:get_my_role', 'revoked in 20260727000000; CREATE OR REPLACE keeps the ACL'],
+    ]);
+
+    const problems = [];
+
+    for (const { file, sql } of migrationSql()) {
+        const clean = sql.replace(/--[^\n]*/g, ' ');
+
+        // The signature is captured through RETURNS so trigger functions can
+        // be told apart from callable ones.
+        const fnRe = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+"?public"?\."?([a-z_0-9]+)"?\s*\(([^)]*)\)\s*RETURNS\s+("?[a-z_]+"?)/gi;
+        const seen = new Set();
+        let m;
+        while ((m = fnRe.exec(clean))) {
+            const [, name, , ret] = m;
+            if (ret.replace(/"/g, '').toLowerCase() === 'trigger') continue;
+            if (seen.has(name)) continue;
+            seen.add(name);
+            if (LEGACY.has(`${file}:${name}`)) continue;
+
+            const revokeRe = new RegExp(
+                `REVOKE\\s+ALL\\s+ON\\s+FUNCTION\\s+"?public"?\\."?${name}"?[\\s\\S]{0,300}?FROM\\s+PUBLIC`, 'i');
+            if (!revokeRe.test(clean)) {
+                problems.push(`${file}: public.${name}() is created without`
+                    + ` REVOKE ALL ON FUNCTION "public"."${name}"(...) FROM PUBLIC`
+                    + ` — it is callable by anon until something else revokes it`);
+            }
+        }
+    }
+
+    expect(problems).toEqual([]);
+});
