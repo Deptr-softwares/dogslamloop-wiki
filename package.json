@@ -5,6 +5,7 @@
     "lock-migrations": "node scripts/lock-migrations.js --write",
     "generate": "node scripts/generate-pages.js --write && node scripts/generate-sitemap.js --write && node scripts/generate-hub-meta.js --write && node scripts/stamp-assets.js --write",
     "refresh-previews": "node scripts/fetch-previews.js --write",
+    "refresh-portraits": "node scripts/fetch-portraits.js --write",
     "refresh-registry": "node scripts/fetch-registry.js --write",
     "refresh-content": "node scripts/fetch-content.js --write",
     "pretest": "node scripts/stamp-assets.js --check"

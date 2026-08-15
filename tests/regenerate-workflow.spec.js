@@ -95,9 +95,22 @@ test('the workflow fetches fresh data before generating from it', async () => {
         workflow.indexOf('fetch-previews.js'),
         workflow.indexOf('fetch-registry.js'),
         workflow.indexOf('fetch-content.js'),
+        workflow.indexOf('fetch-portraits.js'),
     );
     expect(lastFetch).toBeGreaterThan(-1);
     expect(lastFetch).toBeLessThan(workflow.indexOf('npm run generate'));
+});
+
+// fetch-portraits mirrors the URLs that fetch-previews writes, so running it
+// first would mirror the previous run's map and quietly lag one day behind
+// every portrait change.
+test('portraits are mirrored after the map they are mirrored from is refreshed', async () => {
+    const previews = workflow.indexOf('fetch-previews.js');
+    const portraits = workflow.indexOf('fetch-portraits.js');
+
+    expect(previews).toBeGreaterThan(-1);
+    expect(portraits).toBeGreaterThan(-1);
+    expect(portraits).toBeGreaterThan(previews);
 });
 
 test('the workflow still commits only after the suite has run', async () => {

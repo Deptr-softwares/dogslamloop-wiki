@@ -30,6 +30,7 @@ npm run validate          # migration lock + navigation + generated-stub check (
 npm run lock-migrations   # re-record migration checksums (only when re-locking is intended)
 npm run generate          # rewrite page stubs from navigation.json
 npm run refresh-previews  # pull portrait URLs from Supabase
+npm run refresh-portraits # mirror those portraits into medias/portraits/
 npm run refresh-registry  # rewrite navigation.json from site_pages
 npm run refresh-content   # rewrite faq.json + collaborators_data.json
 ```
@@ -44,6 +45,7 @@ Edit the source and regenerate; hand-edits are overwritten by the `regenerate.ym
 |---|---|
 | `data/navigation.json` | `site_pages` table |
 | `data/page-previews.json` | `page_data.desc_data.profile.image` |
+| `data/portraits.json` + `medias/portraits/*` | mirrored from the URLs in `page-previews.json` |
 | `data/faq.json` | `site_faq` table |
 | `systems/collaborators/collaborators_data.json` | `site_collaborators` table |
 | `characters/*/index.html`, `systems/*/index.html` | `navigation.json` + `page-previews.json` |

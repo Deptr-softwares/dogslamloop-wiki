@@ -16,7 +16,35 @@ async function fetchTierRoster() {
         if (window.fetchJson) navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
         else { const res = await fetch(`${rootPath}data/navigation.json`); navData = await res.json(); }
         
-        window.tierRoster = navData["Characters"] || [];
+        const roster = navData["Characters"] || [];
+
+        // Attach the mirrored portrait, so buildPortrait below takes its
+        // `charMeta.image` path instead of guessing a Supabase URL from the
+        // display name. The guess was wrong for five characters - Disaster
+        // Plants, Locust Guy, Black Death, Boomcat and the template - whose
+        // files end in "Portrait2.webp" or drop the suffix entirely, and the
+        // <img> hides itself on error, so they rendered nothing at all.
+        //
+        // These are same-origin, which is also what makes the tier list
+        // exportable: a cross-origin image taints a canvas and makes both
+        // toBlob() and the clipboard write throw.
+        try {
+            const portraits = window.fetchJson
+                ? await window.fetchJson(`${rootPath}data/portraits.json`, { cache: true })
+                : await (await fetch(`${rootPath}data/portraits.json`)).json();
+
+            for (const entry of roster) {
+                const pageId = entry.cms_config && entry.cms_config.pageId;
+                if (pageId && portraits[pageId]) entry.image = portraits[pageId];
+            }
+        } catch (e) {
+            // Non-fatal on purpose. Without the manifest every portrait falls
+            // back to the guessed cloud URL, which is what shipped before -
+            // degraded, not broken.
+            console.warn("Portrait manifest unavailable, falling back to guessed URLs:", e);
+        }
+
+        window.tierRoster = roster;
         return window.tierRoster;
     } catch (e) {
         console.error("Failed to load Roster for Tier List:", e);
