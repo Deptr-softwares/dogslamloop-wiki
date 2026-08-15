@@ -60,11 +60,11 @@ It is a required check on both branches now. It still lies in two specific ways,
 
     `npm run validate` enforces this via `supabase/migrations.lock.json`. If you genuinely need to re-lock — the migration failed, or never left your machine — `npm run lock-migrations` and say why in the commit.
 
-11. **A preview branch has production's schema and none of its data.** Any code path guarded by a row that only production has is never executed, so its column references are never resolved.
+11. **A preview branch has production's schema and only the data the migrations themselves insert.** Not a blank database — it holds all 40 `site_pages` rows, the hub copy, the tier settings. What it has none of is **content**: anything the owner or a contributor wrote through the site. A code path guarded by a *content* row therefore never executes, and its column references are never resolved.
 
-    `20260813000005` seeds a tier list inside a `DO` block opening `IF overall IS NULL THEN ... RETURN`. On an empty `page_data` it returned early, so the `ORDER BY ur.created_at` below it was never planned. It passed its own PR (#81) **and** the release preview, then raised `42703` on production and rolled back the five migrations behind it.
+    `20260813000005` seeds a tier list from a `page_data` row for `'tierlist'` carrying an `overall` tab — owner-authored, created by no migration. Its `DO` block opens `IF overall IS NULL THEN ... RETURN`, so it returned early and the `ORDER BY ur.created_at` below was never planned. It passed its own PR (#81) **and** the release preview, then raised `42703` on production and rolled back the five migrations behind it.
 
-    `supabase/seed.sql` cannot fix this — seeding runs *after* migrations. **The defence is static:** `tests/migration-columns.spec.js` resolves column references against the schema in `supabase/migrations` with no database at all, and it is in the required `test` check. When a migration reads data at migration time, assume nothing will execute it before production and re-read it on that assumption.
+    `supabase/seed.sql` cannot fix this — seeding runs *after* migrations. **The defence is static:** `tests/migration-columns.spec.js` resolves column references against the schema in `supabase/migrations` with no database at all, and it is in the required `test` check. When a migration reads content at migration time, assume nothing will execute that path before production and re-read it on that assumption.
 
 ## Verify against a preview branch, then production
 

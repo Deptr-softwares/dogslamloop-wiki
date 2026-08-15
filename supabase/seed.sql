@@ -1,50 +1,55 @@
 -- Fixtures for preview branches and local `supabase db reset`.
 --
--- WHAT THIS IS FOR. A Supabase preview branch copies production's SCHEMA and
--- none of its DATA. That makes it useless for the one kind of verification
--- Playwright cannot do at all: RLS policies, table grants and RPC guards, all
--- of which need real rows and a real signed-in caller to say anything. Every
--- probe in scripts/probe-release.js that needs USER_JWT or ADMIN_JWT has been
--- skipped since it was written, for exactly this reason - 40 of them.
+-- WHAT A PREVIEW BRANCH ALREADY HAS, and what it does not. It runs every
+-- migration against an empty database, so it ends up holding exactly what the
+-- migrations themselves insert - all 40 rows of the page registry from
+-- 20260808000003, the hub copy from 20260809000001, the tier page settings
+-- from 20260814000000. It is not a blank database.
 --
--- After this file, a preview branch has two accounts with known passwords, an
--- admin among them, and enough page rows to be worth querying. The probe
--- script can sign in against the branch and run its whole matrix.
+-- What it does not have is CONTENT: everything the owner and contributors
+-- wrote through the site, which lives only in production. No character has
+-- frame data. No account exists at all.
 --
--- WHAT THIS IS NOT FOR, AND CANNOT BE. Seeding runs AFTER migrations, not
--- before - config.toml says so at [db.seed], and branch creation follows the
--- same order. So a migration that reads data at migration time still sees an
--- empty database on a preview branch, and this file cannot change that.
+-- That second gap is what this file closes. Every probe in
+-- scripts/probe-release.js that needs USER_JWT or ADMIN_JWT has been skipped
+-- since the day it was written - 40 of them - because a preview branch had
+-- nobody to sign in as. RLS policies, table grants and RPC guards are exactly
+-- what Playwright cannot reach and exactly what needs a real caller.
 --
--- That is not a hypothetical. 20260813000005 seeds the owner's tier list from
--- page_data inside a DO block that begins:
+-- WHAT THIS CANNOT DO. Seeding runs AFTER migrations - config.toml says so at
+-- [db.seed], and branch creation follows the same order - so a migration that
+-- reads data at migration time still runs before any of this exists.
 --
---     IF overall IS NULL THEN RAISE NOTICE '...'; RETURN; END IF;
+-- That is not hypothetical. 20260813000005 seeds the owner's tier list from a
+-- page_data row for 'tierlist' carrying an 'overall' tab. No migration creates
+-- that row; the owner authored it through the editor. So the DO block took its
+-- `IF overall IS NULL THEN RETURN` path, and the `ORDER BY ur.created_at`
+-- below it was never planned. It passed its own PR (#81) and passed the
+-- release preview. Production had the row, took the other path, raised 42703,
+-- and rolled back the five migrations behind it.
 --
--- On a preview branch page_data is empty, so it returned early, and the
--- `ORDER BY ur.created_at` five lines below was never planned. It passed its
--- own PR (#81) and passed the release preview. Production had the row, took
--- the other branch, and raised 42703 - which rolled back and took the five
--- migrations after it down with it.
+-- The fixture below adds that exact row, which makes the shape visible to
+-- anyone reading this file - but adding it here would NOT have caught that
+-- bug, because of the ordering above. The defence against that class is
+-- static: tests/migration-columns.spec.js resolves column references against
+-- the schema in supabase/migrations with no database at all, and it is in the
+-- required `test` check.
 --
--- The defence against THAT is static: tests/migration-columns.spec.js reads
--- the schema out of supabase/migrations and checks column references without a
--- database at all. It is in the required `test` check. Use it, not this file.
---
--- SAFETY. This never runs against production - `supabase db push` does not
+-- SAFETY. This never runs against production: `supabase db push` does not
 -- seed, and only branch creation and a local reset do. The guard below is a
--- second lock rather than the only one: it refuses to touch a database that
--- already has page rows, so pointing a reset at something real fails loudly
--- instead of inventing an administrator on it.
+-- second lock rather than the only one.
 
+-- An empty auth.users is the honest signal for "fresh database". Page rows are
+-- NOT - migrations insert those, so a preview branch has them from the first
+-- second, and an earlier version of this guard keyed on them and refused to
+-- run on every preview branch it was written for.
 DO $$
 BEGIN
-    IF EXISTS (SELECT 1 FROM public.page_data LIMIT 1)
-    OR EXISTS (SELECT 1 FROM public.site_pages LIMIT 1) THEN
+    IF EXISTS (SELECT 1 FROM auth.users LIMIT 1) THEN
         RAISE EXCEPTION
-            'Refusing to seed: this database already has page rows, so it is '
-            'not an empty preview branch. Seeding here would create a fixture '
-            'administrator on real data.';
+            'Refusing to seed: this database already has accounts, so it is not '
+            'a fresh preview branch. Seeding here would create a fixture '
+            'administrator alongside real users.';
     END IF;
 END $$;
 
@@ -67,11 +72,10 @@ END $$;
 -- Fixed UUIDs so probes can assert against them without a lookup round trip.
 --
 -- Wrapped with an exception handler because auth.users belongs to Supabase,
--- not to this repo, and its column set moves under us. A shape change here
--- should cost the probes their JWTs and nothing else - the seed still needs to
--- finish so the page fixtures below land. `Supabase Preview` is a required
--- check on both branches now, so a hard failure in this block would block
--- every merge over a fixture.
+-- not to this repo, and its column set moves under us. `Supabase Preview` is a
+-- required check on both branches now, so a hard failure here would block
+-- every merge over a fixture. A shape change should cost the probes their
+-- JWTs and nothing else.
 DO $$
 DECLARE
     admin_uid  uuid := '00000000-0000-4000-8000-00000000ad11';
@@ -119,9 +123,9 @@ BEGIN
         'email', now(), now(), now()
     );
 
-    -- One role, one row. UNIQUE(user_id) enforces it; multi-role broke
-    -- get_my_role() with "more than one row returned by a subquery" and took
-    -- that user's access down everywhere.
+    -- One role, one row. UNIQUE(user_id) enforces it; multi-role previously
+    -- broke get_my_role() with "more than one row returned by a subquery" and
+    -- took that user's access down everywhere.
     INSERT INTO public.user_roles (user_id, role) VALUES (admin_uid, 'admin');
 
     RAISE NOTICE 'Seeded admin@dogslamloop.test and member@dogslamloop.test.';
@@ -132,46 +136,35 @@ EXCEPTION WHEN OTHERS THEN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- PAGES
+-- CONTENT
 -- ---------------------------------------------------------------------------
 --
--- Enough of the registry to query, chosen rather than sampled.
---
--- Three of these rows carry a LEGACY nav_id - an identifier kept from an
--- earlier naming pass that no longer resembles what the character is called
--- now:
+-- Only what no migration provides. site_pages is deliberately untouched:
+-- 20260808000003 seeds the whole registry, which is a better fixture than any
+-- subset written here, and it already includes the three rows worth caring
+-- about - the legacy nav_ids whose identifier no longer resembles the name:
 --
 --     nav_id       name              page_id
 --     Locust    -> Locust Guy        locust_guy
 --     Mangaka   -> Aspiring Mangaka  aspiring_mangaka
 --     Sus-Sister-> Crow Charmer      crow_charmer
 --
--- They are here on purpose. Anything joining nav_id to page_id on a
--- normalised string resolves those three through the fallback rather than the
--- easy path, and a fixture made only of Ten-Shadows-shaped rows - where all
--- three identifiers agree once punctuation is stripped - would let that
--- fallback rot unnoticed.
+-- Anything joining nav_id to page_id on a normalised string resolves those
+-- three through its fallback rather than the easy path, so the tier fixture
+-- below stores nav_ids in its `characters` arrays. That mismatch IS the
+-- fallback's reason to exist.
 --
--- The tier fixture below stores nav_ids in its `characters` arrays, because
--- that is what the old Overall tab stored. That mismatch IS the fallback's
--- reason to exist.
-INSERT INTO public.site_pages
-    (page_id, nav_id, name, url, category, sort_order, page_type, edit_role)
-VALUES
-    ('ten_shadows',      'Ten-Shadows',  'Ten Shadows',      'characters/Ten_shadows/index.html',      'Characters',   1, 'character', 'open'),
-    ('locust_guy',       'Locust',       'Locust Guy',       'characters/Locust_guy/index.html',       'Characters',   2, 'character', 'open'),
-    ('aspiring_mangaka', 'Mangaka',      'Aspiring Mangaka', 'characters/Aspiring_mangaka/index.html', 'Characters',   3, 'character', 'open'),
-    ('crow_charmer',     'Sus-Sister',   'Crow Charmer',     'characters/Crow_charmer/index.html',     'Characters',   4, 'character', 'open'),
-    ('register',         'Register',     'Register',         'characters/Register/index.html',         'Characters',   5, 'character', 'trusted_editor'),
-    ('framedata',        'framedata',    'Frame data',       'systems/framedata/index.html',           'System Pages', 6, 'system',    'open');
+-- ON CONFLICT DO NOTHING throughout: a later migration may start seeding one
+-- of these, and this file should go quiet when that happens rather than break
+-- every preview branch on a duplicate key.
 
--- The Overall tab in the shape 20260813000005 reads. It is inert now - that
--- migration has already run and recorded itself, so it will not run again -
--- but the next data migration to read page_data will find something here, and
--- a reviewer reading this file can see what that shape actually is.
+-- The Overall tab in the shape 20260813000005 reads. Inert now - that
+-- migration has recorded itself and will not run again - but the next data
+-- migration to read page_data will find it, and a reviewer can see what the
+-- shape actually is instead of reconstructing it from a DO block.
 INSERT INTO public.page_data (page_id, page_type, desc_data)
 VALUES (
-    'tierlist', 'system',
+    'tierlist', 'tierlist',
     jsonb_build_object('tabs', jsonb_build_array(
         jsonb_build_object(
             'id', 'overall',
@@ -186,12 +179,13 @@ VALUES (
             )
         )
     ))
-);
+)
+ON CONFLICT (page_id) DO NOTHING;
 
--- A character page with a frame data table, so anything reading frame_data has
--- a row with the real column shape rather than an empty set. The numbers are
--- invented and say nothing about the character - startup/active/recovery and
--- the two advantage figures are here to be parsed, not to be believed.
+-- One character page with frame data, so anything reading frame_data meets the
+-- real column shape rather than an empty set. The numbers are invented and say
+-- nothing about the character - startup/active/recovery and the two advantage
+-- figures are here to be parsed, not to be believed.
 INSERT INTO public.page_data (page_id, page_type, desc_data, frame_data)
 VALUES (
     'ten_shadows', 'character',
@@ -200,4 +194,5 @@ VALUES (
         jsonb_build_object('name', 'M1', 'startup', 8, 'active', 3, 'recovery', 14,
                            'onBlock', -4, 'onHit', 2)
     ))
-);
+)
+ON CONFLICT (page_id) DO NOTHING;
