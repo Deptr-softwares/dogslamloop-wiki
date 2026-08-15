@@ -144,6 +144,23 @@ change
 
 Body should cover: what shipped, anything found along the way that was broken rather than merely missing, decisions a reviewer would otherwise have to reverse-engineer, and an explicit section for what needs the owner **after** merge (live probes, things only they can verify).
 
+## Never state a PR URL you have not created
+
+`git push` prints a *"create a pull request"* hint. That is not a PR. On
+2026-08-16 a PR number was quoted to the owner from that hint alone, the owner
+tracked it for several exchanges as real, and it did not exist —
+`gh pr view 103` returned *"Could not resolve to a PullRequest"*.
+
+**The URL in a message must come from the output of `gh pr create`**, never
+from the push hint and never from inference. If you did not see `gh pr create`
+succeed in this session, check before you cite it:
+
+```bash
+gh pr list --state open --json number,title,headRefName
+```
+
+Same discipline as `mergedAt` below: repo state is read, not remembered.
+
 ## A merged PR's branch is closed to new work
 
 **Once a PR is merged, commits pushed to its branch are orphaned.** The PR does
