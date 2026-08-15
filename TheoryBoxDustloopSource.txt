@@ -1,0 +1,14 @@
+<includeonly>{{#vardefine:GameThumbnail|{{#titleparts:{{PAGENAME}}|1|1}} }}
+{{Anchor|{{{Anchor|{{{Title|}}}}}}}}<div class="TheoryBoxContainer"><!--
+--><div class="TheoryBoxTitle"><!--
+----><span style="font-size: 1.1em; font-weight: bold; margin-right: 0.5em;">{{{Title|Card Title}}}</span><!--
+----><i>{{{Oneliner|One-liner text}}}</i><!--
+--></div>
+<div class="TheoryBoxDifficulty">{{ComboDifficulty|{{{Difficulty|}}}|noNumber=true}}</div>
+{{#if: {{{Youtube|}}} | <div class="TheoryBoxVidArea"><span class="TheoryBoxVideo">{{#arraymap:{{{Youtube|}}}|\|videoLink|{{#ev:youtube|videoLink|{{{Size|300}}}||||start={{{Timestamp|0}}}}}| }}</span></div> | }}
+{{#if: {{{Video|}}} | <div class="TheoryBoxVidArea"><span class="TheoryBoxVideo">{{#if: {{{Autoplay|}}}|{{#arraymap:{{{Video|}}}|\|videoLink|[[File:videoLink|{{{Size|300}}}px|autoplay|loop|muted]]| }}|{{#arraymap:{{{Video|}}}|\|videoLink|[[File:videoLink|{{{Size|300}}}px{{#if:{{{Thumbnail|}}}|{{!}}poster={{{Thumbnail}}}|}}]]| }}}}</span></div> | }}
+<div class="TheoryBoxContent">
+{{#if: {{{Recipe|}}} | {{ComboText|{{{Recipe|}}}}}<br> | }}
+{{{content|placeholder text}}}
+</div>
+{{clear}}</div></includeonly><templatestyles src="Template:TheoryBox/styles.css"/><noinclude>{{clear}}{{doc}}</noinclude>
