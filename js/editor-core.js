@@ -896,10 +896,74 @@ document.addEventListener('DOMContentLoaded', async () => {
                         });
                     };
 
-                    (window.FRAME_MOVE_CATEGORIES || []).forEach(scanMoveTab);
-                    scanOverview();
-                    scanKeyedList('matchups', 'opponent', 'matchup');
-                    scanKeyedList('counterplay', 'topic', 'counterplay');
+                    const scanEveryTab = () => {
+                        (window.FRAME_MOVE_CATEGORIES || []).forEach(scanMoveTab);
+                        scanOverview();
+                        scanKeyedList('matchups', 'opponent', 'matchup');
+                        scanKeyedList('counterplay', 'topic', 'counterplay');
+                    };
+
+                    // ...AND EVERY CHARACTER STATE, not just the open one.
+                    //
+                    // The tab scan above was v0.13's fix. It missed that every
+                    // one of those scans reads currentEditorDescData /
+                    // currentEditorFrameData, and applyEditorModeView points
+                    // those at the ACTIVE STATE's slice - so it swept every tab
+                    // inside one state. A contributor who edited the base kit
+                    // and two ultimates and pressed Submit once shipped only
+                    // whichever state was open; the rest stayed in
+                    // editorMasterDescData, rode along in the desc_data
+                    // fallback, and were never applied, because the reviewer
+                    // applies the delta.
+                    //
+                    // Same bug as v0.13, one axis over, and the same fix: run
+                    // the scan once per state with the views re-pointed for
+                    // each pass. scopeEditorDelta already reads
+                    // editorActiveMode, so each pass tags its own deltas and
+                    // the nine scopes still never learn states exist.
+                    //
+                    // The states come from the DATA, not from the declared
+                    // `modes` list. Dropping a contributor's work is the bug
+                    // being fixed, so a state with a bucket but no declaration
+                    // must still be scanned - and a declared state nobody ever
+                    // opened has no bucket and therefore nothing to find.
+                    // Reading modeData rather than declaring it also avoids
+                    // writableView creating empty buckets as a side effect of
+                    // scanning.
+                    const collectStates = () => {
+                        const base = typeof window.BASE_MODE_ID === 'string' ? window.BASE_MODE_ID : 'base';
+                        const ids = [base];
+                        const seen = new Set(ids);
+                        [window.editorMasterDescData, window.editorMasterFrameData].forEach(master => {
+                            Object.keys((master && master.modeData) || {}).forEach(id => {
+                                if (!seen.has(id)) { seen.add(id); ids.push(id); }
+                            });
+                        });
+                        return ids;
+                    };
+
+                    const states = collectStates();
+
+                    if (states.length <= 1 || typeof window.applyEditorModeView !== 'function') {
+                        // Every page with no states, which is most of them.
+                        scanEveryTab();
+                    } else {
+                        const savedMode = window.editorActiveMode;
+                        try {
+                            states.forEach(modeId => {
+                                window.editorActiveMode = modeId;
+                                window.applyEditorModeView();
+                                scanEveryTab();
+                            });
+                        } finally {
+                            // Restored even if a scan throws. Leaving the
+                            // editor pointed at the last state scanned would
+                            // silently move the user somewhere they never
+                            // navigated, mid-submit.
+                            window.editorActiveMode = savedMode;
+                            window.applyEditorModeView();
+                        }
+                    }
                 }
 
                 if (payloadsToInsert.length === 0 && !window.interceptedTicketData) {

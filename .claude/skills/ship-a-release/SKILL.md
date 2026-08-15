@@ -144,6 +144,30 @@ change
 
 Body should cover: what shipped, anything found along the way that was broken rather than merely missing, decisions a reviewer would otherwise have to reverse-engineer, and an explicit section for what needs the owner **after** merge (live probes, things only they can verify).
 
+## A merged PR's branch is closed to new work
+
+**Once a PR is merged, commits pushed to its branch are orphaned.** The PR does
+not pick them up, the merge commit does not contain them, and deleting the
+branch afterwards drops them on the floor.
+
+This has happened twice, both times the same way: work continued on a branch,
+the owner merged the PR mid-stream, later commits were pushed to the same
+branch, and the branch was then deleted as "merged".
+
+Two rules:
+
+- **Before committing to a branch that already has a PR, check the PR is still
+  open.** `gh pr view <N> --json state,mergedAt`. If it is merged, branch fresh
+  from the updated integration branch instead.
+- **`git branch -d` prints `not yet merged to HEAD` when the branch holds
+  commits the target does not.** That warning is the whole signal. It still
+  deletes the branch. Do not skim past it — read it, and recover the commits
+  (`git cherry-pick <sha>`; the objects survive locally until gc) before
+  carrying on.
+
+Recovery is possible but only until the objects are collected, and only on the
+machine that made them. Prevention is one command.
+
 ## After the owner merges an item into `next-update`
 
 Nothing is live yet, so there are no probes to run and no version to bump.

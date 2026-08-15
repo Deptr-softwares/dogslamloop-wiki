@@ -253,11 +253,31 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
 
     const handleEditClick = () => {
         const activeTabEl = document.querySelector('nav.character-nav .btn-manga.active');
-        let activeTabId = 'overview'; 
+        let activeTabId = 'overview';
         if (activeTabEl) {
-            activeTabId = activeTabEl.id.replace('nav-', ''); 
+            activeTabId = activeTabEl.id.replace('nav-', '');
         }
-        window.location.href = `../../edit.html?page=${pageId}&type=${pageType}&tab=${activeTabId}`;
+
+        // Carry the character state across too. js/editor-modes.js chooses
+        // which state to open by reading `?mode=` off this URL, and this link
+        // never sent it - so pressing Edit while reading an ultimate state
+        // dropped you into the base kit, every time.
+        //
+        // js/character_modes.js keeps ?mode= on the reading page's own URL as
+        // the state changes, and sets window.activeCharacterMode alongside it;
+        // the in-memory value is preferred because it is correct before the
+        // first switchCharacterMode call writes the parameter.
+        //
+        // Base drops the parameter rather than sending ?mode=base, matching
+        // what character_modes.js does to the canonical URL.
+        const mode = window.activeCharacterMode
+            || new URLSearchParams(window.location.search).get('mode');
+        const onBase = typeof window.isBaseMode === 'function'
+            ? window.isBaseMode(mode)
+            : (!mode || mode === 'base');
+        const modeParam = onBase ? '' : `&mode=${encodeURIComponent(mode)}`;
+
+        window.location.href = `../../edit.html?page=${pageId}&type=${pageType}&tab=${activeTabId}${modeParam}`;
     };
 
     const handleHistoryClick = () => {
