@@ -117,8 +117,18 @@ test('a merged ticket is a multi-scope delta, not a full overwrite', async ({ pa
   expect(Array.isArray(captured.update.delta_payload)).toBe(true);
 
   // One delta per accepted conflict: Alice's overview, Bob's matchup.
+  //
+  // The singular scope's key is 'full', not null. This assertion previously
+  // expected 'overview:' — it had pinned the null the compiler was emitting,
+  // and so helped the bug survive: js/admin-preview.js interpolated
+  // key.replace(...) into the diff label, threw on the null, and abandoned
+  // every remaining edit in the batch. A real merged ticket on
+  // defense_attorney counted 5 edits and showed a reviewer 2.
+  //
+  // `?? ''` is kept rather than tightened, so a regression back to null would
+  // show up here as 'overview:' rather than crashing this line.
   const scopes = captured.update.delta_payload.map(d => `${d.scope}:${d.key ?? ''}`).sort();
-  expect(scopes).toEqual(['matchup:B', 'overview:']);
+  expect(scopes).toEqual(['matchup:B', 'overview:full']);
 
   // The other merged ticket is still cleaned up.
   expect(captured.deletedIds).toEqual(['ticket-alice']);

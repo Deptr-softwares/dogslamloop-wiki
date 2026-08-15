@@ -228,10 +228,22 @@ window.openMergeCompiler = async function(pageId) {
             if (!master.modeData[modeId]) master.modeData[modeId] = {};
             return master.modeData[modeId];
         };
+        // A singular scope carries the key 'full', not null. The editor has
+        // always emitted 'full' here (js/editor-core.js's scanOverview), and
+        // the mode branch below normalised it - but the plain branch passed
+        // null straight through, so a merged ticket touching a base-kit
+        // section shipped `{ scope: 'playstyle', key: null }`.
+        //
+        // That applied correctly and reviewed catastrophically: the diff
+        // renderer called key.replace(...), threw, and abandoned every
+        // remaining edit in the batch. Ticket 63a024d0 counted 5 edits and
+        // showed 2. Normalising in one place instead of two.
+        const normaliseKey = (key) => (key === null || key === undefined ? 'full' : key);
+
         const pushDelta = (modeId, scope, key, payload) => {
             batchedDeltas.push(modeId
-                ? { scope: 'mode', key: `${modeId}::${scope}::${key === null ? 'full' : key}`, payload }
-                : { scope, key, payload });
+                ? { scope: 'mode', key: `${modeId}::${scope}::${normaliseKey(key)}`, payload }
+                : { scope, key: normaliseKey(key), payload });
         };
 
         conflicts.forEach(c => {

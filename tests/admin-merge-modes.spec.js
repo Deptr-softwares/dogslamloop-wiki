@@ -126,8 +126,13 @@ test('the merged ticket carries the state edit as a mode-wrapped delta', async (
   expect(captured.update.is_delta).toBe(true);
   expect(captured.update.target_scope).toBe('multi');
 
+  // 'overview:full', not 'overview:'. The mode-wrapped branch had always
+  // normalised a null key to 'full'; the plain branch had not, and this
+  // assertion pinned that inconsistency as if it were intended. Both branches
+  // normalise now — note the mode delta above already read `::matchup::A`
+  // rather than `::matchup::`, which is the same rule applied one line over.
   const deltas = captured.update.delta_payload.map(d => `${d.scope}:${d.key ?? ''}`).sort();
-  expect(deltas).toEqual(['mode:ultimate::matchup::A', 'overview:']);
+  expect(deltas).toEqual(['mode:ultimate::matchup::A', 'overview:full']);
 });
 
 test('applying the merged ticket puts each edit in its own kit', async ({ page }) => {
