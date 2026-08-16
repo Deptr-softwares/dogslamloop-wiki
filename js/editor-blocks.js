@@ -311,6 +311,11 @@ const blockTemplates = {
     callout: { type: 'callout', intent: 'info', title: 'Note', content: 'Important detail here', align: 'center' },
     combo: { type: 'combo', sequence: ['M1', 'M1', 'Skill'], damage: '0', align: 'left', note: '', author: '' },
     accordion: { type: 'accordion', title: 'Collapsible Section', content: [{ type: 'paragraph', content: ['Hidden text...'] }], align: 'center', author: '' },
+    // A combo card: the route and its numbers, then a write-up about it.
+    // `content` makes it nest exactly like an accordion, which is what lets a
+    // card hold its own clips, sub-variants and explanation - and what makes a
+    // combo GROUP a group rather than a list.
+    theorybox: { type: 'theorybox', title: 'New Combo', oneliner: '', difficulty: '', sequence: [], damage: '', video: '', content: [], anchor: '', align: 'left', author: '' },
     divider: { type: 'divider', style: 'diamond', padding: 'normal' },
     author: { type: 'author', author: '' },
     table: { type: 'table', headers: ['Stat', 'Value'], rows: [['Damage', '10'], ['Startup', '5f']], align: 'center', author: '' },
@@ -429,6 +434,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="callout">+ Callout</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="combo">+ Combo</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="accordion">+ Accordion</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="theorybox">+ Combo Card</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="divider">+ Divider</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="author">+ Author</button>
                 </div>
@@ -988,6 +994,9 @@ function initStrategyBlockBuilder(containerId, initialData) {
             }
 
             if (field === 'content-array') activeBlocks[index].content = e.target.value.split('\n');
+            // A combo route is an ARRAY of steps, edited one per line. Blank
+            // lines are dropped rather than becoming empty chips in the route.
+            else if (field === 'sequence-lines') activeBlocks[index].sequence = e.target.value.split('\n').map(v => v.trim()).filter(Boolean);
             else if (field === 'list-items') activeBlocks[index].items = e.target.value.split('\n').filter(i => i.trim() !== '');
             else if (field === 'combo-sequence') activeBlocks[index].sequence = e.target.value.split(',').map(s => s.trim());
             else if (e.target.type === 'checkbox') activeBlocks[index][field] = e.target.checked;
@@ -1274,6 +1283,37 @@ function renderBlockList() {
                 <div class="accordion-inner-block-wrapper">
                     <button class="btn-sys btn-sys-purple" onclick="window.activeAccordionPath.push(${index}); renderBlockList();">
                         ⮑ EDIT INNER BLOCKS (${innerCount})
+                    </button>
+                </div>
+            `;
+        }
+        else if (block.type === 'theorybox') {
+            const innerCount = block.content ? block.content.length : 0;
+            const route = Array.isArray(block.sequence) ? block.sequence.join('\n') : '';
+            const difficulties = ['', ...(window.COMBO_DIFFICULTIES || [])]
+                .map(d => `<option value="${escField(d)}" ${block.difficulty === d ? 'selected' : ''}>${escField(d || '- none -')}</option>`)
+                .join('');
+
+            html += `
+                <input type="text" class="editor-input" data-field="title" value="${escField(block.title || '')}" placeholder="Combo name (e.g. Corner BnB)">
+                <input type="text" class="editor-input" data-field="oneliner" value="${escField(block.oneliner || '')}" placeholder="One line: what this combo is for">
+                <div class="editor-row editor-row-spaced-md">
+                    <div>
+                        <label class="editor-field-label-sm">Route - one step per line</label>
+                        <textarea class="editor-textarea" data-field="sequence-lines" rows="4">${escField(route)}</textarea>
+                    </div>
+                </div>
+                <div class="editor-row editor-row-spaced-md">
+                    <div><input type="text" class="editor-input" data-field="damage" value="${escField(block.damage || '')}" placeholder="Damage (e.g. 38-46)"></div>
+                    <div><select class="editor-select" data-field="difficulty">${difficulties}</select></div>
+                </div>
+                <div class="editor-row editor-row-spaced-md">
+                    <div><input type="text" class="editor-input" data-field="video" value="${escField(block.video || '')}" placeholder="Video URL (optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
+                </div>
+                <div class="accordion-inner-block-wrapper">
+                    <button class="btn-sys btn-sys-purple" onclick="window.activeAccordionPath.push(${index}); renderBlockList();">
+                        &#11157; EDIT THE WRITE-UP (${innerCount})
                     </button>
                 </div>
             `;

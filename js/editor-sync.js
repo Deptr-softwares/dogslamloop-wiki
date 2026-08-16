@@ -439,6 +439,22 @@ window.renderDiffView = function() {
                         b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
                         b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
                     }
+                    // A combo card nests like an accordion, plus its own
+                    // fields. Missing this means the reviewer sees the card
+                    // unchanged while its route or damage was rewritten.
+                    else if (b.type === 'theorybox') {
+                        b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
+                        b.oneliner = window.diffTextLCS(oldB.oneliner || '', newB.oneliner || '');
+                        b.damage = window.diffTextLCS(oldB.damage || '', newB.damage || '');
+                        b.difficulty = window.diffTextLCS(oldB.difficulty || '', newB.difficulty || '');
+                        const oldSeq = oldB.sequence || [];
+                        const newSeq = newB.sequence || [];
+                        if (!b.sequence) b.sequence = [];
+                        for (let j = 0; j < Math.max(oldSeq.length, newSeq.length); j++) {
+                            b.sequence[j] = window.diffTextLCS(oldSeq[j] || '', newSeq[j] || '');
+                        }
+                        b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
+                    }
                     
                     if (b.caption !== undefined) b.caption = window.diffTextLCS(oldB.caption || '', newB.caption || '');
                     if (b.author !== undefined) b.author = window.diffTextLCS(oldB.author || '', newB.author || '');

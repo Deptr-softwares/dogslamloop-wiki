@@ -1347,3 +1347,32 @@ summary:focus-visible {
     .combo-table td.combo-cell-notes { display: block; min-width: 0; }
     .combo-cell-notes::before { display: block; flex: none; margin-bottom: 0.2rem; }
 }
+
+/* --- THE COMBO CARD (TheoryBox, v0.15 item 4) --- */
+/* A combo and everything known about it, living inside a combo group. Same
+   square-cornered, shadow-below treatment as the combo block and the table -
+   this is the third thing on the page that is "a combo", and they should read
+   as one family. */
+.theorybox {
+    background: var(--bg-secondary); border: 2px solid var(--border-color);
+    border-radius: 0; box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
+    padding: 0.75rem 0.9rem; margin: 1rem 0 1.5rem;
+}
+.theorybox-head { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+.theorybox-title {
+    font-family: 'CC-Wild-Words', sans-serif; font-size: 0.95rem; margin: 0;
+    color: var(--text-white); flex: 1 1 auto;
+}
+.theorybox-difficulty { font-family: var(--text-mono); font-size: 0.75rem; }
+/* Not var(--accent-blue): on a character page that is the character's colour,
+   and the dark ones render an unreadable link. Same reason as .combo-video-link. */
+.theorybox-video { color: var(--text-white); text-decoration: underline; text-underline-offset: 2px; font-family: var(--text-mono); font-size: 0.75rem; }
+.theorybox-video:hover { color: var(--accent-blue); }
+.theorybox-oneliner { color: var(--text-muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
+.theorybox-route { margin: 0.6rem 0 0; }
+.theorybox-body { margin-top: 0.7rem; border-top: 1px dashed var(--border-color); padding-top: 0.7rem; }
+
+@media (max-width: 600px) {
+    .theorybox-head { gap: 0.4rem; }
+    .theorybox-title { flex: 1 1 100%; }
+}

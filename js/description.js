@@ -381,6 +381,62 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 </div>
             `;
         }
+        // --- THE COMBO CARD (TheoryBox) ---
+        //
+        // A combo and everything known about it: the route, its numbers, and a
+        // write-up that is itself blocks - clips, sub-variants, an explanation
+        // of why the timing is what it is. Nested exactly like an accordion,
+        // which is what makes a combo GROUP a group rather than a list.
+        else if (block.type === 'theorybox') {
+            const bData = block.data || block;
+
+            // Derived from the title when blank, so a card is linkable without
+            // anyone having to think about anchors. Everything that is not a
+            // word character is dropped: a raw title in an id breaks the
+            // selector that would scroll to it.
+            const anchor = String(bData.anchor || bData.title || '')
+                .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+            const difficulty = String(bData.difficulty || '').trim();
+            const diffIndex = (window.COMBO_DIFFICULTIES || []).indexOf(difficulty);
+            const diffHTML = difficulty
+                ? `<span class="theorybox-difficulty combo-difficulty${diffIndex === -1 ? '' : ` combo-difficulty-${diffIndex}`}">${escBlockText(difficulty)}</span>`
+                : '';
+
+            // Same chips and separators as the legacy combo block and the
+            // Combo List, so a route reads identically wherever it appears.
+            const steps = Array.isArray(bData.sequence) ? bData.sequence : [];
+            let routeHTML = '';
+            if (steps.length) {
+                routeHTML = '<div class="combo-container theorybox-route">';
+                steps.forEach((step, i) => {
+                    routeHTML += `<span class="combo-node">${escBlockText(step)}</span>`;
+                    if (i < steps.length - 1) routeHTML += '<span class="combo-sep" aria-hidden="true">&gt;</span>';
+                });
+                if (bData.damage) routeHTML += `<span class="combo-damage">${escBlockText(bData.damage)}</span>`;
+                routeHTML += '</div>';
+            }
+
+            const videoUrl = safeBlockUrl(bData.video || '');
+            const videoHTML = videoUrl
+                ? `<a class="theorybox-video" href="${escBlockText(videoUrl)}" target="_blank" rel="noopener noreferrer">Watch</a>`
+                : '';
+
+            const innerHTML = window.generateHTMLForBlocks(bData.content || [], contextClass);
+
+            contentHTML += `
+                <section class="theorybox"${anchor ? ` id="combo-${escBlockText(anchor)}"` : ''}>
+                    <div class="theorybox-head">
+                        <h4 class="theorybox-title">${escBlockText(bData.title || 'Combo')}</h4>
+                        ${diffHTML}
+                        ${videoHTML}
+                    </div>
+                    ${bData.oneliner ? `<p class="theorybox-oneliner">${escBlockText(bData.oneliner)}</p>` : ''}
+                    ${routeHTML}
+                    ${innerHTML ? `<div class="theorybox-body">${innerHTML}</div>` : ''}
+                </section>
+            `;
+        }
         // --- COMBO STRINGS ---
         else if (block.type === 'combo') {
             if (block.sequence && block.sequence.length > 0) {
