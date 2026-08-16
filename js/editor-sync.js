@@ -11,6 +11,27 @@
  * itself.
  */
 
+// Writes the block buffer back into whichever entry of a keyed section is
+// open (js/character_tabs.js). currentStrategyBlocks is only ever written into
+// desc_data on sync, so skipping this drops whatever the contributor is typing
+// right now. Two separate sync paths need it, hence module scope.
+//
+// Guarded on the entry still existing: removeKeyedEntry clears the index, but a
+// sync racing a delete could otherwise write blocks into a slot that now holds
+// a different topic.
+//
+// Named with the section prefix rather than `flush` because every js/ file here
+// shares one global lexical scope - see tests/global-scope-collisions.spec.js.
+function flushKeyedSection(id, blocks) {
+    const section = window.getKeyedSectionByTab ? window.getKeyedSectionByTab(id) : null;
+    const idx = (window.currentKeyedIndex || {})[id];
+    if (!section || idx === undefined || !window.currentEditorDescData) return;
+    const entry = (window.currentEditorDescData[section.field] || [])[idx];
+    if (!entry) return;
+    entry.content = JSON.parse(JSON.stringify(blocks));
+}
+
+
 // --- INLINE TEXT DIFF ALGORITHM (SMART GROUPING) ---
 window.diffTextLCS = function(oldStr, newStr) {
     oldStr = String(oldStr || ''); 
@@ -124,11 +145,12 @@ window.triggerManualSync = async function() {
             window.currentEditorDescData.matchups[window.currentMatchupIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
         }
         renderMatchupsPreview();
-    } else if (tabId === 'counterplay' && typeof renderCounterplayPreview === 'function') {
-        if (window.currentEditorDescData && window.currentCounterplayIndex !== undefined) {
-            window.currentEditorDescData.counterplay[window.currentCounterplayIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
-        }
-        renderCounterplayPreview();
+    } else if (window.getKeyedSectionByTab && window.getKeyedSectionByTab(tabId) && tabId !== 'matchups') {
+        // Any keyed section (js/character_tabs.js). Flushes the open entry's
+        // blocks back into it before redrawing, which is what stops the buffer
+        // being dropped when the contributor switches away.
+        flushKeyedSection(tabId, currentStrategyBlocks);
+        window.renderKeyedSectionPreview(tabId);
     } else if (typeof updateLivePreview === 'function') {
         updateLivePreview();
     }
@@ -260,11 +282,9 @@ function updateLivePreview(skipHistory = false) {
         }
         if (typeof renderMatchupsPreview === 'function') renderMatchupsPreview();
 
-    } else if (tabId === 'counterplay') {
-        if (window.currentEditorDescData && window.currentCounterplayIndex !== undefined && window.currentEditorDescData.counterplay[window.currentCounterplayIndex]) {
-            window.currentEditorDescData.counterplay[window.currentCounterplayIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
-        }
-        if (typeof renderCounterplayPreview === 'function') renderCounterplayPreview();
+    } else if (window.getKeyedSectionByTab && window.getKeyedSectionByTab(tabId) && tabId !== 'matchups') {
+        flushKeyedSection(tabId, currentStrategyBlocks);
+        if (typeof window.renderKeyedSectionPreview === 'function') window.renderKeyedSectionPreview(tabId);
 
     } else {
         if (typeof window.populateTextSection === 'function') {
@@ -500,7 +520,13 @@ window.renderDiffView = function() {
     compareAndRender('General Strategy', window.originalCloudDescData.strategy, window.currentEditorDescData.strategy, 'blocks');
     compareArrayOfObjects('Custom Tab', window.originalCloudDescData.extras, window.currentEditorDescData.extras, 'title', 'blocks');
     compareArrayOfObjects('Matchup', window.originalCloudDescData.matchups, window.currentEditorDescData.matchups, 'opponent', 'blocks');
-    compareArrayOfObjects('Counterplay Topic', window.originalCloudDescData.counterplay, window.currentEditorDescData.counterplay, 'topic', 'blocks');
+    // Every keyed section, so a new one appears in the change summary the
+    // contributor reads before submitting. One missing from here submits
+    // silently, which is the worst version of this bug.
+    (window.getKeyedSections ? window.getKeyedSections() : []).forEach(s => {
+        compareArrayOfObjects(s.entryLabel, window.originalCloudDescData[s.field],
+            window.currentEditorDescData[s.field], s.keyField, 'blocks');
+    });
 
     const oldStrats = window.originalCloudDescData.moveStrategies || {};
     const newStrats = window.currentEditorDescData.moveStrategies || {};

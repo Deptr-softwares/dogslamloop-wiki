@@ -140,60 +140,78 @@ function renderMatchupsPreview() {
     if (typeof window.applyInternalStyling === 'function') setTimeout(window.applyInternalStyling, 50);
 }
 
-function renderCounterplayPreview() {
+// The editor's live preview of a keyed section (js/character_tabs.js).
+//
+// This was renderCounterplayPreview with 'counterplay' written through it.
+// Starter Guide is the same shape, and a second copy is how the two drift -
+// the reader's renderer and this one already have to agree, and now there is
+// one of each rather than one of each PER SECTION.
+//
+// Deliberately mirrors description.js's keyed-section renderer, including the
+// escaping: a topic reaches innerHTML here too, and this is the surface a
+// REVIEWER looks at while deciding whether to approve it.
+function renderKeyedSectionPreview(tabId) {
     const descData = window.currentEditorDescData;
     if (!descData) return;
 
-    const cpContainer = document.getElementById('tab-counterplay');
-    if (!cpContainer) return;
+    const section = window.getKeyedSectionByTab ? window.getKeyedSectionByTab(tabId) : null;
+    if (!section) return;
 
-    cpContainer.innerHTML = '';
-    cpContainer.classList.add('vessel-content', 'space-y-6');
+    const container = document.getElementById(`tab-${section.tab}`);
+    if (!container) return;
 
-    if (!descData.counterplay || descData.counterplay.length === 0) {
-        cpContainer.innerHTML = `<div class="empty-tab-msg">Counterplay analysis has not been written yet.</div>`;
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+
+    container.innerHTML = '';
+    container.classList.add('vessel-content', 'space-y-6');
+
+    const entries = descData[section.field];
+    if (!entries || entries.length === 0) {
+        container.innerHTML = `<div class="empty-tab-msg">${esc(section.emptyMessage || 'Not written yet.')}</div>`;
         return;
     }
 
-    descData.counterplay.forEach(cp => {
-        const importanceColors = {
-            "Crucial": "#ef4444", "High": "#fb923c",
-            "Moderate": "#facc15", "Low": "#4ade80",
-            "Situational": "#22d3ee"
-        };
-        const impColor = importanceColors[cp.importance] || "#9ca3af";
-        const safeTopic = (cp.topic || 'Unknown').replace(/\s+/g, '-');
+    entries.forEach(entry => {
+        const key = entry[section.keyField] || 'Unknown';
+        const safeKey = String(key).replace(/\s+/g, '-');
 
-        const cpSection = document.createElement('section');
-        cpSection.className = 'wiki-section'; 
-        cpSection.style.overflow = 'hidden';
+        const entrySection = document.createElement('section');
+        entrySection.className = 'wiki-section';
+        entrySection.style.overflow = 'hidden';
 
-        let cpHTML = `
+        let metaHTML = '';
+        if (section.metaField) {
+            const value = entry[section.metaField];
+            // Selected by the value, never supplied by it.
+            const colour = (section.metaColors || {})[value] || '#9ca3af';
+            metaHTML = `<span class="card-tier-label" style="color: ${colour};">${esc(value || '')}</span>`;
+        }
+
+        entrySection.innerHTML = `
             <div class="card-header-flex">
-                <h3 class="card-header-title">${cp.topic || 'Unknown'}</h3>
-                <span class="card-tier-label" style="color: ${impColor};">${cp.importance || 'Moderate'}</span>
+                <h3 class="card-header-title">${esc(key)}</h3>
+                ${metaHTML}
             </div>
         `;
-
-        cpSection.innerHTML = cpHTML;
-        cpContainer.appendChild(cpSection);
+        container.appendChild(entrySection);
 
         const contentWrapper = document.createElement('div');
-        contentWrapper.className = 'counterplay-content';
-        contentWrapper.id = `counterplay-content-${safeTopic}`;
-        cpSection.appendChild(contentWrapper);
+        contentWrapper.className = `${section.tab}-content`;
+        contentWrapper.id = `${section.tab}-content-${safeKey}`;
+        entrySection.appendChild(contentWrapper);
 
         if (typeof window.populateTextSection === 'function') {
-            if (cp.content && cp.content.length > 0) {
-                window.populateTextSection(contentWrapper.id, '', cp.content, 'counterplay');
+            if (entry.content && entry.content.length > 0) {
+                window.populateTextSection(contentWrapper.id, '', entry.content, section.tab);
                 const emptyH3 = contentWrapper.querySelector('h3.strategy-title');
                 if (emptyH3 && !emptyH3.textContent) emptyH3.remove();
             } else {
-                contentWrapper.innerHTML = `<p class="empty-notes-msg">No specific counterplay details recorded.</p>`;
+                contentWrapper.innerHTML = `<p class="empty-notes-msg">${esc(section.emptyEntryMessage || 'Nothing recorded yet.')}</p>`;
             }
         }
     });
 
     if (typeof window.applyInternalStyling === 'function') setTimeout(window.applyInternalStyling, 50);
 }
+window.renderKeyedSectionPreview = renderKeyedSectionPreview;
 

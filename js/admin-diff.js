@@ -262,8 +262,7 @@ function calculateTabDiffs(rev, showPopup = true) {
 
                 let targetTab = 'overview';
                 if (['profile', 'playstyle', 'overview', 'strategy', 'extra'].includes(scope)) targetTab = 'overview';
-                else if (scope === 'matchup') targetTab = 'matchups';
-                else if (scope === 'counterplay') targetTab = 'counterplay';
+                else if (window.getKeyedSectionByScope(scope)) targetTab = window.getKeyedSectionByScope(scope).tab;
                 // Coerced for the same reason as the diff renderer: a null key
                 // reaching here would throw inside the changed-tabs scan, and
                 // that scan feeds the popup telling a reviewer which tabs to

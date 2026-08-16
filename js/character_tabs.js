@@ -88,6 +88,15 @@
             id: 'starterGuide', label: 'Starter Guide',
             panelClass: 'vessel-content',
             editable: true, frameMoves: false, modeScoped: true,
+            // metaField is deliberately absent: matchups carry a tier and
+            // counterplay an importance, but the owner asked for Starter
+            // Guide to be Counterplay's SHAPE, not to invent a second
+            // meaning for that select. Adding one later is one line here.
+            keyed: {
+                keyField: 'topic', scope: 'starterGuide', entryLabel: 'Starter Guide Topic',
+                emptyMessage: 'A starter guide for this character has not been written yet.',
+                emptyEntryMessage: 'No details recorded for this topic yet.',
+            },
         },
         {
             id: 'm1s', label: 'M1s',
@@ -108,11 +117,25 @@
             id: 'matchups', label: 'Matchups',
             panelClass: 'vessel-content',
             editable: true, frameMoves: false, modeScoped: true,
+            keyed: { keyField: 'opponent', scope: 'matchup', entryLabel: 'Matchup', metaField: 'tier' },
         },
         {
             id: 'counterplay', label: 'Counterplay',
             panelClass: 'vessel-content',
             editable: true, frameMoves: false, modeScoped: true,
+            keyed: {
+                keyField: 'topic', scope: 'counterplay', entryLabel: 'Counterplay',
+                metaField: 'importance',
+                // The importance labels and their colours. Selected BY the
+                // value, never supplied by it, so a contributor picks a colour
+                // rather than writing one.
+                metaColors: {
+                    'Crucial': '#ef4444', 'High': '#fb923c', 'Moderate': '#facc15',
+                    'Low': '#4ade80', 'Situational': '#22d3ee',
+                },
+                emptyMessage: 'Counterplay analysis has not been written yet.',
+                emptyEntryMessage: 'No specific counterplay details recorded.',
+            },
         },
         {
             id: 'ultimateAtk', label: 'Ultimate',
@@ -131,7 +154,7 @@
     // subset filters; one that mutates in place would corrupt every later
     // reader on the page, and those readers run at different times (page_boot,
     // the mode toggle, the reviewer opening a ticket).
-    TABS.forEach(Object.freeze);
+    TABS.forEach(t => { if (t.keyed) Object.freeze(t.keyed); Object.freeze(t); });
     window.CHARACTER_TABS = Object.freeze(TABS);
 
     /**
@@ -160,6 +183,47 @@
     /** Same filters, ids only - the shape most call sites actually want. */
     window.getCharacterTabIds = function (opts) {
         return window.getCharacterTabs(opts).map(t => t.id);
+    };
+
+    // --- KEYED SECTIONS ---
+    //
+    // A KEYED SECTION is a tab whose data is an array of entries identified by
+    // one field, each holding its own blocks:
+    //
+    //     desc_data[tab.id] = [ { <keyField>: 'Vessel', content: [blocks] } ]
+    //
+    // Matchups and Counterplay were the only two, and the pipeline handled
+    // them by NAME at about ten `if (scope === 'matchup') … else if (scope ===
+    // 'counterplay')` branches - the submit scan, the merge compiler, the
+    // reviewer's diff, its label map and its renderer. Adding Starter Guide as
+    // a third copy meant finding all ten, and MISSING one is silent: the
+    // reviewer approves a ticket whose Starter Guide edits are never applied.
+    // That is bug 4's exact shape, which cost a release.
+    //
+    // `keyed` lives on the tab rather than in a second list because it is a
+    // property OF the tab, and two lists that must agree are the problem this
+    // module exists to remove.
+    //
+    // `scope` is the delta scope, and it is NOT always the tab id: matchups
+    // uses the singular 'matchup'. Deriving it by appending or trimming an 's'
+    // is what produced the 'counterplays' tab id in admin-preview.js - a tab
+    // that does not exist, so opening a counterplay ticket never landed on it.
+    // It is declared, not computed.
+
+    /** The tabs whose content is a keyed array, in vocabulary order. */
+    window.getKeyedSections = function () {
+        return window.CHARACTER_TABS.filter(t => t.keyed)
+            .map(t => ({ tab: t.id, field: t.id, label: t.label, ...t.keyed }));
+    };
+
+    /** Look one up by its delta scope ('matchup', 'counterplay', …). */
+    window.getKeyedSectionByScope = function (scope) {
+        return window.getKeyedSections().find(s => s.scope === scope) || null;
+    };
+
+    /** Look one up by tab id, which is also its desc_data field name. */
+    window.getKeyedSectionByTab = function (tabId) {
+        return window.getKeyedSections().find(s => s.tab === tabId) || null;
     };
 
     /** id -> label, for anything rendering a tab name it did not build. */

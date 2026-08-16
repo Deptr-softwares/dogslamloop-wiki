@@ -223,6 +223,11 @@ test('admin.html and edit.html ship a button and a panel for every tab they own'
 
   for (const id of vocab.getCharacterTabIds({ includeInjected: true, editableOnly: true })) {
     if (!editHtml.includes(`id="edit-nav-${id}"`)) missing.push(`edit.html is missing button edit-nav-${id}`);
+    // The PANEL as well as the button. Checking only the button was this
+    // test's own blind spot: edit.html got its Starter Guide button and no
+    // #tab-starterGuide, so the editor's live preview silently rendered
+    // nothing while every other part of the tab worked.
+    if (!editHtml.includes(`id="tab-${id}"`)) missing.push(`edit.html is missing panel tab-${id}`);
   }
 
   // Gallery has no editor at all; if that ever changes it should change here

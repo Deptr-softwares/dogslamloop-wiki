@@ -52,7 +52,7 @@ window.switchEditorTab = async function(tabId) {
     // has already saved the real content by this point.
     window.currentOverviewSection = null;
     window.currentMatchupIndex = undefined;
-    window.currentCounterplayIndex = undefined;
+    window.currentKeyedIndex = {};
 
     // The preview pane keeps one visible tab; editor-core un-hides only the
     // booted one, so the switch has to move it.
@@ -256,35 +256,50 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             if (typeof renderMatchupsPreview === 'function') renderMatchupsPreview();
         }
 
-    } else if (tabId === 'counterplay') {
-        if (!window.currentEditorDescData.counterplay) window.currentEditorDescData.counterplay = [];
+    } else if (window.getKeyedSectionByTab(tabId) && tabId !== 'matchups') {
+        // Every keyed section except matchups, which keeps its own editor -
+        // its entry picker lists the roster and its metadata is a tier, so it
+        // is a different screen rather than this one with different words.
+        //
+        // This was the counterplay branch with 'counterplay' written through
+        // it. Starter Guide is the same shape, and the owner asked for exactly
+        // that, so it runs here rather than as a third copy.
+        const section = window.getKeyedSectionByTab(tabId);
+        if (!window.currentEditorDescData[section.field]) window.currentEditorDescData[section.field] = [];
+        const entries = window.currentEditorDescData[section.field];
+
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+        const noun = section.entryLabel;
 
         let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
-        if (window.currentEditorDescData.counterplay.length === 0) {
-             navHTML += `<span class="daw-empty-state">No counterplay topics defined yet.</span>`;
+        if (entries.length === 0) {
+            navHTML += `<span class="daw-empty-state">No ${esc(noun.toLowerCase())} entries defined yet.</span>`;
         } else {
-            window.currentEditorDescData.counterplay.forEach((cp, idx) => {
-                let cpName = cp.topic || `Topic ${idx + 1}`;
+            entries.forEach((entry, idx) => {
+                // Escaped: the name is contributor-authored and lands in
+                // innerHTML. The index is a number this loop produced, which is
+                // why it may sit in the inline handler while the name may not.
+                const name = entry[section.keyField] || `${noun} ${idx + 1}`;
                 navHTML += `<div class="daw-tab-item">`;
-                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="counterplay-nav-${idx}" onclick="window.loadCounterplayIntoEditor(${idx})">${cpName}</button>`;
-                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeCounterplayTopic(${idx})" title="Remove Topic">✖</button>`;
+                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${section.tab}-nav-${idx}" onclick="window.loadKeyedEntryIntoEditor('${section.tab}', ${idx})">${esc(name)}</button>`;
+                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeKeyedEntry('${section.tab}', ${idx})" title="Remove">&#10006;</button>`;
                 navHTML += `</div>`;
             });
         }
 
-        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addCounterplayTopic()">+ ADD TOPIC</button>`;
+        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addKeyedEntry('${section.tab}')">+ ADD TOPIC</button>`;
         navHTML += `</div>`;
 
         builder.innerHTML = `
             ${navHTML}
-            <div id="counterplay-editor-container"></div>
+            <div id="${section.tab}-editor-container"></div>
         `;
 
-        if (window.currentEditorDescData.counterplay.length > 0) {
-            window.loadCounterplayIntoEditor(0);
+        if (entries.length > 0) {
+            window.loadKeyedEntryIntoEditor(section.tab, 0);
         } else {
-            document.getElementById('counterplay-editor-container').innerHTML = `<div class="empty-tab-msg">Create a topic to begin editing.</div>`;
-            if (typeof renderCounterplayPreview === 'function') renderCounterplayPreview();
+            document.getElementById(`${section.tab}-editor-container`).innerHTML = `<div class="empty-tab-msg">Create a topic to begin editing.</div>`;
+            window.renderKeyedSectionPreview(section.tab);
         }
 
     } else {
@@ -563,66 +578,109 @@ window.updateMatchupMeta = function(idx, field, value) {
     renderMatchupsPreview();
 };
 
-// --- SUB-NAVIGATION: COUNTERPLAY ---
-window.addCounterplayTopic = async function() {
+// --- SUB-NAVIGATION: KEYED SECTIONS (Counterplay, Starter Guide) ---
+//
+// One set of functions for every keyed section, taking the tab id. The
+// per-section index lives in window.currentKeyedIndex rather than a
+// currentCounterplayIndex / currentStarterGuideIndex pair, because the flush
+// in js/editor-sync.js has to find it too, and a second global is a second
+// thing to remember on every code path that switches away from a tab.
+
+window.currentKeyedIndex = window.currentKeyedIndex || {};
+
+window.addKeyedEntry = async function(tabId) {
+    const section = window.getKeyedSectionByTab(tabId);
+    if (!section) return;
     await window.triggerManualSync();
-    window.currentEditorDescData.counterplay.push({
-        topic: "New Topic", importance: "Moderate", content: [], author: ""
-    });
-    initFullTabEditor(window.currentEditorCharId, 'counterplay', window.currentEditorDescData, window.currentEditorFrameData);
-    window.loadCounterplayIntoEditor(window.currentEditorDescData.counterplay.length - 1);
+
+    const entry = { [section.keyField]: `New ${section.entryLabel}`, content: [], author: "" };
+    // Only if the section HAS metadata. Starter Guide deliberately has none,
+    // and writing an empty field would put data in the payload that nothing
+    // reads and that the reviewer's diff would then report as a change.
+    if (section.metaField) entry[section.metaField] = Object.keys(section.metaColors || {})[2] || '';
+
+    if (!window.currentEditorDescData[section.field]) window.currentEditorDescData[section.field] = [];
+    window.currentEditorDescData[section.field].push(entry);
+
+    initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+    window.loadKeyedEntryIntoEditor(tabId, window.currentEditorDescData[section.field].length - 1);
 };
 
-window.removeCounterplayTopic = async function(idx) {
-    if (await window.customConfirm("Delete this entire counterplay topic?")) {
-        window.currentEditorDescData.counterplay.splice(idx, 1);
-        initFullTabEditor(window.currentEditorCharId, 'counterplay', window.currentEditorDescData, window.currentEditorFrameData);
-        if (window.currentEditorDescData.counterplay.length > 0) window.loadCounterplayIntoEditor(0);
-        else renderCounterplayPreview();
+window.removeKeyedEntry = async function(tabId, idx) {
+    const section = window.getKeyedSectionByTab(tabId);
+    if (!section) return;
+    if (await window.customConfirm(`Delete this entire ${section.entryLabel.toLowerCase()}?`)) {
+        window.currentEditorDescData[section.field].splice(idx, 1);
+        // The open entry may have been the one removed, or may have shifted
+        // down. Either way the stored index no longer means what it did, and
+        // the flush on the next switch would write blocks into the wrong entry.
+        window.currentKeyedIndex[tabId] = undefined;
+        initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+        if (window.currentEditorDescData[section.field].length > 0) window.loadKeyedEntryIntoEditor(tabId, 0);
+        else window.renderKeyedSectionPreview(tabId);
     }
 };
 
-window.updateCounterplayMeta = function(idx, field, value) {
-    window.currentEditorDescData.counterplay[idx][field] = value;
-    if (field === 'topic') {
-        const btn = document.getElementById(`counterplay-nav-${idx}`);
-        if (btn) btn.firstChild.textContent = value || 'Unknown Topic';
+window.updateKeyedMeta = function(tabId, idx, field, value) {
+    const section = window.getKeyedSectionByTab(tabId);
+    if (!section) return;
+    window.currentEditorDescData[section.field][idx][field] = value;
+    if (field === section.keyField) {
+        const btn = document.getElementById(`${section.tab}-nav-${idx}`);
+        // textContent, not innerHTML - this runs on every keystroke of a field
+        // the contributor is typing into.
+        if (btn) btn.textContent = value || `Unknown ${section.entryLabel}`;
     }
-    renderCounterplayPreview();
+    window.renderKeyedSectionPreview(tabId);
 };
 
-window.loadCounterplayIntoEditor = function(idx) {
-    if (window.currentCounterplayIndex !== undefined && window.currentEditorDescData && window.currentEditorDescData.counterplay[window.currentCounterplayIndex]) {
-        window.currentEditorDescData.counterplay[window.currentCounterplayIndex].content = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+window.loadKeyedEntryIntoEditor = function(tabId, idx) {
+    const section = window.getKeyedSectionByTab(tabId);
+    if (!section) return;
+
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+    const open = window.currentKeyedIndex[tabId];
+    const list = window.currentEditorDescData[section.field] || [];
+
+    // Flush the entry being left before switching away, or its blocks are lost.
+    if (open !== undefined && list[open]) {
+        list[open].content = JSON.parse(JSON.stringify(window.getActiveBlocks()));
     }
 
-    document.querySelectorAll('[id^="counterplay-nav-"]').forEach(btn => btn.classList.remove('active'));
-    const activeBtn = document.getElementById(`counterplay-nav-${idx}`);
-    if(activeBtn) activeBtn.classList.add('active');
+    document.querySelectorAll(`[id^="${section.tab}-nav-"]`).forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById(`${section.tab}-nav-${idx}`);
+    if (activeBtn) activeBtn.classList.add('active');
 
-    window.currentCounterplayIndex = idx;
-    const cp = window.currentEditorDescData.counterplay[idx];
-    const container = document.getElementById('counterplay-editor-container');
+    window.currentKeyedIndex[tabId] = idx;
+    const entry = list[idx];
+    if (!entry) return;
+    const container = document.getElementById(`${section.tab}-editor-container`);
+    if (!container) return;
 
-    const importanceOptions = ["Crucial", "High", "Moderate", "Low", "Situational"];
-    let impHTML = importanceOptions.map(t => `<option value="${t}" ${cp.importance === t ? 'selected' : ''}>${t}</option>`).join('');
+    let metaHTML = '';
+    if (section.metaField) {
+        const options = Object.keys(section.metaColors || {});
+        const optionHTML = options.map(t =>
+            `<option value="${esc(t)}" ${entry[section.metaField] === t ? 'selected' : ''}>${esc(t)}</option>`).join('');
+        metaHTML = `
+                    <div>
+                        <label class="editor-field-label-sm">${esc(section.metaLabel || section.metaField)}</label>
+                        <select class="editor-select" onchange="window.updateKeyedMeta('${section.tab}', ${idx}, '${esc(section.metaField)}', this.value)">
+                            ${optionHTML}
+                        </select>
+                    </div>`;
+    }
 
     container.innerHTML = `
         <div class="block-editor-container block-editor-container-tight">
             <div class="block-card">
-                <div class="block-header"><span class="block-type-badge">TOPIC METADATA</span></div>
+                <div class="block-header"><span class="block-type-badge">${esc(section.entryLabel.toUpperCase())} METADATA</span></div>
                 <div class="editor-row">
                     <div>
-                        <label class="editor-field-label-sm">Topic Name</label>
-                        <input type="text" class="editor-input" value="${cp.topic || ''}" oninput="window.updateCounterplayMeta(${idx}, 'topic', this.value)" placeholder="e.g. Dealing with M1s">
-                    </div>
-                    <div>
-                        <label class="editor-field-label-sm">Importance</label>
-                        <select class="editor-select" onchange="window.updateCounterplayMeta(${idx}, 'importance', this.value)">
-                            ${impHTML}
-                        </select>
-                    </div>
-                    </div>
+                        <label class="editor-field-label-sm">${esc(section.entryLabel)} Name</label>
+                        <input type="text" class="editor-input" value="${esc(entry[section.keyField] || '')}" oninput="window.updateKeyedMeta('${section.tab}', ${idx}, '${esc(section.keyField)}', this.value)" placeholder="${esc(section.placeholder || 'e.g. Dealing with M1s')}">
+                    </div>${metaHTML}
+                </div>
             </div>
         </div>
         <div class="editor-section-banner">
@@ -631,18 +689,19 @@ window.loadCounterplayIntoEditor = function(idx) {
         <div id="strategy-block-target"></div>
     `;
 
-    initStrategyBlockBuilder('strategy-block-target', cp.content || []);
-    renderCounterplayPreview();
+    initStrategyBlockBuilder('strategy-block-target', entry.content || []);
+    window.renderKeyedSectionPreview(tabId);
 
     setTimeout(() => {
-        const previewCard = document.querySelector(`.live-preview-pane #counterplay-content-${(cp.topic||'Unknown').replace(/\s+/g, '-')}`);
+        const safeKey = String(entry[section.keyField] || 'Unknown').replace(/\s+/g, '-');
+        const previewCard = document.querySelector(`.live-preview-pane #${section.tab}-content-${safeKey}`);
         if (previewCard) {
             previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
             previewCard.parentElement.style.outline = '2px solid var(--accent-blue)';
             previewCard.parentElement.style.outlineOffset = '2px';
             setTimeout(() => { previewCard.parentElement.style.outline = 'none'; }, 800);
         }
-    }, 150);
+    }, 100);
 };
 
 // --- MOVES ---
