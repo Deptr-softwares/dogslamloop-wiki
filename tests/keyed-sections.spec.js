@@ -56,6 +56,12 @@ test('no pipeline site handles a keyed section by name', () => {
   const FILES = [
     'editor-core.js', 'editor-sync.js', 'editor-tabs.js', 'editor-previews.js',
     'admin-merge-compiler.js', 'admin-diff.js', 'admin-preview.js', 'description.js',
+    // site_utils.js holds applyDeltaToData - the step that actually WRITES an
+    // approved edit. It was missing from this list, and that is exactly where
+    // Starter Guide broke: every other stage worked, the reviewer saw a
+    // success modal, and nothing was written. The most important file was the
+    // one not being checked.
+    'site_utils.js',
   ];
 
   // Matchups keeps its own branches on purpose: its card links to the
@@ -79,6 +85,72 @@ test('no pipeline site handles a keyed section by name', () => {
   }
 
   expect(offenders, 'resolve these through window.getKeyedSectionByTab/ByScope').toEqual([]);
+});
+
+// --- APPLYING AN APPROVED EDIT ---
+
+test('a delta for every keyed section actually writes, including the first one', async ({ page }) => {
+  // The bug the owner hit, 2026-08-16: creating a Starter Guide topic produced
+  // a delta, the merge reported success, and NOTHING was written. Every stage
+  // worked except the last - applyDeltaToData had no branch for the scope, and
+  // an unmatched scope returned the data unchanged without complaint.
+  //
+  // Driven per section from the vocabulary, so a section added later is
+  // covered here the day it is declared rather than the day someone notices.
+  //
+  // The first-insert case is the one that broke: no existing page carries a
+  // starterGuide key, so the very first topic on every character is an insert
+  // into a field that does not exist yet.
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+
+  const results = await page.evaluate((sections) => {
+    const out = {};
+    sections.forEach(s => {
+      const entry = { [s.keyField]: 'First entry', content: [{ type: 'paragraph', content: 'hello' }] };
+
+      // 1. INSERT into desc_data that has no such key at all.
+      const inserted = window.applyDeltaToData({}, {}, s.scope, 'First entry', entry);
+
+      // 2. UPDATE the entry just written.
+      const changed = { ...entry, content: [{ type: 'paragraph', content: 'changed' }] };
+      const updated = window.applyDeltaToData(inserted.newDesc, {}, s.scope, 'First entry', changed);
+
+      // 3. DELETE it.
+      const deleted = window.applyDeltaToData(updated.newDesc, {}, s.scope, 'First entry', null);
+
+      out[s.tab] = {
+        insertedCount: (inserted.newDesc[s.field] || []).length,
+        insertedKey: (inserted.newDesc[s.field] || [])[0]?.[s.keyField],
+        updatedText: (updated.newDesc[s.field] || [])[0]?.content?.[0]?.content,
+        updatedCount: (updated.newDesc[s.field] || []).length,
+        deletedCount: (deleted.newDesc[s.field] || []).length,
+      };
+    });
+    return out;
+  }, SECTIONS);
+
+  for (const s of SECTIONS) {
+    const r = results[s.tab];
+    expect(r.insertedCount, `${s.tab}: the first entry must be written into a missing field`).toBe(1);
+    expect(r.insertedKey, `${s.tab}: keyed by ${s.keyField}`).toBe('First entry');
+    expect(r.updatedText, `${s.tab}: an update must replace rather than append`).toBe('changed');
+    expect(r.updatedCount, `${s.tab}: and must not duplicate the entry`).toBe(1);
+    expect(r.deletedCount, `${s.tab}: a null payload removes it`).toBe(0);
+  }
+});
+
+test('a scope with no handler is loud, not silent', async ({ page }) => {
+  // The property that would have caught the above on the first run. A delta
+  // that cannot be applied must never look like one that was.
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+
+  const errors = [];
+  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+
+  await page.evaluate(() => window.applyDeltaToData({}, {}, 'notARealScope', 'x', { a: 1 }));
+  await page.waitForTimeout(200);
+
+  expect(errors.join('\n'), 'an unhandled scope must report itself').toMatch(/No handler for scope "notARealScope"/);
 });
 
 // --- READER ---
