@@ -30,9 +30,10 @@
  *
  * THE TWO REAL TAB LISTS, per the owner (2026-08-16):
  *
- *   Full character   (isBaseOnly: false)  Overview & Strategy, M1s, Skills,
- *                                         Specials, Matchups, Counterplay,
- *                                         Gallery - repeated for every state.
+ *   Full character   (isBaseOnly: false)  Overview & Strategy, Combos, Starter
+ *                                         Guide, M1s, Skills, Specials,
+ *                                         Matchups, Counterplay, Gallery
+ *                                         - repeated for every state.
  *
  *   Base-only        (isBaseOnly: true)   ...the same, plus Ultimate between
  *                                         Counterplay and Gallery, for their
@@ -71,6 +72,21 @@
         {
             id: 'overview', label: 'Overview & Strategy', editorLabel: 'Overview',
             panelClass: 'tab-content', isDefault: true,
+            editable: true, frameMoves: false, modeScoped: true,
+        },
+        // Combos and Starter Guide sit between Overview and M1s deliberately:
+        // both are things a reader wants before the frame-data tabs, and the
+        // owner's vocabulary puts them there. Their content is v0.15 items 2
+        // and 3 - the tabs themselves render empty until those land, the same
+        // way `gallery` has since v0.12.
+        {
+            id: 'combos', label: 'Combos',
+            panelClass: 'tab-content',
+            editable: true, frameMoves: false, modeScoped: true,
+        },
+        {
+            id: 'starterGuide', label: 'Starter Guide',
+            panelClass: 'vessel-content',
             editable: true, frameMoves: false, modeScoped: true,
         },
         {

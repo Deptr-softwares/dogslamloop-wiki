@@ -41,7 +41,16 @@ async function clickEditFrom(page, mode) {
         status: 200, contentType: 'text/html', body: '<!doctype html><title>stub</title>',
     }));
 
-    await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+    // networkidle, not domcontentloaded: initCharacterModes (js/character_modes.js)
+    // awaits the page data and the registry, and only then decides the state.
+    // Boomcat declares none, so it finishes by calling switchCharacterMode(null)
+    // - which overwrites whatever this test poked into activeCharacterMode if
+    // the poke got in first. That race was invisible until v0.15 added two tabs
+    // and re-timed the page enough to lose it; the shipped code was never at
+    // fault either way. Waiting for the fetches to settle removes the race
+    // rather than hiding it behind a sleep.
+    await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+    await page.waitForFunction(() => window.declaredCharacterModes !== undefined, null, { timeout: 10000 });
 
     const btn = page.locator('#btn-edit-current-tab');
     await expect(btn).toBeVisible({ timeout: 10000 });

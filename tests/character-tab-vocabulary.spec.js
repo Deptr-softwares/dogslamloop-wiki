@@ -34,6 +34,7 @@ function loadVocabulary() {
 
 const vocab = loadVocabulary();
 const ALL_IDS = vocab.CHARACTER_TABS.map(t => t.id);
+const ALL_LABELS = vocab.CHARACTER_TABS.map(t => t.label);
 
 test('the vocabulary module loads and describes every tab', () => {
   expect(ALL_IDS.length).toBeGreaterThan(0);
@@ -51,20 +52,46 @@ test('no other JS file restates the tab list', () => {
   // Finds array literals whose quoted contents are all tab ids. Three is the
   // threshold: `['skills', 'specials']` is plausibly an unrelated pair, but
   // three known tab ids in a row is a copy of the vocabulary.
+  //
+  // Covers tests/ as well as js/. The first copy this missed lived in
+  // tests/page-skeleton-parity.spec.js, and a spec holding its own copy is
+  // worse than a module holding one - it turns a real regression into a green
+  // suite, or a vocabulary change into a spurious failure.
   const offenders = [];
   const jsFiles = fs.readdirSync(path.join(ROOT, 'js'))
-    .filter(f => f.endsWith('.js') && f !== 'character_tabs.js');
+    .filter(f => f.endsWith('.js') && f !== 'character_tabs.js')
+    .map(f => ['js', f]);
+  const testFiles = fs.readdirSync(path.join(ROOT, 'tests'))
+    .filter(f => f.endsWith('.spec.js') && f !== path.basename(__filename))
+    .map(f => ['tests', f]);
 
-  for (const name of jsFiles) {
-    const src = fs.readFileSync(path.join(ROOT, 'js', name), 'utf8');
+  for (const [dir, name] of jsFiles.concat(testFiles)) {
+    const src = fs.readFileSync(path.join(ROOT, dir, name), 'utf8');
     const arrays = src.match(/\[[^[\]{}()]*\]/g) || [];
 
     for (const literal of arrays) {
       const quoted = (literal.match(/'[^']*'|"[^"]*"/g) || [])
         .map(s => s.slice(1, -1));
       if (quoted.length < 3) continue;
-      if (!quoted.every(s => ALL_IDS.includes(s))) continue;
-      offenders.push(`js/${name}: ${literal.replace(/\s+/g, ' ')}`);
+
+      // Ids or labels. Labels matter as much: three specs restated the strip
+      // as ['Overview & Strategy', 'M1s', ...] and an id-only scan walked
+      // straight past them.
+      const vocabulary = quoted.every(s => ALL_IDS.includes(s)) ? ALL_IDS
+        : quoted.every(s => ALL_LABELS.includes(s)) ? ALL_LABELS
+          : null;
+      if (!vocabulary) continue;
+
+      // In vocabulary order, or it is not a copy of the vocabulary. A spec
+      // asserting which tabs one fixture happens to touch legitimately lists
+      // tab ids - tests/revision-tab-nav.spec.js has ['matchups', 'overview',
+      // 'skills'] - and that is data, not a restatement. A copy of the list
+      // keeps the list's order; unordered data almost never does.
+      const positions = quoted.map(s => vocabulary.indexOf(s));
+      const inOrder = positions.every((p, i) => i === 0 || p > positions[i - 1]);
+      if (!inOrder) continue;
+
+      offenders.push(`${dir}/${name}: ${literal.replace(/\s+/g, ' ')}`);
     }
   }
 

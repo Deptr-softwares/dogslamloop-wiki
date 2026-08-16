@@ -16,8 +16,8 @@
 const { test, expect } = require('@playwright/test');
 
 // 22 of the 23 character directories. Template is excluded on purpose - it is
-// a documentation page wearing a character page's clothes (5 tabs instead of
-// 7, extra prose) and must never be routed.
+// a documentation page wearing a character page's clothes (its own shorter tab
+// strip, extra prose) and must never be routed.
 const CHARACTER_PAGES = [
   'Aspiring_mangaka', 'Black_death', 'Blood_manipulator', 'Boomcat', 'Crow_charmer',
   'Cursed_partners', 'Defense_attorney', 'Disaster_plants', 'Head_hei', 'Honored_one',
@@ -47,19 +47,26 @@ const NEVER_ROUTED = [
   '/systems/index.html',
 ];
 
-// The 7 character tabs, in source order, with the class list each div carries.
+// The character tabs, in source order, with the class list each div carries.
 // The classes are not uniform (#tab-skills is .vessel-content.space-y-8 while
 // #tab-overview is .tab-content) and that asymmetry is load-bearing for
 // framedata.js/description.js, so it is asserted exactly rather than loosely.
-const EXPECTED_CHARACTER_TABS = [
-  { id: 'tab-overview', classes: ['tab-content'] },
-  { id: 'tab-m1s', classes: ['tab-content', 'hidden'] },
-  { id: 'tab-skills', classes: ['vessel-content', 'space-y-8', 'hidden'] },
-  { id: 'tab-specials', classes: ['tab-content', 'hidden'] },
-  { id: 'tab-matchups', classes: ['vessel-content', 'hidden'] },
-  { id: 'tab-counterplay', classes: ['vessel-content', 'hidden'] },
-  { id: 'tab-gallery', classes: ['vessel-content', 'hidden'] },
-];
+//
+// Derived from js/character_tabs.js rather than restated here. This spec's
+// claim is that the router builds what the vocabulary declares; a second copy
+// would only ever assert that two hand-maintained lists agree with each other,
+// and it was that copy - not the router - that broke when v0.15 added the
+// Combos and Starter Guide tabs.
+const EXPECTED_CHARACTER_TABS = (() => {
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', 'js', 'character_tabs.js'), 'utf8');
+  const fakeWindow = {};
+  new Function('window', src)(fakeWindow);
+  return fakeWindow.getCharacterTabs().map(t => ({
+    id: `tab-${t.id}`,
+    classes: t.isDefault ? t.panelClass.split(' ') : t.panelClass.split(' ').concat('hidden'),
+  }));
+})();
 
 // Ids the shared chrome in js/pagebuilder.js, js/description.js and
 // js/framedata.js look up directly. A router that omits any of them fails
