@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     } else if (tabId === 'matchups' && window.currentMatchupIndex !== undefined) {
                         hasCollision = isDiff(liveDesc?.matchups?.[window.currentMatchupIndex], window.originalCloudDescData?.matchups?.[window.currentMatchupIndex]);
-                    } else if (window.getKeyedSectionByTab(tabId) && tabId !== 'matchups'
+                    } else if (window.usesSharedKeyedUI(tabId)
                             && window.currentKeyedIndex?.[tabId] !== undefined) {
                         const field = window.getKeyedSectionByTab(tabId).field;
                         const i = window.currentKeyedIndex[tabId];

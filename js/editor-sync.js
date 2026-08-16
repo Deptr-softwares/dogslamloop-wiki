@@ -145,7 +145,7 @@ window.triggerManualSync = async function() {
             window.currentEditorDescData.matchups[window.currentMatchupIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
         }
         renderMatchupsPreview();
-    } else if (window.getKeyedSectionByTab && window.getKeyedSectionByTab(tabId) && tabId !== 'matchups') {
+    } else if (window.usesSharedKeyedUI && window.usesSharedKeyedUI(tabId)) {
         // Any keyed section (js/character_tabs.js). Flushes the open entry's
         // blocks back into it before redrawing, which is what stops the buffer
         // being dropped when the contributor switches away.
@@ -282,7 +282,7 @@ function updateLivePreview(skipHistory = false) {
         }
         if (typeof renderMatchupsPreview === 'function') renderMatchupsPreview();
 
-    } else if (window.getKeyedSectionByTab && window.getKeyedSectionByTab(tabId) && tabId !== 'matchups') {
+    } else if (window.usesSharedKeyedUI && window.usesSharedKeyedUI(tabId)) {
         flushKeyedSection(tabId, currentStrategyBlocks);
         if (typeof window.renderKeyedSectionPreview === 'function') window.renderKeyedSectionPreview(tabId);
 

@@ -115,6 +115,27 @@
         </div>
     </div>
 
+    <!-- COMBO ROW EDITOR -->
+    <!-- A combo row has a dozen fields, and the editor's left pane is a narrow
+         sidebar sitting next to the live preview - the form was cramped enough
+         there that half of it was a scroll. Owner's call, 2026-08-16: edit a
+         row in a modal, where it gets the full width and can lay the fields
+         out two or three across. -->
+    <div id="combo-row-modal" class="editor-modal-overlay hidden">
+        <div class="editor-modal-box combo-row-modal-box">
+            <div class="auth-header">
+                <h3 id="combo-row-modal-title">EDIT COMBO</h3>
+            </div>
+            <div class="auth-body combo-row-modal-body">
+                <div id="combo-row-modal-fields" class="combo-field-grid"></div>
+            </div>
+            <div class="editor-modal-actions combo-row-modal-actions">
+                <button type="button" id="combo-row-modal-delete" class="btn-sys btn-sys-red">DELETE COMBO</button>
+                <button type="button" id="combo-row-modal-done" class="btn-sys btn-sys-green">DONE</button>
+            </div>
+        </div>
+    </div>
+
     <div id="media-modal-overlay" class="editor-modal-overlay hidden">
         <div class="editor-modal-box media-modal-box">
             <div class="auth-header">
@@ -277,8 +298,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- First: the character tab vocabulary. site_utils.js derives
          FRAME_MOVE_CATEGORIES from it and editor-tabs.js its major strip. -->
-    <script src="js/character_tabs.js?v=b98a5e3d"></script>
-    <script src="js/site_utils.js?v=b98a5e3d"></script>
+    <script src="js/character_tabs.js?v=eefa2df5"></script>
+    <script src="js/site_utils.js?v=eefa2df5"></script>
     <script src="js/site_meta.js"></script>
     <script src="js/pagebuilder.js"></script>
     <script src="js/framedata.js"></script>

@@ -83,6 +83,29 @@
             id: 'combos', label: 'Combos',
             panelClass: 'tab-content',
             editable: true, frameMoves: false, modeScoped: true,
+            keyed: {
+                // Grouped by STARTER, which is what the community and the
+                // reference both organise combos by. The names are
+                // author-chosen - the owner's live pages say True / Simpler /
+                // Advanced, not the reference's Beginner / Core / Specialized.
+                keyField: 'starter', scope: 'comboGroup', entryLabel: 'Combo Group',
+                // 'comboGroup' rather than 'combo': `combo` is already a BLOCK
+                // type (the inline route inside a group), and two namespaces
+                // sharing a word is how the next person loses an hour.
+                rowsField: 'rows',
+                // Its own READER renderer (a sortable table), but the SHARED
+                // editor: a group is a name plus blocks like any keyed entry,
+                // and the rows get one extra panel inside that screen rather
+                // than a second editor built from scratch.
+                customRenderer: true,
+                // Named here rather than branched on by tab id at each call
+                // site, which is the pattern tests/keyed-sections.spec.js
+                // forbids. Both the reader and the editor's preview resolve
+                // the function through this.
+                rendererFn: 'renderCombosTab',
+                emptyMessage: 'No combos have been written for this character yet.',
+                emptyEntryMessage: 'No combos in this group yet.',
+            },
         },
         {
             id: 'starterGuide', label: 'Starter Guide',
@@ -117,7 +140,14 @@
             id: 'matchups', label: 'Matchups',
             panelClass: 'vessel-content',
             editable: true, frameMoves: false, modeScoped: true,
-            keyed: { keyField: 'opponent', scope: 'matchup', entryLabel: 'Matchup', metaField: 'tier' },
+            keyed: {
+                keyField: 'opponent', scope: 'matchup', entryLabel: 'Matchup',
+                metaField: 'tier',
+                // Its card links to the opponent's page and its editor lists
+                // the roster, so both halves are a different screen rather
+                // than the shared one with different words.
+                customRenderer: true, customEditor: true,
+            },
         },
         {
             id: 'counterplay', label: 'Counterplay',
@@ -214,6 +244,28 @@
     window.getKeyedSections = function () {
         return window.CHARACTER_TABS.filter(t => t.keyed)
             .map(t => ({ tab: t.id, field: t.id, label: t.label, ...t.keyed }));
+    };
+
+    /**
+     * The keyed sections that use the SHARED renderer and editor.
+     *
+     * Matchups and Combos declare `customRenderer` because their screens are
+     * genuinely different - a matchup card links to the opponent's page, a
+     * combo group draws a sortable table - rather than the shared one with
+     * different words. This was written as `tab !== 'matchups'` at five sites;
+     * the third such section is where that becomes a list to maintain.
+     */
+    window.getSharedKeyedSections = function () {
+        return window.getKeyedSections().filter(s => !s.customRenderer);
+    };
+
+    /** Whether a tab uses the shared renderer/editor. */
+    window.usesSharedKeyedUI = function (tabId) {
+        const section = window.getKeyedSectionByTab(tabId);
+        // Renderer and editor are separate decisions. Combos needs its own
+        // table on the reader page but is an ordinary named entry to edit, so
+        // it opts out of one and not the other.
+        return !!section && !section.customEditor;
     };
 
     /** Look one up by its delta scope ('matchup', 'counterplay', …). */

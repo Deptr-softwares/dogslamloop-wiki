@@ -181,6 +181,15 @@ function renderKeyedSectionPreview(tabId) {
     const container = document.getElementById(`tab-${section.tab}`);
     if (!container) return;
 
+    // A section with its own renderer draws itself, so the editor's preview
+    // and the live page cannot disagree about what publishing will look like -
+    // which is the whole point of a live preview.
+    if (section.rendererFn && typeof window[section.rendererFn] === 'function') {
+        window[section.rendererFn](descData);
+        if (typeof window.applyInternalStyling === 'function') setTimeout(window.applyInternalStyling, 50);
+        return;
+    }
+
     const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
 
     container.innerHTML = '';

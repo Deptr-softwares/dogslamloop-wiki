@@ -470,6 +470,273 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
 };
 
 // Helper to apply dynamic text alignment and prevent long-word overflow
+// --- THE COMBO TABLE (v0.15 item 3) ---
+//
+// Adapted from Dustloop's combo table, in our own chrome. A character's combos
+// are grouped by STARTER - the owner's live pages use True / Simpler /
+// Advanced rather than the reference's Beginner / Core / Specialized, because
+// the group names are the author's - and each group draws one sortable table.
+//
+// Not a block type. `desc_data.combos` is a keyed array exactly like matchups
+// and counterplay (js/character_tabs.js), so submit, merge, diff and the
+// editor's group nav all come from the shared machinery; only the rendering
+// below is bespoke.
+
+// The owner's own scale. ORDER IS MEANING: this array is the sort key, because
+// "Demon Time" sorts FIRST alphabetically and LAST by difficulty.
+window.COMBO_DIFFICULTIES = [
+    'Very Easy', 'Easy', 'Medium', 'Slightly Hard',
+    'Hard', 'Very Hard', 'Extremely Hard', 'Demon Time',
+];
+
+// Columns, in order. `conditional` ones are dropped unless some row in the
+// group fills them in - the reference does this for Setup, and the owner asked
+// for Controls to ship for console players without costing ten-wide tables any
+// horizontal space until it earns it.
+//
+// `sort: null` means the column has no meaningful order (a link, a version
+// string), which is the reference's behaviour too.
+window.COMBO_COLUMNS = [
+    { field: 'sequence',    label: 'Combo',       sort: 'route' },
+    { field: 'damage',      label: 'Damage',      sort: 'leadingNumber' },
+    { field: 'position',    label: 'Position',    sort: 'text' },
+    { field: 'difficulty',  label: 'Difficulty',  sort: 'difficulty' },
+    { field: 'worksOn',     label: 'Works On',    sort: 'text' },
+    { field: 'setup',       label: 'Setup',       sort: 'text', conditional: true },
+    { field: 'controls',    label: 'Controls',    sort: null,   conditional: true },
+    { field: 'gameVersion', label: 'Ver',         sort: null },
+    { field: 'video',       label: 'Video',       sort: null },
+    { field: 'notes',       label: 'Notes',       sort: 'text' },
+];
+
+// "38-46" and "4 (2+2)" are both live values. Lexical order puts "4 (2+2)"
+// above "38-46", which is wrong by every reading, so damage sorts on the
+// leading integer and rows with no number sort last rather than as zero.
+window.comboSortValue = function (row, column) {
+    const raw = row ? row[column.field] : undefined;
+
+    if (column.sort === 'difficulty') {
+        const i = window.COMBO_DIFFICULTIES.indexOf(raw);
+        return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+    }
+    if (column.sort === 'leadingNumber') {
+        const m = /-?\d+(\.\d+)?/.exec(String(raw === null || raw === undefined ? '' : raw));
+        return m ? parseFloat(m[0]) : Number.MAX_SAFE_INTEGER;
+    }
+    if (column.sort === 'route') {
+        return (Array.isArray(raw) ? raw.join(' > ') : String(raw || '')).toLowerCase();
+    }
+    return String(raw === null || raw === undefined ? '' : raw).toLowerCase();
+};
+
+// Which optional columns have been earned.
+//
+// Computed across every group in the tab rather than per group. Per group, a
+// reader scrolling down sees columns appear and disappear between two tables
+// that are meant to be read the same way - one group grew a Setup column and
+// the next grew Controls instead, which looks like a bug even though each
+// table was individually correct.
+window.comboVisibleColumns = function (rows) {
+    const list = Array.isArray(rows) ? rows : [];
+    return window.COMBO_COLUMNS.filter(col => {
+        if (!col.conditional) return true;
+        return list.some(r => r && String(r[col.field] || '').trim() !== '');
+    });
+};
+
+// One route, rendered as the same chips the legacy combo block uses, so a
+// route reads identically whether it is inline in prose or a row in a table.
+function renderComboRoute(sequence) {
+    const steps = Array.isArray(sequence) ? sequence : (sequence ? [sequence] : []);
+    if (steps.length === 0) return '<span class="combo-route-empty">-</span>';
+
+    let html = '<div class="combo-container combo-route-inline">';
+    steps.forEach((step, i) => {
+        html += `<span class="combo-node">${escBlockText(step)}</span>`;
+        if (i < steps.length - 1) html += '<span class="combo-sep" aria-hidden="true">&gt;</span>';
+    });
+    return html + '</div>';
+}
+
+// Ult Gain and Evasive Gain are the owner's two resources, replacing the
+// reference's Tension/Blood/Stamina. They are bold prefixes above the notes
+// rather than columns of their own - two more columns on a ten-wide table for
+// two values that are usually blank is a bad trade.
+function renderComboNotes(row) {
+    let html = '';
+    [['ultGain', 'Ult Gain'], ['evasiveGain', 'Evasive Gain']].forEach(([field, label]) => {
+        const value = String(row[field] || '').trim();
+        if (value) html += `<div class="combo-resource"><strong>${label}:</strong> ${escBlockText(value)}</div>`;
+    });
+    const notes = String(row.notes || '').trim();
+    if (notes) html += `<div class="combo-note-text">${escBlockText(notes)}</div>`;
+    return html || '<span class="combo-cell-empty">-</span>';
+}
+
+function renderComboCell(row, column) {
+    if (column.field === 'sequence') return renderComboRoute(row.sequence);
+    if (column.field === 'notes') return renderComboNotes(row);
+
+    const value = String(row[column.field] === null || row[column.field] === undefined ? '' : row[column.field]).trim();
+    if (!value) return '<span class="combo-cell-empty">-</span>';
+
+    if (column.field === 'video') {
+        const href = safeBlockUrl(value);
+        if (!href) return '<span class="combo-cell-empty">-</span>';
+        return `<a href="${escBlockText(href)}" class="combo-video-link" target="_blank" rel="noopener noreferrer">Watch</a>`;
+    }
+    if (column.field === 'difficulty') {
+        // Slot index rather than the label, so the ramp is a class and the
+        // palette lives in CSS with every other colour on the site.
+        const i = window.COMBO_DIFFICULTIES.indexOf(value);
+        const slot = i === -1 ? '' : ` combo-difficulty-${i}`;
+        return `<span class="combo-difficulty${slot}">${escBlockText(value)}</span>`;
+    }
+    return escBlockText(value);
+}
+
+// Sorting is applied by re-rendering the body rather than by moving nodes:
+// each cell is generated markup, and re-generating is both simpler and immune
+// to a half-sorted DOM if a row is malformed.
+window.renderComboTableBody = function (tbody, rows, columns, sort) {
+    const list = (Array.isArray(rows) ? rows : []).slice();
+
+    if (sort && sort.column) {
+        const column = columns.find(c => c.field === sort.column);
+        if (column && column.sort) {
+            list.sort((a, b) => {
+                const av = window.comboSortValue(a, column);
+                const bv = window.comboSortValue(b, column);
+                if (av < bv) return sort.dir === 'desc' ? 1 : -1;
+                if (av > bv) return sort.dir === 'desc' ? -1 : 1;
+                return 0;
+            });
+        }
+    }
+
+    tbody.innerHTML = list.map(row => {
+        const cells = columns.map(col => {
+            const html = renderComboCell(row || {}, col);
+            // Tagged rather than inferred in CSS: on mobile an empty cell is
+            // a labelled row saying "-", and ten of those per card buries the
+            // three fields that were actually filled in.
+            const empty = html.indexOf('combo-cell-empty') > -1 || html.indexOf('combo-route-empty') > -1;
+            return `<td class="combo-cell combo-cell-${col.field}${empty ? ' combo-cell-is-empty' : ''}"`
+                + ` data-label="${escBlockText(col.label)}">${html}</td>`;
+        }).join('');
+        return `<tr class="combo-row">${cells}</tr>`;
+    }).join('');
+};
+
+// One group: its name, then its table.
+window.renderComboGroup = function (group, section) {
+    const wrapper = document.createElement('section');
+    wrapper.className = 'wiki-section wiki-section-clip combo-group';
+
+    const name = group[section.keyField] || 'Untitled';
+    wrapper.innerHTML = `
+        <div class="card-header-flex">
+            <h3 class="card-header-title">${escBlockText(name)}</h3>
+        </div>
+    `;
+
+    const rows = Array.isArray(group[section.rowsField]) ? group[section.rowsField] : [];
+    if (rows.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'empty-notes-msg';
+        empty.textContent = section.emptyEntryMessage || 'No combos in this group yet.';
+        wrapper.appendChild(empty);
+        return wrapper;
+    }
+
+    const columns = section.__columns || window.comboVisibleColumns(rows);
+
+    // The table scrolls inside its own container rather than pushing the page
+    // sideways. Below the breakpoint CSS turns each row into a card - the same
+    // treatment matchups already get on mobile - because ten columns cannot fit
+    // a phone and the route is the part that must stay readable.
+    const scroller = document.createElement('div');
+    scroller.className = 'combo-table-scroll';
+
+    const table = document.createElement('table');
+    table.className = 'combo-table';
+    table.innerHTML = `
+        <thead>
+            <tr>${columns.map(col => (col.sort
+                ? `<th class="combo-th combo-th-sortable" data-sort-field="${escBlockText(col.field)}"`
+                  + ` role="button" tabindex="0" aria-sort="none">${escBlockText(col.label)}`
+                  + `<span class="combo-sort-arrow" aria-hidden="true"></span></th>`
+                : `<th class="combo-th">${escBlockText(col.label)}</th>`)).join('')}</tr>
+        </thead>
+        <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector('tbody');
+    let sort = { column: null, dir: 'asc' };
+    window.renderComboTableBody(tbody, rows, columns, sort);
+
+    // One delegated listener, never an inline onclick - the field names are
+    // ours, but the pattern is the site's rule and this markup sits beside
+    // contributor content.
+    table.querySelector('thead').addEventListener('click', (e) => {
+        const th = e.target.closest('.combo-th-sortable');
+        if (!th) return;
+        const field = th.getAttribute('data-sort-field');
+        sort = (sort.column === field && sort.dir === 'asc')
+            ? { column: field, dir: 'desc' }
+            : { column: field, dir: 'asc' };
+
+        table.querySelectorAll('.combo-th-sortable').forEach(h => {
+            const active = h.getAttribute('data-sort-field') === sort.column;
+            h.setAttribute('aria-sort', active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+            h.classList.toggle('is-sorted', active);
+            h.classList.toggle('is-desc', active && sort.dir === 'desc');
+        });
+
+        window.renderComboTableBody(tbody, rows, columns, sort);
+    });
+
+    scroller.appendChild(table);
+    wrapper.appendChild(scroller);
+
+    // Prose and TheoryBoxes under the table, if the group carries any.
+    if (Array.isArray(group.content) && group.content.length > 0) {
+        const prose = document.createElement('div');
+        prose.className = 'combos-content';
+        prose.id = `combos-content-${String(name).replace(/\s+/g, '-')}`;
+        wrapper.appendChild(prose);
+        populateTextSection(prose.id, '', group.content, 'combos');
+        const injected = prose.querySelector('section.wiki-section');
+        if (injected) injected.classList.remove('wiki-section');
+    }
+
+    return wrapper;
+};
+
+window.renderCombosTab = function (data) {
+    const section = window.getKeyedSectionByTab ? window.getKeyedSectionByTab('combos') : null;
+    const container = document.getElementById('tab-combos');
+    if (!section || !container) return;
+
+    container.innerHTML = '';
+    container.classList.add('space-y-6');
+
+    const groups = data[section.field];
+    if (!groups || groups.length === 0) {
+        container.innerHTML = `<div class="empty-tab-msg">${escBlockText(section.emptyMessage || 'Not written yet.')}</div>`;
+        return;
+    }
+
+    // Every row in the tab decides the columns, so all groups share a shape.
+    const allRows = groups.reduce((acc, g) => acc.concat((g && g[section.rowsField]) || []), []);
+    const shared = { ...section, __columns: window.comboVisibleColumns(allRows) };
+
+    groups.forEach(group => container.appendChild(window.renderComboGroup(group || {}, shared)));
+    if (typeof window.consolidateTabContributors === 'function') {
+        window.consolidateTabContributors(container);
+    }
+};
+
 function getAlignStyle(align) {
     let styleStr = 'overflow-wrap: break-word; word-break: break-word;';
     // Allowlisted, not escaped - this is a CSS value, where escaping quotes
@@ -960,6 +1227,13 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 }
             }
 
+            // --- 3a. KEYED SECTIONS WITH THEIR OWN RENDERER ---
+            // Resolved from the vocabulary, so adding one is a registry entry
+            // rather than another branch here.
+            (window.getKeyedSections ? window.getKeyedSections() : [])
+                .filter(s => s.rendererFn && typeof window[s.rendererFn] === 'function')
+                .forEach(s => window[s.rendererFn](data));
+
             // --- 3. KEYED SECTIONS (Counterplay, Starter Guide) ---
             //
             // One renderer for every tab whose data is an array of keyed
@@ -972,7 +1246,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
             // different card, not this one with different words, and folding
             // it in would mean a renderer full of `if (section.tab === ...)`.
             (window.getKeyedSections ? window.getKeyedSections() : [])
-                .filter(section => section.tab !== 'matchups')
+                .filter(section => !section.customRenderer)
                 .forEach(section => {
                     const container = document.getElementById(`tab-${section.tab}`);
                     if (!container) return;

@@ -1665,3 +1665,39 @@ del.diff-del {
     border-top: 1px solid #333;
     padding-top: 0.4rem;
 }
+
+/* --- COMBO ROWS EDITOR (v0.15 item 3) --- */
+/* The rows of one combo group. A row is a button showing its route, because
+   the route is how an author recognises which combo they are editing - an
+   index or a damage number is not something anyone remembers. */
+.combo-rows-list { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.6rem; }
+.combo-row-item { display: flex; gap: 0.35rem; align-items: stretch; }
+.combo-row-open {
+    flex: 1; text-align: left; font-family: var(--text-mono); font-size: 0.7rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.combo-row-item.active .combo-row-open { border-color: var(--accent-blue); color: var(--accent-blue); }
+.combo-row-remove { flex: 0 0 auto; }
+
+/* The row form lives in a modal (edit.html #combo-row-modal), not in the
+   sidebar: the editor's left pane shares the screen with the live preview, and
+   a dozen fields in it was mostly scroll. Owner's call, 2026-08-16.
+
+   Three columns of short fields in the modal, one below 720px. The route and
+   the notes span the full width because they are the only two that are long. */
+.combo-row-modal-box {
+    width: min(860px, 94vw);
+    /* The default .editor-modal-box top border is red, which belongs to the
+       delete-confirm modal this shares markup with. This is an edit form, and
+       a red bar across the top of it reads as a warning about nothing. */
+    border-top-color: var(--accent-blue);
+}
+.combo-row-modal-body { padding: 1.25rem; text-align: left; max-height: 70vh; overflow-y: auto; }
+.combo-row-modal-actions { justify-content: space-between; gap: 1rem; padding: 0.9rem 1.25rem; border-top: 1px dashed #333; }
+
+.combo-field-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem 1rem; }
+.combo-field-grid label { display: block; margin-bottom: 0.3rem; }
+.combo-field-grid .combo-field-full { grid-column: 1 / -1; }
+.combo-field-grid .editor-input, .combo-field-grid .editor-select, .combo-field-grid .editor-textarea { margin: 0; width: 100%; }
+@media (max-width: 900px) { .combo-field-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 720px) { .combo-field-grid { grid-template-columns: 1fr; } }
