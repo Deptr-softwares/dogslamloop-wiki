@@ -527,22 +527,30 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             if (idx > -1) newDesc.extras[idx] = payload; else newDesc.extras.push(payload);
         }
     }
-    else if (scope === 'matchup') {
-        if (!newDesc.matchups) newDesc.matchups = [];
+    // Every keyed section (js/character_tabs.js): matchups, counterplay,
+    // starterGuide, and anything declared there later.
+    //
+    // THIS IS THE LAST STEP OF APPLYING A TICKET, and an unrecognised scope
+    // used to fall all the way through to the return below - returning the data
+    // UNCHANGED, with no error. The reviewer got a success modal and nothing
+    // was written. That is what shipped for Starter Guide: it had a submit
+    // scan, a merge compiler entry, a diff and a renderer, and the one branch
+    // that actually writes the value did not know the scope existed.
+    //
+    // The missing `starterGuide` key on existing pages was NOT the cause - the
+    // `if (!newDesc[field])` below has always created it on first insert. The
+    // cause was that there was no branch to reach it.
+    else if (window.getKeyedSectionByScope && window.getKeyedSectionByScope(scope)) {
+        const section = window.getKeyedSectionByScope(scope);
+        const field = section.field;
+        const keyField = section.keyField;
+
+        if (!newDesc[field]) newDesc[field] = [];
         if (payload === null) {
-            newDesc.matchups = newDesc.matchups.filter(m => m.opponent !== key);
+            newDesc[field] = newDesc[field].filter(e => e[keyField] !== key);
         } else {
-            const idx = newDesc.matchups.findIndex(m => m.opponent === key);
-            if (idx > -1) newDesc.matchups[idx] = payload; else newDesc.matchups.push(payload);
-        }
-    }
-    else if (scope === 'counterplay') {
-        if (!newDesc.counterplay) newDesc.counterplay = [];
-        if (payload === null) {
-            newDesc.counterplay = newDesc.counterplay.filter(c => c.topic !== key);
-        } else {
-            const idx = newDesc.counterplay.findIndex(c => c.topic === key);
-            if (idx > -1) newDesc.counterplay[idx] = payload; else newDesc.counterplay.push(payload);
+            const idx = newDesc[field].findIndex(e => e[keyField] === key);
+            if (idx > -1) newDesc[field][idx] = payload; else newDesc[field].push(payload);
         }
     }
     // One delta per gallery item, keyed by name. A gallery is the one page
@@ -588,6 +596,19 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             if (!newDesc.moveStrategies) newDesc.moveStrategies = {};
             newDesc.moveStrategies[moveId] = payload.desc_data || [];
         }
+    }
+    // Nothing matched. This used to return silently, which is how a Starter
+    // Guide ticket could pass every check, show the reviewer a success modal
+    // and write nothing at all. A scope this function does not understand is
+    // always a bug - either a new scope was added without a branch here, or
+    // js/character_tabs.js did not load and the keyed-section lookup above
+    // could not run.
+    else {
+        console.error(
+            `[Delta] No handler for scope "${scope}" - the edit was NOT applied. `
+            + `If this is a keyed section, check js/character_tabs.js loaded before this file.`,
+            { scope, key }
+        );
     }
 
     return { newDesc, newFrame };
