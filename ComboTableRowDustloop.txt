@@ -1,0 +1,10 @@
+<includeonly>| {{ComboText|{{{combo|}}}}}
+| {{{position|}}} 
+| {{{damage|}}}
+| {{{worksOn|}}}
+| {{ComboDifficulty|{{{difficulty|}}}}}
+| {{#if:{{{tensionGain|}}}|<b>Tension Gain:</b> {{{tensionGain}}}<br/>|}}{{#if:{{{blood|}}}|<b>Net Blood Gain:</b> {{{blood}}}<br/>|}}{{#if:{{{stamina|}}}|<b>Stamina:</b> {{{stamina}}}<br/>|}}{{{notes|}}}<!--
+-->{{#if:{{{setup|}}}|{{!}}{{!}}{{{setup|}}}}}
+| {{{video|}}}
+| style="text-align:center" | {{#if: {{{recipePC|}}}|{{{recipePC}}}<br><small>(PC)</small>|{{#if:{{{recipePS|}}}|{{{recipePS}}}<br><small>(PS)</small>}} }}
+| {{GGST-VersionCheck|{{{checkedVersion|}}}}}</includeonly><templatestyles src="Template:ComboTable/shared/styles.css"/><noinclude>{{doc}}</noinclude>
