@@ -876,8 +876,17 @@ summary:focus-visible {
 .accordion-arrow { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.6rem; color: var(--text-muted, #888); transition: transform 0.2s; }
 .wiki-accordion-body { padding: 1rem; border-top: 1px dashed var(--border-color, #333); background: var(--bg-secondary, #111); display: flex; flex-direction: column; gap: 0.5rem; text-align: left; }
 
-.combo-container { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 1.5rem 0; }
-.combo-meta-group { display: flex; align-items: center; gap: 0.75rem; }
+/* One combo = the route row, then its note underneath. The wrapper owns the
+   vertical margin so the two rows never drift apart. */
+.combo-block { margin: 1.25rem 0; }
+.combo-container { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; }
+
+/* The note sits under the route, full width, matching its alignment - it is a
+   condition on the whole combo, not a label on the damage.
+
+   .combo-meta-group is gone with it: it existed to hold the note and damage
+   together at the far right of the page, and nothing emits it now. */
+.combo-note-row { display: flex; margin-top: 0.4rem; }
 
 /* The rest of the combo block, moved out of style/FrameData.css on
    2026-08-15. The container above lived here and the nodes lived there, so
@@ -889,23 +898,40 @@ summary:focus-visible {
    every page type that renders blocks needs them. Frame data is a
    different thing that happens to also show combos. */
 /* --- 6. COMBO STRINGS --- */
+/* Monospace, and smaller. Two reasons, both from real pages:
+
+   A combo step is notation, and in notation alignment carries meaning -
+   'M1 M1 M1' should be visibly three of the same thing. A proportional comic
+   face (this was CC-Wild-Words) makes the same input a different width every
+   time it appears, so a route cannot be read by shape.
+
+   And the chips were big enough that an ordinary route wrapped onto a second
+   line - the 76-damage Crow Charmer combo broke mid-route - which loses the
+   left-to-right reading a combo depends on. Smaller padding, smaller type and
+   a tighter gap keep a typical route on one line. */
 .combo-node {
     display: inline-flex; align-items: center; justify-content: center;
-    background: #0a0a0a; border: 2px solid #444; border-bottom: 4px solid #333; 
-    color: var(--text-white); padding: 0.35rem 0.8rem; font-family: 'CC-Wild-Words', sans-serif;
-    font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;
-    border-radius: 4px; text-shadow: 1px 1px 0px #000; transition: all 0.1s; cursor: default;
+    background: #0a0a0a; border: 2px solid #444; border-bottom: 3px solid #333;
+    color: var(--text-white); padding: 0.2rem 0.5rem; font-family: var(--text-mono);
+    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;
+    border-radius: 3px; text-shadow: 1px 1px 0px #000; transition: all 0.1s; cursor: default;
 }
 .combo-node:hover {
     border-color: var(--accent-blue); border-bottom-color: var(--accent-blue); color: var(--accent-blue);
-    transform: translateY(2px); border-bottom-width: 2px;
+    transform: translateY(1px); border-bottom-width: 2px;
 }
-.combo-arrow { color: var(--text-muted); stroke-width: 3px; opacity: 0.5; }
+.combo-arrow { color: var(--text-muted); stroke-width: 3px; opacity: 0.5; width: 14px; height: 14px; }
 .combo-note {
     background: rgba(255,255,255,0.05); border: 1px dashed #444; color: #aaa;
     font-family: var(--text-mono); font-size: 0.75rem; padding: 0.25rem 0.5rem;
 }
-.combo-damage { color: hsl(3, 93%, 63%); font-family: var(--text-mono); font-weight: bold; font-size: 1.1rem; text-shadow: 2px 2px 0px #000; }
+/* Trails the route directly, so it is read as the end of the combo rather
+   than as a column at the page edge. Sized to sit with the chips instead of
+   over-topping them. */
+.combo-damage {
+    color: hsl(3, 93%, 63%); font-family: var(--text-mono); font-weight: bold;
+    font-size: 0.9rem; text-shadow: 1px 1px 0px #000; margin-left: 0.3rem;
+}
 
 /* Heading for an authored strategy block, moved here for the same reason. */
 .strategy-title { 
