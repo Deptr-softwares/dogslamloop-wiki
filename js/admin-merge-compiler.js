@@ -134,7 +134,7 @@ window.openMergeCompiler = async function(pageId) {
         scanArray('matchups', 'Matchup', tDesc.matchups, liveDescData.matchups, 'opponent');
         scanArray('counterplay', 'Counterplay', tDesc.counterplay, liveDescData.counterplay, 'topic');
 
-        (window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials']).forEach(cat => {
+        window.FRAME_MOVE_CATEGORIES.forEach(cat => {
             const tMoves = tFrame[cat] || [];
             const lMoves = liveFrameData[cat] || [];
             const allMoveIds = new Set([...tMoves.map(m=>m.id), ...lMoves.map(m=>m.id)]);

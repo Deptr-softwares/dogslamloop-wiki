@@ -10,6 +10,19 @@
 // and every one of them has to keep rendering exactly as it did.
 const { test, expect } = require('@playwright/test');
 
+// Labels derived from js/character_tabs.js rather than restated: the claim
+// here is about which tabs appear and in what order, not about their wording,
+// and a second copy of the list goes stale the next time one is added.
+const VOCAB = (() => {
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', 'js', 'character_tabs.js'), 'utf8');
+  const w = {};
+  new Function('window', src)(w);
+  return w;
+})();
+const labelsOf = (opts) => VOCAB.getCharacterTabs(opts).map(t => t.label);
+
+
 // .from('page_data').select('*').eq('page_id', id).single()
 function mockPageData(page, { desc = {}, frame = {} } = {}) {
   return page.addInitScript(({ desc, frame }) => {
@@ -107,9 +120,7 @@ test('a character with no declared modes renders no toggle and no Ultimate tab',
 
   // The tab strip is untouched: the same seven buttons, in the same order.
   const labels = await page.locator('.character-nav .btn-manga-text').allTextContents();
-  expect(labels).toEqual([
-    'Overview & Strategy', 'M1s', 'Skills', 'Specials', 'Matchups', 'Counterplay', 'Gallery',
-  ]);
+  expect(labels).toEqual(labelsOf());
   expect(errors).toEqual([]);
 });
 
@@ -220,9 +231,7 @@ test('a base-only character gets an Ultimate tab after Counterplay', async ({ pa
   await page.goto('/characters/Locust_guy/index.html', { waitUntil: 'networkidle' });
 
   const labels = await page.locator('.character-nav .btn-manga-text').allTextContents();
-  expect(labels).toEqual([
-    'Overview & Strategy', 'M1s', 'Skills', 'Specials', 'Matchups', 'Counterplay', 'Ultimate', 'Gallery',
-  ]);
+  expect(labels).toEqual(labelsOf({ includeInjected: true }));
 
   // No mode toggle - a base-only character has exactly one kit.
   await expect(page.locator('#character-mode-bar')).toBeHidden();

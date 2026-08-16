@@ -10,7 +10,10 @@
 // ticket did - meant hand-editing the URL or giving up, so intercepting a
 // skill revision was effectively impossible. This is the same strip, in the
 // same shape, as the live character page's nav.
-const EDITOR_MAJOR_TABS = ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay', 'ultimateAtk'];
+// Includes ultimateAtk: unlike admin.html, edit.html ships that button in its
+// static markup (hidden), and js/editor-modes.js un-hides it for a base-only
+// character. Gallery is excluded because it has no editor at all.
+const EDITOR_MAJOR_TABS = window.getCharacterTabIds({ includeInjected: true, editableOnly: true });
 
 window.renderEditorTabNav = function(activeTabId) {
     const nav = document.getElementById('editor-tab-nav');
@@ -158,7 +161,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         return;
     }
 
-    const frameTabs = window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials'];
+    const frameTabs = window.FRAME_MOVE_CATEGORIES;
 
     // Note: window.currentEditor* was previously assigned a second time here,
     // byte-identical to the assignment at the top of this function - a

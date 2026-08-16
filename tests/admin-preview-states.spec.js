@@ -11,7 +11,18 @@
 // two versions in memory, and these tests start from the point where it has.
 const { test, expect } = require('@playwright/test');
 
-const TABS = ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'];
+
+// Derived from js/character_tabs.js, not restated: these are the tabs
+// admin.html's static strip owns, and a second copy here would go stale the
+// next time one is added.
+const VOCAB = (() => {
+  const src = require('fs').readFileSync(
+    require('path').join(__dirname, '..', 'js', 'character_tabs.js'), 'utf8');
+  const w = {};
+  new Function('window', src)(w);
+  return w;
+})();
+const TABS = VOCAB.getCharacterTabIds({ editableOnly: true });
 
 const move = (id, name) => ({ id, name, startup: '5', active: '3', recovery: '12', damage: '10' });
 const para = (text) => ({ type: 'paragraph', content: text });

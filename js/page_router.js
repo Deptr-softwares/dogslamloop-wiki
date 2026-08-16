@@ -36,10 +36,16 @@ window.buildPageSkeleton = function (route, rootPath) {
     // wrong answer there and '/' is always the right one.
     const ROOT = rootPath || '../../';
 
-    // The 7 character tabs, hardcoded here instead of copy-pasted into 22
-    // files. `gallery` currently has no handler anywhere and renders empty -
-    // it is kept deliberately: the owner intends to build it, and the router
-    // is now the single place that will need to change when they do.
+    // The character tabs come from js/character_tabs.js, which every page
+    // loads immediately before this one - the list used to live here, and the
+    // other twelve files holding a copy each had to be kept in step by hand.
+    // `gallery` has no handler anywhere and renders empty; it is kept
+    // deliberately, and is marked `editable: false` there so the admin and
+    // editor strips keep leaving it out.
+    //
+    // `hidden` is derived from isDefault rather than written into each entry,
+    // because which tab starts visible was separately hardcoded here, in
+    // admin.html's markup and in admin-preview.js's restore-from-diff-mode.
     //
     // The PAGE_ROUTE.tabs escape hatch is intentionally unused today. It lets
     // the generator start emitting per-page tab lists later without reworking
@@ -47,15 +53,18 @@ window.buildPageSkeleton = function (route, rootPath) {
     // system pages already work is a much larger data-model change (see
     // description.js:640-828, which is shape-driven rather than tab-driven)
     // and is explicitly out of scope for v0.9.
-    const DEFAULT_CHARACTER_TABS = [
-        { id: 'overview', label: 'Overview & Strategy', classes: 'tab-content' },
-        { id: 'm1s', label: 'M1s', classes: 'tab-content hidden' },
-        { id: 'skills', label: 'Skills', classes: 'vessel-content space-y-8 hidden' },
-        { id: 'specials', label: 'Specials', classes: 'tab-content hidden' },
-        { id: 'matchups', label: 'Matchups', classes: 'vessel-content hidden' },
-        { id: 'counterplay', label: 'Counterplay', classes: 'vessel-content hidden' },
-        { id: 'gallery', label: 'Gallery', classes: 'vessel-content hidden' },
-    ];
+    const DEFAULT_CHARACTER_TABS = (window.getCharacterTabs
+        ? window.getCharacterTabs()
+        : []
+    ).map(t => ({
+        id: t.id,
+        label: t.label,
+        classes: t.isDefault ? t.panelClass : `${t.panelClass} hidden`,
+    }));
+
+    if (!DEFAULT_CHARACTER_TABS.length && !route.tabs) {
+        console.error('[Router] js/character_tabs.js did not load before this script; the tab strip will be empty.');
+    }
 
     const tabs = route.tabs || DEFAULT_CHARACTER_TABS;
 

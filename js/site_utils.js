@@ -210,11 +210,10 @@ window.applyMediaFraming = function(mediaEl, wrapperEl, media) {
 // top-level m1s/skills/specials already are.
 window.BASE_MODE_ID = 'base';
 
-// The frame-data arrays that hold moves. `ultimateAtk` is the fourth, added
-// for base-only characters: they have no modes to switch between, their
-// ultimate being a single big attack rather than a whole replacement kit, so
-// it renders as one extra tab instead.
-window.FRAME_MOVE_CATEGORIES = ['m1s', 'skills', 'specials', 'ultimateAtk'];
+// window.FRAME_MOVE_CATEGORIES moved to js/character_tabs.js, which loads
+// before this file on every page. It is derived from the tab vocabulary there
+// (the tabs marked `frameMoves`), so which tabs hold frame data is declared
+// once, next to the tabs themselves.
 
 // --- BLOCKED MEDIA ---
 //
