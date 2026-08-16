@@ -177,6 +177,13 @@ window.applyCharacterTheme = function() {
             // Ensure global box shadows stay black!
             document.documentElement.style.setProperty('--manga-shadow', '#000000');
 
+            // Text drawn ON TOP of the character colour, for anything that
+            // fills a surface with it rather than tinting text - the combo
+            // block's hover highlight is the first. Same <50% test the title
+            // engine below uses, so the two can never disagree about whether a
+            // character reads as light or dark.
+            document.documentElement.style.setProperty('--character-ink', l < 50 ? '#ffffff' : '#000000');
+
             // 3. THE TEXT SHADOW ENGINE
             let dynamicStyle = document.getElementById('persona-dynamic-styles');
             if (!dynamicStyle) {

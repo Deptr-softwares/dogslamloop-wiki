@@ -131,7 +131,13 @@ test('a combo block looks the same on a tool page as on a character page', async
     // is exactly what a literal font name cannot tell apart. The claim is that
     // the stylesheet applied at all, so read what the stylesheet declares.
     expect(character.node.split('|')[0]).toBe(character.mono);
-    expect(character.node).not.toContain('0px');
+
+    // Padding, not border width. A step used to carry its own border and this
+    // asserted one existed; v0.15 moved the border to the surrounding
+    // .combo-block, because one box is the design and a border per step drew a
+    // box inside a box. Padding is what still proves the rule applied.
+    expect(character.node.split('|')[3], 'the step is padded, so the rule applied')
+        .not.toBe('0px');
 
     // The title is styled on every page type; only its accent differs, and it
     // differs because the page's own accent does.

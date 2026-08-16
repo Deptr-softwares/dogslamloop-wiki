@@ -171,32 +171,5 @@ test('the editor renders a hostile draft as text, not as an attribute', async ({
   expect(errors).toEqual([]);
 });
 
-test('the combo block puts damage beside the route and the note beneath it', async ({ page }) => {
-  // v0.15 item 1. Structure, not pixels: the assertion is which element
-  // contains which, so it does not move with fonts or OS.
-  await render(page, [{
-    type: 'combo', sequence: ['M1', 'M1', '2'], damage: '76', note: 'Corner only', align: 'left',
-  }]);
-
-  const shape = await page.evaluate(() => {
-    const block = document.querySelector('.combo-block');
-    const route = block.querySelector('.combo-container');
-    return {
-      damageInRoute: !!route.querySelector('.combo-damage'),
-      noteInRoute: !!route.querySelector('.combo-note'),
-      noteInOwnRow: !!block.querySelector('.combo-note-row .combo-note'),
-      // The note's row starts below the route's, which is the whole point.
-      noteBelow: block.querySelector('.combo-note-row').getBoundingClientRect().top
-        >= route.getBoundingClientRect().bottom,
-      // Monospace: every step is the same width per character, so a route can
-      // be read by shape.
-      mono: getComputedStyle(block.querySelector('.combo-node')).fontFamily.toLowerCase(),
-    };
-  });
-
-  expect(shape.damageInRoute, 'damage trails the route').toBe(true);
-  expect(shape.noteInRoute, 'the note is no longer inline with the route').toBe(false);
-  expect(shape.noteInOwnRow).toBe(true);
-  expect(shape.noteBelow).toBe(true);
-  expect(shape.mono).toMatch(/mono|courier|consolas/);
-});
+// The combo block's own shape and hover live in tests/combo-block.spec.js -
+// this file is about escaping.
