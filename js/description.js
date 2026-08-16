@@ -952,7 +952,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                     // Deferred behind the same 300ms wait as the sections
                     // themselves, since the move cards these render into are
                     // built by js/framedata.js on its own schedule.
-                    (window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials']).forEach(tab => {
+                    window.FRAME_MOVE_CATEGORIES.forEach(tab => {
                         window.consolidateTabContributors(document.getElementById(`tab-${tab}`));
                     });
                     if (typeof applyInternalStyling === 'function') applyInternalStyling();

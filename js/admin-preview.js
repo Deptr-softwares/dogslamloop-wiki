@@ -431,7 +431,7 @@ async function switchVersionView(mode) {
                         renderDiffBlock(`Counterplay Strategy: ${nC || oC || 'Unknown'}`, oldCp[i]?.content || [], newCp[i]?.content || []);
                     }
                 }
-                else if ((window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials']).includes(tab)) {
+                else if (window.FRAME_MOVE_CATEGORIES.includes(tab)) {
                     const oldMoves = Array.isArray(oldTab) ? oldTab : [];
                     const newMoves = Array.isArray(newTab) ? newTab : [];
                     const allMoveIds = Array.from(new Set([...oldMoves.map(m=>m.id), ...newMoves.map(m=>m.id)]));
@@ -609,11 +609,14 @@ async function switchVersionView(mode) {
     // identical to arriving here normally.
     const diffContainerToHide = document.getElementById('admin-diff-container');
     if (diffContainerToHide) diffContainerToHide.classList.add('hidden');
-    ['m1s', 'skills', 'specials', 'ultimateAtk', 'matchups', 'counterplay'].forEach(tab => {
-        const el = document.getElementById(`tab-${tab}`);
-        if (el) el.classList.add('hidden');
-    });
-    const overviewTabToShow = document.getElementById('tab-overview');
+    const defaultTabId = window.getDefaultCharacterTabId();
+    window.getCharacterTabIds({ includeInjected: true, editableOnly: true })
+        .filter(tab => tab !== defaultTabId)
+        .forEach(tab => {
+            const el = document.getElementById(`tab-${tab}`);
+            if (el) el.classList.add('hidden');
+        });
+    const overviewTabToShow = document.getElementById(`tab-${defaultTabId}`);
     if (overviewTabToShow) overviewTabToShow.classList.remove('hidden');
 
     window.currentEditorPageType = window.activePreviewPageType;

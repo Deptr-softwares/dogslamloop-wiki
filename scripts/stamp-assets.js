@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Stamps a content hash onto js/site_utils.js in every page's <script src>.
+ * Stamps a content hash onto the shared JS modules in every page's
+ * <script src> - js/site_utils.js and js/character_tabs.js.
  *
  * The bug this exists for, 2026-08-10: GitHub Pages serves js/ with
  * max-age=3600. A deploy that adds a new module depending on a new shared
@@ -11,10 +12,14 @@
  * open - reported on the live site within minutes of the merge.
  *
  * A query string on the URL makes it a different cache key, so the moment the
- * hash changes every browser fetches the new file. site_utils.js is the only
- * file stamped because it is the only genuinely shared module: everything else
- * is loaded by the page that owns it, and a page and its own script are always
- * deployed together.
+ * hash changes every browser fetches the new file. Only genuinely shared
+ * modules are stamped: everything else is loaded by the page that owns it, and
+ * a page and its own script are always deployed together.
+ *
+ * There are two such modules. site_utils.js was the only one until v0.15 added
+ * js/character_tabs.js, which every page loads and which site_utils.js reads at
+ * parse time. They share one version so the pair can never be served
+ * half-fresh - see scripts/asset-version.js.
  *
  * Generated stubs are stamped by scripts/generate-pages.js itself, from the
  * same helper, so `generate-pages --check` and this script agree. This script
@@ -28,7 +33,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { siteUtilsVersion, stampSiteUtils } = require('./asset-version.js');
+const { sharedAssetVersion, stampSharedAssets, SHARED_MODULES } = require('./asset-version.js');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -50,7 +55,7 @@ function collectHtml(dir, out = []) {
 
 function main() {
     const write = process.argv.includes('--write');
-    const version = siteUtilsVersion();
+    const version = sharedAssetVersion();
 
     const stale = [];
     let checked = 0;
@@ -61,14 +66,14 @@ function main() {
         if (!/src="[^"]*js\/site_utils\.js/.test(before)) continue;
 
         checked++;
-        const after = stampSiteUtils(before, version);
+        const after = stampSharedAssets(before, version);
         if (after === before) continue;
 
         stale.push(path.relative(ROOT, file).replace(/\\/g, '/'));
         if (write) fs.writeFileSync(file, after);
     }
 
-    const label = `stamp-assets: site_utils.js v${version}`;
+    const label = `stamp-assets: ${SHARED_MODULES.join(" + ")} v${version}`;
 
     if (stale.length === 0) {
         console.log(`${label} - up to date (${checked} hand-authored page(s)).`);

@@ -97,7 +97,7 @@ window.triggerManualSync = async function() {
 
     // --- CHARACTER SYNC LOGIC ---
     const tabId = window.currentEditorTabId;
-    const frameTabs = window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials'];
+    const frameTabs = window.FRAME_MOVE_CATEGORIES;
 
     if (frameTabs.includes(tabId) && typeof window.loadMoveSection === 'function') {
         let activeMoveId = new URLSearchParams(window.location.search).get('move'); 
@@ -209,7 +209,7 @@ function updateLivePreview(skipHistory = false) {
     // reason the preview looked like it was not picking up new content when
     // intercepting a ticket that carried no &tab=.
     const tabId = window.currentEditorTabId || urlParams.get('tab') || 'overview';
-    const frameTabs = window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials'];
+    const frameTabs = window.FRAME_MOVE_CATEGORIES;
 
     if (frameTabs.includes(tabId)) {
         let activeMoveId = urlParams.get('move'); 

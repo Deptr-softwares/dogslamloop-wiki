@@ -136,7 +136,7 @@ window.renderStructuredDiff = function(oldObj, newObj) {
 // Previously defined twice, byte-identical, further down the old single
 // admin.js (a Gemini copy-paste artifact) - one definition here.
 function getTabData(tab, mode) {
-    const isFrame = (window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials']).includes(tab);
+    const isFrame = window.FRAME_MOVE_CATEGORIES.includes(tab);
 
     // Narrowed to the character state the preview is showing. Without this,
     // every tab of an ultimate state was compared against the base kit's -
@@ -166,7 +166,7 @@ function getTabData(tab, mode) {
 // looking at the preview on mobile (see window.toggleMobilePreview in
 // admin-core.js), so the old indicators were invisible right when they
 // mattered most.
-const CHANGED_TAB_LABELS = { overview: 'Overview & Strategy', m1s: 'M1s', skills: 'Skills', specials: 'Specials', ultimateAtk: 'Ultimate', matchups: 'Matchups', counterplay: 'Counterplay' };
+const CHANGED_TAB_LABELS = window.getCharacterTabLabels();
 
 window.showChangedTabsPopup = function() {
     const existing = document.getElementById('changed-tabs-popup');
@@ -278,7 +278,10 @@ function calculateTabDiffs(rev, showPopup = true) {
             if (rev.target_scope === 'multi') rev.delta_payload.forEach(edit => addScopeTab(edit.scope, edit.key));
             else addScopeTab(rev.target_scope, rev.target_key);
         } else {
-            const tabs = ['overview', 'm1s', 'skills', 'specials', 'ultimateAtk', 'matchups', 'counterplay'];
+            // Includes the injected Ultimate: this compares live against
+            // pending for a loaded character, so a base-only character's
+            // ultimate edits must be able to mark their tab changed.
+            const tabs = window.getCharacterTabIds({ includeInjected: true, editableOnly: true });
             tabs.forEach(tab => {
                 const liveStr = JSON.stringify(getTabData(tab, 'live') || {});
                 const pendStr = JSON.stringify(getTabData(tab, 'pending') || {});
@@ -344,7 +347,7 @@ window.updateAdminSidebar = function() {
 
     if (window.activePreviewPageType === 'system' || window.activePreviewPageType === 'tierlist') {
         // Hide standard character tabs
-        ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'].forEach(tab => {
+        window.getCharacterTabIds({ editableOnly: true }).forEach(tab => {
             const btn = document.getElementById(`nav-${tab}`);
             if (btn) btn.classList.add('hidden');
         });
