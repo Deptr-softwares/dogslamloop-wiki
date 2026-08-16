@@ -256,6 +256,44 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             if (typeof renderMatchupsPreview === 'function') renderMatchupsPreview();
         }
 
+    } else if (tabId === 'combos') {
+        // The Combos tab is a document of three parts, so its editor is a
+        // sub-tab strip like the Overview tab's - not a list of entries.
+        //
+        //   [ Read First ] [ Combo List ] [ True Combos x ] [ + GROUP ]
+        //
+        // Same daw-tab-btn strip, same removable-extra affordance, same single
+        // swapping container.
+        const groups = window.getKeyedSectionByField('comboGroups');
+        const intro = (window.FIXED_BLOCK_SECTIONS || []).find(f => f.field === 'comboIntro');
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+
+        if (!window.currentEditorDescData[intro.field]) window.currentEditorDescData[intro.field] = [];
+        if (!window.currentEditorDescData[groups.field]) window.currentEditorDescData[groups.field] = [];
+
+        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        navHTML += `<button class="daw-tab-btn active" id="combos-nav-intro" onclick="window.loadCombosSectionIntoEditor('intro')">${esc(intro.label)}</button>`;
+        navHTML += `<button class="daw-tab-btn" id="combos-nav-list" onclick="window.loadCombosSectionIntoEditor('list')">Combo List</button>`;
+
+        window.currentEditorDescData[groups.field].forEach((group, idx) => {
+            // Escaped: a group title is contributor text reaching innerHTML.
+            const name = group[groups.keyField] || `Group ${idx + 1}`;
+            navHTML += `<div class="daw-tab-item">`;
+            navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="combos-nav-group-${idx}" onclick="window.loadCombosSectionIntoEditor('group-${idx}')">${esc(name)}</button>`;
+            navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeComboGroup(${idx})" title="Remove Group">&#10006;</button>`;
+            navHTML += `</div>`;
+        });
+
+        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addComboGroup()">+ GROUP</button>`;
+        navHTML += `</div>`;
+
+        builder.innerHTML = `
+            ${navHTML}
+            <div id="combos-editor-container"></div>
+        `;
+
+        window.loadCombosSectionIntoEditor(window.currentCombosSection || 'intro');
+
     } else if (window.usesSharedKeyedUI(tabId)) {
         // Every keyed section except matchups, which keeps its own editor -
         // its entry picker lists the roster and its metadata is a tier, so it
@@ -636,14 +674,10 @@ window.updateKeyedMeta = function(tabId, idx, field, value) {
 
 // --- COMBO ROWS (v0.15 item 3) ---
 //
-// A combo group is an ordinary keyed entry - a name plus blocks - so it uses
-// the shared editor above. Its rows are the one thing that screen does not
-// already know how to edit, so they get one panel inside it rather than a
-// second editor built from scratch.
-//
-// The row fields come from window.COMBO_COLUMNS (js/description.js) plus the
-// two resource fields, so a column added there appears here without a second
-// edit - the same rule the tab vocabulary and the keyed sections follow.
+// Row fields come from window.COMBO_COLUMNS (js/description.js) plus the two
+// resource fields, so a column added to the table appears in the editor
+// without a second edit - the same rule the tab vocabulary and the keyed
+// sections follow.
 window.comboRowFields = function () {
     const columns = (window.COMBO_COLUMNS || []).filter(c => c.field !== 'sequence');
     return [
@@ -662,75 +696,269 @@ function comboRowSummary(row) {
     return row.damage ? `(${row.damage})` : 'Empty combo';
 }
 
-window.renderComboRowsPanel = function (tabId, groupIdx) {
-    const section = window.getKeyedSectionByTab(tabId);
-    const host = document.getElementById('combo-rows-panel');
-    if (!section || !section.rowsField || !host) return;
+// --- SUB-NAVIGATION: THE COMBOS TAB ---
+//
+// Mirrors loadOverviewSectionIntoEditor: one swapping container, one active
+// button, and the block buffer flushed before leaving whatever was open.
+
+window.loadCombosSectionIntoEditor = function (sectionId) {
+    const groups = window.getKeyedSectionByField('comboGroups');
+    const intro = (window.FIXED_BLOCK_SECTIONS || []).find(f => f.field === 'comboIntro');
+    const container = document.getElementById('combos-editor-container');
+    if (!groups || !intro || !container) return;
 
     const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
-    const group = (window.currentEditorDescData[section.field] || [])[groupIdx];
-    if (!group) return;
-    if (!Array.isArray(group[section.rowsField])) group[section.rowsField] = [];
-    const rows = group[section.rowsField];
 
-    let html = `<div class="editor-section-banner">
-            <span class="editor-section-banner-text">COMBOS IN THIS GROUP</span>
+    // Flush the section being left, or its blocks are lost. currentStrategyBlocks
+    // is only written back into desc_data on sync.
+    flushCombosSection();
+
+    document.querySelectorAll('[id^="combos-nav-"]').forEach(b => b.classList.remove('active'));
+    const activeBtn = document.getElementById(`combos-nav-${sectionId}`);
+    if (activeBtn) activeBtn.classList.add('active');
+    window.currentCombosSection = sectionId;
+
+    if (sectionId === 'list') {
+        container.innerHTML = `<div id="combo-rows-panel"></div>`;
+        window.renderComboListEditor();
+        window.renderCombosPreview();
+        return;
+    }
+
+    if (sectionId === 'intro') {
+        container.innerHTML = `
+            <div class="editor-section-banner">
+                <span class="editor-section-banner-text">${esc(intro.label.toUpperCase())}</span>
+            </div>
+            <div id="strategy-block-target"></div>
+        `;
+        initStrategyBlockBuilder('strategy-block-target', window.currentEditorDescData[intro.field] || []);
+        window.renderCombosPreview();
+        return;
+    }
+
+    const idx = parseInt(String(sectionId).replace('group-', ''), 10);
+    const group = (window.currentEditorDescData[groups.field] || [])[idx];
+    if (!group) return;
+
+    container.innerHTML = `
+        <div class="block-editor-container block-editor-container-tight">
+            <div class="block-card">
+                <div class="block-header"><span class="block-type-badge">GROUP METADATA</span></div>
+                <div class="editor-row">
+                    <div>
+                        <label class="editor-field-label-sm">Group Title</label>
+                        <input type="text" class="editor-input" value="${esc(group[groups.keyField] || '')}"
+                               oninput="window.updateComboGroupTitle(${idx}, this.value)"
+                               placeholder="e.g. True Combos">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="editor-section-banner">
+            <span class="editor-section-banner-text">CARDS &amp; PROSE</span>
+        </div>
+        <div id="strategy-block-target"></div>
+    `;
+    initStrategyBlockBuilder('strategy-block-target', group.content || []);
+    window.renderCombosPreview();
+};
+
+// Writes the block buffer back into whichever combos section is open.
+function flushCombosSection() {
+    const open = window.currentCombosSection;
+    if (!open || open === 'list' || !window.currentEditorDescData) return;
+    if (typeof window.getActiveBlocks !== 'function') return;
+
+    const blocks = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+    if (open === 'intro') {
+        window.currentEditorDescData.comboIntro = blocks;
+        return;
+    }
+    const idx = parseInt(String(open).replace('group-', ''), 10);
+    const groups = window.getKeyedSectionByField('comboGroups');
+    const group = (window.currentEditorDescData[groups.field] || [])[idx];
+    if (group) group.content = blocks;
+}
+window.flushCombosSection = flushCombosSection;
+
+window.renderCombosPreview = function () {
+    if (typeof window.renderCombosTab === 'function' && window.currentEditorDescData) {
+        window.renderCombosTab(window.currentEditorDescData);
+    }
+};
+
+window.addComboGroup = async function () {
+    const groups = window.getKeyedSectionByField('comboGroups');
+    await window.triggerManualSync();
+    if (!window.currentEditorDescData[groups.field]) window.currentEditorDescData[groups.field] = [];
+    window.currentEditorDescData[groups.field].push({ [groups.keyField]: 'New Group', content: [] });
+    initFullTabEditor(window.currentEditorCharId, 'combos', window.currentEditorDescData, window.currentEditorFrameData);
+    window.loadCombosSectionIntoEditor(`group-${window.currentEditorDescData[groups.field].length - 1}`);
+};
+
+window.removeComboGroup = async function (idx) {
+    const groups = window.getKeyedSectionByField('comboGroups');
+    if (!(await window.customConfirm('Delete this combo group and everything in it?'))) return;
+    window.currentEditorDescData[groups.field].splice(idx, 1);
+    // The open section may have been the one removed, or shifted down.
+    window.currentCombosSection = 'intro';
+    initFullTabEditor(window.currentEditorCharId, 'combos', window.currentEditorDescData, window.currentEditorFrameData);
+    window.renderCombosPreview();
+};
+
+window.updateComboGroupTitle = function (idx, value) {
+    const groups = window.getKeyedSectionByField('comboGroups');
+    const group = (window.currentEditorDescData[groups.field] || [])[idx];
+    if (!group) return;
+    group[groups.keyField] = value;
+    const btn = document.getElementById(`combos-nav-group-${idx}`);
+    // textContent, not innerHTML - this runs on every keystroke.
+    if (btn) btn.textContent = value || `Group ${idx + 1}`;
+    window.renderCombosPreview();
+};
+
+// --- THE COMBO LIST EDITOR ---
+// Tables keyed by starter, each holding rows. The rows themselves open in the
+// modal (openComboRowModal below).
+window.renderComboListEditor = function () {
+    const section = window.getKeyedSectionByField('comboList');
+    const host = document.getElementById('combo-rows-panel');
+    if (!section || !host) return;
+
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+    if (!window.currentEditorDescData[section.field]) window.currentEditorDescData[section.field] = [];
+    const tables = window.currentEditorDescData[section.field];
+
+    const openTable = window.currentComboTableIndex;
+
+    let html = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+    if (tables.length === 0) {
+        html += `<span class="daw-empty-state">No starters defined yet.</span>`;
+    } else {
+        tables.forEach((t, i) => {
+            html += `<div class="daw-tab-item">`;
+            html += `<button class="daw-tab-btn daw-tab-btn-removable${i === openTable ? ' active' : ''}" data-table="${i}">${esc(t[section.keyField] || `Starter ${i + 1}`)}</button>`;
+            html += `<button class="daw-tab-remove-btn" data-remove-table="${i}" title="Remove Starter">&#10006;</button>`;
+            html += `</div>`;
+        });
+    }
+    html += `<button type="button" id="combo-table-add" class="daw-tab-btn daw-add-btn btn-sys btn-sys-green">+ STARTER</button>`;
+    html += `</div><div id="combo-table-body"></div>`;
+
+    host.innerHTML = html;
+
+    host.querySelectorAll('[data-table]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            window.currentComboTableIndex = parseInt(btn.getAttribute('data-table'), 10);
+            window.renderComboListEditor();
+        });
+    });
+    host.querySelectorAll('[data-remove-table]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!(await window.customConfirm('Delete this starter and all its combos?'))) return;
+            tables.splice(parseInt(btn.getAttribute('data-remove-table'), 10), 1);
+            window.currentComboTableIndex = undefined;
+            window.renderComboListEditor();
+            window.renderCombosPreview();
+        });
+    });
+    const addTable = host.querySelector('#combo-table-add');
+    if (addTable) {
+        addTable.addEventListener('click', () => {
+            tables.push({ [section.keyField]: 'New Starter', rows: [] });
+            window.currentComboTableIndex = tables.length - 1;
+            window.renderComboListEditor();
+            window.renderCombosPreview();
+        });
+    }
+
+    renderComboListRows(section, tables);
+};
+
+// Named renderComboListRows, NOT renderComboTableBody: description.js assigns
+// window.renderComboTableBody, and a top-level `function` declaration here
+// silently overwrites it. The reader then called this one with the wrong
+// arguments and wrote a `rows: []` field into an individual combo. Every js/
+// file shares one global scope - see tests/global-scope-collisions.spec.js.
+function renderComboListRows(section, tables) {
+    const container = document.getElementById('combo-table-body');
+    if (!container) return;
+    const idx = window.currentComboTableIndex;
+    const table = tables[idx];
+    if (!table) { container.innerHTML = ''; return; }
+
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+    if (!Array.isArray(table.rows)) table.rows = [];
+
+    let html = `<div class="block-editor-container block-editor-container-tight">
+            <div class="block-card">
+                <div class="block-header"><span class="block-type-badge">STARTER</span></div>
+                <div class="editor-row"><div>
+                    <label class="editor-field-label-sm">Starter Name</label>
+                    <input type="text" class="editor-input" id="combo-table-name" value="${esc(table[section.keyField] || '')}" placeholder="e.g. M1 Starters">
+                </div></div>
+            </div>
         </div>
         <div class="combo-rows-list">`;
 
-    if (rows.length === 0) {
-        html += `<p class="admin-tool-hint">No combos yet. Add one to start the table.</p>`;
+    if (table.rows.length === 0) {
+        html += `<p class="admin-tool-hint">No combos under this starter yet.</p>`;
     } else {
-        rows.forEach((row, i) => {
+        table.rows.forEach((row, i) => {
             html += `<div class="combo-row-item">
                 <button type="button" class="combo-row-open btn-sys btn-sys-regular" data-row="${i}">${esc(comboRowSummary(row || {}))}</button>
                 <button type="button" class="combo-row-remove btn-sys btn-sys-red" data-row="${i}" title="Remove this combo">&#10006;</button>
             </div>`;
         });
     }
+    html += `</div><button type="button" id="combo-row-add" class="btn-sys btn-sys-green">+ ADD COMBO</button>`;
 
-    html += `</div>
-        <button type="button" id="combo-row-add" class="btn-sys btn-sys-green">+ ADD COMBO</button>`;
+    container.innerHTML = html;
 
-    host.innerHTML = html;
-
-    // Delegated, never inline onclick - a row summary is the contributor's own
-    // route text and must never be built into a handler.
-    host.querySelectorAll('.combo-row-open').forEach(btn => {
-        btn.addEventListener('click', () =>
-            window.openComboRowModal(tabId, groupIdx, parseInt(btn.getAttribute('data-row'), 10)));
-    });
-    host.querySelectorAll('.combo-row-remove').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            if (!(await window.customConfirm('Delete this combo?'))) return;
-            rows.splice(parseInt(btn.getAttribute('data-row'), 10), 1);
-            window.renderComboRowsPanel(tabId, groupIdx);
-            window.renderKeyedSectionPreview(tabId);
-        });
-    });
-    const addBtn = host.querySelector('#combo-row-add');
-    if (addBtn) {
-        addBtn.addEventListener('click', () => {
-            rows.push({ sequence: [], damage: '', difficulty: '', notes: '' });
-            window.renderComboRowsPanel(tabId, groupIdx);
-            window.renderKeyedSectionPreview(tabId);
-            // Straight into the modal: nobody adds a row in order to look at
-            // an empty button.
-            window.openComboRowModal(tabId, groupIdx, rows.length - 1);
+    const nameInput = container.querySelector('#combo-table-name');
+    if (nameInput) {
+        nameInput.addEventListener('input', () => {
+            table[section.keyField] = nameInput.value;
+            const btn = document.querySelector(`[data-table="${idx}"]`);
+            if (btn) btn.textContent = nameInput.value || `Starter ${idx + 1}`;
+            window.renderCombosPreview();
         });
     }
-};
+
+    container.querySelectorAll('.combo-row-open').forEach(btn => {
+        btn.addEventListener('click', () =>
+            window.openComboRowModal(idx, parseInt(btn.getAttribute('data-row'), 10)));
+    });
+    container.querySelectorAll('.combo-row-remove').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!(await window.customConfirm('Delete this combo?'))) return;
+            table.rows.splice(parseInt(btn.getAttribute('data-row'), 10), 1);
+            renderComboListRows(section, tables);
+            window.renderCombosPreview();
+        });
+    });
+    const addRow = container.querySelector('#combo-row-add');
+    if (addRow) {
+        addRow.addEventListener('click', () => {
+            table.rows.push({ sequence: [], damage: '', difficulty: '', notes: '' });
+            renderComboListRows(section, tables);
+            window.renderCombosPreview();
+            window.openComboRowModal(idx, table.rows.length - 1);
+        });
+    }
+}
 
 // The row form, in a modal rather than in the sidebar. Twelve fields do not
 // fit a pane that is sharing the screen with a live preview.
-window.openComboRowModal = function (tabId, groupIdx, rowIdx) {
-    const section = window.getKeyedSectionByTab(tabId);
+window.openComboRowModal = function (tableIdx, rowIdx) {
+    const section = window.getKeyedSectionByField('comboList');
     const modal = document.getElementById('combo-row-modal');
     const fields = document.getElementById('combo-row-modal-fields');
     if (!section || !modal || !fields) return;
 
-    const group = (window.currentEditorDescData[section.field] || [])[groupIdx];
-    const rows = group ? (group[section.rowsField] || []) : [];
+    const table = (window.currentEditorDescData[section.field] || [])[tableIdx];
+    const rows = table ? (table[section.rowsField] || []) : [];
     const row = rows[rowIdx];
     if (!row) return;
 
@@ -781,7 +1009,7 @@ window.openComboRowModal = function (tabId, groupIdx, rowIdx) {
             } else {
                 row[field] = input.value;
             }
-            window.renderKeyedSectionPreview(tabId);
+            window.renderCombosPreview();
             const btn = document.querySelector(`.combo-row-open[data-row="${rowIdx}"]`);
             if (btn) btn.textContent = comboRowSummary(row);
         };
@@ -792,7 +1020,7 @@ window.openComboRowModal = function (tabId, groupIdx, rowIdx) {
     const close = () => {
         modal.classList.add('hidden');
         window.currentComboRowIndex = undefined;
-        window.renderComboRowsPanel(tabId, groupIdx);
+        window.renderComboListEditor();
     };
 
     const done = document.getElementById('combo-row-modal-done');
@@ -805,7 +1033,7 @@ window.openComboRowModal = function (tabId, groupIdx, rowIdx) {
             if (!(await window.customConfirm('Delete this combo?'))) return;
             rows.splice(rowIdx, 1);
             close();
-            window.renderKeyedSectionPreview(tabId);
+            window.renderCombosPreview();
         };
     }
     modal.onclick = (e) => { if (e.target === modal) close(); };
@@ -862,19 +1090,11 @@ window.loadKeyedEntryIntoEditor = function(tabId, idx) {
                 </div>
             </div>
         </div>
-        <div id="combo-rows-panel"></div>
         <div class="editor-section-banner">
             <span class="editor-section-banner-text">STRATEGY BLOCKS</span>
         </div>
         <div id="strategy-block-target"></div>
     `;
-
-    // Rows, for a section that has them (combos). Before the block builder so
-    // the table a contributor is filling in sits above the prose about it.
-    if (section.rowsField && typeof window.renderComboRowsPanel === 'function') {
-        window.currentComboRowIndex = undefined;
-        window.renderComboRowsPanel(tabId, idx);
-    }
 
     initStrategyBlockBuilder('strategy-block-target', entry.content || []);
     window.renderKeyedSectionPreview(tabId);

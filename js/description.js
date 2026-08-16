@@ -628,10 +628,10 @@ window.renderComboTableBody = function (tbody, rows, columns, sort) {
     }).join('');
 };
 
-// One group: its name, then its table.
-window.renderComboGroup = function (group, section) {
+// One captioned table in the Combo List.
+window.renderComboListTable = function (group, section) {
     const wrapper = document.createElement('section');
-    wrapper.className = 'wiki-section wiki-section-clip combo-group';
+    wrapper.className = 'wiki-section wiki-section-clip combo-list-table';
 
     const name = group[section.keyField] || 'Untitled';
     wrapper.innerHTML = `
@@ -713,28 +713,106 @@ window.renderComboGroup = function (group, section) {
     return wrapper;
 };
 
+// The Combos tab, in the order the reference reads:
+//
+//   Read First     comboIntro    prose, methodology, notation legend
+//   <Group Title>  comboGroups   TheoryBox cards, prose, inline combos
+//   Combo List     comboList     one captioned sortable table per starter
+//
+// Composed here rather than by the shared keyed renderer, because the tab is a
+// DOCUMENT of three parts - the same decomposition the Overview tab already
+// has (overview + strategy + extras), not one keyed array.
+//
+// The first attempt made the table a group's content, which left nowhere for
+// the cards to live and put the reference index in the middle of the prose.
 window.renderCombosTab = function (data) {
-    const section = window.getKeyedSectionByTab ? window.getKeyedSectionByTab('combos') : null;
     const container = document.getElementById('tab-combos');
-    if (!section || !container) return;
+    if (!container) return;
 
     container.innerHTML = '';
     container.classList.add('space-y-6');
 
-    const groups = data[section.field];
-    if (!groups || groups.length === 0) {
-        container.innerHTML = `<div class="empty-tab-msg">${escBlockText(section.emptyMessage || 'Not written yet.')}</div>`;
+    const intro = (window.FIXED_BLOCK_SECTIONS || []).find(f => f.field === 'comboIntro');
+    const groups = window.getKeyedSectionByField ? window.getKeyedSectionByField('comboGroups') : null;
+    const list = window.getKeyedSectionByField ? window.getKeyedSectionByField('comboList') : null;
+
+    const introBlocks = intro ? data[intro.field] : null;
+    const groupList = groups ? data[groups.field] : null;
+    const tables = list ? data[list.field] : null;
+
+    if ((!introBlocks || !introBlocks.length)
+        && (!groupList || !groupList.length)
+        && (!tables || !tables.length)) {
+        container.innerHTML = '<div class="empty-tab-msg">No combos have been written for this character yet.</div>';
         return;
     }
 
-    // Every row in the tab decides the columns, so all groups share a shape.
-    const allRows = groups.reduce((acc, g) => acc.concat((g && g[section.rowsField]) || []), []);
-    const shared = { ...section, __columns: window.comboVisibleColumns(allRows) };
+    // --- Read First ---
+    if (introBlocks && introBlocks.length) {
+        const section = document.createElement('section');
+        section.className = 'wiki-section wiki-section-clip combo-intro';
+        section.innerHTML = `<div class="card-header-flex"><h3 class="card-header-title">${escBlockText(intro.label)}</h3></div>`;
+        const body = document.createElement('div');
+        body.className = 'combos-content';
+        body.id = 'combo-intro-content';
+        section.appendChild(body);
+        container.appendChild(section);
+        populateTextSection(body.id, '', introBlocks, 'combos');
+        const injected = body.querySelector('section.wiki-section');
+        if (injected) injected.classList.remove('wiki-section');
+    }
 
-    groups.forEach(group => container.appendChild(window.renderComboGroup(group || {}, shared)));
+    // --- The author's groups ---
+    (groupList || []).forEach((group, idx) => {
+        if (!group) return;
+        const section = document.createElement('section');
+        section.className = 'wiki-section wiki-section-clip combo-group';
+        const title = group[groups.keyField] || 'Untitled';
+        section.innerHTML = `<div class="card-header-flex"><h3 class="card-header-title">${escBlockText(title)}</h3></div>`;
+
+        const body = document.createElement('div');
+        body.className = 'combos-content';
+        // Indexed, not keyed by title: a title is contributor text and two
+        // groups may share one, which would collide the ids and make
+        // populateTextSection render into the first one twice.
+        body.id = `combo-group-content-${idx}`;
+        section.appendChild(body);
+        container.appendChild(section);
+
+        if (Array.isArray(group.content) && group.content.length) {
+            populateTextSection(body.id, '', group.content, 'combos');
+            const injected = body.querySelector('section.wiki-section');
+            if (injected) injected.classList.remove('wiki-section');
+        } else {
+            body.innerHTML = `<p class="empty-notes-msg">${escBlockText(groups.emptyEntryMessage)}</p>`;
+        }
+    });
+
+    // --- Combo List, last ---
+    if (list && tables && tables.length) {
+        const host = document.createElement('div');
+        host.className = 'combo-list-section space-y-6';
+        host.innerHTML = `<h3 class="section-title section-title-clean combo-list-title">${escBlockText(list.label)}</h3>`;
+
+        // Every row in the SECTION decides the columns, so all its tables share
+        // a shape. Per table, one grows a Setup column and the next grows
+        // Controls, which reads as a bug even though each is individually right.
+        const allRows = tables.reduce((acc, t) => acc.concat((t && t[list.rowsField]) || []), []);
+        const shared = { ...list, __columns: window.comboVisibleColumns(allRows) };
+
+        tables.forEach(table => host.appendChild(window.renderComboListTable(table || {}, shared)));
+        container.appendChild(host);
+    }
+
     if (typeof window.consolidateTabContributors === 'function') {
         window.consolidateTabContributors(container);
     }
+};
+
+// Kept as the registry's rendererFn for comboList so the editor's live preview
+// can redraw the whole tab from one entry point.
+window.renderComboListSection = function (data) {
+    window.renderCombosTab(data);
 };
 
 function getAlignStyle(align) {
@@ -1227,12 +1305,18 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 }
             }
 
-            // --- 3a. KEYED SECTIONS WITH THEIR OWN RENDERER ---
+            // --- 3a. SECTIONS THAT RENDER THEMSELVES ---
             // Resolved from the vocabulary, so adding one is a registry entry
-            // rather than another branch here.
+            // rather than another branch here. De-duplicated by function,
+            // because several sections of one tab share a composer.
+            const selfRendered = new Set();
             (window.getKeyedSections ? window.getKeyedSections() : [])
                 .filter(s => s.rendererFn && typeof window[s.rendererFn] === 'function')
-                .forEach(s => window[s.rendererFn](data));
+                .forEach(s => {
+                    if (selfRendered.has(s.rendererFn)) return;
+                    selfRendered.add(s.rendererFn);
+                    window[s.rendererFn](data);
+                });
 
             // --- 3. KEYED SECTIONS (Counterplay, Starter Guide) ---
             //

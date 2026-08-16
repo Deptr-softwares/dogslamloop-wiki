@@ -83,29 +83,11 @@
             id: 'combos', label: 'Combos',
             panelClass: 'tab-content',
             editable: true, frameMoves: false, modeScoped: true,
-            keyed: {
-                // Grouped by STARTER, which is what the community and the
-                // reference both organise combos by. The names are
-                // author-chosen - the owner's live pages say True / Simpler /
-                // Advanced, not the reference's Beginner / Core / Specialized.
-                keyField: 'starter', scope: 'comboGroup', entryLabel: 'Combo Group',
-                // 'comboGroup' rather than 'combo': `combo` is already a BLOCK
-                // type (the inline route inside a group), and two namespaces
-                // sharing a word is how the next person loses an hour.
-                rowsField: 'rows',
-                // Its own READER renderer (a sortable table), but the SHARED
-                // editor: a group is a name plus blocks like any keyed entry,
-                // and the rows get one extra panel inside that screen rather
-                // than a second editor built from scratch.
-                customRenderer: true,
-                // Named here rather than branched on by tab id at each call
-                // site, which is the pattern tests/keyed-sections.spec.js
-                // forbids. Both the reader and the editor's preview resolve
-                // the function through this.
-                rendererFn: 'renderCombosTab',
-                emptyMessage: 'No combos have been written for this character yet.',
-                emptyEntryMessage: 'No combos in this group yet.',
-            },
+            // NOT keyed itself. The tab is a document of three parts -
+            // comboIntro, comboGroups and comboList - declared in
+            // EXTRA_KEYED_SECTIONS and COMBO_INTRO below, the same way the
+            // Overview tab is overview + strategy + extras rather than one
+            // keyed array.
         },
         {
             id: 'starterGuide', label: 'Starter Guide',
@@ -215,6 +197,68 @@
         return window.getCharacterTabs(opts).map(t => t.id);
     };
 
+    // --- SECTIONS THAT RENDER INSIDE A TAB RATHER THAN BEING ONE ---
+    //
+    // The Combos tab is a document, not a list: prose, then author-named
+    // groups of cards, then the reference table. Same decomposition the
+    // Overview tab already has (overview + strategy + extras), and the same
+    // one the reference uses.
+    //
+    //   comboIntro   [blocks]                        fixed, "Read First"
+    //   comboGroups  [{ title, content: [blocks] }]   N, keyed by title
+    //   comboList    [{ starter, rows: [...] }]       N, keyed by starter
+    //
+    // Groups are AUTHOR-NAMED. The reference calls them Beginner / Core /
+    // Specialized; the owner's live pages say True / Simpler / Advanced.
+    // Hardcoding the reference's names would import a vocabulary this
+    // community does not use, which is the exact failure CLAUDE.md warns about.
+    //
+    // The list is keyed by STARTER, and that is what keeps review readable:
+    // the reference has 127 rows for one character, so as a single 'full'
+    // delta a reviewer faces all of them at once. Keyed by starter they see
+    // "5H Starters changed" - the granularity matchups get per opponent.
+    //
+    // `tab` names where a section RENDERS, so the diff can still attribute a
+    // change to the Combos tab. Everything else in the pipeline keys off
+    // `scope` and `field`, neither of which cares whether it is a tab.
+    const EXTRA_KEYED_SECTIONS = [
+        {
+            tab: 'combos',
+            field: 'comboGroups',
+            keyField: 'title',
+            scope: 'comboGroup',
+            entryLabel: 'Combo Group',
+            label: 'Combo Group',
+            // Rendered by the tab composer and edited by the combos sub-tab
+            // strip, because the tab is a DOCUMENT (intro + groups + list),
+            // not a list of entries. It still needs the shared pipeline -
+            // submit, merge, diff, apply - which is why it is declared here.
+            customRenderer: true, customEditor: true,
+            emptyEntryMessage: 'Nothing written in this group yet.',
+        },
+        {
+            tab: 'combos',
+            field: 'comboList',
+            keyField: 'starter',
+            scope: 'comboTable',
+            entryLabel: 'Combo List Table',
+            label: 'Combo List',
+            rowsField: 'rows',
+            customRenderer: true,
+            customEditor: true,
+            rendererFn: 'renderComboListSection',
+            emptyEntryMessage: 'No combos under this starter yet.',
+        },
+    ];
+    EXTRA_KEYED_SECTIONS.forEach(Object.freeze);
+
+    // Fixed block sections - a plain [blocks] array under its own scope, the
+    // same shape as `overview` and `strategy`. Declared so the submit scan and
+    // applyDeltaToData pick them up without another hardcoded name.
+    window.FIXED_BLOCK_SECTIONS = Object.freeze([
+        Object.freeze({ tab: 'combos', field: 'comboIntro', scope: 'comboIntro', label: 'Read First' }),
+    ]);
+
     // --- KEYED SECTIONS ---
     //
     // A KEYED SECTION is a tab whose data is an array of entries identified by
@@ -240,10 +284,22 @@
     // that does not exist, so opening a counterplay ticket never landed on it.
     // It is declared, not computed.
 
-    /** The tabs whose content is a keyed array, in vocabulary order. */
+    /**
+     * Every keyed array in desc_data, in vocabulary order.
+     *
+     * Tabs whose own content is keyed, then the sections that render inside a
+     * tab without being one. Both need the same pipeline, which is the only
+     * thing this list is for.
+     */
     window.getKeyedSections = function () {
         return window.CHARACTER_TABS.filter(t => t.keyed)
-            .map(t => ({ tab: t.id, field: t.id, label: t.label, ...t.keyed }));
+            .map(t => ({ tab: t.id, field: t.id, label: t.label, ...t.keyed }))
+            .concat(EXTRA_KEYED_SECTIONS);
+    };
+
+    /** Every keyed section rendered inside a given tab, including its own. */
+    window.getKeyedSectionsForTab = function (tabId) {
+        return window.getKeyedSections().filter(s => s.tab === tabId);
     };
 
     /**
@@ -273,9 +329,21 @@
         return window.getKeyedSections().find(s => s.scope === scope) || null;
     };
 
-    /** Look one up by tab id, which is also its desc_data field name. */
+    /**
+     * A tab's OWN keyed section - the one whose field IS the tab id.
+     *
+     * Matched on field rather than tab, because more than one section can
+     * render inside a tab: without this, getKeyedSectionByTab('combos') could
+     * return the Combo List and the editor would open the wrong screen for a
+     * combo group.
+     */
     window.getKeyedSectionByTab = function (tabId) {
-        return window.getKeyedSections().find(s => s.tab === tabId) || null;
+        return window.getKeyedSections().find(s => s.tab === tabId && s.field === tabId) || null;
+    };
+
+    /** Look one up by its desc_data field. */
+    window.getKeyedSectionByField = function (field) {
+        return window.getKeyedSections().find(s => s.field === field) || null;
     };
 
     /** id -> label, for anything rendering a tab name it did not build. */

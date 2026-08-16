@@ -1,13 +1,16 @@
-// The Combos tab: grouped combo tables, adapted from Dustloop's.
+// The Combos tab: a DOCUMENT of three parts, not a list.
 //
-// A character's combos are grouped by STARTER, and each group draws one
-// sortable table. `desc_data.combos` is a keyed array like matchups and
-// counterplay (js/character_tabs.js), so submit, merge, diff and the editor's
-// group nav all come from the shared machinery - only the table is bespoke.
+//   comboIntro   [blocks]                       fixed, "Read First"
+//   comboGroups  [{ title, content: [blocks] }]  N, keyed by title
+//   comboList    [{ starter, rows: [...] }]      N, keyed by starter
 //
-// The two sort keys are the part worth protecting. Both are wrong under the
-// obvious implementation, and both are wrong QUIETLY - a mis-sorted column
-// still looks like a sorted column.
+// Same decomposition the Overview tab already has (overview + strategy +
+// extras), and the same one the reference uses: prose, then author-named
+// groups of cards, then the reference table LAST.
+//
+// The first build made the table a group's content, which left nowhere for the
+// TheoryBox cards to live and put the reference index in the middle of the
+// prose. These tests pin the document order so that cannot come back.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -21,125 +24,174 @@ const vocab = (() => {
   return w;
 })();
 
-const COMBOS = vocab.getKeyedSectionByTab('combos');
+const GROUPS = vocab.getKeyedSectionByField('comboGroups');
+const LIST = vocab.getKeyedSectionByField('comboList');
 
 // Damage values taken from the owner's live pages: ranges and parenthesised
 // sums are both real.
-const GROUPS = [
-  {
-    starter: 'True Combos',
-    rows: [
-      { sequence: ['M1', 'M1', 'MURMURATE'], damage: '38-46', difficulty: 'Easy', notes: 'Bread and butter.' },
-      { sequence: ['M1', '2', 'AIR UPDRAFT'], damage: '4 (2+2)', difficulty: 'Demon Time', notes: 'Drops on small models.' },
-      { sequence: ['MURMURATE', 'CIRCLING'], damage: '28', difficulty: 'Medium', setup: 'Hard knockdown' },
-    ],
-  },
-  {
-    starter: 'Advanced',
-    rows: [{ sequence: ['DIVE BOMB', 'R↑'], damage: '52', difficulty: 'Extremely Hard' }],
-  },
-];
+const DATA = {
+  comboIntro: [{ type: 'paragraph', content: 'Damage is measured on a training dummy.' }],
+  comboGroups: [
+    { title: 'True Combos', content: [{ type: 'paragraph', content: 'These always connect.' }] },
+    { title: 'Advanced', content: [] },
+  ],
+  comboList: [
+    {
+      starter: 'M1 Starters',
+      rows: [
+        { sequence: ['M1', 'M1', 'MURMURATE'], damage: '38-46', difficulty: 'Easy', notes: 'Bread and butter.' },
+        { sequence: ['M1', '2'], damage: '4 (2+2)', difficulty: 'Demon Time' },
+        { sequence: ['M1', 'CIRCLING'], damage: '28', difficulty: 'Medium', setup: 'Hard knockdown' },
+      ],
+    },
+    { starter: 'R↑ Starters', rows: [{ sequence: ['R↑', 'DIVE BOMB'], damage: '52', difficulty: 'Extremely Hard' }] },
+  ],
+};
 
-async function renderCombos(page, groups = GROUPS) {
+async function renderCombos(page, data = DATA) {
   await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
-  await page.evaluate(g => window.renderCombosTab({ combos: g }), groups);
-  // Open the tab the way a reader does. Without this the panel stays hidden,
-  // and a hidden table's headers cannot be clicked - which is a property of
-  // the page, not of the test.
+  await page.evaluate(d => window.renderCombosTab(d), data);
+  // Open the tab the way a reader does; a hidden table's headers cannot be
+  // clicked, which is a property of the page rather than of the test.
   await page.locator('#nav-combos').click();
   await page.waitForTimeout(150);
 }
 
-test('combos is a keyed section, so the shared pipeline covers it', () => {
-  expect(COMBOS, 'combos must be declared keyed or nothing submits it').toBeTruthy();
-  expect(COMBOS.keyField).toBe('starter');
-  expect(COMBOS.rowsField).toBe('rows');
-  // Its own renderer, but the SHARED editor - a group is a name plus blocks
-  // like any keyed entry, with one extra panel for the rows.
-  expect(COMBOS.customRenderer).toBe(true);
-  expect(vocab.usesSharedKeyedUI('combos'), 'combos reuses the keyed-entry editor').toBe(true);
-  // The scope is not 'combo': that is already a BLOCK type (the inline route),
-  // and two namespaces sharing a word is how the next person loses an hour.
-  expect(COMBOS.scope).toBe('comboGroup');
+test('the tab is three sections, and the Combo List is last', async ({ page }) => {
+  await renderCombos(page);
+
+  const doc = await page.evaluate(() => ({
+    order: [...document.querySelectorAll('#tab-combos > *')]
+      .map(el => [...el.classList].find(c => c.startsWith('combo')) || el.tagName),
+    titles: [...document.querySelectorAll('#tab-combos .card-header-title')].map(t => t.textContent),
+    listHeading: document.querySelector('.combo-list-title')?.textContent,
+    tables: document.querySelectorAll('.combo-list-table').length,
+  }));
+
+  expect(doc.order).toEqual(['combo-intro', 'combo-group', 'combo-group', 'combo-list-section']);
+  expect(doc.titles).toEqual(['Read First', 'True Combos', 'Advanced', 'M1 Starters', 'R↑ Starters']);
+  expect(doc.listHeading).toBe('Combo List');
+  expect(doc.tables, 'one table per starter').toBe(2);
+});
+
+test('the three sections are declared with the scopes the pipeline keys off', () => {
+  // Groups are AUTHOR-NAMED: the reference says Beginner/Core/Specialized, the
+  // owner's live pages say True/Simpler/Advanced. Hardcoding the reference's
+  // names would import a vocabulary this community does not use.
+  expect(GROUPS.keyField).toBe('title');
+  expect(GROUPS.scope).toBe('comboGroup');
+
+  // Keyed by STARTER is what keeps review readable: the reference has 127 rows
+  // for one character, so as a single 'full' delta a reviewer faces all of
+  // them at once.
+  expect(LIST.keyField).toBe('starter');
+  expect(LIST.scope).toBe('comboTable');
+  expect(LIST.rowsField).toBe('rows');
+
+  // comboIntro is a fixed block array, the same shape as overview/strategy.
+  const intro = vocab.FIXED_BLOCK_SECTIONS.find(f => f.field === 'comboIntro');
+  expect(intro, 'comboIntro must be declared or nothing submits it').toBeTruthy();
+  expect(intro.scope).toBe('comboIntro');
+
+  // The tab itself is not keyed - it is a document, not a list.
+  expect(vocab.getKeyedSectionByTab('combos')).toBeNull();
+  expect(vocab.getKeyedSectionsForTab('combos').map(s => s.field)).toEqual(['comboGroups', 'comboList']);
+});
+
+test('every section survives a delta, including the first one', async ({ page }) => {
+  // The bug that shipped for Starter Guide: a scope with no branch in
+  // applyDeltaToData returns the data unchanged and reports success.
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+
+  const result = await page.evaluate(() => {
+    const intro = window.applyDeltaToData({}, {}, 'comboIntro', 'full',
+      [{ type: 'paragraph', content: 'hi' }]);
+    const group = window.applyDeltaToData({}, {}, 'comboGroup', 'True Combos',
+      { title: 'True Combos', content: [] });
+    const table = window.applyDeltaToData({}, {}, 'comboTable', 'M1 Starters',
+      { starter: 'M1 Starters', rows: [{ sequence: ['M1'] }] });
+    return {
+      intro: (intro.newDesc.comboIntro || []).length,
+      group: (group.newDesc.comboGroups || []).length,
+      table: (table.newDesc.comboList || []).length,
+    };
+  });
+
+  expect(result.intro, 'comboIntro writes into a field that does not exist yet').toBe(1);
+  expect(result.group).toBe(1);
+  expect(result.table).toBe(1);
 });
 
 test('damage sorts by its leading number, not as text', async ({ page }) => {
   // '4 (2+2)' sorts above '38-46' lexically, which is wrong by every reading.
   await renderCombos(page);
-  await page.locator('.combo-group').first().locator('[data-sort-field="damage"]').click();
+  await page.locator('.combo-list-table').first().locator('[data-sort-field="damage"]').click();
   await page.waitForTimeout(150);
 
   const order = await page.evaluate(() =>
-    [...document.querySelectorAll('.combo-group')[0].querySelectorAll('.combo-cell-damage')]
+    [...document.querySelectorAll('.combo-list-table')[0].querySelectorAll('.combo-cell-damage')]
       .map(td => td.textContent.trim()));
 
   expect(order).toEqual(['4 (2+2)', '28', '38-46']);
 });
 
 test('difficulty sorts by its ordinal, not alphabetically', async ({ page }) => {
-  // 'Demon Time' sorts FIRST alphabetically and LAST by meaning. This is the
-  // assertion that a sort written the obvious way fails.
+  // 'Demon Time' sorts FIRST alphabetically and LAST by meaning - the
+  // assertion a sort written the obvious way fails.
   await renderCombos(page);
-  await page.locator('.combo-group').first().locator('[data-sort-field="difficulty"]').click();
+  const th = page.locator('.combo-list-table').first().locator('[data-sort-field="difficulty"]');
+
+  await th.click();
   await page.waitForTimeout(150);
-
-  const order = await page.evaluate(() =>
-    [...document.querySelectorAll('.combo-group')[0].querySelectorAll('.combo-cell-difficulty')]
+  const asc = await page.evaluate(() =>
+    [...document.querySelectorAll('.combo-list-table')[0].querySelectorAll('.combo-cell-difficulty')]
       .map(td => td.textContent.trim()));
+  expect(asc).toEqual(['Easy', 'Medium', 'Demon Time']);
 
-  expect(order).toEqual(['Easy', 'Medium', 'Demon Time']);
-
-  // And clicking again reverses it rather than re-sorting the same way.
-  await page.locator('.combo-group').first().locator('[data-sort-field="difficulty"]').click();
+  await th.click();
   await page.waitForTimeout(150);
-  const reversed = await page.evaluate(() =>
-    [...document.querySelectorAll('.combo-group')[0].querySelectorAll('.combo-cell-difficulty')]
+  const desc = await page.evaluate(() =>
+    [...document.querySelectorAll('.combo-list-table')[0].querySelectorAll('.combo-cell-difficulty')]
       .map(td => td.textContent.trim()));
-  expect(reversed).toEqual(['Demon Time', 'Medium', 'Easy']);
+  expect(desc).toEqual(['Demon Time', 'Medium', 'Easy']);
 });
 
-test('the difficulty list is the sort key, so its order is load-bearing', async ({ page }) => {
+test('an unrecognised difficulty sorts last, not as the easiest', async ({ page }) => {
   await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
-  const levels = await page.evaluate(() => window.COMBO_DIFFICULTIES);
-
-  expect(levels[0]).toBe('Very Easy');
-  expect(levels[levels.length - 1]).toBe('Demon Time');
-  expect(levels).toHaveLength(8);
-
-  // An unrecognised value sorts last rather than as zero - a typo must not
-  // quietly become the easiest combo in the table.
   const rank = await page.evaluate(() => ({
+    levels: window.COMBO_DIFFICULTIES,
     known: window.comboSortValue({ difficulty: 'Medium' }, { field: 'difficulty', sort: 'difficulty' }),
     typo: window.comboSortValue({ difficulty: 'Medum' }, { field: 'difficulty', sort: 'difficulty' }),
     blankDamage: window.comboSortValue({ damage: '' }, { field: 'damage', sort: 'leadingNumber' }),
   }));
-  expect(rank.typo).toBeGreaterThan(rank.known);
+
+  expect(rank.levels[0]).toBe('Very Easy');
+  expect(rank.levels[rank.levels.length - 1]).toBe('Demon Time');
+  expect(rank.levels).toHaveLength(8);
+  expect(rank.typo, 'a typo must not become the easiest combo in the table').toBeGreaterThan(rank.known);
   expect(rank.blankDamage).toBeGreaterThan(0);
 });
 
-test('optional columns appear only when earned, and every group shares a shape', async ({ page }) => {
-  // Setup is filled on one row of one group; Controls on none. So Setup shows
-  // in BOTH tables and Controls in neither - per group, a reader scrolling
-  // down would watch columns appear and disappear between two tables meant to
-  // be read the same way.
+test('optional columns appear only when earned, and every table shares a shape', async ({ page }) => {
+  // Setup is filled on one row of one table; Controls on none. So Setup shows
+  // in BOTH and Controls in neither - per table, a reader scrolling down would
+  // watch columns appear and disappear between two tables meant to be read the
+  // same way.
   await renderCombos(page);
 
   const headers = await page.evaluate(() =>
-    [...document.querySelectorAll('.combo-group')].map(g =>
-      [...g.querySelectorAll('.combo-th')].map(th => th.textContent.replace(/[↑↓↕]/g, '').trim())));
+    [...document.querySelectorAll('.combo-list-table')].map(t =>
+      [...t.querySelectorAll('.combo-th')].map(th => th.textContent.replace(/[↑↓↕]/g, '').trim())));
 
   expect(headers).toHaveLength(2);
-  expect(headers[0], 'both groups render the same columns').toEqual(headers[1]);
+  expect(headers[0], 'both tables render the same columns').toEqual(headers[1]);
   expect(headers[0]).toContain('Setup');
   expect(headers[0], 'no row filled Controls in, so it costs no width').not.toContain('Controls');
   expect(headers[0][0]).toBe('Combo');
 });
 
 test('a route in the table reads exactly like a route in prose', async ({ page }) => {
-  // Same .combo-node chips and '>' separators as the legacy combo block, so a
-  // combo looks the same wherever it appears.
   await renderCombos(page);
-
   const first = await page.evaluate(() => {
     const cell = document.querySelector('.combo-cell-sequence');
     return {
@@ -147,7 +199,6 @@ test('a route in the table reads exactly like a route in prose', async ({ page }
       seps: [...cell.querySelectorAll('.combo-sep')].map(s => s.textContent.trim()),
     };
   });
-
   expect(first.chips).toEqual(['M1', 'M1', 'MURMURATE']);
   expect(first.seps).toEqual(['>', '>']);
 });
@@ -162,15 +213,13 @@ test('every row becomes a card on a phone, and empty fields drop out', async ({ 
   const mobile = await page.evaluate(() => {
     const row = document.querySelector('.combo-row');
     const damage = row.querySelector('.combo-cell-damage');
-    const emptyCell = document.querySelectorAll('.combo-group')[0]
-      .querySelector('.combo-row:first-child .combo-cell-is-empty');
+    const empty = document.querySelector('.combo-cell-is-empty');
     return {
       headerHidden: getComputedStyle(document.querySelector('.combo-table thead')).display,
       rowIsBlock: getComputedStyle(row).display,
-      // The label is generated from data-label rather than the hidden header.
       damageLabel: damage.getAttribute('data-label'),
       damageIsFlex: getComputedStyle(damage).display,
-      emptyHidden: emptyCell ? getComputedStyle(emptyCell).display : 'none',
+      emptyHidden: empty ? getComputedStyle(empty).display : 'none',
       pageScrollsSideways: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     };
   });
@@ -185,22 +234,25 @@ test('every row becomes a card on a phone, and empty fields drop out', async ({ 
   expect(mobile.pageScrollsSideways, 'the page itself must never scroll sideways').toBe(false);
 });
 
-test('nothing a contributor writes into a row is parsed as markup', async ({ page }) => {
+test('nothing a contributor writes is parsed as markup', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
 
-  await renderCombos(page, [{
-    starter: '<img src=x onerror="window.__PWN=1">',
-    rows: [{
-      sequence: ['<img src=x onerror="window.__PWN=1">'],
-      damage: '<img src=x onerror="window.__PWN=1">',
-      notes: '<img src=x onerror="window.__PWN=1">',
-      difficulty: '<img src=x onerror="window.__PWN=1">',
-      // A javascript: URL is not an escaping problem - it needs the scheme
-      // check, the same one the block renderer uses.
-      video: 'javascript:window.__PWN=1',
+  await renderCombos(page, {
+    comboIntro: [],
+    comboGroups: [{ title: '<img src=x onerror="window.__PWN=1">', content: [] }],
+    comboList: [{
+      starter: '<img src=x onerror="window.__PWN=1">',
+      rows: [{
+        sequence: ['<img src=x onerror="window.__PWN=1">'],
+        damage: '<img src=x onerror="window.__PWN=1">',
+        notes: '<img src=x onerror="window.__PWN=1">',
+        // A javascript: URL is not an escaping problem - it needs the scheme
+        // check, the same one the block renderer uses.
+        video: 'javascript:window.__PWN=1',
+      }],
     }],
-  }]);
+  });
   await page.waitForTimeout(400);
 
   const result = await page.evaluate(() => ({
@@ -215,10 +267,9 @@ test('nothing a contributor writes into a row is parsed as markup', async ({ pag
   expect(errors).toEqual([]);
 });
 
-test('the editor creates a group and a combo, in a modal', async ({ page }) => {
-  // Driven through the real controls. The row form is a modal because the
-  // editor's left pane shares the screen with the live preview and a dozen
-  // fields in it was mostly scroll (owner, 2026-08-16).
+test('the editor is a sub-tab strip, and builds all three sections', async ({ page }) => {
+  // Mirrors the Overview tab's editor:
+  //   [ Read First ] [ Combo List ] [ True Combos x ] [ + GROUP ]
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
 
@@ -226,10 +277,37 @@ test('the editor creates a group and a combo, in a modal', async ({ page }) => {
   await page.goto('/edit.html?char=boomcat&type=character&tab=combos', { waitUntil: 'networkidle' });
   await page.waitForTimeout(1200);
 
-  await page.locator('[onclick*="addKeyedEntry"]').first().click();
+  const strip = await page.evaluate(() =>
+    [...document.querySelectorAll('[id^="combos-nav-"]')].map(b => b.id));
+  expect(strip, 'the fixed two come first').toEqual(['combos-nav-intro', 'combos-nav-list']);
+  await expect(page.locator('#strategy-block-target'), 'Read First opens on a block builder')
+    .toHaveCount(1);
+
+  // A group.
+  await page.locator('[onclick*="addComboGroup"]').click();
   await page.waitForTimeout(300);
+  await page.locator('#combos-editor-container input[type="text"]').first().fill('True Combos');
+  await page.waitForTimeout(300);
+
+  const afterGroup = await page.evaluate(() => ({
+    groups: (window.currentEditorDescData.comboGroups || []).map(g => g.title),
+    navLabel: document.getElementById('combos-nav-group-0')?.textContent,
+    previewTitles: [...document.querySelectorAll('#tab-combos .card-header-title')].map(t => t.textContent),
+  }));
+  expect(afterGroup.groups).toEqual(['True Combos']);
+  expect(afterGroup.navLabel, 'the strip follows the title').toBe('True Combos');
+  expect(afterGroup.previewTitles).toContain('True Combos');
+
+  // The Combo List, whose rows open in a modal - the editor's left pane shares
+  // the screen with the live preview, and a dozen fields there was mostly
+  // scroll (owner, 2026-08-16).
+  await page.locator('#combos-nav-list').click();
+  await page.waitForTimeout(250);
+  await page.locator('#combo-table-add').click();
+  await page.waitForTimeout(250);
+  await page.locator('#combo-table-name').fill('M1 Starters');
   await page.locator('#combo-row-add').click();
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(350);
 
   await expect(page.locator('#combo-row-modal'), 'adding a combo opens its editor')
     .not.toHaveClass(/\bhidden\b/);
@@ -240,14 +318,18 @@ test('the editor creates a group and a combo, in a modal', async ({ page }) => {
   await page.waitForTimeout(400);
 
   const state = await page.evaluate(() => ({
-    row: (window.currentEditorDescData.combos || [])[0]?.rows?.[0],
+    table: (window.currentEditorDescData.comboList || [])[0],
     previewRows: document.querySelectorAll('#tab-combos .combo-row').length,
   }));
 
+  expect(state.table.starter).toBe('M1 Starters');
   // Blank lines are dropped rather than becoming empty chips in the route.
-  expect(state.row.sequence).toEqual(['M1', 'MURMURATE', 'R↑']);
-  expect(state.row.damage).toBe('38-46');
-  expect(state.row.difficulty).toBe('Medium');
+  expect(state.table.rows[0].sequence).toEqual(['M1', 'MURMURATE', 'R↑']);
+  expect(state.table.rows[0].damage).toBe('38-46');
+  expect(state.table.rows[0].difficulty).toBe('Medium');
+  // A stray `rows: []` here meant editor-tabs.js had overwritten
+  // description.js's window.renderComboTableBody by declaring the same name.
+  expect(Object.keys(state.table.rows[0])).not.toContain('rows');
   expect(state.previewRows, 'the live preview shows the table as it types').toBe(1);
 
   await page.locator('#combo-row-modal-done').click();
@@ -255,12 +337,9 @@ test('the editor creates a group and a combo, in a modal', async ({ page }) => {
 
   const closed = await page.evaluate(() => ({
     hidden: document.getElementById('combo-row-modal').classList.contains('hidden'),
-    // The row button shows the route, because that is how an author
-    // recognises which combo they are editing.
     summary: document.querySelector('.combo-row-open')?.textContent,
   }));
-
   expect(closed.hidden).toBe(true);
-  expect(closed.summary).toBe('M1 > MURMURATE > R↑');
+  expect(closed.summary, 'a row is recognised by its route').toBe('M1 > MURMURATE > R↑');
   expect(errors).toEqual([]);
 });
