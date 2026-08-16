@@ -37,10 +37,19 @@ window.runPageBoot = async function (route) {
 
         // 2. Inner tab navigation
         if (window.setupTabs) {
-            const tabIds = (route.tabs || [
-                { id: 'overview' }, { id: 'm1s' }, { id: 'skills' }, { id: 'specials' },
-                { id: 'matchups' }, { id: 'counterplay' }, { id: 'gallery' },
-            ]).map(t => t.id);
+            // From the vocabulary (js/character_tabs.js), which is also what
+            // page_router.js built the buttons from - so every button it drew
+            // is registered here and none is left inert.
+            //
+            // This was a hardcoded list, and it is how the Combos and Starter
+            // Guide tabs shipped unclickable: the buttons and panels existed,
+            // setupTabs never heard about them, so clicking did nothing at all.
+            // It was written as [{id:'overview'}, …] rather than ['overview', …],
+            // which is why the guard scanning for restated tab lists walked
+            // straight past it.
+            const tabIds = route.tabs
+                ? route.tabs.map(t => t.id)
+                : window.getCharacterTabIds();
             window.setupTabs('nav', 'tab', tabIds, 'major');
         }
 

@@ -213,7 +213,7 @@
         // previous selection belongs to the state being left.
         window.currentOverviewSection = null;
         window.currentMatchupIndex = undefined;
-        window.currentCounterplayIndex = undefined;
+        window.currentKeyedIndex = {};
 
         window.editorActiveMode = isBase(modeId) ? BASE() : modeId;
         window.applyEditorModeView();

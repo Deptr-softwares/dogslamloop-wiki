@@ -666,8 +666,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     } else if (tabId === 'matchups' && window.currentMatchupIndex !== undefined) {
                         hasCollision = isDiff(liveDesc?.matchups?.[window.currentMatchupIndex], window.originalCloudDescData?.matchups?.[window.currentMatchupIndex]);
-                    } else if (tabId === 'counterplay' && window.currentCounterplayIndex !== undefined) {
-                        hasCollision = isDiff(liveDesc?.counterplay?.[window.currentCounterplayIndex], window.originalCloudDescData?.counterplay?.[window.currentCounterplayIndex]);
+                    } else if (window.getKeyedSectionByTab(tabId) && tabId !== 'matchups'
+                            && window.currentKeyedIndex?.[tabId] !== undefined) {
+                        const field = window.getKeyedSectionByTab(tabId).field;
+                        const i = window.currentKeyedIndex[tabId];
+                        hasCollision = isDiff(liveDesc?.[field]?.[i], window.originalCloudDescData?.[field]?.[i]);
                     }
 
                     if (hasCollision) {
@@ -753,9 +756,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         frame_data: window.currentEditorFrameData[cat].find(m => m.id === mId),
                         desc_data: window.currentEditorDescData.moveStrategies[mId] || []
                     };
-                } else if (scope === 'extra' || scope === 'matchup' || scope === 'counterplay') {
-                    const arrMap = { 'extra': 'extras', 'matchup': 'matchups', 'counterplay': 'counterplay' };
-                    dPayload = window.currentEditorDescData[arrMap[scope]][parseInt(key)];
+                } else if (scope === 'extra' || window.getKeyedSectionByScope(scope)) {
+                    // 'extra' is not a tab, so it stays named here; every other
+                    // array scope resolves through the vocabulary.
+                    const section = window.getKeyedSectionByScope(scope);
+                    dPayload = window.currentEditorDescData[section ? section.field : 'extras'][parseInt(key)];
                 } else {
                     dPayload = window.currentEditorDescData[scope];
                 }
@@ -878,8 +883,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         });
                     };
 
-                    // Matchups and counterplay are the same shape, keyed by a
-                    // different field.
+                    // Every keyed section is the same shape, keyed by a
+                    // different field. See js/character_tabs.js.
                     const scanKeyedList = (field, keyField, scope) => {
                         const local = window.currentEditorDescData[field] || [];
                         const cloud = window.originalCloudDescData[field] || [];
@@ -899,8 +904,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const scanEveryTab = () => {
                         (window.FRAME_MOVE_CATEGORIES || []).forEach(scanMoveTab);
                         scanOverview();
-                        scanKeyedList('matchups', 'opponent', 'matchup');
-                        scanKeyedList('counterplay', 'topic', 'counterplay');
+                        // Driven by the vocabulary, so a section added there is
+                        // swept here without a second edit. Missing one is
+                        // silent - the edits simply never become deltas.
+                        (window.getKeyedSections ? window.getKeyedSections() : []).forEach(
+                            s => scanKeyedList(s.field, s.keyField, s.scope));
                     };
 
                     // ...AND EVERY CHARACTER STATE, not just the open one.

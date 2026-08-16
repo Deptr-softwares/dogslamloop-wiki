@@ -131,8 +131,13 @@ window.openMergeCompiler = async function(pageId) {
         };
 
         scanArray('extras', 'Custom Tab', tDesc.extras, liveDescData.extras, 'title');
-        scanArray('matchups', 'Matchup', tDesc.matchups, liveDescData.matchups, 'opponent');
-        scanArray('counterplay', 'Counterplay', tDesc.counterplay, liveDescData.counterplay, 'topic');
+        // Every keyed section (js/character_tabs.js), so a section added there
+        // is merged here too. A section missing from this scan means two
+        // tickets editing the same entry never register as a conflict, and the
+        // second one silently overwrites the first.
+        window.getKeyedSections().forEach(s => {
+            scanArray(s.field, s.entryLabel, tDesc[s.field], liveDescData[s.field], s.keyField);
+        });
 
         window.FRAME_MOVE_CATEGORIES.forEach(cat => {
             const tMoves = tFrame[cat] || [];
@@ -216,8 +221,11 @@ window.openMergeCompiler = async function(pageId) {
         const batchedDeltas = [];
 
         // applyDeltaToData's array scopes are singular; the compiler's are the
-        // property names they live under.
-        const DELTA_SCOPE_FOR_ARRAY = { extras: 'extra', matchups: 'matchup', counterplay: 'counterplay' };
+        // property names they live under. Declared per section in
+        // js/character_tabs.js rather than derived by trimming an 's' - see the
+        // note there about the 'counterplays' tab id that produced.
+        const DELTA_SCOPE_FOR_ARRAY = { extras: 'extra' };
+        window.getKeyedSections().forEach(s => { DELTA_SCOPE_FOR_ARRAY[s.field] = s.scope; });
 
         // A conflict inside an ultimate state writes into that state's bucket
         // and ships as a mode-wrapped delta - the same wrapper the editor emits

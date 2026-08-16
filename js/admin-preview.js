@@ -119,8 +119,12 @@ async function previewRevision(revId) {
         let activeTabId = null;
         if (rev.target_scope === 'multi') {
             activeTabId = (window.changedTabs || [])[0] || 'overview';
-        } else if (['matchup', 'counterplay'].includes(unwrapped.scope)) {
-            activeTabId = `${unwrapped.scope}s`;
+        } else if (window.getKeyedSectionByScope(unwrapped.scope)) {
+            // Read from the vocabulary, not built by appending an 's'. That
+            // turned 'counterplay' into 'counterplays' - not a tab - so a
+            // counterplay ticket never opened onto its own tab and the
+            // reviewer landed on Overview instead.
+            activeTabId = window.getKeyedSectionByScope(unwrapped.scope).tab;
         } else if (unwrapped.scope === 'move') {
             activeTabId = unwrapped.key.split('::')[0];
         } else {
@@ -243,14 +247,15 @@ async function switchVersionView(mode) {
         const formatScopeName = (scope) => {
             const map = {
                 'move': 'Move Strategy & Frames',
-                'matchup': 'Matchup',
-                'counterplay': 'Counterplay',
                 'extra': 'Custom Tab',
                 'profile': 'Profile Metadata',
                 'playstyle': 'Playstyle',
                 'overview': 'Overview',
                 'strategy': 'General Strategy'
             };
+            // Keyed sections name themselves (js/character_tabs.js), so a new
+            // one shows the reviewer its real name rather than a raw scope.
+            window.getKeyedSections().forEach(s => { map[s.scope] = s.entryLabel; });
             return map[scope] || scope;
         };
 
@@ -298,13 +303,24 @@ async function switchVersionView(mode) {
                         renderDiffBlock('Matchup Strategy', oldMu.content || [], payload.content || []);
                     }
                 }
-                else if (scope === 'counterplay') {
-                    const oldCp = liveDesc.counterplay?.find(c => c.topic === key) || {};
+                // Every other keyed section, matchups aside - that branch above
+                // stays written out because its metadata pairs opponent with
+                // tier and reads better named. This covers counterplay, the new
+                // Starter Guide, and anything added to the vocabulary later,
+                // which otherwise renders as a raw JSON blob to the reviewer.
+                else if (window.getKeyedSectionByScope(scope)) {
+                    const section = window.getKeyedSectionByScope(scope);
+                    const oldEntry = liveDesc[section.field]?.find(e => e[section.keyField] === key) || {};
                     if (payload === null) {
-                        renderDiffBlock('Counterplay Deleted', oldCp, null, 'json');
+                        renderDiffBlock(`${section.entryLabel} Deleted`, oldEntry, null, 'json');
                     } else {
-                        renderDiffBlock('Counterplay Metadata', { topic: oldCp.topic, importance: oldCp.importance }, { topic: payload.topic, importance: payload.importance });
-                        renderDiffBlock('Counterplay Strategy', oldCp.content || [], payload.content || []);
+                        const meta = (e) => {
+                            const m = { [section.keyField]: e[section.keyField] };
+                            if (section.metaField) m[section.metaField] = e[section.metaField];
+                            return m;
+                        };
+                        renderDiffBlock(`${section.entryLabel} Metadata`, meta(oldEntry), meta(payload));
+                        renderDiffBlock(`${section.entryLabel} Strategy`, oldEntry.content || [], payload.content || []);
                     }
                 }
                 else if (scope === 'move') {
@@ -419,16 +435,25 @@ async function switchVersionView(mode) {
                         }
                         renderDiffBlock(`Matchup Strategy: ${nM || oM || 'Unknown'}`, oldMu[i]?.content || [], newMu[i]?.content || []);
                     }
-                } else if (tab === 'counterplay') {
-                    const oldCp = Array.isArray(oldTab) ? oldTab : [];
-                    const newCp = Array.isArray(newTab) ? newTab : [];
-                    const cpMax = Math.max(oldCp.length, newCp.length);
-                    for (let i = 0; i < cpMax; i++) {
-                        const oC = oldCp[i]?.topic; const nC = newCp[i]?.topic;
-                        if (oC !== nC || oldCp[i]?.importance !== newCp[i]?.importance) {
-                            renderDiffBlock(`Counterplay Metadata (${i + 1})`, { topic: oC, importance: oldCp[i]?.importance }, { topic: nC, importance: newCp[i]?.importance });
+                } else if (window.getKeyedSectionByTab(tab)) {
+                    // Counterplay, Starter Guide, and anything keyed added
+                    // later. Matchups keeps its own branch above.
+                    const section = window.getKeyedSectionByTab(tab);
+                    const oldList = Array.isArray(oldTab) ? oldTab : [];
+                    const newList = Array.isArray(newTab) ? newTab : [];
+                    const max = Math.max(oldList.length, newList.length);
+                    for (let i = 0; i < max; i++) {
+                        const oK = oldList[i]?.[section.keyField];
+                        const nK = newList[i]?.[section.keyField];
+                        const oMeta = section.metaField ? oldList[i]?.[section.metaField] : undefined;
+                        const nMeta = section.metaField ? newList[i]?.[section.metaField] : undefined;
+                        if (oK !== nK || oMeta !== nMeta) {
+                            renderDiffBlock(`${section.entryLabel} Metadata (${i + 1})`,
+                                { [section.keyField]: oK, ...(section.metaField ? { [section.metaField]: oMeta } : {}) },
+                                { [section.keyField]: nK, ...(section.metaField ? { [section.metaField]: nMeta } : {}) });
                         }
-                        renderDiffBlock(`Counterplay Strategy: ${nC || oC || 'Unknown'}`, oldCp[i]?.content || [], newCp[i]?.content || []);
+                        renderDiffBlock(`${section.entryLabel} Strategy: ${nK || oK || 'Unknown'}`,
+                            oldList[i]?.content || [], newList[i]?.content || []);
                     }
                 }
                 else if (window.FRAME_MOVE_CATEGORIES.includes(tab)) {

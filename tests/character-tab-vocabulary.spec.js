@@ -66,7 +66,15 @@ test('no other JS file restates the tab list', () => {
     .map(f => ['tests', f]);
 
   for (const [dir, name] of jsFiles.concat(testFiles)) {
-    const src = fs.readFileSync(path.join(ROOT, dir, name), 'utf8');
+    let src = fs.readFileSync(path.join(ROOT, dir, name), 'utf8');
+
+    // Object-form lists count too. js/page_boot.js held the tab list as
+    // [{ id: 'overview' }, { id: 'm1s' }, …] and this scan walked straight
+    // past it for months of edits, because it only understood arrays of bare
+    // strings. Flattening `{ id: 'x' }` to `'x'` first makes both forms look
+    // the same to the matcher below.
+    src = src.replace(/\{\s*id:\s*('[^']*'|"[^"]*")\s*\}/g, '$1');
+
     const arrays = src.match(/\[[^[\]{}()]*\]/g) || [];
 
     for (const literal of arrays) {
@@ -119,26 +127,40 @@ test('the reader page builds exactly the static tabs, in vocabulary order', asyn
   }
 });
 
-test('clicking a tab actually switches to it', async ({ page }) => {
-  // The strip rendering is not the claim; the strip working is. Drives the
-  // last static tab, which is the one a broken setupTabs id list drops first.
+test('clicking EVERY tab actually switches to it', async ({ page }) => {
+  // The strip rendering is not the claim; the strip working is.
+  //
+  // Every tab, not a representative one. The first version of this drove only
+  // the LAST tab - Gallery - and passed while Combos and Starter Guide were
+  // completely inert: js/page_boot.js registered a hardcoded id list with
+  // setupTabs that predated them, so their buttons existed, were drawn, and
+  // did nothing when clicked. Gallery was in that stale list, so the one tab
+  // this checked was the one tab that could not fail.
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
 
   await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
 
-  const ids = vocab.getCharacterTabIds();
-  const target = ids[ids.length - 1];
+  for (const id of vocab.getCharacterTabIds()) {
+    await page.locator(`#nav-${id}`).click();
 
-  await page.locator(`#nav-${target}`).click();
+    // Asserts the `hidden` class rather than toBeVisible(): a tab with no
+    // content yet renders an empty div, and an empty div has zero height, so
+    // it is never "visible" to Playwright even when the switch worked
+    // perfectly. The structural claim is which panel is hidden.
+    await expect(page.locator(`#tab-${id}`), `#tab-${id} should be showing`)
+      .not.toHaveClass(/\bhidden\b/);
+    await expect(page.locator(`#nav-${id}`), `#nav-${id} should be active`)
+      .toHaveClass(/\bactive\b/);
 
-  // Asserts the `hidden` class rather than toBeVisible(): the last tab is
-  // Gallery, which has no handler and renders an empty div. An empty div has
-  // zero height, so it is never "visible" to Playwright even when the switch
-  // worked perfectly. The structural claim is which panel is hidden.
-  await expect(page.locator(`#tab-${target}`)).not.toHaveClass(/\bhidden\b/);
-  await expect(page.locator(`#tab-${vocab.getDefaultCharacterTabId()}`)).toHaveClass(/\bhidden\b/);
-  await expect(page.locator(`#nav-${target}`)).toHaveClass(/\bactive\b/);
+    // And every other tab went away, which is what proves setupTabs owns the
+    // whole strip rather than just un-hiding the one clicked.
+    for (const other of vocab.getCharacterTabIds().filter(o => o !== id)) {
+      await expect(page.locator(`#tab-${other}`), `#tab-${other} should be hidden while ${id} is open`)
+        .toHaveClass(/\bhidden\b/);
+    }
+  }
+
   expect(errors, 'switching tabs must not throw').toEqual([]);
 });
 
@@ -223,6 +245,11 @@ test('admin.html and edit.html ship a button and a panel for every tab they own'
 
   for (const id of vocab.getCharacterTabIds({ includeInjected: true, editableOnly: true })) {
     if (!editHtml.includes(`id="edit-nav-${id}"`)) missing.push(`edit.html is missing button edit-nav-${id}`);
+    // The PANEL as well as the button. Checking only the button was this
+    // test's own blind spot: edit.html got its Starter Guide button and no
+    // #tab-starterGuide, so the editor's live preview silently rendered
+    // nothing while every other part of the tab worked.
+    if (!editHtml.includes(`id="tab-${id}"`)) missing.push(`edit.html is missing panel tab-${id}`);
   }
 
   // Gallery has no editor at all; if that ever changes it should change here
