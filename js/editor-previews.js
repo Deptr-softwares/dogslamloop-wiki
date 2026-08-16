@@ -4,6 +4,26 @@
  * the in-memory edit buffer)
  */
 
+// populateTextSection wraps whatever it renders in its own
+// <section class="wiki-section"> (js/description.js). These previews append it
+// INSIDE a card that is already a .wiki-section, so the card gets drawn twice -
+// a bordered box inside a bordered box, which is what the owner reported on
+// 2026-08-16.
+//
+// The reader has stripped this since v0.13; the editor's preview never did, for
+// matchups OR counterplay. It only became visible when Starter Guide made
+// someone look at an empty topic, where the inner box has nothing in it to
+// distract from the extra border.
+//
+// Stripping the class rather than unwrapping the node: the element carries the
+// contextClass hook (.matchup-heading, .counterplay-heading) that styles the
+// headings inside it, so removing the node would take the heading rules with it.
+function unwrapInjectedSection(contentWrapper) {
+    const injected = contentWrapper.querySelector('section.wiki-section');
+    if (injected) injected.classList.remove('wiki-section');
+}
+
+
 function renderFullOverviewPreview() {
     const descData = window.currentEditorDescData;
     if (!descData) return;
@@ -129,6 +149,7 @@ function renderMatchupsPreview() {
         if (typeof window.populateTextSection === 'function') {
             if (mu.content && mu.content.length > 0) {
                 window.populateTextSection(contentWrapper.id, '', mu.content, 'matchup');
+                unwrapInjectedSection(contentWrapper);
                 const emptyH3 = contentWrapper.querySelector('h3.strategy-title');
                 if (emptyH3 && !emptyH3.textContent) emptyH3.remove();
             } else {
@@ -203,6 +224,7 @@ function renderKeyedSectionPreview(tabId) {
         if (typeof window.populateTextSection === 'function') {
             if (entry.content && entry.content.length > 0) {
                 window.populateTextSection(contentWrapper.id, '', entry.content, section.tab);
+                unwrapInjectedSection(contentWrapper);
                 const emptyH3 = contentWrapper.querySelector('h3.strategy-title');
                 if (emptyH3 && !emptyH3.textContent) emptyH3.remove();
             } else {

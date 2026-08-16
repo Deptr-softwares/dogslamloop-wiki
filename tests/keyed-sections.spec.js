@@ -210,6 +210,60 @@ test('the editor creates, renames and removes a Starter Guide topic', async ({ p
   expect(errors).toEqual([]);
 });
 
+test('a topic card is drawn once, not nested inside a second one', async ({ page }) => {
+  // Owner-reported 2026-08-16: an entry rendered as a bordered box inside a
+  // bordered box in the editor's preview.
+  //
+  // populateTextSection wraps its output in its own <section class="wiki-section">,
+  // and these previews append that INSIDE a card that is already one. The
+  // READER has stripped the inner class since v0.13; the editor's preview never
+  // did - for counterplay OR matchups. It only became visible when Starter
+  // Guide produced an empty topic, where the inner box has no content to
+  // distract from the extra border.
+  //
+  // Asserted on both surfaces, because they were allowed to disagree for two
+  // versions and this is what that cost.
+  await page.goto('/edit.html?char=boomcat&type=character&tab=overview', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1000);
+
+  const nesting = await page.evaluate((sections) => {
+    const blocks = [{ type: 'heading', content: 'New Heading', size: 'h3' }];
+    sections.forEach(s => {
+      if (!document.getElementById(`tab-${s.tab}`)) {
+        const d = document.createElement('div');
+        d.id = `tab-${s.tab}`;
+        document.body.appendChild(d);
+      }
+    });
+
+    window.currentEditorDescData = window.currentEditorDescData || {};
+    const out = {};
+    sections.forEach(s => {
+      const entry = { [s.keyField]: 'A topic', content: blocks };
+      if (s.metaField) entry[s.metaField] = Object.keys(s.metaColors || {})[0];
+      window.currentEditorDescData[s.field] = [entry];
+
+      if (s.tab === 'matchups') window.renderMatchupsPreview();
+      else window.renderKeyedSectionPreview(s.tab);
+
+      const el = document.getElementById(`tab-${s.tab}`);
+      out[s.tab] = el.querySelectorAll('section.wiki-section section.wiki-section').length;
+    });
+    return out;
+  }, SECTIONS);
+
+  for (const [tab, nested] of Object.entries(nesting)) {
+    expect(nested, `${tab}: a card inside a card`).toBe(0);
+  }
+
+  // The heading rule survives the strip. The class is removed rather than the
+  // node unwrapped precisely so the contextClass hook that styles headings
+  // inside the card stays put.
+  const headingHooks = await page.evaluate(() =>
+    document.querySelectorAll('#tab-counterplay .counterplay-heading, #tab-starterGuide .starterGuide-heading').length);
+  expect(headingHooks, 'stripping the wrapper must not take the heading styling with it').toBeGreaterThan(0);
+});
+
 test('a topic name is never parsed as markup anywhere in the editor', async ({ page }) => {
   // The sub-nav, the name field and the live preview all render it.
   await page.goto('/edit.html?char=boomcat&type=character&tab=starterGuide', { waitUntil: 'networkidle' });
