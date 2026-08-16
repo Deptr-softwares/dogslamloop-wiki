@@ -21,6 +21,12 @@
     --border-color: hsl(212, 12%, 21%);
     
     --accent-blue: hsl(213, 94%, 68%);
+    /* The text colour to use ON TOP of --accent-blue. js/site_meta.js
+       re-points --accent-blue to the character's own colour on a character
+       page, and re-points this with it: black on a light colour, white on a
+       dark one, using the same <50% lightness test the title engine uses.
+       The default here matches the default accent above, which is 68% light. */
+    --character-ink: #000000;
     --accent-blue-hover: hsl(212, 96%, 78%);
     --accent-yellow: hsl(45, 93%, 47%);
     

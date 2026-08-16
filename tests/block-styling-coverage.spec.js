@@ -106,6 +106,10 @@ test('a combo block looks the same on a tool page as on a character page', async
                 titleColor: getComputedStyle(host.querySelector('.strategy-title')).color,
                 accent: getComputedStyle(document.documentElement)
                     .getPropertyValue('--accent-blue').trim(),
+                // What the stylesheet declares combo steps should be set in,
+                // so the assertion below reads the design rather than a name.
+                mono: getComputedStyle(document.documentElement)
+                    .getPropertyValue('--text-mono').trim(),
             };
         });
     };
@@ -120,8 +124,20 @@ test('a combo block looks the same on a tool page as on a character page', async
     expect(shape(system)).toEqual(shape(character));
 
     // ...and that the agreement is not "all four are unstyled everywhere".
-    expect(character.node).toContain('CC-Wild-Words');
-    expect(character.node).not.toContain('0px');
+    //
+    // Compared against the --text-mono custom property rather than a font
+    // name. This pinned 'CC-Wild-Words' and broke when v0.15 made combo steps
+    // monospace - a deliberate design change, not a styling regression, which
+    // is exactly what a literal font name cannot tell apart. The claim is that
+    // the stylesheet applied at all, so read what the stylesheet declares.
+    expect(character.node.split('|')[0]).toBe(character.mono);
+
+    // Padding, not border width. A step used to carry its own border and this
+    // asserted one existed; v0.15 moved the border to the surrounding
+    // .combo-block, because one box is the design and a border per step drew a
+    // box inside a box. Padding is what still proves the rule applied.
+    expect(character.node.split('|')[3], 'the step is padded, so the rule applied')
+        .not.toBe('0px');
 
     // The title is styled on every page type; only its accent differs, and it
     // differs because the page's own accent does.

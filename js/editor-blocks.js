@@ -1,3 +1,27 @@
+
+// Every contributor-authored value below reaches innerHTML, and most of them
+// land in an ATTRIBUTE (`value="..."`), where an unescaped double quote ends
+// the attribute and starts a new one. That was live: a block field of
+// `" onfocus=alert(1) autofocus="` executed when the editor rendered it - and
+// a reviewer intercepting a ticket opens exactly that editor on exactly that
+// contributor's content.
+//
+// Named escField, NOT esc: these files are classic scripts sharing one global
+// lexical scope, and a top-level `const esc` here collides with the one in
+// js/description.js, js/dashboards.js and js/post-editor.js on every page that
+// loads two of them - aborting this entire file. See the note in
+// description.js, and tests/global-scope-collisions.spec.js, which now fails
+// on any recurrence.
+//
+// window.escapeHtml escapes both quote characters as well as the angle
+// brackets, so it is correct for text and attribute contexts alike. The
+// fallback mirrors it for the cache-skew case site_utils.js is stamped for.
+const escField = (v) => (typeof window.escapeHtml === 'function'
+    ? window.escapeHtml(v === null || v === undefined ? '' : v)
+    : String(v === null || v === undefined ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;'));
+
 /**
  * Dogslamloop Wiki - Editor: Content Block Builder (add/edit/reorder text,
  * media, and component blocks - the core WYSIWYG-ish editing surface used
@@ -1098,7 +1122,7 @@ function renderBlockList() {
         card.setAttribute('data-index', index);
 
             const typeOptions = Object.keys(blockTemplates).map(t => 
-                `<option value="${t}" ${block.type === t ? 'selected' : ''}>${t.toUpperCase()}</option>`
+                `<option value="${escField(t)}" ${block.type === t ? 'selected' : ''}>${t.toUpperCase()}</option>`
             ).join('');
 
             let html = `
@@ -1122,7 +1146,7 @@ function renderBlockList() {
 
         if (block.type === 'heading') {
             html += `
-                <input type="text" class="editor-input block-heading-input" data-field="content" value="${block.content}" placeholder="Heading Text">
+                <input type="text" class="editor-input block-heading-input" data-field="content" value="${escField(block.content)}" placeholder="Heading Text">
                 <div class="editor-row">
                     <div>
                         <select class="editor-select" data-field="size">
@@ -1138,42 +1162,42 @@ function renderBlockList() {
         else if (block.type === 'paragraph') {
             const textValue = Array.isArray(block.content) ? block.content.join('\n') : block.content;
             html += `
-                <textarea class="editor-textarea" data-field="content-array" placeholder="Enter paragraph. Use new lines to break array elements. Tip: Use [M1] for keybinds.">${textValue}</textarea>
+                <textarea class="editor-textarea" data-field="content-array" placeholder="Enter paragraph. Use new lines to break array elements. Tip: Use [M1] for keybinds.">${escField(textValue)}</textarea>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'left')}</div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
             `;
         }
         else if (block.type === 'list') {
             const listValue = Array.isArray(block.items) ? block.items.join('\n') : block.items;
             html += `
-                <textarea class="editor-textarea" data-field="list-items" placeholder="Enter list items. Use a new line for each bullet point.">${listValue}</textarea>
+                <textarea class="editor-textarea" data-field="list-items" placeholder="Enter list items. Use a new line for each bullet point.">${escField(listValue)}</textarea>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'left')}</div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
             `;
         }
         else if (block.type === 'image') {
             html += `
-                <input type="text" class="editor-input" data-field="src" value="${block.src || ''}" placeholder="Image Path/URL (e.g. VesselPortrait.webp)">
+                <input type="text" class="editor-input" data-field="src" value="${escField(block.src || '')}" placeholder="Image Path/URL (e.g. VesselPortrait.webp)">
                 <div class="editor-row">
-                    <div><input type="text" class="editor-input" data-field="alt" value="${block.alt || ''}" placeholder="Alt Text (Required for accessibility)"></div>
-                    <div><input type="text" class="editor-input" data-field="caption" value="${block.caption || ''}" placeholder="Caption (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="alt" value="${escField(block.alt || '')}" placeholder="Alt Text (Required for accessibility)"></div>
+                    <div><input type="text" class="editor-input" data-field="caption" value="${escField(block.caption || '')}" placeholder="Caption (Optional)"></div>
                 </div>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'center')}</div>
-                    <div><input type="text" class="editor-input" data-field="width" value="${block.width || '100%'}" placeholder="Width (e.g. 50% or 400px)"></div>
+                    <div><input type="text" class="editor-input" data-field="width" value="${escField(block.width || '100%')}" placeholder="Width (e.g. 50% or 400px)"></div>
                 </div>
             `;
         }
         else if (block.type === 'video') {
             html += `
-                <input type="text" class="editor-input" data-field="src" value="${block.src}" placeholder="Video URL (e.g. /medias/videos/NoNeutralCS.webm)">
+                <input type="text" class="editor-input" data-field="src" value="${escField(block.src)}" placeholder="Video URL (e.g. /medias/videos/NoNeutralCS.webm)">
                 <div class="editor-row">
-                    <div><input type="text" class="editor-input" data-field="caption" value="${block.caption || ''}" placeholder="Caption (Optional)"></div>
-                    <div><input type="text" class="editor-input" data-field="width" value="${block.width || '100%'}" placeholder="Width (e.g. 50%)"></div>
+                    <div><input type="text" class="editor-input" data-field="caption" value="${escField(block.caption || '')}" placeholder="Caption (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="width" value="${escField(block.width || '100%')}" placeholder="Width (e.g. 50%)"></div>
                 </div>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'center')}</div>
@@ -1185,10 +1209,10 @@ function renderBlockList() {
         }
         else if (block.type === 'youtube') {
             html += `
-                <input type="text" class="editor-input" data-field="videoId" value="${block.videoId || ''}" placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)">
+                <input type="text" class="editor-input" data-field="videoId" value="${escField(block.videoId || '')}" placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)">
                 <div class="editor-row">
-                    <div><input type="text" class="editor-input" data-field="caption" value="${block.caption || ''}" placeholder="Caption (Optional)"></div>
-                    <div><input type="text" class="editor-input" data-field="width" value="${block.width || '100%'}" placeholder="Width (e.g. 75%)"></div>
+                    <div><input type="text" class="editor-input" data-field="caption" value="${escField(block.caption || '')}" placeholder="Caption (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="width" value="${escField(block.width || '100%')}" placeholder="Width (e.g. 75%)"></div>
                 </div>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'center')}</div>
@@ -1199,14 +1223,14 @@ function renderBlockList() {
         else if (block.type === 'combo') {
             const seq = block.sequence ? block.sequence.join(', ') : '';
             html += `
-                <input type="text" class="editor-input" data-field="combo-sequence" value="${seq}" placeholder="Sequence (Comma separated: M1, M1, Skill)">
+                <input type="text" class="editor-input" data-field="combo-sequence" value="${escField(seq)}" placeholder="Sequence (Comma separated: M1, M1, Skill)">
                 <div class="editor-row">
-                    <div><input type="text" class="editor-input" data-field="damage" value="${block.damage || ''}" placeholder="Damage text (e.g. 40 DMG)"></div>
-                    <div><input type="text" class="editor-input" data-field="note" value="${block.note || ''}" placeholder="Condition/Note (e.g. Corner Only)"></div>
+                    <div><input type="text" class="editor-input" data-field="damage" value="${escField(block.damage || '')}" placeholder="Damage text (e.g. 40 DMG)"></div>
+                    <div><input type="text" class="editor-input" data-field="note" value="${escField(block.note || '')}" placeholder="Condition/Note (e.g. Corner Only)"></div>
                 </div>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'left')}</div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
             `;
         }
@@ -1215,14 +1239,14 @@ function renderBlockList() {
 
             tableHTML += `<tr>`;
             block.headers.forEach((h, c) => {
-                tableHTML += `<td><input type="text" class="editor-input table-header-input" data-col="${c}" value="${h}" placeholder="Header"></td>`;
+                tableHTML += `<td><input type="text" class="editor-input table-header-input" data-col="${c}" value="${escField(h)}" placeholder="Header"></td>`;
             });
             tableHTML += `</tr>`;
 
             block.rows.forEach((r, rIdx) => {
                 tableHTML += `<tr>`;
                 r.forEach((cell, cIdx) => {
-                    tableHTML += `<td><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${cell}" placeholder="..."></td>`;
+                    tableHTML += `<td><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${escField(cell)}" placeholder="..."></td>`;
                 });
                 tableHTML += `</tr>`;
             });
@@ -1236,16 +1260,16 @@ function renderBlockList() {
                     <button class="btn-sys btn-sys-red btn-table-del-row" title="Delete Bottom Row">⊟ -Row</button>
                     <button class="btn-sys btn-sys-red btn-table-del-col" title="Delete Right Column">⊟ -Col</button>
                 </div>
-                <input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Author Credit (Optional)">
+                <input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)">
             `;
         }
         else if (block.type === 'accordion') {
             const innerCount = block.content ? block.content.length : 0;
             html += `
-                <input type="text" class="editor-input" data-field="title" value="${block.title || ''}" placeholder="Accordion Title">
+                <input type="text" class="editor-input" data-field="title" value="${escField(block.title || '')}" placeholder="Accordion Title">
                 <div class="editor-row editor-row-spaced-md">
                     <div>${getAlignUI(block.align, 'center')}</div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
                 <div class="accordion-inner-block-wrapper">
                     <button class="btn-sys btn-sys-purple" onclick="window.activeAccordionPath.push(${index}); renderBlockList();">
@@ -1266,10 +1290,10 @@ function renderBlockList() {
                             <option value="danger" ${block.intent === 'danger' ? 'selected' : ''}>Danger (Red)</option>
                         </select>
                     </div>
-                    <div><input type="text" class="editor-input" data-field="title" value="${block.title || ''}" placeholder="Callout Title"></div>
+                    <div><input type="text" class="editor-input" data-field="title" value="${escField(block.title || '')}" placeholder="Callout Title"></div>
                     <div>${getAlignUI(block.align, 'center')}</div>
                 </div>
-                <textarea class="editor-textarea" data-field="content-array" placeholder="Tooltip text...">${textValue}</textarea>
+                <textarea class="editor-textarea" data-field="content-array" placeholder="Tooltip text...">${escField(textValue)}</textarea>
             `;
         }
         else if (block.type === 'divider') {
@@ -1309,7 +1333,7 @@ function renderBlockList() {
         else if (block.type === 'author') {
             html += `
                 <div class="editor-row editor-row-nomargin">
-                    <input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Contributor Name(s) (Comma separated)">
+                    <input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Contributor Name(s) (Comma separated)">
                 </div>
             `;
         }
