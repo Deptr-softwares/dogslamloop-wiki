@@ -99,10 +99,12 @@
         return found[0];
     };
 
-    // Move names are matched against prose, so they normalise the same way
-    // internalstyling.js normalises its terms.
+    // Move names are matched against what a contributor typed, so a hyphen and
+    // a space are the same separator: frame data says "Dive-Bomb" and the
+    // owner writes "Dive Bomb". Without this, every hyphenated move on the
+    // roster would need an alias to colour at all.
     const normalise = (name) => String(name === null || name === undefined ? '' : name)
-        .trim().replace(/\s+/g, ' ').toLowerCase();
+        .trim().replace(/[\s‐-―-]+/g, ' ').toLowerCase();
 
     // From the tab vocabulary, not listed here: these are exactly the tabs
     // that hold a frame-data move array, and a second copy of that list is

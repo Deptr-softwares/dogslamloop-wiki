@@ -953,8 +953,14 @@ function flushCombosSection() {
 window.flushCombosSection = flushCombosSection;
 
 window.renderCombosPreview = function () {
-    if (typeof window.renderCombosTab === 'function' && window.currentEditorDescData) {
-        window.renderCombosTab(window.currentEditorDescData);
+    if (typeof window.renderCombosTab !== 'function' || !window.currentEditorDescData) return;
+    window.renderCombosTab(window.currentEditorDescData);
+    // The preview has to be styled like the live page, or notation is coloured
+    // for readers and plain for the person writing it. Without this the only
+    // thing colouring the editor's chips was the MutationObserver happening to
+    // catch them, which is why some steps came out coloured and others did not.
+    if (typeof window.applyInternalStyling === 'function') {
+        setTimeout(window.applyInternalStyling, 30);
     }
 };
 

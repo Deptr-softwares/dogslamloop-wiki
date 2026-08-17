@@ -270,6 +270,61 @@ test('a step keeps its colour when the contributor adds a note to it', async ({ 
   expect(at('Bird Control(s)').inner.length, 'the name inside is found').toBeGreaterThan(0);
 });
 
+test("the owner's real Crow Charmer combo colours every step", async ({ page }) => {
+  // Typed by the owner on 2026-08-17, and it broke four different ways:
+  //
+  //   M1                              uncoloured - the editor preview never
+  //                                   asked for styling, so only whatever the
+  //                                   MutationObserver caught was coloured
+  //   Murmurate                       same
+  //   R (Upward, Cancel  Murmurate)   the leading R was never considered, so
+  //                                   the parenthetical stole the step's
+  //                                   colour - and the double space vanished,
+  //                                   because .combo-node is inline-flex and a
+  //                                   flex container drops whitespace between
+  //                                   its items
+  //   Dive Bomb                       frame data spells it "Dive-Bomb"
+  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  const chips = await page.evaluate(() => {
+    window.renderCombosTab({
+      comboList: [{
+        starter: 'M1 Starters',
+        rows: [{
+          sequence: ['M1', 'Bird Control (S)', 'Murmurate', 'R (Upward, Cancel  Murmurate)', 'Dive Bomb'],
+          damage: '36',
+        }],
+      }],
+    });
+    window.applyInternalStyling();
+    return [...document.querySelectorAll('#tab-combos .combo-node')].map(n => ({
+      text: n.textContent,
+      whole: [...n.classList].find(c => c.startsWith('is-') && c !== 'is-slotted') || null,
+      inner: [...n.querySelectorAll('[class*="is-"]')].map(e => `${e.textContent}=${e.className.match(/is-[\w]+/)[0]}`),
+    }));
+  });
+
+  const at = (t) => chips.find(c => c.text === t);
+
+  expect(at('M1').whole, 'M1 is universal, and always red when written').toBe('is-m1');
+  expect(at('Murmurate').whole, 'a bare move name colours the whole chip').toBe('is-3');
+  // The frame data spells this "Dive-Bomb". A hyphen and a space are the same
+  // separator, or every hyphenated move on the roster would need an alias.
+  expect(at('Dive Bomb').whole, 'Dive Bomb finds Dive-Bomb').toBe('is-2');
+
+  // A note appended to a step leaves the name coloured inside it.
+  expect(at('Bird Control (S)').inner).toContain('Bird Control=is-4');
+
+  // The step's OWN input comes first; the parenthetical is an annotation and
+  // must not be the only thing that colours.
+  const compound = at('R (Upward, Cancel  Murmurate)');
+  expect(compound.inner, 'the leading R is the step, and is coloured').toContain('R=is-r');
+  expect(compound.inner, 'and the move it references is coloured too').toContain('Murmurate=is-3');
+  // Whitespace survives the rewrite.
+  expect(compound.text).toContain('Cancel  Murmurate');
+});
+
 test('the same name can be a different slot in a different state', async ({ page }) => {
   // A character's ultimate state has different skills in the same slots, so
   // the map has to be per-state. Derivation handles this for free; a flat

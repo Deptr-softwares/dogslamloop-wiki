@@ -946,6 +946,11 @@ summary:focus-visible {
    shape. The size also keeps an ordinary route on one line - the 76-damage
    Crow Charmer combo was wrapping mid-route, which loses the left-to-right
    reading a combo depends on. */
+/* The wrapper a compound step's contents go into. Normal inline flow, so the
+   spaces between "Cancel" and "Murmurate" survive - inline-flex would make
+   them flex items and drop the whitespace between them. */
+.combo-node-text { display: inline; white-space: pre-wrap; }
+
 .combo-node {
     display: inline-flex; align-items: center;
     color: var(--text-white); padding: 0.15rem 0.35rem; font-family: var(--text-mono);

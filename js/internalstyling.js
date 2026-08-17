@@ -273,6 +273,29 @@ function inputKeyPattern() {
     return new RegExp(`^\\s*(${keys})${direction}\\s*$`, 'i');
 }
 
+// Move names AND bare keys, for matching inside one compound step. Names go
+// first and longest-first, so "Air Updraft" is claimed before "Updraft" and
+// before the bare "1" that a name might contain.
+//
+// The key half is bounded by non-alphanumerics, which is what keeps "(X3)" and
+// "M1 x3" from lighting up their digits.
+function compoundPattern(terms) {
+    const names = Array.from(terms.lookup.keys()).sort((a, b) => b.length - a.length);
+    const keys = (window.INPUT_SLOT_IDS || []).slice().sort((a, b) => b.length - a.length);
+    if (!names.length && !keys.length) return null;
+
+    // The names come from the map already normalised, which means space-joined.
+    // Each space has to match a hyphen too, or a compound step containing the
+    // frame data's own spelling - "Dive-Bomb (whiff)" - would find nothing
+    // while the plain "Dive Bomb" matched.
+    const separator = '[\\s\\u2010-\\u2015-]+';
+    const flexible = (n) => termPattern(n).split(/\s+/).join(separator);
+    const namePart = names.length ? `(?<![\\w-])(?:${names.map(flexible).join('|')})(?![\\w-])` : null;
+    const keyPart = keys.length ? `(?<![A-Za-z0-9])(?:${keys.map(termPattern).join('|')})(?![A-Za-z0-9])` : null;
+
+    return new RegExp([namePart, keyPart].filter(Boolean).join('|'), 'gi');
+}
+
 window.applyInputSlotColours = function (root) {
     const scope = root || document;
     const terms = currentPageMoveSlots();
@@ -308,17 +331,35 @@ window.applyInputSlotColours = function (root) {
             return;
         }
 
-        // A step like "GARUDA STAB OR RISING RAGE" names more than one move,
-        // so the chip itself cannot take a colour - the names inside it do.
-        terms.pattern.lastIndex = 0;
-        const replaced = text.replace(terms.pattern, (match) => {
+        // A COMPOUND step - "R (Upward, Cancel Murmurate)", "GARUDA STAB OR
+        // RISING RAGE", "BIRD CONTROL(S)". The chip cannot take one colour, so
+        // every move name AND every bare key inside it is coloured in place.
+        //
+        // Keys have to be in this pass, not only in the whole-chip match
+        // above. Without them the leading "R" of "R (Upward, Cancel
+        // Murmurate)" was never considered and the parenthetical Murmurate was
+        // the only thing that coloured - which reads as the annotation
+        // stealing the step's own colour.
+        const compound = compoundPattern(terms);
+        if (!compound) return;
+        compound.lastIndex = 0;
+
+        let matched = false;
+        const replaced = escAttr(text).replace(compound, (match) => {
             const id = terms.lookup.get(window.normaliseMoveName(match));
-            const slot = id && window.getInputSlot(id);
-            return slot ? `<span class="sc-auto ${slot.cls}">${escAttr(match)}</span>` : escAttr(match);
+            const slot = window.getInputSlot(id || match);
+            if (!slot) return match;
+            matched = true;
+            return `<span class="sc-auto ${slot.cls}">${match}</span>`;
         });
-        // Only rewrite when something actually matched, so a chip of plain
-        // text like "(X3)" keeps its own text node untouched.
-        if (replaced !== text) chip.innerHTML = replaced;
+
+        // Wrapped in ONE inline child rather than written straight in.
+        // .combo-node is display:inline-flex, so a mix of text nodes and spans
+        // becomes a row of FLEX ITEMS - and a flex container discards the
+        // whitespace between its items. "Cancel Murmurate" rendered as
+        // "CancelMurmurate" until this wrapper put it all back in normal
+        // inline flow.
+        if (matched) chip.innerHTML = `<span class="combo-node-text">${replaced}</span>`;
     });
 
     // 2. Move names in prose - but ONLY inside the Combos tab.
