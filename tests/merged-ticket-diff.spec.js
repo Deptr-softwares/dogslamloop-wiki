@@ -122,14 +122,17 @@ test('every edit in a merged ticket is rendered, null keys included', async ({ p
 test('a null key is labelled, not printed as "null"', async ({ page }) => {
     const out = await renderDiff(page, MERGED_TICKET);
 
-    // 'full' is what the editor emits for a singular scope, so a merged
-    // ticket reads the same way as an editor one rather than exposing that
-    // the compiler left the field empty.
-    const playstyle = out.locations.find(l => /PLAYSTYLE/.test(l));
+    // The guarantee is that a null key never reaches the reviewer as the word
+    // "null". It used to be met by printing the editor's own placeholder,
+    // 'FULL'; since v0.15 item 6 the label is a breadcrumb naming a place on
+    // the wiki, and 'full' means "the whole section" - so there is nothing
+    // after the section name to print, and it is dropped rather than shown.
+    // Same guarantee, one fewer piece of internal vocabulary on screen.
+    const playstyle = out.locations.find(l => /Playstyle/i.test(l));
     expect(playstyle).toBeTruthy();
-    expect(playstyle).toContain('FULL');
     expect(playstyle.toLowerCase()).not.toContain('null');
     expect(playstyle.toLowerCase()).not.toContain('undefined');
+    expect(playstyle, 'the breadcrumb should name the tab it lives under').toMatch(/Overview/i);
 });
 
 test('one unrenderable edit cannot hide the rest', async ({ page }) => {

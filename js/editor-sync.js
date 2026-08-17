@@ -496,6 +496,13 @@ window.renderDiffView = function() {
                 `;
                 diffRenderQueue.push(() => {
                     if (typeof window.populateTextSection === 'function') window.populateTextSection(`diff-inline-${safeId}`, '', diffedBlocks);
+                    // Same pairing as the reviewer's view: the renderer escapes
+                    // the text, then the diff markers become tags. Without this
+                    // the contributor's own before/after preview shows raw
+                    // <ins class="diff-add"> instead of a diff.
+                    if (typeof window.resolveDiffMarkers === 'function') {
+                        window.resolveDiffMarkers(document.getElementById(`diff-inline-${safeId}`));
+                    }
                 });
             } else {
                 // Same diff-stacked-* classes admin.html's own raw/JSON diff view

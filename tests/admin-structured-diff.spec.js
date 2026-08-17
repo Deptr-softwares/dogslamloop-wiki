@@ -13,13 +13,18 @@ test('renderStructuredDiff: highlights changed/added/removed fields, skips uncha
 
     const html = window.renderStructuredDiff(oldFrame, newFrame);
 
+    // Field names render as WORDS since v0.15 item 6 ("onBlock" -> "On Block"),
+    // so these match the rendered label. Two of these assertions previously
+    // checked the raw schema key: after the rename they would have passed
+    // because the key was spelled differently, not because the field was
+    // skipped - vacuously true, and no longer testing anything.
     return {
       html,
       changedFieldShowsOldAndNew: html.includes('<del class="diff-del">5</del>') && html.includes('<ins class="diff-add">6</ins>'),
-      unchangedFieldNotRendered: !html.includes('unchangedField'),
-      unchangedActiveFieldNotRendered: !html.includes('>active:<'),
-      removedFieldShowsAsDeletion: html.includes('<del class="diff-del">-2</del>') && html.includes('onBlock'),
-      addedFieldShowsAsAddition: html.includes('<ins class="diff-add">+4</ins>') && html.includes('onHit'),
+      unchangedFieldNotRendered: !html.includes('Unchanged Field'),
+      unchangedActiveFieldNotRendered: !html.includes('>Active:<'),
+      removedFieldShowsAsDeletion: html.includes('<del class="diff-del">-2</del>') && html.includes('On Block'),
+      addedFieldShowsAsAddition: html.includes('<ins class="diff-add">+4</ins>') && html.includes('On Hit'),
     };
   });
 

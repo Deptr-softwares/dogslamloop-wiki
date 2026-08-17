@@ -227,20 +227,35 @@ function currentPageMoveSlots() {
         || window.activePreviewCharId || window.currentEditorCharId;
     if (!pageId) return null;
 
+    // admin.html holds neither of the first two. It loads a revision into
+    // currentPending*/currentLive*, so notation in Diff View and in the
+    // reviewer's preview was never coloured at all - the reader saw colours,
+    // the person approving them saw plain text, which is the half that has to
+    // spot a wrong input. Pending first: the reviewer is looking at the
+    // PROPOSED version, so a move the ticket itself adds must colour too.
     let frame = (window.cachedMasterFrameData || {})[pageId]
-        || window.currentEditorFrameData || null;
+        || window.currentEditorFrameData
+        || window.currentPendingFrameData
+        || window.currentLiveFrameData
+        || null;
     if (!frame) return null;
 
     // The active state's slice, when there is one. resolveModeFrame is the
     // shared resolver; falling back to the master keeps a page with no states
     // working unchanged.
-    const mode = window.activeCharacterMode;
+    const mode = window.activeCharacterMode || window.activePreviewMode;
     if (mode && !((window.isBaseMode && window.isBaseMode(mode)))
         && frame.modeData && frame.modeData[mode]) {
         frame = Object.assign({}, frame, frame.modeData[mode]);
     }
 
-    const desc = window.currentPageDescData || window.currentEditorDescData || null;
+    // Same three sources, same order - characterSettings overrides live in
+    // desc_data, so a reviewer must resolve names the same way a reader does.
+    const desc = window.currentPageDescData
+        || window.currentEditorDescData
+        || window.currentPendingDescData
+        || window.currentLiveDescData
+        || null;
     const map = window.buildMoveSlotMap(frame, desc);
     if (!map || map.size === 0) return null;
 

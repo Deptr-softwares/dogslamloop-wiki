@@ -256,7 +256,66 @@ async function switchVersionView(mode) {
             // Keyed sections name themselves (js/character_tabs.js), so a new
             // one shows the reviewer its real name rather than a raw scope.
             window.getKeyedSections().forEach(s => { map[s.scope] = s.entryLabel; });
+            (window.FIXED_BLOCK_SECTIONS || []).forEach(s => { map[s.scope] = s.label; });
+            Object.assign(map, {
+                'gallery_item': 'Gallery Item',
+                'gallery_intro': 'Introduction',
+                'intro': 'Introduction',
+                'notes': 'Notes',
+                'tool_config': 'Tool Setup',
+            });
             return map[scope] || scope;
+        };
+
+        const fixedSectionByScope = (scope) =>
+            (window.FIXED_BLOCK_SECTIONS || []).find(s => s.scope === scope) || null;
+
+        // WHERE THIS CHANGE IS, in one shape for every page type.
+        //
+        // Character pages got a breadcrumb and system, tool, gallery and tier
+        // list pages kept "[Tab] ➔ Section" baked into the block title - so the
+        // same reviewer read two different vocabularies depending on which
+        // queue item they opened, and only one of them named a place.
+        const renderLocation = (crumbs) => {
+            const parts = crumbs
+                .filter(Boolean)
+                .map(s => (window.escapeHtml ? window.escapeHtml(String(s)) : String(s)));
+            if (!parts.length) return;
+            diffContainer.innerHTML += `<div class="diff-location-label">`
+                + `<span class="diff-location-lead">Changed:</span> `
+                + parts.join(' <span class="diff-crumb-sep">›</span> ')
+                + `</div>`;
+        };
+
+        // The Combo List's rows. Paired by POSITION, because that is what the
+        // author edits - a combo table is an ordered list, and the route text
+        // is the thing most likely to change, so keying on it would report
+        // every edited combo as one removal plus one addition.
+        //
+        // Each changed row is named by its route rather than by index alone,
+        // since the route is how an author recognises which combo they wrote.
+        const renderComboRowsDiff = (section, oldRows, newRows) => {
+            const max = Math.max(oldRows.length, newRows.length);
+            let rendered = 0;
+
+            for (let i = 0; i < max; i++) {
+                const o = oldRows[i];
+                const n = newRows[i];
+                if (JSON.stringify(o) === JSON.stringify(n)) continue;
+
+                const route = (n && n.combo) || (o && o.combo) || `Row ${i + 1}`;
+                rendered++;
+
+                if (o === undefined) renderDiffBlock(`Combo Added: ${route}`, null, n);
+                else if (n === undefined) renderDiffBlock(`Combo Removed: ${route}`, o, null);
+                else renderDiffBlock(`Combo: ${route}`, o, n);
+            }
+
+            // The table changed but no row did - a reorder, or the starter was
+            // renamed. Saying so beats an empty panel that reads as a bug.
+            if (!rendered && JSON.stringify(oldRows) !== JSON.stringify(newRows)) {
+                renderDiffBlock(`${section.entryLabel}: order changed`, oldRows, newRows, 'json');
+            }
         };
 
         if (rev.is_delta) {
@@ -278,9 +337,32 @@ async function switchVersionView(mode) {
                 // every merged ticket containing one showed only the entries
                 // ahead of it. Tickets already in the queue still carry null
                 // keys, so this coercion is what makes them reviewable at all.
-                const keyLabel = String(key === null || key === undefined ? 'full' : key)
-                    .replace('::', ': ').toUpperCase();
-                diffContainer.innerHTML += `<div class="diff-location-label">Suggested Edit Location: [ ${where}${formatScopeName(scope).toUpperCase()} ➔ ${keyLabel} ]</div>`;
+                // WHERE THIS CHANGE IS, in the words the reviewer sees on the
+                // page itself. It used to read
+                //   Suggested Edit Location: [ COMBOINTRO ➔ FULL ]
+                // which names a delta scope and an internal placeholder - two
+                // things that appear nowhere in the wiki. A reviewer cannot act
+                // on that; they have to go and find what it means.
+                //
+                // Now: the TAB it lives under, the section's own name, and the
+                // entry, e.g. "Combos › Read First". 'full' means the whole
+                // section rather than one entry, so it is dropped rather than
+                // printed - there is nothing after the section name to name.
+                const tabLabels = window.getCharacterTabLabels ? window.getCharacterTabLabels() : {};
+                const owningTab = (window.getKeyedSectionByScope && window.getKeyedSectionByScope(scope))
+                    || fixedSectionByScope(scope);
+                let tabName = owningTab ? tabLabels[owningTab.tab] : null;
+                if (!tabName && ['profile', 'playstyle', 'overview', 'strategy', 'extra'].includes(scope)) {
+                    tabName = tabLabels.overview;
+                }
+                if (!tabName && scope === 'move' && key) tabName = tabLabels[String(key).split('::')[0]];
+
+                const rawKeyLabel = key === null || key === undefined ? 'full' : String(key);
+                // A move's key is "skills::explosion" - the tab half is already
+                // shown, so only the move itself is worth repeating.
+                const entryName = rawKeyLabel === 'full' ? '' : rawKeyLabel.split('::').pop();
+
+                renderLocation([where.replace(/ \/ $/, ''), tabName, formatScopeName(scope), entryName]);
 
                 if (['profile', 'playstyle', 'overview', 'strategy'].includes(scope)) {
                     renderDiffBlock(formatScopeName(scope), liveDesc[scope], payload);
@@ -320,7 +402,21 @@ async function switchVersionView(mode) {
                             return m;
                         };
                         renderDiffBlock(`${section.entryLabel} Metadata`, meta(oldEntry), meta(payload));
-                        renderDiffBlock(`${section.entryLabel} Strategy`, oldEntry.content || [], payload.content || []);
+
+                        // A section whose entries hold ROWS rather than blocks -
+                        // the Combo List. Diffing `.content` here compared two
+                        // empty arrays and returned before rendering anything,
+                        // so every combo-table edit reviewed as no change at
+                        // all while applying perfectly.
+                        if (section.rowsField) {
+                            renderComboRowsDiff(
+                                section,
+                                oldEntry[section.rowsField] || [],
+                                payload[section.rowsField] || []
+                            );
+                        } else {
+                            renderDiffBlock(`${section.entryLabel} Notes`, oldEntry.content || [], payload.content || []);
+                        }
                     }
                 }
                 else if (scope === 'move') {
@@ -336,6 +432,56 @@ async function switchVersionView(mode) {
                         const newDesc = payload.desc_data || [];
                         renderDiffBlock('Move Strategy Text', oldDesc, newDesc);
                     }
+                }
+                // A fixed block section - "Read First" on the Combos tab, and
+                // anything added to FIXED_BLOCK_SECTIONS later. Declared in
+                // js/character_tabs.js, so this needs no per-section branch.
+                else if (fixedSectionByScope(scope)) {
+                    const section = fixedSectionByScope(scope);
+                    renderDiffBlock(section.label, liveDesc[section.field] || [], payload || []);
+                }
+                // Gallery pages. One delta per item, keyed by name.
+                else if (scope === 'gallery_item') {
+                    const oldItem = liveDesc.items?.find(i => i.name === key) || {};
+                    if (payload === null) {
+                        renderDiffBlock(`Gallery Item Removed: ${key}`, oldItem, null, 'json');
+                    } else {
+                        renderDiffBlock('Gallery Item', oldItem, payload);
+                    }
+                }
+                // The prose above a gallery, the notes below one, and a tool
+                // page's configuration. All whole-value replacements.
+                else if (scope === 'gallery_intro' || scope === 'intro') {
+                    renderDiffBlock('Introduction', liveDesc.intro || [], payload || []);
+                }
+                else if (scope === 'notes') {
+                    renderDiffBlock('Notes', liveDesc.notes || [], payload || []);
+                }
+                else if (scope === 'tool_config') {
+                    renderDiffBlock('Tool Configuration', liveDesc.tool || {}, payload);
+                }
+                // NOTHING MATCHED, AND THAT MUST NEVER BE SILENT.
+                //
+                // Until this existed, an unhandled scope rendered its location
+                // label and no diff at all - so the reviewer saw a heading
+                // saying something changed, nothing underneath it, and had no
+                // way to tell that apart from "nothing changed here". Seven
+                // scopes were in that state: comboIntro, comboTable,
+                // gallery_item, gallery_intro, intro, notes and tool_config.
+                //
+                // Approving what you were never shown is the same failure the
+                // merged-ticket bug had, and it is worse here because it was
+                // the STEADY state rather than an edge case. A raw dump is a
+                // poor diff; it is still infinitely better than a blank space,
+                // and the banner says plainly that this is the fallback.
+                else {
+                    const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s));
+                    diffContainer.innerHTML += `<div class="diff-unknown-scope">`
+                        + `This change is shown in its raw form because the review screen has no`
+                        + ` purpose-built view for "${esc(scope)}" yet. It is a real change and`
+                        + ` it will be applied if you approve it.`
+                        + `</div>`;
+                    renderDiffBlock(formatScopeName(scope), null, payload, 'json');
                 }
             };
 
@@ -371,13 +517,25 @@ async function switchVersionView(mode) {
                     const nTab = newTabs.find(t => (t.tabId || t.id) === tabId) || { sections: [] };
                     const tabLabel = nTab.tabLabel || nTab.label || oTab.tabLabel || oTab.label || tabId;
 
+                    // The location goes in the breadcrumb, not into every block
+                    // title. It used to read "[Basic Fundamentals] ➔
+                    // Introduction" inside the heading itself, which put the
+                    // tab name on screen once per block and still never said
+                    // which page type it belonged to.
                     if ((oTab.tabLabel || oTab.label) !== (nTab.tabLabel || nTab.label)) {
-                         renderDiffBlock(`Tab: ${tabId} Metadata`, { label: oTab.tabLabel || oTab.label }, { label: nTab.tabLabel || nTab.label });
+                         renderLocation([tabLabel, 'Tab name']);
+                         renderDiffBlock('Tab Name', { label: oTab.tabLabel || oTab.label }, { label: nTab.tabLabel || nTab.label });
                     }
 
                     if (window.activePreviewPageType === 'tierlist') {
-                         renderDiffBlock(`[${tabLabel}] ➔ Tiers`, oTab.tiers || [], nTab.tiers || [], 'json');
-                         renderDiffBlock(`[${tabLabel}] ➔ Changelog`, oTab.changelog || [], nTab.changelog || [], 'json');
+                         if (JSON.stringify(oTab.tiers || []) !== JSON.stringify(nTab.tiers || [])) {
+                              renderLocation([tabLabel, 'Tiers']);
+                              renderDiffBlock('Tiers', oTab.tiers || [], nTab.tiers || [], 'json');
+                         }
+                         if (JSON.stringify(oTab.changelog || []) !== JSON.stringify(nTab.changelog || [])) {
+                              renderLocation([tabLabel, 'Changelog']);
+                              renderDiffBlock('Changelog', oTab.changelog || [], nTab.changelog || [], 'json');
+                         }
                     } else {
                          const oSecs = oTab.sections || [];
                          const nSecs = nTab.sections || [];
@@ -387,14 +545,19 @@ async function switchVersionView(mode) {
                               const oSec = oSecs[i] || {};
                               const nSec = nSecs[i] || {};
                               const secTitle = nSec.sectionTitle || oSec.sectionTitle || `Section ${i+1}`;
+                              const layoutChanged = oSec.layout !== nSec.layout
+                                  || oSec.width !== nSec.width || oSec.alignment !== nSec.alignment;
+                              const blocksChanged = JSON.stringify(oSec.blocks || []) !== JSON.stringify(nSec.blocks || []);
+                              if (!layoutChanged && !blocksChanged) continue;
 
-                              if (oSec.layout !== nSec.layout || oSec.width !== nSec.width || oSec.alignment !== nSec.alignment) {
-                                   renderDiffBlock(`Layout: [${tabLabel}] ➔ ${secTitle}`,
+                              renderLocation([tabLabel, secTitle]);
+                              if (layoutChanged) {
+                                   renderDiffBlock('Layout',
                                        { layout: oSec.layout, width: oSec.width, alignment: oSec.alignment },
                                        { layout: nSec.layout, width: nSec.width, alignment: nSec.alignment }
                                    );
                               }
-                              renderDiffBlock(`[${tabLabel}] ➔ ${secTitle}`, oSec.blocks || [], nSec.blocks || []);
+                              if (blocksChanged) renderDiffBlock(secTitle, oSec.blocks || [], nSec.blocks || [], 'system-content');
                          }
                     }
                 });
@@ -609,6 +772,11 @@ async function switchVersionView(mode) {
                 `;
                 diffRenderQueue.push(() => {
                     if (typeof window.populateTextSection === 'function') window.populateTextSection(`diff-inline-${safeId}`, '', diffedBlocks, context);
+                    // The renderer has now escaped the contributor's text, once.
+                    // Turn the diff markers it left alone into real tags.
+                    if (typeof window.resolveDiffMarkers === 'function') {
+                        window.resolveDiffMarkers(document.getElementById(`diff-inline-${safeId}`));
+                    }
                 });
 
             } else {
