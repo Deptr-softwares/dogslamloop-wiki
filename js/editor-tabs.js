@@ -178,9 +178,13 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             moves.forEach((m, idx) => {
                 navHTML += `<div class="daw-tab-item">`;
                 navHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${idx === 0 ? 'active' : ''}" id="move-nav-${m.id}" onclick="loadMoveIntoEditor('${m.id}')">${m.name || m.id}</button>`;
+                // Item 8: a move could only be appended, so putting one next to
+                // Skill 1 meant re-entering every skill after it.
+                navHTML += window.reorderControls(`frame.${tabId}`, idx, moves.length);
                 navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeMove('${m.id}')" title="Remove Move">✖</button>`;
                 navHTML += `</div>`;
             });
+            window.registerInserter(`frame.${tabId}`, () => window.addMove());
         }
 
         navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addMove()">+ ADD MOVE</button>`;
@@ -208,12 +212,15 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         navHTML += `<button class="daw-tab-btn" id="overview-nav-playstyle" onclick="loadOverviewSectionIntoEditor('playstyle')">Playstyle</button>`;
         navHTML += `<button class="daw-tab-btn" id="overview-nav-strategy" onclick="loadOverviewSectionIntoEditor('strategy')">General Strategy</button>`;
 
-        window.currentEditorDescData.extras.forEach((ext, idx) => {
+        const extras = window.currentEditorDescData.extras;
+        extras.forEach((ext, idx) => {
             navHTML += `<div class="daw-tab-item">`;
             navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="overview-nav-extra-${idx}" onclick="loadOverviewSectionIntoEditor('extra-${idx}')">${ext.title}</button>`;
+            navHTML += window.reorderControls('desc.extras', idx, extras.length);
             navHTML += `<button class="daw-tab-remove-btn" onclick="removeExtraTab(${idx})" title="Remove Tab">✖</button>`;
             navHTML += `</div>`;
         });
+        window.registerInserter('desc.extras', () => window.addExtraTab());
 
         navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="addExtraTab()">+ ADD TAB</button>`;
         navHTML += `</div>`;
@@ -236,11 +243,13 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 let muName = mu.opponent || `Matchup ${idx + 1}`;
                 navHTML += `<div class="daw-tab-item">`;
                 navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="matchup-nav-${idx}" onclick="window.loadMatchupIntoEditor(${idx})">vs. ${muName}</button>`;
+                navHTML += window.reorderControls('desc.matchups', idx, window.currentEditorDescData.matchups.length);
                 navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeMatchup(${idx})" title="Remove Matchup">✖</button>`;
                 navHTML += `</div>`;
             });
         }
 
+        window.registerInserter('desc.matchups', () => window.addMatchup());
         navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addMatchup()">+ ADD MATCHUP</button>`;
         navHTML += `</div>`;
 
@@ -280,10 +289,12 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             const name = group[groups.keyField] || `Group ${idx + 1}`;
             navHTML += `<div class="daw-tab-item">`;
             navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="combos-nav-group-${idx}" onclick="window.loadCombosSectionIntoEditor('group-${idx}')">${esc(name)}</button>`;
+            navHTML += window.reorderControls(`desc.${groups.field}`, idx, window.currentEditorDescData[groups.field].length);
             navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeComboGroup(${idx})" title="Remove Group">&#10006;</button>`;
             navHTML += `</div>`;
         });
 
+        window.registerInserter(`desc.${groups.field}`, () => window.addComboGroup());
         navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addComboGroup()">+ GROUP</button>`;
         navHTML += `</div>`;
 
@@ -320,11 +331,13 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 const name = entry[section.keyField] || `${noun} ${idx + 1}`;
                 navHTML += `<div class="daw-tab-item">`;
                 navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${section.tab}-nav-${idx}" onclick="window.loadKeyedEntryIntoEditor('${section.tab}', ${idx})">${esc(name)}</button>`;
+                navHTML += window.reorderControls(`desc.${section.field}`, idx, entries.length);
                 navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeKeyedEntry('${section.tab}', ${idx})" title="Remove">&#10006;</button>`;
                 navHTML += `</div>`;
             });
         }
 
+        window.registerInserter(`desc.${section.field}`, () => window.addKeyedEntry(section.tab));
         navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addKeyedEntry('${section.tab}')">+ ADD TOPIC</button>`;
         navHTML += `</div>`;
 

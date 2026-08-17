@@ -1883,3 +1883,56 @@ del.diff-del {
 }
 .find-replace-one { flex-shrink: 0; padding: 0.15rem 0.5rem; font-size: 0.65rem; }
 .find-replace-empty { font-size: 0.78rem; color: var(--text-muted); margin: 0.4rem 0; }
+
+/* --- REORDER AND INSERT IN PLACE (v0.15 item 8) --- */
+/* Small and square, sitting between the tab's own button and its remove button.
+   Deliberately quieter than either: they are adjustments to a strip, not the
+   two actions (open, delete) that already own it. */
+.daw-tab-move-btn, .daw-tab-insert-btn {
+    background: transparent;
+    border: 1px solid #333;
+    border-left: none;
+    color: var(--text-muted);
+    font-size: 0.6rem;
+    line-height: 1;
+    padding: 0 0.3rem;
+    cursor: pointer;
+    align-self: stretch;
+    transition: color 0.12s ease, background 0.12s ease;
+}
+.daw-tab-move-btn:hover:not(:disabled),
+.daw-tab-insert-btn:hover:not(:disabled) {
+    color: var(--text-white);
+    background: rgba(255, 255, 255, 0.08);
+}
+/* Kept in place rather than hidden at the ends: removing it would shift every
+   other control sideways and make the row jump as the selection moves. */
+.daw-tab-move-btn:disabled { opacity: 0.25; cursor: default; }
+.daw-tab-insert-btn { color: #22c55e; font-weight: bold; }
+.daw-tab-insert-btn:hover { background: rgba(34, 197, 94, 0.15); }
+
+/* Touch targets. The strip is horizontal and these are the smallest controls
+   in the editor, so they get the same 44px floor the rest of the site's mobile
+   buttons were raised to in v0.6. */
+@media (max-width: 767px) {
+    .daw-tab-move-btn, .daw-tab-insert-btn { min-width: 32px; min-height: 44px; font-size: 0.7rem; }
+}
+
+/* .daw-tab-remove-btn is absolutely positioned at the item's right edge, over
+   the padding .daw-tab-btn-removable reserves for it. The reorder controls are
+   inline siblings that land in the same place, so the ✖ sat ON TOP of the
+   "move right" button and swallowed its clicks - the control was visible and
+   unclickable, which is the same failure the confirmation modals had.
+
+   Scoped with a sibling combinator rather than :has() so it is not a support
+   question, and so nothing changes for a strip that has no reorder controls. */
+.daw-tab-move-btn ~ .daw-tab-remove-btn,
+.daw-tab-insert-btn ~ .daw-tab-remove-btn {
+    position: static;
+    transform: none;
+    padding: 0 0.35rem;
+    align-self: stretch;
+}
+/* The reserved padding is no longer needed once the ✖ is inline. Progressive:
+   if :has() is unsupported the button simply keeps a little extra space. */
+.daw-tab-item:has(.daw-tab-move-btn) .daw-tab-btn.daw-tab-btn-removable { padding-right: 0.6rem; }
