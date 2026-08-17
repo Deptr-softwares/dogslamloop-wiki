@@ -370,6 +370,21 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 <button class="format-btn format-btn-strikethrough" data-tag="s" title="Strikethrough">S</button>
                 <button class="format-btn format-btn-code" data-tag="code" title="Inline Code">&lt;&gt;</button>
                 <button class="format-btn" data-tag="url" title="Turn text into a link">🔗</button>
+                <!-- A link to another section of THIS page. Separate from the
+                     link button because the thing being chosen is different: a
+                     URL is typed, a section is picked from what exists. Typing
+                     the anchor by hand means knowing the slug rule, which no
+                     contributor should have to. -->
+                <div class="format-jump-wrapper">
+                    <button class="format-btn format-btn-jump" id="btn-format-jump"
+                            title="Link to a section on this page">⚓</button>
+                    <div id="format-jump-popup" class="format-jump-popup hidden">
+                        <div class="format-jump-label">Link to a section</div>
+                        <input type="text" id="format-jump-search" class="format-jump-search"
+                               placeholder="Search sections…" autocomplete="off">
+                        <div id="format-jump-list" class="format-jump-list"></div>
+                    </div>
+                </div>
                 <!-- The two shortcodes v0.14 added to js/internalstyling.js.
                      They rendered on the page from the day they shipped and
                      had no way to be typed except by hand, which is the same
@@ -623,31 +638,38 @@ function initStrategyBlockBuilder(containerId, initialData) {
         if (e.target.closest('.format-btn') || e.target.closest('.color-preset-btn')) e.preventDefault(); 
     });
 
-    const applyFormat = (tag, value = null) => {
+    const applyFormat = (tag, value = null, fallbackText = '') => {
         if (!lastFocusedInput) return;
         const start = lastSelection.start !== undefined ? lastSelection.start : lastFocusedInput.selectionStart;
         const end = lastSelection.end !== undefined ? lastSelection.end : lastFocusedInput.selectionEnd;
         const text = lastFocusedInput.value;
-        const selectedText = text.substring(start, end);
-        
+        // A section link with nothing highlighted names the section it points
+        // at, rather than producing an empty [url=#x][/url] the reader cannot
+        // see or click.
+        const selectedText = text.substring(start, end) || fallbackText;
+
         let openTag = `[${tag}]`;
-        
-        if (tag === 'url') {
+
+        if (tag === 'url' && !value) {
             const linkTarget = prompt("Enter the URL or relative path:");
-            if (!linkTarget) return; 
+            if (!linkTarget) return;
             openTag = `[url=${linkTarget}]`;
         } else if (value) {
             openTag = `[${tag}=${value}]`;
         }
-        
+
         let closeTag = `[/${tag}]`;
-        
+
         const newText = text.substring(0, start) + openTag + selectedText + closeTag + text.substring(end);
         lastFocusedInput.value = newText;
         
         lastFocusedInput.dispatchEvent(new Event('input', { bubbles: true }));
         lastFocusedInput.focus();
-        lastFocusedInput.setSelectionRange(start + openTag.length, end + openTag.length);
+        // Measured from the inserted text, not from `end`. They are the same
+        // whenever something was highlighted, and differ exactly when the
+        // fallback above supplied the label - where using `end` would leave
+        // the caret short of the text it just wrote.
+        lastFocusedInput.setSelectionRange(start + openTag.length, start + openTag.length + selectedText.length);
     };
 
     formatToolbar.addEventListener('click', (e) => {
@@ -714,6 +736,91 @@ function initStrategyBlockBuilder(containerId, initialData) {
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#format-color-popup') && !e.target.closest('#btn-format-color')) {
                 colorPopup.classList.add('hidden');
+            }
+        });
+    }
+
+    // --- SECTION LINK PICKER ---
+    //
+    // The list comes from collectSectionTargets, which reads desc_data rather
+    // than the preview: the editor renders only the tab being edited, so a
+    // DOM-derived list would offer links within the current tab and nowhere
+    // else - the opposite of what an in-page link is for.
+    const jumpBtn = container.querySelector('#btn-format-jump');
+    const jumpPopup = container.querySelector('#format-jump-popup');
+    const jumpList = container.querySelector('#format-jump-list');
+    const jumpSearch = container.querySelector('#format-jump-search');
+
+    if (jumpBtn && jumpPopup && jumpList) {
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
+        const renderJumpList = (filter) => {
+            const data = window.currentEditorDescData || window.editorMasterDescData || {};
+            const all = typeof window.collectSectionTargets === 'function'
+                ? window.collectSectionTargets(data)
+                : [];
+
+            const needle = String(filter || '').trim().toLowerCase();
+            const shown = needle
+                ? all.filter(t => t.title.toLowerCase().includes(needle)
+                               || t.tabLabel.toLowerCase().includes(needle))
+                : all;
+
+            if (!shown.length) {
+                jumpList.innerHTML = `<p class="format-jump-empty">${
+                    all.length ? 'No section matches that.' : 'This page has no named sections yet.'
+                }</p>`;
+                return;
+            }
+
+            // Grouped by tab, because "Notes" on its own does not say which
+            // one, and a character page can carry several.
+            let html = '';
+            let lastTab = null;
+            shown.forEach(target => {
+                if (target.tab !== lastTab) {
+                    html += `<div class="format-jump-group">${esc(target.tabLabel)}</div>`;
+                    lastTab = target.tab;
+                }
+                // data- attributes with a delegated listener: the title is
+                // contributor-written and must never reach an inline handler.
+                html += `<button type="button" class="format-jump-item"
+                                 data-anchor="${esc(target.id)}"
+                                 data-title="${esc(target.title)}">${esc(target.title)}</button>`;
+            });
+            jumpList.innerHTML = html;
+        };
+
+        jumpBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const opening = jumpPopup.classList.contains('hidden');
+            jumpPopup.classList.toggle('hidden');
+            if (!opening) return;
+            if (jumpSearch) jumpSearch.value = '';
+            renderJumpList('');
+            keepColorPopupOnScreen(jumpPopup);
+        });
+
+        // The toolbar's own mousedown guard covers .format-btn only, and the
+        // selection this is about to wrap dies the moment focus moves.
+        jumpPopup.addEventListener('mousedown', (e) => {
+            if (!e.target.closest('.format-jump-search')) e.preventDefault();
+        });
+
+        if (jumpSearch) {
+            jumpSearch.addEventListener('input', () => renderJumpList(jumpSearch.value));
+        }
+
+        jumpList.addEventListener('click', (e) => {
+            const item = e.target.closest('.format-jump-item');
+            if (!item) return;
+            applyFormat('url', `#${item.getAttribute('data-anchor')}`, item.getAttribute('data-title'));
+            jumpPopup.classList.add('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#format-jump-popup') && !e.target.closest('#btn-format-jump')) {
+                jumpPopup.classList.add('hidden');
             }
         });
     }

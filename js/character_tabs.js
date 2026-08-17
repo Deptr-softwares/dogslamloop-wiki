@@ -125,6 +125,13 @@
             keyed: {
                 keyField: 'opponent', scope: 'matchup', entryLabel: 'Matchup',
                 metaField: 'tier',
+                // The rendered heading is "vs. Crow Charmer", not "Crow
+                // Charmer" (js/description.js:1348), and the anchor is derived
+                // from the heading. Declared rather than special-cased in
+                // collectSectionTargets, so the two cannot drift apart -
+                // matchups were the ONE section whose picker ids missed, and
+                // every one of the twenty missed.
+                headingPrefix: 'vs. ',
                 // Its card links to the opponent's page and its editor lists
                 // the roster, so both halves are a different screen rather
                 // than the shared one with different words.
@@ -344,6 +351,108 @@
     /** Look one up by its desc_data field. */
     window.getKeyedSectionByField = function (field) {
         return window.getKeyedSections().find(s => s.field === field) || null;
+    };
+
+    // --- LINK TARGETS ---
+    //
+    // Every section on a character page that an in-page link can point at,
+    // read from desc_data rather than from the DOM.
+    //
+    // It has to come from the data, because the editor only ever renders the
+    // ONE tab being edited - so a picker that read the preview could offer
+    // links within the current tab and nowhere else, which is the opposite of
+    // the case this feature exists for.
+    //
+    // Driven by the registry above, so a tab added later shows up here without
+    // anybody remembering to come back. The three hand-listed titles are the
+    // Overview tab's fixed sections, which are literals at their render sites
+    // in js/description.js rather than registry entries.
+    //
+    // Walk order mirrors the rendered page - tabs in registry order, and
+    // within a tab the section title before the blocks underneath it - because
+    // duplicate names are numbered by position. tests/in-page-links.spec.js
+    // asserts the ids this produces are the ids the page actually renders.
+    const OVERVIEW_FIXED = [
+        { field: 'overview', title: 'Character Overview' },
+        { field: 'strategy', title: 'General Strategy' },
+    ];
+
+    function collectHeadings(blocks, push, depth) {
+        if (!Array.isArray(blocks) || (depth || 0) > 6) return;
+        blocks.forEach(block => {
+            if (!block || typeof block !== 'object') return;
+            if (block.type === 'heading' && block.content) push(block.content);
+            // Blocks nest: an accordion, and now a Combo Card, carry their own.
+            if (Array.isArray(block.content)) collectHeadings(block.content, push, (depth || 0) + 1);
+        });
+    }
+
+    window.collectSectionTargets = function (descData) {
+        const data = descData || {};
+        const targets = [];
+        const counts = Object.create(null);
+
+        const slugify = (text) => (window.sectionAnchorSlug
+            ? window.sectionAnchorSlug(text)
+            : String(text == null ? '' : text).trim().toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''));
+
+        const labels = window.getCharacterTabLabels();
+
+        const add = (tabId, title) => {
+            const text = String(title == null ? '' : title).trim();
+            if (!text) return;
+            const slug = slugify(text);
+            if (!slug) return;
+
+            // Same numbering as assignSectionAnchors: the first keeps the
+            // clean id, later ones are suffixed in document order.
+            counts[slug] = (counts[slug] || 0) + 1;
+            const id = counts[slug] === 1 ? `sec-${slug}` : `sec-${slug}-${counts[slug]}`;
+
+            targets.push({ id, title: text, tab: tabId, tabLabel: labels[tabId] || tabId });
+        };
+
+        window.getCharacterTabIds({ includeInjected: true }).forEach(tabId => {
+            if (tabId === 'overview') {
+                OVERVIEW_FIXED.forEach(fixed => {
+                    const blocks = data[fixed.field];
+                    if (!Array.isArray(blocks) || !blocks.length) return;
+                    add(tabId, fixed.title);
+                    collectHeadings(blocks, t => add(tabId, t));
+                });
+                (data.extras || []).forEach(extra => {
+                    if (!extra) return;
+                    add(tabId, extra.title);
+                    collectHeadings(extra.content, t => add(tabId, t));
+                });
+            }
+
+            // Sections that are a fixed block list inside a tab - Read First.
+            (window.FIXED_BLOCK_SECTIONS || [])
+                .filter(s => s.tab === tabId)
+                .forEach(section => {
+                    const blocks = data[section.field];
+                    if (!Array.isArray(blocks) || !blocks.length) return;
+                    add(tabId, section.label);
+                    collectHeadings(blocks, t => add(tabId, t));
+                });
+
+            // And the keyed ones - matchups, counterplay, starter guide, combo
+            // groups, the combo list - each entry named by its own key field.
+            window.getKeyedSectionsForTab(tabId).forEach(section => {
+                (data[section.field] || []).forEach(entry => {
+                    if (!entry) return;
+                    const key = entry[section.keyField];
+                    // The anchor comes from the RENDERED heading, which is not
+                    // always the key on its own - a matchup renders as "vs. X".
+                    if (key) add(tabId, `${section.headingPrefix || ''}${key}`);
+                    collectHeadings(entry.content, t => add(tabId, t));
+                });
+            });
+        });
+
+        return targets;
     };
 
     /** id -> label, for anything rendering a tab name it did not build. */

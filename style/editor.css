@@ -518,6 +518,80 @@ input[type="checkbox"]:checked {
 .format-btn-color-trigger { display: flex; align-items: center; gap: 0.35rem; padding: 0 0.5rem; }
 .format-color-wrapper { position: relative; display: inline-flex; align-items: center; }
 .format-color-swatch-icon { width: 12px; height: 12px; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); border-radius: 50%; }
+
+/* --- SECTION LINK PICKER (v0.15 item 5) --- */
+/* Same chrome as the colour popup - square, hard-shadowed, opening upward from
+   the toolbar - because it is the same kind of control in the same strip, and
+   two popups from one toolbar that look unrelated read as two features. */
+.format-jump-wrapper { position: relative; display: inline-flex; align-items: center; }
+.format-jump-popup {
+    display: block;
+    position: absolute;
+    bottom: calc(100% + 5px);
+    left: 0;
+    width: 260px;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    padding: 0.6rem;
+    border-radius: 0;
+    box-shadow: 4px 4px 0px var(--manga-shadow, #000);
+    z-index: 100;
+}
+.format-jump-popup.hidden { display: none; }
+.format-jump-label {
+    font-family: var(--text-mono);
+    font-size: 0.6rem;
+    color: #888;
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.format-jump-search {
+    width: 100%;
+    box-sizing: border-box;
+    background: #000;
+    border: 1px solid #333;
+    color: var(--text-primary);
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    padding: 0.3rem 0.4rem;
+    margin-bottom: 0.4rem;
+}
+.format-jump-search:focus { outline: none; border-color: var(--accent-blue); }
+/* Capped and scrolled: a filled-in character page has dozens of sections, and
+   the popup opens upward - left to grow it runs off the top of the screen and
+   the first entries become unreachable. Same failure the colour popup had. */
+.format-jump-list { max-height: 220px; overflow-y: auto; }
+.format-jump-group {
+    font-family: var(--text-mono);
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-blue);
+    margin: 0.5rem 0 0.2rem;
+}
+.format-jump-group:first-child { margin-top: 0; }
+.format-jump-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-primary);
+    font-size: 0.72rem;
+    padding: 0.25rem 0.35rem;
+    cursor: pointer;
+}
+.format-jump-item:hover, .format-jump-item:focus-visible {
+    border-color: var(--accent-blue);
+    color: var(--text-white);
+    outline: none;
+}
+.format-jump-empty {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin: 0.3rem 0;
+}
 .format-color-popup-label { font-family: var(--text-mono); font-size: 0.6rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.08em; }
 /* Separates the groups without putting a gap above the first one. */
 .format-color-presets-row + .format-color-popup-label { margin-top: 0.6rem; }

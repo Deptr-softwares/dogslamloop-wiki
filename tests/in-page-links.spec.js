@@ -242,6 +242,129 @@ test('a target inside a closed accordion is opened first', async ({ page }) => {
   expect(state.after, 'scrolling to a heading inside a closed accordion lands on nothing').toBe(true);
 });
 
+// --- THE AUTHORING SIDE ---
+//
+// The list has to come from desc_data, not the preview: the editor renders
+// only the tab being edited, so a DOM-derived picker could offer links within
+// the current tab and nowhere else.
+
+test('the picker offers sections from tabs other than the one being edited', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await page.setViewportSize({ width: 1400, height: 950 });
+  await page.goto('/edit.html?char=boomcat&type=character&tab=combos', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  const targets = await page.evaluate(() => {
+    const data = window.currentEditorDescData || window.editorMasterDescData || {};
+    const all = window.collectSectionTargets(data);
+    return {
+      total: all.length,
+      tabs: [...new Set(all.map(t => t.tab))],
+      // Every entry needs all three, or the picker cannot render a row.
+      malformed: all.filter(t => !t.id || !t.title || !t.tabLabel).length,
+      // Nothing should be offered twice under the same id.
+      duplicateIds: all.length - new Set(all.map(t => t.id)).size,
+      sample: all.slice(0, 4),
+    };
+  });
+
+  expect(targets.total, 'the character has sections to link to').toBeGreaterThan(0);
+  expect(targets.malformed).toBe(0);
+  expect(targets.duplicateIds).toBe(0);
+  // The tab open in the editor is `combos`; a picker that only saw the preview
+  // could offer nothing else.
+  expect(targets.tabs.length, 'sections should come from more than the open tab').toBeGreaterThan(1);
+  expect(errors).toEqual([]);
+});
+
+test('picking a section writes a link, and it points at something real', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await page.setViewportSize({ width: 1400, height: 950 });
+  await page.goto('/edit.html?char=boomcat&type=character&tab=overview', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  // Focus a real block input first - the toolbar wraps the last focused field,
+  // and with none it has nowhere to write.
+  const input = page.locator('#strategy-block-target textarea, #strategy-block-target input[type="text"]').first();
+  await input.waitFor({ timeout: 10000 });
+  await input.click();
+
+  await page.locator('#btn-format-jump').click();
+  const items = page.locator('.format-jump-item');
+  await items.first().waitFor({ timeout: 5000 });
+
+  const chosen = await items.first().evaluate(el => ({
+    anchor: el.getAttribute('data-anchor'),
+    title: el.getAttribute('data-title'),
+  }));
+  await items.first().click();
+
+  const written = await input.inputValue();
+  // Nothing was highlighted, so the section's own name becomes the link text -
+  // an empty [url=#x][/url] renders as a link the reader cannot see or click.
+  expect(written).toContain(`[url=#${chosen.anchor}]${chosen.title}[/url]`);
+
+  // And the id it wrote is one the reader-facing page actually renders. This
+  // is the assertion that matters: the picker derives ids from data and the
+  // page derives them from the DOM, so the two could agree in shape and still
+  // disagree in fact.
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(800);
+  const resolves = await page.evaluate((id) => {
+    window.assignSectionAnchors();
+    return window.jumpToAnchor(`#${id}`, { updateHash: false });
+  }, chosen.anchor);
+
+  expect(resolves, `the picker offered ${chosen.anchor}, which the page does not render`).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('every section the picker offers exists on the rendered page', async ({ page }) => {
+  // The one that would catch a real drift. The picker derives ids from
+  // desc_data and the page derives them from the DOM; checking a single
+  // entry only proves the two agree about the easiest case.
+  await page.setViewportSize({ width: 1400, height: 950 });
+  await page.goto('/edit.html?char=boomcat&type=character&tab=overview', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  const offered = await page.evaluate(() => {
+    const data = window.currentEditorDescData || window.editorMasterDescData || {};
+    return window.collectSectionTargets(data).map(t => ({ id: t.id, title: t.title, tab: t.tab }));
+  });
+  expect(offered.length).toBeGreaterThan(0);
+
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  const unresolved = await page.evaluate((list) => {
+    window.assignSectionAnchors();
+    return list.filter(t => !document.getElementById(t.id));
+  }, offered);
+
+  expect(unresolved, 'a picker entry that resolves to nothing is a link that silently does nothing')
+    .toEqual([]);
+});
+
+test('the search narrows the list', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 950 });
+  await page.goto('/edit.html?char=boomcat&type=character&tab=overview', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  await page.locator('#btn-format-jump').click();
+  await page.locator('.format-jump-item').first().waitFor({ timeout: 5000 });
+
+  const before = await page.locator('.format-jump-item').count();
+  await page.locator('#format-jump-search').fill('zzzz-no-such-section');
+  await expect(page.locator('.format-jump-empty')).toBeVisible();
+
+  await page.locator('#format-jump-search').fill('');
+  await expect(page.locator('.format-jump-item')).toHaveCount(before);
+});
+
 test('the ToC uses the same ids the links do', async ({ page }) => {
   await page.goto(PAGE, { waitUntil: 'networkidle' });
   // Waited for rather than slept past. The ToC is built on a delay that differs
