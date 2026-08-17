@@ -52,6 +52,49 @@ This is the same failure as asserting a mock was configured rather than that
 the request went through. The question is always "what would the user notice",
 and a class name is never the answer.
 
+## A passing assertion may be passing for the wrong reason
+
+The failure this project keeps producing is not a wrong assertion — it is a
+right one that stops being about anything. Two shapes cause nearly all of it.
+
+**An absence assertion survives the change that should break it.** v0.15's diff
+view renamed schema keys to words for the reviewer, and two assertions in
+`admin-structured-diff.spec.js` checked that a raw key was *not* present. They
+kept passing, because the key was now spelled differently — testing nothing at
+all. Assert the positive: `toContain('On Block')`, not `not.toContain('onBlock')`.
+Where an absence really is the claim, assert what is there instead — for XSS,
+that the tag survives **escaped**, not that a substring is missing.
+
+**`toBeVisible()` is not "the user can click it".** Twice in one session a
+button was visible and unreachable: confirmation modals rendered under the modal
+that opened them, and the reorder controls sat under an absolutely-positioned
+`✖`. Both were found by a click *timing out*, never by an assertion. What
+decides a click is which element is on top at that point:
+
+```js
+const onTop = await page.evaluate(() => {
+  const b = document.getElementById('editor-modal-confirm');
+  const r = b.getBoundingClientRect();
+  const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+  return b.contains(hit) || hit === b;
+});
+```
+
+A third variant: a fixture that makes its own assertion vacuous. A changed-tabs
+test set `currentPendingDescData` equal to live, so "these tabs changed" was
+trivially empty. **When a test passes first time, ask what would have to break
+for it to fail** — and if the answer is "nothing reachable", it is not a test.
+
+## A consistency check only finds drift in the direction it looks
+
+"Everything I offer resolves" and "everything real is offered" are different
+claims. v0.15's section-link picker satisfied the first completely while
+offering **no moves at all** — internally consistent and blind to a third of
+the site. The second direction found that, plus two more omissions, at once.
+
+Whenever two derivations of the same thing must agree — a picker against a
+renderer, an apply function against a diff view — compare them **both ways**.
+
 ## Revert-confirm-restore, for every bug fix
 
 Before claiming a fix works: temporarily revert it (`git stash push -- <file>`), confirm the new spec **fails**, restore, confirm it passes. A regression test that never failed against the old code proves nothing.
