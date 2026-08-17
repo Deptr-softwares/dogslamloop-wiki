@@ -136,6 +136,36 @@
         </div>
     </div>
 
+    <!-- Find and Replace. Lists every match before changing anything: a mass
+         replace across a page with 127 combo rows is not something to run
+         blind, and the list is also how a contributor spots the occurrences
+         they did NOT mean to catch. -->
+    <div id="find-replace-modal" class="editor-modal-overlay hidden">
+        <div class="editor-modal-box find-replace-box">
+            <div class="auth-header">
+                <h3>FIND &amp; REPLACE</h3>
+            </div>
+            <div class="auth-body find-replace-body">
+                <div class="find-replace-controls">
+                    <label class="editor-field-label-sm" for="find-input">Find</label>
+                    <input type="text" id="find-input" class="editor-input" autocomplete="off" placeholder="e.g. Ryu">
+                    <label class="editor-field-label-sm" for="replace-input">Replace with</label>
+                    <input type="text" id="replace-input" class="editor-input" autocomplete="off" placeholder="e.g. True Cannon">
+                    <div class="find-replace-options">
+                        <label><input type="checkbox" id="find-match-case"> Match case</label>
+                        <label><input type="checkbox" id="find-whole-word" checked> Whole word only</label>
+                    </div>
+                    <p id="find-replace-count" class="admin-tool-hint"></p>
+                </div>
+                <div id="find-replace-results" class="find-replace-results"></div>
+            </div>
+            <div class="editor-modal-actions">
+                <button type="button" id="find-replace-close" class="btn-sys btn-sys-regular">CLOSE</button>
+                <button type="button" id="find-replace-all" class="btn-sys btn-sys-green">REPLACE ALL</button>
+            </div>
+        </div>
+    </div>
+
     <div id="media-modal-overlay" class="editor-modal-overlay hidden">
         <div class="editor-modal-box media-modal-box">
             <div class="auth-header">
@@ -221,6 +251,7 @@
                     <button class="btn-sys btn-sys-regular" onclick="window.cancelEditor()">Cancel</button>
                     <button class="btn-sys btn-sys-blue" onclick="window.openDraftManager()">Drafts</button>
                     <button class="btn-sys btn-sys-yellow" onclick="window.triggerManualSync()">Sync/Save</button>
+                    <button id="btn-find-replace" class="btn-sys btn-sys-regular" onclick="window.openFindReplace()">Find &amp; Replace</button>
                     <button id="btn-toggle-diff" class="btn-sys btn-sys-purple" onclick="window.toggleDiffMode()">Diff View</button>
                     <button id="submit-payload-btn" class="btn-sys btn-sys-green">Submit</button>
                 </div>
@@ -321,5 +352,8 @@
     <script src="js/gallery.js"></script>
     <script src="js/editor-gallery.js"></script>
     <script src="js/tierlist.js"></script>
+    <!-- Last: it walks whatever the other editors have put in desc_data, and
+         reads the keyed-section registry to name where a match is. -->
+    <script src="js/editor-find-replace.js"></script>
 </body>
 </html>
