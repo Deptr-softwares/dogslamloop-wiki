@@ -156,6 +156,19 @@
         return map;
     };
 
+    // Mechanics every character shares, which therefore appear in no
+    // character's frame data - so derivation can never find them, and a route
+    // that says "Side Dash" or "Block" came out uncoloured next to the moves
+    // around it (owner, 2026-08-17).
+    //
+    // Names are what people WRITE, not what a menu calls them: nobody types
+    // "Dash Input", they type "Side Dash".
+    const UNIVERSAL_MECHANICS = {
+        Q: ['Dash', 'Side Dash', 'Front Dash', 'Forward Dash', 'Back Dash', 'Backward Dash', 'Air Dash'],
+        F: ['Block', 'Blocking', 'Guard'],
+        Space: ['Jump', 'Jumping', 'Double Jump'],
+    };
+
     /**
      * The full map for a page: derived from frame data, then overridden by
      * `desc_data.characterSettings`.
@@ -173,6 +186,15 @@
         const map = window.deriveMoveSlots(frameData);
         const settings = (descData && descData.characterSettings) || {};
 
+        // Universals fill GAPS rather than seeding the map, so a character
+        // whose own kit has a move called "Dash" keeps its own slot for it.
+        Object.keys(UNIVERSAL_MECHANICS).forEach(slotId => {
+            UNIVERSAL_MECHANICS[slotId].forEach(name => {
+                const key = normalise(name);
+                if (!map.has(key)) map.set(key, slotId);
+            });
+        });
+
         Object.keys(settings.slots || {}).forEach(name => {
             const slot = window.getInputSlot(settings.slots[name]);
             if (slot) map.set(normalise(name), slot.id);
@@ -187,5 +209,6 @@
         return map;
     };
 
+    window.UNIVERSAL_MECHANICS = Object.freeze(UNIVERSAL_MECHANICS);
     window.normaliseMoveName = normalise;
 })();

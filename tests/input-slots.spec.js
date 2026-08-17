@@ -325,6 +325,58 @@ test("the owner's real Crow Charmer combo colours every step", async ({ page }) 
   expect(compound.text).toContain('Cancel  Murmurate');
 });
 
+test('universal mechanics colour even though no character owns them', async ({ page }) => {
+  // Dashes, block and jump belong to every character, so they appear in NO
+  // character's frame data and derivation can never find them. A route saying
+  // "Side Dash" came out plain next to the moves around it (owner,
+  // 2026-08-17).
+  //
+  // They fill GAPS rather than seeding the map, so a character whose own kit
+  // has a move by one of these names keeps its own slot.
+  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  const chips = await page.evaluate(() => {
+    window.renderCombosTab({
+      comboList: [{
+        starter: 'S',
+        rows: [{ sequence: ['Side Dash', 'Front Dash', 'Back Dash', 'Block', 'Jump', 'Circling', 'Bounding'] }],
+      }],
+    });
+    window.applyInternalStyling();
+    const out = {};
+    document.querySelectorAll('#tab-combos .combo-node').forEach(n => {
+      out[n.textContent] = [...n.classList].find(c => c.startsWith('is-') && c !== 'is-slotted') || null;
+    });
+    return out;
+  });
+
+  // Every dash is Q, block is F, jump is Space.
+  expect(chips['Side Dash']).toBe('is-q');
+  expect(chips['Front Dash']).toBe('is-q');
+  expect(chips['Back Dash']).toBe('is-q');
+  expect(chips['Block']).toBe('is-f');
+  expect(chips['Jump']).toBe('is-space');
+
+  // A character's own moves are untouched by any of this.
+  expect(chips['Circling'], "the character's own skill still wins").toBe('is-2');
+  // Bounding is Crow Charmer's OWN Q special, derived from its input - not the
+  // universal dash entry.
+  expect(chips['Bounding']).toBe('is-q');
+});
+
+test('a character move outranks a universal of the same name', () => {
+  // The universals are a fallback, not an override: a character who names a
+  // skill "Block" must keep that skill's slot.
+  const frame = { skills: [{ id: 'x', name: 'Block', input: '3' }] };
+  const map = slots.buildMoveSlotMap(frame, null);
+
+  expect(map.get('block'), "the character's own move wins").toBe('3');
+  // ...and the universals it did not shadow are still there.
+  expect(map.get('side dash')).toBe('Q');
+  expect(map.get('jump')).toBe('Space');
+});
+
 test('the same name can be a different slot in a different state', async ({ page }) => {
   // A character's ultimate state has different skills in the same slots, so
   // the map has to be per-state. Derivation handles this for free; a flat
