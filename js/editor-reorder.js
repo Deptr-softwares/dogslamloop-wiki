@@ -66,14 +66,16 @@
         if (!listSpec) return '';
         const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v));
         const spec = esc(listSpec);
-        return `<span class="daw-reorder-group" data-reorder-list="${spec}">`
+        return `<div class="daw-reorder-bar">`
+             + `<span class="daw-reorder-label">Selected</span>`
+             + `<span class="daw-reorder-group" data-reorder-list="${spec}">`
              + `<button type="button" class="daw-tab-move-btn" data-reorder-list="${spec}" data-reorder-dir="-1"
                         title="Move the selected one left" aria-label="Move selected left">&#9664;</button>`
              + `<button type="button" class="daw-tab-insert-btn" data-reorder-list="${spec}"
                         title="Insert after the selected one" aria-label="Insert after selected">&#43;</button>`
              + `<button type="button" class="daw-tab-move-btn" data-reorder-list="${spec}" data-reorder-dir="1"
                         title="Move the selected one right" aria-label="Move selected right">&#9654;</button>`
-             + `</span>`;
+             + `</span></div>`;
     };
 
     // Which entry is selected, and where its strip is. Read from the rendered
@@ -84,8 +86,21 @@
         return items.findIndex(item => item.querySelector('.daw-tab-btn.active'));
     }
 
+    // The strip is the next .daw-variant-tabs AFTER the bar.
+    //
+    // The bar has now been in three places. Per item, it travelled with the
+    // entry being moved, so a second nudge meant chasing it along the row. At
+    // the END of the strip, a character with twenty skills had to scroll the
+    // whole strip right to reach it - every time, because the strip scrolls
+    // back on re-render. Both faults are the same one: the controls moved with
+    // the content. Its own row above the strip is the fixed spot.
     function rowFor(el) {
-        return el && el.closest ? el.closest('.daw-variant-tabs') : null;
+        if (!el || !el.closest) return null;
+        const bar = el.closest('.daw-reorder-bar');
+        if (!bar) return el.closest('.daw-variant-tabs');
+        let node = bar.nextElementSibling;
+        while (node && !node.classList.contains('daw-variant-tabs')) node = node.nextElementSibling;
+        return node || null;
     }
 
     // Re-selecting by CLICKING the strip's own button, rather than by setting a

@@ -171,7 +171,8 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
     if (frameTabs.includes(tabId)) {
         const moves = frameData ? (frameData[tabId] || []) : [];
 
-        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        let navHTML = window.reorderStripControls(`frame.${tabId}`);
+        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
         if (moves.length === 0) {
             navHTML += `<span class="daw-empty-state">No moves mapped in this category yet.</span>`;
         } else {
@@ -187,7 +188,6 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         }
 
         navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addMove()">+ ADD MOVE</button>`;
-        navHTML += window.reorderStripControls(`frame.${tabId}`);
         navHTML += `</div>`;
 
         builder.innerHTML = `
@@ -206,7 +206,8 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         if (!window.currentEditorDescData.strategy) window.currentEditorDescData.strategy = [];
         if (!window.currentEditorDescData.extras) window.currentEditorDescData.extras = [];
 
-        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        let navHTML = window.reorderStripControls('desc.extras');
+        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
         navHTML += `<button class="daw-tab-btn" id="overview-nav-profile" onclick="loadOverviewSectionIntoEditor('profile')">Profile Card</button>`;
         navHTML += `<button class="daw-tab-btn active" id="overview-nav-overview" onclick="loadOverviewSectionIntoEditor('overview')">Character Overview</button>`;
         navHTML += `<button class="daw-tab-btn" id="overview-nav-playstyle" onclick="loadOverviewSectionIntoEditor('playstyle')">Playstyle</button>`;
@@ -222,7 +223,6 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         window.registerInserter('desc.extras', () => window.addExtraTab());
 
         navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="addExtraTab()">+ ADD TAB</button>`;
-        navHTML += window.reorderStripControls('desc.extras');
         navHTML += `</div>`;
 
         builder.innerHTML = `
@@ -235,7 +235,8 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
     } else if (tabId === 'matchups') {
         if (!window.currentEditorDescData.matchups) window.currentEditorDescData.matchups = [];
 
-        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        let navHTML = window.reorderStripControls('desc.matchups');
+        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
         if (window.currentEditorDescData.matchups.length === 0) {
              navHTML += `<span class="daw-empty-state">No matchups defined yet.</span>`;
         } else {
@@ -250,7 +251,6 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
 
         window.registerInserter('desc.matchups', () => window.addMatchup());
         navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addMatchup()">+ ADD MATCHUP</button>`;
-        navHTML += window.reorderStripControls('desc.matchups');
         navHTML += `</div>`;
 
         builder.innerHTML = `
@@ -280,7 +280,8 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         if (!window.currentEditorDescData[intro.field]) window.currentEditorDescData[intro.field] = [];
         if (!window.currentEditorDescData[groups.field]) window.currentEditorDescData[groups.field] = [];
 
-        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        let navHTML = window.reorderStripControls(`desc.${groups.field}`);
+        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
         navHTML += `<button class="daw-tab-btn active" id="combos-nav-intro" onclick="window.loadCombosSectionIntoEditor('intro')">${esc(intro.label)}</button>`;
         navHTML += `<button class="daw-tab-btn" id="combos-nav-list" onclick="window.loadCombosSectionIntoEditor('list')">Combo List</button>`;
 
@@ -295,7 +296,6 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
 
         window.registerInserter(`desc.${groups.field}`, () => window.addComboGroup());
         navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addComboGroup()">+ GROUP</button>`;
-        navHTML += window.reorderStripControls(`desc.${groups.field}`);
         navHTML += `</div>`;
 
         builder.innerHTML = `
@@ -320,7 +320,8 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
         const noun = section.entryLabel;
 
-        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        let navHTML = window.reorderStripControls(`desc.${section.field}`);
+        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
         if (entries.length === 0) {
             navHTML += `<span class="daw-empty-state">No ${esc(noun.toLowerCase())} entries defined yet.</span>`;
         } else {
@@ -338,7 +339,6 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
 
         window.registerInserter(`desc.${section.field}`, () => window.addKeyedEntry(section.tab));
         navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addKeyedEntry('${section.tab}')">+ ADD TOPIC</button>`;
-        navHTML += window.reorderStripControls(`desc.${section.field}`);
         navHTML += `</div>`;
 
         builder.innerHTML = `

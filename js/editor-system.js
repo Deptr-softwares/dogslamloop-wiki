@@ -15,7 +15,8 @@ window.renderSystemEditor = function(container) {
     }
 
     // 1. RENDER MAIN TABS
-    let tabHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+    let tabHTML = window.reorderStripControls('desc.tabs');
+    tabHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
     descData.tabs.forEach((tab, tIdx) => {
         let active = tIdx === window.currentSystemTabIdx ? 'active' : '';
         tabHTML += `<div class="daw-tab-item">`;
@@ -25,14 +26,14 @@ window.renderSystemEditor = function(container) {
     });
     window.registerInserter('desc.tabs', () => window.addSystemTab());
     tabHTML += `<button class="daw-tab-btn btn-sys btn-sys-green system-tab-add-btn" onclick="window.addSystemTab()">+ ADD TAB</button>`;
-    tabHTML += window.reorderStripControls('desc.tabs');
     tabHTML += `</div>`;
 
     let activeTab = descData.tabs[window.currentSystemTabIdx];
     if (!activeTab) { container.innerHTML = tabHTML; return; }
 
     // 2. RENDER SECTIONS WITHIN ACTIVE TAB
-    let secHTML = `<div class="daw-variant-tabs system-section-tabs-row">`;
+    let secHTML = window.reorderStripControls(`desc.tabs.${window.currentSystemTabIdx}.sections`);
+    secHTML += `<div class="daw-variant-tabs system-section-tabs-row">`;
     if (!activeTab.sections) activeTab.sections = [];
     activeTab.sections.forEach((sec, sIdx) => {
         let active = sIdx === window.currentSystemSecIdx ? 'active' : '';
@@ -45,7 +46,6 @@ window.renderSystemEditor = function(container) {
     });
     window.registerInserter(`desc.tabs.${window.currentSystemTabIdx}.sections`, () => window.addSystemSection());
     secHTML += `<button class="daw-tab-btn btn-sys btn-sys-purple system-tab-add-btn" onclick="window.addSystemSection()">+ ADD SECTION</button>`;
-    secHTML += window.reorderStripControls(`desc.tabs.${window.currentSystemTabIdx}.sections`);
     secHTML += `</div>`;
 
     // 3. RENDER METADATA & BLOCK BUILDER

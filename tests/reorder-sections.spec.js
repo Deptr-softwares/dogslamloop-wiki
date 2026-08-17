@@ -251,7 +251,10 @@ test('a system section can be reordered', async ({ page }) => {
   await page.waitForTimeout(400);
 
   // Section 1 is already selected (currentSystemSecIdx 0); move it right.
-  await page.locator('.system-section-tabs-row .daw-reorder-group .daw-tab-move-btn').nth(1).click();
+  // Selected by its LIST rather than by position in the DOM: the bar sits above
+  // its strip now, so a system page has two of them as siblings.
+  await page.locator('.daw-reorder-group[data-reorder-list$=".sections"] .daw-tab-move-btn')
+    .nth(1).click();
   await page.waitForTimeout(600);
 
   const order = await page.evaluate(() =>
@@ -284,4 +287,55 @@ test('a reordered system page ships an order change, not its content', async ({ 
   const tabDelta = deltas.find(d => d.scope === 'system_tab');
   expect(tabDelta, 'the new order should ship as tab metadata').toBeTruthy();
   expect(tabDelta.payload.order).toEqual(['two', 'one']);
+});
+
+test('the controls stay put on a long strip', async ({ page }) => {
+  // THE FAULT WITH THE PREVIOUS PLACEMENT. At the end of the strip, a character
+  // with twenty skills meant scrolling the whole row right to reach them, every
+  // time - and the strip scrolls back on re-render, so it was every nudge.
+  await boot(page, CHAR);
+
+  await page.evaluate(() => {
+    window.currentEditorDescData.matchups = Array.from({ length: 20 }, (_, i) => ({
+      opponent: `Zzq Opponent Number ${i + 1}`, tier: 'even', content: [],
+    }));
+    initFullTabEditor('boomcat', 'matchups', window.currentEditorDescData, window.currentEditorFrameData);
+  });
+  await page.waitForTimeout(600);
+
+  const geometry = await page.evaluate(() => {
+    const bar = document.querySelector('.daw-reorder-bar');
+    const strip = document.querySelector('.daw-editor-nav-row');
+    return {
+      barInsideStrip: !!strip && strip.contains(bar),
+      barBottom: bar.getBoundingClientRect().bottom,
+      stripTop: strip.getBoundingClientRect().top,
+      // A twenty-entry strip overflows; the bar must not be in the overflow.
+      stripScrolls: strip.scrollWidth > strip.clientWidth + 1,
+      barLeft: Math.round(bar.getBoundingClientRect().left),
+    };
+  });
+
+  expect(geometry.stripScrolls, 'twenty entries should overflow the strip').toBe(true);
+  expect(geometry.barInsideStrip, 'the bar must not live inside the scrolling strip').toBe(false);
+  expect(geometry.barBottom).toBeLessThanOrEqual(geometry.stripTop + 1);
+
+  // And it is reachable without touching the strip's scroll at all.
+  const moveLeft = page.locator('.daw-reorder-group .daw-tab-move-btn').first();
+  await expect(moveLeft).toBeInViewport();
+
+  await page.locator('#matchup-nav-19').click();
+  await page.waitForTimeout(400);
+  await moveLeft.click();
+  await page.waitForTimeout(500);
+
+  const after = await page.evaluate(() => ({
+    order: window.currentEditorDescData.matchups.map(m => m.opponent),
+    barLeft: Math.round(document.querySelector('.daw-reorder-bar').getBoundingClientRect().left),
+  }));
+
+  expect(after.order[18]).toBe('Zzq Opponent Number 20');
+  // The whole point: the button is still exactly where it was, so the next
+  // nudge is the same click in the same place.
+  expect(after.barLeft).toBe(geometry.barLeft);
 });

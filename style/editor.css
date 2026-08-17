@@ -1918,18 +1918,28 @@ del.diff-del {
     .daw-tab-move-btn, .daw-tab-insert-btn { min-width: 32px; min-height: 44px; font-size: 0.7rem; }
 }
 
-/* The group sits at the END of the strip, after + ADD, and acts on whichever
-   entry is selected. It was per-item first, and that had two faults the owner
-   named at once: the selection did not follow the entry being moved, and the
-   buttons moved with it so a second nudge meant chasing them along the row.
+/* ITS OWN ROW, ABOVE THE STRIP. Two earlier placements were both wrong for the
+   same reason - the controls moved with the content:
 
-   Being out of .daw-tab-item also retires a bug that placement caused - the
-   remove ✖ is absolutely positioned at the item's right edge, so it sat on top
-   of "move right" and swallowed its clicks. */
-.daw-reorder-group {
-    display: inline-flex;
-    align-items: stretch;
-    margin-left: 0.5rem;
-    padding-left: 0.5rem;
-    border-left: 1px solid #333;
+     per item      the buttons travelled with the entry being moved, so a
+                   second nudge meant chasing them along the row
+     end of strip  a character with twenty skills had to scroll the whole
+                   strip right to reach them, every single time
+
+   Above the strip they sit at a fixed spot no matter how long the strip is or
+   how far it has scrolled, and they act on whatever is selected - so repeated
+   nudges are the same click in the same place. */
+.daw-reorder-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.35rem;
 }
+.daw-reorder-label {
+    font-family: var(--text-mono);
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+.daw-reorder-group { display: inline-flex; align-items: stretch; }
