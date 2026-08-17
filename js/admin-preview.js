@@ -270,6 +270,11 @@ async function switchVersionView(mode) {
         const fixedSectionByScope = (scope) =>
             (window.FIXED_BLOCK_SECTIONS || []).find(s => s.scope === scope) || null;
 
+        // The scopes a system or tier list page submits. They name a tab of the
+        // page itself rather than one from the character vocabulary, so the
+        // breadcrumb has to read their labels out of the data.
+        const SYSTEM_SCOPES = ['system_section', 'system_tab', 'tierlist_tiers', 'tierlist_changelog'];
+
         // WHERE THIS CHANGE IS, in one shape for every page type.
         //
         // Character pages got a breadcrumb and system, tool, gallery and tier
@@ -362,7 +367,30 @@ async function switchVersionView(mode) {
                 // shown, so only the move itself is worth repeating.
                 const entryName = rawKeyLabel === 'full' ? '' : rawKeyLabel.split('::').pop();
 
-                renderLocation([where.replace(/ \/ $/, ''), tabName, formatScopeName(scope), entryName]);
+                // A system page's tabs are the PAGE'S OWN, not the character
+                // vocabulary, so their names have to be read from the data.
+                // Keys are derived, so the label is the human half and the key
+                // is only how the two sides find each other.
+                if (SYSTEM_SCOPES.includes(scope)) {
+                    const tabKey = scope === 'system_section'
+                        ? window.splitSystemKey(key).tabKey : String(key || '');
+                    const tab = window.findSystemTab(liveDesc, tabKey);
+                    const tabName = tab ? (tab.tabLabel || tab.tabId || tabKey) : tabKey;
+
+                    let leaf = '';
+                    if (scope === 'system_section') {
+                        const found = window.indexSystemSections(liveDesc).find(e => e.key === key);
+                        leaf = (payload && payload.sectionTitle)
+                            || (found && found.section && found.section.sectionTitle)
+                            || window.splitSystemKey(key).secKey;
+                    } else if (scope === 'system_tab') leaf = 'Tab settings';
+                    else if (scope === 'tierlist_tiers') leaf = 'Tiers';
+                    else if (scope === 'tierlist_changelog') leaf = 'Changelog';
+
+                    renderLocation([tabName, leaf]);
+                } else {
+                    renderLocation([where.replace(/ \/ $/, ''), tabName, formatScopeName(scope), entryName]);
+                }
 
                 if (['profile', 'playstyle', 'overview', 'strategy'].includes(scope)) {
                     renderDiffBlock(formatScopeName(scope), liveDesc[scope], payload);
@@ -459,6 +487,61 @@ async function switchVersionView(mode) {
                 }
                 else if (scope === 'tool_config') {
                     renderDiffBlock('Tool Configuration', liveDesc.tool || {}, payload);
+                }
+                // One section of a system page. The prose diffs as prose; the
+                // layout fields diff as fields, so a reviewer can tell "the
+                // wording changed" from "somebody made it half-width".
+                else if (scope === 'system_section') {
+                    const found = window.indexSystemSections(liveDesc).find(e => e.key === key);
+                    const before = (found && found.section) || {};
+                    const title = (payload && payload.sectionTitle) || before.sectionTitle || 'Section';
+
+                    if (payload === null) {
+                        renderDiffBlock(`Section Removed: ${title}`, before, null, 'json');
+                    } else {
+                        if (before.sectionTitle !== payload.sectionTitle) {
+                            renderDiffBlock('Section Name', { sectionTitle: before.sectionTitle }, { sectionTitle: payload.sectionTitle });
+                        }
+                        const layoutOf = (s) => ({ layout: s.layout, width: s.width, alignment: s.alignment });
+                        renderDiffBlock('Layout', layoutOf(before), layoutOf(payload));
+                        renderDiffBlock(title, before.blocks || [], payload.blocks || [], 'system-content');
+                    }
+                }
+                // A tab's own metadata, and the ORDER of its sections. Order
+                // arrives as a list of keys, so it is rendered as the names
+                // those keys resolve to rather than as the keys themselves.
+                else if (scope === 'system_tab') {
+                    const tab = window.findSystemTab(liveDesc, key) || {};
+                    if (payload === null) {
+                        renderDiffBlock('Tab Removed', { tabLabel: tab.tabLabel }, null, 'json');
+                    } else {
+                        const meta = (t) => {
+                            const m = {};
+                            Object.keys(t || {}).forEach(k => {
+                                if (k !== 'sections' && k !== 'tiers' && k !== 'changelog' && k !== 'order') m[k] = t[k];
+                            });
+                            return m;
+                        };
+                        renderDiffBlock('Tab Settings', meta(tab), meta(payload));
+
+                        if (Array.isArray(payload.order)) {
+                            const nameFor = (secKey) => {
+                                const hit = window.indexSystemSections(liveDesc)
+                                    .find(e => e.tabKey === key && e.secKey === secKey);
+                                return (hit && hit.section && hit.section.sectionTitle) || secKey;
+                            };
+                            const beforeOrder = window.indexSystemSections(liveDesc)
+                                .filter(e => e.tabKey === key).map(e => e.secKey);
+                            renderDiffBlock('Section Order',
+                                { order: beforeOrder.map(nameFor) },
+                                { order: payload.order.map(nameFor) });
+                        }
+                    }
+                }
+                else if (scope === 'tierlist_tiers' || scope === 'tierlist_changelog') {
+                    const tab = window.findSystemTab(liveDesc, key) || {};
+                    const field = scope === 'tierlist_tiers' ? 'tiers' : 'changelog';
+                    renderDiffBlock(field === 'tiers' ? 'Tiers' : 'Changelog', tab[field] || [], payload || [], 'json');
                 }
                 // NOTHING MATCHED, AND THAT MUST NEVER BE SILENT.
                 //

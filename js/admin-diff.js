@@ -402,6 +402,11 @@ function calculateTabDiffs(rev, showPopup = true) {
                 // it is. A move always has a key, so this is a guard rather
                 // than a behaviour change.
                 else if (scope === 'move') targetTab = String(key || '').split('::')[0] || 'overview';
+                // No branch here for the system scopes on purpose. A system or
+                // tier list page never reaches this code - it is caught by the
+                // page-type check at the top of this function, which marks tabs
+                // by comparing live against pending. One was written here, it
+                // looked right, and it could not run.
 
                 if (!window.changedTabs.includes(targetTab)) window.changedTabs.push(targetTab);
             };
