@@ -1182,6 +1182,18 @@ input[type="checkbox"]:checked {
 .editor-modal-overlay { z-index: 10000; }
 .editor-modal-overlay.alert-layer { z-index: 10001; }
 
+/* THE CONFIRM AND ALERT LAYERS MUST OUTRANK EVERY OTHER MODAL.
+   They are a RESPONSE to something another modal asked, so they can never be
+   the one underneath. Every overlay sat at 10000 and #editor-custom-modal is
+   declared first in edit.html, so at equal specificity and equal z-index DOM
+   order decided - and every modal declared after it covered it.
+   That was not hypothetical: DELETE COMBO inside the combo row modal (item 3)
+   opened a confirmation the reviewer could see and could not click, and the
+   Find & Replace panel hit the same wall on REPLACE ALL.
+   Above the two inline 10005s (the QA and gallery-item modals) as well. */
+#editor-custom-modal.editor-modal-overlay { z-index: 10020; }
+#editor-alert-modal.editor-modal-overlay { z-index: 10021; }
+
 .modal-danger .editor-modal-box { border-top-color: #ef4444; width: 450px; }
 .modal-danger .auth-header h3 { color: #ef4444; font-size: 1rem; }
 .modal-danger .btn-danger-fill { color: #000; background: #ef4444; border-color: #ef4444; flex: 1; }
