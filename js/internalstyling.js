@@ -206,6 +206,121 @@ function restoreNoAuto(content, store) {
     );
 }
 
+// --- MOVE NAMES, COLOURED BY INPUT SLOT (v0.15) ---
+//
+// JJS combos are written NAME-FIRST - "MURMURATE > R^ > AIR UPDRAFT", not
+// "2 > R > 1" - so colouring notation means knowing which of the ten inputs
+// each move NAME belongs to.
+//
+// The map is derived from frame_data's `input` field per character, with
+// desc_data.characterSettings as a thin override (js/input_slots.js). Nothing
+// is hand-listed here, for the same reason the frame terms above are derived
+// from site_meta.js: a second copy drifts.
+//
+// Mode-aware: a character's ultimate state has different skills in the same
+// slots, so the same name can be a different colour depending on which state
+// the reader is looking at.
+function currentPageMoveSlots() {
+    if (typeof window.buildMoveSlotMap !== 'function') return null;
+
+    const pageId = (window.PAGE_ROUTE && window.PAGE_ROUTE.pageId)
+        || window.activePreviewCharId || window.currentEditorCharId;
+    if (!pageId) return null;
+
+    let frame = (window.cachedMasterFrameData || {})[pageId]
+        || window.currentEditorFrameData || null;
+    if (!frame) return null;
+
+    // The active state's slice, when there is one. resolveModeFrame is the
+    // shared resolver; falling back to the master keeps a page with no states
+    // working unchanged.
+    const mode = window.activeCharacterMode;
+    if (mode && !((window.isBaseMode && window.isBaseMode(mode)))
+        && frame.modeData && frame.modeData[mode]) {
+        frame = Object.assign({}, frame, frame.modeData[mode]);
+    }
+
+    const desc = window.currentPageDescData || window.currentEditorDescData || null;
+    const map = window.buildMoveSlotMap(frame, desc);
+    if (!map || map.size === 0) return null;
+
+    // Longest first: alternation is first-match, so "Cursed Strikes" would
+    // otherwise win over "Aerial Cursed Strikes" and leave "Aerial" bare.
+    // Vessel has both, so this is not hypothetical.
+    const names = Array.from(map.keys()).sort((a, b) => b.length - a.length);
+
+    return {
+        lookup: map,
+        pattern: new RegExp(`(?<![\\w-])(${names.map(termPattern).join('|')})(?![\\w-])(?![^<]*>)`, 'gi'),
+    };
+}
+
+// The bare keys themselves - "M1", "2", "R". Only ever applied INSIDE a combo
+// chip: a lone "1" or "2" in prose is a number far more often than an input,
+// and colouring those would tint every frame count and damage figure on the
+// site.
+function inputKeyPattern() {
+    const ids = (window.INPUT_SLOT_IDS || []).slice().sort((a, b) => b.length - a.length);
+    if (!ids.length) return null;
+    return new RegExp(`^\\s*(${ids.map(termPattern).join('|')})\\s*$`, 'i');
+}
+
+window.applyInputSlotColours = function (root) {
+    const scope = root || document;
+    const terms = currentPageMoveSlots();
+    const keyPattern = inputKeyPattern();
+
+    // 1. Combo chips. A chip is one step, so it is matched WHOLE against the
+    //    key list first - "2" as a chip is Skill 2, unambiguously - and only
+    //    then against move names.
+    scope.querySelectorAll('.combo-node:not(.is-slotted)').forEach(chip => {
+        chip.classList.add('is-slotted');
+        const text = chip.textContent || '';
+
+        if (keyPattern) {
+            const whole = keyPattern.exec(text.trim());
+            if (whole) {
+                const slot = window.getInputSlot(whole[1]);
+                if (slot) { chip.classList.add(slot.cls); return; }
+            }
+        }
+
+        if (!terms) return;
+        const direct = terms.lookup.get(window.normaliseMoveName(text));
+        if (direct) {
+            const slot = window.getInputSlot(direct);
+            if (slot) chip.classList.add(slot.cls);
+            return;
+        }
+
+        // A step like "GARUDA STAB OR RISING RAGE" names more than one move,
+        // so the chip itself cannot take a colour - the names inside it do.
+        terms.pattern.lastIndex = 0;
+        const replaced = text.replace(terms.pattern, (match) => {
+            const id = terms.lookup.get(window.normaliseMoveName(match));
+            const slot = id && window.getInputSlot(id);
+            return slot ? `<span class="sc-auto ${slot.cls}">${escAttr(match)}</span>` : escAttr(match);
+        });
+        // Only rewrite when something actually matched, so a chip of plain
+        // text like "(X3)" keeps its own text node untouched.
+        if (replaced !== text) chip.innerHTML = replaced;
+    });
+
+    // 2. Move names in prose, wherever the styling engine already runs.
+    if (!terms) return;
+    scope.querySelectorAll('.is-styled:not(.is-slotted-prose)').forEach(block => {
+        block.classList.add('is-slotted-prose');
+        const before = block.innerHTML;
+        terms.pattern.lastIndex = 0;
+        const after = before.replace(terms.pattern, (match) => {
+            const id = terms.lookup.get(window.normaliseMoveName(match));
+            const slot = id && window.getInputSlot(id);
+            return slot ? `<span class="sc-auto ${slot.cls}">${match}</span>` : match;
+        });
+        if (after !== before) block.innerHTML = after;
+    });
+};
+
 function applyInternalStyling() {
     // 1. Select targets
     const textBlocks = document.querySelectorAll('.wiki-text:not(.is-styled), .vessel-content p:not(.is-styled), .vessel-content li:not(.is-styled), .strategy-paragraph:not(.is-styled), .vessel-content h2:not(.is-styled), .vessel-content h3:not(.is-styled), .vessel-content h4:not(.is-styled), .update-table th:not(.is-styled), .update-table td:not(.is-styled)');
@@ -458,5 +573,19 @@ document.addEventListener('DOMContentLoaded', () => {
         observer.observe(mainContent, { childList: true, subtree: true });
     }
 });
+
+// Input-slot colouring runs after the styling pass, because it looks for
+// .is-styled prose and for the combo chips the renderers emit.
+const _dslApplyInternalStyling = applyInternalStyling;
+applyInternalStyling = function () {
+    const result = _dslApplyInternalStyling.apply(this, arguments);
+    try {
+        if (typeof window.applyInputSlotColours === 'function') window.applyInputSlotColours();
+    } catch (e) {
+        // Colouring is decoration; losing it must never cost the page its prose.
+        console.warn('[Notation] input slot colouring failed:', e);
+    }
+    return result;
+};
 
 window.applyInternalStyling = applyInternalStyling;

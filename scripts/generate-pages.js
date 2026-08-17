@@ -186,6 +186,7 @@ ${social}
     <!-- Must precede page_router.js: it builds the tab strip from this
          vocabulary, synchronously, before site_utils.js has loaded. -->
     <script src="../../js/character_tabs.js"></script>
+    <script src="../../js/input_slots.js"></script>
     <script src="../../js/page_router.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -233,6 +234,7 @@ ${social}
     <!-- Must precede page_router.js: it builds the tab strip from this
          vocabulary, synchronously, before site_utils.js has loaded. -->
     <script src="../../js/character_tabs.js"></script>
+    <script src="../../js/input_slots.js"></script>
     <script src="../../js/page_router.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -289,6 +291,7 @@ ${social}
     <!-- Must precede page_router.js: it builds the tab strip from this
          vocabulary, synchronously, before site_utils.js has loaded. -->
     <script src="../../js/character_tabs.js"></script>
+    <script src="../../js/input_slots.js"></script>
     <script src="../../js/page_router.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

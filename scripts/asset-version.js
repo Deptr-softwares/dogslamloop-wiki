@@ -32,7 +32,7 @@ const JS_DIR = path.join(__dirname, '..', 'js');
 
 // Order is fixed, not directory order: the hash must be reproducible across
 // machines and filesystems.
-const SHARED_MODULES = ['character_tabs.js', 'site_utils.js'];
+const SHARED_MODULES = ['character_tabs.js', 'input_slots.js', 'site_utils.js'];
 
 const SHARED_MODULE_PATHS = SHARED_MODULES.map(name => path.join(JS_DIR, name));
 
