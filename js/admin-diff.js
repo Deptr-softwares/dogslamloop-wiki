@@ -4,20 +4,70 @@
  */
 
 // --- INLINE TEXT DIFF ALGORITHM (SMART GROUPING) ---
+//
+// MARKERS, NOT MARKUP. This used to escape the text and return real <ins>/<del>
+// tags, which worked for as long as the block renderer passed content through
+// untouched. v0.15 item 1 closed a stored-XSS hole by escaping at every
+// innerHTML interpolation in js/description.js - and that escaped this
+// function's tags a second time, so every prose diff in the review screen
+// rendered as visible `<ins class="diff-add">` and `&quot;` instead of as a
+// diff. Correct escaping, correct diff, and they cancelled each other out.
+//
+// The fix has to survive a renderer that escapes, without giving anything a way
+// to opt out of escaping - an opt-out flag would have to live on the block, and
+// blocks are contributor-submitted, so a crafted payload could set it.
+//
+// So the text stays RAW here and the boundaries are marked with control
+// characters. The renderer escapes the text exactly once, as it does for any
+// other content, and the markers pass through untouched because escapeHtml does
+// not alter them. resolveDiffMarkers then swaps them for the real tags.
+// Written as escape sequences on purpose. Typing the control characters
+// themselves leaves bytes that no editor shows and some tools treat as
+// binary - a literal NUL written that way once made git call a source file
+// binary in this repo.
+const DIFF_MARK_ADD_OPEN = '\u0011';
+const DIFF_MARK_ADD_CLOSE = '\u0012';
+const DIFF_MARK_DEL_OPEN = '\u0013';
+const DIFF_MARK_DEL_CLOSE = '\u0014';
+const DIFF_MARK_ANY = /[\u0011-\u0014]/g;
+
+window.DIFF_MARKERS = Object.freeze({
+    addOpen: DIFF_MARK_ADD_OPEN, addClose: DIFF_MARK_ADD_CLOSE,
+    delOpen: DIFF_MARK_DEL_OPEN, delClose: DIFF_MARK_DEL_CLOSE,
+});
+
+/**
+ * Turns the markers left by diffTextLCS into real <ins>/<del> tags, after the
+ * renderer has escaped everything around them.
+ *
+ * Takes an element and rewrites its innerHTML, so it runs once per rendered
+ * diff container rather than per field. The tags it writes carry no
+ * contributor-derived attributes - they are two fixed strings - so this cannot
+ * become an injection point even if a marker were somehow forged.
+ */
+window.resolveDiffMarkers = function(el) {
+    if (!el || !el.innerHTML) return;
+    if (!DIFF_MARK_ANY.test(el.innerHTML)) { DIFF_MARK_ANY.lastIndex = 0; return; }
+    DIFF_MARK_ANY.lastIndex = 0;
+
+    el.innerHTML = el.innerHTML
+        .split(DIFF_MARK_ADD_OPEN).join('<ins class="diff-add">')
+        .split(DIFF_MARK_ADD_CLOSE).join('</ins>')
+        .split(DIFF_MARK_DEL_OPEN).join('<del class="diff-del">')
+        .split(DIFF_MARK_DEL_CLOSE).join('</del>');
+};
+
 window.diffTextLCS = function(oldStr, newStr) {
-    // Escaped up front, before tokenizing - both inputs are contributor-
-    // submitted prose (a revision's actual paragraph/list/table content),
-    // rendered straight into innerHTML via the <del>/<ins> markup built
-    // below. Was previously unescaped - a real XSS gap, since this is a
-    // reviewer's authenticated session rendering untrusted submitted text.
-    // Escaping first (not per-fragment later) keeps the LCS matching
-    // correct: escapeHtml never introduces/removes whitespace, so token
-    // boundaries and equality comparisons are unaffected.
-    oldStr = window.escapeHtml(String(oldStr || ''));
-    newStr = window.escapeHtml(String(newStr || ''));
+    // Contributor text cannot be allowed to carry the markers themselves, or a
+    // submission could open a tag this function never opened. Stripped rather
+    // than escaped: these are control characters, so nothing legitimate is lost.
+    const clean = (s) => String(s || '').replace(DIFF_MARK_ANY, '');
+    oldStr = clean(oldStr);
+    newStr = clean(newStr);
+
     if (oldStr === newStr) return newStr;
-    if (!oldStr) return `<ins class="diff-add">${newStr}</ins>`;
-    if (!newStr) return `<del class="diff-del">${oldStr}</del>`;
+    if (!oldStr) return `${DIFF_MARK_ADD_OPEN}${newStr}${DIFF_MARK_ADD_CLOSE}`;
+    if (!newStr) return `${DIFF_MARK_DEL_OPEN}${oldStr}${DIFF_MARK_DEL_CLOSE}`;
 
     const a = oldStr.split(/(\s+)/).filter(val => val.length > 0);
     const b = newStr.split(/(\s+)/).filter(val => val.length > 0);
@@ -59,8 +109,8 @@ window.diffTextLCS = function(oldStr, newStr) {
     let currentInss = '';
 
     const flushEdits = () => {
-        if (currentDels) finalHtml += `<del class="diff-del">${currentDels}</del>`;
-        if (currentInss) finalHtml += `<ins class="diff-add">${currentInss}</ins>`;
+        if (currentDels) finalHtml += `${DIFF_MARK_DEL_OPEN}${currentDels}${DIFF_MARK_DEL_CLOSE}`;
+        if (currentInss) finalHtml += `${DIFF_MARK_ADD_OPEN}${currentInss}${DIFF_MARK_ADD_CLOSE}`;
         currentDels = '';
         currentInss = '';
     };

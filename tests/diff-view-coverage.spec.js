@@ -231,6 +231,195 @@ test('notation is coloured in Diff View, the same as a reader sees it', async ({
   expect(distinct.size, `every step came out the same colour: ${JSON.stringify(chips)}`).toBeGreaterThan(1);
 });
 
+test('prose diffs render as a diff, not as visible <ins> tags', async ({ page }) => {
+  // v0.15 item 1 closed a stored-XSS hole by escaping at every innerHTML
+  // interpolation in the block renderer - and that escaped diffTextLCS's own
+  // <ins>/<del> a second time. Every prose diff in the review screen rendered
+  // as literal `<ins class="diff-add">` and `&quot;`. Two correct fixes that
+  // cancelled each other out, and no test asserted the pair.
+  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+
+  const out = await renderScope(page, 'overview', 'full', [
+    { type: 'heading', size: 'h3', content: 'A brand new heading' },
+    { type: 'paragraph', content: 'He said "hello" and it\'s fine.' },
+  ]);
+  expect(out.err).toBe('');
+  await page.waitForTimeout(300);
+
+  const rendered = await page.evaluate(() => {
+    const c = document.getElementById('admin-diff-container');
+    return {
+      insCount: c.querySelectorAll('ins.diff-add').length,
+      delCount: c.querySelectorAll('del.diff-del').length,
+      text: c.innerText,
+    };
+  });
+
+  expect(rendered.insCount, 'the added text should be real <ins> elements').toBeGreaterThan(0);
+  // The exact symptom from the screenshots: tags and entities as visible text.
+  expect(rendered.text, 'diff markup must not be readable as text').not.toContain('<ins class=');
+  expect(rendered.text).not.toContain('<del class=');
+  expect(rendered.text, 'text must be escaped exactly once').not.toContain('&quot;');
+  expect(rendered.text).not.toContain('&#39;');
+  // And the contributor's actual words survive, correctly decoded.
+  expect(rendered.text).toContain('He said "hello"');
+  expect(rendered.text).toContain("it's fine");
+});
+
+test('a mixed diff renders both sides as markup', async ({ page }) => {
+  // The early-return paths and the main loop are different code. Fixing only
+  // the wholly-added case would leave every ordinary edit still broken.
+  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+
+  const out = await renderScope(page, 'overview', 'full', [
+    { type: 'paragraph', content: 'live CHANGED' },
+  ]);
+  expect(out.err).toBe('');
+  await page.waitForTimeout(300);
+
+  const counts = await page.evaluate(() => {
+    const c = document.getElementById('admin-diff-container');
+    return { ins: c.querySelectorAll('ins.diff-add').length, del: c.querySelectorAll('del.diff-del').length };
+  });
+  expect(counts.ins).toBeGreaterThan(0);
+  expect(counts.del).toBeGreaterThan(0);
+});
+
+test('a submission cannot forge diff markers', async ({ page }) => {
+  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+
+  const safe = await page.evaluate(() => {
+    // The markers are control characters. If a contributor could smuggle one
+    // through, they could open a tag the differ never opened.
+    const forged = window.DIFF_MARKERS.addOpen + 'forged' + window.DIFF_MARKERS.addClose;
+    const out = window.diffTextLCS('', forged + '<img src=x onerror=alert(1)>');
+    const host = document.createElement('div');
+    host.textContent = out;                 // as the block renderer would escape it
+    window.resolveDiffMarkers(host);
+    return { html: host.innerHTML, imgs: host.querySelectorAll('img').length };
+  });
+
+  expect(safe.imgs, 'no element may be created from submitted text').toBe(0);
+  // Asserted as "still escaped", not as "the substring is absent" - the text
+  // is allowed to CONTAIN onerror=alert(1), it just must not be markup. An
+  // absence assertion here would pass for the wrong reason the moment the
+  // wording changed, which is the trap two tests in admin-structured-diff
+  // fell into this same session.
+  expect(safe.html, 'the tag must survive only in escaped form').toContain('&lt;img src=x onerror=alert(1)&gt;');
+  expect(safe.html, 'a forged marker must not become a tag').not.toContain('>forged<');
+});
+
+// --- THE OTHER PAGE TYPES ---
+//
+// A system page took a different route through this renderer and kept the old
+// "[Tab] ➔ Section" wording baked into each block title, so the same reviewer
+// read two different vocabularies depending on which queue item they opened -
+// and only one of them named a place.
+
+async function renderSystemDiff(page, pageType, liveDesc, payload) {
+  return page.evaluate(async ({ pageType, liveDesc, payload }) => {
+    document.body.innerHTML = `<div class="main-content-area"></div>`;
+    const rev = {
+      id: 'sys', page_id: 'basic-fundamentals', page_type: pageType, is_delta: true,
+      target_scope: 'system_data', target_key: 'full', delta_payload: payload,
+    };
+    window.currentQueueData = [rev];
+    window.activePreviewRevId = 'sys';
+    window.activePreviewCharId = 'basic-fundamentals';
+    window.activePreviewPageType = pageType;
+    window.activePreviewMode = null;
+    window.currentLiveDescData = JSON.parse(JSON.stringify(liveDesc));
+    window.currentLiveFrameData = {};
+    window.currentPendingDescData = JSON.parse(JSON.stringify(payload));
+    window.currentPendingFrameData = {};
+
+    let err = '';
+    try { await switchVersionView('diff'); } catch (e) { err = String(e.message || e); }
+    await new Promise(r => setTimeout(r, 250));
+
+    const c = document.getElementById('admin-diff-container');
+    return {
+      err,
+      blocks: c ? c.querySelectorAll('.diff-container').length : 0,
+      locations: c ? [...c.querySelectorAll('.diff-location-label')].map(n => n.innerText.trim()) : [],
+      titles: c ? [...c.querySelectorAll('.diff-section-title')].map(n => n.innerText.trim()) : [],
+      ins: c ? c.querySelectorAll('ins.diff-add').length : 0,
+      text: c ? c.innerText : '',
+    };
+  }, { pageType, liveDesc, payload });
+}
+
+const SYS_LIVE = {
+  tabs: [{
+    tabId: 'basic-fundamentals', tabLabel: 'Basic Fundamentals',
+    sections: [{ sectionTitle: 'Introduction', layout: 'full', width: 100, alignment: 'left',
+                 blocks: [{ type: 'paragraph', content: 'live system text' }] }],
+  }],
+};
+
+test('a system page names its location the same way a character page does', async ({ page }) => {
+  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+
+  const payload = JSON.parse(JSON.stringify(SYS_LIVE));
+  payload.tabs[0].sections[0].blocks[0].content = 'CHANGED system text';
+
+  const out = await renderSystemDiff(page, 'system', SYS_LIVE, payload);
+
+  expect(out.err).toBe('');
+  expect(out.blocks).toBeGreaterThan(0);
+  expect(out.locations.length, 'a system page should say where the change is').toBeGreaterThan(0);
+
+  // "Changed:" is CSS-uppercased, and innerText reflects that.
+  const joined = out.locations.join(' | ');
+  expect(joined.toLowerCase()).toContain('changed:');
+  expect(joined).toContain('Basic Fundamentals');
+  expect(joined).toContain('Introduction');
+  // The old form put the location inside the block heading, in brackets.
+  expect(out.titles.join(' | '), 'the location belongs in the breadcrumb, not the heading')
+    .not.toContain('[Basic Fundamentals]');
+});
+
+test('a system page renders its prose as a diff too', async ({ page }) => {
+  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+
+  const payload = JSON.parse(JSON.stringify(SYS_LIVE));
+  payload.tabs[0].sections[0].blocks[0].content = 'CHANGED system text';
+
+  const out = await renderSystemDiff(page, 'system', SYS_LIVE, payload);
+  expect(out.ins, 'system prose should diff as markup, not visible tags').toBeGreaterThan(0);
+  expect(out.text).not.toContain('<ins class=');
+});
+
+test('an unchanged system section is not announced as changed', async ({ page }) => {
+  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+
+  // Two sections, one edited. The old code emitted a heading for every section
+  // of every tab whether or not it changed, so a one-word edit to a long page
+  // produced a wall of headings with nothing under most of them.
+  const live = JSON.parse(JSON.stringify(SYS_LIVE));
+  live.tabs[0].sections.push({ sectionTitle: 'Untouched', layout: 'full', width: 100, alignment: 'left',
+                               blocks: [{ type: 'paragraph', content: 'same either way' }] });
+  const payload = JSON.parse(JSON.stringify(live));
+  payload.tabs[0].sections[0].blocks[0].content = 'CHANGED system text';
+
+  const out = await renderSystemDiff(page, 'system', live, payload);
+  expect(out.locations.join(' | ')).toContain('Introduction');
+  expect(out.locations.join(' | '), 'an unchanged section should not be listed').not.toContain('Untouched');
+});
+
+test('a tier list page also names its location', async ({ page }) => {
+  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+
+  const live = { tabs: [{ tabId: 'main', tabLabel: 'Season 1', tiers: [{ name: 'S', characters: ['Vessel'] }], changelog: [] }] };
+  const payload = JSON.parse(JSON.stringify(live));
+  payload.tabs[0].tiers[0].characters.push('Boomcat');
+
+  const out = await renderSystemDiff(page, 'tierlist', live, payload);
+  expect(out.err).toBe('');
+  expect(out.locations.join(' | ')).toContain('Season 1');
+  expect(out.locations.join(' | ')).toContain('Tiers');
+});
+
 test('editing Read First marks the Combos tab, not Overview', async ({ page }) => {
   await page.goto('/admin.html', { waitUntil: 'networkidle' });
 

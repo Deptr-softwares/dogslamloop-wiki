@@ -270,6 +270,23 @@ async function switchVersionView(mode) {
         const fixedSectionByScope = (scope) =>
             (window.FIXED_BLOCK_SECTIONS || []).find(s => s.scope === scope) || null;
 
+        // WHERE THIS CHANGE IS, in one shape for every page type.
+        //
+        // Character pages got a breadcrumb and system, tool, gallery and tier
+        // list pages kept "[Tab] ➔ Section" baked into the block title - so the
+        // same reviewer read two different vocabularies depending on which
+        // queue item they opened, and only one of them named a place.
+        const renderLocation = (crumbs) => {
+            const parts = crumbs
+                .filter(Boolean)
+                .map(s => (window.escapeHtml ? window.escapeHtml(String(s)) : String(s)));
+            if (!parts.length) return;
+            diffContainer.innerHTML += `<div class="diff-location-label">`
+                + `<span class="diff-location-lead">Changed:</span> `
+                + parts.join(' <span class="diff-crumb-sep">›</span> ')
+                + `</div>`;
+        };
+
         // The Combo List's rows. Paired by POSITION, because that is what the
         // author edits - a combo table is an ordered list, and the route text
         // is the thing most likely to change, so keying on it would report
@@ -345,13 +362,7 @@ async function switchVersionView(mode) {
                 // shown, so only the move itself is worth repeating.
                 const entryName = rawKeyLabel === 'full' ? '' : rawKeyLabel.split('::').pop();
 
-                const crumbs = [where.replace(/ \/ $/, ''), tabName, formatScopeName(scope), entryName]
-                    .filter(Boolean)
-                    .map(s => (window.escapeHtml ? window.escapeHtml(s) : s));
-
-                diffContainer.innerHTML += `<div class="diff-location-label">`
-                    + `<span class="diff-location-lead">Changed:</span> ${crumbs.join(' <span class="diff-crumb-sep">›</span> ')}`
-                    + `</div>`;
+                renderLocation([where.replace(/ \/ $/, ''), tabName, formatScopeName(scope), entryName]);
 
                 if (['profile', 'playstyle', 'overview', 'strategy'].includes(scope)) {
                     renderDiffBlock(formatScopeName(scope), liveDesc[scope], payload);
@@ -506,13 +517,25 @@ async function switchVersionView(mode) {
                     const nTab = newTabs.find(t => (t.tabId || t.id) === tabId) || { sections: [] };
                     const tabLabel = nTab.tabLabel || nTab.label || oTab.tabLabel || oTab.label || tabId;
 
+                    // The location goes in the breadcrumb, not into every block
+                    // title. It used to read "[Basic Fundamentals] ➔
+                    // Introduction" inside the heading itself, which put the
+                    // tab name on screen once per block and still never said
+                    // which page type it belonged to.
                     if ((oTab.tabLabel || oTab.label) !== (nTab.tabLabel || nTab.label)) {
-                         renderDiffBlock(`Tab: ${tabId} Metadata`, { label: oTab.tabLabel || oTab.label }, { label: nTab.tabLabel || nTab.label });
+                         renderLocation([tabLabel, 'Tab name']);
+                         renderDiffBlock('Tab Name', { label: oTab.tabLabel || oTab.label }, { label: nTab.tabLabel || nTab.label });
                     }
 
                     if (window.activePreviewPageType === 'tierlist') {
-                         renderDiffBlock(`[${tabLabel}] ➔ Tiers`, oTab.tiers || [], nTab.tiers || [], 'json');
-                         renderDiffBlock(`[${tabLabel}] ➔ Changelog`, oTab.changelog || [], nTab.changelog || [], 'json');
+                         if (JSON.stringify(oTab.tiers || []) !== JSON.stringify(nTab.tiers || [])) {
+                              renderLocation([tabLabel, 'Tiers']);
+                              renderDiffBlock('Tiers', oTab.tiers || [], nTab.tiers || [], 'json');
+                         }
+                         if (JSON.stringify(oTab.changelog || []) !== JSON.stringify(nTab.changelog || [])) {
+                              renderLocation([tabLabel, 'Changelog']);
+                              renderDiffBlock('Changelog', oTab.changelog || [], nTab.changelog || [], 'json');
+                         }
                     } else {
                          const oSecs = oTab.sections || [];
                          const nSecs = nTab.sections || [];
@@ -522,14 +545,19 @@ async function switchVersionView(mode) {
                               const oSec = oSecs[i] || {};
                               const nSec = nSecs[i] || {};
                               const secTitle = nSec.sectionTitle || oSec.sectionTitle || `Section ${i+1}`;
+                              const layoutChanged = oSec.layout !== nSec.layout
+                                  || oSec.width !== nSec.width || oSec.alignment !== nSec.alignment;
+                              const blocksChanged = JSON.stringify(oSec.blocks || []) !== JSON.stringify(nSec.blocks || []);
+                              if (!layoutChanged && !blocksChanged) continue;
 
-                              if (oSec.layout !== nSec.layout || oSec.width !== nSec.width || oSec.alignment !== nSec.alignment) {
-                                   renderDiffBlock(`Layout: [${tabLabel}] ➔ ${secTitle}`,
+                              renderLocation([tabLabel, secTitle]);
+                              if (layoutChanged) {
+                                   renderDiffBlock('Layout',
                                        { layout: oSec.layout, width: oSec.width, alignment: oSec.alignment },
                                        { layout: nSec.layout, width: nSec.width, alignment: nSec.alignment }
                                    );
                               }
-                              renderDiffBlock(`[${tabLabel}] ➔ ${secTitle}`, oSec.blocks || [], nSec.blocks || []);
+                              if (blocksChanged) renderDiffBlock(secTitle, oSec.blocks || [], nSec.blocks || [], 'system-content');
                          }
                     }
                 });
@@ -744,6 +772,11 @@ async function switchVersionView(mode) {
                 `;
                 diffRenderQueue.push(() => {
                     if (typeof window.populateTextSection === 'function') window.populateTextSection(`diff-inline-${safeId}`, '', diffedBlocks, context);
+                    // The renderer has now escaped the contributor's text, once.
+                    // Turn the diff markers it left alone into real tags.
+                    if (typeof window.resolveDiffMarkers === 'function') {
+                        window.resolveDiffMarkers(document.getElementById(`diff-inline-${safeId}`));
+                    }
                 });
 
             } else {
