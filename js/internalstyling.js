@@ -458,12 +458,22 @@ function applyInternalStyling() {
             //
             // rel added at the same time: target="_blank" without it hands the
             // opened page a window.opener reference back to the wiki.
+            //
+            // A fragment is an IN-PAGE link and is handled separately: it gets
+            // no target="_blank", because opening a second copy of the page
+            // scrolled to a section is not what "jump to the Tech section"
+            // means. js/pagebuilder.js picks these up by class and resolves
+            // them, which is what lets one cross a tab boundary - the plain
+            // browser behaviour cannot, since the target tab is display:none
+            // until something clicks it.
             content = content.replace(/\[url=([^\]]+)\]((?:(?!\[url=)[\s\S])*?)\[\/url\]/gi,
                 (whole, rawUrl, label) => {
                     const url = safeUrl(rawUrl);
-                    return url
-                        ? `<a href="${escAttr(url)}" class="wiki-link" target="_blank" rel="noopener noreferrer">${label}</a>`
-                        : label;
+                    if (!url) return label;
+                    if (url.charAt(0) === '#') {
+                        return `<a href="${escAttr(url)}" class="wiki-link wiki-link-jump">${label}</a>`;
+                    }
+                    return `<a href="${escAttr(url)}" class="wiki-link" target="_blank" rel="noopener noreferrer">${label}</a>`;
                 });
 
         } while (content !== previousContent);

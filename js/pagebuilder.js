@@ -834,6 +834,155 @@ window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = '
     });
 };
 
+// --- SECTION ANCHORS ---
+//
+// Every indexable heading gets a STABLE id derived from its own text, so a
+// link written into page content still points at the same section after
+// somebody inserts a section above it.
+//
+// This replaces refreshTOC's old `toc-<slug>-<index>` ids, which were
+// POSITIONAL: the index was the heading's place in the active tab's list, so
+// inserting one section renumbered every id below it and any stored link
+// silently rotted. v0.15 item 8 makes reordering sections a feature, which
+// would have broken those links on purpose.
+//
+// It also sweeps the whole content area rather than the active tab. The old
+// code only gave ids to VISIBLE headings, so a link from Skills to a section
+// in Overview pointed at an element that had no id until the reader happened
+// to open Overview first - precisely the case in-page links exist for.
+const ANCHOR_PREFIX = 'sec-';
+const ANCHOR_HEADING_SELECTOR =
+    '.section-title, .skill-title, .strategy-title, .card-header-title, .wiki-block-heading';
+
+window.sectionAnchorSlug = function(text) {
+    return String(text == null ? '' : text)
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+};
+
+// A heading can contain CONTROLS - the dashboards nest a "View More" link
+// inside their section titles - and their text is not part of the heading.
+// Shared with the ToC below so the label it displays and the slug it links to
+// are derived from the same string; deriving them separately is how they would
+// come to disagree.
+//
+// Controls, not every anchor. This used to strip `a, button` outright, which
+// was fine until js/internalstyling.js started wrapping character mentions in
+// a link (v0.14): every matchup heading is "vs. <a>Honored One</a>", so the
+// whole ToC indexed as a column of "vs." with no names.
+//
+// A link the AUTHOR wrote into a heading is prose and its text belongs in the
+// label; a button-styled one is furniture and does not.
+function anchorLabel(header) {
+    const labelSource = header.cloneNode(true);
+    labelSource.querySelectorAll('button, a[class*="btn-"]').forEach(el => el.remove());
+    return labelSource.textContent.trim() || header.textContent.trim();
+}
+window.sectionAnchorLabel = anchorLabel;
+
+window.assignSectionAnchors = function(root) {
+    const scope = root
+        || document.querySelector('.main-content-area')
+        || document.querySelector('main');
+    if (!scope) return;
+
+    const headers = scope.querySelectorAll(ANCHOR_HEADING_SELECTOR);
+    const used = new Set();
+    headers.forEach(h => { if (h.id) used.add(h.id); });
+
+    headers.forEach(header => {
+        if (header.id) return;
+
+        const slug = window.sectionAnchorSlug(anchorLabel(header));
+        if (!slug) return;
+
+        // Two sections can legitimately share a name - "Notes" under two
+        // different skills. The first keeps the clean id and the rest are
+        // numbered in document order, so a rename elsewhere on the page does
+        // not disturb them.
+        let id = ANCHOR_PREFIX + slug;
+        let n = 2;
+        while (used.has(id) || document.getElementById(id)) {
+            id = `${ANCHOR_PREFIX}${slug}-${n++}`;
+        }
+
+        header.id = id;
+        used.add(id);
+    });
+};
+
+// Resolve a fragment to a section and go there, crossing a tab boundary and
+// opening a collapsed accordion on the way if it has to.
+//
+// Returns false rather than throwing when the target is not on the page. A
+// link into a character's other STATE is the case that returns false: modes
+// re-render the tabs rather than hiding a parallel copy, so the target does
+// not exist in the DOM at all and cannot be reached by unhiding anything.
+window.jumpToAnchor = function(rawId, options) {
+    const opts = options || {};
+    const id = String(rawId == null ? '' : rawId).replace(/^#/, '').trim();
+    if (!id) return false;
+
+    window.assignSectionAnchors();
+
+    let target = document.getElementById(id);
+
+    // Links copied out of the address bar before anchors became stable carry
+    // the old positional form. Recover the slug from it and try the stable id.
+    if (!target) {
+        const legacy = /^toc-(.+)-\d+$/.exec(id);
+        if (legacy) target = document.getElementById(ANCHOR_PREFIX + legacy[1]);
+    }
+    // And a hand-written `#Triple Drill Tech` is what somebody will type
+    // before they discover the picker, so slugify it and try that too.
+    if (!target && id.indexOf(ANCHOR_PREFIX) !== 0) {
+        const slug = window.sectionAnchorSlug(id);
+        if (slug) target = document.getElementById(ANCHOR_PREFIX + slug);
+    }
+    if (!target) return false;
+
+    // Click the real tab button rather than un-hiding the panel, so the strip's
+    // own bookkeeping - active states, the ToC refresh - runs exactly as it
+    // does for a reader who clicked it.
+    const panel = target.closest('[id^="tab-"]');
+    const switchedTab = !!(panel && panel.classList.contains('hidden'));
+    if (switchedTab) {
+        const btn = document.getElementById(`nav-${panel.id.slice(4)}`);
+        if (btn) btn.click();
+    }
+
+    // A heading inside a closed accordion is scrolled to correctly and then
+    // not there, because the body it lives in has no height. Open every
+    // <details> above it first.
+    let node = target.parentElement;
+    while (node) {
+        if (node.tagName === 'DETAILS') node.open = true;
+        node = node.parentElement;
+    }
+
+    const scroll = () => {
+        const offset = 40; // Gives breathing room above the header
+        const top = target.getBoundingClientRect().top + window.scrollY;
+        window.scrollTo({ top: top - offset, behavior: opts.behavior || 'smooth' });
+
+        if (opts.updateHash !== false) {
+            history.pushState(null, null, `#${id}`);
+        }
+        // Briefly marks where the reader landed. Without it a jump into a long
+        // tab drops you at a heading with no sense of which one was the target.
+        target.classList.add('anchor-flash');
+        setTimeout(() => target.classList.remove('anchor-flash'), 1600);
+    };
+
+    // The panel has to actually be visible before its position can be measured.
+    if (switchedTab) setTimeout(scroll, 60);
+    else scroll();
+
+    return true;
+};
+
 // Context-Aware, Expansive & Collapsible Table of Contents Generator
 window.refreshTOC = function() {
     const tocContainer = document.getElementById('dynamic-toc');
@@ -882,38 +1031,17 @@ window.refreshTOC = function() {
     let tocStructure = [];
     let currentGroup = null;
 
-    headers.forEach((header, index) => {
+    // Ids come from assignSectionAnchors, which sweeps every tab rather than
+    // just this one. The ToC used to mint its own here, positionally - see the
+    // note on that function for why that could not stay.
+    window.assignSectionAnchors();
+
+    headers.forEach((header) => {
         if (header.textContent.trim() === 'Move Overview and Strategy') return;
+        if (!header.id) return;
 
-        // Dynamic Anchor Generation
-        if (!header.id) {
-            const slug = header.textContent.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
-            header.id = `toc-${slug}-${index}`;
-        }
-        
         const isMinor = header.classList.contains('wiki-block-heading');
-
-        // A heading can contain CONTROLS - the dashboards nest a "View More"
-        // link inside their section titles - and their text is not part of the
-        // heading. Without this the homepage ToC reads "Characters View More
-        // ➔". Falls back to the full text for a heading that is itself a
-        // control, where stripping would leave nothing.
-        //
-        // Controls, not every anchor. This used to strip `a, button` outright,
-        // which was fine until js/internalstyling.js started wrapping
-        // character mentions in a link (v0.14): every matchup heading is
-        // "vs. <a>Honored One</a>", so the whole ToC indexed as a column of
-        // "vs." with no names. The two that survived are the two that were
-        // never wrapped - the page's own character, which the linker skips,
-        // and a misspelled opponent, which matches no character at all.
-        //
-        // A link the AUTHOR wrote into a heading is prose and its text belongs
-        // in the label; a button-styled one is furniture and does not.
-        const labelSource = header.cloneNode(true);
-        labelSource.querySelectorAll('button, a[class*="btn-"]').forEach(el => el.remove());
-        const label = labelSource.textContent.trim() || header.textContent.trim();
-
-        const itemData = { id: header.id, text: label };
+        const itemData = { id: header.id, text: anchorLabel(header) };
 
         if (!isMinor) {
             // Create a new major group
@@ -997,21 +1125,61 @@ window.refreshTOC = function() {
     });
 };
 
-// Smooth scroll with offset to prevent headers from hiding under the top of the screen
+// Smooth scroll with offset to prevent headers from hiding under the top of the screen.
+// Delegates to jumpToAnchor so a ToC entry and a contributor's in-page link
+// behave identically - same offset, same accordion handling, same highlight.
 window.smoothScroll = function(e, targetId) {
-    e.preventDefault();
-    const target = document.getElementById(targetId);
-    if (target) {
-        const offset = 40; // Gives breathing room above the header
-        const elementPosition = target.getBoundingClientRect().top + window.scrollY;
-        
-        window.scrollTo({
-            top: elementPosition - offset,
-            behavior: 'smooth'
-        });
-        history.pushState(null, null, `#${targetId}`);
-    }
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    window.jumpToAnchor(targetId);
 };
+
+// --- ARRIVING BY LINK ---
+//
+// Nothing on the site read location.hash before this, so a section link
+// pasted into Discord landed at the top of the page and the reader had to
+// find the section by hand.
+//
+// Retried rather than run once, because the target usually does not exist yet.
+// Page content is fetched after boot and the two boot branches deliberately
+// differ in their timing (character pages fire concurrently with a 500ms ToC
+// delay, system pages await in order with 150ms), so a single attempt at
+// DOMContentLoaded would resolve on neither. Stops at the first hit.
+const HASH_RETRY_DELAYS = [0, 150, 400, 800, 1500, 2500];
+
+function resolveInitialHash() {
+    const hash = window.location.hash;
+    if (!hash || hash.length < 2) return;
+
+    HASH_RETRY_DELAYS.forEach((delay, i) => {
+        setTimeout(() => {
+            if (window.__anchorHashResolved) return;
+            // Never rewrite the hash we are already sitting on.
+            if (window.jumpToAnchor(hash, { updateHash: false, behavior: i === 0 ? 'auto' : 'smooth' })) {
+                window.__anchorHashResolved = true;
+            }
+        }, delay);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', resolveInitialHash);
+
+// A second link to the same page changes only the hash, which fires no
+// navigation - so without this the second link does nothing.
+window.addEventListener('hashchange', () => {
+    window.jumpToAnchor(window.location.hash, { updateHash: false });
+});
+
+// Contributor-written in-page links, marked by js/internalstyling.js.
+//
+// Delegated on the class rather than on `a[href^="#"]`, so this does not also
+// fire for the ToC's links - those already carry an inline smoothScroll and
+// would be handled twice, pushing two history entries for one click.
+document.addEventListener('click', (e) => {
+    const link = e.target.closest && e.target.closest('a.wiki-link-jump');
+    if (!link) return;
+    e.preventDefault();
+    window.jumpToAnchor(link.getAttribute('href'));
+});
 
 // Restored: Wiki Alert Generator
 window.showWikiAlert = function(containerId, type, message) {
