@@ -803,7 +803,25 @@ window.renderCombosTab = function (data) {
         return;
     }
 
+    // The three parts are DOCUMENT SECTIONS, so each gets a heading rather
+    // than a card. Owner, 2026-08-16: a group wrapped in .wiki-section makes
+    // every TheoryBox inside it a card within a card, when the cards are
+    // supposed to BE the sections. The reference agrees - `==Beginner Combos==`
+    // is a heading, and the boxes under it are the combos.
+    const addHeading = (text, extraClass) => {
+        const h = document.createElement('h3');
+        h.className = `section-title section-title-clean combo-section-title${extraClass ? ` ${extraClass}` : ''}`;
+        h.textContent = text;
+        container.appendChild(h);
+        return h;
+    };
+
     // --- Read First ---
+    //
+    // Stays a CARD, unlike the groups. It is a mandatory prose section like
+    // Overview or General Strategy - it holds paragraphs, not combo cards, so
+    // there is nothing inside it that needs to be its own section. Owner,
+    // 2026-08-16: only the groups needed the wrapper removed.
     if (introBlocks && introBlocks.length) {
         const section = document.createElement('section');
         section.className = 'wiki-section wiki-section-clip combo-intro';
@@ -821,19 +839,15 @@ window.renderCombosTab = function (data) {
     // --- The author's groups ---
     (groupList || []).forEach((group, idx) => {
         if (!group) return;
-        const section = document.createElement('section');
-        section.className = 'wiki-section wiki-section-clip combo-group';
-        const title = group[groups.keyField] || 'Untitled';
-        section.innerHTML = `<div class="card-header-flex"><h3 class="card-header-title">${escBlockText(title)}</h3></div>`;
+        addHeading(group[groups.keyField] || 'Untitled', 'combo-group-title');
 
         const body = document.createElement('div');
-        body.className = 'combos-content';
+        body.className = 'combos-content combo-group';
         // Indexed, not keyed by title: a title is contributor text and two
         // groups may share one, which would collide the ids and make
         // populateTextSection render into the first one twice.
         body.id = `combo-group-content-${idx}`;
-        section.appendChild(body);
-        container.appendChild(section);
+        container.appendChild(body);
 
         if (Array.isArray(group.content) && group.content.length) {
             populateTextSection(body.id, '', group.content, 'combos');
@@ -848,7 +862,7 @@ window.renderCombosTab = function (data) {
     if (list && tables && tables.length) {
         const host = document.createElement('div');
         host.className = 'combo-list-section space-y-6';
-        host.innerHTML = `<h3 class="section-title section-title-clean combo-list-title">${escBlockText(list.label)}</h3>`;
+        host.innerHTML = `<h3 class="section-title section-title-clean combo-section-title combo-list-title">${escBlockText(list.label)}</h3>`;
 
         // Every row in the SECTION decides the columns, so all its tables share
         // a shape. Per table, one grows a Setup column and the next grows

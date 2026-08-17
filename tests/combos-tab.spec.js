@@ -61,17 +61,30 @@ test('the tab is three sections, and the Combo List is last', async ({ page }) =
   await renderCombos(page);
 
   const doc = await page.evaluate(() => ({
-    order: [...document.querySelectorAll('#tab-combos > *')]
-      .map(el => [...el.classList].find(c => c.startsWith('combo')) || el.tagName),
-    titles: [...document.querySelectorAll('#tab-combos .card-header-title')].map(t => t.textContent),
-    listHeading: document.querySelector('.combo-list-title')?.textContent,
+    // Each part is a document SECTION - a heading with its content under it,
+    // not a card. A group wrapped in .wiki-section made every combo card a
+    // card inside a card (owner, 2026-08-16).
+    headings: [...document.querySelectorAll('#tab-combos .combo-section-title')].map(h => h.textContent),
+    introIsCard: !!document.querySelector('#tab-combos section.wiki-section.combo-intro'),
+    groupsInCards: document.querySelectorAll('#tab-combos .wiki-section .combo-group').length,
+    tableTitles: [...document.querySelectorAll('#tab-combos .combo-list-table .card-header-title')].map(t => t.textContent),
     tables: document.querySelectorAll('.combo-list-table').length,
+    // The Combo List is last, after every group.
+    listIsLast: (() => {
+      const kids = [...document.querySelectorAll('#tab-combos > *')];
+      return kids.findIndex(k => k.classList.contains('combo-list-section')) === kids.length - 1;
+    })(),
   }));
 
-  expect(doc.order).toEqual(['combo-intro', 'combo-group', 'combo-group', 'combo-list-section']);
-  expect(doc.titles).toEqual(['Read First', 'True Combos', 'Advanced', 'M1 Starters', 'R↑ Starters']);
-  expect(doc.listHeading).toBe('Combo List');
-  expect(doc.tables, 'one table per starter').toBe(2);
+  // Read First is deliberately NOT here: it is a mandatory prose section like
+  // Overview, so it keeps its card. Only the groups lose the wrapper, because
+  // the combo cards inside them are the sections (owner, 2026-08-16).
+  expect(doc.headings).toEqual(['True Combos', 'Advanced', 'Combo List']);
+  expect(doc.introIsCard, 'Read First stays a card').toBe(true);
+  expect(doc.groupsInCards, 'a group is a heading, not a card wrapping its cards').toBe(0);
+  expect(doc.tableTitles, 'the Combo List keys its tables by starter').toEqual(['M1 Starters', 'R↑ Starters']);
+  expect(doc.tables).toBe(2);
+  expect(doc.listIsLast).toBe(true);
 });
 
 test('the three sections are declared with the scopes the pipeline keys off', () => {
@@ -279,7 +292,10 @@ test('the editor is a sub-tab strip, and builds all three sections', async ({ pa
 
   const strip = await page.evaluate(() =>
     [...document.querySelectorAll('[id^="combos-nav-"]')].map(b => b.id));
-  expect(strip, 'the fixed two come first').toEqual(['combos-nav-intro', 'combos-nav-list']);
+  // The fixed two LEAD the strip; groups follow. Not an exact match, because
+  // Boomcat is the owner's real page and may already carry groups of their
+  // own - pinning the whole strip pins their content.
+  expect(strip.slice(0, 2), 'the fixed two come first').toEqual(['combos-nav-intro', 'combos-nav-list']);
   await expect(page.locator('#strategy-block-target'), 'Read First opens on a block builder')
     .toHaveCount(1);
 
@@ -291,12 +307,20 @@ test('the editor is a sub-tab strip, and builds all three sections', async ({ pa
 
   const afterGroup = await page.evaluate(() => ({
     groups: (window.currentEditorDescData.comboGroups || []).map(g => g.title),
-    navLabel: document.getElementById('combos-nav-group-0')?.textContent,
-    previewTitles: [...document.querySelectorAll('#tab-combos .card-header-title')].map(t => t.textContent),
+    // The group THIS test opened, not group-0: Boomcat may already have some.
+    openIdx: parseInt(String(window.currentCombosSection || '').replace('group-', ''), 10),
+    navLabel: document.getElementById(`combos-nav-${window.currentCombosSection}`)?.textContent,
+    previewHeadings: [...document.querySelectorAll('#tab-combos .combo-section-title')].map(h => h.textContent),
+    // No card selected yet, so there is nothing to add a block TO. An ADD
+    // BLOCK toolbar here would attach blocks as siblings of the cards.
+    addBlockOffered: !!document.getElementById('btn-toggle-add-menu'),
+    hint: document.querySelector('#combo-card-body .admin-tool-hint')?.textContent,
   }));
-  expect(afterGroup.groups).toEqual(['True Combos']);
+  expect(afterGroup.groups[afterGroup.openIdx]).toBe('True Combos');
   expect(afterGroup.navLabel, 'the strip follows the title').toBe('True Combos');
-  expect(afterGroup.previewTitles).toContain('True Combos');
+  expect(afterGroup.previewHeadings).toContain('True Combos');
+  expect(afterGroup.addBlockOffered, 'no block toolbar until a card is selected').toBe(false);
+  expect(afterGroup.hint).toContain('Select a combo card');
 
   // The Combo List, whose rows open in a modal - the editor's left pane shares
   // the screen with the live preview, and a dozen fields there was mostly
@@ -318,8 +342,11 @@ test('the editor is a sub-tab strip, and builds all three sections', async ({ pa
   await page.waitForTimeout(400);
 
   const state = await page.evaluate(() => ({
-    table: (window.currentEditorDescData.comboList || [])[0],
-    previewRows: document.querySelectorAll('#tab-combos .combo-row').length,
+    // The table THIS test opened. Boomcat is the owner's real page and may
+    // already carry starters, so indexing from the front reads their content
+    // and compares it against this test's input.
+    table: (window.currentEditorDescData.comboList || [])[window.currentComboTableIndex],
+    previewRows: document.querySelectorAll('#tab-combos .combo-list-table').length,
   }));
 
   expect(state.table.starter).toBe('M1 Starters');
@@ -330,7 +357,7 @@ test('the editor is a sub-tab strip, and builds all three sections', async ({ pa
   // A stray `rows: []` here meant editor-tabs.js had overwritten
   // description.js's window.renderComboTableBody by declaring the same name.
   expect(Object.keys(state.table.rows[0])).not.toContain('rows');
-  expect(state.previewRows, 'the live preview shows the table as it types').toBe(1);
+  expect(state.previewRows, 'the live preview draws the table as it types').toBeGreaterThan(0);
 
   await page.locator('#combo-row-modal-done').click();
   await page.waitForTimeout(250);

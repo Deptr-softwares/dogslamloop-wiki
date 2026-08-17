@@ -169,38 +169,51 @@ test('the editor offers the card and writes its route as an array', async ({ pag
   await page.goto('/edit.html?char=boomcat&type=character&tab=combos', { waitUntil: 'networkidle' });
   await page.waitForTimeout(1200);
 
-  // A card lives inside a group, which is where the block builder is.
+  // A card lives inside a group, and a group's editor is a LIST OF CARDS -
+  // the block builder belongs to whichever card is open, not to the group.
+  // Owner, 2026-08-16: an ADD BLOCK with no card selected has nowhere to put
+  // the block, and one added there becomes a sibling of the cards.
   await page.locator('[onclick*="addComboGroup"]').click();
   await page.waitForTimeout(400);
 
-  // The real control, not a guess: the picker is behind ADD BLOCK.
-  await page.locator('#btn-toggle-add-menu').click();
-  await page.waitForTimeout(250);
-  const picker = page.locator('[data-type="theorybox"]');
-  await expect(picker, 'the block picker offers a Combo Card').toHaveCount(1);
-  await picker.click();
+  const beforeCard = await page.evaluate(() => ({
+    addBlockOffered: !!document.getElementById('btn-toggle-add-menu'),
+    builder: !!document.getElementById('strategy-block-target'),
+  }));
+  expect(beforeCard.addBlockOffered, 'no block toolbar before a card is selected').toBe(false);
+  expect(beforeCard.builder).toBe(false);
+
+  await page.locator('#combo-card-add').click();
   await page.waitForTimeout(400);
 
-  await page.locator('[data-field="sequence-lines"]').fill('M1\n\nMURMURATE\nR↑');
-  await page.locator('[data-field="damage"]').fill('38-46');
+  await page.locator('[data-card-field="sequence"]').fill('M1\n\nMURMURATE\nR↑');
+  await page.locator('[data-card-field="damage"]').fill('38-46');
   await page.waitForTimeout(500);
 
   const state = await page.evaluate(() => {
     const groups = window.currentEditorDescData.comboGroups || [];
-    const blocks = (window.getActiveBlocks && window.getActiveBlocks()) || [];
-    const card = blocks.find(b => b && b.type === 'theorybox');
+    // The group THIS test opened, not groups[0]. Boomcat is the owner's real
+    // page and already carries combo groups of their own, so indexing from the
+    // front reads their content and compares it against this test's input.
+    const openIdx = parseInt(String(window.currentCombosSection || '').replace('group-', ''), 10);
+    const group = groups[openIdx] || {};
+    const card = (group.content || [])[window.currentComboCardIndex];
     return {
       groups: groups.length,
-      card: card ? { sequence: card.sequence, damage: card.damage, hasContent: Array.isArray(card.content) } : null,
+      card: card ? { type: card.type, sequence: card.sequence, damage: card.damage, hasContent: Array.isArray(card.content) } : null,
       previewCards: document.querySelectorAll('#tab-combos .theorybox').length,
+      // Mounted now, and scoped to the open card's write-up.
+      builderMounted: !!document.getElementById('strategy-block-target'),
     };
   });
 
-  expect(state.card, 'the card was added to the group').toBeTruthy();
+  expect(state.card, 'the card was added to the group this test opened').toBeTruthy();
+  expect(state.card.type).toBe('theorybox');
   // Blank lines dropped rather than becoming empty chips.
   expect(state.card.sequence).toEqual(['M1', 'MURMURATE', 'R↑']);
   expect(state.card.damage).toBe('38-46');
   expect(state.card.hasContent, 'content is an array so the card can nest').toBe(true);
   expect(state.previewCards, 'the live preview shows it').toBeGreaterThan(0);
+  expect(state.builderMounted, 'the write-up builder is scoped to the open card').toBe(true);
   expect(errors).toEqual([]);
 });

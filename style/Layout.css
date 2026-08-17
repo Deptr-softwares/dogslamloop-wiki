@@ -1376,3 +1376,10 @@ summary:focus-visible {
     .theorybox-head { gap: 0.4rem; }
     .theorybox-title { flex: 1 1 100%; }
 }
+
+/* The Combos tab's three parts are document SECTIONS, so each is a heading and
+   the cards under it are the boxes. Wrapping a group in .wiki-section made
+   every TheoryBox a card inside a card (owner, 2026-08-16). */
+.combo-section-title { margin: 1.75rem 0 0.5rem; }
+.combo-section-title:first-child { margin-top: 0; }
+.combo-group:not(:last-child) { margin-bottom: 0.5rem; }

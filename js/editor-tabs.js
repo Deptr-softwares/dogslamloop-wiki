@@ -741,6 +741,8 @@ window.loadCombosSectionIntoEditor = function (sectionId) {
     const group = (window.currentEditorDescData[groups.field] || [])[idx];
     if (!group) return;
 
+    if (!Array.isArray(group.content)) group.content = [];
+
     container.innerHTML = `
         <div class="block-editor-container block-editor-container-tight">
             <div class="block-card">
@@ -756,13 +758,179 @@ window.loadCombosSectionIntoEditor = function (sectionId) {
             </div>
         </div>
         <div class="editor-section-banner">
-            <span class="editor-section-banner-text">CARDS &amp; PROSE</span>
+            <span class="editor-section-banner-text">COMBO CARDS</span>
+        </div>
+        <div id="combo-cards-panel"></div>
+    `;
+
+    // A group is a list of CARDS, and the block builder edits the write-up of
+    // whichever card is open - not the group itself.
+    //
+    // Owner, 2026-08-16: "you should not be able to Add Blocks when you
+    // haven't selected a TheoryBox". Mounting the builder on group.content
+    // offered a bare block toolbar with nothing to attach a block to, and a
+    // block added there became a sibling of the cards rather than part of one.
+    window.currentComboCardIndex = undefined;
+    window.renderComboCardsPanel(idx);
+    window.renderCombosPreview();
+};
+
+// The cards inside one combo group, and the write-up editor for the open one.
+window.renderComboCardsPanel = function (groupIdx) {
+    const groups = window.getKeyedSectionByField('comboGroups');
+    const host = document.getElementById('combo-cards-panel');
+    if (!groups || !host) return;
+
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+    const group = (window.currentEditorDescData[groups.field] || [])[groupIdx];
+    if (!group) return;
+    if (!Array.isArray(group.content)) group.content = [];
+
+    const cards = group.content;
+    const open = window.currentComboCardIndex;
+
+    let html = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+    if (cards.length === 0) {
+        html += `<span class="daw-empty-state">No combo cards in this group yet.</span>`;
+    } else {
+        cards.forEach((card, i) => {
+            // A card is recognised by its name, and falls back to its route -
+            // an index is not something anyone remembers.
+            const steps = Array.isArray(card.sequence) ? card.sequence : [];
+            const label = card.title || steps.join(' > ') || `Card ${i + 1}`;
+            html += `<div class="daw-tab-item">`;
+            html += `<button class="daw-tab-btn daw-tab-btn-removable${i === open ? ' active' : ''}" data-card="${i}">${esc(label)}</button>`;
+            html += `<button class="daw-tab-remove-btn" data-remove-card="${i}" title="Remove Card">&#10006;</button>`;
+            html += `</div>`;
+        });
+    }
+    html += `<button type="button" id="combo-card-add" class="daw-tab-btn daw-add-btn btn-sys btn-sys-green">+ CARD</button>`;
+    html += `</div><div id="combo-card-body"></div>`;
+
+    host.innerHTML = html;
+
+    host.querySelectorAll('[data-card]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            flushComboCard(groupIdx);
+            window.currentComboCardIndex = parseInt(btn.getAttribute('data-card'), 10);
+            window.renderComboCardsPanel(groupIdx);
+        });
+    });
+    host.querySelectorAll('[data-remove-card]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!(await window.customConfirm('Delete this combo card and its write-up?'))) return;
+            cards.splice(parseInt(btn.getAttribute('data-remove-card'), 10), 1);
+            // The open card may have been the one removed, or shifted down.
+            window.currentComboCardIndex = undefined;
+            window.renderComboCardsPanel(groupIdx);
+            window.renderCombosPreview();
+        });
+    });
+    const addBtn = host.querySelector('#combo-card-add');
+    if (addBtn) {
+        addBtn.addEventListener('click', () => {
+            flushComboCard(groupIdx);
+            const card = window.spawnBlockWithAuthor
+                ? window.spawnBlockWithAuthor('theorybox')
+                : { type: 'theorybox', title: 'New Combo', sequence: [], content: [] };
+            cards.push(card);
+            window.currentComboCardIndex = cards.length - 1;
+            window.renderComboCardsPanel(groupIdx);
+            window.renderCombosPreview();
+        });
+    }
+
+    renderComboCardBody(groupIdx, cards);
+};
+
+// The block buffer belongs to the open card's write-up. Only ever written back
+// on a switch or a sync, same as every other block surface.
+function flushComboCard(groupIdx) {
+    const groups = window.getKeyedSectionByField('comboGroups');
+    const idx = window.currentComboCardIndex;
+    if (idx === undefined || typeof window.getActiveBlocks !== 'function') return;
+    const group = (window.currentEditorDescData[groups.field] || [])[groupIdx];
+    const card = group && Array.isArray(group.content) ? group.content[idx] : null;
+    if (card) card.content = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+}
+window.flushComboCard = flushComboCard;
+
+function renderComboCardBody(groupIdx, cards) {
+    const container = document.getElementById('combo-card-body');
+    if (!container) return;
+
+    const idx = window.currentComboCardIndex;
+    const card = cards[idx];
+    if (!card) {
+        // No card open, so no block toolbar. This is the owner's point: an
+        // ADD BLOCK with nothing selected has nowhere to put the block.
+        container.innerHTML = `<p class="admin-tool-hint">Select a combo card to edit it, or add one.</p>`;
+        return;
+    }
+
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+    const route = Array.isArray(card.sequence) ? card.sequence.join('\n') : '';
+    const difficulties = ['', ...(window.COMBO_DIFFICULTIES || [])]
+        .map(d => `<option value="${esc(d)}" ${card.difficulty === d ? 'selected' : ''}>${esc(d || '- none -')}</option>`)
+        .join('');
+
+    container.innerHTML = `
+        <div class="block-editor-container block-editor-container-tight">
+            <div class="block-card">
+                <div class="block-header"><span class="block-type-badge">COMBO CARD</span></div>
+                <div class="combo-card-fields">
+                    <div class="combo-field-full">
+                        <label class="editor-field-label-sm">Name</label>
+                        <input type="text" class="editor-input" data-card-field="title" value="${esc(card.title || '')}" placeholder="e.g. Corner BnB">
+                    </div>
+                    <div class="combo-field-full">
+                        <label class="editor-field-label-sm">One line</label>
+                        <input type="text" class="editor-input" data-card-field="oneliner" value="${esc(card.oneliner || '')}" placeholder="What this combo is for">
+                    </div>
+                    <div class="combo-field-full">
+                        <label class="editor-field-label-sm">Route - one step per line</label>
+                        <textarea class="editor-textarea" data-card-field="sequence" rows="4">${esc(route)}</textarea>
+                    </div>
+                    <div><label class="editor-field-label-sm">Damage</label>
+                        <input type="text" class="editor-input" data-card-field="damage" value="${esc(card.damage || '')}" placeholder="e.g. 38-46"></div>
+                    <div><label class="editor-field-label-sm">Difficulty</label>
+                        <select class="editor-select" data-card-field="difficulty">${difficulties}</select></div>
+                    <div><label class="editor-field-label-sm">Video</label>
+                        <input type="text" class="editor-input" data-card-field="video" value="${esc(card.video || '')}" placeholder="Optional URL"></div>
+                </div>
+            </div>
+        </div>
+        <div class="editor-section-banner">
+            <span class="editor-section-banner-text">WRITE-UP</span>
         </div>
         <div id="strategy-block-target"></div>
     `;
-    initStrategyBlockBuilder('strategy-block-target', group.content || []);
-    window.renderCombosPreview();
-};
+
+    container.querySelectorAll('[data-card-field]').forEach(input => {
+        const handler = () => {
+            const field = input.getAttribute('data-card-field');
+            if (field === 'sequence') {
+                // One step per line; blank lines dropped rather than becoming
+                // empty chips in the route.
+                card.sequence = input.value.split('\n').map(v => v.trim()).filter(Boolean);
+            } else {
+                card[field] = input.value;
+            }
+            if (field === 'title' || field === 'sequence') {
+                const btn = document.querySelector(`[data-card="${idx}"]`);
+                const steps = Array.isArray(card.sequence) ? card.sequence : [];
+                // textContent, not innerHTML - this runs on every keystroke.
+                if (btn) btn.textContent = card.title || steps.join(' > ') || `Card ${idx + 1}`;
+            }
+            window.renderCombosPreview();
+        };
+        input.addEventListener('input', handler);
+        input.addEventListener('change', handler);
+    });
+
+    // The builder edits THIS card's write-up.
+    initStrategyBlockBuilder('strategy-block-target', card.content || []);
+}
 
 // Writes the block buffer back into whichever combos section is open.
 function flushCombosSection() {
@@ -775,10 +943,12 @@ function flushCombosSection() {
         window.currentEditorDescData.comboIntro = blocks;
         return;
     }
+    // A group's buffer belongs to the open CARD's write-up, not to the group -
+    // the group holds cards, and the builder is only ever mounted on one of
+    // them. Writing `blocks` onto group.content here would replace every card
+    // in the group with the open card's write-up.
     const idx = parseInt(String(open).replace('group-', ''), 10);
-    const groups = window.getKeyedSectionByField('comboGroups');
-    const group = (window.currentEditorDescData[groups.field] || [])[idx];
-    if (group) group.content = blocks;
+    flushComboCard(idx);
 }
 window.flushCombosSection = flushCombosSection;
 
