@@ -810,12 +810,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                         .forEach(d => payloadsToInsert.push(buildPayload(d.scope, d.key, d.payload)));
                 }
                 // --- System Payload ---
+                // --- System Payload ---
+                // One delta per section, per tab's metadata, and per tier list
+                // table - not the whole document. Shipping the document meant
+                // approving two tickets for one page silently reverted the
+                // first, because each carried a snapshot of the page as its
+                // author found it. See buildSystemDeltas.
                 else if (pageType === 'system' || pageType === 'tierlist') {
-                    await window.triggerManualSync(); 
-                    // Only push if something actually changed!
-                    if (isDiff(window.currentEditorDescData, window.originalCloudDescData)) {
-                        payloadsToInsert.push(buildPayload('system_data', 'full', window.currentEditorDescData));
-                    }
+                    await window.triggerManualSync();
+                    window.buildSystemDeltas(window.currentEditorDescData, window.originalCloudDescData, pageType)
+                        .forEach(d => payloadsToInsert.push(buildPayload(d.scope, d.key, d.payload)));
                 }
                 // --- CHARACTER PAYLOAD ENGINE ---
                 //

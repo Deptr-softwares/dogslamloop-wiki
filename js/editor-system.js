@@ -141,7 +141,26 @@ window.updateSystemMeta = function(field, value, isCheckbox = false, isNumber = 
     let tab = window.currentEditorDescData.tabs[window.currentSystemTabIdx];
     if (field === 'tabLabel') {
         tab.tabLabel = value;
-        tab.tabId = value.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase(); // Auto-slug the ID
+
+        // THE ID ONLY TRACKS THE LABEL WHILE THE TAB IS NEW.
+        //
+        // This used to re-slug on every keystroke, which made tabId a display
+        // name wearing an id's clothes: renaming a tab changed its identity, so
+        // a submission had to re-send every section underneath it - and a
+        // re-sent section carries the contributor's copy of prose somebody else
+        // may have edited in the meantime. That is the whole-document bug
+        // reappearing one level down.
+        //
+        // A tab that already exists in the cloud keeps its id forever. A tab
+        // created in this session has no identity to protect yet, so it still
+        // gets a readable id from whatever it ends up being called. It is also
+        // the DOM id, so the same rule keeps `#tab-basics` from moving under
+        // anyone who linked to it.
+        const cloudTabs = (window.originalCloudDescData && window.originalCloudDescData.tabs) || [];
+        const existsInCloud = cloudTabs.some(t => t && t.tabId === tab.tabId);
+        if (!existsInCloud) {
+            tab.tabId = value.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
+        }
     } else {
         let parsedVal = value;
         if (isCheckbox) parsedVal = !!value;
@@ -154,4 +173,102 @@ window.updateSystemMeta = function(field, value, isCheckbox = false, isNumber = 
         window.renderSystemEditor(document.getElementById('interactive-builder'));
         updateLivePreview();
     }, 400);
+};
+
+// =====================================================================
+// SUBMISSION: ONE DELTA PER SECTION, NOT ONE PAYLOAD PER PAGE
+// =====================================================================
+//
+// Every system and tier list submission used to ship the whole desc_data as a
+// single `system_data / full` payload, which meant approving two tickets for
+// one page silently reverted the first: each carried a snapshot of the page as
+// its author found it, and the second wrote that snapshot over the first's
+// approved change. Proven end to end before this was written.
+//
+// Gallery and tool pages were already scoped. The tool branch's own comment
+// gives the reason, and it applies here word for word: "the config is the
+// owner's and the prose is everyone's, so a contributor fixing the intro must
+// not be able to carry a URL change with it."
+//
+// Keys are derived by window.indexSystemSections (js/site_utils.js) - see the
+// note there on why nothing here stores an id.
+window.buildSystemDeltas = function(local, cloud, pageType) {
+    const differs = (a, b) => JSON.stringify(a === undefined ? null : a) !== JSON.stringify(b === undefined ? null : b);
+    const deltas = [];
+
+    const localTabs = window.indexSystemTabs(local || {});
+    const cloudTabs = window.indexSystemTabs(cloud || {});
+    const localSecs = window.indexSystemSections(local || {});
+    const cloudSecs = window.indexSystemSections(cloud || {});
+
+    // Content lives in its own scopes, never in the tab's metadata: `sections`
+    // ships per section, `tiers` and `changelog` per tab below. Copying them in
+    // here as well would send the same edit twice, and the metadata copy would
+    // be the stale one - a reorder or a rename would carry an old set of tiers
+    // along with it and undo whatever had landed in between.
+    const CONTENT_FIELDS = ['sections', 'tiers', 'changelog'];
+    const tabMeta = (tab, sectionKeys) => {
+        const meta = {};
+        Object.keys(tab || {}).forEach(k => { if (!CONTENT_FIELDS.includes(k)) meta[k] = tab[k]; });
+        // The order travels as a list of KEYS. A reorder that carried section
+        // content would let moving a section overwrite an edit somebody else
+        // made to it in the meantime - the whole-document bug in miniature.
+        meta.order = sectionKeys;
+        return meta;
+    };
+
+    // --- Tabs: metadata, section order, additions and removals ---
+    localTabs.forEach(({ tabKey, tab }) => {
+        const before = cloudTabs.find(t => t.tabKey === tabKey);
+        const localOrder = localSecs.filter(s => s.tabKey === tabKey).map(s => s.secKey);
+        const cloudOrder = cloudSecs.filter(s => s.tabKey === tabKey).map(s => s.secKey);
+
+        const localMeta = tabMeta(tab, localOrder);
+        const cloudMeta = before ? tabMeta(before.tab, cloudOrder) : null;
+
+        if (differs(localMeta, cloudMeta)) {
+            deltas.push({ scope: 'system_tab', key: tabKey, payload: localMeta });
+        }
+    });
+
+    cloudTabs.forEach(({ tabKey }) => {
+        if (!localTabs.some(t => t.tabKey === tabKey)) {
+            deltas.push({ scope: 'system_tab', key: tabKey, payload: null });
+        }
+    });
+
+    // --- Sections ---
+    // Tier list tabs hold tiers and a changelog rather than sections, so this
+    // loop simply finds nothing for them and the branch below covers them.
+    localSecs.forEach(({ key, section }) => {
+        const before = cloudSecs.find(s => s.key === key);
+        if (differs(section, before ? before.section : null)) {
+            deltas.push({ scope: 'system_section', key, payload: section });
+        }
+    });
+
+    cloudSecs.forEach(({ key }) => {
+        if (!localSecs.some(s => s.key === key)) {
+            deltas.push({ scope: 'system_section', key, payload: null });
+        }
+    });
+
+    // --- Tier lists ---
+    // Not split per tier: moving a character from A to S changes two tiers at
+    // once, so a per-tier scope would manufacture a conflict out of one
+    // ordinary edit.
+    if (pageType === 'tierlist') {
+        localTabs.forEach(({ tabKey, tab }) => {
+            const before = cloudTabs.find(t => t.tabKey === tabKey);
+            const oldTab = before ? before.tab : {};
+            if (differs(tab.tiers, oldTab.tiers)) {
+                deltas.push({ scope: 'tierlist_tiers', key: tabKey, payload: tab.tiers || [] });
+            }
+            if (differs(tab.changelog, oldTab.changelog)) {
+                deltas.push({ scope: 'tierlist_changelog', key: tabKey, payload: tab.changelog || [] });
+            }
+        });
+    }
+
+    return deltas;
 };

@@ -447,6 +447,65 @@ window.unwrapModeDelta = function(scope, key) {
     return { modeId, scope: innerScope, key: parts.join('::') || 'full' };
 };
 
+// --- SYSTEM PAGE SECTION IDENTITY ---
+//
+// A system page is `{ tabs: [ { tabId, tabLabel, sections: [ { sectionTitle,
+// blocks } ] } ] }`, and NOTHING IN IT HAS A STABLE ID. Sections carry no
+// identifier at all, and `tabId` is re-slugged from the label on every rename
+// (js/editor-system.js), so it is a display name wearing an id's clothes.
+//
+// Keys are therefore DERIVED, not stored. Both sides of a delta compute the
+// same key from the same content, so nothing has to be migrated and no
+// existing page changes shape - the same reasoning as the section anchors in
+// item 5, and the same trade: a RENAME reads as a delete plus an add, exactly
+// as renaming a matchup opponent already does.
+//
+// Position is deliberately not part of the key. Item 8 makes sections
+// reorderable, and a positional key would make every reorder look like every
+// section changing at once.
+window.slugifySystemKey = function(text) {
+    return String(text == null ? '' : text)
+        .trim().toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'untitled';
+};
+
+window.indexSystemTabs = function(descData) {
+    const tabs = (descData && Array.isArray(descData.tabs)) ? descData.tabs : [];
+    const seen = Object.create(null);
+    return tabs.map((tab, tabIdx) => {
+        const base = window.slugifySystemKey((tab && (tab.tabId || tab.tabLabel)) || '');
+        seen[base] = (seen[base] || 0) + 1;
+        const tabKey = seen[base] === 1 ? base : `${base}-${seen[base]}`;
+        return { tabKey, tabIdx, tab };
+    });
+};
+
+window.indexSystemSections = function(descData) {
+    const out = [];
+    window.indexSystemTabs(descData).forEach(({ tabKey, tabIdx, tab }) => {
+        const sections = (tab && Array.isArray(tab.sections)) ? tab.sections : [];
+        const seen = Object.create(null);
+        sections.forEach((section, secIdx) => {
+            const base = window.slugifySystemKey((section && section.sectionTitle) || '');
+            seen[base] = (seen[base] || 0) + 1;
+            const secKey = seen[base] === 1 ? base : `${base}-${seen[base]}`;
+            out.push({ tabKey, secKey, key: `${tabKey}::${secKey}`, tabIdx, secIdx, tab, section });
+        });
+    });
+    return out;
+};
+
+window.splitSystemKey = function(key) {
+    const parts = String(key == null ? '' : key).split('::');
+    return { tabKey: parts[0] || '', secKey: parts.slice(1).join('::') || '' };
+};
+
+window.findSystemTab = function(descData, tabKey) {
+    const hit = window.indexSystemTabs(descData).find(t => t.tabKey === tabKey);
+    return hit ? hit.tab : null;
+};
+
 // --- DELTA INJECTION ENGINE ---
 // Shared by admin.js, editor.js, and history.js, which each need to
 // reconstruct a full description/frame-data object from a stored
@@ -511,8 +570,97 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
     }
 
     // --- Safely intercept full modular replacements ---
+    //
+    // WHOLE-DOCUMENT REPLACEMENT, AND THE REASON IT IS BEING RETIRED. Every
+    // system and tier list submission used to arrive as this one scope carrying
+    // the entire desc_data, so approving two tickets for one page silently
+    // reverted the first: each payload was captured from the live page as the
+    // contributor found it, and the second wrote its whole snapshot over the
+    // first's approved change. Nothing warned anyone - not the queue, not the
+    // reviewer, not the contributor whose work disappeared.
+    //
+    // Kept, because tickets submitted before the scopes below existed are still
+    // sitting in the queue and have to stay reviewable and applicable.
     if (scope === 'system_data') {
         return { newDesc: JSON.parse(JSON.stringify(payload)), newFrame };
+    }
+
+    // One section of one tab. The scope that replaces system_data for new
+    // submissions - see js/editor-system.js buildSystemDeltas.
+    if (scope === 'system_section') {
+        const { tabKey, secKey } = window.splitSystemKey(key);
+        const tab = window.findSystemTab(newDesc, tabKey);
+        if (!tab) {
+            console.error(`[Delta] system_section names tab "${tabKey}", which this page no longer has.`, { key });
+            return { newDesc, newFrame };
+        }
+        if (!Array.isArray(tab.sections)) tab.sections = [];
+
+        const idx = window.indexSystemSections(newDesc)
+            .findIndex(e => e.tabKey === tabKey && e.secKey === secKey);
+
+        if (payload === null) {
+            if (idx > -1) {
+                const target = window.indexSystemSections(newDesc)[idx];
+                target.tab.sections.splice(target.secIdx, 1);
+            }
+        } else if (idx > -1) {
+            const target = window.indexSystemSections(newDesc)[idx];
+            target.tab.sections[target.secIdx] = payload;
+        } else {
+            // A section the contributor added. Appended rather than positioned:
+            // where it goes is the tab's business, and the tab ships its own
+            // order delta when the author moves things.
+            tab.sections.push(payload);
+        }
+        return { newDesc, newFrame };
+    }
+
+    // A tab's own metadata and the order of its sections - held apart from the
+    // sections themselves for the same reason the character mode toggle is held
+    // apart from its content: renaming a tab must not touch a single block.
+    if (scope === 'system_tab') {
+        if (!Array.isArray(newDesc.tabs)) newDesc.tabs = [];
+        const tabIdx = window.indexSystemTabs(newDesc).findIndex(t => t.tabKey === key);
+
+        if (payload === null) {
+            if (tabIdx > -1) newDesc.tabs.splice(tabIdx, 1);
+            return { newDesc, newFrame };
+        }
+        if (tabIdx === -1) {
+            newDesc.tabs.push(payload);
+            return { newDesc, newFrame };
+        }
+
+        const tab = newDesc.tabs[tabIdx];
+        const existing = tab.sections || [];
+        Object.keys(payload).forEach(k => { if (k !== 'sections' && k !== 'order') tab[k] = payload[k]; });
+
+        // Order arrives as a list of section keys, not as section content, so a
+        // reorder cannot carry a stale copy of anybody's prose with it.
+        if (Array.isArray(payload.order)) {
+            const byKey = new Map(window.indexSystemSections(newDesc)
+                .filter(e => e.tabKey === key)
+                .map(e => [e.secKey, e.section]));
+            const reordered = payload.order.map(k => byKey.get(k)).filter(Boolean);
+            existing.forEach(s => { if (!reordered.includes(s)) reordered.push(s); });
+            tab.sections = reordered;
+        }
+        return { newDesc, newFrame };
+    }
+
+    // A tier list's tiers and changelog, per tab. Not split per TIER: moving a
+    // character from A to S changes two tiers at once, so a per-tier scope would
+    // manufacture a conflict out of a single ordinary edit.
+    if (scope === 'tierlist_tiers' || scope === 'tierlist_changelog') {
+        const field = scope === 'tierlist_tiers' ? 'tiers' : 'changelog';
+        const tab = window.findSystemTab(newDesc, key);
+        if (!tab) {
+            console.error(`[Delta] ${scope} names tab "${key}", which this page no longer has.`);
+            return { newDesc, newFrame };
+        }
+        tab[field] = payload;
+        return { newDesc, newFrame };
     }
 
     // Whole-value block sections. The fixed four, plus any declared in

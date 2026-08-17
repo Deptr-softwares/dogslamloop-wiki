@@ -32,6 +32,16 @@ const LIVE_DESC = {
   notes: [{ type: 'paragraph', content: 'live notes' }],
   tool: { url: 'https://example.com' },
   moveStrategies: { explosion: [] },
+  // System-page shape too, so the scope sweep below can exercise the system
+  // scopes against the same fixture. A real page is one or the other; this one
+  // is both so the test needs a single harness.
+  tabs: [{
+    tabId: 'basics', tabLabel: 'Basics',
+    sections: [{ sectionTitle: 'Intro', layout: 'full', width: 100, alignment: 'left',
+                 blocks: [{ type: 'paragraph', content: 'live system text' }] }],
+    tiers: [{ name: 'S', characters: ['Vessel'] }],
+    changelog: [{ date: '01/01/2026', note: 'first' }],
+  }],
 };
 const LIVE_FRAME = {
   m1s: [], specials: [],
@@ -56,11 +66,18 @@ const PAYLOADS = {
   intro: [{ type: 'paragraph', content: 'CHANGED intro' }],
   notes: [{ type: 'paragraph', content: 'CHANGED notes' }],
   tool_config: { url: 'https://changed.example.com' },
+  system_section: { sectionTitle: 'Intro', layout: 'full', width: 100, alignment: 'left',
+                    blocks: [{ type: 'paragraph', content: 'CHANGED system text' }] },
+  system_tab: { tabId: 'basics', tabLabel: 'The Basics', order: ['intro'] },
+  tierlist_tiers: [{ name: 'S', characters: ['Vessel', 'Boomcat'] }],
+  tierlist_changelog: [{ date: '02/01/2026', note: 'second' }],
   move: { frame_data: { id: 'explosion', name: 'Explosion', input: '1', stats: [{ label: 'Damage', value: '99' }] }, desc_data: [] },
 };
 const KEYS = {
   extra: 'Tech', matchup: 'Vessel', counterplay: 'Spacing', starterGuide: 'Basics',
   comboGroup: 'True Combos', comboTable: 'M1 Starters', gallery_item: 'Emote A',
+  system_section: 'basics::intro', system_tab: 'basics',
+  tierlist_tiers: 'basics', tierlist_changelog: 'basics',
   move: 'skills::explosion',
 };
 
