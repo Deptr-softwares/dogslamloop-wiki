@@ -145,7 +145,7 @@ window.triggerManualSync = async function() {
             window.currentEditorDescData.matchups[window.currentMatchupIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
         }
         renderMatchupsPreview();
-    } else if (window.getKeyedSectionByTab && window.getKeyedSectionByTab(tabId) && tabId !== 'matchups') {
+    } else if (window.usesSharedKeyedUI && window.usesSharedKeyedUI(tabId)) {
         // Any keyed section (js/character_tabs.js). Flushes the open entry's
         // blocks back into it before redrawing, which is what stops the buffer
         // being dropped when the contributor switches away.
@@ -282,7 +282,7 @@ function updateLivePreview(skipHistory = false) {
         }
         if (typeof renderMatchupsPreview === 'function') renderMatchupsPreview();
 
-    } else if (window.getKeyedSectionByTab && window.getKeyedSectionByTab(tabId) && tabId !== 'matchups') {
+    } else if (window.usesSharedKeyedUI && window.usesSharedKeyedUI(tabId)) {
         flushKeyedSection(tabId, currentStrategyBlocks);
         if (typeof window.renderKeyedSectionPreview === 'function') window.renderKeyedSectionPreview(tabId);
 
@@ -437,6 +437,22 @@ window.renderDiffView = function() {
                     }
                     else if (b.type === 'accordion' || b.type === 'details') {
                         b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
+                        b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
+                    }
+                    // A combo card nests like an accordion, plus its own
+                    // fields. Missing this means the reviewer sees the card
+                    // unchanged while its route or damage was rewritten.
+                    else if (b.type === 'theorybox') {
+                        b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
+                        b.oneliner = window.diffTextLCS(oldB.oneliner || '', newB.oneliner || '');
+                        b.damage = window.diffTextLCS(oldB.damage || '', newB.damage || '');
+                        b.difficulty = window.diffTextLCS(oldB.difficulty || '', newB.difficulty || '');
+                        const oldSeq = oldB.sequence || [];
+                        const newSeq = newB.sequence || [];
+                        if (!b.sequence) b.sequence = [];
+                        for (let j = 0; j < Math.max(oldSeq.length, newSeq.length); j++) {
+                            b.sequence[j] = window.diffTextLCS(oldSeq[j] || '', newSeq[j] || '');
+                        }
                         b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
                     }
                     

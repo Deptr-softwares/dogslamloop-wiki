@@ -88,4 +88,10 @@ Restricting an editable tool page to one person is configuration, not code: `sit
 
 ## History
 
+**The current version's devlog is its SPEC, not a diary.** Design decisions are
+recorded there before they are built, with the data shapes and delta scopes
+worked out. Read the whole section before building from it — v0.15's Combos tab
+was built to an invented shape while the real one sat in the same file, and two
+questions were then asked that it had already answered.
+
 `devlogs/` holds a per-version engineering record. The current in-progress version has its devlog at the repo root.

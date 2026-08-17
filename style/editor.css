@@ -213,7 +213,18 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     outline: none; border-color: var(--accent-blue); background: rgba(0,0,0,0.5); color: #fff;
 }
 .editor-input:disabled, .editor-textarea:disabled { opacity: 0.5; }
-.editor-textarea { min-height: 50px; resize: vertical; line-height: 1.4; }
+.editor-textarea { min-height: 50px; max-height: 260px; overflow-y: auto; resize: vertical; line-height: 1.4; }
+
+/* A combo route is one step per line and gets long. It scrolls at a sensible
+   height rather than growing until it pushes everything else off the pane -
+   owner, 2026-08-17. Monospace so the steps line up as they are typed, which
+   is the same reason the rendered chips are monospace. */
+.combo-field-grid .editor-textarea[data-combo-field="sequence"],
+.combo-card-fields .editor-textarea[data-card-field="sequence"],
+.editor-textarea[data-field="sequence-lines"] {
+    font-family: var(--text-mono); font-size: 0.8rem;
+    min-height: 5.5rem; max-height: 220px; overflow-y: auto;
+}
 .editor-row { display: flex; gap: 0.25rem; }
 .editor-row > div { flex: 1; }
 
@@ -1665,3 +1676,55 @@ del.diff-del {
     border-top: 1px solid #333;
     padding-top: 0.4rem;
 }
+
+/* --- COMBO ROWS EDITOR (v0.15 item 3) --- */
+/* The rows of one combo group. A row is a button showing its route, because
+   the route is how an author recognises which combo they are editing - an
+   index or a damage number is not something anyone remembers. */
+.combo-rows-list { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.6rem; }
+.combo-row-item { display: flex; gap: 0.35rem; align-items: stretch; }
+.combo-row-open {
+    flex: 1; text-align: left; font-family: var(--text-mono); font-size: 0.7rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.combo-row-item.active .combo-row-open { border-color: var(--accent-blue); color: var(--accent-blue); }
+.combo-row-remove { flex: 0 0 auto; }
+
+/* The row form lives in a modal (edit.html #combo-row-modal), not in the
+   sidebar: the editor's left pane shares the screen with the live preview, and
+   a dozen fields in it was mostly scroll. Owner's call, 2026-08-16.
+
+   Three columns of short fields in the modal, one below 720px. The route and
+   the notes span the full width because they are the only two that are long. */
+.combo-row-modal-box {
+    width: min(860px, 94vw);
+    /* The default .editor-modal-box top border is red, which belongs to the
+       delete-confirm modal this shares markup with. This is an edit form, and
+       a red bar across the top of it reads as a warning about nothing. */
+    border-top-color: var(--accent-blue);
+}
+.combo-row-modal-body { padding: 0.9rem 1.1rem; text-align: left; max-height: 72vh; overflow-y: auto; }
+.combo-row-modal-actions { justify-content: space-between; gap: 1rem; padding: 0.9rem 1.25rem; border-top: 1px dashed #333; }
+
+.combo-field-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem 0.7rem; }
+.combo-field-grid label { display: block; margin-bottom: 0.15rem; font-size: 0.6rem; }
+.combo-field-grid .combo-field-full { grid-column: 1 / -1; }
+.combo-field-grid .editor-input, .combo-field-grid .editor-select, .combo-field-grid .editor-textarea { margin: 0; width: 100%; }
+@media (max-width: 900px) { .combo-field-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 720px) { .combo-field-grid { grid-template-columns: 1fr; } }
+
+/* --- COMBO CARD FIELDS --- */
+/* Three columns of short fields with the long ones spanning, same grid as the
+   Combo List row modal. This one is in the sidebar rather than a modal because
+   a card has six fields, not twelve, and the write-up below it is where the
+   time goes. */
+/* Dense on purpose. These are a dozen short fields in a pane that is sharing
+   the screen with a live preview, and the default editor-row spacing turned
+   the form into a scroll before anyone had typed - owner, 2026-08-17. */
+.combo-card-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem 0.6rem; }
+.combo-card-fields label { display: block; margin-bottom: 0.15rem; font-size: 0.6rem; }
+.combo-card-fields .editor-input, .combo-card-fields .editor-select { padding: 0.3rem 0.45rem; }
+.combo-card-fields .combo-field-full { grid-column: 1 / -1; }
+.combo-card-fields .editor-input, .combo-card-fields .editor-select, .combo-card-fields .editor-textarea { margin: 0; width: 100%; }
+@media (max-width: 1100px) { .combo-card-fields { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 720px) { .combo-card-fields { grid-template-columns: 1fr; } }

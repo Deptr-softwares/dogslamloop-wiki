@@ -946,6 +946,11 @@ summary:focus-visible {
    shape. The size also keeps an ordinary route on one line - the 76-damage
    Crow Charmer combo was wrapping mid-route, which loses the left-to-right
    reading a combo depends on. */
+/* The wrapper a compound step's contents go into. Normal inline flow, so the
+   spaces between "Cancel" and "Murmurate" survive - inline-flex would make
+   them flex items and drop the whitespace between them. */
+.combo-node-text { display: inline; white-space: pre-wrap; }
+
 .combo-node {
     display: inline-flex; align-items: center;
     color: var(--text-white); padding: 0.15rem 0.35rem; font-family: var(--text-mono);
@@ -1228,3 +1233,158 @@ summary:focus-visible {
 /* The first group sits directly under the section header, which already has
    its own spacing. */
 .column-subgroup-title:first-child { margin-top: 0; }
+
+/* ==========================================================================
+   THE COMBO TABLE (v0.15 item 3)
+   ==========================================================================
+   Adapted from Dustloop's combo table into this site's chrome: square corners
+   and a shadow below, the same manga language .btn-manga and .combo-block use.
+
+   The route reuses .combo-node / .combo-sep from the legacy combo block above,
+   so a combo reads identically whether it is inline in prose or a row here. */
+
+.combo-group { margin-bottom: 1.5rem; }
+
+/* The table scrolls inside its own box rather than pushing the page sideways -
+   a wide table must never make the whole document scroll horizontally. */
+.combo-table-scroll { overflow-x: auto; margin-top: 0.75rem; }
+
+.combo-table {
+    width: 100%; border-collapse: collapse; font-family: var(--text-mono);
+    font-size: 0.75rem; background: var(--bg-secondary);
+    border: 2px solid var(--border-color); border-radius: 0;
+    box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
+}
+
+.combo-th {
+    text-align: left; padding: 0.45rem 0.6rem; white-space: nowrap;
+    background: var(--bg-main); color: var(--text-muted);
+    border-bottom: 2px solid var(--border-color);
+    font-family: 'CC-Wild-Words', sans-serif; text-transform: uppercase;
+    font-size: 0.7rem; letter-spacing: 0.5px;
+}
+.combo-th-sortable { cursor: pointer; user-select: none; }
+.combo-th-sortable:hover { color: var(--accent-blue); }
+.combo-sort-arrow::after { content: ' \2195'; opacity: 0.35; }
+.combo-th-sortable.is-sorted { color: var(--accent-blue); }
+.combo-th-sortable.is-sorted .combo-sort-arrow::after { content: ' \2191'; opacity: 1; }
+.combo-th-sortable.is-sorted.is-desc .combo-sort-arrow::after { content: ' \2193'; }
+
+.combo-row { border-bottom: 1px solid var(--border-color); }
+.combo-row:last-child { border-bottom: 0; }
+.combo-cell { padding: 0.5rem 0.6rem; vertical-align: top; color: var(--text-white); }
+.combo-cell-empty { color: var(--text-muted); opacity: 0.5; }
+
+/* The route cell is the one that must stay readable, so it gets the room. */
+.combo-cell-sequence { min-width: 240px; }
+.combo-cell-notes { min-width: 220px; white-space: normal; }
+.combo-route-inline { margin: 0; }
+.combo-route-empty { color: var(--text-muted); opacity: 0.5; }
+
+.combo-resource { color: var(--text-muted); margin-bottom: 0.2rem; }
+.combo-resource strong { color: var(--text-white); }
+.combo-note-text { white-space: normal; }
+.combo-video-link {
+    /* NOT var(--accent-blue). On a character page that variable becomes the
+       character's own colour, and Crow Charmer (23% lightness) or Black Death
+       (27%) render a navy link on a near-black cell that cannot be read at
+       all. A link has to work on every character, so it takes the text colour
+       and earns its emphasis from the underline. */
+    color: var(--text-white); text-decoration: underline; text-underline-offset: 2px;
+}
+.combo-video-link:hover { color: var(--accent-blue); }
+
+/* Difficulty is ORDINAL, not categorical: eight distinguishable hues on a dark
+   background is close to impossible, eight steps along a ramp is routine - and
+   a ramp is also the honest encoding, because adjacent difficulties should look
+   adjacent. Green through red, by slot index rather than by label, so the
+   labels can be renamed without touching the palette. */
+.combo-difficulty { font-weight: bold; white-space: nowrap; }
+.combo-difficulty-0 { color: hsl(140, 65%, 60%); }
+.combo-difficulty-1 { color: hsl(110, 60%, 58%); }
+.combo-difficulty-2 { color: hsl(75,  65%, 58%); }
+.combo-difficulty-3 { color: hsl(50,  85%, 58%); }
+.combo-difficulty-4 { color: hsl(35,  90%, 58%); }
+.combo-difficulty-5 { color: hsl(20,  90%, 60%); }
+.combo-difficulty-6 { color: hsl(5,   85%, 62%); }
+.combo-difficulty-7 { color: hsl(320, 80%, 65%); }
+
+/* Below the breakpoint every row becomes a card.
+   Ten columns cannot fit a phone, and this site has had a deliberate mobile
+   pass - it collapses matchup cards rather than scrolling them, so a
+   sideways-scrolling table would be the one place that behaves differently.
+   The header is hidden and each cell carries its own label from data-label. */
+@media (max-width: 900px) {
+    /* `td` is NOT in this list on purpose. `.combo-table td` outranks
+       `.combo-cell` on specificity, so setting display:block here beat the
+       flex rule below - the ::before label stopped being a flex item and the
+       label ran straight into its value ("DAMAGE38-46"). */
+    .combo-table, .combo-table tbody, .combo-table tr { display: block; width: 100%; }
+    .combo-table thead { display: none; }
+    .combo-table { border: 0; box-shadow: none; background: transparent; }
+
+    .combo-row {
+        background: var(--bg-secondary); border: 2px solid var(--border-color);
+        box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
+        margin-bottom: 1.1rem; padding: 0.5rem 0.2rem;
+    }
+
+    .combo-table td.combo-cell {
+        display: flex; gap: 0.6rem; padding: 0.3rem 0.6rem; width: 100%;
+        /* Long free-text values (position is deliberately free text) must wrap
+           inside the card rather than run off the edge of it. break-word, not
+           anywhere: `anywhere` splits mid-word even when a space would do, so
+           "the rekka route" broke as "the rekk / route". */
+        overflow-wrap: break-word; min-width: 0;
+    }
+    /* An empty field is a labelled row saying "-". Ten of those per card bury
+       the three that were filled in, so they simply do not appear on a phone.
+       They stay on desktop, where a table column has to keep its alignment. */
+    .combo-table td.combo-cell.combo-cell-is-empty { display: none; }
+    .combo-cell::before {
+        content: attr(data-label); flex: 0 0 5.5rem; color: var(--text-muted);
+        font-family: 'CC-Wild-Words', sans-serif; text-transform: uppercase;
+        font-size: 0.65rem; letter-spacing: 0.5px; padding-top: 0.15rem;
+    }
+    /* The route leads the card and spans it - it is the reason the row exists. */
+    .combo-table td.combo-cell-sequence { display: block; min-width: 0; }
+    .combo-cell-sequence::before { display: none; }
+    .combo-table td.combo-cell-notes { display: block; min-width: 0; }
+    .combo-cell-notes::before { display: block; flex: none; margin-bottom: 0.2rem; }
+}
+
+/* --- THE COMBO CARD (TheoryBox, v0.15 item 4) --- */
+/* A combo and everything known about it, living inside a combo group. Same
+   square-cornered, shadow-below treatment as the combo block and the table -
+   this is the third thing on the page that is "a combo", and they should read
+   as one family. */
+.theorybox {
+    background: var(--bg-secondary); border: 2px solid var(--border-color);
+    border-radius: 0; box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
+    padding: 0.75rem 0.9rem; margin: 1rem 0 1.5rem;
+}
+.theorybox-head { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+.theorybox-title {
+    font-family: 'CC-Wild-Words', sans-serif; font-size: 0.95rem; margin: 0;
+    color: var(--text-white); flex: 1 1 auto;
+}
+.theorybox-difficulty { font-family: var(--text-mono); font-size: 0.75rem; }
+/* Not var(--accent-blue): on a character page that is the character's colour,
+   and the dark ones render an unreadable link. Same reason as .combo-video-link. */
+.theorybox-video { color: var(--text-white); text-decoration: underline; text-underline-offset: 2px; font-family: var(--text-mono); font-size: 0.75rem; }
+.theorybox-video:hover { color: var(--accent-blue); }
+.theorybox-oneliner { color: var(--text-muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
+.theorybox-route { margin: 0.6rem 0 0; }
+.theorybox-body { margin-top: 0.7rem; border-top: 1px dashed var(--border-color); padding-top: 0.7rem; }
+
+@media (max-width: 600px) {
+    .theorybox-head { gap: 0.4rem; }
+    .theorybox-title { flex: 1 1 100%; }
+}
+
+/* The Combos tab's three parts are document SECTIONS, so each is a heading and
+   the cards under it are the boxes. Wrapping a group in .wiki-section made
+   every TheoryBox a card inside a card (owner, 2026-08-16). */
+.combo-section-title { margin: 1.75rem 0 0.5rem; }
+.combo-section-title:first-child { margin-top: 0; }
+.combo-group:not(:last-child) { margin-bottom: 0.5rem; }

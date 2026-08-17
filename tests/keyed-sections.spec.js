@@ -64,10 +64,18 @@ test('no pipeline site handles a keyed section by name', () => {
     'site_utils.js',
   ];
 
-  // Matchups keeps its own branches on purpose: its card links to the
-  // opponent's page and its editor lists the roster, so it is a different
-  // screen rather than this one with different words.
-  const GENERALISED = SECTIONS.filter(s => s.tab !== 'matchups').map(s => s.tab);
+  // Only the sections that USE the shared machinery. Matchups keeps its own
+  // branches (its card links to the opponent's page, its editor lists the
+  // roster) and the Combos tab keeps its own (it is a document of three parts,
+  // not a list of entries) - both say so in the registry rather than being
+  // named here, so this list follows the vocabulary.
+  //
+  // Matched on FIELD rather than tab: more than one section can render inside
+  // a tab, and `tabId === 'combos'` is a legitimate branch for a tab that is
+  // not itself a keyed section.
+  const GENERALISED = [...new Set(SECTIONS
+    .filter(s => !s.customRenderer && !s.customEditor)
+    .map(s => s.field))];
 
   const offenders = [];
   for (const file of FILES) {

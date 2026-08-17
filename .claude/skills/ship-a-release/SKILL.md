@@ -161,6 +161,27 @@ gh pr list --state open --json number,title,headRefName
 
 Same discipline as `mergedAt` below: repo state is read, not remembered.
 
+## A fix you described is not a fix you committed
+
+On 2026-08-16 the owner reported a bug, it was found, fixed, tested and
+falsified — and then reported to them as done while the change sat unstaged.
+They merged the PR. The fix was not in it, and the bug they had reported was
+still live on `next-update`.
+
+Nothing in the conversation was untrue. The gap was between "the work is
+finished" and "the work is in the commit", and only `git status` knows which.
+
+**Before telling the owner a fix is ready, confirm it is actually in the
+branch:**
+
+```bash
+git status --short          # nothing of the fix should be unstaged
+git log --oneline -1        # and the commit should exist
+```
+
+The same check belongs before any claim that a PR contains something. `git
+diff <base>...<head> --stat` answers it exactly, and costs one command.
+
 ## A merged PR's branch is closed to new work
 
 **Once a PR is merged, commits pushed to its branch are orphaned.** The PR does

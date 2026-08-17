@@ -206,6 +206,187 @@ function restoreNoAuto(content, store) {
     );
 }
 
+// --- MOVE NAMES, COLOURED BY INPUT SLOT (v0.15) ---
+//
+// JJS combos are written NAME-FIRST - "MURMURATE > R^ > AIR UPDRAFT", not
+// "2 > R > 1" - so colouring notation means knowing which of the ten inputs
+// each move NAME belongs to.
+//
+// The map is derived from frame_data's `input` field per character, with
+// desc_data.characterSettings as a thin override (js/input_slots.js). Nothing
+// is hand-listed here, for the same reason the frame terms above are derived
+// from site_meta.js: a second copy drifts.
+//
+// Mode-aware: a character's ultimate state has different skills in the same
+// slots, so the same name can be a different colour depending on which state
+// the reader is looking at.
+function currentPageMoveSlots() {
+    if (typeof window.buildMoveSlotMap !== 'function') return null;
+
+    const pageId = (window.PAGE_ROUTE && window.PAGE_ROUTE.pageId)
+        || window.activePreviewCharId || window.currentEditorCharId;
+    if (!pageId) return null;
+
+    let frame = (window.cachedMasterFrameData || {})[pageId]
+        || window.currentEditorFrameData || null;
+    if (!frame) return null;
+
+    // The active state's slice, when there is one. resolveModeFrame is the
+    // shared resolver; falling back to the master keeps a page with no states
+    // working unchanged.
+    const mode = window.activeCharacterMode;
+    if (mode && !((window.isBaseMode && window.isBaseMode(mode)))
+        && frame.modeData && frame.modeData[mode]) {
+        frame = Object.assign({}, frame, frame.modeData[mode]);
+    }
+
+    const desc = window.currentPageDescData || window.currentEditorDescData || null;
+    const map = window.buildMoveSlotMap(frame, desc);
+    if (!map || map.size === 0) return null;
+
+    // Longest first: alternation is first-match, so "Cursed Strikes" would
+    // otherwise win over "Aerial Cursed Strikes" and leave "Aerial" bare.
+    // Vessel has both, so this is not hypothetical.
+    const names = Array.from(map.keys()).sort((a, b) => b.length - a.length);
+
+    return {
+        lookup: map,
+        pattern: new RegExp(`(?<![\\w-])(${names.map(termPattern).join('|')})(?![\\w-])(?![^<]*>)`, 'gi'),
+    };
+}
+
+// The bare keys themselves - "M1", "2", "R". Only ever applied INSIDE a combo
+// chip: a lone "1" or "2" in prose is a number far more often than an input,
+// and colouring those would tint every frame count and damage figure on the
+// site.
+//
+// A trailing direction is part of the input, not a separate step: the owner
+// writes "R^" constantly, and JJS's directions are the arrow glyphs and
+// A/W/S/D. Without this "R^" fell through the whole-chip match and came out
+// uncoloured while a bare "R" was fine - which is exactly the swap the owner
+// asked to be sure of.
+function inputKeyPattern() {
+    const ids = (window.INPUT_SLOT_IDS || []).slice().sort((a, b) => b.length - a.length);
+    if (!ids.length) return null;
+    const keys = ids.map(termPattern).join('|');
+    const direction = '(?:\\s*[+]?\\s*(?:[\\u2190-\\u2193\\u21D0-\\u21D3^v<>]|\\b[AWSD]\\b))*';
+    return new RegExp(`^\\s*(${keys})${direction}\\s*$`, 'i');
+}
+
+// Move names AND bare keys, for matching inside one compound step. Names go
+// first and longest-first, so "Air Updraft" is claimed before "Updraft" and
+// before the bare "1" that a name might contain.
+//
+// The key half is bounded by non-alphanumerics, which is what keeps "(X3)" and
+// "M1 x3" from lighting up their digits.
+function compoundPattern(terms) {
+    const names = Array.from(terms.lookup.keys()).sort((a, b) => b.length - a.length);
+    const keys = (window.INPUT_SLOT_IDS || []).slice().sort((a, b) => b.length - a.length);
+    if (!names.length && !keys.length) return null;
+
+    // The names come from the map already normalised, which means space-joined.
+    // Each space has to match a hyphen too, or a compound step containing the
+    // frame data's own spelling - "Dive-Bomb (whiff)" - would find nothing
+    // while the plain "Dive Bomb" matched.
+    const separator = '[\\s\\u2010-\\u2015-]+';
+    const flexible = (n) => termPattern(n).split(/\s+/).join(separator);
+    const namePart = names.length ? `(?<![\\w-])(?:${names.map(flexible).join('|')})(?![\\w-])` : null;
+    const keyPart = keys.length ? `(?<![A-Za-z0-9])(?:${keys.map(termPattern).join('|')})(?![A-Za-z0-9])` : null;
+
+    return new RegExp([namePart, keyPart].filter(Boolean).join('|'), 'gi');
+}
+
+window.applyInputSlotColours = function (root) {
+    const scope = root || document;
+    const terms = currentPageMoveSlots();
+    const keyPattern = inputKeyPattern();
+
+    // 1. Combo chips. A chip is one step, so it is matched WHOLE against the
+    //    key list first - "2" as a chip is Skill 2, unambiguously - and only
+    //    then against move names.
+    //
+    // A chip is only marked DONE once the move map exists. The styling pass
+    // runs on DOM changes, and the first one fires before the character's
+    // frame data has landed - so marking unconditionally left every chip
+    // flagged as processed with no colour, and nothing ever looked again.
+    // That is why a plain "MURMURATE" stayed uncoloured while "BIRD
+    // CONTROL(S)", rendered later, came out orange.
+    scope.querySelectorAll('.combo-node:not(.is-slotted)').forEach(chip => {
+        if (terms) chip.classList.add('is-slotted');
+        const text = chip.textContent || '';
+
+        if (keyPattern) {
+            const whole = keyPattern.exec(text.trim());
+            if (whole) {
+                const slot = window.getInputSlot(whole[1]);
+                if (slot) { chip.classList.add(slot.cls); return; }
+            }
+        }
+
+        if (!terms) return;
+        const direct = terms.lookup.get(window.normaliseMoveName(text));
+        if (direct) {
+            const slot = window.getInputSlot(direct);
+            if (slot) chip.classList.add(slot.cls);
+            return;
+        }
+
+        // A COMPOUND step - "R (Upward, Cancel Murmurate)", "GARUDA STAB OR
+        // RISING RAGE", "BIRD CONTROL(S)". The chip cannot take one colour, so
+        // every move name AND every bare key inside it is coloured in place.
+        //
+        // Keys have to be in this pass, not only in the whole-chip match
+        // above. Without them the leading "R" of "R (Upward, Cancel
+        // Murmurate)" was never considered and the parenthetical Murmurate was
+        // the only thing that coloured - which reads as the annotation
+        // stealing the step's own colour.
+        const compound = compoundPattern(terms);
+        if (!compound) return;
+        compound.lastIndex = 0;
+
+        let matched = false;
+        const replaced = escAttr(text).replace(compound, (match) => {
+            const id = terms.lookup.get(window.normaliseMoveName(match));
+            const slot = window.getInputSlot(id || match);
+            if (!slot) return match;
+            matched = true;
+            return `<span class="sc-auto ${slot.cls}">${match}</span>`;
+        });
+
+        // Wrapped in ONE inline child rather than written straight in.
+        // .combo-node is display:inline-flex, so a mix of text nodes and spans
+        // becomes a row of FLEX ITEMS - and a flex container discards the
+        // whitespace between its items. "Cancel Murmurate" rendered as
+        // "CancelMurmurate" until this wrapper put it all back in normal
+        // inline flow.
+        if (matched) chip.innerHTML = `<span class="combo-node-text">${replaced}</span>`;
+    });
+
+    // 2. Move names in prose - but ONLY inside the Combos tab.
+    //
+    // Owner, 2026-08-17: slot colouring stays in combo blocks and the Combos
+    // tab. Site-wide it would tint the frame-data pages, where every move name
+    // appears dozens of times, and turn a reference table into a rainbow. A
+    // combo block carries its own colour anywhere because a route IS notation;
+    // prose only counts as notation when it is combo prose.
+    if (!terms) return;
+    const combosTab = scope.querySelector
+        ? (scope.id === 'tab-combos' ? scope : scope.querySelector('#tab-combos'))
+        : null;
+    if (!combosTab) return;
+    combosTab.querySelectorAll('.is-styled:not(.is-slotted-prose)').forEach(block => {
+        block.classList.add('is-slotted-prose');
+        const before = block.innerHTML;
+        terms.pattern.lastIndex = 0;
+        const after = before.replace(terms.pattern, (match) => {
+            const id = terms.lookup.get(window.normaliseMoveName(match));
+            const slot = id && window.getInputSlot(id);
+            return slot ? `<span class="sc-auto ${slot.cls}">${match}</span>` : match;
+        });
+        if (after !== before) block.innerHTML = after;
+    });
+};
+
 function applyInternalStyling() {
     // 1. Select targets
     const textBlocks = document.querySelectorAll('.wiki-text:not(.is-styled), .vessel-content p:not(.is-styled), .vessel-content li:not(.is-styled), .strategy-paragraph:not(.is-styled), .vessel-content h2:not(.is-styled), .vessel-content h3:not(.is-styled), .vessel-content h4:not(.is-styled), .update-table th:not(.is-styled), .update-table td:not(.is-styled)');
@@ -458,5 +639,19 @@ document.addEventListener('DOMContentLoaded', () => {
         observer.observe(mainContent, { childList: true, subtree: true });
     }
 });
+
+// Input-slot colouring runs after the styling pass, because it looks for
+// .is-styled prose and for the combo chips the renderers emit.
+const _dslApplyInternalStyling = applyInternalStyling;
+applyInternalStyling = function () {
+    const result = _dslApplyInternalStyling.apply(this, arguments);
+    try {
+        if (typeof window.applyInputSlotColours === 'function') window.applyInputSlotColours();
+    } catch (e) {
+        // Colouring is decoration; losing it must never cost the page its prose.
+        console.warn('[Notation] input slot colouring failed:', e);
+    }
+    return result;
+};
 
 window.applyInternalStyling = applyInternalStyling;

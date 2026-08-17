@@ -666,7 +666,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     } else if (tabId === 'matchups' && window.currentMatchupIndex !== undefined) {
                         hasCollision = isDiff(liveDesc?.matchups?.[window.currentMatchupIndex], window.originalCloudDescData?.matchups?.[window.currentMatchupIndex]);
-                    } else if (window.getKeyedSectionByTab(tabId) && tabId !== 'matchups'
+                    } else if (window.usesSharedKeyedUI(tabId)
                             && window.currentKeyedIndex?.[tabId] !== undefined) {
                         const field = window.getKeyedSectionByTab(tabId).field;
                         const i = window.currentKeyedIndex[tabId];
@@ -909,6 +909,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                         // silent - the edits simply never become deltas.
                         (window.getKeyedSections ? window.getKeyedSections() : []).forEach(
                             s => scanKeyedList(s.field, s.keyField, s.scope));
+
+                        // Fixed block sections (comboIntro): a plain [blocks]
+                        // array under its own scope, same as overview/strategy.
+                        (window.FIXED_BLOCK_SECTIONS || []).forEach(f => {
+                            const local = window.currentEditorDescData[f.field];
+                            const cloud = window.originalCloudDescData[f.field];
+                            if (isDiff(local, cloud)) {
+                                payloadsToInsert.push(buildPayload(f.scope, 'full', local || []));
+                            }
+                        });
                     };
 
                     // ...AND EVERY CHARACTER STATE, not just the open one.

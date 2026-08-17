@@ -515,8 +515,16 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
         return { newDesc: JSON.parse(JSON.stringify(payload)), newFrame };
     }
 
-    if (['profile', 'playstyle', 'overview', 'strategy'].includes(scope)) {
-        newDesc[scope] = payload;
+    // Whole-value block sections. The fixed four, plus any declared in
+    // js/character_tabs.js FIXED_BLOCK_SECTIONS - comboIntro is one, and
+    // leaving it out is precisely how a Starter Guide delta reported success
+    // and wrote nothing.
+    const fixedScopes = ['profile', 'playstyle', 'overview', 'strategy']
+        .concat((window.FIXED_BLOCK_SECTIONS || []).map(f => f.scope));
+
+    if (fixedScopes.includes(scope)) {
+        const field = ((window.FIXED_BLOCK_SECTIONS || []).find(f => f.scope === scope) || {}).field || scope;
+        newDesc[field] = payload;
     }
     else if (scope === 'extra') {
         if (!newDesc.extras) newDesc.extras = [];
