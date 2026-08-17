@@ -91,14 +91,73 @@ window.diffTextLCS = function(oldStr, newStr) {
 // number buried in an object. Walks both objects key by key and highlights
 // what actually changed, same visual language (ins.diff-add/del.diff-del)
 // as the prose LCS diff above.
+
+// Field names a reviewer reads, rather than the ones the schema uses. The
+// explicit entries are the ones de-camelCasing gets wrong or leaves cryptic;
+// everything else falls through to the general rule, so a field added later
+// reads correctly without being listed.
+const DIFF_FIELD_LABELS = {
+    oneliner: 'Summary',
+    worksOn: 'Works On',
+    damageType: 'Damage Type',
+    startup: 'Startup',
+    active: 'Active',
+    recovery: 'Recovery',
+    blockAdv: 'Block Advantage',
+    hitAdv: 'Hit Advantage',
+    ver: 'Game Version',
+    src: 'File',
+    alt: 'Alt Text',
+    url: 'Link',
+    tier: 'Tier',
+    opponent: 'Opponent',
+    topic: 'Topic',
+    starter: 'Starter',
+};
+
+window.humanFieldName = function(key) {
+    if (DIFF_FIELD_LABELS[key]) return DIFF_FIELD_LABELS[key];
+    return String(key)
+        .replace(/[_-]+/g, ' ')
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .replace(/^\w/, c => c.toUpperCase());
+};
+
 window.renderStructuredDiff = function(oldObj, newObj) {
+    const esc = (v) => window.escapeHtml(v);
+
+    // A value a reviewer can read. This used to be JSON.stringify for anything
+    // that was not a primitive, which is where most of the "it just shows raw
+    // JSON" came from: a list of stats, a sequence of inputs and a set of
+    // combo rows all arrived as one unbroken brace-filled line.
     const formatValue = (val) => {
-        if (val === undefined) return '';
-        if (typeof val === 'object' && val !== null) return JSON.stringify(val);
+        if (val === undefined || val === null) return '';
+        if (Array.isArray(val)) {
+            if (!val.length) return '(empty)';
+            // A list of plain values reads as a list.
+            if (val.every(v => v === null || typeof v !== 'object')) {
+                return val.map(v => String(v)).join(', ');
+            }
+            // A list of objects: one line each, named by whatever identifies
+            // them, rather than one wall of braces.
+            return val.map((v, i) => {
+                const name = v && (v.name || v.label || v.combo || v.title || v[Object.keys(v)[0]]);
+                return `${i + 1}. ${name === undefined ? '(item)' : String(name)}`;
+            }).join('\n');
+        }
+        if (typeof val === 'object') {
+            return Object.keys(val)
+                .map(k => `${window.humanFieldName(k)}: ${val[k] === null || typeof val[k] === 'object' ? formatValue(val[k]) : String(val[k])}`)
+                .join('\n');
+        }
         return String(val);
     };
 
-    const renderFields = (oldO, newO) => {
+    // Multi-line values keep their lines. Escaped first, so the <br> is the
+    // only markup that survives - these values are contributor-submitted.
+    const show = (val) => esc(formatValue(val)).replace(/\n/g, '<br>');
+
+    const renderFields = (oldO, newO, depth) => {
         const safeOld = oldO && typeof oldO === 'object' ? oldO : {};
         const safeNew = newO && typeof newO === 'object' ? newO : {};
         const allKeys = [...new Set([...Object.keys(safeOld), ...Object.keys(safeNew)])];
@@ -111,25 +170,41 @@ window.renderStructuredDiff = function(oldObj, newObj) {
 
             const bothPlainObjects = oldVal && newVal && typeof oldVal === 'object' && typeof newVal === 'object'
                 && !Array.isArray(oldVal) && !Array.isArray(newVal);
+            // Two lists of objects - stats, combo rows, a move's variants.
+            // Compared position by position so a single changed field shows as
+            // that field, instead of both lists being reprinted whole.
+            const bothObjectArrays = Array.isArray(oldVal) && Array.isArray(newVal) && (depth || 0) < 3
+                && [...oldVal, ...newVal].some(v => v && typeof v === 'object')
+                && [...oldVal, ...newVal].every(v => v === null || typeof v === 'object');
 
             let valueHtml;
             if (bothPlainObjects) {
-                valueHtml = `<div class="diff-field-nested">${renderFields(oldVal, newVal)}</div>`;
+                valueHtml = `<div class="diff-field-nested">${renderFields(oldVal, newVal, (depth || 0) + 1)}</div>`;
+            } else if (bothObjectArrays) {
+                let inner = '';
+                for (let i = 0; i < Math.max(oldVal.length, newVal.length); i++) {
+                    if (JSON.stringify(oldVal[i]) === JSON.stringify(newVal[i])) continue;
+                    const label = i + 1;
+                    if (oldVal[i] === undefined) inner += `<div class="diff-field-row"><span class="diff-field-key">Added #${label}</span> <ins class="diff-add">${show(newVal[i])}</ins></div>`;
+                    else if (newVal[i] === undefined) inner += `<div class="diff-field-row"><span class="diff-field-key">Removed #${label}</span> <del class="diff-del">${show(oldVal[i])}</del></div>`;
+                    else inner += `<div class="diff-field-row"><span class="diff-field-key">#${label}</span><div class="diff-field-nested">${renderFields(oldVal[i], newVal[i], (depth || 0) + 1)}</div></div>`;
+                }
+                valueHtml = `<div class="diff-field-nested">${inner}</div>`;
             } else if (oldVal === undefined) {
-                valueHtml = `<ins class="diff-add">${window.escapeHtml(formatValue(newVal))}</ins>`;
+                valueHtml = `<ins class="diff-add">${show(newVal)}</ins>`;
             } else if (newVal === undefined) {
-                valueHtml = `<del class="diff-del">${window.escapeHtml(formatValue(oldVal))}</del>`;
+                valueHtml = `<del class="diff-del">${show(oldVal)}</del>`;
             } else {
-                valueHtml = `<del class="diff-del">${window.escapeHtml(formatValue(oldVal))}</del> <ins class="diff-add">${window.escapeHtml(formatValue(newVal))}</ins>`;
+                valueHtml = `<del class="diff-del">${show(oldVal)}</del> <ins class="diff-add">${show(newVal)}</ins>`;
             }
 
-            rowsHtml += `<div class="diff-field-row"><span class="diff-field-key">${window.escapeHtml(key)}:</span> ${valueHtml}</div>`;
+            rowsHtml += `<div class="diff-field-row"><span class="diff-field-key">${esc(window.humanFieldName(key))}:</span> ${valueHtml}</div>`;
         });
 
         return rowsHtml || `<div class="diff-field-row diff-field-unchanged">No field-level changes detected.</div>`;
     };
 
-    return `<div class="diff-structured">${renderFields(oldObj, newObj)}</div>`;
+    return `<div class="diff-structured">${renderFields(oldObj, newObj, 0)}</div>`;
 };
 
 // --- SMART DELTA HIGHLIGHTER ---
@@ -263,6 +338,13 @@ function calculateTabDiffs(rev, showPopup = true) {
                 let targetTab = 'overview';
                 if (['profile', 'playstyle', 'overview', 'strategy', 'extra'].includes(scope)) targetTab = 'overview';
                 else if (window.getKeyedSectionByScope(scope)) targetTab = window.getKeyedSectionByScope(scope).tab;
+                // A fixed block section names its own tab too. Without this,
+                // editing "Read First" marked OVERVIEW as the changed tab and
+                // left Combos unmarked - so the reviewer was pointed at a tab
+                // that had not changed, and away from the one that had.
+                else if ((window.FIXED_BLOCK_SECTIONS || []).some(f => f.scope === scope)) {
+                    targetTab = window.FIXED_BLOCK_SECTIONS.find(f => f.scope === scope).tab;
+                }
                 // Coerced for the same reason as the diff renderer: a null key
                 // reaching here would throw inside the changed-tabs scan, and
                 // that scan feeds the popup telling a reviewer which tabs to
