@@ -259,10 +259,18 @@ function currentPageMoveSlots() {
 // chip: a lone "1" or "2" in prose is a number far more often than an input,
 // and colouring those would tint every frame count and damage figure on the
 // site.
+//
+// A trailing direction is part of the input, not a separate step: the owner
+// writes "R^" constantly, and JJS's directions are the arrow glyphs and
+// A/W/S/D. Without this "R^" fell through the whole-chip match and came out
+// uncoloured while a bare "R" was fine - which is exactly the swap the owner
+// asked to be sure of.
 function inputKeyPattern() {
     const ids = (window.INPUT_SLOT_IDS || []).slice().sort((a, b) => b.length - a.length);
     if (!ids.length) return null;
-    return new RegExp(`^\\s*(${ids.map(termPattern).join('|')})\\s*$`, 'i');
+    const keys = ids.map(termPattern).join('|');
+    const direction = '(?:\\s*[+]?\\s*(?:[\\u2190-\\u2193\\u21D0-\\u21D3^v<>]|\\b[AWSD]\\b))*';
+    return new RegExp(`^\\s*(${keys})${direction}\\s*$`, 'i');
 }
 
 window.applyInputSlotColours = function (root) {
@@ -273,8 +281,15 @@ window.applyInputSlotColours = function (root) {
     // 1. Combo chips. A chip is one step, so it is matched WHOLE against the
     //    key list first - "2" as a chip is Skill 2, unambiguously - and only
     //    then against move names.
+    //
+    // A chip is only marked DONE once the move map exists. The styling pass
+    // runs on DOM changes, and the first one fires before the character's
+    // frame data has landed - so marking unconditionally left every chip
+    // flagged as processed with no colour, and nothing ever looked again.
+    // That is why a plain "MURMURATE" stayed uncoloured while "BIRD
+    // CONTROL(S)", rendered later, came out orange.
     scope.querySelectorAll('.combo-node:not(.is-slotted)').forEach(chip => {
-        chip.classList.add('is-slotted');
+        if (terms) chip.classList.add('is-slotted');
         const text = chip.textContent || '';
 
         if (keyPattern) {
@@ -306,9 +321,19 @@ window.applyInputSlotColours = function (root) {
         if (replaced !== text) chip.innerHTML = replaced;
     });
 
-    // 2. Move names in prose, wherever the styling engine already runs.
+    // 2. Move names in prose - but ONLY inside the Combos tab.
+    //
+    // Owner, 2026-08-17: slot colouring stays in combo blocks and the Combos
+    // tab. Site-wide it would tint the frame-data pages, where every move name
+    // appears dozens of times, and turn a reference table into a rainbow. A
+    // combo block carries its own colour anywhere because a route IS notation;
+    // prose only counts as notation when it is combo prose.
     if (!terms) return;
-    scope.querySelectorAll('.is-styled:not(.is-slotted-prose)').forEach(block => {
+    const combosTab = scope.querySelector
+        ? (scope.id === 'tab-combos' ? scope : scope.querySelector('#tab-combos'))
+        : null;
+    if (!combosTab) return;
+    combosTab.querySelectorAll('.is-styled:not(.is-slotted-prose)').forEach(block => {
         block.classList.add('is-slotted-prose');
         const before = block.innerHTML;
         terms.pattern.lastIndex = 0;

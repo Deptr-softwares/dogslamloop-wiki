@@ -971,8 +971,16 @@ function initStrategyBlockBuilder(containerId, initialData) {
 
     blockList.addEventListener('input', (e) => {
         if (e.target.classList.contains('editor-textarea')) {
+            // Grow to fit, then STOP and scroll. Uncapped, a long combo route
+            // pushed the field taller than the pane and there was no way to
+            // scroll it - owner, 2026-08-17. The cap is in px rather than rows
+            // because these fields sit in three different panes at three
+            // different widths.
+            const MAX = 260;
             e.target.style.height = 'auto';
-            e.target.style.height = (e.target.scrollHeight) + 'px';
+            const wanted = e.target.scrollHeight;
+            e.target.style.height = Math.min(wanted, MAX) + 'px';
+            e.target.style.overflowY = wanted > MAX ? 'auto' : 'hidden';
         }
 
         if (e.target.classList.contains('editor-input') || e.target.classList.contains('editor-textarea') || e.target.classList.contains('editor-select') || e.target.type === 'checkbox' || e.target.classList.contains('table-header-input') || e.target.classList.contains('table-cell-input')) {

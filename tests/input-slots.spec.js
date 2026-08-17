@@ -188,30 +188,86 @@ test('a real character page colours its own route', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-test('a bare number is never coloured in prose, only inside a chip', async ({ page }) => {
-  // The failure this guard exists for: "1" and "2" appear in prose as frame
-  // counts, damage figures and ordinary numbers far more often than as
-  // inputs. Colouring those would tint half the writing on the site.
+test('slot colouring stays inside combo contexts', async ({ page }) => {
+  // Owner, 2026-08-17: this belongs in combo blocks and the Combos tab, and
+  // nowhere else. Site-wide it would tint the frame-data pages, where every
+  // move name appears dozens of times, and turn a reference table into a
+  // rainbow.
+  //
+  // Two separate rules, and both matter:
+  //   a bare KEY only counts inside a chip - "1" and "2" are frame counts and
+  //     damage figures in prose far more often than inputs;
+  //   a move NAME only counts inside the Combos tab.
   await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(1000);
 
   const result = await page.evaluate(() => {
-    const host = document.createElement('p');
-    host.className = 'strategy-paragraph';
-    host.textContent = 'It does 2 damage over 1 second, and Circling is the follow-up.';
-    document.querySelector('main').appendChild(host);
+    const say = (parentId, text) => {
+      const p = document.createElement('p');
+      p.className = 'strategy-paragraph';
+      p.textContent = text;
+      document.getElementById(parentId).appendChild(p);
+      return p;
+    };
+
+    window.renderCombosTab({
+      comboGroups: [{ title: 'T', content: [{ type: 'paragraph', content: 'Circling is the follow-up.' }] }],
+    });
+
+    const outside = say('tab-overview', 'It does 2 damage over 1 second, and Circling is strong.');
     window.applyInternalStyling();
+
     return {
-      html: host.innerHTML,
-      // The MOVE NAME is coloured, because a name is unambiguous.
-      named: !!host.querySelector('.is-2'),
-      // Count how many slot spans exist: exactly one, the move name.
-      spans: host.querySelectorAll('[class*="is-"]').length,
+      // Nothing outside the Combos tab is touched - not the numbers, not the
+      // move name.
+      outside: outside.querySelectorAll('[class*="is-"]').length,
+      // Inside it, the move name is coloured.
+      inside: document.querySelectorAll('#tab-combos .is-2').length,
     };
   });
 
-  expect(result.named, 'a move name in prose is coloured').toBe(true);
-  expect(result.spans, 'and nothing else is - not the 2, not the 1').toBe(1);
+  expect(result.outside, 'prose outside the Combos tab is left alone').toBe(0);
+  expect(result.inside, 'a move name inside the Combos tab is coloured').toBeGreaterThan(0);
+});
+
+test('a step keeps its colour when the contributor adds a note to it', async ({ page }) => {
+  // "MURMURATE(MISS)" and "BIRD CONTROL(S)" are how the owner actually writes
+  // them. The whole-chip match fails on those, so the name inside has to be
+  // found instead - and a plain "MURMURATE" must still colour, which it did
+  // not: the styling pass runs before frame data lands, and marking every chip
+  // processed on that first pass left them flagged with no colour forever.
+  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  const chips = await page.evaluate(() => {
+    window.renderCombosTab({
+      comboGroups: [{
+        title: 'T',
+        content: [{
+          type: 'theorybox', title: 'Test',
+          // R^ is how the owner writes a directional input, constantly.
+          sequence: ['Murmurate', 'R↑', 'Air Updraft', 'Bird Control(s)', 'M1', 'R'],
+        }],
+      }],
+    });
+    window.applyInternalStyling();
+    return [...document.querySelectorAll('#tab-combos .combo-node')].map(n => ({
+      text: n.textContent,
+      whole: [...n.classList].find(c => c.startsWith('is-') && c !== 'is-slotted') || null,
+      inner: [...n.querySelectorAll('[class*="is-"]')].map(e => e.className.match(/is-[\w]+/)[0]),
+    }));
+  });
+
+  const at = (t) => chips.find(c => c.text === t);
+  expect(at('Murmurate').whole, 'a bare move name colours the whole chip').toBeTruthy();
+  expect(at('Air Updraft').whole).toBe('is-1');
+  // A trailing direction is part of the input, not a separate step.
+  expect(at('R↑').whole, 'R↑ is still R').toBe('is-r');
+  // The two the owner asked to be certain of, because contributors swap them.
+  expect(at('M1').whole).toBe('is-m1');
+  expect(at('R').whole).toBe('is-r');
+  // A note appended to a step leaves the NAME coloured inside it.
+  expect(at('Bird Control(s)').inner.length, 'the name inside is found').toBeGreaterThan(0);
 });
 
 test('the same name can be a different slot in a different state', async ({ page }) => {
