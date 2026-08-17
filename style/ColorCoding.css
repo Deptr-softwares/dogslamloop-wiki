@@ -181,21 +181,41 @@
     .is-4, .is-r, .is-q, .is-shift { -webkit-text-stroke-color: #fff; }
 }
 
-.is-m1    { color: var(--input-color-m1); }
-.is-1     { color: var(--input-color-1); }
-.is-2     { color: var(--input-color-2); }
-.is-3     { color: var(--input-color-3); }
-.is-4     { color: var(--input-color-4); }
-.is-r     { color: var(--input-color-r); }
-.is-q     { color: var(--input-color-q); }
-.is-f     { color: var(--input-color-f); }
-.is-space { color: var(--input-color-space); }
-.is-shift { color: var(--input-color-shift); }
+/* THE CLASS IS DOUBLED DELIBERATELY, and it is not a typo.
+   `.combo-node` sets `color: var(--text-white)` in style/Layout.css, which
+   loads AFTER this file - so at equal specificity it won, and a slot class
+   sitting ON a chip applied its font-weight but not its colour. The symptom
+   was exact: "thickened but not orange" (owner, 2026-08-17). A span nested
+   INSIDE a chip coloured fine, because nothing competed with it - which is
+   why compound steps looked right and plain ones did not.
+   Repeating the class takes it to (0,2,0) without naming another component
+   here, so this file does not have to know what else might set a colour. */
+.is-m1.is-m1       { color: var(--input-color-m1); }
+.is-1.is-1         { color: var(--input-color-1); }
+.is-2.is-2         { color: var(--input-color-2); }
+.is-3.is-3         { color: var(--input-color-3); }
+.is-4.is-4         { color: var(--input-color-4); }
+.is-r.is-r         { color: var(--input-color-r); }
+.is-q.is-q         { color: var(--input-color-q); }
+.is-f.is-f         { color: var(--input-color-f); }
+.is-space.is-space { color: var(--input-color-space); }
+.is-shift.is-shift { color: var(--input-color-shift); }
 
 /* Inside a combo chip the hover fills the background with the character
    colour, so the slot colour would fight it. The chip wins - it is the
    interaction the reader started. */
-.combo-node:hover .is-m1, .combo-node:hover .is-1, .combo-node:hover .is-2,
-.combo-node:hover .is-3, .combo-node:hover .is-4, .combo-node:hover .is-r,
-.combo-node:hover .is-q, .combo-node:hover .is-f, .combo-node:hover .is-space,
-.combo-node:hover .is-shift { color: inherit; text-shadow: none; }
+/* The chip's hover fill wins over the slot colour - it is the interaction the
+   reader started. Written against the doubled classes above so it still
+   outranks them, and covering the class both ON the chip and inside it. */
+.combo-node:hover.is-m1.is-m1, .combo-node:hover .is-m1.is-m1,
+.combo-node:hover.is-1.is-1, .combo-node:hover .is-1.is-1,
+.combo-node:hover.is-2.is-2, .combo-node:hover .is-2.is-2,
+.combo-node:hover.is-3.is-3, .combo-node:hover .is-3.is-3,
+.combo-node:hover.is-4.is-4, .combo-node:hover .is-4.is-4,
+.combo-node:hover.is-r.is-r, .combo-node:hover .is-r.is-r,
+.combo-node:hover.is-q.is-q, .combo-node:hover .is-q.is-q,
+.combo-node:hover.is-f.is-f, .combo-node:hover .is-f.is-f,
+.combo-node:hover.is-space.is-space, .combo-node:hover .is-space.is-space,
+.combo-node:hover.is-shift.is-shift, .combo-node:hover .is-shift.is-shift {
+    color: var(--character-ink, #000); text-shadow: none; -webkit-text-stroke-width: 0;
+}

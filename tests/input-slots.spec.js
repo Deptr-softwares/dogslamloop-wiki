@@ -377,6 +377,90 @@ test('a character move outranks a universal of the same name', () => {
   expect(map.get('jump')).toBe('Space');
 });
 
+test('a slot class actually CHANGES THE COLOUR, on the chip as well as inside it', async ({ page }) => {
+  // The bug this exists for, owner 2026-08-17: "thickened but not orange".
+  //
+  // .combo-node sets `color: var(--text-white)` in Layout.css, which loads
+  // AFTER ColorCoding.css - so at equal specificity it won, and a slot class
+  // sitting ON a chip applied its font-weight and not its colour. A span
+  // nested INSIDE a chip was fine, because nothing competed with it, which is
+  // why compound steps looked right and plain ones did not.
+  //
+  // Every earlier test here asserted the CLASS, which was present the whole
+  // time. Asserting the class is asserting the setup; the colour is the
+  // consequence, and it is what a reader actually sees.
+  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  const measured = await page.evaluate((slotList) => {
+    // One chip per slot, so every one of the ten is proven to paint.
+    const host = document.createElement('div');
+    host.id = 'colour-probe';
+    document.querySelector('main').appendChild(host);
+    host.innerHTML = slotList
+      .map(s => `<span class="combo-node ${s.cls}">${s.id}</span>`).join('');
+
+    const root = getComputedStyle(document.documentElement);
+    const resolve = (value) => {
+      const probe = document.createElement('span');
+      probe.style.color = value;
+      document.body.appendChild(probe);
+      const out = getComputedStyle(probe).color;
+      probe.remove();
+      return out;
+    };
+
+    return slotList.map((s, i) => ({
+      id: s.id,
+      painted: getComputedStyle(host.children[i]).color,
+      expected: resolve(root.getPropertyValue(`--input-color-${s.id.toLowerCase()}`).trim()),
+      plain: resolve(root.getPropertyValue('--text-white').trim()),
+    }));
+  }, [...(await page.evaluate(() => window.INPUT_SLOTS.map(s => ({ id: s.id, cls: s.cls }))))]);
+
+  for (const m of measured) {
+    expect(m.painted, `${m.id} must paint its own colour, not the chip default`).toBe(m.expected);
+    expect(m.painted, `${m.id} must not fall back to plain text`).not.toBe(m.plain);
+  }
+});
+
+test('a resolved step is coloured on the page, not merely classed', async ({ page }) => {
+  // The same claim through the real renderer, for the two shapes that behaved
+  // differently: a whole-chip match and a name found inside a compound step.
+  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  const result = await page.evaluate(() => {
+    window.renderCombosTab({
+      comboList: [{ starter: 'S', rows: [{ sequence: ['Circling', 'Side Dash', 'Bird Control(S)'] }] }],
+    });
+    window.applyInternalStyling();
+
+    const plain = (() => {
+      const probe = document.createElement('span');
+      probe.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text-white').trim();
+      document.body.appendChild(probe);
+      const c = getComputedStyle(probe).color;
+      probe.remove();
+      return c;
+    })();
+
+    const chip = (text) => [...document.querySelectorAll('#tab-combos .combo-node')]
+      .find(n => n.textContent === text);
+
+    return {
+      whole: getComputedStyle(chip('Circling')).color,
+      universal: getComputedStyle(chip('Side Dash')).color,
+      inner: getComputedStyle(chip('Bird Control(S)').querySelector('[class*="is-"]')).color,
+      plain,
+    };
+  });
+
+  expect(result.whole, 'a whole-chip match paints').not.toBe(result.plain);
+  expect(result.universal, 'a universal mechanic paints').not.toBe(result.plain);
+  expect(result.inner, 'a name inside a compound step paints').not.toBe(result.plain);
+});
+
 test('the same name can be a different slot in a different state', async ({ page }) => {
   // A character's ultimate state has different skills in the same slots, so
   // the map has to be per-state. Derivation handles this for free; a flat
