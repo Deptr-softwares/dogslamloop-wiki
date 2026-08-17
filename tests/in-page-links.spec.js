@@ -258,15 +258,16 @@ test('the picker offers sections from tabs other than the one being edited', asy
 
   const targets = await page.evaluate(() => {
     const data = window.currentEditorDescData || window.editorMasterDescData || {};
-    const all = window.collectSectionTargets(data);
+    const frame = window.currentEditorFrameData || window.editorMasterFrameData || {};
+    const all = window.collectSectionTargets(data, frame);
+    const flat = all.concat(...all.map(t => t.children || []));
     return {
-      total: all.length,
+      total: flat.length,
       tabs: [...new Set(all.map(t => t.tab))],
       // Every entry needs all three, or the picker cannot render a row.
       malformed: all.filter(t => !t.id || !t.title || !t.tabLabel).length,
       // Nothing should be offered twice under the same id.
-      duplicateIds: all.length - new Set(all.map(t => t.id)).size,
-      sample: all.slice(0, 4),
+      duplicateIds: flat.length - new Set(flat.map(t => t.id)).size,
     };
   });
 
@@ -277,6 +278,86 @@ test('the picker offers sections from tabs other than the one being edited', asy
   // could offer nothing else.
   expect(targets.tabs.length, 'sections should come from more than the open tab').toBeGreaterThan(1);
   expect(errors).toEqual([]);
+});
+
+test('moves are linkable - M1s, Skills and Specials', async ({ page }) => {
+  // These live in frame_data, not desc_data, so the first version of the
+  // picker offered none of them. On a fighting-game wiki that is most of what
+  // anyone would want to link to.
+  await page.setViewportSize({ width: 1400, height: 950 });
+  await page.goto('/edit.html?char=boomcat&type=character&tab=skills', { waitUntil: 'networkidle' });
+  await page.waitForFunction(() => typeof window.collectSectionTargets === 'function', { timeout: 15000 });
+  await page.waitForTimeout(1200);
+
+  const moves = await page.evaluate(() => {
+    const data = window.currentEditorDescData || window.editorMasterDescData || {};
+    const frame = window.currentEditorFrameData || window.editorMasterFrameData || {};
+    const all = window.collectSectionTargets(data, frame);
+    const cats = window.FRAME_MOVE_CATEGORIES;
+    // What the frame data says exists, against what the picker offers.
+    const expected = {};
+    cats.forEach(c => {
+      expected[c] = (Array.isArray(frame[c]) ? frame[c] : []).map(m => m && m.name).filter(Boolean);
+    });
+    const offered = {};
+    cats.forEach(c => { offered[c] = all.filter(t => t.tab === c).map(t => t.title); });
+    return { expected, offered, cats };
+  });
+
+  const withMoves = moves.cats.filter(c => moves.expected[c].length);
+  expect(withMoves.length, 'Boomcat should have frame-data moves to link to').toBeGreaterThan(0);
+  withMoves.forEach(cat => {
+    // Every move, in frame-data order - a move card is titled with its name.
+    expect(moves.offered[cat], `${cat} moves should all be offered`)
+      .toEqual(expect.arrayContaining(moves.expected[cat]));
+  });
+});
+
+test('the picker nests sub-headings under their section, like the ToC', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 950 });
+  await page.goto('/edit.html?char=boomcat&type=character&tab=overview', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  await page.locator('#btn-format-jump').click();
+  await page.locator('.format-jump-item').first().waitFor({ timeout: 5000 });
+
+  const toggle = page.locator('.format-jump-toggle').first();
+  const hasNesting = await toggle.count();
+  test.skip(!hasNesting, 'this character has no section with sub-headings yet');
+
+  // Collapsed by default: a filled-in page has well over a hundred headings,
+  // and the picker is for finding one, not reading through them.
+  const children = page.locator('.format-jump-children').first();
+  await expect(children).toBeHidden();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+  await toggle.click();
+  await expect(children).toBeVisible();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+  // And a sub-heading is pickable, not just visible.
+  const minor = children.locator('.format-jump-item-minor').first();
+  await expect(minor).toBeVisible();
+});
+
+test('searching a sub-heading surfaces it, expanded', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 950 });
+  await page.goto('/edit.html?char=boomcat&type=character&tab=overview', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  await page.locator('#btn-format-jump').click();
+  await page.locator('.format-jump-item').first().waitFor({ timeout: 5000 });
+
+  const child = await page.evaluate(() => {
+    const el = document.querySelector('.format-jump-children .format-jump-item-minor');
+    return el ? el.getAttribute('data-title') : null;
+  });
+  test.skip(!child, 'this character has no sub-headings yet');
+
+  await page.locator('#format-jump-search').fill(child);
+  // Collapsing the only match would hide the thing the search just found.
+  const found = page.locator('.format-jump-item-minor', { hasText: child }).first();
+  await expect(found).toBeVisible();
 });
 
 test('picking a section writes a link, and it points at something real', async ({ page }) => {
@@ -333,19 +414,32 @@ test('every section the picker offers exists on the rendered page', async ({ pag
 
   const offered = await page.evaluate(() => {
     const data = window.currentEditorDescData || window.editorMasterDescData || {};
-    return window.collectSectionTargets(data).map(t => ({ id: t.id, title: t.title, tab: t.tab }));
+    const frame = window.currentEditorFrameData || window.editorMasterFrameData || {};
+    const all = window.collectSectionTargets(data, frame);
+    return all.concat(...all.map(t => t.children || []))
+      .map(t => ({ id: t.id, title: t.title }));
   });
   expect(offered.length).toBeGreaterThan(0);
 
   await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(2500);
 
-  const unresolved = await page.evaluate((list) => {
+  const compared = await page.evaluate((list) => {
     window.assignSectionAnchors();
-    return list.filter(t => !document.getElementById(t.id));
+    const onPage = [...document.querySelectorAll('.main-content-area [id^="sec-"]')].map(el => el.id);
+    return {
+      // Offered but not rendered: a link that silently does nothing.
+      unresolved: list.filter(t => !document.getElementById(t.id)),
+      // Rendered but never offered: a section nobody can link to. This is the
+      // direction that hid M1s, Skills and Specials - the picker was internally
+      // consistent and simply had no idea they existed.
+      unoffered: onPage.filter(id => !list.some(t => t.id === id)),
+    };
   }, offered);
 
-  expect(unresolved, 'a picker entry that resolves to nothing is a link that silently does nothing')
+  expect(compared.unresolved, 'a picker entry that resolves to nothing is a link that silently does nothing')
+    .toEqual([]);
+  expect(compared.unoffered, 'a section on the page that the picker never offers cannot be linked to')
     .toEqual([]);
 });
 

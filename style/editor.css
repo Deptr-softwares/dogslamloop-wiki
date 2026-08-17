@@ -571,6 +571,27 @@ input[type="checkbox"]:checked {
     margin: 0.5rem 0 0.2rem;
 }
 .format-jump-group:first-child { margin-top: 0; }
+/* The section and its caret sit on one line, so the caret lines up down the
+   right edge the way the table of contents' does. */
+.format-jump-row { display: flex; align-items: stretch; gap: 2px; }
+.format-jump-row .format-jump-item { flex: 1; min-width: 0; }
+.format-jump-toggle {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: 0.55rem;
+    line-height: 1;
+    padding: 0 0.3rem;
+    cursor: pointer;
+    transition: transform 0.12s ease, color 0.12s ease;
+}
+.format-jump-toggle:hover { color: var(--accent-blue); }
+.format-jump-toggle[aria-expanded="false"] { transform: rotate(-90deg); }
+/* Indented and dimmed, so the two levels are distinguishable at a glance
+   without a second colour - the group labels already own the accent. */
+.format-jump-children { margin-left: 0.6rem; border-left: 1px solid #333; padding-left: 0.3rem; }
+.format-jump-children.hidden { display: none; }
+
 .format-jump-item {
     display: block;
     width: 100%;
@@ -582,6 +603,11 @@ input[type="checkbox"]:checked {
     padding: 0.25rem 0.35rem;
     cursor: pointer;
 }
+/* After .format-jump-item, not before: it sets colour and size at the same
+   specificity, so declared above this rule would be dead. Same source-order
+   trap admin.css documents in its own comments. */
+.format-jump-item-minor { font-size: 0.68rem; color: var(--text-muted); }
+
 .format-jump-item:hover, .format-jump-item:focus-visible {
     border-color: var(--accent-blue);
     color: var(--text-white);

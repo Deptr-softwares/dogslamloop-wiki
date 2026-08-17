@@ -892,10 +892,19 @@ window.assignSectionAnchors = function(root) {
     const used = new Set();
     headers.forEach(h => { if (h.id) used.add(h.id); });
 
+    const generic = window.GENERIC_SECTION_TITLES || [];
+
     headers.forEach(header => {
         if (header.id) return;
 
-        const slug = window.sectionAnchorSlug(anchorLabel(header));
+        const label = anchorLabel(header);
+        // "Move Overview and Strategy" is rendered above every move's write-up,
+        // so on a tab with four M1s it appears four times and names nothing.
+        // The ToC has always skipped it; skipping it here too keeps it from
+        // consuming ids that a real duplicate would otherwise be numbered by.
+        if (generic.includes(label)) return;
+
+        const slug = window.sectionAnchorSlug(label);
         if (!slug) return;
 
         // Two sections can legitimately share a name - "Notes" under two

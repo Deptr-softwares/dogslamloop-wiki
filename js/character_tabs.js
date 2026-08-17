@@ -250,6 +250,11 @@
             scope: 'comboTable',
             entryLabel: 'Combo List Table',
             label: 'Combo List',
+            // This section draws its own heading above its tables
+            // (js/description.js:865); matchups and counterplay do not, their
+            // entries ARE the headings. Declared so collectSectionTargets can
+            // offer it as a link target without knowing about combos.
+            containerHeading: true,
             rowsField: 'rows',
             customRenderer: true,
             customEditor: true,
@@ -377,6 +382,20 @@
         { field: 'strategy', title: 'General Strategy' },
     ];
 
+    // Every move card renders this same title above its write-up, so on a tab
+    // with four M1s it appears four times and names nothing. The ToC has always
+    // skipped it by name; assignSectionAnchors skips it for the same reason,
+    // and it is listed here so the two agree.
+    window.GENERIC_SECTION_TITLES = Object.freeze(['Move Overview and Strategy']);
+
+    // Sections that are page FURNITURE - always present, not editable content,
+    // and outside the tab strip. They still carry a heading and are still a
+    // reasonable thing to link to, so the picker offers them; they are listed
+    // last because that is where they render.
+    const STRUCTURAL_SECTIONS = Object.freeze([
+        Object.freeze({ tab: 'page', tabLabel: 'This Page', title: 'Discussion' }),
+    ]);
+
     function collectHeadings(blocks, push, depth) {
         if (!Array.isArray(blocks) || (depth || 0) > 6) return;
         blocks.forEach(block => {
@@ -387,8 +406,20 @@
         });
     }
 
-    window.collectSectionTargets = function (descData) {
+    /**
+     * Returns MAJOR sections, each with the minor headings nested under it -
+     * the same two-level shape the ToC renders, so the picker can be browsed
+     * the same way rather than as one flat list of a hundred entries.
+     *
+     * Takes frame data as well as desc data, because M1s, Skills and Specials
+     * are not in desc_data at all: a move's heading is its NAME, which lives in
+     * frame_data, and only the write-up underneath it is desc_data
+     * (`moveStrategies[moveId]`). Reading desc_data alone offered no way to
+     * link to a skill - the thing this wiki is mostly about.
+     */
+    window.collectSectionTargets = function (descData, frameData) {
         const data = descData || {};
+        const frame = frameData || {};
         const targets = [];
         const counts = Object.create(null);
 
@@ -398,33 +429,73 @@
                 .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''));
 
         const labels = window.getCharacterTabLabels();
+        const skipTitles = window.GENERIC_SECTION_TITLES;
 
-        const add = (tabId, title) => {
+        // Mints the next id for a title, mirroring assignSectionAnchors: the
+        // first keeps the clean id and later ones are numbered in document
+        // order. Which is why the walk below follows the rendered order of the
+        // page rather than any order convenient here.
+        const mint = (title) => {
             const text = String(title == null ? '' : title).trim();
-            if (!text) return;
+            if (!text || skipTitles.includes(text)) return null;
             const slug = slugify(text);
-            if (!slug) return;
-
-            // Same numbering as assignSectionAnchors: the first keeps the
-            // clean id, later ones are suffixed in document order.
+            if (!slug) return null;
             counts[slug] = (counts[slug] || 0) + 1;
-            const id = counts[slug] === 1 ? `sec-${slug}` : `sec-${slug}-${counts[slug]}`;
-
-            targets.push({ id, title: text, tab: tabId, tabLabel: labels[tabId] || tabId });
+            return {
+                id: counts[slug] === 1 ? `sec-${slug}` : `sec-${slug}-${counts[slug]}`,
+                title: text,
+            };
         };
+
+        const addMajor = (tabId, title) => {
+            const entry = mint(title);
+            if (!entry) return null;
+            entry.tab = tabId;
+            entry.tabLabel = labels[tabId] || tabId;
+            entry.children = [];
+            targets.push(entry);
+            return entry;
+        };
+
+        // A minor heading belongs to the major section above it. With none -
+        // a page whose first heading is a block heading - it stands alone,
+        // exactly as the ToC treats an orphan.
+        const addMinor = (tabId, parent, title) => {
+            const entry = mint(title);
+            if (!entry) return;
+            if (parent) { parent.children.push(entry); return; }
+            entry.tab = tabId;
+            entry.tabLabel = labels[tabId] || tabId;
+            entry.children = [];
+            targets.push(entry);
+        };
+
+        const frameCategories = window.FRAME_MOVE_CATEGORIES || [];
 
         window.getCharacterTabIds({ includeInjected: true }).forEach(tabId => {
             if (tabId === 'overview') {
                 OVERVIEW_FIXED.forEach(fixed => {
                     const blocks = data[fixed.field];
                     if (!Array.isArray(blocks) || !blocks.length) return;
-                    add(tabId, fixed.title);
-                    collectHeadings(blocks, t => add(tabId, t));
+                    const parent = addMajor(tabId, fixed.title);
+                    collectHeadings(blocks, t => addMinor(tabId, parent, t));
                 });
                 (data.extras || []).forEach(extra => {
                     if (!extra) return;
-                    add(tabId, extra.title);
-                    collectHeadings(extra.content, t => add(tabId, t));
+                    const parent = addMajor(tabId, extra.title);
+                    collectHeadings(extra.content, t => addMinor(tabId, parent, t));
+                });
+            }
+
+            // M1s, Skills, Specials, Ultimate - a card per move, titled with
+            // the move's name, and the strategy blocks rendered inside it.
+            if (frameCategories.includes(tabId)) {
+                const moves = Array.isArray(frame[tabId]) ? frame[tabId] : [];
+                moves.forEach(move => {
+                    if (!move) return;
+                    const parent = addMajor(tabId, move.name);
+                    const strategies = (data.moveStrategies || {})[move.id];
+                    collectHeadings(strategies, t => addMinor(tabId, parent, t));
                 });
             }
 
@@ -434,22 +505,40 @@
                 .forEach(section => {
                     const blocks = data[section.field];
                     if (!Array.isArray(blocks) || !blocks.length) return;
-                    add(tabId, section.label);
-                    collectHeadings(blocks, t => add(tabId, t));
+                    const parent = addMajor(tabId, section.label);
+                    collectHeadings(blocks, t => addMinor(tabId, parent, t));
                 });
 
             // And the keyed ones - matchups, counterplay, starter guide, combo
             // groups, the combo list - each entry named by its own key field.
             window.getKeyedSectionsForTab(tabId).forEach(section => {
-                (data[section.field] || []).forEach(entry => {
+                const entries = data[section.field] || [];
+                // A section that draws its own heading above its entries -
+                // "Combo List". Only when it has entries, because the renderer
+                // draws nothing at all for an empty one.
+                if (section.containerHeading && entries.length) addMajor(tabId, section.label);
+
+                entries.forEach(entry => {
                     if (!entry) return;
                     const key = entry[section.keyField];
                     // The anchor comes from the RENDERED heading, which is not
                     // always the key on its own - a matchup renders as "vs. X".
-                    if (key) add(tabId, `${section.headingPrefix || ''}${key}`);
-                    collectHeadings(entry.content, t => add(tabId, t));
+                    const parent = key
+                        ? addMajor(tabId, `${section.headingPrefix || ''}${key}`)
+                        : null;
+                    collectHeadings(entry.content, t => addMinor(tabId, parent, t));
                 });
             });
+        });
+
+        // Last, matching where they render below the tabs.
+        STRUCTURAL_SECTIONS.forEach(section => {
+            const entry = mint(section.title);
+            if (!entry) return;
+            entry.tab = section.tab;
+            entry.tabLabel = section.tabLabel;
+            entry.children = [];
+            targets.push(entry);
         });
 
         return targets;

@@ -754,17 +754,34 @@ function initStrategyBlockBuilder(containerId, initialData) {
     if (jumpBtn && jumpPopup && jumpList) {
         const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
 
+        // data- attributes with a delegated listener throughout: a section
+        // title is contributor-written and must never reach an inline handler.
+        const itemHTML = (target, cls) =>
+            `<button type="button" class="${cls}"
+                     data-anchor="${esc(target.id)}"
+                     data-title="${esc(target.title)}">${esc(target.title)}</button>`;
+
         const renderJumpList = (filter) => {
             const data = window.currentEditorDescData || window.editorMasterDescData || {};
+            const frame = window.currentEditorFrameData || window.editorMasterFrameData || {};
             const all = typeof window.collectSectionTargets === 'function'
-                ? window.collectSectionTargets(data)
+                ? window.collectSectionTargets(data, frame)
                 : [];
 
             const needle = String(filter || '').trim().toLowerCase();
-            const shown = needle
-                ? all.filter(t => t.title.toLowerCase().includes(needle)
-                               || t.tabLabel.toLowerCase().includes(needle))
-                : all;
+            const hit = (text) => text.toLowerCase().includes(needle);
+
+            // A major stays when it matches OR one of its sub-headings does -
+            // otherwise searching for a sub-heading returns nothing, because
+            // the thing that matched is nested inside something that did not.
+            const shown = !needle ? all : all
+                .map(t => {
+                    const kids = t.children.filter(c => hit(c.title));
+                    if (hit(t.title) || hit(t.tabLabel)) return { ...t, matchedChildren: kids };
+                    if (kids.length) return { ...t, matchedChildren: kids, childOnly: true };
+                    return null;
+                })
+                .filter(Boolean);
 
             if (!shown.length) {
                 jumpList.innerHTML = `<p class="format-jump-empty">${
@@ -773,8 +790,11 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 return;
             }
 
-            // Grouped by tab, because "Notes" on its own does not say which
-            // one, and a character page can carry several.
+            // Two levels, like the table of contents: a section, and the
+            // headings inside it behind a caret. Collapsed by default, which is
+            // where this departs from the ToC on purpose - a filled-in page has
+            // well over a hundred headings, and the picker exists to find one
+            // quickly rather than to be read through.
             let html = '';
             let lastTab = null;
             shown.forEach(target => {
@@ -782,11 +802,25 @@ function initStrategyBlockBuilder(containerId, initialData) {
                     html += `<div class="format-jump-group">${esc(target.tabLabel)}</div>`;
                     lastTab = target.tab;
                 }
-                // data- attributes with a delegated listener: the title is
-                // contributor-written and must never reach an inline handler.
-                html += `<button type="button" class="format-jump-item"
-                                 data-anchor="${esc(target.id)}"
-                                 data-title="${esc(target.title)}">${esc(target.title)}</button>`;
+
+                const children = needle ? (target.matchedChildren || []) : target.children;
+                // Expanded when the search is what surfaced the children -
+                // collapsing the only match would hide the thing found.
+                const open = !!needle && children.length > 0;
+
+                html += '<div class="format-jump-row">';
+                html += itemHTML(target, 'format-jump-item');
+                if (children.length) {
+                    html += `<button type="button" class="format-jump-toggle" aria-expanded="${open}"
+                                     aria-label="Sections inside ${esc(target.title)}">▼</button>`;
+                }
+                html += '</div>';
+
+                if (children.length) {
+                    html += `<div class="format-jump-children${open ? '' : ' hidden'}">`
+                          + children.map(c => itemHTML(c, 'format-jump-item format-jump-item-minor')).join('')
+                          + '</div>';
+                }
             });
             jumpList.innerHTML = html;
         };
@@ -812,6 +846,15 @@ function initStrategyBlockBuilder(containerId, initialData) {
         }
 
         jumpList.addEventListener('click', (e) => {
+            const toggle = e.target.closest('.format-jump-toggle');
+            if (toggle) {
+                const children = toggle.parentElement && toggle.parentElement.nextElementSibling;
+                if (!children) return;
+                const open = children.classList.toggle('hidden') === false;
+                toggle.setAttribute('aria-expanded', String(open));
+                return;
+            }
+
             const item = e.target.closest('.format-jump-item');
             if (!item) return;
             applyFormat('url', `#${item.getAttribute('data-anchor')}`, item.getAttribute('data-title'));
