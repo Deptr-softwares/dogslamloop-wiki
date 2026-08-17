@@ -37,29 +37,27 @@ test('moving an item swaps it with its neighbour, and the ends refuse', async ({
   expect(out.final).toEqual(['b', 'c', 'a']);
 });
 
-test('the controls disable at the ends rather than disappearing', async ({ page }) => {
+test('one fixed control group per strip, not one per item', async ({ page }) => {
   await boot(page, CHAR);
 
-  const html = await page.evaluate(() => ({
-    first: window.reorderControls('desc.matchups', 0, 3),
-    middle: window.reorderControls('desc.matchups', 1, 3),
-    last: window.reorderControls('desc.matchups', 2, 3),
-  }));
+  await page.evaluate(() => {
+    window.currentEditorDescData.matchups = [
+      { opponent: 'Zzq Alpha', tier: 'even', content: [] },
+      { opponent: 'Zzq Beta', tier: 'even', content: [] },
+      { opponent: 'Zzq Gamma', tier: 'even', content: [] },
+    ];
+    initFullTabEditor('boomcat', 'matchups', window.currentEditorDescData, window.currentEditorFrameData);
+  });
+  await page.waitForTimeout(500);
 
-  // Three controls in every case - dropping one at the ends shifts the others
-  // sideways and makes the row jump as the selection moves.
-  const count = (s) => (s.match(/<button/g) || []).length;
-  expect(count(html.first)).toBe(3);
-  expect(count(html.middle)).toBe(3);
-  expect(count(html.last)).toBe(3);
-
-  expect(html.first).toContain('data-reorder-dir="-1"');
-  expect(html.first.split('data-reorder-dir="-1"')[1]).toContain('disabled');
-  expect(html.middle).not.toContain('disabled');
-  expect(html.last.split('data-reorder-dir="1"')[1]).toContain('disabled');
+  // Per-item controls moved with the entry being reordered, so a second nudge
+  // meant chasing them along the row.
+  expect(await page.locator('.daw-reorder-group').count()).toBe(1);
+  expect(await page.locator('.daw-tab-item .daw-tab-move-btn').count()).toBe(0);
+  expect(await page.locator('.daw-reorder-group .daw-tab-move-btn').count()).toBe(2);
 });
 
-test('a matchup can be moved along the strip, and it sticks', async ({ page }) => {
+test('the selection rides along with the entry being moved', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
 
@@ -77,25 +75,51 @@ test('a matchup can be moved along the strip, and it sticks', async ({ page }) =
   });
   await page.waitForTimeout(500);
 
-  const before = await page.evaluate(() =>
-    window.currentEditorDescData.matchups.map(m => m.opponent));
-  expect(before).toEqual(['Zzq Alpha', 'Zzq Beta', 'Zzq Gamma']);
+  // Select the LAST one, then move it left twice without moving the mouse.
+  await page.locator('#matchup-nav-2').click();
+  await page.waitForTimeout(400);
 
-  // Drive the real control: the LAST item's move-left button.
-  await page.locator('.daw-tab-item').nth(2).locator('.daw-tab-move-btn').first().click();
-  await page.waitForTimeout(600);
+  const moveLeft = page.locator('.daw-reorder-group .daw-tab-move-btn').first();
+  await moveLeft.click();
+  await page.waitForTimeout(500);
+  await moveLeft.click();
+  await page.waitForTimeout(500);
 
-  const after = await page.evaluate(() =>
-    window.currentEditorDescData.matchups.map(m => m.opponent));
-  expect(after, 'Gamma should have moved ahead of Beta').toEqual(['Zzq Alpha', 'Zzq Gamma', 'Zzq Beta']);
+  const state = await page.evaluate(() => ({
+    order: window.currentEditorDescData.matchups.map(m => m.opponent),
+    active: document.querySelector('.daw-editor-nav-row .daw-tab-btn.active')?.textContent.trim(),
+  }));
 
-  // And the strip itself re-rendered to match - the data moving while the UI
-  // still shows the old order is the failure that would look like nothing
-  // happening.
-  const labels = await page.evaluate(() =>
-    [...document.querySelectorAll('.daw-editor-nav-row .daw-tab-btn-removable')].map(b => b.textContent.trim()));
-  expect(labels.join('|')).toContain('vs. Zzq Gamma|vs. Zzq Beta');
+  // Two clicks in the same place carried it two positions - which only works
+  // if the selection followed it. Without that, the second click would have
+  // moved whatever had slid into the old slot.
+  expect(state.order).toEqual(['Zzq Gamma', 'Zzq Alpha', 'Zzq Beta']);
+  expect(state.active, 'the entry that was moved should still be open').toBe('vs. Zzq Gamma');
   expect(errors).toEqual([]);
+});
+
+test('with nothing movable selected, the controls do nothing', async ({ page }) => {
+  await boot(page, '/edit.html?char=boomcat&type=character&tab=overview');
+
+  // The Overview strip's first four entries are fixed sections with no
+  // .daw-tab-item wrapper, so opening one means nothing reorderable is active.
+  await page.evaluate(() => {
+    window.currentEditorDescData.extras = [
+      { title: 'Zzq One', content: [] },
+      { title: 'Zzq Two', content: [] },
+    ];
+    initFullTabEditor('boomcat', 'overview', window.currentEditorDescData, window.currentEditorFrameData);
+  });
+  await page.waitForTimeout(500);
+  await page.locator('#overview-nav-strategy').click();
+  await page.waitForTimeout(400);
+
+  await page.locator('.daw-reorder-group .daw-tab-move-btn').first().click();
+  await page.waitForTimeout(400);
+
+  const order = await page.evaluate(() =>
+    window.currentEditorDescData.extras.map(e => e.title));
+  expect(order, 'nothing reorderable was open, so nothing should move').toEqual(['Zzq One', 'Zzq Two']);
 });
 
 test('every ordered strip offers the controls', async ({ page }) => {
@@ -108,15 +132,15 @@ test('every ordered strip offers the controls', async ({ page }) => {
 
   const wired = {
     'js/editor-tabs.js': [
-      /reorderControls\(`frame\.\$\{tabId\}`/,       // moves
-      /reorderControls\('desc\.extras'/,             // overview custom sections
-      /reorderControls\('desc\.matchups'/,           // matchups
-      /reorderControls\(`desc\.\$\{groups\.field\}`/, // combo groups
-      /reorderControls\(`desc\.\$\{section\.field\}`/, // counterplay, starter guide, later ones
+      /reorderStripControls\(`frame\.\$\{tabId\}`/,       // moves
+      /reorderStripControls\('desc\.extras'/,             // overview custom sections
+      /reorderStripControls\('desc\.matchups'/,           // matchups
+      /reorderStripControls\(`desc\.\$\{groups\.field\}`/, // combo groups
+      /reorderStripControls\(`desc\.\$\{section\.field\}`/, // counterplay, starter guide, later ones
     ],
     'js/editor-system.js': [
-      /reorderControls\('desc\.tabs'/,                       // system tabs
-      /reorderControls\(`desc\.tabs\.\$\{window\.currentSystemTabIdx\}\.sections`/, // system sections
+      /reorderStripControls\('desc\.tabs'/,                       // system tabs
+      /reorderStripControls\(`desc\.tabs\.\$\{window\.currentSystemTabIdx\}\.sections`/, // system sections
     ],
   };
 
@@ -125,7 +149,7 @@ test('every ordered strip offers the controls', async ({ page }) => {
     const src = fs.readFileSync(path.join(root, file), 'utf8');
     patterns.forEach(p => { if (!p.test(src)) missing.push(`${file} :: ${p}`); });
   }
-  expect(missing, 'a strip that does not call reorderControls cannot be reordered').toEqual([]);
+  expect(missing, 'a strip that does not call reorderStripControls cannot be reordered').toEqual([]);
 });
 
 test('inserting reuses the strip’s own add flow', async ({ page }) => {
@@ -187,7 +211,9 @@ test('a reorder on a character page does not rebuild the system editor', async (
   });
   await page.waitForTimeout(400);
 
-  await page.locator('.daw-tab-item').nth(1).locator('.daw-tab-move-btn').first().click();
+  await page.locator('#matchup-nav-1').click();
+  await page.waitForTimeout(300);
+  await page.locator('.daw-reorder-group .daw-tab-move-btn').first().click();
   await page.waitForTimeout(600);
 
   const state = await page.evaluate(() => ({
@@ -224,8 +250,8 @@ test('a system section can be reordered', async ({ page }) => {
   });
   await page.waitForTimeout(400);
 
-  await page.locator('.system-section-tabs-row .daw-tab-item').nth(0)
-    .locator('.daw-tab-move-btn').nth(1).click();
+  // Section 1 is already selected (currentSystemSecIdx 0); move it right.
+  await page.locator('.system-section-tabs-row .daw-reorder-group .daw-tab-move-btn').nth(1).click();
   await page.waitForTimeout(600);
 
   const order = await page.evaluate(() =>

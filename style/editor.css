@@ -1918,21 +1918,18 @@ del.diff-del {
     .daw-tab-move-btn, .daw-tab-insert-btn { min-width: 32px; min-height: 44px; font-size: 0.7rem; }
 }
 
-/* .daw-tab-remove-btn is absolutely positioned at the item's right edge, over
-   the padding .daw-tab-btn-removable reserves for it. The reorder controls are
-   inline siblings that land in the same place, so the ✖ sat ON TOP of the
-   "move right" button and swallowed its clicks - the control was visible and
-   unclickable, which is the same failure the confirmation modals had.
+/* The group sits at the END of the strip, after + ADD, and acts on whichever
+   entry is selected. It was per-item first, and that had two faults the owner
+   named at once: the selection did not follow the entry being moved, and the
+   buttons moved with it so a second nudge meant chasing them along the row.
 
-   Scoped with a sibling combinator rather than :has() so it is not a support
-   question, and so nothing changes for a strip that has no reorder controls. */
-.daw-tab-move-btn ~ .daw-tab-remove-btn,
-.daw-tab-insert-btn ~ .daw-tab-remove-btn {
-    position: static;
-    transform: none;
-    padding: 0 0.35rem;
-    align-self: stretch;
+   Being out of .daw-tab-item also retires a bug that placement caused - the
+   remove ✖ is absolutely positioned at the item's right edge, so it sat on top
+   of "move right" and swallowed its clicks. */
+.daw-reorder-group {
+    display: inline-flex;
+    align-items: stretch;
+    margin-left: 0.5rem;
+    padding-left: 0.5rem;
+    border-left: 1px solid #333;
 }
-/* The reserved padding is no longer needed once the ✖ is inline. Progressive:
-   if :has() is unsupported the button simply keeps a little extra space. */
-.daw-tab-item:has(.daw-tab-move-btn) .daw-tab-btn.daw-tab-btn-removable { padding-right: 0.6rem; }

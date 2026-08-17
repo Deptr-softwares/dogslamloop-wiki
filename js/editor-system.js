@@ -20,12 +20,12 @@ window.renderSystemEditor = function(container) {
         let active = tIdx === window.currentSystemTabIdx ? 'active' : '';
         tabHTML += `<div class="daw-tab-item">`;
         tabHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${active}" onclick="window.switchSystemTab(${tIdx})">${tab.tabLabel}</button>`;
-        tabHTML += window.reorderControls('desc.tabs', tIdx, descData.tabs.length);
         tabHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemTab(${tIdx})" title="Delete Tab">✖</button>`;
         tabHTML += `</div>`;
     });
     window.registerInserter('desc.tabs', () => window.addSystemTab());
     tabHTML += `<button class="daw-tab-btn btn-sys btn-sys-green system-tab-add-btn" onclick="window.addSystemTab()">+ ADD TAB</button>`;
+    tabHTML += window.reorderStripControls('desc.tabs');
     tabHTML += `</div>`;
 
     let activeTab = descData.tabs[window.currentSystemTabIdx];
@@ -40,12 +40,12 @@ window.renderSystemEditor = function(container) {
         secHTML += `<button class="daw-tab-btn daw-tab-btn-removable system-section-tab-btn ${active}" onclick="window.switchSystemSection(${sIdx})">${sec.sectionTitle || 'Section ' + (sIdx+1)}</button>`;
         // Reordering here is exactly what item 6b's `order` delta carries, so a
         // move ships as an order change rather than as every section's content.
-        secHTML += window.reorderControls(`desc.tabs.${window.currentSystemTabIdx}.sections`, sIdx, activeTab.sections.length);
         secHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemSection(${sIdx})" title="Delete Section">✖</button>`;
         secHTML += `</div>`;
     });
     window.registerInserter(`desc.tabs.${window.currentSystemTabIdx}.sections`, () => window.addSystemSection());
     secHTML += `<button class="daw-tab-btn btn-sys btn-sys-purple system-tab-add-btn" onclick="window.addSystemSection()">+ ADD SECTION</button>`;
+    secHTML += window.reorderStripControls(`desc.tabs.${window.currentSystemTabIdx}.sections`);
     secHTML += `</div>`;
 
     // 3. RENDER METADATA & BLOCK BUILDER

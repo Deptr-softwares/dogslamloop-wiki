@@ -44,26 +44,61 @@
     }
 
     /**
-     * The controls for one item in a strip.
+     * ONE FIXED GROUP PER STRIP, acting on whatever is selected.
      *
-     * Rendered for every item including the ends: a disabled button in a fixed
-     * position reads as "cannot go further", while omitting it shifts every
-     * other control sideways and makes the row jump as the selection moves.
+     * These were per-item to begin with, and the owner found the real problem
+     * with that immediately: you do not "ride along" with the section you are
+     * moving. The selection stayed put while the item slid out from under it,
+     * AND the buttons moved with the item, so a second nudge meant chasing them
+     * across the row. Both go away when the controls sit still and act on the
+     * active entry.
+     *
+     * Rendered at the end of the strip, beside + ADD - section-level actions
+     * stay on the section row rather than mixing in with the block toolbar's
+     * undo/redo, and the moves strip renders that toolbar far below its stats
+     * and DAW editor.
+     *
+     * The active index is read from the DOM at click time rather than passed in
+     * here. Six strips track their selection in six different globals, and this
+     * needs none of them.
      */
-    window.reorderControls = function (listSpec, index, total) {
-        if (!listSpec || total < 1) return '';
+    window.reorderStripControls = function (listSpec) {
+        if (!listSpec) return '';
         const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v));
         const spec = esc(listSpec);
-        return `<button type="button" class="daw-tab-move-btn" data-reorder-list="${spec}"
-                        data-reorder-index="${index}" data-reorder-dir="-1"
-                        title="Move left" aria-label="Move left"${index === 0 ? ' disabled' : ''}>&#9664;</button>`
+        return `<span class="daw-reorder-group" data-reorder-list="${spec}">`
+             + `<button type="button" class="daw-tab-move-btn" data-reorder-list="${spec}" data-reorder-dir="-1"
+                        title="Move the selected one left" aria-label="Move selected left">&#9664;</button>`
              + `<button type="button" class="daw-tab-insert-btn" data-reorder-list="${spec}"
-                        data-reorder-index="${index}"
-                        title="Insert after this one" aria-label="Insert after this one">&#43;</button>`
-             + `<button type="button" class="daw-tab-move-btn" data-reorder-list="${spec}"
-                        data-reorder-index="${index}" data-reorder-dir="1"
-                        title="Move right" aria-label="Move right"${index === total - 1 ? ' disabled' : ''}>&#9654;</button>`;
+                        title="Insert after the selected one" aria-label="Insert after selected">&#43;</button>`
+             + `<button type="button" class="daw-tab-move-btn" data-reorder-list="${spec}" data-reorder-dir="1"
+                        title="Move the selected one right" aria-label="Move selected right">&#9654;</button>`
+             + `</span>`;
     };
+
+    // Which entry is selected, and where its strip is. Read from the rendered
+    // strip so no per-strip selection global has to be plumbed through.
+    function activeIndexIn(row) {
+        if (!row) return -1;
+        const items = [...row.querySelectorAll('.daw-tab-item')];
+        return items.findIndex(item => item.querySelector('.daw-tab-btn.active'));
+    }
+
+    function rowFor(el) {
+        return el && el.closest ? el.closest('.daw-variant-tabs') : null;
+    }
+
+    // Re-selecting by CLICKING the strip's own button, rather than by setting a
+    // selection global: each strip loads a different editor on selection, and
+    // the button already carries whichever one that is.
+    function reselect(listSpec, index) {
+        const group = document.querySelector(`.daw-reorder-group[data-reorder-list="${listSpec}"]`);
+        const row = rowFor(group);
+        if (!row) return;
+        const items = [...row.querySelectorAll('.daw-tab-item')];
+        const btn = items[index] && items[index].querySelector('.daw-tab-btn');
+        if (btn) btn.click();
+    }
 
     window.moveListItem = function (list, index, direction) {
         const target = index + direction;
@@ -99,7 +134,10 @@
         // array object than the one measured a moment ago.
         const after = resolveList(listSpec);
         if (!after || after.length !== lengthBefore + 1) return false;   // cancelled, or refused
-        if (index >= after.length - 1) return true;                      // already last
+        // Nothing selected, or the selection is already last: the add flow
+        // appended, which is where it belongs. Guarding index < 0 explicitly,
+        // because -1 + 1 would otherwise relocate the new entry to the front.
+        if (index < 0 || index >= after.length - 1) return true;
 
         const [entry] = after.splice(after.length - 1, 1);
         after.splice(index + 1, 0, entry);
@@ -140,10 +178,18 @@
         if (moveBtn && !moveBtn.disabled) {
             e.preventDefault();
             e.stopPropagation();
-            const list = resolveList(moveBtn.getAttribute('data-reorder-list'));
-            const index = parseInt(moveBtn.getAttribute('data-reorder-index'), 10);
+            const spec = moveBtn.getAttribute('data-reorder-list');
             const dir = parseInt(moveBtn.getAttribute('data-reorder-dir'), 10);
-            if (list && window.moveListItem(list, index, dir)) afterChange();
+            const index = activeIndexIn(rowFor(moveBtn));
+            const list = resolveList(spec);
+
+            // Nothing selected, or already at the end. Silent rather than an
+            // error: the buttons are always there, and a strip can legitimately
+            // have a non-movable section open (Overview's fixed four).
+            if (index < 0 || !list || !window.moveListItem(list, index, dir)) return;
+
+            afterChange();
+            reselect(spec, index + dir);
             return;
         }
 
@@ -152,8 +198,14 @@
             e.preventDefault();
             e.stopPropagation();
             const spec = insertBtn.getAttribute('data-reorder-list');
-            const index = parseInt(insertBtn.getAttribute('data-reorder-index'), 10);
-            window.insertListItemAfter(spec, index).then(moved => { if (moved) afterChange(); });
+            // With nothing selected, append - which is what + ADD does anyway.
+            const index = activeIndexIn(rowFor(insertBtn));
+            window.insertListItemAfter(spec, index).then(inserted => {
+                if (!inserted) return;
+                afterChange();
+                const list = resolveList(spec);
+                reselect(spec, index < 0 ? (list ? list.length - 1 : 0) : index + 1);
+            });
         }
     });
 })();
