@@ -23,6 +23,35 @@ expect(errors).toEqual([]);
 await expect(page.locator('#result')).toBeVisible();
 ```
 
+## Assert the rendered consequence, not the thing that should cause it
+
+A class, an attribute or a data field being correct is **not** evidence that
+the page looks right. Read back what the browser actually computed.
+
+v0.15's notation colouring shipped nine passing tests while the feature was
+visibly broken: every one asserted `classList` contained `is-2`, which it
+always did. `.combo-node` sets `color` in a stylesheet that loads later at
+equal specificity, so the class applied its `font-weight` and not its colour.
+The owner diagnosed it in four words — *"thickened but not orange"* — because
+they were looking at the page and the tests were looking at the DOM.
+
+```js
+// Proves the class was added. Proves nothing about the page.
+expect(chip.className).toContain('is-2');
+
+// Proves the reader sees it.
+const painted = await chip.evaluate(el => getComputedStyle(el).color);
+expect(painted).not.toBe(plainTextColour);
+```
+
+Compare against a **resolved** value, not a literal: read the CSS custom
+property and let the browser resolve it, so the test follows the palette
+instead of pinning a hex.
+
+This is the same failure as asserting a mock was configured rather than that
+the request went through. The question is always "what would the user notice",
+and a class name is never the answer.
+
 ## Revert-confirm-restore, for every bug fix
 
 Before claiming a fix works: temporarily revert it (`git stash push -- <file>`), confirm the new spec **fails**, restore, confirm it passes. A regression test that never failed against the old code proves nothing.
@@ -54,6 +83,40 @@ Before changing code to satisfy a red test, confirm the test is asking the right
 | "submit handler dead" | Mock session had no `email`; `getDisplayName` and `editor-core`'s fallback both call `session.user.email.split('@')`, so boot threw before the handler attached |
 
 When a test fails, reproduce the behaviour manually or add a debug spec that prints actual state before concluding the code is wrong.
+
+## A live page is not an empty page
+
+Specs here load real pages against real Supabase data, and the owner edits that
+data. Three v0.15 tests assumed the group or table they had just created was
+index 0, read the owner's own Boomcat content instead, and compared it against
+their own input.
+
+Record the handle the code gives you rather than counting from the front:
+
+```js
+// Reads whatever the owner happens to have written first.
+const group = window.currentEditorDescData.comboGroups[0];
+
+// Reads the one this test opened.
+const idx = parseInt(String(window.currentCombosSection).replace('group-', ''), 10);
+const group = window.currentEditorDescData.comboGroups[idx];
+```
+
+Same rule as never pinning a count to owner content, in the shape that is
+easier to miss: not a hardcoded number, but an assumption that a real page
+starts empty.
+
+## Never run two full suites at once
+
+`playwright.config.js` starts one dev server on a fixed port and the workers
+share it. A second concurrent run does not just take longer — it reports a
+**different test count** and a scatter of failures that all pass in isolation.
+v0.15 burned several rounds on runs reporting 519, 951, 975 and 984 of the same
+980 tests.
+
+If a run reports failures, re-run **those specs alone** before believing them.
+A failure that passes in isolation is load, not a bug — but a *consistent*
+failure in isolation is real, and that is the only way to tell the two apart.
 
 ## What this suite cannot reach
 
