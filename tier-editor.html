@@ -145,6 +145,14 @@
 
             <div class="site-body tier-editor-body">
                 <div class="max-w-7xl">
+                    <!--
+                        ABOVE the board, because that is where the reader gets
+                        it: js/certified-tier-lists.js renders .ctl-intro
+                        before the tier rows. Previewing it underneath told the
+                        author the wrong thing about their own page.
+                    -->
+                    <div id="tier-preview-intro"></div>
+
                     <div id="tier-editor-board" class="tier-editor-board"></div>
 
                     <!--

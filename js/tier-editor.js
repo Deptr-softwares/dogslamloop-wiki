@@ -645,12 +645,14 @@
 
     function renderPreviewDocs() {
         const host = document.getElementById('tier-preview-docs');
+        const introHost = document.getElementById('tier-preview-intro');
         if (!host || typeof window.generateHTMLForBlocks !== 'function') return;
 
         // Read the open document out of the builder first, or the preview shows
         // the last saved version of whatever is being typed right now.
         flushOpenDoc();
         host.innerHTML = '';
+        if (introHost) introHost.innerHTML = '';
 
         // The LIVE page's own classes and structure, copied from
         // js/certified-tier-lists.js - .ctl-intro / .ctl-subheading /
@@ -661,13 +663,16 @@
         //
         // Same call the board already made: .ctl-row, .ctl-label and
         // .ctl-chars are the public page's classes too.
-        if (state.intro && state.intro.length) {
+        // Into its own host ABOVE the board. The reader meets the author before
+        // the ranking, so previewing the introduction underneath the tiers
+        // showed the right content in the wrong place (owner, 2026-08-18).
+        if (introHost && state.intro && state.intro.length) {
             const box = el('section', 'ctl-intro');
             box.appendChild(el('h3', 'ctl-subheading', 'Tier List Introduction'));
             const body = el('div', 'ctl-intro-body');
             body.innerHTML = window.generateHTMLForBlocks(state.intro);
             box.appendChild(body);
-            host.appendChild(box);
+            introHost.appendChild(box);
         }
 
         // The saved changelog, plus whatever is waiting to join it. Both,
@@ -719,9 +724,9 @@
             host.appendChild(box);
         }
 
-        if (!host.children.length) {
+        if (!host.children.length && introHost && !introHost.children.length) {
             host.appendChild(el('p', 'ctl-empty-note',
-                'Your introduction, changelog and reasoning appear here as you write them.'));
+                'Your introduction, reasoning and changelog appear here as you write them.'));
         }
 
         if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();

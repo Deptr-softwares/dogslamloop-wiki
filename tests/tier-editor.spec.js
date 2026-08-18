@@ -446,8 +446,19 @@ test('the preview uses the live page markup, not a second design', async ({ page
     // with its own layout is not a preview - the first version of this had a
     // Finger-Paint card heading where the real page has a small mono label on
     // an accent border.
-    await expect(host.locator('.ctl-intro .ctl-subheading')).toHaveText('Tier List Introduction');
-    await expect(host.locator('.ctl-intro-body')).toContainText('ZZQ INTRO LINE');
+    // The introduction previews ABOVE the board, because that is where the
+    // reader gets it. Asserted as a document-order relationship rather than by
+    // host id alone, so moving it back below would fail here.
+    const intro = page.locator('#tier-preview-intro');
+    await expect(intro.locator('.ctl-intro .ctl-subheading')).toHaveText('Tier List Introduction');
+    await expect(intro.locator('.ctl-intro-body')).toContainText('ZZQ INTRO LINE');
+
+    const aboveBoard = await page.evaluate(() => {
+        const i = document.querySelector('#tier-preview-intro .ctl-intro');
+        const board = document.getElementById('tier-editor-board');
+        return i.compareDocumentPosition(board) & Node.DOCUMENT_POSITION_FOLLOWING;
+    });
+    expect(aboveBoard, 'the introduction comes before the tiers, as it does live').toBeTruthy();
     await expect(host.locator('.ctl-reasoning .ctl-subheading')).toHaveText('Reasoning');
     await expect(host.locator('.ctl-reasoning-body')).toContainText('ZZQ REASONING LINE');
 
@@ -466,7 +477,7 @@ test('the preview follows what is being typed, not the last saved version', asyn
         list: { ...LIST, intro: [{ type: 'paragraph', content: 'Before' }] },
     });
 
-    await expect(page.locator('#tier-preview-docs')).toContainText('Before');
+    await expect(page.locator('#tier-preview-intro')).toContainText('Before');
 
     // Scroll the workspace down and wait for the virtualization observer to
     // load the card: .block-card.virtual-unloaded > * is display:none, so a
@@ -484,7 +495,7 @@ test('the preview follows what is being typed, not the last saved version', asyn
     // Driven through the real typing path, which is what calls
     // updateLivePreview - a preview that only refreshed on save would satisfy
     // the test above and still be useless while writing.
-    await expect(page.locator('#tier-preview-docs')).toContainText('ZZQ AFTER', { timeout: 5000 });
+    await expect(page.locator('#tier-preview-intro')).toContainText('ZZQ AFTER', { timeout: 5000 });
 });
 
 // --- GAME VERSION (v0.15 item 13) ---
