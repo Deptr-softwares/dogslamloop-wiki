@@ -452,6 +452,55 @@ test('the theorybox and the combo table no longer link out to storage', async ({
   expect(out.cell, 'the combo table no longer links out either').not.toContain('<a ');
 });
 
+test('a hostile video URL never becomes a destination or an attribute break', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await boot(page);
+
+  // The button and the modal are a new contributor-reachable path to a URL and
+  // to an attribute, which is the pair the comment at the top of description.js
+  // exists about.
+  const out = await page.evaluate(() => {
+    const hostile = 'javascript:window.__PWN=1';
+    const quoted = '" onfocus="window.__PWN2=1" data-x="';
+
+    const box = window.generateHTMLForBlocks([{
+      type: 'theorybox', title: 'X', sequence: [], video: hostile, content: [],
+    }], '');
+
+    const host = document.createElement('div');
+    host.id = 'hostile-host';
+    document.body.appendChild(host);
+    host.innerHTML = window.generateHTMLForBlocks([{
+      type: 'theorybox', title: 'X', sequence: [], video: quoted, content: [],
+    }], '');
+
+    const btn = host.querySelector('[data-wiki-video]');
+    return {
+      scriptUrlDropped: !box.includes('javascript:'),
+      scriptUrlNoButton: !box.includes('wiki-video-btn'),
+      // The value survives ESCAPED rather than being absent - a renderer that
+      // silently dropped the field would also pass a "not.toContain" check.
+      quotedValue: btn ? btn.getAttribute('data-wiki-video') : null,
+      strayAttrs: btn ? btn.hasAttribute('onfocus') || btn.hasAttribute('data-x') : null,
+    };
+  });
+
+  expect(out.scriptUrlDropped, 'a javascript: URL is refused outright').toBe(true);
+  expect(out.scriptUrlNoButton, 'so there is no button to press').toBe(true);
+  expect(out.quotedValue).toBe('" onfocus="window.__PWN2=1" data-x="');
+  expect(out.strayAttrs, 'the quote did not end the attribute').toBe(false);
+
+  // And opening the modal on it executes nothing.
+  await page.evaluate(() => {
+    window.openWikiVideoModal('javascript:window.__PWN=1');
+  });
+  const pwned = await page.evaluate(() => !!window.__PWN || !!window.__PWN2);
+  expect(pwned).toBe(false);
+  expect(errors).toEqual([]);
+});
+
 // --- ITEM 12: THE PLACEHOLDER ---
 
 test('an empty image block shows the placeholder instead of a broken box', async ({ page }) => {
