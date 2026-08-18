@@ -321,13 +321,14 @@
             });
             row.appendChild(name);
 
-            const color = document.createElement('input');
-            color.type = 'color';
-            color.className = 'tier-control-color';
-            color.value = toHex(tier.color);
-            color.setAttribute('aria-label', 'Tier colour');
-            color.addEventListener('input', () => { tier.color = color.value; renderBoard(); });
-            row.appendChild(color);
+            // The v0.14 picker instead of <input type="color">, which opens the
+            // OPERATING SYSTEM's colour dialog on top of the wiki - a different
+            // palette, different conventions, and a modal the page cannot see.
+            // Same reasoning that replaced it in the block toolbar, and the
+            // same engine: initColorPicker resolves its parts with
+            // container.querySelector, so a second copy of the markup in a
+            // popup of our own is all it needs.
+            row.appendChild(tierColorControl(tier, index));
 
             const up = el('button', 'btn-sys btn-sys-regular tier-control-btn', '▲');
             up.type = 'button';
@@ -356,6 +357,69 @@
             host.appendChild(row);
         });
     }
+
+    // A swatch that opens the site's own colour picker. One popup per tier row,
+    // built with the picker's markup and handed to initColorPicker - the IDs
+    // inside are duplicated across rows, which is fine because every lookup
+    // that engine makes is scoped to the container it was given.
+    function tierColorControl(tier, index) {
+        const wrap = el('div', 'tier-color-wrap');
+
+        const swatch = document.createElement('button');
+        swatch.type = 'button';
+        swatch.className = 'tier-control-color';
+        swatch.style.backgroundColor = toHex(tier.color);
+        swatch.setAttribute('aria-label', `Colour for tier ${index + 1}`);
+        wrap.appendChild(swatch);
+
+        const popup = el('div', 'tier-color-popup hidden');
+        popup.innerHTML = `
+            <div class="cp-label">Tier colour</div>
+            <div class="cp-surface" id="cp-surface">
+                <div class="cp-thumb" id="cp-surface-thumb"></div>
+            </div>
+            <div class="cp-hue" id="cp-hue" role="slider" tabindex="0"
+                 aria-label="Hue" aria-valuemin="0" aria-valuemax="359" aria-valuenow="0">
+                <div class="cp-thumb cp-hue-thumb" id="cp-hue-thumb"></div>
+            </div>
+            <div class="format-color-custom-row">
+                <span class="cp-preview" id="cp-preview"></span>
+                <input type="text" id="cp-hex" class="cp-hex" value="${toHex(tier.color)}"
+                       maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex colour">
+                <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
+            </div>
+        `;
+        wrap.appendChild(popup);
+
+        swatch.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const opening = popup.classList.contains('hidden');
+            document.querySelectorAll('.tier-color-popup').forEach(p => p.classList.add('hidden'));
+            popup.classList.toggle('hidden', !opening);
+        });
+
+        if (typeof window.initColorPicker === 'function') {
+            window.initColorPicker(popup, (hex) => {
+                tier.color = hex;
+                swatch.style.backgroundColor = hex;
+                popup.classList.add('hidden');
+                // Only the board label's colour depends on this, and rebuilding
+                // the controls here would throw away the popup mid-interaction
+                // - the same trap the rename handler fell into.
+                const boardLabel = document.querySelector(
+                    `.tier-editor-row[data-tier-index="${index}"] .ctl-label`);
+                if (boardLabel) boardLabel.style.backgroundColor = hex;
+            });
+        }
+
+        return wrap;
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest || !e.target.closest('.tier-color-wrap')) {
+            document.querySelectorAll('.tier-color-popup').forEach(p => p.classList.add('hidden'));
+        }
+    });
 
     function swapTier(a, b) {
         if (b < 0 || b >= state.tiers.length) return;

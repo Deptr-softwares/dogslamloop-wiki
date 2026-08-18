@@ -408,6 +408,55 @@ test('a read-only list cannot have its game version edited', async ({ page }) =>
     await expect(page.locator("#tier-game-version")).toHaveValue("Update 1.4.2");
 });
 
+// --- THE TIER COLOUR PICKER (v0.16 fine-tuning 3) ---
+
+test('tier colours use the site picker, not the operating system dialog', async ({ page }) => {
+    await openEditor(page);
+
+    // <input type="color"> opens the OS colour dialog on top of the wiki - a
+    // different palette, different conventions, and a modal the page cannot
+    // see. v0.14 removed it everywhere else; this row was the last one left.
+    await expect(page.locator('.tier-control-row input[type="color"]')).toHaveCount(0);
+
+    const swatch = page.locator('.tier-control-color').first();
+    await expect(swatch).toBeVisible();
+    await expect(page.locator('.tier-color-popup').first()).toBeHidden();
+
+    await swatch.click();
+    await expect(page.locator('.tier-color-popup').first()).toBeVisible();
+
+    // Driven through the picker's own hex field and USE button, which is the
+    // v0.14 engine rather than a reimplementation of it.
+    const popup = page.locator('.tier-color-popup').first();
+    await popup.locator('.cp-hex').fill('#123456');
+    await popup.locator('.cp-apply').click();
+
+    await expect(popup).toBeHidden();
+
+    // The rendered consequence on the board, not just the stored value.
+    const painted = await page.evaluate(() => {
+        const label = document.querySelector('.tier-editor-row[data-tier-index="0"] .ctl-label');
+        return getComputedStyle(label).backgroundColor;
+    });
+    expect(painted).toBe('rgb(18, 52, 86)');
+
+    await saveBtn(page).click();
+    const call = await page.evaluate(() => window.__rpcCalls.find(c => c.name === 'save_tier_list'));
+    expect(call.params.p_tiers[0].color).toBe('#123456');
+});
+
+test('opening one tier colour picker closes the others', async ({ page }) => {
+    await openEditor(page);
+
+    await page.locator('.tier-control-color').nth(0).click();
+    await expect(page.locator('.tier-color-popup').nth(0)).toBeVisible();
+
+    await page.locator('.tier-control-color').nth(1).click();
+    await expect(page.locator('.tier-color-popup').nth(1)).toBeVisible();
+    await expect(page.locator('.tier-color-popup').nth(0), 'two open pickers is two answers')
+        .toBeHidden();
+});
+
 // --- TIER NAMES LONGER THAN A LETTER (v0.16 fine-tuning 3) ---
 
 test('a tier can be renamed by typing, not one letter per click', async ({ page }) => {

@@ -109,15 +109,42 @@
 
 .tier-control-name { flex: 1; min-width: 0; font-size: 0.78rem; }
 
+/* A swatch that opens the site's own picker, not <input type="color"> - that
+   opens the operating system's colour dialog on top of the wiki, which is the
+   thing v0.14 removed everywhere else. `background: none` is gone with it:
+   this element IS the colour now, so the inline background is the control. */
+.tier-color-wrap { position: relative; flex-shrink: 0; }
+
 .tier-control-color {
     width: 2rem;
     height: 2rem;
     padding: 0;
     border: 2px solid var(--border-color);
-    background: none;
     cursor: pointer;
-    flex-shrink: 0;
+    display: block;
 }
+.tier-control-color:hover { border-color: var(--accent-blue); }
+
+/* Opens SIDEWAYS, not downward. Dropping below the swatch put it directly over
+   the next tier's swatch, so with one picker open the next one could not be
+   clicked at all - found by a click timing out rather than by any assertion.
+   Sideways it covers only its own row's name field, which is not a target
+   while you are choosing a colour.
+
+   Anchored to the row rather than the page so it travels with the tier as this
+   column scrolls. */
+.tier-color-popup {
+    position: absolute;
+    top: 0;
+    right: calc(100% + 0.4rem);
+    z-index: 60;
+    width: 13rem;
+    padding: 0.6rem;
+    background: #0a0a0a;
+    border: 2px solid var(--accent-blue);
+    box-shadow: 6px 6px 0px var(--manga-shadow);
+}
+.tier-color-popup.hidden { display: none; }
 
 .tier-control-btn { padding: 0.3rem 0.45rem; font-size: 0.65rem; flex-shrink: 0; }
 
