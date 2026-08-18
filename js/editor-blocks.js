@@ -543,6 +543,12 @@ function initStrategyBlockBuilder(containerId, initialData) {
     let lastSelection = { start: 0, end: 0 };
     
     blockList.addEventListener('focusin', (e) => {
+        // Inside a CARD only. The folder header carries a name input that lives
+        // in this list but is not block content, and the format toolbar writes
+        // shortcodes into whatever was last focused - so Bold on a selected
+        // folder name would have written [b]...[/b] into organisation nobody
+        // reads.
+        if (!e.target.closest || !e.target.closest('.block-card')) return;
         if(e.target.tagName === 'TEXTAREA' || (e.target.tagName === 'INPUT' && e.target.type === 'text')) {
             lastFocusedInput = e.target;
         }
