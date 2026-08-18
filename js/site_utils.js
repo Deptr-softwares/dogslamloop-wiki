@@ -238,6 +238,12 @@ window.BASE_MODE_ID = 'base';
 // down for real is deleting the object, which stays the owner's job.
 const BLOCKED_MEDIA_NOTICE = 'Media removed by a moderator';
 
+// The same fact, in one word, for the places where the full sentence does not
+// fit: a video BUTTON in a table cell or on a combo card is a small control,
+// and a full-width notice in its place is bulkier than the thing it replaced
+// (owner, 2026-08-18).
+const BLOCKED_MEDIA_LABEL = 'Blocked';
+
 let blockedMediaPromise = null;
 
 // Returns a Set of blocked object paths, and an empty one on any failure.
@@ -284,10 +290,16 @@ window.isBlockedMediaSrc = function(src, blocked) {
 
 function replaceWithBlockedNotice(element) {
     if (!element || !element.parentNode) return;
-    const notice = document.createElement('div');
-    notice.className = 'media-blocked-notice';
+
+    // A video button gets the compact form. The REMOVAL is identical either
+    // way - the URL and the click target both go - so this is only a question
+    // of what fits where the thing used to be.
+    const inline = !!(element.matches && element.matches('[data-wiki-video]'));
+
+    const notice = document.createElement(inline ? 'span' : 'div');
+    notice.className = inline ? 'media-blocked-inline' : 'media-blocked-notice';
     // textContent, not innerHTML - and the string is a constant anyway.
-    notice.textContent = BLOCKED_MEDIA_NOTICE;
+    notice.textContent = inline ? BLOCKED_MEDIA_LABEL : BLOCKED_MEDIA_NOTICE;
     element.parentNode.replaceChild(notice, element);
 }
 

@@ -155,7 +155,28 @@ test('a flagged video is not advertised by a button either', async ({ page }) =>
     // never a bypass, but moderation should take the affordance away rather
     // than leave a button promising something it will not deliver.
     await expect(page.locator('#button-host [data-wiki-video]')).toHaveCount(0);
-    await expect(page.locator('#button-host .media-blocked-notice')).toHaveCount(2);
+
+    // The compact form, not the full-width notice: a button lives in a table
+    // cell, and a 60px-tall notice turned a one-line row into three.
+    await expect(page.locator('#button-host .media-blocked-inline')).toHaveCount(2);
+    await expect(page.locator('#button-host .media-blocked-inline').first()).toHaveText('Blocked');
+    await expect(page.locator('#button-host .media-blocked-notice')).toHaveCount(0);
+
+    // Sized like the control it replaced rather than like a banner. Asserted
+    // against the button's own height rather than a pixel count, so it follows
+    // the button if that is ever restyled.
+    const heights = await page.evaluate(() => {
+        const probe = document.createElement('button');
+        probe.className = 'wiki-video-btn';
+        probe.textContent = 'Play';
+        document.body.appendChild(probe);
+        const button = probe.getBoundingClientRect().height;
+        probe.remove();
+        const marker = document.querySelector('#button-host .media-blocked-inline')
+            .getBoundingClientRect().height;
+        return { button, marker };
+    });
+    expect(heights.marker).toBeLessThanOrEqual(heights.button + 4);
 });
 
 test('an unflagged video keeps its player and its button', async ({ page }) => {
