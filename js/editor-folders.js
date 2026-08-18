@@ -96,6 +96,67 @@
     window.blockFolderRunContaining = runContaining;
     window.blockFolderRunNamed = runNamed;
 
+    // --- EMPTY FOLDERS ---
+    //
+    // Membership is a per-block string, so a folder holding no blocks does not
+    // exist in the data at all. Empty folders are held here for the session
+    // instead: created from a folder header's ＋, rendered as an empty drop
+    // zone, and promoted into real data the moment a block joins one. Losing
+    // them on reload is correct rather than a gap - there was nothing to save.
+    //
+    // `after` anchors one to the folder it was created from BY NAME, not by
+    // index, so reordering blocks around it cannot strand it somewhere else.
+    let pending = [];
+
+    window.pendingBlockFolders = function () {
+        return pending.map(function (p) { return { name: p.name, after: p.after }; });
+    };
+
+    window.addPendingBlockFolder = function (blocks, afterFolder) {
+        const name = window.nextFolderName(blocks, 'New Folder');
+        pending.push({ name: name, after: normalize(afterFolder) });
+        return name;
+    };
+
+    window.dropPendingBlockFolder = function (name) {
+        const key = normalize(name);
+        const before = pending.length;
+        pending = pending.filter(function (p) { return p.name !== key; });
+        return pending.length !== before;
+    };
+
+    function pendingNamed(name) {
+        const key = normalize(name);
+        for (let i = 0; i < pending.length; i++) if (pending[i].name === key) return pending[i];
+        return null;
+    }
+
+    // A name is taken if EITHER a real run or an empty folder holds it -
+    // otherwise renaming onto an empty folder would produce two of them.
+    function nameTaken(blocks, name) {
+        return !!(runNamed(blocks, name) || pendingNamed(name));
+    }
+    window.blockFolderNameTaken = nameTaken;
+
+    // Moves the block to where the empty folder is DRAWN. Without this, filing
+    // a block into an empty folder would create it wherever that block already
+    // sat, which is rarely where the author was pointing.
+    function promotePending(blocks, index, name) {
+        const spec = pendingNamed(name);
+        if (!spec) return -1;
+
+        const block = blocks[index];
+        const anchor = spec.after ? runNamed(blocks, spec.after) : null;
+        let insertAt = anchor ? anchor.end + 1 : blocks.length;
+
+        blocks.splice(index, 1);
+        if (index < insertAt) insertAt -= 1;   // the removal shifted the anchor down
+        blocks.splice(insertAt, 0, block);
+
+        window.dropPendingBlockFolder(name);
+        return insertAt;
+    }
+
     // --- WRITING ---
 
     // Moves block `index` into folder `rawName`, or out of any folder when
@@ -123,9 +184,13 @@
         const existing = runNamed(blocks, target);
         block.folder = target;
 
-        // A name nobody is using yet becomes a one-block folder exactly where
-        // the block already sits - nothing needs to move.
-        if (!existing) return index;
+        if (!existing) {
+            // An empty folder already has a place on screen, so joining it
+            // means going there. A name nobody is using at all becomes a
+            // one-block folder exactly where the block already sits.
+            const promoted = promotePending(blocks, index, target);
+            return promoted >= 0 ? promoted : index;
+        }
 
         const insertAt = index < existing.start ? existing.end : existing.end + 1;
         blocks.splice(index, 1);
@@ -145,7 +210,10 @@
         const block = blocks[index];
         const existing = runNamed(blocks, target);
         block.folder = target;
-        if (!existing) return index;
+        if (!existing) {
+            const promoted = promotePending(blocks, index, target);
+            return promoted >= 0 ? promoted : index;
+        }
 
         const insertAt = index < existing.start ? existing.start - 1 : existing.start;
         blocks.splice(index, 1);
@@ -193,11 +261,18 @@
         const next = normalize(rawNew);
         if (!Array.isArray(blocks) || !from || !next) return false;
         if (from === next) return true;
-        if (runNamed(blocks, next)) return false;
+        if (nameTaken(blocks, next)) return false;
+
+        // An empty folder is renamed in place; it has no members to rewrite.
+        const empty = pendingNamed(from);
+        if (empty) { empty.name = next; return true; }
 
         blocks.forEach(function (b) {
             if (nameOf(b) === from) b.folder = next;
         });
+        // Anything anchored to the old name follows it, or it would jump to
+        // the end of the list the moment its neighbour was renamed.
+        pending.forEach(function (p) { if (p.after === from) p.after = next; });
         return true;
     };
 
@@ -219,10 +294,10 @@
     // "New Folder", "New Folder 2", ... - a name that is free at this level.
     window.nextFolderName = function (blocks, base) {
         const stem = normalize(base) || 'New Folder';
-        if (!runNamed(blocks, stem)) return stem;
+        if (!nameTaken(blocks, stem)) return stem;
         for (let n = 2; n < 500; n++) {
             const candidate = normalize(stem + ' ' + n);
-            if (!runNamed(blocks, candidate)) return candidate;
+            if (!nameTaken(blocks, candidate)) return candidate;
         }
         return stem + ' ' + Date.now();
     };
@@ -249,6 +324,7 @@
 
     window.resetBlockFolderState = function () {
         collapsed = new Set();
+        pending = [];
     };
 
     window.isBlockFolderCollapsed = function (name) {

@@ -1133,8 +1133,26 @@ input[type="checkbox"]:checked {
     font-size: 0.7rem;
     text-transform: uppercase;
 }
-.block-folder-ungroup { flex: 0 0 auto; font-size: 0.65rem; }
-.block-folder-ungroup:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
+.block-folder-add { flex: 0 0 auto; font-size: 0.65rem; }
+.block-folder-add:hover { background: #22c55e; color: #000; border-color: #22c55e; }
+.block-folder-ungroup,
+.block-folder-discard { flex: 0 0 auto; font-size: 0.65rem; }
+.block-folder-ungroup:hover,
+.block-folder-discard:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
+
+/* An empty folder exists only for this editing session - it has no blocks, so
+   there is no `folder` string anywhere for it to be saved in. Dashed to say
+   so, rather than looking like a folder whose contents failed to load. */
+.block-folder.is-empty { border-left-style: dashed; border-left-color: #6b7280; }
+.block-folder-empty {
+    padding: 0.6rem 0.75rem;
+    color: #6b7280;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    text-align: center;
+    border: 1px dashed #2f2f2f;
+    margin: 0.35rem;
+}
 
 /* The drop affordance for a folder HEADER. Distinct from .drag-over-top /
    .drag-over-bottom on a card, which are edges: this is a container, and the
@@ -1146,20 +1164,90 @@ input[type="checkbox"]:checked {
     outline-offset: -2px;
 }
 
-/* Not .editor-select: that class is picked up by the delegated input handler
-   in editor-blocks.js, which resolves .block-card and writes data-field - this
-   control is not a block field and would throw or corrupt one. */
-.block-folder-select {
+/* --- THE FOLDER PICKER ---
+   Reuses .manga-select-wrapper / .manga-select-options / .manga-option from
+   Forms.css, so it opens and animates like every other dropdown on the site.
+   What it adds is the thing a native select could not: "No folder" and "Create
+   new folder" are not folders, and as three near-identical rows the menu was
+   unreadable.
+
+   NOT built by initializeMangaSelects, and deliberately not a <select> at all -
+   that engine flattens each option to plain textContent, which is exactly the
+   distinction being drawn here. It also only converts select.editor-select,
+   a class the delegated input handler in editor-blocks.js treats as a block
+   field. */
+.block-folder-picker { flex: 0 1 11rem; margin-bottom: 0; }
+
+.block-folder-trigger {
+    display: block;
+    width: 100%;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid #222;
-    color: #9ca3af;
+    color: #6b7280;
     font-family: var(--text-mono);
     font-size: 0.7rem;
-    padding: 0.1rem 0.2rem;
-    max-width: 11rem;
+    text-align: left;
+    padding: 0.15rem 1.2rem 0.15rem 0.35rem;
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.block-folder-trigger::after {
+    content: '\25BC';
+    position: absolute;
+    right: 0.35rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.5rem;
+    color: #4b5563;
+}
+.block-folder-trigger:hover { color: #fff; border-color: #444; }
+/* Filed in a folder reads differently from loose, at a glance, without opening
+   anything - the folder mark is the state, so it is on the trigger. */
+.block-folder-trigger.has-folder { color: #e5e7eb; border-color: #4b5563; }
+.block-folder-trigger.has-folder::before { content: '\1F4C1\00a0'; }
+
+.block-folder-picker.open .manga-select-options { display: flex; }
+.block-folder-picker .manga-select-options { text-align: left; }
+.block-folder-picker .folder-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed #222;
     cursor: pointer;
 }
-.block-folder-select:hover { color: #fff; border-color: #444; }
+.folder-option-item::before { content: '\1F4C1\00a0'; }
+
+/* The two rows that are not folders. */
+.folder-option-none { font-style: italic; color: #6b7280 !important; }
+.folder-option-none::before { content: '\2014\00a0'; }
+.folder-option-new { color: #22c55e !important; border-top: 1px solid #222; }
+.folder-option-new:hover { background: #22c55e !important; color: #000 !important; }
+
+/* A group label, not a choice - never clickable, never hover-highlighted. */
+.folder-option-sep {
+    padding: 0.35rem 0.75rem 0.2rem;
+    font-family: var(--text-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #4b5563;
+    border-bottom: 1px solid #222;
+    cursor: default;
+}
+
+/* The drop affordance for nesting a block INSIDE an accordion or theorybox.
+   Green rather than the blue used for reordering, because the outcome is
+   different in kind: the block leaves this level entirely. */
+.accordion-inner-block-wrapper.drag-over-nest {
+    background: rgba(34, 197, 94, 0.18);
+    outline: 1px dashed #22c55e;
+    outline-offset: -2px;
+}
 /* touch-action: none so a touch-drag on the handle doesn't also scroll the
    page - startBlockPointerDrag (js/editor-blocks.js) owns the gesture entirely
    once it starts. */

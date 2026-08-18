@@ -46,6 +46,38 @@ async function build(page, blocks) {
 // window.mk, installed by boot().
 const P = (content, folder) => (folder ? { type: 'paragraph', content, folder } : { type: 'paragraph', content });
 
+// The picker is a custom dropdown, not a <select>, so it has to be opened
+// before a row can be clicked - which is also the point of it.
+async function pickFolder(page, index, rowSelector) {
+  const card = page.locator(`#block-list .block-card[data-index="${index}"]`);
+  await card.locator('.block-folder-trigger').click();
+  await card.locator(rowSelector).click();
+}
+
+// Real mouse, not dispatched PointerEvents: startBlockPointerDrag calls
+// setPointerCapture, which throws on synthetic events.
+async function dragOnto(page, sourceHandle, target) {
+  const settled = async (locator, label) => {
+    let previous = null;
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const box = await locator.boundingBox();
+      if (previous && box && box.y === previous.y && box.height === previous.height) return box;
+      previous = box;
+      await page.waitForTimeout(40);
+    }
+    throw new Error(`${label} never settled`);
+  };
+
+  const from = await settled(sourceHandle, 'the drag handle');
+  const to = await settled(target, 'the drop target');
+
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2, from.y + 20); // past DRAG_THRESHOLD
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 5 });
+  await page.mouse.up();
+}
+
 // --- THE CLAIM THE WHOLE ITEM RESTS ON ---
 
 test('a visitor sees nothing: the rendered page is identical with and without folders', async ({ page }) => {
@@ -382,11 +414,10 @@ test('the per-card dropdown files a block into a folder', async ({ page }) => {
   await build(page, [P('a', 'Setups'), P('b'), P('c')]);
 
   // Driven through the real control rather than by calling the model: the
-  // select sits inside #block-list, where a delegated input handler resolves
+  // picker sits inside #block-list, where a delegated input handler resolves
   // .block-card and writes data-field onto the block. A control that looked
   // right and corrupted the block would pass every model test above.
-  const select = page.locator('#block-list .block-card[data-index="2"] .block-folder-select');
-  await select.selectOption('Setups');
+  await pickFolder(page, 2, '.folder-option-item');
 
   const out = await page.evaluate(() => {
     const blocks = window.getActiveBlocks();
@@ -413,12 +444,10 @@ test('"New folder" makes one rather than clearing the block', async ({ page }) =
   await boot(page);
   await build(page, [P('a'), P('b')]);
 
-  // The option carries an EMPTY value, because any non-empty sentinel is a
-  // string somebody could name a folder. Read in the wrong order it silently
-  // means "no folder" - so this drives it and checks a folder appeared.
-  const select = page.locator('#block-list .block-card[data-index="0"] .block-folder-select');
-  const labels = await select.locator('option').allTextContents();
-  await select.selectOption({ label: labels[labels.length - 1] });
+  // "Create new folder" is a row that is not a folder, which is the whole
+  // reason this is a custom dropdown - as a native select it read as a third
+  // near-identical folder, and picking it looked like picking one.
+  await pickFolder(page, 0, '.folder-option-new');
 
   const out = await page.evaluate(() => ({
     folders: window.getActiveBlocks().map(b => b.folder || null),
@@ -428,6 +457,202 @@ test('"New folder" makes one rather than clearing the block', async ({ page }) =
   expect(errors).toEqual([]);
   expect(out.folders).toEqual(['New Folder', null]);
   expect(out.shells).toBe(1);
+});
+
+// --- THE DROPDOWN TELLS ITS THREE KINDS OF ROW APART ---
+
+test('the picker distinguishes "no folder" and "create new" from actual folders', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'Setups'), P('b', 'Enders'), P('c')]);
+
+  await page.locator('#block-list .block-card[data-index="2"] .block-folder-trigger').click();
+
+  const out = await page.evaluate(() => {
+    // Scoped through .block-folder-picker: initializeMangaSelects converts the
+    // block-type <select> in the same row into its own .manga-select-options,
+    // and an unscoped query finds that one first.
+    const menu = document.querySelector(
+      '#block-list .block-card[data-index="2"] .block-folder-picker .manga-select-options');
+    const read = (sel) => {
+      const el = menu.querySelector(sel);
+      if (!el) return null;
+      return {
+        text: el.textContent.trim(),
+        colour: getComputedStyle(el).color,
+        marker: getComputedStyle(el, '::before').content,
+      };
+    };
+    return {
+      folders: menu.querySelectorAll('.folder-option-item').length,
+      none: read('.folder-option-none'),
+      create: read('.folder-option-new'),
+      item: read('.folder-option-item'),
+      sepIsNotAChoice: !menu.querySelector('.folder-option-sep.folder-option'),
+    };
+  });
+
+  expect(out.folders, 'one row per real folder').toBe(2);
+
+  // The rendered consequence, not the class that should cause it: as a native
+  // select all three rows painted identically, which is the bug being fixed.
+  expect(out.none.colour).not.toBe(out.item.colour);
+  expect(out.create.colour).not.toBe(out.item.colour);
+  expect(out.none.colour).not.toBe(out.create.colour);
+
+  // And each kind carries its own mark rather than all three reading as folders.
+  expect(out.item.marker, 'a folder is marked as one').toContain('📁');
+  expect(out.none.marker).not.toContain('📁');
+  expect(out.create.marker).not.toContain('📁');
+
+  expect(out.sepIsNotAChoice, 'the group label is not selectable').toBe(true);
+});
+
+// --- EMPTY FOLDERS ---
+
+test('the header + makes an empty folder after this one, and it is not in the data', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'Setups'), P('b')]);
+
+  await page.locator('#block-list .block-folder-add').click();
+
+  const out = await page.evaluate(() => ({
+    shells: [...document.querySelectorAll('#block-list .block-folder')]
+      .map(s => `${s.getAttribute('data-folder')}${s.classList.contains('is-empty') ? ':empty' : ''}`),
+    // An empty folder has no member to carry its name, so it CANNOT be in
+    // desc_data - it is session state until a block joins it.
+    folders: window.getActiveBlocks().map(b => b.folder || null),
+  }));
+
+  expect(out.shells).toEqual(['Setups', 'New Folder:empty']);
+  expect(out.folders, 'no block was touched').toEqual(['Setups', null]);
+});
+
+test('filing a block into an empty folder moves it to where that folder is drawn', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'Setups'), P('b'), P('c')]);
+
+  await page.locator('#block-list .block-folder-add').click();
+
+  // b sits above the empty folder, which is drawn after the Setups run. Filing
+  // it must take it THERE - creating the folder wherever b already sat would
+  // put it somewhere the author was not pointing.
+  await pickFolder(page, 1, '.folder-option-item[data-folder-name="New Folder"]');
+
+  const out = await page.evaluate(() => ({
+    order: window.getActiveBlocks().map(b => b.content),
+    folders: window.getActiveBlocks().map(b => b.folder || null),
+    empties: document.querySelectorAll('#block-list .block-folder.is-empty').length,
+  }));
+
+  expect(out.order).toEqual(['a', 'b', 'c']);
+  expect(out.folders).toEqual(['Setups', 'New Folder', null]);
+  expect(out.empties, 'it is a real folder now, not an empty one').toBe(0);
+});
+
+test('an empty folder can be discarded, and a name it holds cannot be reused', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'Setups'), P('b')]);
+
+  await page.locator('#block-list .block-folder-add').click();
+
+  // While it exists it owns its name - otherwise renaming onto it would make
+  // two folders called the same thing, the exact state the run model refuses.
+  const taken = await page.evaluate(() =>
+    window.blockFolderNameTaken(window.getActiveBlocks(), 'New Folder'));
+  expect(taken).toBe(true);
+
+  await page.locator('#block-list .block-folder.is-empty .block-folder-discard').click();
+
+  await expect(page.locator('#block-list .block-folder.is-empty')).toHaveCount(0);
+  await expect(page.locator('#block-list .block-folder')).toHaveCount(1);
+
+  const freed = await page.evaluate(() =>
+    window.blockFolderNameTaken(window.getActiveBlocks(), 'New Folder'));
+  expect(freed, 'and gives it back on discard').toBe(false);
+});
+
+// --- NESTING INTO A CONTAINER BLOCK ---
+
+test('a block dragged onto an accordion goes inside it', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await boot(page);
+  await build(page, [
+    { type: 'accordion', title: 'Tech', content: [] },
+    P('moves inside', 'Setups'),
+  ]);
+
+  await dragOnto(
+    page,
+    page.locator('#block-list .block-card[data-index="1"] .drag-handle'),
+    page.locator('#block-list .block-card[data-index="0"] .accordion-inner-block-wrapper'),
+  );
+
+  const out = await page.evaluate(() => {
+    const blocks = window.getActiveBlocks();
+    return {
+      outer: blocks.map(b => b.content && b.content.length !== undefined ? b.type : b.type),
+      count: blocks.length,
+      inner: (blocks[0].content || []).map(b => b.content),
+      innerFolder: (blocks[0].content || []).map(b => b.folder || null),
+    };
+  });
+
+  expect(errors).toEqual([]);
+  expect(out.count, 'it left this level').toBe(1);
+  expect(out.inner, 'and landed in the accordion').toEqual(['moves inside']);
+  // Its folder described where it used to live. Carried along it would render
+  // inside the accordion as a folder of one, named after somewhere invisible.
+  expect(out.innerFolder).toEqual([null]);
+});
+
+test('a theorybox takes a nested drop the same way, without being named anywhere', async ({ page }) => {
+  await boot(page);
+  await build(page, [
+    { type: 'theorybox', title: 'Corner BnB', sequence: [], content: [] },
+    P('the write-up'),
+  ]);
+
+  // Both containers render the same .accordion-inner-block-wrapper, so the
+  // drop target is shared rather than listed per type - a container added
+  // later works without anyone coming back to it.
+  await dragOnto(
+    page,
+    page.locator('#block-list .block-card[data-index="1"] .drag-handle'),
+    page.locator('#block-list .block-card[data-index="0"] .accordion-inner-block-wrapper'),
+  );
+
+  const out = await page.evaluate(() => {
+    const blocks = window.getActiveBlocks();
+    return { count: blocks.length, inner: (blocks[0].content || []).map(b => b.content) };
+  });
+
+  expect(out.count).toBe(1);
+  expect(out.inner).toEqual(['the write-up']);
+});
+
+test('a container cannot be dropped into itself', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await boot(page);
+  await build(page, [{ type: 'accordion', title: 'Tech', content: [] }, P('b')]);
+
+  await dragOnto(
+    page,
+    page.locator('#block-list .block-card[data-index="0"] .drag-handle'),
+    page.locator('#block-list .block-card[data-index="0"] .accordion-inner-block-wrapper'),
+  );
+
+  const out = await page.evaluate(() => {
+    const blocks = window.getActiveBlocks();
+    return { count: blocks.length, innerCount: (blocks[0].content || []).length };
+  });
+
+  expect(errors).toEqual([]);
+  expect(out.count, 'nothing was swallowed').toBe(2);
+  expect(out.innerCount).toBe(0);
 });
 
 test('ungrouping from the header keeps every card on screen', async ({ page }) => {
