@@ -57,6 +57,103 @@ const safeBlockUrl = (url) => {
     return /^\s*(javascript|data|vbscript):/i.test(raw.replace(/[\u0000-\u0020]/g, '')) ? '' : raw;
 };
 
+// --- MEDIA PLACEHOLDER (v0.15 item 12) ---
+//
+// An image block with no src used to emit `<img src="">`, which the browser
+// draws as a broken box showing the alt text - the "empty box that says I am
+// broken". A video or youtube block with nothing in it was worse: it emitted
+// no markup at all, so the block vanished and an author editing a page could
+// not see that it was there.
+//
+// Root-absolute because these pages sit at three different depths and the
+// site is served from the domain root - the same assumption 404.html's
+// <base href="/"> already makes.
+const MEDIA_PLACEHOLDER_SRC = '/medias/images/DogslamloopIcon.webp';
+
+window.wikiMediaPlaceholderHTML = function () {
+    return `
+        <div class="wiki-media-placeholder">
+            <span class="wiki-media-placeholder-label">Placeholder</span>
+            <img src="${MEDIA_PLACEHOLDER_SRC}" alt="" class="wiki-media-placeholder-icon" loading="lazy">
+        </div>
+    `;
+};
+
+// --- SUPABASE MEDIA LINKS (v0.15 item 11) ---
+//
+// A wiki-media link pasted into a table cell renders as media instead of as a
+// URL. The bucket check is the SECURITY control, not a convenience: a cell
+// that turned any URL into an <img> or <video> would let a contributor embed
+// from anywhere and hotlink someone else's bandwidth through the wiki.
+//
+// The project URL is read rather than hardcoded, and `typeof` rather than a
+// bare reference because SUPABASE_URL is a top-level const in site_utils.js -
+// another file entirely, and one a cache-skewed load can be missing.
+const WIKI_MEDIA_BUCKET_PATH = '/storage/v1/object/public/wiki-media/';
+const WIKI_MEDIA_IMAGE_RE = /\.(png|jpe?g|webp|gif|avif|bmp)(\?|#|$)/i;
+const WIKI_MEDIA_VIDEO_RE = /\.(webm|mp4|m4v|mov|ogv)(\?|#|$)/i;
+
+// 'image', 'video', or null for anything that is not one of ours.
+window.wikiMediaKind = function (value) {
+    const raw = String(value === null || value === undefined ? '' : value).trim();
+    if (!raw || /\s/.test(raw)) return null;
+
+    const base = typeof SUPABASE_URL === 'string' ? SUPABASE_URL : '';
+    if (!base) return null;
+    if (raw.indexOf(base + WIKI_MEDIA_BUCKET_PATH) !== 0) return null;
+
+    if (WIKI_MEDIA_IMAGE_RE.test(raw)) return 'image';
+    if (WIKI_MEDIA_VIDEO_RE.test(raw)) return 'video';
+    return null;
+};
+
+// --- THE VIDEO PLAYER (v0.15 item 10) ---
+//
+// Native <video> only, by the owner's call - YouTube's controls cannot be
+// restyled from outside the iframe, and the alternatives were an external API
+// on the busiest pages or a frame that promised more than it delivered.
+//
+// And only when the block asked for controls. A video block with controls OFF
+// renders `autoplay loop muted playsinline`: a silent clip standing in for a
+// GIF, which is a deliberate authoring choice on a lot of existing pages.
+// Giving that a play button answers a question nobody asked.
+//
+// Painted with var(--accent-blue), which js/site_meta.js overrides on :root
+// per character page - so the player re-themes itself and there is nothing
+// here that knows about characters at all.
+window.wikiVideoPlayerHTML = function (url, extraClass) {
+    const safe = escBlockText(safeBlockUrl(url));
+    if (!safe) return '';
+    return `
+        <div class="wiki-player${extraClass ? ' ' + escBlockText(extraClass) : ''}" data-wiki-player>
+            <video data-lazy-src="${safe}" class="wiki-video-native" preload="none" playsinline></video>
+            <div class="wiki-player-controls">
+                <button type="button" class="wiki-player-toggle" data-player-toggle
+                        aria-label="Play">
+                    <span class="wiki-player-glyph" aria-hidden="true"></span>
+                </button>
+                <div class="wiki-player-track" data-player-track role="slider" tabindex="0"
+                     aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div class="wiki-player-fill" data-player-fill></div>
+                </div>
+            </div>
+        </div>
+    `;
+};
+
+// A cell or a card has no room for a player, so a video there is a button that
+// opens one. Deliberately NOT a link to the storage URL, which is what the
+// theorybox and the combo table used to do - that navigates the reader off the
+// wiki to a bare video on a Supabase domain, with no way back but the back
+// button (owner, 2026-08-18).
+window.wikiVideoButtonHTML = function (url, label) {
+    const safe = escBlockText(safeBlockUrl(url));
+    if (!safe) return '';
+    return `<button type="button" class="wiki-video-btn" data-wiki-video="${safe}">`
+        + `<span class="wiki-video-btn-glyph" aria-hidden="true"></span>`
+        + `${escBlockText(label || 'Watch')}</button>`;
+};
+
 // Helper to assign CSS classes, inline widths, and safe style merging for media
 function getMediaAttributes(align, customWidth, extraStyles = '') {
     let alignClass = 'wiki-media-full';
@@ -143,7 +240,18 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             contentHTML += `</ul>`;
         }
         else if (block.type === 'image') {
-            if (block.caption) {
+            // An empty src reached the browser as `<img src="">`, which draws a
+            // broken box showing the alt text - the "empty box that says I am
+            // broken" (item 12).
+            if (!safeBlockUrl(block.src)) {
+                contentHTML += block.caption
+                    ? `<figure ${getMediaAttributes(block.align, block.width, 'text-align: center;')}>`
+                      + window.wikiMediaPlaceholderHTML()
+                      + `<figcaption class="wiki-figcaption">${escBlockText(block.caption)}</figcaption></figure>`
+                    : `<div ${getMediaAttributes(block.align, block.width)}>`
+                      + window.wikiMediaPlaceholderHTML() + `</div>`;
+            }
+            else if (block.caption) {
                 contentHTML += `
                     <figure ${getMediaAttributes(block.align, block.width, 'text-align: center;')} >
                         <img src="${escBlockText(safeBlockUrl(block.src))}" alt="${escBlockText(block.alt || 'Wiki Image')}" class="wiki-block-image" loading="lazy">
@@ -283,8 +391,24 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 rows.forEach((row) => {
                     tableContent += `<tr>`;
 
-                    // Parse [M1] keybinds natively inside the cells
+                    // Parse [M1] keybinds natively inside the cells - unless
+                    // the cell is one of our own storage links, which renders
+                    // as the media itself (item 11). An image is sized down to
+                    // fit the row; a video gets a button, because a player does
+                    // not fit in a table cell.
                     row.forEach(cell => {
+                        const kind = window.wikiMediaKind(cell);
+                        if (kind === 'image') {
+                            tableContent += `<td class="wiki-cell-media-td">`
+                                + `<img src="${escBlockText(safeBlockUrl(cell))}" alt=""`
+                                + ` class="wiki-cell-media" loading="lazy"></td>`;
+                            return;
+                        }
+                        if (kind === 'video') {
+                            tableContent += `<td class="wiki-cell-media-td">`
+                                + window.wikiVideoButtonHTML(cell, 'Play') + `</td>`;
+                            return;
+                        }
                         let parsedCell = escBlockText(cell).replace(/\[([A-Z0-9\s\+]+)\]/g, '<kbd class="keybind-badge">$1</kbd>');
                         tableContent += `<td>${parsedCell}</td>`;
                     });
@@ -333,10 +457,20 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             else if (block.type === 'video') {
                 const videoUrl = bData.url || bData.src || '';
                 if (videoUrl) {
-                    const controlsAttr = bData.controls ? 'controls' : 'autoplay loop muted playsinline';
-                    // Injecting data-lazy-src and preload="none"
-                    mediaInnerHtml = `<video data-lazy-src="${escBlockText(safeBlockUrl(videoUrl))}" ${controlsAttr} class="wiki-video-native" preload="none"></video>`;
+                    // Controls ON gets the player (item 10). Controls OFF is an
+                    // autoplaying muted loop - a clip standing in for a GIF -
+                    // and is left exactly as it was.
+                    mediaInnerHtml = bData.controls
+                        ? window.wikiVideoPlayerHTML(videoUrl)
+                        : `<video data-lazy-src="${escBlockText(safeBlockUrl(videoUrl))}" autoplay loop muted playsinline class="wiki-video-native" preload="none"></video>`;
                 }
+            }
+
+            // Nothing to show: a linkless media block used to emit no markup at
+            // all, so it disappeared from the page and the author could not see
+            // it was there to fix (item 12).
+            if (!mediaInnerHtml) {
+                mediaInnerHtml = window.wikiMediaPlaceholderHTML();
             }
 
             if (mediaInnerHtml) {
@@ -417,9 +551,12 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 routeHTML += '</div>';
             }
 
+            // Opens the modal player rather than navigating to the file. The
+            // link sent the reader off the wiki to a bare video on a Supabase
+            // domain with no way back but the back button (owner, 2026-08-18).
             const videoUrl = safeBlockUrl(bData.video || '');
             const videoHTML = videoUrl
-                ? `<a class="theorybox-video" href="${escBlockText(videoUrl)}" target="_blank" rel="noopener noreferrer">Watch</a>`
+                ? window.wikiVideoButtonHTML(videoUrl, 'Watch')
                 : '';
 
             const innerHTML = window.generateHTMLForBlocks(bData.content || [], contextClass);
@@ -639,7 +776,9 @@ function renderComboCell(row, column) {
     if (column.field === 'video') {
         const href = safeBlockUrl(value);
         if (!href) return '<span class="combo-cell-empty">-</span>';
-        return `<a href="${escBlockText(href)}" class="combo-video-link" target="_blank" rel="noopener noreferrer">Watch</a>`;
+        // Same change as the theorybox above, and the same reason: a combo
+        // table cell is the cramped-space case item 11 was written for.
+        return window.wikiVideoButtonHTML(href, 'Watch');
     }
     if (column.field === 'difficulty') {
         // Slot index rather than the label, so the ramp is a class and the
@@ -1536,6 +1675,166 @@ window.initLazyMedia = function(rootElement = document) {
             media.removeAttribute('data-lazy-src');
         });
     }
+};
+
+// --- VIDEO PLAYER BEHAVIOUR (v0.15 item 10) ---
+//
+// One delegated listener on the document rather than per-player wiring: these
+// players are rendered into innerHTML by a dozen callers, re-rendered on every
+// editor keystroke, and created inside a modal that does not exist yet at load
+// time. Binding per element would leak a listener on each of those.
+
+function playerOf(el) {
+    return el ? el.closest('[data-wiki-player]') : null;
+}
+
+function playerVideo(player) {
+    return player ? player.querySelector('video') : null;
+}
+
+// The lazy observer has not necessarily reached this player yet - it only
+// swaps the source when the video scrolls into view, and pressing play IS the
+// reader asking for it now.
+function ensurePlayerSource(video) {
+    if (!video) return;
+    const lazy = video.getAttribute('data-lazy-src');
+    if (!lazy) return;
+    video.src = lazy;
+    video.removeAttribute('data-lazy-src');
+}
+
+function paintPlayerState(player) {
+    const video = playerVideo(player);
+    const toggle = player.querySelector('[data-player-toggle]');
+    if (!video || !toggle) return;
+    const playing = !video.paused && !video.ended;
+    player.classList.toggle('is-playing', playing);
+    toggle.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+}
+
+function paintPlayerProgress(player) {
+    const video = playerVideo(player);
+    const fill = player.querySelector('[data-player-fill]');
+    const track = player.querySelector('[data-player-track]');
+    if (!video || !fill) return;
+    // A stream still loading reports duration NaN or Infinity, and a width of
+    // "NaN%" silently leaves the bar wherever it was.
+    const total = video.duration;
+    const pct = (isFinite(total) && total > 0)
+        ? Math.max(0, Math.min(100, (video.currentTime / total) * 100))
+        : 0;
+    fill.style.width = pct + '%';
+    if (track) track.setAttribute('aria-valuenow', String(Math.round(pct)));
+}
+
+function seekPlayer(player, clientX) {
+    const video = playerVideo(player);
+    const track = player.querySelector('[data-player-track]');
+    if (!video || !track) return;
+    ensurePlayerSource(video);
+    const total = video.duration;
+    if (!isFinite(total) || total <= 0) return;
+    const box = track.getBoundingClientRect();
+    if (box.width <= 0) return;
+    const ratio = Math.max(0, Math.min(1, (clientX - box.left) / box.width));
+    video.currentTime = ratio * total;
+    paintPlayerProgress(player);
+}
+
+document.addEventListener('click', (e) => {
+    const openBtn = e.target.closest ? e.target.closest('[data-wiki-video]') : null;
+    if (openBtn) {
+        window.openWikiVideoModal(openBtn.getAttribute('data-wiki-video'));
+        return;
+    }
+
+    const toggle = e.target.closest ? e.target.closest('[data-player-toggle]') : null;
+    if (toggle) {
+        const player = playerOf(toggle);
+        const video = playerVideo(player);
+        if (!video) return;
+        ensurePlayerSource(video);
+        if (video.paused || video.ended) video.play().catch(() => { /* the reader can press it again */ });
+        else video.pause();
+        return;
+    }
+
+    const track = e.target.closest ? e.target.closest('[data-player-track]') : null;
+    if (track) seekPlayer(playerOf(track), e.clientX);
+});
+
+// Capture phase: play, pause and timeupdate do not bubble, so a delegated
+// listener never sees them any other way.
+['play', 'pause', 'ended'].forEach((type) => {
+    document.addEventListener(type, (e) => {
+        const player = playerOf(e.target);
+        if (player) paintPlayerState(player);
+    }, true);
+});
+
+['timeupdate', 'loadedmetadata', 'seeked'].forEach((type) => {
+    document.addEventListener(type, (e) => {
+        const player = playerOf(e.target);
+        if (player) paintPlayerProgress(player);
+    }, true);
+});
+
+// --- THE VIDEO MODAL (v0.15 item 11) ---
+//
+// Built on first use and reused after, rather than shipped in the markup of
+// every page: forty-odd generated stubs would each need it, and most readers
+// never open one.
+function wikiVideoModal() {
+    let modal = document.getElementById('wiki-video-modal');
+    if (modal) return modal;
+
+    modal = document.createElement('div');
+    modal.id = 'wiki-video-modal';
+    modal.className = 'wiki-video-modal hidden';
+    modal.innerHTML = `
+        <div class="wiki-video-modal-backdrop" data-video-modal-close></div>
+        <div class="wiki-video-modal-panel" role="dialog" aria-modal="true" aria-label="Video">
+            <button type="button" class="wiki-video-modal-close" data-video-modal-close
+                    aria-label="Close">&#10007;</button>
+            <div class="wiki-video-modal-body"></div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', (e) => {
+        if (e.target.closest('[data-video-modal-close]')) window.closeWikiVideoModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') window.closeWikiVideoModal();
+    });
+    return modal;
+}
+
+window.openWikiVideoModal = function (url) {
+    const src = safeBlockUrl(url);
+    if (!src) return null;
+
+    const modal = wikiVideoModal();
+    const body = modal.querySelector('.wiki-video-modal-body');
+    body.innerHTML = window.wikiVideoPlayerHTML(src, 'wiki-player-modal');
+    modal.classList.remove('hidden');
+
+    const video = body.querySelector('video');
+    if (video) {
+        ensurePlayerSource(video);
+        video.play().catch(() => { /* the play button is right there */ });
+    }
+    return modal;
+};
+
+window.closeWikiVideoModal = function () {
+    const modal = document.getElementById('wiki-video-modal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    modal.classList.add('hidden');
+    // Emptied rather than just hidden: a paused video left in the DOM keeps
+    // its buffer, and reopening on a different clip would flash the old frame.
+    const body = modal.querySelector('.wiki-video-modal-body');
+    if (body) body.innerHTML = '';
 };
 
 window.loadPageDescriptions = loadPageDescriptions;

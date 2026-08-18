@@ -858,6 +858,176 @@ summary:focus-visible {
 .wiki-video-embed { width: 100%; aspect-ratio: 16/9; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow); background: #050505; border: none; display: block; }
 .wiki-video-native { width: 100%; background: #050505; display: block; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow); }
 
+/* --- THE VIDEO PLAYER (v0.15 item 10) ---
+   Native <video> with controls on. Everything here is painted with
+   var(--accent-blue), which js/site_meta.js overrides on :root for the
+   character whose page this is - so the player re-themes per page and nothing
+   in here knows a character exists.
+
+   Sharp on purpose: no border-radius anywhere, hard offset shadows, square
+   glyphs. It sits next to the manga buttons and the frame-data tables, and a
+   rounded pill player would read as somebody else's component. */
+.wiki-player { display: block; width: 100%; }
+.wiki-player .wiki-video-native {
+    border-radius: 0;
+    box-shadow: 4px 4px 0px var(--manga-shadow);
+    border: 2px solid var(--accent-blue);
+    display: block;
+}
+.wiki-player-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+/* The play/pause button. One square button whose glyph is drawn with
+   clip-path rather than a character, so it is the same crisp shape at every
+   size and cannot be substituted by a font that lacks the codepoint. */
+.wiki-player-toggle {
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 auto;
+    padding: 0;
+    background: transparent;
+    border: 2px solid var(--accent-blue);
+    box-shadow: 3px 3px 0px var(--manga-shadow);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s ease, background 0.1s ease;
+}
+.wiki-player-toggle:hover { background: rgba(59, 130, 246, 0.15); transform: translate(-1px, -1px); box-shadow: 4px 4px 0px var(--manga-shadow); }
+.wiki-player-toggle:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0px var(--manga-shadow); }
+.wiki-player-toggle:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+
+.wiki-player-glyph {
+    display: block;
+    width: 0.85rem;
+    height: 0.85rem;
+    background: var(--accent-blue);
+    /* Play: a hard triangle. */
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+/* Pause: two bars, cut from the same square. */
+.wiki-player.is-playing .wiki-player-glyph {
+    clip-path: polygon(0 0, 34% 0, 34% 100%, 0 100%, 0 0, 66% 0, 100% 0, 100% 100%, 66% 100%, 66% 0);
+}
+
+/* The duration bar, below the button. */
+.wiki-player-track {
+    position: relative;
+    height: 0.5rem;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--accent-blue);
+    cursor: pointer;
+    overflow: hidden;
+}
+.wiki-player-track:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.wiki-player-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 0;
+    background: var(--accent-blue);
+}
+
+/* --- THE VIDEO BUTTON AND ITS MODAL (v0.15 item 11) ---
+   A table cell and a combo card have no room for a player, so a video in one
+   is a button that opens a player. Both used to be links straight to the
+   Supabase file, which navigated the reader off the wiki entirely. */
+.wiki-video-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.15rem 0.5rem;
+    background: transparent;
+    border: 1px solid var(--accent-blue);
+    box-shadow: 2px 2px 0px var(--manga-shadow);
+    color: var(--accent-blue);
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.1s ease, transform 0.1s ease;
+}
+.wiki-video-btn:hover { background: var(--accent-blue); color: var(--character-ink, #000); transform: translate(-1px, -1px); }
+.wiki-video-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0px var(--manga-shadow); }
+.wiki-video-btn-glyph {
+    width: 0.55rem;
+    height: 0.55rem;
+    background: currentColor;
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+    flex: 0 0 auto;
+}
+
+.wiki-video-modal { position: fixed; inset: 0; z-index: 10050; display: flex; align-items: center; justify-content: center; }
+.wiki-video-modal.hidden { display: none; }
+.wiki-video-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.8); }
+.wiki-video-modal-panel {
+    position: relative;
+    width: min(92vw, 900px);
+    background: var(--bg-secondary, #111);
+    border: 2px solid var(--accent-blue);
+    box-shadow: 8px 8px 0px var(--manga-shadow);
+    padding: 2rem 1rem 1rem;
+}
+.wiki-video-modal-close {
+    position: absolute;
+    top: 0.35rem;
+    right: 0.35rem;
+    background: transparent;
+    border: 1px solid var(--accent-blue);
+    color: var(--accent-blue);
+    font-family: var(--text-mono);
+    font-size: 0.8rem;
+    line-height: 1;
+    padding: 0.2rem 0.4rem;
+    cursor: pointer;
+}
+.wiki-video-modal-close:hover { background: var(--accent-blue); color: var(--character-ink, #000); }
+/* The modal is already a bounded box, so the player fills it and the video is
+   capped by height rather than width - a tall clip otherwise pushes the
+   duration bar off the bottom of the screen. */
+.wiki-player-modal .wiki-video-native { max-height: 70vh; width: 100%; object-fit: contain; background: #000; }
+
+/* A storage image pasted into a table cell. Sized down to the row rather than
+   rendered full width, which is the whole point of the feature. */
+.wiki-cell-media-td { text-align: center; }
+.wiki-cell-media {
+    display: block;
+    max-width: 140px;
+    max-height: 90px;
+    width: auto;
+    height: auto;
+    margin: 0 auto;
+    border: 1px solid var(--accent-blue);
+    box-shadow: 2px 2px 0px var(--manga-shadow);
+}
+
+/* --- EMPTY MEDIA PLACEHOLDER (v0.15 item 12) --- */
+.wiki-media-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem 1rem;
+    min-height: 140px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 2px dashed var(--border-color, #333);
+}
+.wiki-media-placeholder-label {
+    font-family: 'Finger-Paint', sans-serif;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+}
+.wiki-media-placeholder-icon { width: 64px; height: auto; opacity: 0.55; display: block; }
+
 .callout-tooltip-title { font-family: 'CC-Wild-Words', sans-serif; text-transform: uppercase; font-size: 0.9rem; display: block; margin-bottom: 0.5rem; padding-bottom: 0.25rem; color: var(--tooltip-accent); border-bottom: 1px dashed var(--tooltip-accent); }
 .callout-tooltip-desc { font-family: var(--text-mono); font-size: 0.75rem; color: #e5e7eb; line-height: 1.5; display: block; }
 
