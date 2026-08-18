@@ -249,6 +249,44 @@
 
     let lastMatches = [];
 
+    // ONE LEVEL OF UNDO, FOR THIS OPERATION ONLY.
+    //
+    // The editor already has an undo (btn-undo, Ctrl+Z) and it does not cover
+    // this: its history is the block buffer of the section currently OPEN, and
+    // a replace writes across every tab and both character states. Worse, the
+    // re-render afterwards calls initStrategyBlockBuilder, which resets that
+    // history to the post-replace state - so the button comes back disabled and
+    // Ctrl+Z does nothing. Confirmed by driving it, not assumed.
+    //
+    // That failure is at least SAFE: partially reverting one open section while
+    // the rest of the page stayed renamed would be worse than nothing. But a
+    // mass replace across 127 rows still needs a way back.
+    let undoSnapshot = null;
+    let undoLabel = '';
+
+    function takeUndoSnapshot(label) {
+        const root = searchRoot();
+        undoSnapshot = root ? JSON.parse(JSON.stringify(root)) : null;
+        undoLabel = label;
+        refreshUndoButton();
+    }
+
+    function refreshUndoButton() {
+        const btn = document.getElementById('find-replace-undo');
+        if (!btn) return;
+        btn.disabled = !undoSnapshot;
+        btn.textContent = undoSnapshot ? `UNDO ${undoLabel}` : 'UNDO';
+    }
+
+    // Restored IN PLACE. window.currentEditorDescData is a live sub-reference
+    // of the master (js/editor-modes.js), so reassigning the master would leave
+    // the editor pointing at an object nothing writes to any more - which is
+    // the bug that shape has already produced once in this project.
+    function restoreInto(target, source) {
+        Object.keys(target).forEach(k => { delete target[k]; });
+        Object.keys(source).forEach(k => { target[k] = JSON.parse(JSON.stringify(source[k])); });
+    }
+
     function renderResults() {
         const results = document.getElementById('find-replace-results');
         const countEl = document.getElementById('find-replace-count');
@@ -315,6 +353,10 @@
     window.openFindReplace = async function () {
         const modal = document.getElementById('find-replace-modal');
         if (!modal) return;
+        // A stale snapshot is worse than none: reopening the panel after doing
+        // other work and pressing UNDO would roll that work back too.
+        undoSnapshot = null;
+        refreshUndoButton();
         if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
         modal.classList.remove('hidden');
         const input = document.getElementById('find-input');
@@ -350,7 +392,40 @@
                 const match = lastMatches[parseInt(btn.getAttribute('data-match'), 10)];
                 if (!match) return;
                 const replacement = (document.getElementById('replace-input') || {}).value || '';
-                await withFlushedData(() => window.replaceOneMatch(searchRoot(), match, replacement));
+                await withFlushedData(() => {
+                    // Snapshot INSIDE the flush, so it captures the buffer that
+                    // was just written back rather than the state before it.
+                    takeUndoSnapshot('replace');
+                    return window.replaceOneMatch(searchRoot(), match, replacement);
+                });
+                renderResults();
+            });
+        }
+
+        const undoBtn = document.getElementById('find-replace-undo');
+        if (undoBtn) {
+            undoBtn.addEventListener('click', () => {
+                if (!undoSnapshot) return;
+                const root = searchRoot();
+                if (!root) return;
+
+                // DELIBERATELY NOT flushed first. triggerManualSync writes the
+                // open block buffer into desc_data, and that buffer holds the
+                // POST-replace blocks - syncing before restoring would put them
+                // straight back over the restored ones.
+                restoreInto(root, undoSnapshot);
+                undoSnapshot = null;
+                refreshUndoButton();
+
+                if (typeof initFullTabEditor === 'function') {
+                    initFullTabEditor(
+                        window.currentEditorCharId,
+                        window.currentEditorTabId,
+                        window.currentEditorDescData,
+                        window.currentEditorFrameData
+                    );
+                }
+                if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
                 renderResults();
             });
         }
@@ -368,8 +443,10 @@
                     : true;
                 if (!ok) return;
 
-                const count = await withFlushedData(
-                    () => window.replaceAllMatches(searchRoot(), needle, replacement, currentOptions()));
+                const count = await withFlushedData(() => {
+                    takeUndoSnapshot(`replace all (${lastMatches.length})`);
+                    return window.replaceAllMatches(searchRoot(), needle, replacement, currentOptions());
+                });
                 renderResults();
                 if (typeof window.editorAlert === 'function') window.editorAlert(`Replaced ${count} occurrence(s).`);
             });

@@ -15,7 +15,8 @@ window.renderSystemEditor = function(container) {
     }
 
     // 1. RENDER MAIN TABS
-    let tabHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+    let tabHTML = window.reorderStripControls('desc.tabs');
+    tabHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
     descData.tabs.forEach((tab, tIdx) => {
         let active = tIdx === window.currentSystemTabIdx ? 'active' : '';
         tabHTML += `<div class="daw-tab-item">`;
@@ -23,6 +24,7 @@ window.renderSystemEditor = function(container) {
         tabHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemTab(${tIdx})" title="Delete Tab">✖</button>`;
         tabHTML += `</div>`;
     });
+    window.registerInserter('desc.tabs', () => window.addSystemTab());
     tabHTML += `<button class="daw-tab-btn btn-sys btn-sys-green system-tab-add-btn" onclick="window.addSystemTab()">+ ADD TAB</button>`;
     tabHTML += `</div>`;
 
@@ -30,15 +32,19 @@ window.renderSystemEditor = function(container) {
     if (!activeTab) { container.innerHTML = tabHTML; return; }
 
     // 2. RENDER SECTIONS WITHIN ACTIVE TAB
-    let secHTML = `<div class="daw-variant-tabs system-section-tabs-row">`;
+    let secHTML = window.reorderStripControls(`desc.tabs.${window.currentSystemTabIdx}.sections`);
+    secHTML += `<div class="daw-variant-tabs system-section-tabs-row">`;
     if (!activeTab.sections) activeTab.sections = [];
     activeTab.sections.forEach((sec, sIdx) => {
         let active = sIdx === window.currentSystemSecIdx ? 'active' : '';
         secHTML += `<div class="daw-tab-item">`;
         secHTML += `<button class="daw-tab-btn daw-tab-btn-removable system-section-tab-btn ${active}" onclick="window.switchSystemSection(${sIdx})">${sec.sectionTitle || 'Section ' + (sIdx+1)}</button>`;
+        // Reordering here is exactly what item 6b's `order` delta carries, so a
+        // move ships as an order change rather than as every section's content.
         secHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemSection(${sIdx})" title="Delete Section">✖</button>`;
         secHTML += `</div>`;
     });
+    window.registerInserter(`desc.tabs.${window.currentSystemTabIdx}.sections`, () => window.addSystemSection());
     secHTML += `<button class="daw-tab-btn btn-sys btn-sys-purple system-tab-add-btn" onclick="window.addSystemSection()">+ ADD SECTION</button>`;
     secHTML += `</div>`;
 
@@ -97,6 +103,23 @@ window.renderSystemEditor = function(container) {
     container.innerHTML = tabHTML + secHTML + editorArea;
     if (activeSec) initStrategyBlockBuilder('strategy-block-target', activeSec.blocks || []);
 };
+
+// The system editor rebuilds itself rather than going through
+// initFullTabEditor, so the reorder module is told how to refresh it.
+if (typeof window.setReorderRefresh === 'function') {
+    window.setReorderRefresh(function () {
+        // Declines on every other page type. #interactive-builder is the shared
+        // builder host, so without this check a reorder on a CHARACTER page
+        // would draw the system editor over it.
+        const type = window.currentEditorPageType;
+        if (type !== 'system' && type !== 'tierlist') return false;
+
+        const host = document.getElementById('interactive-builder');
+        if (!host || typeof window.renderSystemEditor !== 'function') return false;
+        window.renderSystemEditor(host);
+        return true;
+    });
+}
 
 window.switchSystemTab = function(idx) { window.currentSystemTabIdx = idx; window.currentSystemSecIdx = 0; window.renderSystemEditor(document.getElementById('interactive-builder')); updateLivePreview(); };
 window.switchSystemSection = function(idx) { window.currentSystemSecIdx = idx; window.renderSystemEditor(document.getElementById('interactive-builder')); updateLivePreview(); };

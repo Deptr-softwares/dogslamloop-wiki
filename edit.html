@@ -161,6 +161,12 @@
             </div>
             <div class="editor-modal-actions">
                 <button type="button" id="find-replace-close" class="btn-sys btn-sys-regular">CLOSE</button>
+                <!-- The editor's own Ctrl+Z undo covers the blocks of the
+                     section currently open; a replace writes across every tab
+                     and both character states, so it cannot reach it. This
+                     reverses the last replace only, and only while the panel
+                     stays open. -->
+                <button type="button" id="find-replace-undo" class="btn-sys btn-sys-yellow" disabled>UNDO</button>
                 <button type="button" id="find-replace-all" class="btn-sys btn-sys-green">REPLACE ALL</button>
             </div>
         </div>
@@ -352,6 +358,8 @@
     <script src="js/gallery.js"></script>
     <script src="js/editor-gallery.js"></script>
     <script src="js/tierlist.js"></script>
+    <!-- Before the strips that call reorderControls while rendering. -->
+    <script src="js/editor-reorder.js"></script>
     <!-- Last: it walks whatever the other editors have put in desc_data, and
          reads the keyed-section registry to name where a match is. -->
     <script src="js/editor-find-replace.js"></script>

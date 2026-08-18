@@ -204,3 +204,199 @@ test('the panel searches the whole page, not the open tab', async ({ page }) => 
   expect(wheres.some(w => /ULTIMATE/.test(w)), 'the other state must be searched').toBe(true);
   expect(wheres.some(w => /Matchup/i.test(w)), 'a tab other than the open one').toBe(true);
 });
+
+// --- UNDOING A REPLACE ---
+//
+// The editor already HAS an undo (btn-undo, Ctrl+Z), and it does not cover
+// this. Its history is the block buffer of the section currently open, and a
+// replace writes across every tab and both character states. Confirmed by
+// driving it: after a replace the button is disabled and Ctrl+Z does nothing.
+
+test("the editor's own undo cannot reach a replace, and does not half-undo it", async ({ page }) => {
+  await boot(page);
+  await page.waitForTimeout(1200);
+
+  await page.evaluate((data) => {
+    window.editorMasterDescData.matchups = data.matchups;
+    window.currentEditorDescData.matchups = window.editorMasterDescData.matchups;
+  }, DATA());
+
+  await page.locator('#btn-find-replace').click();
+  await page.locator('#find-input').fill('Ryu');
+  await page.locator('#replace-input').fill('True Cannon');
+  await page.locator('.find-replace-row').first().waitFor({ timeout: 5000 });
+  await page.locator('.find-replace-one').first().click();
+  await page.waitForTimeout(800);
+
+  await page.locator('#find-replace-close').click();
+  await page.keyboard.press('Control+z');
+  await page.waitForTimeout(400);
+
+  const after = await page.evaluate(() => ({
+    opponent: window.editorMasterDescData.matchups[0].opponent,
+    blockUndoDisabled: document.getElementById('btn-undo')?.disabled,
+  }));
+
+  // Failing SAFELY is the point: partially reverting the open section while the
+  // rest of the page stayed renamed would be worse than doing nothing.
+  expect(after.opponent).toBe('True Cannon');
+  expect(after.blockUndoDisabled, "the block undo has no pre-replace state to offer").toBe(true);
+});
+
+test('the panel can undo its own replace', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await boot(page);
+  await page.waitForTimeout(1200);
+
+  await page.evaluate((data) => {
+    window.editorMasterDescData.matchups = data.matchups;
+    window.editorMasterDescData.modeData = data.modeData;
+    window.currentEditorDescData.matchups = window.editorMasterDescData.matchups;
+  }, DATA());
+
+  await page.locator('#btn-find-replace').click();
+  await expect(page.locator('#find-replace-undo')).toBeDisabled();
+
+  await page.locator('#find-input').fill('Ryu');
+  await page.locator('#replace-input').fill('True Cannon');
+  await page.locator('.find-replace-row').first().waitFor({ timeout: 5000 });
+  await page.locator('#find-replace-all').click();
+
+  // Replace All confirms first. Waited for rather than probed with isVisible():
+  // that returns as soon as the node exists, which can be before it is
+  // actionable, and the click then times out against a button the test has
+  // already decided is there.
+  const confirmBtn = page.locator('#editor-modal-confirm');
+  await expect(confirmBtn).toBeVisible();
+  await confirmBtn.click();
+
+  // Then it reports the count, and that alert sits over the panel until it is
+  // acknowledged - which is the point of an alert, so the test dismisses it
+  // rather than the alert being made dismissable on its own.
+  const ack = page.locator('#editor-alert-modal button');
+  await expect(ack).toBeVisible();
+  await ack.click();
+  await page.waitForTimeout(700);
+
+  const replaced = await page.evaluate(() => ({
+    opponent: window.editorMasterDescData.matchups[0].opponent,
+    state: window.editorMasterDescData.modeData.ultimate.overview[0].content,
+  }));
+  expect(replaced.opponent).toBe('True Cannon');
+  expect(replaced.state, 'the other kit was renamed too').toContain('True Cannon');
+
+  await expect(page.locator('#find-replace-undo')).toBeEnabled();
+  await page.locator('#find-replace-undo').click();
+  await page.waitForTimeout(900);
+
+  const restored = await page.evaluate(() => ({
+    opponent: window.editorMasterDescData.matchups[0].opponent,
+    state: window.editorMasterDescData.modeData.ultimate.overview[0].content,
+    // The editor must still be pointing at data that is actually written to.
+    sameObject: window.currentEditorDescData.matchups === window.editorMasterDescData.matchups,
+  }));
+
+  expect(restored.opponent, 'undo should restore every tab').toBe('Ryu');
+  expect(restored.state, 'including the other character state').toContain('Ryu');
+  // Restored IN PLACE - reassigning the master would leave currentEditorDescData
+  // pointing at an orphan that nothing writes to any more.
+  expect(restored.sameObject).toBe(true);
+
+  await expect(page.locator('#find-replace-undo')).toBeDisabled();
+  expect(errors).toEqual([]);
+});
+
+test('reopening the panel drops a stale undo', async ({ page }) => {
+  await boot(page);
+  await page.waitForTimeout(1200);
+
+  await page.evaluate((data) => {
+    window.editorMasterDescData.matchups = data.matchups;
+    window.currentEditorDescData.matchups = window.editorMasterDescData.matchups;
+  }, DATA());
+
+  await page.locator('#btn-find-replace').click();
+  await page.locator('#find-input').fill('Ryu');
+  await page.locator('#replace-input').fill('True Cannon');
+  await page.locator('.find-replace-row').first().waitFor({ timeout: 5000 });
+  await page.locator('.find-replace-one').first().click();
+  await page.waitForTimeout(700);
+  await expect(page.locator('#find-replace-undo')).toBeEnabled();
+
+  await page.locator('#find-replace-close').click();
+  await page.locator('#btn-find-replace').click();
+
+  // Offering it again would roll back whatever was done in between, which is
+  // not what the button appears to promise.
+  await expect(page.locator('#find-replace-undo')).toBeDisabled();
+});
+
+// --- MODAL LAYERING ---
+//
+// A confirmation is a RESPONSE to something another modal asked, so it can
+// never be the one underneath. Every overlay sat at z-index 10000 and
+// #editor-custom-modal is declared first in edit.html, so DOM order decided and
+// every modal declared after it covered it. Found by the Replace All test
+// timing out on a button Playwright could see and could not click.
+
+test('a confirmation opened from a modal is clickable', async ({ page }) => {
+  await boot(page);
+  await page.waitForTimeout(1200);
+
+  await page.evaluate((data) => {
+    window.editorMasterDescData.matchups = data.matchups;
+    window.currentEditorDescData.matchups = window.editorMasterDescData.matchups;
+  }, DATA());
+
+  await page.locator('#btn-find-replace').click();
+  await page.locator('#find-input').fill('Ryu');
+  await page.locator('.find-replace-row').first().waitFor({ timeout: 5000 });
+  await page.locator('#find-replace-all').click();
+
+  const confirm = page.locator('#editor-modal-confirm');
+  await expect(confirm).toBeVisible();
+
+  // Visible is not the assertion - it was visible while it was broken. What
+  // matters is that it is the top layer at its own centre point, which is what
+  // decides whether a click reaches it.
+  const onTop = await page.evaluate(() => {
+    const btn = document.getElementById('editor-modal-confirm');
+    const r = btn.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return btn.contains(hit) || hit === btn;
+  });
+  expect(onTop, 'the confirmation is covered by the panel that opened it').toBe(true);
+
+  await confirm.click({ timeout: 5000 });
+});
+
+test('the combo row modal can confirm a delete', async ({ page }) => {
+  // The same layering bug, on a screen that shipped in item 3: DELETE COMBO
+  // opened a confirmation the author could see and could not click.
+  await page.goto('/edit.html?char=boomcat&type=character&tab=combos', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => typeof window.openComboRowModal === 'function', { timeout: 15000 });
+  await page.waitForTimeout(1500);
+
+  const opened = await page.evaluate(() => {
+    const section = window.getKeyedSectionByField('comboList');
+    window.currentEditorDescData[section.field] = [
+      { starter: 'Test Starter', rows: [{ combo: 'M1 M1 Test', damage: '10' }] },
+    ];
+    window.openComboRowModal(0, 0);
+    return !document.getElementById('combo-row-modal').classList.contains('hidden');
+  });
+  expect(opened).toBe(true);
+
+  await page.locator('#combo-row-modal-delete').click();
+
+  const onTop = await page.evaluate(() => {
+    const btn = document.getElementById('editor-modal-confirm');
+    if (!btn) return false;
+    const r = btn.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return btn.contains(hit) || hit === btn;
+  });
+  expect(onTop, 'the delete confirmation is covered by the combo row modal').toBe(true);
+});
