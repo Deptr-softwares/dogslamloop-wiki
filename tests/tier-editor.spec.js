@@ -339,7 +339,13 @@ test('switching away and back does not lose the other document', async ({ page }
 
 test('the workspace can be scrolled to the block editor at its bottom', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
-    await openEditor(page);
+    // With an intro block, so there is a real field at the bottom to reach.
+    // The default fixture has no intro at all, which renders an EMPTY block
+    // list - and every "can I type in it" assertion below would then be about
+    // an element that does not exist.
+    await openEditor(page, {
+        list: { ...LIST, intro: [{ type: 'paragraph', content: 'Intro text' }] },
+    });
 
     // This page marks its panes with admin.css class names and never loads
     // admin.css, so .admin-sidebar-content matched nothing and only
@@ -369,6 +375,27 @@ test('the workspace can be scrolled to the block editor at its bottom', async ({
         return box.bottom <= window.innerHeight + 2;
     });
     expect(reached, "scrolling brings it fully into view").toBe(true);
+
+    // The half this test was missing, and the reason I spent a session
+    // convinced the scroll fix had broken the editor. Measuring the HOST only
+    // says the container arrived; the field inside it can still be unusable.
+    //
+    // It was, when measured before scrolling - because the block card was
+    // below the fold and the IntersectionObserver had unloaded it, which is
+    // .block-card.virtual-unloaded > * { display: none } doing exactly its
+    // job. Scroll to it and it loads. Typing into it is the actual claim.
+    const field = page.locator("#block-list .block-card textarea").first();
+    // The card only loads once the observer has seen it, which is a frame after
+    // the scroll - waiting for the class to clear is waiting for the actual
+    // condition rather than for a duration.
+    await expect
+        .poll(() => page.evaluate(() =>
+            !document.querySelector("#block-list .block-card")?.classList.contains("virtual-unloaded")),
+        { timeout: 10000 })
+        .toBe(true);
+    await field.click();
+    await page.keyboard.type("x");
+    expect(await field.inputValue()).toContain("x");
 });
 
 // --- GAME VERSION (v0.15 item 13) ---
