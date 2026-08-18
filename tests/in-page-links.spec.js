@@ -370,7 +370,11 @@ test('picking a section writes a link, and it points at something real', async (
 
   // Focus a real block input first - the toolbar wraps the last focused field,
   // and with none it has nowhere to write.
-  const input = page.locator('#strategy-block-target textarea, #strategy-block-target input[type="text"]').first();
+  // Scoped to .block-card. Block folders put a folder-NAME input inside the
+  // host, and the shell wraps the cards so its header sorts first - this used
+  // to focus a folder name and assert that the toolbar had written a link into
+  // it, which is the bug rather than the behaviour.
+  const input = page.locator('#strategy-block-target .block-card textarea, #strategy-block-target .block-card input[type="text"]').first();
   await input.waitFor({ timeout: 10000 });
   await input.click();
 
