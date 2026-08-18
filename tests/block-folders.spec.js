@@ -238,6 +238,39 @@ test('ungrouping keeps every block', async ({ page }) => {
   expect(out.folders).toEqual([null, null, null]);
 });
 
+test('dropping on the header puts the block at the TOP of the folder', async ({ page }) => {
+  await boot(page);
+
+  // Distinct from assignBlockToFolder, which appends. Dropping onto a header
+  // is a deliberate aim at the folder itself, and the end of a long folder is
+  // not where you were pointing.
+  const out = await page.evaluate(() => {
+    const below = [mk('a', 'Setups'), mk('b', 'Setups'), mk('c')];
+    const fromBelow = window.dropBlockIntoFolderHead(below, 2, 'Setups');
+
+    const above = [mk('c'), mk('a', 'Setups'), mk('b', 'Setups')];
+    const fromAbove = window.dropBlockIntoFolderHead(above, 0, 'Setups');
+
+    return {
+      fromBelow, fromAbove,
+      belowOrder: below.map(b => b.content),
+      aboveOrder: above.map(b => b.content),
+      belowRuns: window.collectBlockFolders(below).map(r => `${r.name}:${r.start}-${r.end}`),
+      aboveRuns: window.collectBlockFolders(above).map(r => `${r.name}:${r.start}-${r.end}`),
+    };
+  });
+
+  expect(out.fromBelow).toBe(0);
+  expect(out.belowOrder).toEqual(['c', 'a', 'b']);
+  expect(out.belowRuns, 'one folder, and c is first in it').toEqual(['Setups:0-2']);
+
+  // Approaching from above is the case where the splice-out shifts the run
+  // underneath the insertion point.
+  expect(out.fromAbove).toBe(0);
+  expect(out.aboveOrder).toEqual(['c', 'a', 'b']);
+  expect(out.aboveRuns).toEqual(['Setups:0-2']);
+});
+
 // --- RENDERING AND INTERACTION ---
 
 test('cards inside a folder keep their real array index', async ({ page }) => {
@@ -289,6 +322,56 @@ test('collapsing a folder actually hides its blocks, and survives a re-render', 
   const stillHidden = await page.evaluate(() =>
     getComputedStyle(document.querySelector('#block-list .block-folder-body')).display);
   expect(stillHidden).toBe('none');
+});
+
+test('a block can be dragged onto the header of a COLLAPSED folder', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await boot(page);
+  await build(page, [P('a', 'Setups'), P('b', 'Setups'), P('c')]);
+
+  // The case that made the header a drop target at all: collapsed, the folder
+  // shows no cards, so computeDropTarget's .block-card lookup finds nothing
+  // and every drop near it would be a silent no-op.
+  await page.locator('#block-list .block-folder-toggle').click();
+  // Hidden, not removed - a collapse is CSS, so the cards are still in the DOM
+  // and toHaveCount(0) would be asserting the wrong thing entirely.
+  await expect(page.locator('#block-list .block-folder .block-card').first()).not.toBeVisible();
+
+  // Real mouse, not dispatched PointerEvents: startBlockPointerDrag calls
+  // setPointerCapture, which throws on synthetic events.
+  const settled = async (locator, label) => {
+    let previous = null;
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const box = await locator.boundingBox();
+      if (previous && box && box.y === previous.y && box.height === previous.height) return box;
+      previous = box;
+      await page.waitForTimeout(40);
+    }
+    throw new Error(`${label} never settled`);
+  };
+
+  const handle = page.locator('#block-list .block-card[data-index="2"] .drag-handle');
+  const head = page.locator('#block-list .block-folder-head');
+
+  const handleBox = await settled(handle, 'the drag handle');
+  const headBox = await settled(head, 'the folder header');
+
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + 20); // past DRAG_THRESHOLD
+  await page.mouse.move(headBox.x + headBox.width / 2, headBox.y + headBox.height / 2, { steps: 5 });
+  await page.mouse.up();
+
+  const out = await page.evaluate(() => ({
+    order: window.getActiveBlocks().map(b => b.content),
+    folders: window.getActiveBlocks().map(b => b.folder || null),
+  }));
+
+  expect(errors).toEqual([]);
+  expect(out.folders, 'it joined the folder it was dropped on').toEqual(['Setups', 'Setups', 'Setups']);
+  expect(out.order, 'and landed at the top of it').toEqual(['c', 'a', 'b']);
 });
 
 test('the per-card dropdown files a block into a folder', async ({ page }) => {
