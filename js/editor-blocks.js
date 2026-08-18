@@ -344,7 +344,13 @@ function initStrategyBlockBuilder(containerId, initialData) {
     currentStrategyBlocks = initialData ? JSON.parse(JSON.stringify(initialData)) : [];
 
     window.activeAccordionPath = [];
-    
+
+    // Which folders are closed is per-section view state. Opening a different
+    // section starts everything expanded rather than inheriting a collapse the
+    // author set somewhere else, which is also what makes a bare folder name a
+    // safe key for it.
+    if (typeof window.resetBlockFolderState === 'function') window.resetBlockFolderState();
+
     blockHistory = [JSON.parse(JSON.stringify(currentStrategyBlocks))];
     historyIndex = 0;
 
@@ -884,6 +890,68 @@ function initStrategyBlockBuilder(containerId, initialData) {
 
     // --- SMART BLOCK CONVERSION & DROPDOWN SYNC ---
     blockList.addEventListener('change', (e) => {
+        if (e.target.classList.contains('block-folder-select')
+            && typeof window.assignBlockToFolder === 'function') {
+            const card = e.target.closest('.block-card');
+            if (!card) return;
+            const activeBlocks = window.getActiveBlocks();
+            const index = parseInt(card.getAttribute('data-index'));
+
+            // Read the data attribute BEFORE the value. "New folder…" carries
+            // an empty value on purpose - any non-empty sentinel is a string a
+            // contributor could name a folder - so checking value first would
+            // silently un-folder the block instead of creating anything.
+            const option = e.target.selectedOptions && e.target.selectedOptions[0];
+            const wantsNew = !!(option && option.getAttribute('data-new-folder'));
+            const name = wantsNew
+                ? window.nextFolderName(activeBlocks, 'New Folder')
+                : e.target.value;
+
+            window.saveBlockHistory();
+            const landedAt = window.assignBlockToFolder(activeBlocks, index, name);
+            renderBlockList();
+            updateLivePreview(true);
+            if (landedAt >= 0) flashMovedBlock(landedAt);
+            return;
+        }
+
+        if (e.target.classList.contains('block-folder-name-input')
+            && typeof window.renameBlockFolder === 'function') {
+            // On change, not input: renaming per keystroke would rewrite every
+            // block in the run on every letter, and re-render the list out
+            // from under the caret.
+            const activeBlocks = window.getActiveBlocks();
+            const from = e.target.getAttribute('data-folder');
+            const to = window.normalizeFolderName(e.target.value);
+
+            if (!to || to === from) { e.target.value = from; return; }
+
+            window.saveBlockHistory();
+            if (!window.renameBlockFolder(activeBlocks, from, to)) {
+                // Guarded, like the same call in editor-find-replace.js: this
+                // file is loaded by owner.html and tier-editor.html, neither of
+                // which loads editor-core.js, so editorAlert is undefined
+                // there. The field snapping back is the feedback that survives
+                // on every host page; the message is the bonus where there is
+                // a modal to put it in.
+                if (typeof window.editorAlert === 'function') {
+                    window.editorAlert(`This section already has a folder called "${to}". Pick a different name.`);
+                }
+                e.target.value = from;
+                return;
+            }
+
+            // Carry the collapsed state across, or renaming silently reopens a
+            // folder the author had closed.
+            if (window.isBlockFolderCollapsed(from)) {
+                window.setBlockFolderCollapsed(from, false);
+                window.setBlockFolderCollapsed(to, true);
+            }
+            renderBlockList();
+            updateLivePreview(true);
+            return;
+        }
+
         if (e.target.classList.contains('block-type-selector')) {
             const activeBlocks = window.getActiveBlocks(); 
             const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
@@ -954,11 +1022,30 @@ function initStrategyBlockBuilder(containerId, initialData) {
     function computeDropTarget(clientX, clientY) {
         const under = document.elementFromPoint(clientX, clientY);
         const card = under ? under.closest('.block-card') : null;
-        if (!card) return { card: null, dropIndex: null, isBottom: false };
+        if (!card) {
+            // A folder header is a real target, not empty space. It is the
+            // only way INTO a collapsed folder, which by definition shows no
+            // cards to drop between.
+            const head = under ? under.closest('.block-folder-head') : null;
+            const shell = head ? head.closest('.block-folder') : null;
+            return {
+                card: null,
+                dropIndex: null,
+                isBottom: false,
+                folderHead: shell ? shell.getAttribute('data-folder') : null,
+                headEl: head || null,
+            };
+        }
         const bounding = card.getBoundingClientRect();
         const isBottom = clientY > bounding.y + bounding.height / 2;
         const cardIndex = parseInt(card.getAttribute('data-index'));
-        return { card, dropIndex: isBottom ? cardIndex + 1 : cardIndex, isBottom };
+        return {
+            card,
+            dropIndex: isBottom ? cardIndex + 1 : cardIndex,
+            isBottom,
+            folderHead: null,
+            headEl: null,
+        };
     }
 
     // Marks where a block landed. Without it a reorder gives no feedback
@@ -976,22 +1063,49 @@ function initStrategyBlockBuilder(containerId, initialData) {
         });
     }
 
-    function finishBlockDrop(payload, dropIndex) {
+    // A drag moves an array element and says nothing about folder membership,
+    // so every landing has to be reconciled: dropped between two members of a
+    // folder a block joins it, dragged clear of one it leaves. Without this a
+    // block can render inside a folder while carrying no `folder` value,
+    // which splits the run into two folders sharing a name.
+    function settleFolderAt(blocks, index) {
+        if (index < 0) return;
+        if (typeof window.reconcileFolderAt === 'function') {
+            window.reconcileFolderAt(blocks, index);
+        }
+    }
+
+    function finishBlockDrop(payload, dropIndex, folderHead) {
         const activeBlocks = window.getActiveBlocks();
 
         if (payload.blockType) {
             window.saveBlockHistory(); // Save BEFORE mutating
             const newBlock = window.spawnBlockWithAuthor(payload.blockType);
             let landedAt;
-            if (dropIndex === null) {
+            if (folderHead) {
+                const run = typeof window.blockFolderRunNamed === 'function'
+                    ? window.blockFolderRunNamed(activeBlocks, folderHead)
+                    : null;
+                landedAt = run ? run.start : activeBlocks.length;
+                newBlock.folder = folderHead;
+                activeBlocks.splice(landedAt, 0, newBlock);
+            } else if (dropIndex === null) {
                 activeBlocks.push(newBlock);
                 landedAt = activeBlocks.length - 1;
             } else {
                 activeBlocks.splice(dropIndex, 0, newBlock);
                 landedAt = dropIndex;
+                settleFolderAt(activeBlocks, landedAt);
             }
             renderBlockList();
             updateLivePreview(true); // Tell it to skip saving history again
+            flashMovedBlock(landedAt);
+        } else if (folderHead && typeof window.dropBlockIntoFolderHead === 'function') {
+            window.saveBlockHistory();
+            const landedAt = window.dropBlockIntoFolderHead(activeBlocks, payload.fromIndex, folderHead);
+            if (landedAt < 0) return;
+            renderBlockList();
+            updateLivePreview(true);
             flashMovedBlock(landedAt);
         } else if (dropIndex !== null) {
             let target = dropIndex;
@@ -1000,6 +1114,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 window.saveBlockHistory();
                 const item = activeBlocks.splice(payload.fromIndex, 1)[0];
                 activeBlocks.splice(target, 0, item);
+                settleFolderAt(activeBlocks, target);
                 renderBlockList();
                 updateLivePreview(true);
                 flashMovedBlock(target);
@@ -1028,6 +1143,8 @@ function initStrategyBlockBuilder(containerId, initialData) {
         let currentCard = null;
         let lastDropIndex = null;
         let sourceCard = null;
+        let currentHead = null;
+        let lastFolderHead = null;
 
         el.setPointerCapture(e.pointerId);
 
@@ -1037,7 +1154,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
         }
 
         function updateHighlight(ev) {
-            const { card, dropIndex, isBottom } = computeDropTarget(ev.clientX, ev.clientY);
+            const { card, dropIndex, isBottom, folderHead, headEl } = computeDropTarget(ev.clientX, ev.clientY);
             if (card !== currentCard) {
                 if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
                 currentCard = card;
@@ -1046,7 +1163,13 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 card.classList.toggle('drag-over-bottom', isBottom);
                 card.classList.toggle('drag-over-top', !isBottom);
             }
+            if (headEl !== currentHead) {
+                if (currentHead) currentHead.classList.remove('drag-over-folder');
+                currentHead = headEl;
+                if (currentHead) currentHead.classList.add('drag-over-folder');
+            }
             lastDropIndex = dropIndex;
+            lastFolderHead = folderHead;
         }
 
         function startDrag(ev) {
@@ -1070,6 +1193,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
             if (sourceCard) sourceCard.classList.remove('block-card-dragging');
             if (ghost) { ghost.remove(); ghost = null; }
             if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
+            if (currentHead) currentHead.classList.remove('drag-over-folder');
         }
 
         function onMove(ev) {
@@ -1086,8 +1210,9 @@ function initStrategyBlockBuilder(containerId, initialData) {
 
         function onUp() {
             const dropIndex = lastDropIndex;
+            const folderHead = lastFolderHead;
             cleanup();
-            if (dragging) finishBlockDrop(payload, dropIndex);
+            if (dragging) finishBlockDrop(payload, dropIndex, folderHead);
         }
 
         function onCancel() {
@@ -1171,8 +1296,36 @@ function initStrategyBlockBuilder(containerId, initialData) {
         const btn = e.target.closest('button');
         if (!btn) return;
         
-        const activeBlocks = window.getActiveBlocks(); 
+        const activeBlocks = window.getActiveBlocks();
         window.saveBlockHistory();
+
+        // Folder controls sit in the shell HEADER, outside any .block-card, so
+        // they have to be handled before the data-index lookup further down -
+        // that line calls .getAttribute on a null closest() and throws. The
+        // second half of the test matters just as much: cards are rendered
+        // INSIDE .block-folder, so a card's own ✖ matches closest('.block-folder')
+        // too.
+        const folderShell = btn.closest('.block-folder');
+        if (folderShell && !btn.closest('.block-card')) {
+            const folderName = folderShell.getAttribute('data-folder');
+
+            if (btn.classList.contains('block-folder-toggle')) {
+                if (typeof window.toggleBlockFolderCollapsed === 'function') {
+                    window.toggleBlockFolderCollapsed(folderName);
+                    renderBlockList();
+                }
+                return;
+            }
+
+            if (btn.classList.contains('block-folder-ungroup')
+                && typeof window.ungroupBlockFolder === 'function') {
+                window.ungroupBlockFolder(activeBlocks, folderName);
+                renderBlockList();
+                updateLivePreview(true);
+                return;
+            }
+            return;
+        }
 
         if (e.target.classList.contains('btn-table-add-row')) {
             const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
@@ -1223,21 +1376,59 @@ function initStrategyBlockBuilder(containerId, initialData) {
             return;
         }
 
+        let movedTo = -1;
         if (btn.classList.contains('btn-up') && index > 0) {
             [activeBlocks[index - 1], activeBlocks[index]] = [activeBlocks[index], activeBlocks[index - 1]];
+            movedTo = index - 1;
         } else if (btn.classList.contains('btn-down') && index < activeBlocks.length - 1) {
             [activeBlocks[index], activeBlocks[index + 1]] = [activeBlocks[index + 1], activeBlocks[index]];
+            movedTo = index + 1;
         } else if (btn.classList.contains('btn-delete')) {
-            activeBlocks.splice(index, 1); 
+            activeBlocks.splice(index, 1);
         } else {
-            return; 
+            return;
         }
-        
+
+        // A swap moves BOTH blocks, and either one can have crossed a folder
+        // boundary - stepping a member down past a loose block takes it out of
+        // the folder, and the loose block it traded places with is now inside.
+        if (movedTo >= 0) {
+            settleFolderAt(activeBlocks, movedTo);
+            settleFolderAt(activeBlocks, index);
+        }
+
         renderBlockList();
         updateLivePreview();
     });
 
     renderBlockList();
+}
+
+// The shell drawn around one folder run.
+//
+// The name is an INPUT rather than a label plus a rename button. Renaming is
+// the most common thing done to a folder after making it, and the editor has
+// editorAlert and customConfirm but no text prompt at all - adding one modal
+// for this would make folder naming the only prompt on the site.
+//
+// Every interpolation here is contributor-authored and lands in an attribute,
+// so it goes through escField exactly like the block fields below it.
+function folderShellHTML(run, isCollapsed) {
+    const count = `${run.count} block${run.count === 1 ? '' : 's'}`;
+    return `
+        <div class="block-folder-head">
+            <button class="btn-sys btn-sys-regular block-folder-toggle"
+                    title="${isCollapsed ? 'Expand' : 'Collapse'} this folder"
+                    aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#9656;' : '&#9662;'}</button>
+            <input type="text" class="block-folder-name-input" value="${escField(run.name)}"
+                   data-folder="${escField(run.name)}" maxlength="60"
+                   aria-label="Folder name" title="Rename this folder">
+            <span class="block-folder-count">${count}</span>
+            <button class="btn-sys btn-sys-regular block-folder-ungroup"
+                    title="Remove the folder and keep every block in it">&#9003; UNGROUP</button>
+        </div>
+        <div class="block-folder-body"></div>
+    `;
 }
 
 function renderBlockList() {
@@ -1283,12 +1474,44 @@ function renderBlockList() {
         listContainer.insertAdjacentHTML('beforeend', backBtnHTML);
     }
 
+    // --- BLOCK FOLDERS (v0.15 item 9) ---
+    //
+    // A folder is a contiguous run, so its shell can be opened at run.start and
+    // closed at run.end while each card keeps its REAL array index in
+    // data-index. Every handler in this file reads that attribute, and a
+    // grouping that renumbered blocks would break all of them at once.
+    const folderRuns = typeof window.collectBlockFolders === 'function'
+        ? window.collectBlockFolders(activeBlocks)
+        : [];
+    const opensAt = new Map();
+    const closesAt = new Map();
+    folderRuns.forEach(run => { opensAt.set(run.start, run); closesAt.set(run.end, run); });
+    const folderNames = folderRuns.map(run => run.name);
+
+    // Where the next card goes: the list itself, or the open folder's body.
+    let appendTarget = listContainer;
+
+    // The non-drag path into a folder. A native select rather than a popup
+    // because it works under touch for free, and the pointer-drag comment
+    // above is explicit that a gesture-only control is not enough on its own.
+    const folderSelectHTML = (block) => {
+        const own = typeof window.blockFolderName === 'function' ? window.blockFolderName(block) : '';
+        const options = ['<option value="">&#128193; &mdash;</option>']
+            .concat(folderNames.map(n =>
+                `<option value="${escField(n)}" ${n === own ? 'selected' : ''}>&#128193; ${escField(n)}</option>`
+            ));
+        // Marked by a data attribute, not a sentinel value: any string used as
+        // a sentinel is a string a contributor could name a folder.
+        options.push('<option value="" data-new-folder="1">&#128193; New folder&hellip;</option>');
+        return `<select class="block-folder-select" title="Put this block in a folder">${options.join('')}</select>`;
+    };
+
     activeBlocks.forEach((block, index) => {
         const card = document.createElement('div');
         card.className = 'block-card';
         card.setAttribute('data-index', index);
 
-            const typeOptions = Object.keys(blockTemplates).map(t => 
+            const typeOptions = Object.keys(blockTemplates).map(t =>
                 `<option value="${escField(t)}" ${block.type === t ? 'selected' : ''}>${t.toUpperCase()}</option>`
             ).join('');
 
@@ -1299,6 +1522,7 @@ function renderBlockList() {
                         <select class="editor-select block-type-selector">
                             ${typeOptions}
                         </select>
+                        ${folderSelectHTML(block)}
                     </div>
                 <div class="block-actions">
                     <button class="btn-sys btn-sys-green btn-insert-below" title="Insert Paragraph Below">⨁</button>
@@ -1541,7 +1765,24 @@ function renderBlockList() {
 
         html += `</div>`;
         card.innerHTML = html;
-        listContainer.appendChild(card);
+
+        const opening = opensAt.get(index);
+        if (opening) {
+            const isCollapsed = typeof window.isBlockFolderCollapsed === 'function'
+                && window.isBlockFolderCollapsed(opening.name);
+            const shell = document.createElement('div');
+            shell.className = 'block-folder' + (isCollapsed ? ' is-collapsed' : '');
+            // setAttribute, not innerHTML: no escaping needed, and this is the
+            // value every folder handler reads back.
+            shell.setAttribute('data-folder', opening.name);
+            shell.innerHTML = folderShellHTML(opening, isCollapsed);
+            listContainer.appendChild(shell);
+            appendTarget = shell.querySelector('.block-folder-body');
+        }
+
+        appendTarget.appendChild(card);
+
+        if (closesAt.get(index)) appendTarget = listContainer;
     });
 
     listContainer.querySelectorAll('.editor-textarea').forEach(ta => {

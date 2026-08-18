@@ -1079,6 +1079,87 @@ input[type="checkbox"]:checked {
 .accordion-back-label { color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
 .accordion-back-title { color: #fff; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; }
 .block-type-row { display: flex; align-items: center; gap: 0.5rem; }
+
+/* --- BLOCK FOLDERS (v0.15 item 9) ---
+   Editor-only grouping, so it is deliberately quieter than the purple
+   accordion banner above: an accordion is a thing the READER gets, a folder is
+   furniture only the author ever sees, and the two sitting in the same list
+   must not look like the same kind of object. */
+.block-folder {
+    border: 1px solid #2a2a2a;
+    border-left: 3px solid #4b5563;
+    background: rgba(255, 255, 255, 0.012);
+    margin-bottom: 0.35rem;
+}
+.block-folder-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    background: #111;
+    border-bottom: 1px solid #222;
+}
+.block-folder.is-collapsed .block-folder-head { border-bottom: none; }
+.block-folder.is-collapsed .block-folder-body { display: none; }
+
+.block-folder-toggle {
+    font-family: monospace;
+    font-weight: bold;
+    flex: 0 0 auto;
+}
+/* Transparent until touched, so the header reads as a title rather than a form
+   row - but still a real input, which is the whole rename interaction. */
+.block-folder-name-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dotted transparent;
+    color: #e5e7eb;
+    font-family: var(--text-manga);
+    font-size: 0.95rem;
+    padding: 0.1rem 0.2rem;
+}
+.block-folder-name-input:hover { border-bottom-color: #444; }
+.block-folder-name-input:focus {
+    outline: none;
+    border-bottom-color: var(--accent-blue);
+    background: rgba(59, 130, 246, 0.06);
+}
+.block-folder-count {
+    flex: 0 0 auto;
+    color: #6b7280;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+.block-folder-ungroup { flex: 0 0 auto; font-size: 0.65rem; }
+.block-folder-ungroup:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
+
+/* The drop affordance for a folder HEADER. Distinct from .drag-over-top /
+   .drag-over-bottom on a card, which are edges: this is a container, and the
+   whole thing lights up because the block lands inside it rather than beside
+   it. Reachable when the folder is collapsed and has no cards to aim at. */
+.block-folder-head.drag-over-folder {
+    background: rgba(59, 130, 246, 0.18);
+    outline: 1px dashed var(--accent-blue);
+    outline-offset: -2px;
+}
+
+/* Not .editor-select: that class is picked up by the delegated input handler
+   in editor-blocks.js, which resolves .block-card and writes data-field - this
+   control is not a block field and would throw or corrupt one. */
+.block-folder-select {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #222;
+    color: #9ca3af;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    padding: 0.1rem 0.2rem;
+    max-width: 11rem;
+    cursor: pointer;
+}
+.block-folder-select:hover { color: #fff; border-color: #444; }
 /* touch-action: none so a touch-drag on the handle doesn't also scroll the
    page - startBlockPointerDrag (js/editor-blocks.js) owns the gesture entirely
    once it starts. */

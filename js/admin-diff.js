@@ -163,6 +163,12 @@ const DIFF_FIELD_LABELS = {
     opponent: 'Opponent',
     topic: 'Topic',
     starter: 'Starter',
+    // Item 9's editor-only grouping. Named rather than left to the general
+    // rule, which would render a bare "Folder" - a reviewer seeing that beside
+    // real content has no way to know it changes nothing a reader sees. It is
+    // shown rather than hidden because joining a folder MOVES the block, and a
+    // reordering with no stated reason is worse than one line of metadata.
+    folder: 'Editor Folder',
 };
 
 window.humanFieldName = function(key) {
