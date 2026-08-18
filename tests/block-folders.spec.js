@@ -507,6 +507,53 @@ test('the picker distinguishes "no folder" and "create new" from actual folders'
   expect(out.sepIsNotAChoice, 'the group label is not selectable').toBe(true);
 });
 
+test('the folder picker and the block-type dropdown do not sit on top of each other', async ({ page }) => {
+  await boot(page);
+  await build(page, [{ type: 'heading', content: 'The Unbeatable', size: 'h3', folder: 'Setups' }, P('b')]);
+
+  // initializeMangaSelects swaps the type <select> for a wrapper of a different
+  // width, so the row is not final until that has run.
+  await expect(page.locator('#block-list .manga-select-trigger').first()).toBeVisible();
+
+  const out = await page.evaluate(() => {
+    const card = document.querySelector('#block-list .block-card[data-index="0"]');
+    const typeWrap = card.querySelector('.block-type-row .manga-select-wrapper:not(.block-folder-picker)');
+    const typeTrigger = typeWrap.querySelector('.manga-select-trigger');
+    const pickTrigger = card.querySelector('.block-folder-trigger');
+
+    // What decides a click is which element is on top at that point. Both of
+    // these were reachable-looking and one was covered - the same shape as the
+    // confirm-modal and reorder-control bugs earlier in v0.15.
+    const hits = (el) => {
+      const r = el.getBoundingClientRect();
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return !!top && (el === top || el.contains(top) || top.contains(el));
+    };
+
+    const a = typeTrigger.getBoundingClientRect();
+    const b = pickTrigger.getBoundingClientRect();
+    const overlaps = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+    return {
+      typeWidth: Math.round(typeWrap.getBoundingClientRect().width),
+      typeClipped: typeTrigger.scrollWidth > typeTrigger.clientWidth,
+      overlaps,
+      typeClickable: hits(typeTrigger),
+      pickerClickable: hits(pickTrigger),
+    };
+  });
+
+  // The defect itself: .manga-select-wrapper is `flex: 1` with `min-width: 0`,
+  // which is a zero basis free to collapse, and in a row that shrink-wraps it
+  // resolved to exactly 0 - while its trigger, being position:relative rather
+  // than clipped, carried on drawing across the folder picker.
+  expect(out.typeWidth, 'the type dropdown has a width at all').toBeGreaterThan(0);
+  expect(out.overlaps, 'the two controls occupy separate boxes').toBe(false);
+  expect(out.typeClipped, 'and the type label is not cut off').toBe(false);
+  expect(out.typeClickable).toBe(true);
+  expect(out.pickerClickable).toBe(true);
+});
+
 // --- EMPTY FOLDERS ---
 
 test('the header + makes an empty folder after this one, and it is not in the data', async ({ page }) => {

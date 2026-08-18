@@ -1078,7 +1078,30 @@ input[type="checkbox"]:checked {
 .accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 .accordion-back-label { color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
 .accordion-back-title { color: #fff; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; }
-.block-type-row { display: flex; align-items: center; gap: 0.5rem; }
+/* Two dropdowns share this row since v0.15 item 9, and the shared
+   .manga-select-wrapper rule in Forms.css is `flex: 1` with `min-width: 0` -
+   which is `flex-basis: 0%` and free to collapse. In a row that shrink-wraps to
+   its content that resolves to width ZERO, and .manga-select-trigger is
+   position:relative rather than clipped, so it spilled out over the folder
+   picker instead of just being narrow (owner, 2026-08-18).
+
+   Both overrides are scoped to .block-type-row on purpose: .manga-select-wrapper
+   is site-wide furniture - the DAW footer sizes on it, and the comment in
+   Forms.css says as much. Wrapping rather than fixed widths because the editor
+   pane is resizable and the mobile rules below squeeze this row further. */
+.block-type-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.block-type-row .manga-select-wrapper:not(.block-folder-picker) {
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 7rem;
+}
 
 /* --- BLOCK FOLDERS (v0.15 item 9) ---
    Editor-only grouping, so it is deliberately quieter than the purple
@@ -1176,7 +1199,15 @@ input[type="checkbox"]:checked {
    distinction being drawn here. It also only converts select.editor-select,
    a class the delegated input handler in editor-blocks.js treats as a block
    field. */
-.block-folder-picker { flex: 0 1 11rem; margin-bottom: 0; }
+/* Compound with .block-type-row so it outranks the :not() rule above, which
+   would otherwise win on specificity and hand this one a 7rem minimum it does
+   not want. */
+.block-type-row .block-folder-picker {
+    flex: 0 1 11rem;
+    width: auto;
+    min-width: 7rem;
+    margin-bottom: 0;
+}
 
 .block-folder-trigger {
     display: block;
