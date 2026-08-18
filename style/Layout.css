@@ -910,9 +910,17 @@ summary:focus-visible {
     /* Play: a hard triangle. */
     clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
-/* Pause: two bars, cut from the same square. */
+/* Pause: two bars. A gradient rather than a second clip-path, because the
+   polygon that cuts two rectangles out of one square is self-intersecting and
+   its result depends on the fill rule - this renders the same everywhere. */
 .wiki-player.is-playing .wiki-player-glyph {
-    clip-path: polygon(0 0, 34% 0, 34% 100%, 0 100%, 0 0, 66% 0, 100% 0, 100% 100%, 66% 100%, 66% 0);
+    clip-path: none;
+    background: linear-gradient(
+        to right,
+        var(--accent-blue) 0 34%,
+        transparent 34% 66%,
+        var(--accent-blue) 66% 100%
+    );
 }
 
 /* The duration bar, below the button. */

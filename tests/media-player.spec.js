@@ -103,11 +103,22 @@ test('the play button drives the video and the duration bar fills', async ({ pag
   await expect(player).toBeVisible();
   await expect(player).not.toHaveClass(/is-playing/);
 
+  const glyphPaint = () => page.evaluate(() => {
+    const s = getComputedStyle(document.querySelector('#render-host .wiki-player-glyph'));
+    return `${s.clipPath}|${s.backgroundImage}`;
+  });
+  const asPlay = await glyphPaint();
+
   await page.locator('#render-host [data-player-toggle]').click();
 
-  // The state class is what swaps the glyph, so this is the rendered
-  // consequence rather than a claim about the click.
   await expect(player).toHaveClass(/is-playing/);
+
+  // The class is only what should CAUSE the glyph to change. Read back what
+  // the browser actually painted, because a rule that silently stopped
+  // matching would leave a play triangle on a playing video and every
+  // class-based assertion would still be green.
+  const asPause = await glyphPaint();
+  expect(asPause, 'the glyph really becomes a pause mark').not.toBe(asPlay);
 
   const label = await page.locator('#render-host [data-player-toggle]').getAttribute('aria-label');
   expect(label).toBe('Pause');
