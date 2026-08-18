@@ -83,6 +83,23 @@
                     <span id="tier-save-status" class="tier-save-status"></span>
                 </div>
 
+                <!--
+                    A tier list is a claim about a patch, and the game
+                    rebalances often - read six weeks later against a game that
+                    has moved, an out-of-date list and a current one look
+                    identical. Free text because the game's versioning is not
+                    ours to model, and blank means "not stated" rather than a
+                    guess. Saved with everything else rather than on its own:
+                    it is part of the ranking, not a setting.
+                -->
+                <div class="dashboard-header-split admin-split-header">
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Game version</h3>
+                </div>
+
+                <input type="text" id="tier-game-version" class="editor-input tier-game-version"
+                       maxlength="60" placeholder="e.g. Update 1.4.2 — leave blank if unsure"
+                       aria-label="Game version this list describes">
+
                 <div class="dashboard-header-split admin-split-header">
                     <h3 class="section-title section-title-clean m-0 admin-section-title">Tiers</h3>
                     <button id="btn-add-tier" class="btn-sys btn-sys-regular admin-refresh-btn">+ TIER</button>

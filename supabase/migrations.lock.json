@@ -36,6 +36,7 @@
         "20260813000005_certified_tier_lists.sql": "a51e0fda77e3da11631729e5a72df2191b1e7e229c1721d8b4ded418613c84d3",
         "20260814000000_tier_list_owner_tools.sql": "f4a602276dc09c335d7a63edefc3656dcf994bbd5e4c983a22eddfd1ea058288",
         "20260814000001_free_submit_tier_list.sql": "5d8ed7c6a9189166ca95352365f6e0169f783e79dc862f89d7101e70b6f7a87b",
-        "20260815000000_fix_personnel_joined_at.sql": "4135f9af01340ab55c12542b8d2ce87c648e8aed646439ceaad0a22ddbe6e604"
+        "20260815000000_fix_personnel_joined_at.sql": "4135f9af01340ab55c12542b8d2ce87c648e8aed646439ceaad0a22ddbe6e604",
+        "20260818000000_tier_list_game_version.sql": "5f89f4e2bc6cd85b6d2057dab2573186765fe86cff86798a2836b278467fd7a4"
     }
 }

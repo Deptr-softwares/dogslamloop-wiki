@@ -252,7 +252,18 @@
         const header = el('div', 'ctl-header');
         header.appendChild(el('h2', 'ctl-author', row.author_name));
         if (row.blurb) header.appendChild(el('p', 'ctl-blurb', row.blurb));
-        header.appendChild(el('span', 'ctl-updated', timeAgo(row.updated_at)));
+
+        const stamp = el('div', 'ctl-stamp');
+        stamp.appendChild(el('span', 'ctl-updated', timeAgo(row.updated_at)));
+        // Beside "updated 3 weeks ago" on purpose: those two facts answer the
+        // same question, and a reader deciding whether a ranking still holds
+        // needs the patch it was written against more than the date (v0.15
+        // item 13). Absent when the author has not said, because inventing one
+        // would be worse than the gap.
+        if (row.game_version) {
+            stamp.appendChild(el('span', 'ctl-game-version', row.game_version));
+        }
+        header.appendChild(stamp);
         ui.appendChild(header);
 
         // Their introduction, above the tiers. Written by them and nobody

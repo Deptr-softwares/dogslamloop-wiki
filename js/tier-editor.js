@@ -493,11 +493,17 @@
         // typed into the introduction.
         flushOpenDoc();
 
+        // Read at save time rather than tracked on input: it is one field with
+        // no preview to keep in step, and a change listener would be a second
+        // place for it to go stale.
+        const versionField = document.getElementById('tier-game-version');
+
         const { data, error } = await client().rpc('save_tier_list', {
             p_list_id: state.list.id,
             p_tiers: state.tiers,
             p_reasoning: state.reasoning,
             p_intro: state.intro,
+            p_game_version: versionField ? versionField.value.trim() : '',
             p_changes: moves.map(m => ({
                 character_id: m.id,
                 from_tier: m.from,
@@ -574,6 +580,15 @@
         state.intro = Array.isArray(data.intro) ? JSON.parse(JSON.stringify(data.intro)) : [];
         state.reasoning = Array.isArray(data.reasoning) ? JSON.parse(JSON.stringify(data.reasoning)) : [];
         state.activeDoc = 'intro';
+
+        // Absent rather than empty on a page loaded before the migration
+        // reaches production, which is the normal state between writing a
+        // migration and the release - `|| ''` covers both without a branch.
+        const versionField = document.getElementById('tier-game-version');
+        if (versionField) {
+            versionField.value = data.game_version || '';
+            versionField.disabled = !state.canEdit;
+        }
 
         if (typeof initStrategyBlockBuilder === 'function') {
             initStrategyBlockBuilder('strategy-block-target', state.intro);

@@ -370,3 +370,40 @@ test('the workspace can be scrolled to the block editor at its bottom', async ({
     });
     expect(reached, "scrolling brings it fully into view").toBe(true);
 });
+
+// --- GAME VERSION (v0.15 item 13) ---
+
+test('the game version loads and saves', async ({ page }) => {
+    await openEditor(page, { list: { ...LIST, game_version: "Update 1.4.2" } });
+
+    const field = page.locator("#tier-game-version");
+    await expect(field).toHaveValue("Update 1.4.2");
+    await expect(field).toBeEnabled();
+
+    await field.fill("Update 1.5.0");
+    await saveBtn(page).click();
+
+    const call = await page.evaluate(() => window.__rpcCalls.find(c => c.name === "save_tier_list"));
+    expect(call.params.p_game_version).toBe("Update 1.5.0");
+});
+
+test('a list with no game version sends an empty string, not undefined', async ({ page }) => {
+    // Absent is the normal state - every list that exists predates this field.
+    // undefined would be dropped from the JSON body entirely, and the RPC
+    // COALESCEs a missing value to the stored one, so "I cleared it" would
+    // silently mean "leave it alone".
+    await openEditor(page);
+
+    await expect(page.locator("#tier-game-version")).toHaveValue("");
+    await saveBtn(page).click();
+
+    const call = await page.evaluate(() => window.__rpcCalls.find(c => c.name === "save_tier_list"));
+    expect(call.params.p_game_version).toBe("");
+});
+
+test('a read-only list cannot have its game version edited', async ({ page }) => {
+    await openEditor(page, { list: { ...LIST, owner_id: "someone-else", game_version: "Update 1.4.2" } });
+
+    await expect(page.locator("#tier-game-version")).toBeDisabled();
+    await expect(page.locator("#tier-game-version")).toHaveValue("Update 1.4.2");
+});
