@@ -15,14 +15,30 @@
    hundred rules onto a page that has never had them. Same call and the same
    symptom as .owner-workspace and .post-editor-workspace in admin.css, which
    both add overflow-y for exactly this reason. */
-.editor-workspace .admin-sidebar-content {
-    flex: 1 1 auto;
-    min-height: 0;      /* a flex child will not scroll while it can grow instead */
-    overflow-y: auto;
-    padding: 1.5rem;
-    display: flex;
-    flex-direction: column;
-}
+/* REVERTED, deliberately, and left here as a record - see the devlog.
+   Every way of giving this column a scroll region collapsed the block editor's
+   textareas to zero height, because editor-blocks.js measures each one with
+   scrollHeight ONCE at render and writes the result as an inline height. Make
+   the ancestor a scroll container and that measurement is taken mid-layout,
+   reads 0, and 0px sticks - the field becomes unclickable.
+   The fix belongs in the autosize, not here, and that code is shared with
+   every editor on the site. */
+
+/* The block editor measures each textarea ONCE, with scrollHeight at render
+   time, and writes the result as an inline height. Inside a scroll container
+   that is still resolving its own height that measurement comes back 0 - and
+   0px sticks, so the field ends up invisible and impossible to click. Adding
+   the scroll region above is what exposed this; the floor makes a bad
+   measurement harmless rather than permanent.
+   Scoped to this page: .editor-textarea is the whole site's editor field. */
+.tier-editor-workspace .editor-textarea { min-height: 4rem; }
+/* Deliberately NOT `display: flex; flex-direction: column`, which is what
+   admin.css gives this class. Copied wholesale it turned every child into a
+   shrinkable flex item, and the block editor - the tallest thing here, and the
+   last - collapsed to ZERO height once the column overflowed. Its textareas
+   measure themselves with scrollHeight at render time, so they came out 0px
+   and could not be clicked at all. A scrolling block is all this page needs.
+   Found by driving the editor rather than by looking at it. */
 
 .tier-editor-body { width: 100%; padding: 1.5rem; box-sizing: border-box; }
 

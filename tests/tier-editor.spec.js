@@ -337,7 +337,12 @@ test('switching away and back does not lose the other document', async ({ page }
 
 // --- THE WORKSPACE SCROLLS (v0.16 fine-tuning 3) ---
 
-test('the workspace can be scrolled to the block editor at its bottom', async ({ page }) => {
+// SKIPPED, not deleted: the scroll fix was reverted because every version of
+// it collapsed the block editor's textareas to zero height. This test passed
+// against the broken build - it measured #strategy-block-target, which kept its
+// height, and never touched the field inside it. Left here as the shape the
+// real fix has to satisfy, alongside a click on the textarea.
+test.skip('the workspace can be scrolled to the block editor at its bottom', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await openEditor(page);
 
