@@ -398,6 +398,95 @@ test('the workspace can be scrolled to the block editor at its bottom', async ({
     expect(await field.inputValue()).toContain("x");
 });
 
+// --- THE PREVIEW PANEL (v0.16 fine-tuning 3) ---
+
+test('editing a block does not throw, because updateLivePreview exists here', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+
+    await openEditor(page, {
+        list: { ...LIST, intro: [{ type: 'paragraph', content: 'Intro text' }] },
+    });
+
+    // editor-blocks.js calls updateLivePreview() BY BARE NAME from about ten
+    // sites after every block change, and it is declared in editor-sync.js -
+    // which this page does not load. Every edit threw a ReferenceError,
+    // silently, into the console.
+    expect(await page.evaluate(() => typeof window.updateLivePreview)).toBe('function');
+
+    // Scroll the workspace down and wait for the virtualization observer to
+    // load the card: .block-card.virtual-unloaded > * is display:none, so a
+    // field below the fold is present but not clickable.
+    await page.evaluate(() => {
+        const c = document.querySelector('.admin-sidebar-content');
+        if (c) c.scrollTop = c.scrollHeight;
+    });
+    const field = page.locator('#block-list .block-card textarea').first();
+    await expect(field).toBeVisible({ timeout: 10000 });
+    await field.click();
+    await page.keyboard.type('abc');
+    await page.waitForTimeout(700);   // past the editor's 400ms typing debounce
+
+    expect(errors, 'typing in the block editor must not throw').toEqual([]);
+});
+
+test('the preview uses the live page markup, not a second design', async ({ page }) => {
+    await openEditor(page, {
+        list: {
+            ...LIST,
+            intro: [{ type: 'paragraph', content: 'ZZQ INTRO LINE' }],
+            reasoning: [{ type: 'paragraph', content: 'ZZQ REASONING LINE' }],
+        },
+    });
+
+    const host = page.locator('#tier-preview-docs');
+
+    // The classes are the ones js/certified-tier-lists.js renders. A preview
+    // with its own layout is not a preview - the first version of this had a
+    // Finger-Paint card heading where the real page has a small mono label on
+    // an accent border.
+    await expect(host.locator('.ctl-intro .ctl-subheading')).toHaveText('Tier List Introduction');
+    await expect(host.locator('.ctl-intro-body')).toContainText('ZZQ INTRO LINE');
+    await expect(host.locator('.ctl-reasoning .ctl-subheading')).toHaveText('Reasoning');
+    await expect(host.locator('.ctl-reasoning-body')).toContainText('ZZQ REASONING LINE');
+
+    // A move that is not saved yet still belongs here: it is the changelog
+    // entry being written this minute, in the shape the reader will get it.
+    await move(page, 'ten_shadows', '1');
+    await page.fill('.tier-move-note', 'Nerfed domain startup.');
+
+    await expect(host.locator('.ctl-changelog .ctl-change-pending')).toHaveCount(1);
+    await expect(host.locator('.ctl-change-pending .ctl-change-note'))
+        .toContainText('Nerfed domain startup.');
+});
+
+test('the preview follows what is being typed, not the last saved version', async ({ page }) => {
+    await openEditor(page, {
+        list: { ...LIST, intro: [{ type: 'paragraph', content: 'Before' }] },
+    });
+
+    await expect(page.locator('#tier-preview-docs')).toContainText('Before');
+
+    // Scroll the workspace down and wait for the virtualization observer to
+    // load the card: .block-card.virtual-unloaded > * is display:none, so a
+    // field below the fold is present but not clickable.
+    await page.evaluate(() => {
+        const c = document.querySelector('.admin-sidebar-content');
+        if (c) c.scrollTop = c.scrollHeight;
+    });
+    const field = page.locator('#block-list .block-card textarea').first();
+    await expect(field).toBeVisible({ timeout: 10000 });
+    await field.click();
+    await page.keyboard.press('ControlOrMeta+a');
+    await page.keyboard.type('ZZQ AFTER');
+
+    // Driven through the real typing path, which is what calls
+    // updateLivePreview - a preview that only refreshed on save would satisfy
+    // the test above and still be useless while writing.
+    await expect(page.locator('#tier-preview-docs')).toContainText('ZZQ AFTER', { timeout: 5000 });
+});
+
 // --- GAME VERSION (v0.15 item 13) ---
 
 test('the game version loads and saves', async ({ page }) => {

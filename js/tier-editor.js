@@ -190,6 +190,12 @@
         refitWhenFontsLoad();
         renderTierControls();
         renderPendingMoves();
+        // A move IS a changelog entry, so the preview has to follow the board.
+        // Guarded on state.ready because renderBoard runs during boot BEFORE
+        // the block builder is initialised, and renderPreviewDocs flushes the
+        // open document - which would write an empty buffer over the
+        // introduction it has not loaded yet.
+        if (state.ready) renderPreviewDocs();
     }
 
     // --- TIER NAMES THAT ARE NOT ONE LETTER (v0.16 fine-tuning 3) ---
@@ -493,6 +499,9 @@
             input.addEventListener('input', () => {
                 state.notes.set(move.id, input.value);
                 updateSaveState();
+                // The note is a changelog entry, and the preview shows the
+                // changelog - so it follows the typing like the documents do.
+                if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
             });
             row.appendChild(input);
 
@@ -615,6 +624,116 @@
         reasoning: 'The long-form argument for your placements, shown under the changelog. Same editor the rest of the wiki uses.',
     };
 
+    // --- THE PREVIEW PANEL (v0.16 fine-tuning 3) ---
+    //
+    // js/editor-blocks.js calls updateLivePreview() BY BARE NAME from about ten
+    // places after every block change. It is a top-level declaration in
+    // js/editor-sync.js, which this page deliberately does not load - so every
+    // edit here threw a ReferenceError, silently, into the console. Confirmed
+    // by driving the editor: typeof was 'undefined' and one typing session
+    // produced two errors.
+    //
+    // post-editor.html reimplements it locally for exactly this reason. Here it
+    // gets to be the thing it is named after, because this page finally has a
+    // preview to update.
+    window.updateLivePreview = function () {
+        clearTimeout(previewTimer);
+        previewTimer = setTimeout(renderPreviewDocs, 200);
+    };
+
+    let previewTimer = null;
+
+    function renderPreviewDocs() {
+        const host = document.getElementById('tier-preview-docs');
+        if (!host || typeof window.generateHTMLForBlocks !== 'function') return;
+
+        // Read the open document out of the builder first, or the preview shows
+        // the last saved version of whatever is being typed right now.
+        flushOpenDoc();
+        host.innerHTML = '';
+
+        // The LIVE page's own classes and structure, copied from
+        // js/certified-tier-lists.js - .ctl-intro / .ctl-subheading /
+        // .ctl-change and the rest. A preview that renders its own layout is
+        // not a preview; it is a second design nobody asked for, and the first
+        // version of this had a Finger-Paint card heading where the real page
+        // has a small mono label on an accent border (owner, 2026-08-18).
+        //
+        // Same call the board already made: .ctl-row, .ctl-label and
+        // .ctl-chars are the public page's classes too.
+        if (state.intro && state.intro.length) {
+            const box = el('section', 'ctl-intro');
+            box.appendChild(el('h3', 'ctl-subheading', 'Tier List Introduction'));
+            const body = el('div', 'ctl-intro-body');
+            body.innerHTML = window.generateHTMLForBlocks(state.intro);
+            box.appendChild(body);
+            host.appendChild(box);
+        }
+
+        // The saved changelog, plus whatever is waiting to join it. Both,
+        // because an author writing notes needs to see them in the shape the
+        // reader will, not only as a to-do list in the sidebar.
+        const saved = Array.isArray(state.changes) ? state.changes : [];
+        const pending = pendingMoves();
+        if (state.reasoning && state.reasoning.length) {
+            const box = el('div', 'ctl-reasoning');
+            box.appendChild(el('h3', 'ctl-subheading', 'Reasoning'));
+            const body = el('div', 'ctl-reasoning-body');
+            body.innerHTML = window.generateHTMLForBlocks(state.reasoning);
+            box.appendChild(body);
+            host.appendChild(box);
+        }
+
+        // Reasoning first, then the changelog - the order the live page uses,
+        // because the reasoning is the argument and the changelog is the record
+        // of acting on it.
+        if (saved.length || pending.length) {
+            const box = el('div', 'ctl-changelog');
+            box.appendChild(el('h3', 'ctl-subheading', 'Changelog'));
+
+            // Unsaved moves render as real entries, marked - they are what the
+            // reader will get the moment SAVE is pressed, and seeing them in
+            // the reader's shape is the point of previewing at all.
+            const entry = (charId, from, to, note, date, pendingFlag) => {
+                const row = el('div', 'ctl-change' + (pendingFlag ? ' ctl-change-pending' : ''));
+                const head = el('div', 'ctl-change-head');
+                head.appendChild(el('span', 'ctl-change-char', nameOf(charId)));
+                const moved = from && to ? `${from} → ${to}`
+                    : (to ? `added to ${to}` : `removed from ${from || '—'}`);
+                head.appendChild(el('span', 'ctl-change-move', moved));
+                head.appendChild(el('span', 'ctl-change-date', date));
+                row.appendChild(head);
+                row.appendChild(el('p', 'ctl-change-note', note));
+                box.appendChild(row);
+            };
+
+            pending.forEach(m => entry(
+                m.id, m.from, m.to,
+                (state.notes.get(m.id) || '').trim() || 'Needs a note before this can be saved.',
+                'unsaved', true));
+
+            saved.forEach(c => entry(
+                c.character_id, c.from_tier, c.to_tier, c.note || '',
+                new Date(c.created_at).toLocaleDateString(), false));
+
+            host.appendChild(box);
+        }
+
+        if (!host.children.length) {
+            host.appendChild(el('p', 'ctl-empty-note',
+                'Your introduction, changelog and reasoning appear here as you write them.'));
+        }
+
+        if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
+    }
+
+    // The roster name rather than the page id, so the changelog reads the way
+    // the board does.
+    function nameOf(pageId) {
+        const meta = state.roster.get(pageId);
+        return meta ? meta.name : String(pageId || '').replace(/_/g, ' ');
+    }
+
     function flushOpenDoc() {
         if (typeof window.getActiveBlocks !== 'function') return;
         const blocks = JSON.parse(JSON.stringify(window.getActiveBlocks()));
@@ -641,6 +760,7 @@
         if (typeof initStrategyBlockBuilder === 'function') {
             initStrategyBlockBuilder('strategy-block-target', state[doc]);
         }
+        renderPreviewDocs();
     }
     window.tierEditorSwitchDoc = switchDoc;
 
@@ -693,6 +813,7 @@
         snapshotOriginal();
         state.notes.clear();
         renderBoard();
+        renderPreviewDocs();
         setStatus(data || 'Saved.');
     }
 
@@ -762,6 +883,18 @@
         if (typeof initStrategyBlockBuilder === 'function') {
             initStrategyBlockBuilder('strategy-block-target', state.intro);
         }
+
+        // The changelog the reader already sees. Fetched once rather than kept
+        // live: nothing in this editor writes to it except a save, which
+        // reloads anyway.
+        const { data: changeRows } = await client()
+            .from('tier_list_changes').select('*').eq('list_id', data.id)
+            .order('created_at', { ascending: false });
+        state.changes = Array.isArray(changeRows) ? changeRows : [];
+
+        // Only now is flushing the open document safe - see renderBoard.
+        state.ready = true;
+        renderPreviewDocs();
 
         document.querySelectorAll('.tier-doc-btn').forEach(btn => {
             btn.addEventListener('click', () => switchDoc(btn.dataset.doc));

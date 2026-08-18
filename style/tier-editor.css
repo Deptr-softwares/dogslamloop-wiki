@@ -28,6 +28,21 @@
 
 .tier-editor-board { margin-bottom: 2rem; }
 
+/* --- THE PREVIEW PANEL (v0.16 fine-tuning 3) ---
+   The preview showed the tiers alone, so the two documents an author spends
+   most of their time writing were invisible until they saved and opened the
+   live page. */
+/* Only spacing lives here. Everything inside is the LIVE page's own markup -
+   .ctl-intro, .ctl-reasoning, .ctl-changelog, .ctl-change - styled by
+   certified-tier-lists.css, which this page already loads. Restyling any of it
+   would make the preview a second design rather than a preview. */
+.tier-preview-docs { margin-top: 2.5rem; display: flex; flex-direction: column; gap: 1.5rem; }
+
+/* The one addition the live page has no need for: a move that is not saved
+   yet. Yellow, matching the unsaved-moves list in the sidebar, so it reads as
+   "about to be this" rather than as part of the record. */
+.ctl-change-pending { border-left: 2px solid #eab308; background: rgba(234, 179, 8, 0.05); padding-left: 0.6rem; }
+
 /* Taller than the read-only row: a drop target that is only as tall as its
    contents is nearly impossible to hit when the tier is empty. */
 .tier-editor-row .ctl-chars { min-height: 96px; }
