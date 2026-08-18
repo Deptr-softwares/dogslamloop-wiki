@@ -2,6 +2,28 @@
    Reuses the two-pane editor shell, the .ctl-* row classes from the public
    page, and .tier-portrait. Only what is specific to editing lives here. */
 
+/* --- THE WORKSPACE SCROLLS (v0.16 fine-tuning 3) ---
+   This page marks its left pane `editor-workspace admin-sidebar` and its inner
+   column `admin-sidebar-content`, but it does NOT load admin.css - so both
+   admin classes matched nothing at all and only .editor-workspace applied.
+   That rule is `overflow: hidden`, deliberately, because it expects an inner
+   scroll region to exist. Here there was none, so everything below the fold
+   was simply unreachable: the block editor is the last thing in this column,
+   which is why writing the Introduction was close to impossible.
+
+   Fixed here rather than by loading admin.css, which would drop several
+   hundred rules onto a page that has never had them. Same call and the same
+   symptom as .owner-workspace and .post-editor-workspace in admin.css, which
+   both add overflow-y for exactly this reason. */
+.editor-workspace .admin-sidebar-content {
+    flex: 1 1 auto;
+    min-height: 0;      /* a flex child will not scroll while it can grow instead */
+    overflow-y: auto;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
 .tier-editor-body { width: 100%; padding: 1.5rem; box-sizing: border-box; }
 
 .tier-editor-board { margin-bottom: 2rem; }

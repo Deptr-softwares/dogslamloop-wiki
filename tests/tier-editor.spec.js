@@ -334,3 +334,39 @@ test('switching away and back does not lose the other document', async ({ page }
     expect(JSON.stringify(call.params.p_reasoning), 'the document not on screen survived the round trip')
         .toContain('REASONING TEXT');
 });
+
+// --- THE WORKSPACE SCROLLS (v0.16 fine-tuning 3) ---
+
+test('the workspace can be scrolled to the block editor at its bottom', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await openEditor(page);
+
+    // This page marks its panes with admin.css class names and never loads
+    // admin.css, so .admin-sidebar-content matched nothing and only
+    // .editor-workspace applied - and that rule is overflow: hidden, which
+    // expects an inner scroll region that did not exist. The block editor is
+    // the last thing in the column, so writing the Introduction meant typing
+    // into something below the fold with no way to reach it.
+    const before = await page.evaluate(() => {
+        const content = document.querySelector(".admin-sidebar-content");
+        const blocks = document.getElementById("strategy-block-target");
+        return {
+            overflow: getComputedStyle(content).overflowY,
+            scrolls: content.scrollHeight > content.clientHeight,
+            blocksBelowFold: blocks.getBoundingClientRect().bottom > window.innerHeight,
+        };
+    });
+
+    expect(before.overflow, "the inner column is the scroll region").toBe("auto");
+    // Guards the test itself: with nothing overflowing, "it scrolls" is vacuous.
+    expect(before.scrolls, "the fixture is tall enough to need scrolling").toBe(true);
+    expect(before.blocksBelowFold, "and the block editor starts out of reach").toBe(true);
+
+    const reached = await page.evaluate(() => {
+        const content = document.querySelector(".admin-sidebar-content");
+        content.scrollTop = content.scrollHeight;
+        const box = document.getElementById("strategy-block-target").getBoundingClientRect();
+        return box.bottom <= window.innerHeight + 2;
+    });
+    expect(reached, "scrolling brings it fully into view").toBe(true);
+});
