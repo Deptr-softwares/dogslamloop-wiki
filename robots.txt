@@ -26,6 +26,20 @@ Disallow: /history.html
 # does not enumerate every page id.
 Disallow: /edit.html?*
 
+# Repository tooling. Served only because Pages serves the repo root and this
+# site has no build step - the wiki itself never fetches any of it, and none of
+# it is a page. Migration SQL in particular has no business in search results:
+# the schema is public on GitHub either way, but a crawler indexing it puts
+# table and policy names in front of people who were looking for frame data.
+#
+# Same caveat as above. This is not a security control; RLS and the RPC guards
+# are. It only asks well-behaved crawlers not to list them.
+Disallow: /supabase/
+Disallow: /tests/
+Disallow: /scripts/
+Disallow: /devlogs/
+Disallow: /.github/
+
 Allow: /
 
 Sitemap: https://dogslamloop.com/sitemap.xml

@@ -83,6 +83,23 @@
                     <span id="tier-save-status" class="tier-save-status"></span>
                 </div>
 
+                <!--
+                    A tier list is a claim about a patch, and the game
+                    rebalances often - read six weeks later against a game that
+                    has moved, an out-of-date list and a current one look
+                    identical. Free text because the game's versioning is not
+                    ours to model, and blank means "not stated" rather than a
+                    guess. Saved with everything else rather than on its own:
+                    it is part of the ranking, not a setting.
+                -->
+                <div class="dashboard-header-split admin-split-header">
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Game version</h3>
+                </div>
+
+                <input type="text" id="tier-game-version" class="editor-input tier-game-version"
+                       maxlength="60" placeholder="e.g. Update 1.4.2 — leave blank if unsure"
+                       aria-label="Game version this list describes">
+
                 <div class="dashboard-header-split admin-split-header">
                     <h3 class="section-title section-title-clean m-0 admin-section-title">Tiers</h3>
                     <button id="btn-add-tier" class="btn-sys btn-sys-regular admin-refresh-btn">+ TIER</button>
@@ -128,6 +145,14 @@
 
             <div class="site-body tier-editor-body">
                 <div class="max-w-7xl">
+                    <!--
+                        ABOVE the board, because that is where the reader gets
+                        it: js/certified-tier-lists.js renders .ctl-intro
+                        before the tier rows. Previewing it underneath told the
+                        author the wrong thing about their own page.
+                    -->
+                    <div id="tier-preview-intro"></div>
+
                     <div id="tier-editor-board" class="tier-editor-board"></div>
 
                     <!--
@@ -139,6 +164,15 @@
                         <h3 class="section-title section-title-clean m-0">Unranked</h3>
                     </div>
                     <div id="tier-editor-tray" class="tier-editor-tray ctl-chars"></div>
+
+                    <!--
+                        What the reader gets, under the board that produces it.
+                        The preview used to show the tiers alone, so the two
+                        documents an author spends most of their time writing
+                        were invisible until they saved and opened the live
+                        page (v0.16 fine-tuning 3).
+                    -->
+                    <div id="tier-preview-docs" class="tier-preview-docs"></div>
                 </div>
             </div>
         </main>

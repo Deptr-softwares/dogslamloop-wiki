@@ -183,9 +183,107 @@
         });
         if (!unranked) tray.appendChild(el('span', 'ctl-empty-note', 'everyone is placed'));
 
+        fitTierLabels();
+        // Per render, not once at script load: whether the font beats the
+        // board onto the page depends on the network, and a single handler
+        // registered at parse time fires before there is anything to measure.
+        refitWhenFontsLoad();
         renderTierControls();
         renderPendingMoves();
+        // A move IS a changelog entry, so the preview has to follow the board.
+        // Guarded on state.ready because renderBoard runs during boot BEFORE
+        // the block builder is initialised, and renderPreviewDocs flushes the
+        // open document - which would write an empty buffer over the
+        // introduction it has not loaded yet.
+        if (state.ready) renderPreviewDocs();
     }
+
+    // --- TIER NAMES THAT ARE NOT ONE LETTER (v0.16 fine-tuning 3) ---
+    //
+    // The name was never capped in code - the input allows 24 characters. What
+    // capped it was the box: .ctl-label is a fixed 92px at 1.5rem, so anything
+    // past about two characters wrapped and pushed the row out of shape, which
+    // is why "S" and "A" were the only names that ever looked right.
+    //
+    // ONE size for every tier, not one per tier. Shrinking only the long name
+    // leaves a board where the labels disagree about how important they are,
+    // and a tier list is a ranking - the labels are a scale and have to read as
+    // one. So the longest name decides, and everybody wears it.
+    const TIER_LABEL_MAX_REM = 1.5;
+    const TIER_LABEL_MIN_REM = 0.6;
+
+    // Measured with a Range over the text rather than by scrollWidth. The box
+    // is a centred flex container, so an oversized name spills out of BOTH
+    // sides - and scrollWidth counts only the overflow to the right, which
+    // makes a name that visibly does not fit report that it does.
+    function labelOverflows(label) {
+        const style = getComputedStyle(label);
+        const available = label.clientWidth
+            - parseFloat(style.paddingLeft || 0)
+            - parseFloat(style.paddingRight || 0);
+        if (!(available > 0)) return false;
+
+        const range = document.createRange();
+        range.selectNodeContents(label);
+        const width = range.getBoundingClientRect().width;
+        return width > available + 1;
+    }
+
+    // "Fits" means ON ONE LINE. The box already wraps - word-break: break-word
+    // - so a long name never overflows and an overflow test would never fire;
+    // it just silently reads as two cramped lines, which is the thing that
+    // looked broken in the first place.
+    function tierLabels() {
+        return Array.prototype.slice.call(
+            document.querySelectorAll('.tier-editor-row .ctl-label'));
+    }
+
+    function fitTierLabels() {
+        const labels = tierLabels();
+        if (!labels.length) return;
+
+        labels.forEach(label => {
+            label.style.fontSize = '';
+            label.style.whiteSpace = 'nowrap';
+        });
+
+        const tooWide = () => labels.some(labelOverflows);
+
+        let size = TIER_LABEL_MAX_REM;
+        // Stepped and re-measured rather than computed from character count:
+        // the font is CC-Wild-Words and its glyphs are nowhere near uniform
+        // width, so "WWW" and "III" need very different sizes.
+        while (tooWide() && size > TIER_LABEL_MIN_REM) {
+            size = Math.round((size - 0.1) * 10) / 10;
+            labels.forEach(label => { label.style.fontSize = size + 'rem'; });
+        }
+
+        // Past the floor, wrapping is the better failure: a 24-character tier
+        // name is going to look odd whatever happens, and unreadably small is
+        // worse than two lines.
+        if (tooWide()) {
+            labels.forEach(label => { label.style.whiteSpace = ''; });
+        }
+    }
+
+    // A web font arrives AFTER first paint, and CC-Wild-Words is far wider
+    // than the sans-serif these labels are first measured in - so the size
+    // computed on render is a fit for the wrong typeface. Measured once with
+    // the fallback, "Situational" settled on 1.2rem and then rendered 119px
+    // wide in a 92px box.
+    //
+    // Resize matters for the same reason: the mobile rule takes .ctl-label
+    // from 92px to 64px, and a fit computed at the wider one does not hold.
+    function refitWhenFontsLoad() {
+        if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === 'function') {
+            document.fonts.ready.then(() => fitTierLabels());
+        }
+    }
+    let refitTimer = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(refitTimer);
+        refitTimer = setTimeout(fitTierLabels, 120);
+    });
 
     function renderTierControls() {
         const host = document.getElementById('tier-controls');
@@ -211,18 +309,32 @@
                 state.original.forEach((value, id) => {
                     if (value === oldName) state.original.set(id, tier.name);
                 });
-                renderBoard();
-                name.focus();
+
+                // NOT renderBoard(). That rebuilds the controls too, which
+                // destroys the input being typed into and drops the caret - the
+                // `name.focus()` that used to follow was focusing a node that
+                // had already been thrown away. The result was that a tier
+                // could only be renamed one letter at a time, with a click in
+                // between each (owner, 2026-08-18).
+                //
+                // Only the board label actually depends on this value, so only
+                // the board label is touched.
+                const boardLabel = document.querySelector(
+                    `.tier-editor-row[data-tier-index="${index}"] .ctl-label`);
+                if (boardLabel) boardLabel.textContent = tier.name;
+                fitTierLabels();
+                renderPendingMoves();
             });
             row.appendChild(name);
 
-            const color = document.createElement('input');
-            color.type = 'color';
-            color.className = 'tier-control-color';
-            color.value = toHex(tier.color);
-            color.setAttribute('aria-label', 'Tier colour');
-            color.addEventListener('input', () => { tier.color = color.value; renderBoard(); });
-            row.appendChild(color);
+            // The v0.14 picker instead of <input type="color">, which opens the
+            // OPERATING SYSTEM's colour dialog on top of the wiki - a different
+            // palette, different conventions, and a modal the page cannot see.
+            // Same reasoning that replaced it in the block toolbar, and the
+            // same engine: initColorPicker resolves its parts with
+            // container.querySelector, so a second copy of the markup in a
+            // popup of our own is all it needs.
+            row.appendChild(tierColorControl(tier, index));
 
             const up = el('button', 'btn-sys btn-sys-regular tier-control-btn', '▲');
             up.type = 'button';
@@ -251,6 +363,69 @@
             host.appendChild(row);
         });
     }
+
+    // A swatch that opens the site's own colour picker. One popup per tier row,
+    // built with the picker's markup and handed to initColorPicker - the IDs
+    // inside are duplicated across rows, which is fine because every lookup
+    // that engine makes is scoped to the container it was given.
+    function tierColorControl(tier, index) {
+        const wrap = el('div', 'tier-color-wrap');
+
+        const swatch = document.createElement('button');
+        swatch.type = 'button';
+        swatch.className = 'tier-control-color';
+        swatch.style.backgroundColor = toHex(tier.color);
+        swatch.setAttribute('aria-label', `Colour for tier ${index + 1}`);
+        wrap.appendChild(swatch);
+
+        const popup = el('div', 'tier-color-popup hidden');
+        popup.innerHTML = `
+            <div class="cp-label">Tier colour</div>
+            <div class="cp-surface" id="cp-surface">
+                <div class="cp-thumb" id="cp-surface-thumb"></div>
+            </div>
+            <div class="cp-hue" id="cp-hue" role="slider" tabindex="0"
+                 aria-label="Hue" aria-valuemin="0" aria-valuemax="359" aria-valuenow="0">
+                <div class="cp-thumb cp-hue-thumb" id="cp-hue-thumb"></div>
+            </div>
+            <div class="format-color-custom-row">
+                <span class="cp-preview" id="cp-preview"></span>
+                <input type="text" id="cp-hex" class="cp-hex" value="${toHex(tier.color)}"
+                       maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex colour">
+                <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
+            </div>
+        `;
+        wrap.appendChild(popup);
+
+        swatch.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const opening = popup.classList.contains('hidden');
+            document.querySelectorAll('.tier-color-popup').forEach(p => p.classList.add('hidden'));
+            popup.classList.toggle('hidden', !opening);
+        });
+
+        if (typeof window.initColorPicker === 'function') {
+            window.initColorPicker(popup, (hex) => {
+                tier.color = hex;
+                swatch.style.backgroundColor = hex;
+                popup.classList.add('hidden');
+                // Only the board label's colour depends on this, and rebuilding
+                // the controls here would throw away the popup mid-interaction
+                // - the same trap the rename handler fell into.
+                const boardLabel = document.querySelector(
+                    `.tier-editor-row[data-tier-index="${index}"] .ctl-label`);
+                if (boardLabel) boardLabel.style.backgroundColor = hex;
+            });
+        }
+
+        return wrap;
+    }
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest || !e.target.closest('.tier-color-wrap')) {
+            document.querySelectorAll('.tier-color-popup').forEach(p => p.classList.add('hidden'));
+        }
+    });
 
     function swapTier(a, b) {
         if (b < 0 || b >= state.tiers.length) return;
@@ -324,6 +499,9 @@
             input.addEventListener('input', () => {
                 state.notes.set(move.id, input.value);
                 updateSaveState();
+                // The note is a changelog entry, and the preview shows the
+                // changelog - so it follows the typing like the documents do.
+                if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
             });
             row.appendChild(input);
 
@@ -446,6 +624,121 @@
         reasoning: 'The long-form argument for your placements, shown under the changelog. Same editor the rest of the wiki uses.',
     };
 
+    // --- THE PREVIEW PANEL (v0.16 fine-tuning 3) ---
+    //
+    // js/editor-blocks.js calls updateLivePreview() BY BARE NAME from about ten
+    // places after every block change. It is a top-level declaration in
+    // js/editor-sync.js, which this page deliberately does not load - so every
+    // edit here threw a ReferenceError, silently, into the console. Confirmed
+    // by driving the editor: typeof was 'undefined' and one typing session
+    // produced two errors.
+    //
+    // post-editor.html reimplements it locally for exactly this reason. Here it
+    // gets to be the thing it is named after, because this page finally has a
+    // preview to update.
+    window.updateLivePreview = function () {
+        clearTimeout(previewTimer);
+        previewTimer = setTimeout(renderPreviewDocs, 200);
+    };
+
+    let previewTimer = null;
+
+    function renderPreviewDocs() {
+        const host = document.getElementById('tier-preview-docs');
+        const introHost = document.getElementById('tier-preview-intro');
+        if (!host || typeof window.generateHTMLForBlocks !== 'function') return;
+
+        // Read the open document out of the builder first, or the preview shows
+        // the last saved version of whatever is being typed right now.
+        flushOpenDoc();
+        host.innerHTML = '';
+        if (introHost) introHost.innerHTML = '';
+
+        // The LIVE page's own classes and structure, copied from
+        // js/certified-tier-lists.js - .ctl-intro / .ctl-subheading /
+        // .ctl-change and the rest. A preview that renders its own layout is
+        // not a preview; it is a second design nobody asked for, and the first
+        // version of this had a Finger-Paint card heading where the real page
+        // has a small mono label on an accent border (owner, 2026-08-18).
+        //
+        // Same call the board already made: .ctl-row, .ctl-label and
+        // .ctl-chars are the public page's classes too.
+        // Into its own host ABOVE the board. The reader meets the author before
+        // the ranking, so previewing the introduction underneath the tiers
+        // showed the right content in the wrong place (owner, 2026-08-18).
+        if (introHost && state.intro && state.intro.length) {
+            const box = el('section', 'ctl-intro');
+            box.appendChild(el('h3', 'ctl-subheading', 'Tier List Introduction'));
+            const body = el('div', 'ctl-intro-body');
+            body.innerHTML = window.generateHTMLForBlocks(state.intro);
+            box.appendChild(body);
+            introHost.appendChild(box);
+        }
+
+        // The saved changelog, plus whatever is waiting to join it. Both,
+        // because an author writing notes needs to see them in the shape the
+        // reader will, not only as a to-do list in the sidebar.
+        const saved = Array.isArray(state.changes) ? state.changes : [];
+        const pending = pendingMoves();
+        if (state.reasoning && state.reasoning.length) {
+            const box = el('div', 'ctl-reasoning');
+            box.appendChild(el('h3', 'ctl-subheading', 'Reasoning'));
+            const body = el('div', 'ctl-reasoning-body');
+            body.innerHTML = window.generateHTMLForBlocks(state.reasoning);
+            box.appendChild(body);
+            host.appendChild(box);
+        }
+
+        // Reasoning first, then the changelog - the order the live page uses,
+        // because the reasoning is the argument and the changelog is the record
+        // of acting on it.
+        if (saved.length || pending.length) {
+            const box = el('div', 'ctl-changelog');
+            box.appendChild(el('h3', 'ctl-subheading', 'Changelog'));
+
+            // Unsaved moves render as real entries, marked - they are what the
+            // reader will get the moment SAVE is pressed, and seeing them in
+            // the reader's shape is the point of previewing at all.
+            const entry = (charId, from, to, note, date, pendingFlag) => {
+                const row = el('div', 'ctl-change' + (pendingFlag ? ' ctl-change-pending' : ''));
+                const head = el('div', 'ctl-change-head');
+                head.appendChild(el('span', 'ctl-change-char', nameOf(charId)));
+                const moved = from && to ? `${from} → ${to}`
+                    : (to ? `added to ${to}` : `removed from ${from || '—'}`);
+                head.appendChild(el('span', 'ctl-change-move', moved));
+                head.appendChild(el('span', 'ctl-change-date', date));
+                row.appendChild(head);
+                row.appendChild(el('p', 'ctl-change-note', note));
+                box.appendChild(row);
+            };
+
+            pending.forEach(m => entry(
+                m.id, m.from, m.to,
+                (state.notes.get(m.id) || '').trim() || 'Needs a note before this can be saved.',
+                'unsaved', true));
+
+            saved.forEach(c => entry(
+                c.character_id, c.from_tier, c.to_tier, c.note || '',
+                new Date(c.created_at).toLocaleDateString(), false));
+
+            host.appendChild(box);
+        }
+
+        if (!host.children.length && introHost && !introHost.children.length) {
+            host.appendChild(el('p', 'ctl-empty-note',
+                'Your introduction, reasoning and changelog appear here as you write them.'));
+        }
+
+        if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
+    }
+
+    // The roster name rather than the page id, so the changelog reads the way
+    // the board does.
+    function nameOf(pageId) {
+        const meta = state.roster.get(pageId);
+        return meta ? meta.name : String(pageId || '').replace(/_/g, ' ');
+    }
+
     function flushOpenDoc() {
         if (typeof window.getActiveBlocks !== 'function') return;
         const blocks = JSON.parse(JSON.stringify(window.getActiveBlocks()));
@@ -472,6 +765,7 @@
         if (typeof initStrategyBlockBuilder === 'function') {
             initStrategyBlockBuilder('strategy-block-target', state[doc]);
         }
+        renderPreviewDocs();
     }
     window.tierEditorSwitchDoc = switchDoc;
 
@@ -493,11 +787,17 @@
         // typed into the introduction.
         flushOpenDoc();
 
+        // Read at save time rather than tracked on input: it is one field with
+        // no preview to keep in step, and a change listener would be a second
+        // place for it to go stale.
+        const versionField = document.getElementById('tier-game-version');
+
         const { data, error } = await client().rpc('save_tier_list', {
             p_list_id: state.list.id,
             p_tiers: state.tiers,
             p_reasoning: state.reasoning,
             p_intro: state.intro,
+            p_game_version: versionField ? versionField.value.trim() : '',
             p_changes: moves.map(m => ({
                 character_id: m.id,
                 from_tier: m.from,
@@ -518,6 +818,7 @@
         snapshotOriginal();
         state.notes.clear();
         renderBoard();
+        renderPreviewDocs();
         setStatus(data || 'Saved.');
     }
 
@@ -575,9 +876,30 @@
         state.reasoning = Array.isArray(data.reasoning) ? JSON.parse(JSON.stringify(data.reasoning)) : [];
         state.activeDoc = 'intro';
 
+        // Absent rather than empty on a page loaded before the migration
+        // reaches production, which is the normal state between writing a
+        // migration and the release - `|| ''` covers both without a branch.
+        const versionField = document.getElementById('tier-game-version');
+        if (versionField) {
+            versionField.value = data.game_version || '';
+            versionField.disabled = !state.canEdit;
+        }
+
         if (typeof initStrategyBlockBuilder === 'function') {
             initStrategyBlockBuilder('strategy-block-target', state.intro);
         }
+
+        // The changelog the reader already sees. Fetched once rather than kept
+        // live: nothing in this editor writes to it except a save, which
+        // reloads anyway.
+        const { data: changeRows } = await client()
+            .from('tier_list_changes').select('*').eq('list_id', data.id)
+            .order('created_at', { ascending: false });
+        state.changes = Array.isArray(changeRows) ? changeRows : [];
+
+        // Only now is flushing the open document safe - see renderBoard.
+        state.ready = true;
+        renderPreviewDocs();
 
         document.querySelectorAll('.tier-doc-btn').forEach(btn => {
             btn.addEventListener('click', () => switchDoc(btn.dataset.doc));
