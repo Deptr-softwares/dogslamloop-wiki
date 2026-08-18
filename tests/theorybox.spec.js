@@ -71,7 +71,11 @@ test('the card renders its route, numbers and nested write-up', async ({ page })
       chips: [...box.querySelectorAll('.theorybox-route .combo-node')].map(n => n.textContent),
       seps: [...box.querySelectorAll('.theorybox-route .combo-sep')].map(s => s.textContent.trim()),
       damage: box.querySelector('.combo-damage')?.textContent,
-      video: box.querySelector('.theorybox-video')?.getAttribute('href'),
+      // A button that opens the modal player, not an anchor to the file
+      // (v0.15 item 11). The link used to navigate the reader off the wiki to
+      // a bare video on a Supabase domain, with no way back but the back
+      // button.
+      video: box.querySelector('.wiki-video-btn')?.getAttribute('data-wiki-video'),
       // The write-up is real blocks, not a string.
       bodyParagraph: box.querySelector('.theorybox-body p')?.textContent,
       anchor: box.getAttribute('id'),
@@ -143,7 +147,7 @@ test('nothing on the card is parsed as markup', async ({ page }) => {
     const box = host.querySelector('.theorybox');
     return {
       injected: host.querySelectorAll('img').length,
-      videoRendered: !!host.querySelector('.theorybox-video'),
+      videoRendered: !!host.querySelector('.wiki-video-btn'),
       id: box.getAttribute('id'),
       strayAttrs: box.getAttributeNames().filter(a => a !== 'class' && a !== 'id'),
     };
