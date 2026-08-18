@@ -238,6 +238,12 @@ window.BASE_MODE_ID = 'base';
 // down for real is deleting the object, which stays the owner's job.
 const BLOCKED_MEDIA_NOTICE = 'Media removed by a moderator';
 
+// The same fact, in one word, for the places where the full sentence does not
+// fit: a video BUTTON in a table cell or on a combo card is a small control,
+// and a full-width notice in its place is bulkier than the thing it replaced
+// (owner, 2026-08-18).
+const BLOCKED_MEDIA_LABEL = 'Blocked';
+
 let blockedMediaPromise = null;
 
 // Returns a Set of blocked object paths, and an empty one on any failure.
@@ -284,30 +290,61 @@ window.isBlockedMediaSrc = function(src, blocked) {
 
 function replaceWithBlockedNotice(element) {
     if (!element || !element.parentNode) return;
-    const notice = document.createElement('div');
-    notice.className = 'media-blocked-notice';
+
+    // A video button gets the compact form. The REMOVAL is identical either
+    // way - the URL and the click target both go - so this is only a question
+    // of what fits where the thing used to be.
+    const inline = !!(element.matches && element.matches('[data-wiki-video]'));
+
+    const notice = document.createElement(inline ? 'span' : 'div');
+    notice.className = inline ? 'media-blocked-inline' : 'media-blocked-notice';
     // textContent, not innerHTML - and the string is a constant anyway.
-    notice.textContent = BLOCKED_MEDIA_NOTICE;
+    notice.textContent = inline ? BLOCKED_MEDIA_LABEL : BLOCKED_MEDIA_NOTICE;
     element.parentNode.replaceChild(notice, element);
+}
+
+// Every element that can name a media file, and every attribute it can name it
+// in. data-lazy-src because videos carry their real URL there until something
+// scrolls them into view; data-wiki-video because a video in a table cell or on
+// a combo card is a BUTTON that opens a player (v0.15 item 11), and a button is
+// not an <img> or a <video> so nothing here used to see it.
+const BLOCKED_MEDIA_SELECTOR =
+    'img[src], video[src], video[data-lazy-src], source[src], [data-wiki-video]';
+const BLOCKED_MEDIA_ATTRS = ['src', 'data-lazy-src', 'data-wiki-video'];
+
+function blockedMediaSrcOf(element) {
+    for (let i = 0; i < BLOCKED_MEDIA_ATTRS.length; i++) {
+        const value = element.getAttribute(BLOCKED_MEDIA_ATTRS[i]);
+        if (value) return value;
+    }
+    return null;
+}
+
+// What actually comes off the page, which is not always the element that
+// matched. A <source> lives inside the media element it belongs to, and a
+// player's <video> lives inside a shell carrying its own play, sound and
+// duration controls - replacing either one alone leaves working chrome wired
+// to nothing, which reads as a broken player rather than a moderated one.
+function blockedMediaTarget(element) {
+    let target = element;
+    if (target.tagName === 'SOURCE' && target.parentNode) target = target.parentNode;
+    const player = target.closest ? target.closest('[data-wiki-player]') : null;
+    return player || target;
 }
 
 window.sweepBlockedMedia = function(root, blocked) {
     if (!root || !blocked || !blocked.size) return 0;
 
-    // data-lazy-src as well as src: videos on this site carry their real URL
-    // there until something scrolls them into view, so checking src alone
-    // would miss every clip until the moment it started playing.
-    const candidates = root.querySelectorAll
-        ? root.querySelectorAll('img[src], video[src], video[data-lazy-src], source[src]')
-        : [];
+    const candidates = root.querySelectorAll ? root.querySelectorAll(BLOCKED_MEDIA_SELECTOR) : [];
 
     let removed = 0;
     candidates.forEach(element => {
-        const src = element.getAttribute('src') || element.getAttribute('data-lazy-src');
-        if (!window.isBlockedMediaSrc(src, blocked)) return;
-        // A <source> lives inside the media element it belongs to; replacing
-        // the source alone would leave a broken player behind.
-        replaceWithBlockedNotice(element.tagName === 'SOURCE' ? element.parentNode : element);
+        // A node replaced earlier in this same sweep - a player shell taking
+        // its own video with it, say - is no longer on the page, and replacing
+        // a detached node throws.
+        if (!element.parentNode) return;
+        if (!window.isBlockedMediaSrc(blockedMediaSrcOf(element), blocked)) return;
+        replaceWithBlockedNotice(blockedMediaTarget(element));
         removed += 1;
     });
     return removed;
@@ -326,9 +363,10 @@ window.initBlockedMediaGuard = async function() {
                 window.sweepBlockedMedia(node, blocked);
                 // The node itself, when media is appended directly rather
                 // than as part of a rendered subtree.
-                if (node.matches && node.matches('img[src], video[src], video[data-lazy-src]')) {
-                    const src = node.getAttribute('src') || node.getAttribute('data-lazy-src');
-                    if (window.isBlockedMediaSrc(src, blocked)) replaceWithBlockedNotice(node);
+                if (node.matches && node.matches(BLOCKED_MEDIA_SELECTOR)) {
+                    if (window.isBlockedMediaSrc(blockedMediaSrcOf(node), blocked)) {
+                        replaceWithBlockedNotice(blockedMediaTarget(node));
+                    }
                 }
             });
         }
