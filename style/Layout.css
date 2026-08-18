@@ -637,7 +637,12 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .footer-grid-section { margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 2rem; }
 .credits-list { list-style: none; padding: 0; margin: 0; }
 .credits-list li { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
-.aggregated-contributors-footer { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2.5rem; margin-bottom: 0.5rem; padding: 1rem 1.25rem; background: var(--bg-main); border: 2px solid var(--border-color); clear: both; box-shadow: 6px 6px 0px var(--manga-shadow); position: relative; }
+/* box-sizing is load-bearing: .tab-contributors-footer below sets width: 100%,
+   and this rule adds 1.25rem of padding each side plus a 2px border. There is
+   no global border-box on this site - only individual classes opt in - so the
+   footer rendered ~44px wider than its column and overhung the table of
+   contents on the right (owner, 2026-08-18). */
+.aggregated-contributors-footer { box-sizing: border-box; display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2.5rem; margin-bottom: 0.5rem; padding: 1rem 1.25rem; background: var(--bg-main); border: 2px solid var(--border-color); clear: both; box-shadow: 6px 6px 0px var(--manga-shadow); position: relative; }
 .aggregated-contributors-footer::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background-color: var(--accent-blue); }
 .contributors-header { display: flex; align-items: center; gap: 0.5rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.85rem; color: var(--text-white); text-transform: uppercase; border-bottom: 2px dashed var(--border-color); padding-bottom: 0.5rem; }
 .contributors-list { display: flex; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.25rem; }
