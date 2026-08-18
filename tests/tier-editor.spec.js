@@ -407,3 +407,121 @@ test('a read-only list cannot have its game version edited', async ({ page }) =>
     await expect(page.locator("#tier-game-version")).toBeDisabled();
     await expect(page.locator("#tier-game-version")).toHaveValue("Update 1.4.2");
 });
+
+// --- TIER NAMES LONGER THAN A LETTER (v0.16 fine-tuning 3) ---
+
+test('a tier can be renamed by typing, not one letter per click', async ({ page }) => {
+    await openEditor(page);
+
+    // Typed key by key through the real field. The bug was never a length cap:
+    // the input handler called renderBoard(), which rebuilt the controls and
+    // destroyed the very input being typed into, so focus was lost after each
+    // keystroke and the name had to be entered one letter at a time with a
+    // click in between. fill() would have masked it completely - it sets the
+    // value in one shot and never needs focus to survive.
+    const field = page.locator('.tier-control-name').first();
+    await field.click();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.type('Situational');
+
+    await expect(field).toHaveValue('Situational');
+    await expect(field, 'the field kept focus the whole way through').toBeFocused();
+
+    const state = await page.evaluate(() => ({
+        board: [...document.querySelectorAll('.tier-editor-row .ctl-label')].map(l => l.textContent),
+        inputs: [...document.querySelectorAll('.tier-control-name')].map(i => i.value),
+    }));
+    expect(state.inputs[0]).toBe('Situational');
+    expect(state.board[0], 'and the board followed along').toBe('Situational');
+});
+
+test('renaming a tier still does not register as a move', async ({ page }) => {
+    // The old handler rebuilt everything partly to keep this true. It has to
+    // stay true now that it does not.
+    await openEditor(page);
+
+    const field = page.locator('.tier-control-name').first();
+    await field.click();
+    await page.keyboard.press('Control+a');
+    await page.keyboard.type('Elite');
+
+    await expect(page.locator('#tier-move-count')).toHaveText('0');
+    await expect(saveBtn(page)).toBeEnabled();
+});
+
+test('a long tier name shrinks every label, not just its own', async ({ page }) => {
+    await openEditor(page, {
+        list: {
+            ...LIST,
+            tiers: [
+                { name: 'S', color: '#ff0000', characters: ['ten_shadows'] },
+                { name: 'Situational', color: '#ffff00', characters: ['vessel'] },
+                { name: 'B', color: '#00ff00', characters: [] },
+            ],
+        },
+    });
+
+    // The web font arrives after first paint and is far wider than the
+    // fallback, so the fit is recomputed when it lands. Measured before that
+    // settles, this reads a size chosen for the wrong typeface.
+    await page.evaluate(() => document.fonts.ready);
+    await expect
+        .poll(() => page.evaluate(() => {
+            const l = document.querySelectorAll('.tier-editor-row .ctl-label')[1];
+            const style = getComputedStyle(l);
+            const available = l.clientWidth
+                - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+            const range = document.createRange();
+            range.selectNodeContents(l);
+            return range.getBoundingClientRect().width <= available + 1;
+        }), { timeout: 10000 })
+        .toBe(true);
+
+    const out = await page.evaluate(() => {
+        const labels = [...document.querySelectorAll('.tier-editor-row .ctl-label')];
+        // Measured with a Range, NOT scrollWidth. The box centres its text, so
+        // an oversized name spills out of both sides and scrollWidth reports
+        // only the right-hand half - the first version of this assertion used
+        // it and called a fitting label unfitted.
+        const fits = (el) => {
+            const style = getComputedStyle(el);
+            const available = el.clientWidth
+                - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            return range.getBoundingClientRect().width <= available + 1;
+        };
+        return {
+            sizes: labels.map(l => getComputedStyle(l).fontSize),
+            longestFitsOneLine: labels.every(fits),
+            stillNoWrap: labels.every(l => getComputedStyle(l).whiteSpace === 'nowrap'),
+            texts: labels.map(l => l.textContent),
+        };
+    });
+
+    expect(out.texts).toEqual(['S', 'Situational', 'B']);
+    expect(out.longestFitsOneLine, 'the long name fits its box').toBe(true);
+    expect(out.stillNoWrap, 'and did so without falling back to wrapping').toBe(true);
+
+    // The point of the item: these labels are a scale, so they all wear the
+    // size the longest one forced. Shrinking only the long one leaves a board
+    // whose marks disagree about their own importance.
+    expect(new Set(out.sizes).size, 'one size across every tier').toBe(1);
+
+    // And it really did shrink - otherwise "they all match" is satisfied by
+    // doing nothing at all.
+    expect(parseFloat(out.sizes[0])).toBeLessThan(24);
+});
+
+test('short tier names keep the full size', async ({ page }) => {
+    // The other direction. A fitter that always shrank would pass the test
+    // above without ever measuring anything.
+    await openEditor(page);
+
+    const sizes = await page.evaluate(() =>
+        [...document.querySelectorAll('.tier-editor-row .ctl-label')]
+            .map(l => parseFloat(getComputedStyle(l).fontSize)));
+
+    expect(sizes.length).toBe(2);
+    sizes.forEach(size => expect(size).toBe(24)); // 1.5rem at the 16px root
+});

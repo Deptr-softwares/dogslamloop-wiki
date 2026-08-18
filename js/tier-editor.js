@@ -183,9 +183,101 @@
         });
         if (!unranked) tray.appendChild(el('span', 'ctl-empty-note', 'everyone is placed'));
 
+        fitTierLabels();
+        // Per render, not once at script load: whether the font beats the
+        // board onto the page depends on the network, and a single handler
+        // registered at parse time fires before there is anything to measure.
+        refitWhenFontsLoad();
         renderTierControls();
         renderPendingMoves();
     }
+
+    // --- TIER NAMES THAT ARE NOT ONE LETTER (v0.16 fine-tuning 3) ---
+    //
+    // The name was never capped in code - the input allows 24 characters. What
+    // capped it was the box: .ctl-label is a fixed 92px at 1.5rem, so anything
+    // past about two characters wrapped and pushed the row out of shape, which
+    // is why "S" and "A" were the only names that ever looked right.
+    //
+    // ONE size for every tier, not one per tier. Shrinking only the long name
+    // leaves a board where the labels disagree about how important they are,
+    // and a tier list is a ranking - the labels are a scale and have to read as
+    // one. So the longest name decides, and everybody wears it.
+    const TIER_LABEL_MAX_REM = 1.5;
+    const TIER_LABEL_MIN_REM = 0.6;
+
+    // Measured with a Range over the text rather than by scrollWidth. The box
+    // is a centred flex container, so an oversized name spills out of BOTH
+    // sides - and scrollWidth counts only the overflow to the right, which
+    // makes a name that visibly does not fit report that it does.
+    function labelOverflows(label) {
+        const style = getComputedStyle(label);
+        const available = label.clientWidth
+            - parseFloat(style.paddingLeft || 0)
+            - parseFloat(style.paddingRight || 0);
+        if (!(available > 0)) return false;
+
+        const range = document.createRange();
+        range.selectNodeContents(label);
+        const width = range.getBoundingClientRect().width;
+        return width > available + 1;
+    }
+
+    // "Fits" means ON ONE LINE. The box already wraps - word-break: break-word
+    // - so a long name never overflows and an overflow test would never fire;
+    // it just silently reads as two cramped lines, which is the thing that
+    // looked broken in the first place.
+    function tierLabels() {
+        return Array.prototype.slice.call(
+            document.querySelectorAll('.tier-editor-row .ctl-label'));
+    }
+
+    function fitTierLabels() {
+        const labels = tierLabels();
+        if (!labels.length) return;
+
+        labels.forEach(label => {
+            label.style.fontSize = '';
+            label.style.whiteSpace = 'nowrap';
+        });
+
+        const tooWide = () => labels.some(labelOverflows);
+
+        let size = TIER_LABEL_MAX_REM;
+        // Stepped and re-measured rather than computed from character count:
+        // the font is CC-Wild-Words and its glyphs are nowhere near uniform
+        // width, so "WWW" and "III" need very different sizes.
+        while (tooWide() && size > TIER_LABEL_MIN_REM) {
+            size = Math.round((size - 0.1) * 10) / 10;
+            labels.forEach(label => { label.style.fontSize = size + 'rem'; });
+        }
+
+        // Past the floor, wrapping is the better failure: a 24-character tier
+        // name is going to look odd whatever happens, and unreadably small is
+        // worse than two lines.
+        if (tooWide()) {
+            labels.forEach(label => { label.style.whiteSpace = ''; });
+        }
+    }
+
+    // A web font arrives AFTER first paint, and CC-Wild-Words is far wider
+    // than the sans-serif these labels are first measured in - so the size
+    // computed on render is a fit for the wrong typeface. Measured once with
+    // the fallback, "Situational" settled on 1.2rem and then rendered 119px
+    // wide in a 92px box.
+    //
+    // Resize matters for the same reason: the mobile rule takes .ctl-label
+    // from 92px to 64px, and a fit computed at the wider one does not hold.
+    function refitWhenFontsLoad() {
+        if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === 'function') {
+            document.fonts.ready.then(() => fitTierLabels());
+        }
+    }
+    let refitTimer = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(refitTimer);
+        refitTimer = setTimeout(fitTierLabels, 120);
+    });
 
     function renderTierControls() {
         const host = document.getElementById('tier-controls');
@@ -211,8 +303,21 @@
                 state.original.forEach((value, id) => {
                     if (value === oldName) state.original.set(id, tier.name);
                 });
-                renderBoard();
-                name.focus();
+
+                // NOT renderBoard(). That rebuilds the controls too, which
+                // destroys the input being typed into and drops the caret - the
+                // `name.focus()` that used to follow was focusing a node that
+                // had already been thrown away. The result was that a tier
+                // could only be renamed one letter at a time, with a click in
+                // between each (owner, 2026-08-18).
+                //
+                // Only the board label actually depends on this value, so only
+                // the board label is touched.
+                const boardLabel = document.querySelector(
+                    `.tier-editor-row[data-tier-index="${index}"] .ctl-label`);
+                if (boardLabel) boardLabel.textContent = tier.name;
+                fitTierLabels();
+                renderPendingMoves();
             });
             row.appendChild(name);
 
