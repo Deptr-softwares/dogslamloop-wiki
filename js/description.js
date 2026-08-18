@@ -128,9 +128,13 @@ window.wikiVideoPlayerHTML = function (url, extraClass) {
         <div class="wiki-player${extraClass ? ' ' + escBlockText(extraClass) : ''}" data-wiki-player>
             <video data-lazy-src="${safe}" class="wiki-video-native" preload="none" playsinline></video>
             <div class="wiki-player-controls">
-                <button type="button" class="wiki-player-toggle" data-player-toggle
+                <button type="button" class="wiki-player-btn wiki-player-toggle" data-player-toggle
                         aria-label="Play">
                     <span class="wiki-player-glyph" aria-hidden="true"></span>
+                </button>
+                <button type="button" class="wiki-player-btn wiki-player-mute" data-player-mute
+                        aria-label="Mute">
+                    <span class="wiki-player-sound" aria-hidden="true"></span>
                 </button>
                 <div class="wiki-player-track" data-player-track role="slider" tabindex="0"
                      aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -1712,6 +1716,17 @@ function paintPlayerState(player) {
     toggle.setAttribute('aria-label', playing ? 'Pause' : 'Play');
 }
 
+function paintPlayerSound(player) {
+    const video = playerVideo(player);
+    const mute = player.querySelector('[data-player-mute]');
+    if (!video || !mute) return;
+    // volume 0 counts as muted: the two are different flags on the element and
+    // a button that says "unmute" on a silent video is just wrong.
+    const silent = video.muted || video.volume === 0;
+    player.classList.toggle('is-muted', silent);
+    mute.setAttribute('aria-label', silent ? 'Unmute' : 'Mute');
+}
+
 function paintPlayerProgress(player) {
     const video = playerVideo(player);
     const fill = player.querySelector('[data-player-fill]');
@@ -1731,14 +1746,42 @@ function seekPlayer(player, clientX) {
     const video = playerVideo(player);
     const track = player.querySelector('[data-player-track]');
     if (!video || !track) return;
-    ensurePlayerSource(video);
-    const total = video.duration;
-    if (!isFinite(total) || total <= 0) return;
+
     const box = track.getBoundingClientRect();
     if (box.width <= 0) return;
     const ratio = Math.max(0, Math.min(1, (clientX - box.left) / box.width));
+
+    // The source is lazy, so the FIRST thing a reader does to a player can
+    // easily be scrub a video the browser has not opened yet - duration is
+    // NaN, and simply returning made the bar look dead. Remember where they
+    // aimed and apply it when the metadata lands.
+    ensurePlayerSource(video);
+    const total = video.duration;
+    if (!isFinite(total) || total <= 0) {
+        player.dataset.pendingSeek = String(ratio);
+        // preload="none" means the browser fetches NOTHING until playback is
+        // asked for, so on its own the metadata would never arrive and the
+        // pending seek would never fire. Asking for metadata is the smallest
+        // request that makes the bar work before the first play.
+        if (video.preload !== 'metadata' && video.preload !== 'auto') {
+            video.preload = 'metadata';
+            video.load();
+        }
+        return;
+    }
+
     video.currentTime = ratio * total;
     paintPlayerProgress(player);
+}
+
+function applyPendingSeek(player) {
+    const video = playerVideo(player);
+    if (!video || !player.dataset.pendingSeek) return;
+    const ratio = parseFloat(player.dataset.pendingSeek);
+    const total = video.duration;
+    if (!isFinite(total) || total <= 0 || !isFinite(ratio)) return;
+    delete player.dataset.pendingSeek;
+    video.currentTime = ratio * total;
 }
 
 document.addEventListener('click', (e) => {
@@ -1759,9 +1802,27 @@ document.addEventListener('click', (e) => {
         return;
     }
 
+    const mute = e.target.closest ? e.target.closest('[data-player-mute]') : null;
+    if (mute) {
+        const player = playerOf(mute);
+        const video = playerVideo(player);
+        if (!video) return;
+        // Unmuting a video whose volume was dragged to zero elsewhere has to
+        // restore a level too, or the button appears to do nothing.
+        video.muted = !(video.muted || video.volume === 0);
+        if (!video.muted && video.volume === 0) video.volume = 1;
+        paintPlayerSound(player);
+        return;
+    }
+
     const track = e.target.closest ? e.target.closest('[data-player-track]') : null;
     if (track) seekPlayer(playerOf(track), e.clientX);
 });
+
+document.addEventListener('volumechange', (e) => {
+    const player = playerOf(e.target);
+    if (player) paintPlayerSound(player);
+}, true);
 
 // Capture phase: play, pause and timeupdate do not bubble, so a delegated
 // listener never sees them any other way.
@@ -1772,10 +1833,12 @@ document.addEventListener('click', (e) => {
     }, true);
 });
 
-['timeupdate', 'loadedmetadata', 'seeked'].forEach((type) => {
+['timeupdate', 'loadedmetadata', 'durationchange', 'seeked'].forEach((type) => {
     document.addEventListener(type, (e) => {
         const player = playerOf(e.target);
-        if (player) paintPlayerProgress(player);
+        if (!player) return;
+        applyPendingSeek(player);
+        paintPlayerProgress(player);
     }, true);
 });
 

@@ -15,13 +15,68 @@
 // rely on the silent autoplay loop), and that the storage-link check is a real
 // allowlist rather than a substring match.
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
 
 const PAGE = '/characters/Boomcat/index.html';
+const CLIP = '/medias/videos/example-video5.webm';
+const CLIP_FILE = path.join(__dirname, '..', 'medias', 'videos', 'example-video5.webm');
+
+// Served from disk through Playwright rather than fetched from the dev server.
+// playwright.config.js starts ONE python -m http.server that every worker
+// shares, and it is single-threaded: four workers pulling a video through it
+// at once made the playback tests fail under load and pass alone. Fulfilling
+// per-context removes the shared bottleneck entirely.
+// It answers RANGE requests, which is not optional. A plain 200 with the whole
+// body leaves the element with `seekable` of [[0, 0]] - not seekable at all -
+// so a seek test against it fails while the real site, where both the dev
+// server and Supabase storage serve ranges, works perfectly. The harness was
+// the thing that was broken.
+let clipBytes = null;
+async function serveClip(page) {
+  if (!clipBytes) clipBytes = fs.readFileSync(CLIP_FILE);
+  await page.route('**/example-video5.webm', (route) => {
+    const total = clipBytes.length;
+    const range = route.request().headers()['range'];
+
+    if (!range) {
+      return route.fulfill({
+        status: 200,
+        headers: {
+          'Content-Type': 'video/webm',
+          'Content-Length': String(total),
+          'Accept-Ranges': 'bytes',
+        },
+        body: clipBytes,
+      });
+    }
+
+    const match = /bytes=(\d*)-(\d*)/.exec(range) || [];
+    const start = match[1] ? parseInt(match[1], 10) : 0;
+    const end = match[2] ? parseInt(match[2], 10) : total - 1;
+    const chunk = clipBytes.slice(start, end + 1);
+
+    return route.fulfill({
+      status: 206,
+      headers: {
+        'Content-Type': 'video/webm',
+        'Content-Length': String(chunk.length),
+        'Content-Range': `bytes ${start}-${end}/${total}`,
+        'Accept-Ranges': 'bytes',
+      },
+      body: chunk,
+    });
+  });
+}
 const BUCKET = 'https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media';
 
+// A full character page, because the accent test needs js/site_meta.js to have
+// themed :root for a real character. It is a heavy page and every worker
+// shares one single-threaded dev server, so the wait is generous on purpose -
+// the alternative is a spec that passes alone and scatters under load.
 async function boot(page) {
   await page.goto(PAGE, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => typeof window.generateHTMLForBlocks === 'function', { timeout: 15000 });
+  await page.waitForFunction(() => typeof window.generateHTMLForBlocks === 'function', { timeout: 45000 });
 }
 
 // Renders blocks through the real renderer into a host node, the way every
@@ -86,19 +141,19 @@ test('the play button drives the video and the duration bar fills', async ({ pag
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
 
+  await serveClip(page);
   await boot(page);
 
-  // A real file rather than a mock: the player reads duration and currentTime
-  // off the element, and a src that never loads reports duration NaN, which is
-  // exactly the case the fill guard exists for.
-  await page.evaluate(() => {
-    const host = document.createElement('div');
-    host.id = 'render-host';
-    document.body.appendChild(host);
-    host.innerHTML = window.generateHTMLForBlocks(
-      [{ type: 'video', src: '/medias/videos/NoNeutralCS.webm', controls: true }], '');
-  });
+  // A file that REALLY EXISTS in the repo. The first version of this pointed
+  // at a name that did not, so the video 404'd, play() rejected, and the whole
+  // test rode on Chromium firing `play` before the error - green when run
+  // alone and red under load. A player test on a video that never loads is
+  // not a player test.
+  await render(page, [{ type: 'video', src: CLIP, controls: true }]);
 
+  // No metadata wait before the click: the source is lazy and `preload="none"`,
+  // so nothing is loaded until the reader asks for it. Pressing play IS the
+  // ask, and waiting for duration first would hang forever.
   const player = page.locator('#render-host [data-wiki-player]');
   await expect(player).toBeVisible();
   await expect(player).not.toHaveClass(/is-playing/);
@@ -123,9 +178,118 @@ test('the play button drives the video and the duration bar fills', async ({ pag
   const label = await page.locator('#render-host [data-player-toggle]').getAttribute('aria-label');
   expect(label).toBe('Pause');
 
+  // The duration bar is half the feature and the other half of this test's
+  // name, and it was not being checked at all.
+  await expect
+    .poll(() => page.evaluate(() => {
+      const fill = document.querySelector('#render-host [data-player-fill]');
+      return parseFloat(fill.style.width) || 0;
+    }), { timeout: 10000 })
+    .toBeGreaterThan(0);
+
   await page.locator('#render-host [data-player-toggle]').click();
   await expect(player).not.toHaveClass(/is-playing/);
   expect(errors).toEqual([]);
+});
+
+test('clicking the duration bar seeks', async ({ page }) => {
+  await serveClip(page);
+  await boot(page);
+  await render(page, [{ type: 'video', src: CLIP, controls: true }]);
+
+  // Deliberately WITHOUT pressing play first. The source is lazy, so scrubbing
+  // is a thing a reader can do to a video the browser has not opened yet - and
+  // that used to be a no-op, which reads as a dead control.
+  // locator.click with a position, NOT page.mouse.click with a bounding box:
+  // the render host sits at the bottom of a full character page, so the bar
+  // is below the viewport and raw coordinates land on nothing. A locator
+  // scrolls to its target first.
+  const track = page.locator('#render-host [data-player-track]');
+  const width = await track.evaluate(el => el.getBoundingClientRect().width);
+  await track.click({ position: { x: width * 0.6, y: 4 } });
+
+  await expect
+    .poll(() => page.evaluate(() => {
+      const v = document.querySelector('#render-host video');
+      if (!v || !isFinite(v.duration) || v.duration <= 0) return -1;
+      return v.currentTime / v.duration;
+    }), { timeout: 15000 })
+    .toBeGreaterThan(0.4);
+
+  const ratio = await page.evaluate(() => {
+    const v = document.querySelector('#render-host video');
+    return v.currentTime / v.duration;
+  });
+  // Loose bounds: a seek lands on the nearest keyframe, which is a property of
+  // the file rather than of the code.
+  expect(ratio).toBeLessThan(0.8);
+});
+
+test('the sound button mutes and unmutes', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await serveClip(page);
+  await boot(page);
+  await render(page, [{ type: 'video', src: CLIP, controls: true }]);
+
+  const player = page.locator('#render-host [data-wiki-player]');
+  const mute = page.locator('#render-host [data-player-mute]');
+
+  await expect(player).not.toHaveClass(/is-muted/);
+  expect(await page.evaluate(() => document.querySelector('#render-host video').muted)).toBe(false);
+
+  await mute.click();
+
+  // Both halves: the element is really muted, and the button says so.
+  expect(await page.evaluate(() => document.querySelector('#render-host video').muted)).toBe(true);
+  await expect(player).toHaveClass(/is-muted/);
+  await expect(mute).toHaveAttribute('aria-label', 'Unmute');
+
+  // The rendered consequence - the muted state draws a slash across the
+  // speaker, and a class that stopped matching would leave a plain speaker on
+  // a silent video.
+  const slash = await page.evaluate(() => {
+    const btn = document.querySelector('#render-host [data-player-mute]');
+    const s = getComputedStyle(btn, '::after');
+    return { content: s.content, width: parseFloat(s.width) || 0 };
+  });
+  expect(slash.content).not.toBe('none');
+  expect(slash.width).toBeGreaterThan(0);
+
+  await mute.click();
+  expect(await page.evaluate(() => document.querySelector('#render-host video').muted)).toBe(false);
+  await expect(player).not.toHaveClass(/is-muted/);
+  await expect(mute).toHaveAttribute('aria-label', 'Mute');
+  expect(errors).toEqual([]);
+});
+
+test('play, sound and the bar sit on one row', async ({ page }) => {
+  await boot(page);
+  await render(page, [{ type: 'video', src: CLIP, controls: true }]);
+
+  // Owner's change: they were stacked, which read as two separate controls and
+  // spent a line under every video. Asserted as overlapping vertical bands
+  // rather than equal coordinates - font metrics differ by OS, but "on the
+  // same row" is a structural claim that holds everywhere.
+  const out = await page.evaluate(() => {
+    const box = (sel) => {
+      const r = document.querySelector(`#render-host ${sel}`).getBoundingClientRect();
+      return { top: r.top, bottom: r.bottom, left: r.left, right: r.right, mid: r.top + r.height / 2 };
+    };
+    return { play: box('[data-player-toggle]'), sound: box('[data-player-mute]'), track: box('[data-player-track]') };
+  });
+
+  const overlaps = (a, b) => a.top < b.bottom && b.top < a.bottom;
+  expect(overlaps(out.play, out.sound), 'play and sound share a row').toBe(true);
+  expect(overlaps(out.play, out.track), 'and so does the bar').toBe(true);
+
+  // Left to right, in that order, and none of them stacked underneath.
+  expect(out.play.right).toBeLessThanOrEqual(out.sound.left);
+  expect(out.sound.right).toBeLessThanOrEqual(out.track.left);
+
+  // The bar takes the leftover width rather than being a fixed stub.
+  expect(out.track.right - out.track.left).toBeGreaterThan(out.play.right - out.play.left);
 });
 
 test('the player paints itself in the character accent, not a fixed blue', async ({ page }) => {
@@ -234,7 +398,7 @@ test('clicking the button opens a modal that plays it, and closing empties it', 
     type: 'theorybox',
     title: 'Corner BnB',
     sequence: ['M1'],
-    video: '/medias/videos/NoNeutralCS.webm',
+    video: '/medias/videos/example-video5.webm',
     content: [],
   }]);
 
@@ -341,7 +505,7 @@ test('a filled image or video block does not get a placeholder', async ({ page }
   await boot(page);
   await render(page, [
     { type: 'image', src: '/medias/images/DogslamloopIcon.webp', alt: 'icon' },
-    { type: 'video', src: '/medias/videos/NoNeutralCS.webm', controls: true },
+    { type: 'video', src: '/medias/videos/example-video5.webm', controls: true },
   ]);
 
   // The other direction. A placeholder that appeared for everything would
