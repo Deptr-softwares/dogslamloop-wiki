@@ -33,6 +33,10 @@
         'src', 'videoId', 'video', 'image', 'media', 'url', 'href', 'thumbnail',
         // Credit and identity.
         'author', 'uploader', 'id', 'uid', 'anchor', 'tabId',
+        // Editor-only organisation (item 9). A folder name is not page text -
+        // renaming "Ryu" would silently regroup the block list as a side
+        // effect of a content edit.
+        'folder',
     ]);
 
     const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

@@ -1078,7 +1078,207 @@ input[type="checkbox"]:checked {
 .accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 .accordion-back-label { color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
 .accordion-back-title { color: #fff; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; }
-.block-type-row { display: flex; align-items: center; gap: 0.5rem; }
+/* Two dropdowns share this row since v0.15 item 9, and the shared
+   .manga-select-wrapper rule in Forms.css is `flex: 1` with `min-width: 0` -
+   which is `flex-basis: 0%` and free to collapse. In a row that shrink-wraps to
+   its content that resolves to width ZERO, and .manga-select-trigger is
+   position:relative rather than clipped, so it spilled out over the folder
+   picker instead of just being narrow (owner, 2026-08-18).
+
+   Both overrides are scoped to .block-type-row on purpose: .manga-select-wrapper
+   is site-wide furniture - the DAW footer sizes on it, and the comment in
+   Forms.css says as much. Wrapping rather than fixed widths because the editor
+   pane is resizable and the mobile rules below squeeze this row further. */
+.block-type-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.block-type-row .manga-select-wrapper:not(.block-folder-picker) {
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 7rem;
+}
+
+/* --- BLOCK FOLDERS (v0.15 item 9) ---
+   Editor-only grouping, so it is deliberately quieter than the purple
+   accordion banner above: an accordion is a thing the READER gets, a folder is
+   furniture only the author ever sees, and the two sitting in the same list
+   must not look like the same kind of object. */
+.block-folder {
+    border: 1px solid #2a2a2a;
+    border-left: 3px solid #4b5563;
+    background: rgba(255, 255, 255, 0.012);
+    margin-bottom: 0.35rem;
+}
+.block-folder-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    background: #111;
+    border-bottom: 1px solid #222;
+}
+.block-folder.is-collapsed .block-folder-head { border-bottom: none; }
+.block-folder.is-collapsed .block-folder-body { display: none; }
+
+.block-folder-toggle {
+    font-family: monospace;
+    font-weight: bold;
+    flex: 0 0 auto;
+}
+/* Transparent until touched, so the header reads as a title rather than a form
+   row - but still a real input, which is the whole rename interaction. */
+.block-folder-name-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dotted transparent;
+    color: #e5e7eb;
+    font-family: var(--text-manga);
+    font-size: 0.95rem;
+    padding: 0.1rem 0.2rem;
+}
+.block-folder-name-input:hover { border-bottom-color: #444; }
+.block-folder-name-input:focus {
+    outline: none;
+    border-bottom-color: var(--accent-blue);
+    background: rgba(59, 130, 246, 0.06);
+}
+.block-folder-count {
+    flex: 0 0 auto;
+    color: #6b7280;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+.block-folder-add { flex: 0 0 auto; font-size: 0.65rem; }
+.block-folder-add:hover { background: #22c55e; color: #000; border-color: #22c55e; }
+.block-folder-ungroup,
+.block-folder-discard { flex: 0 0 auto; font-size: 0.65rem; }
+.block-folder-ungroup:hover,
+.block-folder-discard:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
+
+/* An empty folder exists only for this editing session - it has no blocks, so
+   there is no `folder` string anywhere for it to be saved in. Dashed to say
+   so, rather than looking like a folder whose contents failed to load. */
+.block-folder.is-empty { border-left-style: dashed; border-left-color: #6b7280; }
+.block-folder-empty {
+    padding: 0.6rem 0.75rem;
+    color: #6b7280;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    text-align: center;
+    border: 1px dashed #2f2f2f;
+    margin: 0.35rem;
+}
+
+/* The drop affordance for a folder HEADER. Distinct from .drag-over-top /
+   .drag-over-bottom on a card, which are edges: this is a container, and the
+   whole thing lights up because the block lands inside it rather than beside
+   it. Reachable when the folder is collapsed and has no cards to aim at. */
+.block-folder-head.drag-over-folder {
+    background: rgba(59, 130, 246, 0.18);
+    outline: 1px dashed var(--accent-blue);
+    outline-offset: -2px;
+}
+
+/* --- THE FOLDER PICKER ---
+   Reuses .manga-select-wrapper / .manga-select-options / .manga-option from
+   Forms.css, so it opens and animates like every other dropdown on the site.
+   What it adds is the thing a native select could not: "No folder" and "Create
+   new folder" are not folders, and as three near-identical rows the menu was
+   unreadable.
+
+   NOT built by initializeMangaSelects, and deliberately not a <select> at all -
+   that engine flattens each option to plain textContent, which is exactly the
+   distinction being drawn here. It also only converts select.editor-select,
+   a class the delegated input handler in editor-blocks.js treats as a block
+   field. */
+/* Compound with .block-type-row so it outranks the :not() rule above, which
+   would otherwise win on specificity and hand this one a 7rem minimum it does
+   not want. */
+.block-type-row .block-folder-picker {
+    flex: 0 1 11rem;
+    width: auto;
+    min-width: 7rem;
+    margin-bottom: 0;
+}
+
+.block-folder-trigger {
+    display: block;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #222;
+    color: #6b7280;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    text-align: left;
+    padding: 0.15rem 1.2rem 0.15rem 0.35rem;
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.block-folder-trigger::after {
+    content: '\25BC';
+    position: absolute;
+    right: 0.35rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.5rem;
+    color: #4b5563;
+}
+.block-folder-trigger:hover { color: #fff; border-color: #444; }
+/* Filed in a folder reads differently from loose, at a glance, without opening
+   anything - the folder mark is the state, so it is on the trigger. */
+.block-folder-trigger.has-folder { color: #e5e7eb; border-color: #4b5563; }
+.block-folder-trigger.has-folder::before { content: '\1F4C1\00a0'; }
+
+.block-folder-picker.open .manga-select-options { display: flex; }
+.block-folder-picker .manga-select-options { text-align: left; }
+.block-folder-picker .folder-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed #222;
+    cursor: pointer;
+}
+.folder-option-item::before { content: '\1F4C1\00a0'; }
+
+/* The two rows that are not folders. */
+.folder-option-none { font-style: italic; color: #6b7280 !important; }
+.folder-option-none::before { content: '\2014\00a0'; }
+.folder-option-new { color: #22c55e !important; border-top: 1px solid #222; }
+.folder-option-new:hover { background: #22c55e !important; color: #000 !important; }
+
+/* A group label, not a choice - never clickable, never hover-highlighted. */
+.folder-option-sep {
+    padding: 0.35rem 0.75rem 0.2rem;
+    font-family: var(--text-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #4b5563;
+    border-bottom: 1px solid #222;
+    cursor: default;
+}
+
+/* The drop affordance for nesting a block INSIDE an accordion or theorybox.
+   Green rather than the blue used for reordering, because the outcome is
+   different in kind: the block leaves this level entirely. */
+.accordion-inner-block-wrapper.drag-over-nest {
+    background: rgba(34, 197, 94, 0.18);
+    outline: 1px dashed #22c55e;
+    outline-offset: -2px;
+}
 /* touch-action: none so a touch-drag on the handle doesn't also scroll the
    page - startBlockPointerDrag (js/editor-blocks.js) owns the gesture entirely
    once it starts. */

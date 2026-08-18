@@ -344,7 +344,13 @@ function initStrategyBlockBuilder(containerId, initialData) {
     currentStrategyBlocks = initialData ? JSON.parse(JSON.stringify(initialData)) : [];
 
     window.activeAccordionPath = [];
-    
+
+    // Which folders are closed is per-section view state. Opening a different
+    // section starts everything expanded rather than inheriting a collapse the
+    // author set somewhere else, which is also what makes a bare folder name a
+    // safe key for it.
+    if (typeof window.resetBlockFolderState === 'function') window.resetBlockFolderState();
+
     blockHistory = [JSON.parse(JSON.stringify(currentStrategyBlocks))];
     historyIndex = 0;
 
@@ -884,6 +890,43 @@ function initStrategyBlockBuilder(containerId, initialData) {
 
     // --- SMART BLOCK CONVERSION & DROPDOWN SYNC ---
     blockList.addEventListener('change', (e) => {
+        if (e.target.classList.contains('block-folder-name-input')
+            && typeof window.renameBlockFolder === 'function') {
+            // On change, not input: renaming per keystroke would rewrite every
+            // block in the run on every letter, and re-render the list out
+            // from under the caret.
+            const activeBlocks = window.getActiveBlocks();
+            const from = e.target.getAttribute('data-folder');
+            const to = window.normalizeFolderName(e.target.value);
+
+            if (!to || to === from) { e.target.value = from; return; }
+
+            window.saveBlockHistory();
+            if (!window.renameBlockFolder(activeBlocks, from, to)) {
+                // Guarded, like the same call in editor-find-replace.js: this
+                // file is loaded by owner.html and tier-editor.html, neither of
+                // which loads editor-core.js, so editorAlert is undefined
+                // there. The field snapping back is the feedback that survives
+                // on every host page; the message is the bonus where there is
+                // a modal to put it in.
+                if (typeof window.editorAlert === 'function') {
+                    window.editorAlert(`This section already has a folder called "${to}". Pick a different name.`);
+                }
+                e.target.value = from;
+                return;
+            }
+
+            // Carry the collapsed state across, or renaming silently reopens a
+            // folder the author had closed.
+            if (window.isBlockFolderCollapsed(from)) {
+                window.setBlockFolderCollapsed(from, false);
+                window.setBlockFolderCollapsed(to, true);
+            }
+            renderBlockList();
+            updateLivePreview(true);
+            return;
+        }
+
         if (e.target.classList.contains('block-type-selector')) {
             const activeBlocks = window.getActiveBlocks(); 
             const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
@@ -951,14 +994,55 @@ function initStrategyBlockBuilder(containerId, initialData) {
     // fixes the drag gesture itself.
     const DRAG_THRESHOLD = 6; // px of movement before a press counts as a drag, not a tap
 
+    // Three kinds of destination, and the order of the tests is the design:
+    // the nesting zone sits INSIDE a card, so it has to be checked before the
+    // card itself or it could never be aimed at; the folder header sits
+    // outside every card, so it is what the card lookup falls through to.
+    const NO_DROP = {
+        card: null, dropIndex: null, isBottom: false,
+        folderHead: null, headEl: null, nestInto: null, nestEl: null,
+    };
+
     function computeDropTarget(clientX, clientY) {
         const under = document.elementFromPoint(clientX, clientY);
-        const card = under ? under.closest('.block-card') : null;
-        if (!card) return { card: null, dropIndex: null, isBottom: false };
+        if (!under) return NO_DROP;
+
+        // The "EDIT INNER BLOCKS" strip on an accordion, and the identical one
+        // on a theorybox - both use this class, so both accept a drop without
+        // either being named here. Dropping on it means "put this block INSIDE
+        // that one", which is why it cannot be the card's own reorder target.
+        const nest = under.closest('.accordion-inner-block-wrapper');
+        if (nest) {
+            const host = nest.closest('.block-card');
+            if (host) {
+                return Object.assign({}, NO_DROP, {
+                    nestInto: parseInt(host.getAttribute('data-index')),
+                    nestEl: nest,
+                });
+            }
+        }
+
+        const card = under.closest('.block-card');
+        if (!card) {
+            // A folder header is a real target, not empty space. It is the
+            // only way INTO a collapsed folder, which by definition shows no
+            // cards to drop between.
+            const head = under.closest('.block-folder-head');
+            const shell = head ? head.closest('.block-folder') : null;
+            return Object.assign({}, NO_DROP, {
+                folderHead: shell ? shell.getAttribute('data-folder') : null,
+                headEl: head || null,
+            });
+        }
+
         const bounding = card.getBoundingClientRect();
         const isBottom = clientY > bounding.y + bounding.height / 2;
         const cardIndex = parseInt(card.getAttribute('data-index'));
-        return { card, dropIndex: isBottom ? cardIndex + 1 : cardIndex, isBottom };
+        return Object.assign({}, NO_DROP, {
+            card,
+            dropIndex: isBottom ? cardIndex + 1 : cardIndex,
+            isBottom,
+        });
     }
 
     // Marks where a block landed. Without it a reorder gives no feedback
@@ -976,22 +1060,81 @@ function initStrategyBlockBuilder(containerId, initialData) {
         });
     }
 
-    function finishBlockDrop(payload, dropIndex) {
+    // A drag moves an array element and says nothing about folder membership,
+    // so every landing has to be reconciled: dropped between two members of a
+    // folder a block joins it, dragged clear of one it leaves. Without this a
+    // block can render inside a folder while carrying no `folder` value,
+    // which splits the run into two folders sharing a name.
+    function settleFolderAt(blocks, index) {
+        if (index < 0) return;
+        if (typeof window.reconcileFolderAt === 'function') {
+            window.reconcileFolderAt(blocks, index);
+        }
+    }
+
+    // A container block a drop can go inside: an accordion or a theorybox,
+    // both of which hold a `content` array of blocks. Checked on the object
+    // rather than by type name, so a container added later works without
+    // anyone coming back here.
+    function nestHost(blocks, index) {
+        if (index === null || index === undefined || index < 0) return null;
+        const host = blocks[index];
+        if (!host) return null;
+        if (!Array.isArray(host.content)) return null;
+        return host;
+    }
+
+    function finishBlockDrop(payload, dropIndex, folderHead, nestInto) {
         const activeBlocks = window.getActiveBlocks();
 
         if (payload.blockType) {
             window.saveBlockHistory(); // Save BEFORE mutating
             const newBlock = window.spawnBlockWithAuthor(payload.blockType);
             let landedAt;
-            if (dropIndex === null) {
+            if (nestHost(activeBlocks, nestInto)) {
+                activeBlocks[nestInto].content.push(newBlock);
+                landedAt = nestInto;
+            } else if (folderHead) {
+                const run = typeof window.blockFolderRunNamed === 'function'
+                    ? window.blockFolderRunNamed(activeBlocks, folderHead)
+                    : null;
+                landedAt = run ? run.start : activeBlocks.length;
+                newBlock.folder = folderHead;
+                activeBlocks.splice(landedAt, 0, newBlock);
+            } else if (dropIndex === null) {
                 activeBlocks.push(newBlock);
                 landedAt = activeBlocks.length - 1;
             } else {
                 activeBlocks.splice(dropIndex, 0, newBlock);
                 landedAt = dropIndex;
+                settleFolderAt(activeBlocks, landedAt);
             }
             renderBlockList();
             updateLivePreview(true); // Tell it to skip saving history again
+            flashMovedBlock(landedAt);
+        } else if (nestHost(activeBlocks, nestInto) && payload.fromIndex !== nestInto) {
+            // The same gesture as dropping into a folder, with a different
+            // destination: a folder is a view over THIS level, while an
+            // accordion is a level of its own. Reaching it used to mean
+            // drilling in with "EDIT INNER BLOCKS" and rebuilding the block
+            // by hand.
+            window.saveBlockHistory();
+            const item = activeBlocks.splice(payload.fromIndex, 1)[0];
+            // Folder membership belongs to the level the block just left.
+            // Carried along it would show up inside the accordion as a folder
+            // of one, named after somewhere the author cannot see.
+            delete item.folder;
+            const hostIndex = payload.fromIndex < nestInto ? nestInto - 1 : nestInto;
+            activeBlocks[hostIndex].content.push(item);
+            renderBlockList();
+            updateLivePreview(true);
+            flashMovedBlock(hostIndex);
+        } else if (folderHead && typeof window.dropBlockIntoFolderHead === 'function') {
+            window.saveBlockHistory();
+            const landedAt = window.dropBlockIntoFolderHead(activeBlocks, payload.fromIndex, folderHead);
+            if (landedAt < 0) return;
+            renderBlockList();
+            updateLivePreview(true);
             flashMovedBlock(landedAt);
         } else if (dropIndex !== null) {
             let target = dropIndex;
@@ -1000,6 +1143,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 window.saveBlockHistory();
                 const item = activeBlocks.splice(payload.fromIndex, 1)[0];
                 activeBlocks.splice(target, 0, item);
+                settleFolderAt(activeBlocks, target);
                 renderBlockList();
                 updateLivePreview(true);
                 flashMovedBlock(target);
@@ -1028,6 +1172,10 @@ function initStrategyBlockBuilder(containerId, initialData) {
         let currentCard = null;
         let lastDropIndex = null;
         let sourceCard = null;
+        let currentHead = null;
+        let lastFolderHead = null;
+        let currentNest = null;
+        let lastNestInto = null;
 
         el.setPointerCapture(e.pointerId);
 
@@ -1037,7 +1185,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
         }
 
         function updateHighlight(ev) {
-            const { card, dropIndex, isBottom } = computeDropTarget(ev.clientX, ev.clientY);
+            const { card, dropIndex, isBottom, folderHead, headEl, nestInto, nestEl } = computeDropTarget(ev.clientX, ev.clientY);
             if (card !== currentCard) {
                 if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
                 currentCard = card;
@@ -1046,7 +1194,23 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 card.classList.toggle('drag-over-bottom', isBottom);
                 card.classList.toggle('drag-over-top', !isBottom);
             }
+            if (headEl !== currentHead) {
+                if (currentHead) currentHead.classList.remove('drag-over-folder');
+                currentHead = headEl;
+                if (currentHead) currentHead.classList.add('drag-over-folder');
+            }
+            if (nestEl !== currentNest) {
+                if (currentNest) currentNest.classList.remove('drag-over-nest');
+                currentNest = nestEl;
+                // Never highlight a block's own nesting zone - dropping it
+                // into itself is refused at the drop, so offering it is a lie.
+                if (currentNest && payload.fromIndex !== nestInto) {
+                    currentNest.classList.add('drag-over-nest');
+                }
+            }
             lastDropIndex = dropIndex;
+            lastFolderHead = folderHead;
+            lastNestInto = nestInto;
         }
 
         function startDrag(ev) {
@@ -1070,6 +1234,8 @@ function initStrategyBlockBuilder(containerId, initialData) {
             if (sourceCard) sourceCard.classList.remove('block-card-dragging');
             if (ghost) { ghost.remove(); ghost = null; }
             if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
+            if (currentHead) currentHead.classList.remove('drag-over-folder');
+            if (currentNest) currentNest.classList.remove('drag-over-nest');
         }
 
         function onMove(ev) {
@@ -1086,8 +1252,10 @@ function initStrategyBlockBuilder(containerId, initialData) {
 
         function onUp() {
             const dropIndex = lastDropIndex;
+            const folderHead = lastFolderHead;
+            const nestInto = lastNestInto;
             cleanup();
-            if (dragging) finishBlockDrop(payload, dropIndex);
+            if (dragging) finishBlockDrop(payload, dropIndex, folderHead, nestInto);
         }
 
         function onCancel() {
@@ -1115,6 +1283,54 @@ function initStrategyBlockBuilder(containerId, initialData) {
         const card = handle.closest('.block-card');
         if (!card) return;
         startBlockPointerDrag(e, handle, { fromIndex: parseInt(card.getAttribute('data-index')) }, 'Move block');
+    });
+
+    // --- FOLDER PICKER ---
+    //
+    // Its own delegated listener rather than a branch of the big click handler
+    // below, because that one opens with closest('button') and then resolves
+    // .block-card by data-index - this dropdown needs neither, and its rows are
+    // rebuilt on every render so per-element binding would leak.
+    blockList.addEventListener('click', (e) => {
+        const trigger = e.target.closest('.block-folder-trigger');
+        if (trigger) {
+            const wrapper = trigger.closest('.block-folder-picker');
+            const wasOpen = wrapper.classList.contains('open');
+            blockList.querySelectorAll('.block-folder-picker.open')
+                .forEach(w => w.classList.remove('open'));
+            wrapper.classList.toggle('open', !wasOpen);
+            return;
+        }
+
+        const option = e.target.closest('.folder-option');
+        if (!option || typeof window.assignBlockToFolder !== 'function') return;
+
+        const card = option.closest('.block-card');
+        if (!card) return;
+
+        const activeBlocks = window.getActiveBlocks();
+        const index = parseInt(card.getAttribute('data-index'));
+        const action = option.getAttribute('data-folder-action');
+
+        // The name is carried in a data attribute rather than read off the
+        // row's text, which is escaped for display and would come back
+        // decoded-but-not-identical for a name containing markup.
+        let name = '';
+        if (action === 'pick') name = option.getAttribute('data-folder-name');
+        else if (action === 'new') name = window.nextFolderName(activeBlocks, 'New Folder');
+
+        window.saveBlockHistory();
+        const landedAt = window.assignBlockToFolder(activeBlocks, index, name);
+        renderBlockList();
+        updateLivePreview(true);
+        if (landedAt >= 0) flashMovedBlock(landedAt);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.block-folder-picker')) {
+            document.querySelectorAll('.block-folder-picker.open')
+                .forEach(w => w.classList.remove('open'));
+        }
     });
 
     let typingTimer;
@@ -1171,8 +1387,53 @@ function initStrategyBlockBuilder(containerId, initialData) {
         const btn = e.target.closest('button');
         if (!btn) return;
         
-        const activeBlocks = window.getActiveBlocks(); 
+        const activeBlocks = window.getActiveBlocks();
         window.saveBlockHistory();
+
+        // Folder controls sit in the shell HEADER, outside any .block-card, so
+        // they have to be handled before the data-index lookup further down -
+        // that line calls .getAttribute on a null closest() and throws. The
+        // second half of the test matters just as much: cards are rendered
+        // INSIDE .block-folder, so a card's own ✖ matches closest('.block-folder')
+        // too.
+        const folderShell = btn.closest('.block-folder');
+        if (folderShell && !btn.closest('.block-card')) {
+            const folderName = folderShell.getAttribute('data-folder');
+
+            if (btn.classList.contains('block-folder-toggle')) {
+                if (typeof window.toggleBlockFolderCollapsed === 'function') {
+                    window.toggleBlockFolderCollapsed(folderName);
+                    renderBlockList();
+                }
+                return;
+            }
+
+            if (btn.classList.contains('block-folder-ungroup')
+                && typeof window.ungroupBlockFolder === 'function') {
+                window.ungroupBlockFolder(activeBlocks, folderName);
+                renderBlockList();
+                updateLivePreview(true);
+                return;
+            }
+
+            // Making and discarding an EMPTY folder touches no block, so
+            // neither one refreshes the preview - there is nothing for it to
+            // render differently.
+            if (btn.classList.contains('block-folder-add')
+                && typeof window.addPendingBlockFolder === 'function') {
+                window.addPendingBlockFolder(activeBlocks, folderName);
+                renderBlockList();
+                return;
+            }
+
+            if (btn.classList.contains('block-folder-discard')
+                && typeof window.dropPendingBlockFolder === 'function') {
+                window.dropPendingBlockFolder(folderName);
+                renderBlockList();
+                return;
+            }
+            return;
+        }
 
         if (e.target.classList.contains('btn-table-add-row')) {
             const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
@@ -1223,21 +1484,74 @@ function initStrategyBlockBuilder(containerId, initialData) {
             return;
         }
 
+        let movedTo = -1;
         if (btn.classList.contains('btn-up') && index > 0) {
             [activeBlocks[index - 1], activeBlocks[index]] = [activeBlocks[index], activeBlocks[index - 1]];
+            movedTo = index - 1;
         } else if (btn.classList.contains('btn-down') && index < activeBlocks.length - 1) {
             [activeBlocks[index], activeBlocks[index + 1]] = [activeBlocks[index + 1], activeBlocks[index]];
+            movedTo = index + 1;
         } else if (btn.classList.contains('btn-delete')) {
-            activeBlocks.splice(index, 1); 
+            activeBlocks.splice(index, 1);
         } else {
-            return; 
+            return;
         }
-        
+
+        // A swap moves BOTH blocks, and either one can have crossed a folder
+        // boundary - stepping a member down past a loose block takes it out of
+        // the folder, and the loose block it traded places with is now inside.
+        if (movedTo >= 0) {
+            settleFolderAt(activeBlocks, movedTo);
+            settleFolderAt(activeBlocks, index);
+        }
+
         renderBlockList();
         updateLivePreview();
     });
 
     renderBlockList();
+}
+
+// The shell drawn around one folder run.
+//
+// The name is an INPUT rather than a label plus a rename button. Renaming is
+// the most common thing done to a folder after making it, and the editor has
+// editorAlert and customConfirm but no text prompt at all - adding one modal
+// for this would make folder naming the only prompt on the site.
+//
+// Every interpolation here is contributor-authored and lands in an attribute,
+// so it goes through escField exactly like the block fields below it.
+function folderShellHTML(run, isCollapsed, isEmpty) {
+    const count = isEmpty ? 'empty' : `${run.count} block${run.count === 1 ? '' : 's'}`;
+
+    // An empty folder is not in the data, so there is nothing to keep and
+    // nothing to ungroup - removing it is a discard, and saying UNGROUP there
+    // would promise a rescue of blocks that do not exist.
+    const removeBtn = isEmpty
+        ? `<button class="btn-sys btn-sys-regular block-folder-discard"
+                   title="Discard this empty folder">&#10007; REMOVE</button>`
+        : `<button class="btn-sys btn-sys-regular block-folder-ungroup"
+                   title="Remove the folder and keep every block in it">&#9003; UNGROUP</button>`;
+
+    const body = isEmpty
+        ? `<div class="block-folder-empty">Drag a block onto this header, or choose this folder on any block.</div>`
+        : '';
+
+    return `
+        <div class="block-folder-head">
+            <button class="btn-sys btn-sys-regular block-folder-toggle"
+                    title="${isCollapsed ? 'Expand' : 'Collapse'} this folder"
+                    aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#9656;' : '&#9662;'}</button>
+            <input type="text" class="block-folder-name-input" value="${escField(run.name)}"
+                   data-folder="${escField(run.name)}" maxlength="60"
+                   aria-label="Folder name" title="Rename this folder">
+            <span class="block-folder-count">${count}</span>
+            <button class="btn-sys btn-sys-regular block-folder-add"
+                    title="Create another folder after this one">&#65291; FOLDER</button>
+            ${removeBtn}
+        </div>
+        <div class="block-folder-body">${body}</div>
+    `;
 }
 
 function renderBlockList() {
@@ -1283,12 +1597,90 @@ function renderBlockList() {
         listContainer.insertAdjacentHTML('beforeend', backBtnHTML);
     }
 
+    // --- BLOCK FOLDERS (v0.15 item 9) ---
+    //
+    // A folder is a contiguous run, so its shell can be opened at run.start and
+    // closed at run.end while each card keeps its REAL array index in
+    // data-index. Every handler in this file reads that attribute, and a
+    // grouping that renumbered blocks would break all of them at once.
+    const folderRuns = typeof window.collectBlockFolders === 'function'
+        ? window.collectBlockFolders(activeBlocks)
+        : [];
+    const opensAt = new Map();
+    const closesAt = new Map();
+    folderRuns.forEach(run => { opensAt.set(run.start, run); closesAt.set(run.end, run); });
+    const folderNames = folderRuns.map(run => run.name);
+
+    // Empty folders, which are session state rather than data - a folder with
+    // no blocks has no `folder` string anywhere to be found in. Each is drawn
+    // after the folder it was created from, matched BY NAME so that reordering
+    // blocks cannot strand it; one whose anchor has since been dissolved or
+    // renamed away falls to the end rather than disappearing.
+    const pendingFolders = typeof window.pendingBlockFolders === 'function'
+        ? window.pendingBlockFolders()
+        : [];
+    const realNames = new Set(folderNames);
+    const pendingAfter = new Map();
+    const pendingOrphans = [];
+    pendingFolders.forEach(spec => {
+        if (spec.after && realNames.has(spec.after)) {
+            if (!pendingAfter.has(spec.after)) pendingAfter.set(spec.after, []);
+            pendingAfter.get(spec.after).push(spec);
+        } else {
+            pendingOrphans.push(spec);
+        }
+    });
+
+    const emitEmptyFolder = (spec) => {
+        const isCollapsed = typeof window.isBlockFolderCollapsed === 'function'
+            && window.isBlockFolderCollapsed(spec.name);
+        const shell = document.createElement('div');
+        shell.className = 'block-folder is-empty' + (isCollapsed ? ' is-collapsed' : '');
+        shell.setAttribute('data-folder', spec.name);
+        shell.innerHTML = folderShellHTML({ name: spec.name, count: 0 }, isCollapsed, true);
+        listContainer.appendChild(shell);
+    };
+
+    // Where the next card goes: the list itself, or the open folder's body.
+    let appendTarget = listContainer;
+
+    // The non-drag path into a folder, and a custom dropdown rather than a
+    // <select> so that "no folder" and "create new folder" can look like what
+    // they are instead of like two more folders - as a native select they were
+    // three near-identical rows (owner, 2026-08-18). Built from the same
+    // .manga-select-* shell every other dropdown on the site uses, with its own
+    // classes on the two rows that are not folders.
+    const folderPickerHTML = (block) => {
+        const own = typeof window.blockFolderName === 'function' ? window.blockFolderName(block) : '';
+        const choices = [...new Set(folderNames.concat(pendingFolders.map(p => p.name)))];
+
+        let rows = `<button type="button" class="manga-option folder-option folder-option-none${own ? '' : ' selected'}"
+                            data-folder-action="none">No folder</button>`;
+        if (choices.length) {
+            rows += `<div class="folder-option-sep">Folders</div>`;
+            rows += choices.map(n =>
+                `<button type="button" class="manga-option folder-option folder-option-item${n === own ? ' selected' : ''}"
+                         data-folder-action="pick" data-folder-name="${escField(n)}">${escField(n)}</button>`
+            ).join('');
+        }
+        rows += `<button type="button" class="manga-option folder-option folder-option-new"
+                         data-folder-action="new">&#65291; Create new folder</button>`;
+
+        return `
+            <div class="manga-select-wrapper block-folder-picker">
+                <button type="button" class="block-folder-trigger${own ? ' has-folder' : ''}"
+                        title="Put this block in a folder">${own ? escField(own) : 'No folder'}</button>
+                <div class="manga-select-options">${rows}</div>
+            </div>
+        `;
+    };
+
     activeBlocks.forEach((block, index) => {
         const card = document.createElement('div');
         card.className = 'block-card';
         card.setAttribute('data-index', index);
 
-            const typeOptions = Object.keys(blockTemplates).map(t => 
+            const typeOptions = Object.keys(blockTemplates).map(t =>
                 `<option value="${escField(t)}" ${block.type === t ? 'selected' : ''}>${t.toUpperCase()}</option>`
             ).join('');
 
@@ -1299,6 +1691,7 @@ function renderBlockList() {
                         <select class="editor-select block-type-selector">
                             ${typeOptions}
                         </select>
+                        ${folderPickerHTML(block)}
                     </div>
                 <div class="block-actions">
                     <button class="btn-sys btn-sys-green btn-insert-below" title="Insert Paragraph Below">⨁</button>
@@ -1541,8 +1934,35 @@ function renderBlockList() {
 
         html += `</div>`;
         card.innerHTML = html;
-        listContainer.appendChild(card);
+
+        const opening = opensAt.get(index);
+        if (opening) {
+            const isCollapsed = typeof window.isBlockFolderCollapsed === 'function'
+                && window.isBlockFolderCollapsed(opening.name);
+            const shell = document.createElement('div');
+            shell.className = 'block-folder' + (isCollapsed ? ' is-collapsed' : '');
+            // setAttribute, not innerHTML: no escaping needed, and this is the
+            // value every folder handler reads back.
+            shell.setAttribute('data-folder', opening.name);
+            shell.innerHTML = folderShellHTML(opening, isCollapsed, false);
+            listContainer.appendChild(shell);
+            appendTarget = shell.querySelector('.block-folder-body');
+        }
+
+        appendTarget.appendChild(card);
+
+        const closing = closesAt.get(index);
+        if (closing) {
+            appendTarget = listContainer;
+            const waiting = pendingAfter.get(closing.name);
+            if (waiting) {
+                waiting.forEach(emitEmptyFolder);
+                pendingAfter.delete(closing.name);
+            }
+        }
     });
+
+    pendingOrphans.forEach(emitEmptyFolder);
 
     listContainer.querySelectorAll('.editor-textarea').forEach(ta => {
         ta.style.height = 'auto';
