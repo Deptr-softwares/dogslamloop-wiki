@@ -527,16 +527,22 @@ test('the header + makes an empty folder after this one, and it is not in the da
   expect(out.folders, 'no block was touched').toEqual(['Setups', null]);
 });
 
-test('filing a block into an empty folder moves it to where that folder is drawn', async ({ page }) => {
+// An empty folder is drawn after the folder it was made from, so filing a block
+// into it has to MOVE that block there. Creating the folder wherever the block
+// already sat would put it somewhere the author was not pointing.
+//
+// Both fixtures below are chosen so the block is NOT already in the right
+// place. The first version of this test filed a block that happened to sit
+// exactly where the folder was drawn, so "move it there" and "create it in
+// place" produced identical output - it passed against a build that ignored the
+// anchor completely, and only reverting the code showed it.
+
+test('filing a block from ABOVE into an empty folder moves it down to that folder', async ({ page }) => {
   await boot(page);
-  await build(page, [P('a', 'Setups'), P('b'), P('c')]);
+  await build(page, [P('above'), P('anchor', 'Setups'), P('mid')]);
 
   await page.locator('#block-list .block-folder-add').click();
-
-  // b sits above the empty folder, which is drawn after the Setups run. Filing
-  // it must take it THERE - creating the folder wherever b already sat would
-  // put it somewhere the author was not pointing.
-  await pickFolder(page, 1, '.folder-option-item[data-folder-name="New Folder"]');
+  await pickFolder(page, 0, '.folder-option-item[data-folder-name="New Folder"]');
 
   const out = await page.evaluate(() => ({
     order: window.getActiveBlocks().map(b => b.content),
@@ -544,9 +550,27 @@ test('filing a block into an empty folder moves it to where that folder is drawn
     empties: document.querySelectorAll('#block-list .block-folder.is-empty').length,
   }));
 
-  expect(out.order).toEqual(['a', 'b', 'c']);
+  expect(out.order, 'it travelled past the anchor folder').toEqual(['anchor', 'above', 'mid']);
   expect(out.folders).toEqual(['Setups', 'New Folder', null]);
   expect(out.empties, 'it is a real folder now, not an empty one').toBe(0);
+});
+
+test('filing a block from BELOW into an empty folder moves it up to that folder', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('anchor', 'Setups'), P('mid'), P('below')]);
+
+  await page.locator('#block-list .block-folder-add').click();
+  await pickFolder(page, 2, '.folder-option-item[data-folder-name="New Folder"]');
+
+  const out = await page.evaluate(() => ({
+    order: window.getActiveBlocks().map(b => b.content),
+    folders: window.getActiveBlocks().map(b => b.folder || null),
+  }));
+
+  // The other direction, because the splice-out shifts the anchor only when
+  // the block started above it - the two cases take different arithmetic.
+  expect(out.order).toEqual(['anchor', 'below', 'mid']);
+  expect(out.folders).toEqual(['Setups', 'New Folder', null]);
 });
 
 test('an empty folder can be discarded, and a name it holds cannot be reused', async ({ page }) => {
