@@ -43,7 +43,11 @@ test('a long ticket tag wraps instead of pushing the review button out', async (
     const out = await page.evaluate(() => {
         const host = document.createElement('div');
         host.id = 'queue-host';
-        host.style.width = '320px'; // the real sidebar width
+        // Narrower than the 320px sidebar, because the badges row already
+        // wraps: its min-content is ONE badge wide, so at 320px there is room
+        // for the widest tag and the button both and the bug never appears.
+        // The owner's screenshot is the squeezed case, and this is it.
+        host.style.width = '190px';
         document.body.appendChild(host);
         host.innerHTML = `
             <div class="update-log-item">
@@ -79,6 +83,11 @@ test('a long ticket tag wraps instead of pushing the review button out', async (
             btnBox.left + btnBox.width / 2, btnBox.top + btnBox.height / 2);
 
         return {
+            // The HOST, not the card. The card has no width of its own and
+            // grows with its content, so "the button is inside the card" was
+            // true however far both of them overflowed - it passed with the
+            // fix reverted, which is how I found it was measuring nothing.
+            hostRight: Math.round(host.getBoundingClientRect().right),
             cardRight: Math.round(cardBox.right),
             btnRight: Math.round(btnBox.right),
             btnWidth: Math.round(btnBox.width),
@@ -86,7 +95,8 @@ test('a long ticket tag wraps instead of pushing the review button out', async (
         };
     });
 
-    expect(out.btnRight, 'the button stays inside the card').toBeLessThanOrEqual(out.cardRight);
+    expect(out.btnRight, 'the button stays inside the sidebar width').toBeLessThanOrEqual(out.hostRight);
+    expect(out.cardRight, 'and so does the card').toBeLessThanOrEqual(out.hostRight);
     expect(out.reachable, 'and can actually be clicked').toBe(true);
     // The badges yield, not the button: a REVIEW squeezed to nothing would
     // satisfy the bound above while being useless.
