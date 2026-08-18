@@ -63,6 +63,13 @@ test('a long ticket tag wraps instead of pushing the review button out', async (
 
         const card = host.querySelector('.update-log-item');
         const button = host.querySelector('.admin-review-btn');
+
+        // Into view before measuring. elementFromPoint takes VIEWPORT
+        // coordinates, and this host is appended to the end of a long page -
+        // so the hit test was landing on whatever happened to be at those
+        // coordinates on screen rather than on the button.
+        card.scrollIntoView({ block: 'center' });
+
         const cardBox = card.getBoundingClientRect();
         const btnBox = button.getBoundingClientRect();
 
