@@ -113,7 +113,11 @@ test('the reader page builds exactly the static tabs, in vocabulary order', asyn
   // Boomcat declares no modes and is not base-only, so it gets the plain strip.
   await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
 
-  const expected = vocab.getCharacterTabIds();
+  // includeOptional: this asserts what page_router DRAWS, and it draws the
+  // optional tabs too - hidden, for applyOptionalTabVisibility to un-hide once
+  // the page row lands. Whether an optional tab is VISIBLE is
+  // tests/techs-tab.spec.js's claim, not this one's.
+  const expected = vocab.getCharacterTabIds({ includeOptional: true });
   const rendered = await page.evaluate(() =>
     Array.from(document.querySelectorAll('.character-nav button[id^="nav-"]')).map(b => b.id.slice(4))
   );
@@ -216,7 +220,7 @@ test('a base-only character gets Ultimate between Counterplay and Gallery', asyn
 
   // Derived from the vocabulary's own ordering, so moving the entry in
   // character_tabs.js is what moves this expectation.
-  expect(rendered).toEqual(vocab.getCharacterTabIds({ includeInjected: true }));
+  expect(rendered).toEqual(vocab.getCharacterTabIds({ includeInjected: true, includeOptional: true }));
 
   const ultimateAt = rendered.indexOf('ultimateAtk');
   expect(rendered[ultimateAt - 1]).toBe('counterplay');

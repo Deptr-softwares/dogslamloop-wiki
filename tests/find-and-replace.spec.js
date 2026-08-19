@@ -376,7 +376,7 @@ test('the combo row modal can confirm a delete', async ({ page }) => {
   // The same layering bug, on a screen that shipped in item 3: DELETE COMBO
   // opened a confirmation the author could see and could not click.
   await page.goto('/edit.html?char=boomcat&type=character&tab=combos', { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => typeof window.openComboRowModal === 'function', { timeout: 15000 });
+  await page.waitForFunction(() => typeof window.openDocumentRowModal === 'function', { timeout: 15000 });
   await page.waitForTimeout(1500);
 
   const opened = await page.evaluate(() => {
@@ -384,7 +384,7 @@ test('the combo row modal can confirm a delete', async ({ page }) => {
     window.currentEditorDescData[section.field] = [
       { starter: 'Test Starter', rows: [{ combo: 'M1 M1 Test', damage: '10' }] },
     ];
-    window.openComboRowModal(0, 0);
+    window.openDocumentRowModal('combos', 0, 0);
     return !document.getElementById('combo-row-modal').classList.contains('hidden');
   });
   expect(opened).toBe(true);

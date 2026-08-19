@@ -38,8 +38,11 @@
     // below: a stub cached from before character_tabs.js existed will not have
     // loaded it, and in that case the DOM is the honest answer - whatever the
     // stale router actually rendered is what these buttons have to match.
+    // includeOptional for the same reason js/page_boot.js passes it: this
+    // RE-registers the whole strip, and dropping the optional buttons here
+    // would unbind a Techs tab that page_boot had already bound.
     const staticTabIds = () => (window.getCharacterTabIds
-        ? window.getCharacterTabIds()
+        ? window.getCharacterTabIds({ includeOptional: true })
         : Array.from(document.querySelectorAll('.character-nav button[id^="nav-"]'))
             .map(b => b.id.slice(4))
             .filter(id => id !== ULTIMATE_TAB_ID));

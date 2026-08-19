@@ -30,6 +30,11 @@ const PAGE_FLAGS = [
 
 let pageMetaRows = [];
 
+// page_id -> tab_settings, read from page_data rather than site_pages. Kept
+// separate because the two tables are saved separately: site_pages reaches the
+// site at the next regeneration, page_data on the next page load.
+let pageMetaTabSettings = {};
+
 async function loadPageMeta() {
     const select = document.getElementById('page-meta-select');
     const results = document.getElementById('page-meta-results');
@@ -42,6 +47,22 @@ async function loadPageMeta() {
         .order('sort_order');
 
     if (error) { results.innerHTML = contentNotDeployedMessage(error, 'Page details'); return; }
+
+    // Not awaited alongside the query above: a page with no page_data row yet
+    // is normal (a page created here has one only once somebody edits it), and
+    // the whole card must still work when this table is unreachable - the
+    // migration adding tab_settings lands with a release, so between merging
+    // this and that release the column genuinely does not exist.
+    pageMetaTabSettings = {};
+    try {
+        const { data: tabRows, error: tabErr } = await window.supabaseClient
+            .from('page_data').select('page_id, tab_settings');
+        if (!tabErr && tabRows) {
+            tabRows.forEach(row => { pageMetaTabSettings[row.page_id] = row.tab_settings || {}; });
+        }
+    } catch (e) {
+        console.warn('[Owner] Optional tab settings unavailable:', e);
+    }
 
     pageMetaRows = data || [];
     results.innerHTML = '';
@@ -80,6 +101,33 @@ function renderPageMetaFields() {
         document.getElementById('page-meta-tier').value = row.tier || '';
         document.getElementById('page-meta-release').value = row.release_date || '';
     }
+
+    renderPageMetaTabs(row, isCharacter);
+}
+
+// One checkbox per OPTIONAL tab in the vocabulary, read from
+// js/character_tabs.js rather than naming Techs. A second optional tab is then
+// a registry entry and nothing else - which is the whole reason the flag is a
+// jsonb object keyed by tab id instead of a techs_enabled column.
+function renderPageMetaTabs(row, isCharacter) {
+    const block = document.getElementById('page-meta-tabs-block');
+    const host = document.getElementById('page-meta-tabs');
+    if (!block || !host) return;
+
+    const optional = window.getOptionalCharacterTabs ? window.getOptionalCharacterTabs() : [];
+
+    // Character pages only: the tab vocabulary is a character's, so offering
+    // it on a system page would be an edit that means nothing.
+    block.hidden = !isCharacter || optional.length === 0;
+    if (block.hidden) { host.innerHTML = ''; return; }
+
+    const settings = pageMetaTabSettings[row.page_id] || {};
+    host.innerHTML = optional.map(tab => `
+        <label class="page-meta-flag">
+            <input type="checkbox" class="page-meta-tab-checkbox" data-tab="${ownerEscape(tab.id)}"${settings[tab.id] === true ? ' checked' : ''}>
+            <span>${ownerEscape(tab.label)} tab</span>
+        </label>
+    `).join('');
 }
 
 async function savePageMeta() {
@@ -106,6 +154,14 @@ async function savePageMeta() {
     btn.disabled = true;
     const { error } = await window.supabaseClient
         .from('site_pages').update(payload).eq('page_id', row.page_id);
+
+    // Optional tabs go to a different table, so they are a second write. Done
+    // after the first succeeds rather than in parallel: if site_pages fails
+    // there is nothing to report about tabs, and two independent failures in
+    // one message is not something anyone can act on.
+    let tabError = null;
+    if (!error) tabError = await savePageMetaTabs(row);
+
     btn.disabled = false;
 
     if (error) {
@@ -114,7 +170,43 @@ async function savePageMeta() {
     }
 
     Object.assign(row, payload);
-    results.innerHTML = `<span class="owner-success-text">Saved. "${ownerEscape(row.name)}" updates on the site after the next regeneration run.</span>`;
+
+    if (tabError) {
+        results.innerHTML = `<p class="admin-error-text">Details saved, but the optional tabs did not: ${ownerEscape(tabError.message)}</p>`;
+        return;
+    }
+
+    const tabsShown = !document.getElementById('page-meta-tabs-block').hidden;
+    results.innerHTML = `<span class="owner-success-text">Saved. "${ownerEscape(row.name)}" updates on the site after the next regeneration run`
+        + (tabsShown ? `; optional tabs take effect on the next page load.` : `.`)
+        + `</span>`;
+}
+
+/**
+ * Writes the optional-tab flags into page_data.tab_settings.
+ *
+ * Merged into whatever is already there rather than replacing it, so a tab id
+ * this build does not know about - one added by a newer deploy while this tab
+ * was open - is not silently dropped by an older client.
+ *
+ * upsert with the page_id, because a character nobody has edited yet has no
+ * page_data row at all. desc_data and frame_data are left out of the payload
+ * on purpose: PostgREST's ON CONFLICT DO UPDATE only writes the columns it is
+ * given, so this cannot clobber a page's content.
+ */
+async function savePageMetaTabs(row) {
+    const boxes = Array.from(document.querySelectorAll('.page-meta-tab-checkbox'));
+    if (!boxes.length) return null;
+
+    const settings = { ...(pageMetaTabSettings[row.page_id] || {}) };
+    boxes.forEach(box => { settings[box.dataset.tab] = box.checked; });
+
+    const { error } = await window.supabaseClient
+        .from('page_data')
+        .upsert([{ page_id: row.page_id, page_type: row.page_type, tab_settings: settings }], { onConflict: 'page_id' });
+
+    if (!error) pageMetaTabSettings[row.page_id] = settings;
+    return error || null;
 }
 
 document.addEventListener('DOMContentLoaded', () => {

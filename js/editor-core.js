@@ -135,7 +135,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.currentEditorPageType = pageType;
 
-    const tabId = urlParams.get('tab') || 'overview';
+    // `let`, because an optional tab that this character does not have has to
+    // be corrected away once the page row lands - a hand-typed or stale
+    // ?tab=techs would otherwise open a Techs editor on a character with no
+    // Techs tab, and everything typed into it would submit deltas nobody can
+    // see. The correction is below, next to the fetch.
+    let tabId = urlParams.get('tab') || 'overview';
     const moveId = urlParams.get('move');
     
     const editTicketId = urlParams.get('editTicket'); 
@@ -218,6 +223,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .single();
                     
                 if (!error && data) cloudData = data;
+
+                // Which optional tabs this character has, before the tab strip
+                // or any editor is built. Without it the editor would offer
+                // Techs on every character, which is the half of the feature
+                // the owner actually asked for ("not visible even in the
+                // editor and the admin preview").
+                if (typeof window.applyOptionalTabsFromPageRow === 'function') {
+                    window.applyOptionalTabsFromPageRow(cloudData);
+
+                    // ?tab= naming a tab this character does not have falls
+                    // back to the default, the same way an undeclared ?mode=
+                    // does in js/character_modes.js.
+                    const reachable = window.getCharacterTabIds({ includeInjected: true, editableOnly: true });
+                    if (pageType === 'character' && !reachable.includes(tabId)) {
+                        tabId = window.getDefaultCharacterTabId();
+                    }
+                }
                 
                 // IF INTERCEPTING: Fetch the target ticket from the queue
                 if (editTicketId) {

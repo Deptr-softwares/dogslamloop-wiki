@@ -53,13 +53,24 @@ window.buildPageSkeleton = function (route, rootPath) {
     // system pages already work is a much larger data-model change (see
     // description.js:640-828, which is shape-driven rather than tab-driven)
     // and is explicitly out of scope for v0.9.
+    //
+    // includeOptional, because this is markup rather than a decision about what
+    // a reader can reach. The page row that says whether this character has the
+    // Techs tab has not been fetched yet - this script runs as the first
+    // element in <body> - so the button and panel ship for every character and
+    // window.applyOptionalTabVisibility() un-hides them once the answer lands
+    // (js/character_tabs.js). Same arrangement edit.html has always used for
+    // the Ultimate button. `optionalHidden` below is what makes the default
+    // OFF: a character whose fetch never completes shows one tab too few, not
+    // an empty tab nobody can fill.
     const DEFAULT_CHARACTER_TABS = (window.getCharacterTabs
-        ? window.getCharacterTabs()
+        ? window.getCharacterTabs({ includeOptional: true })
         : []
     ).map(t => ({
         id: t.id,
         label: t.label,
         classes: t.isDefault ? t.panelClass : `${t.panelClass} hidden`,
+        optionalHidden: !!t.optional,
     }));
 
     if (!DEFAULT_CHARACTER_TABS.length && !route.tabs) {
@@ -156,7 +167,7 @@ ${withToc ? `
 
     function characterMain() {
         const navButtons = tabs.map((t, i) => `
-                    <button id="nav-${esc(t.id)}" class="btn-manga btn-manga-slanted${i === 0 ? ' active' : ''}"><div class="btn-manga-content"><span class="btn-manga-text">${esc(t.label)}</span></div></button>`).join('');
+                    <button id="nav-${esc(t.id)}" class="btn-manga btn-manga-slanted${i === 0 ? ' active' : ''}${t.optionalHidden ? ' hidden' : ''}"><div class="btn-manga-content"><span class="btn-manga-text">${esc(t.label)}</span></div></button>`).join('');
 
         const tabDivs = tabs.map(t =>
             `            <div id="tab-${esc(t.id)}" class="${esc(t.classes)}"></div>`).join('\n');
