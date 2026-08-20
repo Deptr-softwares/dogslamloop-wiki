@@ -291,14 +291,27 @@ document.addEventListener('keydown', (e) => {
 });
 
 // --- AUTO-AUTHOR INJECTOR ---
+/**
+ * A fresh block of `type`, with NO author credit.
+ *
+ * It used to stamp window.currentGlobalUsername onto any block whose template
+ * had an `author` field. Two things were wrong with that, and the owner asked
+ * for both to stop (v0.16 fine-tuning 7, pulled forward here because a combo
+ * card made it unrecoverable):
+ *
+ *   Credit is the contributor's CHOICE. Plenty of people would rather not put
+ *   their name on the site, and opting out should not require noticing a
+ *   pre-filled field and clearing it.
+ *
+ *   It duplicated the name into the compiled contributor list underneath the
+ *   tab, so one person writing four blocks was credited four times.
+ *
+ * The name is kept as the function's name rather than renamed to something
+ * like spawnBlock: every js/ file shares one global lexical scope, four call
+ * sites use this, and a rename is churn with a collision risk for no gain.
+ */
 window.spawnBlockWithAuthor = function(type) {
-    const newBlock = JSON.parse(JSON.stringify(blockTemplates[type]));
-    
-    if (newBlock.author !== undefined && window.currentGlobalUsername && window.currentGlobalUsername !== "Anonymous") {
-        newBlock.author = window.currentGlobalUsername;
-    }
-    
-    return newBlock;
+    return JSON.parse(JSON.stringify(blockTemplates[type]));
 };
 
 const blockTemplates = {

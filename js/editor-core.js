@@ -927,9 +927,84 @@ document.addEventListener('DOMContentLoaded', async () => {
                         });
                     };
 
+                    // --- ORDER ---
+                    //
+                    // Every scan above pairs local against cloud by IDENTITY,
+                    // which is what makes them stable - but it also means a
+                    // list whose entries only moved produces nothing at all,
+                    // and the contributor is told "no changes detected".
+                    //
+                    // One payload per list, naming the new sequence. Emitted
+                    // only when the sequence actually differs, so an ordinary
+                    // edit does not carry a redundant order delta on every
+                    // list it did not touch.
+                    //
+                    // The key is the dotted path js/editor-reorder.js names its
+                    // strips by, so the control that reorders and the delta
+                    // that records it agree without a second registry.
+                    const scanOrder = (spec, localList, cloudList, identity) => {
+                        const local = (localList || []).map(identity);
+                        const cloud = (cloudList || []).map(identity);
+
+                        // BACKWARD COMPATIBILITY, FIRST LINE.
+                        //
+                        // This reads page_data written long before the scope
+                        // existed, and an order delta is only meaningful when
+                        // every entry has a UNIQUE identity to order by. An
+                        // entry carrying none, or two sharing one - combo group
+                        // titles are contributor text and js/description.js
+                        // already notes two groups may share one - has no
+                        // single correct answer, so nothing is emitted and the
+                        // reorder simply is not recorded. Losing a reorder is
+                        // visible and repeatable; shuffling somebody's page is
+                        // neither. applyDeltaToData refuses the same two
+                        // shapes, so this is the first of two lines rather than
+                        // the only one.
+                        const usable = (arr) => arr.length > 0
+                            && arr.every(v => v !== null && v !== undefined && v !== '')
+                            && new Set(arr.map(String)).size === arr.length;
+                        if (!usable(local) || !usable(cloud)) return;
+
+                        const l = local.map(String);
+                        const c = cloud.map(String);
+
+                        // Same members, different sequence. A list that gained
+                        // or lost an entry is already covered by the entry
+                        // scans, and comparing raw sequences there would emit
+                        // an order delta for every ordinary add.
+                        if (l.length !== c.length) return;
+                        if (l.join(' ') === c.join(' ')) return;
+                        if ([...l].sort().join(' ') !== [...c].sort().join(' ')) return;
+
+                        payloadsToInsert.push(buildPayload('order', spec, l));
+                    };
+
+                    const scanEveryOrder = () => {
+                        const desc = window.currentEditorDescData || {};
+                        const cloudDesc = window.originalCloudDescData || {};
+                        const frame = window.currentEditorFrameData || {};
+                        const cloudFrame = window.originalCloudFrameData || {};
+
+                        (window.FRAME_MOVE_CATEGORIES || []).forEach(cat => {
+                            scanOrder(`frame.${cat}`, frame[cat], cloudFrame[cat], m => (m ? m.id : null));
+                        });
+
+                        // Driven by the vocabulary, so a keyed section added
+                        // later is reorderable without another edit here.
+                        (window.getKeyedSections ? window.getKeyedSections() : []).forEach(s => {
+                            scanOrder(`desc.${s.field}`, desc[s.field], cloudDesc[s.field],
+                                e => (e ? e[s.keyField] : null));
+                        });
+
+                        // The Overview tab's custom tabs, which are author-
+                        // ordered and are not a keyed section.
+                        scanOrder('desc.extras', desc.extras, cloudDesc.extras, e => (e ? e.title : null));
+                    };
+
                     const scanEveryTab = () => {
                         (window.FRAME_MOVE_CATEGORIES || []).forEach(scanMoveTab);
                         scanOverview();
+                        scanEveryOrder();
                         // Driven by the vocabulary, so a section added there is
                         // swept here without a second edit. Missing one is
                         // silent - the edits simply never become deltas.

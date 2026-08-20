@@ -701,6 +701,105 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
         return { newDesc, newFrame };
     }
 
+    // --- ORDER ---
+    //
+    // The one thing a delta could not say. Every other scope names an ENTRY and
+    // replaces it; nothing named the SEQUENCE, so reordering was invisible at
+    // both ends:
+    //
+    //   The submit scan pairs local against cloud by identity
+    //   (`cloudMoves.find(old => old.id === m.id)`), so a move that only
+    //   changed position has a byte-identical partner and produces no payload -
+    //   the editor reported "no changes detected" and refused to submit.
+    //
+    //   And this function replaces in place (`findIndex` then assign), so even
+    //   a ticket that did carry the new order would have written each entry
+    //   back into the slot it already occupied.
+    //
+    // Together that is the owner's report: reorder alone would not submit, and
+    // reorder plus a wording change submitted, applied the wording, and left
+    // the order untouched.
+    //
+    // `key` is the dotted path js/editor-reorder.js already names its lists by
+    // - "frame.skills", "desc.comboGroups" - so the strip that does the
+    // reordering and the delta that records it use one vocabulary. `payload` is
+    // the identity of each entry in the new order.
+    //
+    // Entries the payload does not mention are KEPT, appended in their existing
+    // relative order. A reorder must never be able to delete: the ticket was
+    // raised against a snapshot, and anything added since is not this delta's
+    // business.
+    if (scope === 'order') {
+        const parts = String(key || '').split('.');
+        const rootName = parts.shift();
+        const root = rootName === 'frame' ? newFrame : newDesc;
+
+        let parent = root;
+        const last = parts.pop();
+        for (const part of parts) {
+            const step = /^\d+$/.test(part) ? Number(part) : part;
+            if (parent === null || parent === undefined) { parent = null; break; }
+            parent = parent[step];
+        }
+
+        const list = parent && last !== undefined ? parent[last] : null;
+        if (!Array.isArray(list) || !Array.isArray(payload)) {
+            console.error(`[Delta] order names "${key}", which is not a list on this page.`);
+            return { newDesc, newFrame };
+        }
+
+        // Identity is the id for a move and the key field for a keyed entry;
+        // both are resolved by trying each in turn rather than by the caller
+        // having to say which, because one scope covers both kinds of list.
+        const identify = (entry) => {
+            if (!entry || typeof entry !== 'object') return null;
+            for (const field of ['id', 'title', 'opponent', 'topic', 'starter', 'theory', 'name']) {
+                if (entry[field] !== undefined && entry[field] !== null) return String(entry[field]);
+            }
+            return null;
+        };
+
+        // BACKWARD COMPATIBILITY: WHEN IN DOUBT, CHANGE NOTHING.
+        //
+        // This runs against page_data written long before the scope existed,
+        // and two shapes in there make a reorder ambiguous:
+        //
+        //   An entry with no identifiable field at all - older content, or a
+        //   list this scope was never meant for.
+        //
+        //   Two entries sharing one identity. Combo group titles are
+        //   contributor text and js/description.js already notes two groups may
+        //   share a title, so this is not hypothetical.
+        //
+        // Either way there is no single correct answer, and guessing would
+        // silently shuffle a reader's page. Refusing leaves the list exactly as
+        // it was - the reorder is lost, which is visible and recoverable, while
+        // corruption is neither. The scan in js/editor-core.js declines to emit
+        // in both cases too, so this is the second line rather than the first.
+        const ids = list.map(identify);
+        if (ids.some(id => id === null)) {
+            console.warn(`[Delta] order "${key}" skipped: an entry has no identity to order by.`);
+            return { newDesc, newFrame };
+        }
+        if (new Set(ids).size !== ids.length) {
+            console.warn(`[Delta] order "${key}" skipped: two entries share an identity.`);
+            return { newDesc, newFrame };
+        }
+
+        // Entries the payload does not name KEEP THEIR INDEX rather than being
+        // pushed to the end. A ticket is raised against a snapshot, so anything
+        // added since is not this delta's business - and appending it would
+        // move content the contributor never touched.
+        const wanted = payload.map(String).filter(id => ids.includes(id));
+        const named = new Set(wanted);
+        const queue = wanted.map(id => list[ids.indexOf(id)]);
+
+        const ordered = list.map(entry => (named.has(identify(entry)) ? queue.shift() : entry));
+
+        parent[last] = ordered;
+        return { newDesc, newFrame };
+    }
+
     // Whole-value block sections. The fixed four, plus any declared in
     // js/character_tabs.js FIXED_BLOCK_SECTIONS - comboIntro is one, and
     // leaving it out is precisely how a Starter Guide delta reported success
