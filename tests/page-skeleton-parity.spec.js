@@ -62,7 +62,11 @@ const EXPECTED_CHARACTER_TABS = (() => {
     require('path').join(__dirname, '..', 'js', 'character_tabs.js'), 'utf8');
   const fakeWindow = {};
   new Function('window', src)(fakeWindow);
-  return fakeWindow.getCharacterTabs().map(t => ({
+  // includeOptional: this describes the skeleton page_router.js BUILDS, and it
+  // builds the optional tabs too - hidden, for applyOptionalTabVisibility to
+  // un-hide once the page row says the character has them. Whether one is
+  // visible is tests/techs-tab.spec.js's claim, not this file's.
+  return fakeWindow.getCharacterTabs({ includeOptional: true }).map(t => ({
     id: `tab-${t.id}`,
     classes: t.isDefault ? t.panelClass.split(' ') : t.panelClass.split(' ').concat('hidden'),
   }));

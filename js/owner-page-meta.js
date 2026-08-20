@@ -198,7 +198,20 @@ async function savePageMetaTabs(row) {
     const boxes = Array.from(document.querySelectorAll('.page-meta-tab-checkbox'));
     if (!boxes.length) return null;
 
-    const settings = { ...(pageMetaTabSettings[row.page_id] || {}) };
+    const stored = pageMetaTabSettings[row.page_id] || {};
+
+    // Nothing to do unless a box actually MOVED. Writing on every SAVE DETAILS
+    // click would touch page_data as a side effect of saving site_pages fields
+    // that have nothing to do with tabs - and for a page with no page_data row
+    // yet, the upsert would CREATE one with desc_data and frame_data NULL.
+    // That is exactly the shape that made the Main Dashboard unsaveable
+    // (20260818000001): a row NULL in either column could not be updated by
+    // anything until the trigger was fixed. Saving a page's archetype should
+    // not quietly manufacture one.
+    const changed = boxes.some(box => (stored[box.dataset.tab] === true) !== box.checked);
+    if (!changed) return null;
+
+    const settings = { ...stored };
     boxes.forEach(box => { settings[box.dataset.tab] = box.checked; });
 
     const { error } = await window.supabaseClient

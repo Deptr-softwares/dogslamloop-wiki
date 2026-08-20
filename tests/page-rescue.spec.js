@@ -232,7 +232,10 @@ test('a rescued character page gets the full character skeleton', async ({ page 
   // pinned: the claim is that the rescue builds a character strip at all, and
   // a literal would fail every time a tab is added for reasons unrelated to
   // the rescue path.
-  const expectedTabs = await page.evaluate(() => window.getCharacterTabIds().length);
+  // includeOptional: the rescue path builds the same skeleton page_router.js
+  // does, and that includes the optional tabs drawn hidden. Counting buttons
+  // counts hidden ones too.
+  const expectedTabs = await page.evaluate(() => window.getCharacterTabIds({ includeOptional: true }).length);
   await expect(page.locator('.character-nav .btn-manga')).toHaveCount(expectedTabs, booted);
   await expect(page.locator('#tab-overview')).toContainText('Brand new.', booted);
 });
