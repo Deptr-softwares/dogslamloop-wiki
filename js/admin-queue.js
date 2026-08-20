@@ -240,7 +240,7 @@ function resetPreviewState() {
     const tabNav = document.getElementById('preview-tab-nav');
     if (tabNav) tabNav.classList.add('hidden');
 
-    ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'].forEach(tab => {
+    window.getCharacterTabIds({ editableOnly: true }).forEach(tab => {
         const el = document.getElementById(`tab-${tab}`);
         const btn = document.getElementById(`nav-${tab}`);
         if (el) { el.innerHTML = ''; el.classList.add('hidden'); }

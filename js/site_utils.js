@@ -210,11 +210,10 @@ window.applyMediaFraming = function(mediaEl, wrapperEl, media) {
 // top-level m1s/skills/specials already are.
 window.BASE_MODE_ID = 'base';
 
-// The frame-data arrays that hold moves. `ultimateAtk` is the fourth, added
-// for base-only characters: they have no modes to switch between, their
-// ultimate being a single big attack rather than a whole replacement kit, so
-// it renders as one extra tab instead.
-window.FRAME_MOVE_CATEGORIES = ['m1s', 'skills', 'specials', 'ultimateAtk'];
+// window.FRAME_MOVE_CATEGORIES moved to js/character_tabs.js, which loads
+// before this file on every page. It is derived from the tab vocabulary there
+// (the tabs marked `frameMoves`), so which tabs hold frame data is declared
+// once, next to the tabs themselves.
 
 // --- BLOCKED MEDIA ---
 //
@@ -238,6 +237,12 @@ window.FRAME_MOVE_CATEGORIES = ['m1s', 'skills', 'specials', 'ultimateAtk'];
 // its public storage URL - anyone holding the direct link keeps it. Taking it
 // down for real is deleting the object, which stays the owner's job.
 const BLOCKED_MEDIA_NOTICE = 'Media removed by a moderator';
+
+// The same fact, in one word, for the places where the full sentence does not
+// fit: a video BUTTON in a table cell or on a combo card is a small control,
+// and a full-width notice in its place is bulkier than the thing it replaced
+// (owner, 2026-08-18).
+const BLOCKED_MEDIA_LABEL = 'Blocked';
 
 let blockedMediaPromise = null;
 
@@ -285,30 +290,61 @@ window.isBlockedMediaSrc = function(src, blocked) {
 
 function replaceWithBlockedNotice(element) {
     if (!element || !element.parentNode) return;
-    const notice = document.createElement('div');
-    notice.className = 'media-blocked-notice';
+
+    // A video button gets the compact form. The REMOVAL is identical either
+    // way - the URL and the click target both go - so this is only a question
+    // of what fits where the thing used to be.
+    const inline = !!(element.matches && element.matches('[data-wiki-video]'));
+
+    const notice = document.createElement(inline ? 'span' : 'div');
+    notice.className = inline ? 'media-blocked-inline' : 'media-blocked-notice';
     // textContent, not innerHTML - and the string is a constant anyway.
-    notice.textContent = BLOCKED_MEDIA_NOTICE;
+    notice.textContent = inline ? BLOCKED_MEDIA_LABEL : BLOCKED_MEDIA_NOTICE;
     element.parentNode.replaceChild(notice, element);
+}
+
+// Every element that can name a media file, and every attribute it can name it
+// in. data-lazy-src because videos carry their real URL there until something
+// scrolls them into view; data-wiki-video because a video in a table cell or on
+// a combo card is a BUTTON that opens a player (v0.15 item 11), and a button is
+// not an <img> or a <video> so nothing here used to see it.
+const BLOCKED_MEDIA_SELECTOR =
+    'img[src], video[src], video[data-lazy-src], source[src], [data-wiki-video]';
+const BLOCKED_MEDIA_ATTRS = ['src', 'data-lazy-src', 'data-wiki-video'];
+
+function blockedMediaSrcOf(element) {
+    for (let i = 0; i < BLOCKED_MEDIA_ATTRS.length; i++) {
+        const value = element.getAttribute(BLOCKED_MEDIA_ATTRS[i]);
+        if (value) return value;
+    }
+    return null;
+}
+
+// What actually comes off the page, which is not always the element that
+// matched. A <source> lives inside the media element it belongs to, and a
+// player's <video> lives inside a shell carrying its own play, sound and
+// duration controls - replacing either one alone leaves working chrome wired
+// to nothing, which reads as a broken player rather than a moderated one.
+function blockedMediaTarget(element) {
+    let target = element;
+    if (target.tagName === 'SOURCE' && target.parentNode) target = target.parentNode;
+    const player = target.closest ? target.closest('[data-wiki-player]') : null;
+    return player || target;
 }
 
 window.sweepBlockedMedia = function(root, blocked) {
     if (!root || !blocked || !blocked.size) return 0;
 
-    // data-lazy-src as well as src: videos on this site carry their real URL
-    // there until something scrolls them into view, so checking src alone
-    // would miss every clip until the moment it started playing.
-    const candidates = root.querySelectorAll
-        ? root.querySelectorAll('img[src], video[src], video[data-lazy-src], source[src]')
-        : [];
+    const candidates = root.querySelectorAll ? root.querySelectorAll(BLOCKED_MEDIA_SELECTOR) : [];
 
     let removed = 0;
     candidates.forEach(element => {
-        const src = element.getAttribute('src') || element.getAttribute('data-lazy-src');
-        if (!window.isBlockedMediaSrc(src, blocked)) return;
-        // A <source> lives inside the media element it belongs to; replacing
-        // the source alone would leave a broken player behind.
-        replaceWithBlockedNotice(element.tagName === 'SOURCE' ? element.parentNode : element);
+        // A node replaced earlier in this same sweep - a player shell taking
+        // its own video with it, say - is no longer on the page, and replacing
+        // a detached node throws.
+        if (!element.parentNode) return;
+        if (!window.isBlockedMediaSrc(blockedMediaSrcOf(element), blocked)) return;
+        replaceWithBlockedNotice(blockedMediaTarget(element));
         removed += 1;
     });
     return removed;
@@ -327,9 +363,10 @@ window.initBlockedMediaGuard = async function() {
                 window.sweepBlockedMedia(node, blocked);
                 // The node itself, when media is appended directly rather
                 // than as part of a rendered subtree.
-                if (node.matches && node.matches('img[src], video[src], video[data-lazy-src]')) {
-                    const src = node.getAttribute('src') || node.getAttribute('data-lazy-src');
-                    if (window.isBlockedMediaSrc(src, blocked)) replaceWithBlockedNotice(node);
+                if (node.matches && node.matches(BLOCKED_MEDIA_SELECTOR)) {
+                    if (window.isBlockedMediaSrc(blockedMediaSrcOf(node), blocked)) {
+                        replaceWithBlockedNotice(blockedMediaTarget(node));
+                    }
                 }
             });
         }
@@ -448,6 +485,65 @@ window.unwrapModeDelta = function(scope, key) {
     return { modeId, scope: innerScope, key: parts.join('::') || 'full' };
 };
 
+// --- SYSTEM PAGE SECTION IDENTITY ---
+//
+// A system page is `{ tabs: [ { tabId, tabLabel, sections: [ { sectionTitle,
+// blocks } ] } ] }`, and NOTHING IN IT HAS A STABLE ID. Sections carry no
+// identifier at all, and `tabId` is re-slugged from the label on every rename
+// (js/editor-system.js), so it is a display name wearing an id's clothes.
+//
+// Keys are therefore DERIVED, not stored. Both sides of a delta compute the
+// same key from the same content, so nothing has to be migrated and no
+// existing page changes shape - the same reasoning as the section anchors in
+// item 5, and the same trade: a RENAME reads as a delete plus an add, exactly
+// as renaming a matchup opponent already does.
+//
+// Position is deliberately not part of the key. Item 8 makes sections
+// reorderable, and a positional key would make every reorder look like every
+// section changing at once.
+window.slugifySystemKey = function(text) {
+    return String(text == null ? '' : text)
+        .trim().toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'untitled';
+};
+
+window.indexSystemTabs = function(descData) {
+    const tabs = (descData && Array.isArray(descData.tabs)) ? descData.tabs : [];
+    const seen = Object.create(null);
+    return tabs.map((tab, tabIdx) => {
+        const base = window.slugifySystemKey((tab && (tab.tabId || tab.tabLabel)) || '');
+        seen[base] = (seen[base] || 0) + 1;
+        const tabKey = seen[base] === 1 ? base : `${base}-${seen[base]}`;
+        return { tabKey, tabIdx, tab };
+    });
+};
+
+window.indexSystemSections = function(descData) {
+    const out = [];
+    window.indexSystemTabs(descData).forEach(({ tabKey, tabIdx, tab }) => {
+        const sections = (tab && Array.isArray(tab.sections)) ? tab.sections : [];
+        const seen = Object.create(null);
+        sections.forEach((section, secIdx) => {
+            const base = window.slugifySystemKey((section && section.sectionTitle) || '');
+            seen[base] = (seen[base] || 0) + 1;
+            const secKey = seen[base] === 1 ? base : `${base}-${seen[base]}`;
+            out.push({ tabKey, secKey, key: `${tabKey}::${secKey}`, tabIdx, secIdx, tab, section });
+        });
+    });
+    return out;
+};
+
+window.splitSystemKey = function(key) {
+    const parts = String(key == null ? '' : key).split('::');
+    return { tabKey: parts[0] || '', secKey: parts.slice(1).join('::') || '' };
+};
+
+window.findSystemTab = function(descData, tabKey) {
+    const hit = window.indexSystemTabs(descData).find(t => t.tabKey === tabKey);
+    return hit ? hit.tab : null;
+};
+
 // --- DELTA INJECTION ENGINE ---
 // Shared by admin.js, editor.js, and history.js, which each need to
 // reconstruct a full description/frame-data object from a stored
@@ -512,12 +608,208 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
     }
 
     // --- Safely intercept full modular replacements ---
+    //
+    // WHOLE-DOCUMENT REPLACEMENT, AND THE REASON IT IS BEING RETIRED. Every
+    // system and tier list submission used to arrive as this one scope carrying
+    // the entire desc_data, so approving two tickets for one page silently
+    // reverted the first: each payload was captured from the live page as the
+    // contributor found it, and the second wrote its whole snapshot over the
+    // first's approved change. Nothing warned anyone - not the queue, not the
+    // reviewer, not the contributor whose work disappeared.
+    //
+    // Kept, because tickets submitted before the scopes below existed are still
+    // sitting in the queue and have to stay reviewable and applicable.
     if (scope === 'system_data') {
         return { newDesc: JSON.parse(JSON.stringify(payload)), newFrame };
     }
 
-    if (['profile', 'playstyle', 'overview', 'strategy'].includes(scope)) {
-        newDesc[scope] = payload;
+    // One section of one tab. The scope that replaces system_data for new
+    // submissions - see js/editor-system.js buildSystemDeltas.
+    if (scope === 'system_section') {
+        const { tabKey, secKey } = window.splitSystemKey(key);
+        const tab = window.findSystemTab(newDesc, tabKey);
+        if (!tab) {
+            console.error(`[Delta] system_section names tab "${tabKey}", which this page no longer has.`, { key });
+            return { newDesc, newFrame };
+        }
+        if (!Array.isArray(tab.sections)) tab.sections = [];
+
+        const idx = window.indexSystemSections(newDesc)
+            .findIndex(e => e.tabKey === tabKey && e.secKey === secKey);
+
+        if (payload === null) {
+            if (idx > -1) {
+                const target = window.indexSystemSections(newDesc)[idx];
+                target.tab.sections.splice(target.secIdx, 1);
+            }
+        } else if (idx > -1) {
+            const target = window.indexSystemSections(newDesc)[idx];
+            target.tab.sections[target.secIdx] = payload;
+        } else {
+            // A section the contributor added. Appended rather than positioned:
+            // where it goes is the tab's business, and the tab ships its own
+            // order delta when the author moves things.
+            tab.sections.push(payload);
+        }
+        return { newDesc, newFrame };
+    }
+
+    // A tab's own metadata and the order of its sections - held apart from the
+    // sections themselves for the same reason the character mode toggle is held
+    // apart from its content: renaming a tab must not touch a single block.
+    if (scope === 'system_tab') {
+        if (!Array.isArray(newDesc.tabs)) newDesc.tabs = [];
+        const tabIdx = window.indexSystemTabs(newDesc).findIndex(t => t.tabKey === key);
+
+        if (payload === null) {
+            if (tabIdx > -1) newDesc.tabs.splice(tabIdx, 1);
+            return { newDesc, newFrame };
+        }
+        if (tabIdx === -1) {
+            newDesc.tabs.push(payload);
+            return { newDesc, newFrame };
+        }
+
+        const tab = newDesc.tabs[tabIdx];
+        const existing = tab.sections || [];
+        Object.keys(payload).forEach(k => { if (k !== 'sections' && k !== 'order') tab[k] = payload[k]; });
+
+        // Order arrives as a list of section keys, not as section content, so a
+        // reorder cannot carry a stale copy of anybody's prose with it.
+        if (Array.isArray(payload.order)) {
+            const byKey = new Map(window.indexSystemSections(newDesc)
+                .filter(e => e.tabKey === key)
+                .map(e => [e.secKey, e.section]));
+            const reordered = payload.order.map(k => byKey.get(k)).filter(Boolean);
+            existing.forEach(s => { if (!reordered.includes(s)) reordered.push(s); });
+            tab.sections = reordered;
+        }
+        return { newDesc, newFrame };
+    }
+
+    // A tier list's tiers and changelog, per tab. Not split per TIER: moving a
+    // character from A to S changes two tiers at once, so a per-tier scope would
+    // manufacture a conflict out of a single ordinary edit.
+    if (scope === 'tierlist_tiers' || scope === 'tierlist_changelog') {
+        const field = scope === 'tierlist_tiers' ? 'tiers' : 'changelog';
+        const tab = window.findSystemTab(newDesc, key);
+        if (!tab) {
+            console.error(`[Delta] ${scope} names tab "${key}", which this page no longer has.`);
+            return { newDesc, newFrame };
+        }
+        tab[field] = payload;
+        return { newDesc, newFrame };
+    }
+
+    // --- ORDER ---
+    //
+    // The one thing a delta could not say. Every other scope names an ENTRY and
+    // replaces it; nothing named the SEQUENCE, so reordering was invisible at
+    // both ends:
+    //
+    //   The submit scan pairs local against cloud by identity
+    //   (`cloudMoves.find(old => old.id === m.id)`), so a move that only
+    //   changed position has a byte-identical partner and produces no payload -
+    //   the editor reported "no changes detected" and refused to submit.
+    //
+    //   And this function replaces in place (`findIndex` then assign), so even
+    //   a ticket that did carry the new order would have written each entry
+    //   back into the slot it already occupied.
+    //
+    // Together that is the owner's report: reorder alone would not submit, and
+    // reorder plus a wording change submitted, applied the wording, and left
+    // the order untouched.
+    //
+    // `key` is the dotted path js/editor-reorder.js already names its lists by
+    // - "frame.skills", "desc.comboGroups" - so the strip that does the
+    // reordering and the delta that records it use one vocabulary. `payload` is
+    // the identity of each entry in the new order.
+    //
+    // Entries the payload does not mention are KEPT, appended in their existing
+    // relative order. A reorder must never be able to delete: the ticket was
+    // raised against a snapshot, and anything added since is not this delta's
+    // business.
+    if (scope === 'order') {
+        const parts = String(key || '').split('.');
+        const rootName = parts.shift();
+        const root = rootName === 'frame' ? newFrame : newDesc;
+
+        let parent = root;
+        const last = parts.pop();
+        for (const part of parts) {
+            const step = /^\d+$/.test(part) ? Number(part) : part;
+            if (parent === null || parent === undefined) { parent = null; break; }
+            parent = parent[step];
+        }
+
+        const list = parent && last !== undefined ? parent[last] : null;
+        if (!Array.isArray(list) || !Array.isArray(payload)) {
+            console.error(`[Delta] order names "${key}", which is not a list on this page.`);
+            return { newDesc, newFrame };
+        }
+
+        // Identity is the id for a move and the key field for a keyed entry;
+        // both are resolved by trying each in turn rather than by the caller
+        // having to say which, because one scope covers both kinds of list.
+        const identify = (entry) => {
+            if (!entry || typeof entry !== 'object') return null;
+            for (const field of ['id', 'title', 'opponent', 'topic', 'starter', 'theory', 'name']) {
+                if (entry[field] !== undefined && entry[field] !== null) return String(entry[field]);
+            }
+            return null;
+        };
+
+        // BACKWARD COMPATIBILITY: WHEN IN DOUBT, CHANGE NOTHING.
+        //
+        // This runs against page_data written long before the scope existed,
+        // and two shapes in there make a reorder ambiguous:
+        //
+        //   An entry with no identifiable field at all - older content, or a
+        //   list this scope was never meant for.
+        //
+        //   Two entries sharing one identity. Combo group titles are
+        //   contributor text and js/description.js already notes two groups may
+        //   share a title, so this is not hypothetical.
+        //
+        // Either way there is no single correct answer, and guessing would
+        // silently shuffle a reader's page. Refusing leaves the list exactly as
+        // it was - the reorder is lost, which is visible and recoverable, while
+        // corruption is neither. The scan in js/editor-core.js declines to emit
+        // in both cases too, so this is the second line rather than the first.
+        const ids = list.map(identify);
+        if (ids.some(id => id === null)) {
+            console.warn(`[Delta] order "${key}" skipped: an entry has no identity to order by.`);
+            return { newDesc, newFrame };
+        }
+        if (new Set(ids).size !== ids.length) {
+            console.warn(`[Delta] order "${key}" skipped: two entries share an identity.`);
+            return { newDesc, newFrame };
+        }
+
+        // Entries the payload does not name KEEP THEIR INDEX rather than being
+        // pushed to the end. A ticket is raised against a snapshot, so anything
+        // added since is not this delta's business - and appending it would
+        // move content the contributor never touched.
+        const wanted = payload.map(String).filter(id => ids.includes(id));
+        const named = new Set(wanted);
+        const queue = wanted.map(id => list[ids.indexOf(id)]);
+
+        const ordered = list.map(entry => (named.has(identify(entry)) ? queue.shift() : entry));
+
+        parent[last] = ordered;
+        return { newDesc, newFrame };
+    }
+
+    // Whole-value block sections. The fixed four, plus any declared in
+    // js/character_tabs.js FIXED_BLOCK_SECTIONS - comboIntro is one, and
+    // leaving it out is precisely how a Starter Guide delta reported success
+    // and wrote nothing.
+    const fixedScopes = ['profile', 'playstyle', 'overview', 'strategy']
+        .concat((window.FIXED_BLOCK_SECTIONS || []).map(f => f.scope));
+
+    if (fixedScopes.includes(scope)) {
+        const field = ((window.FIXED_BLOCK_SECTIONS || []).find(f => f.scope === scope) || {}).field || scope;
+        newDesc[field] = payload;
     }
     else if (scope === 'extra') {
         if (!newDesc.extras) newDesc.extras = [];
@@ -528,22 +820,30 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             if (idx > -1) newDesc.extras[idx] = payload; else newDesc.extras.push(payload);
         }
     }
-    else if (scope === 'matchup') {
-        if (!newDesc.matchups) newDesc.matchups = [];
+    // Every keyed section (js/character_tabs.js): matchups, counterplay,
+    // starterGuide, and anything declared there later.
+    //
+    // THIS IS THE LAST STEP OF APPLYING A TICKET, and an unrecognised scope
+    // used to fall all the way through to the return below - returning the data
+    // UNCHANGED, with no error. The reviewer got a success modal and nothing
+    // was written. That is what shipped for Starter Guide: it had a submit
+    // scan, a merge compiler entry, a diff and a renderer, and the one branch
+    // that actually writes the value did not know the scope existed.
+    //
+    // The missing `starterGuide` key on existing pages was NOT the cause - the
+    // `if (!newDesc[field])` below has always created it on first insert. The
+    // cause was that there was no branch to reach it.
+    else if (window.getKeyedSectionByScope && window.getKeyedSectionByScope(scope)) {
+        const section = window.getKeyedSectionByScope(scope);
+        const field = section.field;
+        const keyField = section.keyField;
+
+        if (!newDesc[field]) newDesc[field] = [];
         if (payload === null) {
-            newDesc.matchups = newDesc.matchups.filter(m => m.opponent !== key);
+            newDesc[field] = newDesc[field].filter(e => e[keyField] !== key);
         } else {
-            const idx = newDesc.matchups.findIndex(m => m.opponent === key);
-            if (idx > -1) newDesc.matchups[idx] = payload; else newDesc.matchups.push(payload);
-        }
-    }
-    else if (scope === 'counterplay') {
-        if (!newDesc.counterplay) newDesc.counterplay = [];
-        if (payload === null) {
-            newDesc.counterplay = newDesc.counterplay.filter(c => c.topic !== key);
-        } else {
-            const idx = newDesc.counterplay.findIndex(c => c.topic === key);
-            if (idx > -1) newDesc.counterplay[idx] = payload; else newDesc.counterplay.push(payload);
+            const idx = newDesc[field].findIndex(e => e[keyField] === key);
+            if (idx > -1) newDesc[field][idx] = payload; else newDesc[field].push(payload);
         }
     }
     // One delta per gallery item, keyed by name. A gallery is the one page
@@ -589,6 +889,19 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
             if (!newDesc.moveStrategies) newDesc.moveStrategies = {};
             newDesc.moveStrategies[moveId] = payload.desc_data || [];
         }
+    }
+    // Nothing matched. This used to return silently, which is how a Starter
+    // Guide ticket could pass every check, show the reviewer a success modal
+    // and write nothing at all. A scope this function does not understand is
+    // always a bug - either a new scope was added without a branch here, or
+    // js/character_tabs.js did not load and the keyed-section lookup above
+    // could not run.
+    else {
+        console.error(
+            `[Delta] No handler for scope "${scope}" - the edit was NOT applied. `
+            + `If this is a keyed section, check js/character_tabs.js loaded before this file.`,
+            { scope, key }
+        );
     }
 
     return { newDesc, newFrame };

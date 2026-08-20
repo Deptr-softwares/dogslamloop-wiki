@@ -11,6 +11,27 @@
  * itself.
  */
 
+// Writes the block buffer back into whichever entry of a keyed section is
+// open (js/character_tabs.js). currentStrategyBlocks is only ever written into
+// desc_data on sync, so skipping this drops whatever the contributor is typing
+// right now. Two separate sync paths need it, hence module scope.
+//
+// Guarded on the entry still existing: removeKeyedEntry clears the index, but a
+// sync racing a delete could otherwise write blocks into a slot that now holds
+// a different topic.
+//
+// Named with the section prefix rather than `flush` because every js/ file here
+// shares one global lexical scope - see tests/global-scope-collisions.spec.js.
+function flushKeyedSection(id, blocks) {
+    const section = window.getKeyedSectionByTab ? window.getKeyedSectionByTab(id) : null;
+    const idx = (window.currentKeyedIndex || {})[id];
+    if (!section || idx === undefined || !window.currentEditorDescData) return;
+    const entry = (window.currentEditorDescData[section.field] || [])[idx];
+    if (!entry) return;
+    entry.content = JSON.parse(JSON.stringify(blocks));
+}
+
+
 // --- INLINE TEXT DIFF ALGORITHM (SMART GROUPING) ---
 window.diffTextLCS = function(oldStr, newStr) {
     oldStr = String(oldStr || ''); 
@@ -97,7 +118,7 @@ window.triggerManualSync = async function() {
 
     // --- CHARACTER SYNC LOGIC ---
     const tabId = window.currentEditorTabId;
-    const frameTabs = window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials'];
+    const frameTabs = window.FRAME_MOVE_CATEGORIES;
 
     if (frameTabs.includes(tabId) && typeof window.loadMoveSection === 'function') {
         let activeMoveId = new URLSearchParams(window.location.search).get('move'); 
@@ -124,11 +145,25 @@ window.triggerManualSync = async function() {
             window.currentEditorDescData.matchups[window.currentMatchupIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
         }
         renderMatchupsPreview();
-    } else if (tabId === 'counterplay' && typeof renderCounterplayPreview === 'function') {
-        if (window.currentEditorDescData && window.currentCounterplayIndex !== undefined) {
-            window.currentEditorDescData.counterplay[window.currentCounterplayIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
-        }
-        renderCounterplayPreview();
+    } else if (window.getDocumentSections && window.getDocumentSections(tabId)) {
+        // A document tab (Combos, Techs). It needs its own branch for the same
+        // reason the keyed one below does - the buffer belongs to whichever of
+        // the three sections is open, and the tab is composed rather than being
+        // a single block list.
+        //
+        // WITHOUT THIS, COMBOS FELL THROUGH TO THE GENERIC ELSE, which calls
+        // populateTextSection('tab-combos', 'Editing combos', buffer) - blowing
+        // the composed tab away and leaving a bare block dump titled "Editing
+        // combos" behind. Found while generalising this for Techs; it has been
+        // the behaviour since the Combos tab shipped in v0.15.
+        if (typeof window.flushDocumentSection === 'function') window.flushDocumentSection();
+        window.renderDocumentPreview(tabId);
+    } else if (window.usesSharedKeyedUI && window.usesSharedKeyedUI(tabId)) {
+        // Any keyed section (js/character_tabs.js). Flushes the open entry's
+        // blocks back into it before redrawing, which is what stops the buffer
+        // being dropped when the contributor switches away.
+        flushKeyedSection(tabId, currentStrategyBlocks);
+        window.renderKeyedSectionPreview(tabId);
     } else if (typeof updateLivePreview === 'function') {
         updateLivePreview();
     }
@@ -209,7 +244,7 @@ function updateLivePreview(skipHistory = false) {
     // reason the preview looked like it was not picking up new content when
     // intercepting a ticket that carried no &tab=.
     const tabId = window.currentEditorTabId || urlParams.get('tab') || 'overview';
-    const frameTabs = window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials'];
+    const frameTabs = window.FRAME_MOVE_CATEGORIES;
 
     if (frameTabs.includes(tabId)) {
         let activeMoveId = urlParams.get('move'); 
@@ -260,11 +295,16 @@ function updateLivePreview(skipHistory = false) {
         }
         if (typeof renderMatchupsPreview === 'function') renderMatchupsPreview();
 
-    } else if (tabId === 'counterplay') {
-        if (window.currentEditorDescData && window.currentCounterplayIndex !== undefined && window.currentEditorDescData.counterplay[window.currentCounterplayIndex]) {
-            window.currentEditorDescData.counterplay[window.currentCounterplayIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
-        }
-        if (typeof renderCounterplayPreview === 'function') renderCounterplayPreview();
+    } else if (window.getDocumentSections && window.getDocumentSections(tabId)) {
+        // See the matching branch in triggerManualSync above. This is the call
+        // path that runs on every keystroke in a block, so it is the one that
+        // was destroying the Combos preview as it was typed into.
+        if (typeof window.flushDocumentSection === 'function') window.flushDocumentSection();
+        if (typeof window.renderDocumentPreview === 'function') window.renderDocumentPreview(tabId);
+
+    } else if (window.usesSharedKeyedUI && window.usesSharedKeyedUI(tabId)) {
+        flushKeyedSection(tabId, currentStrategyBlocks);
+        if (typeof window.renderKeyedSectionPreview === 'function') window.renderKeyedSectionPreview(tabId);
 
     } else {
         if (typeof window.populateTextSection === 'function') {
@@ -419,6 +459,22 @@ window.renderDiffView = function() {
                         b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
                         b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
                     }
+                    // A combo card nests like an accordion, plus its own
+                    // fields. Missing this means the reviewer sees the card
+                    // unchanged while its route or damage was rewritten.
+                    else if (b.type === 'theorybox') {
+                        b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
+                        b.oneliner = window.diffTextLCS(oldB.oneliner || '', newB.oneliner || '');
+                        b.damage = window.diffTextLCS(oldB.damage || '', newB.damage || '');
+                        b.difficulty = window.diffTextLCS(oldB.difficulty || '', newB.difficulty || '');
+                        const oldSeq = oldB.sequence || [];
+                        const newSeq = newB.sequence || [];
+                        if (!b.sequence) b.sequence = [];
+                        for (let j = 0; j < Math.max(oldSeq.length, newSeq.length); j++) {
+                            b.sequence[j] = window.diffTextLCS(oldSeq[j] || '', newSeq[j] || '');
+                        }
+                        b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
+                    }
                     
                     if (b.caption !== undefined) b.caption = window.diffTextLCS(oldB.caption || '', newB.caption || '');
                     if (b.author !== undefined) b.author = window.diffTextLCS(oldB.author || '', newB.author || '');
@@ -460,6 +516,13 @@ window.renderDiffView = function() {
                 `;
                 diffRenderQueue.push(() => {
                     if (typeof window.populateTextSection === 'function') window.populateTextSection(`diff-inline-${safeId}`, '', diffedBlocks);
+                    // Same pairing as the reviewer's view: the renderer escapes
+                    // the text, then the diff markers become tags. Without this
+                    // the contributor's own before/after preview shows raw
+                    // <ins class="diff-add"> instead of a diff.
+                    if (typeof window.resolveDiffMarkers === 'function') {
+                        window.resolveDiffMarkers(document.getElementById(`diff-inline-${safeId}`));
+                    }
                 });
             } else {
                 // Same diff-stacked-* classes admin.html's own raw/JSON diff view
@@ -500,7 +563,41 @@ window.renderDiffView = function() {
     compareAndRender('General Strategy', window.originalCloudDescData.strategy, window.currentEditorDescData.strategy, 'blocks');
     compareArrayOfObjects('Custom Tab', window.originalCloudDescData.extras, window.currentEditorDescData.extras, 'title', 'blocks');
     compareArrayOfObjects('Matchup', window.originalCloudDescData.matchups, window.currentEditorDescData.matchups, 'opponent', 'blocks');
-    compareArrayOfObjects('Counterplay Topic', window.originalCloudDescData.counterplay, window.currentEditorDescData.counterplay, 'topic', 'blocks');
+    // Every keyed section, so a new one appears in the change summary the
+    // contributor reads before submitting. One missing from here submits
+    // silently, which is the worst version of this bug.
+    (window.getKeyedSections ? window.getKeyedSections() : []).forEach(s => {
+        compareArrayOfObjects(s.entryLabel, window.originalCloudDescData[s.field],
+            window.currentEditorDescData[s.field], s.keyField, 'blocks');
+    });
+
+    // ORDER. Two different code paths decide whether a reorder counts: the
+    // submit scan in js/editor-core.js, which builds the delta, and this
+    // summary, which is what the contributor READS before pressing submit.
+    // Fixing only the first left the editor submitting a reorder while still
+    // telling the person making it that nothing had changed.
+    //
+    // Same members, different sequence - a list that gained or lost an entry
+    // is already reported by compareArrayOfObjects above.
+    const compareOrder = (label, oldList, newList, keyField) => {
+        const o = (oldList || []).map(e => (e ? e[keyField] : null)).filter(v => v != null).map(String);
+        const n = (newList || []).map(e => (e ? e[keyField] : null)).filter(v => v != null).map(String);
+        if (o.length !== n.length || !o.length) return;
+        if (o.join(' ') === n.join(' ')) return;
+        if ([...o].sort().join(' ') !== [...n].sort().join(' ')) return;
+        compareAndRender(`${label} order`, { order: o }, { order: n }, 'json');
+    };
+
+    compareOrder('Custom Tab', window.originalCloudDescData.extras, window.currentEditorDescData.extras, 'title');
+    (window.getKeyedSections ? window.getKeyedSections() : []).forEach(sec => {
+        compareOrder(sec.entryLabel, window.originalCloudDescData[sec.field],
+            window.currentEditorDescData[sec.field], sec.keyField);
+    });
+    (window.FRAME_MOVE_CATEGORIES || []).forEach(cat => {
+        const labels = window.getCharacterTabLabels ? window.getCharacterTabLabels() : {};
+        compareOrder(labels[cat] || cat, (window.originalCloudFrameData || {})[cat],
+            (window.currentEditorFrameData || {})[cat], 'id');
+    });
 
     const oldStrats = window.originalCloudDescData.moveStrategies || {};
     const newStrats = window.currentEditorDescData.moveStrategies || {};

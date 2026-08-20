@@ -4,20 +4,70 @@
  */
 
 // --- INLINE TEXT DIFF ALGORITHM (SMART GROUPING) ---
+//
+// MARKERS, NOT MARKUP. This used to escape the text and return real <ins>/<del>
+// tags, which worked for as long as the block renderer passed content through
+// untouched. v0.15 item 1 closed a stored-XSS hole by escaping at every
+// innerHTML interpolation in js/description.js - and that escaped this
+// function's tags a second time, so every prose diff in the review screen
+// rendered as visible `<ins class="diff-add">` and `&quot;` instead of as a
+// diff. Correct escaping, correct diff, and they cancelled each other out.
+//
+// The fix has to survive a renderer that escapes, without giving anything a way
+// to opt out of escaping - an opt-out flag would have to live on the block, and
+// blocks are contributor-submitted, so a crafted payload could set it.
+//
+// So the text stays RAW here and the boundaries are marked with control
+// characters. The renderer escapes the text exactly once, as it does for any
+// other content, and the markers pass through untouched because escapeHtml does
+// not alter them. resolveDiffMarkers then swaps them for the real tags.
+// Written as escape sequences on purpose. Typing the control characters
+// themselves leaves bytes that no editor shows and some tools treat as
+// binary - a literal NUL written that way once made git call a source file
+// binary in this repo.
+const DIFF_MARK_ADD_OPEN = '\u0011';
+const DIFF_MARK_ADD_CLOSE = '\u0012';
+const DIFF_MARK_DEL_OPEN = '\u0013';
+const DIFF_MARK_DEL_CLOSE = '\u0014';
+const DIFF_MARK_ANY = /[\u0011-\u0014]/g;
+
+window.DIFF_MARKERS = Object.freeze({
+    addOpen: DIFF_MARK_ADD_OPEN, addClose: DIFF_MARK_ADD_CLOSE,
+    delOpen: DIFF_MARK_DEL_OPEN, delClose: DIFF_MARK_DEL_CLOSE,
+});
+
+/**
+ * Turns the markers left by diffTextLCS into real <ins>/<del> tags, after the
+ * renderer has escaped everything around them.
+ *
+ * Takes an element and rewrites its innerHTML, so it runs once per rendered
+ * diff container rather than per field. The tags it writes carry no
+ * contributor-derived attributes - they are two fixed strings - so this cannot
+ * become an injection point even if a marker were somehow forged.
+ */
+window.resolveDiffMarkers = function(el) {
+    if (!el || !el.innerHTML) return;
+    if (!DIFF_MARK_ANY.test(el.innerHTML)) { DIFF_MARK_ANY.lastIndex = 0; return; }
+    DIFF_MARK_ANY.lastIndex = 0;
+
+    el.innerHTML = el.innerHTML
+        .split(DIFF_MARK_ADD_OPEN).join('<ins class="diff-add">')
+        .split(DIFF_MARK_ADD_CLOSE).join('</ins>')
+        .split(DIFF_MARK_DEL_OPEN).join('<del class="diff-del">')
+        .split(DIFF_MARK_DEL_CLOSE).join('</del>');
+};
+
 window.diffTextLCS = function(oldStr, newStr) {
-    // Escaped up front, before tokenizing - both inputs are contributor-
-    // submitted prose (a revision's actual paragraph/list/table content),
-    // rendered straight into innerHTML via the <del>/<ins> markup built
-    // below. Was previously unescaped - a real XSS gap, since this is a
-    // reviewer's authenticated session rendering untrusted submitted text.
-    // Escaping first (not per-fragment later) keeps the LCS matching
-    // correct: escapeHtml never introduces/removes whitespace, so token
-    // boundaries and equality comparisons are unaffected.
-    oldStr = window.escapeHtml(String(oldStr || ''));
-    newStr = window.escapeHtml(String(newStr || ''));
+    // Contributor text cannot be allowed to carry the markers themselves, or a
+    // submission could open a tag this function never opened. Stripped rather
+    // than escaped: these are control characters, so nothing legitimate is lost.
+    const clean = (s) => String(s || '').replace(DIFF_MARK_ANY, '');
+    oldStr = clean(oldStr);
+    newStr = clean(newStr);
+
     if (oldStr === newStr) return newStr;
-    if (!oldStr) return `<ins class="diff-add">${newStr}</ins>`;
-    if (!newStr) return `<del class="diff-del">${oldStr}</del>`;
+    if (!oldStr) return `${DIFF_MARK_ADD_OPEN}${newStr}${DIFF_MARK_ADD_CLOSE}`;
+    if (!newStr) return `${DIFF_MARK_DEL_OPEN}${oldStr}${DIFF_MARK_DEL_CLOSE}`;
 
     const a = oldStr.split(/(\s+)/).filter(val => val.length > 0);
     const b = newStr.split(/(\s+)/).filter(val => val.length > 0);
@@ -59,8 +109,8 @@ window.diffTextLCS = function(oldStr, newStr) {
     let currentInss = '';
 
     const flushEdits = () => {
-        if (currentDels) finalHtml += `<del class="diff-del">${currentDels}</del>`;
-        if (currentInss) finalHtml += `<ins class="diff-add">${currentInss}</ins>`;
+        if (currentDels) finalHtml += `${DIFF_MARK_DEL_OPEN}${currentDels}${DIFF_MARK_DEL_CLOSE}`;
+        if (currentInss) finalHtml += `${DIFF_MARK_ADD_OPEN}${currentInss}${DIFF_MARK_ADD_CLOSE}`;
         currentDels = '';
         currentInss = '';
     };
@@ -91,14 +141,79 @@ window.diffTextLCS = function(oldStr, newStr) {
 // number buried in an object. Walks both objects key by key and highlights
 // what actually changed, same visual language (ins.diff-add/del.diff-del)
 // as the prose LCS diff above.
+
+// Field names a reviewer reads, rather than the ones the schema uses. The
+// explicit entries are the ones de-camelCasing gets wrong or leaves cryptic;
+// everything else falls through to the general rule, so a field added later
+// reads correctly without being listed.
+const DIFF_FIELD_LABELS = {
+    oneliner: 'Summary',
+    worksOn: 'Works On',
+    damageType: 'Damage Type',
+    startup: 'Startup',
+    active: 'Active',
+    recovery: 'Recovery',
+    blockAdv: 'Block Advantage',
+    hitAdv: 'Hit Advantage',
+    ver: 'Game Version',
+    src: 'File',
+    alt: 'Alt Text',
+    url: 'Link',
+    tier: 'Tier',
+    opponent: 'Opponent',
+    topic: 'Topic',
+    starter: 'Starter',
+    // Item 9's editor-only grouping. Named rather than left to the general
+    // rule, which would render a bare "Folder" - a reviewer seeing that beside
+    // real content has no way to know it changes nothing a reader sees. It is
+    // shown rather than hidden because joining a folder MOVES the block, and a
+    // reordering with no stated reason is worse than one line of metadata.
+    folder: 'Editor Folder',
+};
+
+window.humanFieldName = function(key) {
+    if (DIFF_FIELD_LABELS[key]) return DIFF_FIELD_LABELS[key];
+    return String(key)
+        .replace(/[_-]+/g, ' ')
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .replace(/^\w/, c => c.toUpperCase());
+};
+
 window.renderStructuredDiff = function(oldObj, newObj) {
+    const esc = (v) => window.escapeHtml(v);
+
+    // A value a reviewer can read. This used to be JSON.stringify for anything
+    // that was not a primitive, which is where most of the "it just shows raw
+    // JSON" came from: a list of stats, a sequence of inputs and a set of
+    // combo rows all arrived as one unbroken brace-filled line.
     const formatValue = (val) => {
-        if (val === undefined) return '';
-        if (typeof val === 'object' && val !== null) return JSON.stringify(val);
+        if (val === undefined || val === null) return '';
+        if (Array.isArray(val)) {
+            if (!val.length) return '(empty)';
+            // A list of plain values reads as a list.
+            if (val.every(v => v === null || typeof v !== 'object')) {
+                return val.map(v => String(v)).join(', ');
+            }
+            // A list of objects: one line each, named by whatever identifies
+            // them, rather than one wall of braces.
+            return val.map((v, i) => {
+                const name = v && (v.name || v.label || v.combo || v.title || v[Object.keys(v)[0]]);
+                return `${i + 1}. ${name === undefined ? '(item)' : String(name)}`;
+            }).join('\n');
+        }
+        if (typeof val === 'object') {
+            return Object.keys(val)
+                .map(k => `${window.humanFieldName(k)}: ${val[k] === null || typeof val[k] === 'object' ? formatValue(val[k]) : String(val[k])}`)
+                .join('\n');
+        }
         return String(val);
     };
 
-    const renderFields = (oldO, newO) => {
+    // Multi-line values keep their lines. Escaped first, so the <br> is the
+    // only markup that survives - these values are contributor-submitted.
+    const show = (val) => esc(formatValue(val)).replace(/\n/g, '<br>');
+
+    const renderFields = (oldO, newO, depth) => {
         const safeOld = oldO && typeof oldO === 'object' ? oldO : {};
         const safeNew = newO && typeof newO === 'object' ? newO : {};
         const allKeys = [...new Set([...Object.keys(safeOld), ...Object.keys(safeNew)])];
@@ -111,32 +226,48 @@ window.renderStructuredDiff = function(oldObj, newObj) {
 
             const bothPlainObjects = oldVal && newVal && typeof oldVal === 'object' && typeof newVal === 'object'
                 && !Array.isArray(oldVal) && !Array.isArray(newVal);
+            // Two lists of objects - stats, combo rows, a move's variants.
+            // Compared position by position so a single changed field shows as
+            // that field, instead of both lists being reprinted whole.
+            const bothObjectArrays = Array.isArray(oldVal) && Array.isArray(newVal) && (depth || 0) < 3
+                && [...oldVal, ...newVal].some(v => v && typeof v === 'object')
+                && [...oldVal, ...newVal].every(v => v === null || typeof v === 'object');
 
             let valueHtml;
             if (bothPlainObjects) {
-                valueHtml = `<div class="diff-field-nested">${renderFields(oldVal, newVal)}</div>`;
+                valueHtml = `<div class="diff-field-nested">${renderFields(oldVal, newVal, (depth || 0) + 1)}</div>`;
+            } else if (bothObjectArrays) {
+                let inner = '';
+                for (let i = 0; i < Math.max(oldVal.length, newVal.length); i++) {
+                    if (JSON.stringify(oldVal[i]) === JSON.stringify(newVal[i])) continue;
+                    const label = i + 1;
+                    if (oldVal[i] === undefined) inner += `<div class="diff-field-row"><span class="diff-field-key">Added #${label}</span> <ins class="diff-add">${show(newVal[i])}</ins></div>`;
+                    else if (newVal[i] === undefined) inner += `<div class="diff-field-row"><span class="diff-field-key">Removed #${label}</span> <del class="diff-del">${show(oldVal[i])}</del></div>`;
+                    else inner += `<div class="diff-field-row"><span class="diff-field-key">#${label}</span><div class="diff-field-nested">${renderFields(oldVal[i], newVal[i], (depth || 0) + 1)}</div></div>`;
+                }
+                valueHtml = `<div class="diff-field-nested">${inner}</div>`;
             } else if (oldVal === undefined) {
-                valueHtml = `<ins class="diff-add">${window.escapeHtml(formatValue(newVal))}</ins>`;
+                valueHtml = `<ins class="diff-add">${show(newVal)}</ins>`;
             } else if (newVal === undefined) {
-                valueHtml = `<del class="diff-del">${window.escapeHtml(formatValue(oldVal))}</del>`;
+                valueHtml = `<del class="diff-del">${show(oldVal)}</del>`;
             } else {
-                valueHtml = `<del class="diff-del">${window.escapeHtml(formatValue(oldVal))}</del> <ins class="diff-add">${window.escapeHtml(formatValue(newVal))}</ins>`;
+                valueHtml = `<del class="diff-del">${show(oldVal)}</del> <ins class="diff-add">${show(newVal)}</ins>`;
             }
 
-            rowsHtml += `<div class="diff-field-row"><span class="diff-field-key">${window.escapeHtml(key)}:</span> ${valueHtml}</div>`;
+            rowsHtml += `<div class="diff-field-row"><span class="diff-field-key">${esc(window.humanFieldName(key))}:</span> ${valueHtml}</div>`;
         });
 
         return rowsHtml || `<div class="diff-field-row diff-field-unchanged">No field-level changes detected.</div>`;
     };
 
-    return `<div class="diff-structured">${renderFields(oldObj, newObj)}</div>`;
+    return `<div class="diff-structured">${renderFields(oldObj, newObj, 0)}</div>`;
 };
 
 // --- SMART DELTA HIGHLIGHTER ---
 // Previously defined twice, byte-identical, further down the old single
 // admin.js (a Gemini copy-paste artifact) - one definition here.
 function getTabData(tab, mode) {
-    const isFrame = (window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials']).includes(tab);
+    const isFrame = window.FRAME_MOVE_CATEGORIES.includes(tab);
 
     // Narrowed to the character state the preview is showing. Without this,
     // every tab of an ultimate state was compared against the base kit's -
@@ -166,7 +297,7 @@ function getTabData(tab, mode) {
 // looking at the preview on mobile (see window.toggleMobilePreview in
 // admin-core.js), so the old indicators were invisible right when they
 // mattered most.
-const CHANGED_TAB_LABELS = { overview: 'Overview & Strategy', m1s: 'M1s', skills: 'Skills', specials: 'Specials', ultimateAtk: 'Ultimate', matchups: 'Matchups', counterplay: 'Counterplay' };
+const CHANGED_TAB_LABELS = window.getCharacterTabLabels();
 
 window.showChangedTabsPopup = function() {
     const existing = document.getElementById('changed-tabs-popup');
@@ -262,9 +393,42 @@ function calculateTabDiffs(rev, showPopup = true) {
 
                 let targetTab = 'overview';
                 if (['profile', 'playstyle', 'overview', 'strategy', 'extra'].includes(scope)) targetTab = 'overview';
-                else if (scope === 'matchup') targetTab = 'matchups';
-                else if (scope === 'counterplay') targetTab = 'counterplay';
-                else if (scope === 'move') targetTab = key.split('::')[0];
+                else if (window.getKeyedSectionByScope(scope)) targetTab = window.getKeyedSectionByScope(scope).tab;
+                // A fixed block section names its own tab too. Without this,
+                // editing "Read First" marked OVERVIEW as the changed tab and
+                // left Combos unmarked - so the reviewer was pointed at a tab
+                // that had not changed, and away from the one that had.
+                else if ((window.FIXED_BLOCK_SECTIONS || []).some(f => f.scope === scope)) {
+                    targetTab = window.FIXED_BLOCK_SECTIONS.find(f => f.scope === scope).tab;
+                }
+                // An order delta names its list by a dotted path, and the tab
+                // it belongs to falls out of that: "frame.skills" is the Skills
+                // tab, "desc.comboGroups" is whichever tab that section renders
+                // in. Without this the reorder marks no tab at all, so the
+                // strip shows no change indicator and the reviewer opens the
+                // ticket on Overview - the same miss that left Combos unmarked
+                // for "Read First".
+                else if (scope === 'order') {
+                    const [root, field] = String(key || '').split('.');
+                    if (root === 'frame') targetTab = field;
+                    else if (field === 'extras') targetTab = 'overview';
+                    else {
+                        const section = window.getKeyedSectionByField && window.getKeyedSectionByField(field);
+                        if (section) targetTab = section.tab;
+                    }
+                }
+                // Coerced for the same reason as the diff renderer: a null key
+                // reaching here would throw inside the changed-tabs scan, and
+                // that scan feeds the popup telling a reviewer which tabs to
+                // look at. Losing it silently is how a batch looks smaller than
+                // it is. A move always has a key, so this is a guard rather
+                // than a behaviour change.
+                else if (scope === 'move') targetTab = String(key || '').split('::')[0] || 'overview';
+                // No branch here for the system scopes on purpose. A system or
+                // tier list page never reaches this code - it is caught by the
+                // page-type check at the top of this function, which marks tabs
+                // by comparing live against pending. One was written here, it
+                // looked right, and it could not run.
 
                 if (!window.changedTabs.includes(targetTab)) window.changedTabs.push(targetTab);
             };
@@ -272,7 +436,10 @@ function calculateTabDiffs(rev, showPopup = true) {
             if (rev.target_scope === 'multi') rev.delta_payload.forEach(edit => addScopeTab(edit.scope, edit.key));
             else addScopeTab(rev.target_scope, rev.target_key);
         } else {
-            const tabs = ['overview', 'm1s', 'skills', 'specials', 'ultimateAtk', 'matchups', 'counterplay'];
+            // Includes the injected Ultimate: this compares live against
+            // pending for a loaded character, so a base-only character's
+            // ultimate edits must be able to mark their tab changed.
+            const tabs = window.getCharacterTabIds({ includeInjected: true, editableOnly: true });
             tabs.forEach(tab => {
                 const liveStr = JSON.stringify(getTabData(tab, 'live') || {});
                 const pendStr = JSON.stringify(getTabData(tab, 'pending') || {});
@@ -338,7 +505,7 @@ window.updateAdminSidebar = function() {
 
     if (window.activePreviewPageType === 'system' || window.activePreviewPageType === 'tierlist') {
         // Hide standard character tabs
-        ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'].forEach(tab => {
+        window.getCharacterTabIds({ editableOnly: true }).forEach(tab => {
             const btn = document.getElementById(`nav-${tab}`);
             if (btn) btn.classList.add('hidden');
         });

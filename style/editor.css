@@ -213,7 +213,18 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     outline: none; border-color: var(--accent-blue); background: rgba(0,0,0,0.5); color: #fff;
 }
 .editor-input:disabled, .editor-textarea:disabled { opacity: 0.5; }
-.editor-textarea { min-height: 50px; resize: vertical; line-height: 1.4; }
+.editor-textarea { min-height: 50px; max-height: 260px; overflow-y: auto; resize: vertical; line-height: 1.4; }
+
+/* A combo route is one step per line and gets long. It scrolls at a sensible
+   height rather than growing until it pushes everything else off the pane -
+   owner, 2026-08-17. Monospace so the steps line up as they are typed, which
+   is the same reason the rendered chips are monospace. */
+.combo-field-grid .editor-textarea[data-combo-field="sequence"],
+.combo-card-fields .editor-textarea[data-card-field="sequence"],
+.editor-textarea[data-field="sequence-lines"] {
+    font-family: var(--text-mono); font-size: 0.8rem;
+    min-height: 5.5rem; max-height: 220px; overflow-y: auto;
+}
 .editor-row { display: flex; gap: 0.25rem; }
 .editor-row > div { flex: 1; }
 
@@ -507,6 +518,106 @@ input[type="checkbox"]:checked {
 .format-btn-color-trigger { display: flex; align-items: center; gap: 0.35rem; padding: 0 0.5rem; }
 .format-color-wrapper { position: relative; display: inline-flex; align-items: center; }
 .format-color-swatch-icon { width: 12px; height: 12px; background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); border-radius: 50%; }
+
+/* --- SECTION LINK PICKER (v0.15 item 5) --- */
+/* Same chrome as the colour popup - square, hard-shadowed, opening upward from
+   the toolbar - because it is the same kind of control in the same strip, and
+   two popups from one toolbar that look unrelated read as two features. */
+.format-jump-wrapper { position: relative; display: inline-flex; align-items: center; }
+.format-jump-popup {
+    display: block;
+    position: absolute;
+    bottom: calc(100% + 5px);
+    left: 0;
+    width: 260px;
+    background: #0a0a0a;
+    border: 1px solid #333;
+    padding: 0.6rem;
+    border-radius: 0;
+    box-shadow: 4px 4px 0px var(--manga-shadow, #000);
+    z-index: 100;
+}
+.format-jump-popup.hidden { display: none; }
+.format-jump-label {
+    font-family: var(--text-mono);
+    font-size: 0.6rem;
+    color: #888;
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+.format-jump-search {
+    width: 100%;
+    box-sizing: border-box;
+    background: #000;
+    border: 1px solid #333;
+    color: var(--text-primary);
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    padding: 0.3rem 0.4rem;
+    margin-bottom: 0.4rem;
+}
+.format-jump-search:focus { outline: none; border-color: var(--accent-blue); }
+/* Capped and scrolled: a filled-in character page has dozens of sections, and
+   the popup opens upward - left to grow it runs off the top of the screen and
+   the first entries become unreachable. Same failure the colour popup had. */
+.format-jump-list { max-height: 220px; overflow-y: auto; }
+.format-jump-group {
+    font-family: var(--text-mono);
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--accent-blue);
+    margin: 0.5rem 0 0.2rem;
+}
+.format-jump-group:first-child { margin-top: 0; }
+/* The section and its caret sit on one line, so the caret lines up down the
+   right edge the way the table of contents' does. */
+.format-jump-row { display: flex; align-items: stretch; gap: 2px; }
+.format-jump-row .format-jump-item { flex: 1; min-width: 0; }
+.format-jump-toggle {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-size: 0.55rem;
+    line-height: 1;
+    padding: 0 0.3rem;
+    cursor: pointer;
+    transition: transform 0.12s ease, color 0.12s ease;
+}
+.format-jump-toggle:hover { color: var(--accent-blue); }
+.format-jump-toggle[aria-expanded="false"] { transform: rotate(-90deg); }
+/* Indented and dimmed, so the two levels are distinguishable at a glance
+   without a second colour - the group labels already own the accent. */
+.format-jump-children { margin-left: 0.6rem; border-left: 1px solid #333; padding-left: 0.3rem; }
+.format-jump-children.hidden { display: none; }
+
+.format-jump-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-primary);
+    font-size: 0.72rem;
+    padding: 0.25rem 0.35rem;
+    cursor: pointer;
+}
+/* After .format-jump-item, not before: it sets colour and size at the same
+   specificity, so declared above this rule would be dead. Same source-order
+   trap admin.css documents in its own comments. */
+.format-jump-item-minor { font-size: 0.68rem; color: var(--text-muted); }
+
+.format-jump-item:hover, .format-jump-item:focus-visible {
+    border-color: var(--accent-blue);
+    color: var(--text-white);
+    outline: none;
+}
+.format-jump-empty {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin: 0.3rem 0;
+}
 .format-color-popup-label { font-family: var(--text-mono); font-size: 0.6rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.08em; }
 /* Separates the groups without putting a gap above the first one. */
 .format-color-presets-row + .format-color-popup-label { margin-top: 0.6rem; }
@@ -967,7 +1078,207 @@ input[type="checkbox"]:checked {
 .accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 .accordion-back-label { color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
 .accordion-back-title { color: #fff; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; }
-.block-type-row { display: flex; align-items: center; gap: 0.5rem; }
+/* Two dropdowns share this row since v0.15 item 9, and the shared
+   .manga-select-wrapper rule in Forms.css is `flex: 1` with `min-width: 0` -
+   which is `flex-basis: 0%` and free to collapse. In a row that shrink-wraps to
+   its content that resolves to width ZERO, and .manga-select-trigger is
+   position:relative rather than clipped, so it spilled out over the folder
+   picker instead of just being narrow (owner, 2026-08-18).
+
+   Both overrides are scoped to .block-type-row on purpose: .manga-select-wrapper
+   is site-wide furniture - the DAW footer sizes on it, and the comment in
+   Forms.css says as much. Wrapping rather than fixed widths because the editor
+   pane is resizable and the mobile rules below squeeze this row further. */
+.block-type-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.block-type-row .manga-select-wrapper:not(.block-folder-picker) {
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 7rem;
+}
+
+/* --- BLOCK FOLDERS (v0.15 item 9) ---
+   Editor-only grouping, so it is deliberately quieter than the purple
+   accordion banner above: an accordion is a thing the READER gets, a folder is
+   furniture only the author ever sees, and the two sitting in the same list
+   must not look like the same kind of object. */
+.block-folder {
+    border: 1px solid #2a2a2a;
+    border-left: 3px solid #4b5563;
+    background: rgba(255, 255, 255, 0.012);
+    margin-bottom: 0.35rem;
+}
+.block-folder-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem;
+    background: #111;
+    border-bottom: 1px solid #222;
+}
+.block-folder.is-collapsed .block-folder-head { border-bottom: none; }
+.block-folder.is-collapsed .block-folder-body { display: none; }
+
+.block-folder-toggle {
+    font-family: monospace;
+    font-weight: bold;
+    flex: 0 0 auto;
+}
+/* Transparent until touched, so the header reads as a title rather than a form
+   row - but still a real input, which is the whole rename interaction. */
+.block-folder-name-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dotted transparent;
+    color: #e5e7eb;
+    font-family: var(--text-manga);
+    font-size: 0.95rem;
+    padding: 0.1rem 0.2rem;
+}
+.block-folder-name-input:hover { border-bottom-color: #444; }
+.block-folder-name-input:focus {
+    outline: none;
+    border-bottom-color: var(--accent-blue);
+    background: rgba(59, 130, 246, 0.06);
+}
+.block-folder-count {
+    flex: 0 0 auto;
+    color: #6b7280;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+.block-folder-add { flex: 0 0 auto; font-size: 0.65rem; }
+.block-folder-add:hover { background: #22c55e; color: #000; border-color: #22c55e; }
+.block-folder-ungroup,
+.block-folder-discard { flex: 0 0 auto; font-size: 0.65rem; }
+.block-folder-ungroup:hover,
+.block-folder-discard:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
+
+/* An empty folder exists only for this editing session - it has no blocks, so
+   there is no `folder` string anywhere for it to be saved in. Dashed to say
+   so, rather than looking like a folder whose contents failed to load. */
+.block-folder.is-empty { border-left-style: dashed; border-left-color: #6b7280; }
+.block-folder-empty {
+    padding: 0.6rem 0.75rem;
+    color: #6b7280;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    text-align: center;
+    border: 1px dashed #2f2f2f;
+    margin: 0.35rem;
+}
+
+/* The drop affordance for a folder HEADER. Distinct from .drag-over-top /
+   .drag-over-bottom on a card, which are edges: this is a container, and the
+   whole thing lights up because the block lands inside it rather than beside
+   it. Reachable when the folder is collapsed and has no cards to aim at. */
+.block-folder-head.drag-over-folder {
+    background: rgba(59, 130, 246, 0.18);
+    outline: 1px dashed var(--accent-blue);
+    outline-offset: -2px;
+}
+
+/* --- THE FOLDER PICKER ---
+   Reuses .manga-select-wrapper / .manga-select-options / .manga-option from
+   Forms.css, so it opens and animates like every other dropdown on the site.
+   What it adds is the thing a native select could not: "No folder" and "Create
+   new folder" are not folders, and as three near-identical rows the menu was
+   unreadable.
+
+   NOT built by initializeMangaSelects, and deliberately not a <select> at all -
+   that engine flattens each option to plain textContent, which is exactly the
+   distinction being drawn here. It also only converts select.editor-select,
+   a class the delegated input handler in editor-blocks.js treats as a block
+   field. */
+/* Compound with .block-type-row so it outranks the :not() rule above, which
+   would otherwise win on specificity and hand this one a 7rem minimum it does
+   not want. */
+.block-type-row .block-folder-picker {
+    flex: 0 1 11rem;
+    width: auto;
+    min-width: 7rem;
+    margin-bottom: 0;
+}
+
+.block-folder-trigger {
+    display: block;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid #222;
+    color: #6b7280;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    text-align: left;
+    padding: 0.15rem 1.2rem 0.15rem 0.35rem;
+    cursor: pointer;
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.block-folder-trigger::after {
+    content: '\25BC';
+    position: absolute;
+    right: 0.35rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.5rem;
+    color: #4b5563;
+}
+.block-folder-trigger:hover { color: #fff; border-color: #444; }
+/* Filed in a folder reads differently from loose, at a glance, without opening
+   anything - the folder mark is the state, so it is on the trigger. */
+.block-folder-trigger.has-folder { color: #e5e7eb; border-color: #4b5563; }
+.block-folder-trigger.has-folder::before { content: '\1F4C1\00a0'; }
+
+.block-folder-picker.open .manga-select-options { display: flex; }
+.block-folder-picker .manga-select-options { text-align: left; }
+.block-folder-picker .folder-option {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed #222;
+    cursor: pointer;
+}
+.folder-option-item::before { content: '\1F4C1\00a0'; }
+
+/* The two rows that are not folders. */
+.folder-option-none { font-style: italic; color: #6b7280 !important; }
+.folder-option-none::before { content: '\2014\00a0'; }
+.folder-option-new { color: #22c55e !important; border-top: 1px solid #222; }
+.folder-option-new:hover { background: #22c55e !important; color: #000 !important; }
+
+/* A group label, not a choice - never clickable, never hover-highlighted. */
+.folder-option-sep {
+    padding: 0.35rem 0.75rem 0.2rem;
+    font-family: var(--text-mono);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #4b5563;
+    border-bottom: 1px solid #222;
+    cursor: default;
+}
+
+/* The drop affordance for nesting a block INSIDE an accordion or theorybox.
+   Green rather than the blue used for reordering, because the outcome is
+   different in kind: the block leaves this level entirely. */
+.accordion-inner-block-wrapper.drag-over-nest {
+    background: rgba(34, 197, 94, 0.18);
+    outline: 1px dashed #22c55e;
+    outline-offset: -2px;
+}
 /* touch-action: none so a touch-drag on the handle doesn't also scroll the
    page - startBlockPointerDrag (js/editor-blocks.js) owns the gesture entirely
    once it starts. */
@@ -1070,6 +1381,18 @@ input[type="checkbox"]:checked {
 /* --- CUSTOM MODAL THEMES --- */
 .editor-modal-overlay { z-index: 10000; }
 .editor-modal-overlay.alert-layer { z-index: 10001; }
+
+/* THE CONFIRM AND ALERT LAYERS MUST OUTRANK EVERY OTHER MODAL.
+   They are a RESPONSE to something another modal asked, so they can never be
+   the one underneath. Every overlay sat at 10000 and #editor-custom-modal is
+   declared first in edit.html, so at equal specificity and equal z-index DOM
+   order decided - and every modal declared after it covered it.
+   That was not hypothetical: DELETE COMBO inside the combo row modal (item 3)
+   opened a confirmation the reviewer could see and could not click, and the
+   Find & Replace panel hit the same wall on REPLACE ALL.
+   Above the two inline 10005s (the QA and gallery-item modals) as well. */
+#editor-custom-modal.editor-modal-overlay { z-index: 10020; }
+#editor-alert-modal.editor-modal-overlay { z-index: 10021; }
 
 .modal-danger .editor-modal-box { border-top-color: #ef4444; width: 450px; }
 .modal-danger .auth-header h3 { color: #ef4444; font-size: 1rem; }
@@ -1665,3 +1988,158 @@ del.diff-del {
     border-top: 1px solid #333;
     padding-top: 0.4rem;
 }
+
+/* --- COMBO ROWS EDITOR (v0.15 item 3) --- */
+/* The rows of one combo group. A row is a button showing its route, because
+   the route is how an author recognises which combo they are editing - an
+   index or a damage number is not something anyone remembers. */
+.combo-rows-list { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.6rem; }
+.combo-row-item { display: flex; gap: 0.35rem; align-items: stretch; }
+.combo-row-open {
+    flex: 1; text-align: left; font-family: var(--text-mono); font-size: 0.7rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.combo-row-item.active .combo-row-open { border-color: var(--accent-blue); color: var(--accent-blue); }
+.combo-row-remove { flex: 0 0 auto; }
+
+/* The row form lives in a modal (edit.html #combo-row-modal), not in the
+   sidebar: the editor's left pane shares the screen with the live preview, and
+   a dozen fields in it was mostly scroll. Owner's call, 2026-08-16.
+
+   Three columns of short fields in the modal, one below 720px. The route and
+   the notes span the full width because they are the only two that are long. */
+.combo-row-modal-box {
+    width: min(860px, 94vw);
+    /* The default .editor-modal-box top border is red, which belongs to the
+       delete-confirm modal this shares markup with. This is an edit form, and
+       a red bar across the top of it reads as a warning about nothing. */
+    border-top-color: var(--accent-blue);
+}
+.combo-row-modal-body { padding: 0.9rem 1.1rem; text-align: left; max-height: 72vh; overflow-y: auto; }
+.combo-row-modal-actions { justify-content: space-between; gap: 1rem; padding: 0.9rem 1.25rem; border-top: 1px dashed #333; }
+
+.combo-field-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem 0.7rem; }
+.combo-field-grid label { display: block; margin-bottom: 0.15rem; font-size: 0.6rem; }
+.combo-field-grid .combo-field-full { grid-column: 1 / -1; }
+.combo-field-grid .editor-input, .combo-field-grid .editor-select, .combo-field-grid .editor-textarea { margin: 0; width: 100%; }
+@media (max-width: 900px) { .combo-field-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 720px) { .combo-field-grid { grid-template-columns: 1fr; } }
+
+/* --- COMBO CARD FIELDS --- */
+/* Three columns of short fields with the long ones spanning, same grid as the
+   Combo List row modal. This one is in the sidebar rather than a modal because
+   a card has six fields, not twelve, and the write-up below it is where the
+   time goes. */
+/* Dense on purpose. These are a dozen short fields in a pane that is sharing
+   the screen with a live preview, and the default editor-row spacing turned
+   the form into a scroll before anyone had typed - owner, 2026-08-17. */
+.combo-card-fields { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem 0.6rem; }
+.combo-card-fields label { display: block; margin-bottom: 0.15rem; font-size: 0.6rem; }
+.combo-card-fields .editor-input, .combo-card-fields .editor-select { padding: 0.3rem 0.45rem; }
+.combo-card-fields .combo-field-full { grid-column: 1 / -1; }
+.combo-card-fields .editor-input, .combo-card-fields .editor-select, .combo-card-fields .editor-textarea { margin: 0; width: 100%; }
+@media (max-width: 1100px) { .combo-card-fields { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 720px) { .combo-card-fields { grid-template-columns: 1fr; } }
+
+/* --- FIND AND REPLACE (v0.15 item 7) --- */
+/* Taller than the other editor modals: the list is the feature. A mass replace
+   across a page with 127 combo rows is not something to run blind, and the
+   list is also how a contributor spots the matches they did not mean to catch. */
+.find-replace-box { width: min(720px, 94vw); }
+.find-replace-body { display: flex; flex-direction: column; gap: 0.75rem; max-height: 70vh; }
+.find-replace-controls { display: flex; flex-direction: column; gap: 0.3rem; }
+.find-replace-options {
+    display: flex; gap: 1rem; flex-wrap: wrap;
+    font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;
+}
+.find-replace-options label { display: flex; align-items: center; gap: 0.3rem; cursor: pointer; }
+
+/* The results scroll, not the modal - the controls and the REPLACE ALL button
+   must stay reachable however many matches there are. */
+.find-replace-results {
+    flex: 1; min-height: 0; overflow-y: auto;
+    border-top: 1px solid var(--border-color); padding-top: 0.5rem;
+}
+.find-replace-where {
+    font-family: var(--text-mono); font-size: 0.6rem; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--accent-blue);
+    margin: 0.6rem 0 0.25rem;
+}
+.find-replace-where:first-child { margin-top: 0; }
+.find-replace-row {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.3rem 0.35rem; border-left: 2px solid #333;
+}
+.find-replace-row:hover { background: rgba(255, 255, 255, 0.03); }
+.find-replace-snippet {
+    flex: 1; min-width: 0; font-size: 0.75rem; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* The hit itself, in the same green the diff view uses for an addition - this
+   is the text that is about to change. */
+.find-replace-hit {
+    background: rgba(34, 197, 94, 0.25); color: var(--text-white);
+    padding: 0 0.15rem; font-weight: bold;
+}
+.find-replace-one { flex-shrink: 0; padding: 0.15rem 0.5rem; font-size: 0.65rem; }
+.find-replace-empty { font-size: 0.78rem; color: var(--text-muted); margin: 0.4rem 0; }
+
+/* --- REORDER AND INSERT IN PLACE (v0.15 item 8) --- */
+/* Small and square, sitting between the tab's own button and its remove button.
+   Deliberately quieter than either: they are adjustments to a strip, not the
+   two actions (open, delete) that already own it. */
+.daw-tab-move-btn, .daw-tab-insert-btn {
+    background: transparent;
+    border: 1px solid #333;
+    border-left: none;
+    color: var(--text-muted);
+    font-size: 0.6rem;
+    line-height: 1;
+    padding: 0 0.3rem;
+    cursor: pointer;
+    align-self: stretch;
+    transition: color 0.12s ease, background 0.12s ease;
+}
+.daw-tab-move-btn:hover:not(:disabled),
+.daw-tab-insert-btn:hover:not(:disabled) {
+    color: var(--text-white);
+    background: rgba(255, 255, 255, 0.08);
+}
+/* Kept in place rather than hidden at the ends: removing it would shift every
+   other control sideways and make the row jump as the selection moves. */
+.daw-tab-move-btn:disabled { opacity: 0.25; cursor: default; }
+.daw-tab-insert-btn { color: #22c55e; font-weight: bold; }
+.daw-tab-insert-btn:hover { background: rgba(34, 197, 94, 0.15); }
+
+/* Touch targets. The strip is horizontal and these are the smallest controls
+   in the editor, so they get the same 44px floor the rest of the site's mobile
+   buttons were raised to in v0.6. */
+@media (max-width: 767px) {
+    .daw-tab-move-btn, .daw-tab-insert-btn { min-width: 32px; min-height: 44px; font-size: 0.7rem; }
+}
+
+/* ITS OWN ROW, ABOVE THE STRIP. Two earlier placements were both wrong for the
+   same reason - the controls moved with the content:
+
+     per item      the buttons travelled with the entry being moved, so a
+                   second nudge meant chasing them along the row
+     end of strip  a character with twenty skills had to scroll the whole
+                   strip right to reach them, every single time
+
+   Above the strip they sit at a fixed spot no matter how long the strip is or
+   how far it has scrolled, and they act on whatever is selected - so repeated
+   nudges are the same click in the same place. */
+.daw-reorder-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.35rem;
+}
+.daw-reorder-label {
+    font-family: var(--text-mono);
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+.daw-reorder-group { display: inline-flex; align-items: stretch; }

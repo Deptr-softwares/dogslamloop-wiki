@@ -96,7 +96,12 @@ test('the hue slider works from the keyboard', async ({ page }) => {
 // a programmatic setSelectionRange sets no selection as far as the toolbar is
 // concerned - it wrapped an empty string at position 0. Everything below
 // selects with a real keyboard.
-const TEXT_FIELD = '#block-list textarea, #block-list input[type="text"]';
+// Scoped to .block-card, not to #block-list. Block folders (v0.15 item 9) put
+// a folder-NAME input inside the list, and because the shell wraps the cards
+// its header sorts ahead of every one of them - so `.first()` started
+// selecting a folder name instead of block content, typed into that, and got
+// no shortcode back. The field this spec wants is always inside a card.
+const TEXT_FIELD = '#block-list .block-card textarea, #block-list .block-card input[type="text"]';
 
 async function typeAndSelect(page, text, charsToSelect) {
     const field = page.locator(TEXT_FIELD).first();

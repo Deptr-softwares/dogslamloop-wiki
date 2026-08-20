@@ -13,23 +13,28 @@
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
-const { siteUtilsVersion } = require('../scripts/asset-version.js');
+const { sharedAssetVersion, SHARED_MODULES } = require('../scripts/asset-version.js');
 const { collectHtml } = require('../scripts/stamp-assets.js');
 
 const ROOT = path.join(__dirname, '..');
 
-test('every page asks for site_utils.js by its current content hash', async () => {
-  const version = siteUtilsVersion();
+test('every page asks for the shared modules by their current content hash', async () => {
+  // Derived from SHARED_MODULES rather than naming site_utils.js, so adding a
+  // third shared module extends this test instead of silently escaping it.
+  const version = sharedAssetVersion();
   const offenders = [];
 
   for (const file of collectHtml(ROOT)) {
     const html = fs.readFileSync(file, 'utf8');
-    const tags = html.match(/src="[^"]*js\/site_utils\.js[^"]*"/g);
-    if (!tags) continue;
+    for (const moduleName of SHARED_MODULES) {
+      const escaped = moduleName.replace('.', '\\.');
+      const tags = html.match(new RegExp(`src="[^"]*js\\/${escaped}[^"]*"`, 'g'));
+      if (!tags) continue;
 
-    for (const tag of tags) {
-      if (!tag.includes(`?v=${version}`)) {
-        offenders.push(`${path.relative(ROOT, file).replace(/\\/g, '/')}: ${tag}`);
+      for (const tag of tags) {
+        if (!tag.includes(`?v=${version}`)) {
+          offenders.push(`${path.relative(ROOT, file).replace(/\\/g, '/')}: ${tag}`);
+        }
       }
     }
   }
@@ -37,16 +42,21 @@ test('every page asks for site_utils.js by its current content hash', async () =
   expect(offenders, 'run `npm run generate` to restamp').toEqual([]);
 });
 
-test('the hash actually changes when site_utils.js does', async () => {
+test('the hash actually changes when a shared module does', async () => {
   // A version that never moves is worse than no version: it pins the stale
   // copy in place instead of busting it.
-  const { stampSiteUtils } = require('../scripts/asset-version.js');
+  const { stampSharedAssets } = require('../scripts/asset-version.js');
 
-  const before = stampSiteUtils('<script src="js/site_utils.js"></script>', 'aaaaaaaa');
-  const after = stampSiteUtils(before, 'bbbbbbbb');
+  const tags = SHARED_MODULES.map(n => `<script src="js/${n}"></script>`).join('');
+  const before = stampSharedAssets(tags, 'aaaaaaaa');
+  const after = stampSharedAssets(before, 'bbbbbbbb');
 
-  expect(before).toContain('?v=aaaaaaaa');
-  expect(after).toContain('?v=bbbbbbbb');
+  // Every shared module, not just the first: a regex that matched one name
+  // and missed the other would leave half the pair unstamped.
+  SHARED_MODULES.forEach(n => {
+    expect(before, `${n} must be stamped`).toContain(`js/${n}?v=aaaaaaaa`);
+    expect(after, `${n} must be restamped`).toContain(`js/${n}?v=bbbbbbbb`);
+  });
   expect(after, 'restamping replaces the old version rather than appending').not.toContain('aaaaaaaa');
 });
 
@@ -54,6 +64,7 @@ test('the served page really carries the query, not just the file on disk', asyn
   const res = await request.get('/edit.html');
   const html = await res.text();
   expect(html).toMatch(/src="js\/site_utils\.js\?v=[0-9a-f]{8}"/);
+  expect(html).toMatch(/src="js\/character_tabs\.js\?v=[0-9a-f]{8}"/);
 });
 
 test('a character page degrades rather than dying when site_utils is behind', async ({ page }) => {
@@ -72,7 +83,12 @@ test('a character page degrades rather than dying when site_utils is behind', as
 
   await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
 
-  await expect(page.locator('.character-nav .btn-manga')).toHaveCount(7);
+  // Count derived from the vocabulary, not pinned: Boomcat is not base-only,
+  // so it gets the static strip and no injected Ultimate tab. A literal here
+  // would fail the next time a tab is added, which is a change to the
+  // vocabulary and not a regression in this degradation path.
+  const staticTabCount = await page.evaluate(() => window.getCharacterTabIds().length);
+  await expect(page.locator('.character-nav .btn-manga')).toHaveCount(staticTabCount);
   await expect(page.locator('#character-mode-bar')).toBeHidden();
   expect(errors, 'a missing helper must not throw').toEqual([]);
 });

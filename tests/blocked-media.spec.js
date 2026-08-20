@@ -110,6 +110,96 @@ test('a lazy video is caught before it ever loads', async ({ page }) => {
     await expect(page.locator('#video-host video')).toHaveCount(0);
 });
 
+// v0.15 items 10 and 11 added two shapes the guard had never seen: a video
+// wrapped in a player shell that carries its own controls, and a video named
+// by a BUTTON's data attribute rather than by a src. Both were found by
+// probing the guard against them rather than by anything failing.
+
+test('a flagged video takes its player controls with it', async ({ page }) => {
+    await mockModeration(page, { flagged: ['Clip.webm'] });
+    await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+
+    await page.evaluate((url) => {
+        const host = document.createElement('div');
+        host.id = 'player-host';
+        document.body.appendChild(host);
+        host.innerHTML = window.generateHTMLForBlocks(
+            [{ type: 'video', src: url, controls: true }], '');
+    }, `${BUCKET}/Clip.webm`);
+
+    await expect(page.locator('#player-host .media-blocked-notice')).toHaveCount(1);
+    await expect(page.locator('#player-host video')).toHaveCount(0);
+
+    // Replacing the <video> alone left a play button, a sound button and a
+    // duration bar sitting under the notice, wired to nothing at all.
+    await expect(page.locator('#player-host .wiki-player-controls')).toHaveCount(0);
+    await expect(page.locator('#player-host [data-player-toggle]')).toHaveCount(0);
+});
+
+test('a flagged video is not advertised by a button either', async ({ page }) => {
+    await mockModeration(page, { flagged: ['Clip.webm'] });
+    await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+
+    await page.evaluate((url) => {
+        const host = document.createElement('div');
+        host.id = 'button-host';
+        document.body.appendChild(host);
+        host.innerHTML = window.generateHTMLForBlocks([
+            { type: 'theorybox', title: 'BnB', sequence: [], video: url, content: [] },
+            { type: 'table', headers: ['Clip'], rows: [[url]] },
+        ], '');
+    }, `${BUCKET}/Clip.webm`);
+
+    // The URL is in data-wiki-video, which no selector here used to look at.
+    // Clicking through led to a modal that correctly refused - so this was
+    // never a bypass, but moderation should take the affordance away rather
+    // than leave a button promising something it will not deliver.
+    await expect(page.locator('#button-host [data-wiki-video]')).toHaveCount(0);
+
+    // The compact form, not the full-width notice: a button lives in a table
+    // cell, and a 60px-tall notice turned a one-line row into three.
+    await expect(page.locator('#button-host .media-blocked-inline')).toHaveCount(2);
+    await expect(page.locator('#button-host .media-blocked-inline').first()).toHaveText('Blocked');
+    await expect(page.locator('#button-host .media-blocked-notice')).toHaveCount(0);
+
+    // Sized like the control it replaced rather than like a banner. Asserted
+    // against the button's own height rather than a pixel count, so it follows
+    // the button if that is ever restyled.
+    const heights = await page.evaluate(() => {
+        const probe = document.createElement('button');
+        probe.className = 'wiki-video-btn';
+        probe.textContent = 'Play';
+        document.body.appendChild(probe);
+        const button = probe.getBoundingClientRect().height;
+        probe.remove();
+        const marker = document.querySelector('#button-host .media-blocked-inline')
+            .getBoundingClientRect().height;
+        return { button, marker };
+    });
+    expect(heights.marker).toBeLessThanOrEqual(heights.button + 4);
+});
+
+test('an unflagged video keeps its player and its button', async ({ page }) => {
+    // The other direction. A guard that removed every player and every button
+    // would satisfy both tests above.
+    await mockModeration(page, { flagged: ['Other.webm'] });
+    await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+
+    await page.evaluate((url) => {
+        const host = document.createElement('div');
+        host.id = 'fine-host';
+        document.body.appendChild(host);
+        host.innerHTML = window.generateHTMLForBlocks([
+            { type: 'video', src: url, controls: true },
+            { type: 'theorybox', title: 'BnB', sequence: [], video: url, content: [] },
+        ], '');
+    }, `${BUCKET}/Fine.webm`);
+
+    await expect(page.locator('#fine-host .media-blocked-notice')).toHaveCount(0);
+    await expect(page.locator('#fine-host [data-player-toggle]')).toHaveCount(1);
+    await expect(page.locator('#fine-host [data-wiki-video]')).toHaveCount(1);
+});
+
 test('a percent-encoded url matches the file it points at', async ({ page }) => {
     // The same object is stored raw in some rows and encoded in others.
     await mockModeration(page, { flagged: ['Big Slam.webp'] });

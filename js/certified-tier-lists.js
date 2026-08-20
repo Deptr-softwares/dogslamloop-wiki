@@ -70,10 +70,32 @@
                 ? await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true })
                 : await (await fetch(`${rootPath}data/navigation.json`)).json();
 
+            // Portraits are mirrored into the repo by scripts/fetch-portraits.js.
+            // navigation.json carries no `image`, so without this every portrait
+            // falls through to the guessed Supabase URL below - which 404s for
+            // five characters whose filenames end "Portrait2.webp" or drop the
+            // suffix, and the img hides itself on error.
+            //
+            // Same-origin also matters beyond correctness: a cross-origin image
+            // taints a canvas, and both toBlob() and the clipboard write throw
+            // on a tainted one. The Create Tier List export depends on this.
+            let portraits = {};
+            try {
+                portraits = window.fetchJson
+                    ? await window.fetchJson(`${rootPath}data/portraits.json`, { cache: true })
+                    : await (await fetch(`${rootPath}data/portraits.json`)).json();
+            } catch (e) {
+                console.warn('[TierLists] Portrait manifest unavailable, falling back to guessed URLs:', e);
+            }
+
             (nav.Characters || []).forEach(entry => {
                 const pageId = entry.cms_config && entry.cms_config.pageId;
                 if (!pageId) return;
-                state.roster.set(pageId, { name: entry.name, url: entry.url, image: entry.image });
+                state.roster.set(pageId, {
+                    name: entry.name,
+                    url: entry.url,
+                    image: portraits[pageId] || entry.image,
+                });
             });
         } catch (e) {
             console.warn('[TierLists] Could not read the roster:', e);
@@ -230,7 +252,18 @@
         const header = el('div', 'ctl-header');
         header.appendChild(el('h2', 'ctl-author', row.author_name));
         if (row.blurb) header.appendChild(el('p', 'ctl-blurb', row.blurb));
-        header.appendChild(el('span', 'ctl-updated', timeAgo(row.updated_at)));
+
+        const stamp = el('div', 'ctl-stamp');
+        stamp.appendChild(el('span', 'ctl-updated', timeAgo(row.updated_at)));
+        // Beside "updated 3 weeks ago" on purpose: those two facts answer the
+        // same question, and a reader deciding whether a ranking still holds
+        // needs the patch it was written against more than the date (v0.15
+        // item 13). Absent when the author has not said, because inventing one
+        // would be worse than the gap.
+        if (row.game_version) {
+            stamp.appendChild(el('span', 'ctl-game-version', row.game_version));
+        }
+        header.appendChild(stamp);
         ui.appendChild(header);
 
         // Their introduction, above the tiers. Written by them and nobody
@@ -252,12 +285,14 @@
             ui.appendChild(el('p', 'empty-tab-msg', 'This list has not been filled in yet.'));
         }
 
+        const labels = [];
         tiers.forEach(tier => {
             const rowEl = el('div', 'ctl-row');
 
             const label = el('div', 'ctl-label', tier.name || '');
             if (tier.color) label.style.backgroundColor = tier.color;
             rowEl.appendChild(label);
+            labels.push(label);
 
             const chars = el('div', 'ctl-chars');
             (tier.characters || []).forEach(pageId => chars.appendChild(portrait(pageId)));
@@ -269,8 +304,85 @@
             ui.appendChild(rowEl);
         });
 
+        fitTierLabels();
+
         await renderChangelogAndReasoning(row);
     }
+
+    // --- TIER NAMES THAT ARE NOT ONE LETTER ---
+    //
+    // The twin of the same function in js/tier-editor.js, and duplicated on
+    // purpose: these two files share no dependency, the editor page does not
+    // load this one, and the alternative is putting twenty lines into
+    // site_utils.js - which every page on the site loads and which re-stamps
+    // all 62 of them on every edit. Same precedent as history.js keeping its
+    // own escapeHtml.
+    //
+    // It has to exist BOTH sides or the feature is half-built: an author names
+    // a tier "God Tier" in the editor, it fits there, and readers get the same
+    // 92px box with none of the fitting.
+    //
+    // "Fits" means on one line. .ctl-label already wraps, so a long name never
+    // overflows - it just reads as two cramped lines. And ONE size for every
+    // tier, not one per tier: these labels are a scale, and a scale whose
+    // marks disagree about their own importance is not one.
+    const TIER_LABEL_MAX_REM = 1.5;
+    const TIER_LABEL_MIN_REM = 0.6;
+
+    // Measured with a Range over the text rather than by scrollWidth: the box
+    // is a centred flex container, so an oversized name spills out of BOTH
+    // sides and scrollWidth counts only the right-hand half.
+    function labelOverflows(label) {
+        const style = getComputedStyle(label);
+        const available = label.clientWidth
+            - parseFloat(style.paddingLeft || 0)
+            - parseFloat(style.paddingRight || 0);
+        if (!(available > 0)) return false;
+
+        const range = document.createRange();
+        range.selectNodeContents(label);
+        return range.getBoundingClientRect().width > available + 1;
+    }
+
+    function tierLabels() {
+        return Array.prototype.slice.call(
+            document.querySelectorAll('#tier-list-ui .ctl-row .ctl-label'));
+    }
+
+    function fitTierLabels() {
+        const labels = tierLabels();
+        if (!labels.length) return;
+
+        labels.forEach(label => {
+            label.style.fontSize = '';
+            label.style.whiteSpace = 'nowrap';
+        });
+
+        const tooWide = () => labels.some(labelOverflows);
+
+        let size = TIER_LABEL_MAX_REM;
+        while (tooWide() && size > TIER_LABEL_MIN_REM) {
+            size = Math.round((size - 0.1) * 10) / 10;
+            labels.forEach(label => { label.style.fontSize = size + 'rem'; });
+        }
+
+        if (tooWide()) {
+            labels.forEach(label => { label.style.whiteSpace = ''; });
+        }
+    }
+
+    // Re-fit once the web font is really in, and again on resize. Measured
+    // against the fallback before CC-Wild-Words loads, a long name settles on a
+    // size that is wrong the moment the real typeface arrives; and the mobile
+    // rule takes .ctl-label from 92px to 64px.
+    if (document.fonts && document.fonts.ready && typeof document.fonts.ready.then === 'function') {
+        document.fonts.ready.then(() => fitTierLabels());
+    }
+    let ctlRefitTimer = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(ctlRefitTimer);
+        ctlRefitTimer = setTimeout(fitTierLabels, 120);
+    });
 
     async function renderChangelogAndReasoning(row) {
         const container = document.getElementById('changelog-container');

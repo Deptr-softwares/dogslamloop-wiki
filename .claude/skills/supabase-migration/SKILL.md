@@ -1,12 +1,12 @@
 ---
 name: supabase-migration
-description: Use when writing or reviewing a Supabase migration for this project - creating or altering a table, RLS policy, GRANT, or RPC (especially SECURITY DEFINER). Covers the checklist that prevents privilege escalation, silent 401s from missing grants, and NULL-comparison bugs that deny every user.
+description: Use when writing or reviewing a Supabase migration for this project - creating or altering a table, RLS policy, GRANT, or RPC (especially SECURITY DEFINER), or when editing a migration that has already been pushed. Covers the checklist that prevents privilege escalation, silent 401s from missing grants, NULL-comparison bugs that deny every user, and the two ways a green Supabase Preview check still lets a broken migration reach production.
 paths: supabase/migrations/**
 ---
 
 # Writing a migration
 
-Three real incidents in this project came from skipping steps below: an unauthenticated privilege escalation, and two cases of a policy silently returning 401 because its GRANT was missing.
+Five real incidents in this project came from skipping steps below: an unauthenticated privilege escalation, two cases of a policy silently returning 401 because its GRANT was missing, and the two v0.14 migration failures that left three features inert in production.
 
 ## Every new RPC
 
@@ -48,9 +48,44 @@ Three real incidents in this project came from skipping steps below: an unauthen
 
 9. Check foreign keys before assuming a delete will work. `pending_revisions.author_id` and `user_notifications.user_id` reference `auth.users` with **no `ON DELETE` clause**, so deleting a user who has contributed raises a constraint violation.
 
-## Verify against production
+## What a green `Supabase Preview` does not prove
+
+It is a required check on both branches now. It still lies in two specific ways, and v0.14 shipped broken through both of them at once.
+
+10. **A migration is immutable once pushed. To change it, write a new one.**
+
+    A preview branch records each migration by version and will not run that version again. Edit a file you have already pushed and the branch skips it and reports green — having never read your change.
+
+    PR #85 did this. `144f721` added `20260814000001` correctly and the preview applied it. `7de46e1` edited the same file during the tie-break change and dropped a `WITH`, leaving a body starting `settings AS (`. The preview skipped it, reported green again, and production raised `42601` on first sight.
+
+    `npm run validate` enforces this via `supabase/migrations.lock.json`. If you genuinely need to re-lock — the migration failed, or never left your machine — `npm run lock-migrations` and say why in the commit.
+
+11. **A preview branch has production's schema and only the data the migrations themselves insert.** Not a blank database — it holds all 40 `site_pages` rows, the hub copy, the tier settings. What it has none of is **content**: anything the owner or a contributor wrote through the site. A code path guarded by a *content* row therefore never executes, and its column references are never resolved.
+
+    `20260813000005` seeds a tier list from a `page_data` row for `'tierlist'` carrying an `overall` tab — owner-authored, created by no migration. Its `DO` block opens `IF overall IS NULL THEN ... RETURN`, so it returned early and the `ORDER BY ur.created_at` below was never planned. It passed its own PR (#81) **and** the release preview, then raised `42703` on production and rolled back the five migrations behind it.
+
+    `supabase/seed.sql` cannot fix this — seeding runs *after* migrations. **The defence is static:** `tests/migration-columns.spec.js` resolves column references against the schema in `supabase/migrations` with no database at all, and it is in the required `test` check. When a migration reads content at migration time, assume nothing will execute that path before production and re-read it on that assumption.
+
+## Verify against a preview branch, then production
 
 **Playwright cannot reach RLS, grants, or RPC guards** — every auth spec mocks Supabase and never touches real Postgres. A migration asserted but not probed is unverified.
+
+`supabase/seed.sql` gives every preview branch two accounts, so all three cases below can be run **before** merging rather than only after:
+
+| | |
+|---|---|
+| `admin@dogslamloop.test` | password `seed-admin-password`, `user_roles.role = 'admin'` |
+| `member@dogslamloop.test` | password `seed-member-password`, **no role at all** — `get_my_role()` returns NULL |
+
+Mint a JWT against the branch's URL and anon key (both in the Supabase dashboard, Branches tab):
+
+```bash
+curl -s -X POST "$BRANCH_URL/auth/v1/token?grant_type=password" \
+  -H "apikey: $BRANCH_ANON_KEY" -H "Content-Type: application/json" \
+  -d '{"email":"admin@dogslamloop.test","password":"seed-admin-password"}'
+```
+
+Then `node scripts/probe-release.js` with `USER_JWT`, `ADMIN_JWT` and `--include-writes`. It refuses writes against the production ref, so point it at the branch.
 
 Probe with curl and the public anon key, **before and after**:
 
@@ -67,7 +102,7 @@ Three cases, in order of what they prove:
 
 Send the function's *real* signature. Posting a parameter to a zero-argument function returns `PGRST202`, which looks like a refusal but is only a signature mismatch.
 
-Migrations apply on merge, so this verification happens after merging, not before.
+Migrations apply to **production** on merge, so the production half of this happens after merging. The preview half does not — run it while the PR is open, where a mistake costs a force-push instead of a hotfix.
 
 ## More detail
 

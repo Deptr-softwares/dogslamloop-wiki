@@ -27,9 +27,20 @@ async function previewRevision(revId) {
     document.getElementById('preview-nav-sidebar').classList.remove('hidden');
     document.getElementById('preview-tab-nav').classList.remove('hidden');
 
-    const { data: liveData } = await window.supabaseClient.from('page_data').select('desc_data, frame_data').eq('page_id', rev.page_id).single();
+    // tab_settings is named explicitly because this is a column list, not a
+    // `select('*')` - the reader and the editor both take the whole row and
+    // would have picked the new column up for free, and this one would not.
+    const { data: liveData } = await window.supabaseClient.from('page_data').select('desc_data, frame_data, tab_settings').eq('page_id', rev.page_id).single();
     window.currentLiveDescData = liveData ? liveData.desc_data : {};
     window.currentLiveFrameData = liveData ? liveData.frame_data : {};
+
+    // Which optional tabs this page has, before the strip or the diff renders.
+    // Per revision rather than once at boot: a reviewer works through a queue
+    // of different pages in one session, so leaving the previous page's answer
+    // in place would show a Techs tab on a character that has none.
+    if (typeof window.applyOptionalTabsFromPageRow === 'function') {
+        window.applyOptionalTabsFromPageRow(liveData);
+    }
 
     if (rev.is_delta) {
         const { newDesc, newFrame } = window.applyDeltaToData(
@@ -119,8 +130,12 @@ async function previewRevision(revId) {
         let activeTabId = null;
         if (rev.target_scope === 'multi') {
             activeTabId = (window.changedTabs || [])[0] || 'overview';
-        } else if (['matchup', 'counterplay'].includes(unwrapped.scope)) {
-            activeTabId = `${unwrapped.scope}s`;
+        } else if (window.getKeyedSectionByScope(unwrapped.scope)) {
+            // Read from the vocabulary, not built by appending an 's'. That
+            // turned 'counterplay' into 'counterplays' - not a tab - so a
+            // counterplay ticket never opened onto its own tab and the
+            // reviewer landed on Overview instead.
+            activeTabId = window.getKeyedSectionByScope(unwrapped.scope).tab;
         } else if (unwrapped.scope === 'move') {
             activeTabId = unwrapped.key.split('::')[0];
         } else {
@@ -243,15 +258,97 @@ async function switchVersionView(mode) {
         const formatScopeName = (scope) => {
             const map = {
                 'move': 'Move Strategy & Frames',
-                'matchup': 'Matchup',
-                'counterplay': 'Counterplay',
                 'extra': 'Custom Tab',
                 'profile': 'Profile Metadata',
                 'playstyle': 'Playstyle',
                 'overview': 'Overview',
                 'strategy': 'General Strategy'
             };
+            // Keyed sections name themselves (js/character_tabs.js), so a new
+            // one shows the reviewer its real name rather than a raw scope.
+            window.getKeyedSections().forEach(s => { map[s.scope] = s.entryLabel; });
+            (window.FIXED_BLOCK_SECTIONS || []).forEach(s => { map[s.scope] = s.label; });
+            Object.assign(map, {
+                'gallery_item': 'Gallery Item',
+                'gallery_intro': 'Introduction',
+                'intro': 'Introduction',
+                'notes': 'Notes',
+                'tool_config': 'Tool Setup',
+                'order': 'Order',
+            });
             return map[scope] || scope;
+        };
+
+        // "frame.skills" -> "Skills", "desc.comboGroups" -> "Combo Group".
+        //
+        // An order delta's key is a dotted path, which is the right identifier
+        // for the apply step and completely unreadable to a reviewer. Resolved
+        // through the vocabulary so the name matches what the strip is called
+        // on screen.
+        const orderListLabel = (key) => {
+            const [root, field] = String(key || '').split('.');
+            if (root === 'frame') {
+                return (window.getCharacterTabLabels ? window.getCharacterTabLabels()[field] : null) || field;
+            }
+            if (field === 'extras') return 'Custom Tabs';
+            const section = window.getKeyedSectionByField && window.getKeyedSectionByField(field);
+            return section ? section.label : field;
+        };
+
+        const fixedSectionByScope = (scope) =>
+            (window.FIXED_BLOCK_SECTIONS || []).find(s => s.scope === scope) || null;
+
+        // The scopes a system or tier list page submits. They name a tab of the
+        // page itself rather than one from the character vocabulary, so the
+        // breadcrumb has to read their labels out of the data.
+        const SYSTEM_SCOPES = ['system_section', 'system_tab', 'tierlist_tiers', 'tierlist_changelog'];
+
+        // WHERE THIS CHANGE IS, in one shape for every page type.
+        //
+        // Character pages got a breadcrumb and system, tool, gallery and tier
+        // list pages kept "[Tab] ➔ Section" baked into the block title - so the
+        // same reviewer read two different vocabularies depending on which
+        // queue item they opened, and only one of them named a place.
+        const renderLocation = (crumbs) => {
+            const parts = crumbs
+                .filter(Boolean)
+                .map(s => (window.escapeHtml ? window.escapeHtml(String(s)) : String(s)));
+            if (!parts.length) return;
+            diffContainer.innerHTML += `<div class="diff-location-label">`
+                + `<span class="diff-location-lead">Changed:</span> `
+                + parts.join(' <span class="diff-crumb-sep">›</span> ')
+                + `</div>`;
+        };
+
+        // The Combo List's rows. Paired by POSITION, because that is what the
+        // author edits - a combo table is an ordered list, and the route text
+        // is the thing most likely to change, so keying on it would report
+        // every edited combo as one removal plus one addition.
+        //
+        // Each changed row is named by its route rather than by index alone,
+        // since the route is how an author recognises which combo they wrote.
+        const renderComboRowsDiff = (section, oldRows, newRows) => {
+            const max = Math.max(oldRows.length, newRows.length);
+            let rendered = 0;
+
+            for (let i = 0; i < max; i++) {
+                const o = oldRows[i];
+                const n = newRows[i];
+                if (JSON.stringify(o) === JSON.stringify(n)) continue;
+
+                const route = (n && n.combo) || (o && o.combo) || `Row ${i + 1}`;
+                rendered++;
+
+                if (o === undefined) renderDiffBlock(`Combo Added: ${route}`, null, n);
+                else if (n === undefined) renderDiffBlock(`Combo Removed: ${route}`, o, null);
+                else renderDiffBlock(`Combo: ${route}`, o, n);
+            }
+
+            // The table changed but no row did - a reorder, or the starter was
+            // renamed. Saying so beats an empty panel that reads as a bug.
+            if (!rendered && JSON.stringify(oldRows) !== JSON.stringify(newRows)) {
+                renderDiffBlock(`${section.entryLabel}: order changed`, oldRows, newRows, 'json');
+            }
         };
 
         if (rev.is_delta) {
@@ -265,7 +362,63 @@ async function switchVersionView(mode) {
                 const liveDesc = modeId ? ((window.currentLiveDescData.modeData || {})[modeId] || {}) : window.currentLiveDescData;
                 const liveFrame = modeId ? ((window.currentLiveFrameData.modeData || {})[modeId] || {}) : window.currentLiveFrameData;
                 const where = modeId ? modeId.toUpperCase() + ' / ' : '';
-                diffContainer.innerHTML += `<div class="diff-location-label">Suggested Edit Location: [ ${where}${formatScopeName(scope).toUpperCase()} ➔ ${key.replace('::', ': ').toUpperCase()} ]</div>`;
+
+                // `key` was interpolated straight into `key.replace(...)`, which
+                // threw on a null key and took the whole batch render down with
+                // it - see the forEach below. The merge compiler emits null for
+                // a base-kit section conflict where the editor emits 'full', so
+                // every merged ticket containing one showed only the entries
+                // ahead of it. Tickets already in the queue still carry null
+                // keys, so this coercion is what makes them reviewable at all.
+                // WHERE THIS CHANGE IS, in the words the reviewer sees on the
+                // page itself. It used to read
+                //   Suggested Edit Location: [ COMBOINTRO ➔ FULL ]
+                // which names a delta scope and an internal placeholder - two
+                // things that appear nowhere in the wiki. A reviewer cannot act
+                // on that; they have to go and find what it means.
+                //
+                // Now: the TAB it lives under, the section's own name, and the
+                // entry, e.g. "Combos › Read First". 'full' means the whole
+                // section rather than one entry, so it is dropped rather than
+                // printed - there is nothing after the section name to name.
+                const tabLabels = window.getCharacterTabLabels ? window.getCharacterTabLabels() : {};
+                const owningTab = (window.getKeyedSectionByScope && window.getKeyedSectionByScope(scope))
+                    || fixedSectionByScope(scope);
+                let tabName = owningTab ? tabLabels[owningTab.tab] : null;
+                if (!tabName && ['profile', 'playstyle', 'overview', 'strategy', 'extra'].includes(scope)) {
+                    tabName = tabLabels.overview;
+                }
+                if (!tabName && scope === 'move' && key) tabName = tabLabels[String(key).split('::')[0]];
+
+                const rawKeyLabel = key === null || key === undefined ? 'full' : String(key);
+                // A move's key is "skills::explosion" - the tab half is already
+                // shown, so only the move itself is worth repeating.
+                const entryName = rawKeyLabel === 'full' ? '' : rawKeyLabel.split('::').pop();
+
+                // A system page's tabs are the PAGE'S OWN, not the character
+                // vocabulary, so their names have to be read from the data.
+                // Keys are derived, so the label is the human half and the key
+                // is only how the two sides find each other.
+                if (SYSTEM_SCOPES.includes(scope)) {
+                    const tabKey = scope === 'system_section'
+                        ? window.splitSystemKey(key).tabKey : String(key || '');
+                    const tab = window.findSystemTab(liveDesc, tabKey);
+                    const tabName = tab ? (tab.tabLabel || tab.tabId || tabKey) : tabKey;
+
+                    let leaf = '';
+                    if (scope === 'system_section') {
+                        const found = window.indexSystemSections(liveDesc).find(e => e.key === key);
+                        leaf = (payload && payload.sectionTitle)
+                            || (found && found.section && found.section.sectionTitle)
+                            || window.splitSystemKey(key).secKey;
+                    } else if (scope === 'system_tab') leaf = 'Tab settings';
+                    else if (scope === 'tierlist_tiers') leaf = 'Tiers';
+                    else if (scope === 'tierlist_changelog') leaf = 'Changelog';
+
+                    renderLocation([tabName, leaf]);
+                } else {
+                    renderLocation([where.replace(/ \/ $/, ''), tabName, formatScopeName(scope), entryName]);
+                }
 
                 if (['profile', 'playstyle', 'overview', 'strategy'].includes(scope)) {
                     renderDiffBlock(formatScopeName(scope), liveDesc[scope], payload);
@@ -288,13 +441,79 @@ async function switchVersionView(mode) {
                         renderDiffBlock('Matchup Strategy', oldMu.content || [], payload.content || []);
                     }
                 }
-                else if (scope === 'counterplay') {
-                    const oldCp = liveDesc.counterplay?.find(c => c.topic === key) || {};
+                // Every other keyed section, matchups aside - that branch above
+                // stays written out because its metadata pairs opponent with
+                // tier and reads better named. This covers counterplay, the new
+                // Starter Guide, and anything added to the vocabulary later,
+                // which otherwise renders as a raw JSON blob to the reviewer.
+                else if (window.getKeyedSectionByScope(scope)) {
+                    const section = window.getKeyedSectionByScope(scope);
+                    const oldEntry = liveDesc[section.field]?.find(e => e[section.keyField] === key) || {};
                     if (payload === null) {
-                        renderDiffBlock('Counterplay Deleted', oldCp, null, 'json');
+                        renderDiffBlock(`${section.entryLabel} Deleted`, oldEntry, null, 'json');
                     } else {
-                        renderDiffBlock('Counterplay Metadata', { topic: oldCp.topic, importance: oldCp.importance }, { topic: payload.topic, importance: payload.importance });
-                        renderDiffBlock('Counterplay Strategy', oldCp.content || [], payload.content || []);
+                        const meta = (e) => {
+                            const m = { [section.keyField]: e[section.keyField] };
+                            if (section.metaField) m[section.metaField] = e[section.metaField];
+                            return m;
+                        };
+                        renderDiffBlock(`${section.entryLabel} Metadata`, meta(oldEntry), meta(payload));
+
+                        // A section whose entries hold ROWS rather than blocks -
+                        // the Combo List. Diffing `.content` here compared two
+                        // empty arrays and returned before rendering anything,
+                        // so every combo-table edit reviewed as no change at
+                        // all while applying perfectly.
+                        if (section.rowsField) {
+                            renderComboRowsDiff(
+                                section,
+                                oldEntry[section.rowsField] || [],
+                                payload[section.rowsField] || []
+                            );
+                        } else {
+                            renderDiffBlock(`${section.entryLabel} Notes`, oldEntry.content || [], payload.content || []);
+                        }
+                    }
+                }
+                // An order change has no before/after DOCUMENT to diff - the
+                // entries are untouched and only the sequence moved - so the
+                // generic block renderer would show two identical blobs. The
+                // reviewer needs the two sequences side by side and, more than
+                // that, WHICH entries actually moved: a list of thirty names
+                // reordered by one is unreadable as two lists of thirty.
+                else if (scope === 'order') {
+                    const listKey = key;
+                    const before = (() => {
+                        const [root, ...rest] = String(listKey).split('.');
+                        let node = root === 'frame' ? liveFrame : liveDesc;
+                        for (const p of rest) node = node ? node[/^\d+$/.test(p) ? Number(p) : p] : null;
+                        if (!Array.isArray(node)) return [];
+                        return node.map(e => {
+                            if (!e || typeof e !== 'object') return null;
+                            for (const f of ['name', 'id', 'title', 'opponent', 'topic', 'starter', 'theory']) {
+                                if (e[f]) return String(e[f]);
+                            }
+                            return null;
+                        }).filter(Boolean);
+                    })();
+
+                    const after = Array.isArray(payload) ? payload.map(String) : [];
+
+                    // Named by position so "moved from 4th to 1st" is legible
+                    // without counting down the list.
+                    const moved = after
+                        .map((name, i) => ({ name, from: before.indexOf(name), to: i }))
+                        .filter(m => m.from !== -1 && m.from !== m.to);
+
+                    renderDiffBlock(`${orderListLabel(listKey)} order`,
+                        { order: before }, { order: after });
+
+                    if (moved.length) {
+                        const rows = moved
+                            .map(m => `${window.escapeHtml(m.name)}: ${m.from + 1} → ${m.to + 1}`)
+                            .join('<br>');
+                        diffContainer.innerHTML += `<div class="diff-location-label">`
+                            + `<span class="diff-location-lead">Moved:</span> ${rows}</div>`;
                     }
                 }
                 else if (scope === 'move') {
@@ -311,12 +530,135 @@ async function switchVersionView(mode) {
                         renderDiffBlock('Move Strategy Text', oldDesc, newDesc);
                     }
                 }
+                // A fixed block section - "Read First" on the Combos tab, and
+                // anything added to FIXED_BLOCK_SECTIONS later. Declared in
+                // js/character_tabs.js, so this needs no per-section branch.
+                else if (fixedSectionByScope(scope)) {
+                    const section = fixedSectionByScope(scope);
+                    renderDiffBlock(section.label, liveDesc[section.field] || [], payload || []);
+                }
+                // Gallery pages. One delta per item, keyed by name.
+                else if (scope === 'gallery_item') {
+                    const oldItem = liveDesc.items?.find(i => i.name === key) || {};
+                    if (payload === null) {
+                        renderDiffBlock(`Gallery Item Removed: ${key}`, oldItem, null, 'json');
+                    } else {
+                        renderDiffBlock('Gallery Item', oldItem, payload);
+                    }
+                }
+                // The prose above a gallery, the notes below one, and a tool
+                // page's configuration. All whole-value replacements.
+                else if (scope === 'gallery_intro' || scope === 'intro') {
+                    renderDiffBlock('Introduction', liveDesc.intro || [], payload || []);
+                }
+                else if (scope === 'notes') {
+                    renderDiffBlock('Notes', liveDesc.notes || [], payload || []);
+                }
+                else if (scope === 'tool_config') {
+                    renderDiffBlock('Tool Configuration', liveDesc.tool || {}, payload);
+                }
+                // One section of a system page. The prose diffs as prose; the
+                // layout fields diff as fields, so a reviewer can tell "the
+                // wording changed" from "somebody made it half-width".
+                else if (scope === 'system_section') {
+                    const found = window.indexSystemSections(liveDesc).find(e => e.key === key);
+                    const before = (found && found.section) || {};
+                    const title = (payload && payload.sectionTitle) || before.sectionTitle || 'Section';
+
+                    if (payload === null) {
+                        renderDiffBlock(`Section Removed: ${title}`, before, null, 'json');
+                    } else {
+                        if (before.sectionTitle !== payload.sectionTitle) {
+                            renderDiffBlock('Section Name', { sectionTitle: before.sectionTitle }, { sectionTitle: payload.sectionTitle });
+                        }
+                        const layoutOf = (s) => ({ layout: s.layout, width: s.width, alignment: s.alignment });
+                        renderDiffBlock('Layout', layoutOf(before), layoutOf(payload));
+                        renderDiffBlock(title, before.blocks || [], payload.blocks || [], 'system-content');
+                    }
+                }
+                // A tab's own metadata, and the ORDER of its sections. Order
+                // arrives as a list of keys, so it is rendered as the names
+                // those keys resolve to rather than as the keys themselves.
+                else if (scope === 'system_tab') {
+                    const tab = window.findSystemTab(liveDesc, key) || {};
+                    if (payload === null) {
+                        renderDiffBlock('Tab Removed', { tabLabel: tab.tabLabel }, null, 'json');
+                    } else {
+                        const meta = (t) => {
+                            const m = {};
+                            Object.keys(t || {}).forEach(k => {
+                                if (k !== 'sections' && k !== 'tiers' && k !== 'changelog' && k !== 'order') m[k] = t[k];
+                            });
+                            return m;
+                        };
+                        renderDiffBlock('Tab Settings', meta(tab), meta(payload));
+
+                        if (Array.isArray(payload.order)) {
+                            const nameFor = (secKey) => {
+                                const hit = window.indexSystemSections(liveDesc)
+                                    .find(e => e.tabKey === key && e.secKey === secKey);
+                                return (hit && hit.section && hit.section.sectionTitle) || secKey;
+                            };
+                            const beforeOrder = window.indexSystemSections(liveDesc)
+                                .filter(e => e.tabKey === key).map(e => e.secKey);
+                            renderDiffBlock('Section Order',
+                                { order: beforeOrder.map(nameFor) },
+                                { order: payload.order.map(nameFor) });
+                        }
+                    }
+                }
+                else if (scope === 'tierlist_tiers' || scope === 'tierlist_changelog') {
+                    const tab = window.findSystemTab(liveDesc, key) || {};
+                    const field = scope === 'tierlist_tiers' ? 'tiers' : 'changelog';
+                    renderDiffBlock(field === 'tiers' ? 'Tiers' : 'Changelog', tab[field] || [], payload || [], 'json');
+                }
+                // NOTHING MATCHED, AND THAT MUST NEVER BE SILENT.
+                //
+                // Until this existed, an unhandled scope rendered its location
+                // label and no diff at all - so the reviewer saw a heading
+                // saying something changed, nothing underneath it, and had no
+                // way to tell that apart from "nothing changed here". Seven
+                // scopes were in that state: comboIntro, comboTable,
+                // gallery_item, gallery_intro, intro, notes and tool_config.
+                //
+                // Approving what you were never shown is the same failure the
+                // merged-ticket bug had, and it is worse here because it was
+                // the STEADY state rather than an edge case. A raw dump is a
+                // poor diff; it is still infinitely better than a blank space,
+                // and the banner says plainly that this is the fallback.
+                else {
+                    const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s));
+                    diffContainer.innerHTML += `<div class="diff-unknown-scope">`
+                        + `This change is shown in its raw form because the review screen has no`
+                        + ` purpose-built view for "${esc(scope)}" yet. It is a real change and`
+                        + ` it will be applied if you approve it.`
+                        + `</div>`;
+                    renderDiffBlock(formatScopeName(scope), null, payload, 'json');
+                }
             };
 
             // Recursively execute the render function for Batched multi-tickets!
             if (rev.target_scope === 'multi') {
                 diffContainer.innerHTML += `<div class="diff-batch-banner">BATCHED MULTI-PAYLOAD DETECTED (${rev.delta_payload.length} EDITS)</div>`;
-                rev.delta_payload.forEach(edit => renderDeltaDiff(edit.scope, edit.key, edit.payload));
+
+                // One entry must not be able to hide the others. This loop was
+                // a bare forEach, so a single throw inside renderDeltaDiff
+                // abandoned every remaining edit - the banner still counted
+                // them, so the ticket read as "5 EDITS" while showing 2, with
+                // nothing to say the other 3 existed. A reviewer approving that
+                // is approving changes they were never shown.
+                rev.delta_payload.forEach((edit, i) => {
+                    try {
+                        renderDeltaDiff(edit.scope, edit.key, edit.payload);
+                    } catch (err) {
+                        console.error('[Diff] Edit', i + 1, 'failed to render:', err, edit);
+                        const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s));
+                        diffContainer.innerHTML += `<div class="diff-location-label">`
+                            + `Edit ${i + 1} of ${rev.delta_payload.length} could not be displayed`
+                            + ` (scope: ${esc(edit && edit.scope)}). It is still part of this ticket.`
+                            + `</div>`;
+                    }
+                });
             } else if (rev.target_scope === 'system_data') {
                 const oldTabs = window.currentLiveDescData.tabs || [];
                 const newTabs = rev.delta_payload.tabs || [];
@@ -327,13 +669,25 @@ async function switchVersionView(mode) {
                     const nTab = newTabs.find(t => (t.tabId || t.id) === tabId) || { sections: [] };
                     const tabLabel = nTab.tabLabel || nTab.label || oTab.tabLabel || oTab.label || tabId;
 
+                    // The location goes in the breadcrumb, not into every block
+                    // title. It used to read "[Basic Fundamentals] ➔
+                    // Introduction" inside the heading itself, which put the
+                    // tab name on screen once per block and still never said
+                    // which page type it belonged to.
                     if ((oTab.tabLabel || oTab.label) !== (nTab.tabLabel || nTab.label)) {
-                         renderDiffBlock(`Tab: ${tabId} Metadata`, { label: oTab.tabLabel || oTab.label }, { label: nTab.tabLabel || nTab.label });
+                         renderLocation([tabLabel, 'Tab name']);
+                         renderDiffBlock('Tab Name', { label: oTab.tabLabel || oTab.label }, { label: nTab.tabLabel || nTab.label });
                     }
 
                     if (window.activePreviewPageType === 'tierlist') {
-                         renderDiffBlock(`[${tabLabel}] ➔ Tiers`, oTab.tiers || [], nTab.tiers || [], 'json');
-                         renderDiffBlock(`[${tabLabel}] ➔ Changelog`, oTab.changelog || [], nTab.changelog || [], 'json');
+                         if (JSON.stringify(oTab.tiers || []) !== JSON.stringify(nTab.tiers || [])) {
+                              renderLocation([tabLabel, 'Tiers']);
+                              renderDiffBlock('Tiers', oTab.tiers || [], nTab.tiers || [], 'json');
+                         }
+                         if (JSON.stringify(oTab.changelog || []) !== JSON.stringify(nTab.changelog || [])) {
+                              renderLocation([tabLabel, 'Changelog']);
+                              renderDiffBlock('Changelog', oTab.changelog || [], nTab.changelog || [], 'json');
+                         }
                     } else {
                          const oSecs = oTab.sections || [];
                          const nSecs = nTab.sections || [];
@@ -343,14 +697,19 @@ async function switchVersionView(mode) {
                               const oSec = oSecs[i] || {};
                               const nSec = nSecs[i] || {};
                               const secTitle = nSec.sectionTitle || oSec.sectionTitle || `Section ${i+1}`;
+                              const layoutChanged = oSec.layout !== nSec.layout
+                                  || oSec.width !== nSec.width || oSec.alignment !== nSec.alignment;
+                              const blocksChanged = JSON.stringify(oSec.blocks || []) !== JSON.stringify(nSec.blocks || []);
+                              if (!layoutChanged && !blocksChanged) continue;
 
-                              if (oSec.layout !== nSec.layout || oSec.width !== nSec.width || oSec.alignment !== nSec.alignment) {
-                                   renderDiffBlock(`Layout: [${tabLabel}] ➔ ${secTitle}`,
+                              renderLocation([tabLabel, secTitle]);
+                              if (layoutChanged) {
+                                   renderDiffBlock('Layout',
                                        { layout: oSec.layout, width: oSec.width, alignment: oSec.alignment },
                                        { layout: nSec.layout, width: nSec.width, alignment: nSec.alignment }
                                    );
                               }
-                              renderDiffBlock(`[${tabLabel}] ➔ ${secTitle}`, oSec.blocks || [], nSec.blocks || []);
+                              if (blocksChanged) renderDiffBlock(secTitle, oSec.blocks || [], nSec.blocks || [], 'system-content');
                          }
                     }
                 });
@@ -391,19 +750,28 @@ async function switchVersionView(mode) {
                         }
                         renderDiffBlock(`Matchup Strategy: ${nM || oM || 'Unknown'}`, oldMu[i]?.content || [], newMu[i]?.content || []);
                     }
-                } else if (tab === 'counterplay') {
-                    const oldCp = Array.isArray(oldTab) ? oldTab : [];
-                    const newCp = Array.isArray(newTab) ? newTab : [];
-                    const cpMax = Math.max(oldCp.length, newCp.length);
-                    for (let i = 0; i < cpMax; i++) {
-                        const oC = oldCp[i]?.topic; const nC = newCp[i]?.topic;
-                        if (oC !== nC || oldCp[i]?.importance !== newCp[i]?.importance) {
-                            renderDiffBlock(`Counterplay Metadata (${i + 1})`, { topic: oC, importance: oldCp[i]?.importance }, { topic: nC, importance: newCp[i]?.importance });
+                } else if (window.getKeyedSectionByTab(tab)) {
+                    // Counterplay, Starter Guide, and anything keyed added
+                    // later. Matchups keeps its own branch above.
+                    const section = window.getKeyedSectionByTab(tab);
+                    const oldList = Array.isArray(oldTab) ? oldTab : [];
+                    const newList = Array.isArray(newTab) ? newTab : [];
+                    const max = Math.max(oldList.length, newList.length);
+                    for (let i = 0; i < max; i++) {
+                        const oK = oldList[i]?.[section.keyField];
+                        const nK = newList[i]?.[section.keyField];
+                        const oMeta = section.metaField ? oldList[i]?.[section.metaField] : undefined;
+                        const nMeta = section.metaField ? newList[i]?.[section.metaField] : undefined;
+                        if (oK !== nK || oMeta !== nMeta) {
+                            renderDiffBlock(`${section.entryLabel} Metadata (${i + 1})`,
+                                { [section.keyField]: oK, ...(section.metaField ? { [section.metaField]: oMeta } : {}) },
+                                { [section.keyField]: nK, ...(section.metaField ? { [section.metaField]: nMeta } : {}) });
                         }
-                        renderDiffBlock(`Counterplay Strategy: ${nC || oC || 'Unknown'}`, oldCp[i]?.content || [], newCp[i]?.content || []);
+                        renderDiffBlock(`${section.entryLabel} Strategy: ${nK || oK || 'Unknown'}`,
+                            oldList[i]?.content || [], newList[i]?.content || []);
                     }
                 }
-                else if ((window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials']).includes(tab)) {
+                else if (window.FRAME_MOVE_CATEGORIES.includes(tab)) {
                     const oldMoves = Array.isArray(oldTab) ? oldTab : [];
                     const newMoves = Array.isArray(newTab) ? newTab : [];
                     const allMoveIds = Array.from(new Set([...oldMoves.map(m=>m.id), ...newMoves.map(m=>m.id)]));
@@ -499,6 +867,22 @@ async function switchVersionView(mode) {
                         b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
                         b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
                     }
+                    // A combo card nests like an accordion, plus its own
+                    // fields. Missing this means the reviewer sees the card
+                    // unchanged while its route or damage was rewritten.
+                    else if (b.type === 'theorybox') {
+                        b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
+                        b.oneliner = window.diffTextLCS(oldB.oneliner || '', newB.oneliner || '');
+                        b.damage = window.diffTextLCS(oldB.damage || '', newB.damage || '');
+                        b.difficulty = window.diffTextLCS(oldB.difficulty || '', newB.difficulty || '');
+                        const oldSeq = oldB.sequence || [];
+                        const newSeq = newB.sequence || [];
+                        if (!b.sequence) b.sequence = [];
+                        for (let j = 0; j < Math.max(oldSeq.length, newSeq.length); j++) {
+                            b.sequence[j] = window.diffTextLCS(oldSeq[j] || '', newSeq[j] || '');
+                        }
+                        b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
+                    }
 
                     if (b.caption !== undefined) b.caption = window.diffTextLCS(oldB.caption || '', newB.caption || '');
                     if (b.author !== undefined) b.author = window.diffTextLCS(oldB.author || '', newB.author || '');
@@ -540,6 +924,11 @@ async function switchVersionView(mode) {
                 `;
                 diffRenderQueue.push(() => {
                     if (typeof window.populateTextSection === 'function') window.populateTextSection(`diff-inline-${safeId}`, '', diffedBlocks, context);
+                    // The renderer has now escaped the contributor's text, once.
+                    // Turn the diff markers it left alone into real tags.
+                    if (typeof window.resolveDiffMarkers === 'function') {
+                        window.resolveDiffMarkers(document.getElementById(`diff-inline-${safeId}`));
+                    }
                 });
 
             } else {
@@ -581,11 +970,14 @@ async function switchVersionView(mode) {
     // identical to arriving here normally.
     const diffContainerToHide = document.getElementById('admin-diff-container');
     if (diffContainerToHide) diffContainerToHide.classList.add('hidden');
-    ['m1s', 'skills', 'specials', 'ultimateAtk', 'matchups', 'counterplay'].forEach(tab => {
-        const el = document.getElementById(`tab-${tab}`);
-        if (el) el.classList.add('hidden');
-    });
-    const overviewTabToShow = document.getElementById('tab-overview');
+    const defaultTabId = window.getDefaultCharacterTabId();
+    window.getCharacterTabIds({ includeInjected: true, editableOnly: true })
+        .filter(tab => tab !== defaultTabId)
+        .forEach(tab => {
+            const el = document.getElementById(`tab-${tab}`);
+            if (el) el.classList.add('hidden');
+        });
+    const overviewTabToShow = document.getElementById(`tab-${defaultTabId}`);
     if (overviewTabToShow) overviewTabToShow.classList.remove('hidden');
 
     window.currentEditorPageType = window.activePreviewPageType;

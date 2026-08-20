@@ -35,10 +35,12 @@
     const ULTIMATE_TAB_ID = 'ultimateAtk';
     const ULTIMATE_TAB_LABEL = 'Ultimate';
 
-    // The static strip in admin.html. Re-registering the whole list when the
-    // Ultimate tab is injected is what teaches the six buttons bound at boot
-    // to also hide it when they are clicked (see setupTabs, js/pagebuilder.js).
-    const ADMIN_CHARACTER_TABS = ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'];
+    // The static strip in admin.html: the editable tabs, minus the injected
+    // Ultimate this file adds and minus Gallery, which has no reviewer view.
+    // Re-registering the whole list when the Ultimate tab is injected is what
+    // teaches the buttons bound at boot to also hide it when they are clicked
+    // (see setupTabs, js/pagebuilder.js).
+    const ADMIN_CHARACTER_TABS = window.getCharacterTabIds({ editableOnly: true });
 
     const BASE = () => window.BASE_MODE_ID || 'base';
     const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === 'base'));

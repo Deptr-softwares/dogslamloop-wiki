@@ -300,10 +300,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (ownerLink) ownerLink.classList.remove('hidden');
     }
 
-    if (typeof setupTabs === 'function') {
-        setupTabs('nav', 'tab', ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'], 'major');
+    // The static strip in admin.html - Ultimate is injected later by
+    // js/admin-modes.js, and Gallery has no reviewer view.
+    const adminTabIds = window.getCharacterTabIds({ editableOnly: true });
 
-        ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay'].forEach(tabId => {
+    if (typeof setupTabs === 'function') {
+        setupTabs('nav', 'tab', adminTabIds, 'major');
+
+        adminTabIds.forEach(tabId => {
             const btn = document.getElementById(`nav-${tabId}`);
             if (btn) {
                 btn.addEventListener('click', () => {

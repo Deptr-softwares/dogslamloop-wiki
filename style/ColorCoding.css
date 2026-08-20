@@ -30,6 +30,25 @@
 
     /* Frame data timing colors - single source of truth, also read at runtime
        via getComputedStyle by site_meta.js (window.FRAME_COLORS/WINDOW_COLORS) */
+    /* --- THE TEN INPUT SLOTS (v0.15) ---
+       JJS's inputs, owner-specified 2026-08-16. Used to colour combo notation:
+       a move name is resolved to its slot from frame_data's `input` field
+       (js/input_slots.js) and coloured with the matching token here.
+
+       CATEGORICAL, not ordinal - M1 and Skill 1 have no order between them, so
+       they want distinct hues rather than a ramp. That is the opposite of
+       combo difficulty, which is ordinal and gets a green-to-red ramp. */
+    --input-color-m1: hsl(0, 100%, 72%);        /* Light Red */
+    --input-color-1: hsl(52, 100%, 68%);        /* Light Yellow */
+    --input-color-2: hsl(205, 100%, 72%);       /* Light Blue */
+    --input-color-3: hsl(158, 55%, 55%);        /* Jade Green */
+    --input-color-4: hsl(25, 90%, 48%);         /* Dark Orange */
+    --input-color-r: hsl(295, 60%, 48%);        /* Magenta / Dark Purple */
+    --input-color-q: hsl(0, 0%, 40%);           /* Dark Gray */
+    --input-color-f: hsl(185, 90%, 62%);        /* Cyan */
+    --input-color-space: hsl(0, 0%, 80%);       /* Light Gray */
+    --input-color-shift: hsl(0, 0%, 12%);       /* Black */
+
     --frame-color-start: hsl(217.18, 100%, 50%);
     --frame-color-active: hsl(0, 100%, 45%);
     --frame-color-recov: hsl(295, 89.76%, 50.2%);
@@ -112,3 +131,91 @@
 .text-orange-400 { color: var(--track-color-orange-400); }
 .text-cyan-400 { color: var(--track-color-cyan-400); }
 .text-gray-400 { color: var(--track-color-gray-400); }
+
+/* --- INPUT SLOT COLOURING (v0.15) ---
+   Applied to a move name in prose and to a step inside a combo route, so the
+   same move is the same colour wherever it is written.
+
+   THE OUTLINE IS ALWAYS ON, per slot - owner's call, 2026-08-17. An outline's
+   whole job is to keep the text readable against whatever is behind it, and a
+   light slot on a light character page is exactly as unreadable as a dark slot
+   on a dark one. Deriving it per page would re-compute what the slot already
+   knows about itself.
+
+   Drawn with text-shadow rather than -webkit-text-stroke: the stroke property
+   thins the glyph from the inside, which on 0.75rem monospace notation costs
+   more legibility than it buys. */
+.is-m1, .is-1, .is-2, .is-3, .is-4,
+.is-r, .is-q, .is-f, .is-space, .is-shift { font-weight: bold; }
+
+/* Outlines are HARD, never blurred. A blurred bright halo on a dark page
+   reads as the text GLOWING rather than as an outline - owner, 2026-08-17 -
+   and it only shows on the light-outlined slots, because a blurred black halo
+   on a dark background is invisible either way.
+
+   Drawn with a stroke painted BEHIND the fill (paint-order), not with
+   text-shadow. Combo notation is 0.75rem bold monospace, and a 1px shadow on
+   each side is a large fraction of a glyph that small - on the dark-filled
+   slots the white shadow was brighter than the letter it surrounded, so
+   "FLOCK" in dark gray read as a white lozenge with a gray core. A stroke
+   behind the fill leaves the letter at full weight and puts the outline
+   entirely outside it.
+
+   text-shadow stays as the fallback for anything without paint-order; it is
+   legible, just heavier. */
+.is-m1, .is-1, .is-2, .is-3, .is-f, .is-space {
+    text-shadow: -1px 0 0 #000, 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000;
+}
+.is-4, .is-r, .is-q, .is-shift {
+    text-shadow: -1px 0 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, 0 1px 0 #fff;
+}
+
+@supports (paint-order: stroke) {
+    .is-m1, .is-1, .is-2, .is-3, .is-4,
+    .is-r, .is-q, .is-f, .is-space, .is-shift {
+        text-shadow: none;
+        paint-order: stroke fill;
+        -webkit-text-stroke-width: 1px;
+    }
+    .is-m1, .is-1, .is-2, .is-3, .is-f, .is-space { -webkit-text-stroke-color: #000; }
+    .is-4, .is-r, .is-q, .is-shift { -webkit-text-stroke-color: #fff; }
+}
+
+/* THE CLASS IS DOUBLED DELIBERATELY, and it is not a typo.
+   `.combo-node` sets `color: var(--text-white)` in style/Layout.css, which
+   loads AFTER this file - so at equal specificity it won, and a slot class
+   sitting ON a chip applied its font-weight but not its colour. The symptom
+   was exact: "thickened but not orange" (owner, 2026-08-17). A span nested
+   INSIDE a chip coloured fine, because nothing competed with it - which is
+   why compound steps looked right and plain ones did not.
+   Repeating the class takes it to (0,2,0) without naming another component
+   here, so this file does not have to know what else might set a colour. */
+.is-m1.is-m1       { color: var(--input-color-m1); }
+.is-1.is-1         { color: var(--input-color-1); }
+.is-2.is-2         { color: var(--input-color-2); }
+.is-3.is-3         { color: var(--input-color-3); }
+.is-4.is-4         { color: var(--input-color-4); }
+.is-r.is-r         { color: var(--input-color-r); }
+.is-q.is-q         { color: var(--input-color-q); }
+.is-f.is-f         { color: var(--input-color-f); }
+.is-space.is-space { color: var(--input-color-space); }
+.is-shift.is-shift { color: var(--input-color-shift); }
+
+/* Inside a combo chip the hover fills the background with the character
+   colour, so the slot colour would fight it. The chip wins - it is the
+   interaction the reader started. */
+/* The chip's hover fill wins over the slot colour - it is the interaction the
+   reader started. Written against the doubled classes above so it still
+   outranks them, and covering the class both ON the chip and inside it. */
+.combo-node:hover.is-m1.is-m1, .combo-node:hover .is-m1.is-m1,
+.combo-node:hover.is-1.is-1, .combo-node:hover .is-1.is-1,
+.combo-node:hover.is-2.is-2, .combo-node:hover .is-2.is-2,
+.combo-node:hover.is-3.is-3, .combo-node:hover .is-3.is-3,
+.combo-node:hover.is-4.is-4, .combo-node:hover .is-4.is-4,
+.combo-node:hover.is-r.is-r, .combo-node:hover .is-r.is-r,
+.combo-node:hover.is-q.is-q, .combo-node:hover .is-q.is-q,
+.combo-node:hover.is-f.is-f, .combo-node:hover .is-f.is-f,
+.combo-node:hover.is-space.is-space, .combo-node:hover .is-space.is-space,
+.combo-node:hover.is-shift.is-shift, .combo-node:hover .is-shift.is-shift {
+    color: var(--character-ink, #000); text-shadow: none; -webkit-text-stroke-width: 0;
+}

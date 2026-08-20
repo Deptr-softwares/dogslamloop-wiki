@@ -70,6 +70,21 @@ window.openMergeCompiler = async function(pageId) {
             tFullFrame = patched.newFrame;
         }
 
+        // A SYSTEM OR TIER LIST PAGE IS A DIFFERENT SHAPE ENTIRELY.
+        //
+        // Its content lives under tabs[].sections[], and the character scan
+        // below looks for profile/playstyle/overview/strategy, the keyed
+        // arrays and moves - none of which exist here. So the compiler found
+        // ZERO conflicts and produced an empty merge, while the queue offered
+        // the MERGE TICKETS button for any page with more than one ticket
+        // (js/admin-queue.js). The one tool that exists to resolve two people
+        // editing the same page was inert on exactly the page type that could
+        // not survive it.
+        if (isSystemShaped(tFullDesc) || isSystemShaped(liveDesc)) {
+            scanSystemPage(t, tFullDesc);
+            return;
+        }
+
         // Which states exist is page-level, not per-state. It has to travel
         // through a merge on its own: dropping it would leave a contributor's
         // state content merged into modeData with no toggle on the page able
@@ -85,6 +100,57 @@ window.openMergeCompiler = async function(pageId) {
 
         states.forEach(modeId => scanOneState(t, modeId, tFullDesc, tFullFrame));
     });
+
+    // A page whose content is tabs of sections rather than a character's kit.
+    // Read from the DATA, not from a page-type flag: the compiler is handed
+    // tickets, and a ticket does not always carry the page type.
+    function isSystemShaped(desc) {
+        return !!(desc && Array.isArray(desc.tabs));
+    }
+
+    // Sections are matched by their DERIVED key, the same one the editor and
+    // applyDeltaToData use (js/site_utils.js), so a conflict is per section
+    // rather than per page. Two people editing different sections now produce
+    // no conflict at all, which is the correct answer and the whole point.
+    function scanSystemPage(t, tDesc) {
+        const liveTabs = window.indexSystemTabs(liveDesc);
+        const liveSecs = window.indexSystemSections(liveDesc);
+        const tTabs = window.indexSystemTabs(tDesc);
+        const tSecs = window.indexSystemSections(tDesc);
+
+        const allSecKeys = new Set([...liveSecs.map(s => s.key), ...tSecs.map(s => s.key)]);
+        allSecKeys.forEach(key => {
+            const lSec = liveSecs.find(s => s.key === key);
+            const tSec = tSecs.find(s => s.key === key);
+            if (!isDiff(tSec && tSec.section, lSec && lSec.section)) return;
+
+            const tabKey = key.split('::')[0];
+            const tabLabel = (liveTabs.find(x => x.tabKey === tabKey) || tTabs.find(x => x.tabKey === tabKey) || {});
+            const tabName = (tabLabel.tab && (tabLabel.tab.tabLabel || tabLabel.tab.tabId)) || tabKey;
+            const secName = (tSec && tSec.section && tSec.section.sectionTitle)
+                || (lSec && lSec.section && lSec.section.sectionTitle) || key;
+
+            addConflict(`system_section_${key.replace(/[^a-zA-Z0-9]/g, '_')}`,
+                `${tabName}: ${secName}`, 'system_section', lSec && lSec.section, { systemKey: key })
+                .options.push({ ticket: t, data: tSec && tSec.section });
+        });
+
+        // Tab metadata and tier list tables, per tab.
+        const allTabKeys = new Set([...liveTabs.map(x => x.tabKey), ...tTabs.map(x => x.tabKey)]);
+        allTabKeys.forEach(tabKey => {
+            const lTab = (liveTabs.find(x => x.tabKey === tabKey) || {}).tab;
+            const tTab = (tTabs.find(x => x.tabKey === tabKey) || {}).tab;
+            const name = (tTab && (tTab.tabLabel || tTab.tabId)) || (lTab && (lTab.tabLabel || lTab.tabId)) || tabKey;
+
+            ['tiers', 'changelog'].forEach(field => {
+                if (!isDiff(tTab && tTab[field], lTab && lTab[field])) return;
+                addConflict(`system_${field}_${tabKey.replace(/[^a-zA-Z0-9]/g, '_')}`,
+                    `${name}: ${field === 'tiers' ? 'Tiers' : 'Changelog'}`, `tierlist_${field}`,
+                    lTab && lTab[field], { systemKey: tabKey })
+                    .options.push({ ticket: t, data: tTab && tTab[field] });
+            });
+        });
+    }
 
     function scanOneState(t, modeId, tFullDesc, tFullFrame) {
         const tDesc = narrow(tFullDesc, modeId);
@@ -131,10 +197,15 @@ window.openMergeCompiler = async function(pageId) {
         };
 
         scanArray('extras', 'Custom Tab', tDesc.extras, liveDescData.extras, 'title');
-        scanArray('matchups', 'Matchup', tDesc.matchups, liveDescData.matchups, 'opponent');
-        scanArray('counterplay', 'Counterplay', tDesc.counterplay, liveDescData.counterplay, 'topic');
+        // Every keyed section (js/character_tabs.js), so a section added there
+        // is merged here too. A section missing from this scan means two
+        // tickets editing the same entry never register as a conflict, and the
+        // second one silently overwrites the first.
+        window.getKeyedSections().forEach(s => {
+            scanArray(s.field, s.entryLabel, tDesc[s.field], liveDescData[s.field], s.keyField);
+        });
 
-        (window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials']).forEach(cat => {
+        window.FRAME_MOVE_CATEGORIES.forEach(cat => {
             const tMoves = tFrame[cat] || [];
             const lMoves = liveFrameData[cat] || [];
             const allMoveIds = new Set([...tMoves.map(m=>m.id), ...lMoves.map(m=>m.id)]);
@@ -216,8 +287,11 @@ window.openMergeCompiler = async function(pageId) {
         const batchedDeltas = [];
 
         // applyDeltaToData's array scopes are singular; the compiler's are the
-        // property names they live under.
-        const DELTA_SCOPE_FOR_ARRAY = { extras: 'extra', matchups: 'matchup', counterplay: 'counterplay' };
+        // property names they live under. Declared per section in
+        // js/character_tabs.js rather than derived by trimming an 's' - see the
+        // note there about the 'counterplays' tab id that produced.
+        const DELTA_SCOPE_FOR_ARRAY = { extras: 'extra' };
+        window.getKeyedSections().forEach(s => { DELTA_SCOPE_FOR_ARRAY[s.field] = s.scope; });
 
         // A conflict inside an ultimate state writes into that state's bucket
         // and ships as a mode-wrapped delta - the same wrapper the editor emits
@@ -228,10 +302,22 @@ window.openMergeCompiler = async function(pageId) {
             if (!master.modeData[modeId]) master.modeData[modeId] = {};
             return master.modeData[modeId];
         };
+        // A singular scope carries the key 'full', not null. The editor has
+        // always emitted 'full' here (js/editor-core.js's scanOverview), and
+        // the mode branch below normalised it - but the plain branch passed
+        // null straight through, so a merged ticket touching a base-kit
+        // section shipped `{ scope: 'playstyle', key: null }`.
+        //
+        // That applied correctly and reviewed catastrophically: the diff
+        // renderer called key.replace(...), threw, and abandoned every
+        // remaining edit in the batch. Ticket 63a024d0 counted 5 edits and
+        // showed 2. Normalising in one place instead of two.
+        const normaliseKey = (key) => (key === null || key === undefined ? 'full' : key);
+
         const pushDelta = (modeId, scope, key, payload) => {
             batchedDeltas.push(modeId
-                ? { scope: 'mode', key: `${modeId}::${scope}::${key === null ? 'full' : key}`, payload }
-                : { scope, key, payload });
+                ? { scope: 'mode', key: `${modeId}::${scope}::${normaliseKey(key)}`, payload }
+                : { scope, key: normaliseKey(key), payload });
         };
 
         conflicts.forEach(c => {
@@ -257,6 +343,28 @@ window.openMergeCompiler = async function(pageId) {
                 const prop = c.modeId ? c.sectionId.split('__').pop() : c.sectionId;
                 descSlice[prop] = chosenOpt.data;
                 pushDelta(c.modeId, prop, null, chosenOpt.data);
+            }
+            // One section of a system page, chosen from whichever ticket the
+            // reviewer picked. Emitted as the same scoped delta the editor
+            // sends, so approval injects exactly this section and leaves every
+            // other one at whatever it is by then - which is the property the
+            // whole merge compiler was rewritten for.
+            else if (c.type === 'system_section') {
+                const key = c.liveStratData.systemKey;
+                const chosen = chosenOpt.data === undefined ? null : chosenOpt.data;
+                // tabs replaced in place rather than reassigning masterDesc:
+                // it is a const, and sliceOf() above already holds references
+                // into the same object.
+                const applied = window.applyDeltaToData(masterDesc, masterFrame, 'system_section', key, chosen);
+                masterDesc.tabs = applied.newDesc.tabs;
+                batchedDeltas.push({ scope: 'system_section', key, payload: chosen });
+            }
+            else if (c.type === 'tierlist_tiers' || c.type === 'tierlist_changelog') {
+                const key = c.liveStratData.systemKey;
+                const chosen = chosenOpt.data === undefined ? null : chosenOpt.data;
+                const applied = window.applyDeltaToData(masterDesc, masterFrame, c.type, key, chosen);
+                masterDesc.tabs = applied.newDesc.tabs;
+                batchedDeltas.push({ scope: c.type, key, payload: chosen });
             }
             else if (c.type === 'array_item') {
                 // Identity-based, matching scanArray above - find by keyProp,

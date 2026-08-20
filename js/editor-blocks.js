@@ -1,3 +1,27 @@
+
+// Every contributor-authored value below reaches innerHTML, and most of them
+// land in an ATTRIBUTE (`value="..."`), where an unescaped double quote ends
+// the attribute and starts a new one. That was live: a block field of
+// `" onfocus=alert(1) autofocus="` executed when the editor rendered it - and
+// a reviewer intercepting a ticket opens exactly that editor on exactly that
+// contributor's content.
+//
+// Named escField, NOT esc: these files are classic scripts sharing one global
+// lexical scope, and a top-level `const esc` here collides with the one in
+// js/description.js, js/dashboards.js and js/post-editor.js on every page that
+// loads two of them - aborting this entire file. See the note in
+// description.js, and tests/global-scope-collisions.spec.js, which now fails
+// on any recurrence.
+//
+// window.escapeHtml escapes both quote characters as well as the angle
+// brackets, so it is correct for text and attribute contexts alike. The
+// fallback mirrors it for the cache-skew case site_utils.js is stamped for.
+const escField = (v) => (typeof window.escapeHtml === 'function'
+    ? window.escapeHtml(v === null || v === undefined ? '' : v)
+    : String(v === null || v === undefined ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;'));
+
 /**
  * Dogslamloop Wiki - Editor: Content Block Builder (add/edit/reorder text,
  * media, and component blocks - the core WYSIWYG-ish editing surface used
@@ -267,14 +291,27 @@ document.addEventListener('keydown', (e) => {
 });
 
 // --- AUTO-AUTHOR INJECTOR ---
+/**
+ * A fresh block of `type`, with NO author credit.
+ *
+ * It used to stamp window.currentGlobalUsername onto any block whose template
+ * had an `author` field. Two things were wrong with that, and the owner asked
+ * for both to stop (v0.16 fine-tuning 7, pulled forward here because a combo
+ * card made it unrecoverable):
+ *
+ *   Credit is the contributor's CHOICE. Plenty of people would rather not put
+ *   their name on the site, and opting out should not require noticing a
+ *   pre-filled field and clearing it.
+ *
+ *   It duplicated the name into the compiled contributor list underneath the
+ *   tab, so one person writing four blocks was credited four times.
+ *
+ * The name is kept as the function's name rather than renamed to something
+ * like spawnBlock: every js/ file shares one global lexical scope, four call
+ * sites use this, and a rename is churn with a collision risk for no gain.
+ */
 window.spawnBlockWithAuthor = function(type) {
-    const newBlock = JSON.parse(JSON.stringify(blockTemplates[type]));
-    
-    if (newBlock.author !== undefined && window.currentGlobalUsername && window.currentGlobalUsername !== "Anonymous") {
-        newBlock.author = window.currentGlobalUsername;
-    }
-    
-    return newBlock;
+    return JSON.parse(JSON.stringify(blockTemplates[type]));
 };
 
 const blockTemplates = {
@@ -287,6 +324,11 @@ const blockTemplates = {
     callout: { type: 'callout', intent: 'info', title: 'Note', content: 'Important detail here', align: 'center' },
     combo: { type: 'combo', sequence: ['M1', 'M1', 'Skill'], damage: '0', align: 'left', note: '', author: '' },
     accordion: { type: 'accordion', title: 'Collapsible Section', content: [{ type: 'paragraph', content: ['Hidden text...'] }], align: 'center', author: '' },
+    // A combo card: the route and its numbers, then a write-up about it.
+    // `content` makes it nest exactly like an accordion, which is what lets a
+    // card hold its own clips, sub-variants and explanation - and what makes a
+    // combo GROUP a group rather than a list.
+    theorybox: { type: 'theorybox', title: 'New Combo', oneliner: '', difficulty: '', sequence: [], damage: '', video: '', content: [], anchor: '', align: 'left', author: '' },
     divider: { type: 'divider', style: 'diamond', padding: 'normal' },
     author: { type: 'author', author: '' },
     table: { type: 'table', headers: ['Stat', 'Value'], rows: [['Damage', '10'], ['Startup', '5f']], align: 'center', author: '' },
@@ -315,7 +357,13 @@ function initStrategyBlockBuilder(containerId, initialData) {
     currentStrategyBlocks = initialData ? JSON.parse(JSON.stringify(initialData)) : [];
 
     window.activeAccordionPath = [];
-    
+
+    // Which folders are closed is per-section view state. Opening a different
+    // section starts everything expanded rather than inheriting a collapse the
+    // author set somewhere else, which is also what makes a bare folder name a
+    // safe key for it.
+    if (typeof window.resetBlockFolderState === 'function') window.resetBlockFolderState();
+
     blockHistory = [JSON.parse(JSON.stringify(currentStrategyBlocks))];
     historyIndex = 0;
 
@@ -341,6 +389,21 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 <button class="format-btn format-btn-strikethrough" data-tag="s" title="Strikethrough">S</button>
                 <button class="format-btn format-btn-code" data-tag="code" title="Inline Code">&lt;&gt;</button>
                 <button class="format-btn" data-tag="url" title="Turn text into a link">🔗</button>
+                <!-- A link to another section of THIS page. Separate from the
+                     link button because the thing being chosen is different: a
+                     URL is typed, a section is picked from what exists. Typing
+                     the anchor by hand means knowing the slug rule, which no
+                     contributor should have to. -->
+                <div class="format-jump-wrapper">
+                    <button class="format-btn format-btn-jump" id="btn-format-jump"
+                            title="Link to a section on this page">⚓</button>
+                    <div id="format-jump-popup" class="format-jump-popup hidden">
+                        <div class="format-jump-label">Link to a section</div>
+                        <input type="text" id="format-jump-search" class="format-jump-search"
+                               placeholder="Search sections…" autocomplete="off">
+                        <div id="format-jump-list" class="format-jump-list"></div>
+                    </div>
+                </div>
                 <!-- The two shortcodes v0.14 added to js/internalstyling.js.
                      They rendered on the page from the day they shipped and
                      had no way to be typed except by hand, which is the same
@@ -405,6 +468,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="callout">+ Callout</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="combo">+ Combo</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="accordion">+ Accordion</button>
+                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="theorybox">+ Combo Card</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="divider">+ Divider</button>
                     <button class="btn-sys btn-sys-regular add-block-btn" data-type="author">+ Author</button>
                 </div>
@@ -492,6 +556,12 @@ function initStrategyBlockBuilder(containerId, initialData) {
     let lastSelection = { start: 0, end: 0 };
     
     blockList.addEventListener('focusin', (e) => {
+        // Inside a CARD only. The folder header carries a name input that lives
+        // in this list but is not block content, and the format toolbar writes
+        // shortcodes into whatever was last focused - so Bold on a selected
+        // folder name would have written [b]...[/b] into organisation nobody
+        // reads.
+        if (!e.target.closest || !e.target.closest('.block-card')) return;
         if(e.target.tagName === 'TEXTAREA' || (e.target.tagName === 'INPUT' && e.target.type === 'text')) {
             lastFocusedInput = e.target;
         }
@@ -593,31 +663,38 @@ function initStrategyBlockBuilder(containerId, initialData) {
         if (e.target.closest('.format-btn') || e.target.closest('.color-preset-btn')) e.preventDefault(); 
     });
 
-    const applyFormat = (tag, value = null) => {
+    const applyFormat = (tag, value = null, fallbackText = '') => {
         if (!lastFocusedInput) return;
         const start = lastSelection.start !== undefined ? lastSelection.start : lastFocusedInput.selectionStart;
         const end = lastSelection.end !== undefined ? lastSelection.end : lastFocusedInput.selectionEnd;
         const text = lastFocusedInput.value;
-        const selectedText = text.substring(start, end);
-        
+        // A section link with nothing highlighted names the section it points
+        // at, rather than producing an empty [url=#x][/url] the reader cannot
+        // see or click.
+        const selectedText = text.substring(start, end) || fallbackText;
+
         let openTag = `[${tag}]`;
-        
-        if (tag === 'url') {
+
+        if (tag === 'url' && !value) {
             const linkTarget = prompt("Enter the URL or relative path:");
-            if (!linkTarget) return; 
+            if (!linkTarget) return;
             openTag = `[url=${linkTarget}]`;
         } else if (value) {
             openTag = `[${tag}=${value}]`;
         }
-        
+
         let closeTag = `[/${tag}]`;
-        
+
         const newText = text.substring(0, start) + openTag + selectedText + closeTag + text.substring(end);
         lastFocusedInput.value = newText;
         
         lastFocusedInput.dispatchEvent(new Event('input', { bubbles: true }));
         lastFocusedInput.focus();
-        lastFocusedInput.setSelectionRange(start + openTag.length, end + openTag.length);
+        // Measured from the inserted text, not from `end`. They are the same
+        // whenever something was highlighted, and differ exactly when the
+        // fallback above supplied the label - where using `end` would leave
+        // the caret short of the text it just wrote.
+        lastFocusedInput.setSelectionRange(start + openTag.length, start + openTag.length + selectedText.length);
     };
 
     formatToolbar.addEventListener('click', (e) => {
@@ -688,6 +765,134 @@ function initStrategyBlockBuilder(containerId, initialData) {
         });
     }
 
+    // --- SECTION LINK PICKER ---
+    //
+    // The list comes from collectSectionTargets, which reads desc_data rather
+    // than the preview: the editor renders only the tab being edited, so a
+    // DOM-derived list would offer links within the current tab and nowhere
+    // else - the opposite of what an in-page link is for.
+    const jumpBtn = container.querySelector('#btn-format-jump');
+    const jumpPopup = container.querySelector('#format-jump-popup');
+    const jumpList = container.querySelector('#format-jump-list');
+    const jumpSearch = container.querySelector('#format-jump-search');
+
+    if (jumpBtn && jumpPopup && jumpList) {
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
+        // data- attributes with a delegated listener throughout: a section
+        // title is contributor-written and must never reach an inline handler.
+        const itemHTML = (target, cls) =>
+            `<button type="button" class="${cls}"
+                     data-anchor="${esc(target.id)}"
+                     data-title="${esc(target.title)}">${esc(target.title)}</button>`;
+
+        const renderJumpList = (filter) => {
+            const data = window.currentEditorDescData || window.editorMasterDescData || {};
+            const frame = window.currentEditorFrameData || window.editorMasterFrameData || {};
+            const all = typeof window.collectSectionTargets === 'function'
+                ? window.collectSectionTargets(data, frame)
+                : [];
+
+            const needle = String(filter || '').trim().toLowerCase();
+            const hit = (text) => text.toLowerCase().includes(needle);
+
+            // A major stays when it matches OR one of its sub-headings does -
+            // otherwise searching for a sub-heading returns nothing, because
+            // the thing that matched is nested inside something that did not.
+            const shown = !needle ? all : all
+                .map(t => {
+                    const kids = t.children.filter(c => hit(c.title));
+                    if (hit(t.title) || hit(t.tabLabel)) return { ...t, matchedChildren: kids };
+                    if (kids.length) return { ...t, matchedChildren: kids, childOnly: true };
+                    return null;
+                })
+                .filter(Boolean);
+
+            if (!shown.length) {
+                jumpList.innerHTML = `<p class="format-jump-empty">${
+                    all.length ? 'No section matches that.' : 'This page has no named sections yet.'
+                }</p>`;
+                return;
+            }
+
+            // Two levels, like the table of contents: a section, and the
+            // headings inside it behind a caret. Collapsed by default, which is
+            // where this departs from the ToC on purpose - a filled-in page has
+            // well over a hundred headings, and the picker exists to find one
+            // quickly rather than to be read through.
+            let html = '';
+            let lastTab = null;
+            shown.forEach(target => {
+                if (target.tab !== lastTab) {
+                    html += `<div class="format-jump-group">${esc(target.tabLabel)}</div>`;
+                    lastTab = target.tab;
+                }
+
+                const children = needle ? (target.matchedChildren || []) : target.children;
+                // Expanded when the search is what surfaced the children -
+                // collapsing the only match would hide the thing found.
+                const open = !!needle && children.length > 0;
+
+                html += '<div class="format-jump-row">';
+                html += itemHTML(target, 'format-jump-item');
+                if (children.length) {
+                    html += `<button type="button" class="format-jump-toggle" aria-expanded="${open}"
+                                     aria-label="Sections inside ${esc(target.title)}">▼</button>`;
+                }
+                html += '</div>';
+
+                if (children.length) {
+                    html += `<div class="format-jump-children${open ? '' : ' hidden'}">`
+                          + children.map(c => itemHTML(c, 'format-jump-item format-jump-item-minor')).join('')
+                          + '</div>';
+                }
+            });
+            jumpList.innerHTML = html;
+        };
+
+        jumpBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const opening = jumpPopup.classList.contains('hidden');
+            jumpPopup.classList.toggle('hidden');
+            if (!opening) return;
+            if (jumpSearch) jumpSearch.value = '';
+            renderJumpList('');
+            keepColorPopupOnScreen(jumpPopup);
+        });
+
+        // The toolbar's own mousedown guard covers .format-btn only, and the
+        // selection this is about to wrap dies the moment focus moves.
+        jumpPopup.addEventListener('mousedown', (e) => {
+            if (!e.target.closest('.format-jump-search')) e.preventDefault();
+        });
+
+        if (jumpSearch) {
+            jumpSearch.addEventListener('input', () => renderJumpList(jumpSearch.value));
+        }
+
+        jumpList.addEventListener('click', (e) => {
+            const toggle = e.target.closest('.format-jump-toggle');
+            if (toggle) {
+                const children = toggle.parentElement && toggle.parentElement.nextElementSibling;
+                if (!children) return;
+                const open = children.classList.toggle('hidden') === false;
+                toggle.setAttribute('aria-expanded', String(open));
+                return;
+            }
+
+            const item = e.target.closest('.format-jump-item');
+            if (!item) return;
+            applyFormat('url', `#${item.getAttribute('data-anchor')}`, item.getAttribute('data-title'));
+            jumpPopup.classList.add('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#format-jump-popup') && !e.target.closest('#btn-format-jump')) {
+                jumpPopup.classList.add('hidden');
+            }
+        });
+    }
+
     // --- 3. POPUP MENU LOGIC ---
     const btnToggleMenu = container.querySelector('#btn-toggle-add-menu');
     const popupMenu = container.querySelector('#add-block-popup');
@@ -704,6 +909,43 @@ function initStrategyBlockBuilder(containerId, initialData) {
 
     // --- SMART BLOCK CONVERSION & DROPDOWN SYNC ---
     blockList.addEventListener('change', (e) => {
+        if (e.target.classList.contains('block-folder-name-input')
+            && typeof window.renameBlockFolder === 'function') {
+            // On change, not input: renaming per keystroke would rewrite every
+            // block in the run on every letter, and re-render the list out
+            // from under the caret.
+            const activeBlocks = window.getActiveBlocks();
+            const from = e.target.getAttribute('data-folder');
+            const to = window.normalizeFolderName(e.target.value);
+
+            if (!to || to === from) { e.target.value = from; return; }
+
+            window.saveBlockHistory();
+            if (!window.renameBlockFolder(activeBlocks, from, to)) {
+                // Guarded, like the same call in editor-find-replace.js: this
+                // file is loaded by owner.html and tier-editor.html, neither of
+                // which loads editor-core.js, so editorAlert is undefined
+                // there. The field snapping back is the feedback that survives
+                // on every host page; the message is the bonus where there is
+                // a modal to put it in.
+                if (typeof window.editorAlert === 'function') {
+                    window.editorAlert(`This section already has a folder called "${to}". Pick a different name.`);
+                }
+                e.target.value = from;
+                return;
+            }
+
+            // Carry the collapsed state across, or renaming silently reopens a
+            // folder the author had closed.
+            if (window.isBlockFolderCollapsed(from)) {
+                window.setBlockFolderCollapsed(from, false);
+                window.setBlockFolderCollapsed(to, true);
+            }
+            renderBlockList();
+            updateLivePreview(true);
+            return;
+        }
+
         if (e.target.classList.contains('block-type-selector')) {
             const activeBlocks = window.getActiveBlocks(); 
             const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
@@ -771,14 +1013,55 @@ function initStrategyBlockBuilder(containerId, initialData) {
     // fixes the drag gesture itself.
     const DRAG_THRESHOLD = 6; // px of movement before a press counts as a drag, not a tap
 
+    // Three kinds of destination, and the order of the tests is the design:
+    // the nesting zone sits INSIDE a card, so it has to be checked before the
+    // card itself or it could never be aimed at; the folder header sits
+    // outside every card, so it is what the card lookup falls through to.
+    const NO_DROP = {
+        card: null, dropIndex: null, isBottom: false,
+        folderHead: null, headEl: null, nestInto: null, nestEl: null,
+    };
+
     function computeDropTarget(clientX, clientY) {
         const under = document.elementFromPoint(clientX, clientY);
-        const card = under ? under.closest('.block-card') : null;
-        if (!card) return { card: null, dropIndex: null, isBottom: false };
+        if (!under) return NO_DROP;
+
+        // The "EDIT INNER BLOCKS" strip on an accordion, and the identical one
+        // on a theorybox - both use this class, so both accept a drop without
+        // either being named here. Dropping on it means "put this block INSIDE
+        // that one", which is why it cannot be the card's own reorder target.
+        const nest = under.closest('.accordion-inner-block-wrapper');
+        if (nest) {
+            const host = nest.closest('.block-card');
+            if (host) {
+                return Object.assign({}, NO_DROP, {
+                    nestInto: parseInt(host.getAttribute('data-index')),
+                    nestEl: nest,
+                });
+            }
+        }
+
+        const card = under.closest('.block-card');
+        if (!card) {
+            // A folder header is a real target, not empty space. It is the
+            // only way INTO a collapsed folder, which by definition shows no
+            // cards to drop between.
+            const head = under.closest('.block-folder-head');
+            const shell = head ? head.closest('.block-folder') : null;
+            return Object.assign({}, NO_DROP, {
+                folderHead: shell ? shell.getAttribute('data-folder') : null,
+                headEl: head || null,
+            });
+        }
+
         const bounding = card.getBoundingClientRect();
         const isBottom = clientY > bounding.y + bounding.height / 2;
         const cardIndex = parseInt(card.getAttribute('data-index'));
-        return { card, dropIndex: isBottom ? cardIndex + 1 : cardIndex, isBottom };
+        return Object.assign({}, NO_DROP, {
+            card,
+            dropIndex: isBottom ? cardIndex + 1 : cardIndex,
+            isBottom,
+        });
     }
 
     // Marks where a block landed. Without it a reorder gives no feedback
@@ -796,22 +1079,81 @@ function initStrategyBlockBuilder(containerId, initialData) {
         });
     }
 
-    function finishBlockDrop(payload, dropIndex) {
+    // A drag moves an array element and says nothing about folder membership,
+    // so every landing has to be reconciled: dropped between two members of a
+    // folder a block joins it, dragged clear of one it leaves. Without this a
+    // block can render inside a folder while carrying no `folder` value,
+    // which splits the run into two folders sharing a name.
+    function settleFolderAt(blocks, index) {
+        if (index < 0) return;
+        if (typeof window.reconcileFolderAt === 'function') {
+            window.reconcileFolderAt(blocks, index);
+        }
+    }
+
+    // A container block a drop can go inside: an accordion or a theorybox,
+    // both of which hold a `content` array of blocks. Checked on the object
+    // rather than by type name, so a container added later works without
+    // anyone coming back here.
+    function nestHost(blocks, index) {
+        if (index === null || index === undefined || index < 0) return null;
+        const host = blocks[index];
+        if (!host) return null;
+        if (!Array.isArray(host.content)) return null;
+        return host;
+    }
+
+    function finishBlockDrop(payload, dropIndex, folderHead, nestInto) {
         const activeBlocks = window.getActiveBlocks();
 
         if (payload.blockType) {
             window.saveBlockHistory(); // Save BEFORE mutating
             const newBlock = window.spawnBlockWithAuthor(payload.blockType);
             let landedAt;
-            if (dropIndex === null) {
+            if (nestHost(activeBlocks, nestInto)) {
+                activeBlocks[nestInto].content.push(newBlock);
+                landedAt = nestInto;
+            } else if (folderHead) {
+                const run = typeof window.blockFolderRunNamed === 'function'
+                    ? window.blockFolderRunNamed(activeBlocks, folderHead)
+                    : null;
+                landedAt = run ? run.start : activeBlocks.length;
+                newBlock.folder = folderHead;
+                activeBlocks.splice(landedAt, 0, newBlock);
+            } else if (dropIndex === null) {
                 activeBlocks.push(newBlock);
                 landedAt = activeBlocks.length - 1;
             } else {
                 activeBlocks.splice(dropIndex, 0, newBlock);
                 landedAt = dropIndex;
+                settleFolderAt(activeBlocks, landedAt);
             }
             renderBlockList();
             updateLivePreview(true); // Tell it to skip saving history again
+            flashMovedBlock(landedAt);
+        } else if (nestHost(activeBlocks, nestInto) && payload.fromIndex !== nestInto) {
+            // The same gesture as dropping into a folder, with a different
+            // destination: a folder is a view over THIS level, while an
+            // accordion is a level of its own. Reaching it used to mean
+            // drilling in with "EDIT INNER BLOCKS" and rebuilding the block
+            // by hand.
+            window.saveBlockHistory();
+            const item = activeBlocks.splice(payload.fromIndex, 1)[0];
+            // Folder membership belongs to the level the block just left.
+            // Carried along it would show up inside the accordion as a folder
+            // of one, named after somewhere the author cannot see.
+            delete item.folder;
+            const hostIndex = payload.fromIndex < nestInto ? nestInto - 1 : nestInto;
+            activeBlocks[hostIndex].content.push(item);
+            renderBlockList();
+            updateLivePreview(true);
+            flashMovedBlock(hostIndex);
+        } else if (folderHead && typeof window.dropBlockIntoFolderHead === 'function') {
+            window.saveBlockHistory();
+            const landedAt = window.dropBlockIntoFolderHead(activeBlocks, payload.fromIndex, folderHead);
+            if (landedAt < 0) return;
+            renderBlockList();
+            updateLivePreview(true);
             flashMovedBlock(landedAt);
         } else if (dropIndex !== null) {
             let target = dropIndex;
@@ -820,6 +1162,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 window.saveBlockHistory();
                 const item = activeBlocks.splice(payload.fromIndex, 1)[0];
                 activeBlocks.splice(target, 0, item);
+                settleFolderAt(activeBlocks, target);
                 renderBlockList();
                 updateLivePreview(true);
                 flashMovedBlock(target);
@@ -848,6 +1191,10 @@ function initStrategyBlockBuilder(containerId, initialData) {
         let currentCard = null;
         let lastDropIndex = null;
         let sourceCard = null;
+        let currentHead = null;
+        let lastFolderHead = null;
+        let currentNest = null;
+        let lastNestInto = null;
 
         el.setPointerCapture(e.pointerId);
 
@@ -857,7 +1204,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
         }
 
         function updateHighlight(ev) {
-            const { card, dropIndex, isBottom } = computeDropTarget(ev.clientX, ev.clientY);
+            const { card, dropIndex, isBottom, folderHead, headEl, nestInto, nestEl } = computeDropTarget(ev.clientX, ev.clientY);
             if (card !== currentCard) {
                 if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
                 currentCard = card;
@@ -866,7 +1213,23 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 card.classList.toggle('drag-over-bottom', isBottom);
                 card.classList.toggle('drag-over-top', !isBottom);
             }
+            if (headEl !== currentHead) {
+                if (currentHead) currentHead.classList.remove('drag-over-folder');
+                currentHead = headEl;
+                if (currentHead) currentHead.classList.add('drag-over-folder');
+            }
+            if (nestEl !== currentNest) {
+                if (currentNest) currentNest.classList.remove('drag-over-nest');
+                currentNest = nestEl;
+                // Never highlight a block's own nesting zone - dropping it
+                // into itself is refused at the drop, so offering it is a lie.
+                if (currentNest && payload.fromIndex !== nestInto) {
+                    currentNest.classList.add('drag-over-nest');
+                }
+            }
             lastDropIndex = dropIndex;
+            lastFolderHead = folderHead;
+            lastNestInto = nestInto;
         }
 
         function startDrag(ev) {
@@ -890,6 +1253,8 @@ function initStrategyBlockBuilder(containerId, initialData) {
             if (sourceCard) sourceCard.classList.remove('block-card-dragging');
             if (ghost) { ghost.remove(); ghost = null; }
             if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
+            if (currentHead) currentHead.classList.remove('drag-over-folder');
+            if (currentNest) currentNest.classList.remove('drag-over-nest');
         }
 
         function onMove(ev) {
@@ -906,8 +1271,10 @@ function initStrategyBlockBuilder(containerId, initialData) {
 
         function onUp() {
             const dropIndex = lastDropIndex;
+            const folderHead = lastFolderHead;
+            const nestInto = lastNestInto;
             cleanup();
-            if (dragging) finishBlockDrop(payload, dropIndex);
+            if (dragging) finishBlockDrop(payload, dropIndex, folderHead, nestInto);
         }
 
         function onCancel() {
@@ -937,12 +1304,68 @@ function initStrategyBlockBuilder(containerId, initialData) {
         startBlockPointerDrag(e, handle, { fromIndex: parseInt(card.getAttribute('data-index')) }, 'Move block');
     });
 
+    // --- FOLDER PICKER ---
+    //
+    // Its own delegated listener rather than a branch of the big click handler
+    // below, because that one opens with closest('button') and then resolves
+    // .block-card by data-index - this dropdown needs neither, and its rows are
+    // rebuilt on every render so per-element binding would leak.
+    blockList.addEventListener('click', (e) => {
+        const trigger = e.target.closest('.block-folder-trigger');
+        if (trigger) {
+            const wrapper = trigger.closest('.block-folder-picker');
+            const wasOpen = wrapper.classList.contains('open');
+            blockList.querySelectorAll('.block-folder-picker.open')
+                .forEach(w => w.classList.remove('open'));
+            wrapper.classList.toggle('open', !wasOpen);
+            return;
+        }
+
+        const option = e.target.closest('.folder-option');
+        if (!option || typeof window.assignBlockToFolder !== 'function') return;
+
+        const card = option.closest('.block-card');
+        if (!card) return;
+
+        const activeBlocks = window.getActiveBlocks();
+        const index = parseInt(card.getAttribute('data-index'));
+        const action = option.getAttribute('data-folder-action');
+
+        // The name is carried in a data attribute rather than read off the
+        // row's text, which is escaped for display and would come back
+        // decoded-but-not-identical for a name containing markup.
+        let name = '';
+        if (action === 'pick') name = option.getAttribute('data-folder-name');
+        else if (action === 'new') name = window.nextFolderName(activeBlocks, 'New Folder');
+
+        window.saveBlockHistory();
+        const landedAt = window.assignBlockToFolder(activeBlocks, index, name);
+        renderBlockList();
+        updateLivePreview(true);
+        if (landedAt >= 0) flashMovedBlock(landedAt);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.block-folder-picker')) {
+            document.querySelectorAll('.block-folder-picker.open')
+                .forEach(w => w.classList.remove('open'));
+        }
+    });
+
     let typingTimer;
 
     blockList.addEventListener('input', (e) => {
         if (e.target.classList.contains('editor-textarea')) {
+            // Grow to fit, then STOP and scroll. Uncapped, a long combo route
+            // pushed the field taller than the pane and there was no way to
+            // scroll it - owner, 2026-08-17. The cap is in px rather than rows
+            // because these fields sit in three different panes at three
+            // different widths.
+            const MAX = 260;
             e.target.style.height = 'auto';
-            e.target.style.height = (e.target.scrollHeight) + 'px';
+            const wanted = e.target.scrollHeight;
+            e.target.style.height = Math.min(wanted, MAX) + 'px';
+            e.target.style.overflowY = wanted > MAX ? 'auto' : 'hidden';
         }
 
         if (e.target.classList.contains('editor-input') || e.target.classList.contains('editor-textarea') || e.target.classList.contains('editor-select') || e.target.type === 'checkbox' || e.target.classList.contains('table-header-input') || e.target.classList.contains('table-cell-input')) {
@@ -964,6 +1387,9 @@ function initStrategyBlockBuilder(containerId, initialData) {
             }
 
             if (field === 'content-array') activeBlocks[index].content = e.target.value.split('\n');
+            // A combo route is an ARRAY of steps, edited one per line. Blank
+            // lines are dropped rather than becoming empty chips in the route.
+            else if (field === 'sequence-lines') activeBlocks[index].sequence = e.target.value.split('\n').map(v => v.trim()).filter(Boolean);
             else if (field === 'list-items') activeBlocks[index].items = e.target.value.split('\n').filter(i => i.trim() !== '');
             else if (field === 'combo-sequence') activeBlocks[index].sequence = e.target.value.split(',').map(s => s.trim());
             else if (e.target.type === 'checkbox') activeBlocks[index][field] = e.target.checked;
@@ -980,8 +1406,53 @@ function initStrategyBlockBuilder(containerId, initialData) {
         const btn = e.target.closest('button');
         if (!btn) return;
         
-        const activeBlocks = window.getActiveBlocks(); 
+        const activeBlocks = window.getActiveBlocks();
         window.saveBlockHistory();
+
+        // Folder controls sit in the shell HEADER, outside any .block-card, so
+        // they have to be handled before the data-index lookup further down -
+        // that line calls .getAttribute on a null closest() and throws. The
+        // second half of the test matters just as much: cards are rendered
+        // INSIDE .block-folder, so a card's own ✖ matches closest('.block-folder')
+        // too.
+        const folderShell = btn.closest('.block-folder');
+        if (folderShell && !btn.closest('.block-card')) {
+            const folderName = folderShell.getAttribute('data-folder');
+
+            if (btn.classList.contains('block-folder-toggle')) {
+                if (typeof window.toggleBlockFolderCollapsed === 'function') {
+                    window.toggleBlockFolderCollapsed(folderName);
+                    renderBlockList();
+                }
+                return;
+            }
+
+            if (btn.classList.contains('block-folder-ungroup')
+                && typeof window.ungroupBlockFolder === 'function') {
+                window.ungroupBlockFolder(activeBlocks, folderName);
+                renderBlockList();
+                updateLivePreview(true);
+                return;
+            }
+
+            // Making and discarding an EMPTY folder touches no block, so
+            // neither one refreshes the preview - there is nothing for it to
+            // render differently.
+            if (btn.classList.contains('block-folder-add')
+                && typeof window.addPendingBlockFolder === 'function') {
+                window.addPendingBlockFolder(activeBlocks, folderName);
+                renderBlockList();
+                return;
+            }
+
+            if (btn.classList.contains('block-folder-discard')
+                && typeof window.dropPendingBlockFolder === 'function') {
+                window.dropPendingBlockFolder(folderName);
+                renderBlockList();
+                return;
+            }
+            return;
+        }
 
         if (e.target.classList.contains('btn-table-add-row')) {
             const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
@@ -1032,21 +1503,74 @@ function initStrategyBlockBuilder(containerId, initialData) {
             return;
         }
 
+        let movedTo = -1;
         if (btn.classList.contains('btn-up') && index > 0) {
             [activeBlocks[index - 1], activeBlocks[index]] = [activeBlocks[index], activeBlocks[index - 1]];
+            movedTo = index - 1;
         } else if (btn.classList.contains('btn-down') && index < activeBlocks.length - 1) {
             [activeBlocks[index], activeBlocks[index + 1]] = [activeBlocks[index + 1], activeBlocks[index]];
+            movedTo = index + 1;
         } else if (btn.classList.contains('btn-delete')) {
-            activeBlocks.splice(index, 1); 
+            activeBlocks.splice(index, 1);
         } else {
-            return; 
+            return;
         }
-        
+
+        // A swap moves BOTH blocks, and either one can have crossed a folder
+        // boundary - stepping a member down past a loose block takes it out of
+        // the folder, and the loose block it traded places with is now inside.
+        if (movedTo >= 0) {
+            settleFolderAt(activeBlocks, movedTo);
+            settleFolderAt(activeBlocks, index);
+        }
+
         renderBlockList();
         updateLivePreview();
     });
 
     renderBlockList();
+}
+
+// The shell drawn around one folder run.
+//
+// The name is an INPUT rather than a label plus a rename button. Renaming is
+// the most common thing done to a folder after making it, and the editor has
+// editorAlert and customConfirm but no text prompt at all - adding one modal
+// for this would make folder naming the only prompt on the site.
+//
+// Every interpolation here is contributor-authored and lands in an attribute,
+// so it goes through escField exactly like the block fields below it.
+function folderShellHTML(run, isCollapsed, isEmpty) {
+    const count = isEmpty ? 'empty' : `${run.count} block${run.count === 1 ? '' : 's'}`;
+
+    // An empty folder is not in the data, so there is nothing to keep and
+    // nothing to ungroup - removing it is a discard, and saying UNGROUP there
+    // would promise a rescue of blocks that do not exist.
+    const removeBtn = isEmpty
+        ? `<button class="btn-sys btn-sys-regular block-folder-discard"
+                   title="Discard this empty folder">&#10007; REMOVE</button>`
+        : `<button class="btn-sys btn-sys-regular block-folder-ungroup"
+                   title="Remove the folder and keep every block in it">&#9003; UNGROUP</button>`;
+
+    const body = isEmpty
+        ? `<div class="block-folder-empty">Drag a block onto this header, or choose this folder on any block.</div>`
+        : '';
+
+    return `
+        <div class="block-folder-head">
+            <button class="btn-sys btn-sys-regular block-folder-toggle"
+                    title="${isCollapsed ? 'Expand' : 'Collapse'} this folder"
+                    aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#9656;' : '&#9662;'}</button>
+            <input type="text" class="block-folder-name-input" value="${escField(run.name)}"
+                   data-folder="${escField(run.name)}" maxlength="60"
+                   aria-label="Folder name" title="Rename this folder">
+            <span class="block-folder-count">${count}</span>
+            <button class="btn-sys btn-sys-regular block-folder-add"
+                    title="Create another folder after this one">&#65291; FOLDER</button>
+            ${removeBtn}
+        </div>
+        <div class="block-folder-body">${body}</div>
+    `;
 }
 
 function renderBlockList() {
@@ -1092,13 +1616,91 @@ function renderBlockList() {
         listContainer.insertAdjacentHTML('beforeend', backBtnHTML);
     }
 
+    // --- BLOCK FOLDERS (v0.15 item 9) ---
+    //
+    // A folder is a contiguous run, so its shell can be opened at run.start and
+    // closed at run.end while each card keeps its REAL array index in
+    // data-index. Every handler in this file reads that attribute, and a
+    // grouping that renumbered blocks would break all of them at once.
+    const folderRuns = typeof window.collectBlockFolders === 'function'
+        ? window.collectBlockFolders(activeBlocks)
+        : [];
+    const opensAt = new Map();
+    const closesAt = new Map();
+    folderRuns.forEach(run => { opensAt.set(run.start, run); closesAt.set(run.end, run); });
+    const folderNames = folderRuns.map(run => run.name);
+
+    // Empty folders, which are session state rather than data - a folder with
+    // no blocks has no `folder` string anywhere to be found in. Each is drawn
+    // after the folder it was created from, matched BY NAME so that reordering
+    // blocks cannot strand it; one whose anchor has since been dissolved or
+    // renamed away falls to the end rather than disappearing.
+    const pendingFolders = typeof window.pendingBlockFolders === 'function'
+        ? window.pendingBlockFolders()
+        : [];
+    const realNames = new Set(folderNames);
+    const pendingAfter = new Map();
+    const pendingOrphans = [];
+    pendingFolders.forEach(spec => {
+        if (spec.after && realNames.has(spec.after)) {
+            if (!pendingAfter.has(spec.after)) pendingAfter.set(spec.after, []);
+            pendingAfter.get(spec.after).push(spec);
+        } else {
+            pendingOrphans.push(spec);
+        }
+    });
+
+    const emitEmptyFolder = (spec) => {
+        const isCollapsed = typeof window.isBlockFolderCollapsed === 'function'
+            && window.isBlockFolderCollapsed(spec.name);
+        const shell = document.createElement('div');
+        shell.className = 'block-folder is-empty' + (isCollapsed ? ' is-collapsed' : '');
+        shell.setAttribute('data-folder', spec.name);
+        shell.innerHTML = folderShellHTML({ name: spec.name, count: 0 }, isCollapsed, true);
+        listContainer.appendChild(shell);
+    };
+
+    // Where the next card goes: the list itself, or the open folder's body.
+    let appendTarget = listContainer;
+
+    // The non-drag path into a folder, and a custom dropdown rather than a
+    // <select> so that "no folder" and "create new folder" can look like what
+    // they are instead of like two more folders - as a native select they were
+    // three near-identical rows (owner, 2026-08-18). Built from the same
+    // .manga-select-* shell every other dropdown on the site uses, with its own
+    // classes on the two rows that are not folders.
+    const folderPickerHTML = (block) => {
+        const own = typeof window.blockFolderName === 'function' ? window.blockFolderName(block) : '';
+        const choices = [...new Set(folderNames.concat(pendingFolders.map(p => p.name)))];
+
+        let rows = `<button type="button" class="manga-option folder-option folder-option-none${own ? '' : ' selected'}"
+                            data-folder-action="none">No folder</button>`;
+        if (choices.length) {
+            rows += `<div class="folder-option-sep">Folders</div>`;
+            rows += choices.map(n =>
+                `<button type="button" class="manga-option folder-option folder-option-item${n === own ? ' selected' : ''}"
+                         data-folder-action="pick" data-folder-name="${escField(n)}">${escField(n)}</button>`
+            ).join('');
+        }
+        rows += `<button type="button" class="manga-option folder-option folder-option-new"
+                         data-folder-action="new">&#65291; Create new folder</button>`;
+
+        return `
+            <div class="manga-select-wrapper block-folder-picker">
+                <button type="button" class="block-folder-trigger${own ? ' has-folder' : ''}"
+                        title="Put this block in a folder">${own ? escField(own) : 'No folder'}</button>
+                <div class="manga-select-options">${rows}</div>
+            </div>
+        `;
+    };
+
     activeBlocks.forEach((block, index) => {
         const card = document.createElement('div');
         card.className = 'block-card';
         card.setAttribute('data-index', index);
 
-            const typeOptions = Object.keys(blockTemplates).map(t => 
-                `<option value="${t}" ${block.type === t ? 'selected' : ''}>${t.toUpperCase()}</option>`
+            const typeOptions = Object.keys(blockTemplates).map(t =>
+                `<option value="${escField(t)}" ${block.type === t ? 'selected' : ''}>${t.toUpperCase()}</option>`
             ).join('');
 
             let html = `
@@ -1108,6 +1710,7 @@ function renderBlockList() {
                         <select class="editor-select block-type-selector">
                             ${typeOptions}
                         </select>
+                        ${folderPickerHTML(block)}
                     </div>
                 <div class="block-actions">
                     <button class="btn-sys btn-sys-green btn-insert-below" title="Insert Paragraph Below">⨁</button>
@@ -1122,7 +1725,7 @@ function renderBlockList() {
 
         if (block.type === 'heading') {
             html += `
-                <input type="text" class="editor-input block-heading-input" data-field="content" value="${block.content}" placeholder="Heading Text">
+                <input type="text" class="editor-input block-heading-input" data-field="content" value="${escField(block.content)}" placeholder="Heading Text">
                 <div class="editor-row">
                     <div>
                         <select class="editor-select" data-field="size">
@@ -1138,42 +1741,42 @@ function renderBlockList() {
         else if (block.type === 'paragraph') {
             const textValue = Array.isArray(block.content) ? block.content.join('\n') : block.content;
             html += `
-                <textarea class="editor-textarea" data-field="content-array" placeholder="Enter paragraph. Use new lines to break array elements. Tip: Use [M1] for keybinds.">${textValue}</textarea>
+                <textarea class="editor-textarea" data-field="content-array" placeholder="Enter paragraph. Use new lines to break array elements. Tip: Use [M1] for keybinds.">${escField(textValue)}</textarea>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'left')}</div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
             `;
         }
         else if (block.type === 'list') {
             const listValue = Array.isArray(block.items) ? block.items.join('\n') : block.items;
             html += `
-                <textarea class="editor-textarea" data-field="list-items" placeholder="Enter list items. Use a new line for each bullet point.">${listValue}</textarea>
+                <textarea class="editor-textarea" data-field="list-items" placeholder="Enter list items. Use a new line for each bullet point.">${escField(listValue)}</textarea>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'left')}</div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
             `;
         }
         else if (block.type === 'image') {
             html += `
-                <input type="text" class="editor-input" data-field="src" value="${block.src || ''}" placeholder="Image Path/URL (e.g. VesselPortrait.webp)">
+                <input type="text" class="editor-input" data-field="src" value="${escField(block.src || '')}" placeholder="Image Path/URL (e.g. VesselPortrait.webp)">
                 <div class="editor-row">
-                    <div><input type="text" class="editor-input" data-field="alt" value="${block.alt || ''}" placeholder="Alt Text (Required for accessibility)"></div>
-                    <div><input type="text" class="editor-input" data-field="caption" value="${block.caption || ''}" placeholder="Caption (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="alt" value="${escField(block.alt || '')}" placeholder="Alt Text (Required for accessibility)"></div>
+                    <div><input type="text" class="editor-input" data-field="caption" value="${escField(block.caption || '')}" placeholder="Caption (Optional)"></div>
                 </div>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'center')}</div>
-                    <div><input type="text" class="editor-input" data-field="width" value="${block.width || '100%'}" placeholder="Width (e.g. 50% or 400px)"></div>
+                    <div><input type="text" class="editor-input" data-field="width" value="${escField(block.width || '100%')}" placeholder="Width (e.g. 50% or 400px)"></div>
                 </div>
             `;
         }
         else if (block.type === 'video') {
             html += `
-                <input type="text" class="editor-input" data-field="src" value="${block.src}" placeholder="Video URL (e.g. /medias/videos/NoNeutralCS.webm)">
+                <input type="text" class="editor-input" data-field="src" value="${escField(block.src)}" placeholder="Video URL (e.g. /medias/videos/NoNeutralCS.webm)">
                 <div class="editor-row">
-                    <div><input type="text" class="editor-input" data-field="caption" value="${block.caption || ''}" placeholder="Caption (Optional)"></div>
-                    <div><input type="text" class="editor-input" data-field="width" value="${block.width || '100%'}" placeholder="Width (e.g. 50%)"></div>
+                    <div><input type="text" class="editor-input" data-field="caption" value="${escField(block.caption || '')}" placeholder="Caption (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="width" value="${escField(block.width || '100%')}" placeholder="Width (e.g. 50%)"></div>
                 </div>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'center')}</div>
@@ -1185,10 +1788,10 @@ function renderBlockList() {
         }
         else if (block.type === 'youtube') {
             html += `
-                <input type="text" class="editor-input" data-field="videoId" value="${block.videoId || ''}" placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)">
+                <input type="text" class="editor-input" data-field="videoId" value="${escField(block.videoId || '')}" placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)">
                 <div class="editor-row">
-                    <div><input type="text" class="editor-input" data-field="caption" value="${block.caption || ''}" placeholder="Caption (Optional)"></div>
-                    <div><input type="text" class="editor-input" data-field="width" value="${block.width || '100%'}" placeholder="Width (e.g. 75%)"></div>
+                    <div><input type="text" class="editor-input" data-field="caption" value="${escField(block.caption || '')}" placeholder="Caption (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="width" value="${escField(block.width || '100%')}" placeholder="Width (e.g. 75%)"></div>
                 </div>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'center')}</div>
@@ -1199,14 +1802,14 @@ function renderBlockList() {
         else if (block.type === 'combo') {
             const seq = block.sequence ? block.sequence.join(', ') : '';
             html += `
-                <input type="text" class="editor-input" data-field="combo-sequence" value="${seq}" placeholder="Sequence (Comma separated: M1, M1, Skill)">
+                <input type="text" class="editor-input" data-field="combo-sequence" value="${escField(seq)}" placeholder="Sequence (Comma separated: M1, M1, Skill)">
                 <div class="editor-row">
-                    <div><input type="text" class="editor-input" data-field="damage" value="${block.damage || ''}" placeholder="Damage text (e.g. 40 DMG)"></div>
-                    <div><input type="text" class="editor-input" data-field="note" value="${block.note || ''}" placeholder="Condition/Note (e.g. Corner Only)"></div>
+                    <div><input type="text" class="editor-input" data-field="damage" value="${escField(block.damage || '')}" placeholder="Damage text (e.g. 40 DMG)"></div>
+                    <div><input type="text" class="editor-input" data-field="note" value="${escField(block.note || '')}" placeholder="Condition/Note (e.g. Corner Only)"></div>
                 </div>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'left')}</div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
             `;
         }
@@ -1215,14 +1818,14 @@ function renderBlockList() {
 
             tableHTML += `<tr>`;
             block.headers.forEach((h, c) => {
-                tableHTML += `<td><input type="text" class="editor-input table-header-input" data-col="${c}" value="${h}" placeholder="Header"></td>`;
+                tableHTML += `<td><input type="text" class="editor-input table-header-input" data-col="${c}" value="${escField(h)}" placeholder="Header"></td>`;
             });
             tableHTML += `</tr>`;
 
             block.rows.forEach((r, rIdx) => {
                 tableHTML += `<tr>`;
                 r.forEach((cell, cIdx) => {
-                    tableHTML += `<td><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${cell}" placeholder="..."></td>`;
+                    tableHTML += `<td><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${escField(cell)}" placeholder="..."></td>`;
                 });
                 tableHTML += `</tr>`;
             });
@@ -1236,20 +1839,51 @@ function renderBlockList() {
                     <button class="btn-sys btn-sys-red btn-table-del-row" title="Delete Bottom Row">⊟ -Row</button>
                     <button class="btn-sys btn-sys-red btn-table-del-col" title="Delete Right Column">⊟ -Col</button>
                 </div>
-                <input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Author Credit (Optional)">
+                <input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)">
             `;
         }
         else if (block.type === 'accordion') {
             const innerCount = block.content ? block.content.length : 0;
             html += `
-                <input type="text" class="editor-input" data-field="title" value="${block.title || ''}" placeholder="Accordion Title">
+                <input type="text" class="editor-input" data-field="title" value="${escField(block.title || '')}" placeholder="Accordion Title">
                 <div class="editor-row editor-row-spaced-md">
                     <div>${getAlignUI(block.align, 'center')}</div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
                 <div class="accordion-inner-block-wrapper">
                     <button class="btn-sys btn-sys-purple" onclick="window.activeAccordionPath.push(${index}); renderBlockList();">
                         ⮑ EDIT INNER BLOCKS (${innerCount})
+                    </button>
+                </div>
+            `;
+        }
+        else if (block.type === 'theorybox') {
+            const innerCount = block.content ? block.content.length : 0;
+            const route = Array.isArray(block.sequence) ? block.sequence.join('\n') : '';
+            const difficulties = ['', ...(window.COMBO_DIFFICULTIES || [])]
+                .map(d => `<option value="${escField(d)}" ${block.difficulty === d ? 'selected' : ''}>${escField(d || '- none -')}</option>`)
+                .join('');
+
+            html += `
+                <input type="text" class="editor-input" data-field="title" value="${escField(block.title || '')}" placeholder="Combo name (e.g. Corner BnB)">
+                <input type="text" class="editor-input" data-field="oneliner" value="${escField(block.oneliner || '')}" placeholder="One line: what this combo is for">
+                <div class="editor-row editor-row-spaced-md">
+                    <div>
+                        <label class="editor-field-label-sm">Route - one step per line</label>
+                        <textarea class="editor-textarea" data-field="sequence-lines" rows="4">${escField(route)}</textarea>
+                    </div>
+                </div>
+                <div class="editor-row editor-row-spaced-md">
+                    <div><input type="text" class="editor-input" data-field="damage" value="${escField(block.damage || '')}" placeholder="Damage (e.g. 38-46)"></div>
+                    <div><select class="editor-select" data-field="difficulty">${difficulties}</select></div>
+                </div>
+                <div class="editor-row editor-row-spaced-md">
+                    <div><input type="text" class="editor-input" data-field="video" value="${escField(block.video || '')}" placeholder="Video URL (optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
+                </div>
+                <div class="accordion-inner-block-wrapper">
+                    <button class="btn-sys btn-sys-purple" onclick="window.activeAccordionPath.push(${index}); renderBlockList();">
+                        &#11157; EDIT THE WRITE-UP (${innerCount})
                     </button>
                 </div>
             `;
@@ -1266,10 +1900,10 @@ function renderBlockList() {
                             <option value="danger" ${block.intent === 'danger' ? 'selected' : ''}>Danger (Red)</option>
                         </select>
                     </div>
-                    <div><input type="text" class="editor-input" data-field="title" value="${block.title || ''}" placeholder="Callout Title"></div>
+                    <div><input type="text" class="editor-input" data-field="title" value="${escField(block.title || '')}" placeholder="Callout Title"></div>
                     <div>${getAlignUI(block.align, 'center')}</div>
                 </div>
-                <textarea class="editor-textarea" data-field="content-array" placeholder="Tooltip text...">${textValue}</textarea>
+                <textarea class="editor-textarea" data-field="content-array" placeholder="Tooltip text...">${escField(textValue)}</textarea>
             `;
         }
         else if (block.type === 'divider') {
@@ -1309,7 +1943,7 @@ function renderBlockList() {
         else if (block.type === 'author') {
             html += `
                 <div class="editor-row editor-row-nomargin">
-                    <input type="text" class="editor-input" data-field="author" value="${block.author || ''}" placeholder="Contributor Name(s) (Comma separated)">
+                    <input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Contributor Name(s) (Comma separated)">
                 </div>
             `;
         }
@@ -1319,8 +1953,35 @@ function renderBlockList() {
 
         html += `</div>`;
         card.innerHTML = html;
-        listContainer.appendChild(card);
+
+        const opening = opensAt.get(index);
+        if (opening) {
+            const isCollapsed = typeof window.isBlockFolderCollapsed === 'function'
+                && window.isBlockFolderCollapsed(opening.name);
+            const shell = document.createElement('div');
+            shell.className = 'block-folder' + (isCollapsed ? ' is-collapsed' : '');
+            // setAttribute, not innerHTML: no escaping needed, and this is the
+            // value every folder handler reads back.
+            shell.setAttribute('data-folder', opening.name);
+            shell.innerHTML = folderShellHTML(opening, isCollapsed, false);
+            listContainer.appendChild(shell);
+            appendTarget = shell.querySelector('.block-folder-body');
+        }
+
+        appendTarget.appendChild(card);
+
+        const closing = closesAt.get(index);
+        if (closing) {
+            appendTarget = listContainer;
+            const waiting = pendingAfter.get(closing.name);
+            if (waiting) {
+                waiting.forEach(emitEmptyFolder);
+                pendingAfter.delete(closing.name);
+            }
+        }
     });
+
+    pendingOrphans.forEach(emitEmptyFolder);
 
     listContainer.querySelectorAll('.editor-textarea').forEach(ta => {
         ta.style.height = 'auto';

@@ -28,12 +28,24 @@
     const ULTIMATE_TAB_ID = 'ultimateAtk';
     const ULTIMATE_TAB_LABEL = 'Ultimate';
 
-    // The full strip as page_router.js builds it. Re-registering the whole
-    // list (rather than just the new id) is what teaches the six buttons bound
-    // at boot to also hide the Ultimate tab when they are clicked.
-    const CHARACTER_TAB_IDS = [
-        'overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay', 'gallery',
-    ];
+    // The full strip as page_router.js builds it - the static tabs, so not
+    // ULTIMATE_TAB_ID, which this file is the one injecting. Re-registering the
+    // whole list (rather than just the new id) is what teaches the buttons
+    // bound at boot to also hide the Ultimate tab when they are clicked.
+    //
+    // Falls back to reading the strip page_router just built rather than to a
+    // second copy of the list. Same GitHub Pages cache-skew case as isBase
+    // below: a stub cached from before character_tabs.js existed will not have
+    // loaded it, and in that case the DOM is the honest answer - whatever the
+    // stale router actually rendered is what these buttons have to match.
+    // includeOptional for the same reason js/page_boot.js passes it: this
+    // RE-registers the whole strip, and dropping the optional buttons here
+    // would unbind a Techs tab that page_boot had already bound.
+    const staticTabIds = () => (window.getCharacterTabIds
+        ? window.getCharacterTabIds({ includeOptional: true })
+        : Array.from(document.querySelectorAll('.character-nav button[id^="nav-"]'))
+            .map(b => b.id.slice(4))
+            .filter(id => id !== ULTIMATE_TAB_ID));
 
     // Read before DOMContentLoaded on purpose - see the header note. An
     // undeclared mode is corrected in initCharacterModes once the data lands.
@@ -93,7 +105,7 @@
         else document.querySelector('.main-content-area')?.appendChild(panel);
 
         if (typeof window.setupTabs === 'function') {
-            window.setupTabs('nav', 'tab', CHARACTER_TAB_IDS.concat(ULTIMATE_TAB_ID), 'major');
+            window.setupTabs('nav', 'tab', staticTabIds().concat(ULTIMATE_TAB_ID), 'major');
         }
         return true;
     }

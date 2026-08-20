@@ -10,7 +10,10 @@
 // ticket did - meant hand-editing the URL or giving up, so intercepting a
 // skill revision was effectively impossible. This is the same strip, in the
 // same shape, as the live character page's nav.
-const EDITOR_MAJOR_TABS = ['overview', 'm1s', 'skills', 'specials', 'matchups', 'counterplay', 'ultimateAtk'];
+// Includes ultimateAtk: unlike admin.html, edit.html ships that button in its
+// static markup (hidden), and js/editor-modes.js un-hides it for a base-only
+// character. Gallery is excluded because it has no editor at all.
+const EDITOR_MAJOR_TABS = window.getCharacterTabIds({ includeInjected: true, editableOnly: true });
 
 window.renderEditorTabNav = function(activeTabId) {
     const nav = document.getElementById('editor-tab-nav');
@@ -49,7 +52,16 @@ window.switchEditorTab = async function(tabId) {
     // has already saved the real content by this point.
     window.currentOverviewSection = null;
     window.currentMatchupIndex = undefined;
-    window.currentCounterplayIndex = undefined;
+    window.currentKeyedIndex = {};
+
+    // The document-tab cursors are scalars rather than a map keyed by tab,
+    // because only one document tab is ever mounted. Crossing to another tab
+    // therefore has to reset them, or opening Techs would land on the group
+    // index that belonged to Combos - and `group-4` of a tab with one group
+    // resolves to undefined and renders nothing.
+    window.currentDocSection = null;
+    window.currentDocCardIndex = undefined;
+    window.currentDocTableIndex = undefined;
 
     // The preview pane keeps one visible tab; editor-core un-hides only the
     // booted one, so the switch has to move it.
@@ -158,7 +170,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         return;
     }
 
-    const frameTabs = window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials'];
+    const frameTabs = window.FRAME_MOVE_CATEGORIES;
 
     // Note: window.currentEditor* was previously assigned a second time here,
     // byte-identical to the assignment at the top of this function - a
@@ -168,16 +180,20 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
     if (frameTabs.includes(tabId)) {
         const moves = frameData ? (frameData[tabId] || []) : [];
 
-        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        let navHTML = window.reorderStripControls(`frame.${tabId}`);
+        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
         if (moves.length === 0) {
             navHTML += `<span class="daw-empty-state">No moves mapped in this category yet.</span>`;
         } else {
             moves.forEach((m, idx) => {
                 navHTML += `<div class="daw-tab-item">`;
                 navHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${idx === 0 ? 'active' : ''}" id="move-nav-${m.id}" onclick="loadMoveIntoEditor('${m.id}')">${m.name || m.id}</button>`;
+                // Item 8: a move could only be appended, so putting one next to
+                // Skill 1 meant re-entering every skill after it.
                 navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeMove('${m.id}')" title="Remove Move">✖</button>`;
                 navHTML += `</div>`;
             });
+            window.registerInserter(`frame.${tabId}`, () => window.addMove());
         }
 
         navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addMove()">+ ADD MOVE</button>`;
@@ -199,18 +215,21 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         if (!window.currentEditorDescData.strategy) window.currentEditorDescData.strategy = [];
         if (!window.currentEditorDescData.extras) window.currentEditorDescData.extras = [];
 
-        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        let navHTML = window.reorderStripControls('desc.extras');
+        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
         navHTML += `<button class="daw-tab-btn" id="overview-nav-profile" onclick="loadOverviewSectionIntoEditor('profile')">Profile Card</button>`;
         navHTML += `<button class="daw-tab-btn active" id="overview-nav-overview" onclick="loadOverviewSectionIntoEditor('overview')">Character Overview</button>`;
         navHTML += `<button class="daw-tab-btn" id="overview-nav-playstyle" onclick="loadOverviewSectionIntoEditor('playstyle')">Playstyle</button>`;
         navHTML += `<button class="daw-tab-btn" id="overview-nav-strategy" onclick="loadOverviewSectionIntoEditor('strategy')">General Strategy</button>`;
 
-        window.currentEditorDescData.extras.forEach((ext, idx) => {
+        const extras = window.currentEditorDescData.extras;
+        extras.forEach((ext, idx) => {
             navHTML += `<div class="daw-tab-item">`;
             navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="overview-nav-extra-${idx}" onclick="loadOverviewSectionIntoEditor('extra-${idx}')">${ext.title}</button>`;
             navHTML += `<button class="daw-tab-remove-btn" onclick="removeExtraTab(${idx})" title="Remove Tab">✖</button>`;
             navHTML += `</div>`;
         });
+        window.registerInserter('desc.extras', () => window.addExtraTab());
 
         navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="addExtraTab()">+ ADD TAB</button>`;
         navHTML += `</div>`;
@@ -225,7 +244,8 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
     } else if (tabId === 'matchups') {
         if (!window.currentEditorDescData.matchups) window.currentEditorDescData.matchups = [];
 
-        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        let navHTML = window.reorderStripControls('desc.matchups');
+        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
         if (window.currentEditorDescData.matchups.length === 0) {
              navHTML += `<span class="daw-empty-state">No matchups defined yet.</span>`;
         } else {
@@ -238,6 +258,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             });
         }
 
+        window.registerInserter('desc.matchups', () => window.addMatchup());
         navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addMatchup()">+ ADD MATCHUP</button>`;
         navHTML += `</div>`;
 
@@ -253,35 +274,97 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             if (typeof renderMatchupsPreview === 'function') renderMatchupsPreview();
         }
 
-    } else if (tabId === 'counterplay') {
-        if (!window.currentEditorDescData.counterplay) window.currentEditorDescData.counterplay = [];
+    } else if (window.getDocumentSections && window.getDocumentSections(tabId)) {
+        // A DOCUMENT TAB - Combos, Techs - is three parts, so its editor is a
+        // sub-tab strip like the Overview tab's, not a list of entries.
+        //
+        //   [ Read First ] [ Combo List ] [ True Combos x ] [ + GROUP ]
+        //   [ Technical Overview ] [ Tech List ] [ Wall Techs x ] [ + GROUP ]
+        //
+        // Same daw-tab-btn strip, same removable-extra affordance, same single
+        // swapping container. Every word that differs between the two comes out
+        // of js/character_tabs.js - this branch does not know either tab's name.
+        const doc = window.getDocumentSections(tabId);
+        const { intro, groups, list } = doc;
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
 
-        let navHTML = `<div class="daw-variant-tabs daw-editor-nav-row">`;
-        if (window.currentEditorDescData.counterplay.length === 0) {
-             navHTML += `<span class="daw-empty-state">No counterplay topics defined yet.</span>`;
-        } else {
-            window.currentEditorDescData.counterplay.forEach((cp, idx) => {
-                let cpName = cp.topic || `Topic ${idx + 1}`;
-                navHTML += `<div class="daw-tab-item">`;
-                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="counterplay-nav-${idx}" onclick="window.loadCounterplayIntoEditor(${idx})">${cpName}</button>`;
-                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeCounterplayTopic(${idx})" title="Remove Topic">✖</button>`;
-                navHTML += `</div>`;
-            });
-        }
+        if (!window.currentEditorDescData[intro.field]) window.currentEditorDescData[intro.field] = [];
+        if (!window.currentEditorDescData[groups.field]) window.currentEditorDescData[groups.field] = [];
 
-        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addCounterplayTopic()">+ ADD TOPIC</button>`;
+        let navHTML = window.reorderStripControls(`desc.${groups.field}`);
+        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        // The tab id, not a literal: two document tabs would otherwise share
+        // one set of button ids, and loadDocumentSectionIntoEditor clears
+        // `active` by prefix.
+        navHTML += `<button class="daw-tab-btn active" id="${esc(tabId)}-nav-intro" onclick="window.loadDocumentSectionIntoEditor('${esc(tabId)}', 'intro')">${esc(intro.label)}</button>`;
+        navHTML += `<button class="daw-tab-btn" id="${esc(tabId)}-nav-list" onclick="window.loadDocumentSectionIntoEditor('${esc(tabId)}', 'list')">${esc(list.label)}</button>`;
+
+        window.currentEditorDescData[groups.field].forEach((group, idx) => {
+            // Escaped: a group title is contributor text reaching innerHTML.
+            const name = group[groups.keyField] || `Group ${idx + 1}`;
+            navHTML += `<div class="daw-tab-item">`;
+            navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${esc(tabId)}-nav-group-${idx}" onclick="window.loadDocumentSectionIntoEditor('${esc(tabId)}', 'group-${idx}')">${esc(name)}</button>`;
+            navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeDocumentGroup('${esc(tabId)}', ${idx})" title="Remove Group">&#10006;</button>`;
+            navHTML += `</div>`;
+        });
+
+        window.registerInserter(`desc.${groups.field}`, () => window.addDocumentGroup(tabId));
+        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addDocumentGroup('${esc(tabId)}')">+ GROUP</button>`;
         navHTML += `</div>`;
 
         builder.innerHTML = `
             ${navHTML}
-            <div id="counterplay-editor-container"></div>
+            <div id="${esc(tabId)}-editor-container"></div>
         `;
 
-        if (window.currentEditorDescData.counterplay.length > 0) {
-            window.loadCounterplayIntoEditor(0);
+        window.loadDocumentSectionIntoEditor(tabId, window.currentDocSection || 'intro');
+
+    } else if (window.usesSharedKeyedUI(tabId)) {
+        // Every keyed section except matchups, which keeps its own editor -
+        // its entry picker lists the roster and its metadata is a tier, so it
+        // is a different screen rather than this one with different words.
+        //
+        // This was the counterplay branch with 'counterplay' written through
+        // it. Starter Guide is the same shape, and the owner asked for exactly
+        // that, so it runs here rather than as a third copy.
+        const section = window.getKeyedSectionByTab(tabId);
+        if (!window.currentEditorDescData[section.field]) window.currentEditorDescData[section.field] = [];
+        const entries = window.currentEditorDescData[section.field];
+
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+        const noun = section.entryLabel;
+
+        let navHTML = window.reorderStripControls(`desc.${section.field}`);
+        navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
+        if (entries.length === 0) {
+            navHTML += `<span class="daw-empty-state">No ${esc(noun.toLowerCase())} entries defined yet.</span>`;
         } else {
-            document.getElementById('counterplay-editor-container').innerHTML = `<div class="empty-tab-msg">Create a topic to begin editing.</div>`;
-            if (typeof renderCounterplayPreview === 'function') renderCounterplayPreview();
+            entries.forEach((entry, idx) => {
+                // Escaped: the name is contributor-authored and lands in
+                // innerHTML. The index is a number this loop produced, which is
+                // why it may sit in the inline handler while the name may not.
+                const name = entry[section.keyField] || `${noun} ${idx + 1}`;
+                navHTML += `<div class="daw-tab-item">`;
+                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${section.tab}-nav-${idx}" onclick="window.loadKeyedEntryIntoEditor('${section.tab}', ${idx})">${esc(name)}</button>`;
+                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeKeyedEntry('${section.tab}', ${idx})" title="Remove">&#10006;</button>`;
+                navHTML += `</div>`;
+            });
+        }
+
+        window.registerInserter(`desc.${section.field}`, () => window.addKeyedEntry(section.tab));
+        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addKeyedEntry('${section.tab}')">+ ADD TOPIC</button>`;
+        navHTML += `</div>`;
+
+        builder.innerHTML = `
+            ${navHTML}
+            <div id="${section.tab}-editor-container"></div>
+        `;
+
+        if (entries.length > 0) {
+            window.loadKeyedEntryIntoEditor(section.tab, 0);
+        } else {
+            document.getElementById(`${section.tab}-editor-container`).innerHTML = `<div class="empty-tab-msg">Create a topic to begin editing.</div>`;
+            window.renderKeyedSectionPreview(section.tab);
         }
 
     } else {
@@ -560,66 +643,708 @@ window.updateMatchupMeta = function(idx, field, value) {
     renderMatchupsPreview();
 };
 
-// --- SUB-NAVIGATION: COUNTERPLAY ---
-window.addCounterplayTopic = async function() {
+// --- SUB-NAVIGATION: KEYED SECTIONS (Counterplay, Starter Guide) ---
+//
+// One set of functions for every keyed section, taking the tab id. The
+// per-section index lives in window.currentKeyedIndex rather than a
+// currentCounterplayIndex / currentStarterGuideIndex pair, because the flush
+// in js/editor-sync.js has to find it too, and a second global is a second
+// thing to remember on every code path that switches away from a tab.
+
+window.currentKeyedIndex = window.currentKeyedIndex || {};
+
+window.addKeyedEntry = async function(tabId) {
+    const section = window.getKeyedSectionByTab(tabId);
+    if (!section) return;
     await window.triggerManualSync();
-    window.currentEditorDescData.counterplay.push({
-        topic: "New Topic", importance: "Moderate", content: [], author: ""
-    });
-    initFullTabEditor(window.currentEditorCharId, 'counterplay', window.currentEditorDescData, window.currentEditorFrameData);
-    window.loadCounterplayIntoEditor(window.currentEditorDescData.counterplay.length - 1);
+
+    const entry = { [section.keyField]: `New ${section.entryLabel}`, content: [], author: "" };
+    // Only if the section HAS metadata. Starter Guide deliberately has none,
+    // and writing an empty field would put data in the payload that nothing
+    // reads and that the reviewer's diff would then report as a change.
+    if (section.metaField) entry[section.metaField] = Object.keys(section.metaColors || {})[2] || '';
+
+    if (!window.currentEditorDescData[section.field]) window.currentEditorDescData[section.field] = [];
+    window.currentEditorDescData[section.field].push(entry);
+
+    initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+    window.loadKeyedEntryIntoEditor(tabId, window.currentEditorDescData[section.field].length - 1);
 };
 
-window.removeCounterplayTopic = async function(idx) {
-    if (await window.customConfirm("Delete this entire counterplay topic?")) {
-        window.currentEditorDescData.counterplay.splice(idx, 1);
-        initFullTabEditor(window.currentEditorCharId, 'counterplay', window.currentEditorDescData, window.currentEditorFrameData);
-        if (window.currentEditorDescData.counterplay.length > 0) window.loadCounterplayIntoEditor(0);
-        else renderCounterplayPreview();
+window.removeKeyedEntry = async function(tabId, idx) {
+    const section = window.getKeyedSectionByTab(tabId);
+    if (!section) return;
+    if (await window.customConfirm(`Delete this entire ${section.entryLabel.toLowerCase()}?`)) {
+        window.currentEditorDescData[section.field].splice(idx, 1);
+        // The open entry may have been the one removed, or may have shifted
+        // down. Either way the stored index no longer means what it did, and
+        // the flush on the next switch would write blocks into the wrong entry.
+        window.currentKeyedIndex[tabId] = undefined;
+        initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+        if (window.currentEditorDescData[section.field].length > 0) window.loadKeyedEntryIntoEditor(tabId, 0);
+        else window.renderKeyedSectionPreview(tabId);
     }
 };
 
-window.updateCounterplayMeta = function(idx, field, value) {
-    window.currentEditorDescData.counterplay[idx][field] = value;
-    if (field === 'topic') {
-        const btn = document.getElementById(`counterplay-nav-${idx}`);
-        if (btn) btn.firstChild.textContent = value || 'Unknown Topic';
+window.updateKeyedMeta = function(tabId, idx, field, value) {
+    const section = window.getKeyedSectionByTab(tabId);
+    if (!section) return;
+    window.currentEditorDescData[section.field][idx][field] = value;
+    if (field === section.keyField) {
+        const btn = document.getElementById(`${section.tab}-nav-${idx}`);
+        // textContent, not innerHTML - this runs on every keystroke of a field
+        // the contributor is typing into.
+        if (btn) btn.textContent = value || `Unknown ${section.entryLabel}`;
     }
-    renderCounterplayPreview();
+    window.renderKeyedSectionPreview(tabId);
 };
 
-window.loadCounterplayIntoEditor = function(idx) {
-    if (window.currentCounterplayIndex !== undefined && window.currentEditorDescData && window.currentEditorDescData.counterplay[window.currentCounterplayIndex]) {
-        window.currentEditorDescData.counterplay[window.currentCounterplayIndex].content = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+// --- COMBO ROWS (v0.15 item 3) ---
+//
+// Row fields come from window.COMBO_COLUMNS (js/description.js) plus the two
+// resource fields, so a column added to the table appears in the editor
+// without a second edit - the same rule the tab vocabulary and the keyed
+// sections follow.
+window.comboRowFields = function () {
+    const columns = (window.COMBO_COLUMNS || []).filter(c => c.field !== 'sequence');
+    return [
+        { field: 'sequence', label: 'Route', hint: 'One step per line' },
+        ...columns.map(c => ({ field: c.field, label: c.label })),
+        // Rendered above the notes on the page rather than as columns, so they
+        // sit at the end of the form where the notes are.
+        { field: 'ultGain', label: 'Ult Gain' },
+        { field: 'evasiveGain', label: 'Evasive Gain' },
+    ];
+};
+
+function comboRowSummary(row) {
+    const steps = Array.isArray(row.sequence) ? row.sequence : [];
+    if (steps.length) return steps.join(' > ');
+    return row.damage ? `(${row.damage})` : 'Empty combo';
+}
+
+// --- SUB-NAVIGATION: A DOCUMENT TAB (Combos, Techs) ---
+//
+// Mirrors loadOverviewSectionIntoEditor: one swapping container, one active
+// button, and the block buffer flushed before leaving whatever was open.
+//
+// Every function below takes the tab id. This was written with 'combos' and
+// 'comboGroups' spelled through it at ~30 sites, and Techs is the same editor
+// with the owner's other vocabulary - so the alternative was a second copy of
+// 500 lines that has to be kept in step by hand. The strings all come out of
+// js/character_tabs.js; nothing here knows either tab by name.
+//
+// The INNER panel ids (combo-cards-panel, combo-table-body, the row modal) stay
+// unprefixed on purpose: the editor mounts exactly one document tab at a time -
+// builder.innerHTML is replaced on every switch - so there is never a second
+// set in the DOM to collide with. Only the NAV ids carry the tab, because
+// loadDocumentSectionIntoEditor clears `active` by prefix and a stale
+// combos-nav-* left over from a previous mount would be missed.
+
+function docSections(tabId) {
+    return window.getDocumentSections ? window.getDocumentSections(tabId) : null;
+}
+
+window.loadDocumentSectionIntoEditor = function (tabId, sectionId) {
+    const doc = docSections(tabId);
+    const container = document.getElementById(`${tabId}-editor-container`);
+    if (!doc || !doc.groups || !doc.intro || !container) return;
+
+    const { intro, groups } = doc;
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+
+    // Flush the section being left, or its blocks are lost. currentStrategyBlocks
+    // is only written back into desc_data on sync.
+    flushDocumentSection();
+
+    document.querySelectorAll(`[id^="${tabId}-nav-"]`).forEach(b => b.classList.remove('active'));
+    const activeBtn = document.getElementById(`${tabId}-nav-${sectionId}`);
+    if (activeBtn) activeBtn.classList.add('active');
+    window.currentDocSection = sectionId;
+
+    if (sectionId === 'list') {
+        container.innerHTML = `<div id="combo-rows-panel"></div>`;
+        window.renderDocumentListEditor(tabId);
+        window.renderDocumentPreview(tabId);
+        return;
     }
 
-    document.querySelectorAll('[id^="counterplay-nav-"]').forEach(btn => btn.classList.remove('active'));
-    const activeBtn = document.getElementById(`counterplay-nav-${idx}`);
-    if(activeBtn) activeBtn.classList.add('active');
+    if (sectionId === 'intro') {
+        container.innerHTML = `
+            <div class="editor-section-banner">
+                <span class="editor-section-banner-text">${esc(intro.label.toUpperCase())}</span>
+            </div>
+            <div id="strategy-block-target"></div>
+        `;
+        initStrategyBlockBuilder('strategy-block-target', window.currentEditorDescData[intro.field] || []);
+        window.renderDocumentPreview(tabId);
+        return;
+    }
 
-    window.currentCounterplayIndex = idx;
-    const cp = window.currentEditorDescData.counterplay[idx];
-    const container = document.getElementById('counterplay-editor-container');
+    const idx = parseInt(String(sectionId).replace('group-', ''), 10);
+    const group = (window.currentEditorDescData[groups.field] || [])[idx];
+    if (!group) return;
 
-    const importanceOptions = ["Crucial", "High", "Moderate", "Low", "Situational"];
-    let impHTML = importanceOptions.map(t => `<option value="${t}" ${cp.importance === t ? 'selected' : ''}>${t}</option>`).join('');
+    if (!Array.isArray(group.content)) group.content = [];
 
     container.innerHTML = `
         <div class="block-editor-container block-editor-container-tight">
             <div class="block-card">
-                <div class="block-header"><span class="block-type-badge">TOPIC METADATA</span></div>
+                <div class="block-header"><span class="block-type-badge">GROUP METADATA</span></div>
                 <div class="editor-row">
                     <div>
-                        <label class="editor-field-label-sm">Topic Name</label>
-                        <input type="text" class="editor-input" value="${cp.topic || ''}" oninput="window.updateCounterplayMeta(${idx}, 'topic', this.value)" placeholder="e.g. Dealing with M1s">
+                        <label class="editor-field-label-sm">Group Title</label>
+                        <input type="text" class="editor-input" value="${esc(group[groups.keyField] || '')}"
+                               oninput="window.updateDocumentGroupTitle('${esc(tabId)}', ${idx}, this.value)"
+                               placeholder="e.g. True Combos">
                     </div>
+                </div>
+            </div>
+        </div>
+        <div class="editor-section-banner">
+            <span class="editor-section-banner-text">${esc(String(groups.unitNoun || 'Combo').toUpperCase())} CARDS</span>
+        </div>
+        <div id="combo-cards-panel"></div>
+    `;
+
+    // A group is a list of CARDS, and the block builder edits the write-up of
+    // whichever card is open - not the group itself.
+    //
+    // Owner, 2026-08-16: "you should not be able to Add Blocks when you
+    // haven't selected a TheoryBox". Mounting the builder on group.content
+    // offered a bare block toolbar with nothing to attach a block to, and a
+    // block added there became a sibling of the cards rather than part of one.
+    window.currentDocCardIndex = undefined;
+    window.renderDocumentCardsPanel(tabId, idx);
+    window.renderDocumentPreview(tabId);
+};
+
+// The cards inside one group, and the write-up editor for the open one.
+window.renderDocumentCardsPanel = function (tabId, groupIdx) {
+    const doc = docSections(tabId);
+    const host = document.getElementById('combo-cards-panel');
+    if (!doc || !doc.groups || !host) return;
+
+    const groups = doc.groups;
+    const noun = groups.unitNoun || 'Combo';
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+    const group = (window.currentEditorDescData[groups.field] || [])[groupIdx];
+    if (!group) return;
+    if (!Array.isArray(group.content)) group.content = [];
+
+    const cards = group.content;
+    const open = window.currentDocCardIndex;
+
+    let html = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+    if (cards.length === 0) {
+        html += `<span class="daw-empty-state">No ${esc(noun.toLowerCase())} cards in this group yet.</span>`;
+    } else {
+        cards.forEach((card, i) => {
+            // A card is recognised by its name, and falls back to its route -
+            // an index is not something anyone remembers.
+            const steps = Array.isArray(card.sequence) ? card.sequence : [];
+            const label = card.title || steps.join(' > ') || `Card ${i + 1}`;
+            html += `<div class="daw-tab-item">`;
+            html += `<button class="daw-tab-btn daw-tab-btn-removable${i === open ? ' active' : ''}" data-card="${i}">${esc(label)}</button>`;
+            html += `<button class="daw-tab-remove-btn" data-remove-card="${i}" title="Remove Card">&#10006;</button>`;
+            html += `</div>`;
+        });
+    }
+    html += `<button type="button" id="combo-card-add" class="daw-tab-btn daw-add-btn btn-sys btn-sys-green">+ CARD</button>`;
+    html += `</div><div id="combo-card-body"></div>`;
+
+    host.innerHTML = html;
+
+    host.querySelectorAll('[data-card]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            flushDocumentCard(tabId, groupIdx);
+            window.currentDocCardIndex = parseInt(btn.getAttribute('data-card'), 10);
+            window.renderDocumentCardsPanel(tabId, groupIdx);
+        });
+    });
+    host.querySelectorAll('[data-remove-card]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!(await window.customConfirm(`Delete this ${noun.toLowerCase()} card and its write-up?`))) return;
+            cards.splice(parseInt(btn.getAttribute('data-remove-card'), 10), 1);
+            // The open card may have been the one removed, or shifted down.
+            window.currentDocCardIndex = undefined;
+            window.renderDocumentCardsPanel(tabId, groupIdx);
+            window.renderDocumentPreview(tabId);
+        });
+    });
+    const addBtn = host.querySelector('#combo-card-add');
+    if (addBtn) {
+        addBtn.addEventListener('click', () => {
+            flushDocumentCard(tabId, groupIdx);
+            const card = window.spawnBlockWithAuthor
+                ? window.spawnBlockWithAuthor('theorybox')
+                : { type: 'theorybox', title: `New ${noun}`, sequence: [], content: [] };
+            cards.push(card);
+            window.currentDocCardIndex = cards.length - 1;
+            window.renderDocumentCardsPanel(tabId, groupIdx);
+            window.renderDocumentPreview(tabId);
+        });
+    }
+
+    renderDocumentCardBody(tabId, groupIdx, cards);
+};
+
+// The block buffer belongs to the open card's write-up. Only ever written back
+// on a switch or a sync, same as every other block surface.
+function flushDocumentCard(tabId, groupIdx) {
+    const doc = docSections(tabId);
+    const idx = window.currentDocCardIndex;
+    if (!doc || !doc.groups || idx === undefined || typeof window.getActiveBlocks !== 'function') return;
+    const group = (window.currentEditorDescData[doc.groups.field] || [])[groupIdx];
+    const card = group && Array.isArray(group.content) ? group.content[idx] : null;
+    if (card) card.content = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+}
+window.flushDocumentCard = flushDocumentCard;
+
+function renderDocumentCardBody(tabId, groupIdx, cards) {
+    const container = document.getElementById('combo-card-body');
+    if (!container) return;
+
+    const doc = docSections(tabId);
+    const noun = (doc && doc.groups && doc.groups.unitNoun) || 'Combo';
+    const idx = window.currentDocCardIndex;
+    const card = cards[idx];
+    if (!card) {
+        // No card open, so no block toolbar. This is the owner's point: an
+        // ADD BLOCK with nothing selected has nowhere to put the block.
+        container.innerHTML = `<p class="admin-tool-hint">Select a ${escapeForHint(noun.toLowerCase())} card to edit it, or add one.</p>`;
+        return;
+    }
+
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+    const route = Array.isArray(card.sequence) ? card.sequence.join('\n') : '';
+    const difficulties = ['', ...(window.COMBO_DIFFICULTIES || [])]
+        .map(d => `<option value="${esc(d)}" ${card.difficulty === d ? 'selected' : ''}>${esc(d || '- none -')}</option>`)
+        .join('');
+
+    container.innerHTML = `
+        <div class="block-editor-container block-editor-container-tight">
+            <div class="block-card">
+                <div class="block-header"><span class="block-type-badge">${esc(noun.toUpperCase())} CARD</span></div>
+                <div class="combo-card-fields">
+                    <div class="combo-field-full">
+                        <label class="editor-field-label-sm">Name</label>
+                        <input type="text" class="editor-input" data-card-field="title" value="${esc(card.title || '')}" placeholder="e.g. Corner BnB">
+                    </div>
+                    <div class="combo-field-full">
+                        <label class="editor-field-label-sm">One line</label>
+                        <input type="text" class="editor-input" data-card-field="oneliner" value="${esc(card.oneliner || '')}" placeholder="What this ${esc(noun.toLowerCase())} is for">
+                    </div>
+                    <div class="combo-field-full">
+                        <label class="editor-field-label-sm">Route - one step per line</label>
+                        <textarea class="editor-textarea" data-card-field="sequence" rows="4">${esc(route)}</textarea>
+                    </div>
+                    <div><label class="editor-field-label-sm">Damage</label>
+                        <input type="text" class="editor-input" data-card-field="damage" value="${esc(card.damage || '')}" placeholder="e.g. 38-46"></div>
+                    <div><label class="editor-field-label-sm">Difficulty</label>
+                        <select class="editor-select" data-card-field="difficulty">${difficulties}</select></div>
+                    <div><label class="editor-field-label-sm">Video</label>
+                        <input type="text" class="editor-input" data-card-field="video" value="${esc(card.video || '')}" placeholder="Optional URL"></div>
+                    <!-- Author credit was set when the card was spawned and
+                         exposed nowhere, so it could not be removed by hand -
+                         the theorybox BLOCK editor has this field, the combo
+                         CARD editor did not, and a card is only ever created
+                         through the card path. Owner's ask: credit is fully
+                         optional, so it needs somewhere to be cleared. -->
+                    <div class="combo-field-full"><label class="editor-field-label-sm">Author credit (optional)</label>
+                        <input type="text" class="editor-input" data-card-field="author" value="${esc(card.author || '')}" placeholder="Leave blank for no credit"></div>
+                </div>
+            </div>
+        </div>
+        <div class="editor-section-banner">
+            <span class="editor-section-banner-text">WRITE-UP</span>
+        </div>
+        <div id="strategy-block-target"></div>
+    `;
+
+    container.querySelectorAll('[data-card-field]').forEach(input => {
+        const handler = () => {
+            const field = input.getAttribute('data-card-field');
+            if (field === 'sequence') {
+                // One step per line; blank lines dropped rather than becoming
+                // empty chips in the route.
+                card.sequence = input.value.split('\n').map(v => v.trim()).filter(Boolean);
+            } else {
+                card[field] = input.value;
+            }
+            if (field === 'title' || field === 'sequence') {
+                const btn = document.querySelector(`[data-card="${idx}"]`);
+                const steps = Array.isArray(card.sequence) ? card.sequence : [];
+                // textContent, not innerHTML - this runs on every keystroke.
+                if (btn) btn.textContent = card.title || steps.join(' > ') || `Card ${idx + 1}`;
+            }
+            window.renderDocumentPreview(tabId);
+        };
+        input.addEventListener('input', handler);
+        input.addEventListener('change', handler);
+    });
+
+    // The builder edits THIS card's write-up.
+    initStrategyBlockBuilder('strategy-block-target', card.content || []);
+}
+
+// The noun comes from the registry, so it is ours rather than contributor text -
+// but it still lands in innerHTML, and "escape at every interpolation" has no
+// exceptions in this codebase.
+function escapeForHint(value) {
+    return window.escapeHtml ? window.escapeHtml(value) : String(value === null || value === undefined ? '' : value);
+}
+
+// Writes the block buffer back into whichever document section is open.
+//
+// Reads currentEditorTabId rather than taking the tab as an argument: this is
+// called from the block-editor sync path, which knows what is open but not
+// which document tab it belongs to.
+function flushDocumentSection() {
+    const open = window.currentDocSection;
+    const tabId = window.currentEditorTabId;
+    const doc = docSections(tabId);
+    if (!open || open === 'list' || !doc || !window.currentEditorDescData) return;
+    if (typeof window.getActiveBlocks !== 'function') return;
+
+    const blocks = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+    if (open === 'intro') {
+        window.currentEditorDescData[doc.intro.field] = blocks;
+        return;
+    }
+    // A group's buffer belongs to the open CARD's write-up, not to the group -
+    // the group holds cards, and the builder is only ever mounted on one of
+    // them. Writing `blocks` onto group.content here would replace every card
+    // in the group with the open card's write-up.
+    const idx = parseInt(String(open).replace('group-', ''), 10);
+    flushDocumentCard(tabId, idx);
+}
+window.flushDocumentSection = flushDocumentSection;
+
+window.renderDocumentPreview = function (tabId) {
+    const doc = docSections(tabId);
+    if (!doc || !doc.list || !window.currentEditorDescData) return;
+    const fn = doc.list.rendererFn;
+    if (!fn || typeof window[fn] !== 'function') return;
+    window[fn](window.currentEditorDescData);
+    // The preview has to be styled like the live page, or notation is coloured
+    // for readers and plain for the person writing it. Without this the only
+    // thing colouring the editor's chips was the MutationObserver happening to
+    // catch them, which is why some steps came out coloured and others did not.
+    if (typeof window.applyInternalStyling === 'function') {
+        setTimeout(window.applyInternalStyling, 30);
+    }
+};
+
+window.addDocumentGroup = async function (tabId) {
+    const doc = docSections(tabId);
+    if (!doc || !doc.groups) return;
+    const groups = doc.groups;
+    await window.triggerManualSync();
+    if (!window.currentEditorDescData[groups.field]) window.currentEditorDescData[groups.field] = [];
+    window.currentEditorDescData[groups.field].push({ [groups.keyField]: 'New Group', content: [] });
+    initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+    window.loadDocumentSectionIntoEditor(tabId, `group-${window.currentEditorDescData[groups.field].length - 1}`);
+};
+
+window.removeDocumentGroup = async function (tabId, idx) {
+    const doc = docSections(tabId);
+    if (!doc || !doc.groups) return;
+    if (!(await window.customConfirm('Delete this group and everything in it?'))) return;
+    window.currentEditorDescData[doc.groups.field].splice(idx, 1);
+    // The open section may have been the one removed, or shifted down.
+    window.currentDocSection = 'intro';
+    initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+    window.renderDocumentPreview(tabId);
+};
+
+window.updateDocumentGroupTitle = function (tabId, idx, value) {
+    const doc = docSections(tabId);
+    if (!doc || !doc.groups) return;
+    const group = (window.currentEditorDescData[doc.groups.field] || [])[idx];
+    if (!group) return;
+    group[doc.groups.keyField] = value;
+    const btn = document.getElementById(`${tabId}-nav-group-${idx}`);
+    // textContent, not innerHTML - this runs on every keystroke.
+    if (btn) btn.textContent = value || `Group ${idx + 1}`;
+    window.renderDocumentPreview(tabId);
+};
+
+// --- THE LIST EDITOR ---
+// Tables keyed by starter (Combos) or theory (Techs), each holding rows. The
+// rows themselves open in the modal (openDocumentRowModal below).
+window.renderDocumentListEditor = function (tabId) {
+    const doc = docSections(tabId);
+    const host = document.getElementById('combo-rows-panel');
+    if (!doc || !doc.list || !host) return;
+
+    const section = doc.list;
+    const noun = section.entryNoun || 'Starter';
+    const nounPlural = section.entryNounPlural || 'starters';
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+    if (!window.currentEditorDescData[section.field]) window.currentEditorDescData[section.field] = [];
+    const tables = window.currentEditorDescData[section.field];
+
+    const openTable = window.currentDocTableIndex;
+
+    let html = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+    if (tables.length === 0) {
+        html += `<span class="daw-empty-state">No ${esc(nounPlural)} defined yet.</span>`;
+    } else {
+        tables.forEach((t, i) => {
+            html += `<div class="daw-tab-item">`;
+            html += `<button class="daw-tab-btn daw-tab-btn-removable${i === openTable ? ' active' : ''}" data-table="${i}">${esc(t[section.keyField] || `${noun} ${i + 1}`)}</button>`;
+            html += `<button class="daw-tab-remove-btn" data-remove-table="${i}" title="Remove ${esc(noun)}">&#10006;</button>`;
+            html += `</div>`;
+        });
+    }
+    html += `<button type="button" id="combo-table-add" class="daw-tab-btn daw-add-btn btn-sys btn-sys-green">+ ${esc(noun.toUpperCase())}</button>`;
+    html += `</div><div id="combo-table-body"></div>`;
+
+    host.innerHTML = html;
+
+    host.querySelectorAll('[data-table]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            window.currentDocTableIndex = parseInt(btn.getAttribute('data-table'), 10);
+            window.renderDocumentListEditor(tabId);
+        });
+    });
+    host.querySelectorAll('[data-remove-table]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!(await window.customConfirm(`Delete this ${noun.toLowerCase()} and everything in it?`))) return;
+            tables.splice(parseInt(btn.getAttribute('data-remove-table'), 10), 1);
+            window.currentDocTableIndex = undefined;
+            window.renderDocumentListEditor(tabId);
+            window.renderDocumentPreview(tabId);
+        });
+    });
+    const addTable = host.querySelector('#combo-table-add');
+    if (addTable) {
+        addTable.addEventListener('click', () => {
+            tables.push({ [section.keyField]: `New ${noun}`, rows: [] });
+            window.currentDocTableIndex = tables.length - 1;
+            window.renderDocumentListEditor(tabId);
+            window.renderDocumentPreview(tabId);
+        });
+    }
+
+    renderDocumentListRows(tabId, section, tables);
+};
+
+// Named renderDocumentListRows, NOT renderComboTableBody: description.js assigns
+// window.renderComboTableBody, and a top-level `function` declaration here
+// silently overwrites it. The reader then called this one with the wrong
+// arguments and wrote a `rows: []` field into an individual combo. Every js/
+// file shares one global scope - see tests/global-scope-collisions.spec.js.
+function renderDocumentListRows(tabId, section, tables) {
+    const container = document.getElementById('combo-table-body');
+    if (!container) return;
+    const idx = window.currentDocTableIndex;
+    const table = tables[idx];
+    if (!table) { container.innerHTML = ''; return; }
+
+    const noun = section.entryNoun || 'Starter';
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+    if (!Array.isArray(table.rows)) table.rows = [];
+
+    let html = `<div class="block-editor-container block-editor-container-tight">
+            <div class="block-card">
+                <div class="block-header"><span class="block-type-badge">${esc(noun.toUpperCase())}</span></div>
+                <div class="editor-row"><div>
+                    <label class="editor-field-label-sm">${esc(noun)} Name</label>
+                    <input type="text" class="editor-input" id="combo-table-name" value="${esc(table[section.keyField] || '')}" placeholder="e.g. M1 Starters">
+                </div></div>
+            </div>
+        </div>
+        <div class="combo-rows-list">`;
+
+    if (table.rows.length === 0) {
+        html += `<p class="admin-tool-hint">${esc(section.emptyEntryMessage || 'Nothing here yet.')}</p>`;
+    } else {
+        table.rows.forEach((row, i) => {
+            html += `<div class="combo-row-item">
+                <button type="button" class="combo-row-open btn-sys btn-sys-regular" data-row="${i}">${esc(comboRowSummary(row || {}))}</button>
+                <button type="button" class="combo-row-remove btn-sys btn-sys-red" data-row="${i}" title="Remove this entry">&#10006;</button>
+            </div>`;
+        });
+    }
+    html += `</div><button type="button" id="combo-row-add" class="btn-sys btn-sys-green">+ ADD ROW</button>`;
+
+    container.innerHTML = html;
+
+    const nameInput = container.querySelector('#combo-table-name');
+    if (nameInput) {
+        nameInput.addEventListener('input', () => {
+            table[section.keyField] = nameInput.value;
+            const btn = document.querySelector(`[data-table="${idx}"]`);
+            if (btn) btn.textContent = nameInput.value || `${noun} ${idx + 1}`;
+            window.renderDocumentPreview(tabId);
+        });
+    }
+
+    container.querySelectorAll('.combo-row-open').forEach(btn => {
+        btn.addEventListener('click', () =>
+            window.openDocumentRowModal(tabId, idx, parseInt(btn.getAttribute('data-row'), 10)));
+    });
+    container.querySelectorAll('.combo-row-remove').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (!(await window.customConfirm('Delete this row?'))) return;
+            table.rows.splice(parseInt(btn.getAttribute('data-row'), 10), 1);
+            renderDocumentListRows(tabId, section, tables);
+            window.renderDocumentPreview(tabId);
+        });
+    });
+    const addRow = container.querySelector('#combo-row-add');
+    if (addRow) {
+        addRow.addEventListener('click', () => {
+            table.rows.push({ sequence: [], damage: '', difficulty: '', notes: '' });
+            renderDocumentListRows(tabId, section, tables);
+            window.renderDocumentPreview(tabId);
+            window.openDocumentRowModal(tabId, idx, table.rows.length - 1);
+        });
+    }
+}
+
+// The row form, in a modal rather than in the sidebar. Twelve fields do not
+// fit a pane that is sharing the screen with a live preview.
+window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
+    const doc = docSections(tabId);
+    const modal = document.getElementById('combo-row-modal');
+    const fields = document.getElementById('combo-row-modal-fields');
+    if (!doc || !doc.list || !modal || !fields) return;
+
+    const section = doc.list;
+    const table = (window.currentEditorDescData[section.field] || [])[tableIdx];
+    const rows = table ? (table[section.rowsField] || []) : [];
+    const row = rows[rowIdx];
+    if (!row) return;
+
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+    window.currentDocRowIndex = rowIdx;
+
+    const titleEl = document.getElementById('combo-row-modal-title');
+    if (titleEl) titleEl.textContent = `EDIT ROW ${rowIdx + 1}`;
+
+    fields.innerHTML = window.comboRowFields().map(f => {
+        if (f.field === 'sequence') {
+            const value = Array.isArray(row.sequence) ? row.sequence.join('\n') : '';
+            return `<div class="combo-field-full">
+                <label class="editor-field-label-sm">${esc(f.label)}<span class="admin-tool-hint"> - ${esc(f.hint)}</span></label>
+                <textarea class="editor-textarea" data-combo-field="sequence" rows="5">${esc(value)}</textarea>
+            </div>`;
+        }
+        if (f.field === 'difficulty') {
+            // A select, because difficulty is an ordinal enum: a typo sorts the
+            // row to the bottom silently (comboSortValue ranks an unrecognised
+            // value last) rather than showing an error anywhere.
+            const options = ['', ...(window.COMBO_DIFFICULTIES || [])]
+                .map(d => `<option value="${esc(d)}" ${row.difficulty === d ? 'selected' : ''}>${esc(d || '- none -')}</option>`)
+                .join('');
+            return `<div><label class="editor-field-label-sm">${esc(f.label)}</label>
+                <select class="editor-select" data-combo-field="difficulty">${options}</select></div>`;
+        }
+        if (f.field === 'notes') {
+            return `<div class="combo-field-full">
+                <label class="editor-field-label-sm">${esc(f.label)}</label>
+                <textarea class="editor-textarea" data-combo-field="notes" rows="3">${esc(row.notes || '')}</textarea>
+            </div>`;
+        }
+        return `<div><label class="editor-field-label-sm">${esc(f.label)}</label>
+            <input type="text" class="editor-input" data-combo-field="${esc(f.field)}" value="${esc(row[f.field] || '')}"></div>`;
+    }).join('');
+
+    // Live, on every keystroke: the preview behind the modal is the point of
+    // having one, and a Save button that could be missed would let a
+    // contributor close the modal having lost what they typed.
+    fields.querySelectorAll('[data-combo-field]').forEach(input => {
+        const handler = () => {
+            const field = input.getAttribute('data-combo-field');
+            if (field === 'sequence') {
+                // One step per line. Blank lines are dropped rather than
+                // becoming empty chips in the route.
+                row.sequence = input.value.split('\n').map(s => s.trim()).filter(Boolean);
+            } else {
+                row[field] = input.value;
+            }
+            window.renderDocumentPreview(tabId);
+            const btn = document.querySelector(`.combo-row-open[data-row="${rowIdx}"]`);
+            if (btn) btn.textContent = comboRowSummary(row);
+        };
+        input.addEventListener('input', handler);
+        input.addEventListener('change', handler);
+    });
+
+    const close = () => {
+        modal.classList.add('hidden');
+        window.currentDocRowIndex = undefined;
+        window.renderDocumentListEditor(tabId);
+    };
+
+    const done = document.getElementById('combo-row-modal-done');
+    const del = document.getElementById('combo-row-modal-delete');
+    // Replaced rather than added to, so reopening the modal does not stack a
+    // second handler and delete two rows on one click.
+    if (done) done.onclick = close;
+    if (del) {
+        del.onclick = async () => {
+            if (!(await window.customConfirm('Delete this row?'))) return;
+            rows.splice(rowIdx, 1);
+            close();
+            window.renderDocumentPreview(tabId);
+        };
+    }
+    modal.onclick = (e) => { if (e.target === modal) close(); };
+
+    modal.classList.remove('hidden');
+};
+
+window.loadKeyedEntryIntoEditor = function(tabId, idx) {
+    const section = window.getKeyedSectionByTab(tabId);
+    if (!section) return;
+
+    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
+    const open = window.currentKeyedIndex[tabId];
+    const list = window.currentEditorDescData[section.field] || [];
+
+    // Flush the entry being left before switching away, or its blocks are lost.
+    if (open !== undefined && list[open]) {
+        list[open].content = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+    }
+
+    document.querySelectorAll(`[id^="${section.tab}-nav-"]`).forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById(`${section.tab}-nav-${idx}`);
+    if (activeBtn) activeBtn.classList.add('active');
+
+    window.currentKeyedIndex[tabId] = idx;
+    const entry = list[idx];
+    if (!entry) return;
+    const container = document.getElementById(`${section.tab}-editor-container`);
+    if (!container) return;
+
+    let metaHTML = '';
+    if (section.metaField) {
+        const options = Object.keys(section.metaColors || {});
+        const optionHTML = options.map(t =>
+            `<option value="${esc(t)}" ${entry[section.metaField] === t ? 'selected' : ''}>${esc(t)}</option>`).join('');
+        metaHTML = `
                     <div>
-                        <label class="editor-field-label-sm">Importance</label>
-                        <select class="editor-select" onchange="window.updateCounterplayMeta(${idx}, 'importance', this.value)">
-                            ${impHTML}
+                        <label class="editor-field-label-sm">${esc(section.metaLabel || section.metaField)}</label>
+                        <select class="editor-select" onchange="window.updateKeyedMeta('${section.tab}', ${idx}, '${esc(section.metaField)}', this.value)">
+                            ${optionHTML}
                         </select>
-                    </div>
-                    </div>
+                    </div>`;
+    }
+
+    container.innerHTML = `
+        <div class="block-editor-container block-editor-container-tight">
+            <div class="block-card">
+                <div class="block-header"><span class="block-type-badge">${esc(section.entryLabel.toUpperCase())} METADATA</span></div>
+                <div class="editor-row">
+                    <div>
+                        <label class="editor-field-label-sm">${esc(section.entryLabel)} Name</label>
+                        <input type="text" class="editor-input" value="${esc(entry[section.keyField] || '')}" oninput="window.updateKeyedMeta('${section.tab}', ${idx}, '${esc(section.keyField)}', this.value)" placeholder="${esc(section.placeholder || 'e.g. Dealing with M1s')}">
+                    </div>${metaHTML}
+                </div>
             </div>
         </div>
         <div class="editor-section-banner">
@@ -628,18 +1353,19 @@ window.loadCounterplayIntoEditor = function(idx) {
         <div id="strategy-block-target"></div>
     `;
 
-    initStrategyBlockBuilder('strategy-block-target', cp.content || []);
-    renderCounterplayPreview();
+    initStrategyBlockBuilder('strategy-block-target', entry.content || []);
+    window.renderKeyedSectionPreview(tabId);
 
     setTimeout(() => {
-        const previewCard = document.querySelector(`.live-preview-pane #counterplay-content-${(cp.topic||'Unknown').replace(/\s+/g, '-')}`);
+        const safeKey = String(entry[section.keyField] || 'Unknown').replace(/\s+/g, '-');
+        const previewCard = document.querySelector(`.live-preview-pane #${section.tab}-content-${safeKey}`);
         if (previewCard) {
             previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
             previewCard.parentElement.style.outline = '2px solid var(--accent-blue)';
             previewCard.parentElement.style.outlineOffset = '2px';
             setTimeout(() => { previewCard.parentElement.style.outline = 'none'; }, 800);
         }
-    }, 150);
+    }, 100);
 };
 
 // --- MOVES ---

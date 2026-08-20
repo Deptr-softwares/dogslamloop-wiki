@@ -755,20 +755,42 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 .badge-size-l { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 
 /* --- QUEUE CARD LAYOUT --- */
-.admin-queue-card-header { display: flex; justify-content: space-between; align-items: flex-start; }
-.admin-queue-card-info { display: flex; flex-direction: column; gap: 0.4rem; }
+.admin-queue-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+/* min-width: 0 is load-bearing. A flex item's automatic minimum size is its
+   MIN-CONTENT size, and .update-badge is white-space: nowrap - so one long tag
+   ("PATCH: 10 TARGETS") made this column refuse to shrink and pushed the REVIEW
+   button clean out of the card. The badges row already wraps; it never got the
+   chance to, because the column would not narrow (owner, 2026-08-18). */
+.admin-queue-card-info { display: flex; flex-direction: column; gap: 0.4rem; min-width: 0; flex: 1 1 auto; }
 .admin-queue-card-info .update-title { font-size: 0.85rem; }
 .admin-queue-card-info .update-log-meta { font-size: 0.65rem; color: #888; }
 .admin-queue-badges-row { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
 .admin-queue-author-name { color: var(--text-white); }
 .admin-queue-time-relative { color: var(--accent-blue); }
 .admin-queue-time-exact { opacity: 0.5; }
-.admin-review-btn { font-size: 0.6rem; padding: 0.3rem 0.6rem; margin-top: 0.2rem; }
+/* flex-shrink: 0 so the button keeps its size while the column beside it
+   narrows - the whole point of the fix above is that the badges yield, not the
+   only control on the card. */
+.admin-review-btn { font-size: 0.6rem; padding: 0.3rem 0.6rem; margin-top: 0.2rem; flex-shrink: 0; }
 
 /* --- PREVIEW HEADER / DIFF VIEW --- */
 .admin-preview-status-highlight { color: var(--text-white); }
 .diff-view-title { color: #a855f7; }
-.diff-location-label { font-family: var(--text-mono); font-size: 0.75rem; color: #888; margin-bottom: 1.5rem; margin-top: 2rem; }
+/* The breadcrumb naming where a change lives - the part a reviewer navigates
+   by, so it is brighter than the label line used to be. */
+.diff-location-label { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-primary); margin-bottom: 1.5rem; margin-top: 2rem; }
+.diff-location-lead { color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-right: 0.4rem; }
+.diff-crumb-sep { color: #555; margin: 0 0.15rem; }
+/* Says out loud that this is the fallback view. A reviewer seeing an unfamiliar
+   dump needs to know it is still a real change they are approving, not a bug. */
+.diff-unknown-scope {
+    font-size: 0.8rem;
+    color: var(--accent-yellow);
+    border-left: 3px solid var(--accent-yellow);
+    background: rgba(234, 179, 8, 0.08);
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
 .diff-batch-banner { font-family: var(--text-mono); font-size: 0.85rem; color: #22c55e; margin-bottom: 1rem; border: 1px dashed #22c55e; padding: 0.75rem; text-align: center; }
 .diff-no-changes { color: var(--text-muted); font-style: italic; }
 .diff-inline-target { width: 100%; }

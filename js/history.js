@@ -194,14 +194,28 @@ window.renderRevision = async function(index) {
         }
 
     } else {
-        let validTabs = [];
-        if (renderDesc.profile || renderDesc.playstyle || renderDesc.overview || renderDesc.strategy || (renderDesc.extras && renderDesc.extras.length)) validTabs.push('overview');
-        if (renderFrame.m1s && renderFrame.m1s.length) validTabs.push('m1s');
-        if (renderFrame.skills && renderFrame.skills.length) validTabs.push('skills');
-        if (renderFrame.specials && renderFrame.specials.length) validTabs.push('specials');
-        if (renderDesc.matchups && renderDesc.matchups.length) validTabs.push('matchups');
-        if (renderDesc.counterplay && renderDesc.counterplay.length) validTabs.push('counterplay');
-        
+        // Which tabs this revision actually has content for, walked in
+        // vocabulary order (js/character_tabs.js) rather than listed here.
+        //
+        // The old list was hand-written and had no `ultimateAtk` entry, so a
+        // base-only character's ultimate-move revision rendered no Ultimate tab
+        // in History at all - the content was in the revision and simply had
+        // nowhere to go. Deriving the list fixes that and means a tab added to
+        // the vocabulary shows up here without a second edit.
+        const hasContent = (tab) => {
+            if (tab.frameMoves) return !!(renderFrame[tab.id] && renderFrame[tab.id].length);
+            // Overview is spread across several desc fields rather than one array.
+            if (tab.id === 'overview') {
+                return !!(renderDesc.profile || renderDesc.playstyle || renderDesc.overview
+                    || renderDesc.strategy || (renderDesc.extras && renderDesc.extras.length));
+            }
+            return !!(renderDesc[tab.id] && renderDesc[tab.id].length);
+        };
+
+        let validTabs = window.getCharacterTabs({ includeInjected: true, editableOnly: true })
+            .filter(hasContent)
+            .map(tab => tab.id);
+
         // Failsafe map if it's a single move edit
         if (rev.is_delta && rev.target_scope === 'move') {
             const cat = rev.target_key.split('::')[0];
@@ -213,8 +227,12 @@ window.renderRevision = async function(index) {
         } else {
             let tabsHtml = '<nav class="character-nav" style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:1.5rem; border-bottom:2px solid var(--accent-blue); padding-bottom:1rem;">';
             let contentHtml = '';
+            // Labels from the vocabulary, not capitalised from the id: that
+            // rendered 'ultimateAtk' as "UltimateAtk", and would turn any
+            // camelCase id added later into the same thing.
+            const tabLabels = window.getCharacterTabLabels();
             validTabs.forEach((t, i) => {
-                const label = t === 'm1s' ? 'M1s' : (t.charAt(0).toUpperCase() + t.slice(1));
+                const label = tabLabels[t] || t;
                 tabsHtml += `<button id="nav-${t}" class="btn-manga btn-manga-slanted ${i===0?'active':''}" onclick="window.switchHistoryTab('${t}')"><div class="btn-manga-content"><span class="btn-manga-text">${label}</span></div></button>`;
                 contentHtml += `<div id="tab-${t}" class="tab-content ${i===0?'':'hidden'} vessel-content space-y-6"></div>`;
             });
@@ -226,7 +244,7 @@ window.renderRevision = async function(index) {
                 if (typeof window.loadPageDescriptions === 'function') await window.loadPageDescriptions(rev.page_id, 'character');
             }
             
-            for (const cat of ['m1s', 'skills', 'specials']) {
+            for (const cat of window.FRAME_MOVE_CATEGORIES) {
                 if (validTabs.includes(cat) && typeof window.loadMoveSection === 'function') {
                     await window.loadMoveSection(rev.page_id, cat, null, 'character');
                 }

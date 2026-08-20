@@ -1,6 +1,33 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.15",
+      "date": "08/20/2026",
+      "type": "site",
+      "title": "The 'Combos' update",
+      "description": "Character pages have a Combos tab: routes written as cards, a sortable table per starter, and notation coloured by which button each move uses. Starter Guide and Techs tabs arrive alongside it.",
+      "changes": [
+        "Every character page now has a Combos tab, with a Read First section, combo groups, and a sortable Combo List table for each starter",
+        "Combos are written as cards carrying the route, damage, difficulty and an optional clip, and a card can hold its own notes underneath",
+        "Added a Starter Guide tab for how to begin playing a character",
+        "Some characters now have a Techs tab, between Combos and Starter Guide, for the techniques that are not combos",
+        "Move names in combo routes are coloured by the button they use, across ten inputs, so a route reads as notation rather than as text",
+        "Videos with controls now play in place, with a sharp play button and a duration bar that take the character's colour",
+        "A video link inside a table shows as a button that opens the clip in a pop-up, instead of sending the reader off the page",
+        "A media block with nothing in it yet shows the site icon instead of a broken image",
+        "Any heading on a page can be linked to directly, and the editor offers every section on the page as a target",
+        "Certified tier lists now say which game version they describe",
+        "The tier list editor previews the introduction, reasoning and changelog exactly as the page will show them, and tier names are no longer capped at one character",
+        "Reordering skills, matchups or sections now saves. It used to report no changes and refuse to submit, and a reorder sent alongside another edit was dropped",
+        "Headings and lists get the same automatic colouring as paragraphs, which they did not on half the tabs",
+        "Author credit on a block is no longer filled in automatically. It is left blank unless somebody types a name",
+        "Block, Blocking and Guard are no longer coloured as an input",
+        "The editor has find and replace across a whole character, block folders, and controls to reorder or insert a section in place rather than only at the end",
+        "The review screen now shows every kind of edit in plain words, so a reviewer can see what a submission actually changes",
+        "Changed a few things under the hood"
+      ]
+    },
+    {
       "version": "Beta v0.14",
       "date": "08/15/2026",
       "type": "site",

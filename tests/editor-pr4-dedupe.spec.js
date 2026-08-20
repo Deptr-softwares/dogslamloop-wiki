@@ -124,7 +124,12 @@ test('renderBlockList: accordion back-banner renders with no inline styles when 
   await expect(page.locator('#block-list .accordion-back-title')).toHaveText('My Section');
 });
 
-test('renderMatchupsPreview/renderCounterplayPreview: card-tier-label keeps its genuinely dynamic per-item color inline', async ({ page }) => {
+test('renderMatchupsPreview/renderKeyedSectionPreview: card-tier-label keeps its genuinely dynamic per-item color inline', async ({ page }) => {
+  // renderCounterplayPreview became renderKeyedSectionPreview(tabId) in v0.15:
+  // Starter Guide is the same shape, so one renderer serves every keyed
+  // section rather than one per section. The claim here is unchanged - the
+  // per-item colour is genuinely dynamic and stays inline - and the colour now
+  // comes from the section's metaColors map in js/character_tabs.js.
   await page.evaluate(() => {
     if (!document.getElementById('tab-matchups')) {
       const el = document.createElement('div'); el.id = 'tab-matchups'; document.body.appendChild(el);
@@ -136,7 +141,7 @@ test('renderMatchupsPreview/renderCounterplayPreview: card-tier-label keeps its 
     window.currentEditorDescData.matchups = [{ opponent: 'Boomcat', tier: 'Advantage', content: [] }];
     window.currentEditorDescData.counterplay = [{ topic: 'Zoning', importance: 'Crucial', content: [] }];
     window.renderMatchupsPreview();
-    window.renderCounterplayPreview();
+    window.renderKeyedSectionPreview('counterplay');
   });
 
   const tierLabel = page.locator('#tab-matchups .card-tier-label');

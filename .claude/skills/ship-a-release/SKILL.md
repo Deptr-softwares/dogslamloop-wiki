@@ -144,6 +144,68 @@ change
 
 Body should cover: what shipped, anything found along the way that was broken rather than merely missing, decisions a reviewer would otherwise have to reverse-engineer, and an explicit section for what needs the owner **after** merge (live probes, things only they can verify).
 
+## Never state a PR URL you have not created
+
+`git push` prints a *"create a pull request"* hint. That is not a PR. On
+2026-08-16 a PR number was quoted to the owner from that hint alone, the owner
+tracked it for several exchanges as real, and it did not exist —
+`gh pr view 103` returned *"Could not resolve to a PullRequest"*.
+
+**The URL in a message must come from the output of `gh pr create`**, never
+from the push hint and never from inference. If you did not see `gh pr create`
+succeed in this session, check before you cite it:
+
+```bash
+gh pr list --state open --json number,title,headRefName
+```
+
+Same discipline as `mergedAt` below: repo state is read, not remembered.
+
+## A fix you described is not a fix you committed
+
+On 2026-08-16 the owner reported a bug, it was found, fixed, tested and
+falsified — and then reported to them as done while the change sat unstaged.
+They merged the PR. The fix was not in it, and the bug they had reported was
+still live on `next-update`.
+
+Nothing in the conversation was untrue. The gap was between "the work is
+finished" and "the work is in the commit", and only `git status` knows which.
+
+**Before telling the owner a fix is ready, confirm it is actually in the
+branch:**
+
+```bash
+git status --short          # nothing of the fix should be unstaged
+git log --oneline -1        # and the commit should exist
+```
+
+The same check belongs before any claim that a PR contains something. `git
+diff <base>...<head> --stat` answers it exactly, and costs one command.
+
+## A merged PR's branch is closed to new work
+
+**Once a PR is merged, commits pushed to its branch are orphaned.** The PR does
+not pick them up, the merge commit does not contain them, and deleting the
+branch afterwards drops them on the floor.
+
+This has happened twice, both times the same way: work continued on a branch,
+the owner merged the PR mid-stream, later commits were pushed to the same
+branch, and the branch was then deleted as "merged".
+
+Two rules:
+
+- **Before committing to a branch that already has a PR, check the PR is still
+  open.** `gh pr view <N> --json state,mergedAt`. If it is merged, branch fresh
+  from the updated integration branch instead.
+- **`git branch -d` prints `not yet merged to HEAD` when the branch holds
+  commits the target does not.** That warning is the whole signal. It still
+  deletes the branch. Do not skim past it — read it, and recover the commits
+  (`git cherry-pick <sha>`; the objects survive locally until gc) before
+  carrying on.
+
+Recovery is possible but only until the objects are collected, and only on the
+machine that made them. Prevention is one command.
+
 ## After the owner merges an item into `next-update`
 
 Nothing is live yet, so there are no probes to run and no version to bump.

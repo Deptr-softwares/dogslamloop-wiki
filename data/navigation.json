@@ -531,7 +531,6 @@
       "id": "Free-Submit-Tier-List",
       "name": "Free Submit Tier List",
       "url": "tools/free-submit-tier-list/index.html",
-      "isWip": true,
       "cms_config": {
         "pageType": "tool",
         "pageId": "free_submit_tier_list",
@@ -544,7 +543,6 @@
       "id": "Skill-Builder-ID-Reader",
       "name": "Skill Builder ID Reader",
       "url": "tools/skill-builder-id-reader/index.html",
-      "isWip": true,
       "cms_config": {
         "pageType": "tool",
         "pageId": "skill_builder_id_reader",

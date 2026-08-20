@@ -1,16 +1,172 @@
 /**
  * Dogslamloop Wiki - Character Text Descriptions Engine
+ *
+ * EVERY contributor-authored value below is escaped or validated on its way
+ * into innerHTML. It was not, and that was a stored XSS: a submitted combo
+ * step of `<img src=x onerror=...>` executed for every reader of the page, and
+ * - worse - in the reviewer's authenticated session the moment they opened the
+ * preview, before approving anything. Proven with a real repro, not inferred.
+ *
+ * A scan of live content (33 pages, 75 combo blocks) found zero HTML tags in
+ * any contributor string, so nothing on the site depended on the old
+ * behaviour. Rich text is produced by this renderer - [M1] becomes a <kbd>,
+ * a content array becomes <br>-joined lines - not written by contributors, so
+ * the order is always: escape the input, THEN add the generated markup.
+ *
+ * Three contexts, three different rules:
+ *   text       -> escBlockText()
+ *   attribute  -> escBlockText() as well; it escapes both quote characters
+ *   CSS value  -> NEITHER is enough. Escaping quotes stops an attribute
+ *                 breakout but still permits `100%; background: url(...)`, so
+ *                 align and width are validated against allowlists instead.
  */
+
+// NAMES ARE PREFIXED ON PURPOSE. Every js/ file here is a classic <script>
+// sharing ONE global lexical scope, so a top-level `const esc` in two files
+// that load on the same page is "Identifier 'esc' has already been declared"
+// - which aborts the whole second file. That is not hypothetical: writing
+// these as `esc` and `safeUrl` collided with js/editor-blocks.js and
+// js/internalstyling.js and took the entire editor down with
+// "Editor failed to initialize context", the same symptom as the 2026-08-10
+// cache-skew incident. Caught only because the spec drove the real builder.
+//
+// window.escapeHtml lives in site_utils.js, which is stamped alongside this
+// file's page but not this file; the fallback keeps a cache-skewed load
+// rendering escaped text rather than throwing.
+const escBlockText = (v) => (typeof window.escapeHtml === 'function'
+    ? window.escapeHtml(v === null || v === undefined ? '' : v)
+    : String(v === null || v === undefined ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;'));
+
+// CSS-value allowlists. Anything unrecognised falls back to the default rather
+// than being passed through - a contributor cannot name a value this does not
+// already know about, so there is nothing legitimate to lose.
+const BLOCK_ALIGNMENTS = ['left', 'center', 'right', 'justify'];
+const safeBlockAlign = (align) => (BLOCK_ALIGNMENTS.includes(align) ? align : null);
+
+// e.g. 50%, 400px, 32rem. Deliberately no calc(), var() or url().
+const safeBlockWidth = (width) => (/^\d+(\.\d+)?(%|px|rem|em|vw|vh)$/.test(String(width || '').trim())
+    ? String(width).trim() : null);
+
+// Blocked so a contributor cannot turn an image or video into script execution
+// via `javascript:` - escaping does nothing about a URL scheme.
+const safeBlockUrl = (url) => {
+    const raw = String(url === null || url === undefined ? '' : url).trim();
+    // eslint-disable-next-line no-script-url
+    return /^\s*(javascript|data|vbscript):/i.test(raw.replace(/[\u0000-\u0020]/g, '')) ? '' : raw;
+};
+
+// --- MEDIA PLACEHOLDER (v0.15 item 12) ---
+//
+// An image block with no src used to emit `<img src="">`, which the browser
+// draws as a broken box showing the alt text - the "empty box that says I am
+// broken". A video or youtube block with nothing in it was worse: it emitted
+// no markup at all, so the block vanished and an author editing a page could
+// not see that it was there.
+//
+// Root-absolute because these pages sit at three different depths and the
+// site is served from the domain root - the same assumption 404.html's
+// <base href="/"> already makes.
+const MEDIA_PLACEHOLDER_SRC = '/medias/images/DogslamloopIcon.webp';
+
+window.wikiMediaPlaceholderHTML = function () {
+    return `
+        <div class="wiki-media-placeholder">
+            <span class="wiki-media-placeholder-label">Placeholder</span>
+            <img src="${MEDIA_PLACEHOLDER_SRC}" alt="" class="wiki-media-placeholder-icon" loading="lazy">
+        </div>
+    `;
+};
+
+// --- SUPABASE MEDIA LINKS (v0.15 item 11) ---
+//
+// A wiki-media link pasted into a table cell renders as media instead of as a
+// URL. The bucket check is the SECURITY control, not a convenience: a cell
+// that turned any URL into an <img> or <video> would let a contributor embed
+// from anywhere and hotlink someone else's bandwidth through the wiki.
+//
+// The project URL is read rather than hardcoded, and `typeof` rather than a
+// bare reference because SUPABASE_URL is a top-level const in site_utils.js -
+// another file entirely, and one a cache-skewed load can be missing.
+const WIKI_MEDIA_BUCKET_PATH = '/storage/v1/object/public/wiki-media/';
+const WIKI_MEDIA_IMAGE_RE = /\.(png|jpe?g|webp|gif|avif|bmp)(\?|#|$)/i;
+const WIKI_MEDIA_VIDEO_RE = /\.(webm|mp4|m4v|mov|ogv)(\?|#|$)/i;
+
+// 'image', 'video', or null for anything that is not one of ours.
+window.wikiMediaKind = function (value) {
+    const raw = String(value === null || value === undefined ? '' : value).trim();
+    if (!raw || /\s/.test(raw)) return null;
+
+    const base = typeof SUPABASE_URL === 'string' ? SUPABASE_URL : '';
+    if (!base) return null;
+    if (raw.indexOf(base + WIKI_MEDIA_BUCKET_PATH) !== 0) return null;
+
+    if (WIKI_MEDIA_IMAGE_RE.test(raw)) return 'image';
+    if (WIKI_MEDIA_VIDEO_RE.test(raw)) return 'video';
+    return null;
+};
+
+// --- THE VIDEO PLAYER (v0.15 item 10) ---
+//
+// Native <video> only, by the owner's call - YouTube's controls cannot be
+// restyled from outside the iframe, and the alternatives were an external API
+// on the busiest pages or a frame that promised more than it delivered.
+//
+// And only when the block asked for controls. A video block with controls OFF
+// renders `autoplay loop muted playsinline`: a silent clip standing in for a
+// GIF, which is a deliberate authoring choice on a lot of existing pages.
+// Giving that a play button answers a question nobody asked.
+//
+// Painted with var(--accent-blue), which js/site_meta.js overrides on :root
+// per character page - so the player re-themes itself and there is nothing
+// here that knows about characters at all.
+window.wikiVideoPlayerHTML = function (url, extraClass) {
+    const safe = escBlockText(safeBlockUrl(url));
+    if (!safe) return '';
+    return `
+        <div class="wiki-player${extraClass ? ' ' + escBlockText(extraClass) : ''}" data-wiki-player>
+            <video data-lazy-src="${safe}" class="wiki-video-native" preload="none" playsinline></video>
+            <div class="wiki-player-controls">
+                <button type="button" class="wiki-player-btn wiki-player-toggle" data-player-toggle
+                        aria-label="Play">
+                    <span class="wiki-player-glyph" aria-hidden="true"></span>
+                </button>
+                <button type="button" class="wiki-player-btn wiki-player-mute" data-player-mute
+                        aria-label="Mute">
+                    <span class="wiki-player-sound" aria-hidden="true"></span>
+                </button>
+                <div class="wiki-player-track" data-player-track role="slider" tabindex="0"
+                     aria-label="Seek" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                    <div class="wiki-player-fill" data-player-fill></div>
+                </div>
+            </div>
+        </div>
+    `;
+};
+
+// A cell or a card has no room for a player, so a video there is a button that
+// opens one. Deliberately NOT a link to the storage URL, which is what the
+// theorybox and the combo table used to do - that navigates the reader off the
+// wiki to a bare video on a Supabase domain, with no way back but the back
+// button (owner, 2026-08-18).
+window.wikiVideoButtonHTML = function (url, label) {
+    const safe = escBlockText(safeBlockUrl(url));
+    if (!safe) return '';
+    return `<button type="button" class="wiki-video-btn" data-wiki-video="${safe}">`
+        + `<span class="wiki-video-btn-glyph" aria-hidden="true"></span>`
+        + `${escBlockText(label || 'Watch')}</button>`;
+};
 
 // Helper to assign CSS classes, inline widths, and safe style merging for media
 function getMediaAttributes(align, customWidth, extraStyles = '') {
     let alignClass = 'wiki-media-full';
-    
+
     if (align === 'left') alignClass = 'wiki-media-left';
     else if (align === 'right') alignClass = 'wiki-media-right';
     else if (align === 'center') alignClass = 'wiki-media-center';
 
-    return `class="wiki-media ${alignClass}" style="width: ${customWidth || '100%'}; ${extraStyles}"`;
+    return `class="wiki-media ${alignClass}" style="width: ${safeBlockWidth(customWidth) || '100%'}; ${extraStyles}"`;
 }
 
 // --- PLAYSTYLE COMPONENT GENERATOR ---
@@ -20,7 +176,7 @@ window.generatePlaystyleHTML = function(playstyle) {
     const renderList = (items, icon, variant) => items.map(text => `
         <li class="playstyle-item">
             <span class="playstyle-icon ${variant}">${icon}</span>
-            <span class="playstyle-item-text">${text}</span>
+            <span class="playstyle-item-text">${escBlockText(text)}</span>
         </li>
     `).join('');
 
@@ -60,38 +216,56 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             let headingClass = 'wiki-block-heading';
             if (contextClass) headingClass += ` ${contextClass}-heading`;
             
-            const tag = block.size || 'h3';
-            
-            contentHTML += `<${tag} class="${headingClass}" ${alignAttr}>${block.content}</${tag}>`;
+            // Allowlisted: block.size is contributor-set and lands in the tag
+            // NAME, so an unchecked value writes an arbitrary element.
+            const tag = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(block.size) ? block.size : 'h3';
+
+            contentHTML += `<${tag} class="${headingClass}" ${alignAttr}>${escBlockText(block.content)}</${tag}>`;
         }
         // --- PARAGRAPHS (With Inline Keybinds & URL Links) ---
         else if (block.type === 'paragraph') {
-            const rawText = Array.isArray(block.content) ? block.content.join('<br>') : block.content;
-            
-            // Convert keybinds
+            // Escape FIRST, then join and add the generated markup - the <br>
+            // and the <kbd> are this renderer's, not the contributor's.
+            const rawText = Array.isArray(block.content)
+                ? block.content.map(escBlockText).join('<br>')
+                : escBlockText(block.content);
+
+            // Convert keybinds. The pattern only matches A-Z, digits, spaces
+            // and +, none of which escaping alters, so it still finds [M1].
             let text = rawText.replace(/\[([A-Z0-9\s\+]+)\]/g, '<kbd class="keybind-badge">$1</kbd>');
-            
+
             const pClass = contextClass ? 'strategy-paragraph card-text' : 'strategy-paragraph';
             contentHTML += `<p class="${pClass}" ${alignAttr}>${text}</p>`;
         }
         else if (block.type === 'list') {
             const lClass = contextClass ? 'wiki-block-list space-y-2 card-text' : 'wiki-block-list space-y-2 text-gray-300';
             contentHTML += `<ul class="${lClass}" ${alignAttr}>`;
-            block.items.forEach(item => { contentHTML += `<li>${item}</li>`; });
+            block.items.forEach(item => { contentHTML += `<li>${escBlockText(item)}</li>`; });
             contentHTML += `</ul>`;
         }
         else if (block.type === 'image') {
-            if (block.caption) {
+            // An empty src reached the browser as `<img src="">`, which draws a
+            // broken box showing the alt text - the "empty box that says I am
+            // broken" (item 12).
+            if (!safeBlockUrl(block.src)) {
+                contentHTML += block.caption
+                    ? `<figure ${getMediaAttributes(block.align, block.width, 'text-align: center;')}>`
+                      + window.wikiMediaPlaceholderHTML()
+                      + `<figcaption class="wiki-figcaption">${escBlockText(block.caption)}</figcaption></figure>`
+                    : `<div ${getMediaAttributes(block.align, block.width)}>`
+                      + window.wikiMediaPlaceholderHTML() + `</div>`;
+            }
+            else if (block.caption) {
                 contentHTML += `
                     <figure ${getMediaAttributes(block.align, block.width, 'text-align: center;')} >
-                        <img src="${block.src}" alt="${block.alt || 'Wiki Image'}" class="wiki-block-image" loading="lazy">
+                        <img src="${escBlockText(safeBlockUrl(block.src))}" alt="${escBlockText(block.alt || 'Wiki Image')}" class="wiki-block-image" loading="lazy">
                         <figcaption class="wiki-figcaption">
-                            ${block.caption}
+                            ${escBlockText(block.caption)}
                         </figcaption>
                     </figure>
                 `;
             } else {
-                contentHTML += `<img src="${block.src}" alt="${block.alt || 'Wiki Image'}" ${getMediaAttributes(block.align, block.width, 'border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow, #000);')} loading="lazy">`;
+                contentHTML += `<img src="${escBlockText(safeBlockUrl(block.src))}" alt="${escBlockText(block.alt || 'Wiki Image')}" ${getMediaAttributes(block.align, block.width, 'border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow, #000);')} loading="lazy">`;
             }
         }
         // --- DIVIDERS ---
@@ -175,11 +349,15 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 'info': { color: '#22d3ee', icon: '📌', label: 'INFO' }
             };
             const config = intentMap[bData.intent] || intentMap['info'];
-            const text = Array.isArray(bData.content) ? bData.content.join('<br>') : (bData.content || bData.text || '');
+            // Same escape-then-join rule as paragraphs. config.color comes from
+            // intentMap above, never from the block, so it needs nothing.
+            const text = Array.isArray(bData.content)
+                ? bData.content.map(escBlockText).join('<br>')
+                : escBlockText(bData.content || bData.text || '');
 
             let tooltipContent = '';
             if (bData.title) {
-                tooltipContent += `<strong class="callout-tooltip-title" style="--tooltip-accent: ${config.color};">${bData.title}</strong>`;
+                tooltipContent += `<strong class="callout-tooltip-title" style="--tooltip-accent: ${config.color};">${escBlockText(bData.title)}</strong>`;
             }
 
             tooltipContent += `<span class="tooltip-desc callout-tooltip-desc">${text}</span>`;
@@ -206,7 +384,7 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             if (headers.length > 0) {
                 tableContent += `<thead><tr>`;
                 headers.forEach(h => {
-                    tableContent += `<th>${h}</th>`;
+                    tableContent += `<th>${escBlockText(h)}</th>`;
                 });
                 tableContent += `</tr></thead>`;
             }
@@ -217,9 +395,25 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 rows.forEach((row) => {
                     tableContent += `<tr>`;
 
-                    // Parse [M1] keybinds natively inside the cells
+                    // Parse [M1] keybinds natively inside the cells - unless
+                    // the cell is one of our own storage links, which renders
+                    // as the media itself (item 11). An image is sized down to
+                    // fit the row; a video gets a button, because a player does
+                    // not fit in a table cell.
                     row.forEach(cell => {
-                        let parsedCell = (cell || '').replace(/\[([A-Z0-9\s\+]+)\]/g, '<kbd class="keybind-badge">$1</kbd>');
+                        const kind = window.wikiMediaKind(cell);
+                        if (kind === 'image') {
+                            tableContent += `<td class="wiki-cell-media-td">`
+                                + `<img src="${escBlockText(safeBlockUrl(cell))}" alt=""`
+                                + ` class="wiki-cell-media" loading="lazy"></td>`;
+                            return;
+                        }
+                        if (kind === 'video') {
+                            tableContent += `<td class="wiki-cell-media-td">`
+                                + window.wikiVideoButtonHTML(cell, 'Play') + `</td>`;
+                            return;
+                        }
+                        let parsedCell = escBlockText(cell).replace(/\[([A-Z0-9\s\+]+)\]/g, '<kbd class="keybind-badge">$1</kbd>');
                         tableContent += `<td>${parsedCell}</td>`;
                     });
                     tableContent += `</tr>`;
@@ -243,10 +437,16 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             let mediaInnerHtml = '';
 
             if (block.type === 'youtube' || bData.videoId) {
-                let videoId = bData.videoId || bData.url || '';
+                let videoId = String(bData.videoId || bData.url || '');
                 const ytMatch = videoId.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
                 if (ytMatch) videoId = ytMatch[1];
-                
+
+                // A bare id that did not come from the URL pattern above was
+                // previously written into the iframe src untouched. Held to the
+                // same 11-character shape the pattern extracts, so there is no
+                // path where a contributor string reaches that attribute raw.
+                if (!/^[\w-]{11}$/.test(videoId)) videoId = '';
+
                 if (videoId) {
                     // Injecting data-lazy-src
                     mediaInnerHtml = `
@@ -261,10 +461,20 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             else if (block.type === 'video') {
                 const videoUrl = bData.url || bData.src || '';
                 if (videoUrl) {
-                    const controlsAttr = bData.controls ? 'controls' : 'autoplay loop muted playsinline';
-                    // Injecting data-lazy-src and preload="none"
-                    mediaInnerHtml = `<video data-lazy-src="${videoUrl}" ${controlsAttr} class="wiki-video-native" preload="none"></video>`;
+                    // Controls ON gets the player (item 10). Controls OFF is an
+                    // autoplaying muted loop - a clip standing in for a GIF -
+                    // and is left exactly as it was.
+                    mediaInnerHtml = bData.controls
+                        ? window.wikiVideoPlayerHTML(videoUrl)
+                        : `<video data-lazy-src="${escBlockText(safeBlockUrl(videoUrl))}" autoplay loop muted playsinline class="wiki-video-native" preload="none"></video>`;
                 }
+            }
+
+            // Nothing to show: a linkless media block used to emit no markup at
+            // all, so it disappeared from the page and the author could not see
+            // it was there to fix (item 12).
+            if (!mediaInnerHtml) {
+                mediaInnerHtml = window.wikiMediaPlaceholderHTML();
             }
 
             if (mediaInnerHtml) {
@@ -273,7 +483,7 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                         <figure ${getMediaAttributes(bData.align, bData.width, 'text-align: center;')} >
                             ${mediaInnerHtml}
                             <figcaption class="wiki-figcaption">
-                                ${bData.caption}
+                                ${escBlockText(bData.caption)}
                             </figcaption>
                         </figure>
                     `;
@@ -298,8 +508,8 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             contentHTML += `
                 <div class="wiki-accordion-wrapper">
                     <details class="manga-accordion">
-                        <summary class="wiki-accordion-summary" style="text-align: ${bData.align || 'left'};">
-                            <span>${title}</span>
+                        <summary class="wiki-accordion-summary" style="text-align: ${safeBlockAlign(bData.align) || 'left'};">
+                            <span>${escBlockText(title)}</span>
                             <span class="accordion-arrow">▼</span>
                         </summary>
                         <div class="wiki-accordion-body">
@@ -307,6 +517,65 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                         </div>
                     </details>
                 </div>
+            `;
+        }
+        // --- THE COMBO CARD (TheoryBox) ---
+        //
+        // A combo and everything known about it: the route, its numbers, and a
+        // write-up that is itself blocks - clips, sub-variants, an explanation
+        // of why the timing is what it is. Nested exactly like an accordion,
+        // which is what makes a combo GROUP a group rather than a list.
+        else if (block.type === 'theorybox') {
+            const bData = block.data || block;
+
+            // Derived from the title when blank, so a card is linkable without
+            // anyone having to think about anchors. Everything that is not a
+            // word character is dropped: a raw title in an id breaks the
+            // selector that would scroll to it.
+            const anchor = String(bData.anchor || bData.title || '')
+                .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+            const difficulty = String(bData.difficulty || '').trim();
+            const diffIndex = (window.COMBO_DIFFICULTIES || []).indexOf(difficulty);
+            const diffHTML = difficulty
+                ? `<span class="theorybox-difficulty combo-difficulty${diffIndex === -1 ? '' : ` combo-difficulty-${diffIndex}`}">${escBlockText(difficulty)}</span>`
+                : '';
+
+            // Same chips and separators as the legacy combo block and the
+            // Combo List, so a route reads identically wherever it appears.
+            const steps = Array.isArray(bData.sequence) ? bData.sequence : [];
+            let routeHTML = '';
+            if (steps.length) {
+                routeHTML = '<div class="combo-container theorybox-route">';
+                steps.forEach((step, i) => {
+                    routeHTML += `<span class="combo-node">${escBlockText(step)}</span>`;
+                    if (i < steps.length - 1) routeHTML += '<span class="combo-sep" aria-hidden="true">&gt;</span>';
+                });
+                if (bData.damage) routeHTML += `<span class="combo-damage">${escBlockText(bData.damage)}</span>`;
+                routeHTML += '</div>';
+            }
+
+            // Opens the modal player rather than navigating to the file. The
+            // link sent the reader off the wiki to a bare video on a Supabase
+            // domain with no way back but the back button (owner, 2026-08-18).
+            const videoUrl = safeBlockUrl(bData.video || '');
+            const videoHTML = videoUrl
+                ? window.wikiVideoButtonHTML(videoUrl, 'Watch')
+                : '';
+
+            const innerHTML = window.generateHTMLForBlocks(bData.content || [], contextClass);
+
+            contentHTML += `
+                <section class="theorybox"${anchor ? ` id="combo-${escBlockText(anchor)}"` : ''}>
+                    <div class="theorybox-head">
+                        <h4 class="theorybox-title">${escBlockText(bData.title || 'Combo')}</h4>
+                        ${diffHTML}
+                        ${videoHTML}
+                    </div>
+                    ${bData.oneliner ? `<p class="theorybox-oneliner">${escBlockText(bData.oneliner)}</p>` : ''}
+                    ${routeHTML}
+                    ${innerHTML ? `<div class="theorybox-body">${innerHTML}</div>` : ''}
+                </section>
             `;
         }
         // --- COMBO STRINGS ---
@@ -318,31 +587,42 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 if (block.align === 'center') justifyClass = 'center';
                 if (block.align === 'right') justifyClass = 'flex-end';
 
-                let comboHTML = `<div class="combo-container" style="justify-content: ${justifyClass};">`;
-                
+                // Restructured, v0.15 item 1. The route and its damage are one
+                // reading unit and now sit on one row; the note goes underneath
+                // it, full width. Previously the damage was pushed to the far
+                // right of the page with `margin-left: auto` and the note sat
+                // beside it, so a reader had to cross the whole column to find
+                // out what a combo did, and the note read as a caption on the
+                // damage rather than on the combo.
+                let comboHTML = `<div class="combo-block">`;
+                comboHTML += `<div class="combo-container" style="justify-content: ${justifyClass};">`;
+
                 block.sequence.forEach((move, index) => {
-                    // Use the new Keycap aesthetic
-                    comboHTML += `<span class="combo-node">${move}</span>`;
-                    
-                    // Thicker, sharper arrows
+                    comboHTML += `<span class="combo-node">${escBlockText(move)}</span>`;
+
+                    // '>' rather than an arrow glyph or an SVG, matching the
+                    // notation the community and Dustloop both already write
+                    // by hand. aria-hidden because a screen reader announcing
+                    // "greater than" between every step of an eight-step route
+                    // is noise; the steps read fine as a list without it.
                     if (index < block.sequence.length - 1) {
-                        comboHTML += `<svg class="combo-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>`;
+                        comboHTML += `<span class="combo-sep" aria-hidden="true">&gt;</span>`;
                     }
                 });
 
-                if (block.note || block.damage) {
-                    // If aligned left, push the damage to the far right. Otherwise, keep it grouped together.
-                    const pushRight = block.align === 'left' ? 'margin-left: auto;' : '';
-                    comboHTML += `<div class="combo-meta-group" style="${pushRight}">`;
-                    
-                    if (block.note) {
-                        comboHTML += `<span class="combo-note">${block.note}</span>`;
-                    }
-                    if (block.damage) {
-                        comboHTML += `<span class="combo-damage">${block.damage}</span>`;
-                    }
-                    
-                    comboHTML += `</div>`;
+                // Damage trails the route directly - a last element of the
+                // sequence rather than a column at the page edge.
+                if (block.damage) {
+                    comboHTML += `<span class="combo-damage">${escBlockText(block.damage)}</span>`;
+                }
+
+                comboHTML += `</div>`;
+
+                // Under the route, full width, so it reads as a condition on
+                // the whole combo.
+                if (block.note) {
+                    comboHTML += `<div class="combo-note-row" style="justify-content: ${justifyClass};">`
+                        + `<span class="combo-note">${escBlockText(block.note)}</span></div>`;
                 }
 
                 comboHTML += `</div>`;
@@ -387,9 +667,393 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
 };
 
 // Helper to apply dynamic text alignment and prevent long-word overflow
+// --- THE COMBO TABLE (v0.15 item 3) ---
+//
+// Adapted from Dustloop's combo table, in our own chrome. A character's combos
+// are grouped by STARTER - the owner's live pages use True / Simpler /
+// Advanced rather than the reference's Beginner / Core / Specialized, because
+// the group names are the author's - and each group draws one sortable table.
+//
+// Not a block type. `desc_data.combos` is a keyed array exactly like matchups
+// and counterplay (js/character_tabs.js), so submit, merge, diff and the
+// editor's group nav all come from the shared machinery; only the rendering
+// below is bespoke.
+
+// The owner's own scale. ORDER IS MEANING: this array is the sort key, because
+// "Demon Time" sorts FIRST alphabetically and LAST by difficulty.
+window.COMBO_DIFFICULTIES = [
+    'Very Easy', 'Easy', 'Medium', 'Slightly Hard',
+    'Hard', 'Very Hard', 'Extremely Hard', 'Demon Time',
+];
+
+// Columns, in order. `conditional` ones are dropped unless some row in the
+// group fills them in - the reference does this for Setup, and the owner asked
+// for Controls to ship for console players without costing ten-wide tables any
+// horizontal space until it earns it.
+//
+// `sort: null` means the column has no meaningful order (a link, a version
+// string), which is the reference's behaviour too.
+window.COMBO_COLUMNS = [
+    { field: 'sequence',    label: 'Combo',       sort: 'route' },
+    { field: 'damage',      label: 'Damage',      sort: 'leadingNumber' },
+    { field: 'position',    label: 'Position',    sort: 'text' },
+    { field: 'difficulty',  label: 'Difficulty',  sort: 'difficulty' },
+    { field: 'worksOn',     label: 'Works On',    sort: 'text' },
+    { field: 'setup',       label: 'Setup',       sort: 'text', conditional: true },
+    { field: 'controls',    label: 'Controls',    sort: null,   conditional: true },
+    { field: 'gameVersion', label: 'Ver',         sort: null },
+    { field: 'video',       label: 'Video',       sort: null },
+    { field: 'notes',       label: 'Notes',       sort: 'text' },
+];
+
+// "38-46" and "4 (2+2)" are both live values. Lexical order puts "4 (2+2)"
+// above "38-46", which is wrong by every reading, so damage sorts on the
+// leading integer and rows with no number sort last rather than as zero.
+window.comboSortValue = function (row, column) {
+    const raw = row ? row[column.field] : undefined;
+
+    if (column.sort === 'difficulty') {
+        const i = window.COMBO_DIFFICULTIES.indexOf(raw);
+        return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+    }
+    if (column.sort === 'leadingNumber') {
+        const m = /-?\d+(\.\d+)?/.exec(String(raw === null || raw === undefined ? '' : raw));
+        return m ? parseFloat(m[0]) : Number.MAX_SAFE_INTEGER;
+    }
+    if (column.sort === 'route') {
+        return (Array.isArray(raw) ? raw.join(' > ') : String(raw || '')).toLowerCase();
+    }
+    return String(raw === null || raw === undefined ? '' : raw).toLowerCase();
+};
+
+// Which optional columns have been earned.
+//
+// Computed across every group in the tab rather than per group. Per group, a
+// reader scrolling down sees columns appear and disappear between two tables
+// that are meant to be read the same way - one group grew a Setup column and
+// the next grew Controls instead, which looks like a bug even though each
+// table was individually correct.
+window.comboVisibleColumns = function (rows) {
+    const list = Array.isArray(rows) ? rows : [];
+    return window.COMBO_COLUMNS.filter(col => {
+        if (!col.conditional) return true;
+        return list.some(r => r && String(r[col.field] || '').trim() !== '');
+    });
+};
+
+// One route, rendered as the same chips the legacy combo block uses, so a
+// route reads identically whether it is inline in prose or a row in a table.
+function renderComboRoute(sequence) {
+    const steps = Array.isArray(sequence) ? sequence : (sequence ? [sequence] : []);
+    if (steps.length === 0) return '<span class="combo-route-empty">-</span>';
+
+    let html = '<div class="combo-container combo-route-inline">';
+    steps.forEach((step, i) => {
+        html += `<span class="combo-node">${escBlockText(step)}</span>`;
+        if (i < steps.length - 1) html += '<span class="combo-sep" aria-hidden="true">&gt;</span>';
+    });
+    return html + '</div>';
+}
+
+// Ult Gain and Evasive Gain are the owner's two resources, replacing the
+// reference's Tension/Blood/Stamina. They are bold prefixes above the notes
+// rather than columns of their own - two more columns on a ten-wide table for
+// two values that are usually blank is a bad trade.
+function renderComboNotes(row) {
+    let html = '';
+    [['ultGain', 'Ult Gain'], ['evasiveGain', 'Evasive Gain']].forEach(([field, label]) => {
+        const value = String(row[field] || '').trim();
+        if (value) html += `<div class="combo-resource"><strong>${label}:</strong> ${escBlockText(value)}</div>`;
+    });
+    const notes = String(row.notes || '').trim();
+    if (notes) html += `<div class="combo-note-text">${escBlockText(notes)}</div>`;
+    return html || '<span class="combo-cell-empty">-</span>';
+}
+
+function renderComboCell(row, column) {
+    if (column.field === 'sequence') return renderComboRoute(row.sequence);
+    if (column.field === 'notes') return renderComboNotes(row);
+
+    const value = String(row[column.field] === null || row[column.field] === undefined ? '' : row[column.field]).trim();
+    if (!value) return '<span class="combo-cell-empty">-</span>';
+
+    if (column.field === 'video') {
+        const href = safeBlockUrl(value);
+        if (!href) return '<span class="combo-cell-empty">-</span>';
+        // Same change as the theorybox above, and the same reason: a combo
+        // table cell is the cramped-space case item 11 was written for.
+        return window.wikiVideoButtonHTML(href, 'Watch');
+    }
+    if (column.field === 'difficulty') {
+        // Slot index rather than the label, so the ramp is a class and the
+        // palette lives in CSS with every other colour on the site.
+        const i = window.COMBO_DIFFICULTIES.indexOf(value);
+        const slot = i === -1 ? '' : ` combo-difficulty-${i}`;
+        return `<span class="combo-difficulty${slot}">${escBlockText(value)}</span>`;
+    }
+    return escBlockText(value);
+}
+
+// Sorting is applied by re-rendering the body rather than by moving nodes:
+// each cell is generated markup, and re-generating is both simpler and immune
+// to a half-sorted DOM if a row is malformed.
+window.renderComboTableBody = function (tbody, rows, columns, sort) {
+    const list = (Array.isArray(rows) ? rows : []).slice();
+
+    if (sort && sort.column) {
+        const column = columns.find(c => c.field === sort.column);
+        if (column && column.sort) {
+            list.sort((a, b) => {
+                const av = window.comboSortValue(a, column);
+                const bv = window.comboSortValue(b, column);
+                if (av < bv) return sort.dir === 'desc' ? 1 : -1;
+                if (av > bv) return sort.dir === 'desc' ? -1 : 1;
+                return 0;
+            });
+        }
+    }
+
+    tbody.innerHTML = list.map(row => {
+        const cells = columns.map(col => {
+            const html = renderComboCell(row || {}, col);
+            // Tagged rather than inferred in CSS: on mobile an empty cell is
+            // a labelled row saying "-", and ten of those per card buries the
+            // three fields that were actually filled in.
+            const empty = html.indexOf('combo-cell-empty') > -1 || html.indexOf('combo-route-empty') > -1;
+            return `<td class="combo-cell combo-cell-${col.field}${empty ? ' combo-cell-is-empty' : ''}"`
+                + ` data-label="${escBlockText(col.label)}">${html}</td>`;
+        }).join('');
+        return `<tr class="combo-row">${cells}</tr>`;
+    }).join('');
+};
+
+// One captioned table in the Combo List.
+window.renderComboListTable = function (group, section) {
+    const wrapper = document.createElement('section');
+    wrapper.className = 'wiki-section wiki-section-clip combo-list-table';
+
+    const name = group[section.keyField] || 'Untitled';
+    wrapper.innerHTML = `
+        <div class="card-header-flex">
+            <h3 class="card-header-title">${escBlockText(name)}</h3>
+        </div>
+    `;
+
+    const rows = Array.isArray(group[section.rowsField]) ? group[section.rowsField] : [];
+    if (rows.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'empty-notes-msg';
+        empty.textContent = section.emptyEntryMessage || 'No combos in this group yet.';
+        wrapper.appendChild(empty);
+        return wrapper;
+    }
+
+    const columns = section.__columns || window.comboVisibleColumns(rows);
+
+    // The table scrolls inside its own container rather than pushing the page
+    // sideways. Below the breakpoint CSS turns each row into a card - the same
+    // treatment matchups already get on mobile - because ten columns cannot fit
+    // a phone and the route is the part that must stay readable.
+    const scroller = document.createElement('div');
+    scroller.className = 'combo-table-scroll';
+
+    const table = document.createElement('table');
+    table.className = 'combo-table';
+    table.innerHTML = `
+        <thead>
+            <tr>${columns.map(col => (col.sort
+                ? `<th class="combo-th combo-th-sortable" data-sort-field="${escBlockText(col.field)}"`
+                  + ` role="button" tabindex="0" aria-sort="none">${escBlockText(col.label)}`
+                  + `<span class="combo-sort-arrow" aria-hidden="true"></span></th>`
+                : `<th class="combo-th">${escBlockText(col.label)}</th>`)).join('')}</tr>
+        </thead>
+        <tbody></tbody>
+    `;
+
+    const tbody = table.querySelector('tbody');
+    let sort = { column: null, dir: 'asc' };
+    window.renderComboTableBody(tbody, rows, columns, sort);
+
+    // One delegated listener, never an inline onclick - the field names are
+    // ours, but the pattern is the site's rule and this markup sits beside
+    // contributor content.
+    table.querySelector('thead').addEventListener('click', (e) => {
+        const th = e.target.closest('.combo-th-sortable');
+        if (!th) return;
+        const field = th.getAttribute('data-sort-field');
+        sort = (sort.column === field && sort.dir === 'asc')
+            ? { column: field, dir: 'desc' }
+            : { column: field, dir: 'asc' };
+
+        table.querySelectorAll('.combo-th-sortable').forEach(h => {
+            const active = h.getAttribute('data-sort-field') === sort.column;
+            h.setAttribute('aria-sort', active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+            h.classList.toggle('is-sorted', active);
+            h.classList.toggle('is-desc', active && sort.dir === 'desc');
+        });
+
+        window.renderComboTableBody(tbody, rows, columns, sort);
+    });
+
+    scroller.appendChild(table);
+    wrapper.appendChild(scroller);
+
+    // Prose and TheoryBoxes under the table, if the group carries any.
+    if (Array.isArray(group.content) && group.content.length > 0) {
+        const prose = document.createElement('div');
+        prose.className = 'combos-content';
+        // Prefixed with the tab, because Combos and Techs can both be on the
+        // same character and both draw a table called "5H Starters". Without
+        // it the second one's prose renders into the first one's container.
+        prose.id = `${section.tab}-content-${String(name).replace(/\s+/g, '-')}`;
+        wrapper.appendChild(prose);
+        populateTextSection(prose.id, '', group.content, section.tab);
+        const injected = prose.querySelector('section.wiki-section');
+        if (injected) injected.classList.remove('wiki-section');
+    }
+
+    return wrapper;
+};
+
+// A DOCUMENT TAB, in the order the reference reads:
+//
+//   Read First          comboIntro   prose, methodology, notation legend
+//   <Group Title>       comboGroups  TheoryBox cards, prose, inline combos
+//   Combo List          comboList    one captioned sortable table per starter
+//
+// ...and Techs, which is the same three parts under the owner's other
+// vocabulary - Technical Overview, Tech Groups, Tech List (keyed by theory
+// rather than by starter). Every difference between the two tabs is a string in
+// js/character_tabs.js; this function does not know either tab by name.
+//
+// Composed here rather than by the shared keyed renderer, because the tab is a
+// DOCUMENT of three parts - the same decomposition the Overview tab already
+// has (overview + strategy + extras), not one keyed array.
+//
+// The first attempt made the table a group's content, which left nowhere for
+// the cards to live and put the reference index in the middle of the prose.
+window.renderDocumentTab = function (tabId, data) {
+    const sections = window.getDocumentSections ? window.getDocumentSections(tabId) : null;
+    if (!sections) return;
+
+    const container = document.getElementById(`tab-${tabId}`);
+    if (!container) return;
+
+    const { intro, groups, list } = sections;
+
+    container.innerHTML = '';
+    container.classList.add('space-y-6');
+
+    const introBlocks = intro ? data[intro.field] : null;
+    const groupList = groups ? data[groups.field] : null;
+    const tables = list ? data[list.field] : null;
+
+    if ((!introBlocks || !introBlocks.length)
+        && (!groupList || !groupList.length)
+        && (!tables || !tables.length)) {
+        container.innerHTML = `<div class="empty-tab-msg">${escBlockText(sections.tab.emptyMessage || 'Nothing written for this character yet.')}</div>`;
+        return;
+    }
+
+    // The three parts are DOCUMENT SECTIONS, so each gets a heading rather
+    // than a card. Owner, 2026-08-16: a group wrapped in .wiki-section makes
+    // every TheoryBox inside it a card within a card, when the cards are
+    // supposed to BE the sections. The reference agrees - `==Beginner Combos==`
+    // is a heading, and the boxes under it are the combos.
+    const addHeading = (text, extraClass) => {
+        const h = document.createElement('h3');
+        h.className = `section-title section-title-clean combo-section-title${extraClass ? ` ${extraClass}` : ''}`;
+        h.textContent = text;
+        container.appendChild(h);
+        return h;
+    };
+
+    // --- Read First ---
+    //
+    // Stays a CARD, unlike the groups. It is a mandatory prose section like
+    // Overview or General Strategy - it holds paragraphs, not combo cards, so
+    // there is nothing inside it that needs to be its own section. Owner,
+    // 2026-08-16: only the groups needed the wrapper removed.
+    if (introBlocks && introBlocks.length) {
+        const section = document.createElement('section');
+        section.className = 'wiki-section wiki-section-clip combo-intro';
+        section.innerHTML = `<div class="card-header-flex"><h3 class="card-header-title">${escBlockText(intro.label)}</h3></div>`;
+        const body = document.createElement('div');
+        body.className = 'combos-content';
+        // Every id below carries the tab, because a character can have both
+        // Combos and Techs open in the same document and populateTextSection
+        // resolves its target by getElementById. Sharing 'combo-intro-content'
+        // between them would render the second tab's prose into the first's.
+        body.id = `${tabId}-intro-content`;
+        section.appendChild(body);
+        container.appendChild(section);
+        populateTextSection(body.id, '', introBlocks, tabId);
+        const injected = body.querySelector('section.wiki-section');
+        if (injected) injected.classList.remove('wiki-section');
+    }
+
+    // --- The author's groups ---
+    (groupList || []).forEach((group, idx) => {
+        if (!group) return;
+        addHeading(group[groups.keyField] || 'Untitled', 'combo-group-title');
+
+        const body = document.createElement('div');
+        body.className = 'combos-content combo-group';
+        // Indexed, not keyed by title: a title is contributor text and two
+        // groups may share one, which would collide the ids and make
+        // populateTextSection render into the first one twice.
+        body.id = `${tabId}-group-content-${idx}`;
+        container.appendChild(body);
+
+        if (Array.isArray(group.content) && group.content.length) {
+            populateTextSection(body.id, '', group.content, tabId);
+            const injected = body.querySelector('section.wiki-section');
+            if (injected) injected.classList.remove('wiki-section');
+        } else {
+            body.innerHTML = `<p class="empty-notes-msg">${escBlockText(groups.emptyEntryMessage)}</p>`;
+        }
+    });
+
+    // --- Combo List / Tech List, last ---
+    if (list && tables && tables.length) {
+        const host = document.createElement('div');
+        host.className = 'combo-list-section space-y-6';
+        host.innerHTML = `<h3 class="section-title section-title-clean combo-section-title combo-list-title">${escBlockText(list.label)}</h3>`;
+
+        // Every row in the SECTION decides the columns, so all its tables share
+        // a shape. Per table, one grows a Setup column and the next grows
+        // Controls, which reads as a bug even though each is individually right.
+        const allRows = tables.reduce((acc, t) => acc.concat((t && t[list.rowsField]) || []), []);
+        const shared = { ...list, __columns: window.comboVisibleColumns(allRows) };
+
+        tables.forEach(table => host.appendChild(window.renderComboListTable(table || {}, shared)));
+        container.appendChild(host);
+    }
+
+    if (typeof window.consolidateTabContributors === 'function') {
+        window.consolidateTabContributors(container);
+    }
+};
+
+// The registry's rendererFn for each document tab's list section, so the
+// editor's live preview and description.js's own boot can redraw the whole tab
+// from one entry point. Named per tab rather than passed a tab id, because
+// rendererFn is looked up by NAME off window and called with the data alone -
+// see js/editor-previews.js and the self-rendered loop below.
+window.renderCombosTab = function (data) {
+    window.renderDocumentTab('combos', data);
+};
+
+window.renderTechsTab = function (data) {
+    window.renderDocumentTab('techs', data);
+};
+
 function getAlignStyle(align) {
     let styleStr = 'overflow-wrap: break-word; word-break: break-word;';
-    if (align) styleStr += ` text-align: ${align};`;
+    // Allowlisted, not escaped - this is a CSS value, where escaping quotes
+    // still leaves `left; background: url(...)` intact.
+    const dir = safeBlockAlign(align);
+    if (dir) styleStr += ` text-align: ${dir};`;
     return `style="${styleStr}"`;
 }
 
@@ -526,6 +1190,17 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
             // 2. Check Supabase Cloud Database
             if (typeof window.fetchCloudCharacterData === 'function') {
                 const cloudData = await window.fetchCloudCharacterData(pageId);
+
+                // Which optional tabs this page has, before anything renders.
+                // Outside the desc_data guard on purpose: a page with no
+                // descriptions still has a tab strip, and leaving the flag
+                // unset there would leave a previous page's answer in place on
+                // any surface that loads two pages in one session (the admin
+                // preview does exactly that).
+                if (typeof window.applyOptionalTabsFromPageRow === 'function') {
+                    window.applyOptionalTabsFromPageRow(cloudData);
+                }
+
                 if (cloudData && cloudData.desc_data) {
                     data = cloudData.desc_data;
                     console.log(`[Cloud] Loaded ${pageId} descriptions.`);
@@ -874,54 +1549,95 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 }
             }
 
-            // --- 3. COUNTERPLAY TAB ---
-            const counterplayContainer = document.getElementById('tab-counterplay');
-            if (counterplayContainer) {
-                counterplayContainer.innerHTML = '';
-                counterplayContainer.classList.add('vessel-content', 'space-y-6'); 
+            // --- 3a. SECTIONS THAT RENDER THEMSELVES ---
+            // Resolved from the vocabulary, so adding one is a registry entry
+            // rather than another branch here. De-duplicated by function,
+            // because several sections of one tab share a composer.
+            const selfRendered = new Set();
+            // Filtered by the tab list, not by the section list: an OPTIONAL
+            // tab switched off still has its sections in the vocabulary - the
+            // pipeline needs them so an already-queued delta still applies -
+            // but nothing should draw it. getCharacterTabIds is where that
+            // decision lives (js/character_tabs.js).
+            const drawableTabs = window.getCharacterTabIds
+                ? window.getCharacterTabIds({ includeInjected: true })
+                : null;
+            (window.getKeyedSections ? window.getKeyedSections() : [])
+                .filter(s => s.rendererFn && typeof window[s.rendererFn] === 'function')
+                .filter(s => !drawableTabs || drawableTabs.includes(s.tab))
+                .forEach(s => {
+                    if (selfRendered.has(s.rendererFn)) return;
+                    selfRendered.add(s.rendererFn);
+                    window[s.rendererFn](data);
+                });
 
-                if (data.counterplay && data.counterplay.length > 0) {
-                    data.counterplay.forEach(cp => {
+            // --- 3. KEYED SECTIONS (Counterplay, Starter Guide) ---
+            //
+            // One renderer for every tab whose data is an array of keyed
+            // entries (js/character_tabs.js). Counterplay was this code with
+            // 'counterplay' written through it; Starter Guide is the same
+            // shape, so it renders here rather than as a second copy.
+            //
+            // MATCHUPS IS DELIBERATELY NOT HERE. Its card carries a tier
+            // colour and links to the opponent's own page - that is a
+            // different card, not this one with different words, and folding
+            // it in would mean a renderer full of `if (section.tab === ...)`.
+            (window.getKeyedSections ? window.getKeyedSections() : [])
+                .filter(section => !section.customRenderer)
+                .forEach(section => {
+                    const container = document.getElementById(`tab-${section.tab}`);
+                    if (!container) return;
 
-                        const importanceColors = {
-                            "Crucial": "#ef4444", "High": "#fb923c",
-                            "Moderate": "#facc15", "Low": "#4ade80",
-                            "Situational": "#22d3ee"
-                        };
-                        const impColor = importanceColors[cp.importance] || "#9ca3af";
+                    container.innerHTML = '';
+                    container.classList.add('vessel-content', 'space-y-6');
 
-                        const cpSection = document.createElement('section');
-                        cpSection.className = 'wiki-section wiki-section-clip';
+                    const entries = data[section.field];
+                    if (!entries || entries.length === 0) {
+                        container.innerHTML = `
+                        <div class="empty-tab-msg">
+                            ${escBlockText(section.emptyMessage || 'Not written yet.')}
+                        </div>
+                    `;
+                        return;
+                    }
 
-                        // Escaped, 2026-08-15. This is the same card shape as
-                        // the matchup one twenty lines up, which was escaped
-                        // in v0.13 while this was deliberately left alone to
-                        // keep that PR to its two items. Both values are
+                    entries.forEach(entry => {
+                        const entrySection = document.createElement('section');
+                        entrySection.className = 'wiki-section wiki-section-clip';
+
+                        // Escaped, 2026-08-15. Both values are
                         // contributor-submitted and land in an innerHTML sink,
-                        // so "<img src=x onerror=...>" as a counterplay topic
-                        // executed on the live page.
+                        // so "<img src=x onerror=...>" as a topic executed on
+                        // the live page.
                         //
-                        // impColor is not escaped because it is not
-                        // interpolated: it comes from the hardcoded map above
-                        // with a fixed fallback, so cp.importance selects a
-                        // colour rather than supplying one.
-                        let cpHTML = `
+                        // The meta colour is not escaped because it is not
+                        // interpolated: it comes from the fixed metaColors map
+                        // in the vocabulary with a fixed fallback, so the
+                        // contributor's value SELECTS a colour rather than
+                        // supplying one.
+                        const title = escBlockText(entry[section.keyField] || 'Unknown');
+                        let metaHTML = '';
+                        if (section.metaField) {
+                            const value = entry[section.metaField];
+                            const colour = (section.metaColors || {})[value] || '#9ca3af';
+                            metaHTML = `<span class="card-tier-label" style="color: ${colour};">${escBlockText(value || '')}</span>`;
+                        }
+
+                        entrySection.innerHTML = `
                             <div class="card-header-flex">
-                                <h3 class="card-header-title">${window.escapeHtml(cp.topic || 'Unknown')}</h3>
-                                <span class="card-tier-label" style="color: ${impColor};">${window.escapeHtml(cp.importance || '')}</span>
+                                <h3 class="card-header-title">${title}</h3>
+                                ${metaHTML}
                             </div>
                         `;
-
-                        cpSection.innerHTML = cpHTML;
-                        counterplayContainer.appendChild(cpSection);
+                        container.appendChild(entrySection);
 
                         const contentWrapper = document.createElement('div');
-                        contentWrapper.className = 'counterplay-content';
-                        contentWrapper.id = `counterplay-content-${(cp.topic || 'Unknown').replace(/\s+/g, '-')}`;
-                        cpSection.appendChild(contentWrapper);
+                        contentWrapper.className = `${section.tab}-content`;
+                        contentWrapper.id = `${section.tab}-content-${(entry[section.keyField] || 'Unknown').replace(/\s+/g, '-')}`;
+                        entrySection.appendChild(contentWrapper);
 
-                        if (cp.content && cp.content.length > 0) {
-                            populateTextSection(contentWrapper.id, '', cp.content, 'counterplay');
+                        if (entry.content && entry.content.length > 0) {
+                            populateTextSection(contentWrapper.id, '', entry.content, section.tab);
 
                             const injectedSection = contentWrapper.querySelector('section.wiki-section');
                             if (injectedSection) injectedSection.classList.remove('wiki-section');
@@ -929,19 +1645,12 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                             const emptyH3 = contentWrapper.querySelector('h3.strategy-title');
                             if (emptyH3 && !emptyH3.textContent) emptyH3.remove();
                         } else {
-                            contentWrapper.innerHTML = `<p class="empty-notes-msg">No specific counterplay details recorded.</p>`;
+                            contentWrapper.innerHTML = `<p class="empty-notes-msg">${escBlockText(section.emptyEntryMessage || 'Nothing recorded yet.')}</p>`;
                         }
                     });
 
-                    window.consolidateTabContributors(counterplayContainer);
-                } else {
-                     counterplayContainer.innerHTML = `
-                        <div class="empty-tab-msg">
-                            Counterplay analysis has not been written yet.
-                        </div>
-                    `;
-                }
-            }
+                    window.consolidateTabContributors(container);
+                });
 
             // --- 4. MOVE STRATEGIES (M1s, Skills, Specials) ---
             if (data.moveStrategies) {
@@ -952,7 +1661,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                     // Deferred behind the same 300ms wait as the sections
                     // themselves, since the move cards these render into are
                     // built by js/framedata.js on its own schedule.
-                    (window.FRAME_MOVE_CATEGORIES || ['m1s', 'skills', 'specials']).forEach(tab => {
+                    window.FRAME_MOVE_CATEGORIES.forEach(tab => {
                         window.consolidateTabContributors(document.getElementById(`tab-${tab}`));
                     });
                     if (typeof applyInternalStyling === 'function') applyInternalStyling();
@@ -1010,6 +1719,225 @@ window.initLazyMedia = function(rootElement = document) {
             media.removeAttribute('data-lazy-src');
         });
     }
+};
+
+// --- VIDEO PLAYER BEHAVIOUR (v0.15 item 10) ---
+//
+// One delegated listener on the document rather than per-player wiring: these
+// players are rendered into innerHTML by a dozen callers, re-rendered on every
+// editor keystroke, and created inside a modal that does not exist yet at load
+// time. Binding per element would leak a listener on each of those.
+
+function playerOf(el) {
+    return el ? el.closest('[data-wiki-player]') : null;
+}
+
+function playerVideo(player) {
+    return player ? player.querySelector('video') : null;
+}
+
+// The lazy observer has not necessarily reached this player yet - it only
+// swaps the source when the video scrolls into view, and pressing play IS the
+// reader asking for it now.
+function ensurePlayerSource(video) {
+    if (!video) return;
+    const lazy = video.getAttribute('data-lazy-src');
+    if (!lazy) return;
+    video.src = lazy;
+    video.removeAttribute('data-lazy-src');
+}
+
+function paintPlayerState(player) {
+    const video = playerVideo(player);
+    const toggle = player.querySelector('[data-player-toggle]');
+    if (!video || !toggle) return;
+    const playing = !video.paused && !video.ended;
+    player.classList.toggle('is-playing', playing);
+    toggle.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+}
+
+function paintPlayerSound(player) {
+    const video = playerVideo(player);
+    const mute = player.querySelector('[data-player-mute]');
+    if (!video || !mute) return;
+    // volume 0 counts as muted: the two are different flags on the element and
+    // a button that says "unmute" on a silent video is just wrong.
+    const silent = video.muted || video.volume === 0;
+    player.classList.toggle('is-muted', silent);
+    mute.setAttribute('aria-label', silent ? 'Unmute' : 'Mute');
+}
+
+function paintPlayerProgress(player) {
+    const video = playerVideo(player);
+    const fill = player.querySelector('[data-player-fill]');
+    const track = player.querySelector('[data-player-track]');
+    if (!video || !fill) return;
+    // A stream still loading reports duration NaN or Infinity, and a width of
+    // "NaN%" silently leaves the bar wherever it was.
+    const total = video.duration;
+    const pct = (isFinite(total) && total > 0)
+        ? Math.max(0, Math.min(100, (video.currentTime / total) * 100))
+        : 0;
+    fill.style.width = pct + '%';
+    if (track) track.setAttribute('aria-valuenow', String(Math.round(pct)));
+}
+
+function seekPlayer(player, clientX) {
+    const video = playerVideo(player);
+    const track = player.querySelector('[data-player-track]');
+    if (!video || !track) return;
+
+    const box = track.getBoundingClientRect();
+    if (box.width <= 0) return;
+    const ratio = Math.max(0, Math.min(1, (clientX - box.left) / box.width));
+
+    // The source is lazy, so the FIRST thing a reader does to a player can
+    // easily be scrub a video the browser has not opened yet - duration is
+    // NaN, and simply returning made the bar look dead. Remember where they
+    // aimed and apply it when the metadata lands.
+    ensurePlayerSource(video);
+    const total = video.duration;
+    if (!isFinite(total) || total <= 0) {
+        player.dataset.pendingSeek = String(ratio);
+        // preload="none" means the browser fetches NOTHING until playback is
+        // asked for, so on its own the metadata would never arrive and the
+        // pending seek would never fire. Asking for metadata is the smallest
+        // request that makes the bar work before the first play.
+        if (video.preload !== 'metadata' && video.preload !== 'auto') {
+            video.preload = 'metadata';
+            video.load();
+        }
+        return;
+    }
+
+    video.currentTime = ratio * total;
+    paintPlayerProgress(player);
+}
+
+function applyPendingSeek(player) {
+    const video = playerVideo(player);
+    if (!video || !player.dataset.pendingSeek) return;
+    const ratio = parseFloat(player.dataset.pendingSeek);
+    const total = video.duration;
+    if (!isFinite(total) || total <= 0 || !isFinite(ratio)) return;
+    delete player.dataset.pendingSeek;
+    video.currentTime = ratio * total;
+}
+
+document.addEventListener('click', (e) => {
+    const openBtn = e.target.closest ? e.target.closest('[data-wiki-video]') : null;
+    if (openBtn) {
+        window.openWikiVideoModal(openBtn.getAttribute('data-wiki-video'));
+        return;
+    }
+
+    const toggle = e.target.closest ? e.target.closest('[data-player-toggle]') : null;
+    if (toggle) {
+        const player = playerOf(toggle);
+        const video = playerVideo(player);
+        if (!video) return;
+        ensurePlayerSource(video);
+        if (video.paused || video.ended) video.play().catch(() => { /* the reader can press it again */ });
+        else video.pause();
+        return;
+    }
+
+    const mute = e.target.closest ? e.target.closest('[data-player-mute]') : null;
+    if (mute) {
+        const player = playerOf(mute);
+        const video = playerVideo(player);
+        if (!video) return;
+        // Unmuting a video whose volume was dragged to zero elsewhere has to
+        // restore a level too, or the button appears to do nothing.
+        video.muted = !(video.muted || video.volume === 0);
+        if (!video.muted && video.volume === 0) video.volume = 1;
+        paintPlayerSound(player);
+        return;
+    }
+
+    const track = e.target.closest ? e.target.closest('[data-player-track]') : null;
+    if (track) seekPlayer(playerOf(track), e.clientX);
+});
+
+document.addEventListener('volumechange', (e) => {
+    const player = playerOf(e.target);
+    if (player) paintPlayerSound(player);
+}, true);
+
+// Capture phase: play, pause and timeupdate do not bubble, so a delegated
+// listener never sees them any other way.
+['play', 'pause', 'ended'].forEach((type) => {
+    document.addEventListener(type, (e) => {
+        const player = playerOf(e.target);
+        if (player) paintPlayerState(player);
+    }, true);
+});
+
+['timeupdate', 'loadedmetadata', 'durationchange', 'seeked'].forEach((type) => {
+    document.addEventListener(type, (e) => {
+        const player = playerOf(e.target);
+        if (!player) return;
+        applyPendingSeek(player);
+        paintPlayerProgress(player);
+    }, true);
+});
+
+// --- THE VIDEO MODAL (v0.15 item 11) ---
+//
+// Built on first use and reused after, rather than shipped in the markup of
+// every page: forty-odd generated stubs would each need it, and most readers
+// never open one.
+function wikiVideoModal() {
+    let modal = document.getElementById('wiki-video-modal');
+    if (modal) return modal;
+
+    modal = document.createElement('div');
+    modal.id = 'wiki-video-modal';
+    modal.className = 'wiki-video-modal hidden';
+    modal.innerHTML = `
+        <div class="wiki-video-modal-backdrop" data-video-modal-close></div>
+        <div class="wiki-video-modal-panel" role="dialog" aria-modal="true" aria-label="Video">
+            <button type="button" class="wiki-video-modal-close" data-video-modal-close
+                    aria-label="Close">&#10007;</button>
+            <div class="wiki-video-modal-body"></div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', (e) => {
+        if (e.target.closest('[data-video-modal-close]')) window.closeWikiVideoModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') window.closeWikiVideoModal();
+    });
+    return modal;
+}
+
+window.openWikiVideoModal = function (url) {
+    const src = safeBlockUrl(url);
+    if (!src) return null;
+
+    const modal = wikiVideoModal();
+    const body = modal.querySelector('.wiki-video-modal-body');
+    body.innerHTML = window.wikiVideoPlayerHTML(src, 'wiki-player-modal');
+    modal.classList.remove('hidden');
+
+    const video = body.querySelector('video');
+    if (video) {
+        ensurePlayerSource(video);
+        video.play().catch(() => { /* the play button is right there */ });
+    }
+    return modal;
+};
+
+window.closeWikiVideoModal = function () {
+    const modal = document.getElementById('wiki-video-modal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    modal.classList.add('hidden');
+    // Emptied rather than just hidden: a paused video left in the DOM keeps
+    // its buffer, and reopening on a different clip would flash the old frame.
+    const body = modal.querySelector('.wiki-video-modal-body');
+    if (body) body.innerHTML = '';
 };
 
 window.loadPageDescriptions = loadPageDescriptions;

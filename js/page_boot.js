@@ -37,10 +37,28 @@ window.runPageBoot = async function (route) {
 
         // 2. Inner tab navigation
         if (window.setupTabs) {
-            const tabIds = (route.tabs || [
-                { id: 'overview' }, { id: 'm1s' }, { id: 'skills' }, { id: 'specials' },
-                { id: 'matchups' }, { id: 'counterplay' }, { id: 'gallery' },
-            ]).map(t => t.id);
+            // From the vocabulary (js/character_tabs.js), which is also what
+            // page_router.js built the buttons from - so every button it drew
+            // is registered here and none is left inert.
+            //
+            // This was a hardcoded list, and it is how the Combos and Starter
+            // Guide tabs shipped unclickable: the buttons and panels existed,
+            // setupTabs never heard about them, so clicking did nothing at all.
+            // It was written as [{id:'overview'}, …] rather than ['overview', …],
+            // which is why the guard scanning for restated tab lists walked
+            // straight past it.
+            //
+            // includeOptional: every button page_router.js DREW gets bound,
+            // including the optional ones it drew hidden. Binding only the
+            // enabled ones would be binding against a flag that has not been
+            // fetched yet - so a Techs button un-hidden a moment later by
+            // applyOptionalTabVisibility would sit there doing nothing when
+            // clicked, which is exactly how the Combos and Starter Guide tabs
+            // shipped inert. setupTabs is idempotent and additive, so binding a
+            // button that stays hidden costs nothing.
+            const tabIds = route.tabs
+                ? route.tabs.map(t => t.id)
+                : window.getCharacterTabIds({ includeOptional: true });
             window.setupTabs('nav', 'tab', tabIds, 'major');
         }
 

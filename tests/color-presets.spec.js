@@ -106,7 +106,9 @@ test('clicking a character swatch wraps the selected text in that colour', async
     // input and its selection range.
     await openEditor(page);
 
-    const textarea = page.locator('#block-list textarea').first();
+    // Scoped to .block-card for the same reason as color-picker.spec.js: a
+    // folder header sits inside #block-list and sorts ahead of every card.
+    const textarea = page.locator('#block-list .block-card textarea').first();
     await expect(textarea).toBeVisible();
     await textarea.click();
     await page.keyboard.press('ControlOrMeta+a');

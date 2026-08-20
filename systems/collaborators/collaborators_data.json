@@ -59,6 +59,15 @@
           "name": "YouTube"
         }
       ]
+    },
+    {
+      "name": "Ocelol",
+      "role": "",
+      "badgeType": "",
+      "isLead": false,
+      "avatar": "",
+      "description": "Create and submit almost every single demonstration videos for the site",
+      "links": []
     }
   ],
   "specialThanks": [

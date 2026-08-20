@@ -135,7 +135,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.currentEditorPageType = pageType;
 
-    const tabId = urlParams.get('tab') || 'overview';
+    // `let`, because an optional tab that this character does not have has to
+    // be corrected away once the page row lands - a hand-typed or stale
+    // ?tab=techs would otherwise open a Techs editor on a character with no
+    // Techs tab, and everything typed into it would submit deltas nobody can
+    // see. The correction is below, next to the fetch.
+    let tabId = urlParams.get('tab') || 'overview';
     const moveId = urlParams.get('move');
     
     const editTicketId = urlParams.get('editTicket'); 
@@ -218,6 +223,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                     .single();
                     
                 if (!error && data) cloudData = data;
+
+                // Which optional tabs this character has, before the tab strip
+                // or any editor is built. Without it the editor would offer
+                // Techs on every character, which is the half of the feature
+                // the owner actually asked for ("not visible even in the
+                // editor and the admin preview").
+                if (typeof window.applyOptionalTabsFromPageRow === 'function') {
+                    window.applyOptionalTabsFromPageRow(cloudData);
+
+                    // ?tab= naming a tab this character does not have falls
+                    // back to the default, the same way an undeclared ?mode=
+                    // does in js/character_modes.js.
+                    const reachable = window.getCharacterTabIds({ includeInjected: true, editableOnly: true });
+                    if (pageType === 'character' && !reachable.includes(tabId)) {
+                        tabId = window.getDefaultCharacterTabId();
+                    }
+                }
                 
                 // IF INTERCEPTING: Fetch the target ticket from the queue
                 if (editTicketId) {
@@ -666,8 +688,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     } else if (tabId === 'matchups' && window.currentMatchupIndex !== undefined) {
                         hasCollision = isDiff(liveDesc?.matchups?.[window.currentMatchupIndex], window.originalCloudDescData?.matchups?.[window.currentMatchupIndex]);
-                    } else if (tabId === 'counterplay' && window.currentCounterplayIndex !== undefined) {
-                        hasCollision = isDiff(liveDesc?.counterplay?.[window.currentCounterplayIndex], window.originalCloudDescData?.counterplay?.[window.currentCounterplayIndex]);
+                    } else if (window.usesSharedKeyedUI(tabId)
+                            && window.currentKeyedIndex?.[tabId] !== undefined) {
+                        const field = window.getKeyedSectionByTab(tabId).field;
+                        const i = window.currentKeyedIndex[tabId];
+                        hasCollision = isDiff(liveDesc?.[field]?.[i], window.originalCloudDescData?.[field]?.[i]);
                     }
 
                     if (hasCollision) {
@@ -753,9 +778,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         frame_data: window.currentEditorFrameData[cat].find(m => m.id === mId),
                         desc_data: window.currentEditorDescData.moveStrategies[mId] || []
                     };
-                } else if (scope === 'extra' || scope === 'matchup' || scope === 'counterplay') {
-                    const arrMap = { 'extra': 'extras', 'matchup': 'matchups', 'counterplay': 'counterplay' };
-                    dPayload = window.currentEditorDescData[arrMap[scope]][parseInt(key)];
+                } else if (scope === 'extra' || window.getKeyedSectionByScope(scope)) {
+                    // 'extra' is not a tab, so it stays named here; every other
+                    // array scope resolves through the vocabulary.
+                    const section = window.getKeyedSectionByScope(scope);
+                    dPayload = window.currentEditorDescData[section ? section.field : 'extras'][parseInt(key)];
                 } else {
                     dPayload = window.currentEditorDescData[scope];
                 }
@@ -805,12 +832,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                         .forEach(d => payloadsToInsert.push(buildPayload(d.scope, d.key, d.payload)));
                 }
                 // --- System Payload ---
+                // --- System Payload ---
+                // One delta per section, per tab's metadata, and per tier list
+                // table - not the whole document. Shipping the document meant
+                // approving two tickets for one page silently reverted the
+                // first, because each carried a snapshot of the page as its
+                // author found it. See buildSystemDeltas.
                 else if (pageType === 'system' || pageType === 'tierlist') {
-                    await window.triggerManualSync(); 
-                    // Only push if something actually changed!
-                    if (isDiff(window.currentEditorDescData, window.originalCloudDescData)) {
-                        payloadsToInsert.push(buildPayload('system_data', 'full', window.currentEditorDescData));
-                    }
+                    await window.triggerManualSync();
+                    window.buildSystemDeltas(window.currentEditorDescData, window.originalCloudDescData, pageType)
+                        .forEach(d => payloadsToInsert.push(buildPayload(d.scope, d.key, d.payload)));
                 }
                 // --- CHARACTER PAYLOAD ENGINE ---
                 //
@@ -878,8 +909,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                         });
                     };
 
-                    // Matchups and counterplay are the same shape, keyed by a
-                    // different field.
+                    // Every keyed section is the same shape, keyed by a
+                    // different field. See js/character_tabs.js.
                     const scanKeyedList = (field, keyField, scope) => {
                         const local = window.currentEditorDescData[field] || [];
                         const cloud = window.originalCloudDescData[field] || [];
@@ -896,10 +927,162 @@ document.addEventListener('DOMContentLoaded', async () => {
                         });
                     };
 
-                    (window.FRAME_MOVE_CATEGORIES || []).forEach(scanMoveTab);
-                    scanOverview();
-                    scanKeyedList('matchups', 'opponent', 'matchup');
-                    scanKeyedList('counterplay', 'topic', 'counterplay');
+                    // --- ORDER ---
+                    //
+                    // Every scan above pairs local against cloud by IDENTITY,
+                    // which is what makes them stable - but it also means a
+                    // list whose entries only moved produces nothing at all,
+                    // and the contributor is told "no changes detected".
+                    //
+                    // One payload per list, naming the new sequence. Emitted
+                    // only when the sequence actually differs, so an ordinary
+                    // edit does not carry a redundant order delta on every
+                    // list it did not touch.
+                    //
+                    // The key is the dotted path js/editor-reorder.js names its
+                    // strips by, so the control that reorders and the delta
+                    // that records it agree without a second registry.
+                    const scanOrder = (spec, localList, cloudList, identity) => {
+                        const local = (localList || []).map(identity);
+                        const cloud = (cloudList || []).map(identity);
+
+                        // BACKWARD COMPATIBILITY, FIRST LINE.
+                        //
+                        // This reads page_data written long before the scope
+                        // existed, and an order delta is only meaningful when
+                        // every entry has a UNIQUE identity to order by. An
+                        // entry carrying none, or two sharing one - combo group
+                        // titles are contributor text and js/description.js
+                        // already notes two groups may share one - has no
+                        // single correct answer, so nothing is emitted and the
+                        // reorder simply is not recorded. Losing a reorder is
+                        // visible and repeatable; shuffling somebody's page is
+                        // neither. applyDeltaToData refuses the same two
+                        // shapes, so this is the first of two lines rather than
+                        // the only one.
+                        const usable = (arr) => arr.length > 0
+                            && arr.every(v => v !== null && v !== undefined && v !== '')
+                            && new Set(arr.map(String)).size === arr.length;
+                        if (!usable(local) || !usable(cloud)) return;
+
+                        const l = local.map(String);
+                        const c = cloud.map(String);
+
+                        // Same members, different sequence. A list that gained
+                        // or lost an entry is already covered by the entry
+                        // scans, and comparing raw sequences there would emit
+                        // an order delta for every ordinary add.
+                        if (l.length !== c.length) return;
+                        if (l.join(' ') === c.join(' ')) return;
+                        if ([...l].sort().join(' ') !== [...c].sort().join(' ')) return;
+
+                        payloadsToInsert.push(buildPayload('order', spec, l));
+                    };
+
+                    const scanEveryOrder = () => {
+                        const desc = window.currentEditorDescData || {};
+                        const cloudDesc = window.originalCloudDescData || {};
+                        const frame = window.currentEditorFrameData || {};
+                        const cloudFrame = window.originalCloudFrameData || {};
+
+                        (window.FRAME_MOVE_CATEGORIES || []).forEach(cat => {
+                            scanOrder(`frame.${cat}`, frame[cat], cloudFrame[cat], m => (m ? m.id : null));
+                        });
+
+                        // Driven by the vocabulary, so a keyed section added
+                        // later is reorderable without another edit here.
+                        (window.getKeyedSections ? window.getKeyedSections() : []).forEach(s => {
+                            scanOrder(`desc.${s.field}`, desc[s.field], cloudDesc[s.field],
+                                e => (e ? e[s.keyField] : null));
+                        });
+
+                        // The Overview tab's custom tabs, which are author-
+                        // ordered and are not a keyed section.
+                        scanOrder('desc.extras', desc.extras, cloudDesc.extras, e => (e ? e.title : null));
+                    };
+
+                    const scanEveryTab = () => {
+                        (window.FRAME_MOVE_CATEGORIES || []).forEach(scanMoveTab);
+                        scanOverview();
+                        scanEveryOrder();
+                        // Driven by the vocabulary, so a section added there is
+                        // swept here without a second edit. Missing one is
+                        // silent - the edits simply never become deltas.
+                        (window.getKeyedSections ? window.getKeyedSections() : []).forEach(
+                            s => scanKeyedList(s.field, s.keyField, s.scope));
+
+                        // Fixed block sections (comboIntro): a plain [blocks]
+                        // array under its own scope, same as overview/strategy.
+                        (window.FIXED_BLOCK_SECTIONS || []).forEach(f => {
+                            const local = window.currentEditorDescData[f.field];
+                            const cloud = window.originalCloudDescData[f.field];
+                            if (isDiff(local, cloud)) {
+                                payloadsToInsert.push(buildPayload(f.scope, 'full', local || []));
+                            }
+                        });
+                    };
+
+                    // ...AND EVERY CHARACTER STATE, not just the open one.
+                    //
+                    // The tab scan above was v0.13's fix. It missed that every
+                    // one of those scans reads currentEditorDescData /
+                    // currentEditorFrameData, and applyEditorModeView points
+                    // those at the ACTIVE STATE's slice - so it swept every tab
+                    // inside one state. A contributor who edited the base kit
+                    // and two ultimates and pressed Submit once shipped only
+                    // whichever state was open; the rest stayed in
+                    // editorMasterDescData, rode along in the desc_data
+                    // fallback, and were never applied, because the reviewer
+                    // applies the delta.
+                    //
+                    // Same bug as v0.13, one axis over, and the same fix: run
+                    // the scan once per state with the views re-pointed for
+                    // each pass. scopeEditorDelta already reads
+                    // editorActiveMode, so each pass tags its own deltas and
+                    // the nine scopes still never learn states exist.
+                    //
+                    // The states come from the DATA, not from the declared
+                    // `modes` list. Dropping a contributor's work is the bug
+                    // being fixed, so a state with a bucket but no declaration
+                    // must still be scanned - and a declared state nobody ever
+                    // opened has no bucket and therefore nothing to find.
+                    // Reading modeData rather than declaring it also avoids
+                    // writableView creating empty buckets as a side effect of
+                    // scanning.
+                    const collectStates = () => {
+                        const base = typeof window.BASE_MODE_ID === 'string' ? window.BASE_MODE_ID : 'base';
+                        const ids = [base];
+                        const seen = new Set(ids);
+                        [window.editorMasterDescData, window.editorMasterFrameData].forEach(master => {
+                            Object.keys((master && master.modeData) || {}).forEach(id => {
+                                if (!seen.has(id)) { seen.add(id); ids.push(id); }
+                            });
+                        });
+                        return ids;
+                    };
+
+                    const states = collectStates();
+
+                    if (states.length <= 1 || typeof window.applyEditorModeView !== 'function') {
+                        // Every page with no states, which is most of them.
+                        scanEveryTab();
+                    } else {
+                        const savedMode = window.editorActiveMode;
+                        try {
+                            states.forEach(modeId => {
+                                window.editorActiveMode = modeId;
+                                window.applyEditorModeView();
+                                scanEveryTab();
+                            });
+                        } finally {
+                            // Restored even if a scan throws. Leaving the
+                            // editor pointed at the last state scanned would
+                            // silently move the user somewhere they never
+                            // navigated, mid-submit.
+                            window.editorActiveMode = savedMode;
+                            window.applyEditorModeView();
+                        }
+                    }
                 }
 
                 if (payloadsToInsert.length === 0 && !window.interceptedTicketData) {

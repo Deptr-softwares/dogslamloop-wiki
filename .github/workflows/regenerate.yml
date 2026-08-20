@@ -78,6 +78,12 @@ jobs:
       - name: Refresh preview images from Supabase
         run: node scripts/fetch-previews.js --write
 
+      # Must run AFTER fetch-previews, which is where the URLs it mirrors come
+      # from. It refuses to write a partial mirror, so a Storage outage fails
+      # this step rather than committing a manifest with portraits missing.
+      - name: Mirror portraits into the repo
+        run: node scripts/fetch-portraits.js --write
+
       # navigation.json is generated too as of v0.10. buildNavigation is
       # round-trip tested against the committed file, and this script refuses
       # to write if the result fails validation - it drives every menu on the

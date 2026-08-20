@@ -15,7 +15,7 @@
     <meta property="og:title" content="Black Death">
     <meta property="og:description" content="Frame data, matchups, and strategy for Black Death in Jujutsu Shenanigans.">
     <meta property="og:url" content="https://dogslamloop.com/characters/Black_death/index.html">
-    <meta property="og:image" content="https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/BlackDeathPortrait2.webp">
+    <meta property="og:image" content="https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/BlackDeathPortrait3.webp">
     <meta name="twitter:card" content="summary_large_image">
 
     <link rel="stylesheet" href="../../style/Common.css">
@@ -40,11 +40,15 @@
 </head>
 <body class="site-body p-0">
 
+    <!-- Must precede page_router.js: it builds the tab strip from this
+         vocabulary, synchronously, before site_utils.js has loaded. -->
+    <script src="../../js/character_tabs.js?v=191da25d"></script>
+    <script src="../../js/input_slots.js?v=191da25d"></script>
     <script src="../../js/page_router.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <script src="../../js/site_utils.js?v=81cf2979"></script>
+    <script src="../../js/site_utils.js?v=191da25d"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
     <script src="../../js/framedata.js"></script>

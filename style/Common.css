@@ -21,6 +21,12 @@
     --border-color: hsl(212, 12%, 21%);
     
     --accent-blue: hsl(213, 94%, 68%);
+    /* The text colour to use ON TOP of --accent-blue. js/site_meta.js
+       re-points --accent-blue to the character's own colour on a character
+       page, and re-points this with it: black on a light colour, white on a
+       dark one, using the same <50% lightness test the title engine uses.
+       The default here matches the default accent above, which is 68% light. */
+    --character-ink: #000000;
     --accent-blue-hover: hsl(212, 96%, 78%);
     --accent-yellow: hsl(45, 93%, 47%);
     
@@ -209,3 +215,33 @@ body {
    never a second colour fighting the first. */
 .sc-char-link { text-decoration: none; }
 .sc-char-link:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+/* An IN-PAGE link, [url=#sec-tech]. Marked apart from an outbound one because
+   it does something different: it stays here. The arrow says "further down"
+   rather than "leaving the site", and the dotted underline distinguishes it at
+   a glance from the solid one every external link carries. */
+.wiki-link-jump {
+    text-decoration-style: dotted;
+    text-underline-offset: 3px;
+}
+.wiki-link-jump::after {
+    content: '\21B4'; /* downwards arrow with corner leftwards */
+    font-size: 0.85em;
+    margin-left: 0.15em;
+    opacity: 0.75;
+}
+
+/* Where the reader landed. A jump into a long tab otherwise drops you at a
+   heading with no indication of which one was the target. Two seconds and
+   gone - it marks an arrival, it is not a state. */
+.anchor-flash {
+    animation: anchor-flash-fade 1.6s ease-out;
+    border-radius: 3px;
+}
+@keyframes anchor-flash-fade {
+    0%   { background-color: color-mix(in srgb, var(--accent-blue) 45%, transparent); }
+    100% { background-color: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .anchor-flash { animation: none; outline: 2px solid var(--accent-blue); outline-offset: 3px; }
+}
