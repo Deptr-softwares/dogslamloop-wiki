@@ -401,6 +401,22 @@ function calculateTabDiffs(rev, showPopup = true) {
                 else if ((window.FIXED_BLOCK_SECTIONS || []).some(f => f.scope === scope)) {
                     targetTab = window.FIXED_BLOCK_SECTIONS.find(f => f.scope === scope).tab;
                 }
+                // An order delta names its list by a dotted path, and the tab
+                // it belongs to falls out of that: "frame.skills" is the Skills
+                // tab, "desc.comboGroups" is whichever tab that section renders
+                // in. Without this the reorder marks no tab at all, so the
+                // strip shows no change indicator and the reviewer opens the
+                // ticket on Overview - the same miss that left Combos unmarked
+                // for "Read First".
+                else if (scope === 'order') {
+                    const [root, field] = String(key || '').split('.');
+                    if (root === 'frame') targetTab = field;
+                    else if (field === 'extras') targetTab = 'overview';
+                    else {
+                        const section = window.getKeyedSectionByField && window.getKeyedSectionByField(field);
+                        if (section) targetTab = section.tab;
+                    }
+                }
                 // Coerced for the same reason as the diff renderer: a null key
                 // reaching here would throw inside the changed-tabs scan, and
                 // that scan feeds the popup telling a reviewer which tabs to

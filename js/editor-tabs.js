@@ -945,6 +945,14 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
                         <select class="editor-select" data-card-field="difficulty">${difficulties}</select></div>
                     <div><label class="editor-field-label-sm">Video</label>
                         <input type="text" class="editor-input" data-card-field="video" value="${esc(card.video || '')}" placeholder="Optional URL"></div>
+                    <!-- Author credit was set when the card was spawned and
+                         exposed nowhere, so it could not be removed by hand -
+                         the theorybox BLOCK editor has this field, the combo
+                         CARD editor did not, and a card is only ever created
+                         through the card path. Owner's ask: credit is fully
+                         optional, so it needs somewhere to be cleared. -->
+                    <div class="combo-field-full"><label class="editor-field-label-sm">Author credit (optional)</label>
+                        <input type="text" class="editor-input" data-card-field="author" value="${esc(card.author || '')}" placeholder="Leave blank for no credit"></div>
                 </div>
             </div>
         </div>

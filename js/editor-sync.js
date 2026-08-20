@@ -571,6 +571,34 @@ window.renderDiffView = function() {
             window.currentEditorDescData[s.field], s.keyField, 'blocks');
     });
 
+    // ORDER. Two different code paths decide whether a reorder counts: the
+    // submit scan in js/editor-core.js, which builds the delta, and this
+    // summary, which is what the contributor READS before pressing submit.
+    // Fixing only the first left the editor submitting a reorder while still
+    // telling the person making it that nothing had changed.
+    //
+    // Same members, different sequence - a list that gained or lost an entry
+    // is already reported by compareArrayOfObjects above.
+    const compareOrder = (label, oldList, newList, keyField) => {
+        const o = (oldList || []).map(e => (e ? e[keyField] : null)).filter(v => v != null).map(String);
+        const n = (newList || []).map(e => (e ? e[keyField] : null)).filter(v => v != null).map(String);
+        if (o.length !== n.length || !o.length) return;
+        if (o.join(' ') === n.join(' ')) return;
+        if ([...o].sort().join(' ') !== [...n].sort().join(' ')) return;
+        compareAndRender(`${label} order`, { order: o }, { order: n }, 'json');
+    };
+
+    compareOrder('Custom Tab', window.originalCloudDescData.extras, window.currentEditorDescData.extras, 'title');
+    (window.getKeyedSections ? window.getKeyedSections() : []).forEach(sec => {
+        compareOrder(sec.entryLabel, window.originalCloudDescData[sec.field],
+            window.currentEditorDescData[sec.field], sec.keyField);
+    });
+    (window.FRAME_MOVE_CATEGORIES || []).forEach(cat => {
+        const labels = window.getCharacterTabLabels ? window.getCharacterTabLabels() : {};
+        compareOrder(labels[cat] || cat, (window.originalCloudFrameData || {})[cat],
+            (window.currentEditorFrameData || {})[cat], 'id');
+    });
+
     const oldStrats = window.originalCloudDescData.moveStrategies || {};
     const newStrats = window.currentEditorDescData.moveStrategies || {};
     Array.from(new Set([...Object.keys(oldStrats), ...Object.keys(newStrats)])).forEach(k => { 

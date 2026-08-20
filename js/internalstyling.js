@@ -420,7 +420,29 @@ window.applyInputSlotColours = function (root) {
 
 function applyInternalStyling() {
     // 1. Select targets
-    const textBlocks = document.querySelectorAll('.wiki-text:not(.is-styled), .vessel-content p:not(.is-styled), .vessel-content li:not(.is-styled), .strategy-paragraph:not(.is-styled), .vessel-content h2:not(.is-styled), .vessel-content h3:not(.is-styled), .vessel-content h4:not(.is-styled), .update-table th:not(.is-styled), .update-table td:not(.is-styled)');
+    // HEADINGS AND LIST ITEMS ARE MATCHED BY THEIR OWN CLASS, not by a
+    // `.vessel-content` ancestor.
+    //
+    // They used to be reachable ONLY through that prefix, which quietly split
+    // the site in two. A tab's panel class comes from js/character_tabs.js, and
+    // half of them are `.tab-content`: Overview, Combos, M1s, Specials and now
+    // Techs. In those, a heading kept its literal `[b]…[/b]` and a list item
+    // lost every move-name colour, while the paragraph directly beneath it
+    // worked - because paragraphs carry `.strategy-paragraph`, which was never
+    // prefixed. The owner found it in the Combos tab's Read First section, and
+    // it was never a Combos bug.
+    //
+    // A heading renders as `<h3 class="wiki-block-heading">` and a list as
+    // `<ul class="wiki-block-list"><li>` (js/description.js), so those are the
+    // honest handles. The `.vessel-content` entries stay: system pages and
+    // move cards put prose in bare <p>/<li> that carry no block class.
+    const textBlocks = document.querySelectorAll(
+        '.wiki-text:not(.is-styled), .strategy-paragraph:not(.is-styled),'
+        + ' .wiki-block-heading:not(.is-styled), .wiki-block-list li:not(.is-styled),'
+        + ' .vessel-content p:not(.is-styled), .vessel-content li:not(.is-styled),'
+        + ' .vessel-content h2:not(.is-styled), .vessel-content h3:not(.is-styled),'
+        + ' .vessel-content h4:not(.is-styled),'
+        + ' .update-table th:not(.is-styled), .update-table td:not(.is-styled)');
     
     // 2. Characters, canonical names and every alias the community uses.
     const characterColors = window.CHARACTER_COLORS || {};

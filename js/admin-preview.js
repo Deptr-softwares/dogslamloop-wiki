@@ -274,8 +274,25 @@ async function switchVersionView(mode) {
                 'intro': 'Introduction',
                 'notes': 'Notes',
                 'tool_config': 'Tool Setup',
+                'order': 'Order',
             });
             return map[scope] || scope;
+        };
+
+        // "frame.skills" -> "Skills", "desc.comboGroups" -> "Combo Group".
+        //
+        // An order delta's key is a dotted path, which is the right identifier
+        // for the apply step and completely unreadable to a reviewer. Resolved
+        // through the vocabulary so the name matches what the strip is called
+        // on screen.
+        const orderListLabel = (key) => {
+            const [root, field] = String(key || '').split('.');
+            if (root === 'frame') {
+                return (window.getCharacterTabLabels ? window.getCharacterTabLabels()[field] : null) || field;
+            }
+            if (field === 'extras') return 'Custom Tabs';
+            const section = window.getKeyedSectionByField && window.getKeyedSectionByField(field);
+            return section ? section.label : field;
         };
 
         const fixedSectionByScope = (scope) =>
@@ -456,6 +473,47 @@ async function switchVersionView(mode) {
                         } else {
                             renderDiffBlock(`${section.entryLabel} Notes`, oldEntry.content || [], payload.content || []);
                         }
+                    }
+                }
+                // An order change has no before/after DOCUMENT to diff - the
+                // entries are untouched and only the sequence moved - so the
+                // generic block renderer would show two identical blobs. The
+                // reviewer needs the two sequences side by side and, more than
+                // that, WHICH entries actually moved: a list of thirty names
+                // reordered by one is unreadable as two lists of thirty.
+                else if (scope === 'order') {
+                    const listKey = key;
+                    const before = (() => {
+                        const [root, ...rest] = String(listKey).split('.');
+                        let node = root === 'frame' ? liveFrame : liveDesc;
+                        for (const p of rest) node = node ? node[/^\d+$/.test(p) ? Number(p) : p] : null;
+                        if (!Array.isArray(node)) return [];
+                        return node.map(e => {
+                            if (!e || typeof e !== 'object') return null;
+                            for (const f of ['name', 'id', 'title', 'opponent', 'topic', 'starter', 'theory']) {
+                                if (e[f]) return String(e[f]);
+                            }
+                            return null;
+                        }).filter(Boolean);
+                    })();
+
+                    const after = Array.isArray(payload) ? payload.map(String) : [];
+
+                    // Named by position so "moved from 4th to 1st" is legible
+                    // without counting down the list.
+                    const moved = after
+                        .map((name, i) => ({ name, from: before.indexOf(name), to: i }))
+                        .filter(m => m.from !== -1 && m.from !== m.to);
+
+                    renderDiffBlock(`${orderListLabel(listKey)} order`,
+                        { order: before }, { order: after });
+
+                    if (moved.length) {
+                        const rows = moved
+                            .map(m => `${window.escapeHtml(m.name)}: ${m.from + 1} → ${m.to + 1}`)
+                            .join('<br>');
+                        diffContainer.innerHTML += `<div class="diff-location-label">`
+                            + `<span class="diff-location-lead">Moved:</span> ${rows}</div>`;
                     }
                 }
                 else if (scope === 'move') {

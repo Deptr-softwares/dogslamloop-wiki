@@ -351,12 +351,17 @@ test('universal mechanics colour even though no character owns them', async ({ p
     return out;
   });
 
-  // Every dash is Q, block is F, jump is Space.
+  // Every dash is Q, jump is Space.
   expect(chips['Side Dash']).toBe('is-q');
   expect(chips['Front Dash']).toBe('is-q');
   expect(chips['Back Dash']).toBe('is-q');
-  expect(chips['Block']).toBe('is-f');
   expect(chips['Jump']).toBe('is-space');
+
+  // BLOCK IS DELIBERATELY NOT COLOURED (owner, 2026-08-20). It was a universal
+  // and was removed as redundant: unlike a dash or a jump, "block" is a word
+  // combo prose uses constantly as an ordinary verb, so colouring it tinted
+  // running text instead of marking an input.
+  expect(chips['Block'], 'block is no longer a universal').toBeNull();
 
   // A character's own moves are untouched by any of this.
   expect(chips['Circling'], "the character's own skill still wins").toBe('is-2');
@@ -365,9 +370,12 @@ test('universal mechanics colour even though no character owns them', async ({ p
   expect(chips['Bounding']).toBe('is-q');
 });
 
-test('a character move outranks a universal of the same name', () => {
+test('block is not a universal, but a character move named Block still is one', () => {
   // The universals are a fallback, not an override: a character who names a
   // skill "Block" must keep that skill's slot.
+  // Block is no longer a universal, so this doubles as the proof that removing
+  // it did not stop a character who genuinely HAS a move called Block from
+  // getting that move's own slot.
   const frame = { skills: [{ id: 'x', name: 'Block', input: '3' }] };
   const map = slots.buildMoveSlotMap(frame, null);
 

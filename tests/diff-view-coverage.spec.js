@@ -29,7 +29,7 @@ const LIVE_DESC = {
   techIntro: [{ type: 'paragraph', content: 'live tech intro' }],
   techGroups: [{ title: 'Wall Techs', content: [{ type: 'paragraph', content: 'live tech group' }] }],
   techList: [{ theory: 'Momentum', rows: [{ combo: 'Dash Cancel', damage: '5', worksOn: 'All' }] }],
-  counterplay: [{ topic: 'Spacing', content: [] }],
+  counterplay: [{ topic: 'Spacing', content: [] }, { topic: 'Reversals', content: [] }],
   starterGuide: [{ topic: 'Basics', content: [] }],
   matchups: [{ opponent: 'Vessel', tier: 'even', content: [] }],
   extras: [{ title: 'Tech', content: [] }],
@@ -70,6 +70,10 @@ const PAYLOADS = {
   techGroup: { title: 'Wall Techs', content: [{ type: 'paragraph', content: 'CHANGED tech' }] },
   techTable: { theory: 'Momentum', rows: [{ combo: 'Dash Cancel', damage: '99', worksOn: 'All' }] },
   techIntro: [{ type: 'paragraph', content: 'CHANGED tech intro' }],
+  // A reorder carries the new SEQUENCE, not an entry. The live fixture below
+  // has counterplay as ['Spacing'], so a one-entry list cannot show a move -
+  // the key names the list and the payload names its order.
+  order: ['Reversals', 'Spacing'],
   gallery_item: { name: 'Emote A', media: 'CHANGED' },
   gallery_intro: [{ type: 'paragraph', content: 'CHANGED gallery intro' }],
   intro: [{ type: 'paragraph', content: 'CHANGED intro' }],
@@ -86,6 +90,7 @@ const KEYS = {
   extra: 'Tech', matchup: 'Vessel', counterplay: 'Spacing', starterGuide: 'Basics',
   comboGroup: 'True Combos', comboTable: 'M1 Starters', gallery_item: 'Emote A',
   techGroup: 'Wall Techs', techTable: 'Momentum',
+  order: 'desc.counterplay',
   system_section: 'basics::intro', system_tab: 'basics',
   tierlist_tiers: 'basics', tierlist_changelog: 'basics',
   move: 'skills::explosion',
