@@ -97,7 +97,24 @@ renderer, an apply function against a diff view — compare them **both ways**.
 
 ## Revert-confirm-restore, for every bug fix
 
-Before claiming a fix works: temporarily revert it (`git stash push -- <file>`), confirm the new spec **fails**, restore, confirm it passes. A regression test that never failed against the old code proves nothing.
+Before claiming a fix works: temporarily revert it, confirm the new spec
+**fails**, restore, confirm it passes. A regression test that never failed
+against the old code proves nothing.
+
+**COMMIT THE FIX FIRST.** Then the undo is `git restore <file>`, which is exact
+and safe. This is not a style preference — it is the only version of this
+procedure that cannot lose work.
+
+`git checkout -- <file>` restores from HEAD, so on an uncommitted file it
+discards **every** change to it, not just the probe. That has now happened
+three times here. The third was during v0.15's Techs tab: a one-line
+falsification edit was undone that way and took the whole uncommitted
+implementation of that file with it. It survived only because that particular
+probe happened to start with a manual backup.
+
+Taking backups is not the fix; committing first is. An extra commit on a
+feature branch costs nothing and turns a destructive command into a harmless
+one.
 
 ## Assert structure, not pixels
 
@@ -160,6 +177,17 @@ v0.15 burned several rounds on runs reporting 519, 951, 975 and 984 of the same
 If a run reports failures, re-run **those specs alone** before believing them.
 A failure that passes in isolation is load, not a bug — but a *consistent*
 failure in isolation is real, and that is the only way to tell the two apart.
+
+This is routine rather than exceptional: v0.15's final Techs run reported 7
+failures and 5 of them — dashboards, editor-modes ×2, media-gc-guard, posts —
+passed untouched in isolation.
+
+**And never change the working tree while a suite is running.** Same hazard,
+worse symptom. Switching branches mid-run during v0.15 produced "15 failed" and
+"exit code 0" from the same run, and both numbers were meaningless — the workers
+were reading files swapped underneath them. A suite whose tree moved is not a
+failed suite, it is not a suite at all, and its output has to be thrown away
+rather than diagnosed. Commit, run, then leave it alone.
 
 ## What this suite cannot reach
 
