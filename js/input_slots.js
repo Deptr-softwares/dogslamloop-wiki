@@ -163,9 +163,20 @@
     //
     // Names are what people WRITE, not what a menu calls them: nobody types
     // "Dash Input", they type "Side Dash".
+    //
+    // F (Block / Blocking / Guard) was here and was REMOVED at the owner's
+    // request, 2026-08-20: redundant. Unlike a dash or a jump, "block" is a
+    // word combo prose uses constantly as an ordinary verb - "block the
+    // follow-up", "they can block here" - so colouring it tinted running text
+    // rather than marking an input, which is the opposite of what the slot
+    // colours are for.
+    //
+    // Not a blanket ban: a character whose own kit has a move named Block
+    // still gets it from deriveMoveSlots, and an author can name it explicitly
+    // through desc_data.characterSettings.slots. This only stops the universal
+    // fallback assuming it.
     const UNIVERSAL_MECHANICS = {
         Q: ['Dash', 'Side Dash', 'Front Dash', 'Forward Dash', 'Back Dash', 'Backward Dash', 'Air Dash'],
-        F: ['Block', 'Blocking', 'Guard'],
         Space: ['Jump', 'Jumping', 'Double Jump'],
     };
 
