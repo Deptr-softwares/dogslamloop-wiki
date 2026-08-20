@@ -136,3 +136,64 @@ test('an order delta inside a character state unwraps like every other scope', a
   // The base kit is untouched.
   expect(out.newDesc.comboGroups.map(g => g.title)).toEqual(['A', 'B', 'C']);
 });
+
+test('reordering alone is a submittable change', async ({ page }) => {
+  // THE OWNER'S PRIMARY SYMPTOM. Reordering and nothing else produced no
+  // payload at all, so the editor's own change summary said "No changes
+  // detected against the live database" and the contributor could not submit.
+  //
+  // Drives the real reorder control and reads the real change summary, because
+  // the claim is about what a contributor sees - the scan itself is a closure
+  // inside a DOMContentLoaded handler and is not reachable any other way.
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await page.setViewportSize({ width: 1400, height: 950 });
+  await page.goto('/edit.html?char=boomcat&type=character&tab=counterplay', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  // Two entries of this test's own, so the reorder is against known content
+  // rather than whatever the owner happens to have written.
+  await page.evaluate(() => {
+    window.currentEditorDescData.counterplay = [
+      { topic: 'ZZ First', importance: 'Low', content: [] },
+      { topic: 'ZZ Second', importance: 'Low', content: [] },
+    ];
+    window.originalCloudDescData.counterplay =
+      JSON.parse(JSON.stringify(window.currentEditorDescData.counterplay));
+  });
+
+  // Re-render the strip against that data, then select the second entry and
+  // move it left. Selection is read from the DOM at click time.
+  await page.evaluate(() => window.switchEditorTab('overview'));
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.switchEditorTab('counterplay'));
+  await page.waitForTimeout(500);
+
+  await page.locator('#counterplay-nav-1').click();
+  await page.waitForTimeout(200);
+  await page.locator('[data-reorder-list="desc.counterplay"][data-reorder-dir="-1"]').first().click();
+  await page.waitForTimeout(400);
+
+  const order = await page.evaluate(() =>
+    window.currentEditorDescData.counterplay.map(e => e.topic));
+  expect(order, 'the control actually moved it').toEqual(['ZZ Second', 'ZZ First']);
+
+  // And the editor now considers that a change worth submitting.
+  const summary = await page.evaluate(async () => {
+    await window.triggerManualSync();
+    window.renderDiffView();
+    await new Promise(r => setTimeout(r, 300));
+    const el = document.getElementById('diff-view-container');
+    return el ? el.innerText : '';
+  });
+
+  // Positive, not merely absent: `.not.toContain` on an empty string passes
+  // for the wrong reason, and an empty summary is exactly the failure mode
+  // here. The container has to exist and have said something.
+  expect(summary.length, 'the change summary rendered at all').toBeGreaterThan(0);
+  expect(summary, 'a reorder must not report as no change')
+    .not.toContain('No changes detected');
+
+  expect(errors).toEqual([]);
+});
