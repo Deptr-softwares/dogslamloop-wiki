@@ -27,9 +27,20 @@ async function previewRevision(revId) {
     document.getElementById('preview-nav-sidebar').classList.remove('hidden');
     document.getElementById('preview-tab-nav').classList.remove('hidden');
 
-    const { data: liveData } = await window.supabaseClient.from('page_data').select('desc_data, frame_data').eq('page_id', rev.page_id).single();
+    // tab_settings is named explicitly because this is a column list, not a
+    // `select('*')` - the reader and the editor both take the whole row and
+    // would have picked the new column up for free, and this one would not.
+    const { data: liveData } = await window.supabaseClient.from('page_data').select('desc_data, frame_data, tab_settings').eq('page_id', rev.page_id).single();
     window.currentLiveDescData = liveData ? liveData.desc_data : {};
     window.currentLiveFrameData = liveData ? liveData.frame_data : {};
+
+    // Which optional tabs this page has, before the strip or the diff renders.
+    // Per revision rather than once at boot: a reviewer works through a queue
+    // of different pages in one session, so leaving the previous page's answer
+    // in place would show a Techs tab on a character that has none.
+    if (typeof window.applyOptionalTabsFromPageRow === 'function') {
+        window.applyOptionalTabsFromPageRow(liveData);
+    }
 
     if (rev.is_delta) {
         const { newDesc, newFrame } = window.applyDeltaToData(

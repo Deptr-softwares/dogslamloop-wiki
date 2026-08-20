@@ -47,9 +47,18 @@ window.runPageBoot = async function (route) {
             // It was written as [{id:'overview'}, …] rather than ['overview', …],
             // which is why the guard scanning for restated tab lists walked
             // straight past it.
+            //
+            // includeOptional: every button page_router.js DREW gets bound,
+            // including the optional ones it drew hidden. Binding only the
+            // enabled ones would be binding against a flag that has not been
+            // fetched yet - so a Techs button un-hidden a moment later by
+            // applyOptionalTabVisibility would sit there doing nothing when
+            // clicked, which is exactly how the Combos and Starter Guide tabs
+            // shipped inert. setupTabs is idempotent and additive, so binding a
+            // button that stays hidden costs nothing.
             const tabIds = route.tabs
                 ? route.tabs.map(t => t.id)
-                : window.getCharacterTabIds();
+                : window.getCharacterTabIds({ includeOptional: true });
             window.setupTabs('nav', 'tab', tabIds, 'major');
         }
 

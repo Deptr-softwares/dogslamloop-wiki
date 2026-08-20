@@ -44,6 +44,11 @@
  * shipped in any static strip, and it sits at its real position here so that
  * "after Counterplay, before Gallery" is data rather than an insertAdjacent
  * call that has to be read to be known.
+ *
+ * ...plus `Techs` between Combos and Starter Guide, for the characters the
+ * owner switches it on for (2026-08-18). It is marked `optional`, and it is the
+ * only kind of tab whose presence depends on the character rather than on the
+ * vocabulary - see the optional-tab block below.
  */
 
 (function () {
@@ -88,6 +93,26 @@
             // EXTRA_KEYED_SECTIONS and COMBO_INTRO below, the same way the
             // Overview tab is overview + strategy + extras rather than one
             // keyed array.
+            //
+            // `documentTab` names that shape so the renderer and the editor can
+            // ask for it rather than testing `tabId === 'combos'`. See
+            // getDocumentSections below.
+            documentTab: true,
+            emptyMessage: 'No combos have been written for this character yet.',
+        },
+        // Techs is Combos' shape with Combos' vocabulary changed, and it is
+        // OPTIONAL: off for every character until the owner turns it on in the
+        // owner tools. `optional` is the whole feature - see the optional-tab
+        // block under getCharacterTabs, which is the ONE place the flag is
+        // applied. A condition repeated at the fourteen call sites that read
+        // this registry is the mistake the registry was extracted to prevent.
+        {
+            id: 'techs', label: 'Techs',
+            panelClass: 'tab-content',
+            editable: true, frameMoves: false, modeScoped: true,
+            documentTab: true,
+            emptyMessage: 'No techs have been written for this character yet.',
+            optional: true,
         },
         {
             id: 'starterGuide', label: 'Starter Guide',
@@ -176,6 +201,68 @@
     TABS.forEach(t => { if (t.keyed) Object.freeze(t.keyed); Object.freeze(t); });
     window.CHARACTER_TABS = Object.freeze(TABS);
 
+    // --- OPTIONAL TABS ---
+    //
+    // A tab marked `optional` does not exist for a character until the owner
+    // switches it on. The answer lives in page_data.tab_settings, keyed by tab
+    // id (supabase/migrations/20260818000002_page_optional_tabs.sql), and every
+    // surface that loads a page row hands it to setOptionalCharacterTabs below.
+    //
+    // ONE FILTER, IN getCharacterTabs. The owner's requirement was that a tab
+    // switched off is invisible "even in the editor and the admin preview" -
+    // which means the flag has to reach the registry's CONSUMERS, not just the
+    // reader's renderer. There are fourteen of them, and a condition repeated
+    // fourteen times is the thing this module exists to stop. So the filter
+    // sits at the single point every one of them derives its list from, and no
+    // consumer knows optional tabs exist.
+    //
+    // Default OFF, and off is also what a surface that never calls the setter
+    // gets. That direction matters: a page whose fetch failed shows one tab too
+    // few, which is recoverable, rather than an empty tab nobody can fill.
+    let enabledOptionalTabs = [];
+
+    /**
+     * Records which optional tabs this page has.
+     *
+     * Accepts the page_data.tab_settings object verbatim - {"techs": true} -
+     * or a plain array of ids, because the admin preview reasons in ids. A
+     * null, an array, a string or a missing column all mean "none": the column
+     * has a CHECK constraint keeping it an object, but a cached page or a
+     * failed fetch must fail closed rather than throw.
+     */
+    window.setOptionalCharacterTabs = function (settings) {
+        const optionalIds = window.CHARACTER_TABS.filter(t => t.optional).map(t => t.id);
+
+        let requested;
+        if (Array.isArray(settings)) requested = settings;
+        else if (settings && typeof settings === 'object') {
+            requested = Object.keys(settings).filter(k => settings[k] === true);
+        } else requested = [];
+
+        // Intersected with the vocabulary, so a stale key left in the column by
+        // a tab that was later removed cannot resurrect a tab that no longer
+        // exists, and a key naming a NON-optional tab cannot turn one off by
+        // implication.
+        enabledOptionalTabs = requested.filter(id => optionalIds.includes(id));
+        return enabledOptionalTabs.slice();
+    };
+
+    /** Which optional tabs are on right now. */
+    window.getEnabledOptionalTabs = function () {
+        return enabledOptionalTabs.slice();
+    };
+
+    /**
+     * Every optional tab in the vocabulary, on or off.
+     *
+     * For the owner tools, which draw one checkbox per optional tab. Reading
+     * this rather than naming Techs is what makes a second optional tab a
+     * registry entry and nothing else.
+     */
+    window.getOptionalCharacterTabs = function () {
+        return window.CHARACTER_TABS.filter(t => t.optional);
+    };
+
     /**
      * The tabs a given surface should show.
      *
@@ -188,6 +275,13 @@
      *        or reviewer representation (`gallery`).
      * @param {boolean} [opts.frameMovesOnly=false]   only tabs holding a
      *        frame-data move array.
+     * @param {boolean} [opts.includeOptional=false]  include optional tabs this
+     *        page has switched OFF. Only the three surfaces that BUILD markup
+     *        want this - page_router.js, and the button/panel checks in
+     *        tests/character-tab-vocabulary.spec.js - because the markup ships
+     *        for every character and visibility is decided afterwards. Anything
+     *        deciding what a reader, an editor or a reviewer can reach must not
+     *        pass it.
      */
     window.getCharacterTabs = function (opts) {
         const o = opts || {};
@@ -195,6 +289,7 @@
             if (!o.includeInjected && t.injected) return false;
             if (o.editableOnly && !t.editable) return false;
             if (o.frameMovesOnly && !t.frameMoves) return false;
+            if (t.optional && !o.includeOptional && !enabledOptionalTabs.includes(t.id)) return false;
             return true;
         });
     };
@@ -204,16 +299,74 @@
         return window.getCharacterTabs(opts).map(t => t.id);
     };
 
+    /**
+     * Shows or hides the buttons for optional tabs, wherever they are drawn.
+     *
+     * The strip is built before the page row has loaded - page_router.js runs
+     * as the first element in <body>, and admin.html and edit.html ship their
+     * strips as static markup - so an optional tab's button always EXISTS and
+     * this decides whether it can be seen. That is the same arrangement
+     * edit.html already uses for the Ultimate button, which ships `hidden` and
+     * is un-hidden by js/editor-modes.js for a base-only character.
+     *
+     * Both id conventions, because the two admin surfaces disagree and always
+     * have: the reader page and admin.html use `nav-<id>`, edit.html uses
+     * `edit-nav-<id>`. Querying for both is three lines here against a second
+     * copy of this function living in the editor.
+     *
+     * DOM work in a file whose header says it has no dependencies: it is called
+     * by consumers long after load, never at load, and it is here because this
+     * is the one module that knows which tabs are optional. Putting it in a
+     * consumer would be the fourteen-call-sites mistake in a different shape.
+     */
+    window.applyOptionalTabVisibility = function () {
+        if (typeof document === 'undefined') return;
+
+        window.getOptionalCharacterTabs().forEach(tab => {
+            const on = enabledOptionalTabs.includes(tab.id);
+
+            [`nav-${tab.id}`, `edit-nav-${tab.id}`].forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.classList.toggle('hidden', !on);
+            });
+
+            // The panel is hidden when the tab is off, and otherwise left
+            // alone: setupTabs owns which panel is showing once the tab is
+            // real, and forcing it visible here would open Techs over whatever
+            // the reader was actually looking at.
+            const panel = document.getElementById(`tab-${tab.id}`);
+            if (panel && !on) panel.classList.add('hidden');
+        });
+    };
+
+    /**
+     * Reads the flag off a page_data row and applies it, in one call.
+     *
+     * Every surface that loads a page row calls exactly this - the reader
+     * (js/description.js), the editor (js/editor-core.js) and the reviewer's
+     * preview (js/admin-preview.js) - so none of them has to know the column
+     * name or remember the second step.
+     */
+    window.applyOptionalTabsFromPageRow = function (row) {
+        window.setOptionalCharacterTabs(row ? row.tab_settings : null);
+        window.applyOptionalTabVisibility();
+        return window.getEnabledOptionalTabs();
+    };
+
     // --- SECTIONS THAT RENDER INSIDE A TAB RATHER THAN BEING ONE ---
     //
-    // The Combos tab is a document, not a list: prose, then author-named
-    // groups of cards, then the reference table. Same decomposition the
-    // Overview tab already has (overview + strategy + extras), and the same
-    // one the reference uses.
+    // A DOCUMENT TAB is a document, not a list: prose, then author-named groups
+    // of cards, then the reference table. Same decomposition the Overview tab
+    // already has (overview + strategy + extras), and the same one the
+    // reference uses. Combos and Techs are both this shape.
     //
     //   comboIntro   [blocks]                        fixed, "Read First"
     //   comboGroups  [{ title, content: [blocks] }]   N, keyed by title
     //   comboList    [{ starter, rows: [...] }]       N, keyed by starter
+    //
+    //   techIntro    [blocks]                        fixed, "Technical Overview"
+    //   techGroups   [{ title, content: [blocks] }]   N, keyed by title
+    //   techList     [{ theory, rows: [...] }]        N, keyed by theory
     //
     // Groups are AUTHOR-NAMED. The reference calls them Beginner / Core /
     // Specialized; the owner's live pages say True / Simpler / Advanced.
@@ -228,9 +381,16 @@
     // `tab` names where a section RENDERS, so the diff can still attribute a
     // change to the Combos tab. Everything else in the pipeline keys off
     // `scope` and `field`, neither of which cares whether it is a tab.
+    // `role` names which of the three parts a section is, so the composer that
+    // draws a document tab and the editor that edits one can ask for "this
+    // tab's groups" rather than testing `tabId === 'combos'`. That test was
+    // written at ~20 sites across description.js and editor-tabs.js, and
+    // copying all of them for Techs would have been the second vocabulary in
+    // this file - the exact thing its header is about.
     const EXTRA_KEYED_SECTIONS = [
         {
             tab: 'combos',
+            role: 'groups',
             field: 'comboGroups',
             keyField: 'title',
             scope: 'comboGroup',
@@ -241,10 +401,15 @@
             // not a list of entries. It still needs the shared pipeline -
             // submit, merge, diff, apply - which is why it is declared here.
             customRenderer: true, customEditor: true,
+            // What ONE entry inside a group is called, in the editor: "COMBO
+            // CARDS", "Delete this combo card?". Declared rather than written
+            // into editor-tabs.js, because Techs calls the same thing a tech.
+            unitNoun: 'Combo',
             emptyEntryMessage: 'Nothing written in this group yet.',
         },
         {
             tab: 'combos',
+            role: 'list',
             field: 'comboList',
             keyField: 'starter',
             scope: 'comboTable',
@@ -258,8 +423,61 @@
             rowsField: 'rows',
             customRenderer: true,
             customEditor: true,
-            rendererFn: 'renderComboListSection',
+            rendererFn: 'renderCombosTab',
+            // What ONE table is called. A Combo List is divided by the move
+            // that starts the combo; a Tech List is divided by the theory the
+            // techs belong to (owner, 2026-08-18). Same machinery, and the noun
+            // is the only thing that separates them.
+            entryNoun: 'Starter', entryNounPlural: 'starters',
             emptyEntryMessage: 'No combos under this starter yet.',
+        },
+
+        // --- THE TECHS TAB ---
+        //
+        // Structurally identical to the two above, with the owner's vocabulary
+        // (2026-08-18): Read First becomes Technical Overview, Combo Groups
+        // become Tech Groups, Combo List becomes Tech List. Everything that
+        // differs between the two tabs is a string in these three entries, and
+        // that is the point - no renderer, editor, diff, merge or submit branch
+        // knows Techs exists.
+        //
+        // Separate FIELDS, not a shared array with a discriminator: a tech and
+        // a combo are different documents, and a contributor editing one must
+        // never produce a delta that touches the other. Separate SCOPES for the
+        // same reason - a reviewer approving "Tech Group: Wall Techs" should
+        // never be able to overwrite a combo group of the same name.
+        {
+            tab: 'techs',
+            role: 'groups',
+            field: 'techGroups',
+            keyField: 'title',
+            scope: 'techGroup',
+            entryLabel: 'Tech Group',
+            label: 'Tech Group',
+            customRenderer: true, customEditor: true,
+            unitNoun: 'Tech',
+            emptyEntryMessage: 'Nothing written in this group yet.',
+        },
+        {
+            tab: 'techs',
+            role: 'list',
+            field: 'techList',
+            // `theory`, not `starter`. A tech is not a combo route, so the
+            // thing a Tech List table is divided by is the theory behind the
+            // techs in it - the owner's word, 2026-08-18. Because the field
+            // differs as well as the label, a Tech List row can never be read
+            // by anything expecting a combo table.
+            keyField: 'theory',
+            scope: 'techTable',
+            entryLabel: 'Tech List Table',
+            label: 'Tech List',
+            containerHeading: true,
+            rowsField: 'rows',
+            customRenderer: true,
+            customEditor: true,
+            rendererFn: 'renderTechsTab',
+            entryNoun: 'Theory', entryNounPlural: 'theories',
+            emptyEntryMessage: 'No techs under this theory yet.',
         },
     ];
     EXTRA_KEYED_SECTIONS.forEach(Object.freeze);
@@ -268,7 +486,8 @@
     // same shape as `overview` and `strategy`. Declared so the submit scan and
     // applyDeltaToData pick them up without another hardcoded name.
     window.FIXED_BLOCK_SECTIONS = Object.freeze([
-        Object.freeze({ tab: 'combos', field: 'comboIntro', scope: 'comboIntro', label: 'Read First' }),
+        Object.freeze({ tab: 'combos', role: 'intro', field: 'comboIntro', scope: 'comboIntro', label: 'Read First' }),
+        Object.freeze({ tab: 'techs', role: 'intro', field: 'techIntro', scope: 'techIntro', label: 'Technical Overview' }),
     ]);
 
     // --- KEYED SECTIONS ---
@@ -312,6 +531,45 @@
     /** Every keyed section rendered inside a given tab, including its own. */
     window.getKeyedSectionsForTab = function (tabId) {
         return window.getKeyedSections().filter(s => s.tab === tabId);
+    };
+
+    /**
+     * The three parts of a DOCUMENT TAB - Combos, Techs - by role.
+     *
+     * Returns { intro, groups, list } or null if the tab is not one. Every
+     * caller wants all three at once (the composer draws them in order, the
+     * editor's sub-tab strip offers all three), so handing back the trio beats
+     * three lookups that could each independently be given the wrong tab.
+     *
+     * NOT filtered by the optional flag, deliberately. This answers "what shape
+     * is this tab", which does not change when a character has the tab switched
+     * off - and the pipeline that applies an approved delta has to keep working
+     * for a page whose flag was turned off after the ticket was raised.
+     * Dropping the section here would make that delta apply silently to
+     * nothing, which is bug 4's exact shape. Visibility is getCharacterTabs'
+     * job and only getCharacterTabs' job.
+     */
+    window.getDocumentSections = function (tabId) {
+        const tab = window.CHARACTER_TABS.find(t => t.id === tabId);
+        if (!tab || !tab.documentTab) return null;
+
+        const intro = (window.FIXED_BLOCK_SECTIONS || [])
+            .find(s => s.tab === tabId && s.role === 'intro') || null;
+        const keyed = window.getKeyedSectionsForTab(tabId);
+
+        return {
+            tab,
+            intro,
+            groups: keyed.find(s => s.role === 'groups') || null,
+            list: keyed.find(s => s.role === 'list') || null,
+        };
+    };
+
+    /** Every document tab, honouring the optional flag - Combos, and Techs when on. */
+    window.getDocumentTabIds = function () {
+        return window.getCharacterTabs({ includeInjected: true })
+            .filter(t => t.documentTab)
+            .map(t => t.id);
     };
 
     /**

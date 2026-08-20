@@ -145,6 +145,19 @@ window.triggerManualSync = async function() {
             window.currentEditorDescData.matchups[window.currentMatchupIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
         }
         renderMatchupsPreview();
+    } else if (window.getDocumentSections && window.getDocumentSections(tabId)) {
+        // A document tab (Combos, Techs). It needs its own branch for the same
+        // reason the keyed one below does - the buffer belongs to whichever of
+        // the three sections is open, and the tab is composed rather than being
+        // a single block list.
+        //
+        // WITHOUT THIS, COMBOS FELL THROUGH TO THE GENERIC ELSE, which calls
+        // populateTextSection('tab-combos', 'Editing combos', buffer) - blowing
+        // the composed tab away and leaving a bare block dump titled "Editing
+        // combos" behind. Found while generalising this for Techs; it has been
+        // the behaviour since the Combos tab shipped in v0.15.
+        if (typeof window.flushDocumentSection === 'function') window.flushDocumentSection();
+        window.renderDocumentPreview(tabId);
     } else if (window.usesSharedKeyedUI && window.usesSharedKeyedUI(tabId)) {
         // Any keyed section (js/character_tabs.js). Flushes the open entry's
         // blocks back into it before redrawing, which is what stops the buffer
@@ -281,6 +294,13 @@ function updateLivePreview(skipHistory = false) {
             window.currentEditorDescData.matchups[window.currentMatchupIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
         }
         if (typeof renderMatchupsPreview === 'function') renderMatchupsPreview();
+
+    } else if (window.getDocumentSections && window.getDocumentSections(tabId)) {
+        // See the matching branch in triggerManualSync above. This is the call
+        // path that runs on every keystroke in a block, so it is the one that
+        // was destroying the Combos preview as it was typed into.
+        if (typeof window.flushDocumentSection === 'function') window.flushDocumentSection();
+        if (typeof window.renderDocumentPreview === 'function') window.renderDocumentPreview(tabId);
 
     } else if (window.usesSharedKeyedUI && window.usesSharedKeyedUI(tabId)) {
         flushKeyedSection(tabId, currentStrategyBlocks);

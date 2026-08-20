@@ -177,7 +177,7 @@ test('the editor offers the card and writes its route as an array', async ({ pag
   // the block builder belongs to whichever card is open, not to the group.
   // Owner, 2026-08-16: an ADD BLOCK with no card selected has nowhere to put
   // the block, and one added there becomes a sibling of the cards.
-  await page.locator('[onclick*="addComboGroup"]').click();
+  await page.locator('[onclick*="addDocumentGroup"]').click();
   await page.waitForTimeout(400);
 
   const beforeCard = await page.evaluate(() => ({
@@ -199,9 +199,9 @@ test('the editor offers the card and writes its route as an array', async ({ pag
     // The group THIS test opened, not groups[0]. Boomcat is the owner's real
     // page and already carries combo groups of their own, so indexing from the
     // front reads their content and compares it against this test's input.
-    const openIdx = parseInt(String(window.currentCombosSection || '').replace('group-', ''), 10);
+    const openIdx = parseInt(String(window.currentDocSection || '').replace('group-', ''), 10);
     const group = groups[openIdx] || {};
-    const card = (group.content || [])[window.currentComboCardIndex];
+    const card = (group.content || [])[window.currentDocCardIndex];
     return {
       groups: groups.length,
       card: card ? { type: card.type, sequence: card.sequence, damage: card.damage, hasContent: Array.isArray(card.content) } : null,

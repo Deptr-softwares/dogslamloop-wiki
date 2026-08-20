@@ -184,6 +184,17 @@
 
                         <div id="page-meta-flags" class="page-meta-flags"></div>
 
+                        <!-- Optional tabs write to page_data, not site_pages, so
+                             unlike everything else on this card they take effect
+                             on the next page load rather than after regeneration.
+                             Said in the hint below rather than left to be
+                             discovered. -->
+                        <div id="page-meta-tabs-block" hidden>
+                            <label class="block-field-label-sm">OPTIONAL TABS</label>
+                            <div id="page-meta-tabs" class="page-meta-flags"></div>
+                            <p class="admin-tool-hint">Off by default. A tab switched off is invisible everywhere - the character page, the editor and the review queue. Takes effect on the next page load, not at the next regeneration.</p>
+                        </div>
+
                         <div id="page-meta-character-fields" hidden>
                             <label class="block-field-label-sm" for="page-meta-archetype">ARCHETYPE</label>
                             <input type="text" id="page-meta-archetype" class="editor-input admin-input-full" placeholder="Rushdown, Zoner, ...">
@@ -530,9 +541,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/character_tabs.js?v=eec4729e"></script>
-    <script src="js/input_slots.js?v=eec4729e"></script>
-    <script src="js/site_utils.js?v=eec4729e"></script>
+    <script src="js/character_tabs.js?v=545177a7"></script>
+    <script src="js/input_slots.js?v=545177a7"></script>
+    <script src="js/site_utils.js?v=545177a7"></script>
     <script src="js/site_meta.js"></script>
     <script src="js/editor-folders.js"></script>
     <script src="js/editor-blocks.js"></script>

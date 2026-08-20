@@ -902,9 +902,12 @@ window.renderComboListTable = function (group, section) {
     if (Array.isArray(group.content) && group.content.length > 0) {
         const prose = document.createElement('div');
         prose.className = 'combos-content';
-        prose.id = `combos-content-${String(name).replace(/\s+/g, '-')}`;
+        // Prefixed with the tab, because Combos and Techs can both be on the
+        // same character and both draw a table called "5H Starters". Without
+        // it the second one's prose renders into the first one's container.
+        prose.id = `${section.tab}-content-${String(name).replace(/\s+/g, '-')}`;
         wrapper.appendChild(prose);
-        populateTextSection(prose.id, '', group.content, 'combos');
+        populateTextSection(prose.id, '', group.content, section.tab);
         const injected = prose.querySelector('section.wiki-section');
         if (injected) injected.classList.remove('wiki-section');
     }
@@ -912,11 +915,16 @@ window.renderComboListTable = function (group, section) {
     return wrapper;
 };
 
-// The Combos tab, in the order the reference reads:
+// A DOCUMENT TAB, in the order the reference reads:
 //
-//   Read First     comboIntro    prose, methodology, notation legend
-//   <Group Title>  comboGroups   TheoryBox cards, prose, inline combos
-//   Combo List     comboList     one captioned sortable table per starter
+//   Read First          comboIntro   prose, methodology, notation legend
+//   <Group Title>       comboGroups  TheoryBox cards, prose, inline combos
+//   Combo List          comboList    one captioned sortable table per starter
+//
+// ...and Techs, which is the same three parts under the owner's other
+// vocabulary - Technical Overview, Tech Groups, Tech List (keyed by theory
+// rather than by starter). Every difference between the two tabs is a string in
+// js/character_tabs.js; this function does not know either tab by name.
 //
 // Composed here rather than by the shared keyed renderer, because the tab is a
 // DOCUMENT of three parts - the same decomposition the Overview tab already
@@ -924,16 +932,17 @@ window.renderComboListTable = function (group, section) {
 //
 // The first attempt made the table a group's content, which left nowhere for
 // the cards to live and put the reference index in the middle of the prose.
-window.renderCombosTab = function (data) {
-    const container = document.getElementById('tab-combos');
+window.renderDocumentTab = function (tabId, data) {
+    const sections = window.getDocumentSections ? window.getDocumentSections(tabId) : null;
+    if (!sections) return;
+
+    const container = document.getElementById(`tab-${tabId}`);
     if (!container) return;
+
+    const { intro, groups, list } = sections;
 
     container.innerHTML = '';
     container.classList.add('space-y-6');
-
-    const intro = (window.FIXED_BLOCK_SECTIONS || []).find(f => f.field === 'comboIntro');
-    const groups = window.getKeyedSectionByField ? window.getKeyedSectionByField('comboGroups') : null;
-    const list = window.getKeyedSectionByField ? window.getKeyedSectionByField('comboList') : null;
 
     const introBlocks = intro ? data[intro.field] : null;
     const groupList = groups ? data[groups.field] : null;
@@ -942,7 +951,7 @@ window.renderCombosTab = function (data) {
     if ((!introBlocks || !introBlocks.length)
         && (!groupList || !groupList.length)
         && (!tables || !tables.length)) {
-        container.innerHTML = '<div class="empty-tab-msg">No combos have been written for this character yet.</div>';
+        container.innerHTML = `<div class="empty-tab-msg">${escBlockText(sections.tab.emptyMessage || 'Nothing written for this character yet.')}</div>`;
         return;
     }
 
@@ -971,10 +980,14 @@ window.renderCombosTab = function (data) {
         section.innerHTML = `<div class="card-header-flex"><h3 class="card-header-title">${escBlockText(intro.label)}</h3></div>`;
         const body = document.createElement('div');
         body.className = 'combos-content';
-        body.id = 'combo-intro-content';
+        // Every id below carries the tab, because a character can have both
+        // Combos and Techs open in the same document and populateTextSection
+        // resolves its target by getElementById. Sharing 'combo-intro-content'
+        // between them would render the second tab's prose into the first's.
+        body.id = `${tabId}-intro-content`;
         section.appendChild(body);
         container.appendChild(section);
-        populateTextSection(body.id, '', introBlocks, 'combos');
+        populateTextSection(body.id, '', introBlocks, tabId);
         const injected = body.querySelector('section.wiki-section');
         if (injected) injected.classList.remove('wiki-section');
     }
@@ -989,11 +1002,11 @@ window.renderCombosTab = function (data) {
         // Indexed, not keyed by title: a title is contributor text and two
         // groups may share one, which would collide the ids and make
         // populateTextSection render into the first one twice.
-        body.id = `combo-group-content-${idx}`;
+        body.id = `${tabId}-group-content-${idx}`;
         container.appendChild(body);
 
         if (Array.isArray(group.content) && group.content.length) {
-            populateTextSection(body.id, '', group.content, 'combos');
+            populateTextSection(body.id, '', group.content, tabId);
             const injected = body.querySelector('section.wiki-section');
             if (injected) injected.classList.remove('wiki-section');
         } else {
@@ -1001,7 +1014,7 @@ window.renderCombosTab = function (data) {
         }
     });
 
-    // --- Combo List, last ---
+    // --- Combo List / Tech List, last ---
     if (list && tables && tables.length) {
         const host = document.createElement('div');
         host.className = 'combo-list-section space-y-6';
@@ -1022,10 +1035,17 @@ window.renderCombosTab = function (data) {
     }
 };
 
-// Kept as the registry's rendererFn for comboList so the editor's live preview
-// can redraw the whole tab from one entry point.
-window.renderComboListSection = function (data) {
-    window.renderCombosTab(data);
+// The registry's rendererFn for each document tab's list section, so the
+// editor's live preview and description.js's own boot can redraw the whole tab
+// from one entry point. Named per tab rather than passed a tab id, because
+// rendererFn is looked up by NAME off window and called with the data alone -
+// see js/editor-previews.js and the self-rendered loop below.
+window.renderCombosTab = function (data) {
+    window.renderDocumentTab('combos', data);
+};
+
+window.renderTechsTab = function (data) {
+    window.renderDocumentTab('techs', data);
 };
 
 function getAlignStyle(align) {
@@ -1170,6 +1190,17 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
             // 2. Check Supabase Cloud Database
             if (typeof window.fetchCloudCharacterData === 'function') {
                 const cloudData = await window.fetchCloudCharacterData(pageId);
+
+                // Which optional tabs this page has, before anything renders.
+                // Outside the desc_data guard on purpose: a page with no
+                // descriptions still has a tab strip, and leaving the flag
+                // unset there would leave a previous page's answer in place on
+                // any surface that loads two pages in one session (the admin
+                // preview does exactly that).
+                if (typeof window.applyOptionalTabsFromPageRow === 'function') {
+                    window.applyOptionalTabsFromPageRow(cloudData);
+                }
+
                 if (cloudData && cloudData.desc_data) {
                     data = cloudData.desc_data;
                     console.log(`[Cloud] Loaded ${pageId} descriptions.`);
@@ -1523,8 +1554,17 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
             // rather than another branch here. De-duplicated by function,
             // because several sections of one tab share a composer.
             const selfRendered = new Set();
+            // Filtered by the tab list, not by the section list: an OPTIONAL
+            // tab switched off still has its sections in the vocabulary - the
+            // pipeline needs them so an already-queued delta still applies -
+            // but nothing should draw it. getCharacterTabIds is where that
+            // decision lives (js/character_tabs.js).
+            const drawableTabs = window.getCharacterTabIds
+                ? window.getCharacterTabIds({ includeInjected: true })
+                : null;
             (window.getKeyedSections ? window.getKeyedSections() : [])
                 .filter(s => s.rendererFn && typeof window[s.rendererFn] === 'function')
+                .filter(s => !drawableTabs || drawableTabs.includes(s.tab))
                 .forEach(s => {
                     if (selfRendered.has(s.rendererFn)) return;
                     selfRendered.add(s.rendererFn);

@@ -377,28 +377,44 @@ window.applyInputSlotColours = function (root) {
         if (matched) chip.innerHTML = `<span class="combo-node-text">${replaced}</span>`;
     });
 
-    // 2. Move names in prose - but ONLY inside the Combos tab.
+    // 2. Move names in prose - but ONLY inside a DOCUMENT TAB (Combos, Techs).
     //
     // Owner, 2026-08-17: slot colouring stays in combo blocks and the Combos
     // tab. Site-wide it would tint the frame-data pages, where every move name
     // appears dozens of times, and turn a reference table into a rainbow. A
     // combo block carries its own colour anywhere because a route IS notation;
     // prose only counts as notation when it is combo prose.
+    //
+    // Techs is the same kind of prose - routes, cancels and move names written
+    // as notation - so it gets the same treatment. Derived from the registry
+    // rather than listing the two tabs, so this cannot be the one place a third
+    // document tab is forgotten.
     if (!terms) return;
-    const combosTab = scope.querySelector
-        ? (scope.id === 'tab-combos' ? scope : scope.querySelector('#tab-combos'))
-        : null;
-    if (!combosTab) return;
-    combosTab.querySelectorAll('.is-styled:not(.is-slotted-prose)').forEach(block => {
-        block.classList.add('is-slotted-prose');
-        const before = block.innerHTML;
-        terms.pattern.lastIndex = 0;
-        const after = before.replace(terms.pattern, (match) => {
-            const id = terms.lookup.get(window.normaliseMoveName(match));
-            const slot = id && window.getInputSlot(id);
-            return slot ? `<span class="sc-auto ${slot.cls}">${match}</span>` : match;
+    if (!scope.querySelector) return;
+
+    const documentTabIds = window.getDocumentTabIds ? window.getDocumentTabIds() : ['combos'];
+    const hosts = [];
+    documentTabIds.forEach(tabId => {
+        if (scope.id === `tab-${tabId}`) hosts.push(scope);
+        else {
+            const found = scope.querySelector(`#tab-${tabId}`);
+            if (found) hosts.push(found);
+        }
+    });
+    if (!hosts.length) return;
+
+    hosts.forEach(host => {
+        host.querySelectorAll('.is-styled:not(.is-slotted-prose)').forEach(block => {
+            block.classList.add('is-slotted-prose');
+            const before = block.innerHTML;
+            terms.pattern.lastIndex = 0;
+            const after = before.replace(terms.pattern, (match) => {
+                const id = terms.lookup.get(window.normaliseMoveName(match));
+                const slot = id && window.getInputSlot(id);
+                return slot ? `<span class="sc-auto ${slot.cls}">${match}</span>` : match;
+            });
+            if (after !== before) block.innerHTML = after;
         });
-        if (after !== before) block.innerHTML = after;
     });
 };
 

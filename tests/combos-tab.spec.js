@@ -300,7 +300,7 @@ test('the editor is a sub-tab strip, and builds all three sections', async ({ pa
     .toHaveCount(1);
 
   // A group.
-  await page.locator('[onclick*="addComboGroup"]').click();
+  await page.locator('[onclick*="addDocumentGroup"]').click();
   await page.waitForTimeout(300);
   await page.locator('#combos-editor-container input[type="text"]').first().fill('True Combos');
   await page.waitForTimeout(300);
@@ -308,8 +308,8 @@ test('the editor is a sub-tab strip, and builds all three sections', async ({ pa
   const afterGroup = await page.evaluate(() => ({
     groups: (window.currentEditorDescData.comboGroups || []).map(g => g.title),
     // The group THIS test opened, not group-0: Boomcat may already have some.
-    openIdx: parseInt(String(window.currentCombosSection || '').replace('group-', ''), 10),
-    navLabel: document.getElementById(`combos-nav-${window.currentCombosSection}`)?.textContent,
+    openIdx: parseInt(String(window.currentDocSection || '').replace('group-', ''), 10),
+    navLabel: document.getElementById(`combos-nav-${window.currentDocSection}`)?.textContent,
     previewHeadings: [...document.querySelectorAll('#tab-combos .combo-section-title')].map(h => h.textContent),
     // No card selected yet, so there is nothing to add a block TO. An ADD
     // BLOCK toolbar here would attach blocks as siblings of the cards.
@@ -345,7 +345,7 @@ test('the editor is a sub-tab strip, and builds all three sections', async ({ pa
     // The table THIS test opened. Boomcat is the owner's real page and may
     // already carry starters, so indexing from the front reads their content
     // and compares it against this test's input.
-    table: (window.currentEditorDescData.comboList || [])[window.currentComboTableIndex],
+    table: (window.currentEditorDescData.comboList || [])[window.currentDocTableIndex],
     previewRows: document.querySelectorAll('#tab-combos .combo-list-table').length,
   }));
 

@@ -38,6 +38,8 @@
         "20260814000001_free_submit_tier_list.sql": "5d8ed7c6a9189166ca95352365f6e0169f783e79dc862f89d7101e70b6f7a87b",
         "20260815000000_fix_personnel_joined_at.sql": "4135f9af01340ab55c12542b8d2ce87c648e8aed646439ceaad0a22ddbe6e604",
         "20260818000000_tier_list_game_version.sql": "5f89f4e2bc6cd85b6d2057dab2573186765fe86cff86798a2836b278467fd7a4",
+        "20260818000001_page_history_null_columns.sql": "4f43c2c8ed392bfd1a27b066efe117c913bb991a6c0b420fbc87dd889f5dae27",
+        "20260818000002_page_optional_tabs.sql": "950368731d617608c334aba8952b60ad3d16116258d5afaee79b9dd19f0357e3",
         "20260819000000_revoke_trigger_function_grants.sql": "b94f4e463a166ccec8aafc648fb38d3fb8eba336b67d946ac82eaecd11177ee5"
     }
 }

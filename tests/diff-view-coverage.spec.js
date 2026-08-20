@@ -23,6 +23,12 @@ const LIVE_DESC = {
   comboIntro: [{ type: 'paragraph', content: 'live intro' }],
   comboGroups: [{ title: 'True Combos', content: [{ type: 'paragraph', content: 'live group' }] }],
   comboList: [{ starter: 'M1 Starters', rows: [{ combo: 'M1 M1 Explosion', damage: '10', worksOn: 'All' }] }],
+  // Techs is Combos' shape under the owner's other vocabulary, and its scopes
+  // are separate - so it needs its own fixtures here or the reviewer is blind
+  // to a whole tab. Keyed by `theory`, not `starter`.
+  techIntro: [{ type: 'paragraph', content: 'live tech intro' }],
+  techGroups: [{ title: 'Wall Techs', content: [{ type: 'paragraph', content: 'live tech group' }] }],
+  techList: [{ theory: 'Momentum', rows: [{ combo: 'Dash Cancel', damage: '5', worksOn: 'All' }] }],
   counterplay: [{ topic: 'Spacing', content: [] }],
   starterGuide: [{ topic: 'Basics', content: [] }],
   matchups: [{ opponent: 'Vessel', tier: 'even', content: [] }],
@@ -61,6 +67,9 @@ const PAYLOADS = {
   comboGroup: { title: 'True Combos', content: [{ type: 'paragraph', content: 'CHANGED' }] },
   comboTable: { starter: 'M1 Starters', rows: [{ combo: 'M1 M1 Explosion', damage: '99', worksOn: 'All' }] },
   comboIntro: [{ type: 'paragraph', content: 'CHANGED intro' }],
+  techGroup: { title: 'Wall Techs', content: [{ type: 'paragraph', content: 'CHANGED tech' }] },
+  techTable: { theory: 'Momentum', rows: [{ combo: 'Dash Cancel', damage: '99', worksOn: 'All' }] },
+  techIntro: [{ type: 'paragraph', content: 'CHANGED tech intro' }],
   gallery_item: { name: 'Emote A', media: 'CHANGED' },
   gallery_intro: [{ type: 'paragraph', content: 'CHANGED gallery intro' }],
   intro: [{ type: 'paragraph', content: 'CHANGED intro' }],
@@ -76,6 +85,7 @@ const PAYLOADS = {
 const KEYS = {
   extra: 'Tech', matchup: 'Vessel', counterplay: 'Spacing', starterGuide: 'Basics',
   comboGroup: 'True Combos', comboTable: 'M1 Starters', gallery_item: 'Emote A',
+  techGroup: 'Wall Techs', techTable: 'Momentum',
   system_section: 'basics::intro', system_tab: 'basics',
   tierlist_tiers: 'basics', tierlist_changelog: 'basics',
   move: 'skills::explosion',

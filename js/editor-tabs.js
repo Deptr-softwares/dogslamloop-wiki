@@ -54,6 +54,15 @@ window.switchEditorTab = async function(tabId) {
     window.currentMatchupIndex = undefined;
     window.currentKeyedIndex = {};
 
+    // The document-tab cursors are scalars rather than a map keyed by tab,
+    // because only one document tab is ever mounted. Crossing to another tab
+    // therefore has to reset them, or opening Techs would land on the group
+    // index that belonged to Combos - and `group-4` of a tab with one group
+    // resolves to undefined and renders nothing.
+    window.currentDocSection = null;
+    window.currentDocCardIndex = undefined;
+    window.currentDocTableIndex = undefined;
+
     // The preview pane keeps one visible tab; editor-core un-hides only the
     // booted one, so the switch has to move it.
     const previousPreviewTab = document.getElementById(`tab-${window.currentEditorTabId}`);
@@ -265,16 +274,18 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             if (typeof renderMatchupsPreview === 'function') renderMatchupsPreview();
         }
 
-    } else if (tabId === 'combos') {
-        // The Combos tab is a document of three parts, so its editor is a
-        // sub-tab strip like the Overview tab's - not a list of entries.
+    } else if (window.getDocumentSections && window.getDocumentSections(tabId)) {
+        // A DOCUMENT TAB - Combos, Techs - is three parts, so its editor is a
+        // sub-tab strip like the Overview tab's, not a list of entries.
         //
         //   [ Read First ] [ Combo List ] [ True Combos x ] [ + GROUP ]
+        //   [ Technical Overview ] [ Tech List ] [ Wall Techs x ] [ + GROUP ]
         //
         // Same daw-tab-btn strip, same removable-extra affordance, same single
-        // swapping container.
-        const groups = window.getKeyedSectionByField('comboGroups');
-        const intro = (window.FIXED_BLOCK_SECTIONS || []).find(f => f.field === 'comboIntro');
+        // swapping container. Every word that differs between the two comes out
+        // of js/character_tabs.js - this branch does not know either tab's name.
+        const doc = window.getDocumentSections(tabId);
+        const { intro, groups, list } = doc;
         const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
 
         if (!window.currentEditorDescData[intro.field]) window.currentEditorDescData[intro.field] = [];
@@ -282,28 +293,31 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
 
         let navHTML = window.reorderStripControls(`desc.${groups.field}`);
         navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
-        navHTML += `<button class="daw-tab-btn active" id="combos-nav-intro" onclick="window.loadCombosSectionIntoEditor('intro')">${esc(intro.label)}</button>`;
-        navHTML += `<button class="daw-tab-btn" id="combos-nav-list" onclick="window.loadCombosSectionIntoEditor('list')">Combo List</button>`;
+        // The tab id, not a literal: two document tabs would otherwise share
+        // one set of button ids, and loadDocumentSectionIntoEditor clears
+        // `active` by prefix.
+        navHTML += `<button class="daw-tab-btn active" id="${esc(tabId)}-nav-intro" onclick="window.loadDocumentSectionIntoEditor('${esc(tabId)}', 'intro')">${esc(intro.label)}</button>`;
+        navHTML += `<button class="daw-tab-btn" id="${esc(tabId)}-nav-list" onclick="window.loadDocumentSectionIntoEditor('${esc(tabId)}', 'list')">${esc(list.label)}</button>`;
 
         window.currentEditorDescData[groups.field].forEach((group, idx) => {
             // Escaped: a group title is contributor text reaching innerHTML.
             const name = group[groups.keyField] || `Group ${idx + 1}`;
             navHTML += `<div class="daw-tab-item">`;
-            navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="combos-nav-group-${idx}" onclick="window.loadCombosSectionIntoEditor('group-${idx}')">${esc(name)}</button>`;
-            navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeComboGroup(${idx})" title="Remove Group">&#10006;</button>`;
+            navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${esc(tabId)}-nav-group-${idx}" onclick="window.loadDocumentSectionIntoEditor('${esc(tabId)}', 'group-${idx}')">${esc(name)}</button>`;
+            navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeDocumentGroup('${esc(tabId)}', ${idx})" title="Remove Group">&#10006;</button>`;
             navHTML += `</div>`;
         });
 
-        window.registerInserter(`desc.${groups.field}`, () => window.addComboGroup());
-        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addComboGroup()">+ GROUP</button>`;
+        window.registerInserter(`desc.${groups.field}`, () => window.addDocumentGroup(tabId));
+        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addDocumentGroup('${esc(tabId)}')">+ GROUP</button>`;
         navHTML += `</div>`;
 
         builder.innerHTML = `
             ${navHTML}
-            <div id="combos-editor-container"></div>
+            <div id="${esc(tabId)}-editor-container"></div>
         `;
 
-        window.loadCombosSectionIntoEditor(window.currentCombosSection || 'intro');
+        window.loadDocumentSectionIntoEditor(tabId, window.currentDocSection || 'intro');
 
     } else if (window.usesSharedKeyedUI(tabId)) {
         // Every keyed section except matchups, which keeps its own editor -
@@ -709,32 +723,49 @@ function comboRowSummary(row) {
     return row.damage ? `(${row.damage})` : 'Empty combo';
 }
 
-// --- SUB-NAVIGATION: THE COMBOS TAB ---
+// --- SUB-NAVIGATION: A DOCUMENT TAB (Combos, Techs) ---
 //
 // Mirrors loadOverviewSectionIntoEditor: one swapping container, one active
 // button, and the block buffer flushed before leaving whatever was open.
+//
+// Every function below takes the tab id. This was written with 'combos' and
+// 'comboGroups' spelled through it at ~30 sites, and Techs is the same editor
+// with the owner's other vocabulary - so the alternative was a second copy of
+// 500 lines that has to be kept in step by hand. The strings all come out of
+// js/character_tabs.js; nothing here knows either tab by name.
+//
+// The INNER panel ids (combo-cards-panel, combo-table-body, the row modal) stay
+// unprefixed on purpose: the editor mounts exactly one document tab at a time -
+// builder.innerHTML is replaced on every switch - so there is never a second
+// set in the DOM to collide with. Only the NAV ids carry the tab, because
+// loadDocumentSectionIntoEditor clears `active` by prefix and a stale
+// combos-nav-* left over from a previous mount would be missed.
 
-window.loadCombosSectionIntoEditor = function (sectionId) {
-    const groups = window.getKeyedSectionByField('comboGroups');
-    const intro = (window.FIXED_BLOCK_SECTIONS || []).find(f => f.field === 'comboIntro');
-    const container = document.getElementById('combos-editor-container');
-    if (!groups || !intro || !container) return;
+function docSections(tabId) {
+    return window.getDocumentSections ? window.getDocumentSections(tabId) : null;
+}
 
+window.loadDocumentSectionIntoEditor = function (tabId, sectionId) {
+    const doc = docSections(tabId);
+    const container = document.getElementById(`${tabId}-editor-container`);
+    if (!doc || !doc.groups || !doc.intro || !container) return;
+
+    const { intro, groups } = doc;
     const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
 
     // Flush the section being left, or its blocks are lost. currentStrategyBlocks
     // is only written back into desc_data on sync.
-    flushCombosSection();
+    flushDocumentSection();
 
-    document.querySelectorAll('[id^="combos-nav-"]').forEach(b => b.classList.remove('active'));
-    const activeBtn = document.getElementById(`combos-nav-${sectionId}`);
+    document.querySelectorAll(`[id^="${tabId}-nav-"]`).forEach(b => b.classList.remove('active'));
+    const activeBtn = document.getElementById(`${tabId}-nav-${sectionId}`);
     if (activeBtn) activeBtn.classList.add('active');
-    window.currentCombosSection = sectionId;
+    window.currentDocSection = sectionId;
 
     if (sectionId === 'list') {
         container.innerHTML = `<div id="combo-rows-panel"></div>`;
-        window.renderComboListEditor();
-        window.renderCombosPreview();
+        window.renderDocumentListEditor(tabId);
+        window.renderDocumentPreview(tabId);
         return;
     }
 
@@ -746,7 +777,7 @@ window.loadCombosSectionIntoEditor = function (sectionId) {
             <div id="strategy-block-target"></div>
         `;
         initStrategyBlockBuilder('strategy-block-target', window.currentEditorDescData[intro.field] || []);
-        window.renderCombosPreview();
+        window.renderDocumentPreview(tabId);
         return;
     }
 
@@ -764,14 +795,14 @@ window.loadCombosSectionIntoEditor = function (sectionId) {
                     <div>
                         <label class="editor-field-label-sm">Group Title</label>
                         <input type="text" class="editor-input" value="${esc(group[groups.keyField] || '')}"
-                               oninput="window.updateComboGroupTitle(${idx}, this.value)"
+                               oninput="window.updateDocumentGroupTitle('${esc(tabId)}', ${idx}, this.value)"
                                placeholder="e.g. True Combos">
                     </div>
                 </div>
             </div>
         </div>
         <div class="editor-section-banner">
-            <span class="editor-section-banner-text">COMBO CARDS</span>
+            <span class="editor-section-banner-text">${esc(String(groups.unitNoun || 'Combo').toUpperCase())} CARDS</span>
         </div>
         <div id="combo-cards-panel"></div>
     `;
@@ -783,28 +814,30 @@ window.loadCombosSectionIntoEditor = function (sectionId) {
     // haven't selected a TheoryBox". Mounting the builder on group.content
     // offered a bare block toolbar with nothing to attach a block to, and a
     // block added there became a sibling of the cards rather than part of one.
-    window.currentComboCardIndex = undefined;
-    window.renderComboCardsPanel(idx);
-    window.renderCombosPreview();
+    window.currentDocCardIndex = undefined;
+    window.renderDocumentCardsPanel(tabId, idx);
+    window.renderDocumentPreview(tabId);
 };
 
-// The cards inside one combo group, and the write-up editor for the open one.
-window.renderComboCardsPanel = function (groupIdx) {
-    const groups = window.getKeyedSectionByField('comboGroups');
+// The cards inside one group, and the write-up editor for the open one.
+window.renderDocumentCardsPanel = function (tabId, groupIdx) {
+    const doc = docSections(tabId);
     const host = document.getElementById('combo-cards-panel');
-    if (!groups || !host) return;
+    if (!doc || !doc.groups || !host) return;
 
+    const groups = doc.groups;
+    const noun = groups.unitNoun || 'Combo';
     const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
     const group = (window.currentEditorDescData[groups.field] || [])[groupIdx];
     if (!group) return;
     if (!Array.isArray(group.content)) group.content = [];
 
     const cards = group.content;
-    const open = window.currentComboCardIndex;
+    const open = window.currentDocCardIndex;
 
     let html = `<div class="daw-variant-tabs daw-editor-nav-row">`;
     if (cards.length === 0) {
-        html += `<span class="daw-empty-state">No combo cards in this group yet.</span>`;
+        html += `<span class="daw-empty-state">No ${esc(noun.toLowerCase())} cards in this group yet.</span>`;
     } else {
         cards.forEach((card, i) => {
             // A card is recognised by its name, and falls back to its route -
@@ -824,60 +857,62 @@ window.renderComboCardsPanel = function (groupIdx) {
 
     host.querySelectorAll('[data-card]').forEach(btn => {
         btn.addEventListener('click', () => {
-            flushComboCard(groupIdx);
-            window.currentComboCardIndex = parseInt(btn.getAttribute('data-card'), 10);
-            window.renderComboCardsPanel(groupIdx);
+            flushDocumentCard(tabId, groupIdx);
+            window.currentDocCardIndex = parseInt(btn.getAttribute('data-card'), 10);
+            window.renderDocumentCardsPanel(tabId, groupIdx);
         });
     });
     host.querySelectorAll('[data-remove-card]').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!(await window.customConfirm('Delete this combo card and its write-up?'))) return;
+            if (!(await window.customConfirm(`Delete this ${noun.toLowerCase()} card and its write-up?`))) return;
             cards.splice(parseInt(btn.getAttribute('data-remove-card'), 10), 1);
             // The open card may have been the one removed, or shifted down.
-            window.currentComboCardIndex = undefined;
-            window.renderComboCardsPanel(groupIdx);
-            window.renderCombosPreview();
+            window.currentDocCardIndex = undefined;
+            window.renderDocumentCardsPanel(tabId, groupIdx);
+            window.renderDocumentPreview(tabId);
         });
     });
     const addBtn = host.querySelector('#combo-card-add');
     if (addBtn) {
         addBtn.addEventListener('click', () => {
-            flushComboCard(groupIdx);
+            flushDocumentCard(tabId, groupIdx);
             const card = window.spawnBlockWithAuthor
                 ? window.spawnBlockWithAuthor('theorybox')
-                : { type: 'theorybox', title: 'New Combo', sequence: [], content: [] };
+                : { type: 'theorybox', title: `New ${noun}`, sequence: [], content: [] };
             cards.push(card);
-            window.currentComboCardIndex = cards.length - 1;
-            window.renderComboCardsPanel(groupIdx);
-            window.renderCombosPreview();
+            window.currentDocCardIndex = cards.length - 1;
+            window.renderDocumentCardsPanel(tabId, groupIdx);
+            window.renderDocumentPreview(tabId);
         });
     }
 
-    renderComboCardBody(groupIdx, cards);
+    renderDocumentCardBody(tabId, groupIdx, cards);
 };
 
 // The block buffer belongs to the open card's write-up. Only ever written back
 // on a switch or a sync, same as every other block surface.
-function flushComboCard(groupIdx) {
-    const groups = window.getKeyedSectionByField('comboGroups');
-    const idx = window.currentComboCardIndex;
-    if (idx === undefined || typeof window.getActiveBlocks !== 'function') return;
-    const group = (window.currentEditorDescData[groups.field] || [])[groupIdx];
+function flushDocumentCard(tabId, groupIdx) {
+    const doc = docSections(tabId);
+    const idx = window.currentDocCardIndex;
+    if (!doc || !doc.groups || idx === undefined || typeof window.getActiveBlocks !== 'function') return;
+    const group = (window.currentEditorDescData[doc.groups.field] || [])[groupIdx];
     const card = group && Array.isArray(group.content) ? group.content[idx] : null;
     if (card) card.content = JSON.parse(JSON.stringify(window.getActiveBlocks()));
 }
-window.flushComboCard = flushComboCard;
+window.flushDocumentCard = flushDocumentCard;
 
-function renderComboCardBody(groupIdx, cards) {
+function renderDocumentCardBody(tabId, groupIdx, cards) {
     const container = document.getElementById('combo-card-body');
     if (!container) return;
 
-    const idx = window.currentComboCardIndex;
+    const doc = docSections(tabId);
+    const noun = (doc && doc.groups && doc.groups.unitNoun) || 'Combo';
+    const idx = window.currentDocCardIndex;
     const card = cards[idx];
     if (!card) {
         // No card open, so no block toolbar. This is the owner's point: an
         // ADD BLOCK with nothing selected has nowhere to put the block.
-        container.innerHTML = `<p class="admin-tool-hint">Select a combo card to edit it, or add one.</p>`;
+        container.innerHTML = `<p class="admin-tool-hint">Select a ${escapeForHint(noun.toLowerCase())} card to edit it, or add one.</p>`;
         return;
     }
 
@@ -890,7 +925,7 @@ function renderComboCardBody(groupIdx, cards) {
     container.innerHTML = `
         <div class="block-editor-container block-editor-container-tight">
             <div class="block-card">
-                <div class="block-header"><span class="block-type-badge">COMBO CARD</span></div>
+                <div class="block-header"><span class="block-type-badge">${esc(noun.toUpperCase())} CARD</span></div>
                 <div class="combo-card-fields">
                     <div class="combo-field-full">
                         <label class="editor-field-label-sm">Name</label>
@@ -898,7 +933,7 @@ function renderComboCardBody(groupIdx, cards) {
                     </div>
                     <div class="combo-field-full">
                         <label class="editor-field-label-sm">One line</label>
-                        <input type="text" class="editor-input" data-card-field="oneliner" value="${esc(card.oneliner || '')}" placeholder="What this combo is for">
+                        <input type="text" class="editor-input" data-card-field="oneliner" value="${esc(card.oneliner || '')}" placeholder="What this ${esc(noun.toLowerCase())} is for">
                     </div>
                     <div class="combo-field-full">
                         <label class="editor-field-label-sm">Route - one step per line</label>
@@ -935,7 +970,7 @@ function renderComboCardBody(groupIdx, cards) {
                 // textContent, not innerHTML - this runs on every keystroke.
                 if (btn) btn.textContent = card.title || steps.join(' > ') || `Card ${idx + 1}`;
             }
-            window.renderCombosPreview();
+            window.renderDocumentPreview(tabId);
         };
         input.addEventListener('input', handler);
         input.addEventListener('change', handler);
@@ -945,15 +980,28 @@ function renderComboCardBody(groupIdx, cards) {
     initStrategyBlockBuilder('strategy-block-target', card.content || []);
 }
 
-// Writes the block buffer back into whichever combos section is open.
-function flushCombosSection() {
-    const open = window.currentCombosSection;
-    if (!open || open === 'list' || !window.currentEditorDescData) return;
+// The noun comes from the registry, so it is ours rather than contributor text -
+// but it still lands in innerHTML, and "escape at every interpolation" has no
+// exceptions in this codebase.
+function escapeForHint(value) {
+    return window.escapeHtml ? window.escapeHtml(value) : String(value === null || value === undefined ? '' : value);
+}
+
+// Writes the block buffer back into whichever document section is open.
+//
+// Reads currentEditorTabId rather than taking the tab as an argument: this is
+// called from the block-editor sync path, which knows what is open but not
+// which document tab it belongs to.
+function flushDocumentSection() {
+    const open = window.currentDocSection;
+    const tabId = window.currentEditorTabId;
+    const doc = docSections(tabId);
+    if (!open || open === 'list' || !doc || !window.currentEditorDescData) return;
     if (typeof window.getActiveBlocks !== 'function') return;
 
     const blocks = JSON.parse(JSON.stringify(window.getActiveBlocks()));
     if (open === 'intro') {
-        window.currentEditorDescData.comboIntro = blocks;
+        window.currentEditorDescData[doc.intro.field] = blocks;
         return;
     }
     // A group's buffer belongs to the open CARD's write-up, not to the group -
@@ -961,13 +1009,16 @@ function flushCombosSection() {
     // them. Writing `blocks` onto group.content here would replace every card
     // in the group with the open card's write-up.
     const idx = parseInt(String(open).replace('group-', ''), 10);
-    flushComboCard(idx);
+    flushDocumentCard(tabId, idx);
 }
-window.flushCombosSection = flushCombosSection;
+window.flushDocumentSection = flushDocumentSection;
 
-window.renderCombosPreview = function () {
-    if (typeof window.renderCombosTab !== 'function' || !window.currentEditorDescData) return;
-    window.renderCombosTab(window.currentEditorDescData);
+window.renderDocumentPreview = function (tabId) {
+    const doc = docSections(tabId);
+    if (!doc || !doc.list || !window.currentEditorDescData) return;
+    const fn = doc.list.rendererFn;
+    if (!fn || typeof window[fn] !== 'function') return;
+    window[fn](window.currentEditorDescData);
     // The preview has to be styled like the live page, or notation is coloured
     // for readers and plain for the person writing it. Without this the only
     // thing colouring the editor's chips was the MutationObserver happening to
@@ -977,114 +1028,122 @@ window.renderCombosPreview = function () {
     }
 };
 
-window.addComboGroup = async function () {
-    const groups = window.getKeyedSectionByField('comboGroups');
+window.addDocumentGroup = async function (tabId) {
+    const doc = docSections(tabId);
+    if (!doc || !doc.groups) return;
+    const groups = doc.groups;
     await window.triggerManualSync();
     if (!window.currentEditorDescData[groups.field]) window.currentEditorDescData[groups.field] = [];
     window.currentEditorDescData[groups.field].push({ [groups.keyField]: 'New Group', content: [] });
-    initFullTabEditor(window.currentEditorCharId, 'combos', window.currentEditorDescData, window.currentEditorFrameData);
-    window.loadCombosSectionIntoEditor(`group-${window.currentEditorDescData[groups.field].length - 1}`);
+    initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+    window.loadDocumentSectionIntoEditor(tabId, `group-${window.currentEditorDescData[groups.field].length - 1}`);
 };
 
-window.removeComboGroup = async function (idx) {
-    const groups = window.getKeyedSectionByField('comboGroups');
-    if (!(await window.customConfirm('Delete this combo group and everything in it?'))) return;
-    window.currentEditorDescData[groups.field].splice(idx, 1);
+window.removeDocumentGroup = async function (tabId, idx) {
+    const doc = docSections(tabId);
+    if (!doc || !doc.groups) return;
+    if (!(await window.customConfirm('Delete this group and everything in it?'))) return;
+    window.currentEditorDescData[doc.groups.field].splice(idx, 1);
     // The open section may have been the one removed, or shifted down.
-    window.currentCombosSection = 'intro';
-    initFullTabEditor(window.currentEditorCharId, 'combos', window.currentEditorDescData, window.currentEditorFrameData);
-    window.renderCombosPreview();
+    window.currentDocSection = 'intro';
+    initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+    window.renderDocumentPreview(tabId);
 };
 
-window.updateComboGroupTitle = function (idx, value) {
-    const groups = window.getKeyedSectionByField('comboGroups');
-    const group = (window.currentEditorDescData[groups.field] || [])[idx];
+window.updateDocumentGroupTitle = function (tabId, idx, value) {
+    const doc = docSections(tabId);
+    if (!doc || !doc.groups) return;
+    const group = (window.currentEditorDescData[doc.groups.field] || [])[idx];
     if (!group) return;
-    group[groups.keyField] = value;
-    const btn = document.getElementById(`combos-nav-group-${idx}`);
+    group[doc.groups.keyField] = value;
+    const btn = document.getElementById(`${tabId}-nav-group-${idx}`);
     // textContent, not innerHTML - this runs on every keystroke.
     if (btn) btn.textContent = value || `Group ${idx + 1}`;
-    window.renderCombosPreview();
+    window.renderDocumentPreview(tabId);
 };
 
-// --- THE COMBO LIST EDITOR ---
-// Tables keyed by starter, each holding rows. The rows themselves open in the
-// modal (openComboRowModal below).
-window.renderComboListEditor = function () {
-    const section = window.getKeyedSectionByField('comboList');
+// --- THE LIST EDITOR ---
+// Tables keyed by starter (Combos) or theory (Techs), each holding rows. The
+// rows themselves open in the modal (openDocumentRowModal below).
+window.renderDocumentListEditor = function (tabId) {
+    const doc = docSections(tabId);
     const host = document.getElementById('combo-rows-panel');
-    if (!section || !host) return;
+    if (!doc || !doc.list || !host) return;
 
+    const section = doc.list;
+    const noun = section.entryNoun || 'Starter';
+    const nounPlural = section.entryNounPlural || 'starters';
     const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
     if (!window.currentEditorDescData[section.field]) window.currentEditorDescData[section.field] = [];
     const tables = window.currentEditorDescData[section.field];
 
-    const openTable = window.currentComboTableIndex;
+    const openTable = window.currentDocTableIndex;
 
     let html = `<div class="daw-variant-tabs daw-editor-nav-row">`;
     if (tables.length === 0) {
-        html += `<span class="daw-empty-state">No starters defined yet.</span>`;
+        html += `<span class="daw-empty-state">No ${esc(nounPlural)} defined yet.</span>`;
     } else {
         tables.forEach((t, i) => {
             html += `<div class="daw-tab-item">`;
-            html += `<button class="daw-tab-btn daw-tab-btn-removable${i === openTable ? ' active' : ''}" data-table="${i}">${esc(t[section.keyField] || `Starter ${i + 1}`)}</button>`;
-            html += `<button class="daw-tab-remove-btn" data-remove-table="${i}" title="Remove Starter">&#10006;</button>`;
+            html += `<button class="daw-tab-btn daw-tab-btn-removable${i === openTable ? ' active' : ''}" data-table="${i}">${esc(t[section.keyField] || `${noun} ${i + 1}`)}</button>`;
+            html += `<button class="daw-tab-remove-btn" data-remove-table="${i}" title="Remove ${esc(noun)}">&#10006;</button>`;
             html += `</div>`;
         });
     }
-    html += `<button type="button" id="combo-table-add" class="daw-tab-btn daw-add-btn btn-sys btn-sys-green">+ STARTER</button>`;
+    html += `<button type="button" id="combo-table-add" class="daw-tab-btn daw-add-btn btn-sys btn-sys-green">+ ${esc(noun.toUpperCase())}</button>`;
     html += `</div><div id="combo-table-body"></div>`;
 
     host.innerHTML = html;
 
     host.querySelectorAll('[data-table]').forEach(btn => {
         btn.addEventListener('click', () => {
-            window.currentComboTableIndex = parseInt(btn.getAttribute('data-table'), 10);
-            window.renderComboListEditor();
+            window.currentDocTableIndex = parseInt(btn.getAttribute('data-table'), 10);
+            window.renderDocumentListEditor(tabId);
         });
     });
     host.querySelectorAll('[data-remove-table]').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!(await window.customConfirm('Delete this starter and all its combos?'))) return;
+            if (!(await window.customConfirm(`Delete this ${noun.toLowerCase()} and everything in it?`))) return;
             tables.splice(parseInt(btn.getAttribute('data-remove-table'), 10), 1);
-            window.currentComboTableIndex = undefined;
-            window.renderComboListEditor();
-            window.renderCombosPreview();
+            window.currentDocTableIndex = undefined;
+            window.renderDocumentListEditor(tabId);
+            window.renderDocumentPreview(tabId);
         });
     });
     const addTable = host.querySelector('#combo-table-add');
     if (addTable) {
         addTable.addEventListener('click', () => {
-            tables.push({ [section.keyField]: 'New Starter', rows: [] });
-            window.currentComboTableIndex = tables.length - 1;
-            window.renderComboListEditor();
-            window.renderCombosPreview();
+            tables.push({ [section.keyField]: `New ${noun}`, rows: [] });
+            window.currentDocTableIndex = tables.length - 1;
+            window.renderDocumentListEditor(tabId);
+            window.renderDocumentPreview(tabId);
         });
     }
 
-    renderComboListRows(section, tables);
+    renderDocumentListRows(tabId, section, tables);
 };
 
-// Named renderComboListRows, NOT renderComboTableBody: description.js assigns
+// Named renderDocumentListRows, NOT renderComboTableBody: description.js assigns
 // window.renderComboTableBody, and a top-level `function` declaration here
 // silently overwrites it. The reader then called this one with the wrong
 // arguments and wrote a `rows: []` field into an individual combo. Every js/
 // file shares one global scope - see tests/global-scope-collisions.spec.js.
-function renderComboListRows(section, tables) {
+function renderDocumentListRows(tabId, section, tables) {
     const container = document.getElementById('combo-table-body');
     if (!container) return;
-    const idx = window.currentComboTableIndex;
+    const idx = window.currentDocTableIndex;
     const table = tables[idx];
     if (!table) { container.innerHTML = ''; return; }
 
+    const noun = section.entryNoun || 'Starter';
     const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
     if (!Array.isArray(table.rows)) table.rows = [];
 
     let html = `<div class="block-editor-container block-editor-container-tight">
             <div class="block-card">
-                <div class="block-header"><span class="block-type-badge">STARTER</span></div>
+                <div class="block-header"><span class="block-type-badge">${esc(noun.toUpperCase())}</span></div>
                 <div class="editor-row"><div>
-                    <label class="editor-field-label-sm">Starter Name</label>
+                    <label class="editor-field-label-sm">${esc(noun)} Name</label>
                     <input type="text" class="editor-input" id="combo-table-name" value="${esc(table[section.keyField] || '')}" placeholder="e.g. M1 Starters">
                 </div></div>
             </div>
@@ -1092,16 +1151,16 @@ function renderComboListRows(section, tables) {
         <div class="combo-rows-list">`;
 
     if (table.rows.length === 0) {
-        html += `<p class="admin-tool-hint">No combos under this starter yet.</p>`;
+        html += `<p class="admin-tool-hint">${esc(section.emptyEntryMessage || 'Nothing here yet.')}</p>`;
     } else {
         table.rows.forEach((row, i) => {
             html += `<div class="combo-row-item">
                 <button type="button" class="combo-row-open btn-sys btn-sys-regular" data-row="${i}">${esc(comboRowSummary(row || {}))}</button>
-                <button type="button" class="combo-row-remove btn-sys btn-sys-red" data-row="${i}" title="Remove this combo">&#10006;</button>
+                <button type="button" class="combo-row-remove btn-sys btn-sys-red" data-row="${i}" title="Remove this entry">&#10006;</button>
             </div>`;
         });
     }
-    html += `</div><button type="button" id="combo-row-add" class="btn-sys btn-sys-green">+ ADD COMBO</button>`;
+    html += `</div><button type="button" id="combo-row-add" class="btn-sys btn-sys-green">+ ADD ROW</button>`;
 
     container.innerHTML = html;
 
@@ -1110,52 +1169,53 @@ function renderComboListRows(section, tables) {
         nameInput.addEventListener('input', () => {
             table[section.keyField] = nameInput.value;
             const btn = document.querySelector(`[data-table="${idx}"]`);
-            if (btn) btn.textContent = nameInput.value || `Starter ${idx + 1}`;
-            window.renderCombosPreview();
+            if (btn) btn.textContent = nameInput.value || `${noun} ${idx + 1}`;
+            window.renderDocumentPreview(tabId);
         });
     }
 
     container.querySelectorAll('.combo-row-open').forEach(btn => {
         btn.addEventListener('click', () =>
-            window.openComboRowModal(idx, parseInt(btn.getAttribute('data-row'), 10)));
+            window.openDocumentRowModal(tabId, idx, parseInt(btn.getAttribute('data-row'), 10)));
     });
     container.querySelectorAll('.combo-row-remove').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!(await window.customConfirm('Delete this combo?'))) return;
+            if (!(await window.customConfirm('Delete this row?'))) return;
             table.rows.splice(parseInt(btn.getAttribute('data-row'), 10), 1);
-            renderComboListRows(section, tables);
-            window.renderCombosPreview();
+            renderDocumentListRows(tabId, section, tables);
+            window.renderDocumentPreview(tabId);
         });
     });
     const addRow = container.querySelector('#combo-row-add');
     if (addRow) {
         addRow.addEventListener('click', () => {
             table.rows.push({ sequence: [], damage: '', difficulty: '', notes: '' });
-            renderComboListRows(section, tables);
-            window.renderCombosPreview();
-            window.openComboRowModal(idx, table.rows.length - 1);
+            renderDocumentListRows(tabId, section, tables);
+            window.renderDocumentPreview(tabId);
+            window.openDocumentRowModal(tabId, idx, table.rows.length - 1);
         });
     }
 }
 
 // The row form, in a modal rather than in the sidebar. Twelve fields do not
 // fit a pane that is sharing the screen with a live preview.
-window.openComboRowModal = function (tableIdx, rowIdx) {
-    const section = window.getKeyedSectionByField('comboList');
+window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
+    const doc = docSections(tabId);
     const modal = document.getElementById('combo-row-modal');
     const fields = document.getElementById('combo-row-modal-fields');
-    if (!section || !modal || !fields) return;
+    if (!doc || !doc.list || !modal || !fields) return;
 
+    const section = doc.list;
     const table = (window.currentEditorDescData[section.field] || [])[tableIdx];
     const rows = table ? (table[section.rowsField] || []) : [];
     const row = rows[rowIdx];
     if (!row) return;
 
     const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
-    window.currentComboRowIndex = rowIdx;
+    window.currentDocRowIndex = rowIdx;
 
     const titleEl = document.getElementById('combo-row-modal-title');
-    if (titleEl) titleEl.textContent = `EDIT COMBO ${rowIdx + 1}`;
+    if (titleEl) titleEl.textContent = `EDIT ROW ${rowIdx + 1}`;
 
     fields.innerHTML = window.comboRowFields().map(f => {
         if (f.field === 'sequence') {
@@ -1198,7 +1258,7 @@ window.openComboRowModal = function (tableIdx, rowIdx) {
             } else {
                 row[field] = input.value;
             }
-            window.renderCombosPreview();
+            window.renderDocumentPreview(tabId);
             const btn = document.querySelector(`.combo-row-open[data-row="${rowIdx}"]`);
             if (btn) btn.textContent = comboRowSummary(row);
         };
@@ -1208,8 +1268,8 @@ window.openComboRowModal = function (tableIdx, rowIdx) {
 
     const close = () => {
         modal.classList.add('hidden');
-        window.currentComboRowIndex = undefined;
-        window.renderComboListEditor();
+        window.currentDocRowIndex = undefined;
+        window.renderDocumentListEditor(tabId);
     };
 
     const done = document.getElementById('combo-row-modal-done');
@@ -1219,10 +1279,10 @@ window.openComboRowModal = function (tableIdx, rowIdx) {
     if (done) done.onclick = close;
     if (del) {
         del.onclick = async () => {
-            if (!(await window.customConfirm('Delete this combo?'))) return;
+            if (!(await window.customConfirm('Delete this row?'))) return;
             rows.splice(rowIdx, 1);
             close();
-            window.renderCombosPreview();
+            window.renderDocumentPreview(tabId);
         };
     }
     modal.onclick = (e) => { if (e.target === modal) close(); };

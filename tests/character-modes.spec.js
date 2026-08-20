@@ -119,8 +119,12 @@ test('a character with no declared modes renders no toggle and no Ultimate tab',
   await expect(page.locator('#tab-ultimateAtk')).toHaveCount(0);
 
   // The tab strip is untouched: the same seven buttons, in the same order.
+  // allTextContents() reads hidden buttons too, and page_router draws the
+  // optional tabs hidden for every character - so this compares against the
+  // DRAWN strip. That an optional tab is not VISIBLE here is asserted in
+  // tests/techs-tab.spec.js, which is where that claim belongs.
   const labels = await page.locator('.character-nav .btn-manga-text').allTextContents();
-  expect(labels).toEqual(labelsOf());
+  expect(labels).toEqual(labelsOf({ includeOptional: true }));
   expect(errors).toEqual([]);
 });
 
@@ -231,7 +235,7 @@ test('a base-only character gets an Ultimate tab after Counterplay', async ({ pa
   await page.goto('/characters/Locust_guy/index.html', { waitUntil: 'networkidle' });
 
   const labels = await page.locator('.character-nav .btn-manga-text').allTextContents();
-  expect(labels).toEqual(labelsOf({ includeInjected: true }));
+  expect(labels).toEqual(labelsOf({ includeInjected: true, includeOptional: true }));
 
   // No mode toggle - a base-only character has exactly one kit.
   await expect(page.locator('#character-mode-bar')).toBeHidden();
