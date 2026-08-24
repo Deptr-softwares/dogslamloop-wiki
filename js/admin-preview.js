@@ -970,15 +970,47 @@ async function switchVersionView(mode) {
     // identical to arriving here normally.
     const diffContainerToHide = document.getElementById('admin-diff-container');
     if (diffContainerToHide) diffContainerToHide.classList.add('hidden');
-    const defaultTabId = window.getDefaultCharacterTabId();
+
+    // RESTORE THE TAB THE REVIEWER IS ON, NOT THE DEFAULT.
+    //
+    // This used to un-hide `getDefaultCharacterTabId()` unconditionally and
+    // never tell the strip, so a reviewer who opened a merged ticket on Skills
+    // and clicked PENDING SUBMISSION got the strip still reading Skills and the
+    // pane reading Overview. Techs is caught by the same sweep - it is
+    // `editable` in the vocabulary - which is why a Techs tab could not be
+    // previewed at all. Both were reported as separate bugs; they are this line.
+    //
+    // The STRIP is the source of truth here, not the panes: Diff View
+    // deliberately hides every pane, so on the way back out of it the strip is
+    // the only surviving record of where the reviewer was.
+    const activeNavBtn = document.querySelector('#preview-tab-nav .btn-manga.active');
+    const stripTabId = activeNavBtn ? activeNavBtn.id.replace(/^nav-/, '') : null;
+    // Falls back to the default when the strip names a tab this page does not
+    // have - a reviewer moving from a character with Techs on to one with it
+    // off would otherwise be restored to a pane that does not exist.
+    const restoreTabId = (stripTabId && document.getElementById(`tab-${stripTabId}`))
+        ? stripTabId
+        : window.getDefaultCharacterTabId();
+
     window.getCharacterTabIds({ includeInjected: true, editableOnly: true })
-        .filter(tab => tab !== defaultTabId)
+        .filter(tab => tab !== restoreTabId)
         .forEach(tab => {
             const el = document.getElementById(`tab-${tab}`);
             if (el) el.classList.add('hidden');
         });
-    const overviewTabToShow = document.getElementById(`tab-${defaultTabId}`);
-    if (overviewTabToShow) overviewTabToShow.classList.remove('hidden');
+    const tabToShow = document.getElementById(`tab-${restoreTabId}`);
+    if (tabToShow) tabToShow.classList.remove('hidden');
+
+    // And move the strip with it. setActiveRevisionTab (js/admin-diff.js) is
+    // the one function that changes both halves together, and it exists because
+    // of this exact class of bug - its own comment records the last time the
+    // strip pointed at one tab while the pane showed another. The sweep above
+    // is kept rather than delegated entirely: setActiveRevisionTab returns
+    // early if the strip or the button is missing, and the panes still have to
+    // end up in a sane state when it does.
+    if (typeof window.setActiveRevisionTab === 'function') {
+        window.setActiveRevisionTab(restoreTabId);
+    }
 
     window.currentEditorPageType = window.activePreviewPageType;
 
