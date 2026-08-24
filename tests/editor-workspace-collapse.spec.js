@@ -436,3 +436,48 @@ test('a short field is sized to its content, with no scrollbar', async ({ page }
   expect(ta.height, 'but it is still a usable field').toBeGreaterThan(15);
   expect(ta.overflowY, 'nothing to scroll, so no scrollbar').toBe('hidden');
 });
+
+test('an open field inside a folder survives the folder being shut and reopened', async ({ page }) => {
+  // A real editing path with two collapse mechanisms interacting: open a block,
+  // shut the FOLDER around it, redraw, open the folder again. The block was
+  // never collapsed, so its expand handler never runs on the way back.
+  //
+  // WRITTEN TO JUSTIFY THE HIDDEN-FIELD GUARD, AND IT DOES NOT. Falsifying
+  // showed this passes with the guard removed too: reopening a folder
+  // re-renders, and by then the field is visible, so it gets measured properly
+  // whatever the previous pass wrote. Kept because the path is worth covering
+  // on its own - two collapse states over one field is exactly where this
+  // breaks next - but the guard is documented in the code as defensive rather
+  // than as the thing holding this up.
+  await openWorkspace(page, [
+    { type: 'paragraph', content: LONG_TEXT, align: 'left', folder: 'Neutral' },
+  ]);
+
+  await page.locator('.block-folder-toggle').first().click();      // open folder
+  await page.waitForTimeout(250);
+  await page.locator('#block-list .block-card .btn-collapse').first().click();  // open block
+  await page.waitForTimeout(300);
+
+  const before = await page.evaluate(() =>
+    Math.round(document.querySelector('#block-list textarea.editor-textarea').getBoundingClientRect().height));
+  expect(before, 'setup: the field is sized while everything is open').toBeGreaterThan(60);
+
+  await page.locator('.block-folder-toggle').first().click();      // shut folder
+  await page.waitForTimeout(200);
+  await page.evaluate(() => window.renderBlockList());             // the hazard
+  await page.waitForTimeout(200);
+  await page.locator('.block-folder-toggle').first().click();      // reopen folder
+  await page.waitForTimeout(300);
+
+  const after = await page.evaluate(() => {
+    const el = document.querySelector('#block-list textarea.editor-textarea');
+    return {
+      height: Math.round(el.getBoundingClientRect().height),
+      scrollable: el.scrollHeight > el.clientHeight + 1,
+    };
+  });
+
+  expect(after.height, 'the field is still usable after the folder came back')
+    .toBeGreaterThan(60);
+  expect(after.scrollable, 'and its content is still reachable').toBe(true);
+});

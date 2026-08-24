@@ -1600,6 +1600,13 @@ function initStrategyBlockBuilder(containerId, initialData) {
 // a field with the content unreachable. offsetParent is null exactly when an
 // ancestor is display:none, which is the case to skip; the expand handler sizes
 // it instead, at the moment it can actually be measured.
+//
+// THE GUARD ITSELF IS DEFENSIVE, NOT LOAD-BEARING, and that is worth saying:
+// falsifying it changes no test. Every path that reveals a field re-renders
+// first, so the field is measurable by the time anyone sees it. It is here
+// because writing a height onto something that cannot be measured is wrong on
+// its own terms, and because the next path that reveals without re-rendering
+// would be broken by it.
 const EDITOR_TEXTAREA_MAX_PX = 260;
 
 window.autoSizeEditorTextarea = function (ta) {
