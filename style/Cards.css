@@ -160,6 +160,13 @@
            transform property is cheaper than winning that race. */
         position: absolute;
         top: 0; right: 0; bottom: 0; left: 0;
+        /* `fit-content` is what actually keeps the slit inside the card, not
+           the max-width below it: fit-content resolves to
+           min(max-content, available), and `available` is the card. Worth
+           knowing before anyone "simplifies" this - falsifying by raising
+           max-width to 300% changed nothing at all, while swapping fit-content
+           for max-content let the name straight out. The max-width stays as a
+           cheap guard for a future card that is sized differently. */
         width: fit-content; height: fit-content;
         max-width: 100%;
         margin: auto;
