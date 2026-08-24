@@ -45,6 +45,13 @@
     // page which optional tabs it has, and the list is only ever used to BIND
     // buttons through setupTabs. Binding a button that stays hidden costs
     // nothing; failing to bind one that gets un-hidden leaves it inert.
+    //
+    // DEFENSIVE, NOT LOAD-BEARING - and that is worth saying, because
+    // falsifying it proves nothing. setupTabs accumulates into a group and
+    // never removes, so admin-core.js having already registered Techs means
+    // reverting this line breaks no test. It is here so the list is not
+    // quietly wrong about what "the admin character tabs" are, and so this
+    // call does not depend on the other one having run first.
     const ADMIN_CHARACTER_TABS = window.getCharacterTabIds({ editableOnly: true, includeOptional: true });
 
     const BASE = () => window.BASE_MODE_ID || 'base';
