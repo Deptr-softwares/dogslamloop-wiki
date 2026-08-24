@@ -311,7 +311,12 @@ document.addEventListener('keydown', (e) => {
  * sites use this, and a rename is churn with a collision risk for no gain.
  */
 window.spawnBlockWithAuthor = function(type) {
-    return JSON.parse(JSON.stringify(blockTemplates[type]));
+    const block = JSON.parse(JSON.stringify(blockTemplates[type]));
+    // Open, because the author made it to write in it (v0.16 fine-tuning 2:
+    // everything else starts collapsed). Marked HERE rather than at the four
+    // call sites so a fifth one cannot forget - see markEditorBlockNew.
+    if (typeof window.markEditorBlockNew === 'function') window.markEditorBlockNew(block);
+    return block;
 };
 
 const blockTemplates = {
@@ -350,6 +355,48 @@ window.getActiveBlocks = function() {
         blocks = blocks[idx].content;
     }
     return blocks;
+};
+
+// --- WHICH BLOCKS ARE OPEN (v0.16 fine-tuning 2) ---
+//
+// The workspace now opens with EVERY block collapsed, so a section with thirty
+// blocks is a list you can read rather than a page you scroll. Expanding is the
+// opt-in.
+//
+// A WeakSet keyed by the BLOCK OBJECT, deliberately, and not by index:
+//
+//  - index is what the DOM uses, and it changes under reordering, insertion and
+//    deletion. Collapse state keyed by index would follow the position rather
+//    than the block, so moving one block would appear to move another's state.
+//  - a flag ON the block would be serialised into desc_data with everything
+//    else, putting a piece of one author's scroll position into the page every
+//    reader downloads.
+//
+// The object identity survives renderBlockList, which is the whole point:
+// before this, collapse was pure DOM and any re-render silently reopened
+// everything the author had put away.
+//
+// Blocks are replaced wholesale by undo/redo (JSON round-trip), so state is
+// dropped there. That is correct - those are different objects and the author
+// is looking at a different document.
+const expandedBlocks = new WeakSet();
+
+window.isEditorBlockExpanded = function (block) {
+    return !!block && expandedBlocks.has(block);
+};
+
+window.setEditorBlockExpanded = function (block, on) {
+    if (!block || typeof block !== 'object') return;
+    if (on) expandedBlocks.add(block);
+    else expandedBlocks.delete(block);
+};
+
+// A block the author just created is open. They added it to write in it, and
+// making them click twice for that would be the feature working against the
+// reason it exists.
+window.markEditorBlockNew = function (block) {
+    window.setEditorBlockExpanded(block, true);
+    return block;
 };
 
 function initStrategyBlockBuilder(containerId, initialData) {
@@ -935,12 +982,15 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 return;
             }
 
-            // Carry the collapsed state across, or renaming silently reopens a
-            // folder the author had closed.
-            if (window.isBlockFolderCollapsed(from)) {
-                window.setBlockFolderCollapsed(from, false);
-                window.setBlockFolderCollapsed(to, true);
-            }
+            // Carry the open/closed state across, or renaming moves the author
+            // somewhere they did not ask to go. Written as "read it, then set
+            // it" rather than branching on one of the two states: the default
+            // flipped to collapsed in v0.16, and the old version only carried
+            // state in the branch that is now the default - so renaming an
+            // OPEN folder would have quietly shut it.
+            const wasOpen = !window.isBlockFolderCollapsed(from);
+            window.setBlockFolderCollapsed(from, true);
+            window.setBlockFolderCollapsed(to, !wasOpen);
             renderBlockList();
             updateLivePreview(true);
             return;
@@ -1483,6 +1533,13 @@ function initStrategyBlockBuilder(containerId, initialData) {
             body.classList.toggle('minimized');
             card.classList.toggle('collapsed');
             btn.textContent = body.classList.contains('minimized') ? '□' : '—';
+
+            // Record it, or the next renderBlockList throws the author's choice
+            // away. This used to be pure DOM, which is why collapsing a block
+            // and then touching anything reopened it.
+            const collapsedIdx = parseInt(card.getAttribute('data-index'), 10);
+            const collapsedBlock = window.getActiveBlocks()[collapsedIdx];
+            window.setEditorBlockExpanded(collapsedBlock, !body.classList.contains('minimized'));
             return;
         }
         
@@ -1531,6 +1588,61 @@ function initStrategyBlockBuilder(containerId, initialData) {
     renderBlockList();
 }
 
+// A one-line label for a collapsed block.
+//
+// NOT optional decoration. Everything starts collapsed as of v0.16, and a list
+// reading "HEADING / IMAGE / PARAGRAPH / PARAGRAPH / PARAGRAPH" identifies
+// nothing - the author would have to expand every block to find the one they
+// wanted, which is worse than the wall of open blocks this replaced.
+//
+// Reads whichever field the type actually carries its meaning in, rather than
+// assuming `content`: a table's meaning is in its headers, an image's in its
+// caption or filename, a container's in its title.
+function blockSummary(block) {
+    if (!block || typeof block !== 'object') return '';
+
+    const firstText = (arr) => (Array.isArray(arr) && arr.length ? String(arr[0] || '') : '');
+    const fileName = (src) => String(src || '').split('/').pop().split('?')[0];
+
+    let text = '';
+    switch (block.type) {
+        case 'heading':
+        case 'paragraph':
+            text = block.content;
+            break;
+        case 'list':
+            text = firstText(block.items);
+            break;
+        case 'table':
+            text = firstText(block.headers);
+            break;
+        case 'image':
+        case 'video':
+        case 'youtube':
+            text = block.caption || block.alt || fileName(block.src || block.url);
+            break;
+        case 'callout':
+        case 'accordion':
+        case 'theorybox':
+            text = block.title;
+            break;
+        case 'author':
+            text = block.author;
+            break;
+        default:
+            text = block.title || block.content || '';
+    }
+
+    text = String(text == null ? '' : text)
+        // Strip the shortcodes rather than render them: this is a label in a
+        // dense list, and [b]...[/b] around a five-word summary is noise.
+        .replace(/\[\/?[a-z][^\]]*\]/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    return text.length > 60 ? text.slice(0, 60) + '…' : text;
+}
+
 // The shell drawn around one folder run.
 //
 // The name is an INPUT rather than a label plus a rename button. Renaming is
@@ -1546,11 +1658,18 @@ function folderShellHTML(run, isCollapsed, isEmpty) {
     // An empty folder is not in the data, so there is nothing to keep and
     // nothing to ungroup - removing it is a discard, and saying UNGROUP there
     // would promise a rescue of blocks that do not exist.
+    // Glyph-only side buttons (v0.16 fine-tuning 3). The words cost more height
+    // than a folder header is worth now that the whole shell is meant to be
+    // slim - and the block cards' own actions have always been glyphs, so the
+    // vocabulary already exists. title AND aria-label, because a glyph with
+    // neither is a button nobody can name.
     const removeBtn = isEmpty
         ? `<button class="btn-sys btn-sys-regular block-folder-discard"
-                   title="Discard this empty folder">&#10007; REMOVE</button>`
+                   title="Discard this empty folder"
+                   aria-label="Discard this empty folder">&#10007;</button>`
         : `<button class="btn-sys btn-sys-regular block-folder-ungroup"
-                   title="Remove the folder and keep every block in it">&#9003; UNGROUP</button>`;
+                   title="Remove the folder and keep every block in it"
+                   aria-label="Ungroup this folder, keeping its blocks">&#9003;</button>`;
 
     const body = isEmpty
         ? `<div class="block-folder-empty">Drag a block onto this header, or choose this folder on any block.</div>`
@@ -1560,13 +1679,14 @@ function folderShellHTML(run, isCollapsed, isEmpty) {
         <div class="block-folder-head">
             <button class="btn-sys btn-sys-regular block-folder-toggle"
                     title="${isCollapsed ? 'Expand' : 'Collapse'} this folder"
-                    aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#9656;' : '&#9662;'}</button>
+                    aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#128193;' : '&#128194;'}</button>
             <input type="text" class="block-folder-name-input" value="${escField(run.name)}"
                    data-folder="${escField(run.name)}" maxlength="60"
                    aria-label="Folder name" title="Rename this folder">
             <span class="block-folder-count">${count}</span>
             <button class="btn-sys btn-sys-regular block-folder-add"
-                    title="Create another folder after this one">&#65291; FOLDER</button>
+                    title="Create another folder after this one"
+                    aria-label="Create another folder after this one">&#65291;</button>
             ${removeBtn}
         </div>
         <div class="block-folder-body">${body}</div>
@@ -1695,8 +1815,9 @@ function renderBlockList() {
     };
 
     activeBlocks.forEach((block, index) => {
+        const isOpen = window.isEditorBlockExpanded(block);
         const card = document.createElement('div');
-        card.className = 'block-card';
+        card.className = 'block-card' + (isOpen ? '' : ' collapsed');
         card.setAttribute('data-index', index);
 
             const typeOptions = Object.keys(blockTemplates).map(t =>
@@ -1712,15 +1833,16 @@ function renderBlockList() {
                         </select>
                         ${folderPickerHTML(block)}
                     </div>
+                <span class="block-card-summary" title="${escField(blockSummary(block))}">${escField(blockSummary(block))}</span>
                 <div class="block-actions">
                     <button class="btn-sys btn-sys-green btn-insert-below" title="Insert Paragraph Below">⨁</button>
-                    <button class="btn-sys btn-sys-regular btn-collapse" title="Minimize/Expand">—</button>
+                    <button class="btn-sys btn-sys-regular btn-collapse" title="Minimize/Expand">${isOpen ? '—' : '□'}</button>
                     <button class="btn-sys btn-sys-regular btn-up" title="Move Up">▲</button>
                     <button class="btn-sys btn-sys-regular btn-down" title="Move Down">▼</button>
                     <button class="btn-sys btn-sys-red btn-delete" title="Delete">✖</button>
                 </div>
             </div>
-            <div class="block-body">
+            <div class="block-body${isOpen ? '' : ' minimized'}">
         `;
 
         if (block.type === 'heading') {
