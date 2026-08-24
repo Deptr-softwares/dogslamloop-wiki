@@ -1406,16 +1406,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
 
     blockList.addEventListener('input', (e) => {
         if (e.target.classList.contains('editor-textarea')) {
-            // Grow to fit, then STOP and scroll. Uncapped, a long combo route
-            // pushed the field taller than the pane and there was no way to
-            // scroll it - owner, 2026-08-17. The cap is in px rather than rows
-            // because these fields sit in three different panes at three
-            // different widths.
-            const MAX = 260;
-            e.target.style.height = 'auto';
-            const wanted = e.target.scrollHeight;
-            e.target.style.height = Math.min(wanted, MAX) + 'px';
-            e.target.style.overflowY = wanted > MAX ? 'auto' : 'hidden';
+            window.autoSizeEditorTextarea(e.target);
         }
 
         if (e.target.classList.contains('editor-input') || e.target.classList.contains('editor-textarea') || e.target.classList.contains('editor-select') || e.target.type === 'checkbox' || e.target.classList.contains('table-header-input') || e.target.classList.contains('table-cell-input')) {
@@ -1539,7 +1530,13 @@ function initStrategyBlockBuilder(containerId, initialData) {
             // and then touching anything reopened it.
             const collapsedIdx = parseInt(card.getAttribute('data-index'), 10);
             const collapsedBlock = window.getActiveBlocks()[collapsedIdx];
-            window.setEditorBlockExpanded(collapsedBlock, !body.classList.contains('minimized'));
+            const nowOpen = !body.classList.contains('minimized');
+            window.setEditorBlockExpanded(collapsedBlock, nowOpen);
+
+            // Now that the fields have a layout, size them. They were skipped
+            // at render time because a textarea inside display:none reports a
+            // scrollHeight of 0, which would pin it shut.
+            if (nowOpen) window.autoSizeEditorTextareasIn(card);
             return;
         }
         
@@ -1587,6 +1584,36 @@ function initStrategyBlockBuilder(containerId, initialData) {
 
     renderBlockList();
 }
+
+// --- TEXTAREA SIZING, IN ONE PLACE ---
+//
+// "Grow to fit, then STOP and scroll" - owner, 2026-08-17, after an uncapped
+// field pushed itself taller than the pane with no way to scroll it. That fix
+// was applied to the `input` handler and NOT to the sizing pass at the end of
+// renderBlockList, so a field arrived on screen uncapped and only started
+// behaving once it was typed in. One function now, called from both.
+//
+// SKIPPING A HIDDEN FIELD IS THE OTHER HALF, and it is the half v0.16 broke.
+// Everything renders collapsed now, `.block-body.minimized` is `display: none`,
+// and scrollHeight inside a display:none ancestor is 0 - so the pass at render
+// time pinned every textarea to nothing, and expanding a block showed a stub of
+// a field with the content unreachable. offsetParent is null exactly when an
+// ancestor is display:none, which is the case to skip; the expand handler sizes
+// it instead, at the moment it can actually be measured.
+const EDITOR_TEXTAREA_MAX_PX = 260;
+
+window.autoSizeEditorTextarea = function (ta) {
+    if (!ta || ta.offsetParent === null) return;
+    ta.style.height = 'auto';
+    const wanted = ta.scrollHeight;
+    ta.style.height = Math.min(wanted, EDITOR_TEXTAREA_MAX_PX) + 'px';
+    ta.style.overflowY = wanted > EDITOR_TEXTAREA_MAX_PX ? 'auto' : 'hidden';
+};
+
+window.autoSizeEditorTextareasIn = function (root) {
+    if (!root) return;
+    root.querySelectorAll('.editor-textarea').forEach(window.autoSizeEditorTextarea);
+};
 
 // A one-line label for a collapsed block.
 //
@@ -2105,10 +2132,9 @@ function renderBlockList() {
 
     pendingOrphans.forEach(emitEmptyFolder);
 
-    listContainer.querySelectorAll('.editor-textarea').forEach(ta => {
-        ta.style.height = 'auto';
-        ta.style.height = (ta.scrollHeight) + 'px';
-    });
+    // Sizes only what is actually on screen. Anything inside a collapsed block
+    // cannot be measured and is sized by the expand handler instead.
+    window.autoSizeEditorTextareasIn(listContainer);
 
     if (window.editorBlockObserver) {
         listContainer.querySelectorAll('.block-card').forEach(card => {

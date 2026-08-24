@@ -364,3 +364,75 @@ test('a new folder opens so it can be named and filled', async ({ page }) => {
   expect(fresh, 'the new folder is on screen').toBeTruthy();
   expect(fresh.collapsed, 'and it is open, or it could not be named or filled').toBe(false);
 });
+
+// --- A REGRESSION COLLAPSE-BY-DEFAULT CAUSED (owner, 2026-08-25) ---
+//
+// "This paragraph right here doesn't have a scrollbar in it to scroll through
+// the content in it."
+//
+// renderBlockList sizes every textarea to its content. With everything now
+// rendering collapsed, and `.block-body.minimized` being `display: none`,
+// scrollHeight inside a hidden ancestor is 0 - so the pass pinned every field
+// shut, and expanding a block showed a stub with the text unreachable.
+//
+// Fixing it also closed a gap that predates v0.16: the owner's 2026-08-17
+// "grow to fit, then STOP and scroll" cap was only ever applied to the `input`
+// handler, so a field arrived on screen uncapped and started behaving only once
+// it was typed in. Both paths share one sizer now, which is what these two
+// tests are really protecting.
+const LONG_TEXT = Array.from({ length: 30 },
+  (_, i) => `Line ${i + 1} of a very long paragraph that keeps going.`).join(' ');
+
+test('a long field is usable the moment its block is expanded', async ({ page }) => {
+  const errors = await openWorkspace(page, [
+    { type: 'paragraph', content: LONG_TEXT, align: 'left' },
+  ]);
+
+  await page.locator('#block-list .block-card .btn-collapse').first().click();
+  await page.waitForTimeout(400);
+
+  const ta = await page.evaluate(() => {
+    const el = document.querySelector('#block-list .block-card textarea.editor-textarea');
+    return {
+      height: Math.round(el.getBoundingClientRect().height),
+      overflowY: getComputedStyle(el).overflowY,
+      // The claim the owner made: the content can be reached.
+      scrollable: el.scrollHeight > el.clientHeight + 1,
+      scrolled: (() => { el.scrollTop = 9999; return el.scrollTop > 0; })(),
+    };
+  });
+
+  expect(ta.height, 'the field is not pinned shut').toBeGreaterThan(60);
+  expect(ta.height, 'and it stops growing at the cap rather than eating the pane')
+    .toBeLessThanOrEqual(260);
+  expect(ta.overflowY, 'a capped field scrolls').toBe('auto');
+  expect(ta.scrollable, 'there is more content than fits, as expected').toBe(true);
+  // Asserting overflowY alone would prove the rule, not the consequence: read
+  // back that scrolling actually moves.
+  expect(ta.scrolled, 'and it really scrolls').toBe(true);
+
+  expect(errors).toEqual([]);
+});
+
+test('a short field is sized to its content, with no scrollbar', async ({ page }) => {
+  // The other side of the cap. Without this, "make it 260px and scroll" would
+  // pass the test above while giving every one-line field a 260px box.
+  await openWorkspace(page, [
+    { type: 'paragraph', content: 'One short line.', align: 'left' },
+  ]);
+
+  await page.locator('#block-list .block-card .btn-collapse').first().click();
+  await page.waitForTimeout(400);
+
+  const ta = await page.evaluate(() => {
+    const el = document.querySelector('#block-list .block-card textarea.editor-textarea');
+    return {
+      height: Math.round(el.getBoundingClientRect().height),
+      overflowY: getComputedStyle(el).overflowY,
+    };
+  });
+
+  expect(ta.height, 'a one-line field does not get a 260px box').toBeLessThan(120);
+  expect(ta.height, 'but it is still a usable field').toBeGreaterThan(15);
+  expect(ta.overflowY, 'nothing to scroll, so no scrollbar').toBe('hidden');
+});
