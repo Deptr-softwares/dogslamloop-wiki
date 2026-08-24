@@ -130,7 +130,12 @@
            equal-specificity/source-order collisions three times. Not competing
            for the transform property is cheaper than winning that race. */
         left: 0; right: 0; margin: 0 auto;
-        width: fit-content; max-width: 100%;
+        /* Wider than the card is allowed - see the overflow rule below. Four of
+           the twenty-two names ("Blood Manipulator" is the worst, 131px in a
+           105px card) do not fit, and an ellipsis on a roster is the one thing
+           the slit must not do: "Blood Manipulato..." identifies nothing. The
+           cap is a backstop against a pathological name, not a design width. */
+        width: fit-content; max-width: 200%;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         background-color: var(--accent-blue);
         padding: 0.1rem 0.25rem;
@@ -146,6 +151,21 @@
     .roster-card.has-icon:hover .roster-card-text,
     .roster-card.has-icon:focus-visible .roster-card-text {
         clip-path: inset(0 0 0 0);
+    }
+
+    /* Lets a long name out of the card instead of ellipsizing it.
+       DELIBERATELY SCOPED to .roster-card.has-icon:hover. The `overflow:
+       hidden` this overrides is declared on the shared selector
+       `.roster-card, .tier-char-card, .image-card-container`, and this project
+       has a standing rule that a change to a shared class is checked against
+       every consumer. Neither of the other two wants this, so neither gets it.
+       Safe on the card's own contents: the icon is exactly 100% x 100% with
+       object-fit: contain, so it has nothing to spill. The existing
+       `.roster-card:hover { z-index: 10 }` already lifts the hovered card, so
+       the name draws over its neighbours rather than under them. */
+    .roster-card.has-icon:hover,
+    .roster-card.has-icon:focus-visible {
+        overflow: visible;
     }
 }
 .roster-empty-msg { width: 100%; text-align: center; color: var(--text-muted); font-family: var(--text-mono); }

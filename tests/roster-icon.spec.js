@@ -34,16 +34,22 @@ test('the icon path is derived from the page id', async ({ page }) => {
     threeWords: window.rosterIconPath('head_hei'),
     empty: window.rosterIconPath(''),
     nullish: window.rosterIconPath(null),
+    // Truthy, but every segment is empty. This is the ONLY input that reaches
+    // the second guard - '' and null both return at `if (!pageId)`, so
+    // asserting those two alone passes whether the second guard exists or not.
+    // Found by falsifying: deleting that guard left all of this green.
+    separatorsOnly: window.rosterIconPath('__'),
   }));
 
   expect(resolved.twoWords).toBe('medias/images/HonoredOneIcon.webp');
   expect(resolved.oneWord).toBe('medias/images/PerfectionIcon.webp');
   expect(resolved.threeWords).toBe('medias/images/HeadHeiIcon.webp');
 
-  // A page with no id must not produce "medias/images/Icon.webp", which would
-  // be a real request for a real file that happens not to exist.
+  // A page with no usable id must not produce "medias/images/Icon.webp", which
+  // would be a real request for a file that will never exist.
   expect(resolved.empty).toBeNull();
   expect(resolved.nullish).toBeNull();
+  expect(resolved.separatorsOnly).toBeNull();
 });
 
 // --- 2. THE ICONS ACTUALLY RESOLVE ---
@@ -167,6 +173,59 @@ test('the slit is as wide as the name, not as wide as the card', async ({ page }
   expect(longest.w,
     `"${longest.name}" (${longest.w}px) should be wider than "${shortest.name}" (${shortest.w}px)`)
     .toBeGreaterThan(shortest.w);
+});
+
+test('no name is ellipsized, and the overflow costs no scrollbar', async ({ page }) => {
+  // Four of the twenty-two names are wider than the card, so the slit is
+  // allowed out of it (`.roster-card.has-icon:hover { overflow: visible }`).
+  // Both halves of that trade need asserting: an ellipsis identifies nothing
+  // on a roster, and a stray horizontal scrollbar is the usual price of
+  // letting something escape its box.
+  await page.goto(ROSTER, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(600);
+
+  const ellipsized = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll('.roster-card.has-icon'))
+      .map(c => c.querySelector('.roster-card-text'))
+      .filter(t => t.scrollWidth > t.clientWidth + 1)
+      .map(t => t.textContent.trim());
+  });
+  expect(ellipsized, `these names were cut off: ${ellipsized.join(', ')}`).toEqual([]);
+
+  // Hover the longest one - the worst case for escaping the layout.
+  await page.evaluate(() => {
+    const cards = Array.from(document.querySelectorAll('.roster-card.has-icon'));
+    const worst = cards.reduce((a, b) =>
+      b.querySelector('.roster-card-text').textContent.trim().length >
+      a.querySelector('.roster-card-text').textContent.trim().length ? b : a);
+    worst.setAttribute('data-longest-name', 'true');
+  });
+  await page.locator('[data-longest-name]').hover();
+  await page.waitForTimeout(500);
+
+  // scrollWidth alone is NOT enough, and falsifying proved it: deleting the
+  // `overflow: visible` rule left every assertion above green while the card
+  // itself clipped the name in half. The element was not ellipsized; it was
+  // just painted underneath a boundary. So ask the page what is actually on
+  // top at the name's far end - the same elementFromPoint check this project
+  // uses for "visible but unclickable" buttons.
+  const endIsPainted = await page.evaluate(() => {
+    const t = document.querySelector('[data-longest-name] .roster-card-text');
+    const r = t.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.right - 3, r.top + r.height / 2);
+    return { ok: !!hit && (hit === t || t.contains(hit)), hit: hit ? hit.className : null };
+  });
+  expect(endIsPainted.ok,
+    `the end of the longest name is not visible - something is on top of it (${endIsPainted.hit})`)
+    .toBe(true);
+
+  // Every ancestor from the card up to <body> is overflow:visible, so overflow
+  // propagates to the viewport and the document is the honest place to read it.
+  const scroll = await page.evaluate(() => ({
+    w: document.documentElement.scrollWidth,
+    c: document.documentElement.clientWidth,
+  }));
+  expect(scroll.w, 'the escaping name must not widen the page').toBeLessThanOrEqual(scroll.c);
 });
 
 // --- 5. MOBILE ---
