@@ -38,6 +38,44 @@ const DEFAULT_TAB = VOCAB.getDefaultCharacterTabId();
 
 const para = (text) => ({ type: 'paragraph', content: text });
 
+// Boots admin.html as a real admin, so the REAL tab registration in
+// js/admin-core.js runs. Same shape as tests/moderator-access.spec.js.
+async function mockAdmin(page) {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, 'supabase', {
+      configurable: true,
+      get() { return window.__lib; },
+      set(lib) {
+        window.__lib = lib;
+        if (!lib || !lib.createClient || lib.__patched) return;
+        lib.__patched = true;
+        const orig = lib.createClient.bind(lib);
+        lib.createClient = (...args) => {
+          const client = orig(...args);
+          client.auth.getSession = async () => ({
+            data: { session: { user: { id: 'u1', email: 'admin@site.test' }, access_token: 't' } },
+          });
+          const origFrom = client.from.bind(client);
+          client.from = (table) => {
+            if (table === 'user_roles') {
+              const row = { role: 'admin' };
+              const chain = {
+                select() { return chain; },
+                eq() { return chain; },
+                single: () => Promise.resolve({ data: row, error: null }),
+                then(res) { return Promise.resolve({ data: [row], error: null }).then(res); },
+              };
+              return chain;
+            }
+            return origFrom(table);
+          };
+          return client;
+        };
+      },
+    });
+  });
+}
+
 function seedCharacter(marker) {
   return {
     frame: { modes: [], m1s: [], skills: [], specials: [], modeData: {} },
@@ -269,4 +307,91 @@ test('a reviewer who never left the default tab still lands on it', async ({ pag
   const after = await readWhereTheReviewerIs(page);
   expect(after.panesShown).toEqual([DEFAULT_TAB]);
   expect(after.stripSaysTab).toBe(DEFAULT_TAB);
+});
+
+// --- THE SECOND HALF OF THE SAME REPORT (owner, 2026-08-24) ---
+//
+// "It appears that the whole thing is always on? Like it is always white, and
+// it always render alongside whatever changes it detected. And when the Live
+// Version view is up, I can't click on Techs and see 'no techs has been
+// written yet'."
+//
+// Different cause from everything above, same surface. The admin strip binds
+// its buttons through setupTabs at BOOT, from
+// `getCharacterTabIds({ editableOnly: true })` - which filters optional tabs
+// by a flag that has not been fetched yet, because the flag arrives per
+// revision in previewRevision. So nav-techs was never registered:
+//
+//   - clicking it did nothing at all,
+//   - clicking any OTHER tab could not hide tab-techs, because setupTabs only
+//     hides ids in its own group - hence "renders alongside", and
+//   - nothing ever removed .active from it - hence "always white".
+//
+// js/page_boot.js already fixed exactly this on the reader page and its
+// comment says so ("setupTabs never heard about them, so clicking did nothing
+// at all"). The admin surface was missed.
+async function bootAdminWithTechsOn(page) {
+  await mockAdmin(page);
+  await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+
+  // The real registration having run is the precondition, not the claim. Read
+  // as a property rather than an attribute selector - the groupKey contains a
+  // "|", which is asking for trouble inside a CSS selector for no benefit.
+  await page.waitForFunction(() => {
+    const b = document.getElementById('nav-overview');
+    return !!b && b.dataset.tabBound === 'nav|tab';
+  }, null, { timeout: 20000 });
+
+  // What previewRevision does once it has the page row. The strip itself ships
+  // hidden and is revealed when a revision opens - without that the Techs
+  // button is present, un-hidden and still 0x0, so a click times out for a
+  // reason that has nothing to do with the bug.
+  await page.evaluate(() => {
+    document.getElementById('preview-nav-sidebar').classList.remove('hidden');
+    document.getElementById('preview-tab-nav').classList.remove('hidden');
+    window.applyOptionalTabsFromPageRow({ tab_settings: { techs: true } });
+    window.applyOptionalTabVisibility();
+  });
+}
+
+const paneState = (page) => page.evaluate(() => ({
+  shown: Array.from(document.querySelectorAll('#preview-content-area > div[id^="tab-"]'))
+    .filter(el => !el.classList.contains('hidden')).map(el => el.id.replace(/^tab-/, '')),
+  active: Array.from(document.querySelectorAll('#preview-tab-nav .btn-manga.active'))
+    .map(el => el.id.replace(/^nav-/, '')),
+}));
+
+test('the Techs button in the admin strip is actually wired up', async ({ page }) => {
+  await bootAdminWithTechsOn(page);
+
+  await page.click('#nav-techs');
+  await page.waitForTimeout(200);
+
+  const after = await paneState(page);
+  expect(after.shown, 'clicking Techs shows Techs and only Techs').toEqual(['techs']);
+  expect(after.active, 'and marks only Techs active').toEqual(['techs']);
+});
+
+test('leaving Techs actually hides it', async ({ page }) => {
+  // "It always renders alongside whatever changes it detected." An unregistered
+  // tab is invisible to every other button's hide sweep, so its panel stayed on
+  // screen underneath the next tab's content.
+  await bootAdminWithTechsOn(page);
+
+  await page.click('#nav-techs');
+  await page.waitForTimeout(150);
+
+  // PRECONDITION, and it is load-bearing. Without it this test passed against
+  // the broken code for the worst possible reason: the first click did nothing,
+  // so Techs was never on screen, so "Techs got hidden" was trivially true.
+  const opened = await paneState(page);
+  expect(opened.shown, 'setup: Techs is actually on screen before we leave it')
+    .toEqual(['techs']);
+
+  await page.click('#nav-combos');
+  await page.waitForTimeout(200);
+
+  const after = await paneState(page);
+  expect(after.shown, 'Techs is put away when another tab is chosen').toEqual(['combos']);
+  expect(after.active, 'and stops being white').toEqual(['combos']);
 });

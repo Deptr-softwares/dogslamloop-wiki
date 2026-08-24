@@ -40,7 +40,12 @@
     // Re-registering the whole list when the Ultimate tab is injected is what
     // teaches the buttons bound at boot to also hide it when they are clicked
     // (see setupTabs, js/pagebuilder.js).
-    const ADMIN_CHARACTER_TABS = window.getCharacterTabIds({ editableOnly: true });
+    // includeOptional for the same reason js/admin-core.js does: this is
+    // evaluated when the module loads, long before any revision has told the
+    // page which optional tabs it has, and the list is only ever used to BIND
+    // buttons through setupTabs. Binding a button that stays hidden costs
+    // nothing; failing to bind one that gets un-hidden leaves it inert.
+    const ADMIN_CHARACTER_TABS = window.getCharacterTabIds({ editableOnly: true, includeOptional: true });
 
     const BASE = () => window.BASE_MODE_ID || 'base';
     const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === 'base'));
