@@ -651,8 +651,13 @@ window.renderFilteredRoster = function() {
         // yet tells the reader nothing.
         const iconSrc = window.rosterIconPath((char.cms_config || {}).pageId);
 
+        // The character's colour goes out as a CUSTOM PROPERTY rather than as
+        // `background-color` directly. It has three jobs now - the card's own
+        // background when there is no icon, the border when there is one, and
+        // the name slit's fill - and an inline background-color would beat every
+        // stylesheet rule that needs to change one of them without !important.
         html += `
-            <a href="${esc(rootPath + char.url)}" class="roster-card" style="background-color: ${charColor};">
+            <a href="${esc(rootPath + char.url)}" class="roster-card" style="--char-color: ${charColor};">
                 ${char.isEA ? `<span class="ea-star-indicator" title="Early Access" style="color: ${textColor};">★</span>` : ''}
                 ${char.isWip ? `<span class="roster-wip-indicator" title="Work In Progress" aria-label="Work In Progress">🚧</span>` : ''}
                 ${char.image ? `<img src="${esc(char.image)}" alt="${esc(char.name)}" class="roster-card-bg-image">` : ''}

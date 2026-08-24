@@ -175,24 +175,32 @@ test('the slit is as wide as the name, not as wide as the card', async ({ page }
     .toBeGreaterThan(shortest.w);
 });
 
-test('no name is ellipsized, and the overflow costs no scrollbar', async ({ page }) => {
-  // Four of the twenty-two names are wider than the card, so the slit is
-  // allowed out of it (`.roster-card.has-icon:hover { overflow: visible }`).
-  // Both halves of that trade need asserting: an ellipsis identifies nothing
-  // on a roster, and a stray horizontal scrollbar is the usual price of
-  // letting something escape its box.
+test('the slit stays inside its card, and no name is cut off', async ({ page }) => {
+  // The owner rejected an earlier build for letting a long name escape the
+  // card. It must stay in, WITHOUT being ellipsized - "Blood Manipulato..."
+  // identifies nothing on a roster - so a long name wraps instead.
   await page.goto(ROSTER, { waitUntil: 'networkidle' });
   await page.waitForTimeout(600);
 
-  const ellipsized = await page.evaluate(() => {
-    return Array.from(document.querySelectorAll('.roster-card.has-icon'))
-      .map(c => c.querySelector('.roster-card-text'))
-      .filter(t => t.scrollWidth > t.clientWidth + 1)
-      .map(t => t.textContent.trim());
+  const spilling = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll('.roster-card.has-icon')).map(c => {
+      const t = c.querySelector('.roster-card-text');
+      const cr = c.getBoundingClientRect();
+      const tr = t.getBoundingClientRect();
+      return {
+        name: t.textContent.trim(),
+        out: Math.max(cr.left - tr.left, tr.right - cr.right, cr.top - tr.top, tr.bottom - cr.bottom),
+        ellipsized: t.scrollWidth > t.clientWidth + 1,
+      };
+    }).filter(r => r.out > 0.5 || r.ellipsized);
   });
-  expect(ellipsized, `these names were cut off: ${ellipsized.join(', ')}`).toEqual([]);
 
-  // Hover the longest one - the worst case for escaping the layout.
+  expect(spilling, `slits escaped or were cut off: ${spilling.map(s => s.name).join(', ')}`)
+    .toEqual([]);
+
+  // scrollWidth alone would NOT catch a card clipping the name - falsifying an
+  // earlier version proved that, staying green while the card cut a name in
+  // half. Ask the page what is actually painted at the end of the longest name.
   await page.evaluate(() => {
     const cards = Array.from(document.querySelectorAll('.roster-card.has-icon'));
     const worst = cards.reduce((a, b) =>
@@ -203,29 +211,66 @@ test('no name is ellipsized, and the overflow costs no scrollbar', async ({ page
   await page.locator('[data-longest-name]').hover();
   await page.waitForTimeout(500);
 
-  // scrollWidth alone is NOT enough, and falsifying proved it: deleting the
-  // `overflow: visible` rule left every assertion above green while the card
-  // itself clipped the name in half. The element was not ellipsized; it was
-  // just painted underneath a boundary. So ask the page what is actually on
-  // top at the name's far end - the same elementFromPoint check this project
-  // uses for "visible but unclickable" buttons.
   const endIsPainted = await page.evaluate(() => {
     const t = document.querySelector('[data-longest-name] .roster-card-text');
     const r = t.getBoundingClientRect();
-    const hit = document.elementFromPoint(r.right - 3, r.top + r.height / 2);
+    const hit = document.elementFromPoint(r.right - 3, r.bottom - 4);
     return { ok: !!hit && (hit === t || t.contains(hit)), hit: hit ? hit.className : null };
   });
   expect(endIsPainted.ok,
-    `the end of the longest name is not visible - something is on top of it (${endIsPainted.hit})`)
-    .toBe(true);
+    `the end of the longest name is not visible (${endIsPainted.hit})`).toBe(true);
+});
 
-  // Every ancestor from the card up to <body> is overflow:visible, so overflow
-  // propagates to the viewport and the document is the honest place to read it.
-  const scroll = await page.evaluate(() => ({
-    w: document.documentElement.scrollWidth,
-    c: document.documentElement.clientWidth,
-  }));
-  expect(scroll.w, 'the escaping name must not widen the page').toBeLessThanOrEqual(scroll.c);
+test('the card is dark and hatched; the character colour is the border and the slit', async ({ page }) => {
+  // The owner's correction, 2026-08-24. The colour used to fill the whole card
+  // and the slit was a flat --accent-blue; both were wrong. Each of the three
+  // claims is read back from what the browser computed, not from the markup.
+  await page.goto(ROSTER, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(600);
+
+  const seen = await page.evaluate(() => {
+    const card = document.querySelector('.roster-card.has-icon');
+    const cs = getComputedStyle(card);
+    const text = getComputedStyle(card.querySelector('.roster-card-text'));
+    const fallback = getComputedStyle(document.body).getPropertyValue('background-color');
+    return {
+      charColour: cs.getPropertyValue('--char-color').trim(),
+      cardBg: cs.backgroundColor,
+      cardImage: cs.backgroundImage,
+      border: cs.borderTopColor,
+      slitBg: text.backgroundColor,
+      bodyBg: fallback,
+    };
+  });
+
+  expect(seen.charColour, 'the card carries a character colour at all').not.toBe('');
+
+  // Resolved values, not literals: --char-color is an hsl() string and the
+  // browser reports rgb(), so compare the two rendered results to each other.
+  expect(seen.border, 'the border wears the character colour').not.toBe(seen.cardBg);
+  expect(seen.slitBg, 'the slit wears the character colour').toBe(seen.border);
+  expect(seen.cardBg, 'the card itself is NOT the character colour').not.toBe(seen.slitBg);
+
+  expect(seen.cardImage, 'the card is hatched like the site background')
+    .toContain('repeating-linear-gradient');
+});
+
+test('the slit sits in the middle of the icon, not under it', async ({ page }) => {
+  await page.goto(ROSTER, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(600);
+
+  const offset = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll('.roster-card.has-icon')).map(c => {
+      const cr = c.getBoundingClientRect();
+      const tr = c.querySelector('.roster-card-text').getBoundingClientRect();
+      return Math.abs((tr.top + tr.height / 2) - (cr.top + cr.height / 2));
+    });
+  });
+
+  expect(offset.length).toBeGreaterThan(0);
+  // Centred, not bottom-aligned. A bottom-aligned slit in a 96px card sits
+  // roughly 35px off centre, so this cannot pass by accident.
+  offset.forEach(d => expect(d, `slit is ${Math.round(d)}px off centre`).toBeLessThan(3));
 });
 
 // --- 5. MOBILE ---

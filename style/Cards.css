@@ -106,11 +106,40 @@
 }
 
 /* --- DYNAMIC ROSTER ICON (v0.16) --- */
-/* The icon sits ON TOP of the solid colour rather than replacing it, so a
-   character whose icon file is missing needs no styling of its own - the card
-   underneath is already the pre-v0.16 design. js/pagebuilder.js only adds
-   .has-icon once the image has actually loaded, and removes the <img> when it
-   has not, so the fallback is the absence of an opt-in. */
+/* js/pagebuilder.js hands the character's colour over as --char-color and adds
+   .has-icon only once the icon has actually loaded. A card with no icon keeps
+   the solid-colour design it had before v0.16, which is the fallback the owner
+   asked for - it is the absence of an opt-in, not a second code path. */
+.roster-card {
+    background-color: var(--char-color, var(--bg-main));
+}
+
+/* With an icon, the card is DARK with the site's own diagonal hatching and the
+   character's colour moves to the border (owner, 2026-08-24). Same -45deg and
+   the same 2px/8px rhythm as `body` in Common.css, but at 0.06 rather than
+   0.015 alpha: the body pattern is spread over a whole page and is invisible
+   inside a 96px box. */
+.roster-card.has-icon {
+    background-color: var(--bg-main);
+    background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.06) 0px,
+        rgba(255, 255, 255, 0.06) 2px,
+        transparent 2px,
+        transparent 8px
+    );
+}
+
+/* Stated for the hover and focus cases too, not left to source order. The
+   shared `.roster-card:hover { border-color: var(--accent-blue) }` above
+   carries identical specificity, and equal-specificity collisions decided by
+   file position have caught this project three times. */
+.roster-card.has-icon,
+.roster-card.has-icon:hover,
+.roster-card.has-icon:focus-visible {
+    border-color: var(--char-color, var(--border-color));
+}
+
 .roster-card-icon {
     width: 100%; height: 100%; object-fit: contain; position: absolute;
     top: 0; left: 0; z-index: 1; pointer-events: none;
@@ -123,21 +152,24 @@
    passes undoing. */
 @media (hover: hover) {
     .roster-card.has-icon .roster-card-text {
-        position: absolute; bottom: 0;
-        /* Centred by auto margins rather than translateX(-50%): the existing
-           `.roster-card:hover .roster-card-text { transform: scale(1.05) }`
-           carries equal specificity, and this project has been bitten by
-           equal-specificity/source-order collisions three times. Not competing
-           for the transform property is cheaper than winning that race. */
-        left: 0; right: 0; margin: 0 auto;
-        /* Wider than the card is allowed - see the overflow rule below. Four of
-           the twenty-two names ("Blood Manipulator" is the worst, 131px in a
-           105px card) do not fit, and an ellipsis on a roster is the one thing
-           the slit must not do: "Blood Manipulato..." identifies nothing. The
-           cap is a backstop against a pathological name, not a design width. */
-        width: fit-content; max-width: 200%;
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        background-color: var(--accent-blue);
+        /* Centred on BOTH axes by auto margins against four zeroed insets: the
+           slit belongs in the middle of the icon (owner, 2026-08-24), not under
+           it. Auto margins rather than translate(-50%, -50%) because the
+           existing `.roster-card:hover .roster-card-text { transform:
+           scale(1.05) }` carries equal specificity - not competing for the
+           transform property is cheaper than winning that race. */
+        position: absolute;
+        top: 0; right: 0; bottom: 0; left: 0;
+        width: fit-content; height: fit-content;
+        max-width: 100%;
+        margin: auto;
+        /* Wraps rather than overflowing or ellipsizing. Shrink-to-fit gives a
+           SHORT name a slit narrower than the card, which is the point of the
+           feature; a long one ("Blood Manipulator" wants 131px in a 101px box)
+           fills the width and wraps onto a second line. Nothing leaves the
+           card, and no name is ever cut off. */
+        white-space: normal; overflow-wrap: break-word;
+        background-color: var(--char-color, var(--accent-blue));
         padding: 0.1rem 0.25rem;
         /* clip-path, not width or scaleX. `width` cannot transition to `auto`,
            and scaleX squashes the glyphs while it opens - the concept draws the
@@ -153,20 +185,6 @@
         clip-path: inset(0 0 0 0);
     }
 
-    /* Lets a long name out of the card instead of ellipsizing it.
-       DELIBERATELY SCOPED to .roster-card.has-icon:hover. The `overflow:
-       hidden` this overrides is declared on the shared selector
-       `.roster-card, .tier-char-card, .image-card-container`, and this project
-       has a standing rule that a change to a shared class is checked against
-       every consumer. Neither of the other two wants this, so neither gets it.
-       Safe on the card's own contents: the icon is exactly 100% x 100% with
-       object-fit: contain, so it has nothing to spill. The existing
-       `.roster-card:hover { z-index: 10 }` already lifts the hovered card, so
-       the name draws over its neighbours rather than under them. */
-    .roster-card.has-icon:hover,
-    .roster-card.has-icon:focus-visible {
-        overflow: visible;
-    }
 }
 .roster-empty-msg { width: 100%; text-align: center; color: var(--text-muted); font-family: var(--text-mono); }
 
