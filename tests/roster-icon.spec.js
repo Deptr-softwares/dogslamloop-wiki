@@ -193,10 +193,13 @@ test('the border is thicker than the shared card border, and so is the hover sha
 
   const border = await card.evaluate(el => parseFloat(getComputedStyle(el).borderTopWidth));
   // The shared `.roster-card, .tier-char-card, .image-card-container` rule sets
-  // 2px; the owner asked for 2-4px more. Asserting "thicker than the shared
-  // value" rather than "exactly 5px" leaves room to tune without a red test.
+  // 2px. The claim here is only "thicker than that", never a specific value:
+  // the owner is tuning this by eye (5px, then 3.5px on 2026-08-24) and a test
+  // that pins the number turns red on a taste decision, which teaches everyone
+  // to stop trusting it. A value below 2 is not taste - it means the override
+  // stopped applying.
   expect(border, 'roster cards carry a thicker border than the shared 2px')
-    .toBeGreaterThanOrEqual(4);
+    .toBeGreaterThan(2);
 
   // And .tier-char-card must NOT have been dragged along with it - the width
   // is set on .roster-card alone, precisely so its two co-tenants keep theirs.

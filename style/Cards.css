@@ -112,15 +112,20 @@
    asked for - it is the absence of an opt-in, not a second code path. */
 .roster-card {
     background-color: var(--char-color, var(--bg-main));
-    /* 3px thicker than the shared 2px, which is the middle of the "2-4 pixel
-       thicker" the owner asked for (2026-08-24) - the border carries the
-       character's colour now, so it is doing real work rather than edging a
-       box. Set on .roster-card rather than on .has-icon so every card in the
-       grid stays the same SIZE: these are content-box, so a border only some
-       cards had would make those cards physically bigger. And set here rather
-       than on the shared `.roster-card, .tier-char-card, .image-card-container`
-       rule, which .tier-char-card and .image-card-container also read. */
-    border-width: 5px;
+    /* Thicker than the shared 2px, because the border carries the character's
+       colour now and is doing real work rather than edging a box. 5px read as
+       too heavy against the icons, so the owner asked for 3.5 on 2026-08-24.
+       WRITTEN AS 3px BECAUSE THAT IS WHAT 3.5px RENDERS AS: Chromium floors
+       border-width to whole pixels, and it computed to 3px at both 1x and 2x.
+       Declaring 3.5 would only make the file disagree with the screen. The
+       next real step up is 4. Expect this number to move again, which is why
+       the test asserts "thicker than the shared 2px" rather than a value.
+       Set on .roster-card rather than on .has-icon so every card in the grid
+       stays the same SIZE: these are content-box, so a border only some cards
+       had would make those cards physically bigger. And set here rather than on
+       the shared `.roster-card, .tier-char-card, .image-card-container` rule,
+       which the other two also read. */
+    border-width: 3px;
 }
 
 /* With an icon, the card is DARK with the site's own diagonal hatching and the
