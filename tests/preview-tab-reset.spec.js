@@ -202,6 +202,60 @@ test('leaving Diff View returns to the tab it was opened on', async ({ page }) =
   expect(diffGone, 'and the diff pane is put away').toBe(true);
 });
 
+test('a strip pointing at a tab this page does not have falls back, and the strip follows', async ({ page }) => {
+  // The real case: a reviewer works a queue, reads a Techs tab on one
+  // character, opens the next ticket for a character with Techs switched off.
+  // The strip still says "techs" and there is no pane to restore, so the fix
+  // falls back to the default - and has to MOVE THE STRIP, or it has recreated
+  // the very disagreement it exists to prevent, just pointing the other way.
+  //
+  // Added after falsifying: deleting the setActiveRevisionTab call left every
+  // other test in this file green, because in all of them the strip was
+  // already on the right tab and never needed moving. This is the path that
+  // makes that call load-bearing.
+  await openPreviewShell(page);
+  await seedRevision(page);
+
+  await page.evaluate(() => window.setActiveRevisionTab('techs'));
+  // The next character has no Techs tab - drop the pane, leave the strip.
+  await page.evaluate(() => document.getElementById('tab-techs').remove());
+
+  await page.evaluate(async () => { await window.switchVersionView('pending'); });
+  await page.waitForTimeout(400);
+
+  const after = await readWhereTheReviewerIs(page);
+  expect(after.panesShown, 'falls back to the default pane').toEqual([DEFAULT_TAB]);
+  expect(after.stripSaysTab, 'and the strip is moved to match it').toBe(DEFAULT_TAB);
+});
+
+test('the panes end up sane even when there is no strip to read', async ({ page }) => {
+  // setActiveRevisionTab returns early without a strip, so the explicit sweep
+  // in switchVersionView is the only thing left holding the panes together.
+  //
+  // Also added after falsifying: replacing that sweep with a no-op left every
+  // other test green, because setActiveRevisionTab was quietly doing the same
+  // work. With the strip gone it cannot, and a reviewer must not be shown two
+  // tabs stacked on top of each other.
+  await openPreviewShell(page);
+  await seedRevision(page);
+
+  await page.evaluate(() => {
+    document.querySelectorAll('#preview-content-area > div[id^="tab-"]')
+      .forEach(el => el.classList.remove('hidden'));
+    document.getElementById('preview-tab-nav').remove();
+  });
+
+  await page.evaluate(async () => { await window.switchVersionView('pending'); });
+  await page.waitForTimeout(400);
+
+  const shown = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('#preview-content-area > div[id^="tab-"]'))
+      .filter(el => !el.classList.contains('hidden'))
+      .map(el => el.id.replace(/^tab-/, '')));
+
+  expect(shown, 'exactly one pane, and it is the default').toEqual([DEFAULT_TAB]);
+});
+
 test('a reviewer who never left the default tab still lands on it', async ({ page }) => {
   // The fix restores the tab the strip names. If the strip names the default -
   // which it does on a fresh non-delta revision - nothing should change, and
