@@ -112,6 +112,15 @@
    asked for - it is the absence of an opt-in, not a second code path. */
 .roster-card {
     background-color: var(--char-color, var(--bg-main));
+    /* 3px thicker than the shared 2px, which is the middle of the "2-4 pixel
+       thicker" the owner asked for (2026-08-24) - the border carries the
+       character's colour now, so it is doing real work rather than edging a
+       box. Set on .roster-card rather than on .has-icon so every card in the
+       grid stays the same SIZE: these are content-box, so a border only some
+       cards had would make those cards physically bigger. And set here rather
+       than on the shared `.roster-card, .tier-char-card, .image-card-container`
+       rule, which .tier-char-card and .image-card-container also read. */
+    border-width: 5px;
 }
 
 /* With an icon, the card is DARK with the site's own diagonal hatching and the
@@ -140,6 +149,16 @@
     border-color: var(--char-color, var(--border-color));
 }
 
+/* The hover shadow matches the border (owner, 2026-08-24). Same reasoning as
+   the border rule: the shared `.roster-card:hover, .tier-char-card:hover,
+   .image-card-container:hover` sets --accent-blue here, and the other two
+   consumers keep it. Offsets are copied from that rule deliberately - only the
+   colour is in question, so only the colour changes. */
+.roster-card.has-icon:hover,
+.roster-card.has-icon:focus-visible {
+    box-shadow: 5px 5px 0px var(--char-color, var(--accent-blue));
+}
+
 .roster-card-icon {
     width: 100%; height: 100%; object-fit: contain; position: absolute;
     top: 0; left: 0; z-index: 1; pointer-events: none;
@@ -159,22 +178,21 @@
            scale(1.05) }` carries equal specificity - not competing for the
            transform property is cheaper than winning that race. */
         position: absolute;
+        /* EVERY slit spans the full width of the card, short name or long
+           (owner, 2026-08-24). An earlier build sized it to the name, which
+           left "Vessel" with a stub of a bar next to "Blood Manipulator"'s
+           full one; the owner wants them consistent. `width: auto` against
+           left:0/right:0 stretches to the card, so there is nothing to
+           measure or cap - the name's length now decides the slit's HEIGHT,
+           by wrapping, and nothing else. */
         top: 0; right: 0; bottom: 0; left: 0;
-        /* `fit-content` is what actually keeps the slit inside the card, not
-           the max-width below it: fit-content resolves to
-           min(max-content, available), and `available` is the card. Worth
-           knowing before anyone "simplifies" this - falsifying by raising
-           max-width to 300% changed nothing at all, while swapping fit-content
-           for max-content let the name straight out. The max-width stays as a
-           cheap guard for a future card that is sized differently. */
-        width: fit-content; height: fit-content;
-        max-width: 100%;
-        margin: auto;
-        /* Wraps rather than overflowing or ellipsizing. Shrink-to-fit gives a
-           SHORT name a slit narrower than the card, which is the point of the
-           feature; a long one ("Blood Manipulator" wants 131px in a 101px box)
-           fills the width and wraps onto a second line. Nothing leaves the
-           card, and no name is ever cut off. */
+        width: auto; height: fit-content;
+        /* Vertical only. The horizontal insets already do the stretching, and
+           `margin: auto` on both axes would shrink-wrap it again. */
+        margin: auto 0;
+        /* Wraps rather than overflowing or ellipsizing: "Blood Manipulator"
+           wants 131px in a 96px box and takes a second line instead of being
+           cut down to "Blood Manipulato...", which identifies nobody. */
         white-space: normal; overflow-wrap: break-word;
         background-color: var(--char-color, var(--accent-blue));
         padding: 0.1rem 0.25rem;

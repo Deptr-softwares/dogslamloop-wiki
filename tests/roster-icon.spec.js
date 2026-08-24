@@ -149,30 +149,77 @@ test('the name is hidden at rest and revealed on hover', async ({ page }) => {
   expect(hovered, 'hovering opens the slit').not.toContain('100%');
 });
 
-test('the slit is as wide as the name, not as wide as the card', async ({ page }) => {
+test('every slit spans the full card, short name or long', async ({ page }) => {
+  // THIS TEST USED TO ASSERT THE OPPOSITE, and the reversal is the owner's
+  // (2026-08-24). The concept said the slit's width followed the name's
+  // length, so the first build sized it to the text - which left "Vessel" with
+  // a stub of a bar beside "Blood Manipulator"'s full one. The owner wants them
+  // consistent: every slit runs edge to edge, and a long name takes a second
+  // line rather than a wider bar. Left as one test rather than deleted, so the
+  // history is visible to whoever reads the concept image next and wonders.
   await page.goto(ROSTER, { waitUntil: 'networkidle' });
   await page.waitForTimeout(500);
 
-  // The owner's requirement in one assertion: "the width of this dynamic slit
-  // is dependent on the character name". Two names of different lengths must
-  // produce two different widths, or the slit is not dynamic at all.
-  const widths = await page.evaluate(() => {
-    const cards = Array.from(document.querySelectorAll('.roster-card.has-icon'));
-    return cards.map(c => {
+  const rows = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll('.roster-card.has-icon')).map(c => {
       const t = c.querySelector('.roster-card-text');
-      return { name: t.textContent.trim(), w: t.getBoundingClientRect().width };
+      return {
+        name: t.textContent.trim(),
+        w: Math.round(t.getBoundingClientRect().width),
+        inner: Math.round(c.clientWidth),
+      };
     });
   });
 
-  expect(widths.length).toBeGreaterThan(1);
+  expect(rows.length).toBeGreaterThan(1);
 
-  const shortest = widths.reduce((a, b) => (a.name.length <= b.name.length ? a : b));
-  const longest = widths.reduce((a, b) => (a.name.length >= b.name.length ? a : b));
+  // Names of very different lengths must still produce the SAME width, which
+  // is the whole claim - and one that a name-sized slit cannot pass.
+  const distinct = [...new Set(rows.map(r => r.w))];
+  expect(distinct, `slits differ in width: ${JSON.stringify(rows.slice(0, 4))}`)
+    .toHaveLength(1);
 
-  expect(longest.name.length).toBeGreaterThan(shortest.name.length);
-  expect(longest.w,
-    `"${longest.name}" (${longest.w}px) should be wider than "${shortest.name}" (${shortest.w}px)`)
-    .toBeGreaterThan(shortest.w);
+  rows.forEach(r => {
+    expect(Math.abs(r.w - r.inner),
+      `"${r.name}" slit is ${r.w}px inside a ${r.inner}px card`).toBeLessThanOrEqual(1);
+  });
+});
+
+test('the border is thicker than the shared card border, and so is the hover shadow colour', async ({ page }) => {
+  await page.goto(ROSTER, { waitUntil: 'networkidle' });
+  await page.waitForTimeout(500);
+
+  const card = page.locator('.roster-card.has-icon').first();
+
+  const border = await card.evaluate(el => parseFloat(getComputedStyle(el).borderTopWidth));
+  // The shared `.roster-card, .tier-char-card, .image-card-container` rule sets
+  // 2px; the owner asked for 2-4px more. Asserting "thicker than the shared
+  // value" rather than "exactly 5px" leaves room to tune without a red test.
+  expect(border, 'roster cards carry a thicker border than the shared 2px')
+    .toBeGreaterThanOrEqual(4);
+
+  // And .tier-char-card must NOT have been dragged along with it - the width
+  // is set on .roster-card alone, precisely so its two co-tenants keep theirs.
+  const tierBorder = await page.evaluate(() => {
+    const probe = document.createElement('div');
+    probe.className = 'tier-char-card';
+    document.body.appendChild(probe);
+    const w = parseFloat(getComputedStyle(probe).borderTopWidth);
+    probe.remove();
+    return w;
+  });
+  expect(tierBorder, '.tier-char-card keeps the shared 2px border').toBe(2);
+
+  await card.hover();
+  await page.waitForTimeout(300);
+
+  const paint = await card.evaluate(el => {
+    const cs = getComputedStyle(el);
+    return { shadow: cs.boxShadow, border: cs.borderTopColor };
+  });
+  // Resolved values compared to each other, never to a literal colour.
+  expect(paint.shadow, `hover shadow should wear the border colour (${paint.border})`)
+    .toContain(paint.border);
 });
 
 test('the slit stays inside its card, and no name is cut off', async ({ page }) => {
