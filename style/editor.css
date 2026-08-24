@@ -2196,7 +2196,3 @@ del.diff-del {
     font-size: 0.7rem;
     padding: 0 0.5rem;
 }
-/* The folder picker is the block saying where it lives. A collapsed block sits
-   visibly inside its folder already, so the row is repeating what the indent
-   has just said - and it costs a whole second line per block. */
-.block-card.collapsed .block-folder-picker { display: none; }

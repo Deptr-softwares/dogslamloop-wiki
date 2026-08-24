@@ -38,6 +38,23 @@ async function build(page, blocks) {
   await page.evaluate((b) => {
     document.body.innerHTML = '<div id="block-host"></div>';
     window.initStrategyBlockBuilder('block-host', b);
+
+    // OPEN EVERYTHING, because v0.16 fine-tuning 2 made collapsed the default
+    // for both blocks and folders. This file is about folder MECHANICS -
+    // membership, drag targets, the picker, nesting - and every one of those
+    // tests was written against a workspace it could see. Restoring that here
+    // keeps each test asking its own question instead of re-asking "does it
+    // start collapsed", which tests/editor-workspace-collapse.spec.js owns and
+    // should own alone.
+    //
+    // The two tests below that are genuinely about collapsing still work: they
+    // click the toggle, which now collapses rather than expands, which is what
+    // they were always doing.
+    document.querySelectorAll('#block-list .block-folder').forEach(f => {
+      window.setBlockFolderCollapsed(f.getAttribute('data-folder'), false);
+    });
+    (window.getActiveBlocks() || []).forEach(blk => window.setEditorBlockExpanded(blk, true));
+    window.renderBlockList();
   }, blocks);
   await expect(page.locator('#block-list .block-card')).toHaveCount(blocks.length);
 }
