@@ -124,6 +124,74 @@ test('the label goes away once the block is open', async ({ page }) => {
     .toBe(false);
 });
 
+test('the folder picker only appears once a block is expanded', async ({ page }) => {
+  // Owner, 2026-08-25: "When I open a folder, I already know that those blocks
+  // are in that folder. This setting/dropdown should only appear if I expand
+  // the block." It is also the widest thing on the header, and it was squeezing
+  // the summary down to two characters.
+  await openWorkspace(page, [
+    { type: 'paragraph', content: 'A paragraph long enough to need the room', align: 'left', folder: 'Neutral' },
+  ]);
+
+  // Open the folder so the card is on screen at all, but leave the BLOCK shut.
+  await page.locator('.block-folder-toggle').first().click();
+  await page.waitForTimeout(250);
+
+  const collapsed = await page.evaluate(() => {
+    const card = document.querySelector('#block-list .block-card');
+    const pick = card.querySelector('.block-folder-picker');
+    const sum = card.querySelector('.block-card-summary');
+    return {
+      cardCollapsed: card.classList.contains('collapsed'),
+      pickerShown: !!pick && getComputedStyle(pick).display !== 'none',
+      // A share of the card rather than a pixel count: the workspace pane is
+      // not a fixed width and font metrics differ by OS, so a number here
+      // would fail in CI for reasons unrelated to the claim.
+      summaryShare: sum
+        ? sum.getBoundingClientRect().width / card.getBoundingClientRect().width
+        : 0,
+    };
+  });
+  expect(collapsed.cardCollapsed, 'setup: the block itself is still shut').toBe(true);
+  expect(collapsed.pickerShown, 'a collapsed block does not repeat which folder it is in').toBe(false);
+
+  await page.locator('#block-list .block-card .btn-collapse').first().click();
+  await page.waitForTimeout(250);
+
+  const expanded = await page.evaluate(() => {
+    const pick = document.querySelector('#block-list .block-card .block-folder-picker');
+    return { pickerShown: !!pick && getComputedStyle(pick).display !== 'none' };
+  });
+  // It must come BACK, or the only way to refile a block is gone.
+  expect(expanded.pickerShown, 'expanding the block returns the control').toBe(true);
+
+  // And the space it freed goes to the label, which is the point - the picker
+  // was the widest thing on the row and left the summary showing two
+  // characters ("Bo", "Ho", "In" in the owner's screenshot).
+  //
+  // Measured as an A/B on the real row rather than against a threshold: any
+  // fixed number here would be a guess about pane width and font metrics, and
+  // tuning it until it passes would make it assert nothing. Forcing the picker
+  // back on and re-measuring asks exactly the question the change was made to
+  // answer.
+  const roomBack = await page.evaluate(() => {
+    const card = document.querySelector('#block-list .block-card');
+    // Collapse it again so we are comparing like with like.
+    card.querySelector('.btn-collapse').click();
+    const sum = card.querySelector('.block-card-summary');
+    const pick = card.querySelector('.block-folder-picker');
+    const without = sum.getBoundingClientRect().width;
+    pick.style.display = 'flex';
+    const with_ = sum.getBoundingClientRect().width;
+    pick.style.display = '';
+    return { without: Math.round(without), with: Math.round(with_) };
+  });
+
+  expect(roomBack.without,
+    `summary is ${roomBack.without}px without the picker vs ${roomBack.with}px with it`)
+    .toBeGreaterThan(roomBack.with);
+});
+
 test('a label made of shortcodes is stripped, not rendered raw', async ({ page }) => {
   await openWorkspace(page, [
     { type: 'heading', content: '[b]Bold Heading[/b] and [color=#ff0000]red[/color]', align: 'left', size: 'h3' },

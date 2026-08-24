@@ -2196,3 +2196,15 @@ del.diff-del {
     font-size: 0.7rem;
     padding: 0 0.5rem;
 }
+
+/* The folder picker is the block saying where it lives. Owner, 2026-08-25:
+   "When I open a folder, I already know that those blocks are in that folder."
+   A collapsed block sits visibly inside its folder, so the row repeats what the
+   indent has already said - and it is the widest thing on the header, which
+   squeezed the one-line summary down to two characters.
+
+   Tried once and reverted, because it left block-folders.spec.js's
+   picker-vs-dropdown overlap test with no picker to measure. That test now
+   expands the block first, which is the honest shape: the picker only exists
+   on an expanded block, so that is where an overlap can happen. */
+.block-card.collapsed .block-folder-picker { display: none; }
