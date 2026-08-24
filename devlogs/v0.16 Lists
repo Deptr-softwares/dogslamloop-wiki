@@ -1,0 +1,28 @@
+Feature List:
+- Add a TheoryBox to the Add Blocks button in the Editor.
+- Add "SectionedBox" Blocks to the Editor. It has two behaviours: In Combos/Techs Group section, and In everywhere else. In Combos/Techs Group section, right now you can only create new TheoryBox Blocks when you are making new things in a Combos Group, Now it gives you the choice to select between TheoryBox and SectionedBox. When SectionedBox is used in a Combos/Techs Group, it will wrap itself in the same box wrapper that TheoryBox use. It will have an Introduction, Sections, and Contents in Sections. Introduction and Contents in Sections both use the Accordion recursive logic to hold other Blocks inside it. Sections is just add/remove tab. Appearance-wise, it is a box with some words above, then below it is a bunch of switchable tabs, and the content of the currently loaded tab (default to first tab). When used anywhere else, remove the box wrapper, so SectionedBox blends in nicely with other Block elements (Also to stop wrapper on wrapper styling).
+- Add the option to create Hidden Characters (Test this with Boomcat, replace the "Hide WIP" filtering option in the Roster Selection with a new button "Show Hidden". While "isWIP" will still be a toggle in the owner tools to indicate if a character page is done or not, create a new key "isHidden" as another toggle in the owner tools to create pages for secret characters, by default "isHidden" is false for all characters, even when the key is not initialized.
+- Add a tool in the Owner tool to reset Free Submit Tier List in preparation for new update (which will have balance changes that impact character ranking).
+- Add a new column to the user table that control their roles and perks: "is_expert_of". This field will take the string list value of the page_id according to the Character. (A Crow Charmer expert, would have "is_expert_of" = "[crow_charmer]", and if they are also a Register expert "[register, crow_charmer]"). By default, users assigned to this table would have the authenticated role (to avoid null/blank cell). An user with the expert role, gain the power to go in a review the revision queue of only their characters (admin revision queue is already built to filter character submission). They can open the ticket, chat there and basically the same as reviewer, they just only review submission of character they are really good at.
+- For Frame Data, add a Seconds Data, inbetween Frame Data and Estimated Data. It is just seconds. a full solid block, but you can enter the seconds in (Probably use this as a replacement for Estimated Data, since Estimated Data doesn't turn out as useful as I imagined).
+- Whatever we left in v0.15 or the Roadmap.
+
+Fine-Tuning List:
+- Re-use the Certified Tier List render in the Live Page in the Tier List Editor, so it appears exactly 1 to 1 with the live page (Make the content inside drag-and-drop-able; instead of trying to re-use the editor engine and creating new elements to work with.
+- When working in the Editor, everything in the workspace is collapsed by default (The Block Folders, and each Blocks).
+- The Block Folder instead of sharing the same hierarchy visual as the Blocks (Very tiny edge different). It can be a small folder icon with small name and small side buttons (Create new folder and delete). It won't be wrapped in a grey box, but instead wrapped in a transparent box with decreased height to save even more space while blending in the Editor Workspace. Bascially a distinct visual from the Blocks themselves.
+- Collapsed Workspace Header (the part that contains the function buttons: Cancel, Sync/Save, ...) should also show the Hub button beside the Submit button.
+- Make Diff View able to render the new "system" pages engine (Right now it is calibrated to detect changes in a full upload just for system type page).
+- When editting system type page, only render the section of the tab that you are editting. Right now it is rendering the entire tab (Editting bottom sections while having a very long first section can be inconvenience).
+- Move Media Library position to the Workspace Footer (where Add Block is) instead. Reposition the quick styling buttons to have two rows and have Media Library sits next to Add Block.
+- Stress test the internalStyling rules to get out edge-cases and make it is robust enough to handle complex combinations.
+- Clear all Notification should have its own custom modal (re-use the custom modal we made).
+- HyperLinking should also have its own custom modal (same idea).
+- Whatever we left in v0.15 or the Roadmap.
+
+Bug List:
+- Editting a block with a lots of content, teleport you to the top of that block, making editting a pain.
+- A workspace with many Blocks (I experienced it in Writing Guide), sometimes shakes violently when scrolling (Moving up and down very fast).
+- You can't preview a Techs Tab in the Admin panel (Diff View still capture the changes, you just can't switch to "Pending Revision" and see what is it).
+- Purple Tag in each Revision Card sometimes get a bit too long (I experienced it while editting a singular section of a tab in Writing Guide). So long that it overflow to the right.
+- Whatever we left in v0.15 or the Roadmap.
