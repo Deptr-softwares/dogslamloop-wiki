@@ -554,6 +554,55 @@ window.initRosterFilters = async function() {
     renderFilteredRoster();
 };
 
+// --- ROSTER ICONS (v0.16) ---
+//
+// The icon path is DERIVED, not stored. `navigation.json` is generated from
+// site_pages, so an icon column would reach the site only through the nightly
+// regeneration job AND the next release - the same latency that put the Techs
+// flag in page_data rather than site_pages. A convention plus a fallback has
+// neither problem, and it is what the owner asked for: they upload a file and
+// nothing else.
+//
+// pageId -> PascalCase + "Icon.webp": honored_one -> HonoredOneIcon.webp.
+// 22 of 22 characters resolve today; a character added tomorrow resolves to a
+// file that does not exist yet, which is exactly when the fallback should run.
+window.rosterIconPath = function (pageId) {
+    if (!pageId) return null;
+    const pascal = String(pageId)
+        .split('_')
+        .filter(Boolean)
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+        .join('');
+    return pascal ? `medias/images/${pascal}Icon.webp` : null;
+};
+
+// Marks the cards whose icon actually loaded, and drops the ones that did not.
+//
+// The class is added on LOAD rather than written into the markup, so a missing
+// or broken icon leaves the card exactly as it was before v0.16 - solid colour,
+// name centred and always visible. That is the whole fallback: it is the
+// absence of an opt-in, not a second code path that has to be kept working.
+//
+// Listeners rather than inline onload/onerror attributes: this project's
+// convention is that nothing user-influenced goes in an inline handler, and a
+// page id is owner-editable. A cached image can already be complete before this
+// runs, hence the naturalWidth check.
+window.markLoadedRosterIcons = function (root) {
+    const scope = root || document;
+    scope.querySelectorAll('.roster-card-icon').forEach(img => {
+        const card = img.closest('.roster-card');
+        const keep = () => { if (card) card.classList.add('has-icon'); };
+        const drop = () => { img.remove(); };
+
+        if (img.complete) {
+            if (img.naturalWidth > 0) keep(); else drop();
+            return;
+        }
+        img.addEventListener('load', keep, { once: true });
+        img.addEventListener('error', drop, { once: true });
+    });
+};
+
 window.renderFilteredRoster = function() {
     const rosterGrid = document.getElementById('roster-grid') || document.querySelector('.roster-grid');
     if (!rosterGrid) return;
@@ -596,18 +645,29 @@ window.renderFilteredRoster = function() {
         // rather than trusted for being "internal" data.
         const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
 
+        // WIP moved out of the name and into its own corner marker, beside the
+        // Early Access star (owner, 2026-08-24). It has to survive the name
+        // being hidden at rest, and "(WIP)" inside a slit nobody has hovered
+        // yet tells the reader nothing.
+        const iconSrc = window.rosterIconPath((char.cms_config || {}).pageId);
+
+        // The character's colour goes out as a CUSTOM PROPERTY rather than as
+        // `background-color` directly. It has three jobs now - the card's own
+        // background when there is no icon, the border when there is one, and
+        // the name slit's fill - and an inline background-color would beat every
+        // stylesheet rule that needs to change one of them without !important.
         html += `
-            <a href="${esc(rootPath + char.url)}" class="roster-card" style="background-color: ${charColor};">
+            <a href="${esc(rootPath + char.url)}" class="roster-card" style="--char-color: ${charColor};">
                 ${char.isEA ? `<span class="ea-star-indicator" title="Early Access" style="color: ${textColor};">★</span>` : ''}
+                ${char.isWip ? `<span class="roster-wip-indicator" title="Work In Progress" aria-label="Work In Progress">🚧</span>` : ''}
                 ${char.image ? `<img src="${esc(char.image)}" alt="${esc(char.name)}" class="roster-card-bg-image">` : ''}
-                <div class="roster-card-text" style="color: ${textColor};">
-                    ${esc(char.name)}
-                    ${char.isWip ? `<br><span class="roster-wip-tag">(WIP)</span>` : ''}
-                </div>
+                ${iconSrc ? `<img src="${esc(rootPath + iconSrc)}" alt="" aria-hidden="true" class="roster-card-icon" loading="lazy">` : ''}
+                <div class="roster-card-text" style="color: ${textColor};">${esc(char.name)}</div>
             </a>
         `;
     });
     rosterGrid.innerHTML = html;
+    window.markLoadedRosterIcons(rosterGrid);
 };
 
 // Categories that get their own Main Dashboard column, so they are not also

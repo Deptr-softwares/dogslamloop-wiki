@@ -104,7 +104,118 @@
     width: 100%; height: 100%; object-fit: cover; position: absolute;
     top: 0; left: 0; opacity: 0.5; filter: grayscale(100%); transition: opacity 0.2s;
 }
-.roster-wip-tag { font-size: 0.55rem; font-family: var(--text-mono); }
+
+/* --- DYNAMIC ROSTER ICON (v0.16) --- */
+/* js/pagebuilder.js hands the character's colour over as --char-color and adds
+   .has-icon only once the icon has actually loaded. A card with no icon keeps
+   the solid-colour design it had before v0.16, which is the fallback the owner
+   asked for - it is the absence of an opt-in, not a second code path. */
+.roster-card {
+    background-color: var(--char-color, var(--bg-main));
+    /* Thicker than the shared 2px, because the border carries the character's
+       colour now and is doing real work rather than edging a box. 5px read as
+       too heavy against the icons, so the owner asked for 3.5 on 2026-08-24.
+       WRITTEN AS 3px BECAUSE THAT IS WHAT 3.5px RENDERS AS: Chromium floors
+       border-width to whole pixels, and it computed to 3px at both 1x and 2x.
+       Declaring 3.5 would only make the file disagree with the screen. The
+       next real step up is 4. Expect this number to move again, which is why
+       the test asserts "thicker than the shared 2px" rather than a value.
+       Set on .roster-card rather than on .has-icon so every card in the grid
+       stays the same SIZE: these are content-box, so a border only some cards
+       had would make those cards physically bigger. And set here rather than on
+       the shared `.roster-card, .tier-char-card, .image-card-container` rule,
+       which the other two also read. */
+    border-width: 3px;
+}
+
+/* With an icon, the card is DARK with the site's own diagonal hatching and the
+   character's colour moves to the border (owner, 2026-08-24). Same -45deg and
+   the same 2px/8px rhythm as `body` in Common.css, but at 0.06 rather than
+   0.015 alpha: the body pattern is spread over a whole page and is invisible
+   inside a 96px box. */
+.roster-card.has-icon {
+    background-color: var(--bg-main);
+    background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.06) 0px,
+        rgba(255, 255, 255, 0.06) 2px,
+        transparent 2px,
+        transparent 8px
+    );
+}
+
+/* Stated for the hover and focus cases too, not left to source order. The
+   shared `.roster-card:hover { border-color: var(--accent-blue) }` above
+   carries identical specificity, and equal-specificity collisions decided by
+   file position have caught this project three times. */
+.roster-card.has-icon,
+.roster-card.has-icon:hover,
+.roster-card.has-icon:focus-visible {
+    border-color: var(--char-color, var(--border-color));
+}
+
+/* The hover shadow matches the border (owner, 2026-08-24). Same reasoning as
+   the border rule: the shared `.roster-card:hover, .tier-char-card:hover,
+   .image-card-container:hover` sets --accent-blue here, and the other two
+   consumers keep it. Offsets are copied from that rule deliberately - only the
+   colour is in question, so only the colour changes. */
+.roster-card.has-icon:hover,
+.roster-card.has-icon:focus-visible {
+    box-shadow: 5px 5px 0px var(--char-color, var(--accent-blue));
+}
+
+.roster-card-icon {
+    width: 100%; height: 100%; object-fit: contain; position: absolute;
+    top: 0; left: 0; z-index: 1; pointer-events: none;
+}
+
+/* The name slit. Scoped to @media (hover: hover) on purpose: on a touch device
+   there is no hover to reveal it with, so the name stays centred and always
+   visible exactly as it does today. Hiding a roster's names on a phone would
+   make it unusable, which is the same class of mistake v0.5 and v0.6 spent two
+   passes undoing. */
+@media (hover: hover) {
+    .roster-card.has-icon .roster-card-text {
+        /* Centred on BOTH axes by auto margins against four zeroed insets: the
+           slit belongs in the middle of the icon (owner, 2026-08-24), not under
+           it. Auto margins rather than translate(-50%, -50%) because the
+           existing `.roster-card:hover .roster-card-text { transform:
+           scale(1.05) }` carries equal specificity - not competing for the
+           transform property is cheaper than winning that race. */
+        position: absolute;
+        /* EVERY slit spans the full width of the card, short name or long
+           (owner, 2026-08-24). An earlier build sized it to the name, which
+           left "Vessel" with a stub of a bar next to "Blood Manipulator"'s
+           full one; the owner wants them consistent. `width: auto` against
+           left:0/right:0 stretches to the card, so there is nothing to
+           measure or cap - the name's length now decides the slit's HEIGHT,
+           by wrapping, and nothing else. */
+        top: 0; right: 0; bottom: 0; left: 0;
+        width: auto; height: fit-content;
+        /* Vertical only. The horizontal insets already do the stretching, and
+           `margin: auto` on both axes would shrink-wrap it again. */
+        margin: auto 0;
+        /* Wraps rather than overflowing or ellipsizing: "Blood Manipulator"
+           wants 131px in a 96px box and takes a second line instead of being
+           cut down to "Blood Manipulato...", which identifies nobody. */
+        white-space: normal; overflow-wrap: break-word;
+        background-color: var(--char-color, var(--accent-blue));
+        padding: 0.1rem 0.25rem;
+        /* clip-path, not width or scaleX. `width` cannot transition to `auto`,
+           and scaleX squashes the glyphs while it opens - the concept draws the
+           name being REVEALED left to right at its natural size ("Crow C" mid
+           transition), which is a clip. The slit's width therefore comes from
+           the name's own length for free, which is what was asked for. */
+        clip-path: inset(0 100% 0 0);
+        transition: clip-path 0.25s ease;
+    }
+
+    .roster-card.has-icon:hover .roster-card-text,
+    .roster-card.has-icon:focus-visible .roster-card-text {
+        clip-path: inset(0 0 0 0);
+    }
+
+}
 .roster-empty-msg { width: 100%; text-align: center; color: var(--text-muted); font-family: var(--text-mono); }
 
 .tier-char-card img { width: 100%; height: 100%; object-fit: cover; }
