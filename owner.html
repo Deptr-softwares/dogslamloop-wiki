@@ -491,6 +491,23 @@
                     </div>
 
                     <div id="fs-setting-results" class="admin-tool-results"></div>
+
+                    <!-- v0.16 feature 4. Kept below the settings and visually
+                         separated, because it is the one control on this card
+                         that destroys data: the individual votes ARE the raw
+                         material of the median, so there is no aggregate to
+                         recompute them from. -->
+                    <div class="admin-tool-danger-row">
+                        <p class="admin-tool-hint">
+                            <strong>Reset the ranking.</strong>
+                            Deletes every vote so the community ranking rebuilds against a new
+                            game patch. The tier scale and these settings are kept.
+                            This cannot be undone.
+                        </p>
+                        <button id="btn-reset-free-submit" class="btn-sys btn-sys-red admin-tool-btn">RESET RANKING</button>
+                    </div>
+
+                    <div id="fs-reset-results" class="admin-tool-results"></div>
                 </section>
                 </div>
 
@@ -541,9 +558,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/character_tabs.js?v=3a432f4d"></script>
-    <script src="js/input_slots.js?v=3a432f4d"></script>
-    <script src="js/site_utils.js?v=3a432f4d"></script>
+    <script src="js/character_tabs.js?v=45cad675"></script>
+    <script src="js/input_slots.js?v=45cad675"></script>
+    <script src="js/site_utils.js?v=45cad675"></script>
     <script src="js/site_meta.js"></script>
     <script src="js/editor-folders.js"></script>
     <script src="js/editor-blocks.js"></script>

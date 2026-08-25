@@ -232,9 +232,47 @@ async function saveFreeSubmitSettings() {
     tierToolSay('fs-setting-results', 'Saved. It applies to the next vote.');
 }
 
+// v0.16 feature 4. Destructive and irreversible: the individual votes are the
+// raw material of the median, so there is no aggregate to rebuild them from.
+//
+// Behind the site's own confirm modal rather than a browser confirm(), for the
+// same reason the rest of v0.16 replaced those - and here it also lets the
+// question name the consequence properly rather than in one line of chrome.
+async function resetFreeSubmitTierList() {
+    const ok = await window.adminConfirm(
+        'Delete every vote in the Free Submit Tier List?\n\n'
+        + 'The community ranking will be empty until people vote again. The tier '
+        + 'scale and the eligibility settings are kept.\n\nThis cannot be undone.');
+    if (!ok) return;
+
+    const btn = document.getElementById('btn-reset-free-submit');
+    if (btn) btn.disabled = true;
+
+    // The RPC checks the caller itself (IS DISTINCT FROM 'admin' -> 42501). The
+    // owner page being RBAC-gated is a courtesy; the function is the boundary.
+    const { data, error } = await window.supabaseClient.rpc('reset_free_submit_tier_list');
+
+    if (btn) btn.disabled = false;
+
+    if (error) {
+        tierToolSay('fs-reset-results', tierNotDeployed(error)
+            ? 'The reset tool arrives with the next release.'
+            : `Reset failed: ${error.message}`, true);
+        return;
+    }
+
+    // The function returns how many votes it removed. Reported rather than
+    // swallowed: "done" on a destructive action tells the owner nothing about
+    // whether it did what they meant.
+    tierToolSay('fs-reset-results', String(data || 'Reset complete.'));
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const save = document.getElementById('btn-save-tier-page-intro');
     if (save) save.addEventListener('click', saveTierPageIntro);
+
+    const reset = document.getElementById('btn-reset-free-submit');
+    if (reset) reset.addEventListener('click', resetFreeSubmitTierList);
 
     const assign = document.getElementById('btn-assign-tier-list');
     if (assign) assign.addEventListener('click', assignTierList);
