@@ -742,7 +742,26 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 /* --- QUEUE STATUS BADGES --- */
 .badge-status-ticket-open { background: #eab308; color: #000; border: none; font-size: 0.55rem; padding: 0.15rem 0.4rem; }
 .badge-status-pending { background: var(--accent-blue); color: #000; border: none; font-size: 0.55rem; padding: 0.15rem 0.4rem; }
-.badge-patch-delta { background: rgba(168,85,247,0.1); color: #a855f7; border: 1px solid #a855f7; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+/* The only .update-badge whose text is not written by hand. Every other one is
+   a fixed word - WIP, EA, TICKET OPEN, S/M/L - which is why the shared base in
+   Badges.css sets `white-space: nowrap`, and why that stays. This one carries
+   `[PATCH: <scope>: <key>]`, and a system-section key is `${tabKey}::${secKey}`
+   built from two slugified titles, so it runs to ~80 characters and could not
+   break at any width: measured 402px wide inside a 190px column, hanging 229px
+   past the card - v0.16 bug 4.
+
+   `overflow-wrap: anywhere` rather than `break-word` on purpose: only `anywhere`
+   also shrinks the element's min-content size, which is what lets it yield as a
+   flex item in .admin-queue-badges-row. `break-word` would wrap the text and
+   still reserve the full unbroken width. */
+.badge-patch-delta {
+    background: rgba(168,85,247,0.1); color: #a855f7; border: 1px solid #a855f7;
+    font-size: 0.55rem; padding: 0.1rem 0.4rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+    box-sizing: border-box;
+}
 .badge-legacy-overwrite { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 .badge-page-id { font-size: 0.5rem; background: #333; color: #fff; border: 1px solid #555; padding: 0.15rem 0.4rem; }
 
