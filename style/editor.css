@@ -429,9 +429,22 @@ input[type="checkbox"]:checked {
 .block-header:active {
     cursor: grabbing !important;
 }
-.editor-textarea { 
-    overflow: hidden; /* Removes scrollbars for auto-expanding */
-}
+/* `.editor-textarea { overflow: hidden }` used to sit here, to keep a scrollbar
+   off a field that grew to fit whatever was typed into it. Fields stopped
+   growing without limit when the 260px cap arrived (line 240, owner 2026-08-17)
+   and the rule outlived its reason - but it is the same 0-1-0 selector as that
+   cap's `overflow-y: auto`, further down the file, so it won on source order and
+   turned every capped field into 260px of text with no way to reach the rest.
+
+   The block editor never showed it, because autoSizeEditorTextarea writes
+   style.overflowY inline and an inline style beats both rules. Everything else
+   using this class had no scrollbar and no wheel scrolling: the combo card's
+   route and notes fields (js/editor-tabs.js), the QA changelog on the submit
+   modal (js/editor-core.js), the tier changelog (js/tierlist.js).
+
+   Fifth time an equal-specificity pair in this project has been settled by
+   source order rather than by intent - so the cap keeps `overflow-y: auto` and
+   nothing here contradicts it. */
 
 /* --- ALIGNMENT TOGGLE BUTTONS --- */
 .align-group {
