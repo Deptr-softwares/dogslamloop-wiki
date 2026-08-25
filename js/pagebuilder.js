@@ -502,7 +502,12 @@ window.initAuthDock = async function() {
 // ==========================================
 
 let masterRosterData = [];
-let currentFilters = { archetype: 'All', tier: 'All', eaOnly: false, baseOnly: false, hideWip: false };
+// showHidden replaces hideWip (v0.16 feature 3). "Hide WIP" was removed rather
+// than kept alongside it: every one of the 44 character entries is currently
+// isWip, so that button emptied the roster completely, and the flag it reads is
+// about whether a page is FINISHED - which is the owner's business, not a thing
+// a reader filters on.
+let currentFilters = { archetype: 'All', tier: 'All', eaOnly: false, baseOnly: false, showHidden: false };
 
 window.initRosterFilters = async function() {
     const filterContainer = document.getElementById('roster-filter-bar');
@@ -534,7 +539,7 @@ window.initRosterFilters = async function() {
         <div class="filter-group filter-group-right">
             <button id="filter-ea" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">EA Only</span></div></button>
             <button id="filter-base" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Base Only</span></div></button>
-            <button id="filter-wip" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Hide WIP</span></div></button>
+            <button id="filter-hidden" class="filter-toggle btn-manga btn-manga-slanted" title="Characters playable only in a Private Server"><div class="btn-manga-content"><span class="btn-manga-text">Show Hidden</span></div></button>
         </div>
     `;
 
@@ -549,7 +554,7 @@ window.initRosterFilters = async function() {
             renderFilteredRoster();
         });
     };
-    setupToggle('filter-ea', 'eaOnly'); setupToggle('filter-base', 'baseOnly'); setupToggle('filter-wip', 'hideWip');
+    setupToggle('filter-ea', 'eaOnly'); setupToggle('filter-base', 'baseOnly'); setupToggle('filter-hidden', 'showHidden');
 
     renderFilteredRoster();
 };
@@ -617,8 +622,13 @@ window.renderFilteredRoster = function() {
         if (currentFilters.tier !== 'All' && char.tier !== currentFilters.tier) return false;
         if (currentFilters.eaOnly && !char.isEA) return false;
         if (currentFilters.baseOnly && !char.isBaseOnly) return false;
-        if (currentFilters.hideWip && char.isWip) return false;
-        return true; 
+        // Hidden characters are OUT by default and the toggle lets them in -
+        // the opposite polarity to the filters above, which is why the button
+        // reads "Show Hidden" rather than "Hide" anything. `isHidden` is absent
+        // rather than false on every ordinary entry (fetch-registry omits false
+        // flags), so this is a truthiness test on purpose.
+        if (!currentFilters.showHidden && char.isHidden) return false;
+        return true;
     });
 
     if (filteredChars.length === 0) {
