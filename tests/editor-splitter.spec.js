@@ -125,17 +125,23 @@ test('neither pane can be squeezed out of existence', async ({ page }) => {
 });
 
 test('a stored split that no longer fits is re-clamped, not obeyed', async ({ page }) => {
-  // 45% is roomy at 1920 and leaves no preview at 1000. The stored value is a
-  // percentage, so this is reachable by resizing the window rather than by
-  // anything the contributor did wrong.
+  // The stored value is a PERCENTAGE, so a window resize alone can violate the
+  // pixel floors without the contributor doing anything.
+  //
+  // The drag has to go to the far right and the window has to shrink a long
+  // way, or this proves nothing: written first as 900px at 1600 then 1000 wide,
+  // it passed with the clamp deleted, because 56% of 1000 is 560/440 and both
+  // halves clear their floors on their own. Falsifying it is what showed that.
   await openEditor(page, 1600, 900);
-  await dragSplitterTo(page, 900);
-  expect((await panes(page)).workspace, 'setup: a wide workspace was stored').toBeGreaterThan(700);
+  await dragSplitterTo(page, 1590);
+  const wide = await panes(page);
+  expect(wide.pct, 'setup: stored about as wide as the clamp allows').toBeGreaterThan(70);
 
   await page.setViewportSize({ width: 1000, height: 800 });
   await page.waitForTimeout(400);
 
   const after = await panes(page);
+  // Unclamped, the stored ~77% would leave the preview around 225px.
   expect(after.preview, 'the preview is still a preview').toBeGreaterThanOrEqual(355);
   expect(after.workspace, 'and the workspace is still usable').toBeGreaterThanOrEqual(295);
 });
