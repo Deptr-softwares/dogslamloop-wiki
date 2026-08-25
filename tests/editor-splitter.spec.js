@@ -171,13 +171,25 @@ test('below the mobile breakpoint there is no splitter and both panes are full w
   const seen = await page.evaluate(() => {
     const s = document.getElementById('editor-splitter');
     const w = document.querySelector('.editor-workspace');
+    const r = w.getBoundingClientRect();
     return {
       splitter: getComputedStyle(s).display,
-      workspaceW: Math.round(w.getBoundingClientRect().width),
-      viewport: window.innerWidth,
+      workspaceW: Math.round(r.width),
+      workspaceH: Math.round(r.height),
+      viewportW: window.innerWidth,
+      viewportH: window.innerHeight,
     };
   });
 
   expect(seen.splitter, 'the splitter is gone').toBe('none');
-  expect(seen.workspaceW, 'and the workspace is the whole screen').toBe(seen.viewport);
+  expect(seen.workspaceW, 'and the workspace is the whole screen').toBe(seen.viewportW);
+
+  // THE HEIGHT IS THE POINT. In a column layout flex-basis is the MAIN axis, so
+  // an unscoped `flex: 0 0 var(--editor-split)` would make the workspace 30% of
+  // the viewport HEIGHT and leave two thirds of the phone blank. Written first
+  // as a width-only check, this passed with the min-width scoping removed - the
+  // `width: 100% !important` was carrying it - so it was asserting nothing about
+  // the risk its own comment named.
+  expect(seen.workspaceH, 'the workspace is still full height, not 30% of it')
+    .toBeGreaterThan(seen.viewportH - 10);
 });
