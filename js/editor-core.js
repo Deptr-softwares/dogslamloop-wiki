@@ -29,6 +29,16 @@ window.toggleMobilePreview = function() {
 // the editor could draw itself.
 const EDITOR_CHROME_KEY = 'dsl_editor_chrome_collapsed';
 const EDITOR_TIP_KEY = 'dsl_editor_tip_dismissed';
+const EDITOR_SPLIT_KEY = 'dsl_editor_split_pct';
+
+// 30/70 stays the default deliberately: the preview exists to show the page at
+// the proportions a reader gets, so widening the workspace is a trade the
+// writer opts into rather than the state they start in (owner, 2026-08-25).
+const EDITOR_SPLIT_DEFAULT = 30;
+// Floors in PIXELS, not percent. A percentage that is comfortable at 1920 is
+// unusable at 1280, and the preview needs enough width to still be a preview.
+const EDITOR_SPLIT_MIN_PX = 300;
+const EDITOR_PREVIEW_MIN_PX = 360;
 
 // localStorage throws outright in a few real configurations - Safari's private
 // mode historically, and any browser with site data blocked. A contributor
@@ -63,7 +73,106 @@ window.setEditorTipDismissed = function (dismissed) {
     editorPrefWrite(EDITOR_TIP_KEY, dismissed);
 };
 
+function editorPrefReadNum(key, fallback) {
+    try {
+        const n = parseFloat(window.localStorage.getItem(key));
+        return Number.isFinite(n) ? n : fallback;
+    } catch (e) { return fallback; }
+}
+
+function editorPrefWriteNum(key, n) {
+    try { window.localStorage.setItem(key, String(n)); } catch (e) { /* forgets, still works */ }
+}
+
+// Clamped in pixels and returned as a percentage. Both panes have a floor: a
+// workspace under ~300px cannot hold the block cards, and a preview under
+// ~360px stops being a preview of anything.
+window.clampEditorSplit = function (pct, layoutWidth) {
+    if (!layoutWidth) return pct;
+    const minPct = (EDITOR_SPLIT_MIN_PX / layoutWidth) * 100;
+    const maxPct = ((layoutWidth - EDITOR_PREVIEW_MIN_PX) / layoutWidth) * 100;
+    // A window too narrow to satisfy both floors: the default is the least-bad
+    // answer, and it is what the layout would have done anyway.
+    if (minPct > maxPct) return EDITOR_SPLIT_DEFAULT;
+    return Math.min(Math.max(pct, minPct), maxPct);
+};
+
+window.setEditorSplit = function (pct, persist) {
+    const layout = document.querySelector('.editor-layout');
+    if (!layout) return;
+    const clamped = window.clampEditorSplit(pct, layout.getBoundingClientRect().width);
+    layout.style.setProperty('--editor-split', clamped.toFixed(3) + '%');
+    if (persist) editorPrefWriteNum(EDITOR_SPLIT_KEY, Math.round(clamped * 1000) / 1000);
+};
+
+window.initEditorSplitter = function () {
+    const splitter = document.getElementById('editor-splitter');
+    const layout = document.querySelector('.editor-layout');
+    if (!splitter || !layout) return;
+
+    window.setEditorSplit(editorPrefReadNum(EDITOR_SPLIT_KEY, EDITOR_SPLIT_DEFAULT), false);
+
+    let dragging = false;
+
+    const applyFromX = (clientX) => {
+        const r = layout.getBoundingClientRect();
+        if (!r.width) return;
+        window.setEditorSplit(((clientX - r.left) / r.width) * 100, false);
+    };
+
+    // Pointer events rather than mouse: one code path covers a trackpad, a
+    // mouse and a stylus, and setPointerCapture keeps the drag alive when the
+    // cursor outruns the 5px bar - which it does immediately.
+    splitter.addEventListener('pointerdown', (e) => {
+        dragging = true;
+        splitter.setPointerCapture(e.pointerId);
+        splitter.classList.add('is-dragging');
+        layout.classList.add('is-resizing');
+        e.preventDefault();
+    });
+
+    splitter.addEventListener('pointermove', (e) => {
+        if (dragging) applyFromX(e.clientX);
+    });
+
+    const endDrag = (e) => {
+        if (!dragging) return;
+        dragging = false;
+        try { splitter.releasePointerCapture(e.pointerId); } catch (_) { /* already gone */ }
+        splitter.classList.remove('is-dragging');
+        layout.classList.remove('is-resizing');
+        // Persisted once, at the end. Writing on every pointermove would put a
+        // localStorage round trip inside the drag loop.
+        const current = parseFloat(getComputedStyle(layout).getPropertyValue('--editor-split'));
+        window.setEditorSplit(Number.isFinite(current) ? current : EDITOR_SPLIT_DEFAULT, true);
+    };
+    splitter.addEventListener('pointerup', endDrag);
+    splitter.addEventListener('pointercancel', endDrag);
+
+    // Back to the proportions a reader sees, in one gesture.
+    splitter.addEventListener('dblclick', () => window.setEditorSplit(EDITOR_SPLIT_DEFAULT, true));
+
+    // Keyboard, because a separator with tabindex that does nothing on arrow
+    // keys is worse than one nobody can focus.
+    splitter.addEventListener('keydown', (e) => {
+        const step = e.shiftKey ? 5 : 1;
+        const current = parseFloat(getComputedStyle(layout).getPropertyValue('--editor-split')) || EDITOR_SPLIT_DEFAULT;
+        if (e.key === 'ArrowLeft') { window.setEditorSplit(current - step, true); e.preventDefault(); }
+        else if (e.key === 'ArrowRight') { window.setEditorSplit(current + step, true); e.preventDefault(); }
+        else if (e.key === 'Home') { window.setEditorSplit(EDITOR_SPLIT_DEFAULT, true); e.preventDefault(); }
+    });
+
+    // A stored percentage can violate the pixel floors after a window resize -
+    // 45% is roomy at 1920 and leaves no preview at 1100.
+    window.addEventListener('resize', () => {
+        const current = parseFloat(getComputedStyle(layout).getPropertyValue('--editor-split'));
+        if (Number.isFinite(current)) window.setEditorSplit(current, false);
+    });
+};
+
 window.initEditorChrome = function () {
+    window.initEditorSplitter();
+
     const toggle = document.getElementById('btn-collapse-chrome');
     const dismiss = document.getElementById('btn-dismiss-tip');
     if (!toggle && !dismiss) return;

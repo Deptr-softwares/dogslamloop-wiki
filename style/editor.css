@@ -28,9 +28,94 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     height: 100%;
     padding: 0;
     overflow-y: auto;
-    background-color: var(--bg-main); 
+    background-color: var(--bg-main);
     box-sizing: border-box;
     position: relative;
+}
+
+/* --- THE SPLITTER (v0.16 fine-tuning 9) ---
+   30/70 was fixed, which meant the place you type was 384px wide on a 1280px
+   screen - about 46 characters a line - whether or not you were looking at the
+   preview at that moment.
+
+   Everything below is scoped to min-width: 901px on purpose. Under that the
+   layout turns into a column and both panes are width:100% !important, so a
+   flex-basis here would silently become a HEIGHT and the splitter would be
+   dividing the wrong axis. */
+@media (min-width: 901px) {
+    .editor-layout {
+        /* The one number the drag writes. Percent so it survives a window
+           resize; js/editor-core.js clamps it in px before writing. */
+        --editor-split: 30%;
+    }
+
+    .editor-workspace {
+        flex: 0 0 var(--editor-split);
+        width: auto;
+    }
+
+    /* Takes whatever is left rather than a second number to keep in step. */
+    .live-preview-pane {
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
+    }
+
+    .editor-splitter {
+        flex: 0 0 5px;
+        cursor: col-resize;
+        background: #1a1a1a;
+        border-left: 1px solid #333;
+        border-right: 1px solid #333;
+        box-sizing: border-box;
+        position: relative;
+        z-index: 60;
+        touch-action: none;
+    }
+
+    .editor-splitter::after {
+        /* A grip, and a bigger hit area than 5px of visible bar. */
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 2px;
+        height: 32px;
+        transform: translate(-50%, -50%);
+        background: #555;
+        border-radius: 1px;
+    }
+
+    .editor-splitter:hover,
+    .editor-splitter:focus-visible,
+    .editor-splitter.is-dragging {
+        background: var(--accent-blue);
+        outline: none;
+    }
+
+    .editor-splitter:hover::after,
+    .editor-splitter:focus-visible::after,
+    .editor-splitter.is-dragging::after {
+        background: #fff;
+    }
+
+    /* While dragging, the panes must not eat the pointer or start selecting
+       text - both make the drag stutter and the second is visible as a blue
+       smear across the preview. */
+    .editor-layout.is-resizing {
+        user-select: none;
+        cursor: col-resize;
+    }
+
+    .editor-layout.is-resizing .live-preview-pane,
+    .editor-layout.is-resizing .editor-workspace {
+        pointer-events: none;
+    }
+}
+
+/* No second pane to divide down here. */
+@media (max-width: 900px) {
+    .editor-splitter { display: none; }
 }
 
 /* --- SLEEK HEADER UI ---

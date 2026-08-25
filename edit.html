@@ -313,6 +313,16 @@
             <div id="interactive-builder"></div>
         </div>
 
+        <!-- Drag to trade preview width for writing width (v0.16 fine-tuning 9).
+             Double-click resets to 30/70, which stays the default because the
+             preview is meant to show the page at the proportions a reader gets;
+             widening the workspace is a trade the writer opts into, not the
+             state they start in. Hidden below 900px, where the two panes stop
+             sharing the screen at all. -->
+        <div class="editor-splitter" id="editor-splitter" role="separator"
+             aria-orientation="vertical" aria-label="Resize the editor and preview"
+             tabindex="0" title="Drag to resize &mdash; double-click to reset"></div>
+
         <div class="live-preview-pane">
             <button class="mobile-back-to-editor" onclick="window.toggleMobilePreview()">
                 <span style="font-size: 1rem; margin-right: 0.5rem;">←</span> BACK TO EDITOR
