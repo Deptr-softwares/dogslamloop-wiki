@@ -13,7 +13,13 @@ function renderTicketWorkspace(rev, isOwnSubmission, hasSupported, hasOpposed) {
     rev.opposers = rev.opposers || [];
 
     // --- NET SCORE UI WITH PERKS ---
-    const isTrusted = (rev.author_roles || []).includes('trusted_editor');
+    // At or above trusted_editor, matching js/admin-queue.js - reviewer and
+    // admin get the discount too (v0.16 bug 6). These two must agree: this one
+    // prints the requirement and that one decides whether MERGE appears, so a
+    // disagreement shows a reviewer "+1 to Merge" beside a button that will not
+    // appear until +2.
+    const isTrusted = (rev.author_roles || []).some(r =>
+        window.roleMeets(r, 'trusted_editor'));
     const requiredSupport = isTrusted ? 1 : 2;
     const netScore = rev.supporters.length - rev.opposers.length;
 
@@ -23,7 +29,11 @@ function renderTicketWorkspace(rev, isOwnSubmission, hasSupported, hasOpposed) {
 
     supportText.innerHTML = `Net Approval Score: <strong class="ticket-score-value" style="color:${scoreColor};">${netScore > 0 ? '+' : ''}${netScore}</strong>`;
 
-    const perkHtml = isTrusted ? ` <span class="ticket-perk-note">(Trusted Editor Perk Applied)</span>` : '';
+    // "Staff", not "Trusted Editor": the discount now applies to reviewer and
+    // admin as well, and a reviewer reading "Trusted Editor Perk Applied" on
+    // their own ticket would reasonably wonder whose perk they were getting.
+    // STAFF_ROLES in js/editor-core.js is already exactly these three.
+    const perkHtml = isTrusted ? ` <span class="ticket-perk-note">(Staff Perk Applied)</span>` : '';
     opposeText.innerHTML = `<span class="ticket-requirement-text">Requires +${requiredSupport} to Merge, or -2 to Reject${perkHtml}</span>`;
 
     if (isOwnSubmission) {

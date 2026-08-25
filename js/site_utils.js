@@ -1798,6 +1798,33 @@ window.deleteNotification = async function(id, event) {
     }
 };
 
+// Orders the role names, mirroring public.role_rank() in
+// supabase/migrations/20260825000001_role_rank.sql (v0.16 bug 6).
+//
+// It exists because every perk in this codebase used to test a literal role
+// name, so nothing anywhere stated that a reviewer outranks a trusted editor -
+// which is why the decision that reviewers have a trusted editor's perks
+// reached one of the three places it should have.
+//
+// Keep the two in step. They are deliberately the same ladder rather than the
+// same code: SQL cannot call this, and a perk enforced only here would be a
+// suggestion. Where a rule matters, the database version is the boundary and
+// this one decides what the interface shows.
+window.ROLE_RANK = { admin: 4, reviewer: 3, trusted_editor: 2, viewer: 1 };
+
+window.roleRank = function (roleName) {
+    // 0 for null, undefined, '' and any unknown string - the same total
+    // behaviour the SQL CASE gets from its ELSE branch. Comparisons against
+    // this are then always meaningful, which is the point.
+    return window.ROLE_RANK[String(roleName || '').trim().toLowerCase()] || 0;
+};
+
+// "Does this person clear the bar the page asks for?" Written once so a fourth
+// perk cannot be added while forgetting one of the roles that should have it.
+window.roleMeets = function (roleName, requiredRole) {
+    return window.roleRank(roleName) >= window.roleRank(requiredRole);
+};
+
 // A confirmation in the site's own modal, for code that runs on EVERY page.
 //
 // js/editor-core.js has customConfirm, but it is bound to #editor-custom-modal,

@@ -721,15 +721,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const userRole = (roleData?.role || 'guest').trim().toLowerCase();
                 const requiredRole = (permissionRow.required_role || 'trusted_editor').trim().toLowerCase();
 
-                // Admin clears every level; trusted_editor clears only pages
-                // asking for trusted_editor.
-                const allowed = userRole === 'admin'
-                    || (requiredRole === 'trusted_editor' && userRole === 'trusted_editor');
+                // Mirrors the "Guests can submit revisions" policy exactly
+                // (supabase/migrations/20260825000001_role_rank.sql). Anyone at
+                // or above the row's own required_role passes, so a page asking
+                // for trusted_editor admits admin, reviewer and trusted_editor,
+                // while one asking for admin still admits only admin.
+                //
+                // This used to test two literal role names and left a REVIEWER
+                // out of both - they saw the Edit button, wrote the whole edit,
+                // and were refused at Submit (v0.16 bug 6). The gate below is
+                // the message; the policy is the boundary, and they have to say
+                // the same thing or one of them is lying to somebody.
+                const allowed = typeof window.roleMeets === 'function'
+                    ? window.roleMeets(userRole, requiredRole)
+                    : userRole === 'admin';
 
                 if (!allowed) {
                     window.editorAlert(requiredRole === 'admin'
                         ? "READ ONLY: This page is restricted to Admins."
-                        : "READ ONLY: This is an exclusive systemic page. You require the 'Trusted Editor' or 'Admin' role to submit revisions here.");
+                        : "READ ONLY: This is an exclusive systemic page. You require the 'Trusted Editor', 'Reviewer' or 'Admin' role to submit revisions here.");
                     return;
                 }
             }
