@@ -5,9 +5,14 @@
 // what makes it a COMBO group: a card carrying the route and its numbers, plus
 // a write-up that is itself blocks, nested exactly like an accordion.
 //
-// A new block type costs six sites in four files, and the last two are the
+// A new block type costs seven sites in four files, and the last two are the
 // ones that hurt: miss them and the block renders for readers but is invisible
 // to the reviewer approving it, or is silently lost on draft sync.
+//
+// It was six until v0.16 fine-tuning 1, which added the label map. A type
+// missing from that map still works - it just shows up in the editor's dropdown
+// as a raw uppercase key, which is the exact confusion that item existed to
+// end, so it is a site now.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -25,20 +30,28 @@ const CARD = {
   content: [{ type: 'paragraph', content: 'Delay the third M1 or the route drops.' }],
 };
 
-test('all six sites handle the block, or it breaks somewhere invisible', () => {
+test('all seven sites handle the block, or it breaks somewhere invisible', () => {
   // Derived from the file list rather than asserted by rendering, because two
-  // of the six only ever run inside a reviewer's session or a draft sync -
+  // of the seven only ever run inside a reviewer's session or a draft sync -
   // exactly the two that are easiest to forget and hardest to notice.
+  //
+  // Site 2 used to look for the literal `data-type="theorybox"`, which was a
+  // hand-written button in the Add Block menu. v0.16 generates that menu from
+  // ADD_BLOCK_GROUPS so it cannot drift from the label map, so the declaration
+  // is what this checks now. The rendered button is covered by "the editor
+  // offers the card" further down, which drives the real menu - between the
+  // two, both the declaration and the thing it produces are pinned.
   const sites = {
     'js/editor-blocks.js': [
       /theorybox: \{ type: 'theorybox'/,          // 1. registry default shape
-      /data-type="theorybox"/,                     // 2. the picker button
-      /block\.type === 'theorybox'/,               // 3. the editor form
+      /types: \[[^\]]*'theorybox'/,                // 2. offered by the picker
+      /theorybox: '[^']+'/,                        // 3. has a human-readable name
+      /block\.type === 'theorybox'/,               // 4. the editor form
       /field === 'sequence-lines'/,                // the route is an ARRAY
     ],
-    'js/description.js': [/block\.type === 'theorybox'/],   // 4. reader
-    'js/admin-preview.js': [/b\.type === 'theorybox'/],     // 5. reviewer preview
-    'js/editor-sync.js': [/b\.type === 'theorybox'/],       // 6. draft sync
+    'js/description.js': [/block\.type === 'theorybox'/],   // 5. reader
+    'js/admin-preview.js': [/b\.type === 'theorybox'/],     // 6. reviewer preview
+    'js/editor-sync.js': [/b\.type === 'theorybox'/],       // 7. draft sync
   };
 
   const missing = [];
@@ -46,7 +59,7 @@ test('all six sites handle the block, or it breaks somewhere invisible', () => {
     const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
     patterns.forEach(p => { if (!p.test(src)) missing.push(`${file} :: ${p}`); });
   }
-  expect(missing, 'a block type handled at fewer than six sites fails silently').toEqual([]);
+  expect(missing, 'a block type handled at fewer than seven sites fails silently').toEqual([]);
 });
 
 test('the card renders its route, numbers and nested write-up', async ({ page }) => {
