@@ -579,6 +579,85 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .tier-portrait.tier-portrait-ghost { position: fixed; z-index: 9999; pointer-events: none; opacity: 0.9; transform: translate(-50%, -50%) scale(1.05); box-shadow: 6px 6px 0px rgba(0,0,0,0.5); }
 .tier-portrait-dragging { opacity: 0.4; }
 
+/* --- THE NAME RISES ON HOVER (v0.16 fine-tuning 8) ---
+   The same interaction the Roster Icon got in this version, on the second
+   surface that shows a portrait with a name behind it - built once, in the
+   direction the owner described for each: the roster's name slides in from the
+   side, a tier portrait's rises from under it.
+
+   `attr(title)` rather than a new element: all three renderers
+   (js/tierlist.js, js/tier-editor.js, js/certified-tier-lists.js) already set
+   title to the character's name, so this needs no JS at all and cannot fall out
+   of step with the markup.
+
+   .tier-portrait-name is deliberately left alone. It sits BEHIND the image at
+   z-index 2 and is the fallback that shows through when a portrait 404s - the
+   reason an unresolved key is visible rather than silently blank. Moving it
+   would have traded a working fallback for a hover effect. */
+@media (hover: hover) {
+    .tier-portrait::after {
+        content: attr(title);
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        /* Above .tier-portrait-img, which is z-index 3. */
+        z-index: 5;
+        /* Parked below the box and clipped away by .tier-portrait's own
+           overflow: hidden, so there is nothing to see until it rises. */
+        transform: translateY(100%);
+        transition: transform 0.18s ease;
+        background: rgba(0, 0, 0, 0.88);
+        color: #fff;
+        font-family: 'CC-Wild-Words', sans-serif;
+        font-size: 0.5rem;
+        line-height: 1.15;
+        padding: 3px 2px;
+        text-align: center;
+        overflow-wrap: break-word;
+        /* The portrait is a link or a drag handle; the label must never be the
+           thing the pointer lands on. */
+        pointer-events: none;
+    }
+
+    .tier-portrait:hover::after,
+    .tier-portrait:focus-visible::after {
+        transform: translateY(0);
+    }
+
+    /* Not on the floating clone, and not on the portrait being dragged out of
+       a row - a label rising mid-drag reads as a bug and obscures the drop
+       target underneath the pointer. */
+    .tier-portrait.tier-portrait-ghost::after,
+    .tier-portrait.tier-portrait-dragging::after {
+        display: none;
+    }
+}
+
+/* --- BIGGER BOXES, TIGHTER SPACING (v0.16 fine-tuning 8) ---
+   The certified tier lists page already got this (style/certified-tier-lists.css,
+   scoped to #tier-list-ui); this is the same treatment for the OTHER live
+   surface, the one js/tierlist.js renders.
+
+   Scoped to .tier-list-row-chars on purpose, exactly as that file scoped its
+   own: the editor's drag-and-drop hit-testing was built around 60px portraits,
+   and raising .tier-portrait globally would change the boxes it measures. */
+.tier-list-row-chars {
+    gap: 0.3rem;
+    padding: 0.4rem;
+}
+
+.tier-list-row-chars .tier-portrait {
+    width: 78px;
+    height: 78px;
+}
+
+.tier-list-row-chars .tier-portrait-name { font-size: 0.56rem; }
+
+@media (max-width: 700px) {
+    .tier-list-row-chars .tier-portrait { width: 60px; height: 60px; }
+}
+
 /* --- TIER LIST EDITOR (js/tierlist.js EDITOR BUILDER: renderTierEditorUI) --- */
 /* Compound: .daw-variant-tabs's own base rule sets border-bottom color/
    padding-bottom at the same specificity. */

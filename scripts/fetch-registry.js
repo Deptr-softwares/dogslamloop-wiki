@@ -59,6 +59,10 @@ function buildNavigation(rows) {
         const entry = { id: row.nav_id, name: row.name, url: row.url };
 
         if (row.is_wip) entry.isWip = true;
+        // Private-server-only. Omitted when false, like every other flag here:
+        // writing `isHidden: false` onto all 52 entries would be a valid but
+        // enormous diff for a default nothing reads.
+        if (row.is_hidden) entry.isHidden = true;
         if (row.is_ea) entry.isEA = true;
         if (row.is_base_only) entry.isBaseOnly = true;
         if (row.is_missing_media) entry.isMissingMedia = true;

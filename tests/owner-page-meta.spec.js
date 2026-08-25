@@ -121,7 +121,13 @@ test('page details loads a character with all its fields', async ({ page }) => {
     await openGroup(page, 'pages');
 
     await expect(page.locator('#page-meta-select')).toHaveValue('boomcat', { timeout: 5000 });
-    await expect(page.locator('.page-meta-checkbox')).toHaveCount(5);
+    // The flags by NAME rather than by count. A bare count breaks every time a
+    // flag is added - is_hidden did exactly that in v0.16 - while telling you
+    // nothing about which one went missing when it matters.
+    const flags = await page.locator('.page-meta-checkbox').evaluateAll(
+        els => els.map(e => e.getAttribute('data-column')).sort());
+    expect(flags).toEqual(
+        ['is_base_only', 'is_ea', 'is_hidden', 'is_missing_media', 'is_subjective', 'is_wip']);
     await expect(page.locator('#page-meta-character-fields')).toBeVisible();
     await expect(page.locator('#page-meta-archetype')).toHaveValue('TBD');
     expect(errors).toEqual([]);
@@ -137,7 +143,10 @@ test('character-only fields are hidden for a system page', async ({ page }) => {
     await page.selectOption('#page-meta-select', 'framedata');
     await expect(page.locator('#page-meta-character-fields')).toBeHidden();
     // Flags still apply - a system page can be work-in-progress.
-    await expect(page.locator('.page-meta-checkbox')).toHaveCount(5);
+    const sysFlags = await page.locator('.page-meta-checkbox').evaluateAll(
+        els => els.map(e => e.getAttribute('data-column')).sort());
+    expect(sysFlags).toEqual(
+        ['is_base_only', 'is_ea', 'is_hidden', 'is_missing_media', 'is_subjective', 'is_wip']);
     await expect(page.locator('.page-meta-checkbox[data-column="is_wip"]')).toBeChecked();
 });
 

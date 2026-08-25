@@ -22,6 +22,11 @@
 // characters.
 const PAGE_FLAGS = [
     { column: 'is_wip', label: 'Work in progress' },
+    // Private-server-only (v0.16 feature 3). Separate from is_wip on purpose:
+    // work-in-progress is about whether a page is FINISHED, hidden is about
+    // where the character can be PLAYED, and a page can be either without being
+    // the other.
+    { column: 'is_hidden', label: 'Hidden (private server only)' },
     { column: 'is_ea', label: 'Early access' },
     { column: 'is_base_only', label: 'Base-only character' },
     { column: 'is_missing_media', label: 'Missing media' },
@@ -42,7 +47,7 @@ async function loadPageMeta() {
 
     const { data, error } = await window.supabaseClient
         .from('site_pages')
-        .select('page_id, name, page_type, category, status, is_wip, is_ea, is_base_only, is_missing_media, is_subjective, archetype, tier, release_date')
+        .select('page_id, name, page_type, category, status, is_wip, is_hidden, is_ea, is_base_only, is_missing_media, is_subjective, archetype, tier, release_date')
         .order('category')
         .order('sort_order');
 
