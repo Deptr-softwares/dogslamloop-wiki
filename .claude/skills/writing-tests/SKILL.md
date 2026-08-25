@@ -144,6 +144,45 @@ Before changing code to satisfy a red test, confirm the test is asking the right
 
 When a test fails, reproduce the behaviour manually or add a debug spec that prints actual state before concluding the code is wrong.
 
+## "Cannot reproduce" is a claim about your probes, not about the bug
+
+v0.16 bug 1 — typing dragged the workspace upward — survived **twelve** probes
+that all reported clean. Different pages, block types, viewport widths, the
+pre-change renderer served over the live page, the virtualizer on and off. It was
+closed as not reproducible, and a screen recording reopened it the same day.
+
+Every one of the twelve had typed into a block with content **below** it. There
+the scroll range has slack, so the collapse that causes the bug costs nothing and
+nothing moves. The bug was fully present two hundred pixels down the same page.
+
+**The variable that mattered was never in the list**: where in the scroll range
+the contributor was standing. Twelve probes sharing one unexamined assumption are
+one piece of evidence, not twelve — and a rising count feels like rising
+confidence while proving nothing.
+
+So before writing "cannot reproduce", **write down what every probe held
+constant**. Scroll position, focus, viewport, whether the element is first or
+last, empty or full, at a boundary or in the middle. Then vary one of those,
+rather than adding a thirteenth scenario that varies what you already varied.
+
+Ask the reporter for a recording early. Reading the real screen cost minutes and
+answered it immediately; the frames can be decoded in-browser with a `<video>`
+and a canvas when no usable `ffmpeg` is around (Playwright's bundled one has no
+H.264 decoder).
+
+### `element.focus()` is not a click
+
+The single probe in that set that *did* reproduce something was lying.
+`element.focus()` scrolls its element into view; a mouse click does not, because
+the element is already under the pointer. It produced a clean, repeatable 426px
+jump for something no contributor can trigger, and it was the most convincing
+evidence in the whole investigation.
+
+**Drive focus the way a person does** — `page.mouse.click(x, y)` or
+`locator.click()` — and reserve `.focus()` for asserting what already has focus.
+A synthetic event that moves the viewport has invented the symptom you are
+hunting.
+
 ## A live page is not an empty page
 
 Specs here load real pages against real Supabase data, and the owner edits that

@@ -155,3 +155,111 @@ test('the virtualization engine is still doing its job', async ({ page }) => {
   expect(seen.childHidden, 'an unloaded card stops rendering its contents').toBe(true);
   expect(seen.stillOpen, 'while still holding its space open').toBe(true);
 });
+
+// v0.16 bug 1: "when I am typing on a really long paragraph block, it will keep
+// rendering/moving me upward, forcing me to manually scroll down, but every
+// single letter type just keep moving me upward."
+//
+// Measuring a textarea means collapsing it first - `height: auto` on a textarea
+// is its `rows` height, not its content height, so scrollHeight only reports the
+// real content once the box is out of the way. That collapse is visible to the
+// scroll container for one layout pass, and when the contributor is scrolled to
+// the BOTTOM of the workspace the container's scroll range shrinks by whatever
+// the field just lost. The browser clamps scrollTop to the new maximum, and
+// restoring the height does not restore the scroll. Once per keystroke.
+//
+// Measured on a 211px field: scrollTop 349 -> 188 on the first character,
+// exactly the 161px the field lost collapsing to its 50px minimum.
+//
+// THE SCROLL POSITION IS THE WHOLE TEST. Eight earlier probes drove real typing
+// into a long block and all of them passed, because they typed into a block with
+// content below it - there the range has slack to shrink into and nothing moves.
+// It took the owner's screen recording to show the block sitting at the bottom.
+const OVERVIEW_PARA = 'Lucky Coward is one of the most unique character to ever be designed in JJS, perchance even in all of the Battleground genre. He is defined by his two modes: Sword On and Sword Off. In Sword On, he is a scrappy M1 Merchant with great counterplay opportunities in the form of multiple evasive and his unblockable Melee skills. In Sword Off, he forgoes his M1s and normal Block for a Taunt and a Dodge. It creates a completely new gameplan based on reacting to the opponent action and making the right decision.';
+
+async function oneLongBlockAtTheBottom(page) {
+  // 1280x720, the window in the recording. A short viewport is what puts the
+  // block at the end of the scroll range in the first place.
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto('/edit.html?page=boomcat&type=character&tab=overview', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1500);
+
+  await page.evaluate(({ OVERVIEW_PARA }) => {
+    window.currentEditorPageType = 'character';
+    window.currentEditorCharId = 'testchar';
+    window.currentOverviewSection = null;
+    window.currentEditorDescData = {
+      overview: [{ type: 'paragraph', content: OVERVIEW_PARA }],
+      strategy: [], extras: [], matchups: [], counterplay: [], moveStrategies: {},
+      profile: { image: '', stats: [] }, playstyle: { likes: [], dislikes: [] },
+    };
+    window.currentEditorFrameData = { m1s: [], skills: [], specials: [] };
+    initFullTabEditor('testchar', 'overview', window.currentEditorDescData, window.currentEditorFrameData);
+    window.loadOverviewSectionIntoEditor('overview');
+  }, { OVERVIEW_PARA });
+  await page.waitForTimeout(900);
+  await page.evaluate(() => {
+    (window.getActiveBlocks() || []).forEach(b => window.setEditorBlockExpanded(b, true));
+    window.renderBlockList();
+  });
+  await page.waitForTimeout(700);
+
+  // Caret first: focus() scrolls its element into view, which would undo the
+  // scrolling below if it ran after it.
+  await page.evaluate(() => {
+    const ta = document.querySelector('#block-list .editor-textarea');
+    window.__ta = ta;
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+  });
+  await page.waitForTimeout(300);
+
+  return page.evaluate(async () => {
+    const b = document.getElementById('interactive-builder');
+    b.scrollTop = b.scrollHeight;
+    await new Promise(r => setTimeout(r, 500));
+    return {
+      scroll: Math.round(b.scrollTop),
+      maxScroll: Math.round(b.scrollHeight - b.clientHeight),
+      taHeight: Math.round(window.__ta.getBoundingClientRect().height),
+    };
+  });
+}
+
+test('typing at the bottom of the workspace does not scroll it', async ({ page }) => {
+  const before = await oneLongBlockAtTheBottom(page);
+
+  const trace = [];
+  for (let i = 0; i < 8; i++) {
+    await page.keyboard.type('x');
+    await page.waitForTimeout(120);
+    trace.push(await page.evaluate(() =>
+      Math.round(document.getElementById('interactive-builder').scrollTop)));
+  }
+
+  // Without this the test is measuring the case that never broke.
+  expect(before.scroll, 'setup: really pinned to the bottom of the range').toBe(before.maxScroll);
+  expect(before.scroll, 'setup: there is a range to be moved within').toBeGreaterThan(50);
+  expect(before.taHeight, 'setup: a field tall enough to lose height when it collapses')
+    .toBeGreaterThan(120);
+
+  expect([...new Set(trace)], `the workspace held still (saw ${JSON.stringify(trace)})`).toHaveLength(1);
+  expect(trace[0], 'and stayed exactly where the contributor put it').toBe(before.scroll);
+});
+
+test('the field still grows as it is typed into', async ({ page }) => {
+  // The control. Not sizing at all would hold the scroll perfectly still and
+  // leave every long block stuck at two rows.
+  const before = await oneLongBlockAtTheBottom(page);
+  await page.keyboard.type(' and then some more words to push it onto another line entirely');
+  await page.waitForTimeout(300);
+
+  const after = await page.evaluate(() => ({
+    taHeight: Math.round(window.__ta.getBoundingClientRect().height),
+    landed: window.__ta.value.includes('another line entirely'),
+  }));
+
+  expect(after.landed, 'setup: the typing landed').toBe(true);
+  expect(after.taHeight, 'the field grew to fit what was typed').toBeGreaterThan(before.taHeight);
+  expect(after.taHeight, 'but never past the cap').toBeLessThanOrEqual(260);
+});

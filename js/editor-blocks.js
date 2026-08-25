@@ -1615,17 +1615,66 @@ function initStrategyBlockBuilder(containerId, initialData) {
 // would be broken by it.
 const EDITOR_TEXTAREA_MAX_PX = 260;
 
-window.autoSizeEditorTextarea = function (ta) {
-    if (!ta || ta.offsetParent === null) return;
+// The nearest ancestor that actually scrolls. Used to put the scroll position
+// back after a measurement - see the note on the collapse below.
+function scrollableAncestorOf(el) {
+    for (let n = el && el.parentElement; n && n !== document.body; n = n.parentElement) {
+        if (n.scrollHeight <= n.clientHeight) continue;
+        const oy = getComputedStyle(n).overflowY;
+        if (oy === 'auto' || oy === 'scroll') return n;
+    }
+    return null;
+}
+
+// Measuring a textarea means collapsing it first: `height: auto` on a textarea
+// is its `rows` height, NOT its content height, so scrollHeight only reports the
+// real content once the box is out of the way.
+//
+// That collapse is visible to the scroll container for one layout pass. When the
+// contributor is scrolled to the BOTTOM of the workspace, the container's scroll
+// range shrinks by however much the field just lost, the browser clamps
+// scrollTop to the new maximum - and restoring the height does not restore the
+// scroll. The clamp is permanent, and it happens on every keystroke.
+//
+// That is v0.16 bug 1, from the owner's screen recording: "it will keep
+// rendering/moving me upward, forcing me to manually scroll down, but every
+// single letter type just keep moving me upward". Measured on a 211px field:
+// scrollTop 349 -> 188 on the first character, exactly the 161px the field lost
+// collapsing to its 50px minimum.
+//
+// It took a video to find because it needs the workspace scrolled to its
+// maximum. Eight earlier probes typed into a block with content below it, where
+// there is slack for the range to shrink into and nothing moves at all.
+//
+// Reading and writing scrollTop in the same task means no frame is painted in
+// between, so the restore is invisible rather than a correction the reader sees.
+function measureAndSize(ta) {
+    const scroller = scrollableAncestorOf(ta);
+    const keepTop = scroller ? scroller.scrollTop : 0;
+
     ta.style.height = 'auto';
     const wanted = ta.scrollHeight;
     ta.style.height = Math.min(wanted, EDITOR_TEXTAREA_MAX_PX) + 'px';
     ta.style.overflowY = wanted > EDITOR_TEXTAREA_MAX_PX ? 'auto' : 'hidden';
+
+    if (scroller && scroller.scrollTop !== keepTop) scroller.scrollTop = keepTop;
+}
+
+window.autoSizeEditorTextarea = function (ta) {
+    if (!ta || ta.offsetParent === null) return;
+    measureAndSize(ta);
 };
 
 window.autoSizeEditorTextareasIn = function (root) {
     if (!root) return;
-    root.querySelectorAll('.editor-textarea').forEach(window.autoSizeEditorTextarea);
+    const fields = root.querySelectorAll('.editor-textarea');
+    if (!fields.length) return;
+    // One save/restore around the whole sweep rather than one per field: sizing
+    // a list of them collapses each in turn, and the clamp compounds.
+    const scroller = scrollableAncestorOf(fields[0]);
+    const keepTop = scroller ? scroller.scrollTop : 0;
+    fields.forEach(window.autoSizeEditorTextarea);
+    if (scroller && scroller.scrollTop !== keepTop) scroller.scrollTop = keepTop;
 };
 
 // A one-line label for a collapsed block.
