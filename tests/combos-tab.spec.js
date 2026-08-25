@@ -11,6 +11,14 @@
 // The first build made the table a group's content, which left nowhere for the
 // TheoryBox cards to live and put the reference index in the middle of the
 // prose. These tests pin the document order so that cannot come back.
+//
+// EVERY selector here is scoped to #tab-combos. These specs render a fixture
+// into ONE tab of a REAL page, and the Techs tab builds its tables from exactly
+// the same machinery - so a page-wide `.combo-list-table` reads the owner's
+// content next to this test's data and compares one against the other. That is
+// how two of these started failing on 2026-08-25, when the owner wrote a table
+// called "Boomcat Theory" into Boomcat's Techs tab: nothing here changed, and
+// the tab under test was correct throughout.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -68,7 +76,12 @@ test('the tab is three sections, and the Combo List is last', async ({ page }) =
     introIsCard: !!document.querySelector('#tab-combos section.wiki-section.combo-intro'),
     groupsInCards: document.querySelectorAll('#tab-combos .wiki-section .combo-group').length,
     tableTitles: [...document.querySelectorAll('#tab-combos .combo-list-table .card-header-title')].map(t => t.textContent),
-    tables: document.querySelectorAll('.combo-list-table').length,
+    // Scoped to the tab under test. Unscoped, this counted every combo table on
+    // the page, and the Techs tab renders them from the same machinery - so it
+    // started failing the moment the owner wrote one there ("Boomcat Theory",
+    // 2026-08-25). The fixture is this test's data; anything outside
+    // #tab-combos belongs to whatever the owner has written and is not ours.
+    tables: document.querySelectorAll('#tab-combos .combo-list-table').length,
     // The Combo List is last, after every group.
     listIsLast: (() => {
       const kids = [...document.querySelectorAll('#tab-combos > *')];
@@ -138,11 +151,11 @@ test('every section survives a delta, including the first one', async ({ page })
 test('damage sorts by its leading number, not as text', async ({ page }) => {
   // '4 (2+2)' sorts above '38-46' lexically, which is wrong by every reading.
   await renderCombos(page);
-  await page.locator('.combo-list-table').first().locator('[data-sort-field="damage"]').click();
+  await page.locator('#tab-combos .combo-list-table').first().locator('[data-sort-field="damage"]').click();
   await page.waitForTimeout(150);
 
   const order = await page.evaluate(() =>
-    [...document.querySelectorAll('.combo-list-table')[0].querySelectorAll('.combo-cell-damage')]
+    [...document.querySelectorAll('#tab-combos .combo-list-table')[0].querySelectorAll('.combo-cell-damage')]
       .map(td => td.textContent.trim()));
 
   expect(order).toEqual(['4 (2+2)', '28', '38-46']);
@@ -152,19 +165,19 @@ test('difficulty sorts by its ordinal, not alphabetically', async ({ page }) => 
   // 'Demon Time' sorts FIRST alphabetically and LAST by meaning - the
   // assertion a sort written the obvious way fails.
   await renderCombos(page);
-  const th = page.locator('.combo-list-table').first().locator('[data-sort-field="difficulty"]');
+  const th = page.locator('#tab-combos .combo-list-table').first().locator('[data-sort-field="difficulty"]');
 
   await th.click();
   await page.waitForTimeout(150);
   const asc = await page.evaluate(() =>
-    [...document.querySelectorAll('.combo-list-table')[0].querySelectorAll('.combo-cell-difficulty')]
+    [...document.querySelectorAll('#tab-combos .combo-list-table')[0].querySelectorAll('.combo-cell-difficulty')]
       .map(td => td.textContent.trim()));
   expect(asc).toEqual(['Easy', 'Medium', 'Demon Time']);
 
   await th.click();
   await page.waitForTimeout(150);
   const desc = await page.evaluate(() =>
-    [...document.querySelectorAll('.combo-list-table')[0].querySelectorAll('.combo-cell-difficulty')]
+    [...document.querySelectorAll('#tab-combos .combo-list-table')[0].querySelectorAll('.combo-cell-difficulty')]
       .map(td => td.textContent.trim()));
   expect(desc).toEqual(['Demon Time', 'Medium', 'Easy']);
 });
@@ -192,8 +205,11 @@ test('optional columns appear only when earned, and every table shares a shape',
   // same way.
   await renderCombos(page);
 
+  // #tab-combos, not the whole page: the Techs tab builds its tables from the
+  // same code, so an unscoped query reads the owner's content alongside this
+  // test's fixture and compares one against the other.
   const headers = await page.evaluate(() =>
-    [...document.querySelectorAll('.combo-list-table')].map(t =>
+    [...document.querySelectorAll('#tab-combos .combo-list-table')].map(t =>
       [...t.querySelectorAll('.combo-th')].map(th => th.textContent.replace(/[↑↓↕]/g, '').trim())));
 
   expect(headers).toHaveLength(2);
