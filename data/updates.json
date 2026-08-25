@@ -1,6 +1,34 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.16",
+      "date": "08/25/2026",
+      "type": "site",
+      "title": "The 'Icon' Update",
+      "description": "The character roster shows each character's icon, with their name sliding out from underneath on hover. Tier list portraits do the same, and characters that are private-server only can be kept off the roster.",
+      "changes": [
+        "The character roster now shows each character's icon instead of a plain coloured box. All 22 have one",
+        "Hovering a character opens a slit under their icon with their name in their own colour, and the border and glow take that colour too",
+        "Characters still being written show a small marker in the corner of their icon, the same way early-access ones already did",
+        "Hovering a portrait in a tier list raises the character's name from underneath it",
+        "Tier list portraits on the community ranking are bigger, at 78px, with tighter rows",
+        "The roster's filter bar swaps Hide WIP for Show Hidden, for characters only playable in a private server",
+        "The community ranking can be cleared for a new game patch, so votes from an old balance do not carry over",
+        "Reviewers now count as trusted editors: they can edit restricted pages, and their own submissions need one approval instead of two",
+        "Blocks and block folders in the editor start collapsed, each showing a one-line glimpse of what is inside",
+        "The divider between the editor and the preview can be dragged, and double-clicking it snaps back to the usual split",
+        "The block type dropdown says Combo Card, Paragraph and YouTube rather than the internal names it used to print",
+        "Media Library sits next to Add Block at the bottom of the editor, the quick styling buttons are two rows, and the Hub button stays reachable when the header is collapsed",
+        "Typing in a long block no longer drags the editor upward a line at a time, and scrolling a workspace with many blocks no longer shakes",
+        "Editor fields taller than their box have a scrollbar again, including combo card routes and notes",
+        "Clearing notifications and adding a link use the site's own dialogs instead of the browser's",
+        "Switching to Pending Submission or Live Version keeps the tab being read, so a Techs tab can be previewed at all",
+        "A long tag on a revision card wraps inside the card instead of hanging off the side",
+        "Editing an own pending submission opens the right kind of page, instead of loading a system page as a character",
+        "Changed a few things under the hood"
+      ]
+    },
+    {
       "version": "Beta v0.15",
       "date": "08/20/2026",
       "type": "site",
