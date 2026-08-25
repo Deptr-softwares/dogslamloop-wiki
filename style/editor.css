@@ -99,6 +99,18 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
         background: #fff;
     }
 
+    /* Sitting exactly on the default while dragging. Without a cue the snap
+       reads as the drag sticking rather than as landing on something. Green
+       because it means "this is the view a reader gets", not "warning". */
+    .editor-splitter.is-snapped {
+        background: #22c55e;
+    }
+
+    .editor-splitter.is-snapped::after {
+        background: #000;
+        height: 48px;
+    }
+
     /* While dragging, the panes must not eat the pointer or start selecting
        text - both make the drag stutter and the second is visible as a blue
        smear across the preview. */

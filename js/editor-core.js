@@ -39,6 +39,13 @@ const EDITOR_SPLIT_DEFAULT = 30;
 // unusable at 1280, and the preview needs enough width to still be a preview.
 const EDITOR_SPLIT_MIN_PX = 300;
 const EDITOR_PREVIEW_MIN_PX = 360;
+// How close a drag has to get to the default before it clicks onto it exactly
+// (owner, 2026-08-25). The point of the default is that it shows the page at a
+// reader's proportions, and "roughly 30%" is not that - without a snap you can
+// only land on it by accident, and a preview one percent off is a preview of a
+// layout nobody has. Percent rather than px so the pull feels the same on a
+// laptop and an ultrawide.
+const EDITOR_SPLIT_SNAP_PCT = 2;
 
 // localStorage throws outright in a few real configurations - Safari's private
 // mode historically, and any browser with site data blocked. A contributor
@@ -117,7 +124,13 @@ window.initEditorSplitter = function () {
     const applyFromX = (clientX) => {
         const r = layout.getBoundingClientRect();
         if (!r.width) return;
-        window.setEditorSplit(((clientX - r.left) / r.width) * 100, false);
+        const raw = ((clientX - r.left) / r.width) * 100;
+        // Snap only while dragging. The keyboard steps in 1% and 5% units and
+        // would otherwise be unable to leave the default at all.
+        const snapped = Math.abs(raw - EDITOR_SPLIT_DEFAULT) <= EDITOR_SPLIT_SNAP_PCT
+            ? EDITOR_SPLIT_DEFAULT : raw;
+        splitter.classList.toggle('is-snapped', snapped === EDITOR_SPLIT_DEFAULT);
+        window.setEditorSplit(snapped, false);
     };
 
     // Pointer events rather than mouse: one code path covers a trackpad, a
@@ -140,6 +153,7 @@ window.initEditorSplitter = function () {
         dragging = false;
         try { splitter.releasePointerCapture(e.pointerId); } catch (_) { /* already gone */ }
         splitter.classList.remove('is-dragging');
+        splitter.classList.remove('is-snapped');
         layout.classList.remove('is-resizing');
         // Persisted once, at the end. Writing on every pointermove would put a
         // localStorage round trip inside the drag loop.

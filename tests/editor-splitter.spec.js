@@ -193,3 +193,54 @@ test('below the mobile breakpoint there is no splitter and both panes are full w
   expect(seen.workspaceH, 'the workspace is still full height, not 30% of it')
     .toBeGreaterThan(seen.viewportH - 10);
 });
+
+// --- THE SNAP (owner's addition, 2026-08-25) ---
+//
+// 30/70 is the default because it shows the page at a reader's proportions, and
+// "roughly 30%" is not that. Without a magnetic zone you can only land on it by
+// accident, and a preview one percent off is a preview of a layout nobody has.
+
+test('dragging near the default clicks onto it exactly', async ({ page }) => {
+  await openEditor(page);
+  const p = await panes(page);
+  // 30% of 1280 is 384. Aim a few pixels off, the way a hand does.
+  const nearlyDefault = Math.round(p.layout * 0.315);
+
+  await dragSplitterTo(page, 760);           // away first, so the snap has work to do
+  expect((await panes(page)).pct, 'setup: it really moved off the default').toBeGreaterThan(45);
+
+  await dragSplitterTo(page, nearlyDefault);
+  const after = await panes(page);
+
+  expect(after.pct, 'it landed on the default, not near it').toBe(30);
+  // Exactly, not rounded to 30 by the percentage maths.
+  const exact = await page.evaluate(() =>
+    getComputedStyle(document.querySelector('.editor-layout')).getPropertyValue('--editor-split').trim());
+  expect(exact, 'the stored value is the default itself').toBe('30.000%');
+});
+
+test('the snap has an edge - just outside it, the drag is obeyed', async ({ page }) => {
+  // A snap with no boundary is not a snap, it is a splitter that only has one
+  // position. This is the assertion that tells the two apart.
+  await openEditor(page);
+  const p = await panes(page);
+  // ~38%: outside the 2% zone, and far enough that rounding cannot reach 30.
+  await dragSplitterTo(page, Math.round(p.layout * 0.38));
+
+  const after = await panes(page);
+  expect(after.pct, 'a deliberate 38% stays 38%').toBeGreaterThan(33);
+});
+
+test('the keyboard can still leave the default', async ({ page }) => {
+  // The snap is drag-only on purpose: arrow keys step in 1% and 5% units, both
+  // inside the 2% zone, so a snap applied here would trap the splitter on 30
+  // forever - the control would look like it worked and go nowhere.
+  await openEditor(page);
+  await page.locator('#editor-splitter').focus();
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(200);
+
+  const exact = await page.evaluate(() =>
+    getComputedStyle(document.querySelector('.editor-layout')).getPropertyValue('--editor-split').trim());
+  expect(exact, 'one arrow press moves it off 30').not.toBe('30.000%');
+});
