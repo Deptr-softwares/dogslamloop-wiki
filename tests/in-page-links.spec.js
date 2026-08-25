@@ -18,6 +18,30 @@
 // this suite has already shipped once.
 const { test, expect } = require('@playwright/test');
 
+// v0.16 fine-tuning 2 made every block in the editor start COLLAPSED, so a
+// field inside one has no layout until its block is opened. Tests that reach
+// into a block open the workspace first - the same thing an author does before
+// editing.
+async function openEveryBlock(page) {
+  await page.evaluate(() => {
+    // Not every page this helper runs on HAS a block builder, and
+    // renderBlockList writes straight into #block-list.
+    if (!document.getElementById('block-list')) return;
+    // Folders first. A block inside a collapsed folder stays hidden however
+    // open the block itself is, and the pages these tests use really do have
+    // folders.
+    if (typeof window.setBlockFolderCollapsed === 'function') {
+      document.querySelectorAll('#block-list .block-folder').forEach(f =>
+        window.setBlockFolderCollapsed(f.getAttribute('data-folder'), false));
+    }
+    if (typeof window.setEditorBlockExpanded === 'function') {
+      (window.getActiveBlocks() || []).forEach(b => window.setEditorBlockExpanded(b, true));
+    }
+    window.renderBlockList();
+  });
+}
+
+
 const PAGE = '/characters/Boomcat/index.html';
 
 // Names no owner-authored section uses, because this page carries real content
@@ -374,6 +398,7 @@ test('picking a section writes a link, and it points at something real', async (
   // host, and the shell wraps the cards so its header sorts first - this used
   // to focus a folder name and assert that the toolbar had written a link into
   // it, which is the bug rather than the behaviour.
+  await openEveryBlock(page);
   const input = page.locator('#strategy-block-target .block-card textarea, #strategy-block-target .block-card input[type="text"]').first();
   await input.waitFor({ timeout: 10000 });
   await input.click();

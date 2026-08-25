@@ -302,7 +302,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // The static strip in admin.html - Ultimate is injected later by
     // js/admin-modes.js, and Gallery has no reviewer view.
-    const adminTabIds = window.getCharacterTabIds({ editableOnly: true });
+    //
+    // includeOptional: this runs at BOOT, and an optional tab's flag arrives
+    // per revision, in previewRevision. Binding only the enabled ones would be
+    // binding against a flag that has not been fetched yet - so a Techs button
+    // un-hidden a moment later by applyOptionalTabVisibility sat there doing
+    // nothing when clicked, was never hidden by any other tab's sweep (setupTabs
+    // only hides ids in its own group, so it rendered underneath whatever came
+    // next), and never had .active removed. All three were reported together.
+    // js/page_boot.js fixed exactly this on the reader page; this surface was
+    // missed. setupTabs is idempotent and additive, so binding a button that
+    // stays hidden costs nothing.
+    const adminTabIds = window.getCharacterTabIds({ editableOnly: true, includeOptional: true });
 
     if (typeof setupTabs === 'function') {
         setupTabs('nav', 'tab', adminTabIds, 'major');

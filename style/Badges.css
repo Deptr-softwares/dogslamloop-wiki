@@ -81,6 +81,19 @@
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 2px 2px 0px rgba(0,0,0,0.8);
 }
 
+/* The roster's Work In Progress marker (v0.16). Opposite corner to the Early
+   Access star above, and a sibling of it by design: the owner asked for WIP to
+   read the same way EA already does. It replaces the "(WIP)" line that used to
+   sit under the name, which stopped working the moment the name became a
+   hover-revealed slit - see js/pagebuilder.js renderFilteredRoster.
+   drop-shadow rather than text-shadow: this is an emoji glyph, and text-shadow
+   paints behind the whole emoji box instead of its outline. */
+.roster-wip-indicator {
+    position: absolute; top: 2px; left: 4px;
+    font-size: 0.7rem; line-height: 1; z-index: 3;
+    filter: drop-shadow(1px 1px 0 #000);
+}
+
 .dock-badge {
     position: absolute; top: -4px; right: -4px;
     background: #ef4444; width: 12px; height: 12px;

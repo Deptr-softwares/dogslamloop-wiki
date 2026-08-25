@@ -311,7 +311,12 @@ document.addEventListener('keydown', (e) => {
  * sites use this, and a rename is churn with a collision risk for no gain.
  */
 window.spawnBlockWithAuthor = function(type) {
-    return JSON.parse(JSON.stringify(blockTemplates[type]));
+    const block = JSON.parse(JSON.stringify(blockTemplates[type]));
+    // Open, because the author made it to write in it (v0.16 fine-tuning 2:
+    // everything else starts collapsed). Marked HERE rather than at the four
+    // call sites so a fifth one cannot forget - see markEditorBlockNew.
+    if (typeof window.markEditorBlockNew === 'function') window.markEditorBlockNew(block);
+    return block;
 };
 
 const blockTemplates = {
@@ -334,8 +339,118 @@ const blockTemplates = {
     table: { type: 'table', headers: ['Stat', 'Value'], rows: [['Damage', '10'], ['Startup', '5f']], align: 'center', author: '' },
 };
 
+// What each block type is CALLED, as opposed to what its template key is.
+//
+// v0.16 fine-tuning 1. These two things had drifted: the Add Block menu carried
+// hand-written names, and the type selector on every card built its options from
+// `Object.keys(blockTemplates)` uppercased - so it printed the raw key. The
+// owner went looking in the Add Block menu for the "THEORYBOX" their dropdown
+// kept showing them, did not find it, and filed a request to add a block that
+// has existed since v0.15 under the name "+ Combo Card".
+//
+// Every type had the problem, not just that one: the dropdown read PARAGRAPH,
+// YOUTUBE, THEORYBOX because nothing ever mapped them. One map, read by both
+// surfaces, is what stops them disagreeing again - the menu below is generated
+// from it rather than hand-written.
+const BLOCK_TYPE_LABELS = {
+    heading: 'Heading',
+    paragraph: 'Paragraph',
+    table: 'Table',
+    list: 'List',
+    image: 'Image',
+    video: 'Video',
+    youtube: 'YouTube',
+    callout: 'Callout',
+    combo: 'Combo',
+    accordion: 'Accordion',
+    theorybox: 'Combo Card',
+    divider: 'Divider',
+    author: 'Author',
+};
+
+// Falls back to the key rather than dropping the option: a template added
+// without a label here still gets a usable, if ugly, name instead of vanishing
+// from the dropdown that edits it.
+window.blockTypeLabel = function (type) {
+    return BLOCK_TYPE_LABELS[type] || String(type || '').toUpperCase();
+};
+
+// The Add Block menu's two groups, in the order they are shown. Names come from
+// the map above; only the grouping is editorial.
+const ADD_BLOCK_GROUPS = [
+    { title: 'Text & Media', types: ['heading', 'paragraph', 'table', 'list', 'image', 'video', 'youtube'] },
+    { title: 'Components', types: ['callout', 'combo', 'accordion', 'theorybox', 'divider', 'author'] },
+];
+
+// A text prompt in the site's own modal, replacing window.prompt() for the
+// hyperlink button (v0.16 fine-tuning 7).
+//
+// It lives here rather than beside customConfirm in js/editor-core.js because
+// its only caller is the format toolbar in this file, and post-editor.html
+// loads THIS file without editor-core.js - putting it there would have left the
+// post editor's link button calling a function that does not exist. Both pages
+// carry #editor-custom-modal, so both get the same modal.
+//
+// The input is created and removed around each call rather than added to the
+// markup: that modal is shared with customConfirm on two pages, and a stray
+// text field left in it would show up on every delete confirmation.
+window.customPrompt = function (message, opts = {}) {
+    const modal = document.getElementById('editor-custom-modal');
+    const textEl = document.getElementById('editor-modal-text');
+    const btnCancel = document.getElementById('editor-modal-cancel');
+    const btnConfirm = document.getElementById('editor-modal-confirm');
+
+    // Degrade rather than break: a page with the toolbar but no modal still
+    // gets a working link button.
+    if (!modal || !textEl || !btnCancel || !btnConfirm) {
+        return Promise.resolve(window.prompt(message));
+    }
+
+    return new Promise((resolve) => {
+        const prevConfirmText = btnConfirm.textContent;
+        const prevConfirmClass = btnConfirm.className;
+
+        textEl.textContent = message;
+        btnConfirm.textContent = opts.confirmText || 'INSERT';
+        btnConfirm.className = 'btn-sys btn-sys-blue';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'editor-input editor-modal-input';
+        input.value = opts.value || '';
+        if (opts.placeholder) input.placeholder = opts.placeholder;
+        textEl.insertAdjacentElement('afterend', input);
+
+        modal.classList.remove('hidden');
+        input.focus();
+        input.select();
+
+        const cleanup = () => {
+            modal.classList.add('hidden');
+            input.remove();
+            btnConfirm.textContent = prevConfirmText;
+            btnConfirm.className = prevConfirmClass;
+            btnCancel.removeEventListener('click', onCancel);
+            btnConfirm.removeEventListener('click', onConfirm);
+            input.removeEventListener('keydown', onKey);
+        };
+        const onCancel = () => { cleanup(); resolve(null); };
+        const onConfirm = () => { const v = input.value.trim(); cleanup(); resolve(v || null); };
+        // Enter to accept, Escape to back out - what window.prompt gave for free
+        // and what anyone typing a URL will reach for.
+        const onKey = (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); onConfirm(); }
+            else if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
+        };
+
+        btnCancel.addEventListener('click', onCancel);
+        btnConfirm.addEventListener('click', onConfirm);
+        input.addEventListener('keydown', onKey);
+    });
+};
+
 // --- RECURSIVE EDITOR PATH TRACKING ---
-window.activeAccordionPath = []; 
+window.activeAccordionPath = [];
 
 window.getActiveBlocks = function() {
     let blocks = currentStrategyBlocks;
@@ -350,6 +465,48 @@ window.getActiveBlocks = function() {
         blocks = blocks[idx].content;
     }
     return blocks;
+};
+
+// --- WHICH BLOCKS ARE OPEN (v0.16 fine-tuning 2) ---
+//
+// The workspace now opens with EVERY block collapsed, so a section with thirty
+// blocks is a list you can read rather than a page you scroll. Expanding is the
+// opt-in.
+//
+// A WeakSet keyed by the BLOCK OBJECT, deliberately, and not by index:
+//
+//  - index is what the DOM uses, and it changes under reordering, insertion and
+//    deletion. Collapse state keyed by index would follow the position rather
+//    than the block, so moving one block would appear to move another's state.
+//  - a flag ON the block would be serialised into desc_data with everything
+//    else, putting a piece of one author's scroll position into the page every
+//    reader downloads.
+//
+// The object identity survives renderBlockList, which is the whole point:
+// before this, collapse was pure DOM and any re-render silently reopened
+// everything the author had put away.
+//
+// Blocks are replaced wholesale by undo/redo (JSON round-trip), so state is
+// dropped there. That is correct - those are different objects and the author
+// is looking at a different document.
+const expandedBlocks = new WeakSet();
+
+window.isEditorBlockExpanded = function (block) {
+    return !!block && expandedBlocks.has(block);
+};
+
+window.setEditorBlockExpanded = function (block, on) {
+    if (!block || typeof block !== 'object') return;
+    if (on) expandedBlocks.add(block);
+    else expandedBlocks.delete(block);
+};
+
+// A block the author just created is open. They added it to write in it, and
+// making them click twice for that would be the feature working against the
+// reason it exists.
+window.markEditorBlockNew = function (block) {
+    window.setEditorBlockExpanded(block, true);
+    return block;
 };
 
 function initStrategyBlockBuilder(containerId, initialData) {
@@ -368,10 +525,13 @@ function initStrategyBlockBuilder(containerId, initialData) {
     historyIndex = 0;
 
     container.innerHTML = `
-        <div class="strategy-toolbar-row">
-            <div>
-                <button class="btn-sys btn-sys-blue" id="btn-media-library" title="Open Media Manager">📁 MEDIA LIBRARY</button>
-            </div>
+        <!-- MEDIA LIBRARY has moved to the footer beside ADD BLOCK (v0.16
+             fine-tuning 7). The modifier class is what keeps undo/redo/clear
+             on the right now that nothing balances them on the left - the
+             shared .strategy-toolbar-row is space-between, and it still serves
+             the structured-form toolbar in js/editor-tabs.js, which keeps its
+             own MEDIA LIBRARY because it has no footer to move it to. -->
+        <div class="strategy-toolbar-row strategy-toolbar-row-end">
             <div class="strategy-toolbar-actions">
                 <button class="btn-sys btn-sys-regular" id="btn-undo" title="Undo (Ctrl+Z)" disabled>⮌ UNDO</button>
                 <button class="btn-sys btn-sys-regular" id="btn-redo" title="Redo (Ctrl+Y)" disabled>⮎ REDO</button>
@@ -454,27 +614,20 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 </div>
             </div>
 
+            <div class="add-block-footer-actions">
+            <button class="btn-sys btn-sys-blue" id="btn-media-library" title="Open Media Manager">📁 MEDIA LIBRARY</button>
             <div class="add-block-menu-wrapper">
                 <div class="add-block-popup" id="add-block-popup">
-                    <div class="add-block-popup-title">Text & Media</div>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="heading">+ Heading</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="paragraph">+ Paragraph</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="table">+ Table</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="list">+ List</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="image">+ Image</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="video">+ Video</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="youtube">+ YouTube</button>
-                    <div class="add-block-popup-title add-block-popup-title-spaced">Components</div>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="callout">+ Callout</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="combo">+ Combo</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="accordion">+ Accordion</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="theorybox">+ Combo Card</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="divider">+ Divider</button>
-                    <button class="btn-sys btn-sys-regular add-block-btn" data-type="author">+ Author</button>
+                    ${ADD_BLOCK_GROUPS.map((group, gi) => `
+                    <div class="add-block-popup-title${gi ? ' add-block-popup-title-spaced' : ''}">${escField(group.title)}</div>
+                    ${group.types.map(t =>
+                        `<button class="btn-sys btn-sys-regular add-block-btn" data-type="${escField(t)}">+ ${escField(window.blockTypeLabel(t))}</button>`
+                    ).join('')}`).join('')}
                 </div>
                 <button class="btn-sys btn-sys-green btn-add-block-toggle" id="btn-toggle-add-menu">
                     <span class="add-block-icon">⨁</span> ADD BLOCK
                 </button>
+            </div>
             </div>
         </div>
     `;
@@ -663,11 +816,16 @@ function initStrategyBlockBuilder(containerId, initialData) {
         if (e.target.closest('.format-btn') || e.target.closest('.color-preset-btn')) e.preventDefault(); 
     });
 
-    const applyFormat = (tag, value = null, fallbackText = '') => {
+    const applyFormat = async (tag, value = null, fallbackText = '') => {
         if (!lastFocusedInput) return;
-        const start = lastSelection.start !== undefined ? lastSelection.start : lastFocusedInput.selectionStart;
-        const end = lastSelection.end !== undefined ? lastSelection.end : lastFocusedInput.selectionEnd;
-        const text = lastFocusedInput.value;
+        // Captured BEFORE the await below. The link prompt is a real modal now,
+        // so there is a gap where focus is elsewhere; everything this function
+        // writes back has to come from the selection as it was when the button
+        // was pressed, not from whatever has focus when the modal closes.
+        const field = lastFocusedInput;
+        const start = lastSelection.start !== undefined ? lastSelection.start : field.selectionStart;
+        const end = lastSelection.end !== undefined ? lastSelection.end : field.selectionEnd;
+        const text = field.value;
         // A section link with nothing highlighted names the section it points
         // at, rather than producing an empty [url=#x][/url] the reader cannot
         // see or click.
@@ -676,7 +834,8 @@ function initStrategyBlockBuilder(containerId, initialData) {
         let openTag = `[${tag}]`;
 
         if (tag === 'url' && !value) {
-            const linkTarget = prompt("Enter the URL or relative path:");
+            const linkTarget = await window.customPrompt(
+                'Enter the URL or relative path:', { placeholder: 'https://example.com  or  /characters/Boomcat/' });
             if (!linkTarget) return;
             openTag = `[url=${linkTarget}]`;
         } else if (value) {
@@ -686,15 +845,15 @@ function initStrategyBlockBuilder(containerId, initialData) {
         let closeTag = `[/${tag}]`;
 
         const newText = text.substring(0, start) + openTag + selectedText + closeTag + text.substring(end);
-        lastFocusedInput.value = newText;
-        
-        lastFocusedInput.dispatchEvent(new Event('input', { bubbles: true }));
-        lastFocusedInput.focus();
+        field.value = newText;
+
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.focus();
         // Measured from the inserted text, not from `end`. They are the same
         // whenever something was highlighted, and differ exactly when the
         // fallback above supplied the label - where using `end` would leave
         // the caret short of the text it just wrote.
-        lastFocusedInput.setSelectionRange(start + openTag.length, start + openTag.length + selectedText.length);
+        field.setSelectionRange(start + openTag.length, start + openTag.length + selectedText.length);
     };
 
     formatToolbar.addEventListener('click', (e) => {
@@ -935,12 +1094,15 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 return;
             }
 
-            // Carry the collapsed state across, or renaming silently reopens a
-            // folder the author had closed.
-            if (window.isBlockFolderCollapsed(from)) {
-                window.setBlockFolderCollapsed(from, false);
-                window.setBlockFolderCollapsed(to, true);
-            }
+            // Carry the open/closed state across, or renaming moves the author
+            // somewhere they did not ask to go. Written as "read it, then set
+            // it" rather than branching on one of the two states: the default
+            // flipped to collapsed in v0.16, and the old version only carried
+            // state in the branch that is now the default - so renaming an
+            // OPEN folder would have quietly shut it.
+            const wasOpen = !window.isBlockFolderCollapsed(from);
+            window.setBlockFolderCollapsed(from, true);
+            window.setBlockFolderCollapsed(to, !wasOpen);
             renderBlockList();
             updateLivePreview(true);
             return;
@@ -1356,16 +1518,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
 
     blockList.addEventListener('input', (e) => {
         if (e.target.classList.contains('editor-textarea')) {
-            // Grow to fit, then STOP and scroll. Uncapped, a long combo route
-            // pushed the field taller than the pane and there was no way to
-            // scroll it - owner, 2026-08-17. The cap is in px rather than rows
-            // because these fields sit in three different panes at three
-            // different widths.
-            const MAX = 260;
-            e.target.style.height = 'auto';
-            const wanted = e.target.scrollHeight;
-            e.target.style.height = Math.min(wanted, MAX) + 'px';
-            e.target.style.overflowY = wanted > MAX ? 'auto' : 'hidden';
+            window.autoSizeEditorTextarea(e.target);
         }
 
         if (e.target.classList.contains('editor-input') || e.target.classList.contains('editor-textarea') || e.target.classList.contains('editor-select') || e.target.type === 'checkbox' || e.target.classList.contains('table-header-input') || e.target.classList.contains('table-cell-input')) {
@@ -1483,6 +1636,19 @@ function initStrategyBlockBuilder(containerId, initialData) {
             body.classList.toggle('minimized');
             card.classList.toggle('collapsed');
             btn.textContent = body.classList.contains('minimized') ? '□' : '—';
+
+            // Record it, or the next renderBlockList throws the author's choice
+            // away. This used to be pure DOM, which is why collapsing a block
+            // and then touching anything reopened it.
+            const collapsedIdx = parseInt(card.getAttribute('data-index'), 10);
+            const collapsedBlock = window.getActiveBlocks()[collapsedIdx];
+            const nowOpen = !body.classList.contains('minimized');
+            window.setEditorBlockExpanded(collapsedBlock, nowOpen);
+
+            // Now that the fields have a layout, size them. They were skipped
+            // at render time because a textarea inside display:none reports a
+            // scrollHeight of 0, which would pin it shut.
+            if (nowOpen) window.autoSizeEditorTextareasIn(card);
             return;
         }
         
@@ -1531,6 +1697,147 @@ function initStrategyBlockBuilder(containerId, initialData) {
     renderBlockList();
 }
 
+// --- TEXTAREA SIZING, IN ONE PLACE ---
+//
+// "Grow to fit, then STOP and scroll" - owner, 2026-08-17, after an uncapped
+// field pushed itself taller than the pane with no way to scroll it. That fix
+// was applied to the `input` handler and NOT to the sizing pass at the end of
+// renderBlockList, so a field arrived on screen uncapped and only started
+// behaving once it was typed in. One function now, called from both.
+//
+// SKIPPING A HIDDEN FIELD IS THE OTHER HALF, and it is the half v0.16 broke.
+// Everything renders collapsed now, `.block-body.minimized` is `display: none`,
+// and scrollHeight inside a display:none ancestor is 0 - so the pass at render
+// time pinned every textarea to nothing, and expanding a block showed a stub of
+// a field with the content unreachable. offsetParent is null exactly when an
+// ancestor is display:none, which is the case to skip; the expand handler sizes
+// it instead, at the moment it can actually be measured.
+//
+// THE GUARD ITSELF IS DEFENSIVE, NOT LOAD-BEARING, and that is worth saying:
+// falsifying it changes no test. Every path that reveals a field re-renders
+// first, so the field is measurable by the time anyone sees it. It is here
+// because writing a height onto something that cannot be measured is wrong on
+// its own terms, and because the next path that reveals without re-rendering
+// would be broken by it.
+const EDITOR_TEXTAREA_MAX_PX = 260;
+
+// The nearest ancestor that actually scrolls. Used to put the scroll position
+// back after a measurement - see the note on the collapse below.
+function scrollableAncestorOf(el) {
+    for (let n = el && el.parentElement; n && n !== document.body; n = n.parentElement) {
+        if (n.scrollHeight <= n.clientHeight) continue;
+        const oy = getComputedStyle(n).overflowY;
+        if (oy === 'auto' || oy === 'scroll') return n;
+    }
+    return null;
+}
+
+// Measuring a textarea means collapsing it first: `height: auto` on a textarea
+// is its `rows` height, NOT its content height, so scrollHeight only reports the
+// real content once the box is out of the way.
+//
+// That collapse is visible to the scroll container for one layout pass. When the
+// contributor is scrolled to the BOTTOM of the workspace, the container's scroll
+// range shrinks by however much the field just lost, the browser clamps
+// scrollTop to the new maximum - and restoring the height does not restore the
+// scroll. The clamp is permanent, and it happens on every keystroke.
+//
+// That is v0.16 bug 1, from the owner's screen recording: "it will keep
+// rendering/moving me upward, forcing me to manually scroll down, but every
+// single letter type just keep moving me upward". Measured on a 211px field:
+// scrollTop 349 -> 188 on the first character, exactly the 161px the field lost
+// collapsing to its 50px minimum.
+//
+// It took a video to find because it needs the workspace scrolled to its
+// maximum. Eight earlier probes typed into a block with content below it, where
+// there is slack for the range to shrink into and nothing moves at all.
+//
+// Reading and writing scrollTop in the same task means no frame is painted in
+// between, so the restore is invisible rather than a correction the reader sees.
+function measureAndSize(ta) {
+    const scroller = scrollableAncestorOf(ta);
+    const keepTop = scroller ? scroller.scrollTop : 0;
+
+    ta.style.height = 'auto';
+    const wanted = ta.scrollHeight;
+    ta.style.height = Math.min(wanted, EDITOR_TEXTAREA_MAX_PX) + 'px';
+    ta.style.overflowY = wanted > EDITOR_TEXTAREA_MAX_PX ? 'auto' : 'hidden';
+
+    if (scroller && scroller.scrollTop !== keepTop) scroller.scrollTop = keepTop;
+}
+
+window.autoSizeEditorTextarea = function (ta) {
+    if (!ta || ta.offsetParent === null) return;
+    measureAndSize(ta);
+};
+
+window.autoSizeEditorTextareasIn = function (root) {
+    if (!root) return;
+    const fields = root.querySelectorAll('.editor-textarea');
+    if (!fields.length) return;
+    // One save/restore around the whole sweep rather than one per field: sizing
+    // a list of them collapses each in turn, and the clamp compounds.
+    const scroller = scrollableAncestorOf(fields[0]);
+    const keepTop = scroller ? scroller.scrollTop : 0;
+    fields.forEach(window.autoSizeEditorTextarea);
+    if (scroller && scroller.scrollTop !== keepTop) scroller.scrollTop = keepTop;
+};
+
+// A one-line label for a collapsed block.
+//
+// NOT optional decoration. Everything starts collapsed as of v0.16, and a list
+// reading "HEADING / IMAGE / PARAGRAPH / PARAGRAPH / PARAGRAPH" identifies
+// nothing - the author would have to expand every block to find the one they
+// wanted, which is worse than the wall of open blocks this replaced.
+//
+// Reads whichever field the type actually carries its meaning in, rather than
+// assuming `content`: a table's meaning is in its headers, an image's in its
+// caption or filename, a container's in its title.
+function blockSummary(block) {
+    if (!block || typeof block !== 'object') return '';
+
+    const firstText = (arr) => (Array.isArray(arr) && arr.length ? String(arr[0] || '') : '');
+    const fileName = (src) => String(src || '').split('/').pop().split('?')[0];
+
+    let text = '';
+    switch (block.type) {
+        case 'heading':
+        case 'paragraph':
+            text = block.content;
+            break;
+        case 'list':
+            text = firstText(block.items);
+            break;
+        case 'table':
+            text = firstText(block.headers);
+            break;
+        case 'image':
+        case 'video':
+        case 'youtube':
+            text = block.caption || block.alt || fileName(block.src || block.url);
+            break;
+        case 'callout':
+        case 'accordion':
+        case 'theorybox':
+            text = block.title;
+            break;
+        case 'author':
+            text = block.author;
+            break;
+        default:
+            text = block.title || block.content || '';
+    }
+
+    text = String(text == null ? '' : text)
+        // Strip the shortcodes rather than render them: this is a label in a
+        // dense list, and [b]...[/b] around a five-word summary is noise.
+        .replace(/\[\/?[a-z][^\]]*\]/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    return text.length > 60 ? text.slice(0, 60) + '…' : text;
+}
+
 // The shell drawn around one folder run.
 //
 // The name is an INPUT rather than a label plus a rename button. Renaming is
@@ -1546,11 +1853,18 @@ function folderShellHTML(run, isCollapsed, isEmpty) {
     // An empty folder is not in the data, so there is nothing to keep and
     // nothing to ungroup - removing it is a discard, and saying UNGROUP there
     // would promise a rescue of blocks that do not exist.
+    // Glyph-only side buttons (v0.16 fine-tuning 3). The words cost more height
+    // than a folder header is worth now that the whole shell is meant to be
+    // slim - and the block cards' own actions have always been glyphs, so the
+    // vocabulary already exists. title AND aria-label, because a glyph with
+    // neither is a button nobody can name.
     const removeBtn = isEmpty
         ? `<button class="btn-sys btn-sys-regular block-folder-discard"
-                   title="Discard this empty folder">&#10007; REMOVE</button>`
+                   title="Discard this empty folder"
+                   aria-label="Discard this empty folder">&#10007;</button>`
         : `<button class="btn-sys btn-sys-regular block-folder-ungroup"
-                   title="Remove the folder and keep every block in it">&#9003; UNGROUP</button>`;
+                   title="Remove the folder and keep every block in it"
+                   aria-label="Ungroup this folder, keeping its blocks">&#9003;</button>`;
 
     const body = isEmpty
         ? `<div class="block-folder-empty">Drag a block onto this header, or choose this folder on any block.</div>`
@@ -1560,13 +1874,14 @@ function folderShellHTML(run, isCollapsed, isEmpty) {
         <div class="block-folder-head">
             <button class="btn-sys btn-sys-regular block-folder-toggle"
                     title="${isCollapsed ? 'Expand' : 'Collapse'} this folder"
-                    aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#9656;' : '&#9662;'}</button>
+                    aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#128193;' : '&#128194;'}</button>
             <input type="text" class="block-folder-name-input" value="${escField(run.name)}"
                    data-folder="${escField(run.name)}" maxlength="60"
                    aria-label="Folder name" title="Rename this folder">
             <span class="block-folder-count">${count}</span>
             <button class="btn-sys btn-sys-regular block-folder-add"
-                    title="Create another folder after this one">&#65291; FOLDER</button>
+                    title="Create another folder after this one"
+                    aria-label="Create another folder after this one">&#65291;</button>
             ${removeBtn}
         </div>
         <div class="block-folder-body">${body}</div>
@@ -1695,12 +2010,13 @@ function renderBlockList() {
     };
 
     activeBlocks.forEach((block, index) => {
+        const isOpen = window.isEditorBlockExpanded(block);
         const card = document.createElement('div');
-        card.className = 'block-card';
+        card.className = 'block-card' + (isOpen ? '' : ' collapsed');
         card.setAttribute('data-index', index);
 
             const typeOptions = Object.keys(blockTemplates).map(t =>
-                `<option value="${escField(t)}" ${block.type === t ? 'selected' : ''}>${t.toUpperCase()}</option>`
+                `<option value="${escField(t)}" ${block.type === t ? 'selected' : ''}>${escField(window.blockTypeLabel(t))}</option>`
             ).join('');
 
             let html = `
@@ -1712,15 +2028,16 @@ function renderBlockList() {
                         </select>
                         ${folderPickerHTML(block)}
                     </div>
+                <span class="block-card-summary" title="${escField(blockSummary(block))}">${escField(blockSummary(block))}</span>
                 <div class="block-actions">
                     <button class="btn-sys btn-sys-green btn-insert-below" title="Insert Paragraph Below">⨁</button>
-                    <button class="btn-sys btn-sys-regular btn-collapse" title="Minimize/Expand">—</button>
+                    <button class="btn-sys btn-sys-regular btn-collapse" title="Minimize/Expand">${isOpen ? '—' : '□'}</button>
                     <button class="btn-sys btn-sys-regular btn-up" title="Move Up">▲</button>
                     <button class="btn-sys btn-sys-regular btn-down" title="Move Down">▼</button>
                     <button class="btn-sys btn-sys-red btn-delete" title="Delete">✖</button>
                 </div>
             </div>
-            <div class="block-body">
+            <div class="block-body${isOpen ? '' : ' minimized'}">
         `;
 
         if (block.type === 'heading') {
@@ -1983,10 +2300,9 @@ function renderBlockList() {
 
     pendingOrphans.forEach(emitEmptyFolder);
 
-    listContainer.querySelectorAll('.editor-textarea').forEach(ta => {
-        ta.style.height = 'auto';
-        ta.style.height = (ta.scrollHeight) + 'px';
-    });
+    // Sizes only what is actually on screen. Anything inside a collapsed block
+    // cannot be measured and is sized by the expand handler instead.
+    window.autoSizeEditorTextareasIn(listContainer);
 
     if (window.editorBlockObserver) {
         listContainer.querySelectorAll('.block-card').forEach(card => {

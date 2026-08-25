@@ -203,21 +203,41 @@ function renderSubmissionCard(rev) {
 // straight to the tab/move that was actually edited for a delta patch) -
 // can't call that function directly, it lives on admin.html's page and
 // reads admin-only globals (window.currentQueueData, adminConfirm).
-function editSubmission(rev) {
-    let url = `edit.html?char=${rev.page_id}&editTicket=${rev.id}`;
+// Split out from editSubmission so the routing can be tested without the
+// navigation that used to be the only way to observe it.
+//
+// &type= is load-bearing and was missing (v0.16 bug 5). js/editor-core.js reads
+// `urlParams.get('type') || 'character'`, so a submission against a system, tool
+// or tier list page opened the editor in CHARACTER mode: a character tab strip
+// over system data, and the intercepted ticket rendering into nothing. The id
+// survived either way, which is why this looked like it worked right up until
+// the page was not a character.
+window.buildSubmissionEditUrl = function (rev) {
+    const pageType = rev.page_type || 'character';
+    let url = `edit.html?char=${encodeURIComponent(rev.page_id)}`
+        + `&type=${encodeURIComponent(pageType)}`
+        + `&editTicket=${encodeURIComponent(rev.id)}`;
 
-    if (rev.is_delta) {
+    // The deep link below is character vocabulary - `matchups`, `counterplay`,
+    // `m1s::5H`. A system page's scopes are system_tab / system_section, and its
+    // editor builds its own tab list, so deriving a character tab for one would
+    // be inventing a destination that does not exist.
+    if (rev.is_delta && pageType === 'character') {
         let tab = 'overview';
         if (['matchup', 'counterplay'].includes(rev.target_scope)) tab = rev.target_scope + 's';
         else if (rev.target_scope === 'move') {
             tab = rev.target_key.split('::')[0];
             const moveId = rev.target_key.split('::')[1];
-            url += `&tab=${tab}&move=${moveId}`;
+            url += `&tab=${encodeURIComponent(tab)}&move=${encodeURIComponent(moveId)}`;
         }
-        if (rev.target_scope !== 'move') url += `&tab=${tab}`;
+        if (rev.target_scope !== 'move') url += `&tab=${encodeURIComponent(tab)}`;
     }
 
-    window.location.href = url;
+    return url;
+};
+
+function editSubmission(rev) {
+    window.location.href = window.buildSubmissionEditUrl(rev);
 }
 
 async function withdrawSubmission(revId) {

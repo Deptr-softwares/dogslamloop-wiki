@@ -15,6 +15,32 @@
 
 const { test, expect } = require('@playwright/test');
 
+// v0.16 fine-tuning 2 made every block in the editor start COLLAPSED, so a
+// field inside one has no layout until its block is opened. Tests that reach
+// into a block open the workspace first - the same thing an author does before
+// editing. Duplicated per file rather than shared, matching this project's
+// preference for small duplication over new cross-file coupling.
+async function openEveryBlock(page) {
+    await page.evaluate(() => {
+        // Not every page this helper runs on HAS a block builder - the tier
+        // editor's access-denied screen replaces the whole body - and
+        // renderBlockList writes straight into #block-list.
+        if (!document.getElementById('block-list')) return;
+        // Folders first. A block inside a collapsed folder stays hidden however
+        // open the block itself is, and the pages these tests use really do
+        // have folders.
+        if (typeof window.setBlockFolderCollapsed === 'function') {
+            document.querySelectorAll('#block-list .block-folder').forEach(f =>
+                window.setBlockFolderCollapsed(f.getAttribute('data-folder'), false));
+        }
+        if (typeof window.setEditorBlockExpanded === 'function') {
+            (window.getActiveBlocks() || []).forEach(b => window.setEditorBlockExpanded(b, true));
+        }
+        window.renderBlockList();
+    });
+}
+
+
 const PAGE = '/edit.html?page=boomcat';
 
 async function openEditor(page) {
@@ -104,6 +130,7 @@ test('the hue slider works from the keyboard', async ({ page }) => {
 const TEXT_FIELD = '#block-list .block-card textarea, #block-list .block-card input[type="text"]';
 
 async function typeAndSelect(page, text, charsToSelect) {
+    await openEveryBlock(page);
     const field = page.locator(TEXT_FIELD).first();
     if (!(await field.count())) return false;
 

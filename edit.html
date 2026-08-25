@@ -228,7 +228,12 @@
         </div>
     </div>
 
-    <div class="editor-layout">
+    <!-- editor-layout-split marks the one page that genuinely has TWO panes.
+         owner.html, post-editor.html and tier-editor.html all reuse
+         .editor-layout as a wrapper around a single workspace, so the splitter
+         rules have to key off something narrower than the layout class or they
+         squeeze those pages to 30% of the window. -->
+    <div class="editor-layout editor-layout-split">
         <div class="editor-workspace">
             <!-- COLLAPSIBLE, owner's fine-tuning item 2026-08-14. The
                  title, the subtitle, HUB and four of the five action buttons
@@ -313,6 +318,16 @@
             <div id="interactive-builder"></div>
         </div>
 
+        <!-- Drag to trade preview width for writing width (v0.16 fine-tuning 9).
+             Double-click resets to 30/70, which stays the default because the
+             preview is meant to show the page at the proportions a reader gets;
+             widening the workspace is a trade the writer opts into, not the
+             state they start in. Hidden below 900px, where the two panes stop
+             sharing the screen at all. -->
+        <div class="editor-splitter" id="editor-splitter" role="separator"
+             aria-orientation="vertical" aria-label="Resize the editor and preview"
+             tabindex="0" title="Drag to resize &mdash; double-click to reset"></div>
+
         <div class="live-preview-pane">
             <button class="mobile-back-to-editor" onclick="window.toggleMobilePreview()">
                 <span style="font-size: 1rem; margin-right: 0.5rem;">←</span> BACK TO EDITOR
@@ -341,9 +356,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- First: the character tab vocabulary. site_utils.js derives
          FRAME_MOVE_CATEGORIES from it and editor-tabs.js its major strip. -->
-    <script src="js/character_tabs.js?v=191da25d"></script>
-    <script src="js/input_slots.js?v=191da25d"></script>
-    <script src="js/site_utils.js?v=191da25d"></script>
+    <script src="js/character_tabs.js?v=45cad675"></script>
+    <script src="js/input_slots.js?v=45cad675"></script>
+    <script src="js/site_utils.js?v=45cad675"></script>
     <script src="js/site_meta.js"></script>
     <script src="js/pagebuilder.js"></script>
     <script src="js/framedata.js"></script>

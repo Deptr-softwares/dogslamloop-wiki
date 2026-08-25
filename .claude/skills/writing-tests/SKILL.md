@@ -97,7 +97,24 @@ renderer, an apply function against a diff view — compare them **both ways**.
 
 ## Revert-confirm-restore, for every bug fix
 
-Before claiming a fix works: temporarily revert it (`git stash push -- <file>`), confirm the new spec **fails**, restore, confirm it passes. A regression test that never failed against the old code proves nothing.
+Before claiming a fix works: temporarily revert it, confirm the new spec
+**fails**, restore, confirm it passes. A regression test that never failed
+against the old code proves nothing.
+
+**COMMIT THE FIX FIRST.** Then the undo is `git restore <file>`, which is exact
+and safe. This is not a style preference — it is the only version of this
+procedure that cannot lose work.
+
+`git checkout -- <file>` restores from HEAD, so on an uncommitted file it
+discards **every** change to it, not just the probe. That has now happened
+three times here. The third was during v0.15's Techs tab: a one-line
+falsification edit was undone that way and took the whole uncommitted
+implementation of that file with it. It survived only because that particular
+probe happened to start with a manual backup.
+
+Taking backups is not the fix; committing first is. An extra commit on a
+feature branch costs nothing and turns a destructive command into a harmless
+one.
 
 ## Assert structure, not pixels
 
@@ -127,6 +144,45 @@ Before changing code to satisfy a red test, confirm the test is asking the right
 
 When a test fails, reproduce the behaviour manually or add a debug spec that prints actual state before concluding the code is wrong.
 
+## "Cannot reproduce" is a claim about your probes, not about the bug
+
+v0.16 bug 1 — typing dragged the workspace upward — survived **twelve** probes
+that all reported clean. Different pages, block types, viewport widths, the
+pre-change renderer served over the live page, the virtualizer on and off. It was
+closed as not reproducible, and a screen recording reopened it the same day.
+
+Every one of the twelve had typed into a block with content **below** it. There
+the scroll range has slack, so the collapse that causes the bug costs nothing and
+nothing moves. The bug was fully present two hundred pixels down the same page.
+
+**The variable that mattered was never in the list**: where in the scroll range
+the contributor was standing. Twelve probes sharing one unexamined assumption are
+one piece of evidence, not twelve — and a rising count feels like rising
+confidence while proving nothing.
+
+So before writing "cannot reproduce", **write down what every probe held
+constant**. Scroll position, focus, viewport, whether the element is first or
+last, empty or full, at a boundary or in the middle. Then vary one of those,
+rather than adding a thirteenth scenario that varies what you already varied.
+
+Ask the reporter for a recording early. Reading the real screen cost minutes and
+answered it immediately; the frames can be decoded in-browser with a `<video>`
+and a canvas when no usable `ffmpeg` is around (Playwright's bundled one has no
+H.264 decoder).
+
+### `element.focus()` is not a click
+
+The single probe in that set that *did* reproduce something was lying.
+`element.focus()` scrolls its element into view; a mouse click does not, because
+the element is already under the pointer. It produced a clean, repeatable 426px
+jump for something no contributor can trigger, and it was the most convincing
+evidence in the whole investigation.
+
+**Drive focus the way a person does** — `page.mouse.click(x, y)` or
+`locator.click()` — and reserve `.focus()` for asserting what already has focus.
+A synthetic event that moves the viewport has invented the symptom you are
+hunting.
+
 ## A live page is not an empty page
 
 Specs here load real pages against real Supabase data, and the owner edits that
@@ -149,6 +205,52 @@ Same rule as never pinning a count to owner content, in the shape that is
 easier to miss: not a hardcoded number, but an assumption that a real page
 starts empty.
 
+## Derive the blast radius, do not guess it
+
+Running "the touched specs plus the neighbours" is the right instinct for a
+local change. **It is the wrong instinct for a change of DEFAULT behaviour**,
+because the neighbours of a default are every spec that ever relied on it, and
+that list does not look like the list of files you edited.
+
+v0.16 made editor blocks start collapsed. Seven hand-picked specs passed, CI
+came back with **ten failures in five files nobody would have called
+neighbours** — the colour picker, the preset swatches, in-page links, a dedupe
+spec, the tier editor. All of them typed into a field that is now inside a
+collapsed block.
+
+Pick the set with a command instead:
+
+```bash
+npx playwright test $(grep -rln "block-list\|block-card\|editor-textarea" tests/*.spec.js | tr '\n' ' ')
+```
+
+Grep for the **markup and globals the change touches**, not for the feature's
+name — those five files never mention collapsing, folders, or the workspace.
+Fourteen files matched; running them found every failure before pushing.
+
+### Grep for what you DELETED, not only what you added
+
+The set above still missed one, and CI caught it. Replacing hand-written markup
+with a generated loop deleted the literal `data-type="theorybox"` from
+`js/editor-blocks.js`, and `theorybox.spec.js` **greps the source file** for that
+exact string as its check that a new block type is wired everywhere. The runtime
+behaviour was correct throughout — the rendered menu still produced the button,
+and the test that drives the real menu passed.
+
+A grep for the identifiers you introduced cannot find a test that is looking for
+a string you removed. So when a change turns literals into generated output —
+markup into a loop, a hardcoded list into a map — **grep the tests for the
+literals in the diff's `-` lines too**:
+
+```bash
+git diff -U0 | grep '^-' | grep -o '[a-z-]*="[a-z_-]*"' | sort -u
+```
+
+Then update those tests to point at the new source of truth rather than
+loosening them. The scan that broke here got *stronger*: it now checks the
+declaration the markup is generated from, and gained a site, while the rendered
+output stays pinned by the runtime test that was already there.
+
 ## Never run two full suites at once
 
 `playwright.config.js` starts one dev server on a fixed port and the workers
@@ -160,6 +262,17 @@ v0.15 burned several rounds on runs reporting 519, 951, 975 and 984 of the same
 If a run reports failures, re-run **those specs alone** before believing them.
 A failure that passes in isolation is load, not a bug — but a *consistent*
 failure in isolation is real, and that is the only way to tell the two apart.
+
+This is routine rather than exceptional: v0.15's final Techs run reported 7
+failures and 5 of them — dashboards, editor-modes ×2, media-gc-guard, posts —
+passed untouched in isolation.
+
+**And never change the working tree while a suite is running.** Same hazard,
+worse symptom. Switching branches mid-run during v0.15 produced "15 failed" and
+"exit code 0" from the same run, and both numbers were meaningless — the workers
+were reading files swapped underneath them. A suite whose tree moved is not a
+failed suite, it is not a suite at all, and its output has to be thrown away
+rather than diagnosed. Commit, run, then leave it alone.
 
 ## What this suite cannot reach
 

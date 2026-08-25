@@ -11,8 +11,23 @@ window.editCurrentTicket = async function() {
 
     if(!(await adminConfirm("Intercept this submission? This will open the Editor so you can modify the contributor's text directly."))) return;
 
-    // Attach the special editTicket flag
-    let url = `edit.html?char=${rev.page_id}&editTicket=${rev.id}`;
+    // Attach the special editTicket flag.
+    //
+    // &type= was missing here too (v0.16 bug 5, reported against submissions.html
+    // but identical in both places). js/editor-core.js reads
+    // `urlParams.get('type') || 'character'`, so intercepting a submission
+    // against a system, tool or tier list page opened the editor in CHARACTER
+    // mode - the id arrived, the page type did not, and the ticket rendered into
+    // a UI built for something else.
+    //
+    // Duplicated rather than shared with js/submissions.js's builder: that file
+    // is not loaded on admin.html, and this project takes small per-file
+    // duplication over a new cross-file dependency. The tab logic below stays
+    // different on purpose - a reviewer's strip is the honest target here, where
+    // the contributor's page has no strip to read.
+    let url = `edit.html?char=${encodeURIComponent(rev.page_id)}`
+        + `&type=${encodeURIComponent(rev.page_type || 'character')}`
+        + `&editTicket=${encodeURIComponent(rev.id)}`;
 
     // Open the editor on whatever tab the reviewer is currently reading.
     //

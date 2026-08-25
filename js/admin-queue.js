@@ -175,7 +175,17 @@ function updateActionButtons(rev) {
     const isAdmin = (window.currentUserRoles || []).includes('admin');
 
     // --- TRUSTED EDITOR PERK ---
-    const isTrusted = (rev.author_roles || []).includes('trusted_editor');
+    // At or above trusted_editor, so reviewer and admin get it too (v0.16
+    // bug 6). It used to test the literal 'trusted_editor', which is why a
+    // reviewer's own submission still needed two supporters despite the
+    // decision that they have a trusted editor's perks.
+    //
+    // This threshold is a WORKFLOW convention, not a security boundary: it
+    // decides whether the MERGE button is rendered, and the write behind it is
+    // gated separately by the "Admin Write Live Data" policy. Relaxing it here
+    // grants nobody any access they did not already have.
+    const isTrusted = (rev.author_roles || []).some(r =>
+        window.roleMeets(r, 'trusted_editor'));
     const requiredSupport = isTrusted ? 1 : 2; // Trusted gets a discount
 
     const supportersCount = (rev.supporters || []).length;

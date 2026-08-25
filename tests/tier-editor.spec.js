@@ -14,6 +14,31 @@
 // SECURITY DEFINER bypasses the policy. Neither is reachable from a browser.
 const { test, expect } = require('@playwright/test');
 
+// v0.16 fine-tuning 2 made every block in the editor start COLLAPSED, so a
+// field inside one has no layout until its block is opened. The intro editor
+// on this page is that block builder, so the three tests that type into it
+// open the workspace first - the same thing an author does before editing.
+async function openEveryBlock(page) {
+    await page.evaluate(() => {
+        // Not every page this helper runs on HAS a block builder - the tier
+        // editor's access-denied screen replaces the whole body - and
+        // renderBlockList writes straight into #block-list.
+        if (!document.getElementById('block-list')) return;
+        // Folders first. A block inside a collapsed folder stays hidden however
+        // open the block itself is, and the pages these tests use really do
+        // have folders.
+        if (typeof window.setBlockFolderCollapsed === 'function') {
+            document.querySelectorAll('#block-list .block-folder').forEach(f =>
+                window.setBlockFolderCollapsed(f.getAttribute('data-folder'), false));
+        }
+        if (typeof window.setEditorBlockExpanded === 'function') {
+            (window.getActiveBlocks() || []).forEach(b => window.setEditorBlockExpanded(b, true));
+        }
+        window.renderBlockList();
+    });
+}
+
+
 const PAGE = '/tier-editor.html';
 
 const LIST = {
@@ -87,6 +112,7 @@ async function openEditor(page, { list = LIST, session = { id: 'u-me' }, role = 
     // Either outcome is a valid load: the board, or the denial screen that
     // replaces the whole body when there is no list to edit.
     await page.waitForSelector('.tier-editor-board, .access-denied-screen');
+    await openEveryBlock(page);
 }
 
 // Moving a character is a data operation; the drag is one way to trigger it.

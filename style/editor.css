@@ -28,9 +28,111 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     height: 100%;
     padding: 0;
     overflow-y: auto;
-    background-color: var(--bg-main); 
+    background-color: var(--bg-main);
     box-sizing: border-box;
     position: relative;
+}
+
+/* --- THE SPLITTER (v0.16 fine-tuning 9) ---
+   30/70 was fixed, which meant the place you type was 384px wide on a 1280px
+   screen - about 46 characters a line - whether or not you were looking at the
+   preview at that moment.
+
+   Everything below is scoped to min-width: 901px on purpose. Under that the
+   layout turns into a column and both panes are width:100% !important, so a
+   flex-basis here would silently become a HEIGHT and the splitter would be
+   dividing the wrong axis. */
+@media (min-width: 901px) {
+    /* .editor-layout-split, NOT .editor-layout. owner.html, post-editor.html
+       and tier-editor.html all reuse .editor-layout as a wrapper around a
+       SINGLE workspace - keying off the layout class squeezed all three to 30%
+       of the window, which CI caught on owner.html as a 420px workspace where
+       the page expects 1100. */
+    .editor-layout-split {
+        /* The one number the drag writes. Percent so it survives a window
+           resize; js/editor-core.js clamps it in px before writing. */
+        --editor-split: 30%;
+    }
+
+    .editor-layout-split > .editor-workspace {
+        flex: 0 0 var(--editor-split);
+        width: auto;
+    }
+
+    /* Takes whatever is left rather than a second number to keep in step. */
+    .editor-layout-split > .live-preview-pane {
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
+    }
+
+    .editor-splitter {
+        flex: 0 0 5px;
+        cursor: col-resize;
+        background: #1a1a1a;
+        border-left: 1px solid #333;
+        border-right: 1px solid #333;
+        box-sizing: border-box;
+        position: relative;
+        z-index: 60;
+        touch-action: none;
+    }
+
+    .editor-splitter::after {
+        /* A grip, and a bigger hit area than 5px of visible bar. */
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 2px;
+        height: 32px;
+        transform: translate(-50%, -50%);
+        background: #555;
+        border-radius: 1px;
+    }
+
+    .editor-splitter:hover,
+    .editor-splitter:focus-visible,
+    .editor-splitter.is-dragging {
+        background: var(--accent-blue);
+        outline: none;
+    }
+
+    .editor-splitter:hover::after,
+    .editor-splitter:focus-visible::after,
+    .editor-splitter.is-dragging::after {
+        background: #fff;
+    }
+
+    /* Sitting exactly on the default while dragging. Without a cue the snap
+       reads as the drag sticking rather than as landing on something. Green
+       because it means "this is the view a reader gets", not "warning". */
+    .editor-splitter.is-snapped {
+        background: #22c55e;
+    }
+
+    .editor-splitter.is-snapped::after {
+        background: #000;
+        height: 48px;
+    }
+
+    /* While dragging, the panes must not eat the pointer or start selecting
+       text - both make the drag stutter and the second is visible as a blue
+       smear across the preview. */
+    .editor-layout-split.is-resizing {
+        user-select: none;
+        cursor: col-resize;
+    }
+
+    .editor-layout-split.is-resizing .live-preview-pane,
+    .editor-layout-split.is-resizing .editor-workspace {
+        pointer-events: none;
+    }
+}
+
+/* No second pane to divide down here. */
+@media (max-width: 900px) {
+    .editor-splitter { display: none; }
 }
 
 /* --- SLEEK HEADER UI ---
@@ -96,8 +198,22 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 .editor-hub-link { padding: 0.2rem 0.4rem; font-size: 0.6rem; }
 
 /* Shown only by the mobile media query further down, which is what the inline
-   display:none used to do. */
-.editor-mobile-preview-btn { display: none; font-size: 0.6rem; padding: 0.3rem; }
+   display:none used to do.
+   
+   SCOPED TO ITS PARENT ON PURPOSE. As a bare class this rule lost: editor.css
+   declares its own `.btn-sys, .submit-btn, ... { display: inline-flex }` at
+   line ~1714, same specificity and later in the same file, so the hide never
+   applied and SHOW PREVIEW has been sitting in the desktop header. (It computes
+   to `flex` rather than `inline-flex` because .editor-header-side is a flex
+   container and blockifies its children, which is why it does not look like a
+   button-sizing rule doing it.)
+   
+   Fourth instance of the equal-specificity/source-order family in this project.
+   Raising specificity rather than reordering, because reordering only holds
+   until the next rule is appended. The mobile override below is an ID plus
+   !important and still wins. */
+.editor-header-side .editor-mobile-preview-btn { display: none; }
+.editor-mobile-preview-btn { font-size: 0.6rem; padding: 0.3rem; }
 
 .header-actions {
     display: flex;
@@ -129,8 +245,18 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 
 .editor-header.is-collapsed { padding-top: 0.4rem; padding-bottom: 0.4rem; gap: 0; }
 .editor-header.is-collapsed .editor-subtitle,
-.editor-header.is-collapsed .editor-header-side,
 .editor-header.is-collapsed .header-actions > .btn-sys:not(#submit-payload-btn) { display: none; }
+
+/* HUB SURVIVES THE COLLAPSE (v0.16 fine-tuning 4). .editor-header-side used to
+   be hidden here along with the subtitle, which took HUB with it - so leaving
+   the editor meant expanding the header first, for the one control that is
+   about not being in the editor any more. It sits at the end of
+   .editor-header-top, which is the flex:1 half, so collapsed it lands directly
+   beside Submit exactly as asked.
+
+   This also gives the mobile SHOW PREVIEW button back: it lives in the same
+   container and is display:none on desktop anyway, so it only reappears where
+   it is the only way to see the preview at all. */
 
 /* Collapsed, the two rows become one: the title on the left, Submit on the
    right. */
@@ -163,11 +289,22 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     border: 1px solid #222;
     border-left: 3px solid #333;
     border-right: none;
-    border-radius: 0; 
+    border-radius: 0;
     padding: 0.5rem 1.5rem;
     position: relative;
-    transition: border-color 0.1s ease, background 0.1s ease; 
-    margin-bottom: -1px; 
+    transition: border-color 0.1s ease, background 0.1s ease;
+    margin-bottom: -1px;
+    /* The virtualization engine below pins an unloaded card open at the height
+       it measured with getBoundingClientRect - a BORDER-box height. There is no
+       global box-sizing reset in this project, so under the default content-box
+       that assignment made every card 18px taller than it had just been
+       (0.5rem top + bottom padding, plus the 1px borders). Cards crossing the
+       observer's margin therefore changed the height of the content above the
+       reader, who got shoved up and down as they scrolled - v0.16 bug 2.
+       This is the only rule that sets an explicit height on a .block-card, so
+       border-box changes nothing else: with height:auto the two box models
+       lay out identically. */
+    box-sizing: border-box;
 }
 .block-card:hover { border-left-color: rgba(59, 130, 246, 0.5); }
 .block-card:focus-within { border-left-color: var(--accent-blue); background: #0f1218; }
@@ -394,9 +531,22 @@ input[type="checkbox"]:checked {
 .block-header:active {
     cursor: grabbing !important;
 }
-.editor-textarea { 
-    overflow: hidden; /* Removes scrollbars for auto-expanding */
-}
+/* `.editor-textarea { overflow: hidden }` used to sit here, to keep a scrollbar
+   off a field that grew to fit whatever was typed into it. Fields stopped
+   growing without limit when the 260px cap arrived (line 240, owner 2026-08-17)
+   and the rule outlived its reason - but it is the same 0-1-0 selector as that
+   cap's `overflow-y: auto`, further down the file, so it won on source order and
+   turned every capped field into 260px of text with no way to reach the rest.
+
+   The block editor never showed it, because autoSizeEditorTextarea writes
+   style.overflowY inline and an inline style beats both rules. Everything else
+   using this class had no scrollbar and no wheel scrolling: the combo card's
+   route and notes fields (js/editor-tabs.js), the QA changelog on the submit
+   modal (js/editor-core.js), the tier changelog (js/tierlist.js).
+
+   Fifth time an equal-specificity pair in this project has been settled by
+   source order rather than by intent - so the cap keeps `overflow-y: auto` and
+   nothing here contradicts it. */
 
 /* --- ALIGNMENT TOGGLE BUTTONS --- */
 .align-group {
@@ -438,7 +588,20 @@ input[type="checkbox"]:checked {
 }
 
 /* --- FORMATTING TOOLBAR --- */
-.format-toolbar { display: flex; gap: 0.25rem; align-items: center; }
+/* TWO ROWS (v0.16 fine-tuning 7). A grid with two explicit rows and column
+   flow, rather than flex-wrap with a width cap: wrapping would give two rows at
+   one pane width and three at another, while this is two rows at every width
+   and for any number of buttons. The wrappers inside stay position:relative
+   hosts for their popups, which grid does not affect. */
+.format-toolbar {
+    display: grid;
+    grid-template-rows: repeat(2, auto);
+    grid-auto-flow: column;
+    grid-auto-columns: min-content;
+    gap: 0.25rem;
+    align-items: center;
+    justify-content: start;
+}
 .format-btn {
     background: rgba(255,255,255,0.05); color: #d1d5db; border: 1px solid #333;
     width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
@@ -1075,6 +1238,11 @@ input[type="checkbox"]:checked {
 .block-type-badge.block-type-badge-negative { color: #ef4444; }
 .strategy-toolbar-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .strategy-toolbar-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+/* The block builder's row has nothing on its left any more - MEDIA LIBRARY
+   moved to the footer - so space-between would drag undo/redo/clear across to
+   it. A modifier rather than a change to .strategy-toolbar-row, which the
+   structured-form toolbar in js/editor-tabs.js still uses with two children. */
+.strategy-toolbar-row-end { justify-content: flex-end; }
 .accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 .accordion-back-label { color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
 .accordion-back-title { color: #fff; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; }
@@ -1108,28 +1276,49 @@ input[type="checkbox"]:checked {
    accordion banner above: an accordion is a thing the READER gets, a folder is
    furniture only the author ever sees, and the two sitting in the same list
    must not look like the same kind of object. */
+/* v0.16 fine-tuning 3: a folder is not a card and should stop looking like a
+   quieter one. No filled box, no full border - a transparent strip with a
+   folder icon, held together by the left rule alone. The height matters as
+   much as the colour: this list is mostly folders now that everything opens
+   collapsed, so every row of chrome is a row of blocks pushed off screen. */
 .block-folder {
-    border: 1px solid #2a2a2a;
-    border-left: 3px solid #4b5563;
-    background: rgba(255, 255, 255, 0.012);
-    margin-bottom: 0.35rem;
+    border: none;
+    border-left: 2px solid #3f4652;
+    background: transparent;
+    margin-bottom: 0.15rem;
 }
 .block-folder-head {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.3rem 0.5rem;
-    background: #111;
-    border-bottom: 1px solid #222;
+    gap: 0.35rem;
+    padding: 0.1rem 0.35rem;
+    background: transparent;
+    border-bottom: none;
 }
-.block-folder.is-collapsed .block-folder-head { border-bottom: none; }
+/* Only while it holds something open, so an expanded folder still reads as a
+   container rather than a stack of loose blocks under a heading. */
+.block-folder:not(.is-collapsed) > .block-folder-body {
+    border-left: 1px dotted #2a2a2a;
+    margin-left: 0.45rem;
+    padding-left: 0.4rem;
+}
+
 .block-folder.is-collapsed .block-folder-body { display: none; }
 
+/* The folder icon IS the toggle - one element instead of a disclosure triangle
+   next to a decorative icon, which is what "a small folder icon" asked for.
+   Stripped of the btn-sys chrome it inherits: a bordered box around an emoji
+   is most of the height this rule is trying to remove. */
 .block-folder-toggle {
-    font-family: monospace;
-    font-weight: bold;
     flex: 0 0 auto;
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 0 0.1rem;
+    font-size: 0.8rem;
+    line-height: 1;
 }
+.block-folder-toggle:hover { background: none; filter: brightness(1.4); }
 /* Transparent until touched, so the header reads as a title rather than a form
    row - but still a real input, which is the whole rename interaction. */
 .block-folder-name-input {
@@ -1140,8 +1329,8 @@ input[type="checkbox"]:checked {
     border-bottom: 1px dotted transparent;
     color: #e5e7eb;
     font-family: var(--text-manga);
-    font-size: 0.95rem;
-    padding: 0.1rem 0.2rem;
+    font-size: 0.8rem;
+    padding: 0.05rem 0.2rem;
 }
 .block-folder-name-input:hover { border-bottom-color: #444; }
 .block-folder-name-input:focus {
@@ -1156,10 +1345,17 @@ input[type="checkbox"]:checked {
     font-size: 0.7rem;
     text-transform: uppercase;
 }
-.block-folder-add { flex: 0 0 auto; font-size: 0.65rem; }
-.block-folder-add:hover { background: #22c55e; color: #000; border-color: #22c55e; }
+/* Glyph-only, so they take a glyph's worth of room. */
+.block-folder-add,
 .block-folder-ungroup,
-.block-folder-discard { flex: 0 0 auto; font-size: 0.65rem; }
+.block-folder-discard {
+    flex: 0 0 auto;
+    font-size: 0.7rem;
+    line-height: 1;
+    padding: 0.1rem 0.3rem;
+    min-width: 0;
+}
+.block-folder-add:hover { background: #22c55e; color: #000; border-color: #22c55e; }
 .block-folder-ungroup:hover,
 .block-folder-discard:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
 
@@ -1415,6 +1611,24 @@ input[type="checkbox"]:checked {
     line-height: 1.6;
 }
 .modal-prompt-text.pre-wrap { white-space: pre-wrap; }
+
+/* The field window.customPrompt inserts between the prompt text and the buttons
+   (js/editor-blocks.js). It is created per call rather than living in the
+   markup, because #editor-custom-modal is shared with customConfirm on both
+   edit.html and post-editor.html and a stray text field would otherwise appear
+   on every delete confirmation.
+
+   The negative top margin eats part of .modal-prompt-text's 2rem, which is
+   spacing meant for text sitting directly above the buttons. text-align is
+   explicit because .auth-body-centered centres this modal's contents, and a
+   centred URL is hard to read and harder to edit. */
+.editor-modal-input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin: -1rem 0 1.5rem 0;
+    text-align: left;
+}
 
 .modal-actions-centered {
     display: flex;
@@ -1735,6 +1949,16 @@ input[type="checkbox"]:checked {
     overflow-y: auto; /* Restores the scrollbar */
     padding: 1.5rem; 
     box-sizing: border-box;
+}
+
+/* MEDIA LIBRARY and ADD BLOCK, together at the end of the footer row
+   (v0.16 fine-tuning 7). flex-shrink:0 so the two-row format toolbar beside
+   them takes the squeeze instead - it wraps by design, and these do not. */
+.add-block-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 /* --- STICKY FORMATTING TOOLBAR --- */
@@ -2143,3 +2367,40 @@ del.diff-del {
     color: var(--text-muted);
 }
 .daw-reorder-group { display: inline-flex; align-items: stretch; }
+
+/* --- COLLAPSED BLOCK LABEL (v0.16 fine-tuning 2) --- */
+/* Everything in the workspace starts collapsed now, so a card has to say what
+   it holds without being opened. Only while collapsed: an expanded card shows
+   the real thing directly underneath, and repeating it above would be noise.
+   min-width:0 with the ellipsis is what stops a long paragraph pushing the
+   action buttons off the row - the header is a flex line. */
+.block-card-summary { display: none; }
+/* The type row is `flex: 1 1 auto` so it can fill the header on its own. With
+   a summary beside it, two growing items compete and the type row wraps its
+   own contents onto a second line - which is what it did. Collapsed, the
+   selector only needs its natural width. */
+.block-card.collapsed .block-type-row { flex: 0 0 auto; flex-wrap: nowrap; }
+.block-card.collapsed .block-card-summary {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #9ca3af;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    padding: 0 0.5rem;
+}
+
+/* The folder picker is the block saying where it lives. Owner, 2026-08-25:
+   "When I open a folder, I already know that those blocks are in that folder."
+   A collapsed block sits visibly inside its folder, so the row repeats what the
+   indent has already said - and it is the widest thing on the header, which
+   squeezed the one-line summary down to two characters.
+
+   Tried once and reverted, because it left block-folders.spec.js's
+   picker-vs-dropdown overlap test with no picker to measure. That test now
+   expands the block first, which is the honest shape: the picker only exists
+   on an expanded block, so that is where an overlap can happen. */
+.block-card.collapsed .block-folder-picker { display: none; }

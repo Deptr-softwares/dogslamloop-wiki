@@ -115,6 +115,13 @@
     window.addPendingBlockFolder = function (blocks, afterFolder) {
         const name = window.nextFolderName(blocks, 'New Folder');
         pending.push({ name: name, after: normalize(afterFolder) });
+        // Open, for the same reason a newly added block is: folders now start
+        // collapsed (v0.16 fine-tuning 2), and a brand new one that appeared
+        // shut would need a click before it could be named or filled - which
+        // is the opposite of what pressing "new folder" asked for.
+        if (typeof window.setBlockFolderCollapsed === 'function') {
+            window.setBlockFolderCollapsed(name, false);
+        }
         return name;
     };
 
@@ -313,7 +320,17 @@
     // theorybox write-up can hold a folder called the same thing as one in the
     // section around it.
 
-    let collapsed = new Set();
+    // TRACKS WHAT IS OPEN, NOT WHAT IS CLOSED (v0.16 fine-tuning 2).
+    //
+    // This was a set of collapsed folders, so the default was expanded and a
+    // section with a dozen folders opened as a wall. The owner asked for the
+    // workspace to open quiet: everything closed, and opening is the opt-in.
+    //
+    // Inverting the SET rather than adding a "startCollapsed" flag keeps one
+    // source of truth. A flag would have to be consulted everywhere the set
+    // already is, and the two would disagree the first time somebody added a
+    // third state.
+    let expanded = new Set();
 
     function collapseKey(name) {
         const path = Array.isArray(window.activeAccordionPath)
@@ -323,19 +340,19 @@
     }
 
     window.resetBlockFolderState = function () {
-        collapsed = new Set();
+        expanded = new Set();
         pending = [];
     };
 
     window.isBlockFolderCollapsed = function (name) {
-        return collapsed.has(collapseKey(name));
+        return !expanded.has(collapseKey(name));
     };
 
     window.setBlockFolderCollapsed = function (name, on) {
         const key = collapseKey(name);
         if (!normalize(name)) return;
-        if (on) collapsed.add(key);
-        else collapsed.delete(key);
+        if (on) expanded.delete(key);
+        else expanded.add(key);
     };
 
     window.toggleBlockFolderCollapsed = function (name) {
