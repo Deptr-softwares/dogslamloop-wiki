@@ -228,6 +228,29 @@ Grep for the **markup and globals the change touches**, not for the feature's
 name — those five files never mention collapsing, folders, or the workspace.
 Fourteen files matched; running them found every failure before pushing.
 
+### Grep for what you DELETED, not only what you added
+
+The set above still missed one, and CI caught it. Replacing hand-written markup
+with a generated loop deleted the literal `data-type="theorybox"` from
+`js/editor-blocks.js`, and `theorybox.spec.js` **greps the source file** for that
+exact string as its check that a new block type is wired everywhere. The runtime
+behaviour was correct throughout — the rendered menu still produced the button,
+and the test that drives the real menu passed.
+
+A grep for the identifiers you introduced cannot find a test that is looking for
+a string you removed. So when a change turns literals into generated output —
+markup into a loop, a hardcoded list into a map — **grep the tests for the
+literals in the diff's `-` lines too**:
+
+```bash
+git diff -U0 | grep '^-' | grep -o '[a-z-]*="[a-z_-]*"' | sort -u
+```
+
+Then update those tests to point at the new source of truth rather than
+loosening them. The scan that broke here got *stronger*: it now checks the
+declaration the markup is generated from, and gained a site, while the rendered
+output stays pinned by the runtime test that was already there.
+
 ## Never run two full suites at once
 
 `playwright.config.js` starts one dev server on a fixed port and the workers
