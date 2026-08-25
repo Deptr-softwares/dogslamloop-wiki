@@ -520,6 +520,19 @@
 .badge-status-draft { background: rgba(136,136,136,0.15); color: #888; border: 1px solid #888; }
 .badge-status-archived { background: rgba(234,179,8,0.15); color: #eab308; border: 1px solid #eab308; }
 .admin-tool-hint { font-family: var(--text-mono); font-size: 0.68rem; color: var(--text-muted); line-height: 1.5; margin: 0.5rem 0 0 0; }
+
+/* The one control on a tool card that destroys data (v0.16 feature 4, Reset
+   Ranking). Set apart from the ordinary rows above it so it cannot be reached
+   by muscle memory aimed at SAVE - the two buttons are otherwise the same size
+   in the same column, and the red fill is the only thing telling them apart. */
+.admin-tool-danger-row {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px dashed #ef4444;
+}
+
+.admin-tool-danger-row .admin-tool-hint { margin-top: 0; margin-bottom: 0.6rem; }
+.admin-tool-danger-row .admin-tool-hint strong { color: #ef4444; }
 .permissions-list { margin: 1rem 0; }
 
 /* --- PERSONNEL ROSTER (owner.html, js/owner.js loadPersonnel) --- */

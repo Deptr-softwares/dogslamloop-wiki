@@ -42,6 +42,7 @@
         "20260818000002_page_optional_tabs.sql": "950368731d617608c334aba8952b60ad3d16116258d5afaee79b9dd19f0357e3",
         "20260819000000_revoke_trigger_function_grants.sql": "b94f4e463a166ccec8aafc648fb38d3fb8eba336b67d946ac82eaecd11177ee5",
         "20260825000000_hidden_characters.sql": "7b38a348bb4b5c5416c34ace4cd507b8d8d8f74ef3183e257274cb3a941b8cba",
-        "20260825000001_role_rank.sql": "d3b3d6c5686eb409a13d00855c1bf131ee7cd9b3aa4f1a99ef3da57962048777"
+        "20260825000001_role_rank.sql": "d3b3d6c5686eb409a13d00855c1bf131ee7cd9b3aa4f1a99ef3da57962048777",
+        "20260825000002_reset_free_submit_tier_list.sql": "2fd93a34c4db304a144138cd36df6d24e2dc0269b0147fef2e2ddd1536b4309f"
     }
 }
