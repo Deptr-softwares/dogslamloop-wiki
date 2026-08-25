@@ -166,6 +166,29 @@ Same rule as never pinning a count to owner content, in the shape that is
 easier to miss: not a hardcoded number, but an assumption that a real page
 starts empty.
 
+## Derive the blast radius, do not guess it
+
+Running "the touched specs plus the neighbours" is the right instinct for a
+local change. **It is the wrong instinct for a change of DEFAULT behaviour**,
+because the neighbours of a default are every spec that ever relied on it, and
+that list does not look like the list of files you edited.
+
+v0.16 made editor blocks start collapsed. Seven hand-picked specs passed, CI
+came back with **ten failures in five files nobody would have called
+neighbours** — the colour picker, the preset swatches, in-page links, a dedupe
+spec, the tier editor. All of them typed into a field that is now inside a
+collapsed block.
+
+Pick the set with a command instead:
+
+```bash
+npx playwright test $(grep -rln "block-list\|block-card\|editor-textarea" tests/*.spec.js | tr '\n' ' ')
+```
+
+Grep for the **markup and globals the change touches**, not for the feature's
+name — those five files never mention collapsing, folders, or the workspace.
+Fourteen files matched; running them found every failure before pushing.
+
 ## Never run two full suites at once
 
 `playwright.config.js` starts one dev server on a fixed port and the workers

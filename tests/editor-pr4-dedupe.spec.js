@@ -3,6 +3,30 @@
 // renderBlockList, and the overview/matchups/counterplay preview renderers).
 const { test, expect } = require('@playwright/test');
 
+// v0.16 fine-tuning 2 made every block in the editor start COLLAPSED, so a
+// field inside one has no layout until its block is opened. Tests that reach
+// into a block open the workspace first - the same thing an author does before
+// editing.
+async function openEveryBlock(page) {
+  await page.evaluate(() => {
+    // Not every page this helper runs on HAS a block builder, and
+    // renderBlockList writes straight into #block-list.
+    if (!document.getElementById('block-list')) return;
+    // Folders first. A block inside a collapsed folder stays hidden however
+    // open the block itself is, and the pages these tests use really do have
+    // folders.
+    if (typeof window.setBlockFolderCollapsed === 'function') {
+      document.querySelectorAll('#block-list .block-folder').forEach(f =>
+        window.setBlockFolderCollapsed(f.getAttribute('data-folder'), false));
+    }
+    if (typeof window.setEditorBlockExpanded === 'function') {
+      (window.getActiveBlocks() || []).forEach(b => window.setEditorBlockExpanded(b, true));
+    }
+    window.renderBlockList();
+  });
+}
+
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/edit.html?page=boomcat&type=character&tab=overview', { waitUntil: 'networkidle' });
 });
@@ -115,6 +139,7 @@ test('renderBlockList: accordion back-banner renders with no inline styles when 
       { type: 'accordion', title: 'My Section', align: 'center', content: [{ type: 'paragraph', content: 'inner text' }] },
     ]);
   });
+  await openEveryBlock(page);
 
   await page.locator('#block-list .block-card button.btn-sys-purple').click();
 
