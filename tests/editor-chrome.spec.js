@@ -50,7 +50,17 @@ test('Submit survives the collapse and the rest of the action row does not', asy
 
     await expect(page.locator('.header-actions .btn-sys', { hasText: 'Cancel' })).toBeHidden();
     await expect(page.locator('#btn-toggle-diff')).toBeHidden();
-    await expect(page.locator('.editor-hub-link')).toBeHidden();
+
+    // HUB USED TO BE ASSERTED HIDDEN HERE. v0.16 fine-tuning 4 reversed that at
+    // the owner's request: leaving the editor meant expanding the header first,
+    // for the one control that is about not being in the editor any more. It
+    // now sits beside Submit.
+    //
+    // Kept as an assertion rather than deleted, so the pair still says exactly
+    // which two controls survive a collapse - a silent deletion would leave
+    // "the rest of the action row does not" quietly weaker than its name.
+    // tests/editor-chrome-layout.spec.js owns the positioning.
+    await expect(page.locator('.editor-hub-link')).toBeVisible();
 });
 
 test('the tab strip is not part of the collapse', async ({ page }) => {
