@@ -1798,9 +1798,82 @@ window.deleteNotification = async function(id, event) {
     }
 };
 
+// A confirmation in the site's own modal, for code that runs on EVERY page.
+//
+// js/editor-core.js has customConfirm, but it is bound to #editor-custom-modal,
+// which only edit.html and post-editor.html carry - and site_utils.js loads
+// everywhere, including the public pages a reader sees. So this builds its own,
+// once, out of the same .modal-overlay / .modal-box classes the notification
+// inbox above uses, and reuses that node afterwards.
+//
+// Deliberately a second implementation rather than a shared one: this project
+// prefers small per-file duplication to a new cross-file dependency, and the
+// alternative here would be every public page loading an editor script for one
+// function (v0.16 fine-tuning 6).
+window.siteConfirm = function (message, opts = {}) {
+    let modal = document.getElementById('site-confirm-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'site-confirm-modal';
+        modal.className = 'modal-overlay hidden';
+        modal.innerHTML = `
+            <div class="modal-box accent-red modal-sm">
+                <div class="modal-header"><h3 id="site-confirm-title">CONFIRM</h3></div>
+                <div class="modal-body site-confirm-body">
+                    <p id="site-confirm-text" class="site-confirm-text"></p>
+                    <div class="site-confirm-actions">
+                        <button id="site-confirm-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
+                        <button id="site-confirm-ok" class="btn-sys btn-sys-red">CONFIRM</button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.appendChild(modal);
+    }
+
+    const titleEl = modal.querySelector('#site-confirm-title');
+    const textEl = modal.querySelector('#site-confirm-text');
+    const btnCancel = modal.querySelector('#site-confirm-cancel');
+    const btnOk = modal.querySelector('#site-confirm-ok');
+
+    // textContent, not innerHTML: the only current caller passes a fixed string,
+    // but a confirmation is exactly the kind of thing that later gets handed a
+    // page title or a contributor's name.
+    titleEl.textContent = opts.title || 'CONFIRM';
+    textEl.textContent = message;
+    btnOk.textContent = opts.confirmText || 'CONFIRM';
+
+    return new Promise((resolve) => {
+        modal.classList.remove('hidden');
+        btnOk.focus();
+
+        const cleanup = () => {
+            modal.classList.add('hidden');
+            btnCancel.removeEventListener('click', onCancel);
+            btnOk.removeEventListener('click', onOk);
+            modal.removeEventListener('click', onBackdrop);
+            document.removeEventListener('keydown', onKey);
+        };
+        const onCancel = () => { cleanup(); resolve(false); };
+        const onOk = () => { cleanup(); resolve(true); };
+        // Backdrop and Escape both cancel. This is a destructive action, so
+        // every ambiguous exit resolves to "no".
+        const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
+        const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); onCancel(); } };
+
+        btnCancel.addEventListener('click', onCancel);
+        btnOk.addEventListener('click', onOk);
+        modal.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKey);
+    });
+};
+
 window.clearAllNotifications = async function() {
-    if (!confirm("Are you sure you want to clear your entire inbox?")) return;
-    
+    const ok = await window.siteConfirm(
+        'This clears your entire inbox. Notifications cannot be brought back.',
+        { title: 'CLEAR ALL NOTIFICATIONS', confirmText: 'CLEAR ALL' });
+    if (!ok) return;
+
+
     // 1. Optimistic UI Wipe
     // .modal-body, not .auth-body - the modal this targets is built above with
     // .modal-body, so the old selector never matched and the wipe silently did

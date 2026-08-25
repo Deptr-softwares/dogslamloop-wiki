@@ -1510,6 +1510,24 @@ input[type="checkbox"]:checked {
 }
 .modal-prompt-text.pre-wrap { white-space: pre-wrap; }
 
+/* The field window.customPrompt inserts between the prompt text and the buttons
+   (js/editor-blocks.js). It is created per call rather than living in the
+   markup, because #editor-custom-modal is shared with customConfirm on both
+   edit.html and post-editor.html and a stray text field would otherwise appear
+   on every delete confirmation.
+
+   The negative top margin eats part of .modal-prompt-text's 2rem, which is
+   spacing meant for text sitting directly above the buttons. text-align is
+   explicit because .auth-body-centered centres this modal's contents, and a
+   centred URL is hard to read and harder to edit. */
+.editor-modal-input {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin: -1rem 0 1.5rem 0;
+    text-align: left;
+}
+
 .modal-actions-centered {
     display: flex;
     gap: 1rem;
