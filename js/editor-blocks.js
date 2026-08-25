@@ -415,10 +415,13 @@ function initStrategyBlockBuilder(containerId, initialData) {
     historyIndex = 0;
 
     container.innerHTML = `
-        <div class="strategy-toolbar-row">
-            <div>
-                <button class="btn-sys btn-sys-blue" id="btn-media-library" title="Open Media Manager">📁 MEDIA LIBRARY</button>
-            </div>
+        <!-- MEDIA LIBRARY has moved to the footer beside ADD BLOCK (v0.16
+             fine-tuning 7). The modifier class is what keeps undo/redo/clear
+             on the right now that nothing balances them on the left - the
+             shared .strategy-toolbar-row is space-between, and it still serves
+             the structured-form toolbar in js/editor-tabs.js, which keeps its
+             own MEDIA LIBRARY because it has no footer to move it to. -->
+        <div class="strategy-toolbar-row strategy-toolbar-row-end">
             <div class="strategy-toolbar-actions">
                 <button class="btn-sys btn-sys-regular" id="btn-undo" title="Undo (Ctrl+Z)" disabled>⮌ UNDO</button>
                 <button class="btn-sys btn-sys-regular" id="btn-redo" title="Redo (Ctrl+Y)" disabled>⮎ REDO</button>
@@ -501,6 +504,8 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 </div>
             </div>
 
+            <div class="add-block-footer-actions">
+            <button class="btn-sys btn-sys-blue" id="btn-media-library" title="Open Media Manager">📁 MEDIA LIBRARY</button>
             <div class="add-block-menu-wrapper">
                 <div class="add-block-popup" id="add-block-popup">
                     <div class="add-block-popup-title">Text & Media</div>
@@ -522,6 +527,7 @@ function initStrategyBlockBuilder(containerId, initialData) {
                 <button class="btn-sys btn-sys-green btn-add-block-toggle" id="btn-toggle-add-menu">
                     <span class="add-block-icon">⨁</span> ADD BLOCK
                 </button>
+            </div>
             </div>
         </div>
     `;

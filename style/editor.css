@@ -96,8 +96,22 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 .editor-hub-link { padding: 0.2rem 0.4rem; font-size: 0.6rem; }
 
 /* Shown only by the mobile media query further down, which is what the inline
-   display:none used to do. */
-.editor-mobile-preview-btn { display: none; font-size: 0.6rem; padding: 0.3rem; }
+   display:none used to do.
+   
+   SCOPED TO ITS PARENT ON PURPOSE. As a bare class this rule lost: editor.css
+   declares its own `.btn-sys, .submit-btn, ... { display: inline-flex }` at
+   line ~1714, same specificity and later in the same file, so the hide never
+   applied and SHOW PREVIEW has been sitting in the desktop header. (It computes
+   to `flex` rather than `inline-flex` because .editor-header-side is a flex
+   container and blockifies its children, which is why it does not look like a
+   button-sizing rule doing it.)
+   
+   Fourth instance of the equal-specificity/source-order family in this project.
+   Raising specificity rather than reordering, because reordering only holds
+   until the next rule is appended. The mobile override below is an ID plus
+   !important and still wins. */
+.editor-header-side .editor-mobile-preview-btn { display: none; }
+.editor-mobile-preview-btn { font-size: 0.6rem; padding: 0.3rem; }
 
 .header-actions {
     display: flex;
@@ -129,8 +143,18 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 
 .editor-header.is-collapsed { padding-top: 0.4rem; padding-bottom: 0.4rem; gap: 0; }
 .editor-header.is-collapsed .editor-subtitle,
-.editor-header.is-collapsed .editor-header-side,
 .editor-header.is-collapsed .header-actions > .btn-sys:not(#submit-payload-btn) { display: none; }
+
+/* HUB SURVIVES THE COLLAPSE (v0.16 fine-tuning 4). .editor-header-side used to
+   be hidden here along with the subtitle, which took HUB with it - so leaving
+   the editor meant expanding the header first, for the one control that is
+   about not being in the editor any more. It sits at the end of
+   .editor-header-top, which is the flex:1 half, so collapsed it lands directly
+   beside Submit exactly as asked.
+
+   This also gives the mobile SHOW PREVIEW button back: it lives in the same
+   container and is display:none on desktop anyway, so it only reappears where
+   it is the only way to see the preview at all. */
 
 /* Collapsed, the two rows become one: the title on the left, Submit on the
    right. */
@@ -438,7 +462,20 @@ input[type="checkbox"]:checked {
 }
 
 /* --- FORMATTING TOOLBAR --- */
-.format-toolbar { display: flex; gap: 0.25rem; align-items: center; }
+/* TWO ROWS (v0.16 fine-tuning 7). A grid with two explicit rows and column
+   flow, rather than flex-wrap with a width cap: wrapping would give two rows at
+   one pane width and three at another, while this is two rows at every width
+   and for any number of buttons. The wrappers inside stay position:relative
+   hosts for their popups, which grid does not affect. */
+.format-toolbar {
+    display: grid;
+    grid-template-rows: repeat(2, auto);
+    grid-auto-flow: column;
+    grid-auto-columns: min-content;
+    gap: 0.25rem;
+    align-items: center;
+    justify-content: start;
+}
 .format-btn {
     background: rgba(255,255,255,0.05); color: #d1d5db; border: 1px solid #333;
     width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
@@ -1075,6 +1112,11 @@ input[type="checkbox"]:checked {
 .block-type-badge.block-type-badge-negative { color: #ef4444; }
 .strategy-toolbar-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
 .strategy-toolbar-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+/* The block builder's row has nothing on its left any more - MEDIA LIBRARY
+   moved to the footer - so space-between would drag undo/redo/clear across to
+   it. A modifier rather than a change to .strategy-toolbar-row, which the
+   structured-form toolbar in js/editor-tabs.js still uses with two children. */
+.strategy-toolbar-row-end { justify-content: flex-end; }
 .accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 .accordion-back-label { color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
 .accordion-back-title { color: #fff; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; }
@@ -1763,6 +1805,16 @@ input[type="checkbox"]:checked {
     overflow-y: auto; /* Restores the scrollbar */
     padding: 1.5rem; 
     box-sizing: border-box;
+}
+
+/* MEDIA LIBRARY and ADD BLOCK, together at the end of the footer row
+   (v0.16 fine-tuning 7). flex-shrink:0 so the two-row format toolbar beside
+   them takes the squeeze instead - it wraps by design, and these do not. */
+.add-block-footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
 }
 
 /* --- STICKY FORMATTING TOOLBAR --- */
