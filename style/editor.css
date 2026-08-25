@@ -43,19 +43,24 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
    flex-basis here would silently become a HEIGHT and the splitter would be
    dividing the wrong axis. */
 @media (min-width: 901px) {
-    .editor-layout {
+    /* .editor-layout-split, NOT .editor-layout. owner.html, post-editor.html
+       and tier-editor.html all reuse .editor-layout as a wrapper around a
+       SINGLE workspace - keying off the layout class squeezed all three to 30%
+       of the window, which CI caught on owner.html as a 420px workspace where
+       the page expects 1100. */
+    .editor-layout-split {
         /* The one number the drag writes. Percent so it survives a window
            resize; js/editor-core.js clamps it in px before writing. */
         --editor-split: 30%;
     }
 
-    .editor-workspace {
+    .editor-layout-split > .editor-workspace {
         flex: 0 0 var(--editor-split);
         width: auto;
     }
 
     /* Takes whatever is left rather than a second number to keep in step. */
-    .live-preview-pane {
+    .editor-layout-split > .live-preview-pane {
         flex: 1 1 0;
         width: auto;
         min-width: 0;
@@ -114,13 +119,13 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     /* While dragging, the panes must not eat the pointer or start selecting
        text - both make the drag stutter and the second is visible as a blue
        smear across the preview. */
-    .editor-layout.is-resizing {
+    .editor-layout-split.is-resizing {
         user-select: none;
         cursor: col-resize;
     }
 
-    .editor-layout.is-resizing .live-preview-pane,
-    .editor-layout.is-resizing .editor-workspace {
+    .editor-layout-split.is-resizing .live-preview-pane,
+    .editor-layout-split.is-resizing .editor-workspace {
         pointer-events: none;
     }
 }

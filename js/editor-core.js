@@ -105,7 +105,7 @@ window.clampEditorSplit = function (pct, layoutWidth) {
 };
 
 window.setEditorSplit = function (pct, persist) {
-    const layout = document.querySelector('.editor-layout');
+    const layout = document.querySelector('.editor-layout-split');
     if (!layout) return;
     const clamped = window.clampEditorSplit(pct, layout.getBoundingClientRect().width);
     layout.style.setProperty('--editor-split', clamped.toFixed(3) + '%');
@@ -114,7 +114,7 @@ window.setEditorSplit = function (pct, persist) {
 
 window.initEditorSplitter = function () {
     const splitter = document.getElementById('editor-splitter');
-    const layout = document.querySelector('.editor-layout');
+    const layout = document.querySelector('.editor-layout-split');
     if (!splitter || !layout) return;
 
     window.setEditorSplit(editorPrefReadNum(EDITOR_SPLIT_KEY, EDITOR_SPLIT_DEFAULT), false);

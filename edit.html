@@ -228,7 +228,12 @@
         </div>
     </div>
 
-    <div class="editor-layout">
+    <!-- editor-layout-split marks the one page that genuinely has TWO panes.
+         owner.html, post-editor.html and tier-editor.html all reuse
+         .editor-layout as a wrapper around a single workspace, so the splitter
+         rules have to key off something narrower than the layout class or they
+         squeeze those pages to 30% of the window. -->
+    <div class="editor-layout editor-layout-split">
         <div class="editor-workspace">
             <!-- COLLAPSIBLE, owner's fine-tuning item 2026-08-14. The
                  title, the subtitle, HUB and four of the five action buttons

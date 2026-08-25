@@ -26,7 +26,7 @@ const panes = (page) => page.evaluate(() => {
   const w = document.querySelector('.editor-workspace').getBoundingClientRect();
   const p = document.querySelector('.live-preview-pane').getBoundingClientRect();
   const s = document.getElementById('editor-splitter').getBoundingClientRect();
-  const layout = document.querySelector('.editor-layout').getBoundingClientRect();
+  const layout = document.querySelector('.editor-layout-split').getBoundingClientRect();
   return {
     workspace: Math.round(w.width),
     preview: Math.round(p.width),
@@ -215,7 +215,7 @@ test('dragging near the default clicks onto it exactly', async ({ page }) => {
   expect(after.pct, 'it landed on the default, not near it').toBe(30);
   // Exactly, not rounded to 30 by the percentage maths.
   const exact = await page.evaluate(() =>
-    getComputedStyle(document.querySelector('.editor-layout')).getPropertyValue('--editor-split').trim());
+    getComputedStyle(document.querySelector('.editor-layout-split')).getPropertyValue('--editor-split').trim());
   expect(exact, 'the stored value is the default itself').toBe('30.000%');
 });
 
@@ -241,6 +241,49 @@ test('the keyboard can still leave the default', async ({ page }) => {
   await page.waitForTimeout(200);
 
   const exact = await page.evaluate(() =>
-    getComputedStyle(document.querySelector('.editor-layout')).getPropertyValue('--editor-split').trim());
+    getComputedStyle(document.querySelector('.editor-layout-split')).getPropertyValue('--editor-split').trim());
   expect(exact, 'one arrow press moves it off 30').not.toBe('30.000%');
 });
+
+// --- THE PAGES THAT REUSE .editor-layout WITHOUT A SECOND PANE ---
+//
+// owner.html, post-editor.html and tier-editor.html all wrap a SINGLE workspace
+// in .editor-layout. The splitter rules were first written against that class
+// and squeezed all three to 30% of the window; CI caught it on owner.html as a
+// 420px workspace where the page expects 1100. They key off
+// .editor-layout-split now, and this is the test that keeps them there.
+// tier-editor.html is deliberately not in this list: signed out, it replaces
+// the whole body with an access-denied screen, so there is no workspace to
+// measure. It carries the same .editor-layout wrapper and is covered by the
+// same CSS rule the two below pin.
+for (const [name, url, selector, expectedWidth] of [
+  ['owner.html', '/owner.html', '.owner-workspace', 1100],
+  ['post-editor.html', '/post-editor.html', '.post-editor-workspace', 525],
+]) {
+  test(`${name} keeps its full-width single pane`, async ({ page }) => {
+    await page.setViewportSize({ width: 1400, height: 900 });
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(400);
+
+    const seen = await page.evaluate((selector) => {
+      const el = document.querySelector(selector);
+      if (!el) return null;
+      return {
+        width: Math.round(el.getBoundingClientRect().width),
+        // The precise claim: the splitter's `flex: 0 0 var(--editor-split)`
+        // did NOT reach this pane. Its own layout leaves flex-basis auto.
+        flexBasis: getComputedStyle(el).flexBasis,
+        isSplit: !!document.querySelector('.editor-layout-split'),
+        hasSplitter: !!document.getElementById('editor-splitter'),
+      };
+    }, selector);
+
+    expect(seen, `setup: ${name} has a workspace`).not.toBeNull();
+    expect(seen.isSplit, 'this page is not the two-pane one').toBe(false);
+    expect(seen.hasSplitter, 'and has no splitter').toBe(false);
+    expect(seen.flexBasis, 'the splitter never set a basis here').toBe('auto');
+    // Its own width, not 30% of the window (420px), which is what the
+    // unscoped rule produced.
+    expect(seen.width, `${name} keeps the width it declares`).toBe(expectedWidth);
+  });
+}
