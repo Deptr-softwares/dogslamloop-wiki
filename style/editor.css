@@ -187,11 +187,22 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     border: 1px solid #222;
     border-left: 3px solid #333;
     border-right: none;
-    border-radius: 0; 
+    border-radius: 0;
     padding: 0.5rem 1.5rem;
     position: relative;
-    transition: border-color 0.1s ease, background 0.1s ease; 
-    margin-bottom: -1px; 
+    transition: border-color 0.1s ease, background 0.1s ease;
+    margin-bottom: -1px;
+    /* The virtualization engine below pins an unloaded card open at the height
+       it measured with getBoundingClientRect - a BORDER-box height. There is no
+       global box-sizing reset in this project, so under the default content-box
+       that assignment made every card 18px taller than it had just been
+       (0.5rem top + bottom padding, plus the 1px borders). Cards crossing the
+       observer's margin therefore changed the height of the content above the
+       reader, who got shoved up and down as they scrolled - v0.16 bug 2.
+       This is the only rule that sets an explicit height on a .block-card, so
+       border-box changes nothing else: with height:auto the two box models
+       lay out identically. */
+    box-sizing: border-box;
 }
 .block-card:hover { border-left-color: rgba(59, 130, 246, 0.5); }
 .block-card:focus-within { border-left-color: var(--accent-blue); background: #0f1218; }
@@ -418,9 +429,22 @@ input[type="checkbox"]:checked {
 .block-header:active {
     cursor: grabbing !important;
 }
-.editor-textarea { 
-    overflow: hidden; /* Removes scrollbars for auto-expanding */
-}
+/* `.editor-textarea { overflow: hidden }` used to sit here, to keep a scrollbar
+   off a field that grew to fit whatever was typed into it. Fields stopped
+   growing without limit when the 260px cap arrived (line 240, owner 2026-08-17)
+   and the rule outlived its reason - but it is the same 0-1-0 selector as that
+   cap's `overflow-y: auto`, further down the file, so it won on source order and
+   turned every capped field into 260px of text with no way to reach the rest.
+
+   The block editor never showed it, because autoSizeEditorTextarea writes
+   style.overflowY inline and an inline style beats both rules. Everything else
+   using this class had no scrollbar and no wheel scrolling: the combo card's
+   route and notes fields (js/editor-tabs.js), the QA changelog on the submit
+   modal (js/editor-core.js), the tier changelog (js/tierlist.js).
+
+   Fifth time an equal-specificity pair in this project has been settled by
+   source order rather than by intent - so the cap keeps `overflow-y: auto` and
+   nothing here contradicts it. */
 
 /* --- ALIGNMENT TOGGLE BUTTONS --- */
 .align-group {
