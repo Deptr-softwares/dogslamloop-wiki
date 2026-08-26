@@ -77,8 +77,18 @@ test('OPEN TICKET sits before the two force actions', async ({ page }) => {
   // action should not be the thing you reach past FORCE REJECT to find, and an
   // irreversible control should not sit where a reversible one is expected.
   const html = await buttonsFor(page, { roles: ['admin'], ownSubmission: false, status: 'pending' });
-  expect(html.indexOf('OPEN TICKET')).toBeLessThan(html.indexOf('FORCE APPROVE'));
-  expect(html.indexOf('OPEN TICKET')).toBeLessThan(html.indexOf('FORCE REJECT'));
+
+  const at = html.indexOf('OPEN TICKET');
+  // Asserted before the comparisons, and this is not ceremony: indexOf returns
+  // -1 when the button is absent, and -1 is less than every real index - so the
+  // two orderings below PASS on a branch with no OPEN TICKET at all. Caught by
+  // falsifying this file against the pre-fix code, where three of four tests
+  // stayed green.
+  expect(at, 'the button is present before its position means anything')
+    .toBeGreaterThan(-1);
+
+  expect(at).toBeLessThan(html.indexOf('FORCE APPROVE'));
+  expect(at).toBeLessThan(html.indexOf('FORCE REJECT'));
 });
 
 test('nobody is offered a ticket that is already open', async ({ page }) => {
