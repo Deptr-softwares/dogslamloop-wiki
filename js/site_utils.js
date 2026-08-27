@@ -1266,7 +1266,6 @@ window.injectAuthModal = function() {
                         <input type="checkbox" id="profile-private">
                         <span>Keep my description private</span>
                     </label>
-                    <p class="profile-hint">Your name, flair and standing stay visible either way &mdash; they already appear on everything you have submitted.</p>
                 </div>
 
                 <div class="profile-field hidden" id="profile-password-field">
@@ -1632,6 +1631,23 @@ window.openAuthModal = async function() {
 
         document.getElementById('profile-modal-overlay').classList.remove('hidden');
         nameInput.focus();
+
+        // Always open at the top, whatever moved the scroll.
+        //
+        // .modal-box is capped at max-height:85vh with .modal-body scrolling
+        // inside it, and .modal-header sits OUTSIDE that scroll area - so the
+        // header stays put while the body moves, and the identity strip is the
+        // first thing to disappear under it. Measured 2026-08-28: the body
+        // overflows on any window under about 900px tall, which is most
+        // laptops.
+        //
+        // The strip carries the person's name and standing, so it is the one
+        // part of this modal that must not need scrolling to find. The reset is
+        // cause-agnostic on purpose: the body keeps its scroll position between
+        // openings, and focus, browser zoom and the open animation can each
+        // move it. Cheaper to make the guarantee unconditional than to enumerate
+        // what breaks it.
+        document.querySelector('#profile-modal-overlay .modal-body').scrollTop = 0;
         return;
     }
 

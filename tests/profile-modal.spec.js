@@ -170,6 +170,62 @@ test('an account with no profile row opens empty rather than broken', async ({ p
     expect(errors).toEqual([]);
 });
 
+test('reopening the profile shows the standing again, not where you left off', async ({ page }) => {
+    // The owner reported the badge simply missing on a ~755px window. The first
+    // diagnosis - that focusing the name field scrolled the strip under the
+    // fixed header - was MEASURED AND WRONG: scrollTop stays 0 through focus at
+    // every height from 600px up, and the strip stays in view. Restoring the
+    // autofocus did not fail the test written for it, which is what caught it.
+    //
+    // What is true and measured: .modal-box is max-height:85vh with .modal-body
+    // scrolling inside it, .modal-header sits outside that scroll area, and the
+    // body OVERFLOWS on any window under about 900px tall. The body also keeps
+    // its scroll position between openings, so anything that scrolls it once -
+    // a wheel, a zoom level, a longer bio - leaves the identity strip hidden
+    // under the header the next time it opens.
+    //
+    // That is the failure this asserts, and it is a real one rather than a
+    // reconstruction of a cause not yet established.
+    await page.setViewportSize({ width: 1280, height: 700 });
+    await openProfile(page, { roleRow: { role: 'owner' } });
+
+    const stripInView = () => page.evaluate(() => {
+        const strip = document.querySelector('.profile-identity');
+        const box = document.querySelector('#profile-modal-overlay .modal-body');
+        const s = strip.getBoundingClientRect(), b = box.getBoundingClientRect();
+        return s.top >= b.top - 1 && s.bottom <= b.bottom + 1;
+    });
+
+    // The body must genuinely overflow, or this test proves nothing at all.
+    const overflows = await page.evaluate(() => {
+        const b = document.querySelector('#profile-modal-overlay .modal-body');
+        return b.scrollHeight > b.clientHeight;
+    });
+    expect(overflows, 'the body scrolls at this height - otherwise this test is vacuous').toBe(true);
+
+    // Scroll to the bottom and close, the way somebody reaching CHANGE PASSWORD
+    // would leave it.
+    await page.evaluate(() => {
+        const b = document.querySelector('#profile-modal-overlay .modal-body');
+        b.scrollTop = b.scrollHeight;
+    });
+    expect(await stripInView(), 'precondition: scrolled away').toBe(false);
+    // Scoped to the footer and named: '.btn-sys-regular' alone also matches the
+    // password UPDATE button, which sits earlier in the DOM, so the unscoped
+    // selector clicked that instead and the modal never closed.
+    await page.locator('#profile-modal-overlay .modal-footer')
+        .getByRole('button', { name: 'CANCEL' }).click();
+    await expect(page.locator('#profile-modal-overlay')).toHaveClass(/hidden/);
+
+    // Reopen: the strip is what you see, not the password field.
+    await page.locator('#dock-btn-auth').click();
+    await expect(page.locator('#profile-modal-overlay')).not.toHaveClass(/hidden/);
+    expect(await page.evaluate(() =>
+        document.querySelector('#profile-modal-overlay .modal-body').scrollTop)).toBe(0);
+    expect(await stripInView(), 'the identity strip is back in view').toBe(true);
+    await expect(page.locator('#profile-standing-label')).toHaveText('Owner');
+});
+
 test('the standing badge is painted, not merely classed', async ({ page }) => {
     // A class being right is not evidence the reader sees anything - v0.15
     // shipped nine passing tests over a feature that was visibly broken for
