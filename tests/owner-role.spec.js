@@ -182,3 +182,52 @@ test('media deletion belongs to the admin, and keeps its per-user flag', async (
   expect(later, 'and it stays SECURITY DEFINER, since it reads user_roles')
     .toMatch(/SECURITY DEFINER/);
 });
+
+// --- THE BADGE ---
+
+test('owner and admin are told apart at a glance', async () => {
+  // The account button is the only place a role is shown to the person holding
+  // it, and until v0.17 owner and admin were the same role so one icon did.
+  //
+  // The bug this catches is the MAPPING, not the drawing. An earlier version of
+  // this line used roleMeets() and handed the OWNER the admin's shield, because
+  // the owner does meet the admin bar - correct for permissions, wrong for
+  // identity. Read from source rather than driven, because initAuthDock needs a
+  // live session and the thing under test is a lookup table.
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'pagebuilder.js'), 'utf8');
+  const pairs = [...src.matchAll(/role === '([a-z_]+)'\s*\)\s*\{\s*loginIcon = (svg\w+);\s*dynamicColorClass = "([a-z-]+)"/g)]
+    .map(m => ({ role: m[1], icon: m[2], colour: m[3] }));
+
+  expect(pairs.length, 'the mapping was found at all - a regex that matches '
+    + 'nothing would satisfy every assertion below').toBeGreaterThanOrEqual(4);
+
+  const byRole = Object.fromEntries(pairs.map(p => [p.role, p]));
+  expect(byRole.owner, 'the owner has a badge').toBeTruthy();
+  expect(byRole.admin, 'and so does the admin').toBeTruthy();
+  expect(byRole.owner.icon, 'different icons').not.toBe(byRole.admin.icon);
+  expect(byRole.owner.colour, 'and different colours').not.toBe(byRole.admin.colour);
+
+  // Every badged role has its OWN badge - no two share either half.
+  const icons = pairs.map(p => p.icon);
+  expect(new Set(icons).size, 'no two roles share an icon').toBe(icons.length);
+  const colours = pairs.map(p => p.colour);
+  expect(new Set(colours).size, 'nor a colour').toBe(colours.length);
+});
+
+test('the crown is a crown, not a box with a line through it', async () => {
+  // The old icon was a zigzag over a full-height rectangle, which at 1.2rem
+  // read as a treasure chest - the box dominated the silhouette. The redraw is
+  // three peaks with real dips and a separate thin band.
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'pagebuilder.js'), 'utf8');
+  const owner = src.match(/const svgOwner = `([^`]+)`/);
+  expect(owner, 'svgOwner exists').toBeTruthy();
+
+  // Three peaks and two dips means the outline path has seven points before it
+  // closes. Counting them is what distinguishes a crown from a zigzag.
+  const points = (owner[1].match(/[ML]\s*[\d.]+\s*[\d.]+/g) || []).length;
+  expect(points, 'seven points: base, peak, dip, peak, dip, peak, base')
+    .toBeGreaterThanOrEqual(7);
+  expect(owner[1], 'and the outline closes into a shape').toMatch(/Z/);
+  expect(owner[1], 'the old full-height box is gone')
+    .not.toMatch(/h20v11/);
+});
