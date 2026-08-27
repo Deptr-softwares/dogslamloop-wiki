@@ -228,6 +228,84 @@ window.editorExitDestination = function(search = window.location.search) {
     return 'index.html';
 };
 
+/**
+ * Rebuild the delta for an intercepted ticket, from whatever is in the editor
+ * right now.
+ *
+ * Returns null when the ticket has NO single scope to rebuild, which means the
+ * caller must fall back to the ordinary diff scanner. Two shapes do:
+ *
+ *   'multi'   - a batch of deltas, produced both by the editor's own batching
+ *               (buildPayload('multi','batch',...)) and by the admin merge
+ *               compiler. There is no `currentEditorDescData.multi` to read.
+ *   legacy    - is_delta false, target_scope null. A whole-page upload from
+ *               before the delta model; same problem, no scope to resolve.
+ *
+ * WHY THIS RETURNS NULL INSTEAD OF GUESSING (v0.17). It used to fall through to
+ * `dPayload = window.currentEditorDescData[scope]`, which for both shapes above
+ * is `undefined`. supabase-js serializes the update with JSON.stringify, and
+ * JSON.stringify DROPS undefined values - so `delta_payload` was not in the
+ * PATCH at all and the column kept its old contents. The row's author_id,
+ * status and qa_metadata all updated, the request returned no error, the button
+ * said UPDATED! and the reviewer's edits were gone. That is the "nothing
+ * changed" the owner reported.
+ *
+ * A merged ticket is the common case here, not a corner: merging is a feature
+ * of the queue, and every merged ticket is 'multi'.
+ */
+window.buildInterceptDelta = function (ticket) {
+    if (!ticket) return null;
+
+    // Legacy whole-page upload: nothing scoped to rebuild.
+    if (!ticket.is_delta) return null;
+
+    let scope = ticket.target_scope;
+    let key = ticket.target_key;
+
+    // A batch has no single target. The caller re-scans and re-batches.
+    if (scope === 'multi') return null;
+
+    // Unwrap a character-state ticket back to the plain scope it wraps.
+    // initEditorModes has already switched the editor into that state, so the
+    // currentEditor* reads below are the right slice, and buildPayload re-wraps
+    // on the way out.
+    if (scope === 'mode' && typeof key === 'string') {
+        const parts = key.split('::');
+        parts.shift();
+        scope = parts.shift();
+        key = parts.join('::') || 'full';
+    }
+
+    if (!scope) return null;
+
+    let delta;
+    if (scope === 'move') {
+        const [cat, mId] = String(key).split('::');
+        const bucket = (window.currentEditorFrameData || {})[cat];
+        if (!Array.isArray(bucket)) return null;
+        delta = {
+            frame_data: bucket.find(m => m.id === mId),
+            desc_data: (window.currentEditorDescData.moveStrategies || {})[mId] || []
+        };
+    } else if (scope === 'extra' || window.getKeyedSectionByScope(scope)) {
+        // 'extra' is not a tab, so it stays named here; every other array scope
+        // resolves through the vocabulary.
+        const section = window.getKeyedSectionByScope(scope);
+        const field = section ? section.field : 'extras';
+        const list = window.currentEditorDescData[field];
+        if (!Array.isArray(list)) return null;
+        delta = list[parseInt(key, 10)];
+    } else {
+        delta = window.currentEditorDescData[scope];
+    }
+
+    // The guard that was missing. An undefined delta is not a small edit - it
+    // is a write that silently does nothing, so it must never reach the update.
+    if (delta === undefined) return null;
+
+    return { scope, key, delta };
+};
+
 window.cancelEditor = function() {
     // Opened by script from the review queue: closing reveals admin.html
     // underneath, which is where the reviewer wants to be.
@@ -269,6 +347,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const editTicketId = urlParams.get('editTicket'); 
     window.activeEditTicketId = editTicketId;
     window.interceptedTicketData = null;
+    // Cleared alongside the data it explains, so a failure from a previous
+    // navigation cannot be reported against this one.
+    window.interceptedTicketLoadError = null;
 
     window.currentGlobalUsername = "Anonymous";
     window.currentGlobalUserId = null;
@@ -365,10 +446,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 
                 // IF INTERCEPTING: Fetch the target ticket from the queue
+                //
+                // A failure here used to be silent, and silence was the bug: the
+                // submit path routed on interceptedTicketData, so a ticket that
+                // did not load turned the whole session into an ORDINARY
+                // SUBMISSION. Someone who clicked EDIT on their own revision got
+                // a SECOND revision in the queue and no indication why.
+                //
+                // The URL says what the person meant to do. If that intent
+                // cannot be honoured, the editor has to say so rather than
+                // quietly do something else - so the failure is recorded here
+                // and enforced at submit.
                 if (editTicketId) {
                     const { data: tData, error: tErr } = await window.supabaseClient
                         .from('pending_revisions').select('*').eq('id', editTicketId).single();
-                    if (!tErr && tData) window.interceptedTicketData = tData;
+                    if (!tErr && tData) {
+                        window.interceptedTicketData = tData;
+                    } else {
+                        window.interceptedTicketLoadError = (tErr && tErr.message) || 'not found';
+                        console.error(`[Editor] Ticket ${editTicketId} did not load:`, tErr);
+                    }
                 }
             }
 
@@ -732,14 +829,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // and were refused at Submit (v0.16 bug 6). The gate below is
                 // the message; the policy is the boundary, and they have to say
                 // the same thing or one of them is lying to somebody.
+                // The fallback names the TOP of the ladder, not a middle rung.
+                // It only runs if site_utils.js failed to load, and in that case
+                // refusing everyone below the owner is the safe way to be wrong -
+                // 'admin' used to be the top and stopped being it in v0.17.
                 const allowed = typeof window.roleMeets === 'function'
                     ? window.roleMeets(userRole, requiredRole)
-                    : userRole === 'admin';
+                    : userRole === 'owner';
 
                 if (!allowed) {
-                    window.editorAlert(requiredRole === 'admin'
-                        ? "READ ONLY: This page is restricted to Admins."
-                        : "READ ONLY: This is an exclusive systemic page. You require the 'Trusted Editor', 'Reviewer' or 'Admin' role to submit revisions here.");
+                    // page_permissions.required_role is one of trusted_editor,
+                    // admin or owner (20260827000003), so the message has three
+                    // cases now rather than two.
+                    const restrictedTo = {
+                        owner: "READ ONLY: This page is restricted to the site owner.",
+                        admin: "READ ONLY: This page is restricted to Admins and the site owner.",
+                    };
+                    window.editorAlert(restrictedTo[requiredRole]
+                        || "READ ONLY: This is an exclusive systemic page. You require the 'Trusted Editor', 'Reviewer' or 'Admin' role to submit revisions here.");
                     return;
                 }
             }
@@ -750,14 +857,42 @@ document.addEventListener('DOMContentLoaded', async () => {
             // message the contributor sees. If the two disagree, staff either
             // get a friendly wait the server would have allowed, or a raw
             // Postgres exception where they expected the friendly wait.
-            const STAFF_ROLES = ['trusted_editor', 'reviewer', 'admin'];
+            // Rank-tested rather than listed, so owner and admin are both
+            // covered without naming them - the literal list here was one of the
+            // three places v0.16 bug 6 lived, and it would have gone stale again
+            // the moment 'owner' existed.
             let skipsCooldown = false;
-            if (STAFF_ROLES.includes((ownRole?.role || '').trim().toLowerCase())) {
+            if (window.roleMeets(ownRole?.role, 'trusted_editor')) {
                 const { data: settings } = await window.supabaseClient
                     .from('site_settings').select('staff_bypass_submission_cooldown').maybeSingle();
                 // Absent row or a failed read means enforce, matching the
                 // trigger's COALESCE.
                 skipsCooldown = settings?.staff_bypass_submission_cooldown === true;
+            }
+
+            // An intercept whose ticket never loaded, refused BEFORE anything is
+            // scanned or built.
+            //
+            // Routed on INTENT, not on data. `activeEditTicketId` comes from the
+            // URL and is always set; `interceptedTicketData` is fetched and can
+            // be null. The database routing further down used to read only the
+            // second, so any fetch failure silently downgraded "update this
+            // ticket" into "create a new one" - the contributor-side half of
+            // B-I, where clicking EDIT on your own submission produced a SECOND
+            // revision in the queue with no indication why.
+            //
+            // Refusing is the only safe answer: inserting is not a degraded
+            // version of updating, it is a different action against a queue a
+            // human reads. It is checked here rather than beside the write
+            // because an empty scan returns "No changes detected" first, which
+            // would report the wrong problem.
+            if (window.activeEditTicketId && !window.interceptedTicketData) {
+                window.editorAlert(
+                    "This submission could not be loaded, so it cannot be updated"
+                    + (window.interceptedTicketLoadError ? ` (${window.interceptedTicketLoadError})` : '')
+                    + ". Nothing has been submitted. Reopen it from My Submissions and try again."
+                );
+                return;
             }
 
             const COOLDOWN_MINUTES = 3;
@@ -887,42 +1022,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 };
             };
 
-            // 1. IF INTERCEPTING: Strictly update the single intercepted ticket
-            if (window.interceptedTicketData) {
-                let scope = window.interceptedTicketData.target_scope;
-                let key = window.interceptedTicketData.target_key;
+            // 1. IF INTERCEPTING a ticket with ONE rebuildable scope: rebuild
+            //    exactly that scope and nothing else.
+            //
+            //    buildInterceptDelta returns null for a 'multi' batch and for a
+            //    legacy whole-page upload, because neither has a scope to read.
+            //    Those fall through to the scanner below and are re-batched by
+            //    the batching engine, which is why its intercept exclusion is
+            //    gone. Before v0.17 they took this branch anyway, resolved to
+            //    `undefined`, and were dropped out of the PATCH by
+            //    JSON.stringify - the reviewer's edits vanished silently.
+            const interceptDelta = window.interceptedTicketData
+                ? window.buildInterceptDelta(window.interceptedTicketData)
+                : null;
 
-                // Unwrap a character-state ticket back to the plain scope it
-                // wraps. initEditorModes has already switched the editor into
-                // that state, so currentEditor* below are the right slice and
-                // buildPayload re-wraps on the way out.
-                if (scope === 'mode' && typeof key === 'string') {
-                    const parts = key.split('::');
-                    parts.shift();
-                    scope = parts.shift();
-                    key = parts.join('::') || 'full';
-                }
-
-                let dPayload = {};
-
-                if (scope === 'move') {
-                    const [cat, mId] = key.split('::');
-                    dPayload = {
-                        frame_data: window.currentEditorFrameData[cat].find(m => m.id === mId),
-                        desc_data: window.currentEditorDescData.moveStrategies[mId] || []
-                    };
-                } else if (scope === 'extra' || window.getKeyedSectionByScope(scope)) {
-                    // 'extra' is not a tab, so it stays named here; every other
-                    // array scope resolves through the vocabulary.
-                    const section = window.getKeyedSectionByScope(scope);
-                    dPayload = window.currentEditorDescData[section ? section.field : 'extras'][parseInt(key)];
-                } else {
-                    dPayload = window.currentEditorDescData[scope];
-                }
-
-                payloadsToInsert.push(buildPayload(scope, key, dPayload));
-            } 
-            // 2. NORMAL SUBMISSION: Multi-Payload Diff Scanner
+            if (interceptDelta) {
+                payloadsToInsert.push(
+                    buildPayload(interceptDelta.scope, interceptDelta.key, interceptDelta.delta));
+            }
+            // 2. NORMAL SUBMISSION, and any intercept the branch above could
+            //    not scope: Multi-Payload Diff Scanner
             else {
                 // --- Which states exist ---
                 // Page-level, so it is scanned before the per-tab branches
@@ -1218,8 +1337,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
 
-                if (payloadsToInsert.length === 0 && !window.interceptedTicketData) {
-                    submitBtn.textContent = "Submit";
+                // The intercept exclusion is gone (v0.17). A 'multi' or legacy
+                // intercept now reaches the scanner, so it can genuinely come
+                // back empty - and falling through with nothing would take
+                // finalPayloads[0] as `undefined` and throw on the next line.
+                // "Nothing to submit" is also simply the truth at this point.
+                if (payloadsToInsert.length === 0) {
+                    submitBtn.textContent = window.activeEditTicketId ? "UPDATE SUBMISSION" : "Submit";
                     submitBtn.disabled = false;
                     window.editorAlert("No changes detected against the live database! Nothing to submit.");
                     return;
@@ -1229,8 +1353,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             // ==========================================
             // SMART BATCHING ENGINE (Rate Limit Bypass)
             // ==========================================
+            //
+            // Batching now applies during an intercept too. It was excluded
+            // because an intercept only ever produced one payload - which was
+            // true for a single-scope ticket and quietly wrong for a 'multi'
+            // one, where the scanner below is the only way to rebuild it.
             let finalPayloads = [];
-            if (payloadsToInsert.length > 1 && !window.interceptedTicketData) {
+            if (payloadsToInsert.length > 1) {
                 // Combine all independent deltas into a single master ticket!
                 const batchedDeltas = payloadsToInsert.map(p => ({
                     scope: p.target_scope,
@@ -1247,6 +1376,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             let dbError = null;
 
             // --- DATABASE ROUTING ---
+            //
+            // The "intent without data" case is refused at the top of this
+            // handler, so by here these two always agree.
             if (window.interceptedTicketData) {
                 const payload = finalPayloads[0];
                 payload.author_id = window.interceptedTicketData.author_id;

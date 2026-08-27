@@ -41,7 +41,7 @@ async function mockOwner(page, { row = SETTINGS, loadError = null } = {}) {
                     const origFrom = client.from.bind(client);
                     client.from = (table) => {
                         if (table === 'user_roles') {
-                            return { select() { return this; }, eq: async () => ({ data: [{ role: 'admin' }], error: null }) };
+                            return { select() { return this; }, eq: async () => ({ data: [{ role: 'owner' }], error: null }) };
                         }
                         if (table === 'tier_page_settings') {
                             return {

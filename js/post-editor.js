@@ -231,7 +231,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const roles = (roleData && roleData.length > 0) ? roleData.map(r => r.role.toLowerCase()) : ['guest'];
-    if (error || !roles.includes('admin')) { kickUser(); return; }
+    // Owner only. Authoring site-wide posts is not on the list of what an admin
+    // may do (owner, 2026-08-27), and this mirrors "Admins can write posts" on
+    // site_posts, which became is_owner() in 20260827000003.
+    if (error || !window.rolesMeet(roles, 'owner')) { kickUser(); return; }
 
     window.currentGlobalUsername = window.getDisplayName ? window.getDisplayName(session) : 'Staff';
 

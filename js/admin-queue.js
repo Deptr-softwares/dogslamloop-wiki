@@ -172,7 +172,11 @@ async function loadQueue() {
 function updateActionButtons(rev) {
     const actionContainer = document.getElementById('preview-action-buttons');
     const isOwnSubmission = (rev.author_id === window.currentUserId);
-    const isAdmin = (window.currentUserRoles || []).includes('admin');
+    // Admin AND owner. The force actions, self-approval, tickets, change
+    // requests and intercepts are exactly what v0.17 gave the new admin role
+    // (owner, 2026-08-26), and the rank test keeps the owner - who outranks
+    // admin - holding everything an admin holds.
+    const isAdmin = window.rolesMeet(window.currentUserRoles, 'admin');
 
     // --- TRUSTED EDITOR PERK ---
     // At or above trusted_editor, so reviewer and admin get it too (v0.16
@@ -207,22 +211,37 @@ function updateActionButtons(rev) {
     // shown to the author reviewing their own submission - doesn't make
     // sense to request changes from yourself.
     const requestChangesBtn = `<button onclick="requestChanges()" class="btn-sys btn-sys-yellow">REQUEST CHANGES</button>`;
+    // Hoisted out of the branches below (v0.17). It was written inline in two
+    // of the three, and the third - the admin one - simply never got a copy,
+    // which is how the owner ended up unable to open a ticket at all. One
+    // definition, so a branch can only be missing it on purpose.
+    //
+    // Status-gated because opening a ticket is a one-time transition: the
+    // button would be a no-op on a row already in discussion.
+    const openTicketBtn = rev.status !== 'ticket_open'
+        ? `<button onclick="openTicketCurrentPreview()" class="btn-sys btn-sys-yellow">OPEN TICKET</button>`
+        : '';
 
     if (isAdmin) {
         buttonsHTML += editBtn;
         buttonsHTML += requestChangesBtn;
+        // The collaborative actions come before the two force actions, which
+        // end the revision outright. Same reasoning as the danger row on the
+        // Free Submit reset: the irreversible control should not sit where the
+        // reversible one is expected.
+        buttonsHTML += openTicketBtn;
         buttonsHTML += `<button onclick="approveCurrentPreview()" class="btn-sys btn-sys-green">FORCE APPROVE</button>`;
         buttonsHTML += `<button onclick="rejectCurrentPreview()" class="btn-sys btn-sys-red btn-danger-fill">FORCE REJECT</button>`;
     } else {
         if (isOwnSubmission) {
             buttonsHTML += editBtn;
-            if (rev.status !== 'ticket_open') buttonsHTML += `<button onclick="openTicketCurrentPreview()" class="btn-sys btn-sys-yellow">OPEN TICKET</button>`;
+            buttonsHTML += openTicketBtn;
             buttonsHTML += `<button onclick="rejectCurrentPreview()" class="btn-sys btn-sys-red btn-danger-fill">WITHDRAW</button>`;
         } else {
             buttonsHTML += editBtn;
             buttonsHTML += requestChangesBtn;
             if (hasEnoughSupport) buttonsHTML += `<button onclick="approveCurrentPreview()" class="btn-sys btn-sys-green">MERGE TO LIVE</button>`;
-            if (rev.status !== 'ticket_open') buttonsHTML += `<button onclick="openTicketCurrentPreview()" class="btn-sys btn-sys-yellow">OPEN TICKET</button>`;
+            buttonsHTML += openTicketBtn;
             if (hasEnoughOppose) buttonsHTML += `<button onclick="rejectCurrentPreview()" class="btn-sys btn-sys-red btn-danger-fill">REJECT</button>`;
         }
     }

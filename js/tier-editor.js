@@ -856,7 +856,11 @@
         // this one only decides whether to disable a button.
         const { data: roleRow } = await client()
             .from('user_roles').select('*').eq('user_id', session.user.id).maybeSingle();
-        state.canEdit = data.owner_id === session.user.id || (roleRow && roleRow.role === 'admin');
+        // Mirrors save_tier_list(), owner-gated as of 20260827000003: stamping a
+        // patch number onto somebody else's list is an owner action, matching
+        // assign_tier_list() beside it.
+        state.canEdit = data.owner_id === session.user.id
+            || (roleRow && window.roleMeets(roleRow.role, 'owner'));
 
         const subtitle = document.getElementById('tier-editor-subtitle');
         if (subtitle) {

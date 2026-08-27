@@ -68,7 +68,7 @@ async function approveCurrentPreview() {
     const revData = window.currentQueueData.find(r => r.id === window.activePreviewRevId);
 
     // 1. PROMPT THE REVIEWER FOR REASONING
-    const msg = window.currentUserRoles && window.currentUserRoles.includes('admin')
+    const msg = window.rolesMeet(window.currentUserRoles, 'admin')
         ? "Provide an optional staff note (or leave blank to force merge immediately):"
         : "Provide an optional staff note for the author (or leave blank):";
 
