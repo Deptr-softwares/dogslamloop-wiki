@@ -189,6 +189,16 @@ CREATE OR REPLACE FUNCTION "public"."can_moderate"() RETURNS boolean
         );
 $$;
 
+-- Restated rather than relied upon. CREATE OR REPLACE preserves the existing
+-- ACL, so the 20260813000001 revoke still holds and these three lines change
+-- nothing today - but the rule is that a callable function revokes the free
+-- PUBLIC grant in the SAME migration that defines it, and
+-- tests/migration-columns.spec.js enforces it. The one time that rule was not
+-- followed here, anybody could call assign_role_by_email.
+REVOKE ALL ON FUNCTION "public"."can_moderate"() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION "public"."can_moderate"() TO "anon";
+GRANT EXECUTE ON FUNCTION "public"."can_moderate"() TO "authenticated";
+
 -- --------------------------------------------------------------------------
 -- check_revision_rate_limit() - a DIFFERENT bar, kept different
 -- --------------------------------------------------------------------------
