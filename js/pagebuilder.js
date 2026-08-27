@@ -381,60 +381,33 @@ window.initAuthDock = async function() {
     }
 
     // --- V0.4 FULL ROLE ICON SUITE (2.5px Geometric SVG) ---
-    // 1. Guest / Logged Out (Standard User)
-    const svgUser = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
-    // 2. Authenticated Normal User (User + Checkmark)
-    const svgAuth = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>`;
-    // 3. Reviewer (The Eye / Observer)
-    const svgReviewer = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-    // 4. Trusted Editor (The Pen / Signature)
-    const svgTrusted = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`;
-    // 5. Admin (The Crown)
-    // OWNER - a crown, redrawn for v0.17.
     //
-    // The old one was a zigzag over a full-height box, which at 1.2rem read as a
-    // treasure chest rather than a crown: the box dominated and the peaks were
-    // uneven. Three peaks with real dips between them, and the band pulled out
-    // into a separate thin bar under the base, so at icon size the silhouette is
-    // crown-shaped instead of rectangle-shaped.
-    const svgOwner = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="square" class="dock-role-icon"><path d="M3 16L5 6.5L9.5 11L12 4.5L14.5 11L19 6.5L21 16Z"></path><path d="M4.5 19.5h15"></path></svg>`;
-
-    // ADMIN - a shield with a check, new in v0.17 when the role stopped meaning
-    // the owner.
+    // The suite itself moved to window.ROLE_BADGES (js/site_utils.js) in v0.17,
+    // when the profile modal became a second thing that draws a role. Two copies
+    // would drift the first time an icon changed, and the crown and the shield
+    // had both been redrawn days earlier - so the modal would have been showing
+    // a treasure chest. The design notes for each icon live with the table.
     //
-    // Angular rather than the usual curved shield, to sit with the pencil and
-    // the eye rather than against them. The check deliberately echoes svgAuth's:
-    // that one is a person plus a check ("you are signed in"), this is a shield
-    // plus a check ("you are the one who approves"), which is exactly what an
-    // admin has that a reviewer does not - force approve and force reject.
-    const svgAdmin = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="square" class="dock-role-icon"><path d="M12 2.5L20.5 6.5V12L12 21.5L3.5 12V6.5Z"></path><polyline points="8.5 12.5 11 15 15.5 9.5"></polyline></svg>`;
+    // site_utils.js is stamped (?v=) and loads before this file, so the lookup
+    // is always at least as fresh as this code is.
 
     // Core App Icons
     const svgGear = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
     const svgMail = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`;
 
     // --- ASSIGN ROLES & COLORS ---
-    let loginIcon = svgUser; 
-    let dynamicColorClass = "btn-sys-regular"; 
-
-    if (username !== 'LOGIN') {
-        const role = userRole.toLowerCase();
-        // Matched by NAME, not by rank, and this is the one place in the codebase
-        // where that is correct: an icon is an identity, not a bar somebody
-        // clears. Everywhere else - who may open a page, who may delete a file -
-        // is a rank test, because those questions are about "at least this
-        // senior". "Which badge is mine" is not that question, and answering it
-        // with roleMeets would give the owner the admin's shield, since the
-        // owner does indeed meet the admin bar.
-        //
-        // Anything unrecognised falls through to the signed-in badge rather than
-        // borrowing a senior one.
-        if (role === 'owner') { loginIcon = svgOwner; dynamicColorClass = "btn-sys-purple"; }
-        else if (role === 'admin') { loginIcon = svgAdmin; dynamicColorClass = "btn-sys-red"; }
-        else if (role === 'trusted_editor') { loginIcon = svgTrusted; dynamicColorClass = "btn-sys-yellow"; }
-        else if (role === 'reviewer') { loginIcon = svgReviewer; dynamicColorClass = "btn-sys-blue"; }
-        else { loginIcon = svgAuth; dynamicColorClass = "btn-sys-green"; }
-    }
+    // Matched by NAME, not by rank, and this is one of the two places in the
+    // codebase where that is correct: an icon is an identity, not a bar somebody
+    // clears. Everywhere else - who may open a page, who may delete a file - is
+    // a rank test, because those questions are about "at least this senior".
+    // "Which badge is mine" is not that question, and answering it with
+    // roleMeets would give the owner the admin's shield, since the owner does
+    // indeed meet the admin bar. window.roleBadge does the same by name, and
+    // falls through to the signed-in badge for anything unrecognised rather than
+    // borrowing a senior one.
+    const dockBadge = window.roleBadge(username === 'LOGIN' ? 'guest' : userRole);
+    const loginIcon = window.roleIconSvg(username === 'LOGIN' ? 'guest' : userRole);
+    const dynamicColorClass = `btn-sys-${dockBadge.color}`;
 
     // --- CRITICAL DOM STRUCTURE FIX ---
     // Uses .btn-manga-icon and .btn-manga-text span wrappers so Layout.css knows how to collapse it natively
