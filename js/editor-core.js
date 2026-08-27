@@ -347,6 +347,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const editTicketId = urlParams.get('editTicket'); 
     window.activeEditTicketId = editTicketId;
     window.interceptedTicketData = null;
+    // Cleared alongside the data it explains, so a failure from a previous
+    // navigation cannot be reported against this one.
+    window.interceptedTicketLoadError = null;
 
     window.currentGlobalUsername = "Anonymous";
     window.currentGlobalUserId = null;
@@ -443,10 +446,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 
                 // IF INTERCEPTING: Fetch the target ticket from the queue
+                //
+                // A failure here used to be silent, and silence was the bug: the
+                // submit path routed on interceptedTicketData, so a ticket that
+                // did not load turned the whole session into an ORDINARY
+                // SUBMISSION. Someone who clicked EDIT on their own revision got
+                // a SECOND revision in the queue and no indication why.
+                //
+                // The URL says what the person meant to do. If that intent
+                // cannot be honoured, the editor has to say so rather than
+                // quietly do something else - so the failure is recorded here
+                // and enforced at submit.
                 if (editTicketId) {
                     const { data: tData, error: tErr } = await window.supabaseClient
                         .from('pending_revisions').select('*').eq('id', editTicketId).single();
-                    if (!tErr && tData) window.interceptedTicketData = tData;
+                    if (!tErr && tData) {
+                        window.interceptedTicketData = tData;
+                    } else {
+                        window.interceptedTicketLoadError = (tErr && tErr.message) || 'not found';
+                        console.error(`[Editor] Ticket ${editTicketId} did not load:`, tErr);
+                    }
                 }
             }
 
@@ -836,6 +855,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Absent row or a failed read means enforce, matching the
                 // trigger's COALESCE.
                 skipsCooldown = settings?.staff_bypass_submission_cooldown === true;
+            }
+
+            // An intercept whose ticket never loaded, refused BEFORE anything is
+            // scanned or built.
+            //
+            // Routed on INTENT, not on data. `activeEditTicketId` comes from the
+            // URL and is always set; `interceptedTicketData` is fetched and can
+            // be null. The database routing further down used to read only the
+            // second, so any fetch failure silently downgraded "update this
+            // ticket" into "create a new one" - the contributor-side half of
+            // B-I, where clicking EDIT on your own submission produced a SECOND
+            // revision in the queue with no indication why.
+            //
+            // Refusing is the only safe answer: inserting is not a degraded
+            // version of updating, it is a different action against a queue a
+            // human reads. It is checked here rather than beside the write
+            // because an empty scan returns "No changes detected" first, which
+            // would report the wrong problem.
+            if (window.activeEditTicketId && !window.interceptedTicketData) {
+                window.editorAlert(
+                    "This submission could not be loaded, so it cannot be updated"
+                    + (window.interceptedTicketLoadError ? ` (${window.interceptedTicketLoadError})` : '')
+                    + ". Nothing has been submitted. Reopen it from My Submissions and try again."
+                );
+                return;
             }
 
             const COOLDOWN_MINUTES = 3;
@@ -1319,6 +1363,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             let dbError = null;
 
             // --- DATABASE ROUTING ---
+            //
+            // The "intent without data" case is refused at the top of this
+            // handler, so by here these two always agree.
             if (window.interceptedTicketData) {
                 const payload = finalPayloads[0];
                 payload.author_id = window.interceptedTicketData.author_id;
