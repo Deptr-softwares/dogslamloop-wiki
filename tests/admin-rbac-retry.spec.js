@@ -140,7 +140,10 @@ test('admin.html denies access immediately (no retry delay) when the role lookup
 });
 
 test('real bug fix: owner.html recovers from a getSession() outage that clears before the retry, instead of permanently denying access', async ({ page }) => {
-  await mockAuth(page, { sessionFailWindowMs: 300, roleResults: [{ data: [{ role: 'admin' }], error: null }] });
+  // owner, not admin: owner.html is owner-gated as of v0.17, and this test is
+  // about recovering from a dropped getSession() rather than about which role
+  // gets in - mocking a role that is now refused would test the refusal.
+  await mockAuth(page, { sessionFailWindowMs: 300, roleResults: [{ data: [{ role: 'owner' }], error: null }] });
 
   await page.goto('/owner.html', { waitUntil: 'domcontentloaded' });
   await expect(page.locator('#tool-personnel')).toBeAttached({ timeout: 15000 });

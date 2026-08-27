@@ -14,7 +14,7 @@
 const { test, expect } = require('@playwright/test');
 
 const ROSTER = [
-  { user_id: 'u-admin', email: 'owner@example.com', role: 'admin', joined_at: '2026-01-01T00:00:00Z' },
+  { user_id: 'u-admin', email: 'owner@example.com', role: 'owner', joined_at: '2026-01-01T00:00:00Z' },
   { user_id: 'u-rev', email: 'reviewer@example.com', role: 'reviewer', joined_at: '2026-02-01T00:00:00Z' },
   { user_id: 'u-te', email: 'editor@example.com', role: 'trusted_editor', joined_at: '2026-03-01T00:00:00Z' },
 ];
@@ -37,7 +37,7 @@ async function mockOwner(page, { roster = ROSTER, sessionUserId = 'u-admin', rpc
             const origFrom = client.from.bind(client);
             client.from = (table) => {
               if (table === 'user_roles') {
-                return { select() { return this; }, eq: async () => ({ data: [{ role: 'admin' }], error: null }) };
+                return { select() { return this; }, eq: async () => ({ data: [{ role: 'owner' }], error: null }) };
               }
               return origFrom(table);
             };
@@ -112,12 +112,12 @@ test('cancelling the confirm makes no change', async ({ page }) => {
   expect(calls).toHaveLength(0);
 });
 
-test('the only admin cannot demote themselves out of the site', async ({ page }) => {
+test('the only owner cannot demote themselves out of the site', async ({ page }) => {
   // Losing the last admin locks everyone out of owner.html permanently - the
   // only recovery is direct database access.
   await mockOwner(page, {
     roster: [
-      { user_id: 'u-admin', email: 'owner@example.com', role: 'admin', joined_at: '2026-01-01T00:00:00Z' },
+      { user_id: 'u-admin', email: 'owner@example.com', role: 'owner', joined_at: '2026-01-01T00:00:00Z' },
       { user_id: 'u-rev', email: 'reviewer@example.com', role: 'reviewer', joined_at: '2026-02-01T00:00:00Z' },
     ],
   });
@@ -133,7 +133,7 @@ test('the only admin cannot demote themselves out of the site', async ({ page })
   await mockOwner(page, {
     roster: [
       ...ROSTER,
-      { user_id: 'u-admin2', email: 'second@example.com', role: 'admin', joined_at: '2026-04-01T00:00:00Z' },
+      { user_id: 'u-admin2', email: 'second@example.com', role: 'owner', joined_at: '2026-04-01T00:00:00Z' },
     ],
   });
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
@@ -188,7 +188,7 @@ test('a failed roster load reports the error instead of rendering an empty roste
             client.auth.getSession = async () => ({ data: { session: { user: { id: 'u1' }, access_token: 't' } } });
             const origFrom = client.from.bind(client);
             client.from = (table) => table === 'user_roles'
-              ? { select() { return this; }, eq: async () => ({ data: [{ role: 'admin' }], error: null }) }
+              ? { select() { return this; }, eq: async () => ({ data: [{ role: 'owner' }], error: null }) }
               : origFrom(table);
             client.rpc = async () => ({ data: null, error: { message: 'permission denied for function list_personnel' } });
             return client;
@@ -235,7 +235,7 @@ async function mockPermissions(page, { rows = PERMISSIONS, writeError = null } =
             const origFrom = client.from.bind(client);
             client.from = (table) => {
               if (table === 'user_roles') {
-                return { select() { return this; }, eq: async () => ({ data: [{ role: 'admin' }], error: null }) };
+                return { select() { return this; }, eq: async () => ({ data: [{ role: 'owner' }], error: null }) };
               }
               if (table === 'page_permissions') {
                 const chain = {
@@ -356,7 +356,7 @@ test('an undeployed RPC reads as "not deployed yet", not as raw Postgres jargon'
             client.auth.getSession = async () => ({ data: { session: { user: { id: 'u1' }, access_token: 't' } } });
             const origFrom = client.from.bind(client);
             client.from = (table) => table === 'user_roles'
-              ? { select() { return this; }, eq: async () => ({ data: [{ role: 'admin' }], error: null }) }
+              ? { select() { return this; }, eq: async () => ({ data: [{ role: 'owner' }], error: null }) }
               : origFrom(table);
             client.rpc = async () => ({
               data: null,

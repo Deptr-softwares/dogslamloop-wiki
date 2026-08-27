@@ -38,7 +38,7 @@ async function openOwner(page, { rpcError = null } = {}) {
                         });
                         client.from = (table) => {
                             if (table === 'user_roles') {
-                                return { select() { return this; }, eq: async () => ({ data: [{ role: 'admin' }], error: null }) };
+                                return { select() { return this; }, eq: async () => ({ data: [{ role: 'owner' }], error: null }) };
                             }
                             const chain = new Proxy({}, {
                                 get(_t, prop) {
