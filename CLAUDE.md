@@ -69,16 +69,25 @@ Restricting an editable tool page to one person is configuration, not code: `sit
 
 **One role per user**, enforced by `UNIQUE(user_id)` on `user_roles`. Multi-role used to be possible and broke `get_my_role()` with "more than one row returned by a subquery", which broke that user's access everywhere.
 
-| Role | Can |
-|---|---|
-| `admin` | Everything: owner tools, moderation, direct writes to live page data |
-| `reviewer` | Moderation queue, approve/reject, write live page data |
-| `trusted_editor` | Submit to pages restricted to `trusted_editor` |
-| *(signed in, no role)* | Submit to unrestricted pages |
-| `viewer` | Soft ban — signed in, can read, **cannot submit** |
-| *(anonymous)* | Read only |
+| Rank | Role | Can |
+|---|---|---|
+| 5 | `owner` | Everything, and **the owner tools are theirs alone** — personnel, capabilities, page registry, FAQ, collaborators, site meta and settings, the blog, tier-list assignment, media deletion |
+| 4 | `admin` | The review queue: force approve/reject, self-approve, open tickets, request changes, intercept. **No owner-tool access** |
+| 3 | `reviewer` | Moderation queue, approve/reject, write live page data |
+| 2 | `trusted_editor` | Submit to pages restricted to `trusted_editor` |
+| — | *(signed in, no role)* | Submit to unrestricted pages |
+| 1 | `viewer` | Soft ban — signed in, can read, **cannot submit** |
+| 0 | *(anonymous)* | Read only |
 
-**There is no `owner` role.** The site owner is an `admin`; a second admin has identical power and can demote them. `get_my_role()` returns NULL for a signed-in user with no role — compare with `IS DISTINCT FROM`, never `<>`.
+**`owner` and `admin` were one role until v0.17**, when a second staff member joined. Anything written before then that says "admin" probably means the owner — including older migration comments and devlogs.
+
+**Never test a role by name.** The ladder is stated once, in `role_rank()` (SQL) and `window.ROLE_RANK` (JS), with `is_staff()` / `is_owner()` and `roleMeets()` / `rolesMeet()` on top. A literal like `= 'admin'` or `roles.includes('admin')` is how v0.16 bug 6 happened, and it is what made the v0.17 rename a 30-site change instead of a one-line one. When sweeping for these, **grep for equality as well as `ARRAY[...]`** — v0.17 pass 1 checked only the second and missed fifteen policies that failed open.
+
+`viewer` is the exception and is genuinely a name, not a rank: it is a ban, so it is tested with `IS DISTINCT FROM 'viewer'` rather than by position on the ladder.
+
+`get_my_role()` returns NULL for a signed-in user with no role — compare with `IS DISTINCT FROM`, never `<>`, and note `role_rank(NULL)` is 0 so rank comparisons are safe.
+
+**A function granted to `anon` must only call functions `anon` can also execute**, unless it is `SECURITY DEFINER`. Granting the entry point is not enough — that broke the tier list for logged-out readers once already.
 
 ## Conventions
 
