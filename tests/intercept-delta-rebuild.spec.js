@@ -32,7 +32,14 @@ async function loadEditor(page) {
 
 // The editor state an intercept reads from. Set directly so each case is about
 // one ticket shape and nothing else.
+//
+// Waits for the editor's OWN boot to populate currentEditorDescData first, and
+// that wait is load-bearing: buildInterceptDelta is a top-level assignment, so
+// it exists almost immediately, while boot is still fetching. Without the wait
+// the fixture below is overwritten by the real load a moment later - which
+// showed up as this file passing alone and failing inside a full run.
 async function withEditorData(page) {
+  await page.waitForFunction(() => !!window.currentEditorDescData, { timeout: 45000 });
   await page.evaluate(() => {
     window.currentEditorDescData = {
       overview: [{ type: 'text', content: 'live overview' }],
