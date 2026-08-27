@@ -102,6 +102,47 @@ test('no live function tests a role by name', async () => {
   expect(offenders).toEqual([]);
 });
 
+// Added 2026-08-27, after the test above missed four sites.
+//
+// It looked for `= ANY (ARRAY['admin', ...])`, because that was the shape the
+// grep behind pass 1 happened to find. Four functions compared with plain
+// EQUALITY instead - `ur.role = 'admin'`, `get_my_role() = 'admin'` - and sailed
+// through: can_delete_media, save_tier_list, anonymize_user_by_email's
+// last-owner guard, and get_my_role's own tiebreak ordering.
+//
+// Two of those mattered a lot. can_delete_media would have moved the only
+// irreversible action on the site from the owner to the new admin, and the
+// last-owner guard would have stopped protecting the last owner - it was still
+// counting admins.
+//
+// This checks for 'admin' specifically rather than every role name. 'owner' is
+// the new correct thing to compare against; 'viewer' is a soft BAN, which is
+// genuinely a name and not a rank, and free_submit_eligibility and
+// report_discussion_post test it deliberately.
+test("nothing still compares against 'admin' except the ladder", async () => {
+  const ADMIN_COMPARISON = /(?:=|IS\s+(?:NOT\s+)?DISTINCT\s+FROM)\s*'admin'/;
+
+  const allowed = new Set([
+    'role_rank',    // maps the name to a rank; the names live here
+    'get_my_role',  // a CASE ordering, not a permission test
+  ]);
+
+  const fnOffenders = [...liveFunctions().values()]
+    .filter(f => !allowed.has(f.name))
+    // Strip -- comments: a migration's own prose about the old comparison is
+    // not the comparison. v0.16 lost a round to exactly this.
+    .filter(f => ADMIN_COMPARISON.test(f.text.replace(/--[^\n]*/g, ' ')))
+    .map(f => `${f.name}() (${f.file})`);
+
+  const policyOffenders = [...livePolicies().values()]
+    .filter(p => ADMIN_COMPARISON.test(p.text.replace(/--[^\n]*/g, ' ')))
+    .map(p => `${p.table}."${p.name}" (${p.file})`);
+
+  expect([...fnOffenders, ...policyOffenders],
+    "after the rename 'admin' is a junior role - anything still comparing "
+    + 'against it is asking the wrong question').toEqual([]);
+});
+
 test('the sweep really did cover eleven policies', async () => {
   // A count, so that "no offenders" cannot pass by the replay above finding
   // nothing at all - a broken parser would report a clean schema.

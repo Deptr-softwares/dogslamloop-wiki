@@ -24,7 +24,7 @@ async function mockOwnerFor(page, { rpcResult } = {}) {
             const origFrom = client.from.bind(client);
             client.from = (table) => {
               if (table === 'user_roles') {
-                return { select() { return this; }, eq: async () => ({ data: [{ role: 'admin' }], error: null }) };
+                return { select() { return this; }, eq: async () => ({ data: [{ role: 'owner' }], error: null }) };
               }
               const chain = {
                 select() { return chain; }, eq() { return chain; }, limit() { return Promise.resolve({ data: [], error: null }); },

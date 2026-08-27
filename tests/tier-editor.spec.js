@@ -266,11 +266,31 @@ test('somebody else\'s list is read only', async ({ page }) => {
     await expect(page.locator('#tier-editor-status')).toContainText('belongs to somebody else');
 });
 
-test('an admin may edit anyone\'s list', async ({ page }) => {
-    await openEditor(page, { list: { ...LIST, owner_id: 'someone-else' }, role: 'admin' });
+test('the owner may edit anyone\'s list', async ({ page }) => {
+    // Was 'an admin may edit anyone's list', when admin meant the owner.
+    //
+    // JUDGEMENT CALL, and a flaggable one: this stays with the OWNER rather
+    // than following media deletion down to the admin. The rule is "which page
+    // does the tool live on", and tier-editor.html is neither owner.html nor
+    // admin.html - so it falls back to the safer default, which is that the new
+    // role gains nothing nobody granted it. The owner keeps exactly what they
+    // had; only the admin is excluded. Mirrors save_tier_list(), which is
+    // is_owner() as of 20260827000003, and assign_tier_list() beside it.
+    await openEditor(page, { list: { ...LIST, owner_id: 'someone-else' }, role: 'owner' });
 
     await expect(saveBtn(page)).toBeEnabled();
     await expect(page.locator('#tier-editor-subtitle')).toContainText('Editing');
+});
+
+test('an admin may NOT edit somebody else\'s list', async ({ page }) => {
+    // The other half, which the rename made possible to state. Asserted because
+    // the interesting failure here is silent: a client that enables Save while
+    // save_tier_list() refuses would send the person into a dead end after they
+    // had done the work.
+    await openEditor(page, { list: { ...LIST, owner_id: 'someone-else' }, role: 'admin' });
+
+    await expect(saveBtn(page)).toBeDisabled();
+    await expect(page.locator('#tier-editor-subtitle')).toContainText('read only');
 });
 
 test('somebody with no list is told so rather than shown an empty editor', async ({ page }) => {
