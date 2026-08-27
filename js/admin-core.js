@@ -274,11 +274,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // admin or the explicit flag, with no fall-back to reviewer. Reviewing a
     // revision and destroying a file are different amounts of trust, and this
     // is the only irreversible action in the panel.
-    // Mirrors public.can_delete_media(), which stayed with the OWNER in v0.17
-    // rather than following the other queue powers down to admin: it is the
-    // only irreversible action in the panel and is not on the list of what an
-    // admin may do. An admin who should have it gets the per-user flag.
-    window.currentUserCanDeleteMedia = window.rolesMeet(roles, 'owner')
+    // Mirrors public.can_delete_media(): admin and above, or the per-user flag.
+    // The media queue lives on THIS page, and what decides who owns a tool is
+    // which page it is on rather than how irreversible it is (owner,
+    // 2026-08-27). The flag still matters - it is how a reviewer, who is below
+    // this bar, gets the power one person at a time.
+    window.currentUserCanDeleteMedia = window.rolesMeet(roles, 'admin')
         || (!!roleRow && roleRow.can_delete_media === true);
 
     if (error || (!isReviewStaff && !canModerate)) { kickUser(); return; }

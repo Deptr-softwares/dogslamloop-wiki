@@ -233,7 +233,7 @@ async function loadPersonnel() {
                        data-email="${ownerEscape(person.email)}"
                        data-capability="can_delete_media"
                        ${person.can_delete_media ? 'checked' : ''}
-                       ${person.role === 'owner' ? 'disabled title="Comes with the role."' : ''}>
+                       ${window.roleMeets(person.role, 'admin') ? 'disabled title="Comes with the role."' : ''}>
                 <span>Delete media</span>
             </label>
         </div>`;

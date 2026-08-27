@@ -162,9 +162,23 @@ test('the last-owner guard counts OWNERS', async () => {
     .toMatch(/user_id = target_user_id\) = 'owner'/);
 });
 
-test('media deletion stays with the owner', async () => {
-  // The only irreversible action on the site, and not on the list of what an
-  // admin may do. Preserving today's behaviour means the owner keeps it; an
-  // admin who should have it gets the per-user flag, which is what it is for.
-  expect(STATEMENTS).toMatch(/\(ur\.role = 'owner'\) OR ur\.can_delete_media/);
+test('media deletion belongs to the admin, and keeps its per-user flag', async () => {
+  // Corrected by the owner on 2026-08-27, and the correction is a better RULE
+  // than the one it replaced: what decides who owns a tool is WHICH PAGE it
+  // lives on, not how irreversible it is. The media queue is on admin.html.
+  //
+  // Asserted against the later migration, because 20260827000003 was already
+  // pushed - a preview branch will not re-run a version it has recorded, so
+  // this had to be a new file rather than an edit.
+  const later = fs.readFileSync(path.join(ROOT, 'supabase', 'migrations',
+    '20260827000004_admin_media_deletion.sql'), 'utf8');
+
+  expect(later, 'admin and above').toMatch(
+    /role_rank"\(ur\.role\)\s*>=\s*"public"\."role_rank"\('admin'\)/);
+  // The flag is not decoration: it is how a REVIEWER, who is below this bar,
+  // gets the power one person at a time. A rewrite that dropped it would look
+  // correct and quietly revoke every hand-granted deleter.
+  expect(later, 'the per-user flag survives').toMatch(/OR ur\.can_delete_media/);
+  expect(later, 'and it stays SECURITY DEFINER, since it reads user_roles')
+    .toMatch(/SECURITY DEFINER/);
 });

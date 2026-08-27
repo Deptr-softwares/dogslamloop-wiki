@@ -71,15 +71,17 @@ Restricting an editable tool page to one person is configuration, not code: `sit
 
 | Rank | Role | Can |
 |---|---|---|
-| 5 | `owner` | Everything, and **the owner tools are theirs alone** — personnel, capabilities, page registry, FAQ, collaborators, site meta and settings, the blog, tier-list assignment, media deletion |
-| 4 | `admin` | The review queue: force approve/reject, self-approve, open tickets, request changes, intercept. **No owner-tool access** |
-| 3 | `reviewer` | Moderation queue, approve/reject, write live page data |
+| 5 | `owner` | Everything, and **the owner tools are theirs alone** — personnel, capabilities, page registry, FAQ, collaborators, site meta and settings, the blog, tier-list assignment |
+| 4 | `admin` | Everything on `admin.html`, including **media deletion**. What is theirs and not a reviewer's: **force approve/reject and self-approve** — bypassing the support/oppose vote. **No owner-tool access** |
+| 3 | `reviewer` | The queue: approve once supported, reject once opposed, open tickets, request changes, intercept. Moderation, and direct writes to live page data |
 | 2 | `trusted_editor` | Submit to pages restricted to `trusted_editor` |
 | — | *(signed in, no role)* | Submit to unrestricted pages |
 | 1 | `viewer` | Soft ban — signed in, can read, **cannot submit** |
 | 0 | *(anonymous)* | Read only |
 
 **`owner` and `admin` were one role until v0.17**, when a second staff member joined. Anything written before then that says "admin" probably means the owner — including older migration comments and devlogs.
+
+**Which page a tool lives on decides who owns it**, not how much damage it can do (owner, 2026-08-27). `owner.html` is the owner's; `admin.html` is the review team's. Media deletion is irreversible and still an admin power, because it is in the media queue on `admin.html`.
 
 **Never test a role by name.** The ladder is stated once, in `role_rank()` (SQL) and `window.ROLE_RANK` (JS), with `is_staff()` / `is_owner()` and `roleMeets()` / `rolesMeet()` on top. A literal like `= 'admin'` or `roles.includes('admin')` is how v0.16 bug 6 happened, and it is what made the v0.17 rename a 30-site change instead of a one-line one. When sweeping for these, **grep for equality as well as `ARRAY[...]`** — v0.17 pass 1 checked only the second and missed fifteen policies that failed open.
 
