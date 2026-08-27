@@ -829,14 +829,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // and were refused at Submit (v0.16 bug 6). The gate below is
                 // the message; the policy is the boundary, and they have to say
                 // the same thing or one of them is lying to somebody.
+                // The fallback names the TOP of the ladder, not a middle rung.
+                // It only runs if site_utils.js failed to load, and in that case
+                // refusing everyone below the owner is the safe way to be wrong -
+                // 'admin' used to be the top and stopped being it in v0.17.
                 const allowed = typeof window.roleMeets === 'function'
                     ? window.roleMeets(userRole, requiredRole)
-                    : userRole === 'admin';
+                    : userRole === 'owner';
 
                 if (!allowed) {
-                    window.editorAlert(requiredRole === 'admin'
-                        ? "READ ONLY: This page is restricted to Admins."
-                        : "READ ONLY: This is an exclusive systemic page. You require the 'Trusted Editor', 'Reviewer' or 'Admin' role to submit revisions here.");
+                    // page_permissions.required_role is one of trusted_editor,
+                    // admin or owner (20260827000003), so the message has three
+                    // cases now rather than two.
+                    const restrictedTo = {
+                        owner: "READ ONLY: This page is restricted to the site owner.",
+                        admin: "READ ONLY: This page is restricted to Admins and the site owner.",
+                    };
+                    window.editorAlert(restrictedTo[requiredRole]
+                        || "READ ONLY: This is an exclusive systemic page. You require the 'Trusted Editor', 'Reviewer' or 'Admin' role to submit revisions here.");
                     return;
                 }
             }
@@ -847,9 +857,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             // message the contributor sees. If the two disagree, staff either
             // get a friendly wait the server would have allowed, or a raw
             // Postgres exception where they expected the friendly wait.
-            const STAFF_ROLES = ['trusted_editor', 'reviewer', 'admin'];
+            // Rank-tested rather than listed, so owner and admin are both
+            // covered without naming them - the literal list here was one of the
+            // three places v0.16 bug 6 lived, and it would have gone stale again
+            // the moment 'owner' existed.
             let skipsCooldown = false;
-            if (STAFF_ROLES.includes((ownRole?.role || '').trim().toLowerCase())) {
+            if (window.roleMeets(ownRole?.role, 'trusted_editor')) {
                 const { data: settings } = await window.supabaseClient
                     .from('site_settings').select('staff_bypass_submission_cooldown').maybeSingle();
                 // Absent row or a failed read means enforce, matching the

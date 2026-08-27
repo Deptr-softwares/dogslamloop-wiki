@@ -402,7 +402,10 @@ window.initAuthDock = async function() {
 
     if (username !== 'LOGIN') {
         const role = userRole.toLowerCase();
-        if (role === 'admin') { loginIcon = svgAdmin; dynamicColorClass = "btn-sys-purple"; } 
+        // owner and admin share the staff icon: both are "the people who run
+        // this", and a sixth icon for a split the reader never sees is noise.
+        // Rank-tested so a role added later lands somewhere sensible.
+        if (window.roleMeets(role, 'admin')) { loginIcon = svgAdmin; dynamicColorClass = "btn-sys-purple"; } 
         else if (role === 'trusted_editor') { loginIcon = svgTrusted; dynamicColorClass = "btn-sys-yellow"; }
         else if (role === 'reviewer') { loginIcon = svgReviewer; dynamicColorClass = "btn-sys-blue"; } 
         else { loginIcon = svgAuth; dynamicColorClass = "btn-sys-green"; }
@@ -425,8 +428,7 @@ window.initAuthDock = async function() {
     // get_my_role() for that user everywhere, so "let this person moderate"
     // must never become a second role. admin-core.js scopes what they see once
     // they arrive - reports only, no revision or media queue.
-    const elevatedRoles = ['admin', 'reviewer'];
-    if (elevatedRoles.includes(userRole.toLowerCase()) || canModerate) {
+    if (window.roleMeets(userRole, 'reviewer') || canModerate) {
         html += `
             <button id="dock-btn-edit" class="btn-sys btn-sys-purple dock-action-btn" onclick="window.location.href='${rootPath}admin.html'">
                 <span class="btn-manga-icon dock-action-icon">${svgGear}</span>

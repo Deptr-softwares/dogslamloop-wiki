@@ -46,6 +46,7 @@
         "20260825000002_reset_free_submit_tier_list.sql": "2fd93a34c4db304a144138cd36df6d24e2dc0269b0147fef2e2ddd1536b4309f",
         "20260827000000_author_update_guard.sql": "61c2de4f17bf4074dee5db77b6c159d59a12bc3f797cd8f6c6bb72dcc2868836",
         "20260827000001_role_ladder_sweep.sql": "3ebafe800190701193ba20e9eafc23c9ba880ff14fe77e94d0b5e0db27cc2be1",
-        "20260827000002_role_rank_anon_grant.sql": "30450bca87c980bbac8915cd5e75cd7df7a6a4767d5a833d0588e3b9de249135"
+        "20260827000002_role_rank_anon_grant.sql": "30450bca87c980bbac8915cd5e75cd7df7a6a4767d5a833d0588e3b9de249135",
+        "20260827000003_owner_role.sql": "0d156c8afbedc0bbbc532e3d4defdf8d1ff67dd8f5ef4d7af2d19982e3d8bf55"
     }
 }

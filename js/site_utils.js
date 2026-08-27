@@ -1810,7 +1810,12 @@ window.deleteNotification = async function(id, event) {
 // same code: SQL cannot call this, and a perk enforced only here would be a
 // suggestion. Where a rule matters, the database version is the boundary and
 // this one decides what the interface shows.
-window.ROLE_RANK = { admin: 4, reviewer: 3, trusted_editor: 2, viewer: 1 };
+// owner outranks admin as of v0.17. Until then "admin" WAS the owner; the two
+// were split when a second staff member joined, and the SQL half of this lives
+// in role_rank() (supabase/migrations/20260827000003_owner_role.sql). Both
+// ladders must carry the same numbers, or the interface promises access the
+// database refuses.
+window.ROLE_RANK = { owner: 5, admin: 4, reviewer: 3, trusted_editor: 2, viewer: 1 };
 
 window.roleRank = function (roleName) {
     // 0 for null, undefined, '' and any unknown string - the same total
@@ -1823,6 +1828,17 @@ window.roleRank = function (roleName) {
 // perk cannot be added while forgetting one of the roles that should have it.
 window.roleMeets = function (roleName, requiredRole) {
     return window.roleRank(roleName) >= window.roleRank(requiredRole);
+};
+
+// The same question against the ARRAY the pages actually hold.
+//
+// user_roles has UNIQUE(user_id) so there is only ever one, but every caller
+// stores it as a list and `roles.includes('admin')` is the shape this replaces
+// - a literal test that silently stopped matching the owner the moment the
+// role was renamed. `some` rather than `[0]` so a stale multi-entry array
+// still answers correctly instead of reading whichever happened to be first.
+window.rolesMeet = function (roles, requiredRole) {
+    return (roles || []).some(r => window.roleMeets(r, requiredRole));
 };
 
 // A confirmation in the site's own modal, for code that runs on EVERY page.

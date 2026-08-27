@@ -44,7 +44,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const roles = (roleData && roleData.length > 0) ? roleData.map(r => r.role.toLowerCase()) : ['guest'];
 
-    if (error || !roles.includes('admin')) { kickUser(); return; }
+    // Owner only, which is the whole point of v0.17's split: an admin works the
+    // review queue and has no owner-tool access at all (owner, 2026-08-27).
+    if (error || !window.rolesMeet(roles, 'owner')) { kickUser(); return; }
 
     // Lets loadPersonnel mark the signed-in admin and enforce the
     // self-demotion guard without a second lookup.
@@ -164,14 +166,17 @@ async function loadPersonnel() {
         return;
     }
 
-    adminCount = data.filter(p => p.role === 'admin').length;
+    // Counts OWNERS, not admins. This guards against removing the last account
+    // that can still reach this page - and after v0.17 an admin cannot, so
+    // counting admins would leave the site with nobody able to assign roles.
+    adminCount = data.filter(p => p.role === 'owner').length;
 
     container.innerHTML = data.map(person => {
         const isSelf = person.user_id === currentAdminUserId;
         // The last admin demoting themselves locks everyone out of this page
         // permanently - the only recovery is direct database access. Blocked
         // in the UI rather than left as a trap.
-        const isLastAdmin = person.role === 'admin' && adminCount === 1;
+        const isLastAdmin = person.role === 'owner' && adminCount === 1;
         return `
         <div class="personnel-row">
             <div class="personnel-row-main">
@@ -214,7 +219,7 @@ async function loadPersonnel() {
                        data-email="${ownerEscape(person.email)}"
                        data-capability="can_moderate"
                        ${person.can_moderate ? 'checked' : ''}
-                       ${person.role === 'admin' || person.role === 'reviewer' ? 'disabled title="Comes with the role."' : ''}>
+                       ${window.roleMeets(person.role, 'reviewer') ? 'disabled title="Comes with the role."' : ''}>
                 <span>Moderate discussions</span>
             </label>
             <!--
@@ -228,7 +233,7 @@ async function loadPersonnel() {
                        data-email="${ownerEscape(person.email)}"
                        data-capability="can_delete_media"
                        ${person.can_delete_media ? 'checked' : ''}
-                       ${person.role === 'admin' ? 'disabled title="Comes with the role."' : ''}>
+                       ${person.role === 'owner' ? 'disabled title="Comes with the role."' : ''}>
                 <span>Delete media</span>
             </label>
         </div>`;

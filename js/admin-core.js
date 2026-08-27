@@ -266,13 +266,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     // who moderates belongs on it. What they should not see is the revision
     // queue and the media queue, because neither is their job.
     const canModerate = !!roleRow && roleRow.can_moderate === true;
-    const isReviewStaff = roles.includes('admin') || roles.includes('reviewer');
+    // Reviewer and above - which now means reviewer, admin AND owner. Mirrors
+    // public.is_staff() (20260827000001).
+    const isReviewStaff = window.rolesMeet(roles, 'reviewer');
 
     // Deliberately narrower than moderation, and mirrors public.can_delete_media():
     // admin or the explicit flag, with no fall-back to reviewer. Reviewing a
     // revision and destroying a file are different amounts of trust, and this
     // is the only irreversible action in the panel.
-    window.currentUserCanDeleteMedia = roles.includes('admin')
+    // Mirrors public.can_delete_media(), which stayed with the OWNER in v0.17
+    // rather than following the other queue powers down to admin: it is the
+    // only irreversible action in the panel and is not on the list of what an
+    // admin may do. An admin who should have it gets the per-user flag.
+    window.currentUserCanDeleteMedia = window.rolesMeet(roles, 'owner')
         || (!!roleRow && roleRow.can_delete_media === true);
 
     if (error || (!isReviewStaff && !canModerate)) { kickUser(); return; }
@@ -295,7 +301,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Personnel Management / Media GC moved to owner.html (admin-only) -
     // this just reveals the nav link to get there, not an inline tools panel.
-    if (roles.includes('admin')) {
+    if (window.rolesMeet(roles, 'owner')) {
         const ownerLink = document.getElementById('owner-tools-link');
         if (ownerLink) ownerLink.classList.remove('hidden');
     }

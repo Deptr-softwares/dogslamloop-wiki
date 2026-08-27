@@ -108,7 +108,7 @@
             // Mirrors public.can_moderate() in the migration. The client copy
             // only decides which buttons to draw; the RPC is what refuses.
             state.canModerate = !!data && (
-                data.role === 'admin' || data.role === 'reviewer' || data.can_moderate === true
+                window.roleMeets(data.role, 'reviewer') || data.can_moderate === true
             );
         } catch (e) {
             state.role = null;

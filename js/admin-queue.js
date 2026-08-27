@@ -172,7 +172,11 @@ async function loadQueue() {
 function updateActionButtons(rev) {
     const actionContainer = document.getElementById('preview-action-buttons');
     const isOwnSubmission = (rev.author_id === window.currentUserId);
-    const isAdmin = (window.currentUserRoles || []).includes('admin');
+    // Admin AND owner. The force actions, self-approval, tickets, change
+    // requests and intercepts are exactly what v0.17 gave the new admin role
+    // (owner, 2026-08-26), and the rank test keeps the owner - who outranks
+    // admin - holding everything an admin holds.
+    const isAdmin = window.rolesMeet(window.currentUserRoles, 'admin');
 
     // --- TRUSTED EDITOR PERK ---
     // At or above trusted_editor, so reviewer and admin get it too (v0.16
