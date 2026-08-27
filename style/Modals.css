@@ -261,8 +261,15 @@
     font-family: var(--text-mono);
 }
 
-.profile-toggle {
+/* Selector written as `> label.profile-toggle` on purpose. The toggle IS a
+   direct child label of .profile-field, so `.profile-field > label` above
+   (specificity 0,1,1) outranks a bare `.profile-toggle` (0,1,0) and was winning
+   justify-content, text-transform and colour - which rendered as a lone
+   checkbox on the left and "KEEP MY DESCRIPTION PRIVATE" shoved to the right
+   margin. Every test still passed; it was caught by looking at the modal. */
+.profile-field > label.profile-toggle {
     display: flex;
+    justify-content: flex-start;
     align-items: center;
     gap: 0.6rem;
     cursor: pointer;

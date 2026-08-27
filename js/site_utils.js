@@ -1602,7 +1602,9 @@ window.hydrateProfileModal = async function (session) {
     if (oauthNote) {
         oauthNote.classList.toggle('hidden', hasPassword);
         if (!hasPassword) {
-            const names = identities.map(i => i.provider).filter(Boolean);
+            // "You sign in with discord" reads as a typo. These are brand names.
+            const names = identities.map(i => i.provider).filter(Boolean)
+                .map(p => p.charAt(0).toUpperCase() + p.slice(1));
             oauthNote.textContent = `You sign in with ${names.length ? names.join(' and ') : 'an external provider'}, so your password is managed there.`;
         }
     }

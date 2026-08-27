@@ -192,7 +192,9 @@ test('a Discord account is not offered a password it does not have', async ({ pa
     await expect(page.locator('#profile-password-field')).toHaveClass(/hidden/);
     const note = page.locator('#profile-oauth-note');
     await expect(note).not.toHaveClass(/hidden/);
-    await expect(note).toContainText('discord');
+    // Capitalised: these are brand names, and "you sign in with discord" reads
+    // as a typo to the person it is shown to.
+    await expect(note).toContainText('Discord');
 });
 
 test('an email account is offered one', async ({ page }) => {
