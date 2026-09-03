@@ -308,3 +308,41 @@
 
 .profile-feedback-bad { color: #ef4444; background: rgba(239, 68, 68, 0.1); border-color: #ef4444; }
 .profile-feedback-ok  { color: #22c55e; background: rgba(34, 197, 94, 0.1); border-color: #22c55e; }
+
+/* --- 8. SOMEBODY ELSE'S PROFILE (v0.17 F11 part 3) ---
+   Read-only, opened by clicking a name in a discussion. Reuses .profile-identity
+   from section 7 so a person looks the same whether it is you or them. */
+
+.pubprofile-flair {
+    display: inline-block;
+    font-family: var(--text-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    padding: 0.2rem 0.45rem;
+    margin: 0 0 1rem 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.pubprofile-bio {
+    font-family: var(--text-mono);
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    margin: 0 0 1.25rem 0;
+    /* A bio is free text with no spaces guaranteed anywhere in it. */
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+/* "No description yet." and "This description is private." are the site
+   talking, not the person - so they read as chrome rather than as a quote. */
+.pubprofile-bio-empty {
+    color: var(--text-muted);
+    font-style: italic;
+    white-space: normal;
+}

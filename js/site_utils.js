@@ -1306,9 +1306,43 @@ window.injectAuthModal = function() {
         </div>
     </div>`;
 
-    // Inject all three into the DOM
+    // 4. Somebody else's profile - read-only, opened by clicking a name.
+    //
+    // A separate overlay rather than a mode on the profile modal above. That one
+    // is a form bound to the signed-in user, with a LOGOUT button in its footer;
+    // reusing it would mean disabling five controls and hoping none of them came
+    // back. It borrows the same .profile-identity markup so a person looks the
+    // same whether you are looking at yourself or at them.
+    //
+    // tier-priority so it can open ON TOP of a discussion thread's own modals.
+    const publicProfileHTML = `
+    <div id="public-profile-overlay" class="modal-overlay tier-priority hidden">
+        <div class="modal-box modal-sm accent-blue">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>PROFILE</h3>
+                <span class="status-dot online"></span>
+            </div>
+            <div class="modal-body">
+                <div class="profile-identity" id="pubprofile-identity">
+                    <span id="pubprofile-icon" class="profile-standing-icon"></span>
+                    <div class="profile-identity-text">
+                        <strong id="pubprofile-name"></strong>
+                        <span id="pubprofile-standing" class="profile-standing-label"></span>
+                    </div>
+                </div>
+                <p id="pubprofile-flair" class="pubprofile-flair hidden"></p>
+                <p id="pubprofile-bio" class="pubprofile-bio"></p>
+                <p id="pubprofile-joined" class="profile-hint"></p>
+            </div>
+            <div class="modal-footer centered-actions">
+                <button class="btn-sys btn-sys-regular" style="width: 100%;" onclick="document.getElementById('public-profile-overlay').classList.add('hidden')">CLOSE</button>
+            </div>
+        </div>
+    </div>`;
+
+    // Inject all four into the DOM
     const div = document.createElement('div');
-    div.innerHTML = authModalHTML + profileModalHTML + alertModalHTML;
+    div.innerHTML = authModalHTML + profileModalHTML + alertModalHTML + publicProfileHTML;
     while(div.firstChild) document.body.appendChild(div.firstChild);
 
     // --- LOGIC: TABS ---
@@ -1606,6 +1640,110 @@ window.hydrateProfileModal = async function (session) {
                 .map(p => p.charAt(0).toUpperCase() + p.slice(1));
             oauthNote.textContent = `You sign in with ${names.length ? names.join(' and ') : 'an external provider'}, so your password is managed there.`;
         }
+    }
+};
+
+// --- SOMEBODY ELSE'S PROFILE ---
+//
+// Cached for the page load. A thread asks for the same authors twice - once to
+// draw the flairs, again when somebody clicks a name - and nobody's standing
+// changes while you read a thread.
+window.__publicProfileCache = window.__publicProfileCache || new Map();
+
+// Batch by design: one request per thread rather than one per post. The single
+// -row get_public_profile() still exists and is what the modal would use on its
+// own; this is what makes the flair pass affordable.
+window.fetchPublicProfiles = async function (userIds) {
+    const wanted = [...new Set((userIds || []).filter(Boolean))];
+    const missing = wanted.filter(id => !window.__publicProfileCache.has(id));
+
+    if (missing.length && window.supabaseClient) {
+        try {
+            const { data, error } = await window.supabaseClient
+                .rpc('get_public_profiles', { target_user_ids: missing });
+            if (!error && Array.isArray(data)) {
+                data.forEach(row => window.__publicProfileCache.set(row.user_id, row));
+            }
+            // Cache the misses too. A deleted account would otherwise be
+            // re-requested on every render for the rest of the session, and
+            // anonymize_user_by_email really does hard-delete the auth row.
+            missing.forEach(id => {
+                if (!window.__publicProfileCache.has(id)) window.__publicProfileCache.set(id, null);
+            });
+        } catch (e) {
+            // The thread renders without flairs rather than not at all. Before
+            // the release this RPC does not exist in production, and a thread
+            // that threw here would be a blank page instead of a missing chip.
+        }
+    }
+
+    const out = new Map();
+    wanted.forEach(id => out.set(id, window.__publicProfileCache.get(id) || null));
+    return out;
+};
+
+window.openPublicProfile = async function (userId) {
+    if (!userId) return;
+    window.injectAuthModal();
+    const overlay = document.getElementById('public-profile-overlay');
+    if (!overlay) return;
+
+    const nameEl = document.getElementById('pubprofile-name');
+    const standingEl = document.getElementById('pubprofile-standing');
+    const iconEl = document.getElementById('pubprofile-icon');
+    const flairEl = document.getElementById('pubprofile-flair');
+    const bioEl = document.getElementById('pubprofile-bio');
+    const joinedEl = document.getElementById('pubprofile-joined');
+
+    // Open on the click, not after the request. A modal that appears half a
+    // second later reads as a dead button and gets clicked again.
+    nameEl.textContent = 'Loading...';
+    standingEl.textContent = '';
+    iconEl.innerHTML = '';
+    iconEl.className = 'profile-standing-icon';
+    flairEl.classList.add('hidden');
+    bioEl.textContent = '';
+    joinedEl.textContent = '';
+    overlay.classList.remove('hidden');
+
+    // Clicking a second name before the first resolves must not have the first
+    // response overwrite the second.
+    const token = (window.__pubProfileToken = (window.__pubProfileToken || 0) + 1);
+    const p = (await window.fetchPublicProfiles([userId])).get(userId);
+    if (token !== window.__pubProfileToken) return;
+
+    if (!p) {
+        nameEl.textContent = 'Unknown';
+        bioEl.textContent = 'This account no longer exists.';
+        return;
+    }
+
+    nameEl.textContent = p.display_name || 'Anonymous';
+
+    const standing = p.standing || 'member';
+    const badge = window.roleBadge(standing);
+    iconEl.innerHTML = window.roleIconSvg(standing, 'profile-role-icon');
+    iconEl.className = `profile-standing-icon profile-standing-${badge.color}`;
+    standingEl.textContent = badge.label;
+
+    // textContent throughout: a flair and a bio are contributor-written text,
+    // and this modal is reachable from any thread on the site.
+    if (p.flair) {
+        flairEl.textContent = p.flair;
+        flairEl.classList.remove('hidden');
+    }
+
+    // Say that a private description exists rather than showing a blank space.
+    // The bio itself never left the database - get_public_profiles nulls it.
+    bioEl.textContent = p.bio || (p.is_private
+        ? 'This description is private.'
+        : 'No description yet.');
+    bioEl.classList.toggle('pubprofile-bio-empty', !p.bio);
+
+    if (p.joined_at) {
+        const d = new Date(p.joined_at);
+        joinedEl.textContent = isNaN(d.getTime()) ? ''
+            : `Joined ${d.toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}`;
     }
 };
 
