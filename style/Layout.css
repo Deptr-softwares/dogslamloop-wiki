@@ -1767,3 +1767,26 @@ summary:focus-visible {
         grid-column: auto;
     }
 }
+
+/* --- CATEGORY SPACING IN THE COMPACT COLUMNS (v0.17) ---
+   Owner, 2026-09-03: reduce the spacing between categories. The gaps were sized
+   for the full-width Systems Hub, where 2.5rem between blocks reads as air; in
+   a 300px column it read as three separate boxes and pushed the last category
+   back under the scroll bar the compaction had just cleared.
+
+   Scoped to the compact container so the Hub keeps its own spacing - the
+   complaint was about the narrow columns, and a wide page wants the room. */
+.systems-grid-container-compact { gap: 1.1rem; }
+
+.systems-grid-container-compact .system-category-block .sidebar-master-title {
+    margin-bottom: 0.6rem;
+    padding-bottom: 0.35rem;
+}
+
+/* The Others and Tools columns use .column-subgroup-title instead, and it is
+   only ever emitted by buildCategoryColumn - which only the home page's columns
+   call - so this needs no compact scoping to stay off the Hub. */
+.column-subgroup-title {
+    margin: 1.1rem 0 0.6rem;
+    padding-bottom: 0.35rem;
+}

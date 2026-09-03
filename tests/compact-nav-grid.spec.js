@@ -140,6 +140,64 @@ test('the text wraps rather than ellipsising', async ({ page }) => {
     expect(style.textOverflow).not.toBe('ellipsis');
 });
 
+// --- CATEGORY ORDER ---
+
+test('Guides is first and System Pages is last', async ({ page }) => {
+    // Owner, 2026-09-03. navigation.json's key order comes from
+    // site_pages.sort_order, which is the owner's ordering of the registry
+    // rather than of this box, so the two ends are pinned in code.
+    await openHome(page);
+    const headings = await page.locator('#systems-grid .sidebar-master-title')
+        .evaluateAll(els => els.map(e => e.textContent.trim()));
+
+    expect(headings.length, 'more than one category to order').toBeGreaterThan(1);
+    expect(headings[0]).toBe('Guides');
+    expect(headings[headings.length - 1]).toBe('System Pages');
+});
+
+test('an unpinned category keeps its place between them', async ({ page }) => {
+    // The pinning must not become a hardcoded list of every category: one the
+    // owner creates next month has to appear without a code change, in the
+    // position navigation.json gives it.
+    await openHome(page);
+    const ordered = await page.evaluate(() =>
+        window.orderSystemsCategories(['System Pages', 'Site Info', 'Guides', 'Brand New']));
+
+    expect(ordered[0]).toBe('Guides');
+    expect(ordered[ordered.length - 1]).toBe('System Pages');
+    // Site Info and Brand New are both unpinned, and sort is stable, so they
+    // keep the order they arrived in.
+    expect(ordered.slice(1, -1)).toEqual(['Site Info', 'Brand New']);
+});
+
+test('the ordering does not drop or duplicate a category', async ({ page }) => {
+    await openHome(page);
+    const { input, output } = await page.evaluate(() => {
+        const input = ['A', 'System Pages', 'B', 'Guides', 'C'];
+        return { input, output: window.orderSystemsCategories(input) };
+    });
+    expect(output.length).toBe(input.length);
+    expect([...output].sort()).toEqual([...input].sort());
+});
+
+// --- THE WIP BADGE ---
+
+test('no WIP badge in the navigation columns', async ({ page }) => {
+    // Owner, 2026-09-03: "kinda off and not fitting. The WIP tag being on the
+    // left sidebar navigation is good enough." The live site has WIP pages in
+    // Others, so this is asserted against real data rather than a fixture that
+    // happens to contain none.
+    await openHome(page);
+    for (const id of HOME_GRIDS) {
+        expect(await page.locator(`${id} .update-badge`).count(), `${id} has no badges`).toBe(0);
+    }
+    // Paired positive: the sidebar still has them, so this cannot pass by the
+    // isWip flag having been lost everywhere.
+    const sidebar = page.locator('#global-sidebar-nav');
+    expect(await sidebar.locator('.badge-wip').count(),
+        'the sidebar still warns').toBeGreaterThan(0);
+});
+
 // --- THE PAGE THAT MUST NOT HAVE CHANGED ---
 
 test('the Systems Hub keeps its wide, slanted layout', async ({ page }) => {

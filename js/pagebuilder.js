@@ -757,16 +757,16 @@ window.buildCategoryColumn = async function(containerId, categories) {
                 ? `<h3 class="column-subgroup-title">${esc(group.name)}</h3>`
                 : '';
 
-            const buttons = group.items.map(item => {
-                let badge = '';
-                if (item.isWip) badge = ` <span class="update-badge badge-wip update-badge-inline">WIP</span>`;
-                return `
+            // No WIP badge here (owner, 2026-09-03: "kinda off and not fitting.
+            // The WIP tag being on the left sidebar navigation is good
+            // enough"). buildGlobalSidebarMenu still draws it, which is the one
+            // place a reader is choosing what to open from a full list.
+            const buttons = group.items.map(item => `
                 <button class="btn-manga btn-manga-box system-directory-btn" data-href="${esc(rootPath + item.url)}">
                     <div class="btn-manga-content">
-                        <span class="btn-manga-text">${esc(item.name)}${badge}</span>
+                        <span class="btn-manga-text">${esc(item.name)}</span>
                     </div>
-                </button>`;
-            }).join('');
+                </button>`).join('');
 
             return `${heading}<div class="system-button-grid system-button-grid-compact">${buttons}</div>`;
         }).join('');
@@ -791,6 +791,31 @@ window.buildCategoryColumn = async function(containerId, categories) {
  *   and the full-width Systems Hub (systems/index.html), where forcing two
  *   columns would leave a wide page mostly empty.
  */
+// Display order for the systems directory, both in the home page's "Guides &
+// Such" box and on the Systems Hub it links to.
+//
+// navigation.json's key order follows site_pages.sort_order, which is the
+// owner's ordering of the REGISTRY rather than of this box. Only the two ends
+// that matter are pinned; everything between keeps its natural position, so a
+// category created next month appears without a code change.
+//
+// Owner, 2026-09-03: Guides to the top, System Pages to the bottom.
+window.SYSTEMS_CATEGORY_FIRST = ['Guides'];
+window.SYSTEMS_CATEGORY_LAST = ['System Pages'];
+
+window.orderSystemsCategories = function (names) {
+    const rank = (name) => {
+        const first = window.SYSTEMS_CATEGORY_FIRST.indexOf(name);
+        if (first !== -1) return first - 1000;
+        const last = window.SYSTEMS_CATEGORY_LAST.indexOf(name);
+        if (last !== -1) return last + 1000;
+        return 0;
+    };
+    // Array#sort is stable, so everything unpinned keeps navigation.json's own
+    // order relative to its neighbours rather than being shuffled.
+    return [...names].sort((a, b) => rank(a) - rank(b));
+};
+
 window.buildSystemsDirectory = async function(containerId, options) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -809,11 +834,12 @@ window.buildSystemsDirectory = async function(containerId, options) {
         // site_pages.category - so they get the same treatment as page names.
         const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
 
-        let html = '<div class="systems-grid-container">';
+        let html = `<div class="systems-grid-container${compact ? ' systems-grid-container-compact' : ''}">`;
         // Others and Tools have their own Main Dashboard columns, so they are
         // excluded here rather than being listed twice on the same page.
-        const categories = Object.keys(navData)
-            .filter(k => k !== 'Characters' && !window.OWN_COLUMN_CATEGORIES.includes(k));
+        const categories = window.orderSystemsCategories(
+            Object.keys(navData)
+                .filter(k => k !== 'Characters' && !window.OWN_COLUMN_CATEGORIES.includes(k)));
 
         categories.forEach((category) => {
             const items = navData[category];
