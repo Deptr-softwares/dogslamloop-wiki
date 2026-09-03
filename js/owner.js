@@ -76,6 +76,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadFaqEntries();
     await loadCollaborators();
     if (typeof loadStaffPerks === 'function') await loadStaffPerks();
+    // Same guard as above: these tools are separate files, and a missing one
+    // must not take the rest of the page down.
+    if (typeof loadPageExperts === 'function') await loadPageExperts();
 });
 
 function kickUser() {
@@ -867,6 +870,15 @@ async function removePagePermission(pageId) {
 
 function contentNotDeployedMessage(error, what) {
     const notDeployed = error.code === 'PGRST205' || /schema cache/i.test(error.message || '');
+    // PGRST202 is the same situation for a FUNCTION rather than a table, and it
+    // is what an RPC-backed tool gets between deploying its code and the
+    // release. It was missing here, which is why loadPersonnel carried its own
+    // inline check - the shared helper only knew about tables, so every RPC tool
+    // fell through to raw PostgREST text. The 205 sentence is unchanged on
+    // purpose: it is asserted elsewhere.
+    if (error.code === 'PGRST202') {
+        return `<p class="admin-error-text">${what} isn't available yet - the database function it needs hasn't been deployed. It arrives with the next migration.</p>`;
+    }
     return notDeployed
         ? `<p class="admin-error-text">${what} editing isn't available yet - its table hasn't been deployed. It arrives with the next migration.</p>`
         : `<p class="admin-error-text">Could not load: ${ownerEscape(error.message)}</p>`;

@@ -1057,3 +1057,14 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     border-left: 3px solid var(--accent-blue); padding: 0.4rem 0.6rem;
     background: rgba(96, 165, 250, 0.06);
 }
+
+/* Page Experts (v0.17 F5). Reuses .personnel-row from the roster above - the
+   same shape showing the same kind of thing - and adds only the per-page
+   grouping, which personnel has no equivalent of. */
+.expert-group { margin-bottom: 1rem; }
+.expert-group-title {
+    font-family: var(--text-mono); font-size: 0.7rem; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--accent-blue);
+    margin: 0 0 0.4rem 0; padding-bottom: 0.25rem;
+    border-bottom: 1px solid #222;
+}
