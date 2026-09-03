@@ -291,8 +291,17 @@ test('a failed profile request costs the thread nothing', async ({ page }) => {
 
     await expect(page.locator('.discussion-body')).toContainText('unreactable');
     await expect(page.locator('.discussion-flair')).toHaveCount(0);
-    // And the name still opens a profile, which simply reports the miss.
+
     await page.locator('.discussion-author-link').first().click();
     await expect(page.locator('#public-profile-overlay')).not.toHaveClass(/hidden/);
+    // The modal must REACH a state, not sit on its placeholder.
+    //
+    // Asserting only that the overlay is visible was too weak, and mutation
+    // testing proved it: the overlay is shown before the request is made, so it
+    // stays visible even when the fetch throws and the modal is stuck on
+    // "Loading..." forever. This is the assertion that fails when the error
+    // handling is removed.
+    await expect(page.locator('#pubprofile-name')).toHaveText('Unknown');
+    await expect(page.locator('#pubprofile-name')).not.toHaveText('Loading...');
     expect(errors).toEqual([]);
 });
