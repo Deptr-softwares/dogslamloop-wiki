@@ -761,14 +761,14 @@ window.buildCategoryColumn = async function(containerId, categories) {
                 let badge = '';
                 if (item.isWip) badge = ` <span class="update-badge badge-wip update-badge-inline">WIP</span>`;
                 return `
-                <button class="btn-manga btn-manga-slanted system-directory-btn" data-href="${esc(rootPath + item.url)}">
+                <button class="btn-manga btn-manga-box system-directory-btn" data-href="${esc(rootPath + item.url)}">
                     <div class="btn-manga-content">
                         <span class="btn-manga-text">${esc(item.name)}${badge}</span>
                     </div>
                 </button>`;
             }).join('');
 
-            return `${heading}<div class="system-button-grid">${buttons}</div>`;
+            return `${heading}<div class="system-button-grid system-button-grid-compact">${buttons}</div>`;
         }).join('');
 
         container.querySelectorAll('.system-directory-btn').forEach(btn => {
@@ -783,9 +783,21 @@ window.buildCategoryColumn = async function(containerId, categories) {
     }
 };
 
-window.buildSystemsDirectory = async function(containerId) {
+/**
+ * @param {string} containerId
+ * @param {{compact?: boolean}} [options] - compact is the two-column, unslanted
+ *   layout the home page's narrow dashboard columns need. It is opted into
+ *   rather than default because this function has TWO consumers: that column,
+ *   and the full-width Systems Hub (systems/index.html), where forcing two
+ *   columns would leave a wide page mostly empty.
+ */
+window.buildSystemsDirectory = async function(containerId, options) {
     const container = document.getElementById(containerId);
     if (!container) return;
+
+    const compact = !!(options && options.compact);
+    const gridClass = compact ? 'system-button-grid system-button-grid-compact' : 'system-button-grid';
+    const shapeClass = compact ? 'btn-manga-box' : 'btn-manga-slanted';
 
     try {
         const rootPath = window.getRootPath ? window.getRootPath() : './';
@@ -809,7 +821,7 @@ window.buildSystemsDirectory = async function(containerId) {
                 <div class="system-category-block">
                     <h3 class="sidebar-master-title">${esc(category)}</h3>
 
-                    <div class="system-button-grid">
+                    <div class="${gridClass}">
             `;
             items.forEach(sys => {
                 // Swapped flat gray boxes for slanted interactive manga buttons natively inheriting the blue hover glow.
@@ -821,7 +833,7 @@ window.buildSystemsDirectory = async function(containerId) {
                 // outright. Building owner-supplied values into an inline
                 // onclick is the pattern CLAUDE.md rules out.
                 html += `
-                    <button class="btn-manga btn-manga-slanted system-directory-btn" data-href="${esc(rootPath + sys.url)}">
+                    <button class="btn-manga ${shapeClass} system-directory-btn" data-href="${esc(rootPath + sys.url)}">
                         <div class="btn-manga-content">
                             <span class="btn-manga-text">${esc(sys.name)}</span>
                         </div>
