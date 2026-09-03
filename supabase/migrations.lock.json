@@ -48,6 +48,11 @@
         "20260827000001_role_ladder_sweep.sql": "3ebafe800190701193ba20e9eafc23c9ba880ff14fe77e94d0b5e0db27cc2be1",
         "20260827000002_role_rank_anon_grant.sql": "30450bca87c980bbac8915cd5e75cd7df7a6a4767d5a833d0588e3b9de249135",
         "20260827000003_owner_role.sql": "0d156c8afbedc0bbbc532e3d4defdf8d1ff67dd8f5ef4d7af2d19982e3d8bf55",
-        "20260827000004_admin_media_deletion.sql": "eeaa389e8912a9e7d7d88f9ed436003343acf81f9b15b21b37ee0d9899a92e99"
+        "20260827000004_admin_media_deletion.sql": "eeaa389e8912a9e7d7d88f9ed436003343acf81f9b15b21b37ee0d9899a92e99",
+        "20260827000005_user_profiles.sql": "f9a77f4a9b06fccd89fb348431e640906ad1fc674093ce29bd4350f0b1583110",
+        "20260903000000_public_profiles_batch.sql": "8c6ec680e78c659e6eacefd279bb27547157a55724e653ca552d22dcea9338fb",
+        "20260903000001_page_experts.sql": "835c3e1597b3c32ac212cf2c82527b4d539fece9c0833ada14e1e3ba7b0ae886",
+        "20260903000002_ticket_messages.sql": "e3e1bf43129921e45bdec4dbf01d0c5f0da253b9b73a477e1861f825cebbeb63",
+        "20260903000003_reset_ranking_where.sql": "f581b7ee6d3faf28f6ad645cbe19a3c05acb05083133fac38b28bb40a91e14cd"
     }
 }

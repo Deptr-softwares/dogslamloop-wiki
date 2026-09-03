@@ -69,6 +69,26 @@
                     <button onclick="loadQueue()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
                 </div>
                 
+                <!--
+                    Revision queue filters (v0.17 F5). The source list claimed
+                    this queue already filtered; it contained the string
+                    "filter" zero times. The media queue below is the pattern.
+
+                    Own class names rather than reusing .media-queue-filter:
+                    two lines of CSS is cheaper than making a change to the
+                    media queue's styling silently reach this one.
+                -->
+                <div class="queue-filters">
+                    <select id="queue-filter-page" class="editor-select queue-filter">
+                        <option value="all">All pages</option>
+                    </select>
+                    <select id="queue-filter-status" class="editor-select queue-filter">
+                        <option value="all">Pending and tickets</option>
+                        <option value="pending">Pending only</option>
+                        <option value="ticket_open">Open tickets only</option>
+                    </select>
+                </div>
+
                 <div id="queue-container" class="space-y-4">
                     <p class="loading-msg admin-loading-msg">Authenticating RBAC...</p>
                 </div>
@@ -311,26 +331,26 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- First: the character tab vocabulary. site_utils.js derives
          FRAME_MOVE_CATEGORIES from it and admin-*.js their tab strips. -->
-    <script src="js/character_tabs.js?v=ca118f74"></script>
-    <script src="js/input_slots.js?v=ca118f74"></script>
-    <script src="js/site_utils.js?v=ca118f74"></script>
-    <script src="js/site_meta.js"></script>
-    <script src="js/pagebuilder.js"></script>
-    <script src="js/framedata.js"></script>
-    <script src="js/description.js"></script>
-    <script src="js/internalstyling.js"></script>
-    <script src="js/tierlist.js"></script>
+    <script src="js/character_tabs.js?v=f4c5a03d"></script>
+    <script src="js/input_slots.js?v=f4c5a03d"></script>
+    <script src="js/site_utils.js?v=f4c5a03d"></script>
+    <script src="js/site_meta.js?v=f4c5a03d"></script>
+    <script src="js/pagebuilder.js?v=f4c5a03d"></script>
+    <script src="js/framedata.js?v=f4c5a03d"></script>
+    <script src="js/description.js?v=f4c5a03d"></script>
+    <script src="js/internalstyling.js?v=f4c5a03d"></script>
+    <script src="js/tierlist.js?v=f4c5a03d"></script>
     
-    <script src="js/admin-core.js"></script>
-    <script src="js/admin-queue.js"></script>
-    <script src="js/admin-diff.js"></script>
-    <script src="js/admin-modes.js"></script>
-    <script src="js/admin-preview.js"></script>
-    <script src="js/admin-tickets.js"></script>
-    <script src="js/admin-actions.js"></script>
-    <script src="js/admin-merge-compiler.js"></script>
-    <script src="js/admin-history.js"></script>
-    <script src="js/admin-media-queue.js"></script>
-    <script src="js/admin-reports.js"></script>
+    <script src="js/admin-core.js?v=f4c5a03d"></script>
+    <script src="js/admin-queue.js?v=f4c5a03d"></script>
+    <script src="js/admin-diff.js?v=f4c5a03d"></script>
+    <script src="js/admin-modes.js?v=f4c5a03d"></script>
+    <script src="js/admin-preview.js?v=f4c5a03d"></script>
+    <script src="js/admin-tickets.js?v=f4c5a03d"></script>
+    <script src="js/admin-actions.js?v=f4c5a03d"></script>
+    <script src="js/admin-merge-compiler.js?v=f4c5a03d"></script>
+    <script src="js/admin-history.js?v=f4c5a03d"></script>
+    <script src="js/admin-media-queue.js?v=f4c5a03d"></script>
+    <script src="js/admin-reports.js?v=f4c5a03d"></script>
 </body>
 </html>

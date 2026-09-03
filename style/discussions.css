@@ -383,3 +383,76 @@
         padding-left: 0.6rem;
     }
 }
+
+/* --- CLICKABLE AUTHOR + FLAIR (v0.17 F11 part 3) ---
+   .discussion-author is now a <button> when there is a profile to open, so it
+   needs the UA button styles stripped back to what the <span> looked like -
+   otherwise it arrives with a grey background, a border and the browser's own
+   font. The span version is unchanged and still used for removed posts and for
+   authors whose account has been deleted. */
+
+button.discussion-author-link {
+    /* Reset, not override: appearance:none removes the platform button chrome
+       that background/border alone leave behind on some engines. */
+    appearance: none;
+    -webkit-appearance: none;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    /* Repeated from .discussion-author because `font: inherit` above resets
+       them to the button's inherited font, not to that rule. */
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    font-weight: bold;
+    letter-spacing: 0.04em;
+    color: var(--accent-blue);
+
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    cursor: pointer;
+    text-align: left;
+}
+
+button.discussion-author-link:hover,
+button.discussion-author-link:focus-visible {
+    text-decoration: underline;
+    color: var(--accent-blue-hover);
+}
+
+/* The flair, inline beside the name. Capped and ellipsised: it is
+   contributor-written, and although the column is limited to 32 characters
+   those can all be wide ones. */
+.discussion-flair {
+    font-family: var(--text-mono);
+    font-size: 0.6rem;
+    font-weight: normal;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    padding: 0.1rem 0.35rem;
+    max-width: 12rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* The EXPERT chip (v0.17 F5). Deliberately louder than .discussion-flair: the
+   flair is what somebody wrote about themselves, this is the site vouching for
+   them on this page, and the two sit next to each other. */
+.discussion-expert {
+    font-family: var(--text-mono);
+    font-size: 0.58rem;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #000;
+    background: var(--accent-blue);
+    border: 1px solid var(--accent-blue);
+    padding: 0.1rem 0.35rem;
+    white-space: nowrap;
+}

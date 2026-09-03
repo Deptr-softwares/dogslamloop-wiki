@@ -22,3 +22,79 @@
 .submission-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
 
 .login-required-card { text-align: center; padding: 3rem 1.5rem; }
+
+/* --- TICKET DISCUSSION (v0.17 F13) ---
+   The contributor could read the conversation on their own submission and not
+   answer it. Own class names rather than reusing admin.css's .ticket-chat-*:
+   that stylesheet is not loaded on submissions.html, and the two views want
+   different shapes anyway - the reviewer's is a compact log in a workspace
+   pane, this is a thread on a card. */
+.ticket-thread {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 2px dashed var(--border-color);
+}
+
+.ticket-thread-title {
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.85rem;
+    color: var(--accent-blue);
+    margin: 0 0 0.6rem 0;
+}
+
+.ticket-thread-log {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 260px;
+    overflow-y: auto;
+    margin-bottom: 0.75rem;
+}
+
+.ticket-thread-msg {
+    padding: 0.5rem 0.65rem;
+    border-left: 3px solid var(--border-color);
+    background: var(--bg-main);
+}
+
+/* The contributor's own replies, so a thread reads as a conversation rather
+   than a wall of undifferentiated lines. */
+.ticket-thread-mine { border-left-color: var(--accent-blue); }
+.ticket-thread-staff { border-left-color: var(--text-muted); }
+.ticket-thread-changes { border-left-color: #eab308; background: rgba(234, 179, 8, 0.07); }
+
+.ticket-thread-who {
+    font-family: var(--text-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-bottom: 0.2rem;
+}
+
+.ticket-thread-text {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+    /* A message is free text with no guaranteed spaces in it. */
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.ticket-thread-empty {
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.ticket-thread-reply { display: flex; gap: 0.5rem; align-items: flex-start; flex-wrap: wrap; }
+.ticket-thread-input { flex: 1 1 14rem; min-width: 0; resize: vertical; }
+
+.ticket-thread-status {
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    color: #ef4444;
+    margin: 0.4rem 0 0 0;
+    min-height: 1em;
+}

@@ -143,14 +143,30 @@ test("nothing still compares against 'admin' except the ladder", async () => {
     + 'against it is asking the wrong question').toEqual([]);
 });
 
-test('the sweep really did cover eleven policies', async () => {
+test('the sweep covered eleven policies, two of which F5 has since taken over', async () => {
   // A count, so that "no offenders" cannot pass by the replay above finding
   // nothing at all - a broken parser would report a clean schema.
   const live = livePolicies();
   expect(live.size, 'the replay found policies to check').toBeGreaterThan(15);
 
   const swept = [...live.values()].filter(p => p.file === '20260827000001_role_ladder_sweep.sql');
-  expect(swept.length, 'eleven rewritten here, and they are the live ones').toBe(11);
+
+  // Was 11. v0.17 F5 (20260903000001_page_experts.sql) re-scoped the two
+  // pending_revisions queue policies from is_staff() to can_review_page(page_id),
+  // so the sweep is no longer the migration that defines them. Their names are
+  // deliberately unchanged - renaming would orphan the sweep's DROP statements
+  // and leave the page-blind versions standing alongside the new ones, and two
+  // policies on one table are ORed, so the old one would silently win.
+  expect(swept.length, 'nine still defined by the sweep').toBe(9);
+
+  const queue = [...live.values()].filter(p => p.table === 'pending_revisions'
+    && ['Staff can manage queue', 'Staff can view queue'].includes(p.name));
+  expect(queue.length, 'and both queue policies are still live, exactly once each').toBe(2);
+  for (const p of queue) {
+    expect(p.file, 'now owned by the expert migration').toBe('20260903000001_page_experts.sql');
+    expect(p.text, 'and scoped to the page rather than page-blind')
+      .toMatch(/can_review_page"\("page_id"\)/);
+  }
 });
 
 // --- THE ONE THAT MUST NOT COME BACK ---

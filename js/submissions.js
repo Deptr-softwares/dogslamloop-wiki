@@ -79,6 +79,121 @@ function latestChangesRequested(rev) {
     return null;
 }
 
+// v0.17 F13: the contributor can answer the discussion on their own submission.
+//
+// The owner: "There should be no reason why they get a notification of 'Staff
+// are discussing your submission'" without being able to reply. The
+// notification has existed since v0.13 and the reply has not.
+//
+// Shown when there is a conversation to join - any message, or an open ticket
+// that has not been written in yet. A pending row nobody has said anything
+// about gets nothing, because there is nothing to answer.
+function renderTicketThread(rev) {
+    const chat = rev.ticket_chat || [];
+    const open = rev.status === 'pending' || rev.status === 'ticket_open';
+    if (!chat.length && rev.status !== 'ticket_open') return '';
+
+    const messages = chat.length
+        ? chat.map(msg => {
+            const time = new Date(msg.timestamp).toLocaleString([], {
+                dateStyle: 'short', timeStyle: 'short',
+            });
+            // Three shapes, and `type` is what tells them apart - additive, the
+            // way requestChanges established it. A message with no type at all
+            // is a staff line from before this shipped.
+            if (msg.type === 'changes_requested') {
+                return `<div class="ticket-thread-msg ticket-thread-changes">
+                    <div class="ticket-thread-who">&#9873; CHANGES REQUESTED &middot; ${escapeHtml(msg.author)} &middot; ${escapeHtml(time)}</div>
+                    <div class="ticket-thread-text">${escapeHtml(msg.text)}</div>
+                </div>`;
+            }
+            const mine = msg.type === 'author';
+            return `<div class="ticket-thread-msg ${mine ? 'ticket-thread-mine' : 'ticket-thread-staff'}">
+                <div class="ticket-thread-who">${escapeHtml(msg.author)}${mine ? ' (you)' : ''} &middot; ${escapeHtml(time)}</div>
+                <div class="ticket-thread-text">${escapeHtml(msg.text)}</div>
+            </div>`;
+        }).join('')
+        : `<p class="ticket-thread-empty">A reviewer opened this for discussion. Nothing has been said yet.</p>`;
+
+    // No reply box once the submission is closed - the RPC refuses it anyway,
+    // and offering a control that cannot work is worse than not offering one.
+    const replyBox = open ? `
+        <div class="ticket-thread-reply">
+            <textarea id="ticket-reply-${escapeHtml(rev.id)}" class="editor-input ticket-thread-input"
+                      rows="2" maxlength="2000" placeholder="Reply to the reviewer..."></textarea>
+            <button class="btn-sys btn-sys-blue" id="ticket-send-${escapeHtml(rev.id)}">SEND</button>
+        </div>
+        <p class="ticket-thread-status" id="ticket-status-${escapeHtml(rev.id)}"></p>` : '';
+
+    return `
+        <div class="ticket-thread">
+            <h4 class="ticket-thread-title">Discussion</h4>
+            <div class="ticket-thread-log">${messages}</div>
+            ${replyBox}
+        </div>`;
+}
+
+// One narrow RPC, never a table write. pending_revisions carries GRANT ALL to
+// authenticated and RLS cannot restrict WHICH COLUMNS an update touches, so an
+// author appending to ticket_chat through the table is an author who could
+// write every other column in the same statement.
+async function sendTicketReply(rev) {
+    const input = document.getElementById(`ticket-reply-${rev.id}`);
+    const status = document.getElementById(`ticket-status-${rev.id}`);
+    const btn = document.getElementById(`ticket-send-${rev.id}`);
+    if (!input || !btn) return;
+
+    const text = input.value.trim();
+    if (!text) { if (status) status.textContent = 'Write something first.'; return; }
+
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = 'SENDING...';
+    if (status) status.textContent = '';
+
+    const { data, error } = await window.supabaseClient.rpc('post_ticket_message', {
+        target_revision_id: rev.id,
+        message_text: text,
+    });
+
+    btn.disabled = false;
+    btn.textContent = original;
+
+    if (error) {
+        // PGRST202 is "this migration has not been applied yet", which is the
+        // normal state between deploying this code and the release.
+        if (status) {
+            status.textContent = (error.code === 'PGRST202' || /schema cache/i.test(error.message || ''))
+                ? 'Replying is not available yet - it arrives with the next update.'
+                : `Could not send: ${error.message}`;
+        }
+        return;
+    }
+
+    // Append what the SERVER returned rather than what was typed. The author
+    // name and timestamp are resolved server-side, so echoing the local guess
+    // would show a different message from the one everybody else sees.
+    input.value = '';
+    rev.ticket_chat = [...(rev.ticket_chat || []), data];
+    const log = document.querySelector(`#ticket-reply-${rev.id}`)
+        ?.closest('.ticket-thread')?.querySelector('.ticket-thread-log');
+    if (log) {
+        const empty = log.querySelector('.ticket-thread-empty');
+        if (empty) empty.remove();
+        const wrap = document.createElement('div');
+        wrap.className = 'ticket-thread-msg ticket-thread-mine';
+        const who = document.createElement('div');
+        who.className = 'ticket-thread-who';
+        who.textContent = `${data.author} (you) · ${new Date(data.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}`;
+        const body = document.createElement('div');
+        body.className = 'ticket-thread-text';
+        body.textContent = data.text;
+        wrap.appendChild(who); wrap.appendChild(body);
+        log.appendChild(wrap);
+        log.scrollTop = log.scrollHeight;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     if (window.initSidebarToggle) window.initSidebarToggle();
     if (window.initMobileNav) window.initMobileNav();
@@ -135,6 +250,8 @@ async function loadSubmissions() {
         if (editBtn) editBtn.onclick = () => editSubmission(rev);
         const withdrawBtn = document.getElementById(`submission-withdraw-${rev.id}`);
         if (withdrawBtn) withdrawBtn.onclick = () => withdrawSubmission(rev.id);
+        const sendBtn = document.getElementById(`ticket-send-${rev.id}`);
+        if (sendBtn) sendBtn.onclick = () => sendTicketReply(rev);
     });
 }
 
@@ -194,6 +311,7 @@ function renderSubmissionCard(rev) {
             ${changelog}
             ${rejectionReason}
             ${changesRequestedNote}
+            ${renderTicketThread(rev)}
             ${actions}
         </section>
     `;

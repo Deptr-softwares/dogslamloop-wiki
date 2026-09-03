@@ -161,3 +161,210 @@
     gap: 0.5rem;
     flex-wrap: wrap;
 }
+
+/* --- 7. THE PROFILE MODAL (v0.17 F11) ---
+   All classes here are new and prefixed `profile-`. Nothing in this block
+   touches a shared class: .btn-sys, .editor-input and .modal-* are used as they
+   are, because a change to any of them has consumers this file cannot see. */
+
+.profile-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.profile-standing-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+    border: 2px solid var(--border-color);
+    background: var(--bg-main);
+    box-shadow: 3px 3px 0px var(--manga-shadow);
+}
+
+.profile-role-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+/* The badge colours match the sidebar dock's, because they are the same
+   identity seen in two places. Keyed by name, never by rank. */
+.profile-standing-purple  { color: #a855f7; }
+.profile-standing-red     { color: #ef4444; }
+.profile-standing-blue    { color: var(--accent-blue); }
+.profile-standing-yellow  { color: #eab308; }
+.profile-standing-green   { color: #22c55e; }
+.profile-standing-regular { color: var(--text-muted); }
+
+.profile-identity-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.profile-identity-text strong {
+    font-family: var(--text-mono);
+    font-size: 0.95rem;
+    color: var(--text-white);
+    overflow-wrap: anywhere;
+}
+
+.profile-standing-label {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 1.25rem;
+}
+
+.profile-field > label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.profile-count { color: var(--text-muted); font-size: 0.6rem; }
+.profile-count-full { color: var(--accent-yellow); }
+
+.profile-hint {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.profile-bio {
+    resize: vertical;
+    min-height: 5rem;
+    line-height: 1.5;
+    font-family: var(--text-mono);
+}
+
+/* Selector written as `> label.profile-toggle` on purpose. The toggle IS a
+   direct child label of .profile-field, so `.profile-field > label` above
+   (specificity 0,1,1) outranks a bare `.profile-toggle` (0,1,0) and was winning
+   justify-content, text-transform and colour - which rendered as a lone
+   checkbox on the left and "KEEP MY DESCRIPTION PRIVATE" shoved to the right
+   margin. Every test still passed; it was caught by looking at the modal. */
+.profile-field > label.profile-toggle {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.profile-toggle input[type="checkbox"] {
+    width: 1.05rem;
+    height: 1.05rem;
+    flex: 0 0 auto;
+    accent-color: #a855f7;
+    cursor: pointer;
+}
+
+.profile-inline-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+    flex-wrap: wrap;
+}
+
+.profile-inline-row .editor-input { flex: 1 1 12rem; min-width: 0; }
+
+.profile-feedback {
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0.65rem 0.75rem;
+    border: 2px solid var(--border-color);
+}
+
+.profile-feedback-bad { color: #ef4444; background: rgba(239, 68, 68, 0.1); border-color: #ef4444; }
+.profile-feedback-ok  { color: #22c55e; background: rgba(34, 197, 94, 0.1); border-color: #22c55e; }
+
+/* --- 8. SOMEBODY ELSE'S PROFILE (v0.17 F11 part 3) ---
+   Read-only, opened by clicking a name in a discussion. Reuses .profile-identity
+   from section 7 so a person looks the same whether it is you or them. */
+
+.pubprofile-flair {
+    display: inline-block;
+    font-family: var(--text-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    padding: 0.2rem 0.45rem;
+    margin: 0 0 1rem 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.pubprofile-bio {
+    font-family: var(--text-mono);
+    font-size: 0.78rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    margin: 0 0 1.25rem 0;
+    /* A bio is free text with no spaces guaranteed anywhere in it. */
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+/* "No description yet." and "This description is private." are the site
+   talking, not the person - so they read as chrome rather than as a quote. */
+.pubprofile-bio-empty {
+    color: var(--text-muted);
+    font-style: italic;
+    white-space: normal;
+}
+
+/* "Expert of ..." on a public profile (v0.17 F5). */
+.pubprofile-expertise {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    color: var(--text-primary);
+    margin: 0 0 1rem 0;
+    padding: 0.4rem 0.6rem;
+    border-left: 3px solid var(--accent-blue);
+    background: rgba(96, 165, 250, 0.06);
+}
+
+.pubprofile-expertise-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}

@@ -1,6 +1,35 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.17",
+      "date": "09/03/2026",
+      "type": "site",
+      "title": "The 'Expert' Update",
+      "description": "People who know a character can now review the edits made to that character, and show as an expert beside their name. Everyone gets a profile, and clicking a name in a discussion opens it.",
+      "changes": [
+        {
+          "heading": "Features"
+        },
+        "Characters can have experts: people trusted to review the edits made to that character and nothing else. They can hold no other role at all",
+        "An EXPERT tag sits beside their name in discussions on the characters they cover, and nowhere else",
+        "Clicking a name in a discussion opens that person's profile: what they wrote about themselves, their standing, the characters they are an expert of, and when they joined",
+        "Profiles hold a description of up to 500 characters and a flair of up to 32, and the flair shows beside the name wherever that person posts",
+        "The description can be kept private. The name, flair and standing stay visible either way",
+        "Accounts that signed up with an email can change their password from the profile. Discord and Google accounts manage theirs where they signed in",
+        "Anyone who submits an edit can now reply in the discussion staff open on it, instead of only being able to read it",
+        {
+          "heading": "Fine-tuning"
+        },
+        "The Guides & Such, Others and Tools columns on the home page are two columns of smaller buttons, so nothing sits under a scroll bar. Guides is first now",
+        "Display names are capped at 32 characters",
+        {
+          "heading": "Bug fixes"
+        },
+        "Editing a submission after a reviewer opened it for discussion no longer loses the changes",
+        "Changed a few things under the hood, including one that was quietly keeping updates from reaching people until they refreshed"
+      ]
+    },
+    {
       "version": "Beta v0.16",
       "date": "08/25/2026",
       "type": "site",

@@ -80,6 +80,85 @@
         return node;
     }
 
+    // The author's name, clickable when there is somebody to open.
+    //
+    // A button rather than a span with a handler: it is a real control, so it
+    // should be reachable by keyboard and announced as one. The id goes in a
+    // data attribute and is read by the delegated listener already on root -
+    // never built into an inline onclick, because author_id sits next to
+    // author_name and the habit is what matters.
+    //
+    // Falls back to a plain span in the two cases where there is nothing to
+    // open: a removed post (whose author is deliberately not named) and a post
+    // whose author_id is NULL, which is what page_discussions' ON DELETE SET
+    // NULL leaves behind after an account is deleted.
+    function authorNode(entry) {
+        const removed = entry.status !== 'visible';
+        const name = removed ? '—' : (entry.author_name || 'Unknown');
+
+        if (removed || !entry.author_id) return el('span', 'discussion-author', name);
+
+        const btn = el('button', 'discussion-author discussion-author-link', name);
+        btn.type = 'button';
+        btn.dataset.profileUser = entry.author_id;
+        // The flair pass fills this in after the thread has rendered.
+        btn.dataset.flairSlot = 'true';
+        return btn;
+    }
+
+    // Draws each author's flair beside their name, after the thread is on
+    // screen. Deliberately a second pass rather than part of the render: the
+    // posts are already in hand, and blocking the whole thread on a profile
+    // request would trade something people came for against decoration.
+    async function decorateFlairs(root) {
+        if (typeof window.fetchPublicProfiles !== 'function') return;
+
+        const slots = [...root.querySelectorAll('[data-profile-user]')];
+        if (!slots.length) return;
+
+        // Two requests, both for the whole thread rather than per post, and
+        // both allowed to fail independently. Neither is worth a blank section.
+        const [profiles, expertIds] = await Promise.all([
+            window.fetchPublicProfiles(slots.map(s => s.dataset.profileUser)),
+            fetchExpertIds(),
+        ]);
+
+        slots.forEach(slot => {
+            const userId = slot.dataset.profileUser;
+
+            // The EXPERT chip goes FIRST, before the flair. It is the site
+            // vouching for somebody on this specific page; the flair is what
+            // they wrote about themselves, and the two should not read as one
+            // label. It appears only in threads on a page they actually cover -
+            // an expert of Crow Charmer is an ordinary poster on Sukuna.
+            if (expertIds.has(userId) && !slot.querySelector('.discussion-expert')) {
+                slot.appendChild(el('span', 'discussion-expert', 'EXPERT'));
+            }
+
+            const p = profiles.get(userId);
+            if (!p || !p.flair) return;
+            if (slot.querySelector('.discussion-flair')) return;
+            // textContent, via el(): the flair is contributor-written and this
+            // renders on every thread on the site.
+            slot.appendChild(el('span', 'discussion-flair', p.flair));
+        });
+    }
+
+    // Who is an expert of THIS page. The thread already knows its page_id, so
+    // this is the cheap direction - one call, no per-author lookup.
+    async function fetchExpertIds() {
+        if (!client() || !state.pageId) return new Set();
+        try {
+            const { data, error } = await client()
+                .rpc('get_page_experts', { target_page_id: state.pageId });
+            if (error || !Array.isArray(data)) return new Set();
+            return new Set(data.map(r => r.user_id));
+        } catch (e) {
+            // Before the release this RPC does not exist. No chips, same thread.
+            return new Set();
+        }
+    }
+
     // --- WHO IS READING ---
 
     async function loadViewer() {
@@ -371,7 +450,7 @@
         wrap.id = `post-${post.id}`;
 
         const head = el('div', 'discussion-post-head');
-        head.appendChild(el('span', 'discussion-author', removed ? '—' : (post.author_name || 'Unknown')));
+        head.appendChild(authorNode(post));
         head.appendChild(el('span', 'discussion-time', timeAgo(post.created_at)));
         wrap.appendChild(head);
 
@@ -436,7 +515,7 @@
         wrap.id = `post-${reply.id}`;
 
         const head = el('div', 'discussion-post-head');
-        head.appendChild(el('span', 'discussion-author', removed ? '—' : (reply.author_name || 'Unknown')));
+        head.appendChild(authorNode(reply));
         head.appendChild(el('span', 'discussion-time', timeAgo(reply.created_at)));
         wrap.appendChild(head);
 
@@ -599,6 +678,12 @@
 
         posts.forEach(p => list.appendChild(renderPost(p, byParent.get(p.id) || [])));
 
+        // Not awaited: the thread is already on screen and the flairs arrive
+        // when they arrive. Awaiting here would hold the render open on a
+        // request that is decoration, and before the release this RPC does not
+        // exist in production at all.
+        decorateFlairs(root);
+
         const oldMore = root.querySelector('.discussion-more');
         if (oldMore) oldMore.remove();
 
@@ -753,6 +838,16 @@
         root.dataset.wired = 'true';
 
         root.addEventListener('click', async (e) => {
+            // First, because an author button sits inside the post head and
+            // must not be swallowed by anything below it.
+            const profile = e.target.closest('[data-profile-user]');
+            if (profile) {
+                if (typeof window.openPublicProfile === 'function') {
+                    window.openPublicProfile(profile.dataset.profileUser);
+                }
+                return;
+            }
+
             const reply = e.target.closest('[data-reply-to]');
             if (reply) { openReply(reply.dataset.replyTo); return; }
 

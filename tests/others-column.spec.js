@@ -64,8 +64,29 @@ test('every page lands under its own sub-group', async ({ page }) => {
     /Roulette/, /Duels/, /Private Servers/,
   ]);
 
-  // The WIP badge still rides along, same as the flat column did.
-  await expect(column.locator('.system-directory-btn').first()).toContainText('WIP');
+  // NO WIP badge here any more (owner, 2026-09-03: "kinda off and not fitting.
+  // The WIP tag being on the left sidebar navigation is good enough"). This
+  // used to assert the opposite.
+  //
+  // Asserted against a page that IS work-in-progress, so it cannot pass by the
+  // fixture simply having no WIP pages in it: NAV marks Roulette isWip.
+  await expect(column.locator('.system-directory-btn').first()).toContainText('Roulette');
+  await expect(column.locator('.update-badge')).toHaveCount(0);
+});
+
+test('the WIP badge is still in the left sidebar', async ({ page }) => {
+  // The paired positive. Removing it from the column must not quietly remove
+  // it from the one place the owner asked to keep it - the sidebar is where a
+  // reader picks from the full list and needs the warning.
+  await mockNav(page, NAV);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  const sidebar = page.locator('#global-sidebar-nav');
+  // The groups render collapsed, so the badge is in the DOM but not on screen
+  // until somebody opens the group. Open it, the way a reader would - a badge
+  // that exists inside a container nobody can expand is not a warning.
+  await sidebar.locator('.sidebar-group-header', { hasText: 'Gamemodes' }).click();
+  await expect(sidebar.locator('.badge-wip').first()).toBeVisible();
 });
 
 test('a single-group column renders no heading', async ({ page }) => {
