@@ -238,3 +238,25 @@
     background: var(--bg-main); display: flex; align-items: center; justify-content: center; 
     color: var(--text-muted); font-family: var(--text-mono); font-size: 0.75rem; 
 }
+/* Changelog part headings (v0.17). Every release is divided into Features,
+   Fine-tuning and Bug fixes, and each opens its own list so a heading is a real
+   heading rather than a bullet pretending to be one. Entries written before
+   this carry no headings and render as one unheaded list, unchanged. */
+.update-changes-heading {
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--accent-blue);
+    margin: 1.25rem 0 0.25rem 0;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px dashed var(--border-color);
+}
+
+/* The first heading sits directly under the description, which already has its
+   own spacing below it. */
+.update-changes-heading:first-child { margin-top: 1rem; }
+
+/* The list already carries an inline margin-top for the unheaded case; a list
+   that follows a heading of its own does not need it twice. */
+.update-changes-heading + .update-changes-list { margin-top: 0.4rem !important; }
