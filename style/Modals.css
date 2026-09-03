@@ -161,3 +161,150 @@
     gap: 0.5rem;
     flex-wrap: wrap;
 }
+
+/* --- 7. THE PROFILE MODAL (v0.17 F11) ---
+   All classes here are new and prefixed `profile-`. Nothing in this block
+   touches a shared class: .btn-sys, .editor-input and .modal-* are used as they
+   are, because a change to any of them has consumers this file cannot see. */
+
+.profile-identity {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding-bottom: 1.25rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.profile-standing-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+    border: 2px solid var(--border-color);
+    background: var(--bg-main);
+    box-shadow: 3px 3px 0px var(--manga-shadow);
+}
+
+.profile-role-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+/* The badge colours match the sidebar dock's, because they are the same
+   identity seen in two places. Keyed by name, never by rank. */
+.profile-standing-purple  { color: #a855f7; }
+.profile-standing-red     { color: #ef4444; }
+.profile-standing-blue    { color: var(--accent-blue); }
+.profile-standing-yellow  { color: #eab308; }
+.profile-standing-green   { color: #22c55e; }
+.profile-standing-regular { color: var(--text-muted); }
+
+.profile-identity-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.profile-identity-text strong {
+    font-family: var(--text-mono);
+    font-size: 0.95rem;
+    color: var(--text-white);
+    overflow-wrap: anywhere;
+}
+
+.profile-standing-label {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.profile-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 1.25rem;
+}
+
+.profile-field > label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.profile-count { color: var(--text-muted); font-size: 0.6rem; }
+.profile-count-full { color: var(--accent-yellow); }
+
+.profile-hint {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.profile-bio {
+    resize: vertical;
+    min-height: 5rem;
+    line-height: 1.5;
+    font-family: var(--text-mono);
+}
+
+/* Selector written as `> label.profile-toggle` on purpose. The toggle IS a
+   direct child label of .profile-field, so `.profile-field > label` above
+   (specificity 0,1,1) outranks a bare `.profile-toggle` (0,1,0) and was winning
+   justify-content, text-transform and colour - which rendered as a lone
+   checkbox on the left and "KEEP MY DESCRIPTION PRIVATE" shoved to the right
+   margin. Every test still passed; it was caught by looking at the modal. */
+.profile-field > label.profile-toggle {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.6rem;
+    cursor: pointer;
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.profile-toggle input[type="checkbox"] {
+    width: 1.05rem;
+    height: 1.05rem;
+    flex: 0 0 auto;
+    accent-color: #a855f7;
+    cursor: pointer;
+}
+
+.profile-inline-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+    flex-wrap: wrap;
+}
+
+.profile-inline-row .editor-input { flex: 1 1 12rem; min-width: 0; }
+
+.profile-feedback {
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    line-height: 1.5;
+    margin: 0;
+    padding: 0.65rem 0.75rem;
+    border: 2px solid var(--border-color);
+}
+
+.profile-feedback-bad { color: #ef4444; background: rgba(239, 68, 68, 0.1); border-color: #ef4444; }
+.profile-feedback-ok  { color: #22c55e; background: rgba(34, 197, 94, 0.1); border-color: #22c55e; }

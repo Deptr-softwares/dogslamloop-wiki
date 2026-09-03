@@ -1231,19 +1231,53 @@ window.injectAuthModal = function() {
     // 2. The Custom Profile Modal
     const profileModalHTML = `
     <div id="profile-modal-overlay" class="modal-overlay hidden">
-        <div class="modal-box modal-sm accent-purple">
+        <div class="modal-box modal-lg accent-purple">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h3>SYSTEM PROFILE</h3>
                 <span class="status-dot online"></span>
             </div>
             <div class="modal-body">
-                <p style="font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); margin-top: 0; margin-bottom: 1.5rem; text-transform: uppercase;">
-                    Logged in as: <strong id="profile-current-name" style="color: var(--text-white);"></strong>
-                </p>
-                <div class="editor-row" style="flex-direction: column; gap: 0.5rem;">
-                    <label style="font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); text-align: left;">NEW DISPLAY NAME</label>
+                <div class="profile-identity">
+                    <span id="profile-standing-icon" class="profile-standing-icon"></span>
+                    <div class="profile-identity-text">
+                        <strong id="profile-current-name"></strong>
+                        <span id="profile-standing-label" class="profile-standing-label"></span>
+                    </div>
+                </div>
+
+                <div class="profile-field">
+                    <label for="profile-new-name">DISPLAY NAME</label>
                     <input type="text" id="profile-new-name" class="editor-input" placeholder="Enter custom display name...">
                 </div>
+
+                <div class="profile-field">
+                    <label for="profile-flair">FLAIR <span id="profile-flair-count" class="profile-count"></span></label>
+                    <input type="text" id="profile-flair" class="editor-input" maxlength="32" placeholder="Sukuna main, guide writer...">
+                    <p class="profile-hint">Shown beside your name wherever you post.</p>
+                </div>
+
+                <div class="profile-field">
+                    <label for="profile-bio">ABOUT YOU <span id="profile-bio-count" class="profile-count"></span></label>
+                    <textarea id="profile-bio" class="editor-input profile-bio" maxlength="500" rows="4" placeholder="What do you play, and what do you write about?"></textarea>
+                </div>
+
+                <div class="profile-field">
+                    <label class="profile-toggle" for="profile-private">
+                        <input type="checkbox" id="profile-private">
+                        <span>Keep my description private</span>
+                    </label>
+                </div>
+
+                <div class="profile-field hidden" id="profile-password-field">
+                    <label for="profile-new-password">CHANGE PASSWORD</label>
+                    <div class="profile-inline-row">
+                        <input type="password" id="profile-new-password" class="editor-input" placeholder="New password..." autocomplete="new-password">
+                        <button id="btn-profile-password" class="btn-sys btn-sys-regular" type="button">UPDATE</button>
+                    </div>
+                </div>
+                <p class="profile-hint hidden" id="profile-oauth-note"></p>
+
+                <p class="profile-feedback hidden" id="profile-feedback"></p>
             </div>
             <div class="modal-footer" style="justify-content: space-between;">
                 <button id="btn-profile-logout" class="btn-sys btn-sys-red">LOGOUT</button>
@@ -1374,26 +1408,97 @@ window.injectAuthModal = function() {
 
     if (btnSave) {
         btnSave.addEventListener('click', async () => {
-            const newNameInp = document.getElementById('profile-new-name');
-            const newName = newNameInp.value.trim();
+            const newName = document.getElementById('profile-new-name').value.trim();
             const currentName = document.getElementById('profile-current-name').textContent;
+            const bio = document.getElementById('profile-bio').value.trim();
+            // The DB rejects a newline in a flair - it would break the line it
+            // is rendered on. An <input type="text"> already strips them on
+            // both typing and paste, so this is insurance for any other path
+            // into the field rather than the thing doing the work.
+            const flair = document.getElementById('profile-flair').value.replace(/[\r\n]+/g, ' ').trim();
+            const isPrivate = document.getElementById('profile-private').checked;
 
+            btnSave.textContent = "SAVING..."; btnSave.disabled = true;
+            const problems = [];
+
+            // The display name is the one field that does NOT live in
+            // user_profiles - it stays in auth metadata, so there is no second
+            // copy to keep in sync. See the migration header.
             if (newName && newName !== currentName) {
-                btnSave.textContent = "SAVING..."; btnSave.disabled = true;
                 const { error } = await window.supabaseClient.auth.updateUser({ data: { display_name: newName } });
-                btnSave.disabled = false; btnSave.textContent = "SAVE CHANGES";
-
-                if (!error) {
-                    document.getElementById('profile-modal-overlay').classList.add('hidden');
-                    window.checkActiveSession(); 
-                } else {
-                    alert("Failed to update name. Check console."); console.error(error);
-                }
-            } else {
-                document.getElementById('profile-modal-overlay').classList.add('hidden');
+                if (error) problems.push("display name: " + error.message);
             }
+
+            const { data: { session } } = await window.supabaseClient.auth.getSession();
+            if (session) {
+                // upsert, because the row is created on first save rather than
+                // at signup - there is deliberately no trigger on auth.users.
+                const { error } = await window.supabaseClient
+                    .from('user_profiles')
+                    .upsert({
+                        user_id: session.user.id,
+                        bio: bio || null,
+                        flair: flair || null,
+                        is_private: isPrivate
+                    }, { onConflict: 'user_id' });
+
+                if (error) {
+                    // 42501 is the RLS WITH CHECK refusing the row, and for this
+                    // table there is exactly one way to earn it. Saying so beats
+                    // showing somebody a Postgres string.
+                    problems.push(error.code === '42501'
+                        ? "your account cannot post content on the site at the moment"
+                        : "profile: " + error.message);
+                }
+            }
+
+            btnSave.disabled = false; btnSave.textContent = "SAVE CHANGES";
+
+            if (problems.length) {
+                window.setProfileFeedback("Could not save — " + problems.join("; ") + ".", false);
+                return;
+            }
+            document.getElementById('profile-modal-overlay').classList.add('hidden');
+            window.checkActiveSession();
         });
     }
+
+    // Password change. Separate from SAVE CHANGES on purpose: it is the one
+    // action here that signs you out of nothing and yet cannot be undone by
+    // re-editing a field, so it gets its own button and its own confirmation.
+    const btnPassword = document.getElementById('btn-profile-password');
+    if (btnPassword) {
+        btnPassword.addEventListener('click', async () => {
+            const input = document.getElementById('profile-new-password');
+            const next = input.value;
+            if (!next) { window.setProfileFeedback("Enter a new password first.", false); return; }
+            if (next.length < 6) { window.setProfileFeedback("Passwords need at least 6 characters.", false); return; }
+
+            btnPassword.textContent = "..."; btnPassword.disabled = true;
+            const { error } = await window.supabaseClient.auth.updateUser({ password: next });
+            btnPassword.disabled = false; btnPassword.textContent = "UPDATE";
+
+            if (error) { window.setProfileFeedback("Could not change password: " + error.message, false); return; }
+            input.value = '';
+            window.setProfileFeedback("Password updated.", true);
+        });
+    }
+
+    // Live character counts. Both caps are enforced by CHECK constraints in the
+    // database as well - maxlength is a courtesy, PostgREST is the real door.
+    const bindCount = (fieldId, countId, max) => {
+        const field = document.getElementById(fieldId);
+        const out = document.getElementById(countId);
+        if (!field || !out) return;
+        const paint = () => {
+            out.textContent = `${field.value.length}/${max}`;
+            out.classList.toggle('profile-count-full', field.value.length >= max);
+        };
+        field.addEventListener('input', paint);
+        paint();
+    };
+    bindCount('profile-bio', 'profile-bio-count', 500);
+    bindCount('profile-flair', 'profile-flair-count', 32);
 
     // Bind System Alert Close Button
     document.getElementById('btn-alert-close')?.addEventListener('click', () => {
@@ -1422,6 +1527,88 @@ window.getDisplayName = function(session) {
     return meta.display_name || meta.full_name || meta.custom_claims?.global_name || meta.user_name || session.user.email.split('@')[0];
 };
 
+// One line of feedback inside the profile modal, rather than alert(). The old
+// save handler used alert("Failed to update name. Check console.") - which
+// tells a contributor to open devtools.
+window.setProfileFeedback = function (message, ok) {
+    const el = document.getElementById('profile-feedback');
+    if (!el) return;
+    el.textContent = message || '';
+    el.classList.toggle('hidden', !message);
+    el.classList.toggle('profile-feedback-bad', !!message && !ok);
+    el.classList.toggle('profile-feedback-ok', !!message && !!ok);
+};
+
+// Fills the profile modal with what is actually stored, every time it opens.
+// Deliberately not cached: the role can change under you (the owner assigns
+// them from another tab) and a stale standing is worse than a second fetch.
+window.hydrateProfileModal = async function (session) {
+    if (!session || !window.supabaseClient) return;
+
+    // --- STANDING ---
+    let role = 'member';
+    try {
+        const { data } = await window.supabaseClient
+            .from('user_roles').select('*').eq('user_id', session.user.id).single();
+        if (data && data.role) role = data.role;
+    } catch (e) {
+        // Having no role row is the normal state for most accounts, not an error.
+    }
+
+    const badge = window.roleBadge(role);
+    const iconEl = document.getElementById('profile-standing-icon');
+    const labelEl = document.getElementById('profile-standing-label');
+    if (iconEl) {
+        // Built from the fixed ROLE_BADGES table; nothing here is user text.
+        iconEl.innerHTML = window.roleIconSvg(role, 'profile-role-icon');
+        iconEl.className = `profile-standing-icon profile-standing-${badge.color}`;
+    }
+    if (labelEl) labelEl.textContent = badge.label;
+
+    // --- BIO / FLAIR / PRIVACY ---
+    const bioEl = document.getElementById('profile-bio');
+    const flairEl = document.getElementById('profile-flair');
+    const privEl = document.getElementById('profile-private');
+    let row = null;
+    try {
+        const { data } = await window.supabaseClient
+            .from('user_profiles').select('*').eq('user_id', session.user.id).single();
+        row = data;
+    } catch (e) {
+        // No row yet is the normal state: user_profiles has no signup trigger,
+        // so a profile exists only once it has been saved once. Empty fields,
+        // not an error message.
+    }
+    if (bioEl) bioEl.value = (row && row.bio) || '';
+    if (flairEl) flairEl.value = (row && row.flair) || '';
+    if (privEl) privEl.checked = !!(row && row.is_private);
+    // Repaint the counters against what was just loaded.
+    [bioEl, flairEl].forEach(el => el && el.dispatchEvent(new Event('input')));
+
+    // --- PASSWORD, ONLY FOR ACCOUNTS THAT HAVE ONE ---
+    // Discord and Google sign-in are both live, and those accounts have no
+    // password on this site - offering to change one would fail in a way that
+    // reads as a bug. identities[] is the reliable source: app_metadata.provider
+    // names only the most recent sign-in, and one account can carry both.
+    const identities = session.user.identities || [];
+    const hasPassword = identities.length
+        ? identities.some(i => i.provider === 'email')
+        : (session.user.app_metadata || {}).provider === 'email';
+
+    const pwField = document.getElementById('profile-password-field');
+    const oauthNote = document.getElementById('profile-oauth-note');
+    if (pwField) pwField.classList.toggle('hidden', !hasPassword);
+    if (oauthNote) {
+        oauthNote.classList.toggle('hidden', hasPassword);
+        if (!hasPassword) {
+            // "You sign in with discord" reads as a typo. These are brand names.
+            const names = identities.map(i => i.provider).filter(Boolean)
+                .map(p => p.charAt(0).toUpperCase() + p.slice(1));
+            oauthNote.textContent = `You sign in with ${names.length ? names.join(' and ') : 'an external provider'}, so your password is managed there.`;
+        }
+    }
+};
+
 window.openAuthModal = async function() {
     if (!window.supabaseClient) return;
     
@@ -1434,14 +1621,34 @@ window.openAuthModal = async function() {
     if (session) {
         const username = window.getDisplayName(session);
         document.getElementById('profile-current-name').textContent = username;
-        
+
         // Pre-fill the input box with their current name so it's easy to edit
         const nameInput = document.getElementById('profile-new-name');
         nameInput.value = username;
-        
+
+        window.setProfileFeedback('', true);
+        await window.hydrateProfileModal(session);
+
         document.getElementById('profile-modal-overlay').classList.remove('hidden');
-        nameInput.focus(); 
-        return; 
+        nameInput.focus();
+
+        // Always open at the top, whatever moved the scroll.
+        //
+        // .modal-box is capped at max-height:85vh with .modal-body scrolling
+        // inside it, and .modal-header sits OUTSIDE that scroll area - so the
+        // header stays put while the body moves, and the identity strip is the
+        // first thing to disappear under it. Measured 2026-08-28: the body
+        // overflows on any window under about 900px tall, which is most
+        // laptops.
+        //
+        // The strip carries the person's name and standing, so it is the one
+        // part of this modal that must not need scrolling to find. The reset is
+        // cause-agnostic on purpose: the body keeps its scroll position between
+        // openings, and focus, browser zoom and the open animation can each
+        // move it. Cheaper to make the guarantee unconditional than to enumerate
+        // what breaks it.
+        document.querySelector('#profile-modal-overlay .modal-body').scrollTop = 0;
+        return;
     }
 
     // IF NOT LOGGED IN: Open the Auth Modal
@@ -1839,6 +2046,84 @@ window.roleMeets = function (roleName, requiredRole) {
 // still answers correctly instead of reading whichever happened to be first.
 window.rolesMeet = function (roles, requiredRole) {
     return (roles || []).some(r => window.roleMeets(r, requiredRole));
+};
+
+// --- ROLE BADGES: one source for the icon suite ---
+//
+// These SVGs were local consts inside initAuthDock (js/pagebuilder.js), which
+// was fine while the sidebar dock was the only thing that drew a role. v0.17's
+// profile draws one too, and a second copy would drift the first time an icon
+// changed - which is not hypothetical: the crown and the shield were both
+// redrawn days ago, and a duplicated modal would still be showing a treasure
+// chest.
+//
+// It lives here rather than in pagebuilder.js for a cache reason as much as a
+// structural one. site_utils.js is stamped (?v=), pagebuilder.js is not, so a
+// reader whose browser holds an hour-old pagebuilder.js still gets today's
+// icons. See the cache-stamp note in the v0.17 devlog.
+//
+// Keyed by NAME, not by rank, and that is correct here for the reason stated at
+// js/pagebuilder.js:422 - an icon is an identity, not a bar somebody clears.
+// roleMeets would hand the owner the admin's shield, since the owner does meet
+// the admin bar.
+window.ROLE_BADGES = {
+    // OWNER - a crown, redrawn for v0.17. The old one was a zigzag over a
+    // full-height box, which at 1.2rem read as a treasure chest rather than a
+    // crown: the box dominated and the peaks were uneven. Three peaks with real
+    // dips between them, and the band pulled out into a separate thin bar under
+    // the base, so at icon size the silhouette is crown-shaped.
+    owner: {
+        label: 'Owner', color: 'purple', join: true,
+        paths: '<path d="M3 16L5 6.5L9.5 11L12 4.5L14.5 11L19 6.5L21 16Z"></path><path d="M4.5 19.5h15"></path>'
+    },
+    // ADMIN - a shield with a check, new in v0.17 when the role stopped meaning
+    // the owner. Angular rather than the usual curved shield, to sit with the
+    // pencil and the eye rather than against them. The check deliberately echoes
+    // the member badge's: that one is a person plus a check ("you are signed
+    // in"), this is a shield plus a check ("you are the one who approves"),
+    // which is exactly what an admin has that a reviewer does not - force
+    // approve and force reject.
+    admin: {
+        label: 'Admin', color: 'red', join: true,
+        paths: '<path d="M12 2.5L20.5 6.5V12L12 21.5L3.5 12V6.5Z"></path><polyline points="8.5 12.5 11 15 15.5 9.5"></polyline>'
+    },
+    reviewer: {
+        label: 'Reviewer', color: 'blue',
+        paths: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>'
+    },
+    trusted_editor: {
+        label: 'Trusted Editor', color: 'yellow',
+        paths: '<path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>'
+    },
+    // Signed in, no role - and also where `viewer` lands. A viewer is a soft
+    // ban, and giving it a badge of its own would publish a moderation decision
+    // on the person's own profile. get_public_profile() nulls the standing for
+    // exactly the same reason.
+    member: {
+        label: 'Member', color: 'green',
+        paths: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline>'
+    },
+    guest: {
+        label: 'Guest', color: 'regular',
+        paths: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>'
+    }
+};
+
+// Which badge belongs to a role string. Anything unrecognised falls through to
+// the signed-in badge rather than borrowing a senior one.
+window.roleBadge = function (roleName) {
+    const key = String(roleName || '').trim().toLowerCase();
+    return window.ROLE_BADGES[key] || window.ROLE_BADGES.member;
+};
+
+// Builds the icon markup. `paths` is a fixed string from the table above and is
+// never user-influenced; className is caller-supplied, so it is escaped anyway
+// rather than relying on every future caller passing a literal.
+window.roleIconSvg = function (roleName, className) {
+    const badge = window.roleBadge(roleName);
+    const cls = window.escapeHtml(className || 'dock-role-icon');
+    const join = badge.join ? 'stroke-linejoin="round" ' : '';
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" ${join}stroke-linecap="square" class="${cls}">${badge.paths}</svg>`;
 };
 
 // A confirmation in the site's own modal, for code that runs on EVERY page.
