@@ -143,6 +143,17 @@ async function mockThread(page, {
 
 const SESSION = { user: { id: 'u-me', email: 'reader@site.test' }, access_token: 't' };
 
+// The RPCs these tests are about, with the thread's background profile lookups
+// filtered out.
+//
+// v0.17 F11 part 3 made every rendered thread call get_public_profiles() once to
+// draw authors' flairs. It is decoration, unrelated to anything asserted here,
+// and it broke four exact-match assertions on __rpcCalls the day it landed.
+// __rpcCalls still records everything the page really called - hiding a request
+// from it would be a lie - so the filter lives at the assertion instead.
+const actionCalls = (page) => page.evaluate(() =>
+    window.__rpcCalls.filter(c => c.name !== 'get_public_profiles'));
+
 async function open(page) {
     await page.goto(PAGE, { waitUntil: 'networkidle' });
     await page.waitForSelector('#discussion-section .discussion-title');
@@ -315,7 +326,7 @@ test('deleting goes through the RPC, which is the only path that cannot rewrite'
 
     await page.click('#post-mine [data-remove-post]');
 
-    const calls = await page.evaluate(() => window.__rpcCalls);
+    const calls = await actionCalls(page);
     expect(calls).toEqual([{ name: 'remove_my_discussion_post', params: { p_post_id: 'mine' } }]);
 });
 
@@ -476,12 +487,12 @@ test('moderating requires a reason, which is what makes the log an audit', async
     // Submitting empty must not reach the database at all.
     await page.click('.discussion-mod-confirm');
     await expect(page.locator('.discussion-mod-form .discussion-composer-status')).toContainText('reason is required');
-    expect(await page.evaluate(() => window.__rpcCalls.length)).toBe(0);
+    expect((await actionCalls(page)).length).toBe(0);
 
     await page.fill('.discussion-mod-reason', 'Targeted harassment');
     await page.click('.discussion-mod-confirm');
 
-    const calls = await page.evaluate(() => window.__rpcCalls);
+    const calls = await actionCalls(page);
     expect(calls).toEqual([{
         name: 'moderate_discussion_post',
         params: { p_post_id: 'p1', p_action: 'remove', p_reason: 'Targeted harassment' },
@@ -500,7 +511,7 @@ test('restore needs no reason - putting something back requires no justification
     await expect(page.locator('.discussion-mod-reason'), 'no reason field at all').toHaveCount(0);
     await page.click('.discussion-mod-confirm');
 
-    const calls = await page.evaluate(() => window.__rpcCalls);
+    const calls = await actionCalls(page);
     expect(calls[0].params).toEqual({ p_post_id: 'p1', p_action: 'restore', p_reason: null });
 });
 
@@ -655,7 +666,7 @@ test('a report sends the reason and note, then confirms', async ({ page }) => {
     await page.fill('.discussion-report-note', 'targeting a specific person');
     await page.click('.discussion-report-confirm');
 
-    const calls = await page.evaluate(() => window.__rpcCalls);
+    const calls = await actionCalls(page);
     expect(calls).toEqual([{
         name: 'report_discussion_post',
         params: { p_post_id: 'p1', p_reason: 'harassment', p_note: 'targeting a specific person' },
@@ -673,7 +684,7 @@ test('an optional note is sent as null rather than an empty string', async ({ pa
     await page.click('#post-p1 [data-report-post]');
     await page.click('.discussion-report-confirm');
 
-    const calls = await page.evaluate(() => window.__rpcCalls);
+    const calls = await actionCalls(page);
     expect(calls[0].params).toEqual({ p_post_id: 'p1', p_reason: 'spam', p_note: null });
 });
 
