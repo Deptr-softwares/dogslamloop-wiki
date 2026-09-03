@@ -73,6 +73,27 @@ never announces a version it is not running.
 }
 ```
 
+**Get the version bump into the LAST pre-release PR, not after it.**
+
+`data/site_meta.json` holds the version string the site chrome renders, and it
+is GENERATED from the `site_meta` row - `regenerate.yml` runs
+`fetch-content.js --write`, so a hand-edit is reverted. The bump is therefore
+the owner's action in the owner tools (Site Meta -> VERSION), followed by
+`npm run refresh-content` here.
+
+That has an ordering consequence which cost an extra merge cycle on v0.17:
+**direct pushes to `next-update` are rejected**, so a bump discovered at release
+time needs its own PR before the release PR can carry it. Ask for the version to
+be set *before* the last item PR, and let `refresh-content` ride along in it.
+
+Check both before opening the release PR - a changelog announcing a version the
+header does not show is the thing this ordering exists to prevent:
+
+```bash
+node -e "console.log(require('./data/site_meta.json').version)"
+node -e "console.log(require('./data/updates.json').changelogs[0].version)"
+```
+
 **Ask the owner what to call the update before writing the entry.** The name
 is theirs, not a summary to be derived from the diff — v0.12 was drafted as
 "The 'Ultimate Mode' update" and the owner renamed it to "The 'General'
