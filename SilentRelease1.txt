@@ -1,0 +1,13 @@
+The Owner tools problems:
++ There is no way to set a character color code there. This ties into a bigger problem where creating a new character page can not account for including but not limited to making new color code, applying that color throughout the site (mainly auto-coloring), and probablt more.
++ There is no way to edit the content inside each existing question in the FAQ tool.
++ There is no way to add the contributor tag, social links, and icon in the collaborator/credits tool; and there is no way to edit existing collaborator contents.
++ There is no way to add moderators perk (or any perks) to a regular authenticated user.
++ There is no way to remove a certified tier list contributor once creating them.
++ Shifting through people mail address on Supabase Dashboard and getting the right one is extremely inconvenient, especially when I want to give them a reviewer or an expert tag or something else. For example, a new Vessel Expert come to me and show me how good he is and he want the tag on the site, now he logged in using a burner mail expecting that I don't talk about it. Now it is impossible for me to shift through the list just to find the email to assign it to him.
++ In Pages tool, the pages are placed on a column. They mirror the data structure well, but they aren't seperated well and create a long column, so scrolling through them take quite a time.
+
+Bugs:
++ I made a person a "Disaster Plants" expert. She couldn't see the overseer button to go into the queue, I assuming the same problem also apply to authenticated account given the moderator perk. The expert tag still appear though.
++ The button to grant "moderate discussions" in the owner tools doesn't work (clicking on it and nothing happen)
++ The buttons to grant perks in the owner tools when clicked on and then I hit Apply, nothing changed. I checked the table in the Supabase Dashboard and they are all still FALSE.
