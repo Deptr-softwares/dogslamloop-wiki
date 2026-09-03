@@ -138,9 +138,26 @@ Two rules that follow from the split rather than from taste:
   readers never knew was broken is still one line at the end with the rest of
   the invisible work.
 
-This is a **presentation layer**. `updates.json` has no category field — the
-grouping lives in the changelog prose and the Discord post's headings, so it
-costs no schema change and no renderer change.
+**In `updates.json` a heading is an object, a change is a string:**
+
+```json
+"changes": [
+  { "heading": "Features" },
+  "One visible change per line.",
+  { "heading": "Bug fixes" },
+  "Another line."
+]
+```
+
+Additive on purpose. Every entry written before v0.17 is a flat array of
+strings and renders exactly as it did — `buildUpdateChangesHTML`
+(`js/home_widgets.js`) opens an unheaded list for the first line and starts a
+new one at each heading. Same shape as the ticket-chat `type` field: the older
+form is the fallback, not a migration.
+
+An object rather than a bare string that happens to read `"Features"`, because a
+heading and a change line would otherwise be indistinguishable, and one day
+somebody writes a line that reads "Bug fixes".
 
 ## Discord post
 

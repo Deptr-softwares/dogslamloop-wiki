@@ -32,7 +32,7 @@ npm run generate          # rewrite page stubs from navigation.json
 npm run refresh-previews  # pull portrait URLs from Supabase
 npm run refresh-portraits # mirror those portraits into medias/portraits/
 npm run refresh-registry  # rewrite navigation.json from site_pages
-npm run refresh-content   # rewrite faq.json + collaborators_data.json
+npm run refresh-content   # rewrite faq.json + collaborators_data.json + site_meta.json
 ```
 
 `visual.spec.js` is excluded from CI (`testIgnore` in `playwright.config.js`): screenshot baselines are OS-specific, so committed Windows baselines can never match a Linux runner. It stays a local-only tool for CSS work.
@@ -47,6 +47,7 @@ Edit the source and regenerate; hand-edits are overwritten by the `regenerate.ym
 | `data/page-previews.json` | `page_data.desc_data.profile.image` |
 | `data/portraits.json` + `medias/portraits/*` | mirrored from the URLs in `page-previews.json` |
 | `data/faq.json` | `site_faq` table |
+| `data/site_meta.json` | `site_meta` table — **the version string lives here**, so a release bump is an owner-tools edit plus `npm run refresh-content`, never a hand-edit |
 | `systems/collaborators/collaborators_data.json` | `site_collaborators` table |
 | `characters/*/index.html`, `systems/*/index.html` | `navigation.json` + `page-previews.json` |
 

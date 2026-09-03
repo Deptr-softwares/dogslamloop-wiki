@@ -32,10 +32,42 @@ function buildUpdateTableHTML(tableData) {
     `;
 }
 
+// Every release is divided into Features, Fine-tuning and Bug fixes (owner,
+// 2026-09-03), so `changes` can carry headings as well as lines.
+//
+// ADDITIVE, and deliberately so: a heading is `{ heading: "Features" }` and a
+// change is still a plain string, so the eighteen entries written before this
+// render exactly as they did. Same mechanism as the ticket-chat `type` field -
+// the older shape is the fallback, not a migration.
+//
+// An object rather than a magic string ("Features" as a bare line) because a
+// heading and a change line would otherwise be indistinguishable, and one day
+// somebody writes a change that happens to read "Bug fixes".
 function buildUpdateChangesHTML(changes) {
     if (!changes || changes.length === 0) return '';
-    const itemsHTML = changes.map(change => `<li>${change}</li>`).join('');
-    return `<ul class="wiki-block-list space-y-2" style="color: var(--text-primary); font-size: 0.85rem; margin-top: 1rem;">${itemsHTML}</ul>`;
+
+    // One <ul> per group, so a heading is a real heading rather than a bullet
+    // pretending to be one. A list that starts with lines and no heading - every
+    // older entry - opens an unheaded group and never closes one.
+    let html = '';
+    let open = false;
+
+    changes.forEach(change => {
+        const heading = change && typeof change === 'object' ? change.heading : null;
+        if (heading) {
+            if (open) { html += '</ul>'; open = false; }
+            html += `<h4 class="update-changes-heading">${window.escapeHtml ? window.escapeHtml(heading) : heading}</h4>`;
+            return;
+        }
+        if (!open) {
+            html += `<ul class="wiki-block-list space-y-2 update-changes-list" style="color: var(--text-primary); font-size: 0.85rem; margin-top: 1rem;">`;
+            open = true;
+        }
+        html += `<li>${change}</li>`;
+    });
+
+    if (open) html += '</ul>';
+    return html;
 }
 
 async function loadUpdateLogs(containerId, limit = null, filterType = null) {
