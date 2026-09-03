@@ -64,16 +64,73 @@ async function loadQueue() {
     if (error) { container.innerHTML = `<p class="admin-error-text">Error: ${error.message}</p>`; return; }
 
     window.currentQueueData = data || [];
+    populateQueuePageFilter(window.currentQueueData);
+    renderQueue();
+}
 
-    if (window.currentQueueData.length === 0) {
-        container.innerHTML = `<div class="empty-tab-msg admin-queue-empty-msg">No pending revisions or open tickets.</div>`;
-        return;
-    }
+// The page dropdown is built from WHAT CAME BACK, not from navigation.json.
+//
+// That is the whole difference the expert system makes here. An expert receives
+// only their own pages - the "Staff can view queue" policy filters the rows
+// before this client ever sees them - so offering the full roster would list
+// forty pages whose selection can only ever produce an empty queue.
+function populateQueuePageFilter(rows) {
+    const select = document.getElementById('queue-filter-page');
+    if (!select) return;
+
+    const previous = select.value;
+    const pages = [...new Set(rows.map(r => r.page_id))].sort();
+
+    select.innerHTML = '<option value="all">All pages</option>';
+    pages.forEach(id => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        // textContent, not innerHTML: page_id is owner-authored but it is still
+        // a value from the database being put into the DOM.
+        opt.textContent = id.replace(/_/g, ' ');
+        select.appendChild(opt);
+    });
+
+    // Keep a reviewer where they were across a refresh, unless the page they
+    // were filtered to has emptied.
+    if (previous && pages.includes(previous)) select.value = previous;
+}
+
+function renderQueue() {
+    const container = document.getElementById('queue-container');
+    if (!container) return;
+
+    const all = window.currentQueueData || [];
+    const pageFilter = document.getElementById('queue-filter-page')?.value || 'all';
+    const statusFilter = document.getElementById('queue-filter-status')?.value || 'all';
+
+    const rows = all.filter(rev =>
+        (pageFilter === 'all' || rev.page_id === pageFilter)
+        && (statusFilter === 'all' || rev.status === statusFilter));
 
     container.innerHTML = '';
 
+    // Two different empty states. "Nothing is waiting" and "nothing matches
+    // what you asked for" send a reviewer to different places, and the media
+    // queue makes the same distinction.
+    if (all.length === 0) {
+        container.innerHTML = `<div class="empty-tab-msg admin-queue-empty-msg">No pending revisions or open tickets.</div>`;
+        return;
+    }
+    if (rows.length === 0) {
+        container.innerHTML = `<p class="admin-queue-empty-msg">Nothing matches this filter.</p>`;
+        return;
+    }
+
+    const summary = document.createElement('p');
+    summary.className = 'queue-summary';
+    summary.textContent = rows.length === all.length
+        ? `${all.length} waiting`
+        : `${rows.length} of ${all.length} waiting`;
+    container.appendChild(summary);
+
     const groupedQueue = {};
-    window.currentQueueData.forEach(rev => {
+    rows.forEach(rev => {
         if (!groupedQueue[rev.page_id]) groupedQueue[rev.page_id] = [];
         groupedQueue[rev.page_id].push(rev);
     });
@@ -83,9 +140,14 @@ async function loadQueue() {
         const header = document.createElement('div');
         header.className = 'admin-queue-group-header';
 
+        // Counted against the UNFILTERED set on purpose. openMergeCompiler
+        // loads every ticket for the page itself, so a count taken from the
+        // filtered list would promise to merge two and then merge three.
+        const totalForPage = all.filter(r => r.page_id === pageId).length;
+
         let mergeBtnHtml = '';
-        if (tickets.length > 1) {
-            mergeBtnHtml = `<button onclick="window.openMergeCompiler('${pageId}')" class="btn-sys btn-sys-purple admin-merge-btn">✦ MERGE TICKETS (${tickets.length})</button>`;
+        if (totalForPage > 1) {
+            mergeBtnHtml = `<button onclick="window.openMergeCompiler('${pageId}')" class="btn-sys btn-sys-purple admin-merge-btn">✦ MERGE TICKETS (${totalForPage})</button>`;
         }
 
         header.innerHTML = `
@@ -287,3 +349,16 @@ function resetPreviewState() {
     document.getElementById('nav-overview').classList.add('active');
     document.getElementById('dynamic-toc').innerHTML = '<li><p class="admin-toc-empty">Navigation unavailable.</p></li>';
 }
+
+// v0.17 F5: the revision queue's filters.
+//
+// `change`, not `input`: initializeMangaSelects replaces these with a custom
+// dropdown that only ever dispatches change. The media queue's binding carries
+// the same note, and it is the reason a filter that looks wired can silently do
+// nothing.
+document.addEventListener('DOMContentLoaded', () => {
+    ['queue-filter-page', 'queue-filter-status'].forEach(id => {
+        const select = document.getElementById(id);
+        if (select) select.addEventListener('change', renderQueue);
+    });
+});

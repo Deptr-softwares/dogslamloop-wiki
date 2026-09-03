@@ -69,6 +69,26 @@
                     <button onclick="loadQueue()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
                 </div>
                 
+                <!--
+                    Revision queue filters (v0.17 F5). The source list claimed
+                    this queue already filtered; it contained the string
+                    "filter" zero times. The media queue below is the pattern.
+
+                    Own class names rather than reusing .media-queue-filter:
+                    two lines of CSS is cheaper than making a change to the
+                    media queue's styling silently reach this one.
+                -->
+                <div class="queue-filters">
+                    <select id="queue-filter-page" class="editor-select queue-filter">
+                        <option value="all">All pages</option>
+                    </select>
+                    <select id="queue-filter-status" class="editor-select queue-filter">
+                        <option value="all">Pending and tickets</option>
+                        <option value="pending">Pending only</option>
+                        <option value="ticket_open">Open tickets only</option>
+                    </select>
+                </div>
+
                 <div id="queue-container" class="space-y-4">
                     <p class="loading-msg admin-loading-msg">Authenticating RBAC...</p>
                 </div>
