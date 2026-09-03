@@ -110,17 +110,32 @@ git checkout -b chore/backmerge-<thing> origin/main
 gh pr create --base next-update --title "Back-merge the <thing> hotfix"
 ```
 
-**Do not test divergence by counting commits.** `git log
+**Two obvious checks both give the wrong answer here.** `git log
 origin/next-update..origin/main` *always* lists the release merge commits —
-four of them right now (#156, #146, #137, #123) — and always will. It is not
-the signal. Compare the trees:
+four of them right now (#156, #146, #137, #123) — so it never reads clean. And
+a plain `git diff origin/main origin/next-update` is non-empty almost always,
+because `next-update` is legitimately ahead of `main` between releases; it
+answers a different question in both directions at once.
+
+The question is directional and narrow: **does `main` carry work that
+`next-update` does not?** Exclude the merge commits and it is exact:
 
 ```bash
-git diff --stat origin/main origin/next-update    # empty = in sync
+git log --oneline --no-merges origin/next-update..origin/main   # empty = clean
 ```
 
-Empty output is the check passing. Run it after every hotfix, and again before
-opening a release PR.
+Anything listed is a hotfix stranded on `main`. Replayed at the moment #97
+landed (`git log --oneline --no-merges 61b73ee..1f607ee`) it names both hotfix
+commits, which is how you know the check reads a real signal rather than always
+being empty.
+
+Run it after every hotfix, and again before opening a release PR. To confirm
+one specific fix arrived, the project's usual verification is exact and
+cheaper:
+
+```bash
+git merge-base --is-ancestor <hotfix-commit> origin/next-update
+```
 
 ### A migration hotfix inverts the immutability rule
 
@@ -194,7 +209,8 @@ Fine-tuning / Bug fixes split. Title it as the fix.
   `site_meta` row and `regenerate.yml` reverts hand-edits. If a version really
   does need to move, that is a release, and it is the owner in the owner tools
   followed by `npm run refresh-content`.
-- **Never leave `main` ahead of `next-update` in content.** Check the tree diff
-  is empty before you consider a hotfix finished.
+- **Never leave a fix stranded on `main`.** `git log --oneline --no-merges
+  origin/next-update..origin/main` must be empty before a hotfix counts as
+  finished.
 - **Never skip the live probe on a migration.** Silent and urgent both apply on
   merge to `main`, exactly like a release.
