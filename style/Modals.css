@@ -346,3 +346,25 @@
     font-style: italic;
     white-space: normal;
 }
+
+/* "Expert of ..." on a public profile (v0.17 F5). */
+.pubprofile-expertise {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    color: var(--text-primary);
+    margin: 0 0 1rem 0;
+    padding: 0.4rem 0.6rem;
+    border-left: 3px solid var(--accent-blue);
+    background: rgba(96, 165, 250, 0.06);
+}
+
+.pubprofile-expertise-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}

@@ -440,3 +440,19 @@ button.discussion-author-link:focus-visible {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* The EXPERT chip (v0.17 F5). Deliberately louder than .discussion-flair: the
+   flair is what somebody wrote about themselves, this is the site vouching for
+   them on this page, and the two sit next to each other. */
+.discussion-expert {
+    font-family: var(--text-mono);
+    font-size: 0.58rem;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #000;
+    background: var(--accent-blue);
+    border: 1px solid var(--accent-blue);
+    padding: 0.1rem 0.35rem;
+    white-space: nowrap;
+}

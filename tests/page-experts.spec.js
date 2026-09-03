@@ -166,6 +166,22 @@ test('the public expert list gives names, never addresses', async () => {
     expect(CODE).toMatch(/REVOKE ALL ON FUNCTION "public"\."list_page_experts"\(\) FROM "anon"/);
 });
 
+test('the reverse lookup returns page names and is public', async () => {
+    // The owner put the badge on the person (2026-09-03), so a profile has to
+    // say which pages somebody covers. get_page_experts answers the thread
+    // half - a thread already knows its page_id - and this answers the profile
+    // half, where the page is the unknown.
+    const fn = fnBody('get_user_expert_pages');
+    // Names, not ids: "crow_charmer" is not what the page is called anywhere a
+    // reader has seen it, and COALESCE keeps an unnamed page visible.
+    expect(fn).toMatch(/COALESCE\(NULLIF\(sp\."name", ''\), pe\."page_id"\)/);
+    expect(fn).toMatch(/LEFT JOIN "public"\."site_pages"/);
+    // Nothing about the person comes back, so there is no address to leak.
+    expect(fn).not.toMatch(/email/);
+    expect(CODE).toMatch(/GRANT EXECUTE ON FUNCTION "public"\."get_user_expert_pages"\(uuid\) TO "anon"/);
+    expect(CODE).toMatch(/REVOKE ALL ON FUNCTION "public"\."get_user_expert_pages"\(uuid\) FROM PUBLIC/);
+});
+
 test('the badge query has an index to use', async () => {
     // "Who are the experts of this page" runs for every reader of a character
     // page. The primary key is (user_id, page_id), so a page_id lookup has no
@@ -178,7 +194,7 @@ test('the badge query has an index to use', async () => {
 test('the assertions above are reading real SQL', async () => {
     expect(CODE.length).toBeGreaterThan(3000);
     for (const fn of ['can_review_page', 'assign_page_expert', 'revoke_page_expert',
-                      'list_page_experts', 'get_page_experts']) {
+                      'list_page_experts', 'get_page_experts', 'get_user_expert_pages']) {
         expect(fnBody(fn).length, `${fn} body found`).toBeGreaterThan(200);
     }
     expect(CODE).toContain('CREATE TABLE IF NOT EXISTS "public"."page_experts"');

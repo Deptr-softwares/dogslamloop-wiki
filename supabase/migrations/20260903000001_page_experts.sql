@@ -306,3 +306,37 @@ ALTER FUNCTION "public"."get_page_experts"("text") OWNER TO "postgres";
 REVOKE ALL ON FUNCTION "public"."get_page_experts"("text") FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION "public"."get_page_experts"("text") TO "anon";
 GRANT EXECUTE ON FUNCTION "public"."get_page_experts"("text") TO "authenticated";
+
+-- The other direction: which pages is THIS PERSON an expert of.
+--
+-- The owner chose (2026-09-03) to show the badge on the person rather than on
+-- the page - in their profile, and beside their name in a thread on a page they
+-- cover. get_page_experts() above answers the thread half, because a thread
+-- already knows its page_id; this answers the profile half, where the page is
+-- what is unknown.
+--
+-- Returns the page's NAME as well as its id, because "Expert of crow_charmer"
+-- is not what the page is called anywhere a reader has seen it. COALESCE so a
+-- row whose page has no name still says something rather than vanishing.
+CREATE OR REPLACE FUNCTION "public"."get_user_expert_pages"("target_user_id" uuid)
+RETURNS TABLE (
+    "page_id" "text",
+    "page_name" "text"
+)
+LANGUAGE "sql" STABLE SECURITY DEFINER
+SET "search_path" TO 'public'
+AS $$
+    SELECT pe."page_id", COALESCE(NULLIF(sp."name", ''), pe."page_id")::text
+    FROM "public"."page_experts" pe
+    LEFT JOIN "public"."site_pages" sp ON sp."page_id" = pe."page_id"
+    WHERE pe."user_id" = "target_user_id"
+    ORDER BY 2;
+$$;
+
+ALTER FUNCTION "public"."get_user_expert_pages"(uuid) OWNER TO "postgres";
+
+REVOKE ALL ON FUNCTION "public"."get_user_expert_pages"(uuid) FROM PUBLIC;
+-- Public, like the profile it appears in. Returns page names and nothing about
+-- the person, so there is no address to leak here.
+GRANT EXECUTE ON FUNCTION "public"."get_user_expert_pages"(uuid) TO "anon";
+GRANT EXECUTE ON FUNCTION "public"."get_user_expert_pages"(uuid) TO "authenticated";

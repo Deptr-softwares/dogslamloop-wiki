@@ -31,8 +31,9 @@ const post = (over = {}) => ({
     ...over,
 });
 
-async function mockThread(page, { rows = [], profiles = [], rpcFails = false } = {}) {
-    await page.addInitScript(({ rows, profiles, rpcFails }) => {
+async function mockThread(page, { rows = [], profiles = [], rpcFails = false,
+                                  pageExperts = [], expertPages = [] } = {}) {
+    await page.addInitScript(({ rows, profiles, rpcFails, pageExperts, expertPages }) => {
         window.__profileCalls = [];
         Object.defineProperty(window, 'supabase', {
             configurable: true,
@@ -55,6 +56,16 @@ async function mockThread(page, { rows = [], profiles = [], rpcFails = false } =
                                 data: profiles.filter(p => params.target_user_ids.includes(p.user_id)),
                                 error: null,
                             };
+                        }
+                        if (name === 'get_page_experts') {
+                            window.__expertCalls = (window.__expertCalls || []);
+                            window.__expertCalls.push(params.target_page_id);
+                            return rpcFails ? { data: null, error: { message: 'nope' } }
+                                            : { data: pageExperts, error: null };
+                        }
+                        if (name === 'get_user_expert_pages') {
+                            return rpcFails ? { data: null, error: { message: 'nope' } }
+                                            : { data: expertPages, error: null };
                         }
                         return { data: null, error: null };
                     };
@@ -92,7 +103,7 @@ async function mockThread(page, { rows = [], profiles = [], rpcFails = false } =
                 };
             },
         });
-    }, { rows, profiles, rpcFails });
+    }, { rows, profiles, rpcFails, pageExperts, expertPages });
 }
 
 async function open(page) {
@@ -304,4 +315,90 @@ test('a failed profile request costs the thread nothing', async ({ page }) => {
     await expect(page.locator('#pubprofile-name')).toHaveText('Unknown');
     await expect(page.locator('#pubprofile-name')).not.toHaveText('Loading...');
     expect(errors).toEqual([]);
+});
+
+// --- THE EXPERT BADGE (owner's placement, 2026-09-03: on the person, not the
+// page - in their profile, and beside their name in a thread they cover) ---
+
+test('an expert of this page is marked in the thread', async ({ page }) => {
+    await mockThread(page, {
+        rows: [post()],
+        profiles: [{ user_id: 'u-other', display_name: 'mango_kun', bio: null,
+                     flair: 'Pro Player', is_private: false, standing: null, joined_at: null }],
+        pageExperts: [{ user_id: 'u-other', display_name: 'mango_kun', flair: 'Pro Player' }],
+    });
+    await open(page);
+
+    const chip = page.locator('.discussion-expert');
+    await expect(chip).toHaveText('EXPERT');
+    // Inside the author button, so it travels with the name.
+    expect(await chip.evaluate(el => !!el.closest('.discussion-author-link'))).toBe(true);
+    // Before the flair: the site vouching for them, then what they said about
+    // themselves. Two labels that must not read as one.
+    const order = await page.locator('.discussion-author-link').first().evaluate(el =>
+        [...el.querySelectorAll('span')].map(s => s.className));
+    expect(order[0]).toContain('discussion-expert');
+    expect(order[1]).toContain('discussion-flair');
+});
+
+test('a non-expert author gets no chip', async ({ page }) => {
+    await mockThread(page, {
+        rows: [post({ author_id: 'u-other' })],
+        profiles: [],
+        pageExperts: [{ user_id: 'somebody-else', display_name: 'x', flair: null }],
+    });
+    await open(page);
+    await expect(page.locator('.discussion-expert')).toHaveCount(0);
+});
+
+test('the chip is asked for against THIS page, not all pages', async ({ page }) => {
+    // An expert of Crow Charmer is an ordinary poster on Sukuna. The scoping is
+    // the whole feature, and it lives in which page_id is sent.
+    await mockThread(page, { rows: [post()], profiles: [], pageExperts: [] });
+    await open(page);
+    await expect.poll(async () => await page.evaluate(() => (window.__expertCalls || []).length)).toBe(1);
+    const asked = await page.evaluate(() => window.__expertCalls[0]);
+    expect(asked).toBe('honored_one');
+});
+
+test('a failed expert lookup costs the thread nothing', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await mockThread(page, { rows: [post()], profiles: [], rpcFails: true });
+    await open(page);
+    await expect(page.locator('.discussion-body')).toContainText('unreactable');
+    await expect(page.locator('.discussion-expert')).toHaveCount(0);
+    expect(errors).toEqual([]);
+});
+
+test('a profile lists the pages that person covers, by name', async ({ page }) => {
+    await mockThread(page, {
+        rows: [post()],
+        profiles: [{ user_id: 'u-other', display_name: 'mango_kun', bio: null, flair: null,
+                     is_private: false, standing: null, joined_at: null }],
+        expertPages: [{ page_id: 'crow_charmer', page_name: 'Crow Charmer' },
+                      { page_id: 'boomcat', page_name: 'Boomcat' }],
+    });
+    await open(page);
+    await page.locator('.discussion-author-link').first().click();
+
+    const block = page.locator('#pubprofile-expertise');
+    await expect(block).not.toHaveClass(/hidden/);
+    // Names, not ids: "crow_charmer" is not what the page is called anywhere a
+    // reader has seen it.
+    await expect(page.locator('#pubprofile-expertise-pages')).toHaveText('Crow Charmer · Boomcat');
+    await expect(block).not.toContainText('crow_charmer');
+});
+
+test('somebody who is an expert of nothing shows no expertise line', async ({ page }) => {
+    await mockThread(page, {
+        rows: [post()],
+        profiles: [{ user_id: 'u-other', display_name: 'mango_kun', bio: null, flair: null,
+                     is_private: false, standing: null, joined_at: null }],
+        expertPages: [],
+    });
+    await open(page);
+    await page.locator('.discussion-author-link').first().click();
+    await expect(page.locator('#pubprofile-name')).toHaveText('mango_kun');
+    await expect(page.locator('#pubprofile-expertise')).toHaveClass(/hidden/);
 });
