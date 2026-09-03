@@ -14,6 +14,13 @@ async function setupCapture(page, { ticketChat }) {
   return page.evaluate(({ ticketChat }) => {
     window.__inserts = [];
     window.supabaseClient = {
+      // v0.17 F13 moved the ticket_chat WRITE to post_ticket_message(). The
+      // read below stays, because it is what decides whether this is the first
+      // staff reply - which is the thing these tests are actually about.
+      rpc: async (name, params) => {
+        if (name !== 'post_ticket_message') return { data: null, error: null };
+        return { data: { author: 'StaffPerson', text: params.message_text, timestamp: Date.now() }, error: null };
+      },
       from(table) {
         if (table === 'user_notifications') {
           return { insert: async (rows) => { window.__inserts.push(...rows); return { error: null }; } };

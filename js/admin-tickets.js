@@ -82,6 +82,17 @@ function renderTicketWorkspace(rev, isOwnSubmission, hasSupported, hasOpposed) {
                         <div class="ticket-chat-changes-requested-label">⚑ CHANGES REQUESTED by ${window.escapeHtml(msg.author)} · ${timeStr}</div>
                         <div class="ticket-chat-changes-requested-text">${window.escapeHtml(msg.text)}</div>
                     </div>`;
+            } else if (msg.type === 'author') {
+                // v0.17 F13: the contributor can answer now, so a reviewer has
+                // to be able to tell their own side of the conversation from
+                // the person whose submission it is. Same additive `type`
+                // mechanism as changes_requested; untyped messages are staff
+                // lines from before this shipped and render as they always did.
+                chatLog.innerHTML += `
+                    <div class="ticket-chat-from-author">
+                        <strong class="ticket-chat-author-badge">[${timeStr}] ${window.escapeHtml(msg.author)} (contributor):</strong>
+                        ${window.escapeHtml(msg.text)}
+                    </div>`;
             } else {
                 chatLog.innerHTML += `<div><strong class="ticket-chat-author">[${timeStr}] ${window.escapeHtml(msg.author)}:</strong> ${window.escapeHtml(msg.text)}</div>`;
             }
@@ -153,18 +164,33 @@ async function postTicketMessage() {
     input.disabled = true;
     const rev = window.currentQueueData.find(r => r.id === window.activePreviewRevId);
 
+    // Read only to decide the notification below. The WRITE goes through the
+    // RPC, which appends in SQL - this client used to read the array, append in
+    // JavaScript and write the whole thing back, so two people replying at once
+    // silently lost one of the two messages.
     const { data: liveRev, error: fetchErr } = await window.supabaseClient.from('pending_revisions').select('ticket_chat').eq('id', rev.id).single();
     const currentChat = (!fetchErr && liveRev.ticket_chat) ? liveRev.ticket_chat : [];
 
-    const newMessage = { author: window.currentUsername, text: text, timestamp: Date.now() };
-    const newChat = [...currentChat, newMessage];
-
-    const { error } = await window.supabaseClient.from('pending_revisions').update({ ticket_chat: newChat }).eq('id', rev.id);
+    // The author name is resolved server-side now. It used to be
+    // window.currentUsername, so the name on a ticket message was whatever the
+    // caller said it was - the same thing page_discussions' trigger prevents.
+    const { data: newMessage, error } = await window.supabaseClient.rpc('post_ticket_message', {
+        target_revision_id: rev.id,
+        message_text: text,
+    });
 
     input.disabled = false;
     input.value = '';
 
-    if (error) { adminAlert("Failed to send message: " + error.message); return; }
+    if (error) {
+        const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
+        adminAlert(notDeployed
+            ? "Ticket replies aren't available yet - the database function arrives with the next migration."
+            : "Failed to send message: " + error.message);
+        return;
+    }
+
+    const newChat = [...currentChat, newMessage];
 
     // Notify the author on the FIRST staff reply only - enough of a nudge to
     // come look, without a notification per message once a real back-and-forth

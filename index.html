@@ -328,7 +328,7 @@
             if (window.buildGlobalSidebarMenu) window.buildGlobalSidebarMenu('global-sidebar-nav');
             if (window.initAuthDock) window.initAuthDock();
             if (window.initRosterFilters) window.initRosterFilters();
-            if (window.buildSystemsDirectory) window.buildSystemsDirectory('systems-grid');
+            if (window.buildSystemsDirectory) window.buildSystemsDirectory('systems-grid', { compact: true });
             if (window.buildCategoryColumn) {
                 window.buildCategoryColumn('others-grid', window.OTHERS_SUBGROUPS);
                 window.buildCategoryColumn('tools-grid', window.TOOLS_SUBGROUPS);

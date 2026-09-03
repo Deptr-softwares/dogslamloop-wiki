@@ -56,9 +56,11 @@ test('a column lists the pages in its category, as working links', async ({ page
   const others = await page.locator('#others-grid .system-directory-btn').allTextContents();
   const tools = await page.locator('#tools-grid .system-directory-btn').allTextContents();
 
-  // Whitespace-normalised: the WIP badge is a separate span, so its text
-  // arrives with the space that separates it visually.
-  expect(others.map(t => t.replace(/\s+/g, ' ').trim())).toEqual(['Emotes', 'Duels WIP']);
+  // 'Duels' is marked isWip in the fixture above and still reads as just
+  // "Duels": the WIP badge was removed from these columns on 2026-09-03 and
+  // kept in the left sidebar. Whitespace-normalised anyway, because the button
+  // text is wrapped across lines in the template.
+  expect(others.map(t => t.replace(/\s+/g, ' ').trim())).toEqual(['Emotes', 'Duels']);
   expect(tools.map(t => t.trim())).toEqual(['Skill Builder ID Reader']);
 
   // The link has to actually go somewhere - a column of dead buttons is worse
