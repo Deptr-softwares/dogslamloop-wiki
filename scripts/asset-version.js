@@ -10,18 +10,34 @@
  * A content hash rather than a hand-bumped number: nobody has to remember, and
  * a deploy that does not touch the files does not invalidate anyone's cache.
  *
- * WHY TWO FILES, AND WHY ONE VERSION ACROSS BOTH
+ * EVERY MODULE, AND ONE VERSION ACROSS ALL OF THEM
  *
- * site_utils.js was the only stamped file for as long as it was the only
- * genuinely shared module. v0.15 added js/character_tabs.js - the character tab
- * vocabulary - which every page loads and which site_utils.js itself reads at
- * parse time to build FRAME_MOVE_CATEGORIES. That is exactly the dependency
- * shape the stamper exists to protect (see scripts/stamp-assets.js's header:
- * a fresh module paired with an hour-old copy of the helper it calls).
+ * This used to stamp three files, on the reasoning that "a page and its own
+ * script are always deployed together". That is true of the REPOSITORY and
+ * false of the CACHE, which is the only place it matters: GitHub Pages serves
+ * HTML with max-age=600 and js/ with max-age=3600, so for most of an hour after
+ * a release a reader gets fresh HTML against an hour-old script.
  *
- * They share one version deliberately. Hashing them together means a change to
- * either invalidates both, so the pair can never be served half-fresh - which
- * is the only failure mode that matters when one parses the other's output.
+ * It has cost three releases. The worst was v0.16: the dynamic roster icons and
+ * the Show Hidden control shipped, and the owner could not see them on the live
+ * site - js/pagebuilder.js was unstamped, so the browser kept the copy it
+ * already had while everything around it updated. The release looked like it
+ * had not happened.
+ *
+ * So the list is now EVERY module in js/, discovered from the directory rather
+ * than enumerated. A hand-kept list is a list somebody forgets to add to, and
+ * the file they forget is the next pagebuilder.js.
+ *
+ * ONE version across all of them, not a hash per file. This codebase is a
+ * single shared `window` scope with no module system: pagebuilder.js calls
+ * window.roleBadge from site_utils.js, discussions.js calls
+ * window.fetchPublicProfiles, page_boot.js drives both. Cross-file calls are
+ * the norm, so any pair can be the fresh-module-against-stale-helper failure -
+ * and per-file hashes would let exactly that pair be served half-fresh.
+ *
+ * The cost is that any JS change invalidates every cached script rather than
+ * one. That is one extra download per reader per release, which is what a
+ * release is for.
  */
 
 const fs = require('fs');
@@ -30,9 +46,12 @@ const crypto = require('crypto');
 
 const JS_DIR = path.join(__dirname, '..', 'js');
 
-// Order is fixed, not directory order: the hash must be reproducible across
-// machines and filesystems.
-const SHARED_MODULES = ['character_tabs.js', 'input_slots.js', 'site_utils.js'];
+// Discovered, then SORTED - readdirSync order is filesystem-dependent, and the
+// hash has to be identical on a developer's Windows machine and the Linux CI
+// runner or `npm run validate` fails against a tree that is correct.
+const SHARED_MODULES = fs.readdirSync(JS_DIR)
+    .filter(name => name.endsWith('.js'))
+    .sort();
 
 const SHARED_MODULE_PATHS = SHARED_MODULES.map(name => path.join(JS_DIR, name));
 

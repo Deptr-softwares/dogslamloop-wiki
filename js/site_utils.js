@@ -1214,7 +1214,7 @@ window.injectAuthModal = function() {
                 <!-- REGISTER VIEW -->
                 <div id="auth-view-register" class="editor-row hidden" style="flex-direction: column; gap: 0.5rem;">
                     <label style="font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); text-align: left;">CREATE ACCOUNT</label>
-                    <input type="text" id="auth-name-register" class="editor-input" placeholder="Display Name (Public)" style="margin-bottom: 0.25rem;">
+                    <input type="text" id="auth-name-register" class="editor-input" maxlength="32" placeholder="Display Name (Public)" style="margin-bottom: 0.25rem;">
                     <input type="email" id="auth-email-register" class="editor-input" placeholder="Email Address" style="margin-bottom: 0.25rem;">
                     <input type="password" id="auth-password-register" class="editor-input" placeholder="Password (Min 6 Characters)">
                     <button id="btn-auth-action-register" class="btn-sys btn-sys-green" style="margin-top: 0.5rem; width: 100%;">REGISTER ACCOUNT</button>
@@ -1247,7 +1247,7 @@ window.injectAuthModal = function() {
 
                 <div class="profile-field">
                     <label for="profile-new-name">DISPLAY NAME</label>
-                    <input type="text" id="profile-new-name" class="editor-input" placeholder="Enter custom display name...">
+                    <input type="text" id="profile-new-name" class="editor-input" maxlength="32" placeholder="Enter custom display name...">
                 </div>
 
                 <div class="profile-field">
@@ -1407,6 +1407,13 @@ window.injectAuthModal = function() {
             feedbackMsg.classList.remove('hidden'); feedbackMsg.style.color = '#ef4444'; feedbackMsg.style.background = 'rgba(239,68,68,0.1)';
             feedbackMsg.textContent = "All fields are required to register."; return; 
         }
+
+        // maxlength stops typing past the cap; this catches a paste, and says
+        // so rather than silently truncating somebody's name.
+        if (name.length > window.DISPLAY_NAME_MAX) {
+            feedbackMsg.classList.remove('hidden'); feedbackMsg.style.color = '#ef4444'; feedbackMsg.style.background = 'rgba(239,68,68,0.1)';
+            feedbackMsg.textContent = `Display names are limited to ${window.DISPLAY_NAME_MAX} characters.`; return;
+        }
         
         btn.textContent = "CREATING..."; btn.disabled = true;
         const { data, error } = await window.supabaseClient.auth.signUp({
@@ -1455,6 +1462,12 @@ window.injectAuthModal = function() {
             // into the field rather than the thing doing the work.
             const flair = document.getElementById('profile-flair').value.replace(/[\r\n]+/g, ' ').trim();
             const isPrivate = document.getElementById('profile-private').checked;
+
+            if (newName.length > window.DISPLAY_NAME_MAX) {
+                window.setProfileFeedback(
+                    `Display names are limited to ${window.DISPLAY_NAME_MAX} characters.`, false);
+                return;
+            }
 
             btnSave.textContent = "SAVING..."; btnSave.disabled = true;
             const problems = [];
@@ -2214,6 +2227,18 @@ window.roleMeets = function (roleName, requiredRole) {
 window.rolesMeet = function (roles, requiredRole) {
     return (roles || []).some(r => window.roleMeets(r, requiredRole));
 };
+
+// Display names are capped at 32 characters (owner, 2026-09-03). There was no
+// limit at all, so a name could be any length and it renders inline beside
+// every post, revision and history row that person has ever touched.
+//
+// CLIENT-SIDE ONLY, and worth being honest about: the display name lives in
+// auth.users.raw_user_meta_data, which carries no CHECK constraint - the only
+// way to enforce it in the database would be a trigger on auth.users, and this
+// project deliberately avoids those because one that raises takes signup down
+// with it (see 20260827000005_user_profiles.sql). The bio and flair caps ARE
+// database constraints, because those columns are ours.
+window.DISPLAY_NAME_MAX = 32;
 
 // --- ROLE BADGES: one source for the icon suite ---
 //

@@ -196,3 +196,56 @@ test('the reset is set apart from Save on the same card', async ({ page }) => {
   expect(seen.borderTop, 'with a rule above it').toBe('dashed');
   expect(seen.gap, 'and real distance from SAVE SETTINGS').toBeGreaterThan(24);
 });
+
+// --- THE FIX, 2026-09-03: "Reset failed: DELETE requires a WHERE clause" ---
+//
+// The tool never worked. Supabase runs with a safe-update guard that refuses an
+// UPDATE or DELETE carrying no WHERE, so the statement was rejected before it
+// ran and the guard's message came back through the owner tool. Not a
+// permission problem - the caller check above it passed, which is why the error
+// was about SQL rather than access.
+//
+// 20260903000003 is a NEW migration, not an edit: both earlier definitions are
+// pushed, and a preview branch records each by version and will not re-run it.
+
+const FIX = fs.readFileSync(path.join(ROOT, 'supabase', 'migrations',
+  '20260903000003_reset_ranking_where.sql'), 'utf8');
+const FIX_CODE = FIX.replace(/--[^\n]*/g, ' ');
+
+test('the delete carries a WHERE clause', () => {
+  expect(FIX_CODE).toMatch(/DELETE FROM "public"\."free_submit_votes" WHERE true RETURNING 1/);
+  // And no unqualified form survives anywhere in the new body.
+  expect(FIX_CODE).not.toMatch(/DELETE FROM "public"\."free_submit_votes"\s+RETURNING/);
+});
+
+test('the fix keeps the owner guard, and keeps it first', () => {
+  // A re-created function is the easiest place to lose a caller check: the
+  // whole body is retyped, and the guard is the part nobody is looking at.
+  const guard = FIX_CODE.indexOf('IF NOT "public"."is_owner"() THEN');
+  const raise = FIX_CODE.indexOf("ERRCODE = '42501'");
+  const del = FIX_CODE.indexOf('DELETE FROM "public"."free_submit_votes"');
+
+  expect(guard, 'the guard is present').toBeGreaterThan(-1);
+  expect(raise).toBeGreaterThan(guard);
+  expect(del, 'and comes before the delete').toBeGreaterThan(raise);
+
+  // Still by is_owner(), not the pre-split literal it used to test.
+  expect(FIX_CODE).not.toMatch(/IS DISTINCT FROM 'admin'/);
+});
+
+test('the fix still spares the tier scale', () => {
+  // free_submit_tiers is configuration, not data. Clearing it would leave the
+  // page with nothing to sort by - and a rewritten body is exactly where that
+  // distinction gets lost.
+  expect(FIX_CODE).not.toMatch(/DELETE FROM "public"\."free_submit_tiers"/);
+});
+
+test('the fix restates its grants rather than reopening the function', () => {
+  expect(FIX_CODE).toMatch(/REVOKE ALL ON FUNCTION "public"\."reset_free_submit_tier_list"\(\) FROM PUBLIC/);
+  expect(FIX_CODE).toMatch(/REVOKE ALL ON FUNCTION "public"\."reset_free_submit_tier_list"\(\) FROM "anon"/);
+  expect(FIX_CODE).toMatch(/GRANT EXECUTE ON FUNCTION "public"\."reset_free_submit_tier_list"\(\) TO "authenticated"/);
+  // CREATE OR REPLACE keeps the ACL; a DROP would reset it to PUBLIC, which is
+  // how the 2026-08-07 escalation happened.
+  expect(FIX_CODE).toMatch(/CREATE OR REPLACE FUNCTION "public"\."reset_free_submit_tier_list"/);
+  expect(FIX_CODE).not.toMatch(/DROP FUNCTION/);
+});
