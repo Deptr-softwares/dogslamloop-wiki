@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 /**
- * Stamps a content hash onto the shared JS modules in every page's
- * <script src> - js/site_utils.js and js/character_tabs.js.
+ * Stamps a content hash onto EVERY js/ module in every page's <script src>.
  *
  * The bug this exists for, 2026-08-10: GitHub Pages serves js/ with
  * max-age=3600. A deploy that adds a new module depending on a new shared
@@ -12,14 +11,15 @@
  * open - reported on the live site within minutes of the merge.
  *
  * A query string on the URL makes it a different cache key, so the moment the
- * hash changes every browser fetches the new file. Only genuinely shared
- * modules are stamped: everything else is loaded by the page that owns it, and
- * a page and its own script are always deployed together.
+ * hash changes every browser fetches the new file.
  *
- * There are two such modules. site_utils.js was the only one until v0.15 added
- * js/character_tabs.js, which every page loads and which site_utils.js reads at
- * parse time. They share one version so the pair can never be served
- * half-fresh - see scripts/asset-version.js.
+ * This used to stamp three modules only, on the reasoning that "a page and its
+ * own script are always deployed together". That holds in the repository and
+ * not in the cache - HTML is max-age=600 and js/ is max-age=3600 - and it cost
+ * three releases, the worst being v0.16, whose roster changes were invisible on
+ * the live site because js/pagebuilder.js was unstamped. Every module is
+ * stamped now, and the list is discovered rather than hand-kept. See
+ * scripts/asset-version.js for why they share one version.
  *
  * Generated stubs are stamped by scripts/generate-pages.js itself, from the
  * same helper, so `generate-pages --check` and this script agree. This script
@@ -73,7 +73,9 @@ function main() {
         if (write) fs.writeFileSync(file, after);
     }
 
-    const label = `stamp-assets: ${SHARED_MODULES.join(" + ")} v${version}`;
+    // A count, not the list. Every module in js/ is stamped now, so naming them
+    // all made the one line of output unreadable and buried the pass/fail.
+    const label = `stamp-assets: ${SHARED_MODULES.length} modules v${version}`;
 
     if (stale.length === 0) {
         console.log(`${label} - up to date (${checked} hand-authored page(s)).`);

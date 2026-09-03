@@ -65,10 +65,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         typeEl.addEventListener('change', () => {
             populateDirectoryOptions();
             updateNewPagePreview();
+            syncCategoryToType();
         });
     }
 
     wireCategoryField();
+    // 'Character page' is the first option, so the form opens on it.
+    syncCategoryToType();
 
     await loadPersonnel();
     await loadSitePages();
@@ -507,10 +510,56 @@ function canonicaliseCategory(raw) {
 
 // Says plainly when the typed value will create a new sidebar group, so that
 // is a deliberate act rather than a typo nobody notices until the nav renders.
+// A character page's category is not a choice, and offering one produced a
+// broken site (owner, 2026-09-03: "Adding a character page require me to pick a
+// category, but if I do, it will break the formatting").
+//
+// navigation.json is keyed by category and 'Characters' is load-bearing in
+// three separate places: buildCharacterRoster reads navData["Characters"]
+// literally (js/pagebuilder.js), buildSystemsDirectory renders every key EXCEPT
+// that one, and the sidebar colours entries only under it. So a character filed
+// under anything else vanished from the roster AND appeared as a stray category
+// in Guides & Such - which is the formatting break, in both directions at once.
+const CHARACTER_CATEGORY = 'Characters';
+
+function categoryIsForced() {
+    const typeEl = document.getElementById('new-page-type');
+    return !!typeEl && typeEl.value === 'character';
+}
+
+// Pins the field to 'Characters' for a character page and hands it back
+// otherwise. Called on every type change, so switching away restores whatever
+// the owner had typed rather than leaving 'Characters' behind on a system page.
+function syncCategoryToType() {
+    const input = document.getElementById('new-page-category');
+    if (!input) return;
+
+    if (categoryIsForced()) {
+        if (input.value !== CHARACTER_CATEGORY) input.dataset.previousCategory = input.value;
+        input.value = CHARACTER_CATEGORY;
+        input.readOnly = true;
+        input.classList.add('owner-field-locked');
+    } else if (input.readOnly) {
+        input.readOnly = false;
+        input.classList.remove('owner-field-locked');
+        input.value = input.dataset.previousCategory || '';
+        delete input.dataset.previousCategory;
+    }
+    updateCategoryNote();
+    populatePositionOptions();
+}
+
+// Says plainly when the typed value will create a new sidebar group, so that
+// is a deliberate act rather than a typo nobody notices until the nav renders.
 function updateCategoryNote() {
     const note = document.getElementById('new-page-category-note');
     const input = document.getElementById('new-page-category');
     if (!note || !input) return;
+
+    if (categoryIsForced()) {
+        note.textContent = 'Character pages always go in Characters - the roster reads that name literally.';
+        return;
+    }
 
     const value = canonicaliseCategory(input.value);
     if (!value) { note.textContent = ''; return; }
@@ -654,7 +703,12 @@ async function createSitePage() {
     const results = document.getElementById('pages-results');
     const name = document.getElementById('new-page-name').value.trim();
     const pageType = document.getElementById('new-page-type').value;
-    const category = canonicaliseCategory(document.getElementById('new-page-category').value);
+    // Forced rather than read for a character page. The field is locked in the
+    // form, but the form is a courtesy - this is the value that reaches the
+    // database, and a character under any other category breaks the roster.
+    const category = pageType === 'character'
+        ? CHARACTER_CATEGORY
+        : canonicaliseCategory(document.getElementById('new-page-category').value);
 
     if (!name) {
         results.innerHTML = `<span class="admin-error-text">Give the page a name.</span>`;

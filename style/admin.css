@@ -1079,3 +1079,12 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     background: rgba(96, 165, 250, 0.06);
 }
 .ticket-chat-author-badge { color: var(--accent-blue); }
+
+/* A field the form is filling in for you (v0.17). Used by the page-creation
+   category box, which is pinned to "Characters" for a character page because
+   the roster reads that name literally. Reads as "decided", not as broken. */
+.owner-field-locked {
+    opacity: 0.75;
+    cursor: not-allowed;
+    background: var(--bg-main);
+}

@@ -378,3 +378,57 @@ test('the counters repaint when a stored profile loads', async ({ page }) => {
     await expect(page.locator('#profile-bio-count')).toHaveText('120/500');
     await expect(page.locator('#profile-flair-count')).toHaveText('3/32');
 });
+
+// --- THE DISPLAY NAME CAP (owner, 2026-09-03) ---
+//
+// There was no limit at all. A display name renders inline beside every post,
+// revision and history row that person has ever touched, so an unbounded one is
+// a layout problem on pages its owner never visits.
+//
+// CLIENT-SIDE, and worth being explicit: the name lives in
+// auth.users.raw_user_meta_data, which carries no CHECK constraint. Enforcing
+// it in the database would need a trigger on auth.users, and this project
+// avoids those because one that raises takes signup down with it. The bio and
+// flair caps ARE database constraints, because those columns are ours.
+
+test('the display name inputs carry the cap', async ({ page }) => {
+    await openProfile(page, {});
+    await expect(page.locator('#profile-new-name')).toHaveAttribute('maxlength', '32');
+
+    // The registration field too - a name set at signup is the same name.
+    const html = await page.evaluate(async () => (await fetch('/js/site_utils.js')).text());
+    expect(html).toMatch(/id="auth-name-register"[^>]*maxlength="32"/);
+    expect(await page.evaluate(() => window.DISPLAY_NAME_MAX)).toBe(32);
+});
+
+test('a pasted over-long name is refused, not silently truncated', async ({ page }) => {
+    // maxlength stops typing past the cap and does nothing about a paste or a
+    // scripted set. Truncating somebody's name without saying so is worse than
+    // refusing it.
+    await openProfile(page, {});
+    await page.evaluate(() => {
+        const el = document.getElementById('profile-new-name');
+        el.value = 'x'.repeat(40);
+    });
+    await page.click('#btn-profile-save');
+
+    await expect(page.locator('#profile-feedback')).toContainText('32 characters');
+    // Nothing was sent, and the modal stays open with the text intact.
+    expect(await page.evaluate(() => window.__updateUser.length)).toBe(0);
+    expect(await page.evaluate(() => window.__upserts.length)).toBe(0);
+    await expect(page.locator('#profile-modal-overlay')).not.toHaveClass(/hidden/);
+});
+
+test('a name at exactly the cap still saves', async ({ page }) => {
+    // Off-by-one in the other direction: a limit that rejects the longest legal
+    // name is a limit of 31.
+    await openProfile(page, {});
+    await page.evaluate(() => {
+        document.getElementById('profile-new-name').value = 'y'.repeat(32);
+    });
+    await page.click('#btn-profile-save');
+
+    await expect(page.locator('#profile-modal-overlay')).toHaveClass(/hidden/);
+    const calls = await page.evaluate(() => window.__updateUser);
+    expect(calls[0].data.display_name).toBe('y'.repeat(32));
+});
