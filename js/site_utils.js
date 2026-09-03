@@ -1252,13 +1252,13 @@ window.injectAuthModal = function() {
 
                 <div class="profile-field">
                     <label for="profile-flair">FLAIR <span id="profile-flair-count" class="profile-count"></span></label>
-                    <input type="text" id="profile-flair" class="editor-input" maxlength="32" placeholder="Sukuna main, guide writer...">
+                    <input type="text" id="profile-flair" class="editor-input" maxlength="32" placeholder="Vessel main, boomcat...">
                     <p class="profile-hint">Shown beside your name wherever you post.</p>
                 </div>
 
                 <div class="profile-field">
                     <label for="profile-bio">ABOUT YOU <span id="profile-bio-count" class="profile-count"></span></label>
-                    <textarea id="profile-bio" class="editor-input profile-bio" maxlength="500" rows="4" placeholder="What do you play, and what do you write about?"></textarea>
+                    <textarea id="profile-bio" class="editor-input profile-bio" maxlength="500" rows="4" placeholder="Describe yourself here and such"></textarea>
                 </div>
 
                 <div class="profile-field">
