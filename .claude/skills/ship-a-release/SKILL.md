@@ -115,9 +115,36 @@ up internals — the owner has explicitly asked for this.
 
 Verify it renders on `/systems/updatelog/index.html` before shipping.
 
+### Three parts, in this order
+
+**Every release is divided into Features, Fine-tuning, and Bug fixes**
+(owner, 2026-09-03). Not free-form categories chosen per release — these three,
+in that order, so a reader learns where to look once instead of re-reading the
+shape of every update.
+
+| Part | What goes in it |
+|---|---|
+| **Features** | Something that did not exist before. The reason for the release. |
+| **Fine-tuning** | Something that existed and is now better — smaller, clearer, faster, better placed. |
+| **Bug fixes** | Something that was broken and now works. |
+
+Two rules that follow from the split rather than from taste:
+
+- **A part with nothing in it is omitted, not left empty.** A release with no
+  new features is a fine-tuning release and should read as one.
+- **The split does not license internal detail.** Every line still has to be
+  something a visitor can picture on the site, and "Bug fixes" is the part most
+  likely to tempt an entry about a migration nobody saw. A fix to something
+  readers never knew was broken is still one line at the end with the rest of
+  the invisible work.
+
+This is a **presentation layer**. `updates.json` has no category field — the
+grouping lives in the changelog prose and the Discord post's headings, so it
+costs no schema change and no renderer change.
+
 ## Discord post
 
-Provide a copy-paste block. Same content as the changelog, grouped under
+Provide a copy-paste block. Same content as the changelog, under the same three
 headings. Discord markdown, so the asterisks are load-bearing.
 
 ```
@@ -125,20 +152,23 @@ headings. Discord markdown, so the asterisks are load-bearing.
 
 One or two sentences of context.
 
-**[Category]**
+**[Features]**
 change
 change
 
-**[Category]**
+**[Fine-tuning]**
+change
+
+**[Bug fixes]**
 change
 ```
 
-- `**` around the version, the title and each `[Category]` — that is what
-  bolds them in Discord.
+- `**` around the version, the title and each heading — that is what bolds them
+  in Discord.
 - **No hyphens and no bullet characters.** Lines that are already short and
   plain read faster without them.
-- Categories are a presentation layer only — `updates.json` has no category
-  field.
+- Same three parts as the changelog, same order, and a part with nothing in it
+  is left out of both.
 
 ## PR
 
@@ -205,6 +235,45 @@ Two rules:
 
 Recovery is possible but only until the objects are collected, and only on the
 machine that made them. Prevention is one command.
+
+## Keep working while a PR runs its checks
+
+CI takes ~13 minutes and the owner merges by hand, so a PR is open for a long
+time. **Do not wait on it.** Start the next batch as soon as the PR is opened
+(owner, 2026-09-03).
+
+The whole workflow is four steps:
+
+1. **Open the PR.** That branch is now frozen — a push restarts its CI, which is
+   the exact cost this avoids.
+2. **Branch immediately for the next batch.** From `next-update` when the new
+   work is independent, which it usually is. From the open PR's branch only when
+   the new work genuinely builds on it — F5 needed `can_review_page` from the
+   branch in flight, so it stacked.
+3. **Build, test and commit as normal.** Do not push, and do not open a second
+   PR: two open PRs is the owner reviewing two things at once, which is what
+   they asked to avoid.
+4. **When the owner says the PR merged**, verify `mergedAt`, delete the merged
+   branch, `git rebase next-update`, re-run the derived specs, push, open the
+   next PR.
+
+**A stacked branch will conflict, and the conflict is normal.** Generated files
+are the usual cause — `supabase/migrations.lock.json` and the stamped script
+tags — because both branches regenerate them. **Regenerate, never hand-merge:**
+`npm run lock-migrations`, `npm run generate`. A hand-merged lock file is a lock
+file that no longer describes the migrations.
+
+For a hand-written conflict, read both sides before choosing. Two branches
+appending a CSS block to the same file both want to keep their block; taking
+one side silently drops a feature that was already reviewed and merged.
+
+**Re-run the derived specs after every rebase, not just before the push.** The
+rebase pulls in work the tests have never run against.
+
+**The one thing that must not slip:** check the PR is still open before
+committing to its branch. Working ahead means there is always an open PR
+somewhere, so `git branch --show-current` and `gh pr view <N> --json state`
+before a commit is cheap insurance against the orphaning above.
 
 ## After the owner merges an item into `next-update`
 
