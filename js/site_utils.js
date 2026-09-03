@@ -1252,13 +1252,13 @@ window.injectAuthModal = function() {
 
                 <div class="profile-field">
                     <label for="profile-flair">FLAIR <span id="profile-flair-count" class="profile-count"></span></label>
-                    <input type="text" id="profile-flair" class="editor-input" maxlength="32" placeholder="Sukuna main, guide writer...">
+                    <input type="text" id="profile-flair" class="editor-input" maxlength="32" placeholder="Vessel main, boomcat...">
                     <p class="profile-hint">Shown beside your name wherever you post.</p>
                 </div>
 
                 <div class="profile-field">
                     <label for="profile-bio">ABOUT YOU <span id="profile-bio-count" class="profile-count"></span></label>
-                    <textarea id="profile-bio" class="editor-input profile-bio" maxlength="500" rows="4" placeholder="What do you play, and what do you write about?"></textarea>
+                    <textarea id="profile-bio" class="editor-input profile-bio" maxlength="500" rows="4" placeholder="Describe yourself here and such"></textarea>
                 </div>
 
                 <div class="profile-field">
@@ -1331,6 +1331,10 @@ window.injectAuthModal = function() {
                     </div>
                 </div>
                 <p id="pubprofile-flair" class="pubprofile-flair hidden"></p>
+                <div id="pubprofile-expertise" class="pubprofile-expertise hidden">
+                    <span class="pubprofile-expertise-label">Expert of</span>
+                    <span id="pubprofile-expertise-pages"></span>
+                </div>
                 <p id="pubprofile-bio" class="pubprofile-bio"></p>
                 <p id="pubprofile-joined" class="profile-hint"></p>
             </div>
@@ -1744,6 +1748,31 @@ window.openPublicProfile = async function (userId) {
         const d = new Date(p.joined_at);
         joinedEl.textContent = isNaN(d.getTime()) ? ''
             : `Joined ${d.toLocaleDateString(undefined, { year: 'numeric', month: 'long' })}`;
+    }
+
+    // Expertise last and separately. It is a second request, and the profile is
+    // already readable without it - so a failure here costs a line rather than
+    // the modal. Before the release the RPC does not exist at all.
+    const expertiseEl = document.getElementById('pubprofile-expertise');
+    const pagesEl = document.getElementById('pubprofile-expertise-pages');
+    if (!expertiseEl || !pagesEl) return;
+    expertiseEl.classList.add('hidden');
+    pagesEl.textContent = '';
+
+    try {
+        const { data, error } = await window.supabaseClient
+            .rpc('get_user_expert_pages', { target_user_id: userId });
+        if (token !== window.__pubProfileToken) return;
+        if (error || !Array.isArray(data) || !data.length) return;
+
+        // Page NAMES, not ids - "crow_charmer" is not what the page is called
+        // anywhere a reader has seen it. textContent, because a page name is
+        // owner-authored content coming back from the database.
+        pagesEl.textContent = data.map(r => r.page_name || r.page_id).join(' · ');
+        expertiseEl.classList.remove('hidden');
+    } catch (e) {
+        // Leaves the line hidden, which is the same as somebody who is not an
+        // expert of anything.
     }
 };
 

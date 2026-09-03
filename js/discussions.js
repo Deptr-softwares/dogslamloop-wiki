@@ -116,16 +116,47 @@
         const slots = [...root.querySelectorAll('[data-profile-user]')];
         if (!slots.length) return;
 
-        const profiles = await window.fetchPublicProfiles(slots.map(s => s.dataset.profileUser));
+        // Two requests, both for the whole thread rather than per post, and
+        // both allowed to fail independently. Neither is worth a blank section.
+        const [profiles, expertIds] = await Promise.all([
+            window.fetchPublicProfiles(slots.map(s => s.dataset.profileUser)),
+            fetchExpertIds(),
+        ]);
 
         slots.forEach(slot => {
-            const p = profiles.get(slot.dataset.profileUser);
+            const userId = slot.dataset.profileUser;
+
+            // The EXPERT chip goes FIRST, before the flair. It is the site
+            // vouching for somebody on this specific page; the flair is what
+            // they wrote about themselves, and the two should not read as one
+            // label. It appears only in threads on a page they actually cover -
+            // an expert of Crow Charmer is an ordinary poster on Sukuna.
+            if (expertIds.has(userId) && !slot.querySelector('.discussion-expert')) {
+                slot.appendChild(el('span', 'discussion-expert', 'EXPERT'));
+            }
+
+            const p = profiles.get(userId);
             if (!p || !p.flair) return;
             if (slot.querySelector('.discussion-flair')) return;
             // textContent, via el(): the flair is contributor-written and this
             // renders on every thread on the site.
             slot.appendChild(el('span', 'discussion-flair', p.flair));
         });
+    }
+
+    // Who is an expert of THIS page. The thread already knows its page_id, so
+    // this is the cheap direction - one call, no per-author lookup.
+    async function fetchExpertIds() {
+        if (!client() || !state.pageId) return new Set();
+        try {
+            const { data, error } = await client()
+                .rpc('get_page_experts', { target_page_id: state.pageId });
+            if (error || !Array.isArray(data)) return new Set();
+            return new Set(data.map(r => r.user_id));
+        } catch (e) {
+            // Before the release this RPC does not exist. No chips, same thread.
+            return new Set();
+        }
     }
 
     // --- WHO IS READING ---

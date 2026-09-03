@@ -146,13 +146,16 @@ const SESSION = { user: { id: 'u-me', email: 'reader@site.test' }, access_token:
 // The RPCs these tests are about, with the thread's background profile lookups
 // filtered out.
 //
-// v0.17 F11 part 3 made every rendered thread call get_public_profiles() once to
-// draw authors' flairs. It is decoration, unrelated to anything asserted here,
-// and it broke four exact-match assertions on __rpcCalls the day it landed.
+// A rendered thread now makes two background calls of its own:
+// get_public_profiles() for flairs (F11 part 3) and get_page_experts() for the
+// EXPERT chip (F5). Both are decoration, unrelated to anything asserted here,
+// and each broke the same four exact-match assertions on __rpcCalls the day it
+// landed - which is why this is a LIST rather than a second !== comparison.
 // __rpcCalls still records everything the page really called - hiding a request
 // from it would be a lie - so the filter lives at the assertion instead.
-const actionCalls = (page) => page.evaluate(() =>
-    window.__rpcCalls.filter(c => c.name !== 'get_public_profiles'));
+const BACKGROUND_RPCS = ['get_public_profiles', 'get_page_experts'];
+const actionCalls = (page) => page.evaluate((skip) =>
+    window.__rpcCalls.filter(c => !skip.includes(c.name)), BACKGROUND_RPCS);
 
 async function open(page) {
     await page.goto(PAGE, { waitUntil: 'networkidle' });

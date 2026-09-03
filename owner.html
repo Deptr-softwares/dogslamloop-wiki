@@ -95,6 +95,34 @@
                     <div id="role-results" class="admin-tool-results"></div>
                 </section>
 
+                <!--
+                    Page Experts (v0.17 F5). An owner tool, not an admin one:
+                    which page a tool lives on decides who owns it, and granting
+                    somebody review rights over a page is a personnel decision
+                    rather than a queue action. assign_page_expert() enforces
+                    that server-side regardless of what this page draws.
+                -->
+                <section id="tool-page-experts" class="update-log-item admin-tool-card personnel">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title personnel">Page Experts</h3>
+                        <button onclick="loadPageExperts()" class="btn-sys btn-sys-regular admin-refresh-btn">&#8635; Refresh</button>
+                    </div>
+                    <p class="admin-tool-hint">An expert reviews submissions for their own pages and nothing else. They need no role at all &mdash; a knowledgeable player with an account is enough, which is why this is granted by email rather than picked from the roster.</p>
+
+                    <div id="page-experts-roster" class="personnel-roster">
+                        <p class="loading-msg">Loading experts...</p>
+                    </div>
+
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="expert-email">GRANT EXPERTISE BY EMAIL</label>
+                        <input type="email" id="expert-email" placeholder="user@email.com" class="editor-input admin-input-full">
+                        <select id="expert-page" class="editor-input admin-input-full select"></select>
+                        <button onclick="grantPageExpert()" class="btn-sys btn-sys-purple admin-tool-btn personnel">MAKE EXPERT</button>
+                    </div>
+
+                    <div id="page-experts-results" class="admin-tool-results"></div>
+                </section>
+
                 <section id="tool-staff-perks" class="update-log-item admin-tool-card personnel">
                     <div class="admin-tool-header-row">
                         <h3 class="update-title admin-tool-title personnel">Staff Perks</h3>
@@ -558,9 +586,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/character_tabs.js?v=de56fa09"></script>
-    <script src="js/input_slots.js?v=de56fa09"></script>
-    <script src="js/site_utils.js?v=de56fa09"></script>
+    <script src="js/character_tabs.js?v=618a1c32"></script>
+    <script src="js/input_slots.js?v=618a1c32"></script>
+    <script src="js/site_utils.js?v=618a1c32"></script>
     <script src="js/site_meta.js"></script>
     <script src="js/editor-folders.js"></script>
     <script src="js/editor-blocks.js"></script>
@@ -571,6 +599,7 @@
     <script src="js/owner-hub-lists.js"></script>
     <script src="js/owner-page-meta.js"></script>
     <script src="js/owner-staff-perks.js"></script>
+    <script src="js/owner-page-experts.js"></script>
     <script src="js/owner-tier-lists.js"></script>
     <script src="js/owner-nav.js"></script>
 </body>
