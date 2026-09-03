@@ -1068,3 +1068,14 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
     margin: 0 0 0.4rem 0; padding-bottom: 0.25rem;
     border-bottom: 1px solid #222;
 }
+
+/* A contributor's own reply in the ticket log (v0.17 F13). Distinct from a
+   staff line so a reviewer can tell who is speaking - the author could only
+   read this conversation until now. */
+.ticket-chat-from-author {
+    border-left: 3px solid var(--accent-blue);
+    padding: 0.15rem 0.5rem;
+    margin: 0.15rem 0;
+    background: rgba(96, 165, 250, 0.06);
+}
+.ticket-chat-author-badge { color: var(--accent-blue); }
