@@ -335,6 +335,17 @@
         "pageId": "boomcat",
         "editRole": "open"
       }
+    },
+    {
+      "id": "Strongest-of-History",
+      "name": "Strongest of History",
+      "url": "characters/Strongest_of_history/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "character",
+        "pageId": "strongest_of_history",
+        "editRole": "open"
+      }
     }
   ],
   "System Pages": [
