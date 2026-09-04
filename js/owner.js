@@ -1092,13 +1092,33 @@ async function loadFaqEntries() {
         return;
     }
 
+    // The answer was previously write-once: this tool could add and delete a
+    // question but never change one, so fixing a typo meant deleting the entry
+    // and retyping it - which also moved it to the bottom, because a new row
+    // gets a new sort_order.
+    //
+    // Edited in place rather than in a modal: the paragraph splitting is the
+    // thing most likely to surprise, and seeing the answer in the same shape it
+    // was written is what makes that legible.
     container.innerHTML = data.map(row => `
-        <div class="personnel-row">
+        <div class="personnel-row faq-row" data-id="${ownerEscape(row.id)}">
             <div class="personnel-row-main">
                 <span class="personnel-email">${ownerEscape(row.question)}</span>
             </div>
             <div class="personnel-row-actions">
+                <button class="btn-sys btn-sys-regular faq-edit-btn" data-id="${ownerEscape(row.id)}">EDIT</button>
                 <button class="btn-sys btn-sys-red faq-delete-btn" data-id="${ownerEscape(row.id)}">DELETE</button>
+            </div>
+            <div class="owner-inline-editor" hidden>
+                <label class="block-field-label-sm">QUESTION</label>
+                <input type="text" class="editor-input admin-input-full faq-edit-question" value="${ownerEscape(row.question)}">
+                <label class="block-field-label-sm">ANSWER</label>
+                <textarea class="editor-textarea admin-input-full faq-edit-answer" rows="5">${ownerEscape((row.paragraphs || []).join('\n\n'))}</textarea>
+                <p class="admin-tool-hint">A blank line starts a new paragraph.</p>
+                <div class="owner-inline-editor-actions">
+                    <button class="btn-sys btn-sys-green faq-save-btn" data-id="${ownerEscape(row.id)}">SAVE</button>
+                    <button class="btn-sys btn-sys-regular faq-cancel-btn">CANCEL</button>
+                </div>
             </div>
         </div>
     `).join('');
@@ -1106,7 +1126,60 @@ async function loadFaqEntries() {
     container.querySelectorAll('.faq-delete-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteFaqEntry(btn.dataset.id));
     });
+
+    // hidden, not style.display: the harness toggles .hidden elsewhere in this
+    // codebase and a stylesheet that later sets display on this class would win
+    // against an inline style set the other way.
+    container.querySelectorAll('.faq-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const editor = btn.closest('.faq-row').querySelector('.owner-inline-editor');
+            editor.hidden = !editor.hidden;
+        });
+    });
+
+    container.querySelectorAll('.faq-cancel-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Reloads rather than just hiding, so a cancelled edit cannot leave
+            // edited text sitting in a closed box waiting to confuse the next
+            // person who opens it.
+            loadFaqEntries();
+        });
+    });
+
+    container.querySelectorAll('.faq-save-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const row = btn.closest('.faq-row');
+            saveFaqEntry(
+                btn.dataset.id,
+                row.querySelector('.faq-edit-question').value,
+                row.querySelector('.faq-edit-answer').value
+            );
+        });
+    });
 }
+
+// Same paragraph rule as addFaqEntry, and deliberately the same validation:
+// an edit that empties an answer would render a question with nothing under it.
+async function saveFaqEntry(id, question, answer) {
+    const results = document.getElementById('faq-results');
+    const trimmed = question.trim();
+
+    if (!trimmed) { results.innerHTML = `<span class="admin-error-text">A question cannot be empty.</span>`; return; }
+
+    const paragraphs = answer.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+    if (paragraphs.length === 0) { results.innerHTML = `<span class="admin-error-text">An answer cannot be empty.</span>`; return; }
+
+    results.innerHTML = 'Saving...';
+
+    const { error } = await window.supabaseClient
+        .from('site_faq').update({ question: trimmed, paragraphs }).eq('id', id);
+
+    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`; return; }
+
+    results.innerHTML = `<span class="owner-success-text">Saved. It reaches the site on the next regeneration.</span>`;
+    await loadFaqEntries();
+}
+window.saveFaqEntry = saveFaqEntry;
 window.loadFaqEntries = loadFaqEntries;
 
 async function addFaqEntry() {
@@ -1152,12 +1225,57 @@ async function deleteFaqEntry(id) {
 // Single source for both the Collaborators page and the main dashboard's
 // Credits list, which used to be a hand-maintained duplicate in index.html.
 
+// The badge COLOUR. `role` is the text inside it - "Frame Data & Testing" -
+// and badge_type picks which of Badges.css's five it is drawn in. Two fields
+// that sound like one, so they are labelled by what they do rather than by
+// their column names.
+const CREDIT_BADGES = {
+    'badge-general': 'Purple (default)',
+    'badge-site': 'Green',
+    'badge-patch': 'Blue',
+    'badge-wip': 'Yellow',
+    'badge-ea': 'Orange',
+};
+
+// Stored as [{name, url}], edited as one "Name | URL" line each. A JSON
+// textarea would be the honest representation of the column and the wrong thing
+// to hand somebody adding a Discord link.
+function formatCollaboratorLinks(links) {
+    if (!Array.isArray(links)) return '';
+    return links.map(l => `${(l && l.name) || ''} | ${(l && l.url) || ''}`).join('\n');
+}
+
+function parseCollaboratorLinks(text) {
+    const links = [];
+    const rejected = [];
+
+    for (const line of String(text || '').split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        const split = trimmed.indexOf('|');
+        const name = split === -1 ? '' : trimmed.slice(0, split).trim();
+        const url = split === -1 ? trimmed : trimmed.slice(split + 1).trim();
+
+        // http(s) only. systems/collaborators/index.html builds link.url
+        // straight into an href, so a javascript: URL there would be a live
+        // script on a public page - and this tool is the first thing that ever
+        // let these be typed in, which makes the check this function's job.
+        if (!/^https?:\/\//i.test(url)) { rejected.push(trimmed); continue; }
+        links.push({ name: name || url, url });
+    }
+
+    return { links, rejected };
+}
+
+const CREDIT_FIELDS = 'id, name, role, description, avatar, badge_type, is_lead, links, section, sort_order';
+
 async function loadCollaborators() {
     const container = document.getElementById('credits-admin-list');
     if (!container) return;
 
     const { data, error } = await window.supabaseClient
-        .from('site_collaborators').select('id, name, description, section, sort_order').order('sort_order');
+        .from('site_collaborators').select(CREDIT_FIELDS).order('sort_order');
 
     if (error) { container.innerHTML = contentNotDeployedMessage(error, 'Credits'); return; }
 
@@ -1166,14 +1284,58 @@ async function loadCollaborators() {
         return;
     }
 
+    // Every column the collaborators page actually renders is editable here.
+    // The table has carried role, avatar, badge_type, is_lead and links since
+    // 20260808000005; this tool only ever read four of them, so the rest could
+    // be seen on the site and changed nowhere.
     container.innerHTML = data.map(row => `
-        <div class="personnel-row">
+        <div class="personnel-row credit-row" data-id="${ownerEscape(row.id)}">
             <div class="personnel-row-main">
                 <span class="update-badge ${row.section === 'main' ? 'badge-role-admin' : 'badge-role-contributor'}">${row.section === 'main' ? 'Contributor' : 'Thanks'}</span>
-                <span class="personnel-email">${ownerEscape(row.name)}</span>
+                <span class="personnel-email">${ownerEscape(row.name)}${row.role ? ` <span class="personnel-self">${ownerEscape(row.role)}</span>` : ''}</span>
             </div>
             <div class="personnel-row-actions">
+                <button class="btn-sys btn-sys-regular credit-edit-btn">EDIT</button>
                 <button class="btn-sys btn-sys-red credit-delete-btn" data-id="${ownerEscape(row.id)}">REMOVE</button>
+            </div>
+            <div class="owner-inline-editor" hidden>
+                <label class="block-field-label-sm">NAME</label>
+                <input type="text" class="editor-input admin-input-full credit-f-name" value="${ownerEscape(row.name)}">
+
+                <label class="block-field-label-sm">TAG &mdash; the text in the badge</label>
+                <input type="text" class="editor-input admin-input-full credit-f-role" value="${ownerEscape(row.role)}" placeholder="Frame Data &amp; Testing">
+
+                <label class="block-field-label-sm">TAG COLOUR</label>
+                <select class="editor-input admin-input-full select credit-f-badge">
+                    ${Object.entries(CREDIT_BADGES).map(([value, label]) =>
+                        `<option value="${ownerEscape(value)}" ${value === (row.badge_type || 'badge-general') ? 'selected' : ''}>${ownerEscape(label)}</option>`
+                    ).join('')}
+                </select>
+
+                <label class="block-field-label-sm">ICON &mdash; image path or URL</label>
+                <input type="text" class="editor-input admin-input-full credit-f-avatar" value="${ownerEscape(row.avatar)}" placeholder="/medias/images/Something.webp">
+
+                <label class="block-field-label-sm">DESCRIPTION</label>
+                <textarea class="editor-textarea admin-input-full credit-f-desc" rows="3">${ownerEscape(row.description)}</textarea>
+
+                <label class="block-field-label-sm">LINKS &mdash; one per line, "Name | https://..."</label>
+                <textarea class="editor-textarea admin-input-full credit-f-links" rows="3" placeholder="GitHub | https://github.com/someone">${ownerEscape(formatCollaboratorLinks(row.links))}</textarea>
+
+                <label class="block-field-label-sm">SECTION</label>
+                <select class="editor-input admin-input-full select credit-f-section">
+                    <option value="main" ${row.section === 'main' ? 'selected' : ''}>Contributor card</option>
+                    <option value="thanks" ${row.section === 'thanks' ? 'selected' : ''}>Special thanks line</option>
+                </select>
+
+                <label class="page-meta-flag">
+                    <input type="checkbox" class="credit-f-lead" ${row.is_lead ? 'checked' : ''}>
+                    <span>Lead &mdash; shown first, above the others</span>
+                </label>
+
+                <div class="owner-inline-editor-actions">
+                    <button class="btn-sys btn-sys-green credit-save-btn" data-id="${ownerEscape(row.id)}">SAVE</button>
+                    <button class="btn-sys btn-sys-regular credit-cancel-btn">CANCEL</button>
+                </div>
             </div>
         </div>
     `).join('');
@@ -1181,7 +1343,60 @@ async function loadCollaborators() {
     container.querySelectorAll('.credit-delete-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteCollaborator(btn.dataset.id));
     });
+
+    container.querySelectorAll('.credit-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const editor = btn.closest('.credit-row').querySelector('.owner-inline-editor');
+            editor.hidden = !editor.hidden;
+        });
+    });
+
+    // Reloads rather than hiding, so cancelled text cannot sit in a closed box.
+    container.querySelectorAll('.credit-cancel-btn').forEach(btn => {
+        btn.addEventListener('click', () => loadCollaborators());
+    });
+
+    container.querySelectorAll('.credit-save-btn').forEach(btn => {
+        btn.addEventListener('click', () => saveCollaborator(btn.dataset.id, btn.closest('.credit-row')));
+    });
 }
+
+async function saveCollaborator(id, row) {
+    const results = document.getElementById('credits-results');
+    const name = row.querySelector('.credit-f-name').value.trim();
+
+    if (!name) { results.innerHTML = `<span class="admin-error-text">A name cannot be empty.</span>`; return; }
+
+    const { links, rejected } = parseCollaboratorLinks(row.querySelector('.credit-f-links').value);
+    if (rejected.length > 0) {
+        // Named rather than dropped silently: a link that vanishes on save
+        // looks like the save failed.
+        results.innerHTML = `<span class="admin-error-text">These need to start with http:// or https:// &mdash; ${ownerEscape(rejected.join(', '))}</span>`;
+        return;
+    }
+
+    results.innerHTML = 'Saving...';
+
+    const { error } = await window.supabaseClient
+        .from('site_collaborators')
+        .update({
+            name,
+            role: row.querySelector('.credit-f-role').value.trim() || null,
+            badge_type: row.querySelector('.credit-f-badge').value,
+            avatar: row.querySelector('.credit-f-avatar').value.trim() || null,
+            description: row.querySelector('.credit-f-desc').value.trim() || null,
+            links,
+            section: row.querySelector('.credit-f-section').value,
+            is_lead: row.querySelector('.credit-f-lead').checked,
+        })
+        .eq('id', id);
+
+    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`; return; }
+
+    results.innerHTML = `<span class="owner-success-text">Saved ${ownerEscape(name)}. It reaches the site on the next regeneration.</span>`;
+    await loadCollaborators();
+}
+window.saveCollaborator = saveCollaborator;
 window.loadCollaborators = loadCollaborators;
 
 async function addCollaborator() {
@@ -1192,18 +1407,39 @@ async function addCollaborator() {
 
     if (!name) { results.innerHTML = `<span class="admin-error-text">Enter a name.</span>`; return; }
 
+    // Same parser and the same http(s) rule as the row editor - a link typed
+    // here must not be held to a looser standard than one edited there.
+    const { links, rejected } = parseCollaboratorLinks((document.getElementById('new-credit-links') || {}).value);
+    if (rejected.length > 0) {
+        results.innerHTML = `<span class="admin-error-text">These need to start with http:// or https:// &mdash; ${ownerEscape(rejected.join(', '))}</span>`;
+        return;
+    }
+
+    const fieldValue = (id) => ((document.getElementById(id) || {}).value || '').trim();
+
     const { data: last } = await window.supabaseClient
         .from('site_collaborators').select('sort_order').eq('section', section).order('sort_order', { ascending: false }).limit(1);
     const sortOrder = (last && last[0] ? last[0].sort_order : -10) + 10;
 
     const { error } = await window.supabaseClient
-        .from('site_collaborators').insert([{ name, description, section, sort_order: sortOrder }]);
+        .from('site_collaborators').insert([{
+            name,
+            description,
+            section,
+            sort_order: sortOrder,
+            role: fieldValue('new-credit-role') || null,
+            badge_type: fieldValue('new-credit-badge') || 'badge-general',
+            avatar: fieldValue('new-credit-avatar') || null,
+            links,
+        }]);
 
     if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`; return; }
 
     results.innerHTML = `<span class="owner-success-text">Added ${ownerEscape(name)}.</span>`;
-    document.getElementById('new-credit-name').value = '';
-    document.getElementById('new-credit-desc').value = '';
+    ['new-credit-name', 'new-credit-desc', 'new-credit-role', 'new-credit-avatar', 'new-credit-links'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
     await loadCollaborators();
 }
 window.addCollaborator = addCollaborator;

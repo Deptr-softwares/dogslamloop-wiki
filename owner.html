@@ -438,6 +438,24 @@
                         <label class="block-field-label-sm" for="new-credit-name">ADD SOMEONE</label>
                         <input type="text" id="new-credit-name" class="editor-input admin-input-full" placeholder="Name">
                         <input type="text" id="new-credit-desc" class="editor-input admin-input-full" placeholder="What they did">
+                        <!--
+                            The tag and its colour are two fields that sound
+                            like one: `role` is the text inside the badge,
+                            badge_type is which of Badges.css's five it is
+                            drawn in. Everything here can also be changed later
+                            with EDIT on the row above - this form exists so
+                            adding somebody complete does not take two passes.
+                        -->
+                        <input type="text" id="new-credit-role" class="editor-input admin-input-full" placeholder="Tag, e.g. Frame Data &amp; Testing">
+                        <select id="new-credit-badge" class="editor-input admin-input-full select">
+                            <option value="badge-general">Tag colour: Purple (default)</option>
+                            <option value="badge-site">Tag colour: Green</option>
+                            <option value="badge-patch">Tag colour: Blue</option>
+                            <option value="badge-wip">Tag colour: Yellow</option>
+                            <option value="badge-ea">Tag colour: Orange</option>
+                        </select>
+                        <input type="text" id="new-credit-avatar" class="editor-input admin-input-full" placeholder="Icon path, e.g. /medias/images/Something.webp">
+                        <textarea id="new-credit-links" class="editor-textarea admin-input-full" rows="2" placeholder="Links, one per line: GitHub | https://github.com/someone"></textarea>
                         <select id="new-credit-section" class="editor-input admin-input-full select">
                             <option value="main">Main contributor (full card)</option>
                             <option value="thanks">Special thanks (one line)</option>
@@ -605,21 +623,21 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/character_tabs.js?v=49b50018"></script>
-    <script src="js/input_slots.js?v=49b50018"></script>
-    <script src="js/site_utils.js?v=49b50018"></script>
-    <script src="js/site_meta.js?v=49b50018"></script>
-    <script src="js/editor-folders.js?v=49b50018"></script>
-    <script src="js/editor-blocks.js?v=49b50018"></script>
-    <script src="js/owner.js?v=49b50018"></script>
+    <script src="js/character_tabs.js?v=e3927103"></script>
+    <script src="js/input_slots.js?v=e3927103"></script>
+    <script src="js/site_utils.js?v=e3927103"></script>
+    <script src="js/site_meta.js?v=e3927103"></script>
+    <script src="js/editor-folders.js?v=e3927103"></script>
+    <script src="js/editor-blocks.js?v=e3927103"></script>
+    <script src="js/owner.js?v=e3927103"></script>
     <!-- After owner.js: both use its ownerEscape and contentNotDeployedMessage. -->
-    <script src="js/owner-site-meta.js?v=49b50018"></script>
-    <script src="js/owner-hub-text.js?v=49b50018"></script>
-    <script src="js/owner-hub-lists.js?v=49b50018"></script>
-    <script src="js/owner-page-meta.js?v=49b50018"></script>
-    <script src="js/owner-staff-perks.js?v=49b50018"></script>
-    <script src="js/owner-page-experts.js?v=49b50018"></script>
-    <script src="js/owner-tier-lists.js?v=49b50018"></script>
-    <script src="js/owner-nav.js?v=49b50018"></script>
+    <script src="js/owner-site-meta.js?v=e3927103"></script>
+    <script src="js/owner-hub-text.js?v=e3927103"></script>
+    <script src="js/owner-hub-lists.js?v=e3927103"></script>
+    <script src="js/owner-page-meta.js?v=e3927103"></script>
+    <script src="js/owner-staff-perks.js?v=e3927103"></script>
+    <script src="js/owner-page-experts.js?v=e3927103"></script>
+    <script src="js/owner-tier-lists.js?v=e3927103"></script>
+    <script src="js/owner-nav.js?v=e3927103"></script>
 </body>
 </html>
