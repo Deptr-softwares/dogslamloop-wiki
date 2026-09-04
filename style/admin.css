@@ -904,10 +904,26 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 /* --- ACCOUNT SEARCH (js/owner.js searchAccounts) ---
    The roster reads user_roles and so can only show people who already hold
    something. This finds everyone else. Same row markup, so the results need no
-   layout of their own - only the input line does. */
-.personnel-search-row { display: flex; gap: 0.5rem; align-items: stretch; }
-.personnel-search-row .editor-input { flex: 1 1 auto; min-width: 0; }
-.personnel-search-row .admin-tool-btn { flex: 0 0 auto; margin-top: 0; }
+   layout of their own - only the input line does.
+
+   Both children need their inherited full-width rules undone, and the button's
+   is the one that bites: .admin-tool-btn sets width:100% and
+   .owner-tool-area .admin-tool-btn sets it again more specifically, so
+   `flex: 0 0 auto` resolved the basis to 100% of the row AND forbade shrinking.
+   Measured before the fix: a 480px row with a 480px button and an 18px input.
+   width:auto is the load-bearing declaration here, not the flex shorthand.
+
+   Scoped under .owner-tool-area so this beats that rule on specificity rather
+   than on source order - the two are otherwise tied at (0,2,0), which is a
+   coin-flip for anybody who later moves a block. */
+.personnel-search-row { display: flex; gap: 0.5rem; align-items: center; }
+.owner-tool-area .personnel-search-row .editor-input { flex: 1 1 auto; min-width: 0; margin: 0; }
+.owner-tool-area .personnel-search-row .admin-tool-btn {
+    flex: 0 0 auto;
+    width: auto;
+    margin: 0;
+    padding: 0.4rem 1rem;
+}
 
 /* The display name is what the owner searched by, so it leads; the address is
    the thing they came to copy, and stays visible next to it. */

@@ -185,6 +185,40 @@ test('a burner account with no role is found and rendered with full controls', a
     await expect(found.locator('.personnel-capability-box[data-capability="can_moderate"]')).toBeEnabled();
 });
 
+test('the search input gets the room, not the button', async ({ page }) => {
+    // Shipped broken and caught by the owner looking at it: .admin-tool-btn
+    // carries width:100% (twice - .admin-tool-btn and the more specific
+    // .owner-tool-area .admin-tool-btn), so `flex: 0 0 auto` resolved its basis
+    // to that 100% and forbade it from shrinking. The button took the whole row
+    // and the input was left a sliver.
+    //
+    // Ratios rather than pixels: Linux renders these fonts wider than Windows,
+    // and the claim is "the input is the primary control", not a measurement.
+    await openOwner(page);
+
+    const box = await page.evaluate(() => {
+        const row = document.querySelector('.personnel-search-row');
+        const input = document.getElementById('account-search');
+        const btn = row.querySelector('button');
+        const r = row.getBoundingClientRect();
+        const i = input.getBoundingClientRect();
+        const b = btn.getBoundingClientRect();
+        return {
+            rowWidth: r.width,
+            inputWidth: i.width,
+            btnWidth: b.width,
+            sameLine: Math.abs(i.top - b.top) < 5,
+        };
+    });
+
+    // It is a row at all - if this fails the flex container is gone entirely.
+    expect(box.sameLine).toBe(true);
+    // The field being typed into is the bigger of the two.
+    expect(box.inputWidth).toBeGreaterThan(box.btnWidth);
+    // And the button is a button, not a banner.
+    expect(box.btnWidth / box.rowWidth).toBeLessThan(0.45);
+});
+
 test('a one-character query never reaches the database', async ({ page }) => {
     // Matches the function's own floor. Asserting the RPC was NOT called is
     // the claim - a lookup that dumps the user table is the failure here.
