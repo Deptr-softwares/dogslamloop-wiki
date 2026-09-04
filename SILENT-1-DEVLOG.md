@@ -106,7 +106,7 @@ roleless user; and bug 2's real answer. The biggest item in the list and the
 one the owner hits daily.
 
 **PR 3 — content tools.** FAQ edit, collaborator fields and edit, tier-list
-contributor removal.
+contributor removal. Plus a regression PR 2 caused, found by sweeping.
 
 **PR 4 — pages.** The Pages tool's single long column, and character colour
 codes.
@@ -201,6 +201,88 @@ current value visible without making an unofferable role grantable.
 Reverting **only** `js/owner.js` failed 11 tests and left the 9 SQL tests
 passing — the split is the point: each half fails for its own claim rather than
 everything collapsing together.
+
+---
+
+## PR 3 — what shipped
+
+**Two of the three needed no migration at all.** `site_faq` and
+`site_collaborators` have carried a `FOR ALL` policy on `is_owner()` with UPDATE
+granted since `20260808000005`, and `site_collaborators` has carried `role`,
+`avatar`, `badge_type`, `is_lead` and `links` from the start. The database has
+permitted every one of these edits for a month; the tools simply never asked.
+Four columns were readable on the public site and changeable nowhere.
+
+Editing is **inline on the row**, not a modal — for the FAQ the paragraph
+splitting is the thing most likely to surprise, and seeing the answer in the
+shape it was typed is what makes that legible. CANCEL reloads rather than
+hiding, so cancelled text cannot sit in a closed box waiting for the next person
+who opens it.
+
+It also removes a workaround with a real cost: fixing a typo meant delete and
+retype, which **moved the entry to the bottom**, because a re-add gets a new
+`sort_order`.
+
+### Archiving is a deliberate refusal of the literal request
+
+The owner asked to *remove* a tier list contributor. `set_tier_list_status`
+archives instead. `'archived'` is already in `tier_lists_status_check` and the
+public read policy is `status = 'published'`, so archiving takes the list off
+the site — which is the part actually wanted. Deleting would take more:
+`tier_list_changes` references `tier_lists` `ON DELETE CASCADE`, so every note
+explaining every move goes with it, unrecoverably. Status is a parameter, so the
+same function puts a list back.
+
+The `trusted_editor` role `assign_tier_list` may have granted is **not** revoked
+as a side effect. That is a separate decision and the roster is where roles are
+managed.
+
+### A regression PR 2 caused, found by sweeping rather than by report
+
+Making `role` nullable changed what `existing_role IS NULL` **means**. It used
+to imply "this person has no row at all"; it now also matches a roleless
+capability holder. `assign_tier_list` read exactly that:
+
+```sql
+IF existing_role IS NULL THEN
+    INSERT ... ON CONFLICT (user_id) DO NOTHING;
+    granted := true;
+```
+
+For a roleless capability holder the row already exists, so `DO NOTHING` did
+nothing — and `granted := true` then reported *"Granted trusted_editor."*
+anyway. **No error, no role, and a message saying otherwise.**
+
+`granted` now comes from `FOUND`, and the `DO UPDATE` carries a `WHERE
+role IS NULL` so a role gained between the SELECT and the INSERT cannot be
+silently demoted to `trusted_editor`.
+
+**Swept for other readers of that assumption; `existing_role` was the only one.**
+The two `count(*)` sites filter on `role = 'admin'`, which a NULL row does not
+match, and every other `IS NULL` test against `user_roles` is on
+`target_user_id` — "no such account" — which is unaffected. Recorded because
+the sweep is the evidence, not the absence of a bug report.
+
+### Escaping the collaborators page
+
+It built six values straight into `innerHTML`. Owner-authored, so not
+attacker-reachable — but **this pass is the first thing that ever let four of
+those columns be typed in**, which makes it the input path and brings the
+project standard with it. Links are held to http(s) at both entry points as
+well: escaping stops a tag being written, that check stops a `javascript:` href
+being followed.
+
+### Two things the tests found
+
+The Tier Lists group **loads its roster from a click handler on the nav button**,
+not from `showOwnerGroup()` — deliberately, since the block editor is heavy. A
+test calling the switcher directly leaves the roster on "Loading..." forever, so
+it now clicks the real control.
+
+And a run of 113 specs across 9 files reported 2 failures in
+`certified-tier-lists.spec.js`, a file this PR does not touch. **All 22 pass in
+isolation** — load, not a regression, which is the documented way to tell those
+apart here.
 
 ---
 
