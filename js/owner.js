@@ -578,22 +578,56 @@ async function loadSitePages() {
         return;
     }
 
-    container.innerHTML = data.map(page => `
-        <div class="personnel-row">
-            <div class="personnel-row-main">
-                <span class="update-badge badge-status-${ownerEscape(page.status)}">${ownerEscape(STATUS_LABELS[page.status] || page.status)}</span>
-                <span class="personnel-email">${ownerEscape(page.name)}</span>
-                <span class="page-row-path">${ownerEscape(page.url)}</span>
-            </div>
-            <div class="personnel-row-actions">
-                <button class="btn-sys btn-sys-regular page-move-btn" data-page="${ownerEscape(page.page_id)}" data-dir="up" title="Move up">▲</button>
-                <button class="btn-sys btn-sys-regular page-move-btn" data-page="${ownerEscape(page.page_id)}" data-dir="down" title="Move down">▼</button>
-                ${page.status === 'archived'
-                    ? `<button class="btn-sys btn-sys-green page-restore-btn" data-page="${ownerEscape(page.page_id)}">RESTORE</button>`
-                    : `<button class="btn-sys btn-sys-yellow page-archive-btn" data-page="${ownerEscape(page.page_id)}">ARCHIVE</button>`}
-            </div>
-        </div>
+    // Grouped by category rather than listed flat.
+    //
+    // Owner: "the pages are placed on a column. They mirror the data structure
+    // well, but they aren't seperated well and create a long column, so
+    // scrolling through them take quite a time." Fifty-two rows ordered by
+    // category with nothing marking where one category ends.
+    //
+    // Collapsed by default, so the tool opens as a short list of categories
+    // instead of a page of rows - and <details> rather than a JS toggle,
+    // because the browser already does this correctly including keyboard and
+    // find-in-page.
+    //
+    // The row markup inside is untouched: the move and archive buttons are
+    // bound by class below and do not care that they now sit inside a group.
+    const groups = new Map();
+    for (const page of data) {
+        const key = page.category || 'Uncategorised';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(page);
+    }
+
+    container.innerHTML = [...groups.entries()].map(([category, pages]) => `
+        <details class="page-group" data-category="${ownerEscape(category)}">
+            <summary class="page-group-summary">
+                <span class="page-group-name">${ownerEscape(category)}</span>
+                <span class="page-group-count">${pages.length}</span>
+            </summary>
+            ${pages.map(page => `
+                <div class="personnel-row page-row"
+                     data-search="${ownerEscape(`${page.name} ${page.url} ${category}`.toLowerCase())}">
+                    <div class="personnel-row-main">
+                        <span class="update-badge badge-status-${ownerEscape(page.status)}">${ownerEscape(STATUS_LABELS[page.status] || page.status)}</span>
+                        <span class="personnel-email">${ownerEscape(page.name)}</span>
+                        <span class="page-row-path">${ownerEscape(page.url)}</span>
+                    </div>
+                    <div class="personnel-row-actions">
+                        <button class="btn-sys btn-sys-regular page-move-btn" data-page="${ownerEscape(page.page_id)}" data-dir="up" title="Move up">▲</button>
+                        <button class="btn-sys btn-sys-regular page-move-btn" data-page="${ownerEscape(page.page_id)}" data-dir="down" title="Move down">▼</button>
+                        ${page.status === 'archived'
+                            ? `<button class="btn-sys btn-sys-green page-restore-btn" data-page="${ownerEscape(page.page_id)}">RESTORE</button>`
+                            : `<button class="btn-sys btn-sys-yellow page-archive-btn" data-page="${ownerEscape(page.page_id)}">ARCHIVE</button>`}
+                    </div>
+                </div>
+            `).join('')}
+        </details>
     `).join('');
+
+    // Re-apply whatever is in the filter box, so a reload after archiving or
+    // moving does not silently drop the owner back to the full list.
+    filterSitePages();
 
     container.querySelectorAll('.page-archive-btn').forEach(btn => {
         btn.addEventListener('click', () => setPageStatus(btn.dataset.page, 'archived'));
@@ -605,6 +639,15 @@ async function loadSitePages() {
         btn.addEventListener('click', () => movePage(btn.dataset.page, btn.dataset.dir));
     });
 
+    const filter = document.getElementById('pages-filter');
+    // Bound once. loadSitePages runs again after every archive and every move,
+    // and re-adding the listener each time would fire the handler once per
+    // reload that had happened since the page opened.
+    if (filter && !filter.dataset.bound) {
+        filter.dataset.bound = '1';
+        filter.addEventListener('input', filterSitePages);
+    }
+
     cachedSitePages = data;
     // Order matters: both of these read knownCategories(), which derives from
     // the cache assigned on the line above.
@@ -612,6 +655,37 @@ async function loadSitePages() {
     populatePositionOptions();
     updateCategoryNote();
 }
+
+// Filters across name, url and category at once, and OPENS a group that has a
+// match - a filter that leaves everything collapsed has told you a page exists
+// and hidden it in the same breath.
+//
+// Groups with no match are hidden entirely rather than left as empty headers,
+// which would make an empty result look like a list of categories.
+function filterSitePages() {
+    const filter = document.getElementById('pages-filter');
+    const container = document.getElementById('pages-list');
+    if (!container) return;
+
+    const needle = ((filter && filter.value) || '').trim().toLowerCase();
+
+    container.querySelectorAll('.page-group').forEach(group => {
+        let matches = 0;
+
+        group.querySelectorAll('.page-row').forEach(row => {
+            const hit = !needle || (row.dataset.search || '').includes(needle);
+            row.hidden = !hit;
+            if (hit) matches += 1;
+        });
+
+        group.hidden = matches === 0;
+        // Opened only while filtering. With the box empty the tool returns to
+        // its short, all-collapsed shape rather than staying expanded from the
+        // last search.
+        group.open = needle.length > 0 && matches > 0;
+    });
+}
+window.filterSitePages = filterSitePages;
 window.loadSitePages = loadSitePages;
 
 // Kept so the position dropdown and the move buttons can reason about
