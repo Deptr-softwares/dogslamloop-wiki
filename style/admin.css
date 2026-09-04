@@ -893,6 +893,137 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 .personnel-capability:hover { color: var(--text-white); }
 .personnel-capability-box { cursor: pointer; }
 
+/* A disabled box is disabled for a REASON, and the reason used to live only in
+   a title attribute - invisible to somebody who has already clicked and seen
+   nothing happen, which is exactly how it got reported as broken. The label
+   now carries it, and the row dims so the box does not look merely unticked. */
+.personnel-capability:has(.personnel-capability-box:disabled) { cursor: default; opacity: 0.6; }
+.personnel-capability:has(.personnel-capability-box:disabled):hover { color: #888; }
+.personnel-capability-note { font-style: italic; opacity: 0.85; }
+
+/* --- ACCOUNT SEARCH (js/owner.js searchAccounts) ---
+   The roster reads user_roles and so can only show people who already hold
+   something. This finds everyone else. Same row markup, so the results need no
+   layout of their own - only the input line does.
+
+   Both children need their inherited full-width rules undone, and the button's
+   is the one that bites: .admin-tool-btn sets width:100% and
+   .owner-tool-area .admin-tool-btn sets it again more specifically, so
+   `flex: 0 0 auto` resolved the basis to 100% of the row AND forbade shrinking.
+   Measured before the fix: a 480px row with a 480px button and an 18px input.
+   width:auto is the load-bearing declaration here, not the flex shorthand.
+
+   Scoped under .owner-tool-area so this beats that rule on specificity rather
+   than on source order - the two are otherwise tied at (0,2,0), which is a
+   coin-flip for anybody who later moves a block. */
+.personnel-search-row { display: flex; gap: 0.5rem; align-items: center; }
+.owner-tool-area .personnel-search-row .editor-input { flex: 1 1 auto; min-width: 0; margin: 0; }
+.owner-tool-area .personnel-search-row .admin-tool-btn {
+    flex: 0 0 auto;
+    width: auto;
+    margin: 0;
+    padding: 0.4rem 1rem;
+}
+
+/* --- CHARACTER COLOUR (js/owner-page-meta.js) ---
+   Three controls for one value: the text field IS the value, because it has to
+   hold hsl() as well as hex; the native picker is a way to fill it in; the
+   swatch is there because a colour string is not a colour to a person. */
+.page-meta-color-row { display: flex; gap: 0.5rem; align-items: center; }
+.owner-tool-area .page-meta-color-row .page-meta-color-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+}
+.page-meta-color-swatch {
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid var(--border-color);
+    box-shadow: 2px 2px 0 var(--manga-shadow);
+}
+/* Diagonal stripe for "nothing set", so an unset colour cannot be mistaken for
+   a black one - which is a colour somebody might genuinely have chosen. */
+.page-meta-color-swatch-empty {
+    background: repeating-linear-gradient(45deg, #222, #222 4px, #111 4px, #111 8px) !important;
+}
+.page-meta-color-picker {
+    flex: 0 0 auto;
+    width: 2.5rem;
+    height: 2rem;
+    padding: 0;
+    border: 2px solid var(--border-color);
+    background: none;
+    cursor: pointer;
+}
+
+/* --- PAGE REGISTRY GROUPS (js/owner.js loadSitePages) ---
+   Fifty-two rows in one column with nothing between categories. <details>
+   rather than a JS toggle: the browser already handles the keyboard, and
+   find-in-page opens a closed group on its own, which a div never would. */
+.page-group { border-bottom: 1px solid #222; }
+.page-group[hidden] { display: none; }
+.page-group-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.55rem 0.25rem;
+    cursor: pointer;
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+}
+.page-group-summary:hover { color: var(--text-white); }
+.page-group[open] > .page-group-summary { color: var(--text-white); }
+/* The count is the reason the collapsed view is useful - it says how much is
+   behind the heading without opening it. */
+.page-group-count {
+    font-size: 0.65rem;
+    color: #888;
+    background: #1c1c1c;
+    border: 1px solid #333;
+    padding: 0.1rem 0.45rem;
+}
+.page-group .personnel-row:last-child { border-bottom: none; }
+/* .personnel-row sets display:flex, which BEATS the user-agent's
+   `[hidden] { display: none }` on specificity - so filtering set row.hidden and
+   the row stayed on screen. Caught by a test asserting what the reader sees
+   rather than that the property was set. */
+.page-row[hidden] { display: none; }
+
+/* --- INLINE ROW EDITORS (FAQ, credits) ---
+   Opened by EDIT on the row itself rather than in a modal: for the FAQ the
+   paragraph splitting is the thing most likely to surprise, and seeing the
+   answer in the shape it was written is what makes that legible. Spans the full
+   row because .personnel-row is a wrapping flex container. */
+.owner-inline-editor {
+    flex: 1 0 100%;
+    margin-top: 0.6rem;
+    padding-top: 0.6rem;
+    border-top: 1px dashed #333;
+}
+.owner-inline-editor .block-field-label-sm { margin-top: 0.5rem; }
+.owner-inline-editor-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+/* Undo .owner-tool-area .admin-tool-btn's width:100% the same way the search
+   row does - two buttons side by side, not two stacked banners. */
+.owner-tool-area .owner-inline-editor-actions .btn-sys { width: auto; margin: 0; }
+
+/* The display name is what the owner searched by, so it leads; the address is
+   the thing they came to copy, and stays visible next to it. */
+.personnel-name {
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    color: var(--text-white);
+    margin-right: 0.4rem;
+}
+
+/* No role is a real state now that a capability can stand on its own. Neutral
+   rather than a role colour: it is the absence of one, not another rank. */
+.badge-role-none { background: #2a2a2a; color: #999; border-color: #3a3a3a; }
+
 /* --- REPORT QUEUE (v0.14 item 6) ---
    Third queue in the sidebar column, deliberately built from the same pieces
    as the media queue above it rather than a new visual language: a reviewer

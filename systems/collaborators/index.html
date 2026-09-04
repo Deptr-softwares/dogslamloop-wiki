@@ -116,14 +116,32 @@
 
     <!-- V0.4 SYSTEM SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../../js/character_tabs.js?v=f4c5a03d"></script>
-    <script src="../../js/input_slots.js?v=f4c5a03d"></script>
-    <script src="../../js/site_utils.js?v=f4c5a03d"></script>
-    <script src="../../js/site_meta.js?v=f4c5a03d"></script>
-    <script src="../../js/pagebuilder.js?v=f4c5a03d"></script>
+    <script src="../../js/character_tabs.js?v=00296a82"></script>
+    <script src="../../js/input_slots.js?v=00296a82"></script>
+    <script src="../../js/site_utils.js?v=00296a82"></script>
+    <script src="../../js/site_meta.js?v=00296a82"></script>
+    <script src="../../js/pagebuilder.js?v=00296a82"></script>
 
     <!-- LOCAL COLLABORATORS FETCH & RENDER ENGINE -->
     <script>
+        // Every value below comes from site_collaborators, and as of
+        // 2026-09-04 the owner tools can edit ALL of it - name, tag, icon,
+        // description and links - where before they could only set a name and
+        // a description. That makes this the page's first real interpolation
+        // surface, and the standard this codebase holds is escape at every
+        // innerHTML interpolation regardless of who authored the value.
+        //
+        // Local rather than shared, matching this project's preference for
+        // small per-file duplication over new cross-file coupling. The owner
+        // tools reject any link URL that is not http(s), which is the other
+        // half of this: escaping stops a tag being written, and that check
+        // stops a javascript: href being followed.
+        function credEscape(value) {
+            return String(value === null || value === undefined ? '' : value)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             // Standard Menu Bindings
             if (window.initMobileNav) window.initMobileNav();
@@ -161,7 +179,7 @@
                         if (contributor.links && contributor.links.length > 0) {
                             linksHtml = `<div style="margin-top: auto; display: flex; gap: 0.5rem; flex-wrap: wrap; padding-top: 1rem;">`;
                             contributor.links.forEach(link => {
-                                linksHtml += `<a href="${link.url}" target="_blank" class="btn-sys btn-sys-blue" style="text-decoration: none;">${link.name}</a>`;
+                                linksHtml += `<a href="${credEscape(link.url)}" target="_blank" class="btn-sys btn-sys-blue" style="text-decoration: none;">${credEscape(link.name)}</a>`;
                             });
                             linksHtml += `</div>`;
                         }
@@ -172,8 +190,8 @@
                             avatarSrc = rootPath + avatarSrc.substring(1);
                         }
 
-                        const avatarHtml = avatarSrc 
-                            ? `<img src="${avatarSrc}" alt="${contributor.name}" class="contributor-avatar">` 
+                        const avatarHtml = avatarSrc
+                            ? `<img src="${credEscape(avatarSrc)}" alt="${credEscape(contributor.name)}" class="contributor-avatar">`
                             : `<div class="contributor-avatar-placeholder">N/A</div>`;
 
                         const cardHtml = `
@@ -182,12 +200,12 @@
                                     <div class="contributor-header">
                                         ${avatarHtml}
                                         <div>
-                                            <h3 style="margin: 0 0 0.25rem 0; font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; color: var(--text-white);">${contributor.name}</h3>
-                                            <span class="update-badge ${contributor.badgeType || 'badge-general'}">${contributor.role}</span>
+                                            <h3 style="margin: 0 0 0.25rem 0; font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; color: var(--text-white);">${credEscape(contributor.name)}</h3>
+                                            <span class="update-badge ${credEscape(contributor.badgeType || 'badge-general')}">${credEscape(contributor.role)}</span>
                                         </div>
                                     </div>
                                     <p class="strategy-paragraph" style="margin: 0; font-size: 0.85rem; color: var(--text-primary);">
-                                        ${contributor.description}
+                                        ${credEscape(contributor.description)}
                                     </p>
                                     ${linksHtml}
                                 </div>
@@ -205,7 +223,7 @@
                     data.specialThanks.forEach(person => {
                         thanksList.insertAdjacentHTML('beforeend', `
                             <li>
-                                <strong style="color: var(--accent-blue); font-family: var(--text-mono);">${person.name}</strong> - <span style="color: var(--text-primary);">${person.reason}</span>
+                                <strong style="color: var(--accent-blue); font-family: var(--text-mono);">${credEscape(person.name)}</strong> - <span style="color: var(--text-primary);">${credEscape(person.reason)}</span>
                             </li>
                         `);
                     });

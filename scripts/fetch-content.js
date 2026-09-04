@@ -22,6 +22,7 @@ const ROOT = path.join(__dirname, '..');
 const FAQ_PATH = path.join(ROOT, 'data', 'faq.json');
 const COLLAB_PATH = path.join(ROOT, 'systems', 'collaborators', 'collaborators_data.json');
 const META_PATH = path.join(ROOT, 'data', 'site_meta.json');
+const SITE_META_JS_PATH = path.join(ROOT, 'js', 'site_meta.js');
 
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://gtqswjspxymjdopljmfi.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
@@ -148,6 +149,88 @@ async function fetchTable(table) {
     return rows;
 }
 
+// --- CHARACTER COLOURS ---
+//
+// Written into a MARKED REGION of js/site_meta.js rather than into a JSON file
+// of its own, because ten modules read window.CHARACTER_COLORS synchronously at
+// script-evaluation time. A JSON file would have to be fetched, which would mean
+// changing all ten and introducing a load-order problem the site does not have.
+//
+// A region rather than the whole file, because js/site_meta.js also holds
+// CHARACTER_ALIASES and applyCharacterTheme, both hand-authored. Aliases
+// describe how people WRITE about the roster rather than the roster itself -
+// the file's own comment is explicit that they are deliberately not colour
+// dictionary entries - so they are not generated from site_pages.
+const COLORS_BEGIN = '// --- GENERATED REGION: CHARACTER_COLORS (scripts/fetch-content.js) ---';
+const COLORS_END = '// --- END GENERATED REGION ---';
+
+// Keyed by NAME, because that is what every consumer looks up: the roster card
+// has the name, and internalstyling.js matches names in prose. page_id is the
+// database's key, not this dictionary's.
+function buildCharacterColors(rows) {
+    // THE DEPLOY WINDOW. Migrations apply on merge to main, so between this
+    // code landing on next-update and the release, production's site_pages has
+    // no `color` column at all - and `select=*` simply returns rows without the
+    // key rather than failing.
+    //
+    // Distinguished from "the column exists and every value is NULL", which is
+    // the dangerous case this function must refuse. No key anywhere means not
+    // deployed yet; returning null skips the write and leaves the committed
+    // dictionary exactly as it is, so the regeneration job still refreshes the
+    // FAQ and the collaborators instead of failing the whole run over a column
+    // that has not shipped.
+    const columnExists = rows.some(r => Object.prototype.hasOwnProperty.call(r, 'color'));
+    if (!columnExists) return null;
+
+    const characters = rows
+        .filter(r => r.page_type === 'character' && r.color && String(r.color).trim() !== '')
+        .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+    // Refusing rather than writing an empty dictionary, for the same reason
+    // fetchTable refuses zero rows: an empty result is a broken query or a
+    // policy change, never a request to un-colour the entire roster.
+    if (characters.length === 0) {
+        throw new Error('Refusing to continue: no character page has a colour set.');
+    }
+
+    const body = characters
+        .map(r => `    ${JSON.stringify(r.name)}: ${JSON.stringify(String(r.color).trim())}`)
+        .join(',\n');
+
+    return `${COLORS_BEGIN}\nwindow.CHARACTER_COLORS = {\n${body}\n};\n${COLORS_END}`;
+}
+
+// Swaps the marked region and leaves the rest of the file byte-identical.
+function replaceRegion(source, region) {
+    const start = source.indexOf(COLORS_BEGIN);
+    const end = source.indexOf(COLORS_END);
+
+    // Refuse rather than guess. generate-pages.js takes the same line with its
+    // own marker: a file that does not say where the generated part begins is a
+    // file this script must not rewrite.
+    if (start === -1 || end === -1 || end < start) {
+        throw new Error(
+            'js/site_meta.js is missing the CHARACTER_COLORS generated-region markers. ' +
+            'Restore them before regenerating - writing without them would guess at the boundary.');
+    }
+
+    return source.slice(0, start) + region + source.slice(end + COLORS_END.length);
+}
+
+function writeRegionIfChanged(filePath, region, label, write, results) {
+    // null means the source column is not deployed yet - see buildCharacterColors.
+    if (region === null) { results.push(`${label}: skipped (column not deployed)`); return; }
+
+    const current = fs.readFileSync(filePath, 'utf8');
+    const next = replaceRegion(current, region);
+
+    if (current === next) { results.push(`${label}: no change`); return; }
+    if (!write) { results.push(`${label}: would update`); return; }
+
+    fs.writeFileSync(filePath, next);
+    results.push(`${label}: written`);
+}
+
 function writeIfChanged(filePath, value, label, write, results) {
     const next = JSON.stringify(value, null, 2) + '\n';
     const current = fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : null;
@@ -162,16 +245,18 @@ function writeIfChanged(filePath, value, label, write, results) {
 async function main() {
     const write = process.argv.includes('--write');
 
-    const [faqRows, collabRows, metaRow] = await Promise.all([
+    const [faqRows, collabRows, metaRow, pageRows] = await Promise.all([
         fetchTable('site_faq'),
         fetchTable('site_collaborators'),
         fetchSingleton('site_meta'),
+        fetchTable('site_pages'),
     ]);
 
     const results = [];
     writeIfChanged(FAQ_PATH, buildFaq(faqRows), 'faq.json', write, results);
     writeIfChanged(COLLAB_PATH, buildCollaborators(collabRows), 'collaborators_data.json', write, results);
     writeIfChanged(META_PATH, buildSiteMeta(metaRow), 'site_meta.json', write, results);
+    writeRegionIfChanged(SITE_META_JS_PATH, buildCharacterColors(pageRows), 'site_meta.js colours', write, results);
 
     console.log(`fetch-content: ${results.join(', ')}.`);
 }
@@ -183,4 +268,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { buildFaq, buildCollaborators, buildSiteMeta };
+module.exports = { buildFaq, buildCollaborators, buildSiteMeta, buildCharacterColors, replaceRegion, COLORS_BEGIN, COLORS_END };

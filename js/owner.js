@@ -73,6 +73,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 'Character page' is the first option, so the form opens on it.
     syncCategoryToType();
 
+    // Enter searches. A lookup field that only responds to a button is a field
+    // people type into and then wonder about.
+    const accountSearch = document.getElementById('account-search');
+    if (accountSearch) {
+        accountSearch.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            searchAccounts();
+        });
+    }
+
     await loadPersonnel();
     await loadSitePages();
     await loadPagePermissions();
@@ -142,6 +153,75 @@ const ROLE_LABELS = {
     viewer: 'Viewer (blocked from submitting)',
 };
 
+// A role is optional from 20260904000001 onward: a capability can stand on its
+// own, so a row may carry a moderator and no role at all. Without this the
+// badge rendered empty and the class came out as `badge-role-`.
+// Not `roleLabel`: applyRoleChange below already declares a local const by that
+// name, and a module-level function of the same name would sit in its shadow -
+// legal today, a temporal-dead-zone error the first time somebody calls it from
+// in there.
+function roleLabelFor(role) {
+    if (!role) return 'No role';
+    return ROLE_LABELS[role] || role;
+}
+
+function roleBadgeClass(role) {
+    return role ? `badge-role-${ownerEscape(role)}` : 'badge-role-none';
+}
+
+// The dropdown must always open showing what the person ACTUALLY has, because
+// the button next to it applies whatever is showing.
+//
+// Two ways it could show something else. A roleless account matches none of
+// ROLE_LABELS, so the select fell through to its first option - Administrator -
+// and APPLY would have promoted somebody the owner only meant to look at. And
+// 'owner' has never been in ROLE_LABELS, so an owner's row had the same
+// problem whenever the last-owner guard did not happen to disable it.
+//
+// Both are fixed the same way: whatever the person holds is rendered as a
+// selected option, in the list or not. Roles NOT in ROLE_LABELS stay
+// unofferable - this makes the current value visible, it does not add a way to
+// grant it.
+function roleOptionsHTML(currentRole) {
+    const options = [];
+
+    if (!currentRole) {
+        options.push(`<option value="" selected>No role</option>`);
+    } else if (!ROLE_LABELS[currentRole]) {
+        options.push(`<option value="${ownerEscape(currentRole)}" selected>${ownerEscape(currentRole)}</option>`);
+    }
+
+    for (const [value, label] of Object.entries(ROLE_LABELS)) {
+        options.push(
+            `<option value="${ownerEscape(value)}" ${value === currentRole ? 'selected' : ''}>${ownerEscape(label)}</option>`
+        );
+    }
+
+    // Only meaningful for somebody who has something to lose. Offering it on a
+    // roleless row would read as an action where there is none.
+    if (currentRole) options.push(`<option value="">Revoke all access</option>`);
+
+    return options.join('');
+}
+
+// Why a capability box is inert, as TEXT rather than only a title attribute.
+//
+// Owner-reported, 2026-09-04: "The button to grant 'moderate discussions' in
+// the owner tools doesn't work (clicking on it and nothing happen)." It was
+// working exactly as designed - the box is disabled for anyone who already has
+// the capability by virtue of their role - but the only thing saying so was a
+// tooltip, and a tooltip is invisible to somebody who has already clicked.
+// Nothing about the logic changed here; the reason just became legible.
+function capabilityState(person, capability) {
+    if (capability === 'can_moderate' && window.roleMeets(person.role, 'reviewer')) {
+        return { disabled: true, note: 'comes with the role' };
+    }
+    if (capability === 'can_delete_media' && window.roleMeets(person.role, 'admin')) {
+        return { disabled: true, note: 'comes with the role' };
+    }
+    return { disabled: false, note: '' };
+}
+
 // Populated by loadPersonnel so the self-demotion guard below can recognise
 // the signed-in admin without a second round trip.
 let currentAdminUserId = null;
@@ -177,24 +257,34 @@ async function loadPersonnel() {
     // counting admins would leave the site with nobody able to assign roles.
     adminCount = data.filter(p => p.role === 'owner').length;
 
-    container.innerHTML = data.map(person => {
+    container.innerHTML = data.map(personnelRowHTML).join('');
+    bindPersonnelRows(container);
+}
+window.loadPersonnel = loadPersonnel;
+
+// Shared by the roster and by the account search below, so somebody found by
+// search gets exactly the same controls as somebody already on the roster -
+// including the role dropdown, which is how a searched-for account gets its
+// first role without a second, near-identical block of markup to keep in sync.
+function personnelRowHTML(person) {
+    {
         const isSelf = person.user_id === currentAdminUserId;
         // The last admin demoting themselves locks everyone out of this page
         // permanently - the only recovery is direct database access. Blocked
         // in the UI rather than left as a trap.
         const isLastAdmin = person.role === 'owner' && adminCount === 1;
+        const moderateState = capabilityState(person, 'can_moderate');
+        const deleteMediaState = capabilityState(person, 'can_delete_media');
         return `
         <div class="personnel-row">
             <div class="personnel-row-main">
-                <span class="update-badge badge-role-${ownerEscape(person.role)}">${ownerEscape(ROLE_LABELS[person.role] || person.role)}</span>
+                <span class="update-badge ${roleBadgeClass(person.role)}">${ownerEscape(roleLabelFor(person.role))}</span>
+                ${person.display_name ? `<span class="personnel-name">${ownerEscape(person.display_name)}</span>` : ''}
                 <span class="personnel-email">${ownerEscape(person.email)}${isSelf ? ' <span class="personnel-self">(you)</span>' : ''}</span>
             </div>
             <div class="personnel-row-actions">
                 <select class="editor-input personnel-role-select" data-email="${ownerEscape(person.email)}" ${isLastAdmin ? 'disabled' : ''}>
-                    ${Object.entries(ROLE_LABELS).map(([value, label]) =>
-                        `<option value="${ownerEscape(value)}" ${value === person.role ? 'selected' : ''}>${ownerEscape(label)}</option>`
-                    ).join('')}
-                    <option value="">Revoke all access</option>
+                    ${roleOptionsHTML(person.role)}
                 </select>
                 <button class="btn-sys btn-sys-regular personnel-apply-btn"
                         data-email="${ownerEscape(person.email)}"
@@ -225,8 +315,8 @@ async function loadPersonnel() {
                        data-email="${ownerEscape(person.email)}"
                        data-capability="can_moderate"
                        ${person.can_moderate ? 'checked' : ''}
-                       ${window.roleMeets(person.role, 'reviewer') ? 'disabled title="Comes with the role."' : ''}>
-                <span>Moderate discussions</span>
+                       ${moderateState.disabled ? 'disabled' : ''}>
+                <span>Moderate discussions${moderateState.note ? ` <span class="personnel-capability-note">(${ownerEscape(moderateState.note)})</span>` : ''}</span>
             </label>
             <!--
                 Deliberately NOT implied by reviewer, unlike moderation. This
@@ -239,14 +329,16 @@ async function loadPersonnel() {
                        data-email="${ownerEscape(person.email)}"
                        data-capability="can_delete_media"
                        ${person.can_delete_media ? 'checked' : ''}
-                       ${window.roleMeets(person.role, 'admin') ? 'disabled title="Comes with the role."' : ''}>
-                <span>Delete media</span>
+                       ${deleteMediaState.disabled ? 'disabled' : ''}>
+                <span>Delete media${deleteMediaState.note ? ` <span class="personnel-capability-note">(${ownerEscape(deleteMediaState.note)})</span>` : ''}</span>
             </label>
         </div>`;
-    }).join('');
+    }
+}
 
-    // Same delegated pattern as the APPLY button, and for the same reason:
-    // the email comes from auth.users and must never reach an inline handler.
+// Same delegated pattern as the APPLY button, and for the same reason:
+// the email comes from auth.users and must never reach an inline handler.
+function bindPersonnelRows(container) {
     container.querySelectorAll('.personnel-capability-box').forEach(box => {
         box.addEventListener('change', async () => {
             const email = box.dataset.email;
@@ -288,7 +380,55 @@ async function loadPersonnel() {
         });
     });
 }
-window.loadPersonnel = loadPersonnel;
+
+// Finding somebody who is not on the roster yet.
+//
+// The roster is FROM user_roles, so it can only ever show people who already
+// hold something. The owner's problem, in their words: "a new Vessel Expert
+// come to me... he logged in using a burner mail expecting that I don't talk
+// about it. Now it is impossible for me to shift through the list just to find
+// the email to assign it to him."
+//
+// So this searches the DISPLAY NAME as well as the address, because the name is
+// the only thing the owner actually knows in that situation. Results render
+// through personnelRowHTML - the same row, with the same controls - so granting
+// a role or a capability to somebody found here is the same gesture as doing it
+// on the roster, rather than a second half-featured path.
+async function searchAccounts() {
+    const input = document.getElementById('account-search');
+    const container = document.getElementById('account-search-results');
+    if (!input || !container) return;
+
+    const query = input.value.trim();
+
+    // Matches the function's own floor, so the UI explains the rule rather than
+    // returning silently and looking broken.
+    if (query.length < 2) {
+        container.innerHTML = `<p class="admin-tool-hint">Type at least two characters of an email address or a display name.</p>`;
+        return;
+    }
+
+    container.innerHTML = `<p class="loading-msg">Searching...</p>`;
+
+    const { data, error } = await window.supabaseClient.rpc('search_users', { search_query: query });
+
+    if (error) {
+        const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
+        container.innerHTML = notDeployed
+            ? `<p class="admin-error-text">Account search isn't available yet - the <code>search_users</code> database function hasn't been deployed. It arrives with the next migration.</p>`
+            : `<p class="admin-error-text">Could not search: ${ownerEscape(error.message)}</p>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        container.innerHTML = `<p class="loading-msg">No account matches that.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.map(personnelRowHTML).join('');
+    bindPersonnelRows(container);
+}
+window.searchAccounts = searchAccounts;
 
 async function applyRoleChange(email, newRole) {
     const results = document.getElementById('role-results');
@@ -438,22 +578,56 @@ async function loadSitePages() {
         return;
     }
 
-    container.innerHTML = data.map(page => `
-        <div class="personnel-row">
-            <div class="personnel-row-main">
-                <span class="update-badge badge-status-${ownerEscape(page.status)}">${ownerEscape(STATUS_LABELS[page.status] || page.status)}</span>
-                <span class="personnel-email">${ownerEscape(page.name)}</span>
-                <span class="page-row-path">${ownerEscape(page.url)}</span>
-            </div>
-            <div class="personnel-row-actions">
-                <button class="btn-sys btn-sys-regular page-move-btn" data-page="${ownerEscape(page.page_id)}" data-dir="up" title="Move up">▲</button>
-                <button class="btn-sys btn-sys-regular page-move-btn" data-page="${ownerEscape(page.page_id)}" data-dir="down" title="Move down">▼</button>
-                ${page.status === 'archived'
-                    ? `<button class="btn-sys btn-sys-green page-restore-btn" data-page="${ownerEscape(page.page_id)}">RESTORE</button>`
-                    : `<button class="btn-sys btn-sys-yellow page-archive-btn" data-page="${ownerEscape(page.page_id)}">ARCHIVE</button>`}
-            </div>
-        </div>
+    // Grouped by category rather than listed flat.
+    //
+    // Owner: "the pages are placed on a column. They mirror the data structure
+    // well, but they aren't seperated well and create a long column, so
+    // scrolling through them take quite a time." Fifty-two rows ordered by
+    // category with nothing marking where one category ends.
+    //
+    // Collapsed by default, so the tool opens as a short list of categories
+    // instead of a page of rows - and <details> rather than a JS toggle,
+    // because the browser already does this correctly including keyboard and
+    // find-in-page.
+    //
+    // The row markup inside is untouched: the move and archive buttons are
+    // bound by class below and do not care that they now sit inside a group.
+    const groups = new Map();
+    for (const page of data) {
+        const key = page.category || 'Uncategorised';
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(page);
+    }
+
+    container.innerHTML = [...groups.entries()].map(([category, pages]) => `
+        <details class="page-group" data-category="${ownerEscape(category)}">
+            <summary class="page-group-summary">
+                <span class="page-group-name">${ownerEscape(category)}</span>
+                <span class="page-group-count">${pages.length}</span>
+            </summary>
+            ${pages.map(page => `
+                <div class="personnel-row page-row"
+                     data-search="${ownerEscape(`${page.name} ${page.url} ${category}`.toLowerCase())}">
+                    <div class="personnel-row-main">
+                        <span class="update-badge badge-status-${ownerEscape(page.status)}">${ownerEscape(STATUS_LABELS[page.status] || page.status)}</span>
+                        <span class="personnel-email">${ownerEscape(page.name)}</span>
+                        <span class="page-row-path">${ownerEscape(page.url)}</span>
+                    </div>
+                    <div class="personnel-row-actions">
+                        <button class="btn-sys btn-sys-regular page-move-btn" data-page="${ownerEscape(page.page_id)}" data-dir="up" title="Move up">▲</button>
+                        <button class="btn-sys btn-sys-regular page-move-btn" data-page="${ownerEscape(page.page_id)}" data-dir="down" title="Move down">▼</button>
+                        ${page.status === 'archived'
+                            ? `<button class="btn-sys btn-sys-green page-restore-btn" data-page="${ownerEscape(page.page_id)}">RESTORE</button>`
+                            : `<button class="btn-sys btn-sys-yellow page-archive-btn" data-page="${ownerEscape(page.page_id)}">ARCHIVE</button>`}
+                    </div>
+                </div>
+            `).join('')}
+        </details>
     `).join('');
+
+    // Re-apply whatever is in the filter box, so a reload after archiving or
+    // moving does not silently drop the owner back to the full list.
+    filterSitePages();
 
     container.querySelectorAll('.page-archive-btn').forEach(btn => {
         btn.addEventListener('click', () => setPageStatus(btn.dataset.page, 'archived'));
@@ -465,6 +639,15 @@ async function loadSitePages() {
         btn.addEventListener('click', () => movePage(btn.dataset.page, btn.dataset.dir));
     });
 
+    const filter = document.getElementById('pages-filter');
+    // Bound once. loadSitePages runs again after every archive and every move,
+    // and re-adding the listener each time would fire the handler once per
+    // reload that had happened since the page opened.
+    if (filter && !filter.dataset.bound) {
+        filter.dataset.bound = '1';
+        filter.addEventListener('input', filterSitePages);
+    }
+
     cachedSitePages = data;
     // Order matters: both of these read knownCategories(), which derives from
     // the cache assigned on the line above.
@@ -472,6 +655,37 @@ async function loadSitePages() {
     populatePositionOptions();
     updateCategoryNote();
 }
+
+// Filters across name, url and category at once, and OPENS a group that has a
+// match - a filter that leaves everything collapsed has told you a page exists
+// and hidden it in the same breath.
+//
+// Groups with no match are hidden entirely rather than left as empty headers,
+// which would make an empty result look like a list of categories.
+function filterSitePages() {
+    const filter = document.getElementById('pages-filter');
+    const container = document.getElementById('pages-list');
+    if (!container) return;
+
+    const needle = ((filter && filter.value) || '').trim().toLowerCase();
+
+    container.querySelectorAll('.page-group').forEach(group => {
+        let matches = 0;
+
+        group.querySelectorAll('.page-row').forEach(row => {
+            const hit = !needle || (row.dataset.search || '').includes(needle);
+            row.hidden = !hit;
+            if (hit) matches += 1;
+        });
+
+        group.hidden = matches === 0;
+        // Opened only while filtering. With the box empty the tool returns to
+        // its short, all-collapsed shape rather than staying expanded from the
+        // last search.
+        group.open = needle.length > 0 && matches > 0;
+    });
+}
+window.filterSitePages = filterSitePages;
 window.loadSitePages = loadSitePages;
 
 // Kept so the position dropdown and the move buttons can reason about
@@ -952,13 +1166,33 @@ async function loadFaqEntries() {
         return;
     }
 
+    // The answer was previously write-once: this tool could add and delete a
+    // question but never change one, so fixing a typo meant deleting the entry
+    // and retyping it - which also moved it to the bottom, because a new row
+    // gets a new sort_order.
+    //
+    // Edited in place rather than in a modal: the paragraph splitting is the
+    // thing most likely to surprise, and seeing the answer in the same shape it
+    // was written is what makes that legible.
     container.innerHTML = data.map(row => `
-        <div class="personnel-row">
+        <div class="personnel-row faq-row" data-id="${ownerEscape(row.id)}">
             <div class="personnel-row-main">
                 <span class="personnel-email">${ownerEscape(row.question)}</span>
             </div>
             <div class="personnel-row-actions">
+                <button class="btn-sys btn-sys-regular faq-edit-btn" data-id="${ownerEscape(row.id)}">EDIT</button>
                 <button class="btn-sys btn-sys-red faq-delete-btn" data-id="${ownerEscape(row.id)}">DELETE</button>
+            </div>
+            <div class="owner-inline-editor" hidden>
+                <label class="block-field-label-sm">QUESTION</label>
+                <input type="text" class="editor-input admin-input-full faq-edit-question" value="${ownerEscape(row.question)}">
+                <label class="block-field-label-sm">ANSWER</label>
+                <textarea class="editor-textarea admin-input-full faq-edit-answer" rows="5">${ownerEscape((row.paragraphs || []).join('\n\n'))}</textarea>
+                <p class="admin-tool-hint">A blank line starts a new paragraph.</p>
+                <div class="owner-inline-editor-actions">
+                    <button class="btn-sys btn-sys-green faq-save-btn" data-id="${ownerEscape(row.id)}">SAVE</button>
+                    <button class="btn-sys btn-sys-regular faq-cancel-btn">CANCEL</button>
+                </div>
             </div>
         </div>
     `).join('');
@@ -966,7 +1200,60 @@ async function loadFaqEntries() {
     container.querySelectorAll('.faq-delete-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteFaqEntry(btn.dataset.id));
     });
+
+    // hidden, not style.display: the harness toggles .hidden elsewhere in this
+    // codebase and a stylesheet that later sets display on this class would win
+    // against an inline style set the other way.
+    container.querySelectorAll('.faq-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const editor = btn.closest('.faq-row').querySelector('.owner-inline-editor');
+            editor.hidden = !editor.hidden;
+        });
+    });
+
+    container.querySelectorAll('.faq-cancel-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Reloads rather than just hiding, so a cancelled edit cannot leave
+            // edited text sitting in a closed box waiting to confuse the next
+            // person who opens it.
+            loadFaqEntries();
+        });
+    });
+
+    container.querySelectorAll('.faq-save-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const row = btn.closest('.faq-row');
+            saveFaqEntry(
+                btn.dataset.id,
+                row.querySelector('.faq-edit-question').value,
+                row.querySelector('.faq-edit-answer').value
+            );
+        });
+    });
 }
+
+// Same paragraph rule as addFaqEntry, and deliberately the same validation:
+// an edit that empties an answer would render a question with nothing under it.
+async function saveFaqEntry(id, question, answer) {
+    const results = document.getElementById('faq-results');
+    const trimmed = question.trim();
+
+    if (!trimmed) { results.innerHTML = `<span class="admin-error-text">A question cannot be empty.</span>`; return; }
+
+    const paragraphs = answer.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+    if (paragraphs.length === 0) { results.innerHTML = `<span class="admin-error-text">An answer cannot be empty.</span>`; return; }
+
+    results.innerHTML = 'Saving...';
+
+    const { error } = await window.supabaseClient
+        .from('site_faq').update({ question: trimmed, paragraphs }).eq('id', id);
+
+    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`; return; }
+
+    results.innerHTML = `<span class="owner-success-text">Saved. It reaches the site on the next regeneration.</span>`;
+    await loadFaqEntries();
+}
+window.saveFaqEntry = saveFaqEntry;
 window.loadFaqEntries = loadFaqEntries;
 
 async function addFaqEntry() {
@@ -1012,12 +1299,57 @@ async function deleteFaqEntry(id) {
 // Single source for both the Collaborators page and the main dashboard's
 // Credits list, which used to be a hand-maintained duplicate in index.html.
 
+// The badge COLOUR. `role` is the text inside it - "Frame Data & Testing" -
+// and badge_type picks which of Badges.css's five it is drawn in. Two fields
+// that sound like one, so they are labelled by what they do rather than by
+// their column names.
+const CREDIT_BADGES = {
+    'badge-general': 'Purple (default)',
+    'badge-site': 'Green',
+    'badge-patch': 'Blue',
+    'badge-wip': 'Yellow',
+    'badge-ea': 'Orange',
+};
+
+// Stored as [{name, url}], edited as one "Name | URL" line each. A JSON
+// textarea would be the honest representation of the column and the wrong thing
+// to hand somebody adding a Discord link.
+function formatCollaboratorLinks(links) {
+    if (!Array.isArray(links)) return '';
+    return links.map(l => `${(l && l.name) || ''} | ${(l && l.url) || ''}`).join('\n');
+}
+
+function parseCollaboratorLinks(text) {
+    const links = [];
+    const rejected = [];
+
+    for (const line of String(text || '').split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        const split = trimmed.indexOf('|');
+        const name = split === -1 ? '' : trimmed.slice(0, split).trim();
+        const url = split === -1 ? trimmed : trimmed.slice(split + 1).trim();
+
+        // http(s) only. systems/collaborators/index.html builds link.url
+        // straight into an href, so a javascript: URL there would be a live
+        // script on a public page - and this tool is the first thing that ever
+        // let these be typed in, which makes the check this function's job.
+        if (!/^https?:\/\//i.test(url)) { rejected.push(trimmed); continue; }
+        links.push({ name: name || url, url });
+    }
+
+    return { links, rejected };
+}
+
+const CREDIT_FIELDS = 'id, name, role, description, avatar, badge_type, is_lead, links, section, sort_order';
+
 async function loadCollaborators() {
     const container = document.getElementById('credits-admin-list');
     if (!container) return;
 
     const { data, error } = await window.supabaseClient
-        .from('site_collaborators').select('id, name, description, section, sort_order').order('sort_order');
+        .from('site_collaborators').select(CREDIT_FIELDS).order('sort_order');
 
     if (error) { container.innerHTML = contentNotDeployedMessage(error, 'Credits'); return; }
 
@@ -1026,14 +1358,58 @@ async function loadCollaborators() {
         return;
     }
 
+    // Every column the collaborators page actually renders is editable here.
+    // The table has carried role, avatar, badge_type, is_lead and links since
+    // 20260808000005; this tool only ever read four of them, so the rest could
+    // be seen on the site and changed nowhere.
     container.innerHTML = data.map(row => `
-        <div class="personnel-row">
+        <div class="personnel-row credit-row" data-id="${ownerEscape(row.id)}">
             <div class="personnel-row-main">
                 <span class="update-badge ${row.section === 'main' ? 'badge-role-admin' : 'badge-role-contributor'}">${row.section === 'main' ? 'Contributor' : 'Thanks'}</span>
-                <span class="personnel-email">${ownerEscape(row.name)}</span>
+                <span class="personnel-email">${ownerEscape(row.name)}${row.role ? ` <span class="personnel-self">${ownerEscape(row.role)}</span>` : ''}</span>
             </div>
             <div class="personnel-row-actions">
+                <button class="btn-sys btn-sys-regular credit-edit-btn">EDIT</button>
                 <button class="btn-sys btn-sys-red credit-delete-btn" data-id="${ownerEscape(row.id)}">REMOVE</button>
+            </div>
+            <div class="owner-inline-editor" hidden>
+                <label class="block-field-label-sm">NAME</label>
+                <input type="text" class="editor-input admin-input-full credit-f-name" value="${ownerEscape(row.name)}">
+
+                <label class="block-field-label-sm">TAG &mdash; the text in the badge</label>
+                <input type="text" class="editor-input admin-input-full credit-f-role" value="${ownerEscape(row.role)}" placeholder="Frame Data &amp; Testing">
+
+                <label class="block-field-label-sm">TAG COLOUR</label>
+                <select class="editor-input admin-input-full select credit-f-badge">
+                    ${Object.entries(CREDIT_BADGES).map(([value, label]) =>
+                        `<option value="${ownerEscape(value)}" ${value === (row.badge_type || 'badge-general') ? 'selected' : ''}>${ownerEscape(label)}</option>`
+                    ).join('')}
+                </select>
+
+                <label class="block-field-label-sm">ICON &mdash; image path or URL</label>
+                <input type="text" class="editor-input admin-input-full credit-f-avatar" value="${ownerEscape(row.avatar)}" placeholder="/medias/images/Something.webp">
+
+                <label class="block-field-label-sm">DESCRIPTION</label>
+                <textarea class="editor-textarea admin-input-full credit-f-desc" rows="3">${ownerEscape(row.description)}</textarea>
+
+                <label class="block-field-label-sm">LINKS &mdash; one per line, "Name | https://..."</label>
+                <textarea class="editor-textarea admin-input-full credit-f-links" rows="3" placeholder="GitHub | https://github.com/someone">${ownerEscape(formatCollaboratorLinks(row.links))}</textarea>
+
+                <label class="block-field-label-sm">SECTION</label>
+                <select class="editor-input admin-input-full select credit-f-section">
+                    <option value="main" ${row.section === 'main' ? 'selected' : ''}>Contributor card</option>
+                    <option value="thanks" ${row.section === 'thanks' ? 'selected' : ''}>Special thanks line</option>
+                </select>
+
+                <label class="page-meta-flag">
+                    <input type="checkbox" class="credit-f-lead" ${row.is_lead ? 'checked' : ''}>
+                    <span>Lead &mdash; shown first, above the others</span>
+                </label>
+
+                <div class="owner-inline-editor-actions">
+                    <button class="btn-sys btn-sys-green credit-save-btn" data-id="${ownerEscape(row.id)}">SAVE</button>
+                    <button class="btn-sys btn-sys-regular credit-cancel-btn">CANCEL</button>
+                </div>
             </div>
         </div>
     `).join('');
@@ -1041,7 +1417,60 @@ async function loadCollaborators() {
     container.querySelectorAll('.credit-delete-btn').forEach(btn => {
         btn.addEventListener('click', () => deleteCollaborator(btn.dataset.id));
     });
+
+    container.querySelectorAll('.credit-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const editor = btn.closest('.credit-row').querySelector('.owner-inline-editor');
+            editor.hidden = !editor.hidden;
+        });
+    });
+
+    // Reloads rather than hiding, so cancelled text cannot sit in a closed box.
+    container.querySelectorAll('.credit-cancel-btn').forEach(btn => {
+        btn.addEventListener('click', () => loadCollaborators());
+    });
+
+    container.querySelectorAll('.credit-save-btn').forEach(btn => {
+        btn.addEventListener('click', () => saveCollaborator(btn.dataset.id, btn.closest('.credit-row')));
+    });
 }
+
+async function saveCollaborator(id, row) {
+    const results = document.getElementById('credits-results');
+    const name = row.querySelector('.credit-f-name').value.trim();
+
+    if (!name) { results.innerHTML = `<span class="admin-error-text">A name cannot be empty.</span>`; return; }
+
+    const { links, rejected } = parseCollaboratorLinks(row.querySelector('.credit-f-links').value);
+    if (rejected.length > 0) {
+        // Named rather than dropped silently: a link that vanishes on save
+        // looks like the save failed.
+        results.innerHTML = `<span class="admin-error-text">These need to start with http:// or https:// &mdash; ${ownerEscape(rejected.join(', '))}</span>`;
+        return;
+    }
+
+    results.innerHTML = 'Saving...';
+
+    const { error } = await window.supabaseClient
+        .from('site_collaborators')
+        .update({
+            name,
+            role: row.querySelector('.credit-f-role').value.trim() || null,
+            badge_type: row.querySelector('.credit-f-badge').value,
+            avatar: row.querySelector('.credit-f-avatar').value.trim() || null,
+            description: row.querySelector('.credit-f-desc').value.trim() || null,
+            links,
+            section: row.querySelector('.credit-f-section').value,
+            is_lead: row.querySelector('.credit-f-lead').checked,
+        })
+        .eq('id', id);
+
+    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`; return; }
+
+    results.innerHTML = `<span class="owner-success-text">Saved ${ownerEscape(name)}. It reaches the site on the next regeneration.</span>`;
+    await loadCollaborators();
+}
+window.saveCollaborator = saveCollaborator;
 window.loadCollaborators = loadCollaborators;
 
 async function addCollaborator() {
@@ -1052,18 +1481,39 @@ async function addCollaborator() {
 
     if (!name) { results.innerHTML = `<span class="admin-error-text">Enter a name.</span>`; return; }
 
+    // Same parser and the same http(s) rule as the row editor - a link typed
+    // here must not be held to a looser standard than one edited there.
+    const { links, rejected } = parseCollaboratorLinks((document.getElementById('new-credit-links') || {}).value);
+    if (rejected.length > 0) {
+        results.innerHTML = `<span class="admin-error-text">These need to start with http:// or https:// &mdash; ${ownerEscape(rejected.join(', '))}</span>`;
+        return;
+    }
+
+    const fieldValue = (id) => ((document.getElementById(id) || {}).value || '').trim();
+
     const { data: last } = await window.supabaseClient
         .from('site_collaborators').select('sort_order').eq('section', section).order('sort_order', { ascending: false }).limit(1);
     const sortOrder = (last && last[0] ? last[0].sort_order : -10) + 10;
 
     const { error } = await window.supabaseClient
-        .from('site_collaborators').insert([{ name, description, section, sort_order: sortOrder }]);
+        .from('site_collaborators').insert([{
+            name,
+            description,
+            section,
+            sort_order: sortOrder,
+            role: fieldValue('new-credit-role') || null,
+            badge_type: fieldValue('new-credit-badge') || 'badge-general',
+            avatar: fieldValue('new-credit-avatar') || null,
+            links,
+        }]);
 
     if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`; return; }
 
     results.innerHTML = `<span class="owner-success-text">Added ${ownerEscape(name)}.</span>`;
-    document.getElementById('new-credit-name').value = '';
-    document.getElementById('new-credit-desc').value = '';
+    ['new-credit-name', 'new-credit-desc', 'new-credit-role', 'new-credit-avatar', 'new-credit-links'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
     await loadCollaborators();
 }
 window.addCollaborator = addCollaborator;

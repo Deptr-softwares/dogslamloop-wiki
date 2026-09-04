@@ -270,6 +270,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     // public.is_staff() (20260827000001).
     const isReviewStaff = window.rolesMeet(roles, 'reviewer');
 
+    // The third way in, and the one this gate did not know about until
+    // 2026-09-04.
+    //
+    // v0.17 gave a page expert review rights over their own pages: the queue
+    // policies read can_review_page(page_id), which is is_staff() OR an expert
+    // row for that page (20260903000001). The SQL half shipped and worked. This
+    // half never learned the word "expert", so an expert with no role failed
+    // `!isReviewStaff && !canModerate` and was kicked to ACCESS DENIED - their
+    // badge visible on their profile the whole time. Reported by the owner
+    // after making somebody a Disaster Plants expert.
+    //
+    // Skipped for review staff because can_review_page() already returns true
+    // for them; asking would cost a round trip to learn nothing.
+    let expertPages = [];
+    if (!isReviewStaff) {
+        const { data: pages } = await window.supabaseClient
+            .rpc('get_user_expert_pages', { target_user_id: session.user.id });
+        if (Array.isArray(pages)) expertPages = pages;
+    }
+    const isExpert = expertPages.length > 0;
+
     // Deliberately narrower than moderation, and mirrors public.can_delete_media():
     // admin or the explicit flag, with no fall-back to reviewer. Reviewing a
     // revision and destroying a file are different amounts of trust, and this
@@ -282,23 +303,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.currentUserCanDeleteMedia = window.rolesMeet(roles, 'admin')
         || (!!roleRow && roleRow.can_delete_media === true);
 
-    if (error || (!isReviewStaff && !canModerate)) { kickUser(); return; }
+    if (error || (!isReviewStaff && !canModerate && !isExpert)) { kickUser(); return; }
 
     window.currentUserId = session.user.id;
     window.currentUserRoles = roles;
     window.currentUserCanModerate = canModerate || isReviewStaff;
+    window.currentUserExpertPages = expertPages.map(p => p.page_id);
     // Moderator-only: in the building, but not on the review team.
-    window.currentUserIsModeratorOnly = !isReviewStaff && canModerate;
+    window.currentUserIsModeratorOnly = !isReviewStaff && canModerate && !isExpert;
+    // Expert-only: here for their own pages' revisions and nothing else.
+    window.currentUserIsExpertOnly = !isReviewStaff && !canModerate && isExpert;
+
+    // What this person is here to do, as three independent answers rather than
+    // one label - because the three ways in compose. An expert who also holds
+    // the moderation capability is here for revisions AND reports, and a pair
+    // of mutually-exclusive "only" flags could not say that.
+    //
+    // Presentation, not security: every table below has its own RLS, and the
+    // revision queue an expert can read is already narrowed to their pages by
+    // can_review_page(). Hiding is about not showing somebody a job that is not
+    // theirs.
+    const seesRevisions = isReviewStaff || isExpert;
+    const seesMedia     = isReviewStaff;
+    const seesReports   = isReviewStaff || canModerate;
+    window.currentUserSeesRevisions = seesRevisions;
+    window.currentUserSeesMedia = seesMedia;
+    window.currentUserSeesReports = seesReports;
     window.currentUsername = window.getDisplayName ? window.getDisplayName(session) : "Staff";
 
-    // Scope the page down before anything loads, so a moderator never sees a
-    // queue flash into view and disappear.
+    // Scope the page down before anything loads, so nobody sees a queue flash
+    // into view and disappear.
     //
     // This is presentation, not security. pending_revisions and the media
-    // tables have their own RLS, and a moderator-only account cannot read them
+    // tables have their own RLS, and a narrowed account cannot read them
     // whatever this does - hiding them is about not showing somebody a job
     // that is not theirs, not about preventing access.
-    if (window.currentUserIsModeratorOnly) applyModeratorScope();
+    if (!seesRevisions || !seesMedia || !seesReports) {
+        applyScope({ seesRevisions, seesMedia, seesReports });
+    }
 
     // Personnel Management / Media GC moved to owner.html (admin-only) -
     // this just reveals the nav link to get there, not an inline tools panel.
@@ -373,27 +415,44 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // A moderator has no revision queue to load, and calling it would put an
     // RLS denial in the panel where their reports should be.
-    if (!window.currentUserIsModeratorOnly) loadQueue();
+    // An expert loads it too - their pages' revisions are the reason they are
+    // here, and can_review_page() has already narrowed what comes back.
+    if (window.currentUserSeesRevisions) loadQueue();
 });
 
 function kickUser() {
     document.body.innerHTML = `<div class="access-denied-screen"><h1 class="access-denied-title">ACCESS DENIED</h1></div>`;
 }
 
-// Narrows the Overseer to the one queue a moderator is here for.
+// Narrows the Overseer to the queues this person is actually here for.
+//
+// Was applyModeratorScope, which took no arguments because there was only one
+// narrowed user. There are two now - a moderator and a page expert - and they
+// are not opposites: somebody can hold both, and hiding by role label would
+// take the revision queue away from an expert the moment they were also asked
+// to moderate.
 //
 // Hides rather than deletes, so nothing else on the page has to learn that
 // these containers might be absent - loadQueue, renderMediaQueue and the
 // preview engine all still find their elements and write into them harmlessly.
 // Deleting them would turn every unguarded getElementById in five files into a
 // null dereference for one class of user.
-function applyModeratorScope() {
-    document.body.classList.add('admin-moderator-only');
+function applyScope({ seesRevisions, seesMedia, seesReports }) {
+    // Kept as the moderator's own class name: style/admin.css hangs a rule off
+    // it, and this is still exactly the case it described - in the building,
+    // but not reviewing revisions.
+    if (!seesRevisions) document.body.classList.add('admin-moderator-only');
 
-    // The two queues that are not their job. Each header is the element
-    // immediately before its container, so both are found from the container
-    // rather than by adding ids to markup that has none.
-    ['queue-container', 'media-queue-container'].forEach(id => {
+    // Each header is the element immediately before its container, so both are
+    // found from the container rather than by adding ids to markup that has none.
+    const hidden = [
+        [!seesRevisions, 'queue-container'],
+        [!seesMedia, 'media-queue-container'],
+        [!seesReports, 'report-queue-container'],
+    ];
+
+    hidden.forEach(([hide, id]) => {
+        if (!hide) return;
         const container = document.getElementById(id);
         if (!container) return;
         container.classList.add('hidden');
@@ -409,14 +468,18 @@ function applyModeratorScope() {
     // The preview pane exists to review revisions. Left in place - see the
     // note above on why nothing is deleted - but told what it is for, rather
     // than sitting there saying "Select a revision..." to somebody who will
-    // never be shown one.
-    const status = document.getElementById('preview-status-text');
-    if (status) status.textContent = 'Moderation view — reports are handled from the queue on the left.';
+    // never be shown one. An expert DOES review revisions, so they keep it.
+    if (!seesRevisions) {
+        const status = document.getElementById('preview-status-text');
+        if (status) status.textContent = 'Moderation view — reports are handled from the queue on the left.';
+    }
 
-    // Load the reports immediately. For a moderator this is the entire page,
-    // and making them press Load first would be asking them to open the thing
-    // they came for.
-    if (typeof window.loadReportQueue === 'function') window.loadReportQueue();
+    // Load the reports immediately. For a moderator with no revision queue this
+    // is the entire page, and making them press Load first would be asking them
+    // to open the thing they came for.
+    if (seesReports && !seesRevisions && typeof window.loadReportQueue === 'function') {
+        window.loadReportQueue();
+    }
 }
 
 function updateTypingText() {

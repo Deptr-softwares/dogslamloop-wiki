@@ -79,6 +79,25 @@
                         <p class="loading-msg">Loading roster...</p>
                     </div>
 
+                    <!--
+                        The roster above only lists people who already hold a
+                        role or a capability, because it reads user_roles. This
+                        searches every account - by display name as well as by
+                        address, since a new expert arriving on a burner mail is
+                        somebody the owner knows by name and not by email.
+                        Results render as identical rows, so granting from here
+                        is the same gesture as granting up there.
+                    -->
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="account-search">FIND ANY ACCOUNT</label>
+                        <div class="personnel-search-row">
+                            <input type="search" id="account-search" placeholder="Display name or email"
+                                   class="editor-input admin-input-full" autocomplete="off">
+                            <button onclick="searchAccounts()" class="btn-sys btn-sys-regular admin-tool-btn">SEARCH</button>
+                        </div>
+                        <div id="account-search-results" class="personnel-roster"></div>
+                    </div>
+
                     <div class="personnel-add">
                         <label class="block-field-label-sm" for="target-email">GRANT ACCESS BY EMAIL</label>
                         <input type="email" id="target-email" placeholder="user@email.com" class="editor-input admin-input-full">
@@ -152,6 +171,16 @@
                         New pages appear on the site after the next regeneration run.
                         <a href="https://github.com/Deptr-softwares/dogslamloop-wiki/actions/workflows/regenerate.yml" target="_blank" class="site-footer-link">Run it now →</a>
                     </p>
+
+                    <!--
+                        Fifty-odd pages used to render as one flat column with
+                        nothing marking where a category ended. They are grouped
+                        and collapsed now, so this opens as a short list of
+                        categories; the filter searches name, path and category
+                        at once and opens whichever groups match.
+                    -->
+                    <input type="search" id="pages-filter" class="editor-input admin-input-full"
+                           placeholder="Filter by name, path or category" autocomplete="off">
 
                     <div id="pages-list" class="permissions-list">
                         <p class="loading-msg">Loading...</p>
@@ -232,6 +261,29 @@
 
                             <label class="block-field-label-sm" for="page-meta-release">RELEASE DATE</label>
                             <input type="text" id="page-meta-release" class="editor-input admin-input-full" placeholder="e.g. 2026-04-12, or a patch name">
+
+                            <!--
+                                The character's colour. Source of truth is
+                                site_pages.color; scripts/fetch-content.js
+                                generates it into window.CHARACTER_COLORS in
+                                js/site_meta.js, which the roster cards, the
+                                prose auto-colouring and the tier lists all read.
+                                Reaches the site on the next regeneration.
+
+                                A text field is the value - it has to hold hsl()
+                                as well as hex - with the native picker beside it
+                                as a way to fill it in, and a swatch because a
+                                colour string is not a colour to a person.
+                            -->
+                            <label class="block-field-label-sm" for="page-meta-color">COLOUR</label>
+                            <div class="page-meta-color-row">
+                                <span id="page-meta-color-swatch" class="page-meta-color-swatch page-meta-color-swatch-empty"></span>
+                                <input type="text" id="page-meta-color" class="editor-input page-meta-color-value"
+                                       placeholder="#ff8080 or hsl(0, 100%, 75%)" autocomplete="off">
+                                <input type="color" id="page-meta-color-picker" class="page-meta-color-picker"
+                                       aria-label="Pick a colour" value="#ffffff">
+                            </div>
+                            <p class="admin-tool-hint">Used by the roster card, the character's name wherever it appears in text, and the tier lists. It reaches the site on the next regeneration.</p>
                         </div>
                     </div>
 
@@ -419,6 +471,24 @@
                         <label class="block-field-label-sm" for="new-credit-name">ADD SOMEONE</label>
                         <input type="text" id="new-credit-name" class="editor-input admin-input-full" placeholder="Name">
                         <input type="text" id="new-credit-desc" class="editor-input admin-input-full" placeholder="What they did">
+                        <!--
+                            The tag and its colour are two fields that sound
+                            like one: `role` is the text inside the badge,
+                            badge_type is which of Badges.css's five it is
+                            drawn in. Everything here can also be changed later
+                            with EDIT on the row above - this form exists so
+                            adding somebody complete does not take two passes.
+                        -->
+                        <input type="text" id="new-credit-role" class="editor-input admin-input-full" placeholder="Tag, e.g. Frame Data &amp; Testing">
+                        <select id="new-credit-badge" class="editor-input admin-input-full select">
+                            <option value="badge-general">Tag colour: Purple (default)</option>
+                            <option value="badge-site">Tag colour: Green</option>
+                            <option value="badge-patch">Tag colour: Blue</option>
+                            <option value="badge-wip">Tag colour: Yellow</option>
+                            <option value="badge-ea">Tag colour: Orange</option>
+                        </select>
+                        <input type="text" id="new-credit-avatar" class="editor-input admin-input-full" placeholder="Icon path, e.g. /medias/images/Something.webp">
+                        <textarea id="new-credit-links" class="editor-textarea admin-input-full" rows="2" placeholder="Links, one per line: GitHub | https://github.com/someone"></textarea>
                         <select id="new-credit-section" class="editor-input admin-input-full select">
                             <option value="main">Main contributor (full card)</option>
                             <option value="thanks">Special thanks (one line)</option>
@@ -586,21 +656,21 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/character_tabs.js?v=f4c5a03d"></script>
-    <script src="js/input_slots.js?v=f4c5a03d"></script>
-    <script src="js/site_utils.js?v=f4c5a03d"></script>
-    <script src="js/site_meta.js?v=f4c5a03d"></script>
-    <script src="js/editor-folders.js?v=f4c5a03d"></script>
-    <script src="js/editor-blocks.js?v=f4c5a03d"></script>
-    <script src="js/owner.js?v=f4c5a03d"></script>
+    <script src="js/character_tabs.js?v=00296a82"></script>
+    <script src="js/input_slots.js?v=00296a82"></script>
+    <script src="js/site_utils.js?v=00296a82"></script>
+    <script src="js/site_meta.js?v=00296a82"></script>
+    <script src="js/editor-folders.js?v=00296a82"></script>
+    <script src="js/editor-blocks.js?v=00296a82"></script>
+    <script src="js/owner.js?v=00296a82"></script>
     <!-- After owner.js: both use its ownerEscape and contentNotDeployedMessage. -->
-    <script src="js/owner-site-meta.js?v=f4c5a03d"></script>
-    <script src="js/owner-hub-text.js?v=f4c5a03d"></script>
-    <script src="js/owner-hub-lists.js?v=f4c5a03d"></script>
-    <script src="js/owner-page-meta.js?v=f4c5a03d"></script>
-    <script src="js/owner-staff-perks.js?v=f4c5a03d"></script>
-    <script src="js/owner-page-experts.js?v=f4c5a03d"></script>
-    <script src="js/owner-tier-lists.js?v=f4c5a03d"></script>
-    <script src="js/owner-nav.js?v=f4c5a03d"></script>
+    <script src="js/owner-site-meta.js?v=00296a82"></script>
+    <script src="js/owner-hub-text.js?v=00296a82"></script>
+    <script src="js/owner-hub-lists.js?v=00296a82"></script>
+    <script src="js/owner-page-meta.js?v=00296a82"></script>
+    <script src="js/owner-staff-perks.js?v=00296a82"></script>
+    <script src="js/owner-page-experts.js?v=00296a82"></script>
+    <script src="js/owner-tier-lists.js?v=00296a82"></script>
+    <script src="js/owner-nav.js?v=00296a82"></script>
 </body>
 </html>

@@ -16,6 +16,20 @@ const PAGES = [
   { page_id: 'old_thing', name: 'Old Thing', url: 'systems/old-thing/index.html', category: 'Guides', page_type: 'system', status: 'archived', sort_order: 0 },
 ];
 
+// The registry groups its rows by category and opens COLLAPSED as of
+// 2026-09-04 - fifty-two rows in one column with nothing marking where a
+// category ended was the owner's complaint.
+//
+// So a real owner clicks the category heading before acting on a row inside
+// it, and these tests do the same. Reaching past the control - forcing the
+// click, or setting `open` from script - would test a path nobody walks and
+// would keep passing if the heading ever stopped working.
+async function openPageGroups(page) {
+  const summaries = page.locator('#pages-list .page-group-summary');
+  const count = await summaries.count();
+  for (let i = 0; i < count; i += 1) await summaries.nth(i).click();
+}
+
 async function mockPages(page, { rows = PAGES, insertError = null } = {}) {
   await page.addInitScript(({ rows, insertError }) => {
     window.__pageWrites = [];
@@ -83,6 +97,7 @@ test('derivePageIdentity builds the folder convention each page type uses', asyn
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
+    await openPageGroups(page);
 
   const results = await page.evaluate(() => ({
     character: window.derivePageIdentity('Crow Charmer', 'character'),
@@ -116,6 +131,7 @@ test('creating a page inserts a complete registry row', async ({ page }) => {
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
+    await openPageGroups(page);
 
   await page.fill('#new-page-name', 'Crow Charmer');
   await page.selectOption('#new-page-type', 'character');
@@ -147,6 +163,7 @@ test('the create form previews the URL before you commit to it', async ({ page }
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
+    await openPageGroups(page);
 
   await page.fill('#new-page-name', 'Crow Charmer');
   await expect(page.locator('#new-page-preview')).toContainText('characters/Crow_charmer/index.html');
@@ -157,6 +174,7 @@ test('a duplicate page reports the collision in plain language', async ({ page }
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
+    await openPageGroups(page);
 
   await page.fill('#new-page-name', 'Boomcat');
   // Stated explicitly: the category field is free text now and starts empty,
@@ -179,6 +197,7 @@ test('archiving sets status rather than deleting the row', async ({ page }) => {
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
+    await openPageGroups(page);
 
   const row = page.locator('#pages-list .personnel-row').filter({ hasText: 'Boomcat' });
   await row.locator('.page-archive-btn').click();
@@ -197,6 +216,7 @@ test('an archived page offers restore instead of archive', async ({ page }) => {
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
+    await openPageGroups(page);
 
   const row = page.locator('#pages-list .personnel-row').filter({ hasText: 'Old Thing' });
   await expect(row.locator('.page-restore-btn')).toBeVisible();
@@ -214,6 +234,7 @@ test('a new page can be inserted after a chosen sibling, not just appended', asy
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
+    await openPageGroups(page);
 
   // Slot the new character in after Vessel (0), before Boomcat (10).
   await page.fill('#new-page-name', 'Crow Charmer');
@@ -239,6 +260,7 @@ test('the position dropdown lists only siblings in the chosen category', async (
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
+    await openPageGroups(page);
   // A system page, because this test drives the category field directly and a
   // character page no longer owns it.
   await page.selectOption('#new-page-type', 'system');
@@ -279,6 +301,7 @@ test('an exhausted gap renumbers the category instead of colliding', async ({ pa
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
+    await openPageGroups(page);
 
   await page.fill('#new-page-name', 'Between');
   // The category field is pinned to 'Characters' for a character page as of
@@ -305,6 +328,7 @@ test('move up swaps a page with its neighbour', async ({ page }) => {
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
+    await openPageGroups(page);
 
   const row = page.locator('#pages-list .personnel-row').filter({ hasText: 'Boomcat' });
   await row.locator('.page-move-btn[data-dir="up"]').click();
@@ -324,6 +348,7 @@ test('move does nothing at the boundaries', async ({ page }) => {
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
     // owner.html groups its tools as of v0.11; select the one under test.
     await page.evaluate(() => window.showOwnerGroup && window.showOwnerGroup('pages'));
+    await openPageGroups(page);
 
   // Vessel is first in Characters - there is nothing above it.
   const first = page.locator('#pages-list .personnel-row').filter({ hasText: 'Vessel' });

@@ -2,7 +2,26 @@
  * Dogslamloop Wiki - Global Site Metadata & Configurations
  */
 
-// Global Character Color Dictionary (Single Source of Truth)
+// Global Character Color Dictionary.
+//
+// The SOURCE is site_pages.color; this is a copy, rewritten by
+// `npm run refresh-content` and by the regenerate.yml workflow. Edit the colour
+// in the owner tools (Pages -> Page Details -> COLOUR), not here - a hand-edit
+// survives exactly until the next regeneration.
+//
+// It stays a synchronous literal rather than becoming a fetch because ten files
+// read window.CHARACTER_COLORS at script-evaluation time: pagebuilder.js,
+// internalstyling.js (the auto-colouring of names in prose), four tier-list
+// modules, editor-blocks.js, editor-core.js and history.js. Making it async
+// would mean changing all ten and inventing a load-order problem that does not
+// exist today.
+//
+// Only the region between these two markers is generated. Everything else in
+// this file - CHARACTER_ALIASES, applyCharacterTheme - is hand-authored, and
+// scripts/fetch-content.js refuses to write at all if the markers are missing
+// rather than guessing where the boundary was.
+//
+// --- GENERATED REGION: CHARACTER_COLORS (scripts/fetch-content.js) ---
 window.CHARACTER_COLORS = {
     "Vessel": "hsl(0, 100%, 80%)",
     "Honored One": "hsl(180, 100%, 83%)",
@@ -27,6 +46,7 @@ window.CHARACTER_COLORS = {
     "Black Death": "hsl(352, 49%, 27%)",
     "Boomcat": "hsl(0, 1%, 75%)"
 };
+// --- END GENERATED REGION ---
 
 // Every other name the community uses for a character, owner-supplied
 // 2026-08-14. js/internalstyling.js highlights and links these exactly as it
