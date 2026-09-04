@@ -23,8 +23,8 @@
 //
 // --- GENERATED REGION: CHARACTER_COLORS (scripts/fetch-content.js) ---
 window.CHARACTER_COLORS = {
-    "Vessel": "hsl(0, 100%, 80%)",
     "Honored One": "hsl(180, 100%, 83%)",
+    "Vessel": "hsl(0, 100%, 80%)",
     "Restless Gambler": "hsl(100, 100%, 75%)",
     "Ten Shadows": "hsl(0, 0%, 47%)",
     "Perfection": "hsl(300, 100%, 83%)",
@@ -33,8 +33,8 @@ window.CHARACTER_COLORS = {
     "Defense Attorney": "hsl(35, 20%, 38%)",
     "Cursed Partners": "hsl(300, 100%, 83%)",
     "Puppet Master": "hsl(342, 91%, 46%)",
-    "Salaryman": "hsl(204, 100%, 68%)",
     "Head of the Hei": "hsl(241, 100%, 75%)",
+    "Salaryman": "hsl(204, 100%, 68%)",
     "Disaster Plants": "hsl(106, 28%, 72%)",
     "True Cannon": "hsl(180, 100%, 83%)",
     "Register": "hsl(0, 0%, 100%)",
