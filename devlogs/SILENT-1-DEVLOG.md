@@ -428,6 +428,56 @@ consumers and render as nothing on every one.
 
 ---
 
+## SHIPPED 2026-09-04
+
+Release PR [#164](https://github.com/Deptr-softwares/dogslamloop-wiki/pull/164),
+merge commit `d3fcf49`, confirmed an ancestor of `origin/main`. Five migrations
+applied together. The site still reads **Beta v0.17** — verified on both sides
+of the merge, which is what makes it silent.
+
+### Verified against production, anon identity
+
+Every claim below was probed, not assumed. **The user and owner legs were not
+run** — those need tokens, and skipped probes are not passes.
+
+* **All five new or changed RPCs answer `42501`, not `PGRST202`.** That single
+  distinction proves two things at once: the migrations really applied, and the
+  functions are locked down. `search_users`, `delete_tier_list`,
+  `set_tier_list_status`, `set_user_capability`, `assign_role_by_email`,
+  `list_personnel` — all refused.
+* **`site_pages.color` exists** and reads NULL for every character, which is
+  the correct starting state.
+* **`pending_revisions` as anon → 467 rows, every one `approved`.** Identical to
+  the v0.17 probe. The rescoped queue policies survived `20260904000001`
+  dropping and recreating `user_roles`' primary key — the highest-risk change
+  in the release.
+* `user_roles`, `page_experts`, `user_profiles` → all refused. `tier_lists` →
+  200, so the v0.17 pass-1 regression did not recur.
+* `is_staff()` as anon → `false`. `get_my_role()` as anon → `null`.
+
+### The security question this release actually raised
+
+Making `role` nullable means **a `user_roles` row can now exist without a
+role**. Anything testing row EXISTENCE rather than role VALUE would silently
+start passing for a roleless capability holder.
+
+Swept for it. Nothing does:
+
+* The three `count(*)` sites all filter on `role = 'admin'` or `role = 'owner'`,
+  which NULL never matches.
+* `check_revision_rate_limit` reads the *column* with
+  `COALESCE(author_exempt, false)` — and its own comment already anticipated
+  "a contributor with no role at all, which is the case it exists for".
+* No policy anywhere uses an `IN (SELECT user_id FROM user_roles)` membership
+  test.
+
+Separately: **`is_owner()` is revoked from `anon`**, unlike `is_staff()`. That
+is correct rather than a hole, because every policy calling it is scoped
+`TO "authenticated"` — checked, since a policy with no `TO` clause is evaluated
+for every role including `anon`, and that has bitten this project before.
+
+---
+
 ## Verify after merge
 
 Migrations apply on merge to `main`, so the usual probe applies — being
