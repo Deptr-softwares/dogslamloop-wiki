@@ -108,8 +108,13 @@ one the owner hits daily.
 **PR 3 — content tools.** FAQ edit, collaborator fields and edit, tier-list
 contributor removal. Plus a regression PR 2 caused, found by sweeping.
 
-**PR 4 — pages.** The Pages tool's single long column, and character colour
-codes.
+**PR 4 — pages and deletion.** The Pages tool's single long column, and tier
+list deletion as a separate feature from archiving. **Built and committed
+locally, deliberately not pushed** while PR 3 runs its checks — two open PRs is
+the owner reviewing two things at once.
+
+**PR 5 — colour codes.** Split out because it is the largest single item here
+and touches the roster, prose auto-colouring, tier lists and the editor at once.
 
 ---
 
@@ -286,15 +291,102 @@ apart here.
 
 ---
 
+## PR 4 — what shipped
+
+**Deletion as a separate feature, not instead of archiving** (owner,
+2026-09-04). Archiving stays the reversible default; deleting is a second,
+deliberately harder action.
+
+DELETE is rendered **only on an already-archived row**, so removing a live list
+is two deliberate steps rather than one misclick beside RESTORE. `delete_tier_list`
+enforces the same rule server-side rather than trusting the UI — the REST
+endpoint is reachable directly with any token, and *"the button was not on
+screen"* has never been a permission check.
+
+The function counts the change notes **before** removing the list and reports
+the number, because `tier_list_changes` cascades: deleting does not merely
+unassign somebody, it destroys every note explaining every tier move. The
+confirmation names that cost instead of asking whether you are sure.
+
+**The page registry is grouped.** Fifty-two rows ordered by category with
+nothing marking where a category ended. Now one collapsed `<details>` per
+category with a count — the tool opens as three lines instead of a page of rows
+— plus a filter across name, path and category that **opens** whichever groups
+match. A filter that left everything collapsed would say a page exists and hide
+it in the same breath.
+
+`<details>` rather than a JS toggle: the browser already handles the keyboard,
+and find-in-page opens a closed group on its own.
+
+### Two bugs the tests caught, both worth keeping
+
+**`.personnel-row` sets `display: flex`, which beats the user agent's
+`[hidden] { display: none }` on specificity.** So filtering set `row.hidden` and
+every row stayed on screen. Found only because the test asserted *what the
+reader sees* rather than that the property had been set — a `classList` or
+property assertion would have passed against a visibly broken filter. This is
+the same shape as v0.15's notation colouring.
+
+**My first cut left the tail of `loadSitePages` inside `filterSitePages`**, so
+`cachedSitePages = data` moved into a function where `data` does not exist. It
+**parsed** — an undefined identifier is a runtime error, not a syntax one — so
+"the file loads" proved nothing. Reading the structure back is what caught it.
+
+### And one that was the fixture's fault
+
+Three `pageerror`s in the click test came from my own mock returning the string
+`'ok'` for every RPC, so the `list_*` tools threw on `.map`. It looked exactly
+like the click breaking the page. **A failing test is a hypothesis** — the
+fixture was wrong, not the code.
+
+---
+
 ## Open questions for the owner
 
-1. **Character colour codes** (req 1) is the one item whose scope I cannot infer.
-   "Applying that colour throughout the site (mainly auto-colouring), and
-   probably more" needs pinning down before it is built.
+1. ~~Character colour codes~~ — **scoped 2026-09-04**, see PR 5 below.
 2. **Does `viewer` still mean anything now that a role is optional?** A roleless
    account and a `viewer` are no longer the same shape, but `viewer` is a ban and
    NULL is not — that distinction still holds. Raised only because the two look
    alike on the roster now, not because anything is wrong.
+
+---
+
+## PR 5 — colour codes, scoped but not built
+
+**The decision (owner, 2026-09-04): generate `js/site_meta.js` from the
+database.**
+
+What makes this the largest item in the file: `window.CHARACTER_COLORS` is a
+**hardcoded object literal** in `js/site_meta.js`, keyed by character *name*,
+and it is read **synchronously** by ten files —
+
+`pagebuilder.js` (roster cards), `internalstyling.js` (**the auto-colouring**:
+character names highlighted in prose), `certified-tier-lists.js`, `tierlist.js`,
+`tier-editor.js`, `tools/free_submit_tier_list.js` (tier chips),
+`editor-blocks.js` (the colour swatches), `editor-core.js`, `history.js`.
+
+So adding a character needs a code edit, a PR and a release — which is exactly
+the owner's complaint that "creating a new character page can not account for…
+making new color code, applying that color throughout the site".
+
+**Why generation rather than a fetch.** Every one of those ten consumers reads
+the map at script-evaluation time. Making it async would mean changing all ten
+and introducing an ordering problem the site does not currently have.
+Generating the file keeps `window.CHARACTER_COLORS` a synchronous literal while
+making the *source* the database — the same arrangement `navigation.json` and
+`faq.json` already have, and the regeneration workflow already exists.
+
+Sketch, to be confirmed before building:
+
+1. A `color` column on `site_pages`, edited in the Pages tool beside the
+   category field.
+2. `scripts/fetch-content.js` writes `js/site_meta.js` from it.
+3. `js/site_meta.js` joins the generated-files table in `CLAUDE.md` and gains
+   the `GENERATED` marker — **it is hand-authored today, so this is the change
+   most likely to be undone by accident.**
+4. `CHARACTER_ALIASES` stays hand-authored: it describes how people *write*
+   about the roster, not the roster itself, and the existing comment is explicit
+   that it is deliberately not part of the colour dictionary.
 
 ---
 
