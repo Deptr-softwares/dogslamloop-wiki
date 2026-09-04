@@ -139,6 +139,27 @@ const RPC = [
     { fn: 'anonymize_user_by_email', args: { target_email: 'probe@example.invalid' },
       anon: 'denied', user: 'denied', admin: 'ok', writes: true,
       why: 'hard-deletes an auth.users row' },
+
+    // --- the 2026-09-04 owner-tools silent release ---------------------------
+    //
+    // Every one of these is guarded by is_owner(), so the `admin` identity here
+    // has to be the OWNER's token - see the note above IDENTITIES. An account
+    // holding the `admin` ROLE is correctly denied by all of them.
+    { fn: 'search_users', args: { search_query: 'probe', max_results: 1 },
+      anon: 'denied', user: 'denied', admin: 'ok',
+      why: 'THE WIDEST READ IN THE TOOLS: email addresses for every account, not only role holders. list_personnel at least stopped at people who already had a role' },
+    { fn: 'assign_role_by_email', args: { target_email: 'probe@example.invalid', assigned_role: 'trusted_editor' },
+      anon: 'denied', user: 'denied', admin: 'ok', writes: true,
+      why: 'hands out roles, so a hole here is total. A missing address returns a string rather than raising, which is why the probe address is unregistrable' },
+    { fn: 'set_tier_list_status', args: { p_slug: 'probe-does-not-exist', p_status: 'archived' },
+      anon: 'denied', user: 'denied', admin: 'ok', writes: true,
+      why: 'takes a list off the public site - the read policy is status = published' },
+    { fn: 'delete_tier_list', args: { p_slug: 'probe-does-not-exist' },
+      anon: 'denied', user: 'denied', admin: 'ok', writes: true,
+      why: 'cascades to tier_list_changes, so it destroys every note explaining every move. Archive-first is enforced INSIDE this function, not by hiding the button - which is the half a UI test can never reach' },
+    { fn: 'get_user_expert_pages', args: { target_user_id: '00000000-0000-0000-0000-000000000000' },
+      anon: 'ok', user: 'ok', admin: 'ok',
+      why: 'deliberately public, like the profile it appears in: it returns page names and nothing about the person. Both Overseer gates call it, so anon losing this would break the dock' },
 ];
 
 // Table reads. RLS and the table-level GRANT are independent gates, and a
@@ -160,6 +181,12 @@ const TABLES = [
 
 // --------------------------------------------------------------------------
 
+// 'admin' is a NAME FROM BEFORE v0.17, kept because it is the env var people
+// already have. Since the owner/admin split it means "the token that should
+// pass the owner-only checks" - i.e. the OWNER's. An account holding the
+// `admin` role is genuinely denied by every is_owner() function here, so
+// supplying an admin token makes the run report failures that are the system
+// working correctly.
 const IDENTITIES = [
     { id: 'anon', jwt: null },
     { id: 'user', jwt: USER_JWT },
@@ -231,7 +258,29 @@ async function probe(label, path, spec, body) {
 
     for (const spec of RPC) {
         if (spec.writes && !INCLUDE_WRITES) {
-            results.push({ label: `rpc ${spec.fn}`, identity: '-', expected: '-', actual: 'skipped (write)', pass: null });
+            // The identities that must be REFUSED are still worth probing, and
+            // they are safe to probe anywhere - a call that is denied cannot
+            // write, and one that is NOT denied is the single most valuable
+            // thing this script could tell you.
+            //
+            // Skipping them wholesale meant the destructive owner-only RPCs -
+            // delete_tier_list, assign_role_by_email - had their anon leg
+            // checked by nothing at all against production, which is exactly
+            // where it matters. The identities expected to SUCCEED are still
+            // skipped, because those would really write.
+            const refusalOnly = {};
+            for (const identity of IDENTITIES) {
+                refusalOnly[identity.id] = spec[identity.id] === 'denied' ? 'denied' : 'skip';
+            }
+
+            if (Object.values(refusalOnly).some(v => v === 'denied')) {
+                await probe(`rpc ${spec.fn}`, `/rest/v1/rpc/${spec.fn}`, refusalOnly, spec.args);
+            }
+
+            results.push({
+                label: `rpc ${spec.fn}`, identity: '-', expected: 'ok',
+                actual: 'skipped (write)', pass: null,
+            });
             continue;
         }
         await probe(`rpc ${spec.fn}`, `/rest/v1/rpc/${spec.fn}`, spec, spec.args);
