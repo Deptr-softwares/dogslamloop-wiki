@@ -180,17 +180,37 @@ function buildCharacterColors(rows) {
     // FAQ and the collaborators instead of failing the whole run over a column
     // that has not shipped.
     const columnExists = rows.some(r => Object.prototype.hasOwnProperty.call(r, 'color'));
-    if (!columnExists) return null;
+    if (!columnExists) {
+        console.warn('NOTE: site_pages has no colour column yet, so the committed '
+            + 'CHARACTER_COLORS dictionary was left alone. Expected until the migration '
+            + 'reaches main.');
+        return null;
+    }
 
     const characters = rows
         .filter(r => r.page_type === 'character' && r.color && String(r.color).trim() !== '')
         .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
-    // Refusing rather than writing an empty dictionary, for the same reason
-    // fetchTable refuses zero rows: an empty result is a broken query or a
-    // policy change, never a request to un-colour the entire roster.
+    // Never write an EMPTY dictionary - that would un-colour the whole roster.
+    //
+    // This used to throw, and throwing was wrong. "The column exists and every
+    // value is NULL" is not a broken query: it is the ordinary state between
+    // the migration landing and anybody setting a colour, which is exactly
+    // where the site was for a day. The guard fired on a legitimate state and
+    // took the FAQ, collaborator and site_meta refresh down with it - and
+    // regenerate.yml runs this on a daily cron, so it would have gone red every
+    // morning until a colour was set.
+    //
+    // Skipping achieves what the guard was actually for. The committed
+    // dictionary is left exactly as it is, which is the safe outcome, and the
+    // rest of the run continues. Loudly, though: if colours ever genuinely
+    // disappear the operator has to hear about it, and a silent skip is how
+    // that becomes invisible.
     if (characters.length === 0) {
-        throw new Error('Refusing to continue: no character page has a colour set.');
+        console.warn('WARNING: no character page has a colour set, so the committed '
+            + 'CHARACTER_COLORS dictionary was left alone. If that is unexpected, check '
+            + 'site_pages.color before the next release.');
+        return null;
     }
 
     const body = characters
@@ -218,8 +238,11 @@ function replaceRegion(source, region) {
 }
 
 function writeRegionIfChanged(filePath, region, label, write, results) {
-    // null means the source column is not deployed yet - see buildCharacterColors.
-    if (region === null) { results.push(`${label}: skipped (column not deployed)`); return; }
+    // null means there is nothing safe to write - either the column is not
+    // deployed yet or nothing is coloured. buildCharacterColors says WHICH on
+    // stderr; this line deliberately does not guess, because it used to claim
+    // "column not deployed" for both and that was false half the time.
+    if (region === null) { results.push(`${label}: skipped (see note above)`); return; }
 
     const current = fs.readFileSync(filePath, 'utf8');
     const next = replaceRegion(current, region);
