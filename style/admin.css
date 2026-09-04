@@ -925,6 +925,43 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
     padding: 0.4rem 1rem;
 }
 
+/* --- PAGE REGISTRY GROUPS (js/owner.js loadSitePages) ---
+   Fifty-two rows in one column with nothing between categories. <details>
+   rather than a JS toggle: the browser already handles the keyboard, and
+   find-in-page opens a closed group on its own, which a div never would. */
+.page-group { border-bottom: 1px solid #222; }
+.page-group[hidden] { display: none; }
+.page-group-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.55rem 0.25rem;
+    cursor: pointer;
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+}
+.page-group-summary:hover { color: var(--text-white); }
+.page-group[open] > .page-group-summary { color: var(--text-white); }
+/* The count is the reason the collapsed view is useful - it says how much is
+   behind the heading without opening it. */
+.page-group-count {
+    font-size: 0.65rem;
+    color: #888;
+    background: #1c1c1c;
+    border: 1px solid #333;
+    padding: 0.1rem 0.45rem;
+}
+.page-group .personnel-row:last-child { border-bottom: none; }
+/* .personnel-row sets display:flex, which BEATS the user-agent's
+   `[hidden] { display: none }` on specificity - so filtering set row.hidden and
+   the row stayed on screen. Caught by a test asserting what the reader sees
+   rather than that the property was set. */
+.page-row[hidden] { display: none; }
+
 /* --- INLINE ROW EDITORS (FAQ, credits) ---
    Opened by EDIT on the row itself rather than in a modal: for the FAQ the
    paragraph splitting is the thing most likely to surprise, and seeing the

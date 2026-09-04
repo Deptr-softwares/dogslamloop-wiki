@@ -123,7 +123,8 @@ window.loadTierListRoster = async function () {
                 <a class="btn-sys btn-sys-regular" href="tier-editor.html?list=${encodeURIComponent(row.slug)}">OPEN</a>
                 <a class="btn-sys btn-sys-regular" href="systems/tierlist/index.html?list=${encodeURIComponent(row.slug)}">VIEW</a>
                 ${row.status === 'archived'
-                    ? `<button class="btn-sys btn-sys-green tier-status-btn" data-slug="${tierListEscape(row.slug)}" data-status="published">RESTORE</button>`
+                    ? `<button class="btn-sys btn-sys-green tier-status-btn" data-slug="${tierListEscape(row.slug)}" data-status="published">RESTORE</button>
+                       <button class="btn-sys btn-sys-red tier-delete-btn" data-slug="${tierListEscape(row.slug)}">DELETE</button>`
                     : `<button class="btn-sys btn-sys-red tier-status-btn" data-slug="${tierListEscape(row.slug)}" data-status="archived">ARCHIVE</button>`}
             </div>
         </div>`).join('');
@@ -133,6 +134,10 @@ window.loadTierListRoster = async function () {
     // such values into onclick attributes.
     container.querySelectorAll('.tier-status-btn').forEach(btn => {
         btn.addEventListener('click', () => setTierListStatus(btn.dataset.slug, btn.dataset.status));
+    });
+
+    container.querySelectorAll('.tier-delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => deleteTierList(btn.dataset.slug));
     });
 };
 
@@ -164,6 +169,38 @@ async function setTierListStatus(slug, status) {
     window.loadTierListRoster();
 }
 window.setTierListStatus = setTierListStatus;
+
+// Deletion, which archiving deliberately is not.
+//
+// Only rendered on an ALREADY-ARCHIVED row (owner's call, 2026-09-04), so
+// removing a live list is two deliberate steps and never one misclick. The
+// database enforces the same rule - delete_tier_list refuses anything that is
+// not archived - because a button that is not on screen has never been a
+// permission check.
+//
+// The confirmation names the cost rather than asking "are you sure": the change
+// history cascades, and that is the part somebody would not think of.
+async function deleteTierList(slug) {
+    const ok = await window.adminConfirm(
+        `Permanently delete the list at ?list=${slug}? This destroys the list AND every change note explaining every tier move on it. It cannot be undone - if you only want it off the site, it is already archived.`);
+    if (!ok) return;
+
+    tierToolSay('tier-assign-results', 'Deleting...');
+
+    const { data, error } = await window.supabaseClient
+        .rpc('delete_tier_list', { p_slug: slug });
+
+    if (error) {
+        tierToolSay('tier-assign-results', tierNotDeployed(error)
+            ? 'Deleting a tier list arrives with the next release.'
+            : error.message, true);
+        return;
+    }
+
+    tierToolSay('tier-assign-results', data || 'Deleted.');
+    window.loadTierListRoster();
+}
+window.deleteTierList = deleteTierList;
 
 async function assignTierList() {
     const email = (document.getElementById('tier-assign-email') || {}).value || '';
