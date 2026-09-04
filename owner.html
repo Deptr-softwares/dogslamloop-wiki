@@ -261,6 +261,29 @@
 
                             <label class="block-field-label-sm" for="page-meta-release">RELEASE DATE</label>
                             <input type="text" id="page-meta-release" class="editor-input admin-input-full" placeholder="e.g. 2026-04-12, or a patch name">
+
+                            <!--
+                                The character's colour. Source of truth is
+                                site_pages.color; scripts/fetch-content.js
+                                generates it into window.CHARACTER_COLORS in
+                                js/site_meta.js, which the roster cards, the
+                                prose auto-colouring and the tier lists all read.
+                                Reaches the site on the next regeneration.
+
+                                A text field is the value - it has to hold hsl()
+                                as well as hex - with the native picker beside it
+                                as a way to fill it in, and a swatch because a
+                                colour string is not a colour to a person.
+                            -->
+                            <label class="block-field-label-sm" for="page-meta-color">COLOUR</label>
+                            <div class="page-meta-color-row">
+                                <span id="page-meta-color-swatch" class="page-meta-color-swatch page-meta-color-swatch-empty"></span>
+                                <input type="text" id="page-meta-color" class="editor-input page-meta-color-value"
+                                       placeholder="#ff8080 or hsl(0, 100%, 75%)" autocomplete="off">
+                                <input type="color" id="page-meta-color-picker" class="page-meta-color-picker"
+                                       aria-label="Pick a colour" value="#ffffff">
+                            </div>
+                            <p class="admin-tool-hint">Used by the roster card, the character's name wherever it appears in text, and the tier lists. It reaches the site on the next regeneration.</p>
                         </div>
                     </div>
 
@@ -633,21 +656,21 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/character_tabs.js?v=97ec4110"></script>
-    <script src="js/input_slots.js?v=97ec4110"></script>
-    <script src="js/site_utils.js?v=97ec4110"></script>
-    <script src="js/site_meta.js?v=97ec4110"></script>
-    <script src="js/editor-folders.js?v=97ec4110"></script>
-    <script src="js/editor-blocks.js?v=97ec4110"></script>
-    <script src="js/owner.js?v=97ec4110"></script>
+    <script src="js/character_tabs.js?v=00296a82"></script>
+    <script src="js/input_slots.js?v=00296a82"></script>
+    <script src="js/site_utils.js?v=00296a82"></script>
+    <script src="js/site_meta.js?v=00296a82"></script>
+    <script src="js/editor-folders.js?v=00296a82"></script>
+    <script src="js/editor-blocks.js?v=00296a82"></script>
+    <script src="js/owner.js?v=00296a82"></script>
     <!-- After owner.js: both use its ownerEscape and contentNotDeployedMessage. -->
-    <script src="js/owner-site-meta.js?v=97ec4110"></script>
-    <script src="js/owner-hub-text.js?v=97ec4110"></script>
-    <script src="js/owner-hub-lists.js?v=97ec4110"></script>
-    <script src="js/owner-page-meta.js?v=97ec4110"></script>
-    <script src="js/owner-staff-perks.js?v=97ec4110"></script>
-    <script src="js/owner-page-experts.js?v=97ec4110"></script>
-    <script src="js/owner-tier-lists.js?v=97ec4110"></script>
-    <script src="js/owner-nav.js?v=97ec4110"></script>
+    <script src="js/owner-site-meta.js?v=00296a82"></script>
+    <script src="js/owner-hub-text.js?v=00296a82"></script>
+    <script src="js/owner-hub-lists.js?v=00296a82"></script>
+    <script src="js/owner-page-meta.js?v=00296a82"></script>
+    <script src="js/owner-staff-perks.js?v=00296a82"></script>
+    <script src="js/owner-page-experts.js?v=00296a82"></script>
+    <script src="js/owner-tier-lists.js?v=00296a82"></script>
+    <script src="js/owner-nav.js?v=00296a82"></script>
 </body>
 </html>

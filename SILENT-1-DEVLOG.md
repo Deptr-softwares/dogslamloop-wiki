@@ -115,6 +115,7 @@ the owner reviewing two things at once.
 
 **PR 5 — colour codes.** Split out because it is the largest single item here
 and touches the roster, prose auto-colouring, tier lists and the editor at once.
+**Built and committed locally, not pushed** while PR 4 runs its checks.
 
 ---
 
@@ -376,7 +377,44 @@ Generating the file keeps `window.CHARACTER_COLORS` a synchronous literal while
 making the *source* the database — the same arrangement `navigation.json` and
 `faq.json` already have, and the regeneration workflow already exists.
 
-Sketch, to be confirmed before building:
+### Built 2026-09-04 — what the sketch became
+
+Followed as written, with **one thing the sketch did not anticipate** and one
+correction to step 3.
+
+**Step 3 was wrong: `js/site_meta.js` cannot be wholly generated.** It is 236
+lines and only the first ~45 are the dictionary — the rest is
+`CHARACTER_ALIASES` and `applyCharacterTheme`, a function. So the generator
+rewrites a **marked region** and leaves the file byte-identical outside it. The
+alternative was a new `js/character_colors.js`, which would have meant a script
+tag in **62 HTML files** — 43 through the generator's three template spots and
+19 hand-authored — for a silent release. `fetch-content.js` refuses outright if
+the markers are missing rather than guessing the boundary, matching what
+`generate-pages.js` does with its own marker.
+
+**The deploy window, which the sketch missed entirely.** Migrations apply on
+merge to `main`, so between this landing on `next-update` and the release,
+production has no `color` column and `select=*` returns rows **without the
+key**. Left alone, `buildCharacterColors` would have found no coloured
+character, thrown, and taken the FAQ and collaborator refresh down with it —
+turning "database-backed things look broken until the release" into a failing
+regeneration job.
+
+So it distinguishes two cases that look alike:
+
+| State | Meaning | Action |
+|---|---|---|
+| No row has the `color` key | Column not deployed yet | **Skip** the write, refresh everything else |
+| Key present, every value NULL | Column deployed, roster un-coloured | **Refuse** — this would blank the dictionary |
+
+**Validation is `CSS.supports('color', value)`, not a regex.** The existing
+values are `hsl()`, the picker writes hex, and somebody will eventually type
+`rebeccapurple`. The browser's own parser already knows all of them; a regex
+would reject a valid colour the first time it met one it had not thought of.
+An unparseable value is refused rather than saved — it would reach all ten
+consumers and render as nothing on every one.
+
+### The original sketch, for the record
 
 1. A `color` column on `site_pages`, edited in the Pages tool beside the
    category field.

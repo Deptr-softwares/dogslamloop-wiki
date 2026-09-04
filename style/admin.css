@@ -925,6 +925,38 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
     padding: 0.4rem 1rem;
 }
 
+/* --- CHARACTER COLOUR (js/owner-page-meta.js) ---
+   Three controls for one value: the text field IS the value, because it has to
+   hold hsl() as well as hex; the native picker is a way to fill it in; the
+   swatch is there because a colour string is not a colour to a person. */
+.page-meta-color-row { display: flex; gap: 0.5rem; align-items: center; }
+.owner-tool-area .page-meta-color-row .page-meta-color-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+}
+.page-meta-color-swatch {
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    border: 2px solid var(--border-color);
+    box-shadow: 2px 2px 0 var(--manga-shadow);
+}
+/* Diagonal stripe for "nothing set", so an unset colour cannot be mistaken for
+   a black one - which is a colour somebody might genuinely have chosen. */
+.page-meta-color-swatch-empty {
+    background: repeating-linear-gradient(45deg, #222, #222 4px, #111 4px, #111 8px) !important;
+}
+.page-meta-color-picker {
+    flex: 0 0 auto;
+    width: 2.5rem;
+    height: 2rem;
+    padding: 0;
+    border: 2px solid var(--border-color);
+    background: none;
+    cursor: pointer;
+}
+
 /* --- PAGE REGISTRY GROUPS (js/owner.js loadSitePages) ---
    Fifty-two rows in one column with nothing between categories. <details>
    rather than a JS toggle: the browser already handles the keyboard, and

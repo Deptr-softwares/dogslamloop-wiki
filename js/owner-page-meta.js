@@ -47,7 +47,7 @@ async function loadPageMeta() {
 
     const { data, error } = await window.supabaseClient
         .from('site_pages')
-        .select('page_id, name, page_type, category, status, is_wip, is_hidden, is_ea, is_base_only, is_missing_media, is_subjective, archetype, tier, release_date')
+        .select('page_id, name, page_type, category, status, is_wip, is_hidden, is_ea, is_base_only, is_missing_media, is_subjective, archetype, tier, release_date, color')
         .order('category')
         .order('sort_order');
 
@@ -86,6 +86,43 @@ function currentPageMetaRow() {
     return pageMetaRows.find(r => r.page_id === select.value) || null;
 }
 
+// The browser's own colour parser, borrowed. Returns false for anything it
+// cannot render, which is exactly the question being asked - and unlike a regex
+// it already knows about hsl(), rgb(), #rgb, #rrggbbaa and every named colour.
+function isValidCssColor(value) {
+    if (typeof CSS !== 'undefined' && CSS.supports) return CSS.supports('color', value);
+
+    // Fallback for a browser without CSS.supports: let the style system reject
+    // it. Assigning an invalid value to a style property leaves it unchanged,
+    // so a non-empty result means it parsed.
+    const probe = document.createElement('span');
+    probe.style.color = '';
+    probe.style.color = value;
+    return probe.style.color !== '';
+}
+
+// A swatch beside the field, because a hex string is not a colour to a person
+// and the whole point of this feature is picking one that looks right.
+function syncColorPreview() {
+    const input = document.getElementById('page-meta-color');
+    const swatch = document.getElementById('page-meta-color-swatch');
+    const picker = document.getElementById('page-meta-color-picker');
+    if (!input || !swatch) return;
+
+    const value = input.value.trim();
+    const valid = value !== '' && isValidCssColor(value);
+
+    swatch.style.background = valid ? value : 'transparent';
+    swatch.classList.toggle('page-meta-color-swatch-empty', !valid);
+    swatch.title = value === '' ? 'No colour set' : (valid ? value : `${value} is not a colour`);
+
+    // The native picker only speaks #rrggbb, so it follows the text field when
+    // it can and is simply left alone when it cannot - an hsl() value stays
+    // readable in the text field rather than being silently rewritten to hex.
+    if (picker && valid && /^#[0-9a-f]{6}$/i.test(value)) picker.value = value;
+}
+window.syncColorPreview = syncColorPreview;
+
 function renderPageMetaFields() {
     const row = currentPageMetaRow();
     const flags = document.getElementById('page-meta-flags');
@@ -105,6 +142,8 @@ function renderPageMetaFields() {
         document.getElementById('page-meta-archetype').value = row.archetype || '';
         document.getElementById('page-meta-tier').value = row.tier || '';
         document.getElementById('page-meta-release').value = row.release_date || '';
+        document.getElementById('page-meta-color').value = row.color || '';
+        syncColorPreview();
     }
 
     renderPageMetaTabs(row, isCharacter);
@@ -154,6 +193,21 @@ async function savePageMeta() {
         payload.archetype = value('page-meta-archetype');
         payload.tier = value('page-meta-tier');
         payload.release_date = value('page-meta-release');
+
+        // Checked with the browser's own parser rather than a regex. The
+        // existing dictionary is hsl(), the picker writes #rrggbb, and somebody
+        // will eventually type `rebeccapurple` - CSS.supports understands every
+        // form the renderer does, and a regex would reject a valid colour the
+        // first time it met one it had not thought of.
+        //
+        // Refused rather than written, because a colour the browser cannot
+        // parse reaches ten consumers and renders as nothing on all of them.
+        const color = value('page-meta-color');
+        if (color && !isValidCssColor(color)) {
+            results.innerHTML = `<span class="admin-error-text">${ownerEscape(color)} is not a colour the browser understands. Try #ff8080 or hsl(0, 100%, 75%).</span>`;
+            return;
+        }
+        payload.color = color;
     }
 
     btn.disabled = true;
@@ -232,5 +286,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!select) return;   // not on owner.html
 
     select.addEventListener('change', renderPageMetaFields);
+
+    // The swatch follows the text field, and the picker writes into it. The
+    // text field stays the value: it is the only one of the three that can hold
+    // an hsl().
+    const colorInput = document.getElementById('page-meta-color');
+    if (colorInput) colorInput.addEventListener('input', syncColorPreview);
+
+    const colorPicker = document.getElementById('page-meta-color-picker');
+    if (colorPicker && colorInput) {
+        colorPicker.addEventListener('input', () => {
+            colorInput.value = colorPicker.value;
+            syncColorPreview();
+        });
+    }
+
     loadPageMeta();
 });
