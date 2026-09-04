@@ -122,9 +122,48 @@ window.loadTierListRoster = async function () {
             <div class="personnel-row-actions">
                 <a class="btn-sys btn-sys-regular" href="tier-editor.html?list=${encodeURIComponent(row.slug)}">OPEN</a>
                 <a class="btn-sys btn-sys-regular" href="systems/tierlist/index.html?list=${encodeURIComponent(row.slug)}">VIEW</a>
+                ${row.status === 'archived'
+                    ? `<button class="btn-sys btn-sys-green tier-status-btn" data-slug="${tierListEscape(row.slug)}" data-status="published">RESTORE</button>`
+                    : `<button class="btn-sys btn-sys-red tier-status-btn" data-slug="${tierListEscape(row.slug)}" data-status="archived">ARCHIVE</button>`}
             </div>
         </div>`).join('');
+
+    // Delegated, not inline: the slug is account-influenced (the owner types it,
+    // but it round-trips through the database) and this codebase does not build
+    // such values into onclick attributes.
+    container.querySelectorAll('.tier-status-btn').forEach(btn => {
+        btn.addEventListener('click', () => setTierListStatus(btn.dataset.slug, btn.dataset.status));
+    });
 };
+
+// Archiving rather than deleting is the whole design - see
+// 20260904000002. The public read policy is `status = 'published'`, so an
+// archived list is off the site entirely, and nothing is destroyed: the list
+// and every note in its change history survive, and RESTORE puts it back.
+async function setTierListStatus(slug, status) {
+    const archiving = status === 'archived';
+
+    const ok = await window.adminConfirm(archiving
+        ? `Archive the list at ?list=${slug}? It comes off the site immediately. Nothing is deleted - the list and its change history stay, and you can restore it here.`
+        : `Publish the list at ?list=${slug} again? It goes back on the site immediately.`);
+    if (!ok) return;
+
+    tierToolSay('tier-assign-results', archiving ? 'Archiving...' : 'Restoring...');
+
+    const { data, error } = await window.supabaseClient
+        .rpc('set_tier_list_status', { p_slug: slug, p_status: status });
+
+    if (error) {
+        tierToolSay('tier-assign-results', tierNotDeployed(error)
+            ? 'Archiving arrives with the next release.'
+            : `Could not change it: ${error.message}`, true);
+        return;
+    }
+
+    tierToolSay('tier-assign-results', data || 'Done.');
+    window.loadTierListRoster();
+}
+window.setTierListStatus = setTierListStatus;
 
 async function assignTierList() {
     const email = (document.getElementById('tier-assign-email') || {}).value || '';

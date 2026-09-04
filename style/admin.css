@@ -925,6 +925,23 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
     padding: 0.4rem 1rem;
 }
 
+/* --- INLINE ROW EDITORS (FAQ, credits) ---
+   Opened by EDIT on the row itself rather than in a modal: for the FAQ the
+   paragraph splitting is the thing most likely to surprise, and seeing the
+   answer in the shape it was written is what makes that legible. Spans the full
+   row because .personnel-row is a wrapping flex container. */
+.owner-inline-editor {
+    flex: 1 0 100%;
+    margin-top: 0.6rem;
+    padding-top: 0.6rem;
+    border-top: 1px dashed #333;
+}
+.owner-inline-editor .block-field-label-sm { margin-top: 0.5rem; }
+.owner-inline-editor-actions { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+/* Undo .owner-tool-area .admin-tool-btn's width:100% the same way the search
+   row does - two buttons side by side, not two stacked banners. */
+.owner-tool-area .owner-inline-editor-actions .btn-sys { width: auto; margin: 0; }
+
 /* The display name is what the owner searched by, so it leads; the address is
    the thing they came to copy, and stays visible next to it. */
 .personnel-name {
