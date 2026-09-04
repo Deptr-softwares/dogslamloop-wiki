@@ -73,6 +73,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 'Character page' is the first option, so the form opens on it.
     syncCategoryToType();
 
+    // Enter searches. A lookup field that only responds to a button is a field
+    // people type into and then wonder about.
+    const accountSearch = document.getElementById('account-search');
+    if (accountSearch) {
+        accountSearch.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter') return;
+            event.preventDefault();
+            searchAccounts();
+        });
+    }
+
     await loadPersonnel();
     await loadSitePages();
     await loadPagePermissions();
@@ -142,6 +153,75 @@ const ROLE_LABELS = {
     viewer: 'Viewer (blocked from submitting)',
 };
 
+// A role is optional from 20260904000001 onward: a capability can stand on its
+// own, so a row may carry a moderator and no role at all. Without this the
+// badge rendered empty and the class came out as `badge-role-`.
+// Not `roleLabel`: applyRoleChange below already declares a local const by that
+// name, and a module-level function of the same name would sit in its shadow -
+// legal today, a temporal-dead-zone error the first time somebody calls it from
+// in there.
+function roleLabelFor(role) {
+    if (!role) return 'No role';
+    return ROLE_LABELS[role] || role;
+}
+
+function roleBadgeClass(role) {
+    return role ? `badge-role-${ownerEscape(role)}` : 'badge-role-none';
+}
+
+// The dropdown must always open showing what the person ACTUALLY has, because
+// the button next to it applies whatever is showing.
+//
+// Two ways it could show something else. A roleless account matches none of
+// ROLE_LABELS, so the select fell through to its first option - Administrator -
+// and APPLY would have promoted somebody the owner only meant to look at. And
+// 'owner' has never been in ROLE_LABELS, so an owner's row had the same
+// problem whenever the last-owner guard did not happen to disable it.
+//
+// Both are fixed the same way: whatever the person holds is rendered as a
+// selected option, in the list or not. Roles NOT in ROLE_LABELS stay
+// unofferable - this makes the current value visible, it does not add a way to
+// grant it.
+function roleOptionsHTML(currentRole) {
+    const options = [];
+
+    if (!currentRole) {
+        options.push(`<option value="" selected>No role</option>`);
+    } else if (!ROLE_LABELS[currentRole]) {
+        options.push(`<option value="${ownerEscape(currentRole)}" selected>${ownerEscape(currentRole)}</option>`);
+    }
+
+    for (const [value, label] of Object.entries(ROLE_LABELS)) {
+        options.push(
+            `<option value="${ownerEscape(value)}" ${value === currentRole ? 'selected' : ''}>${ownerEscape(label)}</option>`
+        );
+    }
+
+    // Only meaningful for somebody who has something to lose. Offering it on a
+    // roleless row would read as an action where there is none.
+    if (currentRole) options.push(`<option value="">Revoke all access</option>`);
+
+    return options.join('');
+}
+
+// Why a capability box is inert, as TEXT rather than only a title attribute.
+//
+// Owner-reported, 2026-09-04: "The button to grant 'moderate discussions' in
+// the owner tools doesn't work (clicking on it and nothing happen)." It was
+// working exactly as designed - the box is disabled for anyone who already has
+// the capability by virtue of their role - but the only thing saying so was a
+// tooltip, and a tooltip is invisible to somebody who has already clicked.
+// Nothing about the logic changed here; the reason just became legible.
+function capabilityState(person, capability) {
+    if (capability === 'can_moderate' && window.roleMeets(person.role, 'reviewer')) {
+        return { disabled: true, note: 'comes with the role' };
+    }
+    if (capability === 'can_delete_media' && window.roleMeets(person.role, 'admin')) {
+        return { disabled: true, note: 'comes with the role' };
+    }
+    return { disabled: false, note: '' };
+}
+
 // Populated by loadPersonnel so the self-demotion guard below can recognise
 // the signed-in admin without a second round trip.
 let currentAdminUserId = null;
@@ -177,24 +257,34 @@ async function loadPersonnel() {
     // counting admins would leave the site with nobody able to assign roles.
     adminCount = data.filter(p => p.role === 'owner').length;
 
-    container.innerHTML = data.map(person => {
+    container.innerHTML = data.map(personnelRowHTML).join('');
+    bindPersonnelRows(container);
+}
+window.loadPersonnel = loadPersonnel;
+
+// Shared by the roster and by the account search below, so somebody found by
+// search gets exactly the same controls as somebody already on the roster -
+// including the role dropdown, which is how a searched-for account gets its
+// first role without a second, near-identical block of markup to keep in sync.
+function personnelRowHTML(person) {
+    {
         const isSelf = person.user_id === currentAdminUserId;
         // The last admin demoting themselves locks everyone out of this page
         // permanently - the only recovery is direct database access. Blocked
         // in the UI rather than left as a trap.
         const isLastAdmin = person.role === 'owner' && adminCount === 1;
+        const moderateState = capabilityState(person, 'can_moderate');
+        const deleteMediaState = capabilityState(person, 'can_delete_media');
         return `
         <div class="personnel-row">
             <div class="personnel-row-main">
-                <span class="update-badge badge-role-${ownerEscape(person.role)}">${ownerEscape(ROLE_LABELS[person.role] || person.role)}</span>
+                <span class="update-badge ${roleBadgeClass(person.role)}">${ownerEscape(roleLabelFor(person.role))}</span>
+                ${person.display_name ? `<span class="personnel-name">${ownerEscape(person.display_name)}</span>` : ''}
                 <span class="personnel-email">${ownerEscape(person.email)}${isSelf ? ' <span class="personnel-self">(you)</span>' : ''}</span>
             </div>
             <div class="personnel-row-actions">
                 <select class="editor-input personnel-role-select" data-email="${ownerEscape(person.email)}" ${isLastAdmin ? 'disabled' : ''}>
-                    ${Object.entries(ROLE_LABELS).map(([value, label]) =>
-                        `<option value="${ownerEscape(value)}" ${value === person.role ? 'selected' : ''}>${ownerEscape(label)}</option>`
-                    ).join('')}
-                    <option value="">Revoke all access</option>
+                    ${roleOptionsHTML(person.role)}
                 </select>
                 <button class="btn-sys btn-sys-regular personnel-apply-btn"
                         data-email="${ownerEscape(person.email)}"
@@ -225,8 +315,8 @@ async function loadPersonnel() {
                        data-email="${ownerEscape(person.email)}"
                        data-capability="can_moderate"
                        ${person.can_moderate ? 'checked' : ''}
-                       ${window.roleMeets(person.role, 'reviewer') ? 'disabled title="Comes with the role."' : ''}>
-                <span>Moderate discussions</span>
+                       ${moderateState.disabled ? 'disabled' : ''}>
+                <span>Moderate discussions${moderateState.note ? ` <span class="personnel-capability-note">(${ownerEscape(moderateState.note)})</span>` : ''}</span>
             </label>
             <!--
                 Deliberately NOT implied by reviewer, unlike moderation. This
@@ -239,14 +329,16 @@ async function loadPersonnel() {
                        data-email="${ownerEscape(person.email)}"
                        data-capability="can_delete_media"
                        ${person.can_delete_media ? 'checked' : ''}
-                       ${window.roleMeets(person.role, 'admin') ? 'disabled title="Comes with the role."' : ''}>
-                <span>Delete media</span>
+                       ${deleteMediaState.disabled ? 'disabled' : ''}>
+                <span>Delete media${deleteMediaState.note ? ` <span class="personnel-capability-note">(${ownerEscape(deleteMediaState.note)})</span>` : ''}</span>
             </label>
         </div>`;
-    }).join('');
+    }
+}
 
-    // Same delegated pattern as the APPLY button, and for the same reason:
-    // the email comes from auth.users and must never reach an inline handler.
+// Same delegated pattern as the APPLY button, and for the same reason:
+// the email comes from auth.users and must never reach an inline handler.
+function bindPersonnelRows(container) {
     container.querySelectorAll('.personnel-capability-box').forEach(box => {
         box.addEventListener('change', async () => {
             const email = box.dataset.email;
@@ -288,7 +380,55 @@ async function loadPersonnel() {
         });
     });
 }
-window.loadPersonnel = loadPersonnel;
+
+// Finding somebody who is not on the roster yet.
+//
+// The roster is FROM user_roles, so it can only ever show people who already
+// hold something. The owner's problem, in their words: "a new Vessel Expert
+// come to me... he logged in using a burner mail expecting that I don't talk
+// about it. Now it is impossible for me to shift through the list just to find
+// the email to assign it to him."
+//
+// So this searches the DISPLAY NAME as well as the address, because the name is
+// the only thing the owner actually knows in that situation. Results render
+// through personnelRowHTML - the same row, with the same controls - so granting
+// a role or a capability to somebody found here is the same gesture as doing it
+// on the roster, rather than a second half-featured path.
+async function searchAccounts() {
+    const input = document.getElementById('account-search');
+    const container = document.getElementById('account-search-results');
+    if (!input || !container) return;
+
+    const query = input.value.trim();
+
+    // Matches the function's own floor, so the UI explains the rule rather than
+    // returning silently and looking broken.
+    if (query.length < 2) {
+        container.innerHTML = `<p class="admin-tool-hint">Type at least two characters of an email address or a display name.</p>`;
+        return;
+    }
+
+    container.innerHTML = `<p class="loading-msg">Searching...</p>`;
+
+    const { data, error } = await window.supabaseClient.rpc('search_users', { search_query: query });
+
+    if (error) {
+        const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
+        container.innerHTML = notDeployed
+            ? `<p class="admin-error-text">Account search isn't available yet - the <code>search_users</code> database function hasn't been deployed. It arrives with the next migration.</p>`
+            : `<p class="admin-error-text">Could not search: ${ownerEscape(error.message)}</p>`;
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        container.innerHTML = `<p class="loading-msg">No account matches that.</p>`;
+        return;
+    }
+
+    container.innerHTML = data.map(personnelRowHTML).join('');
+    bindPersonnelRows(container);
+}
+window.searchAccounts = searchAccounts;
 
 async function applyRoleChange(email, newRole) {
     const results = document.getElementById('role-results');

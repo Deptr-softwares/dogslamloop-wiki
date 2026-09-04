@@ -54,6 +54,7 @@
         "20260903000001_page_experts.sql": "835c3e1597b3c32ac212cf2c82527b4d539fece9c0833ada14e1e3ba7b0ae886",
         "20260903000002_ticket_messages.sql": "e3e1bf43129921e45bdec4dbf01d0c5f0da253b9b73a477e1861f825cebbeb63",
         "20260903000003_reset_ranking_where.sql": "f581b7ee6d3faf28f6ad645cbe19a3c05acb05083133fac38b28bb40a91e14cd",
-        "20260904000000_preserve_capabilities_on_role_change.sql": "00518db200d13291ba7035cd614c5fa5e301f3197c5f5c76f4081238b67d81e4"
+        "20260904000000_preserve_capabilities_on_role_change.sql": "00518db200d13291ba7035cd614c5fa5e301f3197c5f5c76f4081238b67d81e4",
+        "20260904000001_roster_and_standalone_capabilities.sql": "85e8be1726662725b0e4e14f9a89a395a50d669bdd519b292f8aace9c9e54a50"
     }
 }

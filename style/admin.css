@@ -893,6 +893,35 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 .personnel-capability:hover { color: var(--text-white); }
 .personnel-capability-box { cursor: pointer; }
 
+/* A disabled box is disabled for a REASON, and the reason used to live only in
+   a title attribute - invisible to somebody who has already clicked and seen
+   nothing happen, which is exactly how it got reported as broken. The label
+   now carries it, and the row dims so the box does not look merely unticked. */
+.personnel-capability:has(.personnel-capability-box:disabled) { cursor: default; opacity: 0.6; }
+.personnel-capability:has(.personnel-capability-box:disabled):hover { color: #888; }
+.personnel-capability-note { font-style: italic; opacity: 0.85; }
+
+/* --- ACCOUNT SEARCH (js/owner.js searchAccounts) ---
+   The roster reads user_roles and so can only show people who already hold
+   something. This finds everyone else. Same row markup, so the results need no
+   layout of their own - only the input line does. */
+.personnel-search-row { display: flex; gap: 0.5rem; align-items: stretch; }
+.personnel-search-row .editor-input { flex: 1 1 auto; min-width: 0; }
+.personnel-search-row .admin-tool-btn { flex: 0 0 auto; margin-top: 0; }
+
+/* The display name is what the owner searched by, so it leads; the address is
+   the thing they came to copy, and stays visible next to it. */
+.personnel-name {
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    color: var(--text-white);
+    margin-right: 0.4rem;
+}
+
+/* No role is a real state now that a capability can stand on its own. Neutral
+   rather than a role colour: it is the absence of one, not another rank. */
+.badge-role-none { background: #2a2a2a; color: #999; border-color: #3a3a3a; }
+
 /* --- REPORT QUEUE (v0.14 item 6) ---
    Third queue in the sidebar column, deliberately built from the same pieces
    as the media queue above it rather than a new visual language: a reviewer
