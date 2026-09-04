@@ -79,6 +79,25 @@
                         <p class="loading-msg">Loading roster...</p>
                     </div>
 
+                    <!--
+                        The roster above only lists people who already hold a
+                        role or a capability, because it reads user_roles. This
+                        searches every account - by display name as well as by
+                        address, since a new expert arriving on a burner mail is
+                        somebody the owner knows by name and not by email.
+                        Results render as identical rows, so granting from here
+                        is the same gesture as granting up there.
+                    -->
+                    <div class="personnel-add">
+                        <label class="block-field-label-sm" for="account-search">FIND ANY ACCOUNT</label>
+                        <div class="personnel-search-row">
+                            <input type="search" id="account-search" placeholder="Display name or email"
+                                   class="editor-input admin-input-full" autocomplete="off">
+                            <button onclick="searchAccounts()" class="btn-sys btn-sys-regular admin-tool-btn">SEARCH</button>
+                        </div>
+                        <div id="account-search-results" class="personnel-roster"></div>
+                    </div>
+
                     <div class="personnel-add">
                         <label class="block-field-label-sm" for="target-email">GRANT ACCESS BY EMAIL</label>
                         <input type="email" id="target-email" placeholder="user@email.com" class="editor-input admin-input-full">
@@ -586,21 +605,21 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/character_tabs.js?v=f44ef368"></script>
-    <script src="js/input_slots.js?v=f44ef368"></script>
-    <script src="js/site_utils.js?v=f44ef368"></script>
-    <script src="js/site_meta.js?v=f44ef368"></script>
-    <script src="js/editor-folders.js?v=f44ef368"></script>
-    <script src="js/editor-blocks.js?v=f44ef368"></script>
-    <script src="js/owner.js?v=f44ef368"></script>
+    <script src="js/character_tabs.js?v=49b50018"></script>
+    <script src="js/input_slots.js?v=49b50018"></script>
+    <script src="js/site_utils.js?v=49b50018"></script>
+    <script src="js/site_meta.js?v=49b50018"></script>
+    <script src="js/editor-folders.js?v=49b50018"></script>
+    <script src="js/editor-blocks.js?v=49b50018"></script>
+    <script src="js/owner.js?v=49b50018"></script>
     <!-- After owner.js: both use its ownerEscape and contentNotDeployedMessage. -->
-    <script src="js/owner-site-meta.js?v=f44ef368"></script>
-    <script src="js/owner-hub-text.js?v=f44ef368"></script>
-    <script src="js/owner-hub-lists.js?v=f44ef368"></script>
-    <script src="js/owner-page-meta.js?v=f44ef368"></script>
-    <script src="js/owner-staff-perks.js?v=f44ef368"></script>
-    <script src="js/owner-page-experts.js?v=f44ef368"></script>
-    <script src="js/owner-tier-lists.js?v=f44ef368"></script>
-    <script src="js/owner-nav.js?v=f44ef368"></script>
+    <script src="js/owner-site-meta.js?v=49b50018"></script>
+    <script src="js/owner-hub-text.js?v=49b50018"></script>
+    <script src="js/owner-hub-lists.js?v=49b50018"></script>
+    <script src="js/owner-page-meta.js?v=49b50018"></script>
+    <script src="js/owner-staff-perks.js?v=49b50018"></script>
+    <script src="js/owner-page-experts.js?v=49b50018"></script>
+    <script src="js/owner-tier-lists.js?v=49b50018"></script>
+    <script src="js/owner-nav.js?v=49b50018"></script>
 </body>
 </html>

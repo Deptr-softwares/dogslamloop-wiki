@@ -98,7 +98,7 @@ Three to four items each, because CI is ~13 minutes and that wait dominates a
 small fix.
 
 **PR 1 — the two confirmed bugs.** Expert access, and the capability wipe.
-Shipped in this branch.
+Merged as [#159](https://github.com/Deptr-softwares/dogslamloop-wiki/pull/159).
 
 **PR 2 — the roster.** One root cause, three symptoms: find any account by
 email or display name, not only those holding a role; grant a capability to a
@@ -152,18 +152,67 @@ fails there instead of shipping.
 
 ---
 
+## PR 2 — what shipped
+
+**Answered by the owner, 2026-09-04**, and both answers shaped the build:
+
+- *Bug 2 was a reviewer or admin.* So the box was correctly inert — moderation
+  comes with the role — and nothing about the logic was wrong. **Not a bug.**
+  The failure was that the only thing saying so was a `title` attribute, which
+  is invisible to somebody who has already clicked and seen nothing happen. The
+  reason is now rendered text and the row dims.
+- *Capabilities stand alone.* A roleless account may hold one.
+
+That second answer hit a schema wall worth recording: `role` was `NOT NULL`
+**and** half of `PRIMARY KEY (user_id, role)`, so a row could not exist without
+one — and there is no neutral role to borrow, because `viewer` is a ban rather
+than a floor.
+
+Making `role` nullable is less invasive than it sounds, because **a NULL role is
+already the contract everywhere else**: `get_my_role()` returns NULL for a
+roleless user and every comparison against it uses `IS DISTINCT FROM` for
+exactly that reason, `role_rank(NULL)` is 0, the CHECK is `role = ANY (...)`
+which evaluates to NULL rather than FALSE and passes untouched, and the viewer
+ban is `IS DISTINCT FROM`. One role per user is unchanged — the count is now
+zero or one instead of exactly one.
+
+The composite PK is dropped **to** `user_id` rather than kept alongside the
+existing `UNIQUE(user_id)`, so `ON CONFLICT` has one arbiter index to infer and
+not two identical candidates.
+
+`search_users()` searches **display name as well as address**, because the
+owner's scenario is an expert who "logged in using a burner mail" — the name is
+the only thing they know. `LEFT JOIN`, or it would reproduce the very bug it
+exists to fix. Owner-only, guarded inside the function, and a query under two
+characters returns nothing: it is a lookup, not an export.
+
+### Found while in there
+
+**The role dropdown fell through to its first option — Administrator — for
+anyone whose role was not in `ROLE_LABELS`.** That already meant every `owner`
+row whenever the last-owner guard did not disable the select, and after this
+change it would have meant every roleless account. Since APPLY applies whatever
+is showing, it was a promotion waiting to happen. Now whatever the person holds
+is rendered as a selected option, in the label table or not — which makes the
+current value visible without making an unofferable role grantable.
+
+### Falsified
+
+Reverting **only** `js/owner.js` failed 11 tests and left the 9 SQL tests
+passing — the split is the point: each half fails for its own claim rather than
+everything collapsing together.
+
+---
+
 ## Open questions for the owner
 
-1. **Bug 2** — which person were you clicking? A reviewer/admin (box correctly
-   inert, needs a legible reason rather than a tooltip), or somebody with no
-   role (never in the list — PR 2)?
-2. **Should a roleless account be allowed to hold a capability?** Today
-   `set_user_capability` says no on purpose. Letting a moderator exist with no
-   role at all is the cleaner model and matches how experts already work, but it
-   is a real change to what a capability means.
-3. **Character colour codes** (req 1) is the one item whose scope I cannot infer.
+1. **Character colour codes** (req 1) is the one item whose scope I cannot infer.
    "Applying that colour throughout the site (mainly auto-colouring), and
    probably more" needs pinning down before it is built.
+2. **Does `viewer` still mean anything now that a role is optional?** A roleless
+   account and a `viewer` are no longer the same shape, but `viewer` is a ban and
+   NULL is not — that distinction still holds. Raised only because the two look
+   alike on the roster now, not because anything is wrong.
 
 ---
 
@@ -179,3 +228,8 @@ unannounced changes nothing about that.
   that they see their own page's submissions *and* not somebody else's. Either
   alone proves nothing.
 - A reviewer must still see all three queues, and a moderator still exactly one.
+- **`search_users` as a non-owner must fail with 42501**, and as anon must not
+  be callable at all. It returns email addresses, so this is the probe that
+  matters most in PR 2 — and it is the half Playwright cannot see.
+- **Grant a capability to an account with no role**, then take it away again,
+  and confirm the row is gone rather than left behind carrying nothing.

@@ -82,12 +82,14 @@ test('revoking still removes the row, capabilities included', () => {
     expect(revokeReturn, 'the delete must run before the revoke returns').toBeGreaterThan(del);
 });
 
-test('assigning upserts on the unique constraint, not the primary key', () => {
-    // user_roles has PRIMARY KEY (user_id, role) AND a separate
-    // UNIQUE (user_id) (20260801000000). Only the second one makes "same
-    // person, different role" a conflict - targeting the PK would not conflict
-    // at all on a role change, so the insert would proceed and violate the
-    // unique constraint instead.
+test('assigning upserts on user_id', () => {
+    // Written when user_roles had PRIMARY KEY (user_id, role) plus a separate
+    // UNIQUE (user_id): only the second made "same person, different role" a
+    // conflict, and targeting the composite PK would not have conflicted at all.
+    //
+    // 20260904000001 collapsed those into one PRIMARY KEY (user_id), precisely
+    // so there is a single arbiter index to infer. The assertion is unchanged
+    // and still load-bearing - only the reason it names has moved.
     expect(ASSIGN.body).toMatch(/ON CONFLICT\s*\(\s*"?user_id"?\s*\)/i);
 });
 
