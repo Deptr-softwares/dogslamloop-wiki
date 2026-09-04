@@ -76,20 +76,51 @@ test('a database without the column yet is skipped, not failed', () => {
     expect(buildCharacterColors(preMigration)).toBeNull();
 });
 
-test('the column existing but empty is still refused', () => {
-    // The distinction the check above rests on. Present-and-all-NULL is the
-    // dangerous case - it would un-colour the entire roster - and must not be
-    // mistaken for not-deployed.
+test('a deployed but entirely uncoloured roster is skipped, not failed', () => {
+    // This USED TO THROW, and throwing was wrong.
+    //
+    // "The column exists and every value is NULL" is not a broken query - it is
+    // the ordinary state between the migration landing and anybody setting a
+    // colour, and the site sat in it for a day. The guard fired on a legitimate
+    // state and took the FAQ, collaborator and site_meta refresh down with it,
+    // on a daily cron.
+    //
+    // Skipping still achieves what the guard was for: the committed dictionary
+    // is never replaced with an empty one.
     const allNull = ROWS.map(r => ({ ...r, color: null }));
-    expect(() => buildCharacterColors(allNull)).toThrow(/no character page has a colour/i);
+    expect(buildCharacterColors(allNull)).toBeNull();
 });
 
-test('an empty roster is refused rather than written', () => {
-    // Same rule as fetchTable's zero-row guard: an empty result is a broken
-    // query or a policy change, never a request to un-colour the whole roster.
-    expect(() => buildCharacterColors([
+test('an uncoloured roster warns rather than passing silently', () => {
+    // The other half of not throwing. If colours ever genuinely disappear, the
+    // operator has to hear about it - a silent skip is how that becomes
+    // invisible until a release.
+    const warnings = [];
+    const original = console.warn;
+    console.warn = (...args) => warnings.push(args.join(' '));
+    try {
+        buildCharacterColors(ROWS.map(r => ({ ...r, color: null })));
+    } finally {
+        console.warn = original;
+    }
+    expect(warnings.join(' ')).toMatch(/no character page has a colour/i);
+});
+
+test('a roster with no character pages at all is skipped too', () => {
+    expect(buildCharacterColors([
         { name: 'Frame Data', page_type: 'system', color: '#123456', sort_order: 1 },
-    ])).toThrow(/no character page has a colour/i);
+    ])).toBeNull();
+});
+
+test('one coloured character is still enough to write', () => {
+    // The boundary. Skipping is for "nothing is set", not "not much is set" -
+    // a roster mid-backfill must still generate what it has.
+    const out = buildCharacterColors([
+        { name: 'Vessel', page_type: 'character', color: '#ff0000', sort_order: 1 },
+        { name: 'Boomcat', page_type: 'character', color: null, sort_order: 2 },
+    ]);
+    expect(out).toContain('"Vessel": "#ff0000"');
+    expect(out).not.toContain('Boomcat');
 });
 
 test('the output is stable, so a rerun is not a diff', () => {
@@ -305,6 +336,39 @@ test('the colour column is added without touching policies', () => {
     // Adding another would be a second gate to keep in sync with the first.
     expect(mig).not.toMatch(/CREATE POLICY/);
     expect(mig).not.toMatch(/GRANT .* ON TABLE/);
+});
+
+test('the backfill fills only what is unset, so it cannot undo an edit', () => {
+    // A migration that reads as "restore the defaults" would quietly overwrite
+    // a colour the owner has since changed, if it ever ran twice.
+    const mig = fs.readFileSync(
+        path.join(ROOT, 'supabase', 'migrations', '20260905000000_backfill_page_colors.sql'), 'utf8');
+
+    expect(mig).toMatch(/AND sp\."color" IS NULL/);
+    expect(mig).toMatch(/AND sp\."page_type" = 'character'/);
+    expect(mig).toMatch(/WHERE sp\."name" = v\.name/);
+});
+
+test('the backfill and the shipped dictionary say exactly the same thing', () => {
+    // The values were extracted from js/site_meta.js programmatically rather
+    // than retyped - 22 hsl() triples is exactly the list a person transcribes
+    // one digit wrong. Asserted both ways: nothing in the file is missing from
+    // the migration, and nothing in the migration is invented.
+    const mig = fs.readFileSync(
+        path.join(ROOT, 'supabase', 'migrations', '20260905000000_backfill_page_colors.sql'), 'utf8');
+    const source = fs.readFileSync(SITE_META, 'utf8');
+    const region = source.slice(source.indexOf(COLORS_BEGIN), source.indexOf(COLORS_END));
+
+    const fromFile = new Map([...region.matchAll(/^\s{4}"([^"]+)":\s*"([^"]+)"/gm)].map(m => [m[1], m[2]]));
+    const fromMig = new Map([...mig.matchAll(/^\s{8}\('([^']+)', '([^']+)'\)/gm)].map(m => [m[1], m[2]]));
+
+    expect(fromMig.size).toBe(fromFile.size);
+    for (const [name, color] of fromFile) {
+        expect(fromMig.get(name), `${name} is backfilled with its shipped colour`).toBe(color);
+    }
+    for (const name of fromMig.keys()) {
+        expect(fromFile.has(name), `${name} in the migration exists in the dictionary`).toBe(true);
+    }
 });
 
 test('the column is text, not a constrained type', () => {
