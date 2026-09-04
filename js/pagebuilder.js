@@ -354,6 +354,9 @@ window.initAuthDock = async function() {
     let userRole = 'none'; let username = 'LOGIN'; let unreadCount = 0;
     // A capability, not a role - see the OVERSEER button below.
     let canModerate = false;
+    // Neither a role nor a capability: a row in page_experts. Also the OVERSEER
+    // button - see below.
+    let isExpert = false;
     if (window.supabaseClient) {
         try {
             // Fetch the FULL session so we can pass it to our universal name extractor
@@ -369,6 +372,15 @@ window.initAuthDock = async function() {
                 const { data: roleData } = await window.supabaseClient.from('user_roles').select('*').eq('user_id', session.user.id).single();
                 if (roleData) userRole = roleData.role;
                 if (roleData && roleData.can_moderate === true) canModerate = true;
+
+                // Asked only when the role has not already earned the button,
+                // so this costs staff nothing. Mirrors js/admin-core.js, which
+                // skips it for the same reason.
+                if (!window.roleMeets(userRole, 'reviewer') && !canModerate) {
+                    const { data: expertPages } = await window.supabaseClient
+                        .rpc('get_user_expert_pages', { target_user_id: session.user.id });
+                    isExpert = Array.isArray(expertPages) && expertPages.length > 0;
+                }
                 
                 // user_notifications, not system_inbox - the latter has no
                 // migration and has never existed, so this count was always 0
@@ -426,7 +438,13 @@ window.initAuthDock = async function() {
     // get_my_role() for that user everywhere, so "let this person moderate"
     // must never become a second role. admin-core.js scopes what they see once
     // they arrive - reports only, no revision or media queue.
-    if (window.roleMeets(userRole, 'reviewer') || canModerate) {
+    //
+    // A page expert joined the list on 2026-09-04, and is the third thing that
+    // is not a role. v0.17 gave them review rights over their own pages in SQL
+    // (can_review_page, 20260903000001) but neither gate here nor in
+    // admin-core.js was taught the word, so an expert saw their badge and no
+    // way to act on it. Both were changed together, as the note above requires.
+    if (window.roleMeets(userRole, 'reviewer') || canModerate || isExpert) {
         html += `
             <button id="dock-btn-edit" class="btn-sys btn-sys-purple dock-action-btn" onclick="window.location.href='${rootPath}admin.html'">
                 <span class="btn-manga-icon dock-action-icon">${svgGear}</span>

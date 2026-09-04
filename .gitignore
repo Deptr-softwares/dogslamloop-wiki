@@ -4,3 +4,8 @@ supabase/.temp/
 supabase/.branches/
 test-results/
 playwright-report/
+
+# The owner's working copy of the silent-release requirements. The tracked one
+# is devlogs/SilentRelease1.txt; this is the same file sitting at the root, and
+# without this line every `git add -A` sweeps a second copy back in.
+/SilentRelease1.txt
