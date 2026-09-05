@@ -129,6 +129,11 @@ async function approveCurrentPreview() {
         qa_metadata: updatedQA
     }).eq('id', window.activePreviewRevId);
 
+    // Primed so the link stored on the notification is the page's real path
+    // rather than the folder convention - see buildPageUrl in js/site_utils.js.
+    // This one is clicked days later, so getting it wrong is a 404 with no
+    // context around it.
+    await window.primePageUrlIndex();
     const pageUrl = window.buildPageUrl(revData.page_id, revData.page_type);
 
     // Update Notification to include the Staff Note
@@ -175,6 +180,11 @@ async function rejectCurrentPreview() {
         return;
     }
 
+    // Primed so the link stored on the notification is the page's real path
+    // rather than the folder convention - see buildPageUrl in js/site_utils.js.
+    // This one is clicked days later, so getting it wrong is a 404 with no
+    // context around it.
+    await window.primePageUrlIndex();
     const pageUrl = window.buildPageUrl(revData.page_id, revData.page_type);
 
     // Skipped for an anonymized author - see the approve path above.

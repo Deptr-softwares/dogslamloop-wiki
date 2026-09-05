@@ -30,19 +30,19 @@ const PAGES = [...new Set([
 // a bad relative path, a stub pointing at a portrait that no longer exists.
 const LOCAL_ASSET = /\.(js|css|json|png|jpe?g|gif|svg|webp|woff2?|ico|mp4|webm)(\?|$)/i;
 
-// Narrow, deliberate, and it should SHRINK. Each entry is a known condition
-// with a reason, not a convenience:
+// There is no allow-list, and that is the point.
 //
-//   *_descriptions.json / *_framedata.json - the pre-Supabase fallback. A page
-//   with no page_data row still tries its old local file, which has not existed
-//   since content moved to Supabase. Dead path, reached only when a page is
-//   empty. Worth removing; until then it is noise rather than a regression.
+// The first version of this file had one entry: the pre-Supabase
+// *_descriptions.json / *_framedata.json fallback, which fired on every page
+// with no page_data row and could only 404, since no such file has existed in
+// this repo since content moved to Supabase. Both fallbacks are now deleted
+// rather than tolerated, so nothing needs excusing and a reintroduction fails
+// here instead of being waved through.
 //
-// Note what is NOT here: a blanket 40x filter. smoke.spec.js has to suppress
-// every 404 by status code because the console reports them without a URL, so
-// it cannot tell a dead fallback from a missing stylesheet. Reading the URL off
-// the response event instead is what makes this file able to be specific.
-const KNOWN_DEAD_FALLBACK = /_(descriptions|framedata)\.json/;
+// Note what this file does NOT do: filter by status code. smoke.spec.js has to
+// suppress every 404 that way, because the console reports them without a URL
+// and it cannot tell a dead fallback from a missing stylesheet. Reading the URL
+// off the response event instead is what makes being specific possible.
 
 for (const p of PAGES) {
     test(`no runtime errors on ${p}`, async ({ page }) => {
@@ -62,7 +62,6 @@ for (const p of PAGES) {
             // not been written yet. Whether a page SHOULD have content is the
             // owner's call, not a test's.
             if (url.includes('/rest/v1/')) return;
-            if (KNOWN_DEAD_FALLBACK.test(url)) return;
             if (!LOCAL_ASSET.test(url)) return;
             brokenAssets.push(`${r.status()} ${url.replace(/^https?:\/\/[^/]+/, '')}`);
         });
