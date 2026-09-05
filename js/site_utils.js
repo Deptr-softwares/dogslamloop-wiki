@@ -1023,7 +1023,66 @@ window.bindTooltip = function(element, titleHtml) {
 // path from the current page should do the same rather than baking a
 // fixed depth into the stored value, since e.g. notification links are
 // shown from every page on the site, at every folder depth.
+// WHERE A PAGE LIVES IS DATA, NOT CONVENTION - and that changed under this
+// function without it noticing. page_type used to decide the directory, so a
+// system page was always systems/<id>/. Then others/ and tools/ arrived: an
+// Emotes gallery lives in others/ and renders exactly like a system page, and
+// site_pages.url has stored the real path ever since (see PAGE_DIRECTORIES in
+// js/owner.js, which spells out that these are two different questions).
+//
+// Deriving the path anyway sent every Recent Changes link and every approval
+// notification for a tool, a gallery, or one of the system pages under others/
+// to a 404. navigation.json already carries the answer, so look it up.
+let pageUrlIndex = null;
+
+/**
+ * Loads the pageId -> url index buildPageUrl prefers. Idempotent, and the
+ * fetches underneath are promise-cached, so awaiting this before each render
+ * costs nothing after the first call.
+ *
+ * Await it before rendering anything that links to a page by id.
+ */
+window.primePageUrlIndex = async function() {
+    if (pageUrlIndex) return pageUrlIndex;
+
+    const index = {};
+    let navLoaded = false;
+    try {
+        const nav = await fetchNavigationData();
+        for (const entries of Object.values(nav || {})) {
+            for (const entry of entries || []) {
+                const id = entry && entry.cms_config && entry.cms_config.pageId;
+                if (id && entry.url) index[id] = entry.url;
+            }
+        }
+        navLoaded = true;
+    } catch (e) {
+        // Leave pageUrlIndex null so a later call can retry rather than
+        // caching an empty index and falling back forever.
+        console.warn('[buildPageUrl] navigation.json unavailable; using the folder convention.', e);
+    }
+
+    // Archived pages are deliberately absent from navigation.json but keep a
+    // tombstone stub at their stored URL, and an approved revision can still
+    // point at one. Returns {} on any failure, so this cannot throw.
+    const archived = await fetchArchivedPages();
+    for (const [id, row] of Object.entries(archived)) {
+        if (row && row.url && !index[id]) index[id] = row.url;
+    }
+
+    if (navLoaded) pageUrlIndex = index;
+    return index;
+};
+
 window.buildPageUrl = function(pageId, pageType) {
+    // The stored path wins wherever it is known.
+    if (pageUrlIndex && pageUrlIndex[pageId]) return pageUrlIndex[pageId];
+
+    // Convention fallback, for a caller that has not primed the index and for
+    // a page id the registry has never heard of. Right for the two original
+    // page kinds and wrong for anything in others/ or tools/ - which is the
+    // whole reason the index exists, and why this is a last resort rather than
+    // the answer.
     if (pageType === 'tierlist') return 'systems/tierlist/index.html';
     if (pageType === 'system') return `systems/${pageId}/index.html`;
     const folderName = pageId.charAt(0).toUpperCase() + pageId.slice(1);

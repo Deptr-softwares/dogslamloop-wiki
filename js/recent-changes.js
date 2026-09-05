@@ -59,6 +59,12 @@ async function loadRecentChanges() {
         return;
     }
 
+    // Every card links to its page by id, and where a page lives is data
+    // rather than convention - see buildPageUrl in js/site_utils.js. Without
+    // this, a change to a tool, a gallery or a system page under others/
+    // rendered a link to a 404.
+    await window.primePageUrlIndex();
+
     listEl.innerHTML = revisions.map(renderChangeCard).join('');
     renderPagination(revisions.length);
 }

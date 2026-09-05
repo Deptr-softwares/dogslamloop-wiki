@@ -205,6 +205,43 @@ Same rule as never pinning a count to owner content, in the shape that is
 easier to miss: not a hardcoded number, but an assumption that a real page
 starts empty.
 
+## A test the owner can turn red is a production outage
+
+The regeneration job commits its artifacts **only after this suite passes**. So
+a test that a content edit can break does not just go red — it stops navigation,
+colours, portraits, the FAQ, collaborators and every page stub from reaching the
+site, and it keeps stopping them on every daily run until someone notices. It
+has happened twice: the Roulette page (three days, 2026-08-09) and the Hidden
+flag (2026-09-05).
+
+Both times the symptom reported was *"the site is stale"*, not *"a test
+failed"*. When a regeneration run fails, those are the same sentence.
+
+Three shapes cause it, and the third is the one that hides longest:
+
+- **A count of anything the owner controls** — pages, characters, categories,
+  colours. Covered above; still the most common.
+- **A frozen artifact compared against a regenerated one.** An applied migration
+  is immutable, so it can never gain the row the owner just added, while the
+  dictionary generated from `site_pages` grows every time. `character-colors`
+  asserted the two were the same size. That test could never pass again after
+  the 23rd character, and nothing about it looked like a count.
+- **A fixture that reconstructs generated data by hand.** `registry-roundtrip`
+  rebuilt registry rows from `navigation.json` and listed the flags manually, so
+  it silently dropped `is_hidden` — which `buildNavigation` had emitted for
+  eleven days. It stayed green the whole time because no page was hidden yet,
+  then failed the moment one was.
+
+The defence for the last one is to state the mapping **once** and have the test
+reverse it (`NAV_FLAGS` in `scripts/fetch-registry.js`), the same way the role
+ladder is stated once in `role_rank()`. A fixture that retypes what the
+generator emits is a second source of truth wearing a test's clothes.
+
+And before writing an assertion against real site data, ask the question
+directly: **what could the owner legitimately do tomorrow that makes this
+fail?** Adding a character, colouring one, hiding one, renaming a category and
+archiving a page are all normal Tuesday actions, not edge cases.
+
 ## Derive the blast radius, do not guess it
 
 Running "the touched specs plus the neighbours" is the right instinct for a
@@ -227,6 +264,21 @@ npx playwright test $(grep -rln "block-list\|block-card\|editor-textarea" tests/
 Grep for the **markup and globals the change touches**, not for the feature's
 name — those five files never mention collapsing, folders, or the workspace.
 Fourteen files matched; running them found every failure before pushing.
+
+### A UI-driving spec names none of your identifiers
+
+The same miss in its most ordinary form. PR #162 changed `js/owner.js` and the
+affected set was derived from the identifiers in the diff — four specs. CI came
+back red on `owner-pages.spec.js`, which drives the page through the browser and
+mentions not one of those names; it knows the page only as `owner.html` and
+`#pages-list`.
+
+**Derive the set from the SURFACE the change appears on, not the symbols it
+renames.** For anything a user clicks, that means the page and its DOM ids:
+
+```bash
+grep -rl "owner.html\|pages-list" tests/*.spec.js   # 33 files, not 4
+```
 
 ### Grep for what you DELETED, not only what you added
 

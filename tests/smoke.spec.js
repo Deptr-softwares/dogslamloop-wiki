@@ -28,14 +28,18 @@ for (const { path, label } of PAGES) {
     expect(response.ok()).toBeTruthy();
     await page.waitForTimeout(500);
 
-    // Known pre-existing conditions, unrelated to any single change here:
-    // pages with no live Supabase row yet fall back to fetching a local
-    // *_descriptions.json/*_framedata.json that hasn't existed since content
-    // moved fully to Supabase (confirmed dead fallback paths, not something
-    // this test suite fixes). Browsers report these as a generic "Failed to
-    // load resource: 404/406" console message with no URL in the text, so
-    // the filter can't be more specific than the status codes themselves.
-    const KNOWN_NOISE = [/Failed to load resource:.*40[46]/, /Could not load .* through site_utils/];
+    // A page with no page_data row yet gets a 406 from PostgREST, which is the
+    // correct answer rather than a fault. The browser reports it as a generic
+    // "Failed to load resource" console line carrying no URL, so this filter
+    // cannot be narrower than the status code. That limitation belongs to
+    // reading the console: page-sweep.spec.js reads the response event instead
+    // and needs no allow-list at all.
+    //
+    // The 404 half of this used to cover the pre-Supabase
+    // *_descriptions.json/*_framedata.json fallback, and the site_utils warning
+    // came from the same place. Both are deleted, so both are gone from here -
+    // a 404 on these pages is now a real broken asset and should fail.
+    const KNOWN_NOISE = [/Failed to load resource:.*406/];
     const unexpected = errors.filter(e => !KNOWN_NOISE.some(pattern => pattern.test(e)));
 
     expect(unexpected, `Unexpected console errors on ${path}`).toEqual([]);

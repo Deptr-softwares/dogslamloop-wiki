@@ -70,6 +70,16 @@ async function loadPageMeta() {
     }
 
     pageMetaRows = data || [];
+
+    // The guard at the top of this function passed BEFORE the await, and
+    // owner.html's RBAC gate replaces the page wholesale when it denies access
+    // - which it does on any logged-out load, while this query is still in
+    // flight. `select` above stays usable because it was captured first: it is
+    // simply detached, so writing to it succeeds and nothing looks wrong. It is
+    // renderPageMetaFields' fresh lookup below that returns null and throws.
+    // Re-check once here rather than guarding every helper underneath.
+    if (!document.getElementById('page-meta-select')) return;
+
     results.innerHTML = '';
 
     // Archived and draft pages are included on purpose: their details are
@@ -83,6 +93,10 @@ async function loadPageMeta() {
 
 function currentPageMetaRow() {
     const select = document.getElementById('page-meta-select');
+    // Null when the page has been replaced under us. Returning null rather than
+    // throwing costs nothing here - every caller already handles "no row
+    // selected", which is the same situation from their point of view.
+    if (!select) return null;
     return pageMetaRows.find(r => r.page_id === select.value) || null;
 }
 
