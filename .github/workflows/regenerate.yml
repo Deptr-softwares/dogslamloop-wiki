@@ -15,19 +15,79 @@ name: Regenerate Pages
 
 on:
   workflow_dispatch:
+    inputs:
+      publish_to_main:
+        description: 'Also publish to main (DEPLOYS TO THE LIVE SITE)'
+        type: boolean
+        default: false
   schedule:
     # Once a day. Portraits change rarely, and the manual button covers "I
     # just changed one and want it live now".
+    #
+    # A scheduled run NEVER touches main. `inputs` is empty on a schedule
+    # event, so publish_to_main is false and the matrix below is next-update
+    # alone - see the `targets` job for why that is deliberate rather than a
+    # limitation.
     - cron: '0 4 * * *'
+
+# One regeneration at a time. Two runs pushing to the same branch race, and a
+# manual publish overlapping the nightly cron is precisely when that happens.
+# Not cancel-in-progress: a half-finished regeneration is worse than a queued
+# one, and this job is never so urgent that waiting hurts.
+concurrency:
+  group: regenerate-pages
+  cancel-in-progress: false
 
 # Required because this job commits. Nothing else here needs write access.
 permissions:
   contents: write
 
 jobs:
+  # WHICH BRANCHES THIS RUN REGENERATES.
+  #
+  # next-update always; main only when publish_to_main is ticked on a manual
+  # run.
+  #
+  # Content is data, not code, and it used to need a code release to go live.
+  # The only path from "the owner created a character" to "readers can see it"
+  # was a next-update -> main release PR, which drags every unreleased change
+  # on next-update along with it. A page created on 2026-09-04 was unreachable
+  # until a release two days later for exactly that reason, and the release had
+  # to carry unrelated work to get there.
+  #
+  # main is production and a push to it deploys immediately, so this is a
+  # button and not the cron (owner, 2026-09-06). The nightly run keeps
+  # refreshing next-update and cannot deploy on its own, which preserves the
+  # one property the release PR was really providing: nothing reaches readers
+  # unless somebody decided it should. An accidental archive, rename or status
+  # change in the owner tools does not go live while nobody is looking.
+  targets:
+    runs-on: ubuntu-latest
+    outputs:
+      branches: ${{ steps.pick.outputs.branches }}
+    steps:
+      - id: pick
+        run: |
+          if [ "${{ inputs.publish_to_main }}" = "true" ]; then
+            echo 'branches=["next-update","main"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'branches=["next-update"]' >> "$GITHUB_OUTPUT"
+          fi
+
   regenerate:
+    needs: targets
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      # One leg at a time, next-update first. Two legs pushing concurrently
+      # would race, and they write the same generated files.
+      max-parallel: 1
+      # Each branch is regenerated and tested on its own, so a failure on one
+      # is not a reason to skip the other: if unreleased code on next-update
+      # has a problem, the owner's content should still be publishable to main.
+      fail-fast: false
+      matrix:
+        branch: ${{ fromJSON(needs.targets.outputs.branches) }}
     env:
       # Not secrets, deliberately. The anon key already ships inside
       # js/site_utils.js and is therefore in the page source of every page on
@@ -62,8 +122,23 @@ jobs:
       # Verification still happens: this job runs the full suite before it
       # commits. The bypass skips a check the job performs on itself, not a
       # check nobody performed.
+      # EACH BRANCH REGENERATES WITH ITS OWN CODE. That is the whole reason
+      # this is a matrix rather than one run that copies files across.
+      #
+      # Generated stubs embed an asset stamp derived from js/, so while
+      # next-update carries unreleased JS the two branches legitimately produce
+      # different stubs: on 2026-09-06 main was v301ffd47 and next-update
+      # v9e9f3511, on all 62 pages. Copying either branch's stubs to the other
+      # would stamp every page with the wrong version and conflict on the next
+      # release. Re-running the refresh scripts against Supabase on each branch
+      # instead gives both the same CONTENT with their own correct stamps, and
+      # needs no merge between them.
+      #
+      # So this job moves data only. The release PR remains the only thing that
+      # moves code.
       - uses: actions/checkout@v4
         with:
+          ref: ${{ matrix.branch }}
           ssh-key: ${{ secrets.REGEN_DEPLOY_KEY }}
 
       - uses: actions/setup-node@v4
@@ -137,11 +212,16 @@ jobs:
           git config user.email "dogslamloop-bot@users.noreply.github.com"
           git add -A
           git commit -m "chore: regenerate page previews and stubs"
-          git push
+          # Explicit target: the matrix leg decides the branch, and an implicit
+          # `git push` here would depend on how checkout happened to set up
+          # tracking for a non-default ref.
+          git push origin HEAD:${{ matrix.branch }}
 
       - if: ${{ failure() }}
         uses: actions/upload-artifact@v4
         with:
-          name: regenerate-report
+          # Per-branch: two matrix legs uploading the same artifact name
+          # collide, and the failure that matters is "which branch broke".
+          name: regenerate-report-${{ matrix.branch }}
           path: playwright-report/
           retention-days: 14

@@ -121,10 +121,28 @@ The question is directional and narrow: **does `main` carry work that
 `next-update` does not?** Exclude the merge commits and it is exact:
 
 ```bash
-git log --oneline --no-merges origin/next-update..origin/main   # empty = clean
+git log --oneline --no-merges origin/next-update..origin/main \
+  | grep -v 'chore: regenerate'                                # empty = clean
 ```
 
-Anything listed is a hotfix stranded on `main`. Replayed at the moment #97
+The `grep -v` is load-bearing as of 2026-09-06. `regenerate.yml` can now publish
+content straight to `main` (its `publish_to_main` button), and when it does,
+each branch regenerates independently — so `main` legitimately carries a
+`chore: regenerate` commit that `next-update` does not, and vice versa. Without
+the filter this check reads dirty after every content publish and stops meaning
+anything.
+
+**Expect the release PR to conflict on generated stubs, and do not hand-merge
+them.** Both branches now generate their own copy of every stub, and the stamp
+embedded in them differs while `next-update` holds unreleased JS, so a page
+added on both sides conflicts add/add. The resolution is the one this project
+already uses for stacked branches:
+
+```bash
+npm run generate && npm run validate
+```
+
+Anything else listed is a hotfix stranded on `main`. Replayed at the moment #97
 landed (`git log --oneline --no-merges 61b73ee..1f607ee`) it names both hotfix
 commits, which is how you know the check reads a real signal rather than always
 being empty.
