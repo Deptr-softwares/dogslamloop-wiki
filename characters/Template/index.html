@@ -113,14 +113,14 @@
 
     <!-- Hand-authored page, but site_utils.js derives FRAME_MOVE_CATEGORIES
          from this and the frame-data renderer runs here too. -->
-    <script src="../../js/character_tabs.js?v=301ffd47"></script>
-    <script src="../../js/input_slots.js?v=301ffd47"></script>
-    <script src="../../js/site_utils.js?v=301ffd47"></script>
-    <script src="../../js/site_meta.js?v=301ffd47"></script>
-    <script src="../../js/pagebuilder.js?v=301ffd47"></script>
-    <script src="../../js/framedata.js?v=301ffd47"></script>
-    <script src="../../js/description.js?v=301ffd47"></script>
-    <script src="../../js/internalstyling.js?v=301ffd47"></script>
+    <script src="../../js/character_tabs.js?v=9e9f3511"></script>
+    <script src="../../js/input_slots.js?v=9e9f3511"></script>
+    <script src="../../js/site_utils.js?v=9e9f3511"></script>
+    <script src="../../js/site_meta.js?v=9e9f3511"></script>
+    <script src="../../js/pagebuilder.js?v=9e9f3511"></script>
+    <script src="../../js/framedata.js?v=9e9f3511"></script>
+    <script src="../../js/description.js?v=9e9f3511"></script>
+    <script src="../../js/internalstyling.js?v=9e9f3511"></script>
     
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -161,14 +161,36 @@
             }, 500);
         });
 
+        // Reads page_data, not local files. This used to fetch
+        // ./template_descriptions.json and ./template_framedata.json, which
+        // stopped existing when content moved to Supabase - so both requests
+        // 404'd, both accordions were skipped by the `continue` below, and the
+        // page appended the "Behind the Scenes: Raw JSON" heading with nothing
+        // underneath it. That is what a reader has been seeing.
+        //
+        // The template row is in page_data and is the same content the rest of
+        // this page already renders, so this section now shows what it claims.
         async function displayRawJSON(charId) {
             const overviewTab = document.getElementById('tab-overview');
             if (!overviewTab) return;
 
+            let cloud = null;
+            try {
+                if (typeof window.fetchCloudCharacterData === 'function') {
+                    cloud = await window.fetchCloudCharacterData(charId);
+                }
+            } catch (e) {
+                console.error('Could not load the template page data.', e);
+            }
+
             const files = [
-                { name: 'Template Descriptions JSON', path: `./${charId}_descriptions.json` },
-                { name: 'Template Frame Data JSON', path: `./${charId}_framedata.json` }
-            ];
+                { name: 'Template Descriptions JSON', data: cloud && cloud.desc_data },
+                { name: 'Template Frame Data JSON', data: cloud && cloud.frame_data }
+            ].filter(file => file.data);
+
+            // Nothing to show is not a section. Appending the heading anyway is
+            // exactly how this stayed broken without anyone noticing.
+            if (files.length === 0) return;
 
             const jsonContainer = document.createElement('section');
             jsonContainer.className = 'wiki-section space-y-4';
@@ -177,8 +199,7 @@
 
             for (const file of files) {
                 try {
-                    const data = await window.fetchJson(file.path);
-                    if (!data) continue;
+                    const data = file.data;
                     
                     const details = document.createElement('details');
                     details.className = 'manga-accordion'; 
@@ -200,7 +221,7 @@
                     details.appendChild(preContainer);
                     jsonContainer.appendChild(details);
                 } catch(e) {
-                    console.error(`Could not load ${file.path} through site_utils.`, e);
+                    console.error(`Could not render ${file.name}.`, e);
                 }
             }
             overviewTab.appendChild(jsonContainer);

@@ -168,14 +168,18 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                 }
             }
 
-            // 3. FALLBACK
-            if (!data) {
-                const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../../';
-                const fdPath = `${rootPath}characters/${pageId.charAt(0).toUpperCase() + pageId.slice(1)}/${pageId}_framedata.json`;
-                data = await window.fetchJson(fdPath);
-                window.cachedMasterFrameData = window.cachedMasterFrameData || {};
-                window.cachedMasterFrameData[pageId] = data;
-            }
+            // 3. NO LOCAL FALLBACK. This used to read
+            // characters/<Name>/<pageId>_framedata.json, from before content
+            // moved to Supabase. No such file has existed in this repo since,
+            // so it could only ever 404 - and unlike the descriptions fallback
+            // it was not even wrapped, so the request threw and was swallowed
+            // by this function's own catch. Its path was at least correct:
+            // loadMoveSection returns early for system pages, so it only ever
+            // ran for characters, which all live in characters/.
+            //
+            // `data` stays null and the throw below reports the real problem
+            // (no frame data) instead of a fetch failure for a file that was
+            // never going to be there.
         }
 
         if (!data) throw new Error("No frame data found.");

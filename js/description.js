@@ -1207,25 +1207,18 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 }
             }
             
-            // 3. FALLBACK: Dynamic Pathing based on pageType!
-            if (!data) {
-                const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../../';
-                let descPath = '';
-                
-                if (pageType === 'system') {
-                    descPath = `${rootPath}systems/${pageId}/${pageId}_descriptions.json`;
-                } else {
-                    descPath = `${rootPath}characters/${pageId.charAt(0).toUpperCase() + pageId.slice(1)}/${pageId}_descriptions.json`;
-                }
-                
-                // CRITICAL FIX: Wrapped in try/catch so a missing local JSON file doesn't crash the engine!
-                try {
-                    data = await window.fetchJson(descPath);
-                    console.log(`[Local] Loaded ${pageId} descriptions from ${pageType} directory.`);
-                } catch (e) {
-                    console.warn(`[Local] No local JSON found for ${pageId}.`);
-                }
-            }
+            // 3. NO LOCAL FALLBACK. There used to be one here, reading
+            // <dir>/<pageId>_descriptions.json, from before content moved to
+            // Supabase. Not one of those files has existed in this repo since,
+            // so the only thing it could do was issue a request that 404s on
+            // every page with no page_data row yet - and it built the path from
+            // page_type, which stopped deciding the directory when others/ and
+            // tools/ arrived, so it asked for systems/custom_servers/... for a
+            // page that lives in others/. A wrong URL for a file that is not at
+            // the right one either.
+            //
+            // `data` stays null and the caller renders the page empty, which is
+            // what the try/catch around the fetch already produced.
         }
 
         // --- PREVENT FATAL CRASH IF NO DATA EXISTS ---
