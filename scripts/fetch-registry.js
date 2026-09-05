@@ -39,6 +39,30 @@ const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
 // menu; an unknown one is appended rather than dropped.
 const CATEGORY_ORDER = ['Characters', 'System Pages', 'Site Info', 'Guides'];
 
+// The optional boolean flags, stated once: registry column on the left, the
+// navigation.json key it becomes on the right. Declaration order IS the output
+// order, so this list is what keeps the generated JSON byte-stable.
+//
+// Shared with tests/registry-roundtrip.spec.js, which reverses it. That test
+// reconstructs registry rows from the committed navigation.json and asserts
+// buildNavigation reproduces it exactly - so a flag added here and not there
+// makes the round-trip fail on the first page that actually sets it. is_hidden
+// did precisely that: added in v0.16, silent for eleven days because no page
+// was hidden yet, and then it wedged the regeneration job on 2026-09-05 the
+// first time the owner ticked the box. Reversing this map instead of retyping
+// it is what stops the next flag repeating it.
+const NAV_FLAGS = {
+    is_wip: 'isWip',
+    // Private-server-only. Omitted when false, like every other flag here:
+    // writing `isHidden: false` onto all 52 entries would be a valid but
+    // enormous diff for a default nothing reads.
+    is_hidden: 'isHidden',
+    is_ea: 'isEA',
+    is_base_only: 'isBaseOnly',
+    is_missing_media: 'isMissingMedia',
+    is_subjective: 'isSubjective',
+};
+
 /**
  * Pure: registry rows in, the navigation.json object out.
  *
@@ -58,15 +82,9 @@ function buildNavigation(rows) {
 
         const entry = { id: row.nav_id, name: row.name, url: row.url };
 
-        if (row.is_wip) entry.isWip = true;
-        // Private-server-only. Omitted when false, like every other flag here:
-        // writing `isHidden: false` onto all 52 entries would be a valid but
-        // enormous diff for a default nothing reads.
-        if (row.is_hidden) entry.isHidden = true;
-        if (row.is_ea) entry.isEA = true;
-        if (row.is_base_only) entry.isBaseOnly = true;
-        if (row.is_missing_media) entry.isMissingMedia = true;
-        if (row.is_subjective) entry.isSubjective = true;
+        for (const [column, key] of Object.entries(NAV_FLAGS)) {
+            if (row[column]) entry[key] = true;
+        }
 
         if (row.archetype) entry.archetype = row.archetype;
         if (row.tier) entry.tier = row.tier;
@@ -225,4 +243,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { buildNavigation, buildArchived, validateNavigation };
+module.exports = { buildNavigation, buildArchived, validateNavigation, NAV_FLAGS };
