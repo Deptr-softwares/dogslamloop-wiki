@@ -82,9 +82,31 @@ test('homepage roster and sidebar render every navigation.json entry', async ({ 
   const navResponse = await page.goto('/data/navigation.json');
   const nav = await navResponse.json();
   const totalEntries = Object.values(nav).reduce((sum, arr) => sum + arr.length, 0);
-  const characterCount = nav['Characters'].length;
+
+  // Hidden characters are private-server-only and filtered OUT of the roster by
+  // default - renderFilteredRoster in js/pagebuilder.js, where the "Show Hidden"
+  // toggle lets them back in. Counting the raw Characters length asserted the
+  // opposite of that feature, so this passed only while no page was hidden. The
+  // first one the owner ticked failed it, and because the regeneration job runs
+  // this suite before it commits, it blocked every regeneration rather than
+  // merely going red. Derived from the data, not hardcoded, so it stays true
+  // whether or not anything is hidden today.
+  const characters = nav['Characters'];
+  const visible = characters.filter(c => !c.isHidden);
 
   await page.goto('/index.html', { waitUntil: 'networkidle' });
-  await expect(page.locator('#roster-grid > *')).toHaveCount(characterCount);
+  await expect(page.locator('#roster-grid > *')).toHaveCount(visible.length);
+  // The sidebar is a directory, not the roster: hiding is a roster filter and
+  // nothing more, so every entry is still listed there.
   await expect(page.locator('#global-sidebar-nav a')).toHaveCount(totalEntries);
+
+  // And when something IS hidden, prove it is the hidden one that is missing
+  // rather than an off-by-one that happens to add up.
+  const hidden = characters.filter(c => c.isHidden);
+  if (hidden.length > 0) {
+    const rendered = await page.locator('#roster-grid > *').allTextContents();
+    for (const c of hidden) {
+      expect(rendered.join(' '), `${c.name} is hidden from the roster`).not.toContain(c.name);
+    }
+  }
 });
