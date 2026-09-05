@@ -349,25 +349,59 @@ test('the backfill fills only what is unset, so it cannot undo an edit', () => {
     expect(mig).toMatch(/WHERE sp\."name" = v\.name/);
 });
 
-test('the backfill and the shipped dictionary say exactly the same thing', () => {
+test('the backfill still carries exactly the 22 colours it was written with', () => {
     // The values were extracted from js/site_meta.js programmatically rather
     // than retyped - 22 hsl() triples is exactly the list a person transcribes
-    // one digit wrong. Asserted both ways: nothing in the file is missing from
-    // the migration, and nothing in the migration is invented.
+    // one digit wrong.
+    //
+    // This used to compare the migration against the shipped dictionary in both
+    // directions, including their sizes. That was right on the day it was
+    // written and wrong from the day after: a migration is IMMUTABLE once
+    // pushed, so this file can never gain a 23rd pair, while the dictionary is
+    // regenerated from site_pages and grows every time the owner colours a new
+    // character. The comparison therefore pinned a frozen file to live owner
+    // content. Adding "Strongest of History" failed it on 2026-09-05, and since
+    // the regeneration job runs the suite before committing, that blocked the
+    // entire content pipeline rather than just this assertion.
+    //
+    // An equality check is also wrong going forward for a second reason: the
+    // owner can edit any of these colours in the owner tools, which is exactly
+    // what the migration's own `color IS NULL` guard exists to permit.
+    //
+    // What is still worth protecting is the file itself - that it holds the 22
+    // pairs it applied (the owner's run reported UPDATE 22), that none was
+    // mangled in transcription, and that no name appears twice.
     const mig = fs.readFileSync(
         path.join(ROOT, 'supabase', 'migrations', '20260905000000_backfill_page_colors.sql'), 'utf8');
+
+    const pairs = [...mig.matchAll(/^\s{8}\('([^']+)', '([^']+)'\)/gm)].map(m => [m[1], m[2]]);
+    const fromMig = new Map(pairs);
+
+    expect(pairs.length, 'the migration is immutable; it applied 22 rows').toBe(22);
+    expect(fromMig.size, 'and no character is listed twice').toBe(22);
+
+    for (const [name, color] of fromMig) {
+        expect(color, `${name}'s backfilled colour is a well-formed hsl() triple`)
+            .toMatch(/^hsl\(\d{1,3}, \d{1,3}%, \d{1,3}%\)$/);
+    }
+});
+
+test('the shipped dictionary is generated from the registry, not from the backfill', () => {
+    // The dictionary is allowed to have moved on from the migration - it is
+    // regenerated from site_pages.color, which is the whole point of the
+    // feature. What must stay true is that it is still a real dictionary in the
+    // marked region, and that it did not shrink to nothing behind a guard that
+    // skips on an empty result. That skip is deliberate (a missing column and an
+    // uncoloured roster both leave the committed file alone) but it means an
+    // empty dictionary would ship silently.
     const source = fs.readFileSync(SITE_META, 'utf8');
     const region = source.slice(source.indexOf(COLORS_BEGIN), source.indexOf(COLORS_END));
-
     const fromFile = new Map([...region.matchAll(/^\s{4}"([^"]+)":\s*"([^"]+)"/gm)].map(m => [m[1], m[2]]));
-    const fromMig = new Map([...mig.matchAll(/^\s{8}\('([^']+)', '([^']+)'\)/gm)].map(m => [m[1], m[2]]));
 
-    expect(fromMig.size).toBe(fromFile.size);
+    expect(fromFile.size, 'the roster has colours; an empty dictionary means the generator skipped')
+        .toBeGreaterThanOrEqual(22);
     for (const [name, color] of fromFile) {
-        expect(fromMig.get(name), `${name} is backfilled with its shipped colour`).toBe(color);
-    }
-    for (const name of fromMig.keys()) {
-        expect(fromFile.has(name), `${name} in the migration exists in the dictionary`).toBe(true);
+        expect(color, `${name} has a usable CSS colour`).toMatch(/^(hsl\(|#|rgb)/);
     }
 });
 
