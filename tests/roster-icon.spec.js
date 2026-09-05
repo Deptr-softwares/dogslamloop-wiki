@@ -54,23 +54,48 @@ test('the icon path is derived from the page id', async ({ page }) => {
 
 // --- 2. THE ICONS ACTUALLY RESOLVE ---
 
-test('every rendered card requests an icon that exists', async ({ page }) => {
-  const missing = [];
-  // Deliberately NOT asserting a count of characters or naming any of them:
-  // pinning a test to owner content has blocked this owner from adding pages
-  // before. This asserts that whatever is on the roster today resolves, which
-  // stays true as characters come and go.
-  page.on('response', r => {
-    if (r.url().includes('/medias/images/') && r.status() >= 400) missing.push(r.url());
-  });
-
+test('every rendered card is in one of the two designed states', async ({ page }) => {
+  // THIS TEST USED TO ASSERT THAT NO ICON 404ED, and its comment claimed that
+  // "stays true as characters come and go". It does not. It holds only while
+  // every character on the roster happens to have had its icon uploaded, so it
+  // avoided the obvious trap - it counted nothing and named nobody - and
+  // walked into a subtler one.
+  //
+  // The owner created "Sky Assassin" on 2026-09-05 and had not dropped the
+  // file in yet. That is an ordinary action, the site handles it by design
+  // (the fallback test below), and it still took the regeneration job down,
+  // because that job commits only after this suite passes. A missing icon is a
+  // CONTENT STATE, not a fault.
+  //
+  // The contract that actually survives any roster: every card is in one of
+  // the two designed states - icon shown, or cleanly fallen back - and none is
+  // in the broken third one, marked as having an icon while showing nothing.
   await page.goto(ROSTER, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(800);
 
-  const cards = await page.locator('.roster-card').count();
-  expect(cards, 'the roster rendered at all').toBeGreaterThan(0);
+  const cards = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('.roster-card')).map(c => {
+      const img = c.querySelector('.roster-card-icon');
+      const text = c.querySelector('.roster-card-text');
+      return {
+        name: text ? text.textContent.trim() : '(unnamed)',
+        marked: c.classList.contains('has-icon'),
+        strayImg: !!img,
+        decoded: img ? img.naturalWidth > 0 : false,
+        nameVisible: text ? getComputedStyle(text).display !== 'none' : false,
+      };
+    }));
 
-  expect(missing, `icon files 404ed: ${missing.join(', ')}`).toEqual([]);
+  expect(cards.length, 'the roster rendered at all').toBeGreaterThan(0);
+
+  const broken = cards.filter(c => c.marked
+    // Marked as having an icon, so the reader must actually see one.
+    ? !c.decoded
+    // Not marked, so it is the fallback card: no leftover <img> to render as a
+    // broken-image glyph, and the name carrying the card on its own.
+    : (c.strayImg || !c.nameVisible));
+
+  expect(broken, `cards in neither designed state: ${JSON.stringify(broken)}`).toEqual([]);
 });
 
 test('a card whose icon loaded is marked, and shows the icon', async ({ page }) => {

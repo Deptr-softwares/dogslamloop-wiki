@@ -35,11 +35,22 @@ for (const { path, label } of PAGES) {
     // reading the console: page-sweep.spec.js reads the response event instead
     // and needs no allow-list at all.
     //
-    // The 404 half of this used to cover the pre-Supabase
-    // *_descriptions.json/*_framedata.json fallback, and the site_utils warning
-    // came from the same place. Both are deleted, so both are gone from here -
-    // a 404 on these pages is now a real broken asset and should fail.
-    const KNOWN_NOISE = [/Failed to load resource:.*406/];
+    // The 404 stays, and the reason changed. It used to cover the pre-Supabase
+    // *_descriptions.json fallback, which is now deleted - so this was briefly
+    // tightened to 406 only, on the reasoning that a 404 must therefore be a
+    // real broken asset. That generalised from the content that existed that
+    // afternoon to all content ever, and was wrong within hours: the owner
+    // created a character before uploading its roster icon, the icon 404'd, and
+    // this spec failed on the homepage and the character hub.
+    //
+    // A missing owner-uploaded image is a content state with a designed
+    // fallback, not a fault, and this spec cannot tell one 404 from another
+    // because the console message carries no URL. page-sweep.spec.js reads the
+    // response event instead and CAN tell, so the specific check lives there:
+    // it fails on a missing script, stylesheet, font or data file, and ignores
+    // medias/. This one keeps the broad filter honestly rather than pretending
+    // to a precision it does not have.
+    const KNOWN_NOISE = [/Failed to load resource:.*40[46]/];
     const unexpected = errors.filter(e => !KNOWN_NOISE.some(pattern => pattern.test(e)));
 
     expect(unexpected, `Unexpected console errors on ${path}`).toEqual([]);

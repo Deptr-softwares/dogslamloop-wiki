@@ -26,9 +26,33 @@ const PAGES = [...new Set([
     ...fs.readdirSync(ROOT).filter(f => f.endsWith('.html')).map(f => '/' + f),
 ])].sort();
 
-// A local file the site ships. A 404 here is always breakage: a renamed asset,
-// a bad relative path, a stub pointing at a portrait that no longer exists.
-const LOCAL_ASSET = /\.(js|css|json|png|jpe?g|gif|svg|webp|woff2?|ico|mp4|webm)(\?|$)/i;
+// A local file the site ships as CODE. A 404 here is always breakage: a
+// renamed module, a bad relative path, a missing stylesheet or font.
+const SITE_ASSET = /\.(js|css|json|woff2?|ico)(\?|$)/i;
+
+// ...and `medias/` is deliberately NOT in it.
+//
+// The first version of this check covered images too, and that was wrong in a
+// way worth spelling out, because the rule it breaks is one this repo learned
+// the hard way and then broke again the next day.
+//
+// medias/ holds OWNER-UPLOADED CONTENT. A roster icon is added by dropping a
+// file in, and creating the character page first is an ordinary thing to do -
+// the site is built for it: markLoadedRosterIcons removes the <img> on error
+// and the card falls back to the pre-v0.16 solid-colour design, which
+// roster-icon.spec.js asserts directly. So a missing image is a content state
+// with a designed answer, not a fault.
+//
+// Treating it as a fault made this spec something the owner could turn red by
+// adding a character, which is a production outage rather than a failing test:
+// the regeneration job commits only after this suite passes. It happened on
+// 2026-09-05, hours after this file was written, when "Sky Assassin" was
+// created without its icon - and it took smoke.spec.js and roster-icon.spec.js
+// down with it.
+//
+// What still gets caught: a missing script, stylesheet, font or data file -
+// none of which the owner can cause, and all of which genuinely break a page.
+const OWNER_MEDIA = /\/medias\//i;
 
 // There is no allow-list, and that is the point.
 //
@@ -62,7 +86,8 @@ for (const p of PAGES) {
             // not been written yet. Whether a page SHOULD have content is the
             // owner's call, not a test's.
             if (url.includes('/rest/v1/')) return;
-            if (!LOCAL_ASSET.test(url)) return;
+            if (OWNER_MEDIA.test(url)) return;
+            if (!SITE_ASSET.test(url)) return;
             brokenAssets.push(`${r.status()} ${url.replace(/^https?:\/\/[^/]+/, '')}`);
         });
 
