@@ -1,3 +1,51 @@
+/**
+ * Dogslamloop Wiki - history.html
+ *
+ * Renders the approved-revision ledger for one page: ?page=<page_id>, newest
+ * first, one revision at a time with NEWER/OLDER paging.
+ *
+ * WHAT IT IS, AND WHAT IT IS NOT
+ *
+ * This is a READER of the same data admin.html reviews, on a page any visitor
+ * can open. It queries pending_revisions filtered to status='approved', so RLS
+ * is what keeps unapproved work out of it - not this file.
+ *
+ * HOW IT REACHES THE REST OF THE SITE
+ *
+ * It owns no renderer. A revision is reconstructed into the shape the live
+ * page renderers already expect, and then handed to them:
+ *
+ *   applyDeltaToData   site_utils.js   rebuilds a delta revision into full
+ *                                      desc/frame data (defined once there,
+ *                                      loaded before this file)
+ *   currentEditorDescData / ...Frame   the globals description.js, framedata.js
+ *                                      and tierlist.js read from. Setting them
+ *                                      is what makes those renderers draw a
+ *                                      historical version instead of the live
+ *                                      one, with no separate code path
+ *   getCharacterTabs / ...TabLabels    character_tabs.js, the single tab
+ *                                      vocabulary - never capitalised from ids
+ *   applyCharacterTheme                site_meta.js, so a historical page wears
+ *                                      the character's colour like the live one
+ *
+ * That reuse is the point: a "history renderer" of its own would drift from
+ * what the live pages show, and the diff a reviewer approved would stop
+ * matching the diff a reader can inspect.
+ *
+ * THE ONE INPUT THAT IS NOT TRUSTED
+ *
+ * Tab ids come from the fixed vocabulary, except for a delta scoped to a move,
+ * which contributes rev.target_key.split('::')[0]. target_key is
+ * contributor-submitted, so it is escaped and bound through a data- attribute
+ * rather than an inline handler - see renderRevision. It was an inline onclick
+ * until 2026-09-06 and was executable.
+ *
+ * escapeHtml is duplicated here rather than imported, matching this codebase's
+ * precedent (owner.js, submissions.js, recent-changes.js) of small per-file
+ * duplication over new cross-file coupling: admin-core.js is not loaded on this
+ * page.
+ */
+
 window.historyRevisions = [];
 window.currentHistoryIndex = 0;
 
@@ -233,11 +281,28 @@ window.renderRevision = async function(index) {
             const tabLabels = window.getCharacterTabLabels();
             validTabs.forEach((t, i) => {
                 const label = tabLabels[t] || t;
-                tabsHtml += `<button id="nav-${t}" class="btn-manga btn-manga-slanted ${i===0?'active':''}" onclick="window.switchHistoryTab('${t}')"><div class="btn-manga-content"><span class="btn-manga-text">${label}</span></div></button>`;
-                contentHtml += `<div id="tab-${t}" class="tab-content ${i===0?'':'hidden'} vessel-content space-y-6"></div>`;
+                // data- attribute and a delegated listener, NOT an inline
+                // onclick. `t` is trusted vocabulary for every tab except one:
+                // a delta scoped to a move pushes rev.target_key.split('::')[0]
+                // in above, and target_key is contributor-submitted. Inside
+                // onclick="...('${t}')" that value sat in a JS string inside an
+                // HTML attribute, where escaping does not save you - the
+                // browser decodes entities before the JS is parsed. A crafted
+                // target_key rendered
+                //   onclick="window.switchHistoryTab('');window.__xssFired=true;//')"
+                // and ran on the first click of that tab (2026-09-06).
+                tabsHtml += `<button id="nav-${escapeHtml(t)}" class="btn-manga btn-manga-slanted ${i===0?'active':''}" data-history-tab="${escapeHtml(t)}"><div class="btn-manga-content"><span class="btn-manga-text">${escapeHtml(label)}</span></div></button>`;
+                contentHtml += `<div id="tab-${escapeHtml(t)}" class="tab-content ${i===0?'':'hidden'} vessel-content space-y-6"></div>`;
             });
             tabsHtml += '</nav>';
             mainArea.innerHTML = tabsHtml + contentHtml;
+
+            // dataset gives back the decoded value, and getElementById matches
+            // on the decoded id, so the pair stays consistent with what
+            // switchHistoryTab looks up.
+            mainArea.querySelectorAll('[data-history-tab]').forEach(btn => {
+                btn.addEventListener('click', () => window.switchHistoryTab(btn.dataset.historyTab));
+            });
             
             // Execute site renderers natively (Awaited to ensure DOM stability)
             if (validTabs.includes('overview') || validTabs.includes('matchups') || validTabs.includes('counterplay')) {
