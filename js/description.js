@@ -1207,25 +1207,18 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 }
             }
             
-            // 3. FALLBACK: Dynamic Pathing based on pageType!
-            if (!data) {
-                const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../../';
-                let descPath = '';
-                
-                if (pageType === 'system') {
-                    descPath = `${rootPath}systems/${pageId}/${pageId}_descriptions.json`;
-                } else {
-                    descPath = `${rootPath}characters/${pageId.charAt(0).toUpperCase() + pageId.slice(1)}/${pageId}_descriptions.json`;
-                }
-                
-                // CRITICAL FIX: Wrapped in try/catch so a missing local JSON file doesn't crash the engine!
-                try {
-                    data = await window.fetchJson(descPath);
-                    console.log(`[Local] Loaded ${pageId} descriptions from ${pageType} directory.`);
-                } catch (e) {
-                    console.warn(`[Local] No local JSON found for ${pageId}.`);
-                }
-            }
+            // 3. NO LOCAL FALLBACK. There used to be one here, reading
+            // <dir>/<pageId>_descriptions.json, from before content moved to
+            // Supabase. Not one of those files has existed in this repo since,
+            // so the only thing it could do was issue a request that 404s on
+            // every page with no page_data row yet - and it built the path from
+            // page_type, which stopped deciding the directory when others/ and
+            // tools/ arrived, so it asked for systems/custom_servers/... for a
+            // page that lives in others/. A wrong URL for a file that is not at
+            // the right one either.
+            //
+            // `data` stays null and the caller renders the page empty, which is
+            // what the try/catch around the fetch already produced.
         }
 
         // --- PREVENT FATAL CRASH IF NO DATA EXISTS ---
@@ -1278,7 +1271,15 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
 
             data.tabs.forEach((tab, idx) => {
                 const isActive = idx === 0 ? 'active' : '';
-                navHTML += `<button id="nav-${tab.tabId}" class="btn-manga btn-manga-slanted ${isActive}"><div class="btn-manga-content"><span class="btn-manga-text">${tab.tabLabel}</span></div></button>`;
+                // Both escaped: tabId and tabLabel are contributor-submitted,
+                // and this is the renderer a READER loads. The identical bug in
+                // the admin preview was found and fixed in v0.15 (see
+                // admin-preview-states.spec.js, "a state label cannot inject
+                // markup into the toggle or the popup") and this twin was left
+                // alone - a payload in a tab label executed here until
+                // 2026-09-06. Fixing a class in one renderer and not its pair
+                // is the shape worth looking for.
+                navHTML += `<button id="nav-${escBlockText(tab.tabId)}" class="btn-manga btn-manga-slanted ${isActive}"><div class="btn-manga-content"><span class="btn-manga-text">${escBlockText(tab.tabLabel)}</span></div></button>`;
                 tabIdsForPageBuilder.push(tab.tabId);
             });
             navHTML += `</nav>`;

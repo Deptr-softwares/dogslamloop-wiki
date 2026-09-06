@@ -113,6 +113,65 @@ test('portraits are mirrored after the map they are mirrored from is refreshed',
     expect(portraits).toBeGreaterThan(previews);
 });
 
+// --- PUBLISHING TO MAIN (2026-09-06) ---
+//
+// This job can now regenerate `main` as well as `next-update`, which means it
+// can deploy to production. The owner's decision was that this is a BUTTON and
+// never the cron: a scheduled run must not be able to put anything in front of
+// readers unattended, because that is the only property the release PR was
+// really providing. An accidental archive or rename in the owner tools should
+// not go live while nobody is looking.
+//
+// That line is one word away from being lost - adding "main" to the default
+// branch list would do it - and losing it would be completely silent, since
+// every run would still pass. Hence these.
+
+test('publishing to main is opt-in, and off by default', () => {
+    expect(workflow, 'the flag still exists').toContain('publish_to_main');
+
+    const declaration = workflow.slice(workflow.indexOf('publish_to_main:'));
+    expect(declaration.slice(0, 240), 'and it defaults to off').toMatch(/default:\s*false/);
+});
+
+test('a scheduled run cannot publish to main', () => {
+    // A cron event carries no inputs, so publish_to_main is empty and the else
+    // branch decides what gets regenerated. That branch must never name main.
+    const lines = workflow.split('\n');
+    const ifLine = lines.findIndex(l => l.includes('inputs.publish_to_main') && l.includes('"true"'));
+    const elseLine = lines.findIndex((l, i) => i > ifLine && l.trim() === 'else');
+    const fiLine = lines.findIndex((l, i) => i > elseLine && l.trim() === 'fi');
+
+    expect(ifLine, 'the publish gate is still an explicit conditional').toBeGreaterThan(-1);
+    expect(elseLine, 'with a default branch').toBeGreaterThan(ifLine);
+    expect(fiLine).toBeGreaterThan(elseLine);
+
+    const gated = lines.slice(ifLine + 1, elseLine).join('\n');
+    const ungated = lines.slice(elseLine + 1, fiLine).join('\n');
+
+    // Asserted in both directions: that main is reachable when asked for, and
+    // unreachable when not. Either half alone passes for the wrong reasons.
+    expect(gated, 'main is regenerated only behind the flag').toContain('main');
+    expect(ungated, 'the unattended path never targets main').not.toContain('main');
+    expect(ungated, 'and it still regenerates next-update').toContain('next-update');
+});
+
+test('each branch is regenerated from its own tree, not copied across', () => {
+    // Stubs embed an asset stamp derived from js/, so a stub generated on one
+    // branch carries the wrong stamp on the other whenever unreleased JS
+    // differs - which is most of the time. Checking out the matrix branch and
+    // re-running the fetch scripts there is what keeps both correct.
+    expect(workflow, 'the checkout follows the matrix').toMatch(/ref:\s*\$\{\{\s*matrix\.branch\s*\}\}/);
+    expect(workflow, 'and so does the push').toMatch(/git push origin HEAD:\$\{\{\s*matrix\.branch\s*\}\}/);
+});
+
+test('two regeneration runs cannot push over each other', () => {
+    // A manual publish overlapping the nightly cron is exactly when two runs
+    // would push the same branch at once.
+    expect(workflow).toMatch(/concurrency:/);
+    expect(workflow, 'a half-finished regeneration is worse than a queued one')
+        .toMatch(/cancel-in-progress:\s*false/);
+});
+
 test('the workflow still commits only after the suite has run', async () => {
     // Pushes made with GITHUB_TOKEN do not trigger other workflows, so the
     // commit this job creates would never be tested by playwright.yml.

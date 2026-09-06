@@ -324,6 +324,17 @@
       }
     },
     {
+      "id": "Sky-Assassin",
+      "name": "Sky Assassin",
+      "url": "characters/Sky_assassin/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "character",
+        "pageId": "sky_assassin",
+        "editRole": "open"
+      }
+    },
+    {
       "id": "Boomcat",
       "name": "Boomcat",
       "url": "characters/Boomcat/index.html",

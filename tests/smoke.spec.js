@@ -28,14 +28,29 @@ for (const { path, label } of PAGES) {
     expect(response.ok()).toBeTruthy();
     await page.waitForTimeout(500);
 
-    // Known pre-existing conditions, unrelated to any single change here:
-    // pages with no live Supabase row yet fall back to fetching a local
-    // *_descriptions.json/*_framedata.json that hasn't existed since content
-    // moved fully to Supabase (confirmed dead fallback paths, not something
-    // this test suite fixes). Browsers report these as a generic "Failed to
-    // load resource: 404/406" console message with no URL in the text, so
-    // the filter can't be more specific than the status codes themselves.
-    const KNOWN_NOISE = [/Failed to load resource:.*40[46]/, /Could not load .* through site_utils/];
+    // A page with no page_data row yet gets a 406 from PostgREST, which is the
+    // correct answer rather than a fault. The browser reports it as a generic
+    // "Failed to load resource" console line carrying no URL, so this filter
+    // cannot be narrower than the status code. That limitation belongs to
+    // reading the console: page-sweep.spec.js reads the response event instead
+    // and needs no allow-list at all.
+    //
+    // The 404 stays, and the reason changed. It used to cover the pre-Supabase
+    // *_descriptions.json fallback, which is now deleted - so this was briefly
+    // tightened to 406 only, on the reasoning that a 404 must therefore be a
+    // real broken asset. That generalised from the content that existed that
+    // afternoon to all content ever, and was wrong within hours: the owner
+    // created a character before uploading its roster icon, the icon 404'd, and
+    // this spec failed on the homepage and the character hub.
+    //
+    // A missing owner-uploaded image is a content state with a designed
+    // fallback, not a fault, and this spec cannot tell one 404 from another
+    // because the console message carries no URL. page-sweep.spec.js reads the
+    // response event instead and CAN tell, so the specific check lives there:
+    // it fails on a missing script, stylesheet, font or data file, and ignores
+    // medias/. This one keeps the broad filter honestly rather than pretending
+    // to a precision it does not have.
+    const KNOWN_NOISE = [/Failed to load resource:.*40[46]/];
     const unexpected = errors.filter(e => !KNOWN_NOISE.some(pattern => pattern.test(e)));
 
     expect(unexpected, `Unexpected console errors on ${path}`).toEqual([]);

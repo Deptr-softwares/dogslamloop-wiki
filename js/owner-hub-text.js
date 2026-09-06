@@ -74,6 +74,13 @@ async function loadHubText() {
         hubRows[pageId] = (data && data.desc_data) || { tabs: [] };
     }
 
+    // Re-checked after the await for the same reason as loadPageMeta: the guard
+    // above passed before the query, and owner.html's RBAC gate replaces the
+    // page wholesale on a denied load. renderSlotOptions and fillSlotText both
+    // re-query the DOM and both read `.value` unguarded, so one check here
+    // covers the whole chain.
+    if (!document.getElementById('hub-text-select')) return;
+
     results.innerHTML = '';
     renderSlotOptions();
     fillSlotText();
