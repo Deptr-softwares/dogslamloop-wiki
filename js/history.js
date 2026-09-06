@@ -233,11 +233,28 @@ window.renderRevision = async function(index) {
             const tabLabels = window.getCharacterTabLabels();
             validTabs.forEach((t, i) => {
                 const label = tabLabels[t] || t;
-                tabsHtml += `<button id="nav-${t}" class="btn-manga btn-manga-slanted ${i===0?'active':''}" onclick="window.switchHistoryTab('${t}')"><div class="btn-manga-content"><span class="btn-manga-text">${label}</span></div></button>`;
-                contentHtml += `<div id="tab-${t}" class="tab-content ${i===0?'':'hidden'} vessel-content space-y-6"></div>`;
+                // data- attribute and a delegated listener, NOT an inline
+                // onclick. `t` is trusted vocabulary for every tab except one:
+                // a delta scoped to a move pushes rev.target_key.split('::')[0]
+                // in above, and target_key is contributor-submitted. Inside
+                // onclick="...('${t}')" that value sat in a JS string inside an
+                // HTML attribute, where escaping does not save you - the
+                // browser decodes entities before the JS is parsed. A crafted
+                // target_key rendered
+                //   onclick="window.switchHistoryTab('');window.__xssFired=true;//')"
+                // and ran on the first click of that tab (2026-09-06).
+                tabsHtml += `<button id="nav-${escapeHtml(t)}" class="btn-manga btn-manga-slanted ${i===0?'active':''}" data-history-tab="${escapeHtml(t)}"><div class="btn-manga-content"><span class="btn-manga-text">${escapeHtml(label)}</span></div></button>`;
+                contentHtml += `<div id="tab-${escapeHtml(t)}" class="tab-content ${i===0?'':'hidden'} vessel-content space-y-6"></div>`;
             });
             tabsHtml += '</nav>';
             mainArea.innerHTML = tabsHtml + contentHtml;
+
+            // dataset gives back the decoded value, and getElementById matches
+            // on the decoded id, so the pair stays consistent with what
+            // switchHistoryTab looks up.
+            mainArea.querySelectorAll('[data-history-tab]').forEach(btn => {
+                btn.addEventListener('click', () => window.switchHistoryTab(btn.dataset.historyTab));
+            });
             
             // Execute site renderers natively (Awaited to ensure DOM stability)
             if (validTabs.includes('overview') || validTabs.includes('matchups') || validTabs.includes('counterplay')) {

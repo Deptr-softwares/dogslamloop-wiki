@@ -1271,7 +1271,15 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
 
             data.tabs.forEach((tab, idx) => {
                 const isActive = idx === 0 ? 'active' : '';
-                navHTML += `<button id="nav-${tab.tabId}" class="btn-manga btn-manga-slanted ${isActive}"><div class="btn-manga-content"><span class="btn-manga-text">${tab.tabLabel}</span></div></button>`;
+                // Both escaped: tabId and tabLabel are contributor-submitted,
+                // and this is the renderer a READER loads. The identical bug in
+                // the admin preview was found and fixed in v0.15 (see
+                // admin-preview-states.spec.js, "a state label cannot inject
+                // markup into the toggle or the popup") and this twin was left
+                // alone - a payload in a tab label executed here until
+                // 2026-09-06. Fixing a class in one renderer and not its pair
+                // is the shape worth looking for.
+                navHTML += `<button id="nav-${escBlockText(tab.tabId)}" class="btn-manga btn-manga-slanted ${isActive}"><div class="btn-manga-content"><span class="btn-manga-text">${escBlockText(tab.tabLabel)}</span></div></button>`;
                 tabIdsForPageBuilder.push(tab.tabId);
             });
             navHTML += `</nav>`;
