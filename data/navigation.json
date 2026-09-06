@@ -328,6 +328,8 @@
       "name": "Sky Assassin",
       "url": "characters/Sky_assassin/index.html",
       "isWip": true,
+      "isEA": true,
+      "isBaseOnly": true,
       "cms_config": {
         "pageType": "character",
         "pageId": "sky_assassin",

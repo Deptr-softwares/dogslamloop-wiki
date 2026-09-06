@@ -44,6 +44,7 @@ window.CHARACTER_COLORS = {
     "Lucky Coward": "hsl(272, 43%, 64%)",
     "Crow Charmer": "hsl(233, 39%, 23%)",
     "Black Death": "hsl(352, 49%, 27%)",
+    "Sky Assassin": "hsl(0, 100%, 80%)",
     "Boomcat": "hsl(0, 1%, 75%)",
     "Strongest of History": "hsl(0, 100%, 25%)"
 };
