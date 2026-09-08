@@ -68,12 +68,22 @@ test('the ten slots are declared, and every one has a colour in CSS', () => {
   });
   expect(missing).toEqual([]);
 
-  // Every slot is outlined, always - owner, 2026-08-17. An outline's job is to
-  // keep the text readable against whatever is behind it, and a light slot on
-  // a light page is exactly as unreadable as the reverse.
-  slots.INPUT_SLOTS.forEach(s => {
-    expect(['light', 'dark'], `${s.id} needs an outline side`).toContain(s.outline);
-  });
+  // Every slot is outlined, always - owner, 2026-08-17 - and since v0.18 FT1
+  // every outline is BLACK. Asserted against the stylesheet rather than against
+  // a field on the slot: there used to be an `outline: 'light' | 'dark'` here,
+  // nothing read it, and it was silently wrong the moment the CSS changed.
+  //
+  // Both rules are checked, because the @supports block is what modern browsers
+  // actually use and the text-shadow above it is the fallback - a change to one
+  // and not the other splits the two populations of reader.
+  const strokeRule = css.match(/-webkit-text-stroke-color:\s*([^;]+);/g) || [];
+  expect(strokeRule.every(r => /#000\b|black/i.test(r)),
+    `no slot may be outlined in white: ${strokeRule.join(' ')}`).toBe(true);
+
+  const slotShadow = css.match(/^\.is-m1[^{]*\{\s*text-shadow:([^;]+);/m);
+  expect(slotShadow, 'the no-paint-order fallback still has to exist').toBeTruthy();
+  expect(/#fff|white/i.test(slotShadow[1]),
+    'the fallback outline must be black too').toBe(false);
 });
 
 test('an input string resolves to one slot, modifiers aside', () => {
@@ -486,4 +496,110 @@ test('the same name can be a different slot in a different state', async ({ page
 
   expect(result.base).toBe('1');
   expect(result.ult).toBe('3');
+});
+
+test('every slot paints a black outline, and the four that were dark are brighter', async ({ page }) => {
+  // v0.18 FT1. The owner asked for two things in one sentence - "black outline
+  // while making them brighter" - and they are one change: a dark fill inside a
+  // black outline is a dark smudge, so brightening 4, R, Q and Shift is what
+  // makes the outline change legible rather than a separate polish pass.
+  //
+  // Measured off the browser, not read out of the stylesheet. The rule that
+  // matters is whichever one wins after Layout.css loads, and this project has
+  // already shipped nine passing tests against a colour that never painted.
+  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  const measured = await page.evaluate(() => {
+    const host = document.createElement('div');
+    document.querySelector('main').appendChild(host);
+    host.innerHTML = window.INPUT_SLOTS
+      .map(s => `<span class="combo-node ${s.cls}">${s.id}</span>`).join('');
+
+    // sRGB relative luminance, so "brighter" is a number rather than an
+    // opinion about a hex string.
+    const lum = (rgb) => {
+      const [r, g, b] = rgb.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map(v => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+
+    return window.INPUT_SLOTS.map((s, i) => {
+      const cs = getComputedStyle(host.children[i]);
+      return {
+        id: s.id,
+        stroke: cs.webkitTextStrokeColor,
+        shadow: cs.textShadow,
+        colour: cs.color,
+        luminance: lum(cs.color),
+      };
+    });
+  });
+
+  // 1. NOT ONE WHITE OUTLINE LEFT, on either the stroke or the fallback shadow.
+  for (const m of measured) {
+    expect(m.stroke, `${m.id} must be outlined in black`).toBe('rgb(0, 0, 0)');
+    expect(m.shadow, `${m.id}'s fallback shadow must not be white`).not.toMatch(/255,\s*255,\s*255/);
+  }
+
+  // 2. THE FOUR THAT MOVED ARE ACTUALLY BRIGHTER - each against ITS OWN old
+  //    value, which is the claim the owner made. A single shared floor was
+  //    tried first and was simply wrong: it put Shift, which went from 12% to
+  //    45% lightness, under a bar set by the brightest of the four. That would
+  //    have been a test dictating a palette rather than checking one.
+  //
+  //    The old values are the ones recorded in ColorCoding.css's comments, and
+  //    they are resolved by the browser here rather than converted by hand.
+  const OLD = { '4': 'hsl(25, 90%, 48%)', 'R': 'hsl(295, 60%, 48%)',
+                'Q': 'hsl(0, 0%, 40%)', 'Shift': 'hsl(0, 0%, 12%)' };
+  const before = await page.evaluate((old) => {
+    const lum = (rgb) => {
+      const [r, g, b] = rgb.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map(v => {
+        const c = v / 255;
+        return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const out = {};
+    for (const [id, value] of Object.entries(old)) {
+      const probe = document.createElement('span');
+      probe.style.color = value;
+      document.body.appendChild(probe);
+      out[id] = lum(getComputedStyle(probe).color);
+      probe.remove();
+    }
+    return out;
+  }, OLD);
+
+  for (const id of Object.keys(OLD)) {
+    const m = measured.find(x => x.id === id);
+    expect(m.luminance, `${id} was darkened or left alone, not brightened`)
+      .toBeGreaterThan(before[id]);
+  }
+
+  // And brightening is only worth doing if it buys contrast against the page
+  // it is read on - that is WHY the outline change forced it. 3:1 is the large
+  // -text floor, and this notation is bold.
+  const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  const bgLum = await page.evaluate((c) => {
+    const [r, g, b] = c.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map(v => {
+      const x = v / 255;
+      return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  }, bg);
+  for (const id of Object.keys(OLD)) {
+    const m = measured.find(x => x.id === id);
+    const ratio = (Math.max(m.luminance, bgLum) + 0.05) / (Math.min(m.luminance, bgLum) + 0.05);
+    expect(ratio, `${id} is still hard to read against the page`).toBeGreaterThan(3);
+  }
+
+  // 3. STILL TEN DISTINCT COLOURS. These slots are categorical, so brightening
+  //    four of them must not collapse any two together - the three neutrals
+  //    (Q, Space, Shift) are the ones at risk and the reason they are spread.
+  const seen = new Set(measured.map(m => m.colour));
+  expect(seen.size, `two slots share a colour: ${measured.map(m => m.id + '=' + m.colour).join(' ')}`)
+    .toBe(measured.length);
 });

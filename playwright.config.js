@@ -33,6 +33,33 @@ module.exports = defineConfig({
   use: {
     baseURL: 'http://localhost:8123',
     trace: 'retain-on-failure',
+    // THE SUITE RUNS AS A RETURNING VISITOR (v0.18 F6/F7).
+    //
+    // The editor shows a one-time notice on a first visit, and every test gets
+    // a fresh browser context with empty localStorage - so without this, that
+    // modal opens on top of the page in all 59 specs that load edit.html and
+    // times out their first click. That is not a flake and not a bug in the
+    // notice: a modal blocking the page until it is dismissed is exactly what
+    // the owner asked for.
+    //
+    // Seeded HERE rather than dismissed in each spec. Fifty-nine files would
+    // have to remember, and so would every editor spec written afterwards -
+    // and the thing they would all be working around is not what any of them
+    // is about. The suite's subject is the editor, not somebody's first
+    // sight of it.
+    //
+    // tests/editor-notices.spec.js overrides this back to empty, because a
+    // first visit is precisely what IT is about.
+    storageState: {
+      cookies: [],
+      origins: [{
+        origin: 'http://localhost:8123',
+        localStorage: [
+          { name: 'dsl_notice_seen_editor', value: '1' },
+          { name: 'dsl_notice_seen_mediaLibrary', value: '1' },
+        ],
+      }],
+    },
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
