@@ -60,6 +60,14 @@ test('a tab reorder ships keys, never tab content', async ({ page }) => {
     return window.buildSystemDeltas(moved, live, 'system');
   }, THREE_TABS);
 
+  // THE POSITIVE FIRST, AND NOT AS DECORATION. Both assertions below are
+  // absence assertions, and against the pre-fix code they passed - because
+  // nothing was emitted at all. A test that is green whether the feature exists
+  // or not is testing nothing, which is the failure this suite has shipped
+  // before. Anchoring on what SHOULD be there makes the two that follow mean
+  // "and only that".
+  expect(deltas.map(d => d.scope)).toContain('system_tab_order');
+
   // The whole reason the payload is a list of keys. A reorder that carried
   // content would let moving a tab overwrite an edit somebody else made to it
   // between the ticket being raised and approved.
