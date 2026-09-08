@@ -889,3 +889,58 @@ test.describe('the art_style migration', () => {
         expect(SQL).toMatch(/SET "search_path" TO 'public'/);
     });
 });
+
+// --- v0.18 batch 3.5 ---
+
+test('the editor draws the CURRENT portraits, not the old guessed ones', async ({ page }) => {
+    // THE THIRD COPY OF loadRoster, AND THE SECOND FOUND BROKEN. It read
+    // `entry.image` off a navigation.json entry, which carries no image field
+    // on any character - so meta.image was undefined and portrait() fell
+    // through to a guessed Supabase URL built from the display name. That URL
+    // 404s for the five characters whose files end "Portrait2.webp" or drop the
+    // suffix, and resolves to STALE art for the rest, which is what the owner
+    // saw: the editor showing old portraits while the reader page showed
+    // current ones.
+    await openEditor(page);
+
+    const src = await page.locator('.tier-portrait-img').first().getAttribute('src');
+    expect(src, 'the local mirror, same as every other surface').toContain('medias/portraits/');
+    expect(src, 'never the guessed cloud URL').not.toContain('supabase.co');
+});
+
+test('the art options are named, not explained', async ({ page }) => {
+    // Owner, 2026-09-09: "remove the flavor text beside the two options". The
+    // dropdown is two words wide now, and the heading above it already says
+    // what it is for.
+    await openEditor(page);
+
+    const labels = await page.locator('#tier-art-style option').allTextContents();
+    expect(labels).toEqual(['Portraits', 'Icons']);
+
+    // The site dropdown mirrors the native options, so it has to agree - a
+    // stale copy there is what a contributor would actually read.
+    const rendered = await page.locator('#tier-art-style + .manga-select-wrapper .manga-option')
+        .allTextContents();
+    expect(rendered.map(t => t.trim())).toEqual(['Portraits', 'Icons']);
+});
+
+test('the editor board mirrors the icon treatment the reader will get', async ({ page }) => {
+    // A contributor picking icons is previewing a decision. If the board keeps
+    // the coloured fill while the live page moves the colour to the border,
+    // they are choosing against the wrong picture.
+    await openEditor(page);
+    await pickArtStyle(page, 'Icons');
+    await page.waitForTimeout(300);
+
+    const box = await page.locator('.tier-portrait').first().evaluate(el => ({
+        borderWidth: getComputedStyle(el).borderTopWidth,
+        hatching: getComputedStyle(el).backgroundImage,
+        charColor: el.style.getPropertyValue('--char-color').trim(),
+        inlineBg: el.style.backgroundColor,
+    }));
+
+    expect(box.charColor).toBeTruthy();
+    expect(box.inlineBg).toBe('');
+    expect(box.borderWidth).toBe('3px');
+    expect(box.hatching).toContain('repeating-linear-gradient');
+});

@@ -73,10 +73,17 @@ test("tier-nav-matchup-btn: border-color comes from the per-character --tier-nav
   expect(first).not.toBe(last);
 });
 
-test('tier portrait keeps its 60px size for the editor and history renderers', async ({ page }) => {
-  // v0.14 raises this to 78px, but only under #tier-list-ui on the certified
-  // page. The base size has to stay 60px everywhere else, because the editor's
-  // drag-and-drop hit-testing was built around it.
+test('tier portrait keeps its 60px base, so each surface scopes its own size', async ({ page }) => {
+  // v0.14 raises this to 78px under #tier-list-ui on the certified page, and
+  // v0.18 batch 3.5 raises it to 96px inside the editor's own containers. The
+  // BASE stays 60px, which is what the history renderer and the admin preview
+  // get.
+  //
+  // This comment used to say the base had to stay 60px "because the editor's
+  // drag-and-drop hit-testing was built around it". That was not true of the
+  // code - the drag resolves through document.elementFromPoint and
+  // closest('.tier-dropzone, .tier-editor-tray'), reading no dimension - and it
+  // was checked before the editor's boxes were enlarged rather than after.
   await withMarkup(page, '<div class="tier-portrait" style="background-color: rgb(1, 2, 3);"></div>');
   const portrait = page.locator('#dedupe-harness .tier-portrait');
   const styleAttr = await portrait.getAttribute('style');

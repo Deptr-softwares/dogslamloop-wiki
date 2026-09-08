@@ -124,8 +124,16 @@
         wrap.href = meta.url ? rootPath + meta.url : '#';
         wrap.title = meta.name;
 
-        if (window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name]) {
-            wrap.style.backgroundColor = window.CHARACTER_COLORS[meta.name];
+        // In ICON mode the character's colour moves from the fill to the
+        // border, which is the whole of the roster-card treatment this is
+        // mimicking (batch 3.5). It goes out as a custom property rather than
+        // as an inline background, because an inline style would beat the rule
+        // in style/Layout.css that needs to read it - the same reasoning
+        // js/pagebuilder.js gives for the roster grid.
+        const charColor = window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name];
+        if (charColor) {
+            if (useIcon) wrap.style.setProperty('--char-color', charColor);
+            else wrap.style.backgroundColor = charColor;
         }
 
         // The name sits underneath and shows through if the portrait 404s,

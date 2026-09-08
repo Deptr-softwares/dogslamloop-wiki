@@ -98,6 +98,43 @@
     color: inherit;
 }
 
+/* v0.18 batch 3.5 - the boards' characters were tiny. Owner, 2026-09-09:
+   "make the free submit character boxes bigger and almost fill up the width".
+
+   THEY GROW INTO THE ROW rather than taking a bigger fixed size. A tier holds
+   anything from nobody to the whole roster, so one fixed number is either
+   cramped on a full row or a postage stamp on a sparse one - flex-grow lets a
+   four-character S tier use the space a twelve-character B tier cannot.
+
+   The cap is the judgement call in this rule, and it is what stops a tier
+   holding ONE character from rendering it 900px wide. 168px is roughly two and
+   a half times what these were, and eight of them fill a row.
+
+   Scoped to .fs-entry, NOT applied to .tier-portrait. That class is shared by
+   the certified reader, the tier editor and the history renderer, and three
+   surfaces do not want one size - which is why certified-tier-lists.css
+   already scopes its own override the same way. */
+.fs-tier-body .fs-entry {
+    flex: 1 1 108px;
+    min-width: 84px;
+    max-width: 168px;
+}
+
+/* The portrait fills whatever width the entry was given, and stays square by
+   aspect-ratio rather than by a matching height - the two would otherwise have
+   to be kept in step by hand every time the cap moves. */
+.fs-tier-body .fs-entry .tier-portrait {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1 / 1;
+}
+
+/* The name behind the portrait is the 404 fallback, so it scales with the box
+   it shows through - at 60px it was 0.5rem, and left there it would read as a
+   caption under a picture two and a half times its size. */
+.fs-tier-body .fs-entry .tier-portrait-name { font-size: 0.72rem; }
+.fs-tier-body .fs-entry .fs-entry-count { font-size: 0.65rem; }
+
 .fs-entry:hover { border-color: var(--accent-blue); }
 
 .fs-entry-selected { border-color: var(--accent-blue); background: rgba(255, 255, 255, 0.05); }

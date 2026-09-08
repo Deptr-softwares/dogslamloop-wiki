@@ -571,3 +571,66 @@ test.describe('the migration', () => {
         expect(sql).toMatch(/my_role IS NOT DISTINCT FROM 'viewer'/);
     });
 });
+
+// --- v0.18 batch 3.5: the board's characters were tiny ---
+//
+// Owner, 2026-09-09: "make the free submit character boxes bigger and almost
+// fill up the width, right now they are tiny". They were the shared 60px, in a
+// row roughly 900px wide.
+test.describe('the size of a character on the board', () => {
+    test.skip(CHARS.length < 4, 'needs a few characters to fill a row');
+
+    test('an entry grows into the row instead of sitting at 60px', async ({ page }) => {
+        await mockTool(page, {
+            rankings: CHARS.slice(0, 4).map(id => ({
+                character_id: id, vote_count: 40, median_tier: 'S', median_rank: 6,
+                distribution: { S: 40 }, ranked: true,
+            })),
+        });
+        await page.goto(PAGE);
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await expect(page.locator('.fs-entry').first()).toBeVisible();
+
+        const sRow = page.locator('.fs-tier-row').filter({ has: page.locator('.fs-tier-label', { hasText: /^S$/ }) });
+        const measured = await sRow.locator('.fs-entry .tier-portrait').first()
+            .evaluate(el => Math.round(el.getBoundingClientRect().width));
+
+        // MEASURED, not read off the declared width: these are flex children
+        // now, so what they actually occupy depends on the row - which is the
+        // whole point of the change and the only thing the owner can see.
+        expect(measured, 'still the old 60px').toBeGreaterThan(90);
+    });
+
+    test('one character in a tier does not become a 900px box', async ({ page }) => {
+        // The cap. Growing into the row is right; growing without limit turns a
+        // sparse tier into one enormous portrait, which is the obvious way for
+        // "fill the width" to be taken too literally.
+        await mockTool(page, {
+            rankings: [{
+                character_id: CHARS[0], vote_count: 40, median_tier: 'S', median_rank: 6,
+                distribution: { S: 40 }, ranked: true,
+            }],
+        });
+        await page.goto(PAGE);
+        await page.setViewportSize({ width: 1280, height: 900 });
+
+        const sRow = page.locator('.fs-tier-row').filter({ has: page.locator('.fs-tier-label', { hasText: /^S$/ }) });
+        const measured = await sRow.locator('.fs-entry .tier-portrait').first()
+            .evaluate(el => Math.round(el.getBoundingClientRect().width));
+
+        expect(measured).toBeLessThanOrEqual(172);
+    });
+
+    test('the box stays square as it grows', async ({ page }) => {
+        // aspect-ratio rather than a matching height, so the two cannot drift
+        // when the cap moves. A stretched portrait is the failure this catches.
+        await mockTool(page, { rankings: [] });
+        await page.goto(PAGE);
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await expect(page.locator('.fs-entry').first()).toBeVisible();
+
+        const box = await page.locator('.fs-entry .tier-portrait').first()
+            .evaluate(el => { const r = el.getBoundingClientRect(); return { w: r.width, h: r.height }; });
+        expect(Math.abs(box.w - box.h), `${box.w} x ${box.h} is not square`).toBeLessThan(2);
+    });
+});
