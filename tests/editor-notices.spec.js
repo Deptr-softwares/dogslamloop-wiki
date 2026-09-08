@@ -3,12 +3,16 @@
 // Two one-time notices the owner asked for: one on opening the editor, one on
 // opening the Media Library. Both point at the Writing Guide.
 //
-// THE COPY IS THE SPEC. The owner supplied both texts word for word and wrote
-// "Do not change anything" against them, and named which words are bold and
-// which are the link. So this file asserts the strings verbatim rather than
-// asserting that "a notice appeared" - the wording, its punctuation and the
-// emphasis are the deliverable, and a test that only checked for a modal would
-// stay green through somebody tidying the grammar.
+// THE COPY IS THE SPEC. The owner supplied both texts word for word and named
+// which words are bold and which are the link, so this file asserts the strings
+// verbatim rather than asserting that "a notice appeared" - the wording, its
+// punctuation and the emphasis are the deliverable, and a test that only
+// checked for a modal would stay green through somebody rewriting it.
+//
+// Revised by the owner on 2026-09-08, who asked for the grammar to be
+// corrected after the first version shipped verbatim. "Local Resource" stays
+// singular and capitalised: it reads as the name of a section in the Writing
+// Guide, unlike the lowercase "local resources" beside it.
 //
 // THE OTHER HALF IS REACHABILITY. The Media Library notice opens on top of the
 // Media Library modal, which is the exact shape of a bug this project has
@@ -19,12 +23,12 @@ const { test, expect } = require('@playwright/test');
 const EDITOR = '/edit.html?char=boomcat&type=character&tab=overview';
 const GUIDE = 'https://dogslamloop.com/systems/writing_guide/index.html';
 
-const EDITOR_COPY = 'Welcome to Dogslamloop Wiki Editor! Before doing any edits yourself, '
-  + 'make sure to read up the Writing Guide!. It details the rules and the writing style '
-  + 'of this wiki, so failure to follow it will get your edits rejected';
+const EDITOR_COPY = 'Welcome to the Dogslamloop Wiki Editor! Before doing any edits yourself, '
+  + 'make sure to read up on the Writing Guide! It details the rules and the writing style '
+  + 'of this wiki, so failure to follow it will get your edits rejected.';
 
-const MEDIA_COPY = "Welcome to the Media Library! Here's we keep all of the media and "
-  + 'resource of the wiki. This the place where we keep and host our local resource, so '
+const MEDIA_COPY = "Welcome to the Media Library! Here's where we keep all of the media and "
+  + 'resources of the wiki. This is the place where we keep and host our local resources, so '
   + 'make sure to check out the Writing Guide section when it comes to Local Resource!';
 
 async function boot(page) {
@@ -46,7 +50,7 @@ test('the editor notice bolds exactly the words the owner named', async ({ page 
   // Not "contains a <strong>" - WHICH words are emphasised was specified, and
   // an assertion that some bold exists would survive it moving.
   const bold = await page.locator('#editor-notice-editor .modal-prompt-text strong').allInnerTexts();
-  expect(bold).toEqual(['make sure to read up the']);
+  expect(bold).toEqual(['make sure to read up on the']);
 });
 
 test('the Writing Guide link resolves, and does not navigate the editor away', async ({ page }) => {

@@ -6,11 +6,16 @@
  * is the thing that decides whether an edit gets accepted, and neither is worth
  * showing twice to the same person.
  *
- * WHY THE COPY IS NOT TOUCHED. The owner supplied both texts word for word and
- * wrote "Do not change anything" against them. It is reproduced exactly,
- * including its punctuation - anyone tempted to tidy the grammar should ask
- * them first rather than treat it as a typo. Which words are bold and which are
- * the link were specified too, and are not a styling decision to revisit.
+ * THE COPY IS THE OWNER'S, AND IT WAS REVISED BY THEM. It arrived with "Do not
+ * change anything" against it and was shipped verbatim; on 2026-09-08 the owner
+ * asked for the grammar to be corrected, and this is that pass. Anything still
+ * reading oddly is deliberate until they say otherwise - "Local Resource" stays
+ * singular and capitalised because it reads as the name of a section in the
+ * Writing Guide, while the lowercase "local resources" beside it is the
+ * ordinary noun and was pluralised.
+ *
+ * Which words are bold and which are the link are the owner's too, and are not
+ * a styling decision to revisit.
  *
  * WHY THIS IS THE ONE PLACE innerHTML TAKES MARKUP. Every other interpolation
  * in this project escapes, because the text is contributor-authored and
@@ -41,16 +46,16 @@
     const NOTICES = {
         editor: {
             title: 'BEFORE YOU EDIT',
-            body: `Welcome to Dogslamloop Wiki Editor! Before doing any edits yourself, `
-                + `<strong>make sure to read up the</strong> ${guideLink}!. It details the `
+            body: `Welcome to the Dogslamloop Wiki Editor! Before doing any edits yourself, `
+                + `<strong>make sure to read up on the</strong> ${guideLink}! It details the `
                 + `rules and the writing style of this wiki, so failure to follow it will `
-                + `get your edits rejected`,
+                + `get your edits rejected.`,
         },
         mediaLibrary: {
             title: 'THE MEDIA LIBRARY',
-            body: `Welcome to the Media Library! Here's we keep all of the media and `
-                + `resource of the wiki. This the place where we keep and host our local `
-                + `resource, so make sure to check out the ${guideLink} `
+            body: `Welcome to the Media Library! Here's where we keep all of the media and `
+                + `resources of the wiki. This is the place where we keep and host our local `
+                + `resources, so make sure to check out the ${guideLink} `
                 + `<strong>section when it comes to Local Resource!</strong>`,
         },
     };
