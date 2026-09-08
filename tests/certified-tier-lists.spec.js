@@ -454,3 +454,89 @@ test('the sidebar header stays inside the window', async ({ page }) => {
     expect(overflow.headerRight).toBeLessThanOrEqual(overflow.viewportWidth);
     expect(overflow.documentScrolls, 'nothing pushes the page sideways').toBe(false);
 });
+
+// --- v0.18 FT4: PORTRAITS OR ICONS, THE LIST'S OWN CHOICE ---
+//
+// Every certified list drew the wiki PORTRAITS - a tall crop of a full-body
+// render. The roster icons added in v0.16 are square and flat and read far
+// better twenty-across on a tier row, so the owner asked (2026-09-08) for the
+// contributor who holds a list to pick between them.
+//
+// Per list, not per site: two lists sit side by side in the same picker, and a
+// reader following a shared ?list= link has to see what its author chose.
+
+test('a list set to icons draws the roster icon, derived from the page id', async ({ page }) => {
+    await mockLists(page, {
+        lists: [list({
+            art_style: 'icon',
+            tiers: [{ name: 'S', color: '#f00', characters: ['ten_shadows', 'crow_charmer'] }],
+        })],
+    });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+
+    const srcs = await page.locator('.tier-portrait-img')
+        .evaluateAll(els => els.map(e => e.getAttribute('src')));
+
+    // DERIVED by the roster's own rosterIconPath, not looked up in a second
+    // manifest - so an icon the owner drops in appears here the day it appears
+    // on the roster, with nothing to regenerate.
+    expect(srcs).toHaveLength(2);
+    expect(srcs[0]).toContain('medias/images/TenShadowsIcon.webp');
+    expect(srcs[1]).toContain('medias/images/CrowCharmerIcon.webp');
+    expect(srcs.every(s => !s.includes('medias/portraits/'))).toBe(true);
+});
+
+test('a list left on portraits is untouched by the feature', async ({ page }) => {
+    // The default, and the state every existing list is in. A migration that
+    // changed what published lists look like would be a silent edit to other
+    // people's work.
+    await mockLists(page, {
+        lists: [list({ tiers: [{ name: 'S', color: '#f00', characters: ['ten_shadows'] }] })],
+    });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+
+    const src = await page.locator('.tier-portrait-img').first().getAttribute('src');
+    expect(src, 'no art_style at all must render exactly as before').toContain('medias/portraits/');
+    expect(src).not.toContain('medias/images/');
+    await expect(page.locator('.tier-portrait-icon')).toHaveCount(0);
+});
+
+test('an unknown art_style falls back to portraits rather than breaking', async ({ page }) => {
+    // The database CHECK keeps these out; this is the second line, for a row
+    // written before the column existed or by something that bypassed it.
+    await mockLists(page, {
+        lists: [list({ art_style: 'nonsense', tiers: [{ name: 'S', color: '#f00', characters: ['ten_shadows'] }] })],
+    });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+
+    const src = await page.locator('.tier-portrait-img').first().getAttribute('src');
+    expect(src).toContain('medias/portraits/');
+});
+
+test('an icon is fitted, not cropped - measured off the browser', async ({ page }) => {
+    // THE RENDERED CONSEQUENCE, not the class. A portrait is a tall crop and
+    // wants object-fit: cover; an icon is already square and drawn to its own
+    // edges, so cover TRIMS THE ART. Asserting the class would pass while the
+    // icons were quietly cropped, which is the "thickened but not orange"
+    // failure this project has already shipped once.
+    await mockLists(page, {
+        lists: [
+            list({ slug: 'icons', art_style: 'icon', tiers: [{ name: 'S', color: '#f00', characters: ['ten_shadows'] }] }),
+            list({ slug: 'faces', art_style: 'portrait', tiers: [{ name: 'S', color: '#f00', characters: ['ten_shadows'] }] }),
+        ],
+    });
+    await open(page);
+
+    await page.click('[data-list-slug="icons"]');
+    const iconFit = await page.locator('.tier-portrait-img').first()
+        .evaluate(el => getComputedStyle(el).objectFit);
+    expect(iconFit, 'cropping a square icon trims its art').toBe('contain');
+
+    await page.click('[data-list-slug="faces"]');
+    const portraitFit = await page.locator('.tier-portrait-img').first()
+        .evaluate(el => getComputedStyle(el).objectFit);
+    expect(portraitFit, 'a tall render still wants cropping to a square').toBe('cover');
+});
