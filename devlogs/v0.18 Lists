@@ -1,0 +1,22 @@
+Features:
+- The QA notes that come with every submission should appear and be visible before the Ticket of that submission is opened.
+- Add Copy and Pasting multiple Blocks: holding down control will let you choose multiple Blocks in the editor (Their right edges glow up), and you can use the Ctrl + C Ctrl + V to quickly copy and paste multiple of those Blocks.
+- Add Ordering to System Type pages navigation tab: Right now you can't change the order of those tabs (different from inner sections of each tab).
+- Add Ordering to Combo Lists: Right now you can't change the order of those lists (different from Combo Groups). For example, I created 3 Combo Lists, I can't change their ordering.
+- Add Ordering to Rows in a Combo List: Not sure why this isn't implemented yet, but it should be simple.
+- Make Anchors (styling rule that redirect sections of page to another section of the same page) work with System Type pages.
+- Add a notice modal pop-up when a visitor first open up the editor, here's the content in it:
+"Welcome to Dogslamloop Wiki Editor! Before doing any edits yourself, make sure to read up the Writing Guide!. It details the rules and the writing style of this wiki, so failure to follow it will get your edits rejected"
+Make sure Writing Guide is hyperlinked to https://dogslamloop.com/systems/writing_guide/index.html, and the text "make sure to read up the" is bolded. Do not change anything.
+- Add a notice modal pop-up when a visitor first open up the Media Library, here's the content in it:
+"Welcome to the Media Library! Here's we keep all of the media and resource of the wiki. This the place where we keep and host our local resource, so make sure to check out the Writing Guide section when it comes to Local Resource!"
+Make sure Writing Guide is hyperlinked to https://dogslamloop.com/systems/writing_guide/index.html, and the text "section when it comes to Local Resource!" is bolded
+
+Fine-tuning:
+- Combo Blocks, Combo Groups' Combos, and Combo Lists' Rows' Combos: Changes all the move's inputs' auto-coloring that have white outline into having black outline while making them brighter
+- internalStyling.js gives dark character names white outline only in a dark pages (pages of character with "dark" color codes)
+- Free Submit Tier List now use the current characters' portraits instead of only showing their name on a background of their own color codes
+- Certified Tier List contributors can now switch between the Wiki Character Portraits, or the Wiki Character Icons to be used on their Tier List.
+
+Bugs:
+- When moving sections to order them, they very very briefly go to the first place and then back to their newly changed place in the order. It creates this weird jitterly effect that only happen for like a few frames
