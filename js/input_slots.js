@@ -27,25 +27,31 @@
  */
 
 (function () {
-    // The ten, in the order the owner listed them (2026-08-16). `outline` is
-    // the colour drawn AROUND the text, always on: an outline's whole job is
-    // to keep a chip readable against whatever is behind it, and a light slot
-    // on a light character page is exactly as unreadable as the reverse.
+    // The ten, in the order the owner listed them (2026-08-16).
     //
     // The colours themselves live in style/ColorCoding.css as custom
     // properties, the same way FRAME_COLORS does - CSS is the single source of
     // truth for colour on this site, and the color-codes page reads it.
+    //
+    // THERE WAS AN `outline: 'light' | 'dark'` FIELD HERE, AND IT IS GONE
+    // (v0.18 FT1). Every slot is now outlined in black, so the field said the
+    // same thing ten times - and nothing ever read it except a test asserting
+    // it held one of two values. A constant that describes CSS from a second
+    // file is a place for the two to drift with nothing gained, which is
+    // exactly what happened: the moment the outline rule changed, this field
+    // was wrong and no code could notice. The invariant is asserted against
+    // ColorCoding.css directly in tests/input-slots.spec.js instead.
     const SLOTS = [
-        { id: 'M1',    label: 'Basic Attack', cls: 'is-m1',    outline: 'dark' },
-        { id: '1',     label: 'Skill 1',      cls: 'is-1',     outline: 'dark' },
-        { id: '2',     label: 'Skill 2',      cls: 'is-2',     outline: 'dark' },
-        { id: '3',     label: 'Skill 3',      cls: 'is-3',     outline: 'dark' },
-        { id: '4',     label: 'Skill 4',      cls: 'is-4',     outline: 'light' },
-        { id: 'R',     label: 'Special',      cls: 'is-r',     outline: 'light' },
-        { id: 'Q',     label: 'Dash',         cls: 'is-q',     outline: 'light' },
-        { id: 'F',     label: 'Block',        cls: 'is-f',     outline: 'dark' },
-        { id: 'Space', label: 'Jump',         cls: 'is-space', outline: 'dark' },
-        { id: 'Shift', label: 'Shift-lock',   cls: 'is-shift', outline: 'light' },
+        { id: 'M1',    label: 'Basic Attack', cls: 'is-m1' },
+        { id: '1',     label: 'Skill 1',      cls: 'is-1' },
+        { id: '2',     label: 'Skill 2',      cls: 'is-2' },
+        { id: '3',     label: 'Skill 3',      cls: 'is-3' },
+        { id: '4',     label: 'Skill 4',      cls: 'is-4' },
+        { id: 'R',     label: 'Special',      cls: 'is-r' },
+        { id: 'Q',     label: 'Dash',         cls: 'is-q' },
+        { id: 'F',     label: 'Block',        cls: 'is-f' },
+        { id: 'Space', label: 'Jump',         cls: 'is-space' },
+        { id: 'Shift', label: 'Shift-lock',   cls: 'is-shift' },
     ];
 
     SLOTS.forEach(Object.freeze);

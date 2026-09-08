@@ -38,16 +38,28 @@
        CATEGORICAL, not ordinal - M1 and Skill 1 have no order between them, so
        they want distinct hues rather than a ramp. That is the opposite of
        combo difficulty, which is ordinal and gets a green-to-red ramp. */
+       v0.18 FT1: FOUR OF THESE WERE DARK, AND WERE BRIGHTENED.
+       Every slot now carries a BLACK outline (owner, 2026-09-08), and a dark
+       fill inside a black outline is a dark smudge - so 4, R, Q and Shift had
+       to move up with the outline change rather than after it. The old values
+       are kept in the comments because they are what the owner picked in
+       v0.15 and what the pages were authored against.
+
+       THE THREE NEUTRALS ARE THE CONSTRAINT, not the hues. Shift was near
+       black, Q was mid grey and Space was light; brightening the first two
+       pushes all three toward each other, and these slots are CATEGORICAL, so
+       collapsing them loses information rather than nuance. They are spread
+       deliberately at roughly 45 / 62 / 82 to keep three steps apart. */
     --input-color-m1: hsl(0, 100%, 72%);        /* Light Red */
     --input-color-1: hsl(52, 100%, 68%);        /* Light Yellow */
     --input-color-2: hsl(205, 100%, 72%);       /* Light Blue */
     --input-color-3: hsl(158, 55%, 55%);        /* Jade Green */
-    --input-color-4: hsl(25, 90%, 48%);         /* Dark Orange */
-    --input-color-r: hsl(295, 60%, 48%);        /* Magenta / Dark Purple */
-    --input-color-q: hsl(0, 0%, 40%);           /* Dark Gray */
+    --input-color-4: hsl(25, 100%, 62%);        /* Orange      - was 25 90% 48% */
+    --input-color-r: hsl(295, 75%, 68%);        /* Magenta     - was 295 60% 48% */
+    --input-color-q: hsl(0, 0%, 62%);           /* Mid Grey    - was 0 0% 40% */
     --input-color-f: hsl(185, 90%, 62%);        /* Cyan */
-    --input-color-space: hsl(0, 0%, 80%);       /* Light Gray */
-    --input-color-shift: hsl(0, 0%, 12%);       /* Black */
+    --input-color-space: hsl(0, 0%, 82%);       /* Light Grey  - was 0 0% 80% */
+    --input-color-shift: hsl(0, 0%, 45%);       /* Dark Grey   - was 0 0% 12% */
 
     --frame-color-start: hsl(217.18, 100%, 50%);
     --frame-color-active: hsl(0, 100%, 45%);
@@ -149,25 +161,29 @@
 .is-r, .is-q, .is-f, .is-space, .is-shift { font-weight: bold; }
 
 /* Outlines are HARD, never blurred. A blurred bright halo on a dark page
-   reads as the text GLOWING rather than as an outline - owner, 2026-08-17 -
-   and it only shows on the light-outlined slots, because a blurred black halo
-   on a dark background is invisible either way.
+   reads as the text GLOWING rather than as an outline - owner, 2026-08-17.
+
+   ONE OUTLINE COLOUR FOR ALL TEN SLOTS, AND IT IS BLACK (v0.18 FT1, owner
+   2026-09-08). Four of them - 4, R, Q and Shift - were outlined in white
+   because their fills were dark. That split is gone, and the fills were
+   brightened in the same change: an outline colour and the fill it surrounds
+   are one decision, and changing the outline alone would have left four slots
+   as dark text in a dark ring.
+
+   What the split cost was consistency across two backgrounds. A white outline
+   reads as an outline on a dark page and as a glow on a light one, so the same
+   notation looked like two different treatments depending on which character
+   page it was written on.
 
    Drawn with a stroke painted BEHIND the fill (paint-order), not with
    text-shadow. Combo notation is 0.75rem bold monospace, and a 1px shadow on
-   each side is a large fraction of a glyph that small - on the dark-filled
-   slots the white shadow was brighter than the letter it surrounded, so
-   "FLOCK" in dark gray read as a white lozenge with a gray core. A stroke
-   behind the fill leaves the letter at full weight and puts the outline
-   entirely outside it.
-
-   text-shadow stays as the fallback for anything without paint-order; it is
-   legible, just heavier. */
-.is-m1, .is-1, .is-2, .is-3, .is-f, .is-space {
+   each side is a large fraction of a glyph that small - a stroke behind the
+   fill leaves the letter at full weight and puts the outline entirely outside
+   it. text-shadow stays as the fallback for anything without paint-order; it
+   is legible, just heavier. */
+.is-m1, .is-1, .is-2, .is-3, .is-4,
+.is-r, .is-q, .is-f, .is-space, .is-shift {
     text-shadow: -1px 0 0 #000, 1px 0 0 #000, 0 -1px 0 #000, 0 1px 0 #000;
-}
-.is-4, .is-r, .is-q, .is-shift {
-    text-shadow: -1px 0 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, 0 1px 0 #fff;
 }
 
 @supports (paint-order: stroke) {
@@ -176,9 +192,8 @@
         text-shadow: none;
         paint-order: stroke fill;
         -webkit-text-stroke-width: 1px;
+        -webkit-text-stroke-color: #000;
     }
-    .is-m1, .is-1, .is-2, .is-3, .is-f, .is-space { -webkit-text-stroke-color: #000; }
-    .is-4, .is-r, .is-q, .is-shift { -webkit-text-stroke-color: #fff; }
 }
 
 /* THE CLASS IS DOUBLED DELIBERATELY, and it is not a typo.
