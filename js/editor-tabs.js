@@ -1087,7 +1087,16 @@ window.renderDocumentListEditor = function (tabId) {
 
     const openTable = window.currentDocTableIndex;
 
-    let html = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+    // v0.18 F3. Combo groups have had reordering since v0.15 item 8 and the
+    // list beside them never did, so three Combo Lists could only be read in
+    // the order they were created in.
+    //
+    // `section.field` rather than a literal, so the Techs tab's techList gets
+    // this from the same line - the vocabulary in js/character_tabs.js is what
+    // separates the two tabs, and writing 'comboList' here would be the second
+    // place that decision lives.
+    let html = window.reorderStripControls(`desc.${section.field}`);
+    html += `<div class="daw-variant-tabs daw-editor-nav-row">`;
     if (tables.length === 0) {
         html += `<span class="daw-empty-state">No ${esc(nounPlural)} defined yet.</span>`;
     } else {
@@ -1118,15 +1127,19 @@ window.renderDocumentListEditor = function (tabId) {
             window.renderDocumentPreview(tabId);
         });
     });
+    // Shared by + STARTER and by the reorder bar's insert-in-place button, so
+    // the two cannot drift: insertListItemAfter runs this and then relocates
+    // whatever it appended, rather than building a second copy of the shape.
+    const appendTable = () => {
+        tables.push({ [section.keyField]: `New ${noun}`, rows: [] });
+        window.currentDocTableIndex = tables.length - 1;
+        window.renderDocumentListEditor(tabId);
+        window.renderDocumentPreview(tabId);
+    };
+    window.registerInserter(`desc.${section.field}`, appendTable);
+
     const addTable = host.querySelector('#combo-table-add');
-    if (addTable) {
-        addTable.addEventListener('click', () => {
-            tables.push({ [section.keyField]: `New ${noun}`, rows: [] });
-            window.currentDocTableIndex = tables.length - 1;
-            window.renderDocumentListEditor(tabId);
-            window.renderDocumentPreview(tabId);
-        });
-    }
+    if (addTable) addTable.addEventListener('click', appendTable);
 
     renderDocumentListRows(tabId, section, tables);
 };
