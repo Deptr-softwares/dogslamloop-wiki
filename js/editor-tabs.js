@@ -1174,8 +1174,25 @@ function renderDocumentListRows(tabId, section, tables) {
     if (table.rows.length === 0) {
         html += `<p class="admin-tool-hint">${esc(section.emptyEntryMessage || 'Nothing here yet.')}</p>`;
     } else {
+        // v0.18 F4. PER-ROW controls, deliberately not the fixed bar every strip
+        // above uses.
+        //
+        // js/editor-reorder.js rejected per-item controls because they travelled
+        // with the entry being moved and acted on "the selected one", so a second
+        // nudge meant chasing them along the row. Neither objection applies here:
+        // a row has NO selected state to act on - opening one opens a modal - and
+        // the list is vertical, so the buttons stay on the same line the eye is
+        // already on. A fixed bar would need a selection concept invented for it.
+        //
+        // window.moveListItem is still the shared primitive, so the array
+        // handling is the one that has been proven since v0.15 item 8.
+        const lastRow = table.rows.length - 1;
         table.rows.forEach((row, i) => {
             html += `<div class="combo-row-item">
+                <span class="combo-row-move">
+                    <button type="button" class="combo-row-up btn-sys btn-sys-regular" data-row="${i}"${i === 0 ? ' disabled' : ''} title="Move up" aria-label="Move this entry up">&#9650;</button>
+                    <button type="button" class="combo-row-down btn-sys btn-sys-regular" data-row="${i}"${i === lastRow ? ' disabled' : ''} title="Move down" aria-label="Move this entry down">&#9660;</button>
+                </span>
                 <button type="button" class="combo-row-open btn-sys btn-sys-regular" data-row="${i}">${esc(comboRowSummary(row || {}))}</button>
                 <button type="button" class="combo-row-remove btn-sys btn-sys-red" data-row="${i}" title="Remove this entry">&#10006;</button>
             </div>`;
@@ -1198,6 +1215,20 @@ function renderDocumentListRows(tabId, section, tables) {
     container.querySelectorAll('.combo-row-open').forEach(btn => {
         btn.addEventListener('click', () =>
             window.openDocumentRowModal(tabId, idx, parseInt(btn.getAttribute('data-row'), 10)));
+    });
+    // Row order rides inside the table's own delta rather than needing a scope:
+    // the entry keyed by `starter` ships whole when it differs, and moving a row
+    // changes that object. Proven in tests/combo-row-order.spec.js rather than
+    // assumed, because that is the assumption B2 turned out to have got wrong
+    // one level up.
+    container.querySelectorAll('.combo-row-up, .combo-row-down').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const from = parseInt(btn.getAttribute('data-row'), 10);
+            const dir = btn.classList.contains('combo-row-up') ? -1 : 1;
+            if (!window.moveListItem(table.rows, from, dir)) return;
+            renderDocumentListRows(tabId, section, tables);
+            window.renderDocumentPreview(tabId);
+        });
     });
     container.querySelectorAll('.combo-row-remove').forEach(btn => {
         btn.addEventListener('click', async () => {

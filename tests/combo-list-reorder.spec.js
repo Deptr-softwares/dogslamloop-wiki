@@ -1,9 +1,14 @@
-// v0.18 F3 - a Combo List can be reordered.
+// v0.18 F3 and F4 - a Combo List can be reordered, and so can the rows in one.
 //
 // Combo groups got reordering in v0.15 item 8; the list beside them never did,
 // so three Combo Lists could only be read in the order they were created in.
 // The owner reported it as "I created 3 Combo Lists, I can't change their
-// ordering".
+// ordering", and separately that the rows inside one could not be moved either.
+//
+// TWO ITEMS IN ONE FILE, because they are one screen and they share this
+// file's Supabase capture harness. They are NOT one mechanism, and the section
+// divider below says why: a list entry is a strip entry with a selected state,
+// and a row is neither.
 //
 // TWO HALVES, AND ONLY ONE OF THEM WAS BUILT FOR THIS ITEM.
 //
@@ -26,6 +31,19 @@ const THREE_LISTS = [
   { starter: 'Zzq 5H', rows: [] },
   { starter: 'Zzq 2M', rows: [] },
   { starter: 'Zzq j.H', rows: [] },
+];
+
+// F4's fixture. comboRowSummary renders `sequence.join(' > ')`, so the sequence
+// is what a row is identified by on screen.
+const LIST_WITH_ROWS = [
+  {
+    starter: 'Zzq 5H',
+    rows: [
+      { sequence: ['Zzq Aaa'], damage: '10', difficulty: '', notes: '' },
+      { sequence: ['Zzq Bbb'], damage: '20', difficulty: '', notes: '' },
+      { sequence: ['Zzq Ccc'], damage: '30', difficulty: '', notes: '' },
+    ],
+  },
 ];
 
 async function openComboList(page, lists) {
@@ -92,6 +110,67 @@ test('a Combo List cannot be moved off either end', async ({ page }) => {
     window.currentEditorDescData.comboList.map(t => t.starter));
   expect(order, 'the first entry has nowhere to go left').toEqual(
     ['Zzq 5H', 'Zzq 2M', 'Zzq j.H']);
+});
+
+// --- v0.18 F4: THE ROWS INSIDE ONE COMBO LIST ---
+//
+// A different mechanism from everything above, and the file says so rather than
+// leaving the next reader to wonder why. Rows are not `.daw-tab-item` entries
+// and have no selected state - opening one opens a modal - so the fixed
+// reorder bar, which acts on "the selected entry", has nothing to act on. The
+// controls are per row, and vertical, because the list is.
+
+async function openRows(page) {
+  await openComboList(page, LIST_WITH_ROWS);
+  await page.locator('#combo-rows-panel [data-table="0"]').click();
+  await page.waitForTimeout(400);
+}
+
+const rowLabels = (page) => page.evaluate(() =>
+  [...document.querySelectorAll('.combo-row-open')].map(b => b.textContent.trim()));
+
+test('a row can be moved down, and the list follows', async ({ page }) => {
+  await openRows(page);
+
+  await page.locator('.combo-row-item .combo-row-down[data-row="0"]').click();
+  await page.waitForTimeout(400);
+
+  // The rendered list, not just the array - a reorder the editor does not
+  // redraw is one the contributor cannot see they made.
+  expect(await rowLabels(page)).toEqual(['Zzq Bbb', 'Zzq Aaa', 'Zzq Ccc']);
+
+  const order = await page.evaluate(() =>
+    window.currentEditorDescData.comboList[0].rows.map(r => r.sequence[0]));
+  expect(order).toEqual(['Zzq Bbb', 'Zzq Aaa', 'Zzq Ccc']);
+});
+
+test('the ends offer no move off the list', async ({ page }) => {
+  await openRows(page);
+
+  // Disabled rather than absent: the controls staying in the same place on
+  // every row is what makes a two-step move one gesture repeated, and a button
+  // that vanishes at the end moves everything below it.
+  await expect(page.locator('.combo-row-up[data-row="0"]')).toBeDisabled();
+  await expect(page.locator('.combo-row-down[data-row="2"]')).toBeDisabled();
+  await expect(page.locator('.combo-row-down[data-row="0"]')).toBeEnabled();
+  await expect(page.locator('.combo-row-up[data-row="2"]')).toBeEnabled();
+});
+
+test('the row summary belongs to the row, not to the slot', async ({ page }) => {
+  await openRows(page);
+
+  // The bug this guards: re-rendering by index while the array moved underneath
+  // leaves each label attached to a position instead of to its content, so the
+  // list looks unchanged and the data is reordered - or the reverse.
+  await page.locator('.combo-row-item .combo-row-up[data-row="2"]').click();
+  await page.waitForTimeout(400);
+
+  const [labels, damages] = await Promise.all([
+    rowLabels(page),
+    page.evaluate(() => window.currentEditorDescData.comboList[0].rows.map(r => r.damage)),
+  ]);
+  expect(labels).toEqual(['Zzq Aaa', 'Zzq Ccc', 'Zzq Bbb']);
+  expect(damages, 'each row carried its own fields along').toEqual(['10', '30', '20']);
 });
 
 // --- WHAT ACTUALLY REACHES THE DATABASE ---
@@ -212,4 +291,38 @@ test('reordering Combo Lists and nothing else still submits', async ({ page }) =
     ? ticket.delta_payload.find(d => d.scope === 'order' && d.key === 'desc.comboList').payload
     : ticket.delta_payload;
   expect(payload).toEqual(['Zzq 2M', 'Zzq j.H', 'Zzq 5H']);
+});
+
+test('reordering rows and nothing else still submits', async ({ page }) => {
+  // F4's version of the assumption above, and it is a DIFFERENT assumption: a
+  // row is not a keyed entry and has no order scope of its own. The claim is
+  // that moving a row mutates the table object, so the `comboTable` delta keyed
+  // by `starter` ships whole and carries the new row order inside it.
+  //
+  // B2 is what makes this worth driving rather than reasoning about: there, the
+  // identical-looking assumption ("the scans already cover it") was false,
+  // because every scan paired by a key the move did not change.
+  const desc = { comboIntro: [], comboGroups: [], comboList: LIST_WITH_ROWS };
+  await bootWithCapture(page, desc);
+
+  await page.evaluate(() => {
+    const rows = window.currentEditorDescData.comboList[0].rows;
+    const [first] = rows.splice(0, 1);
+    rows.push(first);
+  });
+
+  await page.locator('#submit-payload-btn').click();
+  await expect.poll(() => page.evaluate(() => (window.__inserted || []).length)).toBeGreaterThan(0);
+
+  const ticket = await page.evaluate(() => window.__inserted[0]);
+  const scopes = ticket.target_scope === 'multi'
+    ? ticket.delta_payload.map(d => `${d.scope}:${d.key ?? ''}`)
+    : [`${ticket.target_scope}:${ticket.target_key ?? ''}`];
+  expect(scopes, 'a row reorder must not be reported as "no changes detected"')
+    .toContain('comboTable:Zzq 5H');
+
+  const payload = ticket.target_scope === 'multi'
+    ? ticket.delta_payload.find(d => d.scope === 'comboTable').payload
+    : ticket.delta_payload;
+  expect(payload.rows.map(r => r.sequence[0])).toEqual(['Zzq Bbb', 'Zzq Ccc', 'Zzq Aaa']);
 });

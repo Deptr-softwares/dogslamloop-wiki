@@ -2226,6 +2226,17 @@ del.diff-del {
 .combo-row-item.active .combo-row-open { border-color: var(--accent-blue); color: var(--accent-blue); }
 .combo-row-remove { flex: 0 0 auto; }
 
+/* v0.18 F4 - move a row up or down within its list.
+   Stacked, so the pair occupies one row's height rather than widening the line
+   and squeezing the summary that is already ellipsised. Scoped to
+   .combo-row-move on purpose: .btn-sys is shared site-wide and a bare rule for
+   these sizes would reach every consumer of it. */
+.combo-row-move { flex: 0 0 auto; display: flex; flex-direction: column; gap: 1px; }
+.combo-row-move .btn-sys {
+    padding: 0 0.35rem; line-height: 1; font-size: 0.55rem; min-height: 0; flex: 1;
+}
+.combo-row-move .btn-sys:disabled { opacity: 0.35; cursor: default; }
+
 /* The row form lives in a modal (edit.html #combo-row-modal), not in the
    sidebar: the editor's left pane shares the screen with the live preview, and
    a dozen fields in it was mostly scroll. Owner's call, 2026-08-16.
