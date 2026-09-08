@@ -121,6 +121,35 @@ test('the Media Library notice appears over the library, and can be clicked', as
   await expect(page.locator('#media-modal-overlay')).toBeVisible();
 });
 
+test('the notice outranks the Media Library by stated z-index, not by DOM order', async ({ page }) => {
+  // MEASURED, NOT ASSUMED: the hit test above passes with the z-index rule
+  // DELETED, because the notice is appended to body last and wins at the shared
+  // 10000 on DOM order alone. So that test does not discriminate, and without
+  // this one the rule could be removed with the suite still green - leaving the
+  // notice resting on exactly the mechanism style/editor.css's confirm-layer
+  // comment blames for two shipped bugs.
+  //
+  // Resolved values, so this follows the stylesheet instead of pinning a number
+  // in two places.
+  await boot(page);
+  await page.locator('#editor-notice-editor [data-notice-dismiss]').click();
+  await page.locator('#btn-media-library').click();
+  await expect(page.locator('#editor-notice-mediaLibrary')).toBeVisible();
+
+  const layers = await page.evaluate(() => {
+    const z = (sel) => parseInt(getComputedStyle(document.querySelector(sel)).zIndex, 10);
+    return {
+      notice: z('#editor-notice-mediaLibrary'),
+      media: z('#media-modal-overlay'),
+      confirm: z('#editor-custom-modal'),
+    };
+  });
+
+  expect(layers.notice).toBeGreaterThan(layers.media);
+  // And still below the confirm layer, which outranks everything by design.
+  expect(layers.notice).toBeLessThan(layers.confirm);
+});
+
 test('the Media Library notice bolds and links exactly what was specified', async ({ page }) => {
   await boot(page);
   await page.locator('#editor-notice-editor [data-notice-dismiss]').click();
