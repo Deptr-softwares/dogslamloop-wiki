@@ -20,6 +20,12 @@
 // and unclickable. toBeVisible() does not catch that; a hit test does.
 const { test, expect } = require('@playwright/test');
 
+// A GENUINE FIRST VISIT, which the rest of the suite deliberately is not.
+// playwright.config.js seeds both "seen" flags so the notice does not sit on
+// top of the 59 other specs that load edit.html; this file is the one place
+// that has to see it fire, so it clears them back out.
+test.use({ storageState: { cookies: [], origins: [] } });
+
 const EDITOR = '/edit.html?char=boomcat&type=character&tab=overview';
 const GUIDE = 'https://dogslamloop.com/systems/writing_guide/index.html';
 
