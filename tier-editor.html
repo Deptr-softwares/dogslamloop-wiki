@@ -100,6 +100,24 @@
                        maxlength="60" placeholder="e.g. Update 1.4.2 — leave blank if unsure"
                        aria-label="Game version this list describes">
 
+                <!-- v0.18 FT4. Per LIST, not per site: two contributors can
+                     reasonably want different treatments for lists that sit
+                     side by side in the same picker, and a reader following a
+                     shared ?list= link sees what its author chose.
+                     A select rather than a toggle, because the two options need
+                     naming - "portraits" and "icons" are both wiki nouns with
+                     specific meanings here, and a switch would have to be
+                     labelled with one of them anyway. -->
+                <div class="dashboard-header-split admin-split-header">
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Character art</h3>
+                </div>
+
+                <select id="tier-art-style" class="editor-select tier-art-style"
+                        aria-label="Which character art this list uses">
+                    <option value="portrait">Portraits — the tall character art</option>
+                    <option value="icon">Icons — the square roster icons</option>
+                </select>
+
                 <div class="dashboard-header-split admin-split-header">
                     <h3 class="section-title section-title-clean m-0 admin-section-title">Tiers</h3>
                     <button id="btn-add-tier" class="btn-sys btn-sys-regular admin-refresh-btn">+ TIER</button>
@@ -179,16 +197,16 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/character_tabs.js?v=6f9c85ff"></script>
-    <script src="js/input_slots.js?v=6f9c85ff"></script>
-    <script src="js/site_utils.js?v=6f9c85ff"></script>
-    <script src="js/site_meta.js?v=6f9c85ff"></script>
-    <script src="js/pagebuilder.js?v=6f9c85ff"></script>
-    <script src="js/description.js?v=6f9c85ff"></script>
-    <script src="js/internalstyling.js?v=6f9c85ff"></script>
-    <script src="js/editor-folders.js?v=6f9c85ff"></script>
-    <script src="js/editor-blocks.js?v=6f9c85ff"></script>
-    <script src="js/editor-media.js?v=6f9c85ff"></script>
-    <script src="js/tier-editor.js?v=6f9c85ff"></script>
+    <script src="js/character_tabs.js?v=c9a9f2ea"></script>
+    <script src="js/input_slots.js?v=c9a9f2ea"></script>
+    <script src="js/site_utils.js?v=c9a9f2ea"></script>
+    <script src="js/site_meta.js?v=c9a9f2ea"></script>
+    <script src="js/pagebuilder.js?v=c9a9f2ea"></script>
+    <script src="js/description.js?v=c9a9f2ea"></script>
+    <script src="js/internalstyling.js?v=c9a9f2ea"></script>
+    <script src="js/editor-folders.js?v=c9a9f2ea"></script>
+    <script src="js/editor-blocks.js?v=c9a9f2ea"></script>
+    <script src="js/editor-media.js?v=c9a9f2ea"></script>
+    <script src="js/tier-editor.js?v=c9a9f2ea"></script>
 </body>
 </html>

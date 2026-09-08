@@ -569,6 +569,17 @@ a.reading-step-title:hover { color: var(--accent-blue); }
    owns the gesture entirely once it starts. */
 .tier-portrait.draggable-portrait { cursor: grab; touch-action: none; }
 .tier-portrait-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 3; pointer-events: none; }
+
+/* v0.18 FT4 - a list rendered with roster ICONS rather than portraits.
+   `contain`, not `cover`, and that is the whole difference: a portrait is a
+   tall crop of a full-body render and wants cropping to a square, while a
+   roster icon is ALREADY square and drawn to its own edges, so cropping it
+   trims the art. Same treatment .roster-card-icon gets in style/Cards.css,
+   deliberately - it is the same file being drawn at a similar size, and two
+   answers to that would be visible side by side on the same site.
+   The character colour stays on the wrapper underneath, which is what the
+   icons are drawn to sit on. */
+.tier-portrait-icon .tier-portrait-img { object-fit: contain; }
 .tier-portrait-name { position: relative; z-index: 2; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.5rem; color: #fff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; word-wrap: break-word; line-height: 1.1; padding: 2px; }
 
 /* Floating clone that follows the pointer during a drag (mouse or touch),

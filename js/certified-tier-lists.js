@@ -102,11 +102,25 @@
         }
     }
 
-    function portrait(pageId) {
+    // v0.18 FT4. `style` is the list's own art_style - 'portrait' or 'icon'.
+    //
+    // A portrait is a tall crop of a full-body render; the roster icon added in
+    // v0.16 is square and flat, and far more legible twenty-across on a tier
+    // row. Which one a list uses is its author's call, so it arrives per call
+    // rather than being read from a global here: two lists rendered in the same
+    // session can legitimately differ, and a module-level variable would make
+    // whichever rendered last win.
+    //
+    // Unknown values fall back to the portrait rather than throwing. The
+    // database CHECK is what keeps them out; this is the second line, for a row
+    // written before the column existed.
+    function portrait(pageId, style) {
         const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../../';
         const meta = state.roster.get(pageId) || { name: String(pageId).replace(/_/g, ' ') };
+        const useIcon = style === 'icon';
 
         const wrap = el('a', 'tier-portrait');
+        if (useIcon) wrap.classList.add('tier-portrait-icon');
         wrap.href = meta.url ? rootPath + meta.url : '#';
         wrap.title = meta.name;
 
@@ -124,9 +138,22 @@
         img.loading = 'lazy';
         img.alt = '';
         img.addEventListener('error', () => { img.style.display = 'none'; });
-        img.src = meta.image
-            ? rootPath + meta.image
-            : `https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/${encodeURIComponent(String(meta.name).replace(/[^a-zA-Z0-9]/g, ''))}Portrait.webp`;
+
+        // The icon path is DERIVED from the pageId by the same function the
+        // roster grid uses (js/pagebuilder.js), not looked up in a second
+        // manifest - so an icon the owner drops in appears here the moment it
+        // appears on the roster, with nothing to regenerate. A character with
+        // no icon yet hides its img and shows the name underneath, which is the
+        // same designed fallback a missing portrait already had.
+        const iconPath = useIcon && typeof window.rosterIconPath === 'function'
+            ? window.rosterIconPath(pageId)
+            : null;
+
+        img.src = iconPath
+            ? rootPath + iconPath
+            : (meta.image
+                ? rootPath + meta.image
+                : `https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/${encodeURIComponent(String(meta.name).replace(/[^a-zA-Z0-9]/g, ''))}Portrait.webp`);
         wrap.appendChild(img);
 
         return wrap;
@@ -295,7 +322,7 @@
             labels.push(label);
 
             const chars = el('div', 'ctl-chars');
-            (tier.characters || []).forEach(pageId => chars.appendChild(portrait(pageId)));
+            (tier.characters || []).forEach(pageId => chars.appendChild(portrait(pageId, row.art_style)));
             if (!(tier.characters || []).length) {
                 chars.appendChild(el('span', 'ctl-empty-note', 'nobody'));
             }

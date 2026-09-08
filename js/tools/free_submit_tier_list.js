@@ -72,10 +72,41 @@
                 ? await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true })
                 : await (await fetch(`${rootPath}data/navigation.json`)).json();
 
+            // v0.18 FT3. THE PORTRAIT COMES FROM data/portraits.json, and this
+            // function is why the Free Submit list showed names on coloured
+            // squares instead of faces: it read `entry.image` off a
+            // navigation.json entry, and navigation.json has no `image` field
+            // on ANY of its 24 characters. So the src was never set, the <img>
+            // stayed empty, and the name underneath - which is the deliberate
+            // 404 fallback - was all anyone ever saw.
+            //
+            // js/certified-tier-lists.js does this correctly a few lines from
+            // an otherwise identical loadRoster. The two were copies and one
+            // of them drifted, which is the cost this project accepts when it
+            // prefers duplication to coupling - worth naming here rather than
+            // fixing silently, because the same pair can drift again.
+            //
+            // Same-origin matters beyond correctness: a cross-origin image
+            // taints a canvas, and the PNG export's toBlob() throws on one.
+            let portraits = {};
+            try {
+                portraits = window.fetchJson
+                    ? await window.fetchJson(`${rootPath}data/portraits.json`, { cache: true })
+                    : await (await fetch(`${rootPath}data/portraits.json`)).json();
+            } catch (e) {
+                // Non-fatal: without the manifest every card falls back to the
+                // name on its colour, which is exactly what shipped before.
+                console.warn('[FreeSubmit] Portrait manifest unavailable:', e);
+            }
+
             (nav.Characters || []).forEach(entry => {
                 const pageId = entry.cms_config && entry.cms_config.pageId;
                 if (!pageId) return;
-                state.roster.set(pageId, { name: entry.name, url: entry.url, image: entry.image });
+                state.roster.set(pageId, {
+                    name: entry.name,
+                    url: entry.url,
+                    image: portraits[pageId] || entry.image,
+                });
             });
         } catch (e) {
             console.warn('[FreeSubmit] Could not read the roster:', e);
