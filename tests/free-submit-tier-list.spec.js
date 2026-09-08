@@ -28,6 +28,10 @@ const CHARS = (NAV.Characters || [])
     .map(e => e.cms_config && e.cms_config.pageId)
     .filter(Boolean);
 
+// The portrait manifest, for the same reason: which characters have art is
+// owner content and changes without notice. Read, never listed.
+const PORTRAITS = require('../data/portraits.json');
+
 const SCALE = [
     { tier: 'S', rank: 6, color: 'hsl(0, 80%, 60%)' },
     { tier: 'A', rank: 5, color: 'hsl(30, 80%, 60%)' },
@@ -223,6 +227,59 @@ test.describe('the board', () => {
         // Derived from the roster rather than a pinned number, so this stays
         // true when the owner adds a character.
         await expect(page.locator('.fs-entry')).toHaveCount(CHARS.length);
+    });
+
+    // --- v0.18 FT3: FACES, NOT NAMES ON COLOURED SQUARES ---
+    //
+    // loadRoster read `entry.image` off a navigation.json entry, and
+    // navigation.json has no `image` field on any character - so the src was
+    // never set and the name underneath, which is the deliberate 404 fallback,
+    // was all anyone ever saw. The portraits are in data/portraits.json, which
+    // js/certified-tier-lists.js was already reading a few lines from an
+    // otherwise identical loadRoster.
+    test('a character with a portrait renders it, and it actually loads', async ({ page }) => {
+        await mockTool(page, { rankings: [] });
+        await page.goto(PAGE);
+        await expect(page.locator('.fs-entry')).toHaveCount(CHARS.length);
+
+        // Derived from the manifest, not pinned: whichever character happens to
+        // be first in it is the subject, so this survives the owner adding,
+        // removing or renaming one.
+        const withPortrait = Object.keys(PORTRAITS)[0];
+        test.skip(!withPortrait, 'no portraits in the manifest to test against');
+
+        const img = page.locator(`.fs-entry[data-character="${withPortrait}"] .tier-portrait-img`);
+        await expect(img).toHaveCount(1);
+
+        // SAME-ORIGIN, and that is not a detail. A cross-origin image taints a
+        // canvas, and the PNG export's toBlob() throws on a tainted one.
+        const src = await img.getAttribute('src');
+        expect(src, 'the portrait must come from the local mirror').toContain('medias/portraits/');
+        expect(src).not.toMatch(/^https?:\/\//);
+
+        // THE RENDERED CONSEQUENCE. An src attribute that 404s sets itself to
+        // display:none and leaves the reader looking at the same coloured
+        // square as before, which is the bug this test exists for - so the
+        // assertion is that the browser decoded it.
+        const decoded = await img.evaluate(el => el.complete && el.naturalWidth > 0);
+        expect(decoded, `${withPortrait}'s portrait did not load from ${src}`).toBe(true);
+    });
+
+    test('a character with no portrait still shows its name', async ({ page }) => {
+        // TWO DESIGNED STATES, NOT ONE. Asserting every character resolves a
+        // portrait would be a test the owner can turn red by creating a
+        // character before its art exists - and that is a production outage,
+        // because regenerate.yml commits only after the suite passes. It has
+        // happened twice. So the claim is the FALLBACK, which is the half that
+        // has to keep working.
+        const missing = CHARS.filter(id => !PORTRAITS[id]);
+        test.skip(!missing.length, 'every character currently has a portrait');
+
+        await mockTool(page, { rankings: [] });
+        await page.goto(PAGE);
+
+        const entry = page.locator(`.fs-entry[data-character="${missing[0]}"]`);
+        await expect(entry.locator('.tier-portrait-name')).toBeVisible();
     });
 });
 
