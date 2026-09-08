@@ -188,6 +188,41 @@ body {
 .sc-color, .sc-auto { font-weight: bold; }
 .sc-timing { font-family: var(--text-mono); font-weight: bold; }
 
+/* v0.18 FT2 - a DARK character's name, written on a DARK-CODED character page,
+   gets a white outline. Owner, 2026-09-08.
+
+   BOTH HALVES OF THE SELECTOR ARE LOAD-BEARING, and they are different claims:
+
+     .page-character-dark  is the PAGE. Set by applyCharacterTheme in
+                           js/site_meta.js, which already paints white outlines
+                           onto this page's titles - so a dark name in prose
+                           matches the treatment beside it instead of being the
+                           only unoutlined dark text on the page.
+
+     .sc-char-dark         is the NAME. Added by js/internalstyling.js from
+                           window.isDarkCharacterColor, so a light character
+                           mentioned on a dark page is left alone - it was
+                           already readable and an outline would only thicken
+                           it.
+
+   Hard, never blurred, and drawn behind the fill, for the reasons
+   style/ColorCoding.css sets out at length for the input slots: a blurred halo
+   reads as a glow, and a 1px shadow on small bold text eats the glyph. Same
+   paint-order-with-text-shadow-fallback shape, so the two treatments cannot
+   diverge in how they are drawn - only in colour. */
+.page-character-dark .sc-char.sc-char-dark {
+    text-shadow: -1px 0 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, 0 1px 0 #fff;
+}
+
+@supports (paint-order: stroke) {
+    .page-character-dark .sc-char.sc-char-dark {
+        text-shadow: none;
+        paint-order: stroke fill;
+        -webkit-text-stroke-width: 1px;
+        -webkit-text-stroke-color: #fff;
+    }
+}
+
 .wiki-link {
     color: var(--accent-blue);
     text-decoration: underline;
