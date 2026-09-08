@@ -1590,6 +1590,15 @@ input[type="checkbox"]:checked {
 #editor-custom-modal.editor-modal-overlay { z-index: 10020; }
 #editor-alert-modal.editor-modal-overlay { z-index: 10021; }
 
+/* v0.18 F6/F7 - the first-visit notices. Above the Media Library (10000) and
+   the QA and gallery-item modals (10005), because the Media Library notice is a
+   RESPONSE to opening that modal and would otherwise be the one underneath.
+   Below the confirm and alert layers, which outrank everything by the rule
+   above. Stated rather than left to DOM order: the notice is appended to body
+   at runtime so it would win at 10000 today, and that is the fragile mechanism
+   the comment above is about. */
+.editor-notice-overlay.editor-modal-overlay { z-index: 10010; }
+
 .modal-danger .editor-modal-box { border-top-color: #ef4444; width: 450px; }
 .modal-danger .auth-header h3 { color: #ef4444; font-size: 1rem; }
 .modal-danger .btn-danger-fill { color: #000; background: #ef4444; border-color: #ef4444; flex: 1; }
