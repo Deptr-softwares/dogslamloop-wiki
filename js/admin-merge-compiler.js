@@ -135,6 +135,30 @@ window.openMergeCompiler = async function(pageId) {
                 .options.push({ ticket: t, data: tSec && tSec.section });
         });
 
+        // THE ORDER OF THE TABS THEMSELVES - v0.18 B2.
+        //
+        // ONE conflict for the page, not one per tab. Two contributors who both
+        // reordered the strip made a single competing decision; offering it per
+        // tab would ask the reviewer to choose a position for each tab
+        // separately and let them assemble a sequence neither contributor
+        // wrote.
+        //
+        // Same membership test as the editor's scan: a tab added or removed is
+        // already a system_tab conflict below, and without this test every such
+        // ticket would also raise a spurious order conflict.
+        const liveOrder = liveTabs.map(x => x.tabKey);
+        const tOrder = tTabs.map(x => x.tabKey);
+        if (liveOrder.join(' ') !== tOrder.join(' ')
+            && [...liveOrder].sort().join(' ') === [...tOrder].sort().join(' ')) {
+            const nameFor = (k) => {
+                const hit = tTabs.find(x => x.tabKey === k) || liveTabs.find(x => x.tabKey === k) || {};
+                return (hit.tab && (hit.tab.tabLabel || hit.tab.tabId)) || k;
+            };
+            addConflict('system_tab_order', `Tab Order: ${tOrder.map(nameFor).join(' → ')}`,
+                'system_tab_order', liveOrder)
+                .options.push({ ticket: t, data: tOrder });
+        }
+
         // Tab metadata and tier list tables, per tab.
         const allTabKeys = new Set([...liveTabs.map(x => x.tabKey), ...tTabs.map(x => x.tabKey)]);
         allTabKeys.forEach(tabKey => {
@@ -358,6 +382,15 @@ window.openMergeCompiler = async function(pageId) {
                 const applied = window.applyDeltaToData(masterDesc, masterFrame, 'system_section', key, chosen);
                 masterDesc.tabs = applied.newDesc.tabs;
                 batchedDeltas.push({ scope: 'system_section', key, payload: chosen });
+            }
+            // Page-level, so it carries key 'full' like `modes` rather than
+            // naming a tab. Applied to masterDesc first so a later section
+            // conflict in the same batch resolves against the reordered tabs.
+            else if (c.type === 'system_tab_order') {
+                const chosen = chosenOpt.data === undefined ? null : chosenOpt.data;
+                const applied = window.applyDeltaToData(masterDesc, masterFrame, 'system_tab_order', 'full', chosen);
+                masterDesc.tabs = applied.newDesc.tabs;
+                batchedDeltas.push({ scope: 'system_tab_order', key: 'full', payload: chosen });
             }
             else if (c.type === 'tierlist_tiers' || c.type === 'tierlist_changelog') {
                 const key = c.liveStratData.systemKey;
