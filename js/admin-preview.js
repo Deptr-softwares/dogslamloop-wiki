@@ -607,6 +607,23 @@ async function switchVersionView(mode) {
                         }
                     }
                 }
+                // THE ORDER OF THE TABS THEMSELVES - v0.18 B2.
+                //
+                // Rendered as the tab LABELS the keys resolve to, exactly as
+                // Section Order is one level down: a reviewer approving a
+                // reorder should read "Basics, Advanced" and not
+                // "basics, advanced". The key is derived by slugifying, so for
+                // a renamed tab the two differ enough to matter.
+                else if (scope === 'system_tab_order') {
+                    const indexed = window.indexSystemTabs(liveDesc);
+                    const nameFor = (tabKey) => {
+                        const hit = indexed.find(t => t.tabKey === tabKey);
+                        return (hit && hit.tab && hit.tab.tabLabel) || tabKey;
+                    };
+                    renderDiffBlock('Tab Order',
+                        { order: indexed.map(t => nameFor(t.tabKey)) },
+                        { order: (payload || []).map(nameFor) });
+                }
                 else if (scope === 'tierlist_tiers' || scope === 'tierlist_changelog') {
                     const tab = window.findSystemTab(liveDesc, key) || {};
                     const field = scope === 'tierlist_tiers' ? 'tiers' : 'changelog';

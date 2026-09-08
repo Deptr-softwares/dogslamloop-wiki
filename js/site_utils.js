@@ -687,6 +687,47 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
         return { newDesc, newFrame };
     }
 
+    // THE ORDER OF THE TABS THEMSELVES - v0.18 B2.
+    //
+    // Section order has travelled since item 6b, as `order` on the tab's own
+    // metadata above. The tab strip had the reorder control from day one and
+    // nothing that recorded the move: buildSystemDeltas emits per-tab metadata
+    // and per-section content, and reordering tabs changes neither, so the
+    // scan found nothing and the contributor was told "no changes detected".
+    //
+    // Page-level, so it takes key 'full' like `modes` - it belongs to the page
+    // rather than to any one tab, and keying it by a tab would make one tab's
+    // ticket carry the position of all the others.
+    //
+    // The payload is a list of tab KEYS and never tab content, for the reason
+    // stated one level down: a reorder that carried content would let moving a
+    // tab overwrite an edit somebody else made to it in the meantime.
+    if (scope === 'system_tab_order') {
+        if (!Array.isArray(newDesc.tabs)) newDesc.tabs = [];
+        if (!Array.isArray(payload)) {
+            console.error('[Delta] system_tab_order payload is not a list of tab keys.');
+            return { newDesc, newFrame };
+        }
+
+        // indexSystemTabs de-duplicates collisions itself (`basics`,
+        // `basics-2`), so the "two entries share an identity" refusal the
+        // generic order scope needs cannot arise here - the keys are unique by
+        // construction rather than by luck.
+        const keys = window.indexSystemTabs(newDesc).map(t => t.tabKey);
+        const wanted = payload.map(String).filter(k => keys.includes(k));
+        const named = new Set(wanted);
+        const queue = wanted.map(k => newDesc.tabs[keys.indexOf(k)]);
+
+        // Unnamed tabs KEEP THEIR INDEX rather than being pushed to the end -
+        // the rule the generic `order` scope settled on, and deliberately not
+        // the one the section-order branch above uses. A ticket is raised
+        // against a snapshot, so a tab added since is not this delta's
+        // business, and appending it would move a tab the contributor never
+        // touched.
+        newDesc.tabs = newDesc.tabs.map((tab, i) => (named.has(keys[i]) ? queue.shift() : tab));
+        return { newDesc, newFrame };
+    }
+
     // A tier list's tiers and changelog, per tab. Not split per TIER: moving a
     // character from A to S changes two tiers at once, so a per-tier scope would
     // manufacture a conflict out of a single ordinary edit.

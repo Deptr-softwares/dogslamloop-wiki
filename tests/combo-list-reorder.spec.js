@@ -101,6 +101,14 @@ test('a Combo List cannot be moved off either end', async ({ page }) => {
 // which is exactly the bug filed as B2 against the system-page tab strip, and
 // the one v0.15 fixed for character pages. Asserting that comboList appears in
 // getKeyedSections() would assert the setup; this asserts the consequence.
+//
+// IT PASSES WITHOUT THE STRIP CONTROL, AND THAT IS THE POINT. The three tests
+// above fail against the pre-F3 code; this one does not, because it is not a
+// regression test for the control - it is a guard on the pipeline the control
+// depends on. It goes red if desc.comboList ever leaves EXTRA_KEYED_SECTIONS,
+// loses its keyField, or stops being walked by scanEveryOrder, any of which
+// would turn the working control into B2 without touching this file.
+// Do not "simplify" it away as passing-either-way.
 async function bootWithCapture(page, desc) {
   await page.addInitScript((seedDesc) => {
     Object.defineProperty(window, 'supabase', {

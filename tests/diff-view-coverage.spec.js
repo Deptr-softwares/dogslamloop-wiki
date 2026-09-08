@@ -47,6 +47,15 @@ const LIVE_DESC = {
                  blocks: [{ type: 'paragraph', content: 'live system text' }] }],
     tiers: [{ name: 'S', characters: ['Vessel'] }],
     changelog: [{ date: '01/01/2026', note: 'first' }],
+  }, {
+    // A SECOND tab, so system_tab_order has a move to show. With one tab the
+    // scope renders a list that cannot differ from itself, which is a fixture
+    // that makes its own assertion vacuous - the failure mode this file's
+    // header is about. `basics` stays at index 0, so every other system fixture
+    // keyed to it is unaffected.
+    tabId: 'advanced', tabLabel: 'Advanced',
+    sections: [{ sectionTitle: 'Deep', layout: 'full', width: 100, alignment: 'left',
+                 blocks: [{ type: 'paragraph', content: 'live advanced text' }] }],
   }],
 };
 const LIVE_FRAME = {
@@ -82,6 +91,9 @@ const PAYLOADS = {
   system_section: { sectionTitle: 'Intro', layout: 'full', width: 100, alignment: 'left',
                     blocks: [{ type: 'paragraph', content: 'CHANGED system text' }] },
   system_tab: { tabId: 'basics', tabLabel: 'The Basics', order: ['intro'] },
+  // Page-level: the payload is the whole new tab sequence, so it takes key
+  // 'full' from the KEYS default rather than naming one tab.
+  system_tab_order: ['advanced', 'basics'],
   tierlist_tiers: [{ name: 'S', characters: ['Vessel', 'Boomcat'] }],
   tierlist_changelog: [{ date: '02/01/2026', note: 'second' }],
   move: { frame_data: { id: 'explosion', name: 'Explosion', input: '1', stats: [{ label: 'Damage', value: '99' }] }, desc_data: [] },
