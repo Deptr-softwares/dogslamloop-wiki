@@ -303,6 +303,29 @@ loosening them. The scan that broke here got *stronger*: it now checks the
 declaration the markup is generated from, and gained a site, while the rendered
 output stays pinned by the runtime test that was already there.
 
+## Anything that renders over a shared page on load changes every spec on it
+
+v0.18's first-visit editor notice opened on top of the page in **all 59 specs
+that load `edit.html`** and timed out their first click. Every Playwright test
+gets a fresh context with empty `localStorage`, so "first visit" is the state
+every test is permanently in.
+
+It surfaced as one unrelated-looking failure — a 30-second click timeout in a
+combo-card test — and two things identified it: it failed **identically in
+isolation**, so it was not load, and reverting the change made in the same
+session did not fix it.
+
+Nothing was wrong with the notice. A modal that blocks the page until dismissed
+was the requirement. What was wrong is that 59 files were implicitly asserting
+that nothing covers the editor on load, and not one of them is about that.
+
+**Seed the dismissal once in `playwright.config.js` (`use.storageState`), not in
+each spec.** Fifty-nine files would have to remember, and so would every editor
+spec written afterwards. The one spec that tests the notice overrides it back to
+empty with `test.use({ storageState: { cookies: [], origins: [] } })` — so the
+seeding cannot hide a broken notice, because the spec proving it fires is the
+one that runs without the seed.
+
 ## Never run two full suites at once
 
 `playwright.config.js` starts one dev server on a fixed port and the workers
