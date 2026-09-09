@@ -1259,7 +1259,14 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
         }
         
         if (sectionTitle) {
-            section.innerHTML = `<h3 class="strategy-title">${sectionTitle}</h3>`;
+            // escBlockText, not raw. Reached with `extraItem.title` at the
+            // "extras" call below, which is contributor-authored through the
+            // editor (js/editor-tabs.js:107) - so this was an innerHTML sink
+            // with attacker-reachable input on every character page carrying
+            // an extra section. Confirmed live before fixing: a title of
+            // `<img src=x onerror=...>` produced a REAL img element with a
+            // real handler, not escaped text.
+            section.innerHTML = `<h3 class="strategy-title">${escBlockText(sectionTitle)}</h3>`;
         }
 
         // 1. Generate the HTML using our recursive engine
@@ -1494,7 +1501,10 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                         }
                         
                         if (section.sectionTitle) {
-                            sectionNode.innerHTML = `<h2 class="section-title mb-4">${section.sectionTitle}</h2>`;
+                            // Same sink, same reason: a system page's section
+                            // title is contributor-authored through
+                            // updateSystemMeta('sectionTitle', ...).
+                            sectionNode.innerHTML = `<h2 class="section-title mb-4">${escBlockText(section.sectionTitle)}</h2>`;
                         }
                         
                         const contentDiv = document.createElement('div');

@@ -200,10 +200,13 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 /* Shown only by the mobile media query further down, which is what the inline
    display:none used to do.
    
-   SCOPED TO ITS PARENT ON PURPOSE. As a bare class this rule lost: editor.css
-   declares its own `.btn-sys, .submit-btn, ... { display: inline-flex }` at
-   line ~1714, same specificity and later in the same file, so the hide never
-   applied and SHOW PREVIEW has been sitting in the desktop header. (It computes
+   SCOPED TO ITS PARENT ON PURPOSE. As a bare class this rule lost to a
+   `{ display: inline-flex }` on the button's own base class at equal
+   specificity, so the hide never applied and SHOW PREVIEW sat in the desktop
+   header. (That base was editor.css's own duplicate of the .btn-sys family
+   until v0.18 A3 moved the shared class to style/Buttons.css; the losing
+   condition is unchanged, because Buttons.css sets the same property and a
+   different stylesheet does not make a bare class win.) (It computes
    to `flex` rather than `inline-flex` because .editor-header-side is a flex
    container and blockifies its children, which is why it does not look like a
    button-sizing rule doing it.)
@@ -1877,73 +1880,55 @@ input[type="checkbox"]:checked {
    STANDARDIZED SYSTEM BUTTONS (6-TIER)
    ========================================= */
    
-/* Master Base Class & Legacy Aliases Grouped */
-.btn-sys, .submit-btn, .system-page-btn, .add-block-btn, .btn-action-delete {
+/* LEGACY ALIASES ONLY. The .btn-sys family itself lives in style/Buttons.css
+   and is no longer restated here (v0.18 A3) - this file loaded after it and
+   redefined the same shared class unscoped, so any fix to Buttons.css stopped
+   at the five pages that load this one.
+
+   What stays is the four legacy alias classes, which Buttons.css does not know
+   about and which only editor modules emit (editor-core, editor-drafts,
+   editor-tabs, editor-blocks, editor-framedata, editor-modes). They still need
+   a base of their own, so the values below are duplicated ON PURPOSE - the
+   alternative is teaching the site-wide button vocabulary four names that
+   exist only in the editor. */
+.submit-btn, .system-page-btn, .add-block-btn, .btn-action-delete {
     display: inline-flex; align-items: center; justify-content: center;
-    font-family: var(--text-mono); /* Reverted to sleek tech font */
-    font-size: 0.7rem; /* Sleeker, tighter font size */
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
     font-weight: bold;
-    text-transform: uppercase; 
-    padding: 0.4rem 0.75rem; /* Tighter padding for the 'compact' look */
+    text-transform: uppercase;
+    padding: 0.4rem 0.75rem;
     cursor: pointer;
     transition: all 0.15s ease-in-out; box-sizing: border-box;
     background: rgba(0, 0, 0, 0.6); border: 1px solid #555;
-    color: var(--text-primary); outline: none; white-space: nowrap; text-decoration: none;
+    color: var(--text-primary); white-space: nowrap; text-decoration: none;
 }
 
-/* Global Hover & Click Physics */
-.btn-sys:hover:not(:disabled), .submit-btn:hover:not(:disabled), .system-page-btn:hover:not(:disabled), .add-block-btn:hover:not(:disabled), .btn-action-delete:hover:not(:disabled) { 
-    transform: translateY(-2px); 
+.submit-btn:hover:not(:disabled), .system-page-btn:hover:not(:disabled), .add-block-btn:hover:not(:disabled), .btn-action-delete:hover:not(:disabled) {
+    transform: translateY(-2px);
 }
-.btn-sys:active:not(:disabled), .submit-btn:active:not(:disabled), .system-page-btn:active:not(:disabled), .add-block-btn:active:not(:disabled), .btn-action-delete:active:not(:disabled) { 
-    transform: translate(2px, 2px); box-shadow: none !important; 
+.submit-btn:active:not(:disabled), .system-page-btn:active:not(:disabled), .add-block-btn:active:not(:disabled), .btn-action-delete:active:not(:disabled) {
+    transform: translate(2px, 2px); box-shadow: none !important;
 }
-.btn-sys:disabled, .submit-btn:disabled, .system-page-btn:disabled, .add-block-btn:disabled, .btn-action-delete:disabled { 
-    opacity: 0.4; cursor: not-allowed; 
-}
-
-/* 1. REGULAR (Neutral Gray) */
-.btn-sys-regular, .system-page-btn, .add-block-btn { border-color: #555; color: #aaa; }
-.btn-sys-regular:hover:not(:disabled), .system-page-btn:hover:not(:disabled), .add-block-btn:hover:not(:disabled) { 
-    border-color: #888; background: #888; color: #000; box-shadow: 0px 0px 12px rgba(136, 136, 136, 0.5); 
+.submit-btn:disabled, .system-page-btn:disabled, .add-block-btn:disabled, .btn-action-delete:disabled {
+    opacity: 0.4; cursor: not-allowed;
 }
 
-/* 2. GLOW BLUE (Primary Action / Submit) */
-.btn-sys-blue, .submit-btn { border-color: var(--accent-blue); color: var(--accent-blue); }
-.btn-sys-blue:hover:not(:disabled), .submit-btn:hover:not(:disabled) { 
-    background: var(--accent-blue); color: #000; box-shadow: 0px 0px 12px rgba(59, 130, 246, 0.6); 
+/* Alias tiers, matching the .btn-sys-* colours in Buttons.css */
+.system-page-btn, .add-block-btn { border-color: #555; color: #aaa; }
+.system-page-btn:hover:not(:disabled), .add-block-btn:hover:not(:disabled) {
+    border-color: #888; background: #888; color: #000; box-shadow: 0px 0px 12px rgba(136, 136, 136, 0.5);
 }
 
-/* 3. GLOW GREEN (Success / Add / Merge) */
-.btn-sys-green { border-color: #22c55e; color: #22c55e; }
-.btn-sys-green:hover:not(:disabled) { 
-    background: #22c55e; color: #000; box-shadow: 0px 0px 12px rgba(34, 197, 94, 0.6); 
+.submit-btn { border-color: var(--accent-blue); color: var(--accent-blue); }
+.submit-btn:hover:not(:disabled) {
+    background: var(--accent-blue); color: #000; box-shadow: 0px 0px 12px rgba(59, 130, 246, 0.6);
 }
 
-/* 4. GLOW RED (Danger / Delete / Reject) */
-.btn-sys-red, .btn-action-delete { border-color: #ef4444; color: #ef4444; }
-.btn-sys-red:hover:not(:disabled), .btn-action-delete:hover:not(:disabled) { 
-    background: #ef4444; color: #000; box-shadow: 0px 0px 12px rgba(239, 68, 68, 0.6); 
+.btn-action-delete { border-color: #ef4444; color: #ef4444; }
+.btn-action-delete:hover:not(:disabled) {
+    background: #ef4444; color: #000; box-shadow: 0px 0px 12px rgba(239, 68, 68, 0.6);
 }
-
-/* 5. GLOW YELLOW (Warning / Sync) */
-.btn-sys-yellow { border-color: #eab308; color: #eab308; }
-.btn-sys-yellow:hover:not(:disabled) { 
-    background: #eab308; color: #000; box-shadow: 0px 0px 12px rgba(234, 179, 8, 0.6); 
-}
-
-/* 6. GLOW PURPLE (Smart Merge / Diff Tool) */
-.btn-sys-purple { border-color: #a855f7; color: #a855f7; }
-.btn-sys-purple:hover:not(:disabled) { 
-    background: #a855f7; color: #000; box-shadow: 0px 0px 12px rgba(168, 85, 247, 0.6); 
-}
-
-/* FILLED OVERRIDES (For aggressive modal buttons) */
-.btn-danger-fill { background: #ef4444 !important; color: #000 !important; border-color: #ef4444 !important; }
-.btn-danger-fill:hover:not(:disabled) { box-shadow: 0px 0px 15px rgba(239, 68, 68, 0.6) !important; }
-
-.btn-purple-fill { background: #a855f7 !important; color: #000 !important; border-color: #a855f7 !important; }
-.btn-purple-fill:hover:not(:disabled) { box-shadow: 0px 0px 15px rgba(168, 85, 247, 0.6) !important; }
 
 /* Add Block Button Sizing Override (Even tighter) */
 .add-block-btn { padding: 0.35rem 0.6rem; font-size: 0.65rem; border-color: #333; }
