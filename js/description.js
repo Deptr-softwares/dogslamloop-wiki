@@ -1289,6 +1289,33 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
     }
 }
 
+// Which non-mode-scoped tabs have already been drawn, and for which page.
+//
+// A tab that is not mode-scoped is drawn ONCE per page load, from whatever data
+// the page opened with, and every later call for the same page leaves it alone.
+// Keyed by page so navigating to another character draws it again; the editor's
+// live preview calls its renderer directly rather than through this loop, so
+// editing a gallery still redraws on every keystroke.
+let unscopedDrawnFor = null;
+const unscopedDrawn = new Set();
+
+function modeScopedTabIsDrawable(section, pageId, modeId) {
+    const tab = (window.CHARACTER_TABS || []).find(t => t.id === section.tab);
+    if (!tab || tab.modeScoped !== false) return true;
+
+    if (unscopedDrawnFor !== pageId) {
+        unscopedDrawnFor = pageId;
+        unscopedDrawn.clear();
+    }
+    // The first render of the page draws it whatever the mode is - a shared
+    // ?mode= link must still show the gallery.
+    if (!unscopedDrawn.has(section.tab)) {
+        unscopedDrawn.add(section.tab);
+        return true;
+    }
+    return false;
+}
+
 async function loadPageDescriptions(pageId, pageType = 'character', modeId = null) {
     try {
         let data = null;
@@ -1684,6 +1711,19 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
             (window.getKeyedSections ? window.getKeyedSections() : [])
                 .filter(s => s.rendererFn && typeof window[s.rendererFn] === 'function')
                 .filter(s => !drawableTabs || drawableTabs.includes(s.tab))
+                // A tab declared modeScoped:false belongs to the CHARACTER, not
+                // to one state, so a mode switch must leave it alone. Until
+                // v0.18 that flag had no consumer in js/ at all - Gallery
+                // "stayed put" only because nothing rendered it, and the moment
+                // F9 gave it a renderer the flag had to start meaning
+                // something.
+                //
+                // This is not cosmetic. switchCharacterMode calls
+                // loadPageDescriptions with a modeId, which resolves to THAT
+                // MODE's desc_data; a gallery stored at base level is simply
+                // absent from it, so re-rendering would blank the tab on every
+                // switch and refill it on the way back to base.
+                .filter(s => modeScopedTabIsDrawable(s, pageId, modeId))
                 .forEach(s => {
                     if (selfRendered.has(s.rendererFn)) return;
                     selfRendered.add(s.rendererFn);
