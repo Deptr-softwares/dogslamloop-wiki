@@ -13,7 +13,27 @@
 // Includes ultimateAtk: unlike admin.html, edit.html ships that button in its
 // static markup (hidden), and js/editor-modes.js un-hides it for a base-only
 // character. Gallery is excluded because it has no editor at all.
-const EDITOR_MAJOR_TABS = window.getCharacterTabIds({ includeInjected: true, editableOnly: true });
+//
+// includeOptional: this is a module-level const, so it is evaluated at PARSE
+// time - long before the character's tab_settings has been fetched and
+// enabledOptionalTabs is still []. Binding only the enabled ones therefore
+// dropped `techs` from this list permanently, for the life of the page. The
+// visible bug was in renderEditorTabNav below, which walks this list: clicking
+// Techs mounted its editor correctly but never toggled edit-nav-techs on, while
+// still clearing .active off the button the user came from - so the whole strip
+// went dark and the editor looked broken while working fine.
+//
+// This is the THIRD surface to make this exact mistake. js/page_boot.js fixed
+// it on the reader page; js/admin-core.js:355 fixed it on admin.html and its
+// comment records the same symptom in the same words ("never had .active
+// removed"). The editor was missed both times. An .active class on a button
+// that stays hidden costs nothing, which is why including them is the safe
+// direction and filtering them is not.
+const EDITOR_MAJOR_TABS = window.getCharacterTabIds({
+    includeInjected: true,
+    editableOnly: true,
+    includeOptional: true,
+});
 
 window.renderEditorTabNav = function(activeTabId) {
     const nav = document.getElementById('editor-tab-nav');

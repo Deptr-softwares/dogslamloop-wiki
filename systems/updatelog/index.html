@@ -15,6 +15,10 @@
     <link rel="stylesheet" href="../../style/ColorCoding.css">
     <link rel="stylesheet" href="../../style/Alerts.css">
     <link rel="stylesheet" href="../../style/Modals.css">
+    <!-- Forms.css defines .editor-input, which the auth and profile modals
+         injected by js/site_utils.js both use. Without it the login form and
+         the profile fields render unstyled. -->
+    <link rel="stylesheet" href="../../style/Forms.css">
 </head>
 <body class="site-body p-0">
 
@@ -102,17 +106,17 @@
 
     <!-- V0.4 SYSTEM SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../../js/character_tabs.js?v=eb683d3f"></script>
-    <script src="../../js/input_slots.js?v=eb683d3f"></script>
-    <script src="../../js/site_utils.js?v=eb683d3f"></script>
-    <script src="../../js/site_meta.js?v=eb683d3f"></script>
-    <script src="../../js/pagebuilder.js?v=eb683d3f"></script>
-    <script src="../../js/home_widgets.js?v=eb683d3f"></script>
+    <script src="../../js/character_tabs.js?v=d91bb96a"></script>
+    <script src="../../js/input_slots.js?v=d91bb96a"></script>
+    <script src="../../js/site_utils.js?v=d91bb96a"></script>
+    <script src="../../js/site_meta.js?v=d91bb96a"></script>
+    <script src="../../js/pagebuilder.js?v=d91bb96a"></script>
+    <script src="../../js/home_widgets.js?v=d91bb96a"></script>
     <!-- description.js + internalstyling.js are needed here (unlike on the
          homepage) because hotfix notes render their full block content. -->
-    <script src="../../js/description.js?v=eb683d3f"></script>
-    <script src="../../js/internalstyling.js?v=eb683d3f"></script>
-    <script src="../../js/posts.js?v=eb683d3f"></script>
+    <script src="../../js/description.js?v=d91bb96a"></script>
+    <script src="../../js/internalstyling.js?v=d91bb96a"></script>
+    <script src="../../js/posts.js?v=d91bb96a"></script>
 
     <!-- DYNAMIC FETCH & RENDER SCRIPT -->
     <script>
