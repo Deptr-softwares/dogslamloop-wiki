@@ -48,19 +48,17 @@
     border: 2px dashed var(--border-color);
 }
 
+/* The only thing in the box now, so it carries no bottom margin - .ctl-nobody-body
+   sat under it until the owner removed that paragraph on 2026-09-09, and a
+   0.6rem gap below the last element just makes the box look off-centre. Its rule
+   went with it rather than being left behind: dead CSS in this file has been
+   cleaned up before, and tests/tierlist-live-dedupe.spec.js holds that shut for
+   the five classes it already caught. */
 .ctl-nobody-title {
     font-family: 'CC-Wild-Words', sans-serif;
     font-size: 1.1rem;
     color: var(--text-white);
-    margin: 0 0 0.6rem 0;
-}
-
-.ctl-nobody-body {
-    margin: 0 auto;
-    max-width: 38rem;
-    font-size: 0.85rem;
-    line-height: 1.6;
-    color: var(--text-muted);
+    margin: 0;
 }
 
 /* --- ONE LIST --- */
