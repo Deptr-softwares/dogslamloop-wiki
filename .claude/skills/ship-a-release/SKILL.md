@@ -131,8 +131,43 @@ Five rules:
    both an invisible cause and a visible result, write the result — the Others
    and Tools columns are the change; the page types behind them are not.
 
+   **That line stays bare.** Not "Changed a few things under the hood,
+   including two places where text typed into a heading could be read as
+   code" — the owner cut exactly that in v0.18. Qualifying it un-collapses the
+   thing the line exists to collapse, and a security fix in particular should
+   not be itemised to readers before their cache has caught up.
+
 A release with nothing user-visible should say so plainly rather than dressing
 up internals — the owner has explicitly asked for this.
+
+### Four more the owner applied to the v0.18 draft
+
+Each of these was a line they cut or narrowed. All four are the same instinct:
+say what is true now, on the smallest surface it is true of, and stop.
+
+6. **A bug-fix line is the outcome, never the mechanism.** "Reordering the tabs
+   on a guide page now saves" — not "…now saves. The control worked, and the
+   new order was quietly dropped on submit." How it broke is devlog material;
+   the reader only needs to know it works. This is rule 3 in the part most
+   likely to tempt an explanation.
+
+7. **Name the exact surface.** "Tier lists' editor uses the character
+   portraits", not "Tier lists use the character portraits" — the reader page
+   was already using them, and the broad version claims a change that did not
+   happen there. Precision here is accuracy, not pedantry.
+
+8. **Do not hedge about a feature being new and therefore empty.** "It starts
+   empty and fills up as people add to it" was cut. A changelog announces what
+   exists; a reader who opens an empty Gallery tab understands why without
+   being told, and the hedge reads as an apology for shipping.
+
+9. **A detail of a feature already announced does not earn its own line.** The
+   Gallery's styling tools and library re-use were cut, because the Gallery tab
+   is the line. One line per change a reader would notice separately — a
+   second line describing the inside of the first is inventory, not news.
+
+Cut intensifiers while you are at it: "the real character portraits" became
+"the character portraits", and lost nothing.
 
 Verify it renders on `/systems/updatelog/index.html` before shipping.
 
@@ -186,7 +221,8 @@ Provide a copy-paste block. Same content as the changelog, under the same three
 headings. Discord markdown, so the asterisks are load-bearing.
 
 ```
-**v0.10** **The 'Maintenance' Update**
+**v0.10**
+**The 'Maintenance' Update**
 
 One or two sentences of context.
 
@@ -203,10 +239,17 @@ change
 
 - `**` around the version, the title and each heading — that is what bolds them
   in Discord.
+- **The version and the title go on separate lines** (owner, 2026-09-09). Two
+  bold runs on one line read as one run.
 - **No hyphens and no bullet characters.** Lines that are already short and
   plain read faster without them.
 - Same three parts as the changelog, same order, and a part with nothing in it
   is left out of both.
+
+**Write the Discord post from `data/updates.json`, after the owner has seen it**
+— not alongside the changelog from the same draft. In v0.18 both were written
+at once, the owner edited the post, and the two then disagreed about what the
+release contained. The changelog is the source; the post is a rendering of it.
 
 ## PR
 

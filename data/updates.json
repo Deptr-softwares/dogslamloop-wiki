@@ -5,13 +5,12 @@
       "date": "09/09/2026",
       "type": "site",
       "title": "The 'Gallery' Update",
-      "description": "Every character page now has a Gallery tab for clips and images. Tier lists use the real character portraits, the boxes are bigger, and a certified list can be built from roster icons instead.",
+      "description": "Every character page now has a Gallery tab for clips and images. Tier lists' editor uses the character portraits, the boxes are bigger, and a certified list can use roster icons instead.",
       "changes": [
         {
           "heading": "Features"
         },
-        "Character pages have a Gallery tab: clips and images in a grid, each with a name and an optional note. It starts empty and fills up as people add to it",
-        "Gallery names and notes can be styled like any other text on the wiki, and media already uploaded can be picked from the library instead of uploaded a second time",
+        "Character pages have a Gallery tab: clips and images in a grid, each with a name and an optional note",
         "Links that point at a section of the same page now work on guides and system pages, not just character pages",
         "Combo Lists can be reordered, and so can the rows inside one",
         "Opening the editor or the Media Library for the first time shows a short notice pointing at the Writing Guide",
@@ -29,9 +28,9 @@
         {
           "heading": "Bug fixes"
         },
-        "Reordering the tabs on a guide page now saves. The control worked, and the new order was quietly dropped on submit",
+        "Reordering the tabs on a guide page now saves",
         "The tier list editor was showing the old character portraits, and five characters showed none at all",
-        "Changed a few things under the hood, including two places where text typed into a page heading could be read as code"
+        "Changed a few things under the hood"
       ]
     },
     {
