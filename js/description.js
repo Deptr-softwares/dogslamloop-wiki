@@ -1048,6 +1048,124 @@ window.renderTechsTab = function (data) {
     window.renderDocumentTab('techs', data);
 };
 
+// --- THE CHARACTER GALLERY TAB (v0.18 F9) ---
+//
+// The tab existed as a placeholder from v0.12 to v0.18 and rendered nothing.
+// Its data is declared in js/character_tabs.js as the `charGalleryItem` keyed
+// section, which is what gives it submit, merge, diff and apply for free; this
+// is the half that had to be written.
+//
+// A DELIBERATE COPY of js/gallery.js's card, not a call into it. That file is
+// the `gallery` PAGE TYPE and is not loaded on a character page - wiring it in
+// would mean a new script tag on all 24 generated character stubs and a
+// generator change, to share about thirty lines. This project prefers small
+// per-file duplication to new cross-file coupling (CLAUDE.md), and the two
+// galleries are free to diverge: a page-type gallery is ~100 searchable emotes,
+// a character's is a handful of clips.
+//
+// No search box for the same reason. Search is what a hundred emotes need; a
+// character with eight clips needs a grid.
+window.renderCharacterGalleryTab = function (data) {
+    const container = document.getElementById('tab-gallery');
+    if (!container) return;
+
+    const section = window.getKeyedSectionByField
+        ? window.getKeyedSectionByField('galleryItems') : null;
+    const items = (data && data.galleryItems) || [];
+
+    container.innerHTML = '';
+    container.classList.add('vessel-content');
+
+    if (!items.length) {
+        container.innerHTML = `
+            <div class="empty-tab-msg">
+                ${escBlockText((section && section.emptyMessage)
+                    || 'No media has been added for this character yet.')}
+            </div>`;
+        return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'gallery-grid';
+    grid.id = 'character-gallery-grid';
+
+    // One fragment, one reflow.
+    const fragment = document.createDocumentFragment();
+    items.forEach(item => fragment.appendChild(buildCharacterGalleryCard(item || {})));
+    grid.appendChild(fragment);
+    container.appendChild(grid);
+
+    if (typeof window.initLazyMedia === 'function') window.initLazyMedia(grid);
+    if (typeof window.consolidateTabContributors === 'function') {
+        window.consolidateTabContributors(container);
+    }
+};
+
+// Extension read off the PATH, not the whole URL, so a query string or fragment
+// cannot make a video look like an image. Same rule as js/framedata.js and
+// js/gallery.js:40.
+function isCharacterGalleryVideo(src) {
+    const path = String(src || '').split(/[?#]/)[0].toLowerCase();
+    return ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => path.endsWith(ext));
+}
+
+function buildCharacterGalleryCard(item) {
+    const card = document.createElement('figure');
+    card.className = 'gallery-card';
+
+    const media = document.createElement('div');
+    media.className = 'gallery-card-media';
+
+    if (item.src) {
+        if (isCharacterGalleryVideo(item.src)) {
+            const video = document.createElement('video');
+            // data-lazy-src, not src: initLazyMedia swaps it in on approach.
+            video.setAttribute('data-lazy-src', item.src);
+            video.className = 'gallery-media';
+            video.autoplay = true;
+            video.loop = true;
+            video.muted = true;
+            video.playsInline = true;
+            video.preload = 'none';
+            // <video> has no alt attribute - the trap that made skill-card alt
+            // text look like it was not saving.
+            if (item.alt || item.name) video.setAttribute('aria-label', item.alt || item.name);
+            media.appendChild(video);
+        } else {
+            const img = document.createElement('img');
+            img.src = item.src;
+            img.className = 'gallery-media';
+            img.loading = 'lazy';
+            img.alt = item.alt || item.name || '';
+            media.appendChild(img);
+        }
+    } else {
+        media.innerHTML = `<div class="gallery-media-missing">[ No media ]</div>`;
+    }
+
+    card.appendChild(media);
+
+    const caption = document.createElement('figcaption');
+    caption.className = 'gallery-card-caption';
+
+    // textContent throughout. Every field here is contributor-submitted and
+    // this is the reader page.
+    const title = document.createElement('span');
+    title.className = 'gallery-card-name';
+    title.textContent = item.name || 'Untitled';
+    caption.appendChild(title);
+
+    if (item.note) {
+        const note = document.createElement('span');
+        note.className = 'gallery-card-note';
+        note.textContent = item.note;
+        caption.appendChild(note);
+    }
+
+    card.appendChild(caption);
+    return card;
+}
+
 function getAlignStyle(align) {
     let styleStr = 'overflow-wrap: break-word; word-break: break-word;';
     // Allowlisted, not escaped - this is a CSS value, where escaping quotes

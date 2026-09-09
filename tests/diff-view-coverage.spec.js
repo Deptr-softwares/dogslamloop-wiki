@@ -84,6 +84,12 @@ const PAYLOADS = {
   // the key names the list and the payload names its order.
   order: ['Reversals', 'Spacing'],
   gallery_item: { name: 'Emote A', media: 'CHANGED' },
+  // v0.18 F9. A CHARACTER's gallery item, which is a different scope writing a
+  // different field from the gallery PAGE TYPE above - charGalleryItem ->
+  // desc.galleryItems, gallery_item -> desc.items. The item shape is the same
+  // flat object, and it has no `content` array, which is why the section
+  // declares wholeEntryDiff.
+  charGalleryItem: { name: 'Wall Combo', src: 'clip.mp4', alt: 'wall combo', tags: ['combo'], note: 'CHANGED' },
   gallery_intro: [{ type: 'paragraph', content: 'CHANGED gallery intro' }],
   intro: [{ type: 'paragraph', content: 'CHANGED intro' }],
   notes: [{ type: 'paragraph', content: 'CHANGED notes' }],
@@ -101,6 +107,7 @@ const PAYLOADS = {
 const KEYS = {
   extra: 'Tech', matchup: 'Vessel', counterplay: 'Spacing', starterGuide: 'Basics',
   comboGroup: 'True Combos', comboTable: 'M1 Starters', gallery_item: 'Emote A',
+  charGalleryItem: 'Wall Combo',
   techGroup: 'Wall Techs', techTable: 'Momentum',
   order: 'desc.counterplay',
   system_section: 'basics::intro', system_tab: 'basics',
