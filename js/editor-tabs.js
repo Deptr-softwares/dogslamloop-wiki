@@ -131,6 +131,19 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         return;
     }
 
+    // --- A tab that brings its own editor ---
+    //
+    // Looked up in the vocabulary rather than tested by name: a keyed section
+    // declares `editorFn` when its entries are not blocks-under-a-key and the
+    // shared keyed editor would be the wrong screen. The character Gallery tab
+    // (v0.18 F9) is the first, and this is the branch that would otherwise have
+    // been `if (tabId === 'gallery')`.
+    const tabSection = window.getKeyedSectionByTab ? window.getKeyedSectionByTab(tabId) : null;
+    if (tabSection && tabSection.editorFn && typeof window[tabSection.editorFn] === 'function') {
+        window[tabSection.editorFn](builder);
+        return;
+    }
+
     // --- Reroute to the Tool setup ---
     // A tool page is a link or an app plus two blocks of prose, not tabs of
     // sections - routing it through the system builder would offer a tab

@@ -1069,9 +1069,9 @@ window.renderCharacterGalleryTab = function (data) {
     const container = document.getElementById('tab-gallery');
     if (!container) return;
 
-    const section = window.getKeyedSectionByField
-        ? window.getKeyedSectionByField('galleryItems') : null;
-    const items = (data && data.galleryItems) || [];
+    const section = window.getKeyedSectionByTab
+        ? window.getKeyedSectionByTab('gallery') : null;
+    const items = (data && data.gallery) || [];
 
     container.innerHTML = '';
     container.classList.add('vessel-content');

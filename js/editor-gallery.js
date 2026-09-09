@@ -139,7 +139,13 @@ function syncGalleryPreview() {
 
 // The one modal: a file and a name. Everything else about an item is
 // optional and editable in the bin afterwards.
-window.openGalleryItemModal = function() {
+//
+// Parameterised over WHERE the item lands (v0.18 F9), because the character
+// Gallery tab wants the identical two-field upload and a different destination.
+// `ctx.items()` is read rather than captured: the duplicate-name check has to
+// see the list as it is when ADD is pressed, not as it was when the modal
+// opened.
+function openMediaItemModal(ctx) {
     const overlay = document.getElementById('gallery-item-modal');
     if (!overlay) return;
 
@@ -180,7 +186,7 @@ window.openGalleryItemModal = function() {
 
         if (!file) { status.textContent = 'Pick a file first.'; return; }
         if (!name) { status.textContent = 'Give it a name.'; return; }
-        if (galleryEditorItems.some(i => (i.name || '').toLowerCase() === name.toLowerCase())) {
+        if (ctx.items().some(i => (i.name || '').toLowerCase() === name.toLowerCase())) {
             // The name is the delta key, so two items sharing one would make
             // the second silently overwrite the first at approval time.
             status.textContent = `"${name}" is already in this gallery. Pick a different name.`;
@@ -196,11 +202,20 @@ window.openGalleryItemModal = function() {
             return;
         }
 
-        galleryEditorItems.push({ name, src: result.url, alt: name, note: '', tags: [] });
-        renderGalleryBin();
-        syncGalleryPreview();
+        ctx.onAdd({ name, src: result.url, alt: name, note: '', tags: [] });
         close();
     };
+}
+
+window.openGalleryItemModal = function() {
+    openMediaItemModal({
+        items: () => galleryEditorItems,
+        onAdd: (item) => {
+            galleryEditorItems.push(item);
+            renderGalleryBin();
+            syncGalleryPreview();
+        },
+    });
 };
 
 window.renderGalleryEditor = function(builder) {
@@ -262,4 +277,163 @@ window.getGalleryEditorItems = function() {
 };
 window.setGalleryEditorItems = function(items) {
     galleryEditorItems = Array.isArray(items) ? items : [];
+};
+
+
+// ---------------------------------------------------------------------------
+// THE CHARACTER GALLERY TAB (v0.18 F9)
+// ---------------------------------------------------------------------------
+//
+// The same bin, on a character page's Gallery tab. It lives in this file rather
+// than a new one because it shares the upload modal and the row above, and
+// because edit.html already loads this script - a separate module would be a
+// new tag on the shell for thirty lines.
+//
+// THE ONE REAL DIFFERENCE, and it matters: the page-type gallery keeps a
+// working copy in `galleryEditorItems` and mirrors it into desc_data on every
+// change. This writes into `window.currentEditorDescData.gallery` DIRECTLY,
+// because that is what the generic keyed-section submit scan reads -
+// scanKeyedList(s.field, s.keyField, s.scope) at js/editor-core.js:1263 walks
+// currentEditorDescData[field]. A working copy here would edit cleanly, preview
+// correctly and submit nothing at all, which is the Starter Guide failure
+// wearing a different hat.
+function characterGalleryItems() {
+    const desc = window.currentEditorDescData || {};
+    if (!Array.isArray(desc.gallery)) desc.gallery = [];
+    return desc.gallery;
+}
+
+function syncCharacterGalleryPreview() {
+    if (typeof window.renderCharacterGalleryTab === 'function') {
+        window.renderCharacterGalleryTab(window.currentEditorDescData || {});
+    }
+    if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
+}
+
+function renderCharacterGalleryBin() {
+    const list = document.getElementById('char-gallery-bin-list');
+    const count = document.getElementById('char-gallery-bin-count');
+    if (!list) return;
+
+    const items = characterGalleryItems();
+    if (count) count.textContent = `${items.length} item${items.length === 1 ? '' : 's'}`;
+
+    if (items.length === 0) {
+        list.innerHTML = `<p class="empty-tab-msg editor-empty-dashed">Nothing here yet. Press + ADD MEDIA to upload the first clip.</p>`;
+        return;
+    }
+
+    list.innerHTML = '';
+    const fragment = document.createDocumentFragment();
+
+    items.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = 'gallery-bin-row';
+
+        const thumb = document.createElement('div');
+        thumb.className = 'gallery-bin-thumb';
+        // isVideoSrc comes from js/gallery.js, which is NOT loaded on the
+        // editor shell for a character page - so this must not assume it.
+        const isVideo = window.galleryInternals
+            ? window.galleryInternals.isVideoSrc(item.src)
+            : /\.(mp4|webm|mov|m4v|ogv)$/i.test(String(item.src || '').split(/[?#]/)[0]);
+        if (item.src && isVideo) {
+            const v = document.createElement('video');
+            v.src = item.src;
+            v.muted = true; v.loop = true; v.autoplay = true; v.playsInline = true;
+            thumb.appendChild(v);
+        } else if (item.src) {
+            const img = document.createElement('img');
+            img.src = item.src;
+            img.alt = '';
+            img.loading = 'lazy';
+            thumb.appendChild(img);
+        }
+
+        const fields = document.createElement('div');
+        fields.className = 'gallery-bin-fields';
+
+        // Name is the delta key, so renaming an item submits as a delete plus
+        // an add. Same contract as the page-type bin.
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.className = 'editor-input gallery-bin-name';
+        nameInput.value = item.name || '';
+        nameInput.placeholder = 'Name';
+        nameInput.addEventListener('input', () => {
+            characterGalleryItems()[idx].name = nameInput.value;
+            syncCharacterGalleryPreview();
+        });
+
+        const noteInput = document.createElement('input');
+        noteInput.type = 'text';
+        noteInput.className = 'editor-input gallery-bin-note';
+        noteInput.value = item.note || '';
+        noteInput.placeholder = 'Note (optional)';
+        noteInput.addEventListener('input', () => {
+            characterGalleryItems()[idx].note = noteInput.value;
+            syncCharacterGalleryPreview();
+        });
+
+        fields.appendChild(nameInput);
+        fields.appendChild(noteInput);
+
+        const remove = document.createElement('button');
+        remove.className = 'btn-sys btn-sys-red gallery-bin-remove';
+        remove.textContent = '✖';
+        remove.title = 'Remove this item';
+        remove.addEventListener('click', async () => {
+            if (!(await window.customConfirm(`Remove "${item.name || 'this item'}" from this character's gallery?`))) return;
+            characterGalleryItems().splice(idx, 1);
+            renderCharacterGalleryBin();
+            syncCharacterGalleryPreview();
+        });
+
+        row.appendChild(thumb);
+        row.appendChild(fields);
+        row.appendChild(remove);
+        fragment.appendChild(row);
+    });
+
+    list.appendChild(fragment);
+}
+
+window.openCharacterGalleryItemModal = function() {
+    openMediaItemModal({
+        items: characterGalleryItems,
+        onAdd: (item) => {
+            characterGalleryItems().push(item);
+            renderCharacterGalleryBin();
+            syncCharacterGalleryPreview();
+        },
+    });
+};
+
+window.renderCharacterGalleryEditor = function(builder) {
+    if (!builder) return;
+    const section = window.getKeyedSectionByTab ? window.getKeyedSectionByTab('gallery') : null;
+    const noun = (section && section.unitNoun) || 'Gallery Item';
+
+    builder.innerHTML = `
+        <div class="editor-section-banner editor-section-banner-spaced">
+            <span class="editor-section-banner-text">GALLERY</span>
+        </div>
+        <div class="gallery-bin-toolbar">
+            <button class="btn-sys btn-sys-green" id="char-gallery-add">+ ADD MEDIA</button>
+            <span id="char-gallery-bin-count" class="gallery-bin-count"></span>
+        </div>
+        <div id="char-gallery-bin-list" class="gallery-bin-list"></div>
+    `;
+
+    // A listener, not an inline onclick. Nothing here is user-influenced today,
+    // but the convention is absolute in this repo and the next edit to this
+    // string is where it would stop being true.
+    const addBtn = document.getElementById('char-gallery-add');
+    if (addBtn) {
+        addBtn.title = `Add a ${noun}`;
+        addBtn.addEventListener('click', () => window.openCharacterGalleryItemModal());
+    }
+
+    renderCharacterGalleryBin();
+    syncCharacterGalleryPreview();
 };

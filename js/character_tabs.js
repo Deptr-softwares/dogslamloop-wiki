@@ -199,6 +199,46 @@
             // modeScoped stays false: a character's media is the character's,
             // not one state's (js/character_modes.js:10).
             editable: true, frameMoves: false, modeScoped: false,
+            // Declared HERE rather than in EXTRA_KEYED_SECTIONS because the
+            // gallery is the whole of its tab, so field === tab id - which is
+            // what lets getKeyedSectionByTab('gallery') resolve it and keeps the
+            // editor's dispatch a registry lookup instead of a name test. The
+            // sections in EXTRA_KEYED_SECTIONS are the ones that share a tab
+            // with something else and therefore cannot use that lookup.
+            //
+            // ONE DELTA PER ITEM, keyed by name. A gallery is the one thing many
+            // people add to independently: two contributors uploading different
+            // clips touch different keys and can never collide, and a reviewer
+            // approving one does not carry the other's half-finished work with
+            // it. Same reasoning js/editor-gallery.js:11-16 recorded for the
+            // gallery PAGE TYPE.
+            //
+            // `charGalleryItem`, NOT `gallery_item`. That scope already exists
+            // and writes to newDesc.items (js/site_utils.js:894) for the gallery
+            // page type; reusing it would file a character's media under the
+            // wrong field on the wrong page. The label says "Character Gallery
+            // Item" for the same reason - a reviewer must be able to tell the
+            // two apart at a glance in the queue.
+            keyed: {
+                keyField: 'name', scope: 'charGalleryItem',
+                entryLabel: 'Character Gallery Item',
+                // The item shape is deliberately identical to the page type's
+                // ({ name, src, alt, tags, note } - js/gallery.js:9-16), so the
+                // reader card and the editor row are the existing ones in a
+                // different container rather than a second design.
+                customRenderer: true, customEditor: true,
+                rendererFn: 'renderCharacterGalleryTab',
+                editorFn: 'renderCharacterGalleryEditor',
+                // A gallery item is a flat object with no `content` array of
+                // blocks. The reviewer's generic keyed branch would otherwise
+                // show the name and then diff two empty arrays for the media,
+                // which is how the Combo List reviewed as "no change" while
+                // applying perfectly (js/admin-preview.js:462).
+                wholeEntryDiff: true,
+                unitNoun: 'Gallery Item',
+                emptyMessage: 'No media has been added for this character yet.',
+                emptyEntryMessage: 'Nothing recorded for this item yet.',
+            },
         },
     ];
 
@@ -486,53 +526,6 @@
             rendererFn: 'renderTechsTab',
             entryNoun: 'Theory', entryNounPlural: 'theories',
             emptyEntryMessage: 'No techs under this theory yet.',
-        },
-
-        // --- THE GALLERY TAB (v0.18 F9) ---
-        //
-        // The character's media. Carried since v0.12, when the tab shipped as a
-        // placeholder that "renders empty on the reader page and is absent from
-        // every admin and editor list" - see the `gallery` entry in TABS above,
-        // which is now `editable: true`.
-        //
-        // ONE DELTA PER ITEM, keyed by name. A gallery is the one thing many
-        // people add to independently: two contributors uploading different
-        // clips touch different keys and can never collide, and a reviewer
-        // approving one does not carry the other's half-finished work with it.
-        // The whole-list alternative makes every submission a merge conflict
-        // with every other, which is the reasoning js/editor-gallery.js:11-16
-        // recorded for the gallery PAGE TYPE and which applies here unchanged.
-        //
-        // `charGalleryItem`, NOT `gallery_item`. That scope already exists and
-        // writes to newDesc.items (js/site_utils.js:894) for the gallery page
-        // type; reusing it would file a character's media under the wrong field
-        // on the wrong page. The two names stay far enough apart to be read at a
-        // glance in a diff - hence the label "Character Gallery Item" rather
-        // than "Gallery Item", which the page type already uses.
-        //
-        // The ITEM shape is deliberately identical to the page type's
-        // ({ name, src, alt, tags, note } - js/gallery.js:9-16), so the card a
-        // reader sees and the row a contributor edits are the existing ones in a
-        // different container rather than a second design for the same object.
-        {
-            tab: 'gallery',
-            role: 'items',
-            field: 'galleryItems',
-            keyField: 'name',
-            scope: 'charGalleryItem',
-            entryLabel: 'Character Gallery Item',
-            label: 'Character Gallery Item',
-            customRenderer: true, customEditor: true,
-            rendererFn: 'renderCharacterGalleryTab',
-            // A gallery item is a flat object - { name, src, alt, tags, note } -
-            // with no `content` array of blocks. The reviewer's generic keyed
-            // branch would otherwise show the name and then diff two empty
-            // arrays for the media, which is how the Combo List reviewed as "no
-            // change" while applying perfectly (js/admin-preview.js:462).
-            wholeEntryDiff: true,
-            unitNoun: 'Gallery Item',
-            emptyMessage: 'No media has been added for this character yet.',
-            emptyEntryMessage: 'Nothing recorded for this item yet.',
         },
     ];
     EXTRA_KEYED_SECTIONS.forEach(Object.freeze);
