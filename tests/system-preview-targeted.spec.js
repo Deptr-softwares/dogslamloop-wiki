@@ -156,3 +156,57 @@ test('an empty tab never takes the fast path', async ({ page }) => {
     expect(await check(page, { tabId: 'x', sections: [] })).toBe(false);
     expect(await check(page, null)).toBe(false);
 });
+
+// --- THE GATE HAS A CONSUMER ---
+//
+// Everything above tests systemPreviewMatchesData in isolation, and every one
+// of those tests would still pass if updateLivePreview never called it. That is
+// the failure this project just had with `modeScoped: false`: a declaration
+// that agreed with reality only because nothing depended on it, passing
+// vacuously for two versions.
+//
+// So these two drive updateLivePreview itself and assert which renderer ran.
+
+async function drivePreview(page, tab, { breakStructure }) {
+    await open(page);
+    await mount(page, tab);
+
+    return page.evaluate(({ t, breakIt }) => {
+        window.calls = { targeted: [], full: 0 };
+
+        window.populateTextSection = (id) => { window.calls.targeted.push(id); };
+        window.loadPageDescriptions = () => { window.calls.full++; };
+        window.saveLocalDraft = () => {};
+        window.saveBlockHistory = () => {};
+
+        window.currentEditorPageType = 'system';
+        window.currentEditorCharId = 'framedata';
+        window.currentEditorDescData = { tabs: [JSON.parse(JSON.stringify(t))] };
+        window.currentSystemTabIdx = 0;
+        window.currentSystemSecIdx = 1;
+
+        // A structural change the DOM has not caught up with yet - exactly the
+        // state right after a section is renamed.
+        if (breakIt) window.currentEditorDescData.tabs[0].sections[0].sectionTitle = 'Renamed';
+
+        window.updateLivePreview(true);
+        return window.calls;
+    }, { t: tab, breakIt: !!breakStructure });
+}
+
+test('an unchanged page repaints ONE section and never rebuilds the page', async ({ page }) => {
+    const calls = await drivePreview(page, TAB, { breakStructure: false });
+
+    expect(calls.targeted, 'exactly the edited section, by id')
+        .toEqual([`system-${TAB.tabId}-sec-1`]);
+    expect(calls.full, 'loadPageDescriptions is not called at all').toBe(0);
+});
+
+test('a structural change still rebuilds the whole page', async ({ page }) => {
+    const calls = await drivePreview(page, TAB, { breakStructure: true });
+
+    // The fallback is the point. If this ever returns the fast path, a rename
+    // stops reaching the preview and the contributor sees the old title.
+    expect(calls.full, 'the full rebuild ran').toBe(1);
+    expect(calls.targeted, 'and no section was repainted on its own').toEqual([]);
+});
