@@ -509,8 +509,23 @@ window.markEditorBlockNew = function (block) {
     return block;
 };
 
-function initStrategyBlockBuilder(containerId, initialData) {
+/**
+ * `opts.mode` is 'blocks' by default and 'gallery' for the character Gallery
+ * tab (v0.18 F9), which wants this function's FOOTER - the quick styling tools
+ * and the Media Library - around a bin of media instead of a list of blocks.
+ *
+ * Reusing this whole function rather than lifting the footer out of it was the
+ * owner's call, and it is the smaller change by a long way: the format
+ * toolbar, the colour picker and the section-link picker are ~400 lines of
+ * bindings that all resolve through `container`, and moving them would have
+ * put the most-used editor path through a refactor to gain a toolbar on one
+ * tab. In gallery mode the block list simply renders empty and the caller
+ * fills #block-list afterwards.
+ */
+function initStrategyBlockBuilder(containerId, initialData, opts) {
     const container = document.getElementById(containerId);
+    const mode = (opts && opts.mode) || 'blocks';
+    window.editorBuilderMode = mode;
     currentStrategyBlocks = initialData ? JSON.parse(JSON.stringify(initialData)) : [];
 
     window.activeAccordionPath = [];
@@ -632,6 +647,27 @@ function initStrategyBlockBuilder(containerId, initialData) {
         </div>
     `;
 
+    // --- GALLERY MODE: keep the footer, drop what only blocks can mean ---
+    //
+    // UNDO / REDO / CLEAR ALL are the block history, which a gallery bin does
+    // not write to - shown, they would be three controls that do nothing. ADD
+    // BLOCK is greyed rather than removed, because the footer's shape is the
+    // thing being reused and a missing button reads as a broken one.
+    if (mode === 'gallery') {
+        // style.display, NOT the `hidden` property: .strategy-toolbar-row sets
+        // `display: flex` (style/editor.css:1239) and a class rule beats the
+        // UA's `[hidden] { display: none }`, so the attribute is applied and
+        // the row stays on screen. Same trap as .block-editor-container.
+        const blockOnlyRow = container.querySelector('.strategy-toolbar-row');
+        if (blockOnlyRow) blockOnlyRow.style.display = 'none';
+
+        const addBlockBtn = container.querySelector('#btn-toggle-add-menu');
+        if (addBlockBtn) {
+            addBlockBtn.disabled = true;
+            addBlockBtn.title = 'A gallery holds media items, not blocks.';
+        }
+    }
+
     // --- HISTORY BINDINGS ---
     const btnUndo = container.querySelector('#btn-undo');
     const btnRedo = container.querySelector('#btn-redo');
@@ -708,13 +744,24 @@ function initStrategyBlockBuilder(containerId, initialData) {
     let lastFocusedInput = null;
     let lastSelection = { start: 0, end: 0 };
     
-    blockList.addEventListener('focusin', (e) => {
+    // Bound to the whole builder rather than to #block-list, because the
+    // Gallery bin (v0.18 F9) renders as a SIBLING of the block list - it has
+    // to, since every delegated listener below reads
+    // `e.target.closest('.block-card').getAttribute(...)` and a bin row inside
+    // #block-list makes that closest() null on the next click. Widening is
+    // safe because the guard below is what actually decides, not the host.
+    container.addEventListener('focusin', (e) => {
         // Inside a CARD only. The folder header carries a name input that lives
         // in this list but is not block content, and the format toolbar writes
         // shortcodes into whatever was last focused - so Bold on a selected
         // folder name would have written [b]...[/b] into organisation nobody
         // reads.
-        if (!e.target.closest || !e.target.closest('.block-card')) return;
+        // `.gallery-bin-row` joins it for the Gallery tab (v0.18 F9), whose
+        // rows render into this same #block-list. Its two fields ARE the
+        // content - the name and note a reader sees on the card - which is the
+        // test the folder header fails and they pass.
+        if (!e.target.closest) return;
+        if (!e.target.closest('.block-card') && !e.target.closest('.gallery-bin-row')) return;
         if(e.target.tagName === 'TEXTAREA' || (e.target.tagName === 'INPUT' && e.target.type === 'text')) {
             lastFocusedInput = e.target;
         }
@@ -725,17 +772,22 @@ function initStrategyBlockBuilder(containerId, initialData) {
             lastSelection.end = lastFocusedInput.selectionEnd;
         }
     };
-    blockList.addEventListener('mouseup', saveSelection);
-    blockList.addEventListener('keyup', saveSelection);
+    container.addEventListener('mouseup', saveSelection);
+    container.addEventListener('keyup', saveSelection);
 
     // --- 2. FORMAT INJECTOR & HOTKEYS ---
-    blockList.addEventListener('keydown', (e) => {
+    container.addEventListener('keydown', (e) => {
         // We only care about Ctrl or Meta (Cmd on Mac)
         if (!e.ctrlKey && !e.metaKey) return;
-        
+
         // Formatting strictly targets text areas and inputs
         const isInput = ['INPUT', 'TEXTAREA'].includes(e.target.tagName);
         if (!isInput) return;
+        // Content fields only, the same test the focus tracker applies. This
+        // listener moved from #block-list to the whole builder for the Gallery
+        // bin, and without the guard Ctrl+B in the colour picker's hex field
+        // or the section-link search would write [b][/b] into them.
+        if (!e.target.closest('.block-card') && !e.target.closest('.gallery-bin-row')) return;
 
         let formatTag = null;
         if (e.key.toLowerCase() === 'b') formatTag = 'b';
@@ -764,7 +816,14 @@ function initStrategyBlockBuilder(containerId, initialData) {
     
     window._blockCopyPasteHandler = (e) => {
         if (!e.ctrlKey && !e.metaKey) return;
-        
+
+        // Blocks only. This handler is on `document`, so in gallery mode it is
+        // still live over the bin - and Ctrl+V with a block already copied
+        // from another tab takes the no-card-hovered path, appends to an empty
+        // block array and calls renderBlockList(), which repaints #block-list
+        // over the media rows. The bin disappears and the work with it.
+        if (window.editorBuilderMode === 'gallery') return;
+
         const isInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
         
         // If an input is focused, let native text copy/paste happen normally

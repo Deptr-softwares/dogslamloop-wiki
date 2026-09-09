@@ -256,10 +256,14 @@ test('admin.html and edit.html ship a button and a panel for every tab they own'
     if (!editHtml.includes(`id="tab-${id}"`)) missing.push(`edit.html is missing panel tab-${id}`);
   }
 
-  // Gallery has no editor at all; if that ever changes it should change here
-  // deliberately rather than by a tab quietly appearing.
+  // Gallery became editable in v0.18 F9, and this is the deliberate change the
+  // previous version of this assertion asked for. It stays as an assertion
+  // rather than being deleted: the flag is what puts the tab in
+  // EDITOR_MAJOR_TABS and ADMIN_CHARACTER_TABS, so flipping it back would drop
+  // the tab out of both strips while the markup above still existed - which is
+  // a harder failure to read than a missing panel.
   const galleryTab = vocab.CHARACTER_TABS.find(t => t.id === 'gallery');
-  expect(galleryTab && galleryTab.editable, 'gallery is deliberately not editable').toBe(false);
+  expect(galleryTab && galleryTab.editable, 'gallery is editable as of v0.18 F9').toBe(true);
 
   expect(missing).toEqual([]);
 });

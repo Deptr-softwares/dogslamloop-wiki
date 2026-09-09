@@ -1048,6 +1048,124 @@ window.renderTechsTab = function (data) {
     window.renderDocumentTab('techs', data);
 };
 
+// --- THE CHARACTER GALLERY TAB (v0.18 F9) ---
+//
+// The tab existed as a placeholder from v0.12 to v0.18 and rendered nothing.
+// Its data is declared in js/character_tabs.js as the `charGalleryItem` keyed
+// section, which is what gives it submit, merge, diff and apply for free; this
+// is the half that had to be written.
+//
+// A DELIBERATE COPY of js/gallery.js's card, not a call into it. That file is
+// the `gallery` PAGE TYPE and is not loaded on a character page - wiring it in
+// would mean a new script tag on all 24 generated character stubs and a
+// generator change, to share about thirty lines. This project prefers small
+// per-file duplication to new cross-file coupling (CLAUDE.md), and the two
+// galleries are free to diverge: a page-type gallery is ~100 searchable emotes,
+// a character's is a handful of clips.
+//
+// No search box for the same reason. Search is what a hundred emotes need; a
+// character with eight clips needs a grid.
+window.renderCharacterGalleryTab = function (data) {
+    const container = document.getElementById('tab-gallery');
+    if (!container) return;
+
+    const section = window.getKeyedSectionByTab
+        ? window.getKeyedSectionByTab('gallery') : null;
+    const items = (data && data.gallery) || [];
+
+    container.innerHTML = '';
+    container.classList.add('vessel-content');
+
+    if (!items.length) {
+        container.innerHTML = `
+            <div class="empty-tab-msg">
+                ${escBlockText((section && section.emptyMessage)
+                    || 'No media has been added for this character yet.')}
+            </div>`;
+        return;
+    }
+
+    const grid = document.createElement('div');
+    grid.className = 'gallery-grid';
+    grid.id = 'character-gallery-grid';
+
+    // One fragment, one reflow.
+    const fragment = document.createDocumentFragment();
+    items.forEach(item => fragment.appendChild(buildCharacterGalleryCard(item || {})));
+    grid.appendChild(fragment);
+    container.appendChild(grid);
+
+    if (typeof window.initLazyMedia === 'function') window.initLazyMedia(grid);
+    if (typeof window.consolidateTabContributors === 'function') {
+        window.consolidateTabContributors(container);
+    }
+};
+
+// Extension read off the PATH, not the whole URL, so a query string or fragment
+// cannot make a video look like an image. Same rule as js/framedata.js and
+// js/gallery.js:40.
+function isCharacterGalleryVideo(src) {
+    const path = String(src || '').split(/[?#]/)[0].toLowerCase();
+    return ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => path.endsWith(ext));
+}
+
+function buildCharacterGalleryCard(item) {
+    const card = document.createElement('figure');
+    card.className = 'gallery-card';
+
+    const media = document.createElement('div');
+    media.className = 'gallery-card-media';
+
+    if (item.src) {
+        if (isCharacterGalleryVideo(item.src)) {
+            const video = document.createElement('video');
+            // data-lazy-src, not src: initLazyMedia swaps it in on approach.
+            video.setAttribute('data-lazy-src', item.src);
+            video.className = 'gallery-media';
+            video.autoplay = true;
+            video.loop = true;
+            video.muted = true;
+            video.playsInline = true;
+            video.preload = 'none';
+            // <video> has no alt attribute - the trap that made skill-card alt
+            // text look like it was not saving.
+            if (item.alt || item.name) video.setAttribute('aria-label', item.alt || item.name);
+            media.appendChild(video);
+        } else {
+            const img = document.createElement('img');
+            img.src = item.src;
+            img.className = 'gallery-media';
+            img.loading = 'lazy';
+            img.alt = item.alt || item.name || '';
+            media.appendChild(img);
+        }
+    } else {
+        media.innerHTML = `<div class="gallery-media-missing">[ No media ]</div>`;
+    }
+
+    card.appendChild(media);
+
+    const caption = document.createElement('figcaption');
+    caption.className = 'gallery-card-caption';
+
+    // textContent throughout. Every field here is contributor-submitted and
+    // this is the reader page.
+    const title = document.createElement('span');
+    title.className = 'gallery-card-name';
+    title.textContent = item.name || 'Untitled';
+    caption.appendChild(title);
+
+    if (item.note) {
+        const note = document.createElement('span');
+        note.className = 'gallery-card-note';
+        note.textContent = item.note;
+        caption.appendChild(note);
+    }
+
+    card.appendChild(caption);
+    return card;
+}
+
 function getAlignStyle(align) {
     let styleStr = 'overflow-wrap: break-word; word-break: break-word;';
     // Allowlisted, not escaped - this is a CSS value, where escaping quotes
@@ -1169,6 +1287,33 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
             </div>
         `;
     }
+}
+
+// Which non-mode-scoped tabs have already been drawn, and for which page.
+//
+// A tab that is not mode-scoped is drawn ONCE per page load, from whatever data
+// the page opened with, and every later call for the same page leaves it alone.
+// Keyed by page so navigating to another character draws it again; the editor's
+// live preview calls its renderer directly rather than through this loop, so
+// editing a gallery still redraws on every keystroke.
+let unscopedDrawnFor = null;
+const unscopedDrawn = new Set();
+
+function modeScopedTabIsDrawable(section, pageId, modeId) {
+    const tab = (window.CHARACTER_TABS || []).find(t => t.id === section.tab);
+    if (!tab || tab.modeScoped !== false) return true;
+
+    if (unscopedDrawnFor !== pageId) {
+        unscopedDrawnFor = pageId;
+        unscopedDrawn.clear();
+    }
+    // The first render of the page draws it whatever the mode is - a shared
+    // ?mode= link must still show the gallery.
+    if (!unscopedDrawn.has(section.tab)) {
+        unscopedDrawn.add(section.tab);
+        return true;
+    }
+    return false;
 }
 
 async function loadPageDescriptions(pageId, pageType = 'character', modeId = null) {
@@ -1566,6 +1711,19 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
             (window.getKeyedSections ? window.getKeyedSections() : [])
                 .filter(s => s.rendererFn && typeof window[s.rendererFn] === 'function')
                 .filter(s => !drawableTabs || drawableTabs.includes(s.tab))
+                // A tab declared modeScoped:false belongs to the CHARACTER, not
+                // to one state, so a mode switch must leave it alone. Until
+                // v0.18 that flag had no consumer in js/ at all - Gallery
+                // "stayed put" only because nothing rendered it, and the moment
+                // F9 gave it a renderer the flag had to start meaning
+                // something.
+                //
+                // This is not cosmetic. switchCharacterMode calls
+                // loadPageDescriptions with a modeId, which resolves to THAT
+                // MODE's desc_data; a gallery stored at base level is simply
+                // absent from it, so re-rendering would blank the tab on every
+                // switch and refill it on the way back to base.
+                .filter(s => modeScopedTabIsDrawable(s, pageId, modeId))
                 .forEach(s => {
                     if (selfRendered.has(s.rendererFn)) return;
                     selfRendered.add(s.rendererFn);

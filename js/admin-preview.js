@@ -451,7 +451,19 @@ async function switchVersionView(mode) {
                     const oldEntry = liveDesc[section.field]?.find(e => e[section.keyField] === key) || {};
                     if (payload === null) {
                         renderDiffBlock(`${section.entryLabel} Deleted`, oldEntry, null, 'json');
-                    } else {
+                    }
+                    // An entry that is a flat object rather than blocks-with-a-key:
+                    // a gallery item is { name, src, alt, tags, note } and has no
+                    // `.content` at all. Splitting it into "Metadata" plus
+                    // "Notes" would show the reviewer the name and then diff two
+                    // empty arrays for everything that actually changed - which
+                    // is the Combo List bug described below, in a new place.
+                    // Declared in the registry rather than tested by name, the
+                    // same way rowsField and metaField are.
+                    else if (section.wholeEntryDiff) {
+                        renderDiffBlock(section.entryLabel, oldEntry, payload, 'json');
+                    }
+                    else {
                         const meta = (e) => {
                             const m = { [section.keyField]: e[section.keyField] };
                             if (section.metaField) m[section.metaField] = e[section.metaField];
