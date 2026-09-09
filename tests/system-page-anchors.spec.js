@@ -113,6 +113,11 @@ test('the picker offers the sections that are actually on the page', async ({ pa
 test('every id the picker offers exists on the rendered page', async ({ page }) => {
     // DIRECTION ONE. An offered target that resolves to nothing is a link the
     // contributor inserts and the reader lands nowhere with.
+    //
+    // THIS TEST PASSES AGAINST THE BROKEN PICKER, and that is the argument for
+    // the one below it. Falsified on the pre-fix code, it stayed green: a
+    // picker offering only "Discussion" satisfies "everything I offer resolves"
+    // completely. It is direction TWO that goes red. Keep both.
     await openSystemPage(page, SYSTEM_DESC);
 
     const missing = await page.evaluate((desc) => {
