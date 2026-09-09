@@ -171,6 +171,56 @@ window.triggerManualSync = async function() {
     if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
 };
 
+/**
+ * Does the rendered preview still match this tab's DATA, structurally?
+ *
+ * The gate on FT6's single-section repaint. It answers one question only: is
+ * everything except block CONTENT the same, so that repainting one section
+ * cannot leave the page showing something the data no longer says.
+ *
+ * Deliberately a whole-tab fingerprint rather than a check of the edited
+ * section alone. Deleting a section shifts every index after it, so a check
+ * scoped to the active section would pass while its neighbours rendered under
+ * the wrong ids - the fast path would then be right about the one section it
+ * looked at and wrong about the page.
+ *
+ * Returns false on anything it cannot verify, including a missing preview
+ * pane. False costs one full redraw; a wrong true costs a contributor their
+ * trust in the preview.
+ */
+window.systemPreviewMatchesData = function (tab) {
+    if (!tab || !Array.isArray(tab.sections) || !tab.sections.length) return false;
+
+    const container = document.getElementById(`tab-${tab.tabId}`);
+    // Hidden means the visible tab is a different one, which is a tab switch:
+    // the rebuild also has to move the nav highlight, so it must not be skipped.
+    if (!container || container.classList.contains('hidden')) return false;
+
+    const rendered = container.querySelectorAll('.wiki-section');
+    if (rendered.length !== tab.sections.length) return false;
+
+    return tab.sections.every((section, idx) => {
+        const content = document.getElementById(`system-${tab.tabId}-sec-${idx}`);
+        if (!content || !content.parentElement) return false;
+
+        const node = content.parentElement;
+        if (!node.classList.contains('wiki-section')) return false;
+
+        // textContent, so this compares against the RAW title - the renderer
+        // escapes on the way in, and comparing escaped output to raw data
+        // would report a mismatch for every title containing an ampersand.
+        const heading = node.querySelector('h2.section-title');
+        if ((heading ? heading.textContent : '') !== (section.sectionTitle || '')) return false;
+
+        // Geometry is written as an inline style by the renderer, so it can be
+        // read back exactly rather than recomputed.
+        const width = section.width === undefined ? null : `0 0 ${section.width}%`;
+        if (width !== null && node.style.flex !== width) return false;
+
+        return true;
+    });
+};
+
 // --- LIVE SYNC & STATE MANAGEMENT ---
 function updateLivePreview(skipHistory = false) {
     if (!skipHistory && typeof window.saveBlockHistory === 'function') {
@@ -189,12 +239,40 @@ function updateLivePreview(skipHistory = false) {
     // --- Safely sync the blocks and bypass Character Preview logic ---
     if (window.currentEditorPageType === 'system' || window.currentEditorPageType === 'tierlist') {
         if (window.currentEditorPageType === 'system') {
+            let syncedTab = null;
             if (window.currentEditorDescData && window.currentEditorDescData.tabs) {
                 let tab = window.currentEditorDescData.tabs[window.currentSystemTabIdx];
                 if (tab && tab.sections && tab.sections[window.currentSystemSecIdx]) {
                     tab.sections[window.currentSystemSecIdx].blocks = JSON.parse(JSON.stringify(currentStrategyBlocks));
+                    syncedTab = tab;
                 }
             }
+
+            // --- FT6: repaint ONLY the section being edited ---
+            //
+            // Every keystroke used to call loadPageDescriptions, which rebuilds
+            // EVERY tab and EVERY section of the page and then hides all but
+            // one 150ms later. On a long system page that is the whole document
+            // re-rendered per character typed, plus a window where the wrong tab
+            // is the visible one.
+            //
+            // The fast path is deliberately fail-safe: it runs only when a full
+            // structural fingerprint of the visible tab still matches the data
+            // (same tab, same section count, same titles, same geometry), so
+            // anything structural - adding, deleting, renaming, resizing,
+            // switching tab - fails the check and takes the original rebuild.
+            // A missed case costs a redraw, never a stale preview.
+            if (syncedTab && window.systemPreviewMatchesData(syncedTab)
+                && typeof window.populateTextSection === 'function') {
+                window.populateTextSection(
+                    `system-${syncedTab.tabId}-sec-${window.currentSystemSecIdx}`,
+                    '',
+                    syncedTab.sections[window.currentSystemSecIdx].blocks,
+                    'system-content');
+                if (!skipHistory && typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
+                return;
+            }
+
             if (typeof window.loadPageDescriptions === 'function') window.loadPageDescriptions(window.currentEditorCharId, 'system');
             setTimeout(() => {
                 if (window.currentEditorDescData && window.currentEditorDescData.tabs) {

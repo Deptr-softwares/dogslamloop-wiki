@@ -199,3 +199,100 @@ test('a tab label cannot inject markup into the system page nav', async ({ page 
 
     expect(errors).toEqual([]);
 });
+
+// --- SECTION TITLES (v0.18, found while building FT6) ---
+//
+// The sweep this file came out of traced 56 contributor-reachable
+// interpolations and missed these two, which is worth recording: both are a
+// *title* rather than body content, and the sweep's own lesson was that
+// paragraph content is escaped at the source. Titles are not body content and
+// were never covered by that.
+//
+//   js/description.js  populateTextSection() -> <h3 class="strategy-title">
+//   js/description.js  the system renderer   -> <h2 class="section-title">
+//
+// Both were confirmed live before being fixed: a title of
+// `<img src=x onerror=...>` produced a REAL img element carrying a REAL
+// handler, not escaped text.
+
+test('an extra-section title cannot inject markup into a character page', async ({ page }) => {
+    // Reached with `extraItem.title`, which a contributor types in the editor
+    // (js/editor-tabs.js:107) and which lands in this heading on every reader
+    // page that has an extra section.
+    const errors = watch(page);
+
+    await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+
+    const out = await page.evaluate((payload) => {
+        const host = document.createElement('div');
+        host.id = 'title-escape-probe';
+        document.body.appendChild(host);
+        window.populateTextSection('title-escape-probe', payload,
+            [{ type: 'text', content: 'body' }]);
+
+        const heading = host.querySelector('.strategy-title');
+        return {
+            rendered: !!heading,
+            text: heading ? heading.textContent : null,
+            imgs: host.querySelectorAll('img').length,
+        };
+    }, PAYLOAD);
+
+    // The positive first: if the heading never rendered, everything below
+    // would pass while proving nothing.
+    expect(out.rendered, 'the heading rendered at all').toBe(true);
+    expect(await fired(page), 'the payload must not execute').toBe(false);
+    expect(out.text, 'the tag survives as text').toContain('<img');
+    expect(out.imgs, 'and never became an element').toBe(0);
+
+    expect(errors).toEqual([]);
+});
+
+test('a system section title cannot inject markup into the page', async ({ page }) => {
+    // Same sink, other renderer. `sectionTitle` is contributor-authored
+    // through updateSystemMeta('sectionTitle', ...).
+    const errors = watch(page);
+
+    await page.addInitScript(() => {
+        window.__xssFired = false;
+    });
+
+    await page.goto('/systems/framedata/index.html', { waitUntil: 'networkidle' });
+
+    const out = await page.evaluate((payload) => {
+        // Drive the renderer's own escaping decision rather than the whole
+        // page load, which needs a live desc_data for this page.
+        const host = document.createElement('section');
+        host.className = 'wiki-section';
+        document.body.appendChild(host);
+
+        const escaped = typeof window.escapeHtml === 'function'
+            ? window.escapeHtml(payload) : null;
+        if (escaped === null) return { noHelper: true };
+
+        host.innerHTML = `<h2 class="section-title mb-4">${escaped}</h2>`;
+        return {
+            noHelper: false,
+            text: host.querySelector('h2').textContent,
+            imgs: host.querySelectorAll('img').length,
+        };
+    }, PAYLOAD);
+
+    expect(out.noHelper, 'escapeHtml is the helper the renderer uses').toBe(false);
+    expect(await fired(page), 'the payload must not execute').toBe(false);
+    expect(out.text, 'the tag survives as text').toContain('<img');
+    expect(out.imgs, 'and never became an element').toBe(0);
+
+    // The claim that the RENDERER uses that helper, rather than that the
+    // helper works. Asserted against the source, because reaching this branch
+    // in a browser needs a system page whose desc_data carries a section - and
+    // a test that silently fails to reach it is the vacuous kind this file
+    // already had to fix once.
+    const usesEscape = await page.evaluate(async () => {
+        const src = await (await fetch('/js/description.js')).text();
+        return src.includes('${escBlockText(section.sectionTitle)}');
+    });
+    expect(usesEscape, 'the system renderer escapes its section title').toBe(true);
+
+    expect(errors).toEqual([]);
+});
