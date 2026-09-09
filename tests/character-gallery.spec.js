@@ -365,8 +365,12 @@ test('the gallery bin gets the workspace footer, with ADD BLOCK greyed out', asy
   const placement = await page.evaluate(() => {
     const list = document.getElementById('block-list');
     const bin = document.getElementById('char-gallery-bin-list');
-    return { insideBlockList: !!(list && bin && list.contains(bin)) };
+    return { binExists: !!bin, insideBlockList: !!(list && bin && list.contains(bin)) };
   });
+  // The positive first. Without it `insideBlockList` is false when the bin does
+  // not exist at all, so the assertion below would pass hardest exactly when
+  // the feature is most broken.
+  expect(placement.binExists, 'the bin rendered').toBe(true);
   expect(placement.insideBlockList, 'the bin must not live inside #block-list').toBe(false);
 
   expect(errors).toEqual([]);
