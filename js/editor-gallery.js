@@ -154,21 +154,57 @@ function openMediaItemModal(ctx) {
     const status = document.getElementById('gallery-item-status');
     const confirm = document.getElementById('gallery-item-confirm');
     const cancel = document.getElementById('gallery-item-cancel');
+    const pickBtn = document.getElementById('gallery-item-pick');
+    const picked = document.getElementById('gallery-item-picked');
+
+    // A URL chosen from the Media Library instead of a file to upload
+    // (v0.18 F9). Reset on every open, so a cancelled pick is not still
+    // sitting here the next time the modal is used.
+    let pickedUrl = '';
 
     fileInput.value = '';
     nameInput.value = '';
     status.textContent = '';
+    if (picked) picked.textContent = '';
     confirm.disabled = false;
     overlay.classList.remove('hidden');
     nameInput.focus();
+
+    // Derives "Wave" from wave.mp4 or from .../wave_emote.webp - the same
+    // courtesy the file picker does, so re-using media is not the slower path.
+    const nameFromFilename = (raw) => {
+        const base = String(raw || '').split(/[?#]/)[0].split('/').pop()
+            .replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
+        return base ? base.charAt(0).toUpperCase() + base.slice(1) : '';
+    };
+
+    if (pickBtn) {
+        pickBtn.onclick = () => {
+            if (typeof window.openMediaLibraryPicker !== 'function') return;
+            window.openMediaLibraryPicker((url) => {
+                pickedUrl = url;
+                // Clearing the file input is what makes the two routes
+                // exclusive: picking after choosing a file must not upload the
+                // file and then ignore it.
+                fileInput.value = '';
+                if (picked) picked.textContent = `Using: ${url.split('/').pop()}`;
+                if (!nameInput.value.trim()) nameInput.value = nameFromFilename(url);
+                status.textContent = '';
+            });
+        };
+    }
 
     // Guessing the name from the filename is the difference between two
     // fields and one for the common case - wave.mp4 is almost always "Wave".
     fileInput.onchange = () => {
         const file = fileInput.files[0];
+        // Choosing a file abandons a pick, for the same reason as the reverse.
+        if (file) {
+            pickedUrl = '';
+            if (picked) picked.textContent = '';
+        }
         if (!file || nameInput.value.trim()) return;
-        const base = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
-        nameInput.value = base.charAt(0).toUpperCase() + base.slice(1);
+        nameInput.value = nameFromFilename(file.name);
     };
 
     const close = () => {
@@ -176,6 +212,7 @@ function openMediaItemModal(ctx) {
         confirm.onclick = null;
         cancel.onclick = null;
         fileInput.onchange = null;
+        if (pickBtn) pickBtn.onclick = null;
     };
 
     cancel.onclick = close;
@@ -184,7 +221,7 @@ function openMediaItemModal(ctx) {
         const file = fileInput.files[0];
         const name = nameInput.value.trim();
 
-        if (!file) { status.textContent = 'Pick a file first.'; return; }
+        if (!file && !pickedUrl) { status.textContent = 'Pick a file, or choose one from the library.'; return; }
         if (!name) { status.textContent = 'Give it a name.'; return; }
         if (ctx.items().some(i => (i.name || '').toLowerCase() === name.toLowerCase())) {
             // The name is the delta key, so two items sharing one would make
@@ -194,15 +231,22 @@ function openMediaItemModal(ctx) {
         }
 
         confirm.disabled = true;
-        const result = await window.uploadWikiMedia(file, (s) => { status.textContent = s; });
 
-        if (result.error) {
-            status.textContent = result.error;
-            confirm.disabled = false;
-            return;
+        // A picked file is already in the bucket, so there is nothing to
+        // upload - that is the whole point of re-use, and uploading it again
+        // would put a second copy of the same clip in the library.
+        let src = pickedUrl;
+        if (!src) {
+            const result = await window.uploadWikiMedia(file, (s) => { status.textContent = s; });
+            if (result.error) {
+                status.textContent = result.error;
+                confirm.disabled = false;
+                return;
+            }
+            src = result.url;
         }
 
-        ctx.onAdd({ name, src: result.url, alt: name, note: '', tags: [] });
+        ctx.onAdd({ name, src, alt: name, note: '', tags: [] });
         close();
     };
 }
@@ -414,7 +458,45 @@ window.renderCharacterGalleryEditor = function(builder) {
     const section = window.getKeyedSectionByTab ? window.getKeyedSectionByTab('gallery') : null;
     const noun = (section && section.unitNoun) || 'Gallery Item';
 
-    builder.innerHTML = `
+    // The usual workspace footer, around a bin instead of a block list
+    // (v0.18 F9, owner's call). It brings the quick styling tools - so a name
+    // or note can be bolded, coloured or linked like any other prose - and the
+    // MEDIA LIBRARY button, so existing media can be re-used rather than
+    // uploaded twice.
+    //
+    // ORDER MATTERS: initStrategyBlockBuilder owns this container and ends by
+    // rendering an (empty) block list into #block-list, so the bin goes in
+    // AFTER it rather than instead of it. Rendering first would be silently
+    // undone by that last line.
+    if (typeof initStrategyBlockBuilder === 'function') {
+        initStrategyBlockBuilder(builder.id, [], { mode: 'gallery' });
+    }
+
+    // A SIBLING of #block-list, never inside it. Every delegated listener in
+    // initStrategyBlockBuilder is bound to #block-list and reads
+    // `e.target.closest('.block-card').getAttribute(...)`, so a bin row living
+    // there makes that closest() null and throws on the first click - which is
+    // exactly what pressing ADD MEDIA did while the bin was rendered into it.
+    // The block list itself is hidden rather than emptied, so nothing about
+    // the block path has to know this mode exists.
+    const blockList = document.getElementById('block-list');
+    const footer = builder.querySelector('.add-block-toolbar');
+
+    let host = document.getElementById('char-gallery-host');
+    if (!host) {
+        host = document.createElement('div');
+        host.id = 'char-gallery-host';
+        // Before the footer, so the workspace reads bin-then-tools like the
+        // block editor reads blocks-then-tools.
+        if (footer) builder.insertBefore(host, footer);
+        else builder.appendChild(host);
+    }
+    // style.display for the same reason as the toolbar row above:
+    // .block-editor-container sets `display: flex` plus top and bottom
+    // borders, so `hidden` would leave an empty bordered strip over the bin.
+    if (blockList) blockList.style.display = 'none';
+
+    host.innerHTML = `
         <div class="editor-section-banner editor-section-banner-spaced">
             <span class="editor-section-banner-text">GALLERY</span>
         </div>

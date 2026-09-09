@@ -329,3 +329,194 @@ test('the diff shows what changed about the media, not just the name', async ({ 
   expect(out.text, 'the changed note is in the diff').toContain('CHANGED NOTE');
   expect(out.text, 'and so is the changed media').toContain('new.mp4');
 });
+
+// --- THE WORKSPACE FOOTER ON THE BIN (v0.18 F9, owner's addition) ---
+//
+// Two asks, one mechanism: the quick styling tools so a media title or note can
+// be styled like any other prose, and the Media Library so an existing file can
+// be RE-USED rather than uploaded a second time.
+//
+// The footer is reused by calling initStrategyBlockBuilder in 'gallery' mode
+// rather than by lifting the toolbar out of it, so the risk is not that the
+// buttons are missing - it is that block machinery still thinks it is driving.
+
+test('the gallery bin gets the workspace footer, with ADD BLOCK greyed out', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await page.goto('/edit.html?char=boomcat&type=character&tab=gallery', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  await expect(page.locator('#interactive-builder .format-toolbar')).toBeVisible();
+  await expect(page.locator('#btn-media-library')).toBeVisible();
+
+  // Greyed, not gone: the footer's shape is the thing being reused, and a
+  // missing button reads as a broken one.
+  await expect(page.locator('#btn-toggle-add-menu')).toBeDisabled();
+
+  // UNDO / REDO / CLEAR ALL are the block history, which a bin never writes to.
+  await expect(page.locator('#interactive-builder .strategy-toolbar-row')).toBeHidden();
+
+  // The bin is a SIBLING of #block-list, not inside it. Asserted structurally
+  // because it is load-bearing: every delegated block listener reads
+  // `e.target.closest('.block-card').getAttribute(...)`, so a bin row inside
+  // #block-list throws on the first click. That is not a style preference -
+  // it is the bug this arrangement exists to avoid.
+  const placement = await page.evaluate(() => {
+    const list = document.getElementById('block-list');
+    const bin = document.getElementById('char-gallery-bin-list');
+    return { insideBlockList: !!(list && bin && list.contains(bin)) };
+  });
+  expect(placement.insideBlockList, 'the bin must not live inside #block-list').toBe(false);
+
+  expect(errors).toEqual([]);
+});
+
+test('a styling button writes a shortcode into a bin field and through to desc_data', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await page.goto('/edit.html?char=boomcat&type=character&tab=gallery', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  await page.evaluate(() => {
+    window.currentEditorDescData.gallery = [
+      { name: 'Wall Combo', src: 'https://example.test/wall.mp4', alt: '', note: '', tags: [] },
+    ];
+    window.renderCharacterGalleryEditor(document.getElementById('interactive-builder'));
+  });
+
+  // Select the whole name, the way a contributor would before pressing Bold.
+  // The keyup is what the toolbar's saveSelection listens for - without it the
+  // range it writes into is whatever was recorded last, which is the bug that
+  // would make this feature apply Bold to nothing.
+  await page.evaluate(() => {
+    const field = document.querySelector('#char-gallery-bin-list .gallery-bin-name');
+    field.focus();
+    field.setSelectionRange(0, field.value.length);
+    field.dispatchEvent(new Event('keyup', { bubbles: true }));
+  });
+
+  await page.click('.format-toolbar .format-btn[data-tag="b"]');
+  await page.waitForTimeout(200);
+
+  const out = await page.evaluate(() => ({
+    field: document.querySelector('#char-gallery-bin-list .gallery-bin-name').value,
+    stored: (window.currentEditorDescData.gallery || []).map(i => i.name),
+  }));
+
+  expect(out.field).toBe('[b]Wall Combo[/b]');
+  // The write-through is the half that matters: the input event the toolbar
+  // dispatches is what the bin listens to, so a toolbar that edited the DOM
+  // and not the model would look identical here and submit the old name.
+  expect(out.stored).toEqual(['[b]Wall Combo[/b]']);
+
+  expect(errors).toEqual([]);
+});
+
+test('a caption renders styling shortcodes, and still refuses raw HTML', async ({ page }) => {
+  // The reader half. Without this the styling tools above would write
+  // shortcodes the reader sees as literal [b]...[/b], which is worse than not
+  // offering them at all.
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+
+  const out = await page.evaluate(() => {
+    window.renderCharacterGalleryTab({
+      gallery: [{
+        name: '[b]Wall Combo[/b]',
+        src: 'https://example.test/wall.mp4',
+        note: '<b>raw</b> and [i]soft[/i]',
+      }],
+    });
+    window.applyInternalStyling();
+    const host = document.getElementById('tab-gallery');
+    return {
+      boldText: host.querySelector('.gallery-card-name strong.sc-b')?.textContent,
+      italicText: host.querySelector('.gallery-card-note em.sc-i')?.textContent,
+      rawBold: host.querySelectorAll('.gallery-card-note b').length,
+      noteText: host.querySelector('.gallery-card-note')?.textContent,
+    };
+  });
+
+  expect(out.boldText, 'the shortcode became real markup').toBe('Wall Combo');
+  expect(out.italicText).toBe('soft');
+  // Positive form: the tag SURVIVES as text. An absence assertion here would
+  // pass if the note vanished entirely.
+  expect(out.noteText).toContain('<b>raw</b>');
+  expect(out.rawBold, 'contributor HTML is still text, not markup').toBe(0);
+});
+
+test('the Media Library opens ABOVE the item modal, and a pick re-uses instead of re-uploading', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await page.goto('/edit.html?char=boomcat&type=character&tab=gallery', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(1200);
+
+  await page.evaluate(() => {
+    // The network boundary only. Counting uploads is the point of this test.
+    window.__uploads = 0;
+    window.uploadWikiMedia = async () => {
+      window.__uploads++;
+      return { url: 'https://example.test/should-not-happen.mp4' };
+    };
+    // The storage boundary, so the REAL loadMediaGallery and renderMediaGrid
+    // run and produce a real card to click. Stubbing loadMediaGallery itself
+    // would leave the grid empty and force the test to invoke the pick handler
+    // by hand - which is not what a click does, and would skip the disarm that
+    // lives in the card's own click path.
+    window.supabaseClient = window.supabaseClient || {};
+    window.supabaseClient.storage = {
+      from: () => ({
+        list: async () => ({ data: [{ name: 'reused.webp' }], error: null }),
+        getPublicUrl: (n) => ({ data: { publicUrl: 'https://example.test/' + n } }),
+      }),
+    };
+  });
+
+  await page.click('#char-gallery-add');
+  await expect(page.locator('#gallery-item-modal')).toBeVisible();
+  await page.click('#gallery-item-pick');
+  await page.waitForTimeout(200);
+
+  // RESOLVED z-index, not the presence of a rule. The library is a tier-1
+  // overlay at 9000 and the modal that opens it sets 10005 inline, so opened
+  // as-is it renders fully and is completely unclickable - visible, present,
+  // and underneath its own caller. toBeVisible() passes on exactly that.
+  const z = await page.evaluate(() => ({
+    lib: parseInt(getComputedStyle(document.getElementById('media-modal-overlay')).zIndex, 10),
+    modal: parseInt(getComputedStyle(document.getElementById('gallery-item-modal')).zIndex, 10),
+    armed: typeof window.mediaPickHandler === 'function',
+  }));
+  expect(z.armed, 'the picker is armed while the library is open').toBe(true);
+  expect(z.lib).toBeGreaterThan(z.modal);
+
+  // The real control. Clicking the card is what proves the picker outranks
+  // the modal - if the lift were missing this click would hit the item modal
+  // instead and time out, which no z-index assertion alone would catch.
+  await page.click('.media-thumbnail-card');
+  await page.waitForTimeout(200);
+
+  const afterPick = await page.evaluate(() => ({
+    name: document.getElementById('gallery-item-name').value,
+    armed: typeof window.mediaPickHandler === 'function',
+    libZ: document.getElementById('media-modal-overlay').style.zIndex,
+  }));
+  expect(afterPick.name, 'the name is guessed from the picked filename').toBe('Reused');
+  expect(afterPick.armed, 'a one-shot handler is disarmed once it fires').toBe(false);
+  expect(afterPick.libZ, 'and the lift is dropped, so the library stacks normally next time').toBe('');
+
+  await page.click('#gallery-item-confirm');
+  await page.waitForTimeout(300);
+
+  const stored = await page.evaluate(() => ({
+    items: (window.currentEditorDescData.gallery || []).map(i => ({ name: i.name, src: i.src })),
+    uploads: window.__uploads,
+  }));
+
+  expect(stored.items).toEqual([{ name: 'Reused', src: 'https://example.test/reused.webp' }]);
+  // The whole point of re-use: a file already in the bucket is not sent again.
+  expect(stored.uploads, 'a picked file is never re-uploaded').toBe(0);
+
+  expect(errors).toEqual([]);
+});

@@ -179,6 +179,47 @@ Rename your file (e.g. append "_v2") before uploading, so you do not break pages
 };
 
 // --- MEDIA LIBRARY SYSTEM ---
+
+/**
+ * The Media Library is a copy-a-URL tool everywhere it appears. The Gallery
+ * bin (v0.18 F9) opens it for a different reason - to RE-USE a file that is
+ * already uploaded - so clicking a card there has to hand the URL back rather
+ * than put it on the clipboard, where a bin with no URL field could not
+ * receive it.
+ *
+ * The handler is one-shot and armed per open. It is cleared the moment it
+ * fires AND on close, because a handler left armed would silently turn the
+ * next ordinary open - the block editor's footer button, one tab away - into
+ * a picker that swallows the click and closes the library.
+ */
+window.openMediaLibraryPicker = function (onPick) {
+    window.mediaPickHandler = typeof onPick === 'function' ? onPick : null;
+    const overlay = document.getElementById('media-modal-overlay');
+    if (overlay) {
+        // The library is a tier-1 overlay (z-index 9000, style/Modals.css:19)
+        // and the Gallery item modal that opens it sets 10005 inline. Opened
+        // as-is it lands UNDERNEATH its own caller: fully rendered, visibly
+        // there, and every card unclickable. That is the failure this repo has
+        // already shipped twice, so the picker is lifted above the modal that
+        // opened it and put back on close.
+        overlay.style.zIndex = '10010';
+        overlay.classList.remove('hidden');
+    }
+    if (typeof window.loadMediaGallery === 'function') window.loadMediaGallery();
+};
+
+// Every close path goes through here, including the modal's own Close button
+// and a successful pick, so there is one place that disarms the handler and
+// drops the lift rather than one per caller.
+window.closeMediaLibrary = function () {
+    window.mediaPickHandler = null;
+    const overlay = document.getElementById('media-modal-overlay');
+    if (overlay) {
+        overlay.style.zIndex = '';
+        overlay.classList.add('hidden');
+    }
+};
+
 window.initMediaLibrary = function() {
     const dropZone = document.getElementById('media-upload-zone');
     const fileInput = document.getElementById('media-file-input');
@@ -263,6 +304,20 @@ window.initMediaLibrary = function() {
             card.className = 'media-thumbnail-card';
 
             card.onclick = () => {
+                // Picking wins over copying when the library was opened by
+                // openMediaLibraryPicker. Read and cleared before the handler
+                // runs, so a handler that throws cannot leave the library
+                // armed for the next caller.
+                if (typeof window.mediaPickHandler === 'function') {
+                    const pick = window.mediaPickHandler;
+                    // Captured first, then closed: closeMediaLibrary is what
+                    // disarms the handler, so a handler that throws still
+                    // cannot leave the library armed for the next caller.
+                    window.closeMediaLibrary();
+                    pick(url, file);
+                    return;
+                }
+
                 navigator.clipboard.writeText(url).then(() => {
                     const toast = card.querySelector('.copy-toast');
                     if (toast) {

@@ -442,6 +442,15 @@ function applyInternalStyling() {
         + ' .vessel-content p:not(.is-styled), .vessel-content li:not(.is-styled),'
         + ' .vessel-content h2:not(.is-styled), .vessel-content h3:not(.is-styled),'
         + ' .vessel-content h4:not(.is-styled),'
+        // Gallery captions (v0.18 F9). A caption is a <span>, so the
+        // `.vessel-content` entries above never reached it even though the
+        // character Gallery tab sets that class on its container - which is
+        // why the quick styling tools now offered on the bin would otherwise
+        // have written shortcodes the reader sees as literal `[b]…[/b]`.
+        // Both galleries build these captions with textContent
+        // (js/gallery.js:99, js/description.js), so what this engine reads
+        // back is already escaped - the same contract as every other entry.
+        + ' .gallery-card-name:not(.is-styled), .gallery-card-note:not(.is-styled),'
         + ' .update-table th:not(.is-styled), .update-table td:not(.is-styled)');
     
     // 2. Characters, canonical names and every alias the community uses.

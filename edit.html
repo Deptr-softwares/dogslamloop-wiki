@@ -101,6 +101,11 @@
                 <div class="editor-row" style="flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
                     <label class="block-field-label-sm" for="gallery-item-file">FILE</label>
                     <input type="file" id="gallery-item-file" class="editor-input" accept="image/*,video/*">
+                    <!-- Re-use, not upload (v0.18 F9). Most of what belongs in a
+                         character gallery is already in the library, and uploading
+                         a second copy of it is how the bucket fills with duplicates. -->
+                    <button type="button" id="gallery-item-pick" class="btn-sys btn-sys-blue">📁 OR PICK FROM LIBRARY</button>
+                    <p id="gallery-item-picked" class="admin-tool-hint"></p>
                 </div>
                 <div class="editor-row" style="flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
                     <label class="block-field-label-sm" for="gallery-item-name">NAME</label>
@@ -205,7 +210,11 @@
 
                     <div style="display: flex; gap: 1rem;">
                         <button id="btn-media-refresh" class="btn-sys btn-sys-regular">↻ Refresh</button>
-                        <button onclick="document.getElementById('media-modal-overlay').classList.add('hidden');" class="btn-sys btn-sys-red">Close</button>
+                        <!-- closeMediaLibrary, not a bare classList.add: it also
+                             disarms the Gallery bin's one-shot pick handler, and
+                             closing the library was the one path that could leave
+                             it armed. -->
+                        <button onclick="window.closeMediaLibrary();" class="btn-sys btn-sys-red">Close</button>
                     </div>
                 </div>
             </div> 
