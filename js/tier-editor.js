@@ -71,9 +71,38 @@
             const nav = window.fetchJson
                 ? await window.fetchJson('data/navigation.json', { cache: true })
                 : await (await fetch('data/navigation.json')).json();
+
+            // THE THIRD COPY OF THIS, AND THE SECOND THAT WAS BROKEN.
+            //
+            // navigation.json carries no `image` field on any character, so
+            // reading entry.image left meta.image undefined and portrait() fell
+            // through to the guessed Supabase URL below - the OLD art, which is
+            // exactly what the owner reported seeing in this editor while the
+            // reader page showed the current portraits.
+            //
+            // js/certified-tier-lists.js has always read the manifest;
+            // js/tools/free_submit_tier_list.js was fixed for the same fault in
+            // FT3, one batch ago. Three near-identical loadRoster functions,
+            // two of them silently wrong. Worth stating plainly rather than
+            // fixing a third time in silence.
+            let portraits = {};
+            try {
+                portraits = window.fetchJson
+                    ? await window.fetchJson('data/portraits.json', { cache: true })
+                    : await (await fetch('data/portraits.json')).json();
+            } catch (e) {
+                console.warn('[TierEditor] Portrait manifest unavailable:', e);
+            }
+
             (nav.Characters || []).forEach(entry => {
                 const pageId = entry.cms_config && entry.cms_config.pageId;
-                if (pageId) state.roster.set(pageId, { name: entry.name, url: entry.url, image: entry.image });
+                if (pageId) {
+                    state.roster.set(pageId, {
+                        name: entry.name,
+                        url: entry.url,
+                        image: portraits[pageId] || entry.image,
+                    });
+                }
             });
         } catch (e) {
             console.warn('[TierEditor] Could not read the roster:', e);
@@ -120,14 +149,37 @@
 
     // --- THE BOARD ---
 
+    // v0.18 FT4. Read from the control rather than held in state, so the board
+    // and the dropdown cannot disagree: there is exactly one place the answer
+    // lives while the editor is open, and it is the thing the contributor is
+    // looking at.
+    function currentArtStyle() {
+        const field = document.getElementById('tier-art-style');
+        return field && field.value === 'icon' ? 'icon' : 'portrait';
+    }
+
     function portrait(pageId, draggable) {
         const meta = state.roster.get(pageId) || { name: String(pageId).replace(/_/g, ' ') };
+        const useIcon = currentArtStyle() === 'icon';
 
         const node = el('div', 'tier-portrait' + (draggable ? ' draggable-portrait' : ''));
+        // THE EDITOR BOARD SHOWS WHAT THE READER WILL SEE. Without this the
+        // contributor picks "icons", their own board keeps drawing portraits,
+        // and the control reads as broken until they open the live page - which
+        // is the shape of complaint this project keeps receiving about work
+        // that shipped correctly.
+        if (useIcon) node.classList.add('tier-portrait-icon');
         node.dataset.charId = pageId;
         node.title = meta.name;
-        if (window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name]) {
-            node.style.backgroundColor = window.CHARACTER_COLORS[meta.name];
+        // Icon mode moves the colour to the border - see the reader's copy of
+        // this in js/certified-tier-lists.js and the rule it feeds in
+        // style/Layout.css. The editor board has to make the same choice or a
+        // contributor picks icons and previews something the readers will not
+        // see.
+        const charColor = window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name];
+        if (charColor) {
+            if (useIcon) node.style.setProperty('--char-color', charColor);
+            else node.style.backgroundColor = charColor;
         }
 
         node.appendChild(el('span', 'tier-portrait-name', meta.name));
@@ -137,9 +189,18 @@
         img.alt = '';
         img.draggable = false;
         img.addEventListener('error', () => { img.style.display = 'none'; });
-        img.src = meta.image
+
+        // Derived from the pageId by the roster's own function, not a second
+        // manifest - an icon the owner adds appears here the day it appears on
+        // the roster. This page sits at the repo root, so the path needs no
+        // prefix, which is why meta.image is used bare above.
+        const iconPath = useIcon && typeof window.rosterIconPath === 'function'
+            ? window.rosterIconPath(pageId)
+            : null;
+
+        img.src = iconPath || (meta.image
             ? meta.image
-            : `https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/${encodeURIComponent(String(meta.name).replace(/[^a-zA-Z0-9]/g, ''))}Portrait.webp`;
+            : `https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/${encodeURIComponent(String(meta.name).replace(/[^a-zA-Z0-9]/g, ''))}Portrait.webp`);
         node.appendChild(img);
 
         return node;
@@ -791,6 +852,13 @@
         // no preview to keep in step, and a change listener would be a second
         // place for it to go stale.
         const versionField = document.getElementById('tier-game-version');
+        // Same reasoning as the version field above: one control, no preview to
+        // keep in step, so it is read at save time rather than tracked on
+        // change. Omitted entirely when the control is absent, because the RPC
+        // COALESCEs a null and leaves the stored value alone - sending a
+        // fallback string here would let a missing element overwrite the
+        // author's choice.
+        const artField = document.getElementById('tier-art-style');
 
         const { data, error } = await client().rpc('save_tier_list', {
             p_list_id: state.list.id,
@@ -798,6 +866,7 @@
             p_reasoning: state.reasoning,
             p_intro: state.intro,
             p_game_version: versionField ? versionField.value.trim() : '',
+            p_art_style: artField ? artField.value : null,
             p_changes: moves.map(m => ({
                 character_id: m.id,
                 from_tier: m.from,
@@ -887,6 +956,20 @@
         if (versionField) {
             versionField.value = data.game_version || '';
             versionField.disabled = !state.canEdit;
+        }
+
+        // Same shape, same reason: between writing this migration and the
+        // release, `data.art_style` is simply absent, and the default keeps the
+        // control showing what every list actually renders as today.
+        const artField = document.getElementById('tier-art-style');
+        if (artField) {
+            artField.value = data.art_style === 'icon' ? 'icon' : 'portrait';
+            artField.disabled = !state.canEdit;
+            // Redrawn immediately rather than on save. Choosing between two
+            // pieces of art is a decision you make by LOOKING at them, and a
+            // control whose effect only appears after a round trip is one
+            // nobody trusts enough to try.
+            artField.addEventListener('change', () => renderBoard());
         }
 
         if (typeof initStrategyBlockBuilder === 'function') {

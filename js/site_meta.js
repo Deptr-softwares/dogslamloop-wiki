@@ -167,6 +167,23 @@ async function loadSiteMetadata() {
 }
 
 /**
+ * IS THIS CHARACTER COLOUR A DARK ONE?
+ *
+ * The <50% lightness test was written out three times before this existed -
+ * --character-ink, the title text-shadow engine below, and (from v0.18 FT2) the
+ * inline character-name highlighting in js/internalstyling.js. They must never
+ * disagree about whether a character reads as light or dark, because the
+ * treatments they pick are designed to sit next to each other on one page.
+ *
+ * Returns false for anything unparseable, which is the safe direction: no
+ * outline rather than an outline applied on a guess.
+ */
+window.isDarkCharacterColor = function(color) {
+    const hslMatch = String(color == null ? '' : color).match(/hsl\((\d+),\s*([\d.]+)%,\s*([\d.]+)%\)/);
+    return hslMatch ? parseFloat(hslMatch[3]) < 50 : false;
+};
+
+/**
  * Automatically extracts the character's Hue and paints the entire UI.
  */
 window.applyCharacterTheme = function() {
@@ -201,10 +218,16 @@ window.applyCharacterTheme = function() {
 
             // Text drawn ON TOP of the character colour, for anything that
             // fills a surface with it rather than tinting text - the combo
-            // block's hover highlight is the first. Same <50% test the title
-            // engine below uses, so the two can never disagree about whether a
-            // character reads as light or dark.
-            document.documentElement.style.setProperty('--character-ink', l < 50 ? '#ffffff' : '#000000');
+            // block's hover highlight is the first.
+            const pageIsDark = window.isDarkCharacterColor(charColor);
+            document.documentElement.style.setProperty('--character-ink', pageIsDark ? '#ffffff' : '#000000');
+
+            // v0.18 FT2. Marks the PAGE, so CSS can treat a dark-coded
+            // character page differently from a light one. The outline it gates
+            // is applied to inline character names in prose, and it belongs on
+            // the page rather than on the name: the same name is written on
+            // many pages and only needs the outline on the dark ones.
+            document.documentElement.classList.toggle('page-character-dark', pageIsDark);
 
             // 3. THE TEXT SHADOW ENGINE
             let dynamicStyle = document.getElementById('persona-dynamic-styles');
@@ -215,7 +238,7 @@ window.applyCharacterTheme = function() {
             }
 
             // If Lightness is below 50% (Ten Shadows, Crow Charmer, Black Death)
-            if (l < 50) {
+            if (pageIsDark) {
                 dynamicStyle.innerHTML = `
                     .section-title, .strategy-title, .card-header-title, .skill-title {
                         color: ${charColor} !important;

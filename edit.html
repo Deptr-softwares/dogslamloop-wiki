@@ -101,6 +101,11 @@
                 <div class="editor-row" style="flex-direction: column; gap: 0.5rem; margin-bottom: 1rem;">
                     <label class="block-field-label-sm" for="gallery-item-file">FILE</label>
                     <input type="file" id="gallery-item-file" class="editor-input" accept="image/*,video/*">
+                    <!-- Re-use, not upload (v0.18 F9). Most of what belongs in a
+                         character gallery is already in the library, and uploading
+                         a second copy of it is how the bucket fills with duplicates. -->
+                    <button type="button" id="gallery-item-pick" class="btn-sys btn-sys-blue">📁 OR PICK FROM LIBRARY</button>
+                    <p id="gallery-item-picked" class="admin-tool-hint"></p>
                 </div>
                 <div class="editor-row" style="flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
                     <label class="block-field-label-sm" for="gallery-item-name">NAME</label>
@@ -205,7 +210,11 @@
 
                     <div style="display: flex; gap: 1rem;">
                         <button id="btn-media-refresh" class="btn-sys btn-sys-regular">↻ Refresh</button>
-                        <button onclick="document.getElementById('media-modal-overlay').classList.add('hidden');" class="btn-sys btn-sys-red">Close</button>
+                        <!-- closeMediaLibrary, not a bare classList.add: it also
+                             disarms the Gallery bin's one-shot pick handler, and
+                             closing the library was the one path that could leave
+                             it armed. -->
+                        <button onclick="window.closeMediaLibrary();" class="btn-sys btn-sys-red">Close</button>
                     </div>
                 </div>
             </div> 
@@ -313,6 +322,7 @@
                      attack rather than a state. Un-hidden by js/editor-modes.js
                      once the registry says so. -->
                 <button id="edit-nav-ultimateAtk" class="btn-manga btn-manga-slanted hidden" onclick="window.switchEditorTab('ultimateAtk')"><div class="btn-manga-content"><span class="btn-manga-text">Ultimate</span></div></button>
+                <button id="edit-nav-gallery" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('gallery')"><div class="btn-manga-content"><span class="btn-manga-text">Gallery</span></div></button>
             </nav>
 
             <div id="interactive-builder"></div>
@@ -348,6 +358,7 @@
                     <div id="tab-matchups" class="vessel-content hidden"></div>
                     <div id="tab-counterplay" class="vessel-content hidden"></div>
                     <div id="tab-ultimateAtk" class="vessel-content hidden"></div>
+                    <div id="tab-gallery" class="vessel-content hidden"></div>
                 </div>
             </main>
         </div>
@@ -356,34 +367,37 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- First: the character tab vocabulary. site_utils.js derives
          FRAME_MOVE_CATEGORIES from it and editor-tabs.js its major strip. -->
-    <script src="js/character_tabs.js?v=376e6b12"></script>
-    <script src="js/input_slots.js?v=376e6b12"></script>
-    <script src="js/site_utils.js?v=376e6b12"></script>
-    <script src="js/site_meta.js?v=376e6b12"></script>
-    <script src="js/pagebuilder.js?v=376e6b12"></script>
-    <script src="js/framedata.js?v=376e6b12"></script>
-    <script src="js/description.js?v=376e6b12"></script>
-    <script src="js/internalstyling.js?v=376e6b12"></script>
-    <script src="js/editor-modes.js?v=376e6b12"></script>
-    <script src="js/editor-core.js?v=376e6b12"></script>
-    <script src="js/editor-tabs.js?v=376e6b12"></script>
-    <script src="js/editor-framedata.js?v=376e6b12"></script>
-    <script src="js/editor-folders.js?v=376e6b12"></script>
-    <script src="js/editor-blocks.js?v=376e6b12"></script>
-    <script src="js/editor-previews.js?v=376e6b12"></script>
-    <script src="js/editor-sync.js?v=376e6b12"></script>
-    <script src="js/editor-drafts.js?v=376e6b12"></script>
-    <script src="js/editor-media.js?v=376e6b12"></script>
-    <script src="js/editor-system.js?v=376e6b12"></script>
-    <script src="js/tool_page.js?v=376e6b12"></script>
-    <script src="js/editor-tool.js?v=376e6b12"></script>
-    <script src="js/gallery.js?v=376e6b12"></script>
-    <script src="js/editor-gallery.js?v=376e6b12"></script>
-    <script src="js/tierlist.js?v=376e6b12"></script>
+    <script src="js/character_tabs.js?v=eb683d3f"></script>
+    <script src="js/input_slots.js?v=eb683d3f"></script>
+    <script src="js/site_utils.js?v=eb683d3f"></script>
+    <script src="js/site_meta.js?v=eb683d3f"></script>
+    <script src="js/pagebuilder.js?v=eb683d3f"></script>
+    <script src="js/framedata.js?v=eb683d3f"></script>
+    <script src="js/description.js?v=eb683d3f"></script>
+    <script src="js/internalstyling.js?v=eb683d3f"></script>
+    <script src="js/editor-modes.js?v=eb683d3f"></script>
+    <script src="js/editor-core.js?v=eb683d3f"></script>
+    <script src="js/editor-tabs.js?v=eb683d3f"></script>
+    <script src="js/editor-framedata.js?v=eb683d3f"></script>
+    <script src="js/editor-folders.js?v=eb683d3f"></script>
+    <script src="js/editor-blocks.js?v=eb683d3f"></script>
+    <script src="js/editor-previews.js?v=eb683d3f"></script>
+    <script src="js/editor-sync.js?v=eb683d3f"></script>
+    <script src="js/editor-drafts.js?v=eb683d3f"></script>
+    <script src="js/editor-media.js?v=eb683d3f"></script>
+    <script src="js/editor-system.js?v=eb683d3f"></script>
+    <script src="js/tool_page.js?v=eb683d3f"></script>
+    <script src="js/editor-tool.js?v=eb683d3f"></script>
+    <script src="js/gallery.js?v=eb683d3f"></script>
+    <script src="js/editor-gallery.js?v=eb683d3f"></script>
+    <script src="js/tierlist.js?v=eb683d3f"></script>
     <!-- Before the strips that call reorderControls while rendering. -->
-    <script src="js/editor-reorder.js?v=376e6b12"></script>
+    <script src="js/editor-reorder.js?v=eb683d3f"></script>
     <!-- Last: it walks whatever the other editors have put in desc_data, and
          reads the keyed-section registry to name where a match is. -->
-    <script src="js/editor-find-replace.js?v=376e6b12"></script>
+    <script src="js/editor-find-replace.js?v=eb683d3f"></script>
+    <!-- Order-independent: it binds its own DOMContentLoaded and a delegated
+         click, and touches nothing another editor module owns. -->
+    <script src="js/editor-notices.js?v=eb683d3f"></script>
 </body>
 </html>

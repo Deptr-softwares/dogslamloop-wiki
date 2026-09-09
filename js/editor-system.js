@@ -260,6 +260,27 @@ window.buildSystemDeltas = function(local, cloud, pageType) {
         }
     });
 
+    // --- The order of the tabs themselves (v0.18 B2) ---
+    //
+    // Every scan above is keyed by tabKey and pairs local against cloud by it,
+    // so a tab that only MOVED has a byte-identical partner and produces
+    // nothing at all. The strip has offered ◀ ▶ since v0.15 item 8 and the move
+    // was discarded in silence - the same fault item 8 fixed for character
+    // pages, in the one place it was never wired up.
+    //
+    // Three tests, matching scanOrder in js/editor-core.js rather than
+    // inventing a second rule: same length, different sequence, same members.
+    // A tab added or removed is already covered by the two loops above, and
+    // comparing raw sequences without the membership test would emit an order
+    // delta on every ordinary add.
+    const localTabKeys = localTabs.map(t => t.tabKey);
+    const cloudTabKeys = cloudTabs.map(t => t.tabKey);
+    if (localTabKeys.length === cloudTabKeys.length
+        && localTabKeys.join(' ') !== cloudTabKeys.join(' ')
+        && [...localTabKeys].sort().join(' ') === [...cloudTabKeys].sort().join(' ')) {
+        deltas.push({ scope: 'system_tab_order', key: 'full', payload: localTabKeys });
+    }
+
     // --- Sections ---
     // Tier list tabs hold tiers and a changelog rather than sections, so this
     // loop simply finds nothing for them and the branch below covers them.

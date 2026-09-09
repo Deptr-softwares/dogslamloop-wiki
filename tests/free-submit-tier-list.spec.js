@@ -28,6 +28,10 @@ const CHARS = (NAV.Characters || [])
     .map(e => e.cms_config && e.cms_config.pageId)
     .filter(Boolean);
 
+// The portrait manifest, for the same reason: which characters have art is
+// owner content and changes without notice. Read, never listed.
+const PORTRAITS = require('../data/portraits.json');
+
 const SCALE = [
     { tier: 'S', rank: 6, color: 'hsl(0, 80%, 60%)' },
     { tier: 'A', rank: 5, color: 'hsl(30, 80%, 60%)' },
@@ -223,6 +227,59 @@ test.describe('the board', () => {
         // Derived from the roster rather than a pinned number, so this stays
         // true when the owner adds a character.
         await expect(page.locator('.fs-entry')).toHaveCount(CHARS.length);
+    });
+
+    // --- v0.18 FT3: FACES, NOT NAMES ON COLOURED SQUARES ---
+    //
+    // loadRoster read `entry.image` off a navigation.json entry, and
+    // navigation.json has no `image` field on any character - so the src was
+    // never set and the name underneath, which is the deliberate 404 fallback,
+    // was all anyone ever saw. The portraits are in data/portraits.json, which
+    // js/certified-tier-lists.js was already reading a few lines from an
+    // otherwise identical loadRoster.
+    test('a character with a portrait renders it, and it actually loads', async ({ page }) => {
+        await mockTool(page, { rankings: [] });
+        await page.goto(PAGE);
+        await expect(page.locator('.fs-entry')).toHaveCount(CHARS.length);
+
+        // Derived from the manifest, not pinned: whichever character happens to
+        // be first in it is the subject, so this survives the owner adding,
+        // removing or renaming one.
+        const withPortrait = Object.keys(PORTRAITS)[0];
+        test.skip(!withPortrait, 'no portraits in the manifest to test against');
+
+        const img = page.locator(`.fs-entry[data-character="${withPortrait}"] .tier-portrait-img`);
+        await expect(img).toHaveCount(1);
+
+        // SAME-ORIGIN, and that is not a detail. A cross-origin image taints a
+        // canvas, and the PNG export's toBlob() throws on a tainted one.
+        const src = await img.getAttribute('src');
+        expect(src, 'the portrait must come from the local mirror').toContain('medias/portraits/');
+        expect(src).not.toMatch(/^https?:\/\//);
+
+        // THE RENDERED CONSEQUENCE. An src attribute that 404s sets itself to
+        // display:none and leaves the reader looking at the same coloured
+        // square as before, which is the bug this test exists for - so the
+        // assertion is that the browser decoded it.
+        const decoded = await img.evaluate(el => el.complete && el.naturalWidth > 0);
+        expect(decoded, `${withPortrait}'s portrait did not load from ${src}`).toBe(true);
+    });
+
+    test('a character with no portrait still shows its name', async ({ page }) => {
+        // TWO DESIGNED STATES, NOT ONE. Asserting every character resolves a
+        // portrait would be a test the owner can turn red by creating a
+        // character before its art exists - and that is a production outage,
+        // because regenerate.yml commits only after the suite passes. It has
+        // happened twice. So the claim is the FALLBACK, which is the half that
+        // has to keep working.
+        const missing = CHARS.filter(id => !PORTRAITS[id]);
+        test.skip(!missing.length, 'every character currently has a portrait');
+
+        await mockTool(page, { rankings: [] });
+        await page.goto(PAGE);
+
+        const entry = page.locator(`.fs-entry[data-character="${missing[0]}"]`);
+        await expect(entry.locator('.tier-portrait-name')).toBeVisible();
     });
 });
 
@@ -512,5 +569,68 @@ test.describe('the migration', () => {
         // get_my_role() returns NULL for a signed-in user with no role, and the
         // obvious operator would deny every ordinary contributor.
         expect(sql).toMatch(/my_role IS NOT DISTINCT FROM 'viewer'/);
+    });
+});
+
+// --- v0.18 batch 3.5: the board's characters were tiny ---
+//
+// Owner, 2026-09-09: "make the free submit character boxes bigger and almost
+// fill up the width, right now they are tiny". They were the shared 60px, in a
+// row roughly 900px wide.
+test.describe('the size of a character on the board', () => {
+    test.skip(CHARS.length < 4, 'needs a few characters to fill a row');
+
+    test('an entry grows into the row instead of sitting at 60px', async ({ page }) => {
+        await mockTool(page, {
+            rankings: CHARS.slice(0, 4).map(id => ({
+                character_id: id, vote_count: 40, median_tier: 'S', median_rank: 6,
+                distribution: { S: 40 }, ranked: true,
+            })),
+        });
+        await page.goto(PAGE);
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await expect(page.locator('.fs-entry').first()).toBeVisible();
+
+        const sRow = page.locator('.fs-tier-row').filter({ has: page.locator('.fs-tier-label', { hasText: /^S$/ }) });
+        const measured = await sRow.locator('.fs-entry .tier-portrait').first()
+            .evaluate(el => Math.round(el.getBoundingClientRect().width));
+
+        // MEASURED, not read off the declared width: these are flex children
+        // now, so what they actually occupy depends on the row - which is the
+        // whole point of the change and the only thing the owner can see.
+        expect(measured, 'still the old 60px').toBeGreaterThan(90);
+    });
+
+    test('one character in a tier does not become a 900px box', async ({ page }) => {
+        // The cap. Growing into the row is right; growing without limit turns a
+        // sparse tier into one enormous portrait, which is the obvious way for
+        // "fill the width" to be taken too literally.
+        await mockTool(page, {
+            rankings: [{
+                character_id: CHARS[0], vote_count: 40, median_tier: 'S', median_rank: 6,
+                distribution: { S: 40 }, ranked: true,
+            }],
+        });
+        await page.goto(PAGE);
+        await page.setViewportSize({ width: 1280, height: 900 });
+
+        const sRow = page.locator('.fs-tier-row').filter({ has: page.locator('.fs-tier-label', { hasText: /^S$/ }) });
+        const measured = await sRow.locator('.fs-entry .tier-portrait').first()
+            .evaluate(el => Math.round(el.getBoundingClientRect().width));
+
+        expect(measured).toBeLessThanOrEqual(172);
+    });
+
+    test('the box stays square as it grows', async ({ page }) => {
+        // aspect-ratio rather than a matching height, so the two cannot drift
+        // when the cap moves. A stretched portrait is the failure this catches.
+        await mockTool(page, { rankings: [] });
+        await page.goto(PAGE);
+        await page.setViewportSize({ width: 1280, height: 900 });
+        await expect(page.locator('.fs-entry').first()).toBeVisible();
+
+        const box = await page.locator('.fs-entry .tier-portrait').first()
+            .evaluate(el => { const r = el.getBoundingClientRect(); return { w: r.width, h: r.height }; });
+        expect(Math.abs(box.w - box.h), `${box.w} x ${box.h} is not square`).toBeLessThan(2);
     });
 });

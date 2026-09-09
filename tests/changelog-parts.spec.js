@@ -21,10 +21,15 @@ const PAGE = '/systems/updatelog/index.html';
 
 // --- THE DATA ---
 
-test('the newest entry is v0.17, named and dated', async () => {
+// Deliberately PINNED to the current release rather than generalised to "the
+// newest entry is well formed". The pin is what fails when a release forgets to
+// write its changelog entry at all - a shape check would pass happily with the
+// previous version still sitting at the top, which is the vacuous form. Updating
+// this line is part of shipping a release.
+test('the newest entry is v0.18, named and dated', async () => {
     const first = UPDATES.changelogs[0];
-    expect(first.version).toBe('Beta v0.17');
-    expect(first.title).toBe("The 'Expert' Update");
+    expect(first.version).toBe('Beta v0.18');
+    expect(first.title).toBe("The 'Gallery' Update");
     expect(first.date).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
 });
 
@@ -50,10 +55,21 @@ test('every part has at least one line under it', async () => {
     }
 });
 
-test('no older entry was rewritten', async () => {
-    // The whole point of an additive shape. Eighteen entries existed before
-    // this and none of them should have gained a heading.
-    for (const log of UPDATES.changelogs.slice(1)) {
+test('no entry older than the parts change was rewritten', async () => {
+    // The whole point of an additive shape: every entry written before v0.17
+    // is a flat array of strings and must still render exactly as it did.
+    //
+    // Anchored on v0.17 rather than on "everything after the newest entry",
+    // which is what this asserted first and which only worked while v0.17 WAS
+    // the newest. The second release to use headings broke it - the test was
+    // describing a moment, not a rule.
+    const cutoff = UPDATES.changelogs.findIndex(l => l.version === 'Beta v0.17');
+    expect(cutoff, 'v0.17 is still in the log').toBeGreaterThan(-1);
+
+    const older = UPDATES.changelogs.slice(cutoff + 1);
+    expect(older.length, 'there are older entries to check').toBeGreaterThan(0);
+
+    for (const log of older) {
         const objects = (log.changes || []).filter(c => c && typeof c === 'object');
         expect(objects, `${log.version} is untouched`).toEqual([]);
     }

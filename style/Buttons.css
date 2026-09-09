@@ -16,13 +16,27 @@ button {
 /* =========================================
    FAMILY 1: SYSTEM BUTTONS
    ========================================= */
+/* THE definition of .btn-sys. style/editor.css carried a byte-identical copy
+   of this whole family until v0.18 A3 - unscoped, and loaded after this file,
+   so the editor's copy silently won on every editor page. A fix made here did
+   not reach admin.html, edit.html, owner.html, post-editor.html or
+   tier-editor.html, which is the trap CLAUDE.md's "check every consumer" rule
+   is about. editor.css now defines only its legacy aliases.
+
+   `cursor: pointer` moved up from that copy rather than being dropped with it:
+   a <button> defaults to an arrow, so .btn-sys had no pointer anywhere except
+   the editor. Its `outline: none` was deliberately NOT carried over - it
+   suppressed the keyboard focus ring, and browsers gate that behind
+   :focus-visible anyway, so mouse users see no change and keyboard users get
+   the ring back on editor pages. */
 .btn-sys {
     display: inline-flex; align-items: center; justify-content: center;
     font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold;
-    text-transform: uppercase; padding: 0.4rem 0.75rem; 
+    text-transform: uppercase; padding: 0.4rem 0.75rem;
     transition: all 0.15s ease-in-out; box-sizing: border-box;
     background: rgba(0, 0, 0, 0.6); border: 1px solid #555;
     color: var(--text-primary); white-space: nowrap; text-decoration: none;
+    cursor: pointer;
 }
 .btn-sys:hover:not(:disabled) { transform: translateY(-2px); }
 .btn-sys:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: none !important; }

@@ -131,6 +131,19 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         return;
     }
 
+    // --- A tab that brings its own editor ---
+    //
+    // Looked up in the vocabulary rather than tested by name: a keyed section
+    // declares `editorFn` when its entries are not blocks-under-a-key and the
+    // shared keyed editor would be the wrong screen. The character Gallery tab
+    // (v0.18 F9) is the first, and this is the branch that would otherwise have
+    // been `if (tabId === 'gallery')`.
+    const tabSection = window.getKeyedSectionByTab ? window.getKeyedSectionByTab(tabId) : null;
+    if (tabSection && tabSection.editorFn && typeof window[tabSection.editorFn] === 'function') {
+        window[tabSection.editorFn](builder);
+        return;
+    }
+
     // --- Reroute to the Tool setup ---
     // A tool page is a link or an app plus two blocks of prose, not tabs of
     // sections - routing it through the system builder would offer a tab
@@ -1087,7 +1100,16 @@ window.renderDocumentListEditor = function (tabId) {
 
     const openTable = window.currentDocTableIndex;
 
-    let html = `<div class="daw-variant-tabs daw-editor-nav-row">`;
+    // v0.18 F3. Combo groups have had reordering since v0.15 item 8 and the
+    // list beside them never did, so three Combo Lists could only be read in
+    // the order they were created in.
+    //
+    // `section.field` rather than a literal, so the Techs tab's techList gets
+    // this from the same line - the vocabulary in js/character_tabs.js is what
+    // separates the two tabs, and writing 'comboList' here would be the second
+    // place that decision lives.
+    let html = window.reorderStripControls(`desc.${section.field}`);
+    html += `<div class="daw-variant-tabs daw-editor-nav-row">`;
     if (tables.length === 0) {
         html += `<span class="daw-empty-state">No ${esc(nounPlural)} defined yet.</span>`;
     } else {
@@ -1118,15 +1140,19 @@ window.renderDocumentListEditor = function (tabId) {
             window.renderDocumentPreview(tabId);
         });
     });
+    // Shared by + STARTER and by the reorder bar's insert-in-place button, so
+    // the two cannot drift: insertListItemAfter runs this and then relocates
+    // whatever it appended, rather than building a second copy of the shape.
+    const appendTable = () => {
+        tables.push({ [section.keyField]: `New ${noun}`, rows: [] });
+        window.currentDocTableIndex = tables.length - 1;
+        window.renderDocumentListEditor(tabId);
+        window.renderDocumentPreview(tabId);
+    };
+    window.registerInserter(`desc.${section.field}`, appendTable);
+
     const addTable = host.querySelector('#combo-table-add');
-    if (addTable) {
-        addTable.addEventListener('click', () => {
-            tables.push({ [section.keyField]: `New ${noun}`, rows: [] });
-            window.currentDocTableIndex = tables.length - 1;
-            window.renderDocumentListEditor(tabId);
-            window.renderDocumentPreview(tabId);
-        });
-    }
+    if (addTable) addTable.addEventListener('click', appendTable);
 
     renderDocumentListRows(tabId, section, tables);
 };
@@ -1161,8 +1187,25 @@ function renderDocumentListRows(tabId, section, tables) {
     if (table.rows.length === 0) {
         html += `<p class="admin-tool-hint">${esc(section.emptyEntryMessage || 'Nothing here yet.')}</p>`;
     } else {
+        // v0.18 F4. PER-ROW controls, deliberately not the fixed bar every strip
+        // above uses.
+        //
+        // js/editor-reorder.js rejected per-item controls because they travelled
+        // with the entry being moved and acted on "the selected one", so a second
+        // nudge meant chasing them along the row. Neither objection applies here:
+        // a row has NO selected state to act on - opening one opens a modal - and
+        // the list is vertical, so the buttons stay on the same line the eye is
+        // already on. A fixed bar would need a selection concept invented for it.
+        //
+        // window.moveListItem is still the shared primitive, so the array
+        // handling is the one that has been proven since v0.15 item 8.
+        const lastRow = table.rows.length - 1;
         table.rows.forEach((row, i) => {
             html += `<div class="combo-row-item">
+                <span class="combo-row-move">
+                    <button type="button" class="combo-row-up btn-sys btn-sys-regular" data-row="${i}"${i === 0 ? ' disabled' : ''} title="Move up" aria-label="Move this entry up">&#9650;</button>
+                    <button type="button" class="combo-row-down btn-sys btn-sys-regular" data-row="${i}"${i === lastRow ? ' disabled' : ''} title="Move down" aria-label="Move this entry down">&#9660;</button>
+                </span>
                 <button type="button" class="combo-row-open btn-sys btn-sys-regular" data-row="${i}">${esc(comboRowSummary(row || {}))}</button>
                 <button type="button" class="combo-row-remove btn-sys btn-sys-red" data-row="${i}" title="Remove this entry">&#10006;</button>
             </div>`;
@@ -1185,6 +1228,20 @@ function renderDocumentListRows(tabId, section, tables) {
     container.querySelectorAll('.combo-row-open').forEach(btn => {
         btn.addEventListener('click', () =>
             window.openDocumentRowModal(tabId, idx, parseInt(btn.getAttribute('data-row'), 10)));
+    });
+    // Row order rides inside the table's own delta rather than needing a scope:
+    // the entry keyed by `starter` ships whole when it differs, and moving a row
+    // changes that object. Proven in tests/combo-row-order.spec.js rather than
+    // assumed, because that is the assumption B2 turned out to have got wrong
+    // one level up.
+    container.querySelectorAll('.combo-row-up, .combo-row-down').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const from = parseInt(btn.getAttribute('data-row'), 10);
+            const dir = btn.classList.contains('combo-row-up') ? -1 : 1;
+            if (!window.moveListItem(table.rows, from, dir)) return;
+            renderDocumentListRows(tabId, section, tables);
+            window.renderDocumentPreview(tabId);
+        });
     });
     container.querySelectorAll('.combo-row-remove').forEach(btn => {
         btn.addEventListener('click', async () => {

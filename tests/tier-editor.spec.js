@@ -747,3 +747,200 @@ test('short tier names keep the full size', async ({ page }) => {
     expect(sizes.length).toBe(2);
     sizes.forEach(size => expect(size).toBe(24)); // 1.5rem at the 16px root
 });
+
+// --- v0.18 FT4: THE CONTRIBUTOR PICKS THE ART ---
+
+test('the control loads the choice already stored on the list', async ({ page }) => {
+    await openEditor(page, { list: { ...LIST, art_style: 'icon' } });
+    await expect(page.locator('#tier-art-style')).toHaveValue('icon');
+});
+
+test('a list from before the column existed shows the default', async ({ page }) => {
+    // The normal state between writing a migration and the release: the column
+    // is simply absent from the row. It must read as "portrait", which is what
+    // every such list actually renders as - not as blank, and not as icon.
+    await openEditor(page);
+    await expect(page.locator('#tier-art-style')).toHaveValue('portrait');
+});
+
+// .editor-select is enhanced into the site's own dropdown, so the native
+// <select> is not what a contributor clicks and page.selectOption() cannot
+// reach it - it times out on an element the site has hidden. That is the right
+// outcome rather than a nuisance: a bare .editor-input here would have rendered
+// an OS dropdown among a page of custom ones, which is the exact bug
+// media-framing.spec.js exists to hold shut. Driving the real control is also
+// the only way to prove the change listener fires, because the custom dropdown
+// dispatches `change` and nothing else.
+async function pickArtStyle(page, label) {
+    const wrapper = page.locator('#tier-art-style + .manga-select-wrapper');
+    await wrapper.locator('.manga-select-trigger').click();
+    try {
+        await expect(wrapper).toHaveClass(/open/, { timeout: 2000 });
+    } catch {
+        await wrapper.locator('.manga-select-trigger').click();
+        await expect(wrapper).toHaveClass(/open/);
+    }
+    await wrapper.locator('.manga-option', { hasText: label }).first().click();
+}
+
+test('the art control is the site dropdown, not the browser one', async ({ page }) => {
+    await openEditor(page);
+    await expect(page.locator('#tier-art-style + .manga-select-wrapper')).toHaveCount(1);
+});
+
+test('changing the art redraws the board immediately, not on save', async ({ page }) => {
+    // Choosing between two pieces of art is a decision you make by LOOKING at
+    // them. A control whose effect only appears after a round trip is one
+    // nobody trusts enough to try - and the editor board showing portraits
+    // while the reader page shows icons is how a shipped feature reads as
+    // broken.
+    await openEditor(page);
+
+    const before = await page.locator('.tier-portrait-img').first().getAttribute('src');
+    expect(before).not.toContain('medias/images/');
+
+    await pickArtStyle(page, 'Icons');
+    await page.waitForTimeout(300);
+
+    const after = await page.locator('.tier-portrait-img').first().getAttribute('src');
+    expect(after, 'the board has to follow the control').toContain('medias/images/');
+    await expect(page.locator('.tier-portrait-icon').first()).toBeVisible();
+});
+
+test('saving carries the art choice with everything else', async ({ page }) => {
+    await openEditor(page);
+    await pickArtStyle(page, 'Icons');
+    await saveBtn(page).click();
+
+    const call = await page.evaluate(() => window.__rpcCalls.find(c => c.name === 'save_tier_list'));
+    expect(call.params.p_art_style).toBe('icon');
+});
+
+test('somebody else\'s list cannot have its art changed either', async ({ page }) => {
+    // The client half only. save_tier_list re-checks the row itself, because
+    // this control is reachable by anyone who can open the page.
+    await openEditor(page, { session: { id: 'someone-else' } });
+    await expect(page.locator('#tier-art-style')).toBeDisabled();
+});
+
+test.describe('the art_style migration', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const SQL = fs.readFileSync(path.join(__dirname, '..', 'supabase', 'migrations',
+        '20260909000000_tier_list_art_style.sql'), 'utf8');
+
+    test('the legal values are a database constraint, not just a dropdown', () => {
+        // The renderer branches on this value and a stray one falls through to
+        // whichever side the branch treats as its default. PostgREST is
+        // reachable directly, so the set of legal answers is stated where it
+        // cannot be bypassed.
+        expect(SQL).toMatch(/CHECK\s*\(\s*"art_style"\s+IN\s*\(\s*'portrait'\s*,\s*'icon'\s*\)/);
+    });
+
+    test('the default leaves every existing list exactly as it was', () => {
+        expect(SQL).toMatch(/ADD COLUMN IF NOT EXISTS "art_style" text NOT NULL DEFAULT 'portrait'/);
+    });
+
+    test('the rebuilt RPC revokes the default PUBLIC grant', () => {
+        // Postgres grants EXECUTE to PUBLIC on creation, so every new or
+        // recreated function starts exposed to anonymous callers.
+        //
+        // Plain substrings rather than a built regex: the signature is full of
+        // parentheses and the escaping got this wrong once already, in a way
+        // that turned "(uuid, ...)" into a capture group and quietly matched
+        // nothing.
+        const FN = '"public"."save_tier_list"(uuid, jsonb, jsonb, jsonb, jsonb, text, text)';
+        expect(SQL).toContain(`REVOKE ALL ON FUNCTION ${FN} FROM PUBLIC;`);
+        expect(SQL).toContain(`REVOKE ALL ON FUNCTION ${FN} FROM "anon";`);
+        expect(SQL).toContain(`GRANT EXECUTE ON FUNCTION ${FN} TO "authenticated";`);
+    });
+
+    test('the old signature is dropped, not left as an overload', () => {
+        // Six args, not seven: the one that exists in production today. Left
+        // behind, PostgREST could still resolve a call to it and write a list
+        // with the art_style silently dropped.
+        expect(SQL).toContain(
+            'DROP FUNCTION IF EXISTS "public"."save_tier_list"(uuid, jsonb, jsonb, jsonb, jsonb, text);');
+    });
+
+    test('the rebuilt body keeps is_owner and never names a role', () => {
+        // THE ONE THAT MATTERS. This function is recreated wholesale, and the
+        // body was carried from 20260827000003_owner_role.sql rather than from
+        // 20260818000000, which still reads get_my_role() = 'admin'. Copying
+        // the older one would have re-locked the owner out of every tier list,
+        // silently, while looking like a faithful copy.
+        const body = SQL.slice(SQL.indexOf('CREATE OR REPLACE FUNCTION'));
+        expect(body).toContain('"public"."is_owner"()');
+        expect(body, 'a literal role name is how v0.16 bug 6 happened')
+            .not.toMatch(/get_my_role\(\)\s*=\s*'/);
+    });
+
+    test('the per-row check survives the rebuild', () => {
+        // The OR half is what keeps a list-holder in their own list. A rewrite
+        // that lost it would lock every contributor out of the thing they own.
+        expect(SQL).toMatch(/target\.owner_id IS NOT NULL AND target\.owner_id = "auth"\."uid"\(\)/);
+    });
+
+    test('an omitted art_style leaves the stored one alone', () => {
+        expect(SQL).toMatch(/art_style = COALESCE\("p_art_style", art_style\)/);
+    });
+
+    test('SECURITY DEFINER still pins its search_path', () => {
+        expect(SQL).toMatch(/SET "search_path" TO 'public'/);
+    });
+});
+
+// --- v0.18 batch 3.5 ---
+
+test('the editor draws the CURRENT portraits, not the old guessed ones', async ({ page }) => {
+    // THE THIRD COPY OF loadRoster, AND THE SECOND FOUND BROKEN. It read
+    // `entry.image` off a navigation.json entry, which carries no image field
+    // on any character - so meta.image was undefined and portrait() fell
+    // through to a guessed Supabase URL built from the display name. That URL
+    // 404s for the five characters whose files end "Portrait2.webp" or drop the
+    // suffix, and resolves to STALE art for the rest, which is what the owner
+    // saw: the editor showing old portraits while the reader page showed
+    // current ones.
+    await openEditor(page);
+
+    const src = await page.locator('.tier-portrait-img').first().getAttribute('src');
+    expect(src, 'the local mirror, same as every other surface').toContain('medias/portraits/');
+    expect(src, 'never the guessed cloud URL').not.toContain('supabase.co');
+});
+
+test('the art options are named, not explained', async ({ page }) => {
+    // Owner, 2026-09-09: "remove the flavor text beside the two options". The
+    // dropdown is two words wide now, and the heading above it already says
+    // what it is for.
+    await openEditor(page);
+
+    const labels = await page.locator('#tier-art-style option').allTextContents();
+    expect(labels).toEqual(['Portraits', 'Icons']);
+
+    // The site dropdown mirrors the native options, so it has to agree - a
+    // stale copy there is what a contributor would actually read.
+    const rendered = await page.locator('#tier-art-style + .manga-select-wrapper .manga-option')
+        .allTextContents();
+    expect(rendered.map(t => t.trim())).toEqual(['Portraits', 'Icons']);
+});
+
+test('the editor board mirrors the icon treatment the reader will get', async ({ page }) => {
+    // A contributor picking icons is previewing a decision. If the board keeps
+    // the coloured fill while the live page moves the colour to the border,
+    // they are choosing against the wrong picture.
+    await openEditor(page);
+    await pickArtStyle(page, 'Icons');
+    await page.waitForTimeout(300);
+
+    const box = await page.locator('.tier-portrait').first().evaluate(el => ({
+        borderWidth: getComputedStyle(el).borderTopWidth,
+        hatching: getComputedStyle(el).backgroundImage,
+        charColor: el.style.getPropertyValue('--char-color').trim(),
+        inlineBg: el.style.backgroundColor,
+    }));
+
+    expect(box.charColor).toBeTruthy();
+    expect(box.inlineBg).toBe('');
+    expect(box.borderWidth).toBe('3px');
+    expect(box.hatching).toContain('repeating-linear-gradient');
+});

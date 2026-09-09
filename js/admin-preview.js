@@ -451,7 +451,19 @@ async function switchVersionView(mode) {
                     const oldEntry = liveDesc[section.field]?.find(e => e[section.keyField] === key) || {};
                     if (payload === null) {
                         renderDiffBlock(`${section.entryLabel} Deleted`, oldEntry, null, 'json');
-                    } else {
+                    }
+                    // An entry that is a flat object rather than blocks-with-a-key:
+                    // a gallery item is { name, src, alt, tags, note } and has no
+                    // `.content` at all. Splitting it into "Metadata" plus
+                    // "Notes" would show the reviewer the name and then diff two
+                    // empty arrays for everything that actually changed - which
+                    // is the Combo List bug described below, in a new place.
+                    // Declared in the registry rather than tested by name, the
+                    // same way rowsField and metaField are.
+                    else if (section.wholeEntryDiff) {
+                        renderDiffBlock(section.entryLabel, oldEntry, payload, 'json');
+                    }
+                    else {
                         const meta = (e) => {
                             const m = { [section.keyField]: e[section.keyField] };
                             if (section.metaField) m[section.metaField] = e[section.metaField];
@@ -606,6 +618,23 @@ async function switchVersionView(mode) {
                                 { order: payload.order.map(nameFor) });
                         }
                     }
+                }
+                // THE ORDER OF THE TABS THEMSELVES - v0.18 B2.
+                //
+                // Rendered as the tab LABELS the keys resolve to, exactly as
+                // Section Order is one level down: a reviewer approving a
+                // reorder should read "Basics, Advanced" and not
+                // "basics, advanced". The key is derived by slugifying, so for
+                // a renamed tab the two differ enough to matter.
+                else if (scope === 'system_tab_order') {
+                    const indexed = window.indexSystemTabs(liveDesc);
+                    const nameFor = (tabKey) => {
+                        const hit = indexed.find(t => t.tabKey === tabKey);
+                        return (hit && hit.tab && hit.tab.tabLabel) || tabKey;
+                    };
+                    renderDiffBlock('Tab Order',
+                        { order: indexed.map(t => nameFor(t.tabKey)) },
+                        { order: (payload || []).map(nameFor) });
                 }
                 else if (scope === 'tierlist_tiers' || scope === 'tierlist_changelog') {
                     const tab = window.findSystemTab(liveDesc, key) || {};

@@ -190,7 +190,55 @@
         {
             id: 'gallery', label: 'Gallery',
             panelClass: 'vessel-content',
-            editable: false, frameMoves: false, modeScoped: false,
+            // `editable` flipped in v0.18 F9. It was false from v0.12 because
+            // the tab had no editor or reviewer representation at all, and that
+            // flag is what kept it out of EDITOR_MAJOR_TABS (editor-tabs.js:16)
+            // and ADMIN_CHARACTER_TABS (admin-modes.js:55). Both strips pick it
+            // up from this one word.
+            //
+            // modeScoped stays false: a character's media is the character's,
+            // not one state's (js/character_modes.js:10).
+            editable: true, frameMoves: false, modeScoped: false,
+            // Declared HERE rather than in EXTRA_KEYED_SECTIONS because the
+            // gallery is the whole of its tab, so field === tab id - which is
+            // what lets getKeyedSectionByTab('gallery') resolve it and keeps the
+            // editor's dispatch a registry lookup instead of a name test. The
+            // sections in EXTRA_KEYED_SECTIONS are the ones that share a tab
+            // with something else and therefore cannot use that lookup.
+            //
+            // ONE DELTA PER ITEM, keyed by name. A gallery is the one thing many
+            // people add to independently: two contributors uploading different
+            // clips touch different keys and can never collide, and a reviewer
+            // approving one does not carry the other's half-finished work with
+            // it. Same reasoning js/editor-gallery.js:11-16 recorded for the
+            // gallery PAGE TYPE.
+            //
+            // `charGalleryItem`, NOT `gallery_item`. That scope already exists
+            // and writes to newDesc.items (js/site_utils.js:894) for the gallery
+            // page type; reusing it would file a character's media under the
+            // wrong field on the wrong page. The label says "Character Gallery
+            // Item" for the same reason - a reviewer must be able to tell the
+            // two apart at a glance in the queue.
+            keyed: {
+                keyField: 'name', scope: 'charGalleryItem',
+                entryLabel: 'Character Gallery Item',
+                // The item shape is deliberately identical to the page type's
+                // ({ name, src, alt, tags, note } - js/gallery.js:9-16), so the
+                // reader card and the editor row are the existing ones in a
+                // different container rather than a second design.
+                customRenderer: true, customEditor: true,
+                rendererFn: 'renderCharacterGalleryTab',
+                editorFn: 'renderCharacterGalleryEditor',
+                // A gallery item is a flat object with no `content` array of
+                // blocks. The reviewer's generic keyed branch would otherwise
+                // show the name and then diff two empty arrays for the media,
+                // which is how the Combo List reviewed as "no change" while
+                // applying perfectly (js/admin-preview.js:462).
+                wholeEntryDiff: true,
+                unitNoun: 'Gallery Item',
+                emptyMessage: 'No media has been added for this character yet.',
+                emptyEntryMessage: 'Nothing recorded for this item yet.',
+            },
         },
     ];
 
@@ -705,11 +753,13 @@
             };
         };
 
-        const addMajor = (tabId, title) => {
+        // `tabLabel` is an override for the system-page branch below, whose tab
+        // names are authored per page and are not in CHARACTER_TABS.
+        const addMajor = (tabId, title, tabLabel) => {
             const entry = mint(title);
             if (!entry) return null;
             entry.tab = tabId;
-            entry.tabLabel = labels[tabId] || tabId;
+            entry.tabLabel = tabLabel || labels[tabId] || tabId;
             entry.children = [];
             targets.push(entry);
             return entry;
@@ -718,15 +768,59 @@
         // A minor heading belongs to the major section above it. With none -
         // a page whose first heading is a block heading - it stands alone,
         // exactly as the ToC treats an orphan.
-        const addMinor = (tabId, parent, title) => {
+        const addMinor = (tabId, parent, title, tabLabel) => {
             const entry = mint(title);
             if (!entry) return;
             if (parent) { parent.children.push(entry); return; }
             entry.tab = tabId;
-            entry.tabLabel = labels[tabId] || tabId;
+            entry.tabLabel = tabLabel || labels[tabId] || tabId;
             entry.children = [];
             targets.push(entry);
         };
+
+        // --- A SYSTEM PAGE (v0.18 F5) ---
+        //
+        // Its content is desc.tabs, not the character fields below, so the walk
+        // that follows finds nothing on one - which is why inserting an in-page
+        // link on a system page offered exactly one target, "Discussion", and
+        // none of the sections actually on the page. THE READER SIDE ALREADY
+        // WORKED: assignSectionAnchors sweeps the DOM and system section
+        // headings carry .section-title, so the ids exist and jumpToAnchor
+        // reaches them. Only the picker could not name them.
+        //
+        // The order here is the RENDERED order - tab by tab, section by
+        // section, minor headings inside each - because that is what decides
+        // the numbering when two sections share a title. mint() hands the first
+        // "Notes" sec-notes and the second sec-notes-2, and assignSectionAnchors
+        // does the same walking the DOM. Walking these in any other order would
+        // produce ids that look right and point at the wrong section.
+        if (Array.isArray(data.tabs)) {
+            data.tabs.forEach(tab => {
+                if (!tab) return;
+                const tabId = tab.tabId || '';
+                const tabLabel = tab.tabLabel || tabId;
+                (tab.sections || []).forEach(section => {
+                    if (!section) return;
+                    // A section with no title renders no <h2>, so it mints no
+                    // anchor - but its blocks still can, and they attach to
+                    // whatever major heading precedes them exactly as an orphan
+                    // block heading does on a character page.
+                    const parent = addMajor(tabId, section.sectionTitle, tabLabel);
+                    collectHeadings(section.blocks, t => addMinor(tabId, parent, t, tabLabel));
+                });
+            });
+
+            STRUCTURAL_SECTIONS.forEach(section => {
+                const entry = mint(section.title);
+                if (!entry) return;
+                entry.tab = section.tab;
+                entry.tabLabel = section.tabLabel;
+                entry.children = [];
+                targets.push(entry);
+            });
+
+            return targets;
+        }
 
         const frameCategories = window.FRAME_MOVE_CATEGORIES || [];
 

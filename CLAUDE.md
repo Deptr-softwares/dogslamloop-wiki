@@ -101,6 +101,7 @@ Restricting an editable tool page to one person is configuration, not code: `sit
 - Escape at **every** `innerHTML` interpolation. Contributor-submitted names, chat, QA notes and error messages are all attacker-reachable. Never build user-influenced values into an inline `onclick` — use `data-` attributes with a delegated listener.
 - Shared CSS classes are used across contexts that don't reference each other. A change to `.btn-sys`, `.btn-manga` or similar needs checking against every consumer, not just the page under investigation.
 - Small per-file duplication is preferred over new cross-file coupling (see `owner.js` reimplementing `kickUser`/`adminConfirm` rather than importing from `admin-core.js`).
+- **Three files carry a near-identical `loadRoster`, and two of them have already drifted the same way.** `js/certified-tier-lists.js`, `js/tools/free_submit_tier_list.js` and `js/tier-editor.js` each read `navigation.json` and then merge `data/portraits.json` onto it. `navigation.json` has **no `image` field on any character**, so a copy that forgets the manifest silently falls through to a guessed Supabase URL — stale art, and a 404 for the five characters whose files end `Portrait2.webp` or drop the suffix. Free Submit shipped that way until v0.18 FT3; the tier editor until batch 3.5, one batch later. **Change all three together, and check the other two whenever you touch one.** Unifying them is the owner's call, not a refactor to make in passing.
 
 ## History
 

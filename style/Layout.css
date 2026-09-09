@@ -569,6 +569,72 @@ a.reading-step-title:hover { color: var(--accent-blue); }
    owns the gesture entirely once it starts. */
 .tier-portrait.draggable-portrait { cursor: grab; touch-action: none; }
 .tier-portrait-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; z-index: 3; pointer-events: none; }
+
+/* v0.18 FT4 - a list rendered with roster ICONS rather than portraits.
+   `contain`, not `cover`, and that is the whole difference: a portrait is a
+   tall crop of a full-body render and wants cropping to a square, while a
+   roster icon is ALREADY square and drawn to its own edges, so cropping it
+   trims the art. Same treatment .roster-card-icon gets in style/Cards.css,
+   deliberately - it is the same file being drawn at a similar size, and two
+   answers to that would be visible side by side on the same site. */
+.tier-portrait-icon .tier-portrait-img { object-fit: contain; }
+
+/* Batch 3.5, owner 2026-09-09: in icon mode the box should "mimic the Boxes on
+   the Roster Selection".
+
+   THE CHARACTER COLOUR MOVES FROM THE FILL TO THE BORDER, which is the whole
+   of that treatment (owner, 2026-08-24, on the roster). An icon is drawn to sit
+   on the site's dark ground, so filling the box with the character's colour
+   fights the art instead of framing it - and on a dark-coded character it
+   leaves a dark icon on a dark square.
+
+   Every value here is copied from .roster-card.has-icon in style/Cards.css
+   rather than re-chosen: same -45deg hatching at the same 2px/8px rhythm and
+   the same 0.06 alpha, same 3px border. Two answers to "what does an icon box
+   look like" would be visible on one site, and this is the second surface to
+   ask the question.
+
+   The colour arrives as --char-color rather than as an inline background,
+   because an inline style would beat every rule here. Both portrait() renderers
+   set one or the other, never both. */
+.tier-portrait.tier-portrait-icon {
+    border-width: 3px;
+    border-color: var(--char-color, var(--border-color));
+    background-color: var(--bg-main);
+    background-image: repeating-linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.06) 0px,
+        rgba(255, 255, 255, 0.06) 2px,
+        transparent 2px,
+        transparent 8px
+    );
+}
+
+/* v0.18 batch 3.5 - the editor's draggable boxes. Owner: "as big as possible".
+   96px because the drop zone is ALREADY 96px tall (.tier-editor-row .ctl-chars
+   and .tier-editor-tray both set min-height: 96px in style/tier-editor.css), so
+   this fills the row that exists rather than inventing a number and then
+   growing the row to match.
+
+   Scoped to the editor's own containers, NOT applied to .tier-portrait. The
+   certified reader sets its own 78px and the history renderer keeps the base
+   60px; one shared size for three surfaces is what these overrides exist to
+   avoid.
+
+   The comments on the 60px assertions in tests/tier-portrait-hover.spec.js and
+   tests/tierlist-live-dedupe.spec.js said the editor kept that size because its
+   drag hit-testing was built around it. THAT IS NOT TRUE OF THE CODE: the drag
+   resolves through document.elementFromPoint plus closest('.tier-dropzone,
+   .tier-editor-tray') and reads no dimension at all. Checked before changing
+   this, because if it had been true the boxes could not have grown. */
+.tier-editor-row .ctl-chars .tier-portrait,
+.tier-editor-tray .tier-portrait {
+    width: 96px;
+    height: 96px;
+}
+
+.tier-editor-row .ctl-chars .tier-portrait-name,
+.tier-editor-tray .tier-portrait-name { font-size: 0.62rem; }
 .tier-portrait-name { position: relative; z-index: 2; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.5rem; color: #fff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; word-wrap: break-word; line-height: 1.1; padding: 2px; }
 
 /* Floating clone that follows the pointer during a drag (mouse or touch),

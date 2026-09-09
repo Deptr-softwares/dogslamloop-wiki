@@ -47,6 +47,15 @@ const LIVE_DESC = {
                  blocks: [{ type: 'paragraph', content: 'live system text' }] }],
     tiers: [{ name: 'S', characters: ['Vessel'] }],
     changelog: [{ date: '01/01/2026', note: 'first' }],
+  }, {
+    // A SECOND tab, so system_tab_order has a move to show. With one tab the
+    // scope renders a list that cannot differ from itself, which is a fixture
+    // that makes its own assertion vacuous - the failure mode this file's
+    // header is about. `basics` stays at index 0, so every other system fixture
+    // keyed to it is unaffected.
+    tabId: 'advanced', tabLabel: 'Advanced',
+    sections: [{ sectionTitle: 'Deep', layout: 'full', width: 100, alignment: 'left',
+                 blocks: [{ type: 'paragraph', content: 'live advanced text' }] }],
   }],
 };
 const LIVE_FRAME = {
@@ -75,6 +84,12 @@ const PAYLOADS = {
   // the key names the list and the payload names its order.
   order: ['Reversals', 'Spacing'],
   gallery_item: { name: 'Emote A', media: 'CHANGED' },
+  // v0.18 F9. A CHARACTER's gallery item, which is a different scope writing a
+  // different field from the gallery PAGE TYPE above - charGalleryItem ->
+  // desc.galleryItems, gallery_item -> desc.items. The item shape is the same
+  // flat object, and it has no `content` array, which is why the section
+  // declares wholeEntryDiff.
+  charGalleryItem: { name: 'Wall Combo', src: 'clip.mp4', alt: 'wall combo', tags: ['combo'], note: 'CHANGED' },
   gallery_intro: [{ type: 'paragraph', content: 'CHANGED gallery intro' }],
   intro: [{ type: 'paragraph', content: 'CHANGED intro' }],
   notes: [{ type: 'paragraph', content: 'CHANGED notes' }],
@@ -82,6 +97,9 @@ const PAYLOADS = {
   system_section: { sectionTitle: 'Intro', layout: 'full', width: 100, alignment: 'left',
                     blocks: [{ type: 'paragraph', content: 'CHANGED system text' }] },
   system_tab: { tabId: 'basics', tabLabel: 'The Basics', order: ['intro'] },
+  // Page-level: the payload is the whole new tab sequence, so it takes key
+  // 'full' from the KEYS default rather than naming one tab.
+  system_tab_order: ['advanced', 'basics'],
   tierlist_tiers: [{ name: 'S', characters: ['Vessel', 'Boomcat'] }],
   tierlist_changelog: [{ date: '02/01/2026', note: 'second' }],
   move: { frame_data: { id: 'explosion', name: 'Explosion', input: '1', stats: [{ label: 'Damage', value: '99' }] }, desc_data: [] },
@@ -89,6 +107,7 @@ const PAYLOADS = {
 const KEYS = {
   extra: 'Tech', matchup: 'Vessel', counterplay: 'Spacing', starterGuide: 'Basics',
   comboGroup: 'True Combos', comboTable: 'M1 Starters', gallery_item: 'Emote A',
+  charGalleryItem: 'Wall Combo',
   techGroup: 'Wall Techs', techTable: 'Momentum',
   order: 'desc.counterplay',
   system_section: 'basics::intro', system_tab: 'basics',

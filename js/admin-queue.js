@@ -215,12 +215,14 @@ function renderQueue() {
                             <span class="update-badge badge-page-id">${rev.page_id.toUpperCase()}</span>
                             ${deltaBadge}
                             ${sizeBadge}
+                            ${confidenceBadge(rev)}
                         </div>
                         <h3 class="update-title">REVISION SUBMISSION</h3>
                         <div class="update-log-meta">
                             By: <strong class="admin-queue-author-name">${window.escapeHtml(rev.author_name)}</strong><br>
                             <span class="admin-queue-time-relative">${relativeTime}</span> <span class="admin-queue-time-exact">(${exactDate})</span>
                         </div>
+                        ${qaNote(rev)}
                     </div>
                     <button onclick="previewRevision('${rev.id}')" class="btn-sys btn-sys-blue admin-review-btn">REVIEW</button>
                 </div>
@@ -228,6 +230,64 @@ function renderQueue() {
             container.appendChild(card);
         });
     }
+}
+
+// --- THE QA NOTES, ON THE CARD (v0.18 F1) ---
+//
+// A contributor writes a changelog, a confidence rating and optional evidence
+// at submit time, and until now none of it was visible until the ticket was
+// OPENED. So the queue offered a page id, an author and a size, and a reviewer
+// picking what to do next had to open each one to find out what it claimed to
+// be - which is the decision the queue exists to support.
+//
+// EVERYTHING HERE IS CONTRIBUTOR TEXT REACHING innerHTML. The changelog is free
+// text and the confidence arrives from a <select> that a direct PostgREST call
+// can ignore entirely, so both are escaped. `confidence` is additionally
+// mapped through a fixed table rather than interpolated into a class name -
+// an unexpected value picks no class instead of inventing one.
+const QA_CONFIDENCE = {
+    high: { cls: 'badge-confidence-high', label: 'HIGH' },
+    medium: { cls: 'badge-confidence-medium', label: 'MEDIUM' },
+    low: { cls: 'badge-confidence-low', label: 'LOW' },
+    'n/a': { cls: 'badge-confidence-na', label: 'N/A' },
+};
+
+function confidenceBadge(rev) {
+    const qa = rev && rev.qa_metadata;
+    const level = qa && typeof qa.confidence === 'string' ? qa.confidence.toLowerCase() : null;
+    const known = level && Object.prototype.hasOwnProperty.call(QA_CONFIDENCE, level)
+        ? QA_CONFIDENCE[level] : null;
+    // Silent when absent rather than showing "UNKNOWN": tickets and every
+    // revision written before the QA modal existed have no qa_metadata at all,
+    // and a badge on all of them would be noise on the majority of the queue.
+    if (!known) return '';
+    return `<span class="update-badge ${known.cls}" title="Data confidence, stated by the contributor">${known.label}</span>`;
+}
+
+function qaNote(rev) {
+    const qa = rev && rev.qa_metadata;
+    if (!qa) return '';
+
+    const changelog = typeof qa.changelog === 'string' ? qa.changelog.trim() : '';
+    const evidence = typeof qa.evidence === 'string' ? qa.evidence.trim() : '';
+    if (!changelog && !evidence) return '';
+
+    let html = '<div class="admin-queue-qa">';
+    if (changelog) {
+        // Clamped in CSS rather than truncated here, so the whole note is in
+        // the DOM: a reviewer can still select it, and Ctrl+F over the queue
+        // finds a note whose opening line does not mention the word.
+        html += `<p class="admin-queue-qa-note">${window.escapeHtml(changelog)}</p>`;
+    }
+    if (evidence) {
+        // NOT a link. This is contributor-supplied and lands on a staff page,
+        // and one click from the review queue to an arbitrary URL is a
+        // phishing step that the reviewer has every reason to trust. The fact
+        // that evidence was cited is what belongs on the card; the URL itself
+        // is in the ticket, where it is being read deliberately.
+        html += `<p class="admin-queue-qa-evidence" title="${window.escapeHtml(evidence)}">Evidence cited</p>`;
+    }
+    return html + '</div>';
 }
 
 // --- DYNAMIC BUTTON HELPER ---

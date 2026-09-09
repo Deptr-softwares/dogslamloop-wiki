@@ -153,10 +153,24 @@ test('the live tier rows got the bigger boxes and tighter spacing', async ({ pag
   expect(parseFloat(seen.gap), 'and tighter between them').toBeLessThan(8);
 });
 
-test('the editor keeps the 60px its drag hit-testing was built around', async ({ page }) => {
-  // The reason the rule above is scoped to .tier-list-row-chars rather than
-  // applied to .tier-portrait. certified-tier-lists.css says the same thing
-  // about its own override, and this is the check that keeps both honest.
+test('the base .tier-portrait is still 60px, so each surface sets its own', async ({ page }) => {
+  // Renamed in v0.18 batch 3.5. This used to read "the editor keeps the 60px
+  // its drag hit-testing was built around", and BOTH halves of that were
+  // wrong.
+  //
+  // It never tested the editor: it renders a bare .tier-portrait on the
+  // certified page, outside any editor container, so what it measures is the
+  // BASE size. And the drag hit-testing does not depend on it - the editor
+  // resolves a drop through document.elementFromPoint plus
+  // closest('.tier-dropzone, .tier-editor-tray') and reads no dimension at all.
+  // The claim was checked against js/tier-editor.js before the editor's
+  // portraits were enlarged to 96px, because had it been true they could not
+  // have grown.
+  //
+  // What the assertion is actually worth is unchanged and is why it stays: the
+  // base stays 60px, so every surface that wants another size scopes its own
+  // override - the certified page 78px, the editor 96px, the history renderer
+  // and admin preview the base.
   await page.setViewportSize({ width: 1400, height: 900 });
   await page.goto('/systems/tierlist/index.html', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(400);
@@ -183,6 +197,37 @@ test('the editor keeps the 60px its drag hit-testing was built around', async ({
   // moved - worth stating, since the next person to touch this will measure the
   // rect first too.
   expect(size.boxSizing, 'setup: still content-box, so 60 + 4 of border').toBe('content-box');
-  expect(size.declared, 'a tray portrait is untouched').toBe('60px');
+  expect(size.declared, 'the unscoped base is untouched').toBe('60px');
   expect(size.rendered, 'which is 64px on screen').toBe(64);
+});
+
+test('the editor gives its draggable boxes the height of the row they sit in', async ({ page }) => {
+  // v0.18 batch 3.5, owner: "make the draggable boxes in the tier list editor
+  // bigger, as big as possible". 96px is not an arbitrary step up - the drop
+  // zone was already 96px tall (.tier-editor-row .ctl-chars and
+  // .tier-editor-tray both set min-height: 96px), so this fills the row that
+  // exists instead of inventing a number and growing the row to match.
+  //
+  // Measured on the editor page, unlike the test above, because the whole
+  // point of the change is that the two surfaces now differ.
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto('/tier-editor.html', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(400);
+
+  const sizes = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.innerHTML = `
+      <div class="tier-editor-row"><div class="ctl-chars">
+        <div class="tier-portrait" id="probe-row"></div>
+      </div></div>
+      <div class="tier-editor-tray"><div class="tier-portrait" id="probe-tray"></div></div>`;
+    document.body.appendChild(host);
+    return {
+      row: getComputedStyle(document.getElementById('probe-row')).width,
+      tray: getComputedStyle(document.getElementById('probe-tray')).width,
+    };
+  });
+
+  expect(sizes.row, 'a portrait in a tier row').toBe('96px');
+  expect(sizes.tray, 'and one in the unranked tray').toBe('96px');
 });
