@@ -1,6 +1,40 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.18",
+      "date": "09/09/2026",
+      "type": "site",
+      "title": "The 'Gallery' Update",
+      "description": "Every character page now has a Gallery tab for clips and images. Tier lists use the real character portraits, the boxes are bigger, and a certified list can be built from roster icons instead.",
+      "changes": [
+        {
+          "heading": "Features"
+        },
+        "Character pages have a Gallery tab: clips and images in a grid, each with a name and an optional note. It starts empty and fills up as people add to it",
+        "Gallery names and notes can be styled like any other text on the wiki, and media already uploaded can be picked from the library instead of uploaded a second time",
+        "Links that point at a section of the same page now work on guides and system pages, not just character pages",
+        "Combo Lists can be reordered, and so can the rows inside one",
+        "Opening the editor or the Media Library for the first time shows a short notice pointing at the Writing Guide",
+        {
+          "heading": "Fine-tuning"
+        },
+        "Move inputs in combos are brighter, and outlined in black instead of white",
+        "A character whose colour is dark gets a white outline on their name, on dark character pages only, so it stays readable",
+        "The Free Submit Tier List shows character portraits instead of a coloured box with a name in it",
+        "A certified tier list can use the wiki's character portraits or the roster icons, and the author picks which",
+        "Tier list boxes are bigger everywhere: 78px on a certified list, 96px in the editor, and up to 168px on Free Submit, where they grow to fill the row",
+        "Icon-style tier list boxes now match the character roster exactly, down to the hatching and the coloured border",
+        "The character boxes on Free Submit fill the width instead of sitting in a narrow column",
+        "Editing a long guide page no longer redraws the whole page on every keystroke",
+        {
+          "heading": "Bug fixes"
+        },
+        "Reordering the tabs on a guide page now saves. The control worked, and the new order was quietly dropped on submit",
+        "The tier list editor was showing the old character portraits, and five characters showed none at all",
+        "Changed a few things under the hood, including two places where text typed into a page heading could be read as code"
+      ]
+    },
+    {
       "version": "Beta v0.17",
       "date": "09/03/2026",
       "type": "site",
