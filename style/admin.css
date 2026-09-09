@@ -786,6 +786,45 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 .badge-size-m { background: rgba(234,179,8,0.1); color: #eab308; border: 1px solid #eab308; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 .badge-size-l { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
 
+/* v0.18 F1 - the contributor's own confidence rating, on the card.
+   Deliberately the SAME three colours as the size badges above, because they
+   answer the same question for a reviewer choosing what to open next: green is
+   safe, red wants attention. N/A is muted rather than a fourth colour - "just
+   fixing typos" is an absence of risk, not a level of it. */
+.badge-confidence-high { background: rgba(34,197,94,0.1); color: #22c55e; border: 1px solid #22c55e; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-confidence-medium { background: rgba(234,179,8,0.1); color: #eab308; border: 1px solid #eab308; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-confidence-low { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid #ef4444; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+.badge-confidence-na { background: rgba(136,136,136,0.1); color: #888; border: 1px solid #555; font-size: 0.55rem; padding: 0.1rem 0.4rem; }
+
+/* The note itself. Clamped to three lines: a changelog can be a sentence or a
+   page, and a queue where one card is six times the height of its neighbours is
+   harder to scan than one with no notes at all. The full text stays in the DOM
+   - clamping is visual only - so it remains selectable and findable. */
+.admin-queue-qa {
+    margin-top: 0.5rem;
+    padding-left: 0.6rem;
+    border-left: 2px solid var(--border-color);
+}
+
+.admin-queue-qa-note {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+}
+
+.admin-queue-qa-evidence {
+    margin: 0.25rem 0 0 0;
+    font-family: var(--text-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+}
+
 /* --- QUEUE CARD LAYOUT --- */
 .admin-queue-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
 /* min-width: 0 is load-bearing. A flex item's automatic minimum size is its

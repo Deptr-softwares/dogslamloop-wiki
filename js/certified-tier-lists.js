@@ -238,11 +238,13 @@
 
         ui.innerHTML = '';
         const box = el('div', 'ctl-nobody');
+        // The instruction, and nothing else. A paragraph explaining WHY there is
+        // no combined ranking used to sit under it; the owner removed it on
+        // 2026-09-09 as flavour text. The page already makes the point without
+        // arguing it - every list in the picker carries a name, and there is no
+        // combined option to look for - and the owner-editable introduction
+        // above this says it once already.
         box.appendChild(el('p', 'ctl-nobody-title', 'Pick someone to read their list.'));
-        box.appendChild(el('p', 'ctl-nobody-body',
-            'Every list here belongs to one person and says so. There is no combined ranking, '
-            + 'because a tier list is an opinion and averaging opinions into an official one is how '
-            + 'a wiki starts arguing with itself.'));
         ui.appendChild(box);
 
         const log = document.getElementById('changelog-container');
