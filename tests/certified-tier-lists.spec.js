@@ -540,3 +540,66 @@ test('an icon is fitted, not cropped - measured off the browser', async ({ page 
         .evaluate(el => getComputedStyle(el).objectFit);
     expect(portraitFit, 'a tall render still wants cropping to a square').toBe('cover');
 });
+
+// --- v0.18 batch 3.5: an icon box looks like a roster card ---
+//
+// Owner, 2026-09-09: "try making the Boxes mimic the Boxes on the Roster
+// Selection instead". The whole of that treatment is that the character's
+// colour moves from the FILL to the BORDER over the site's dark ground - an
+// icon is drawn to sit on that ground, so filling the box with the character's
+// colour fights the art rather than framing it, and on a dark-coded character
+// it leaves a dark icon on a dark square.
+
+test('an icon box borrows the character colour for its border, not its fill', async ({ page }) => {
+    await mockLists(page, {
+        lists: [list({ art_style: 'icon', tiers: [{ name: 'S', color: '#f00', characters: ['ten_shadows'] }] })],
+    });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+
+    const box = await page.locator('.tier-portrait').first().evaluate(el => {
+        const cs = getComputedStyle(el);
+        return {
+            border: cs.borderTopColor,
+            borderWidth: cs.borderTopWidth,
+            background: cs.backgroundColor,
+            hatching: cs.backgroundImage,
+            charColor: el.style.getPropertyValue('--char-color').trim(),
+            inlineBg: el.style.backgroundColor,
+        };
+    });
+
+    // The colour travels as a custom property. An inline background would beat
+    // the stylesheet rule that needs to read it, which is the same reasoning
+    // js/pagebuilder.js gives for the roster grid.
+    expect(box.charColor, 'the colour has to reach CSS to be usable as a border').toBeTruthy();
+    expect(box.inlineBg, 'and must not also be painted as a fill').toBe('');
+
+    // Ten Shadows is hsl(0, 0%, 47%) -> rgb(120, 120, 120).
+    expect(box.border).toBe('rgb(120, 120, 120)');
+    expect(box.borderWidth, 'matching .roster-card.has-icon').toBe('3px');
+    // Dark ground with the site's diagonal hatching, copied from Cards.css.
+    expect(box.hatching).toContain('repeating-linear-gradient');
+    expect(box.background).not.toBe('rgb(120, 120, 120)');
+});
+
+test('a portrait box still fills with the character colour', async ({ page }) => {
+    // The other half, and the one that proves the branch above is a branch. A
+    // rule that applied to both would have made every existing list change
+    // appearance, which is a silent edit to other people's work.
+    await mockLists(page, {
+        lists: [list({ tiers: [{ name: 'S', color: '#f00', characters: ['ten_shadows'] }] })],
+    });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+
+    const box = await page.locator('.tier-portrait').first().evaluate(el => ({
+        background: getComputedStyle(el).backgroundColor,
+        borderWidth: getComputedStyle(el).borderTopWidth,
+        charColor: el.style.getPropertyValue('--char-color').trim(),
+    }));
+
+    expect(box.background, 'the fill is the character colour, as before').toBe('rgb(120, 120, 120)');
+    expect(box.borderWidth, 'and the border stays the shared 2px').toBe('2px');
+    expect(box.charColor, 'no custom property in portrait mode').toBe('');
+});

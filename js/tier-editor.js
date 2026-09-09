@@ -71,9 +71,38 @@
             const nav = window.fetchJson
                 ? await window.fetchJson('data/navigation.json', { cache: true })
                 : await (await fetch('data/navigation.json')).json();
+
+            // THE THIRD COPY OF THIS, AND THE SECOND THAT WAS BROKEN.
+            //
+            // navigation.json carries no `image` field on any character, so
+            // reading entry.image left meta.image undefined and portrait() fell
+            // through to the guessed Supabase URL below - the OLD art, which is
+            // exactly what the owner reported seeing in this editor while the
+            // reader page showed the current portraits.
+            //
+            // js/certified-tier-lists.js has always read the manifest;
+            // js/tools/free_submit_tier_list.js was fixed for the same fault in
+            // FT3, one batch ago. Three near-identical loadRoster functions,
+            // two of them silently wrong. Worth stating plainly rather than
+            // fixing a third time in silence.
+            let portraits = {};
+            try {
+                portraits = window.fetchJson
+                    ? await window.fetchJson('data/portraits.json', { cache: true })
+                    : await (await fetch('data/portraits.json')).json();
+            } catch (e) {
+                console.warn('[TierEditor] Portrait manifest unavailable:', e);
+            }
+
             (nav.Characters || []).forEach(entry => {
                 const pageId = entry.cms_config && entry.cms_config.pageId;
-                if (pageId) state.roster.set(pageId, { name: entry.name, url: entry.url, image: entry.image });
+                if (pageId) {
+                    state.roster.set(pageId, {
+                        name: entry.name,
+                        url: entry.url,
+                        image: portraits[pageId] || entry.image,
+                    });
+                }
             });
         } catch (e) {
             console.warn('[TierEditor] Could not read the roster:', e);
@@ -142,8 +171,15 @@
         if (useIcon) node.classList.add('tier-portrait-icon');
         node.dataset.charId = pageId;
         node.title = meta.name;
-        if (window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name]) {
-            node.style.backgroundColor = window.CHARACTER_COLORS[meta.name];
+        // Icon mode moves the colour to the border - see the reader's copy of
+        // this in js/certified-tier-lists.js and the rule it feeds in
+        // style/Layout.css. The editor board has to make the same choice or a
+        // contributor picks icons and previews something the readers will not
+        // see.
+        const charColor = window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name];
+        if (charColor) {
+            if (useIcon) node.style.setProperty('--char-color', charColor);
+            else node.style.backgroundColor = charColor;
         }
 
         node.appendChild(el('span', 'tier-portrait-name', meta.name));
