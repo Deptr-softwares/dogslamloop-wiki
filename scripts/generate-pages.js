@@ -194,6 +194,7 @@ ${social}
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
+    <script src="../../js/search.js"></script>
     <script src="../../js/framedata.js"></script>
     <script src="../../js/description.js"></script>
     <script src="../../js/character_modes.js"></script>
@@ -248,6 +249,7 @@ ${social}
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
+    <script src="../../js/search.js"></script>
     <script src="../../js/description.js"></script>
     <script src="../../js/internalstyling.js"></script>
 
@@ -305,6 +307,7 @@ ${social}
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
+    <script src="../../js/search.js"></script>
     <script src="../../js/description.js"></script>
     <script src="../../js/internalstyling.js"></script>
     <script src="../../js/${script}"></script>${extraScript ? `

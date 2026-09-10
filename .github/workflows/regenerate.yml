@@ -170,6 +170,20 @@ jobs:
       - name: Regenerate FAQ and credits
         run: node scripts/fetch-content.js --write
 
+      # Must run AFTER fetch-registry: the index maps each page_data row to a
+      # live registry entry and skips any row without one, so building it
+      # against a stale navigation.json would silently drop a page the owner
+      # published today.
+      #
+      # Deliberately NOT added to `npm run validate`. Every other artifact that
+      # check compares is built offline from committed files, so --check is
+      # deterministic. This one is fetched from Supabase, which means the owner
+      # editing a heading would turn the required `test` check red - and a test
+      # an owner edit can break is a production outage, not a failing test. The
+      # index simply refreshes here, nightly, like page-previews.json.
+      - name: Regenerate the search index
+        run: node scripts/fetch-search-index.js --write
+
       # `npm run generate`, not generate-pages alone. This step used to write
       # one of the five artifacts the next step checks, which made the job
       # structurally unable to succeed at the only times it had work to do:
