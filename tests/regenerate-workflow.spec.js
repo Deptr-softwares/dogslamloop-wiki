@@ -87,7 +87,24 @@ test('the workflow generates before it validates', async () => {
     // Reversed, it would check artifacts it is about to rewrite and fail on
     // exactly the runs that had work to do - which is the original bug with
     // the steps in a different order.
-    expect(workflow.indexOf('npm run generate')).toBeLessThan(workflow.indexOf('npm run validate'));
+    //
+    // Anchored on `run:` rather than on the bare command names. This asserted
+    // indexOf('npm run generate') < indexOf('npm run validate') over the whole
+    // file, which matches PROSE as readily as steps - and this workflow is
+    // heavily commented, including two comments that name both commands. It was
+    // passing on the accident that the first mention of generate happened to
+    // precede the first mention of validate; a v0.19 comment explaining why the
+    // search index is NOT in validate put that phrase higher up and turned the
+    // test red without changing a single step.
+    //
+    // The claim is about the ORDER OF STEPS, so it reads the steps. Same idiom
+    // the generate-pages assertion above already uses.
+    const generate = workflow.search(/^\s*(-\s*)?run:\s*npm run generate\s*$/m);
+    const validate = workflow.search(/^\s*(-\s*)?run:\s*npm run validate\s*$/m);
+
+    expect(generate, 'a `run: npm run generate` step exists').toBeGreaterThan(-1);
+    expect(validate, 'a `run: npm run validate` step exists').toBeGreaterThan(-1);
+    expect(generate).toBeLessThan(validate);
 });
 
 test('the workflow fetches fresh data before generating from it', async () => {
