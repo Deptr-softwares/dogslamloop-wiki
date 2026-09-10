@@ -16,6 +16,10 @@
     <link rel="stylesheet" href="../../style/ColorCoding.css">
     <link rel="stylesheet" href="../../style/Alerts.css">
     <link rel="stylesheet" href="../../style/Modals.css">
+    <!-- Forms.css defines .editor-input, which the auth and profile modals
+         injected by js/site_utils.js both use. Without it the login form and
+         the profile fields render unstyled. -->
+    <link rel="stylesheet" href="../../style/Forms.css">
 </head>
 <body class="site-body p-0">
 
@@ -144,7 +148,24 @@
                         that no list is assigned to you, which is a better answer
                         than a button that is missing for reasons nobody explains.
                     -->
-                    <a id="btn-edit-current-tab" class="btn-sys btn-sys-regular tab-editor-btn-sidebar" href="../../tier-editor.html">
+                    <!--
+                        `is-active` is load-bearing, and was not needed until
+                        v0.19 B1. .tab-editor-btn-sidebar sets display:none and
+                        .is-active flips it to flex; initTabEditorButtons adds
+                        that class at runtime on the pages it manages, and it
+                        does not manage this one - this link is static, points
+                        somewhere else, and wants no HISTORY button beside it.
+
+                        It was visible anyway, by accident: this page loads
+                        Layout.css BEFORE Buttons.css, so .btn-sys's
+                        display:inline-flex beat that display:none at equal
+                        specificity. B1 qualified the sidebar rule with .btn-sys
+                        so it no longer depends on file order - which made the
+                        display:none finally apply here and hid a link the
+                        comment above says must never be hidden.
+                        tests/routing.spec.js:66 caught it.
+                    -->
+                    <a id="btn-edit-current-tab" class="btn-sys btn-sys-regular tab-editor-btn-sidebar is-active" href="../../tier-editor.html">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
                         EDIT MY LIST
                     </a>
@@ -160,11 +181,11 @@
 
     <!-- V0.4 SYSTEM SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../../js/character_tabs.js?v=eb683d3f"></script>
-    <script src="../../js/input_slots.js?v=eb683d3f"></script>
-    <script src="../../js/site_utils.js?v=eb683d3f"></script>
-    <script src="../../js/site_meta.js?v=eb683d3f"></script>
-    <script src="../../js/pagebuilder.js?v=eb683d3f"></script>
+    <script src="../../js/character_tabs.js?v=d91bb96a"></script>
+    <script src="../../js/input_slots.js?v=d91bb96a"></script>
+    <script src="../../js/site_utils.js?v=d91bb96a"></script>
+    <script src="../../js/site_meta.js?v=d91bb96a"></script>
+    <script src="../../js/pagebuilder.js?v=d91bb96a"></script>
     
     <!-- Custom Tier List Engine -->
     <!--
@@ -178,10 +199,10 @@
         on the page. Every test fixture had an empty reasoning array, so nothing
         caught it.
     -->
-    <script src="../../js/description.js?v=eb683d3f"></script>
-    <script src="../../js/internalstyling.js?v=eb683d3f"></script>
-    <script src="../../js/tierlist.js?v=eb683d3f"></script>
-    <script src="../../js/certified-tier-lists.js?v=eb683d3f"></script>
+    <script src="../../js/description.js?v=d91bb96a"></script>
+    <script src="../../js/internalstyling.js?v=d91bb96a"></script>
+    <script src="../../js/tierlist.js?v=d91bb96a"></script>
+    <script src="../../js/certified-tier-lists.js?v=d91bb96a"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {

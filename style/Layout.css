@@ -1406,8 +1406,28 @@ summary:focus-visible {
    (js/pagebuilder.js initTabEditorButtons). Un-hidden via .is-active
    instead of a direct style.display write, matching the mobile pattern
    above. */
-.tab-editor-btn-sidebar { display: none; font-size: 0.6rem; padding: 0.25rem 0.5rem; align-items: center; gap: 0.35rem; flex: 1; }
-.tab-editor-btn-sidebar.is-active { display: flex; }
+/* The `.btn-sys` in these selectors is load-bearing, not decoration.
+ *
+ * This rule and `.btn-sys` (Buttons.css) both set font-size and padding, and
+ * as two single-class selectors they have EQUAL specificity - so which one
+ * wins is decided purely by which stylesheet loads last. The two page
+ * templates disagree: a character stub loads Layout.css last, a system stub
+ * loads it second, before Buttons.css. So the same pair of buttons rendered at
+ * 9.6px/4px on a character page and 11.2px/6.4px on a system page - the owner
+ * reported it as the system pair being "slightly larger", measured 2026-09-10.
+ *
+ * Qualifying with .btn-sys makes this win in both orders instead of relying on
+ * a file ordering that is not stated anywhere and differs per template. Every
+ * consumer carries .btn-sys today - page_router.js, pagebuilder.js and
+ * systems/tierlist/index.html - and tests/sidebar-button-parity.spec.js fails
+ * if one ever does not, because such a consumer would silently lose this rule
+ * entirely rather than merely lose a property.
+ *
+ * NOT fixed by reordering the system template's stylesheets: that would change
+ * which rule wins for every other class these two files share, on 18 pages, to
+ * settle one button pair. */
+.btn-sys.tab-editor-btn-sidebar { display: none; font-size: 0.6rem; padding: 0.25rem 0.5rem; align-items: center; gap: 0.35rem; flex: 1; }
+.btn-sys.tab-editor-btn-sidebar.is-active { display: flex; }
 #sidebar-btn-group { display: flex; gap: 0.5rem; width: 100%; }
 /* Compound: .sidebar-tab-header's own base rule sets align-items: flex-end
    at the same specificity. */

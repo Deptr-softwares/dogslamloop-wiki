@@ -286,3 +286,123 @@ test('admin.html and edit.html ship the Techs button and panel, hidden', () => {
   expect(adminBtn).toContain('hidden');
   expect(editBtn).toContain('hidden');
 });
+
+// --- v0.19 B2: THE STRIP GOES DARK ON TECHS ---
+//
+// Reported by the owner: "When clicking on the Techs tab in the editor, it did
+// not light up. You can still go in and edit the content inside."
+//
+// Both halves of that sentence matter. The editor MOUNTED - so every test that
+// asked "does the Techs editor work" passed, and had done since the tab
+// shipped. What broke was only which button carried .active, and no test read
+// that back.
+//
+// Cause: EDITOR_MAJOR_TABS (js/editor-tabs.js:16) is a module-level const, so
+// it is evaluated at PARSE time, when enabledOptionalTabs is still []. techs
+// was therefore never in it, for the life of the page. renderEditorTabNav
+// walks that list, so it never toggled edit-nav-techs ON - and, worse, it did
+// clear .active off the button the user came FROM. The strip went dark.
+//
+// The THIRD surface to make this mistake. js/page_boot.js fixed it on the
+// reader page, js/admin-core.js:355 on admin.html - and its comment records
+// the same symptom in the same words. The editor was missed by both.
+//
+// Written against switchEditorTab, which is what the button's onclick actually
+// calls, rather than against renderEditorTabNav or the array. Asserting the
+// contents of EDITOR_MAJOR_TABS would pass even if nothing ever rendered from
+// it - that is the vacuous shape this project has now shipped twice, and the
+// bug it hides is exactly this one.
+async function openEditorOnCharacter(page, tab) {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await page.goto(`/edit.html?char=testchar&tab=${tab}`, { waitUntil: 'networkidle' });
+
+  await page.evaluate(async (tabId) => {
+    // Turn Techs on the way the real page does - through the vocabulary's own
+    // setter, reading page_data.tab_settings. Setting enabledOptionalTabs by
+    // hand would test a variable rather than the feature.
+    window.setOptionalCharacterTabs({ techs: true });
+    if (typeof window.applyOptionalTabVisibility === 'function') window.applyOptionalTabVisibility();
+
+    window.currentEditorPageType = 'character';
+    window.currentEditorCharId = 'testchar';
+    window.currentEditorTabId = tabId;
+    window.currentEditorDescData = { overview: [], strategy: [], extras: [], matchups: [], counterplay: [], moveStrategies: {}, techGroups: [], techList: [] };
+    window.currentEditorFrameData = { m1s: [], skills: [], specials: [] };
+
+    // The buffer flush crosses into draft/submit machinery that has no session
+    // here. The bug is in the nav, not the flush.
+    window.triggerManualSync = async () => {};
+
+    window.renderEditorTabNav(tabId);
+  }, tab);
+
+  return errors;
+}
+
+const activeNavIds = page => page.evaluate(() =>
+  Array.from(document.querySelectorAll('#editor-tab-nav .active')).map(b => b.id));
+
+test('switching to Techs lights the Techs button', async ({ page }) => {
+  const errors = await openEditorOnCharacter(page, 'overview');
+
+  // Establish the starting state POSITIVELY first. Without this the assertion
+  // below passes on a strip that was already dark, which is a different bug
+  // wearing the same result.
+  expect(await activeNavIds(page), 'overview starts lit').toEqual(['edit-nav-overview']);
+
+  await page.evaluate(() => window.switchEditorTab('techs'));
+
+  expect(await activeNavIds(page), 'exactly Techs is lit, and the strip is not dark')
+    .toEqual(['edit-nav-techs']);
+  expect(errors).toEqual([]);
+});
+
+test('the Techs button is reachable, not merely present', async ({ page }) => {
+  // toBeVisible() is not "the user can click it" - twice in this project a
+  // button was visible and covered. This drives the real control: the click
+  // times out if anything is on top of it, and the onclick is the same
+  // switchEditorTab the test above calls directly.
+  const errors = await openEditorOnCharacter(page, 'overview');
+
+  await expect(page.locator('#edit-nav-techs')).toBeVisible();
+  await page.click('#edit-nav-techs');
+
+  expect(await activeNavIds(page)).toEqual(['edit-nav-techs']);
+  expect(errors).toEqual([]);
+});
+
+test('leaving Techs lights the tab arrived at, and unlights Techs', async ({ page }) => {
+  // The other direction. A fix that only ever ADDS .active would pass the
+  // first test and leave two buttons lit here.
+  await openEditorOnCharacter(page, 'overview');
+
+  await page.evaluate(() => window.switchEditorTab('techs'));
+  expect(await activeNavIds(page)).toEqual(['edit-nav-techs']);
+
+  await page.evaluate(() => window.switchEditorTab('combos'));
+  expect(await activeNavIds(page), 'exactly one button is ever lit').toEqual(['edit-nav-combos']);
+});
+
+test('a character WITHOUT techs still has a working strip', async ({ page }) => {
+  // The guard on the fix. includeOptional now puts techs in EDITOR_MAJOR_TABS
+  // unconditionally, so the tab being OFF must still hide the button and must
+  // not disturb the tabs around it - otherwise this fix trades one dark strip
+  // for a Techs tab on all 22 characters, which is the half of the feature the
+  // owner explicitly asked for.
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await page.goto('/edit.html?char=testchar&tab=overview', { waitUntil: 'networkidle' });
+  await page.evaluate(() => {
+    window.setOptionalCharacterTabs({});
+    if (typeof window.applyOptionalTabVisibility === 'function') window.applyOptionalTabVisibility();
+    window.currentEditorPageType = 'character';
+    window.renderEditorTabNav('overview');
+  });
+
+  await expect(page.locator('#edit-nav-techs')).toBeHidden();
+  expect(await activeNavIds(page)).toEqual(['edit-nav-overview']);
+  expect(errors).toEqual([]);
+});

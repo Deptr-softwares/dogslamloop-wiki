@@ -26,6 +26,13 @@
     <link rel="stylesheet" href="../../style/ColorCoding.css">
     <link rel="stylesheet" href="../../style/Alerts.css">
     <link rel="stylesheet" href="../../style/Modals.css">
+    <!-- Forms.css: site_utils.js below injects the auth and profile modals into
+         every page unconditionally, and both style their inputs with
+         .editor-input, which lives here. This was the ONE template of the three
+         missing it - the character stub and mediaStub both had it - so all 18
+         system and others/ stubs rendered the login form as bare browser
+         inputs. See tests/modal-stylesheets.spec.js. -->
+    <link rel="stylesheet" href="../../style/Forms.css">
 
     <script>window.PAGE_ROUTE = { pageId: "private_servers", pageType: "system", title: "Private Servers" };</script>
 </head>
@@ -33,17 +40,17 @@
 
     <!-- Must precede page_router.js: it builds the tab strip from this
          vocabulary, synchronously, before site_utils.js has loaded. -->
-    <script src="../../js/character_tabs.js?v=eb683d3f"></script>
-    <script src="../../js/input_slots.js?v=eb683d3f"></script>
-    <script src="../../js/page_router.js?v=eb683d3f"></script>
+    <script src="../../js/character_tabs.js?v=d91bb96a"></script>
+    <script src="../../js/input_slots.js?v=d91bb96a"></script>
+    <script src="../../js/page_router.js?v=d91bb96a"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../../js/site_utils.js?v=eb683d3f"></script>
-    <script src="../../js/site_meta.js?v=eb683d3f"></script>
-    <script src="../../js/pagebuilder.js?v=eb683d3f"></script>
-    <script src="../../js/description.js?v=eb683d3f"></script>
-    <script src="../../js/internalstyling.js?v=eb683d3f"></script>
+    <script src="../../js/site_utils.js?v=d91bb96a"></script>
+    <script src="../../js/site_meta.js?v=d91bb96a"></script>
+    <script src="../../js/pagebuilder.js?v=d91bb96a"></script>
+    <script src="../../js/description.js?v=d91bb96a"></script>
+    <script src="../../js/internalstyling.js?v=d91bb96a"></script>
 
-    <script src="../../js/page_boot.js?v=eb683d3f"></script>
+    <script src="../../js/page_boot.js?v=d91bb96a"></script>
 </body>
 </html>
