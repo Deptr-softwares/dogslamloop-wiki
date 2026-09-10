@@ -1876,3 +1876,68 @@ summary:focus-visible {
     margin: 1.1rem 0 0.6rem;
     padding-bottom: 0.35rem;
 }
+
+/* --- SITE SEARCH (v0.19 F1a, js/search.js) ------------------------------
+   Injected by buildGlobalSidebarMenu above #global-sidebar-nav, so it lands
+   inside .global-sidebar-left on all 64 pages without any of them shipping
+   markup for it.
+
+   The results panel is absolutely positioned rather than in flow: the sidebar
+   scrolls, and a panel in flow would push the whole navigation list down by
+   its own height every time somebody typed two characters. */
+.site-search { position: relative; margin-bottom: 0.75rem; }
+
+.site-search-input {
+    width: 100%; box-sizing: border-box;
+    background: var(--bg-main); color: var(--text-white);
+    border: 2px solid var(--border-color);
+    font-family: var(--text-mono); font-size: 0.7rem;
+    padding: 0.4rem 0.6rem;
+}
+.site-search-input:focus { outline: none; border-color: var(--accent-blue); }
+.site-search-input::placeholder { color: var(--text-muted); }
+
+/* Collapsing the sidebar hides the label text everywhere else in here, and a
+   search field with no visible context is worse than none. */
+.global-sidebar-left.collapsed .site-search { display: none; }
+
+.site-search-results {
+    position: absolute; top: calc(100% + 2px); left: 0; right: 0; z-index: 60;
+    max-height: 60vh; overflow-y: auto;
+    background: var(--bg-main); border: 2px solid var(--accent-blue);
+    box-shadow: 4px 4px 0px var(--manga-shadow);
+}
+
+.site-search-hit {
+    display: block; padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid var(--border-color);
+    text-decoration: none; cursor: pointer;
+}
+.site-search-hit:last-child { border-bottom: none; }
+.site-search-hit:hover,
+.site-search-hit.is-active { background: var(--accent-blue); }
+.site-search-hit:hover .site-search-title,
+.site-search-hit.is-active .site-search-title { color: #000; }
+.site-search-hit:hover .site-search-where,
+.site-search-hit:hover .site-search-parent,
+.site-search-hit:hover .site-search-kind,
+.site-search-hit.is-active .site-search-where,
+.site-search-hit.is-active .site-search-parent,
+.site-search-hit.is-active .site-search-kind { color: #222; }
+
+.site-search-title {
+    display: block; color: var(--text-white);
+    font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold;
+}
+.site-search-parent,
+.site-search-where,
+.site-search-kind {
+    display: block; color: var(--text-muted);
+    font-family: var(--text-mono); font-size: 0.55rem; margin-top: 1px;
+}
+.site-search-kind { text-transform: uppercase; }
+
+.site-search-empty {
+    padding: 0.6rem; color: var(--text-muted);
+    font-family: var(--text-mono); font-size: 0.65rem; text-align: center;
+}

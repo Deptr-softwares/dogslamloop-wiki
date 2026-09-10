@@ -8,6 +8,7 @@
     "refresh-portraits": "node scripts/fetch-portraits.js --write",
     "refresh-registry": "node scripts/fetch-registry.js --write",
     "refresh-content": "node scripts/fetch-content.js --write",
+    "refresh-search-index": "node scripts/fetch-search-index.js --write",
     "pretest": "node scripts/stamp-assets.js --check"
   },
   "devDependencies": {
