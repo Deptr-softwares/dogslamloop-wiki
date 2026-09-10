@@ -21,6 +21,17 @@
 // the pair matches across page types. The second protects the FIX: it is
 // written as `.btn-sys.tab-editor-btn-sidebar`, which silently applies to
 // nothing if a future consumer of that class forgets .btn-sys.
+//
+// A THIRD hazard lives in tests/routing.spec.js:66 rather than here, and it is
+// the one this fix actually broke on the way in. The same rule also sets
+// display:none, flipped to flex by .is-active - and on a page loading
+// Layout.css first, .btn-sys's display:inline-flex had been beating that
+// display:none. Two pages carry a STATIC edit button that nothing adds
+// .is-active to, and were visible only because of that accident: winning the
+// cascade properly hid them. systems/tierlist/index.html now says .is-active
+// explicitly. If you touch this rule again, run routing.spec.js - checking
+// that every consumer carries .btn-sys is NOT enough, because a consumer can
+// also depend on the rule LOSING.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
