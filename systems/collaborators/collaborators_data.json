@@ -30,7 +30,12 @@
       "isLead": false,
       "avatar": "/medias/images/diego2.webp",
       "description": "Written a lot of strategy entries for the site (perchance), also allow me to borrow his awesome Medal clips.",
-      "links": []
+      "links": [
+        {
+          "url": "https://www.youtube.com/@AirPutrifier",
+          "name": "Youtube"
+        }
+      ]
     },
     {
       "name": "Nickolas4F",
@@ -62,8 +67,8 @@
     },
     {
       "name": "Ocelol",
-      "role": "",
-      "badgeType": "",
+      "role": "Media and Arts",
+      "badgeType": "badge-site",
       "isLead": false,
       "avatar": "",
       "description": "Create and submit almost every single demonstration videos for the site",
