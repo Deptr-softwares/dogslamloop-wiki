@@ -157,6 +157,31 @@ Rename your file (e.g. append "_v2") before uploading, so you do not break pages
 
         const { data: publicUrlData } = window.supabaseClient.storage.from('wiki-media').getPublicUrl(finalName);
 
+        // v0.19 F8: record who uploaded this, so the library can credit them.
+        //
+        // AFTER the upload and deliberately not awaited into the result: the
+        // file is already in the bucket by this point, and a failure to write
+        // the credit must not report a successful upload as failed. A missing
+        // row renders as "Unknown", which is the same state as every file
+        // uploaded before this shipped - a degraded credit, not a lost file.
+        //
+        // uploaded_by is sent explicitly rather than left to a default, because
+        // the RLS policy is WITH CHECK (uploaded_by = auth.uid()) - a row with
+        // no uploader would be refused by its own guard.
+        try {
+            const { data: sessionData } = await window.supabaseClient.auth.getSession();
+            const uploaderId = sessionData && sessionData.session && sessionData.session.user
+                ? sessionData.session.user.id : null;
+            if (uploaderId) {
+                const { error: creditError } = await window.supabaseClient
+                    .from('media_uploads')
+                    .insert({ path: finalName, uploaded_by: uploaderId });
+                if (creditError) console.warn('Upload succeeded; could not record the uploader:', creditError.message);
+            }
+        } catch (creditErr) {
+            console.warn('Upload succeeded; could not record the uploader:', creditErr);
+        }
+
         // Dimensions travel with the file so a skill card can pick its box
         // shape before the media has loaded. Without them the box starts 16:9
         // and corrects itself in front of the reader the first time they open
@@ -250,8 +275,61 @@ window.initMediaLibrary = function() {
 
         window.currentMediaFiles = data.filter(f => !f.name.startsWith('.'));
         window.currentMediaPage = 1;
+
+        // Render FIRST, then fill the credits in. The grid is the reason the
+        // modal was opened and it does not need a name to be useful, so making
+        // it wait on two more requests would trade the thing people came for
+        // against a caption. loadUploaderCredits re-renders when it lands.
         window.renderMediaGrid();
+        loadUploaderCredits();
     };
+
+    // path -> display name, for whatever the last load resolved. A plain object
+    // rather than a Map because renderMediaGrid reads it per card and this is
+    // the shape the rest of this file already passes around.
+    window.mediaUploaderNames = {};
+
+    // v0.19 F8. Two requests, in sequence because the second needs the first's
+    // ids: who uploaded each file, then what those people are called.
+    //
+    // Failure is silent by design. A credit is supplementary - the library
+    // worked without it for five versions - and an error banner over a working
+    // media picker would be the loudest possible way to report the least
+    // important thing on screen. Same call the terminology peek makes on the
+    // systems hub.
+    async function loadUploaderCredits() {
+        try {
+            const { data: rows, error } = await window.supabaseClient
+                .from('media_uploads').select('path, uploaded_by');
+            if (error || !rows || !rows.length) return;
+
+            // De-duplicated: get_public_profiles is bounded to 200 ids, and a
+            // bucket of 1000 files uploaded by four people is four ids, not a
+            // thousand. Nulls dropped - an ON DELETE SET NULL row is a real
+            // upload by a deleted account, and asking for a NULL profile would
+            // waste the request rather than fail it.
+            const ids = [...new Set(rows.map(r => r.uploaded_by).filter(Boolean))];
+            if (!ids.length) return;
+
+            const { data: profiles, error: profileError } = await window.supabaseClient
+                .rpc('get_public_profiles', { target_user_ids: ids });
+            if (profileError || !profiles) return;
+
+            const nameById = {};
+            profiles.forEach(p => { nameById[p.user_id] = p.display_name; });
+
+            const byPath = {};
+            rows.forEach(r => {
+                const name = r.uploaded_by ? nameById[r.uploaded_by] : null;
+                if (name) byPath[r.path] = name;
+            });
+
+            window.mediaUploaderNames = byPath;
+            window.renderMediaGrid();
+        } catch (err) {
+            console.warn('Could not load uploader credits:', err);
+        }
+    }
 
     window.renderMediaGrid = function() {
         const grid = document.getElementById('media-gallery-grid');
@@ -332,8 +410,20 @@ window.initMediaLibrary = function() {
             const isVideo = file.name.endsWith('.webm') || file.name.endsWith('.mp4');
             const isGif = file.name.endsWith('.gif');
 
+            // The URL is built from the filename by getPublicUrl, so it is as
+            // attacker-influenced as the name is - and it lands in an ATTRIBUTE
+            // here, where a bare double quote closes src and everything after
+            // it becomes markup. Found by the escaping test below: a file named
+            // with an onerror handler produced an <img> that had lost its own
+            // class, because the attribute had been broken out of.
+            //
+            // Real Storage percent-encodes what it returns, so this is defence
+            // in depth rather than a live hole - but "the layer below happens to
+            // sanitise" is not the standard this project keeps.
+            const safeUrl = window.escapeHtml(url);
+
             let mediaHTML = isVideo
-                ? `<video src="${url}" loop muted playsinline preload="metadata" class="media-thumbnail-media"></video>`
+                ? `<video src="${safeUrl}" loop muted playsinline preload="metadata" class="media-thumbnail-media"></video>`
                 // loading="lazy" is the whole of the library's loading fix -
                 // it already pages at 24 and videos already use
                 // preload="metadata", so this was the one place still
@@ -341,19 +431,36 @@ window.initMediaLibrary = function() {
                 // click-to-reveal like the moderation queue: picking media
                 // means looking at it, and hiding it behind a click would
                 // trade real usability for a saving already mostly banked.
-                : `<img src="${url}" class="media-thumbnail-media" loading="lazy">`;
+                : `<img src="${safeUrl}" class="media-thumbnail-media" loading="lazy">`;
 
             const badgeHTML = (isVideo || isGif)
                 ? `<div class="media-thumbnail-badge">${isVideo ? 'VIDEO' : 'GIF'}</div>`
                 : '';
 
+            // v0.19 F8. Absent for every file uploaded before the credit
+            // shipped, and for one whose uploader deleted their account - both
+            // are honest gaps rather than guesses, so the line is omitted
+            // entirely rather than reading "Unknown". A caption that says
+            // nothing is worse than no caption.
+            const uploader = window.mediaUploaderNames[file.name];
+            const uploaderHTML = uploader
+                ? `<div class="media-thumbnail-uploader">by ${window.escapeHtml(uploader)}</div>`
+                : '';
+
+            // file.name is ESCAPED here. It comes from the uploader's disk, and
+            // this is the same value the upload queue below has always escaped
+            // - the two disagreed, and this was the half that did not. A
+            // display name is escaped for the same reason: get_public_profiles
+            // reads it from raw_user_meta_data, which is whatever the person
+            // typed at sign-up.
             card.innerHTML = `
                 ${mediaHTML}
                 ${badgeHTML}
                 <div class="copy-toast hidden">COPIED URL!</div>
                 <div class="media-thumbnail-filename">
-                    ${file.name}
+                    ${window.escapeHtml(file.name)}
                 </div>
+                ${uploaderHTML}
             `;
 
             if (isVideo) {
