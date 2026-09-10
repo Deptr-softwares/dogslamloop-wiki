@@ -125,9 +125,21 @@
         return out.slice(0, 12);
     }
 
-    function render(panel, rootPath) {
+    // The way out of the box and into search.html (F1b). Without it, nothing on
+    // the site links to the full-text page at all - and the box deliberately
+    // does not index body text, so "no matches here" is very often "the answer
+    // is in a paragraph". Shown on every render, including the empty one, which
+    // is exactly when it is most useful.
+    function moreLink(rootPath, query) {
+        return `<a class="site-search-more" href="${esc(rootPath)}search.html?q=${encodeURIComponent(query)}">
+                    Search all writing for “${esc(query)}” &rarr;
+                </a>`;
+    }
+
+    function render(panel, rootPath, query) {
         if (!results.length) {
-            panel.innerHTML = '<div class="site-search-empty">No matches.</div>';
+            panel.innerHTML = '<div class="site-search-empty">No pages or sections matched.</div>'
+                + moreLink(rootPath, query);
             panel.classList.remove('hidden');
             return;
         }
@@ -149,7 +161,7 @@
                     ${sub}
                     ${where}
                 </a>`;
-        }).join('');
+        }).join('') + moreLink(rootPath, query);
         panel.classList.remove('hidden');
     }
 
@@ -193,7 +205,7 @@
             results = search(input.value);
             activeIdx = results.length ? 0 : -1;
             if (!input.value.trim()) { close(); return; }
-            render(panel, rootPath);
+            render(panel, rootPath, input.value.trim());
             input.setAttribute('aria-expanded', 'true');
         };
 
@@ -215,7 +227,7 @@
             if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
                 e.preventDefault();
                 activeIdx = (activeIdx + (e.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length;
-                render(panel, rootPath);
+                render(panel, rootPath, input.value.trim());
                 return;
             }
             if (e.key === 'Enter' && activeIdx >= 0) {

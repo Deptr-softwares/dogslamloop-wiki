@@ -52,6 +52,7 @@ Edit the source and regenerate; hand-edits are overwritten by the `regenerate.ym
 | `data/faq.json` | `site_faq` table |
 | `data/site_meta.json` | `site_meta` table — **the version string lives here**, so a release bump is an owner-tools edit plus `npm run refresh-content`, never a hand-edit |
 | `systems/collaborators/collaborators_data.json` | `site_collaborators` table |
+| `data/search-index.json` + `data/search-fulltext.json` | `page_data`, via `scripts/fetch-search-index.js`. Built by calling `collectSectionTargets` (`js/character_tabs.js`), never by a second walk of `desc_data` — the anchors have to match the ones `assignSectionAnchors` mints in the DOM. **Deliberately absent from `npm run validate`**: unlike every other row here they are fetched from Supabase, so a `--check` would turn an owner content edit into a red required check |
 | `js/site_meta.js` — **only** the region between `GENERATED REGION: CHARACTER_COLORS` and `END GENERATED REGION` | `site_pages.color`, keyed by `name`. The rest of the file (`CHARACTER_ALIASES`, `applyCharacterTheme`) is hand-authored and must stay outside the markers. `fetch-content.js` refuses to write if they are missing rather than guessing the boundary |
 | `characters/*/index.html`, `systems/*/index.html` | `navigation.json` + `page-previews.json` |
 

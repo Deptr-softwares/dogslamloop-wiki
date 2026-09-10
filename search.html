@@ -3,18 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Submissions | Dogslamloop</title>
+    <title>Search | Dogslamloop</title>
+    <link rel="icon" type="image/jpg" href="medias/images/DogslamloopIcon.webp">
+
+    <meta name="description" content="Search every page, section and move on the Dogslamloop Wiki.">
+
     <link rel="stylesheet" href="style/Common.css">
     <link rel="stylesheet" href="style/Buttons.css">
-    <link rel="stylesheet" href="style/Modals.css">
-    <!-- Forms.css defines .editor-input, which the auth and profile modals
-         injected by js/site_utils.js both use. Without it the login form and
-         the profile fields render unstyled. -->
-    <link rel="stylesheet" href="style/Forms.css">
     <link rel="stylesheet" href="style/Badges.css">
     <link rel="stylesheet" href="style/Layout.css">
     <link rel="stylesheet" href="style/Cards.css">
-    <link rel="stylesheet" href="style/Submissions.css">
+    <!-- Modals.css and Forms.css: js/site_utils.js injects the auth, profile
+         and alert modals into EVERY page, and they are styled by the first
+         (.modal-box, .profile-field) and the second (.editor-input). Seven
+         pages shipped without Forms.css and rendered the login form as bare
+         browser inputs; tests/modal-stylesheets.spec.js now derives the rule
+         so an eighth cannot. This is that eighth page. -->
+    <link rel="stylesheet" href="style/Modals.css">
+    <link rel="stylesheet" href="style/Forms.css">
 </head>
 <body class="site-body p-0">
 
@@ -38,7 +44,7 @@
                     <p class="site-subtitle">Alpha v0.4</p>
                 </div>
             </div>
-            <button class="sidebar-toggle-btn" aria-label="Collapse sidebar">☰</button>
+            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" aria-label="Collapse sidebar">☰</button>
             <div class="sidebar-master-title">Navigation</div>
             <div id="global-sidebar-nav"><p class="loading-msg loading-msg-sm">Loading menu...</p></div>
             <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
@@ -54,18 +60,24 @@
         </aside>
 
         <main class="main-content-area space-y-6">
-            <div style="margin-bottom: 1.5rem;">
-                <button onclick="window.history.back()" class="btn-ghost">← Back to Previous Page</button>
-            </div>
-
-            <header class="character-header" style="margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 1rem;">
-                <h2 class="character-title" id="submissions-page-title" style="color: var(--accent-blue);">MY SUBMISSIONS</h2>
-                <p style="color: var(--text-muted); font-family: var(--text-mono); font-size: 0.85rem; margin-top: 0.5rem;">Every edit you've submitted, whatever happened to it - pending, in discussion, approved, or declined.</p>
+            <header class="character-header search-page-header">
+                <h2 class="character-title search-page-title">SEARCH</h2>
+                <p class="search-page-blurb">
+                    Every page, section, move and paragraph on the wiki. The box in the sidebar
+                    jumps straight to a page or a section; this one reads the writing too.
+                </p>
             </header>
 
-            <div id="submissions-list">
-                <p class="loading-msg">Loading...</p>
-            </div>
+            <form id="search-page-form" class="search-page-form" role="search">
+                <label class="sr-only" for="search-page-input">Search the wiki</label>
+                <input type="search" id="search-page-input" class="editor-input search-page-input"
+                       placeholder="Search every page and every paragraph..."
+                       autocomplete="off" spellcheck="false" autofocus>
+                <button type="submit" class="btn-sys btn-sys-blue">SEARCH</button>
+            </form>
+
+            <div id="search-page-status" class="search-page-status">Loading the index...</div>
+            <div id="search-page-results" class="search-page-results"></div>
         </main>
     </div>
 
@@ -76,6 +88,6 @@
     <script src="js/site_meta.js?v=e7834236"></script>
     <script src="js/pagebuilder.js?v=e7834236"></script>
     <script src="js/search.js?v=e7834236"></script>
-    <script src="js/submissions.js?v=e7834236"></script>
+    <script src="js/search-page.js?v=e7834236"></script>
 </body>
 </html>
