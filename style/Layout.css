@@ -1941,3 +1941,51 @@ summary:focus-visible {
     padding: 0.6rem; color: var(--text-muted);
     font-family: var(--text-mono); font-size: 0.65rem; text-align: center;
 }
+
+/* --- SEARCH PAGE (v0.19 F1b, search.html + js/search-page.js) ----------- */
+.search-page-header { margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; }
+.search-page-title { color: var(--accent-blue); }
+.search-page-blurb { color: var(--text-muted); font-family: var(--text-mono); font-size: 0.85rem; margin-top: 0.5rem; max-width: 60ch; }
+
+.search-page-form { display: flex; gap: 0.5rem; align-items: stretch; margin-bottom: 1rem; }
+/* .editor-input's own base rule sets margin-bottom; this row owns its spacing. */
+.search-page-input.editor-input { margin: 0; flex: 1; font-size: 0.9rem; }
+
+.search-page-status { color: var(--text-muted); font-family: var(--text-mono); font-size: 0.75rem; margin-bottom: 1rem; }
+
+.search-page-group {
+    font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase;
+    color: var(--accent-blue); margin: 1.5rem 0 0.5rem;
+    border-bottom: 1px solid var(--border-color); padding-bottom: 0.35rem;
+}
+.search-page-list { list-style: none; margin: 0; padding: 0; }
+
+.search-page-hit { padding: 0.6rem 0; border-bottom: 1px solid var(--border-color); }
+.search-page-hit:last-child { border-bottom: none; }
+.search-page-hit-link {
+    display: inline-block; color: var(--text-white); text-decoration: none;
+    font-family: var(--text-mono); font-size: 0.85rem; font-weight: bold;
+}
+.search-page-hit-link:hover { color: var(--accent-blue); text-decoration: underline; }
+.search-page-hit-where {
+    display: block; color: var(--text-muted);
+    font-family: var(--text-mono); font-size: 0.6rem; margin-top: 2px;
+}
+.search-page-snippet {
+    margin: 0.4rem 0 0; color: var(--text-primary);
+    font-size: 0.8rem; line-height: 1.5; max-width: 80ch;
+}
+/* The browser default for <mark> is a yellow that fights every palette here. */
+.search-page-snippet mark { background: var(--accent-blue); color: #000; padding: 0 2px; }
+
+/* The bridge from the sidebar box to search.html. Visually separated from the
+   hits above it because it is a different KIND of thing - not a result, an
+   offer to look harder - and it is the only row that is always present. */
+.site-search-more {
+    display: block; padding: 0.45rem 0.6rem;
+    border-top: 2px solid var(--border-color);
+    background: var(--bg-dark, #111);
+    color: var(--accent-blue); text-decoration: none;
+    font-family: var(--text-mono); font-size: 0.6rem;
+}
+.site-search-more:hover { background: var(--accent-blue); color: #000; }

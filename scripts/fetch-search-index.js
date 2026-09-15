@@ -1,17 +1,28 @@
 #!/usr/bin/env node
 /**
- * Refreshes data/search-index.json - the committed structural index behind the
- * site searchbar (v0.19 F1a).
+ * Refreshes the two committed search indexes, from ONE walk of the content.
  *
- * WHAT IS IN IT, AND WHAT IS NOT
+ *   data/search-index.json      the searchbar's         (v0.19 F1a)
+ *   data/search-fulltext.json   search.html's           (v0.19 F1b)
  *
- * Page names, section headings and MOVE NAMES. Not body text. A wiki for a
- * fighting game is searched for four things - a character, a move, a system
- * term, a section - and all four are here. Measured against live content on
- * 2026-09-10: 475 headings + 382 move names + every page, about 16 KB. The
- * full-text index is a separate, much larger artifact for search.html (F1b);
- * splitting them is what lets this one load everywhere without thinking about
- * it.
+ * WHAT IS IN EACH, AND WHY THERE ARE TWO
+ *
+ * The searchbar index is page names, section headings and MOVE NAMES - no body
+ * text. A wiki for a fighting game is searched for four things: a character, a
+ * move, a system term, a section. All four are structural. Measured on
+ * 2026-09-10: 982 entries, 83 KB raw, 13.7 KB gzipped, small enough to sit
+ * behind every page's sidebar.
+ *
+ * The full-text index is the prose, one record per SECTION, and it is 332 KB
+ * raw / 105 KB gzipped - which is why it is a separate file that only
+ * search.html fetches. Loading that on every page view for a feature most
+ * visits never use is the trade the split exists to avoid.
+ *
+ * They also differ in CONTENT, not just size. SKIP_TABS drops matchups from the
+ * searchbar - 492 near-identical "vs. <Opponent>" headings that would bury a
+ * character's own page - but keeps their prose in full text, where "how do I
+ * deal with X" is one of the most valuable things on the wiki to be able to
+ * find.
  *
  * IT DOES NOT WALK desc_data ITSELF
  *
@@ -55,6 +66,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const OUT_PATH = path.join(ROOT, 'data', 'search-index.json');
+const FULLTEXT_PATH = path.join(ROOT, 'data', 'search-fulltext.json');
 const NAV_PATH = path.join(ROOT, 'data', 'navigation.json');
 const VOCAB_PATH = path.join(ROOT, 'js', 'character_tabs.js');
 
@@ -151,6 +163,7 @@ function buildIndex(rows, vocab, registry) {
     const pages = [];
     const pageIndexById = new Map();
     const entries = [];
+    const fulltext = [];
 
     // Sorted so the artifact is deterministic: `npm run validate` compares the
     // committed file, and a run that reordered rows would report a spurious
@@ -176,7 +189,11 @@ function buildIndex(rows, vocab, registry) {
 
         let targets;
         try {
-            targets = vocab.collectSectionTargets(row.desc_data || {}, row.frame_data || {});
+            // collectText: the F1b opt-in. It only ADDS `text` to each target;
+            // the structure is identical either way, which
+            // tests/search-index.spec.js asserts rather than assumes. One walk
+            // therefore feeds both indexes.
+            targets = vocab.collectSectionTargets(row.desc_data || {}, row.frame_data || {}, { collectText: true });
         } catch (err) {
             // One malformed page must not cost the whole index, but it must be
             // visible rather than silent.
@@ -190,17 +207,37 @@ function buildIndex(rows, vocab, registry) {
         // than a tree the searchbar would have to walk to display.
         for (const major of targets) {
             if (!major || !major.title) continue;
-            if (SKIP_TABS.has(major.tab)) continue;
 
-            entries.push([major.title, major.tab, major.tabLabel, major.id, pageIdx, null]);
+            // SKIP_TABS applies to the SEARCHBAR index only. Matchups are 492
+            // near-identical "vs. <Opponent>" headings, which is noise in a
+            // typeahead - but their prose is some of the most searched writing
+            // on the wiki ("how do I deal with X"), and full text is exactly
+            // where it belongs. Filtering both would have thrown away the half
+            // that motivated having a second index at all.
+            const inSearchbar = !SKIP_TABS.has(major.tab);
+
+            // Body text, one record per SECTION rather than per paragraph. A
+            // lone paragraph is a poor search result - no title to show, no
+            // anchor of its own - and a section's joined prose gives the
+            // results page a snippet to quote around whatever matched.
+            const addText = (target, title) => {
+                const text = (target.text || []).join(' ').replace(/\s+/g, ' ').trim();
+                if (!text) return;
+                fulltext.push([text, major.tab, major.tabLabel, target.id, pageIdx, title]);
+            };
+
+            if (inSearchbar) entries.push([major.title, major.tab, major.tabLabel, major.id, pageIdx, null]);
+            addText(major, major.title);
+
             for (const minor of major.children || []) {
                 if (!minor || !minor.title) continue;
-                entries.push([minor.title, major.tab, major.tabLabel, minor.id, pageIdx, major.title]);
+                if (inSearchbar) entries.push([minor.title, major.tab, major.tabLabel, minor.id, pageIdx, major.title]);
+                addText(minor, minor.title);
             }
         }
     }
 
-    return { pages, entries };
+    return { pages, entries, fulltext };
 }
 
 async function main() {
@@ -209,7 +246,7 @@ async function main() {
     const vocab = loadVocabulary();
     const registry = loadPageRegistry();
     const rows = await fetchPageContent();
-    const { pages, entries } = buildIndex(rows, vocab, registry);
+    const { pages, entries, fulltext } = buildIndex(rows, vocab, registry);
 
     if (pages.length === 0) {
         throw new Error('Refusing to continue: no page_data row matched a live registry entry.');
@@ -233,40 +270,57 @@ async function main() {
     // line that no diff can review. A line per entry is both: readable in a
     // pull request, and a third of the size.
     const line = v => JSON.stringify(v);
-    const json =
+    const serialise = (fields, records) =>
         '{\n' +
-        `  "fields": ${line(['title', 'tab', 'tabLabel', 'anchor', 'page', 'parent'])},\n` +
+        `  "fields": ${line(fields)},\n` +
         '  "pages": [\n' +
         pages.map(p => `    ${line(p)}`).join(',\n') + '\n' +
         '  ],\n' +
         '  "entries": [\n' +
-        entries.map(e => `    ${line(e)}`).join(',\n') + '\n' +
+        records.map(e => `    ${line(e)}`).join(',\n') + '\n' +
         '  ]\n' +
         '}\n';
 
-    // Cheap guard against the hand-built JSON above going subtly wrong - a
-    // trailing comma or a missed escape would otherwise ship a file every page
-    // fetches and none can parse.
-    JSON.parse(json);
+    const artifacts = [
+        {
+            path: OUT_PATH, label: 'search index',
+            json: serialise(['title', 'tab', 'tabLabel', 'anchor', 'page', 'parent'], entries),
+            count: entries.length,
+        },
+        {
+            // Same shape, same `pages` table, different records - so search.html
+            // reads it with the same code the searchbar uses rather than a
+            // second parser. Position 0 is prose instead of a title, and
+            // position 5 is the section it came from rather than a parent
+            // heading, which `fields` says.
+            path: FULLTEXT_PATH, label: 'full-text index',
+            json: serialise(['text', 'tab', 'tabLabel', 'anchor', 'page', 'section'], fulltext),
+            count: fulltext.length,
+        },
+    ];
 
-    const existing = fs.existsSync(OUT_PATH) ? fs.readFileSync(OUT_PATH, 'utf8') : null;
-    const changed = existing !== json;
-    const kb = (Buffer.byteLength(json) / 1024).toFixed(1);
+    let anyChanged = false;
+    for (const a of artifacts) {
+        // Cheap guard against the hand-built JSON going subtly wrong - a
+        // trailing comma or a missed escape would ship a file the site fetches
+        // and cannot parse.
+        JSON.parse(a.json);
 
-    console.log(`search index: ${pages.length} pages, ${entries.length} entries, ${kb} KB`);
+        const rel = path.relative(ROOT, a.path).split(path.sep).join('/');
+        const kb = (Buffer.byteLength(a.json) / 1024).toFixed(1);
+        console.log(`${a.label}: ${pages.length} pages, ${a.count} entries, ${kb} KB`);
 
-    if (!changed) {
-        console.log('data/search-index.json is up to date.');
-        return;
+        const existing = fs.existsSync(a.path) ? fs.readFileSync(a.path, 'utf8') : null;
+        if (existing === a.json) { console.log(`  ${rel} is up to date.`); continue; }
+
+        anyChanged = true;
+        if (!write) { console.log(`  ${rel} would change. Run with --write.`); continue; }
+
+        fs.writeFileSync(a.path, a.json, 'utf8');
+        console.log(`  ${rel} written.`);
     }
 
-    if (!write) {
-        console.log('data/search-index.json would change. Run with --write.');
-        return;
-    }
-
-    fs.writeFileSync(OUT_PATH, json, 'utf8');
-    console.log('data/search-index.json written.');
+    if (!anyChanged) console.log('Nothing to do.');
 }
 
 main().catch(err => {
