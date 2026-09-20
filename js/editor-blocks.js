@@ -383,6 +383,11 @@ const blockTemplates = {
     divider: { type: 'divider', style: 'diamond', padding: 'normal' },
     author: { type: 'author', author: '' },
     table: { type: 'table', headers: ['Stat', 'Value'], rows: [['Damage', '10'], ['Startup', '5f']], align: 'center', author: '' },
+    // A box with a title, an introduction, and a row of switchable tabs (v0.19
+    // C3). `{ title, content: [blocks] }` per section deliberately - it is the
+    // shape comboGroups already uses, so the diff walkers and the nested
+    // renderer read it without a fourth container convention being invented.
+    sectionedbox: { type: 'sectionedbox', title: 'New Section Box', intro: [], sections: [{ title: 'Section 1', content: [] }], align: 'left', author: '' },
 };
 
 // What each block type is CALLED, as opposed to what its template key is.
@@ -410,6 +415,7 @@ const BLOCK_TYPE_LABELS = {
     combo: 'Combo',
     accordion: 'Accordion',
     theorybox: 'Combo Card',
+    sectionedbox: 'Section Box',
     divider: 'Divider',
     author: 'Author',
 };
@@ -425,7 +431,7 @@ window.blockTypeLabel = function (type) {
 // the map above; only the grouping is editorial.
 const ADD_BLOCK_GROUPS = [
     { title: 'Text & Media', types: ['heading', 'paragraph', 'table', 'list', 'image', 'video', 'youtube'] },
-    { title: 'Components', types: ['callout', 'combo', 'accordion', 'theorybox', 'divider', 'author'] },
+    { title: 'Components', types: ['callout', 'combo', 'accordion', 'theorybox', 'sectionedbox', 'divider', 'author'] },
 ];
 
 // A text prompt in the site's own modal, replacing window.prompt() for the
@@ -498,19 +504,69 @@ window.customPrompt = function (message, opts = {}) {
 // --- RECURSIVE EDITOR PATH TRACKING ---
 window.activeAccordionPath = [];
 
+// WHICH NESTED ARRAY A PATH STEP MEANS (extended for v0.19 C3).
+//
+// A step is either a bare INDEX - a container whose nested blocks live in
+// `.content`, which is every container that existed before the Section Box -
+// or `{ index, field }` for one that holds SEVERAL block arrays. A Section Box
+// holds an `intro` plus one `content` per section, so an index alone cannot say
+// which of them the author asked to edit.
+//
+// The field is matched against a closed set rather than resolved as a path
+// expression: these strings are written by this file, and a general resolver
+// over contributor data is a much larger promise than the feature needs.
+window.resolveNestedBlocks = function (host, field) {
+    if (!host || typeof host !== 'object') return null;
+
+    if (!field) {
+        if (!Array.isArray(host.content)) host.content = [];
+        return host.content;
+    }
+    if (field === 'intro') {
+        if (!Array.isArray(host.intro)) host.intro = [];
+        return host.intro;
+    }
+
+    const m = /^sections\.(\d+)\.content$/.exec(field);
+    if (m) {
+        const section = Array.isArray(host.sections) ? host.sections[Number(m[1])] : null;
+        if (!section || typeof section !== 'object') return null;
+        if (!Array.isArray(section.content)) section.content = [];
+        return section.content;
+    }
+    return null;
+};
+
 window.getActiveBlocks = function() {
     let blocks = currentStrategyBlocks;
     for (let i = 0; i < window.activeAccordionPath.length; i++) {
-        const idx = window.activeAccordionPath[i];
-        
+        const step = window.activeAccordionPath[i];
+        const idx = (step && typeof step === 'object') ? step.index : step;
+
         if (!blocks[idx]) {
             window.activeAccordionPath = window.activeAccordionPath.slice(0, i);
             break;
         }
-        if (!blocks[idx].content) blocks[idx].content = [];
-        blocks = blocks[idx].content;
+
+        // A section deleted while the author was inside it leaves a path
+        // pointing at nothing, so the path is truncated rather than throwing -
+        // the same recovery the missing-block case above already does.
+        const nested = window.resolveNestedBlocks(
+            blocks[idx], (step && typeof step === 'object') ? step.field : null);
+        if (!nested) {
+            window.activeAccordionPath = window.activeAccordionPath.slice(0, i);
+            break;
+        }
+        blocks = nested;
     }
     return blocks;
+};
+
+// Descend into a container's nested blocks. A function rather than more inline
+// onclick, because a Section Box's step carries a field as well as an index.
+window.enterBlockContainer = function (index, field) {
+    window.activeAccordionPath.push(field ? { index, field } : index);
+    renderBlockList();
 };
 
 // --- WHICH BLOCKS ARE OPEN (v0.16 fine-tuning 2) ---
@@ -1026,6 +1082,63 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             setTimeout(() => card.classList.remove('block-card-copied'), 400);
         });
     }
+    // --- SECTION BOX CONTROLS (v0.19 C3) ---
+    //
+    // Registered before the general button handler further down, which resolves
+    // every button through the card's data-index and would also fire for these.
+    blockList.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-sbox-intro], [data-sbox-edit], [data-sbox-remove], [data-sbox-add]');
+        if (!btn) return;
+
+        const card = btn.closest('.block-card');
+        if (!card) return;
+        const index = parseInt(card.getAttribute('data-index'), 10);
+        const block = window.getActiveBlocks()[index];
+        if (!block || block.type !== 'sectionedbox') return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();  // same element as the general handler - see C2 above
+
+        // Descending changes no data, so it takes no history snapshot.
+        if (btn.hasAttribute('data-sbox-intro')) {
+            window.enterBlockContainer(index, 'intro');
+            return;
+        }
+        if (btn.hasAttribute('data-sbox-edit')) {
+            const at = parseInt(btn.getAttribute('data-sbox-edit'), 10);
+            window.enterBlockContainer(index, `sections.${at}.content`);
+            return;
+        }
+
+        window.saveBlockHistory();
+        if (btn.hasAttribute('data-sbox-add')) {
+            if (!Array.isArray(block.sections)) block.sections = [];
+            block.sections.push({ title: `Section ${block.sections.length + 1}`, content: [] });
+        } else {
+            const at = parseInt(btn.getAttribute('data-sbox-remove'), 10);
+            if (Array.isArray(block.sections)) block.sections.splice(at, 1);
+        }
+        renderBlockList();
+        updateLivePreview();
+    });
+
+    // A section's title. Deliberately does NOT call renderBlockList - rebuilding
+    // the list under a field being typed in takes the focus and the caret with
+    // it, which is the bug the whole editor works hard to avoid elsewhere.
+    blockList.addEventListener('input', (e) => {
+        const field = e.target.closest('[data-sbox-title]');
+        if (!field) return;
+
+        const card = field.closest('.block-card');
+        if (!card) return;
+        const block = window.getActiveBlocks()[parseInt(card.getAttribute('data-index'), 10)];
+        if (!block || !Array.isArray(block.sections)) return;
+
+        const at = parseInt(field.getAttribute('data-sbox-title'), 10);
+        if (!block.sections[at]) return;
+        block.sections[at].title = field.value;
+        updateLivePreview();
+    });
 
     // --- VIRTUALIZATION ENGINE ---
     if (window.editorBlockObserver) window.editorBlockObserver.disconnect();
@@ -2432,18 +2545,51 @@ function renderBlockList() {
     };
 
     if (window.activeAccordionPath.length > 0) {
-        let parentBlock = currentStrategyBlocks;
-        for (let i = 0; i < window.activeAccordionPath.length - 1; i++) {
-            parentBlock = parentBlock[window.activeAccordionPath[i]].content;
+        // Walked through the same resolver getActiveBlocks uses, so the banner
+        // and the list below it cannot disagree about which level is on screen.
+        // The old walk read `.content` directly, which a Section Box step does
+        // not have.
+        let blocks = currentStrategyBlocks;
+        let parentTitle = 'Accordion';
+        let partLabel = '';
+
+        for (let i = 0; i < window.activeAccordionPath.length; i++) {
+            const step = window.activeAccordionPath[i];
+            const idx = (step && typeof step === 'object') ? step.index : step;
+            const host = blocks[idx];
+            if (!host) break;
+
+            const field = (step && typeof step === 'object') ? step.field : null;
+            if (i === window.activeAccordionPath.length - 1) {
+                parentTitle = host.title || 'Accordion';
+                // Which PART of a Section Box, since an index alone names the
+                // box and the author may be in any one of several arrays in it.
+                if (field === 'intro') {
+                    partLabel = 'Introduction';
+                } else if (field) {
+                    const m = /^sections\.(\d+)\.content$/.exec(field);
+                    const sec = m && Array.isArray(host.sections) ? host.sections[Number(m[1])] : null;
+                    if (sec) partLabel = sec.title || `Section ${Number(m[1]) + 1}`;
+                }
+            }
+
+            const nested = window.resolveNestedBlocks(host, field);
+            if (!nested) break;
+            blocks = nested;
         }
-        const activeIdx = window.activeAccordionPath[window.activeAccordionPath.length - 1];
-        const parentTitle = parentBlock[activeIdx].title || 'Accordion';
-        
+
+        // escField, not raw. The title is contributor-written and this string
+        // goes through insertAdjacentHTML - it was an unescaped innerHTML sink
+        // on every nested edit, found while extending this walk for C3.
+        const heading = partLabel
+            ? `${escField(parentTitle)} <span class="accordion-back-part">${escField(partLabel)}</span>`
+            : escField(parentTitle);
+
         const backBtnHTML = `
             <div class="accordion-back-banner">
                 <div>
                     <span class="accordion-back-label">EDITING INNER BLOCKS:</span>
-                    <div class="accordion-back-title">${parentTitle}</div>
+                    <div class="accordion-back-title">${heading}</div>
                 </div>
                 <button class="btn-sys btn-sys-purple btn-purple-fill" onclick="window.activeAccordionPath.pop(); renderBlockList();">⮑ BACK TO PARENT</button>
             </div>
@@ -2693,6 +2839,46 @@ function renderBlockList() {
                     <button class="btn-sys btn-sys-purple" onclick="window.activeAccordionPath.push(${index}); renderBlockList();">
                         ⮑ EDIT INNER BLOCKS (${innerCount})
                     </button>
+                </div>
+            `;
+        }
+        // --- THE SECTION BOX (v0.19 C3) ---
+        //
+        // Three things to edit and they are different in kind: a title, one
+        // introduction, and N sections that are add/remove. The introduction
+        // and each section's contents are BLOCKS, reached through the same
+        // descend-and-come-back the accordion uses - the only difference is
+        // that a step has to say WHICH array, because this block has several.
+        else if (block.type === 'sectionedbox') {
+            const sections = Array.isArray(block.sections) ? block.sections : [];
+            const introCount = Array.isArray(block.intro) ? block.intro.length : 0;
+
+            const rows = sections.map((section, sIdx) => `
+                <div class="sbox-editor-row">
+                    <input type="text" class="editor-input" data-sbox-title="${sIdx}"
+                           value="${escField(section.title || '')}" placeholder="Section ${sIdx + 1}">
+                    <button class="btn-sys btn-sys-purple" data-sbox-edit="${sIdx}">
+                        ⮑ CONTENTS (${Array.isArray(section.content) ? section.content.length : 0})
+                    </button>
+                    <button class="btn-sys btn-sys-red" data-sbox-remove="${sIdx}" title="Remove this section">✖</button>
+                </div>
+            `).join('');
+
+            html += `
+                <input type="text" class="editor-input" data-field="title" value="${escField(block.title || '')}" placeholder="Section Box Title">
+                <div class="editor-row editor-row-spaced-md">
+                    <div>${getAlignUI(block.align, 'left')}</div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
+                </div>
+                <div class="accordion-inner-block-wrapper">
+                    <button class="btn-sys btn-sys-purple" data-sbox-intro="${index}">
+                        ⮑ EDIT INTRODUCTION (${introCount})
+                    </button>
+                </div>
+                <div class="sbox-editor-sections">
+                    <div class="sbox-editor-label">SECTIONS</div>
+                    ${rows || '<div class="sbox-editor-empty">No sections yet - the box needs at least one tab to show.</div>'}
+                    <button class="btn-sys btn-sys-green" data-sbox-add="${index}">+ ADD SECTION</button>
                 </div>
             `;
         }

@@ -519,6 +519,48 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 </div>
             `;
         }
+        // --- THE SECTION BOX (v0.19 C3) ---
+        //
+        // A title, an introduction, and a row of switchable tabs. Introduction
+        // and each tab's contents are BLOCKS, nested through the same recursive
+        // call an accordion uses.
+        else if (block.type === 'sectionedbox') {
+            const bData = block.data || block;
+            const sections = Array.isArray(bData.sections) ? bData.sections : [];
+            const introHTML = window.generateHTMLForBlocks(bData.intro || [], contextClass);
+
+            // TWO BEHAVIOURS. Inside a Combos/Techs group the box wears the
+            // wrapper a Combo Card wears; everywhere else it goes without, or it
+            // is a card inside a card.
+            //
+            // Asked as "is this context a document tab" rather than
+            // `contextClass === 'combos' || === 'techs'`, because
+            // renderDocumentTab's own header forbids knowing either tab by
+            // name - every difference between them is a string in
+            // character_tabs.js, and a third document tab added there would
+            // otherwise silently get the wrong one of the two behaviours.
+            const boxed = typeof window.getDocumentSections === 'function'
+                && !!window.getDocumentSections(contextClass);
+
+            const tabsHTML = sections.map((s, i) =>
+                `<button type="button" class="sbox-tab${i === 0 ? ' is-active' : ''}"`
+                + ` data-sbox-tab="${i}">${escBlockText(s.title || `Section ${i + 1}`)}</button>`
+            ).join('');
+
+            const panelsHTML = sections.map((s, i) =>
+                `<div class="sbox-panel${i === 0 ? ' is-active' : ''}" data-sbox-panel="${i}">`
+                + `${window.generateHTMLForBlocks(s.content || [], contextClass)}</div>`
+            ).join('');
+
+            contentHTML += `
+                <section class="sbox${boxed ? ' sbox-boxed' : ''}" ${alignAttr}>
+                    <h4 class="sbox-title">${escBlockText(bData.title || 'Section Box')}</h4>
+                    ${introHTML ? `<div class="sbox-intro">${introHTML}</div>` : ''}
+                    ${sections.length ? `<div class="sbox-tabs">${tabsHTML}</div>` : ''}
+                    ${panelsHTML}
+                </section>
+            `;
+        }
         // --- THE COMBO CARD (TheoryBox) ---
         //
         // A combo and everything known about it: the route, its numbers, and a
@@ -1262,6 +1304,17 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
     const wasOpen = Array.prototype.map.call(
         container.querySelectorAll('details'), (d) => d.open);
 
+    // Same problem, same rule, for a Section Box's tab row (v0.19 C3). Which
+    // tab is open lives only in a class on the DOM the repaint is about to
+    // throw away, so without this a box resets to its first tab on every
+    // character typed - and worse than the accordion, because a tab row makes
+    // it look like the author's click did nothing at all.
+    const wasTab = Array.prototype.map.call(
+        container.querySelectorAll('.sbox'), (box) => {
+            const active = box.querySelector(':scope > .sbox-tabs > .sbox-tab.is-active');
+            return active ? active.getAttribute('data-sbox-tab') : null;
+        });
+
     container.innerHTML = '';
     container.classList.remove('vessel-content');
     container.classList.add('content-section-wrapper');
@@ -1301,6 +1354,24 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
         if (wasOpen.length) {
             container.querySelectorAll('details').forEach((d, i) => {
                 if (wasOpen[i]) d.open = true;
+            });
+        }
+
+        // And the tab each Section Box was showing. Matched by position for the
+        // same reason, and skipped when the tab it names is gone - a box that
+        // has lost a section falls back to the first, which is what a fresh
+        // render does anyway.
+        if (wasTab.length) {
+            container.querySelectorAll('.sbox').forEach((box, i) => {
+                const want = wasTab[i];
+                if (want === null || want === undefined || want === '0') return;
+                const btn = box.querySelector(`:scope > .sbox-tabs > [data-sbox-tab="${CSS.escape(want)}"]`);
+                const panel = box.querySelector(`:scope > [data-sbox-panel="${CSS.escape(want)}"]`);
+                if (!btn || !panel) return;
+                box.querySelectorAll(':scope > .sbox-tabs > .sbox-tab').forEach(b =>
+                    b.classList.toggle('is-active', b === btn));
+                box.querySelectorAll(':scope > [data-sbox-panel]').forEach(p =>
+                    p.classList.toggle('is-active', p === panel));
             });
         }
 
@@ -2140,3 +2211,31 @@ window.closeWikiVideoModal = function () {
 
 window.loadPageDescriptions = loadPageDescriptions;
 window.populateTextSection = populateTextSection;
+
+// --- SECTION BOX TABS (v0.19 C3) ---
+//
+// One delegated listener for every SectionedBox anywhere on the page, bound
+// once. Delegated rather than bound per button for the reason this whole block
+// type has to be careful about: the editor repaints the preview wholesale on
+// every keystroke, so a handler attached to a button is a handler on a detached
+// node a moment later.
+//
+// A data attribute and a delegated listener rather than an inline onclick,
+// which is a standing rule here: the tab's label is contributor-written.
+if (!window.__sboxTabsBound) {
+    window.__sboxTabsBound = true;
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-sbox-tab]');
+        if (!btn) return;
+        const box = btn.closest('.sbox');
+        if (!box) return;
+
+        const idx = btn.getAttribute('data-sbox-tab');
+        // Scoped to THIS box: nested boxes are possible, since a tab's contents
+        // are blocks and a Section Box is a block.
+        box.querySelectorAll(':scope > .sbox-tabs > [data-sbox-tab]').forEach(b =>
+            b.classList.toggle('is-active', b === btn));
+        box.querySelectorAll(':scope > [data-sbox-panel]').forEach(p =>
+            p.classList.toggle('is-active', p.getAttribute('data-sbox-panel') === idx));
+    });
+}

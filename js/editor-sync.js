@@ -553,6 +553,25 @@ window.renderDiffView = function() {
                         }
                         b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
                     }
+                    // A Section Box nests like an accordion twice over: an
+                    // introduction, and one content array per section. Missing
+                    // this means the reviewer sees the box unchanged while its
+                    // sections were rewritten under it.
+                    else if (b.type === 'sectionedbox') {
+                        b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
+                        b.intro = applyInlineDiffToBlocks(oldB.intro || [], newB.intro || []);
+
+                        const oldSec = oldB.sections || [];
+                        const newSec = newB.sections || [];
+                        if (!Array.isArray(b.sections)) b.sections = [];
+                        for (let j = 0; j < Math.max(oldSec.length, newSec.length); j++) {
+                            const oSec = oldSec[j] || {};
+                            const nSec = newSec[j] || {};
+                            if (!b.sections[j]) b.sections[j] = {};
+                            b.sections[j].title = window.diffTextLCS(oSec.title || '', nSec.title || '');
+                            b.sections[j].content = applyInlineDiffToBlocks(oSec.content || [], nSec.content || []);
+                        }
+                    }
                     
                     if (b.caption !== undefined) b.caption = window.diffTextLCS(oldB.caption || '', newB.caption || '');
                     if (b.author !== undefined) b.author = window.diffTextLCS(oldB.author || '', newB.author || '');

@@ -2608,3 +2608,16 @@ del.diff-del {
 }
 .gradient-preset-btn:hover { outline-color: var(--text-white, #fff); transform: translateY(-1px); }
 .gradient-preset-btn:focus-visible { outline-color: var(--accent-blue); }
+
+
+/* --- SECTION BOX EDITOR (v0.19 C3) --- */
+.sbox-editor-sections { margin-top: 0.6rem; border-top: 1px dashed #333; padding-top: 0.6rem; }
+.sbox-editor-label {
+    font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
+    letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
+}
+.sbox-editor-row { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
+.sbox-editor-row .editor-input { flex: 1; min-width: 0; }
+.sbox-editor-empty { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+/* Which PART of a Section Box the author descended into, beside its title. */
+.accordion-back-part { color: var(--accent-blue); }

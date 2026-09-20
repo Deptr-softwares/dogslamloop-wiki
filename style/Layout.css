@@ -1280,6 +1280,43 @@ summary:focus-visible {
 .wiki-accordion-body > * + * { margin-top: 0.5rem; }
 .wiki-accordion-body::after { content: ""; display: block; clear: both; }
 
+/* --- SECTION BOX (v0.19 C3) ---
+   A title, an introduction, and a row of switchable tabs. */
+.sbox { margin: 1.5rem 0; }
+
+/* The wrapper is worn ONLY inside a Combos/Techs group, where it matches the
+   Combo Card beside it. Everywhere else the box is bare, or it becomes a card
+   inside a card - which is the same thing the owner objected to when a combo
+   group was wrapped in .wiki-section. */
+.sbox-boxed {
+    background: var(--bg-secondary); border: 2px solid var(--border-color);
+    box-shadow: 4px 4px 0px var(--manga-shadow); padding: 1rem;
+}
+
+.sbox-title { font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; color: var(--text-white); margin: 0 0 0.5rem; }
+.sbox-intro { margin-bottom: 0.75rem; }
+
+.sbox-tabs {
+    display: flex; flex-wrap: wrap; gap: 0.35rem;
+    border-bottom: 2px solid var(--border-color); margin-bottom: 0.75rem;
+}
+.sbox-tab {
+    background: none; border: 1px solid var(--border-color); border-bottom: none;
+    color: var(--text-muted); font-family: var(--text-mono); font-size: 0.65rem;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 0.35rem 0.7rem; cursor: pointer;
+}
+.sbox-tab:hover { color: var(--text-white); }
+.sbox-tab.is-active { background: var(--bg-main); color: var(--accent-blue); border-color: var(--accent-blue); }
+
+/* NOT a flex container, and the reason is written out on .wiki-accordion-body
+   above: a panel holds BLOCKS, media alignment on this site is `float`, and
+   float is ignored on a flex item. The clearfix is needed for the same reason
+   the floats work at all. */
+.sbox-panel { display: none; }
+.sbox-panel.is-active { display: block; }
+.sbox-panel::after { content: ""; display: block; clear: both; }
+
 /* ONE COMBO = ONE BOX (owner, 2026-08-16, modelled on Dustloop's combo table).
    The route, its damage and its note are a single reading unit, so they share
    a single surface rather than floating as separate chips on the page.
