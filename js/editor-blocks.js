@@ -379,7 +379,10 @@ const blockTemplates = {
     // `content` makes it nest exactly like an accordion, which is what lets a
     // card hold its own clips, sub-variants and explanation - and what makes a
     // combo GROUP a group rather than a list.
-    theorybox: { type: 'theorybox', title: 'New Combo', oneliner: '', difficulty: '', sequence: [], damage: '', video: '', content: [], anchor: '', align: 'left', author: '' },
+    // `multiSections` off and `sections` empty by default: a card is one combo
+    // until an author says otherwise, and the switch seeds the first section
+    // from the card's own fields so turning it on strands nothing.
+    theorybox: { type: 'theorybox', title: 'New Combo', oneliner: '', difficulty: '', sequence: [], damage: '', video: '', content: [], anchor: '', align: 'left', author: '', multiSections: false, sections: [] },
     divider: { type: 'divider', style: 'diamond', padding: 'normal' },
     author: { type: 'author', author: '' },
     table: { type: 'table', headers: ['Stat', 'Value'], rows: [['Damage', '10'], ['Startup', '5f']], align: 'center', author: '' },
@@ -515,6 +518,64 @@ window.activeAccordionPath = [];
 // The field is matched against a closed set rather than resolved as a path
 // expression: these strings are written by this file, and a general resolver
 // over contributor data is a much larger promise than the feature needs.
+// WHICH SECTION OF A COMBO CARD THE EDITOR IS SHOWING (v0.19 C3b).
+//
+// A WeakMap keyed by the BLOCK, for the reasons expandedBlocks states: it is
+// session state, so it must not be serialised into desc_data and shipped to
+// readers, and it must survive renderBlockList. Undo/redo replaces the blocks
+// wholesale, so the entry falls away and the card opens on its first section,
+// which is correct - that is a different document.
+const activeCardSection = new WeakMap();
+
+window.editorCardSectionIndex = function (block) {
+    const sections = (block && Array.isArray(block.sections)) ? block.sections : [];
+    if (!sections.length) return -1;
+    // Clamped rather than trusted: the section it names may have been removed.
+    return Math.max(0, Math.min(activeCardSection.get(block) || 0, sections.length - 1));
+};
+
+window.setEditorCardSection = function (block, index) {
+    if (block && typeof block === 'object') activeCardSection.set(block, index);
+};
+
+// Where a Combo Card's own fields write. In Multiple Sections mode the card has
+// no fields of its own - each tab is a whole variant - so they edit the section
+// on screen. Every other block type gets itself back unchanged.
+window.editorCardFieldTarget = function (block) {
+    if (!block || block.type !== 'theorybox' || !block.multiSections) return block;
+    const at = window.editorCardSectionIndex(block);
+    return at < 0 ? block : block.sections[at];
+};
+
+
+// Turning Multiple Sections ON seeds the first section FROM the card, so an
+// author who has already written a combo does not find it stranded behind a
+// switch. Turning it OFF copies the section on screen back up, so what was on
+// screen stays on screen. Between them the switch round-trips without losing
+// anything the author can see.
+const CARD_TEXT_FIELDS = ['title', 'oneliner', 'difficulty', 'damage', 'video', 'anchor'];
+
+function seedCardSections(card, on) {
+    if (!card || typeof card !== 'object') return;
+
+    if (on) {
+        if (Array.isArray(card.sections) && card.sections.length) return;
+        const seeded = { label: card.title || 'Section 1' };
+        CARD_TEXT_FIELDS.forEach(f => { seeded[f] = card[f] || ''; });
+        seeded.sequence = Array.isArray(card.sequence) ? card.sequence.slice() : [];
+        seeded.content = Array.isArray(card.content) ? card.content : [];
+        card.sections = [seeded];
+        return;
+    }
+
+    const at = window.editorCardSectionIndex(card);
+    if (at < 0) return;
+    const sec = card.sections[at] || {};
+    CARD_TEXT_FIELDS.forEach(f => { card[f] = sec[f] || ''; });
+    card.sequence = Array.isArray(sec.sequence) ? sec.sequence.slice() : [];
+    card.content = Array.isArray(sec.content) ? sec.content : [];
+}
+
 window.resolveNestedBlocks = function (host, field) {
     if (!host || typeof host !== 'object') return null;
 
@@ -1119,6 +1180,70 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             if (Array.isArray(block.sections)) block.sections.splice(at, 1);
         }
         renderBlockList();
+        updateLivePreview();
+    });
+
+    // --- COMBO CARD SECTIONS (v0.19 C3b) ---
+    //
+    // Same shape as the Section Box controls above, against the Combo Card's
+    // own `sections`. Which one is on screen is session state in a WeakMap, not
+    // a field - it must not be serialised into desc_data.
+    blockList.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-cardsec], [data-cardsec-add], [data-cardsec-remove], [data-cardsec-edit]');
+        if (!btn) return;
+
+        const card = btn.closest('.block-card');
+        if (!card) return;
+        const index = parseInt(card.getAttribute('data-index'), 10);
+        const block = window.getActiveBlocks()[index];
+        if (!block || block.type !== 'theorybox') return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        // Descending and switching tab change no data, so neither snapshots.
+        if (btn.hasAttribute('data-cardsec-edit')) {
+            const at = parseInt(btn.getAttribute('data-cardsec-edit'), 10);
+            window.enterBlockContainer(index, at >= 0 ? `sections.${at}.content` : null);
+            return;
+        }
+        if (btn.hasAttribute('data-cardsec')) {
+            window.setEditorCardSection(block, parseInt(btn.getAttribute('data-cardsec'), 10));
+            renderBlockList();
+            return;
+        }
+
+        window.saveBlockHistory();
+        if (btn.hasAttribute('data-cardsec-add')) {
+            if (!Array.isArray(block.sections)) block.sections = [];
+            block.sections.push({ label: `Section ${block.sections.length + 1}`, title: '', sequence: [], content: [] });
+            // Opens on the one just added - it was added to write in it.
+            window.setEditorCardSection(block, block.sections.length - 1);
+        } else {
+            const at = parseInt(btn.getAttribute('data-cardsec-remove'), 10);
+            if (Array.isArray(block.sections) && block.sections.length > 1) {
+                block.sections.splice(at, 1);
+                window.setEditorCardSection(block, Math.max(0, at - 1));
+            }
+        }
+        renderBlockList();
+        updateLivePreview();
+    });
+
+    // A section's TAB LABEL. Like the Section Box title below, this must not
+    // re-render the list - that takes the focus out of the field being typed in.
+    blockList.addEventListener('input', (e) => {
+        const field = e.target.closest('[data-cardsec-label]');
+        if (!field) return;
+
+        const card = field.closest('.block-card');
+        if (!card) return;
+        const block = window.getActiveBlocks()[parseInt(card.getAttribute('data-index'), 10)];
+        if (!block || block.type !== 'theorybox' || !Array.isArray(block.sections)) return;
+
+        const at = parseInt(field.getAttribute('data-cardsec-label'), 10);
+        if (!block.sections[at]) return;
+        block.sections[at].label = field.value;
         updateLivePreview();
     });
 
@@ -2104,14 +2229,32 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 updateLivePreview(); return;
             }
 
-            if (field === 'content-array') activeBlocks[index].content = e.target.value.split('\n');
+            // The Multiple Sections switch belongs to the CARD, never to the
+            // section on screen that the routing below points at, so it is
+            // handled first - and it re-renders, because it changes which
+            // fields the form is showing.
+            if (field === 'multiSections') {
+                const card = activeBlocks[index];
+                card.multiSections = e.target.checked;
+                seedCardSections(card, e.target.checked);
+                renderBlockList();
+                updateLivePreview();
+                return;
+            }
+
+            // A Combo Card in Multiple Sections mode edits its ACTIVE SECTION.
+            // Every other block, and that same card with the switch off, gets
+            // itself back - so nothing else changes behaviour.
+            const target = window.editorCardFieldTarget(activeBlocks[index]);
+
+            if (field === 'content-array') target.content = e.target.value.split('\n');
             // A combo route is an ARRAY of steps, edited one per line. Blank
             // lines are dropped rather than becoming empty chips in the route.
-            else if (field === 'sequence-lines') activeBlocks[index].sequence = e.target.value.split('\n').map(v => v.trim()).filter(Boolean);
-            else if (field === 'list-items') activeBlocks[index].items = e.target.value.split('\n').filter(i => i.trim() !== '');
-            else if (field === 'combo-sequence') activeBlocks[index].sequence = e.target.value.split(',').map(s => s.trim());
-            else if (e.target.type === 'checkbox') activeBlocks[index][field] = e.target.checked;
-            else activeBlocks[index][field] = e.target.value;
+            else if (field === 'sequence-lines') target.sequence = e.target.value.split('\n').map(v => v.trim()).filter(Boolean);
+            else if (field === 'list-items') target.items = e.target.value.split('\n').filter(i => i.trim() !== '');
+            else if (field === 'combo-sequence') target.sequence = e.target.value.split(',').map(s => s.trim());
+            else if (e.target.type === 'checkbox') target[field] = e.target.checked;
+            else target[field] = e.target.value;
 
             clearTimeout(typingTimer);
             typingTimer = setTimeout(() => {
@@ -2569,7 +2712,11 @@ function renderBlockList() {
                 } else if (field) {
                     const m = /^sections\.(\d+)\.content$/.exec(field);
                     const sec = m && Array.isArray(host.sections) ? host.sections[Number(m[1])] : null;
-                    if (sec) partLabel = sec.title || `Section ${Number(m[1]) + 1}`;
+                    // `label` first: a Section Box's section is named by its
+                    // title, but a Combo Card's section has BOTH - a tab label
+                    // and a card heading, which the owner's reference has
+                    // differ. The banner should say which TAB you are in.
+                    if (sec) partLabel = sec.label || sec.title || `Section ${Number(m[1]) + 1}`;
                 }
             }
 
@@ -2883,15 +3030,43 @@ function renderBlockList() {
             `;
         }
         else if (block.type === 'theorybox') {
-            const innerCount = block.content ? block.content.length : 0;
-            const route = Array.isArray(block.sequence) ? block.sequence.join('\n') : '';
+            const multi = !!block.multiSections;
+            const sections = Array.isArray(block.sections) ? block.sections : [];
+            const secIdx = multi ? window.editorCardSectionIndex(block) : -1;
+            // With the switch on, every field below edits the SECTION on
+            // screen; with it off they edit the card, exactly as before.
+            const card = (secIdx >= 0) ? sections[secIdx] : block;
+
+            const innerCount = card.content ? card.content.length : 0;
+            const route = Array.isArray(card.sequence) ? card.sequence.join('\n') : '';
             const difficulties = ['', ...(window.COMBO_DIFFICULTIES || [])]
-                .map(d => `<option value="${escField(d)}" ${block.difficulty === d ? 'selected' : ''}>${escField(d || '- none -')}</option>`)
+                .map(d => `<option value="${escField(d)}" ${card.difficulty === d ? 'selected' : ''}>${escField(d || '- none -')}</option>`)
                 .join('');
 
+            // The tab strip, and the LABEL is its own field: the reference the
+            // owner asked this to mimic has a tab reading "In Corner 6H" over a
+            // card headed "Optimized 6H Counterhit Corner Starter".
+            const strip = (multi && sections.length) ? `
+                <div class="cardsec-strip">
+                    <div class="cardsec-label">SECTIONS</div>
+                    <div class="cardsec-tabs">
+                        ${sections.map((sec, i) =>
+                            `<button class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'} cardsec-tab" data-cardsec="${i}">`
+                            + `${escField(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
+                        <button class="btn-sys btn-sys-green" data-cardsec-add="1" title="Add a section">+</button>
+                        ${sections.length > 1 ? `<button class="btn-sys btn-sys-red" data-cardsec-remove="${secIdx}" title="Remove this section">&#10006;</button>` : ''}
+                    </div>
+                    <input type="text" class="editor-input" data-cardsec-label="${secIdx}"
+                           value="${escField(card.label || '')}" placeholder="Tab label (e.g. In Corner 6H)">
+                </div>` : '';
+
             html += `
-                <input type="text" class="editor-input" data-field="title" value="${escField(block.title || '')}" placeholder="Combo name (e.g. Corner BnB)">
-                <input type="text" class="editor-input" data-field="oneliner" value="${escField(block.oneliner || '')}" placeholder="One line: what this combo is for">
+                <label class="block-video-controls-label cardsec-switch">
+                    <input type="checkbox" data-field="multiSections" ${multi ? 'checked' : ''}> Multiple Sections
+                </label>
+                ${strip}
+                <input type="text" class="editor-input" data-field="title" value="${escField(card.title || '')}" placeholder="Combo name (e.g. Corner BnB)">
+                <input type="text" class="editor-input" data-field="oneliner" value="${escField(card.oneliner || '')}" placeholder="One line: what this combo is for">
                 <div class="editor-row editor-row-spaced-md">
                     <div>
                         <label class="editor-field-label-sm">Route - one step per line</label>
@@ -2899,15 +3074,15 @@ function renderBlockList() {
                     </div>
                 </div>
                 <div class="editor-row editor-row-spaced-md">
-                    <div><input type="text" class="editor-input" data-field="damage" value="${escField(block.damage || '')}" placeholder="Damage (e.g. 38-46)"></div>
+                    <div><input type="text" class="editor-input" data-field="damage" value="${escField(card.damage || '')}" placeholder="Damage (e.g. 38-46)"></div>
                     <div><select class="editor-select" data-field="difficulty">${difficulties}</select></div>
                 </div>
                 <div class="editor-row editor-row-spaced-md">
-                    <div><input type="text" class="editor-input" data-field="video" value="${escField(block.video || '')}" placeholder="Video URL (optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="video" value="${escField(card.video || '')}" placeholder="Video URL (optional)"></div>
                     <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
                 <div class="accordion-inner-block-wrapper">
-                    <button class="btn-sys btn-sys-purple" onclick="window.activeAccordionPath.push(${index}); renderBlockList();">
+                    <button class="btn-sys btn-sys-purple" data-cardsec-edit="${secIdx}">
                         &#11157; EDIT THE WRITE-UP (${innerCount})
                     </button>
                 </div>

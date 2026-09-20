@@ -2113,3 +2113,12 @@ summary:focus-visible {
     width: 10px; height: 10px; display: inline-block;
     border: 1px solid var(--border-color);
 }
+
+/* --- COMBO CARD: MULTIPLE SECTIONS (v0.19 C3b, owner 2026-09-20) ---
+   Each tab is a whole variant, so the row switches CARDS. It sits ABOVE the
+   card on the page background rather than inside it, which is how the owner's
+   reference reads - the card keeps its own box and the tabs label it.
+   The tab and panel styling itself is .sbox-tab / .sbox-panel, shared with the
+   Section Box rather than copied, so both rows behave identically. */
+.theorybox-sections { margin: 1.5rem 0; }
+.theorybox-sections > .sbox-panel > .theorybox { margin-top: 0; }

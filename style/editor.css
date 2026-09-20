@@ -2621,3 +2621,12 @@ del.diff-del {
 .sbox-editor-empty { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.5rem; }
 /* Which PART of a Section Box the author descended into, beside its title. */
 .accordion-back-part { color: var(--accent-blue); }
+
+/* --- COMBO CARD SECTIONS, IN THE EDITOR (v0.19 C3b) --- */
+.cardsec-switch { display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem; }
+.cardsec-strip { border: 1px dashed #333; padding: 0.5rem; margin-bottom: 0.6rem; }
+.cardsec-label {
+    font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
+    letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
+}
+.cardsec-tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; }
