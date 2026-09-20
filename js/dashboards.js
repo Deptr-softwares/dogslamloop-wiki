@@ -351,12 +351,30 @@ window.buildTerminologyPeek = async function(sectionId, containerId, limit = 6) 
             <dl class="glossary-list">
                 ${terms.map(t => `
                     <div class="glossary-row">
-                        <dt class="glossary-term">${esc(t.term)}</dt>
-                        <dd class="glossary-def">${esc(t.definition)}</dd>
+                        <dt class="glossary-term wiki-text">${esc(t.term)}</dt>
+                        <dd class="glossary-def wiki-text">${esc(t.definition)}</dd>
                     </div>
                 `).join('')}
             </dl>
         `;
+
+        // `wiki-text` above is the whole fix (owner, 2026-09-20). A term and
+        // its definition are written in the editor like any other prose, so
+        // they carry shortcodes, and the reader was seeing
+        // `[color=#ff0000]Domain Expansion[/color]` as literal text here while
+        // the same words rendered correctly on the Terminologies page itself.
+        //
+        // NOT a missing call. internalstyling.js runs a MutationObserver over
+        // `<main>` with subtree:true and restyles on any added node, so this
+        // widget was already being passed over - it just matched none of the
+        // selectors, because applyInternalStyling picks its targets BY CLASS
+        // and `glossary-term` is not one of them. `wiki-text` is the marker for
+        // "this is prose, style it" and carries no CSS of its own, so adding it
+        // is an opt-in and nothing else.
+        //
+        // The observer is why this needs no explicit call, and why the section
+        // has to stay inside <main> - there is a test for that, because it is
+        // the kind of dependency a later layout change breaks silently.
     } catch (e) {
         // Hidden rather than error-reported: this section is optional, and a
         // failure to load an optional extra should not shout at a reader.
@@ -496,7 +514,7 @@ window.buildMatchupTable = async function (sectionId, containerId) {
         container.innerHTML =
             '<p class="matchup-grid-caption">Read a row as that character page rates it: the row'
             + ' is who you play, the column is who you face. Ratings are opinions written on each'
-            + ' character page, so the grid is not symmetrical and is not meant to be.</p>'
+            + ' character page.</p>'
             + '<div class="matchup-grid-scroll"><table class="matchup-grid">'
             + '<thead><tr><td class="matchup-grid-corner"></td>' + head + '</tr></thead>'
             + '<tbody>' + body + '</tbody></table></div>'

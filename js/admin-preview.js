@@ -911,6 +911,50 @@ async function switchVersionView(mode) {
                             b.sequence[j] = window.diffTextLCS(oldSeq[j] || '', newSeq[j] || '');
                         }
                         b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
+                        // A card in Multiple Sections mode carries a whole
+                        // variant per tab - route, damage, clip and write-up -
+                        // so each one is diffed like a card in its own right.
+                        // Missing this means the reviewer sees the tabs
+                        // unchanged while every combo behind them was rewritten.
+                        const oldCardSecs = oldB.sections || [];
+                        const newCardSecs = newB.sections || [];
+                        if (!Array.isArray(b.sections)) b.sections = [];
+                        for (let j = 0; j < Math.max(oldCardSecs.length, newCardSecs.length); j++) {
+                            const oSec = oldCardSecs[j] || {};
+                            const nSec = newCardSecs[j] || {};
+                            if (!b.sections[j]) b.sections[j] = {};
+                            b.sections[j].label = window.diffTextLCS(oSec.label || '', nSec.label || '');
+                            b.sections[j].title = window.diffTextLCS(oSec.title || '', nSec.title || '');
+                            b.sections[j].oneliner = window.diffTextLCS(oSec.oneliner || '', nSec.oneliner || '');
+                            b.sections[j].damage = window.diffTextLCS(oSec.damage || '', nSec.damage || '');
+                            b.sections[j].difficulty = window.diffTextLCS(oSec.difficulty || '', nSec.difficulty || '');
+                            const oSeq = oSec.sequence || [];
+                            const nSeq = nSec.sequence || [];
+                            b.sections[j].sequence = [];
+                            for (let k = 0; k < Math.max(oSeq.length, nSeq.length); k++) {
+                                b.sections[j].sequence[k] = window.diffTextLCS(oSeq[k] || '', nSeq[k] || '');
+                            }
+                            b.sections[j].content = applyInlineDiffToBlocks(oSec.content || [], nSec.content || []);
+                        }
+                    }
+                    // A Section Box nests like an accordion twice over: an
+                    // introduction, and one content array per section. Missing
+                    // this means the reviewer sees the box unchanged while its
+                    // sections were rewritten under it.
+                    else if (b.type === 'sectionedbox') {
+                        b.title = window.diffTextLCS(oldB.title || '', newB.title || '');
+                        b.intro = applyInlineDiffToBlocks(oldB.intro || [], newB.intro || []);
+
+                        const oldSec = oldB.sections || [];
+                        const newSec = newB.sections || [];
+                        if (!Array.isArray(b.sections)) b.sections = [];
+                        for (let j = 0; j < Math.max(oldSec.length, newSec.length); j++) {
+                            const oSec = oldSec[j] || {};
+                            const nSec = newSec[j] || {};
+                            if (!b.sections[j]) b.sections[j] = {};
+                            b.sections[j].title = window.diffTextLCS(oSec.title || '', nSec.title || '');
+                            b.sections[j].content = applyInlineDiffToBlocks(oSec.content || [], nSec.content || []);
+                        }
                     }
 
                     if (b.caption !== undefined) b.caption = window.diffTextLCS(oldB.caption || '', newB.caption || '');

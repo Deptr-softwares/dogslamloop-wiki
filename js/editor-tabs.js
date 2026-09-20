@@ -930,7 +930,14 @@ function flushDocumentCard(tabId, groupIdx) {
     if (!doc || !doc.groups || idx === undefined || typeof window.getActiveBlocks !== 'function') return;
     const group = (window.currentEditorDescData[doc.groups.field] || [])[groupIdx];
     const card = group && Array.isArray(group.content) ? group.content[idx] : null;
-    if (card) card.content = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+    // Back into the SECTION on screen when the card is in Multiple Sections
+    // mode, which is where the builder read it from. Resolved through the same
+    // helper the block form uses, so the two cannot disagree about where a
+    // write-up lives.
+    const dest = (card && typeof window.editorCardFieldTarget === 'function')
+        ? window.editorCardFieldTarget(card)
+        : card;
+    if (dest) dest.content = JSON.parse(JSON.stringify(window.getActiveBlocks()));
 }
 window.flushDocumentCard = flushDocumentCard;
 
@@ -950,34 +957,69 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
     }
 
     const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
-    const route = Array.isArray(card.sequence) ? card.sequence.join('\n') : '';
+
+    // MULTIPLE SECTIONS (v0.19 C3b). A Combo Card has TWO editors: this one,
+    // for a card inside a Combos/Techs group, and the theorybox block form in
+    // editor-blocks.js. The switch went into the block form alone and the owner
+    // found it missing here - the comment on the author field below records
+    // this same surface drifting from the other one once already.
+    //
+    // The same helpers as the block form rather than a second copy of the
+    // rules: which section is open is session state in a WeakMap keyed by the
+    // card, so it is never serialised into desc_data.
+    const multi = !!card.multiSections;
+    const sections = Array.isArray(card.sections) ? card.sections : [];
+    const secIdx = multi ? window.editorCardSectionIndex(card) : -1;
+    // Every field below edits the SECTION on screen when the switch is on, and
+    // the card itself when it is off.
+    const target = (secIdx >= 0) ? sections[secIdx] : card;
+
+    const stripHTML = (multi && sections.length) ? `
+        <div class="cardsec-strip">
+            <div class="cardsec-label">SECTIONS</div>
+            <div class="cardsec-tabs">
+                ${sections.map((sec, i) =>
+                    `<button type="button" class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'}" data-cardsec="${i}">`
+                    + `${esc(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
+                <button type="button" class="btn-sys btn-sys-green" data-cardsec-add="1" title="Add a section">+</button>
+                ${sections.length > 1 ? `<button type="button" class="btn-sys btn-sys-red" data-cardsec-remove="${secIdx}" title="Remove this section">&#10006;</button>` : ''}
+            </div>
+            <label class="editor-field-label-sm">Tab label</label>
+            <input type="text" class="editor-input" data-cardsec-label="${secIdx}" value="${esc(target.label || '')}" placeholder="e.g. In Corner 6H">
+        </div>` : '';
+
+    const route = Array.isArray(target.sequence) ? target.sequence.join('\n') : '';
     const difficulties = ['', ...(window.COMBO_DIFFICULTIES || [])]
-        .map(d => `<option value="${esc(d)}" ${card.difficulty === d ? 'selected' : ''}>${esc(d || '- none -')}</option>`)
+        .map(d => `<option value="${esc(d)}" ${target.difficulty === d ? 'selected' : ''}>${esc(d || '- none -')}</option>`)
         .join('');
 
     container.innerHTML = `
         <div class="block-editor-container block-editor-container-tight">
             <div class="block-card">
                 <div class="block-header"><span class="block-type-badge">${esc(noun.toUpperCase())} CARD</span></div>
+                <label class="block-video-controls-label cardsec-switch">
+                    <input type="checkbox" data-card-multi ${multi ? 'checked' : ''}> Multiple Sections
+                </label>
+                ${stripHTML}
                 <div class="combo-card-fields">
                     <div class="combo-field-full">
                         <label class="editor-field-label-sm">Name</label>
-                        <input type="text" class="editor-input" data-card-field="title" value="${esc(card.title || '')}" placeholder="e.g. Corner BnB">
+                        <input type="text" class="editor-input" data-card-field="title" value="${esc(target.title || '')}" placeholder="e.g. Corner BnB">
                     </div>
                     <div class="combo-field-full">
                         <label class="editor-field-label-sm">One line</label>
-                        <input type="text" class="editor-input" data-card-field="oneliner" value="${esc(card.oneliner || '')}" placeholder="What this ${esc(noun.toLowerCase())} is for">
+                        <input type="text" class="editor-input" data-card-field="oneliner" value="${esc(target.oneliner || '')}" placeholder="What this ${esc(noun.toLowerCase())} is for">
                     </div>
                     <div class="combo-field-full">
                         <label class="editor-field-label-sm">Route - one step per line</label>
                         <textarea class="editor-textarea" data-card-field="sequence" rows="4">${esc(route)}</textarea>
                     </div>
                     <div><label class="editor-field-label-sm">Damage</label>
-                        <input type="text" class="editor-input" data-card-field="damage" value="${esc(card.damage || '')}" placeholder="e.g. 38-46"></div>
+                        <input type="text" class="editor-input" data-card-field="damage" value="${esc(target.damage || '')}" placeholder="e.g. 38-46"></div>
                     <div><label class="editor-field-label-sm">Difficulty</label>
                         <select class="editor-select" data-card-field="difficulty">${difficulties}</select></div>
                     <div><label class="editor-field-label-sm">Video</label>
-                        <input type="text" class="editor-input" data-card-field="video" value="${esc(card.video || '')}" placeholder="Optional URL"></div>
+                        <input type="text" class="editor-input" data-card-field="video" value="${esc(target.video || '')}" placeholder="Optional URL"></div>
                     <!-- Author credit was set when the card was spawned and
                          exposed nowhere, so it could not be removed by hand -
                          the theorybox BLOCK editor has this field, the combo
@@ -998,18 +1040,22 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
     container.querySelectorAll('[data-card-field]').forEach(input => {
         const handler = () => {
             const field = input.getAttribute('data-card-field');
+            // The author credit stays on the CARD. It credits whoever wrote the
+            // card rather than one tab of it, which is how the block form
+            // treats it too.
+            const dest = (field === 'author') ? card : target;
             if (field === 'sequence') {
                 // One step per line; blank lines dropped rather than becoming
                 // empty chips in the route.
-                card.sequence = input.value.split('\n').map(v => v.trim()).filter(Boolean);
+                dest.sequence = input.value.split('\n').map(v => v.trim()).filter(Boolean);
             } else {
-                card[field] = input.value;
+                dest[field] = input.value;
             }
             if (field === 'title' || field === 'sequence') {
                 const btn = document.querySelector(`[data-card="${idx}"]`);
-                const steps = Array.isArray(card.sequence) ? card.sequence : [];
+                const steps = Array.isArray(target.sequence) ? target.sequence : [];
                 // textContent, not innerHTML - this runs on every keystroke.
-                if (btn) btn.textContent = card.title || steps.join(' > ') || `Card ${idx + 1}`;
+                if (btn) btn.textContent = target.title || steps.join(' > ') || `Card ${idx + 1}`;
             }
             window.renderDocumentPreview(tabId);
         };
@@ -1017,8 +1063,77 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
         input.addEventListener('change', handler);
     });
 
-    // The builder edits THIS card's write-up.
-    initStrategyBlockBuilder('strategy-block-target', card.content || []);
+    // --- SECTION CONTROLS ---
+    //
+    // Each one FLUSHES the block buffer first. The builder below is editing the
+    // write-up of whatever is on screen, and switching away without writing it
+    // back would drop whatever was typed into it - the same reason switching
+    // CARDS flushes.
+    const multiToggle = container.querySelector('[data-card-multi]');
+    if (multiToggle) {
+        multiToggle.addEventListener('change', () => {
+            flushDocumentCard(tabId, groupIdx);
+            card.multiSections = multiToggle.checked;
+            // Seeds the first section FROM the card on the way in and copies it
+            // back on the way out, so an author who has already written a combo
+            // does not find it stranded behind a switch.
+            if (typeof window.seedCardSections === 'function') {
+                window.seedCardSections(card, multiToggle.checked);
+            }
+            renderDocumentCardBody(tabId, groupIdx, cards);
+            window.renderDocumentPreview(tabId);
+        });
+    }
+
+    container.querySelectorAll('[data-cardsec]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            flushDocumentCard(tabId, groupIdx);
+            window.setEditorCardSection(card, parseInt(btn.getAttribute('data-cardsec'), 10));
+            renderDocumentCardBody(tabId, groupIdx, cards);
+        });
+    });
+
+    const addSec = container.querySelector('[data-cardsec-add]');
+    if (addSec) {
+        addSec.addEventListener('click', () => {
+            flushDocumentCard(tabId, groupIdx);
+            if (!Array.isArray(card.sections)) card.sections = [];
+            card.sections.push({ label: `Section ${card.sections.length + 1}`, title: '', sequence: [], content: [] });
+            window.setEditorCardSection(card, card.sections.length - 1);
+            renderDocumentCardBody(tabId, groupIdx, cards);
+            window.renderDocumentPreview(tabId);
+        });
+    }
+
+    const removeSec = container.querySelector('[data-cardsec-remove]');
+    if (removeSec) {
+        removeSec.addEventListener('click', () => {
+            const at = parseInt(removeSec.getAttribute('data-cardsec-remove'), 10);
+            if (Array.isArray(card.sections) && card.sections.length > 1) {
+                card.sections.splice(at, 1);
+                window.setEditorCardSection(card, Math.max(0, at - 1));
+            }
+            renderDocumentCardBody(tabId, groupIdx, cards);
+            window.renderDocumentPreview(tabId);
+        });
+    }
+
+    const secLabel = container.querySelector('[data-cardsec-label]');
+    if (secLabel) {
+        // No re-render here: rebuilding the form under a field being typed in
+        // takes the focus and the caret with it.
+        secLabel.addEventListener('input', () => {
+            if (secIdx < 0 || !card.sections[secIdx]) return;
+            card.sections[secIdx].label = secLabel.value;
+            const btn = container.querySelector(`[data-cardsec="${secIdx}"]`);
+            if (btn) btn.textContent = secLabel.value || `Section ${secIdx + 1}`;
+            window.renderDocumentPreview(tabId);
+        });
+    }
+
+    // The builder edits the write-up of whatever is on screen - the card, or
+    // the section of it that is open.
+    initStrategyBlockBuilder('strategy-block-target', target.content || []);
 }
 
 // The noun comes from the registry, so it is ours rather than contributor text -

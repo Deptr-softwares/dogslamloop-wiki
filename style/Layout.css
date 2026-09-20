@@ -1256,7 +1256,66 @@ summary:focus-visible {
 .manga-accordion { background: var(--bg-main, #050505); border: 1px solid var(--border-color, #333); box-shadow: 4px 4px 0px var(--manga-shadow, #000); width: 100%; }
 .wiki-accordion-summary { position: relative; padding: 0.75rem 2.5rem 0.75rem 1rem; cursor: pointer; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.8rem; color: var(--accent-blue, #3b82f6); list-style: none; outline: none; user-select: none; text-transform: uppercase; }
 .accordion-arrow { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.6rem; color: var(--text-muted, #888); transition: transform 0.2s; }
-.wiki-accordion-body { padding: 1rem; border-top: 1px dashed var(--border-color, #333); background: var(--bg-secondary, #111); display: flex; flex-direction: column; gap: 0.5rem; text-align: left; }
+/* NOT a flex container, and that is the whole point of this rule (owner bug,
+   2026-09-20: "alignment is broken inside accordion").
+
+   Media alignment on this site is `float` - .wiki-media-left and
+   .wiki-media-right in this same file - and FLOAT IS IGNORED ON A FLEX ITEM.
+   So an image set to Right inside an accordion silently rendered hard left,
+   while the same image one level out floated correctly. Centre survived only
+   because .wiki-media-center uses `margin: auto` rather than a float, which is
+   why this read as "middle and right do not work" rather than as nothing
+   working: measured at 800px, an image set to Right sat 40px from the left
+   edge instead of 420px.
+
+   The rest of the page lays blocks out as normal flow, so this now matches it
+   rather than inventing a second model inside a container. The gap becomes a
+   sibling margin, and the clearfix is needed for the same reason floats work
+   again: without it a float at the end of the body escapes its own box.
+
+   Anything else that nests blocks inside a container - SectionedBox in C3 -
+   has to avoid flex here too, or it inherits this bug on day one.
+   .theorybox-body, the other nesting container, is normal flow already. */
+.wiki-accordion-body { padding: 1rem; border-top: 1px dashed var(--border-color, #333); background: var(--bg-secondary, #111); text-align: left; }
+.wiki-accordion-body > * + * { margin-top: 0.5rem; }
+.wiki-accordion-body::after { content: ""; display: block; clear: both; }
+
+/* --- SECTION BOX (v0.19 C3) ---
+   A title, an introduction, and a row of switchable tabs. */
+.sbox { margin: 1.5rem 0; }
+
+/* The wrapper is worn ONLY inside a Combos/Techs group, where it matches the
+   Combo Card beside it. Everywhere else the box is bare, or it becomes a card
+   inside a card - which is the same thing the owner objected to when a combo
+   group was wrapped in .wiki-section. */
+.sbox-boxed {
+    background: var(--bg-secondary); border: 2px solid var(--border-color);
+    box-shadow: 4px 4px 0px var(--manga-shadow); padding: 1rem;
+}
+
+.sbox-title { font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; color: var(--text-white); margin: 0 0 0.5rem; }
+.sbox-intro { margin-bottom: 0.75rem; }
+
+.sbox-tabs {
+    display: flex; flex-wrap: wrap; gap: 0.35rem;
+    border-bottom: 2px solid var(--border-color); margin-bottom: 0.75rem;
+}
+.sbox-tab {
+    background: none; border: 1px solid var(--border-color); border-bottom: none;
+    color: var(--text-muted); font-family: var(--text-mono); font-size: 0.65rem;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 0.35rem 0.7rem; cursor: pointer;
+}
+.sbox-tab:hover { color: var(--text-white); }
+.sbox-tab.is-active { background: var(--bg-main); color: var(--accent-blue); border-color: var(--accent-blue); }
+
+/* NOT a flex container, and the reason is written out on .wiki-accordion-body
+   above: a panel holds BLOCKS, media alignment on this site is `float`, and
+   float is ignored on a flex item. The clearfix is needed for the same reason
+   the floats work at all. */
+.sbox-panel { display: none; }
+.sbox-panel.is-active { display: block; }
+.sbox-panel::after { content: ""; display: block; clear: both; }
 
 /* ONE COMBO = ONE BOX (owner, 2026-08-16, modelled on Dustloop's combo table).
    The route, its damage and its note are a single reading unit, so they share
@@ -2053,4 +2112,35 @@ summary:focus-visible {
 .matchup-legend-swatch {
     width: 10px; height: 10px; display: inline-block;
     border: 1px solid var(--border-color);
+}
+
+/* --- COMBO CARD: MULTIPLE SECTIONS (v0.19 C3b, owner 2026-09-20) ---
+   Each tab is a whole variant, so the row switches CARDS. It sits ABOVE the
+   card on the page background rather than inside it, which is how the owner's
+   reference reads - the card keeps its own box and the tabs label it.
+   The tab and panel styling itself is .sbox-tab / .sbox-panel, shared with the
+   Section Box rather than copied, so both rows behave identically. */
+.theorybox-sections { margin: 1.5rem 0; }
+.theorybox-sections > .sbox-panel > .theorybox { margin-top: 0; }
+
+/* --- TIER PORTRAIT CHANGE TOOLTIP (v0.19, owner 2026-09-20) ---
+   Rendered into the shared frame-data tooltip, so it inherits that box and
+   only has to say how its four lines relate to each other. */
+.ctl-tip-move { font-family: var(--text-mono); font-weight: bold; color: var(--accent-blue); }
+.ctl-tip-date { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.3rem; }
+.ctl-tip-note { max-width: 32ch; line-height: 1.45; }
+.ctl-tip-author { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-top: 0.3rem; }
+
+/* --- BOX-IN A LIST (v0.19 C7) ---
+   The owner's whole spec, carried since v0.15: "visual only, a sleek clean
+   border around the list". Opt-in per list (`boxed` on the block), so the
+   hundreds of lists already written are untouched.
+
+   The bullets move inside the box rather than hanging outside it - a marker
+   sitting on the border is the thing that stops it reading as clean - and the
+   list keeps its own bottom margin from .wiki-block-list above. */
+.wiki-block-list-boxed {
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+    padding: 0.85rem 1rem 0.85rem 2.1rem;
 }

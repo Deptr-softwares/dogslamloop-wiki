@@ -603,3 +603,137 @@ test('a portrait box still fills with the character colour', async ({ page }) =>
     expect(box.borderWidth, 'and the border stays the shared 2px').toBe('2px');
     expect(box.charColor, 'no custom property in portrait mode').toBe('');
 });
+
+// --- HOVER A PORTRAIT, SEE WHY IT MOVED (owner, 2026-09-20) ---
+//
+// A changelog under the board answers "what changed" for the list. It does not
+// answer "why is THIS character here", which is the question a reader has while
+// looking at one icon. The hover puts that character's most recent move on the
+// icon itself.
+//
+// Built from the changelog rows already fetched for the list, so the two can
+// never disagree about what the most recent move was - and they share one
+// function for how a move reads, so they cannot disagree about the wording
+// either.
+
+const TIP = '#wiki-frame-tooltip';
+
+test('hovering a portrait shows that character last move', async ({ page }) => {
+    await mockLists(page, {
+        lists: [list()],
+        changes: [
+            { id: 'c1', list_id: 'id-owner', character_id: 'ten_shadows', from_tier: 'A', to_tier: 'S', note: 'Nue carries the whole neutral now.', author_name: 'Air Putrifier', created_at: '2026-09-01T00:00:00Z' },
+        ],
+    });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+    await expect(page.locator('.ctl-change')).toHaveCount(1);
+
+    await page.hover('[data-ctl-char="ten_shadows"]');
+
+    const tip = page.locator(TIP);
+    await expect(tip).toBeVisible();
+    await expect(tip.locator('.ctl-tip-move')).toHaveText('A → S');
+    await expect(tip.locator('.ctl-tip-note')).toContainText('Nue carries');
+    await expect(tip.locator('.ctl-tip-author')).toContainText('Air Putrifier');
+
+    // The browser's own tooltip is dropped, or it sits on top of this one.
+    // The name is not lost - it renders under the portrait already.
+    const native = await page.getAttribute('[data-ctl-char="ten_shadows"]', 'title');
+    expect(native).toBeNull();
+    await expect(page.locator('[data-ctl-char="ten_shadows"] .tier-portrait-name')).toHaveText('Ten Shadows');
+});
+
+test('it is the MOST RECENT move, not the first one found', async ({ page }) => {
+    await mockLists(page, {
+        lists: [list()],
+        // Newest first, which is the order the query asks for - so a reading
+        // that took the last match, or sorted again by its own rule, would
+        // show the older one here.
+        changes: [
+            { id: 'new', list_id: 'id-owner', character_id: 'ten_shadows', from_tier: 'B', to_tier: 'S', note: 'The recent one.', created_at: '2026-09-10T00:00:00Z' },
+            { id: 'old', list_id: 'id-owner', character_id: 'ten_shadows', from_tier: 'C', to_tier: 'B', note: 'The older one.', created_at: '2026-01-01T00:00:00Z' },
+        ],
+    });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+    await page.hover('[data-ctl-char="ten_shadows"]');
+
+    await expect(page.locator(`${TIP} .ctl-tip-note`)).toHaveText('The recent one.');
+    await expect(page.locator(`${TIP} .ctl-tip-move`)).toHaveText('B → S');
+});
+
+test('a character with nothing recorded keeps its name tooltip', async ({ page }) => {
+    await mockLists(page, {
+        lists: [list()],
+        changes: [
+            { id: 'c1', list_id: 'id-owner', character_id: 'ten_shadows', from_tier: 'A', to_tier: 'S', note: 'Moved.', created_at: '2026-09-01T00:00:00Z' },
+        ],
+    });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+
+    // puppet_master is on the board and absent from the changelog. Inventing a
+    // tooltip for it would be claiming a history it does not have.
+    const native = await page.getAttribute('[data-ctl-char="puppet_master"]', 'title');
+    expect(native).toBe('Puppet Master');
+
+    await page.hover('[data-ctl-char="puppet_master"]');
+    await page.waitForTimeout(150);
+    await expect(page.locator(TIP)).toBeHidden();
+});
+
+test('the tooltip and the changelog say a move the same way', async ({ page }) => {
+    await mockLists(page, {
+        lists: [list()],
+        // A first placement, which has its own wording - the case most likely
+        // to drift between two copies of the phrasing.
+        changes: [
+            { id: 'c1', list_id: 'id-owner', character_id: 'true_cannon', from_tier: null, to_tier: 'A', note: 'New character, provisional.', created_at: '2026-09-01T00:00:00Z' },
+        ],
+    });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+
+    const inList = await page.locator('.ctl-change-move').first().textContent();
+    await page.hover('[data-ctl-char="true_cannon"]');
+    const inTip = await page.locator(`${TIP} .ctl-tip-move`).textContent();
+
+    expect(inList).toBe('added to A');
+    expect(inTip, 'one function decides this, so they cannot drift').toBe(inList);
+});
+
+test('nothing in a change note becomes markup in the tooltip', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+
+    await mockLists(page, {
+        lists: [list()],
+        changes: [
+            {
+                id: 'c1', list_id: 'id-owner', character_id: 'ten_shadows',
+                from_tier: '<img src=x onerror="window.__PWN=1">', to_tier: 'S',
+                note: '<img src=x onerror="window.__PWN=1">',
+                author_name: '<img src=x onerror="window.__PWN=1">',
+                created_at: '2026-09-01T00:00:00Z',
+            },
+        ],
+    });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+    await page.hover('[data-ctl-char="ten_shadows"]');
+    await page.waitForTimeout(300);
+
+    // bindTooltip assigns innerHTML, so this is a real sink - and the note and
+    // author are written by whoever owns the list.
+    const out = await page.evaluate(() => ({
+        fired: !!window.__PWN,
+        injected: document.querySelectorAll('#wiki-frame-tooltip img').length,
+        note: document.querySelector('#wiki-frame-tooltip .ctl-tip-note').textContent,
+    }));
+
+    expect(errors).toEqual([]);
+    expect(out.fired).toBe(false);
+    expect(out.injected).toBe(0);
+    expect(out.note, 'it survives escaped rather than being dropped').toContain('<img');
+});
