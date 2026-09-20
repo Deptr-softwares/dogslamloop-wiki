@@ -2122,3 +2122,11 @@ summary:focus-visible {
    Section Box rather than copied, so both rows behave identically. */
 .theorybox-sections { margin: 1.5rem 0; }
 .theorybox-sections > .sbox-panel > .theorybox { margin-top: 0; }
+
+/* --- TIER PORTRAIT CHANGE TOOLTIP (v0.19, owner 2026-09-20) ---
+   Rendered into the shared frame-data tooltip, so it inherits that box and
+   only has to say how its four lines relate to each other. */
+.ctl-tip-move { font-family: var(--text-mono); font-weight: bold; color: var(--accent-blue); }
+.ctl-tip-date { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.3rem; }
+.ctl-tip-note { max-width: 32ch; line-height: 1.45; }
+.ctl-tip-author { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-top: 0.3rem; }
