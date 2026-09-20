@@ -70,6 +70,35 @@ async function serveClip(page) {
 }
 const BUCKET = 'https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media';
 
+// Same reasoning as serveClip, for the still image. The sizing test measures
+// the RENDERED box, which is the intrinsic size capped by CSS - so it is only
+// a test of anything once the bytes have arrived, and before that the element
+// measures 0. Fetching that over the network on every run made it depend both
+// on CI's connection and on the owner leaving that storage object alone; it
+// went red on 2026-09-19 having never been touched. The committed portrait is
+// byte-identical to the object it stands in for (128x128), and the URL the
+// page sees is still the real bucket URL, so the allowlist path is unchanged.
+const PORTRAIT_FILE = path.join(__dirname, '..', 'medias', 'portraits', 'boomcat.webp');
+let portraitBytes = null;
+async function serveCellImage(page) {
+  if (!portraitBytes) portraitBytes = fs.readFileSync(PORTRAIT_FILE);
+  await page.route('**/wiki-media/Boomcat.webp', (route) => route.fulfill({
+    status: 200,
+    headers: { 'Content-Type': 'image/webp', 'Content-Length': String(portraitBytes.length) },
+    body: portraitBytes,
+  }));
+}
+
+// An <img> reports a 0-wide box until it has decoded, so measuring straight
+// after render asserts nothing at all. Wait for the element itself rather than
+// for a timeout.
+const awaitDecode = (img) => img.evaluate(el => el.complete && el.naturalWidth
+  ? null
+  : new Promise((resolve, reject) => {
+      el.addEventListener('load', resolve, { once: true });
+      el.addEventListener('error', () => reject(new Error('the cell image never loaded')), { once: true });
+    }));
+
 // A full character page, because the accent test needs js/site_meta.js to have
 // themed :root for a real character. It is a heavy page and every worker
 // shares one single-threaded dev server, so the wait is generous on purpose -
@@ -321,6 +350,7 @@ test('the player paints itself in the character accent, not a fixed blue', async
 // --- ITEM 11: STORAGE LINKS IN A TABLE ---
 
 test('a wiki-media image in a table cell renders as an image, sized down', async ({ page }) => {
+  await serveCellImage(page);
   await boot(page);
   await render(page, [{
     type: 'table',
@@ -330,11 +360,21 @@ test('a wiki-media image in a table cell renders as an image, sized down', async
 
   const img = page.locator('#render-host .wiki-cell-media');
   await expect(img).toHaveAttribute('src', `${BUCKET}/Boomcat.webp`);
+  await awaitDecode(img);
 
-  // Sized down is the feature - full width would blow the row open.
-  const width = await img.evaluate(el => el.getBoundingClientRect().width);
-  expect(width).toBeGreaterThan(0);
-  expect(width).toBeLessThanOrEqual(140);
+  // Sized down is the feature - full width would blow the row open. Compared
+  // against the image's OWN intrinsic width rather than a bare "> 0", which an
+  // unloaded image used to satisfy by accident.
+  const box = await img.evaluate(el => ({
+    width: el.getBoundingClientRect().width,
+    natural: el.naturalWidth,
+  }));
+  expect(box.natural, 'it decoded at all').toBeGreaterThan(0);
+  expect(box.width).toBeGreaterThan(0);
+  // Also the guard against a vacuous fixture: swap in an image smaller than
+  // the cap and this line fails rather than passing for no reason.
+  expect(box.width, 'scaled down from its intrinsic size').toBeLessThan(box.natural);
+  expect(box.width).toBeLessThanOrEqual(140);
 });
 
 test('a wiki-media video in a table cell becomes a button, not a link', async ({ page }) => {
