@@ -514,7 +514,7 @@ window.buildMatchupTable = async function (sectionId, containerId) {
         container.innerHTML =
             '<p class="matchup-grid-caption">Read a row as that character page rates it: the row'
             + ' is who you play, the column is who you face. Ratings are opinions written on each'
-            + ' character page, so the grid is not symmetrical and is not meant to be.</p>'
+            + ' character page.</p>'
             + '<div class="matchup-grid-scroll"><table class="matchup-grid">'
             + '<thead><tr><td class="matchup-grid-corner"></td>' + head + '</tr></thead>'
             + '<tbody>' + body + '</tbody></table></div>'
