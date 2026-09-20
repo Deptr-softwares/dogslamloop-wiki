@@ -1203,7 +1203,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (!block || block.type !== 'theorybox') return;
 
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();  // same element as the general handler - see C2 above
 
         // Descending and switching tab change no data, so neither snapshots.
         if (btn.hasAttribute('data-cardsec-edit')) {
