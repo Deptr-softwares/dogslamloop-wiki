@@ -7,6 +7,10 @@
     <link rel="stylesheet" href="style/Common.css">
     <link rel="stylesheet" href="style/Buttons.css">
     <link rel="stylesheet" href="style/Modals.css">
+    <!-- Forms.css defines .editor-input, which the auth and profile modals
+         injected by js/site_utils.js both use. Without it the login form and
+         the profile fields render unstyled. -->
+    <link rel="stylesheet" href="style/Forms.css">
     <link rel="stylesheet" href="style/Badges.css">
     <link rel="stylesheet" href="style/Layout.css">
     <link rel="stylesheet" href="style/Cards.css">
@@ -66,11 +70,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/character_tabs.js?v=eb683d3f"></script>
-    <script src="js/input_slots.js?v=eb683d3f"></script>
-    <script src="js/site_utils.js?v=eb683d3f"></script>
-    <script src="js/site_meta.js?v=eb683d3f"></script>
-    <script src="js/pagebuilder.js?v=eb683d3f"></script>
-    <script src="js/submissions.js?v=eb683d3f"></script>
+    <script src="js/character_tabs.js?v=1560a31e"></script>
+    <script src="js/input_slots.js?v=1560a31e"></script>
+    <script src="js/site_utils.js?v=1560a31e"></script>
+    <script src="js/site_meta.js?v=1560a31e"></script>
+    <script src="js/pagebuilder.js?v=1560a31e"></script>
+    <script src="js/search.js?v=1560a31e"></script>
+    <script src="js/submissions.js?v=1560a31e"></script>
 </body>
 </html>

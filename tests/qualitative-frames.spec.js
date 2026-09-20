@@ -357,5 +357,14 @@ test('the legend states the convention in the owner\'s wording', async ({ page }
 
   const note = page.locator('#tab-skills .legend-estimate-note');
   await expect(note).toContainText('divided into single frames was counted');
-  await expect(note).toContainText('hover over it for more');
+  await expect(note).toContainText('Hover over it');
+
+  // REWORDED for v0.19 C4, and the old wording is the reason. It said a smooth
+  // block "is an estimate", which stopped being true the moment a phase could
+  // also be timed in seconds - both render with no divisions, because neither
+  // was frame-counted. The convention itself is unchanged; what the legend has
+  // to say now is that the absence of divisions means "not counted" rather than
+  // "estimated", and that the hover says which of the two it is.
+  await expect(note).toContainText('estimate');
+  await expect(note).toContainText('timed in seconds');
 });

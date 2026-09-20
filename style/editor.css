@@ -335,6 +335,63 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 .block-card.collapsed:hover { border-left-color: #666; }
 .block-actions .btn-collapse { font-weight: bold; font-family: monospace; }
 
+/* --- BLOCK SELECTION (v0.19 C2) ---
+   Scoped to #block-list on purpose. `.block-card` is also rendered by
+   editor-tabs.js, editor-system.js and editor-framedata.js, none of which has
+   a selection, and an unscoped rule would be waiting for one of them to reuse
+   the class name.
+
+   The left border is already this card's state channel - #333 idle, blue on
+   hover, accent blue on focus-within - so selection speaks the same language
+   one step louder rather than inventing a second one. The `#block-list` in the
+   selector is also what makes it win: `.block-card.collapsed:hover` is three
+   classes, and without an id in the selector, hovering a selected collapsed
+   card would paint the selection away. */
+#block-list .block-card.block-card-selected {
+    border-left-color: var(--accent-yellow);
+    background: #14120a;
+}
+
+/* Copy is the one action that changes nothing on screen, so it has to say so
+   itself. A class, not the inline outline this used to set - the editor's
+   inline styles were moved into classes across six PRs and new ones should
+   not start the collection again. */
+#block-list .block-card.block-card-copied {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+/* Drawn only while something is selected, so it is never idle chrome. NOT
+   sticky: the per-card up/down/delete already act on the whole selection when
+   the card is part of it, so the actions are never far from the pointer, and a
+   sticky bar inside the scrolling workspace is the shape that produced v0.19's
+   clipped colour popup. */
+.block-selection-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    background: var(--bg-secondary);
+    border: 2px solid var(--accent-yellow);
+    padding: 0.4rem 0.6rem;
+    margin-bottom: 0.5rem;
+}
+
+.block-selection-count {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    color: var(--accent-yellow);
+}
+
+.block-selection-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
 /* --- FORM ELEMENTS (Inputs, Textareas) --- */
 .editor-input, .editor-textarea {
     width: 100%;
@@ -1546,6 +1603,14 @@ input[type="checkbox"]:checked {
 .media-thumbnail-badge { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.85); color: var(--accent-blue); font-size: 0.55rem; padding: 2px 4px; font-family: var(--text-mono); border: 1px solid var(--accent-blue); z-index: 5; }
 .media-thumbnail-filename { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.85); color: #fff; font-size: 0.65rem; font-family: var(--text-mono); padding: 4px 6px; box-sizing: border-box; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top: 1px solid #333; z-index: 5; }
 
+/* v0.19 F8: the uploader credit, sitting directly on top of the filename bar.
+   Both are absolutely positioned against the card, so this is offset by the
+   filename bar's own height (0.65rem line + 8px padding + 1px border) rather
+   than stacked in flow - the card's flow is the media itself, which fills it.
+   Muted and a size down: it is a credit, not a label, and the filename is what
+   people are actually scanning for. */
+.media-thumbnail-uploader { position: absolute; bottom: calc(0.65rem + 9px); left: 0; width: 100%; background: rgba(0,0,0,0.7); color: var(--text-muted); font-size: 0.55rem; font-family: var(--text-mono); padding: 2px 6px; box-sizing: border-box; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 5; pointer-events: none; }
+
 /* --- MEDIA LIBRARY UPLOAD QUEUE (js/editor-media.js handleUploads) --- */
 /* Per-file status for a batch upload. Capped and scrollable because a drop
    of thirty files should not push the upload zone and the pager off screen -
@@ -2409,3 +2474,159 @@ del.diff-del {
    expands the block first, which is the honest shape: the picker only exists
    on an expanded block, so that is where an overlap can happen. */
 .block-card.collapsed .block-folder-picker { display: none; }
+
+
+/* --- THE EDITOR TUTORIAL (v0.19 F2, js/editor-tutorial.js) ---------------
+   A spotlight over the editor: everything dims, one element stays lit, and a
+   text box explains it.
+
+   The dimming is done with a huge box-shadow on the CUT-OUT rather than with
+   four positioned panels around it. One element, one rectangle to move, and no
+   arithmetic that can leave a seam when the target is near an edge. */
+.tutorial-overlay {
+    position: fixed; inset: 0; z-index: 10020;
+    /* Above the v0.18 notice (editor-notice-overlay) because the notice hands
+       over to this one and is removed first; above the editor's own 10005
+       modals so a tour started from MoS is never behind it. */
+    pointer-events: none;
+}
+
+/* No background of its own: the shadow on .tutorial-hole IS the dim layer.
+   When there is nothing to point at, this paints it instead. */
+.tutorial-overlay.is-centred::before {
+    content: ''; position: fixed; inset: 0;
+    background: rgba(0, 0, 0, 0.72);
+}
+
+.tutorial-hole {
+    position: fixed; border: 2px solid var(--accent-blue);
+    border-radius: 2px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.72);
+    transition: top 0.25s, left 0.25s, width 0.25s, height 0.25s;
+    pointer-events: none;
+}
+
+.tutorial-box {
+    position: fixed; left: 50%; bottom: 2rem; transform: translateX(-50%);
+    width: min(640px, calc(100vw - 2rem));
+    max-height: 45vh; overflow-y: auto;
+    background: var(--bg-main); border: 2px solid var(--accent-blue);
+    box-shadow: 6px 6px 0 var(--manga-shadow);
+    padding: 1rem 1.25rem; box-sizing: border-box;
+    /* The overlay is click-through so the dim does not swallow the page; the
+       box itself has to take clicks or none of its buttons work. */
+    pointer-events: auto;
+}
+
+.tutorial-progress {
+    font-family: var(--text-mono); font-size: 0.6rem;
+    color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em;
+}
+
+.tutorial-title {
+    font-family: 'Finger-Paint', sans-serif; color: var(--accent-blue);
+    font-size: 1.1rem; margin: 0.25rem 0 0.75rem;
+    text-shadow: 2px 2px 0 var(--manga-shadow);
+}
+
+.tutorial-subheading {
+    font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-white);
+    margin: 0.75rem 0 0.35rem; text-transform: uppercase;
+}
+
+.tutorial-body { font-size: 0.8rem; line-height: 1.6; }
+.tutorial-body .strategy-paragraph { margin: 0 0 0.6rem; }
+.tutorial-body .wiki-block-list { margin: 0 0 0.6rem; padding-left: 1.1rem; }
+.tutorial-body .wiki-block-list li { margin-bottom: 0.3rem; }
+
+.tutorial-actions {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 0.5rem; margin-top: 1rem;
+    border-top: 1px solid var(--border-color); padding-top: 0.75rem;
+}
+.tutorial-actions-right { display: flex; gap: 0.5rem; }
+
+@media (max-width: 640px) {
+    /* The editor is cramped on a phone and the box would cover the very thing
+       it is pointing at, so it gives up the spotlight and takes the screen. */
+    .tutorial-box { bottom: 0; max-height: 60vh; width: 100vw; }
+}
+
+/* --- THE MANUAL OF STYLE (v0.19 F3) --------------------------------------
+   Reuses the notice modal's box so the two Writing-Guide surfaces in the
+   editor look like the same thing, with more room because this one carries a
+   list of nine rules rather than one paragraph. */
+.mos-modal-box { width: min(640px, calc(100vw - 2rem)); }
+
+.mos-body { text-align: left; max-height: 70vh; overflow-y: auto; }
+
+.mos-heading {
+    font-family: var(--text-mono); font-size: 0.7rem; color: var(--accent-blue);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin: 1rem 0 0.5rem; border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.3rem;
+}
+.mos-body .mos-heading:first-child { margin-top: 0; }
+.mos-body .strategy-paragraph { font-size: 0.8rem; line-height: 1.6; margin: 0 0 0.5rem; }
+.mos-body .wiki-block-list { font-size: 0.8rem; line-height: 1.6; padding-left: 1.1rem; }
+.mos-body .wiki-block-list li { margin-bottom: 0.4rem; }
+
+.mos-footnote {
+    font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted);
+    margin: 1rem 0 0;
+}
+.mos-footnote a { color: var(--accent-blue); }
+
+.mos-actions { display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem; }
+
+/* Paused while a notice is up: the tour keeps its place and its step, but
+   stops covering a modal whose button lands where the text box sits.
+   Hidden rather than removed so resuming is a class toggle, not a rebuild. */
+.tutorial-overlay.is-paused .tutorial-box,
+.tutorial-overlay.is-paused .tutorial-hole { display: none; }
+.tutorial-overlay.is-paused.is-centred::before { display: none; }
+
+/* v0.19: gradient presets in the same popup, inserting [multicolor=a,b].
+
+   A STANDALONE class rather than a .color-preset-btn variant. It was a variant
+   first, and that made it a member of a family whose every other member
+   carries data-color - which the picker sweep in color-presets.spec.js checks.
+   The few duplicated lines below cost less than sharing a class with a
+   different contract.
+
+   Wider than a plain swatch because a 20px square cannot show a sweep: at that
+   size the two ends are four pixels apart and every preset looks the same. */
+.gradient-preset-btn {
+    width: 44px; height: 20px;
+    border-radius: 0;
+    border: 1px solid #333;
+    cursor: pointer;
+    padding: 0;
+    transition: outline-color 0.12s ease, transform 0.12s ease;
+    outline: 2px solid transparent;
+    outline-offset: -1px;
+}
+.gradient-preset-btn:hover { outline-color: var(--text-white, #fff); transform: translateY(-1px); }
+.gradient-preset-btn:focus-visible { outline-color: var(--accent-blue); }
+
+
+/* --- SECTION BOX EDITOR (v0.19 C3) --- */
+.sbox-editor-sections { margin-top: 0.6rem; border-top: 1px dashed #333; padding-top: 0.6rem; }
+.sbox-editor-label {
+    font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
+    letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
+}
+.sbox-editor-row { display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.4rem; }
+.sbox-editor-row .editor-input { flex: 1; min-width: 0; }
+.sbox-editor-empty { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+/* Which PART of a Section Box the author descended into, beside its title. */
+.accordion-back-part { color: var(--accent-blue); }
+
+/* --- COMBO CARD SECTIONS, IN THE EDITOR (v0.19 C3b) --- */
+.cardsec-switch { display: inline-flex; align-items: center; gap: 0.35rem; margin-bottom: 0.5rem; }
+.cardsec-strip { border: 1px dashed #333; padding: 0.5rem; margin-bottom: 0.6rem; }
+.cardsec-label {
+    font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
+    letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
+}
+.cardsec-tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; }

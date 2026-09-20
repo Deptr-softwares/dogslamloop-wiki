@@ -238,7 +238,14 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             contentHTML += `<p class="${pClass}" ${alignAttr}>${text}</p>`;
         }
         else if (block.type === 'list') {
-            const lClass = contextClass ? 'wiki-block-list space-y-2 card-text' : 'wiki-block-list space-y-2 text-gray-300';
+            // BOX-IN A LIST (v0.19 C7) - "visual only, a sleek clean border
+            // around the list", the owner's whole spec for it, carried since
+            // v0.15. Opt-in per list rather than applied to every list on the
+            // site: the wiki already has hundreds of them, and turning them all
+            // into boxes is a decision about existing pages rather than an
+            // option on a new one.
+            const lClass = (contextClass ? 'wiki-block-list space-y-2 card-text' : 'wiki-block-list space-y-2 text-gray-300')
+                + (block.boxed ? ' wiki-block-list-boxed' : '');
             contentHTML += `<ul class="${lClass}" ${alignAttr}>`;
             block.items.forEach(item => { contentHTML += `<li>${escBlockText(item)}</li>`; });
             contentHTML += `</ul>`;
@@ -519,6 +526,45 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 </div>
             `;
         }
+        // --- THE SECTION BOX (v0.19 C3) ---
+        //
+        // A title, an introduction, and a row of switchable tabs. Introduction
+        // and each tab's contents are BLOCKS, nested through the same recursive
+        // call an accordion uses.
+        else if (block.type === 'sectionedbox') {
+            const bData = block.data || block;
+            const sections = Array.isArray(bData.sections) ? bData.sections : [];
+            const introHTML = window.generateHTMLForBlocks(bData.intro || [], contextClass);
+
+            // TWO BEHAVIOURS. Inside a Combos/Techs group the box wears the
+            // wrapper a Combo Card wears; everywhere else it goes without, or it
+            // is a card inside a card.
+            //
+            // Asked as "is this context a document tab" rather than
+            // `contextClass === 'combos' || === 'techs'`, because
+            // renderDocumentTab's own header forbids knowing either tab by
+            // name - every difference between them is a string in
+            // character_tabs.js, and a third document tab added there would
+            // otherwise silently get the wrong one of the two behaviours.
+            const boxed = typeof window.getDocumentSections === 'function'
+                && !!window.getDocumentSections(contextClass);
+
+            const panelsHTML = sections.map((sec, i) =>
+                sboxPanelHTML(i, window.generateHTMLForBlocks(sec.content || [], contextClass))
+            ).join('');
+
+            // `sbox-tabbed` is what the click listener and the repaint restore
+            // key off. A Combo Card in Multiple Sections mode carries it too,
+            // which is what lets one implementation serve both.
+            contentHTML += `
+                <section class="sbox sbox-tabbed${boxed ? ' sbox-boxed' : ''}" ${alignAttr}>
+                    <h4 class="sbox-title">${escBlockText(bData.title || 'Section Box')}</h4>
+                    ${introHTML ? `<div class="sbox-intro">${introHTML}</div>` : ''}
+                    ${sections.length ? sboxTabRowHTML(sections.map((sec, i) => sec.title || `Section ${i + 1}`)) : ''}
+                    ${panelsHTML}
+                </section>
+            `;
+        }
         // --- THE COMBO CARD (TheoryBox) ---
         //
         // A combo and everything known about it: the route, its numbers, and a
@@ -527,56 +573,36 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
         // which is what makes a combo GROUP a group rather than a list.
         else if (block.type === 'theorybox') {
             const bData = block.data || block;
+            const sections = Array.isArray(bData.sections) ? bData.sections : [];
 
-            // Derived from the title when blank, so a card is linkable without
-            // anyone having to think about anchors. Everything that is not a
-            // word character is dropped: a raw title in an id breaks the
-            // selector that would scroll to it.
-            const anchor = String(bData.anchor || bData.title || '')
-                .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+            // MULTIPLE SECTIONS (owner, 2026-09-20). Each tab is a WHOLE
+            // variant - its own route, damage, difficulty, clip and write-up -
+            // so the row switches cards rather than switching the text inside
+            // one card.
+            //
+            // The tab label and the card heading are separate fields because
+            // the owner's reference has them differ: a tab reading "In Corner
+            // 6H" over a card headed "Optimized 6H Counterhit Corner Starter".
+            // `label` falls back to the card title, so a section that only ever
+            // needed one string still works.
+            //
+            // A section with no route and no damage renders as prose, which is
+            // what makes a "Preface" tab possible without a second block type -
+            // every part of the card below is already conditional.
+            if (bData.multiSections && sections.length) {
+                const labels = sections.map((sec, i) => sec.label || sec.title || `Section ${i + 1}`);
+                const panels = sections.map((sec, i) =>
+                    sboxPanelHTML(i, theoryboxCardHTML(sec, contextClass))).join('');
 
-            const difficulty = String(bData.difficulty || '').trim();
-            const diffIndex = (window.COMBO_DIFFICULTIES || []).indexOf(difficulty);
-            const diffHTML = difficulty
-                ? `<span class="theorybox-difficulty combo-difficulty${diffIndex === -1 ? '' : ` combo-difficulty-${diffIndex}`}">${escBlockText(difficulty)}</span>`
-                : '';
-
-            // Same chips and separators as the legacy combo block and the
-            // Combo List, so a route reads identically wherever it appears.
-            const steps = Array.isArray(bData.sequence) ? bData.sequence : [];
-            let routeHTML = '';
-            if (steps.length) {
-                routeHTML = '<div class="combo-container theorybox-route">';
-                steps.forEach((step, i) => {
-                    routeHTML += `<span class="combo-node">${escBlockText(step)}</span>`;
-                    if (i < steps.length - 1) routeHTML += '<span class="combo-sep" aria-hidden="true">&gt;</span>';
-                });
-                if (bData.damage) routeHTML += `<span class="combo-damage">${escBlockText(bData.damage)}</span>`;
-                routeHTML += '</div>';
-            }
-
-            // Opens the modal player rather than navigating to the file. The
-            // link sent the reader off the wiki to a bare video on a Supabase
-            // domain with no way back but the back button (owner, 2026-08-18).
-            const videoUrl = safeBlockUrl(bData.video || '');
-            const videoHTML = videoUrl
-                ? window.wikiVideoButtonHTML(videoUrl, 'Watch')
-                : '';
-
-            const innerHTML = window.generateHTMLForBlocks(bData.content || [], contextClass);
-
-            contentHTML += `
-                <section class="theorybox"${anchor ? ` id="combo-${escBlockText(anchor)}"` : ''}>
-                    <div class="theorybox-head">
-                        <h4 class="theorybox-title">${escBlockText(bData.title || 'Combo')}</h4>
-                        ${diffHTML}
-                        ${videoHTML}
+                contentHTML += `
+                    <div class="theorybox-sections sbox-tabbed" ${alignAttr}>
+                        ${sboxTabRowHTML(labels)}
+                        ${panels}
                     </div>
-                    ${bData.oneliner ? `<p class="theorybox-oneliner">${escBlockText(bData.oneliner)}</p>` : ''}
-                    ${routeHTML}
-                    ${innerHTML ? `<div class="theorybox-body">${innerHTML}</div>` : ''}
-                </section>
-            `;
+                `;
+            } else {
+                contentHTML += theoryboxCardHTML(bData, contextClass);
+            }
         }
         // --- COMBO STRINGS ---
         else if (block.type === 'combo') {
@@ -1166,6 +1192,79 @@ function buildCharacterGalleryCard(item) {
     return card;
 }
 
+// A Combo Card's markup, lifted out of the render branch so that a card in
+// Multiple Sections mode draws each of its sections with the SAME function
+// rather than a second copy of this markup (v0.19 C3b). `card` is either the
+// block itself or one of its sections - they carry the same fields.
+function theoryboxCardHTML(bData, contextClass) {
+
+            // Derived from the title when blank, so a card is linkable without
+            // anyone having to think about anchors. Everything that is not a
+            // word character is dropped: a raw title in an id breaks the
+            // selector that would scroll to it.
+            const anchor = String(bData.anchor || bData.title || '')
+                .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
+            const difficulty = String(bData.difficulty || '').trim();
+            const diffIndex = (window.COMBO_DIFFICULTIES || []).indexOf(difficulty);
+            const diffHTML = difficulty
+                ? `<span class="theorybox-difficulty combo-difficulty${diffIndex === -1 ? '' : ` combo-difficulty-${diffIndex}`}">${escBlockText(difficulty)}</span>`
+                : '';
+
+            // Same chips and separators as the legacy combo block and the
+            // Combo List, so a route reads identically wherever it appears.
+            const steps = Array.isArray(bData.sequence) ? bData.sequence : [];
+            let routeHTML = '';
+            if (steps.length) {
+                routeHTML = '<div class="combo-container theorybox-route">';
+                steps.forEach((step, i) => {
+                    routeHTML += `<span class="combo-node">${escBlockText(step)}</span>`;
+                    if (i < steps.length - 1) routeHTML += '<span class="combo-sep" aria-hidden="true">&gt;</span>';
+                });
+                if (bData.damage) routeHTML += `<span class="combo-damage">${escBlockText(bData.damage)}</span>`;
+                routeHTML += '</div>';
+            }
+
+            // Opens the modal player rather than navigating to the file. The
+            // link sent the reader off the wiki to a bare video on a Supabase
+            // domain with no way back but the back button (owner, 2026-08-18).
+            const videoUrl = safeBlockUrl(bData.video || '');
+            const videoHTML = videoUrl
+                ? window.wikiVideoButtonHTML(videoUrl, 'Watch')
+                : '';
+
+            const innerHTML = window.generateHTMLForBlocks(bData.content || [], contextClass);
+
+            return `
+                <section class="theorybox"${anchor ? ` id="combo-${escBlockText(anchor)}"` : ''}>
+                    <div class="theorybox-head">
+                        <h4 class="theorybox-title">${escBlockText(bData.title || 'Combo')}</h4>
+                        ${diffHTML}
+                        ${videoHTML}
+                    </div>
+                    ${bData.oneliner ? `<p class="theorybox-oneliner">${escBlockText(bData.oneliner)}</p>` : ''}
+                    ${routeHTML}
+                    ${innerHTML ? `<div class="theorybox-body">${innerHTML}</div>` : ''}
+                </section>
+            `;
+}
+
+// The tab row and panels, shared by the Section Box and by a Combo Card in
+// Multiple Sections mode. Shared rather than copied because the behaviour
+// around them is already written once: the delegated click listener and the
+// repaint restore in populateTextSection both key off `.sbox-tabbed`, so a
+// second tab implementation would need both of those written again.
+function sboxTabRowHTML(labels) {
+    return '<div class="sbox-tabs">' + labels.map((label, i) =>
+        `<button type="button" class="sbox-tab${i === 0 ? ' is-active' : ''}"`
+        + ` data-sbox-tab="${i}">${escBlockText(label)}</button>`
+    ).join('') + '</div>';
+}
+
+function sboxPanelHTML(i, inner) {
+    return `<div class="sbox-panel${i === 0 ? ' is-active' : ''}" data-sbox-panel="${i}">${inner}</div>`;
+}
+
 function getAlignStyle(align) {
     let styleStr = 'overflow-wrap: break-word; word-break: break-word;';
     // Allowlisted, not escaped - this is a CSS value, where escaping quotes
@@ -1242,6 +1341,37 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
     const container = document.getElementById(containerId);
     if (!container) return;
 
+    // WHICH ACCORDIONS WERE OPEN (owner bug, 2026-09-20).
+    //
+    // `<details>` keeps `open` in the DOM and nowhere else, and the editor
+    // repaints this container on every keystroke - so an author writing inside
+    // an accordion had it shut in their face on each character typed. The
+    // repaint itself is intended and stays; what was missing is that the reader
+    // state around it was never carried over.
+    //
+    // Matched BY POSITION, not by title: the title is the very thing being
+    // typed when an author is renaming a section, and a key that changes on
+    // every keystroke preserves nothing. Position is stable for the case this
+    // exists to fix - editing content - and a reorder at worst hands one
+    // accordion its neighbour's state, which the next click corrects.
+    //
+    // Anything else that nests blocks and remembers open/closed - SectionedBox
+    // in C3 - needs this too, and for the same reason: state that lives only in
+    // the DOM does not survive the thing that rebuilds the DOM.
+    const wasOpen = Array.prototype.map.call(
+        container.querySelectorAll('details'), (d) => d.open);
+
+    // Same problem, same rule, for a Section Box's tab row (v0.19 C3). Which
+    // tab is open lives only in a class on the DOM the repaint is about to
+    // throw away, so without this a box resets to its first tab on every
+    // character typed - and worse than the accordion, because a tab row makes
+    // it look like the author's click did nothing at all.
+    const wasTab = Array.prototype.map.call(
+        container.querySelectorAll('.sbox-tabbed'), (box) => {
+            const active = box.querySelector(':scope > .sbox-tabs > .sbox-tab.is-active');
+            return active ? active.getAttribute('data-sbox-tab') : null;
+        });
+
     container.innerHTML = '';
     container.classList.remove('vessel-content');
     container.classList.add('content-section-wrapper');
@@ -1274,6 +1404,33 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
         bodyDiv.innerHTML = window.generateHTMLForBlocks(blocks, contextClass);
         section.appendChild(bodyDiv);
         container.appendChild(section);
+
+        // Put the open ones back. Only ever re-OPENS: a details element the
+        // author had closed stays closed, so this cannot override the markup's
+        // own default for a section that has just appeared.
+        if (wasOpen.length) {
+            container.querySelectorAll('details').forEach((d, i) => {
+                if (wasOpen[i]) d.open = true;
+            });
+        }
+
+        // And the tab each Section Box was showing. Matched by position for the
+        // same reason, and skipped when the tab it names is gone - a box that
+        // has lost a section falls back to the first, which is what a fresh
+        // render does anyway.
+        if (wasTab.length) {
+            container.querySelectorAll('.sbox-tabbed').forEach((box, i) => {
+                const want = wasTab[i];
+                if (want === null || want === undefined || want === '0') return;
+                const btn = box.querySelector(`:scope > .sbox-tabs > [data-sbox-tab="${CSS.escape(want)}"]`);
+                const panel = box.querySelector(`:scope > [data-sbox-panel="${CSS.escape(want)}"]`);
+                if (!btn || !panel) return;
+                box.querySelectorAll(':scope > .sbox-tabs > .sbox-tab').forEach(b =>
+                    b.classList.toggle('is-active', b === btn));
+                box.querySelectorAll(':scope > [data-sbox-panel]').forEach(p =>
+                    p.classList.toggle('is-active', p === panel));
+            });
+        }
 
         // 2. Bind the tooltips (shared engine, see site_utils.js)
         const callouts = section.querySelectorAll('.inline-callout-btn');
@@ -2111,3 +2268,31 @@ window.closeWikiVideoModal = function () {
 
 window.loadPageDescriptions = loadPageDescriptions;
 window.populateTextSection = populateTextSection;
+
+// --- SECTION BOX TABS (v0.19 C3) ---
+//
+// One delegated listener for every SectionedBox anywhere on the page, bound
+// once. Delegated rather than bound per button for the reason this whole block
+// type has to be careful about: the editor repaints the preview wholesale on
+// every keystroke, so a handler attached to a button is a handler on a detached
+// node a moment later.
+//
+// A data attribute and a delegated listener rather than an inline onclick,
+// which is a standing rule here: the tab's label is contributor-written.
+if (!window.__sboxTabsBound) {
+    window.__sboxTabsBound = true;
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-sbox-tab]');
+        if (!btn) return;
+        const box = btn.closest('.sbox-tabbed');
+        if (!box) return;
+
+        const idx = btn.getAttribute('data-sbox-tab');
+        // Scoped to THIS box: nested boxes are possible, since a tab's contents
+        // are blocks and a Section Box is a block.
+        box.querySelectorAll(':scope > .sbox-tabs > [data-sbox-tab]').forEach(b =>
+            b.classList.toggle('is-active', b === btn));
+        box.querySelectorAll(':scope > [data-sbox-panel]').forEach(p =>
+            p.classList.toggle('is-active', p.getAttribute('data-sbox-panel') === idx));
+    });
+}

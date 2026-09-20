@@ -1,0 +1,14 @@
+Features:
+- Search function
+- A JRPG-like tutorial that plays when you first enter the editor and after you click "Got It" on the Notice. It will go over the 5 main elements in the editor: 1. Workspace Header, 2. Workspace Navigation, 3. Workspace, 4. Workspace Footer, and 5. Preview Panel (Consult the Writing Guide Data I have already written). Then the tutorial will go over the details of each elements: first, it is the Workspace Header, going over its function, and then we continue down the list (Again consult the Writing Guide Data).
+- A Red system button that exist in the editor's Workspace Header, which says "MoS" short for "Manual of Style". Clicking on it will pop-up a modal that contain the Basics detailed in the Writing Guide as well as saying the wiki is written in English following this standard (I actually don't know much about this, you can help out). It will have two buttons below saying "Ok" and "Rewatch Tutorial", which concern the tutorial detailed above.
+- A Matchup table in the Side Dashboard, if it is possible.
+- Everything in the already existing plan.
+
+Fine-tuning:
+- Nothing for now
+
+Bugs:
+- The button pair "History & Edit Tab" that is generated on a System Type page is slightly larger than the one generated on a Character page. Make it smaller.
+- When clicking on the Techs tab in the editor, it did not light up. You can still go in and edit the content inside.
+- When opening the profile on the Side Dashboard, it will render in unstyled fields to enter values in, probably because the page is missing some styling sheets.

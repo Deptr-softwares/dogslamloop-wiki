@@ -41,8 +41,9 @@ const post = (over = {}) => ({
 async function mockThread(page, {
     rows = [], session = null, role = null, roleRow = null,
     insertError = null, rpcError = null, selectError = null, count = null,
+    profiles = [], experts = [],
 } = {}) {
-    await page.addInitScript(({ rows, session, role, roleRow, insertError, rpcError, selectError, count }) => {
+    await page.addInitScript(({ rows, session, role, roleRow, insertError, rpcError, selectError, count, profiles, experts }) => {
         window.__inserts = [];
         window.__rpcCalls = [];
 
@@ -73,6 +74,12 @@ async function mockThread(page, {
                                 ? { data: null, error: rpcError }
                                 : { data: name === 'report_discussion_post' ? 'Thanks - a moderator will take a look.' : 'ok', error: null };
                         }
+                        // Flairs. Decoration for every other test in this file,
+                        // which is why it answers empty by default - but the
+                        // layout test needs a real one on screen, because the
+                        // flair is what the header runs out of room for.
+                        if (name === 'get_public_profiles') return { data: profiles, error: null };
+                        if (name === 'get_page_experts') return { data: experts, error: null };
                         return { data: null, error: null };
                     };
 
@@ -138,7 +145,7 @@ async function mockThread(page, {
                 };
             },
         });
-    }, { rows, session, role, roleRow, insertError, rpcError, selectError, count });
+    }, { rows, session, role, roleRow, insertError, rpcError, selectError, count, profiles, experts });
 }
 
 const SESSION = { user: { id: 'u-me', email: 'reader@site.test' }, access_token: 't' };
@@ -703,4 +710,78 @@ test('a refused report says so and leaves the form open', async ({ page }) => {
 
     await expect(page.locator('.discussion-report-form .discussion-composer-status')).toContainText('several reports');
     await expect(page.locator('.discussion-report-form'), 'still there to retry').toHaveCount(1);
+});
+
+// --- THE POST HEADER ON A PHONE (fix, 2026-09-20) ---
+//
+// `.discussion-post-head` is a flex row of author + timestamp, and the author
+// is itself an inline-flex of name + EXPERT chip + flair. A flex item's
+// automatic minimum size is its MIN-CONTENT width, so the author button
+// refused to shrink and pushed the timestamp past the right edge - which makes
+// the whole DOCUMENT scroll sideways, not just that one row.
+//
+// How it surfaced is the reason these tests exist. The flair was already
+// capped at 12rem, and the header still fit Windows by 0.4px while overflowing
+// CI's wider glyphs. Nothing in the repo had changed: a reader had given
+// themselves a long flair, and that alone turned the suite red, which stopped
+// the nightly regeneration from publishing ANY content for a day.
+//
+// So the fixtures here are hostile rather than realistic, and the assertions
+// are structural - "it fits its own box", true on every platform - rather than
+// a pixel comparison that would only fail on the runner that happens to render
+// widest.
+test('a long name, an EXPERT chip and a full flair still fit a phone header', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockThread(page, {
+        rows: [post({ id: 'p1', author_id: 'u-long', author_name: 'Tower_Creationist_XL' })],
+        // 32 characters, which is what the flair column allows.
+        profiles: [{ user_id: 'u-long', flair: 'CRAZY? I WAS CRAZY ONCE THEY PUT' }],
+        experts: [{ user_id: 'u-long' }],
+    });
+    await open(page);
+    await page.waitForSelector('#post-p1 .discussion-flair');
+
+    const fit = await page.evaluate(() => {
+        const head = document.querySelector('#post-p1 .discussion-post-head');
+        const doc = document.documentElement;
+        return {
+            // Both decorations really are on screen - without this the test
+            // would pass just as well against a header with nothing in it.
+            hasFlair: !!head.querySelector('.discussion-flair'),
+            hasExpert: !!head.querySelector('.discussion-expert'),
+            headOverflow: head.scrollWidth - head.clientWidth,
+            pageScrollsSideways: doc.scrollWidth > doc.clientWidth,
+        };
+    });
+
+    expect(fit.hasFlair, 'the flair rendered').toBe(true);
+    expect(fit.hasExpert, 'the EXPERT chip rendered').toBe(true);
+    expect(fit.headOverflow, 'the header fits its own box').toBeLessThanOrEqual(0);
+    expect(fit.pageScrollsSideways, 'the page itself never scrolls sideways').toBe(false);
+});
+
+test('a username with no break in it cannot widen the page either', async ({ page }) => {
+    // The remaining case once the flair can shrink: one unbroken token longer
+    // than the screen. Nothing can wrap it except overflow-wrap.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await mockThread(page, {
+        rows: [post({ id: 'p1', author_id: 'u-long', author_name: 'A'.repeat(90) })],
+    });
+    await open(page);
+    await page.waitForSelector('#post-p1 .discussion-author');
+
+    const fit = await page.evaluate(() => {
+        const doc = document.documentElement;
+        const author = document.querySelector('#post-p1 .discussion-author');
+        return {
+            nameLength: author.textContent.trim().length,
+            authorRight: Math.round(author.getBoundingClientRect().right),
+            clientWidth: doc.clientWidth,
+            pageScrollsSideways: doc.scrollWidth > doc.clientWidth,
+        };
+    });
+
+    expect(fit.nameLength, 'the whole name is still there to read').toBe(90);
+    expect(fit.authorRight, 'it wrapped instead of running off').toBeLessThanOrEqual(fit.clientWidth);
+    expect(fit.pageScrollsSideways).toBe(false);
 });

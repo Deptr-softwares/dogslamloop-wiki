@@ -4,6 +4,11 @@
 // both are asserted as GEOMETRY against a sibling or a parent, never as a
 // pixel count, because font metrics differ by OS and these have to hold on a
 // Linux CI runner as well as here.
+//
+// A third member of the family lives in discussions.spec.js rather than here,
+// because it needs that file's thread mock to put a flair on screen: a post
+// header that would not shrink below its own content. It is the case that
+// proves the rule above - it fit here by 0.4px and overflowed on CI.
 const { test, expect } = require('@playwright/test');
 
 test('the contributors footer stays inside its column', async ({ page }) => {

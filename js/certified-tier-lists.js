@@ -123,6 +123,10 @@
         if (useIcon) wrap.classList.add('tier-portrait-icon');
         wrap.href = meta.url ? rootPath + meta.url : '#';
         wrap.title = meta.name;
+        // So the changelog can find this portrait again once it has loaded.
+        // The board is drawn first and the changes are fetched after it, which
+        // is the right order - the icons are what the reader came for.
+        wrap.dataset.ctlChar = pageId;
 
         // In ICON mode the character's colour moves from the fill to the
         // border, which is the whole of the roster-card treatment this is
@@ -165,6 +169,64 @@
         wrap.appendChild(img);
 
         return wrap;
+    }
+
+    // How one move reads, in one place. The changelog list and the portrait
+    // tooltip both say it, and a second copy of the phrasing is how "added to
+    // S" in one and "moved to S" in the other happens.
+    //
+    // A NULL from_tier means newly placed and a NULL to_tier means removed -
+    // both are real events, which is why the schema allows either.
+    function moveLabel(change) {
+        if (change.from_tier && change.to_tier) return `${change.from_tier} → ${change.to_tier}`;
+        if (change.to_tier) return `added to ${change.to_tier}`;
+        return `removed from ${change.from_tier || '—'}`;
+    }
+
+    // --- HOVER A PORTRAIT, SEE WHY IT MOVED (owner, 2026-09-20) ---
+    //
+    // The most recent change for each character, hung on that character's
+    // portrait. Built from the changelog rows already in hand rather than a
+    // query per icon, and the rows arrive newest-first, so the first one seen
+    // for a character IS its most recent by construction - no sorting, and no
+    // second definition of "most recent" to disagree with the list below.
+    //
+    // A character with nothing recorded gets no tooltip and keeps the browser's
+    // own name tooltip, which is the honest thing to show when there is no
+    // history to report.
+    function attachPortraitChangeTooltips(changes) {
+        const ui = document.getElementById('tier-list-ui');
+        if (!ui || typeof window.bindTooltip !== 'function') return;
+
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+
+        const latest = new Map();
+        (changes || []).forEach(change => {
+            if (!latest.has(change.character_id)) latest.set(change.character_id, change);
+        });
+
+        ui.querySelectorAll('[data-ctl-char]').forEach(portraitEl => {
+            const change = latest.get(portraitEl.dataset.ctlChar);
+            if (!change) return;
+
+            const when = new Date(change.created_at);
+            const date = isNaN(when) ? '' : when.toLocaleDateString();
+
+            // bindTooltip assigns innerHTML, so every value here is escaped.
+            // The note and the author name are written by whoever owns the
+            // list, which makes them contributor content on a public page.
+            let html = `<div class="ctl-tip-move">${esc(moveLabel(change))}</div>`;
+            if (date) html += `<div class="ctl-tip-date">${esc(date)}</div>`;
+            html += `<div class="ctl-tip-note">${esc(change.note)}</div>`;
+            if (change.author_name) {
+                html += `<div class="ctl-tip-author">&mdash; ${esc(change.author_name)}</div>`;
+            }
+
+            // The native tooltip would otherwise sit on top of this one. The
+            // name is not lost: it is rendered under the portrait already.
+            portraitEl.removeAttribute('title');
+            window.bindTooltip(portraitEl, html);
+        });
     }
 
     // --- THE PAGE INTRODUCTION ---
@@ -452,6 +514,13 @@
             .order('created_at', { ascending: false })
             .limit(100);
 
+        // Hovering a portrait shows that character's most recent move (owner,
+        // 2026-09-20). Built from the changelog ALREADY FETCHED above rather
+        // than a query per icon: a full board is 20-odd characters, and the
+        // rows are here, newest first, so the first one seen for a character is
+        // the most recent one by construction.
+        attachPortraitChangeTooltips(changes);
+
         const box = el('div', 'ctl-changelog');
         box.appendChild(el('h3', 'ctl-subheading', 'Changelog'));
 
@@ -468,10 +537,7 @@
             const who = state.roster.get(change.character_id);
             meta.appendChild(el('span', 'ctl-change-char', who ? who.name : change.character_id));
 
-            const move = change.from_tier && change.to_tier
-                ? `${change.from_tier} → ${change.to_tier}`
-                : (change.to_tier ? `added to ${change.to_tier}` : `removed from ${change.from_tier || '—'}`);
-            meta.appendChild(el('span', 'ctl-change-move', move));
+            meta.appendChild(el('span', 'ctl-change-move', moveLabel(change)));
             meta.appendChild(el('span', 'ctl-change-date', new Date(change.created_at).toLocaleDateString()));
             entry.appendChild(meta);
 

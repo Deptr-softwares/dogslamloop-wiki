@@ -97,6 +97,49 @@ function colorPresetGroups() {
         .filter(group => group.swatches.length > 0);
 }
 
+
+// --- GRADIENT PRESETS (v0.19, owner's follow-on to C6) ---------------------
+//
+// [multicolor=a,b] sweeps text from one colour to another. Typing that by hand
+// means knowing the shortcode exists, knowing it takes two stops, and knowing
+// two hex codes that look good together - so in practice nobody would.
+//
+// These are two-stop pairs only. The shortcode accepts any number, and the
+// picker deliberately does not: a quick tool that asks how many stops you want
+// is not a quick tool, and the hand-written form is still there for anything
+// more elaborate.
+//
+// Every value is a plain hex so SAFE_CSS_COLOR passes it, the same filter the
+// single-colour swatches go through. Names are the effect rather than the
+// colours, because "red to cyan" is already visible on the swatch.
+const GRADIENT_PRESETS = [
+    { label: 'Cursed',   from: '#a855f7', to: '#22d3ee' },
+    { label: 'Fire',     from: '#fbbf24', to: '#dc2626' },
+    { label: 'Ice',      from: '#e0f2fe', to: '#2563eb' },
+    { label: 'Toxic',    from: '#a3e635', to: '#15803d' },
+    { label: 'Sunset',   from: '#fb923c', to: '#a855f7' },
+    { label: 'Steel',    from: '#e5e7eb', to: '#4b5563' },
+    { label: 'Blood',    from: '#ef4444', to: '#450a0a' },
+    { label: 'Rainbow',  from: '#ef4444', to: '#3b82f6' },
+];
+
+function gradientPresetsHTML() {
+    const usable = GRADIENT_PRESETS.filter(g => SAFE_CSS_COLOR.test(g.from) && SAFE_CSS_COLOR.test(g.to));
+    if (!usable.length) return '';
+
+    // data-gradient carries the shortcode's own value - "from,to" - so the
+    // click handler passes it straight to applyFormat without re-deriving it,
+    // and what is in the attribute is what ends up in the text.
+    return `
+                        <div class="format-color-popup-label">Gradients</div>
+                        <div class="format-color-presets-row">
+                            ${usable.map(g => `<button class="gradient-preset-btn"
+                                data-gradient="${window.escapeHtml(`${g.from},${g.to}`)}"
+                                style="background: linear-gradient(90deg, ${g.from}, ${g.to});"
+                                title="${window.escapeHtml(`${g.label} gradient`)}"></button>`).join('')}
+                        </div>`;
+}
+
 // --- THE VISUAL COLOUR PICKER (owner's fine-tuning item, 2026-08-13) ---
 //
 // Replaces <input type="color">, which opens the OPERATING SYSTEM's colour
@@ -245,12 +288,15 @@ function initColorPicker(container, onPick) {
     paint();
 }
 
-function colorPresetsHTML() {
-    return colorPresetGroups().map(group => `
+// `afterFirst` is emitted between the first group and the second. The gradient
+// row uses it, and the position is load-bearing rather than aesthetic - see the
+// comment at the call site.
+function colorPresetsHTML(afterFirst = '') {
+    return colorPresetGroups().map((group, i) => `
                         <div class="format-color-popup-label">${window.escapeHtml(group.label)}</div>
                         <div class="format-color-presets-row">
                             ${group.swatches.map(swatch => `<button class="color-preset-btn" data-color="${window.escapeHtml(swatch.color)}" style="background: ${swatch.color};" title="${window.escapeHtml(swatch.label)}"></button>`).join('')}
-                        </div>`).join('');
+                        </div>${i === 0 ? afterFirst : ''}`).join('');
 }
 
 // --- BLOCK BUILDER STATE ---
@@ -322,7 +368,7 @@ window.spawnBlockWithAuthor = function(type) {
 const blockTemplates = {
     heading: { type: 'heading', content: 'New Heading', align: 'left', size: 'h3' },
     paragraph: { type: 'paragraph', content: 'Write your strategy here...', align: 'left' },
-    list: { type: 'list', items: ['List item 1', 'List item 2'], align: 'left', author: '' },
+    list: { type: 'list', items: ['List item 1', 'List item 2'], align: 'left', author: '', boxed: false },
     image: { type: 'image', src: '', alt: 'Image description', caption: '', align: 'center', width: '75%' },
     video: { type: 'video', src: '', align: 'center', width: '75%', controls: false, caption: '' }, 
     youtube: { type: 'youtube', videoId: '', align: 'center', width: '75%', caption: '' },
@@ -333,10 +379,18 @@ const blockTemplates = {
     // `content` makes it nest exactly like an accordion, which is what lets a
     // card hold its own clips, sub-variants and explanation - and what makes a
     // combo GROUP a group rather than a list.
-    theorybox: { type: 'theorybox', title: 'New Combo', oneliner: '', difficulty: '', sequence: [], damage: '', video: '', content: [], anchor: '', align: 'left', author: '' },
+    // `multiSections` off and `sections` empty by default: a card is one combo
+    // until an author says otherwise, and the switch seeds the first section
+    // from the card's own fields so turning it on strands nothing.
+    theorybox: { type: 'theorybox', title: 'New Combo', oneliner: '', difficulty: '', sequence: [], damage: '', video: '', content: [], anchor: '', align: 'left', author: '', multiSections: false, sections: [] },
     divider: { type: 'divider', style: 'diamond', padding: 'normal' },
     author: { type: 'author', author: '' },
     table: { type: 'table', headers: ['Stat', 'Value'], rows: [['Damage', '10'], ['Startup', '5f']], align: 'center', author: '' },
+    // A box with a title, an introduction, and a row of switchable tabs (v0.19
+    // C3). `{ title, content: [blocks] }` per section deliberately - it is the
+    // shape comboGroups already uses, so the diff walkers and the nested
+    // renderer read it without a fourth container convention being invented.
+    sectionedbox: { type: 'sectionedbox', title: 'New Section Box', intro: [], sections: [{ title: 'Section 1', content: [] }], align: 'left', author: '' },
 };
 
 // What each block type is CALLED, as opposed to what its template key is.
@@ -364,6 +418,7 @@ const BLOCK_TYPE_LABELS = {
     combo: 'Combo',
     accordion: 'Accordion',
     theorybox: 'Combo Card',
+    sectionedbox: 'Section Box',
     divider: 'Divider',
     author: 'Author',
 };
@@ -379,7 +434,7 @@ window.blockTypeLabel = function (type) {
 // the map above; only the grouping is editorial.
 const ADD_BLOCK_GROUPS = [
     { title: 'Text & Media', types: ['heading', 'paragraph', 'table', 'list', 'image', 'video', 'youtube'] },
-    { title: 'Components', types: ['callout', 'combo', 'accordion', 'theorybox', 'divider', 'author'] },
+    { title: 'Components', types: ['callout', 'combo', 'accordion', 'theorybox', 'sectionedbox', 'divider', 'author'] },
 ];
 
 // A text prompt in the site's own modal, replacing window.prompt() for the
@@ -452,19 +507,131 @@ window.customPrompt = function (message, opts = {}) {
 // --- RECURSIVE EDITOR PATH TRACKING ---
 window.activeAccordionPath = [];
 
+// WHICH NESTED ARRAY A PATH STEP MEANS (extended for v0.19 C3).
+//
+// A step is either a bare INDEX - a container whose nested blocks live in
+// `.content`, which is every container that existed before the Section Box -
+// or `{ index, field }` for one that holds SEVERAL block arrays. A Section Box
+// holds an `intro` plus one `content` per section, so an index alone cannot say
+// which of them the author asked to edit.
+//
+// The field is matched against a closed set rather than resolved as a path
+// expression: these strings are written by this file, and a general resolver
+// over contributor data is a much larger promise than the feature needs.
+// WHICH SECTION OF A COMBO CARD THE EDITOR IS SHOWING (v0.19 C3b).
+//
+// A WeakMap keyed by the BLOCK, for the reasons expandedBlocks states: it is
+// session state, so it must not be serialised into desc_data and shipped to
+// readers, and it must survive renderBlockList. Undo/redo replaces the blocks
+// wholesale, so the entry falls away and the card opens on its first section,
+// which is correct - that is a different document.
+const activeCardSection = new WeakMap();
+
+window.editorCardSectionIndex = function (block) {
+    const sections = (block && Array.isArray(block.sections)) ? block.sections : [];
+    if (!sections.length) return -1;
+    // Clamped rather than trusted: the section it names may have been removed.
+    return Math.max(0, Math.min(activeCardSection.get(block) || 0, sections.length - 1));
+};
+
+window.setEditorCardSection = function (block, index) {
+    if (block && typeof block === 'object') activeCardSection.set(block, index);
+};
+
+// Where a Combo Card's own fields write. In Multiple Sections mode the card has
+// no fields of its own - each tab is a whole variant - so they edit the section
+// on screen. Every other block type gets itself back unchanged.
+window.editorCardFieldTarget = function (block) {
+    if (!block || block.type !== 'theorybox' || !block.multiSections) return block;
+    const at = window.editorCardSectionIndex(block);
+    return at < 0 ? block : block.sections[at];
+};
+
+
+// Turning Multiple Sections ON seeds the first section FROM the card, so an
+// author who has already written a combo does not find it stranded behind a
+// switch. Turning it OFF copies the section on screen back up, so what was on
+// screen stays on screen. Between them the switch round-trips without losing
+// anything the author can see.
+const CARD_TEXT_FIELDS = ['title', 'oneliner', 'difficulty', 'damage', 'video', 'anchor'];
+
+function seedCardSections(card, on) {
+    if (!card || typeof card !== 'object') return;
+
+    if (on) {
+        if (Array.isArray(card.sections) && card.sections.length) return;
+        const seeded = { label: card.title || 'Section 1' };
+        CARD_TEXT_FIELDS.forEach(f => { seeded[f] = card[f] || ''; });
+        seeded.sequence = Array.isArray(card.sequence) ? card.sequence.slice() : [];
+        seeded.content = Array.isArray(card.content) ? card.content : [];
+        card.sections = [seeded];
+        return;
+    }
+
+    const at = window.editorCardSectionIndex(card);
+    if (at < 0) return;
+    const sec = card.sections[at] || {};
+    CARD_TEXT_FIELDS.forEach(f => { card[f] = sec[f] || ''; });
+    card.sequence = Array.isArray(sec.sequence) ? sec.sequence.slice() : [];
+    card.content = Array.isArray(sec.content) ? sec.content : [];
+}
+// Stated rather than left to the fact that this file is not IIFE-wrapped: the
+// Combos/Techs card editor in editor-tabs.js calls it, because a Combo Card has
+// two editors and the switch has to behave identically in both.
+window.seedCardSections = seedCardSections;
+
+window.resolveNestedBlocks = function (host, field) {
+    if (!host || typeof host !== 'object') return null;
+
+    if (!field) {
+        if (!Array.isArray(host.content)) host.content = [];
+        return host.content;
+    }
+    if (field === 'intro') {
+        if (!Array.isArray(host.intro)) host.intro = [];
+        return host.intro;
+    }
+
+    const m = /^sections\.(\d+)\.content$/.exec(field);
+    if (m) {
+        const section = Array.isArray(host.sections) ? host.sections[Number(m[1])] : null;
+        if (!section || typeof section !== 'object') return null;
+        if (!Array.isArray(section.content)) section.content = [];
+        return section.content;
+    }
+    return null;
+};
+
 window.getActiveBlocks = function() {
     let blocks = currentStrategyBlocks;
     for (let i = 0; i < window.activeAccordionPath.length; i++) {
-        const idx = window.activeAccordionPath[i];
-        
+        const step = window.activeAccordionPath[i];
+        const idx = (step && typeof step === 'object') ? step.index : step;
+
         if (!blocks[idx]) {
             window.activeAccordionPath = window.activeAccordionPath.slice(0, i);
             break;
         }
-        if (!blocks[idx].content) blocks[idx].content = [];
-        blocks = blocks[idx].content;
+
+        // A section deleted while the author was inside it leaves a path
+        // pointing at nothing, so the path is truncated rather than throwing -
+        // the same recovery the missing-block case above already does.
+        const nested = window.resolveNestedBlocks(
+            blocks[idx], (step && typeof step === 'object') ? step.field : null);
+        if (!nested) {
+            window.activeAccordionPath = window.activeAccordionPath.slice(0, i);
+            break;
+        }
+        blocks = nested;
     }
     return blocks;
+};
+
+// Descend into a container's nested blocks. A function rather than more inline
+// onclick, because a Section Box's step carries a field as well as an index.
+window.enterBlockContainer = function (index, field) {
+    window.activeAccordionPath.push(field ? { index, field } : index);
+    renderBlockList();
 };
 
 // --- WHICH BLOCKS ARE OPEN (v0.16 fine-tuning 2) ---
@@ -507,6 +674,177 @@ window.setEditorBlockExpanded = function (block, on) {
 window.markEditorBlockNew = function (block) {
     window.setEditorBlockExpanded(block, true);
     return block;
+};
+
+// --- WHICH BLOCKS ARE SELECTED (v0.19 C2) ---
+//
+// Keyed by the BLOCK OBJECT, for the same three reasons expandedBlocks above
+// states, and they apply harder here: every action a selection offers - move,
+// delete, paste - CHANGES the indices of the blocks around it, so a selection
+// held as indices would be wrong the instant it was used. A flag on the block
+// would be serialised into desc_data and shipped to every reader.
+//
+// A WeakSet is membership only, so no ORDER is stored anywhere. Order is
+// derived from the live array each time it is needed, which is what makes
+// "copy these five" and "move these five up" still mean the same five blocks
+// after the array has been rewritten under them. There is no second copy of
+// the order to go stale, because there is no copy at all.
+//
+// Undo/redo replaces every block wholesale (a JSON round-trip), so the old
+// objects fall out of the WeakSet on their own and the selection empties.
+// That is right: the author is looking at a different document.
+const selectedBlocks = new WeakSet();
+
+window.isEditorBlockSelected = function (block) {
+    return !!block && selectedBlocks.has(block);
+};
+
+window.setEditorBlockSelected = function (block, on) {
+    if (!block || typeof block !== 'object') return;
+    if (on) selectedBlocks.add(block);
+    else selectedBlocks.delete(block);
+};
+
+window.toggleEditorBlockSelected = function (block) {
+    if (!block || typeof block !== 'object') return false;
+    const next = !selectedBlocks.has(block);
+    window.setEditorBlockSelected(block, next);
+    return next;
+};
+
+// The selected blocks AT THE LEVEL ON SCREEN, in document order, as indices
+// into that level's array. Everything else reads this rather than the WeakSet,
+// so nothing can act on a block the author cannot currently see - an accordion
+// holds its own list, and "delete the selection" must never reach into one.
+window.getSelectedBlockIndices = function () {
+    const blocks = window.getActiveBlocks();
+    const out = [];
+    for (let i = 0; i < blocks.length; i++) {
+        if (selectedBlocks.has(blocks[i])) out.push(i);
+    }
+    return out;
+};
+
+window.clearEditorBlockSelection = function () {
+    // Only the visible level, deliberately: descending into an accordion and
+    // coming back should find the outer selection as it was left.
+    window.getActiveBlocks().forEach(b => selectedBlocks.delete(b));
+};
+
+// --- WHAT A SELECTION CAN DO (v0.19 C2) ---
+//
+// Module scope, because three surfaces reach the same operations: the
+// selection bar, the keyboard, and a card's own up/down/delete buttons, which
+// act on the whole selection when the card they sit on is part of it. One
+// implementation, so those three cannot drift into meaning different things.
+
+// Folder membership is POSITIONAL - `reconcileFolderAt` decides it from the
+// blocks either side - so every position an operation disturbed has to be
+// settled, not just the block that moved. Deduped because a swap names two
+// positions and a run of swaps names the same ones repeatedly.
+function reconcileAround(blocks, indices) {
+    if (typeof window.reconcileFolderAt !== 'function') return;
+    [...new Set(indices)]
+        .filter(i => i >= 0 && i < blocks.length)
+        .sort((a, b) => a - b)
+        .forEach(i => window.reconcileFolderAt(blocks, i));
+}
+
+// An ARRAY, always, even for one block. The previous single-block global meant
+// the paste path had one shape for the hover case and would have needed
+// another for a selection; two shapes for one clipboard is the drift this file
+// has spent several versions removing elsewhere.
+window.copiedWikiBlocks = window.copiedWikiBlocks || [];
+
+window.copySelectedBlocks = function () {
+    const blocks = window.getActiveBlocks();
+    const picked = window.getSelectedBlockIndices();
+    if (!picked.length) return 0;
+    window.copiedWikiBlocks = picked.map(i => JSON.parse(JSON.stringify(blocks[i])));
+    return picked.length;
+};
+
+// `afterIndex` is the block to land under; null or negative appends. Deep
+// cloned on the way OUT as well as in, so pasting the same clipboard twice
+// cannot produce two blocks that share one object and edit as one.
+window.pasteCopiedBlocks = function (afterIndex) {
+    const copied = window.copiedWikiBlocks;
+    if (!Array.isArray(copied) || !copied.length) return 0;
+
+    const blocks = window.getActiveBlocks();
+    const clones = copied.map(b => JSON.parse(JSON.stringify(b)));
+    const at = (afterIndex === null || afterIndex === undefined || afterIndex < 0)
+        ? blocks.length
+        : afterIndex + 1;
+
+    window.saveBlockHistory();
+    blocks.splice(at, 0, ...clones);
+    reconcileAround(blocks, clones.map((_, k) => at + k).concat([at - 1, at + clones.length]));
+    return clones.length;
+};
+
+window.deleteSelectedBlocks = function () {
+    const blocks = window.getActiveBlocks();
+    const picked = window.getSelectedBlockIndices();
+    if (!picked.length) return 0;
+
+    window.saveBlockHistory();
+    // Descending, so removing one cannot renumber the ones still to remove.
+    for (let k = picked.length - 1; k >= 0; k--) {
+        window.setEditorBlockSelected(blocks[picked[k]], false);
+        blocks.splice(picked[k], 1);
+    }
+    // Taking blocks out can leave two halves of a folder touching.
+    reconcileAround(blocks, [picked[0] - 1, picked[0]]);
+    return picked.length;
+};
+
+// `dir` is -1 or 1. Each selected block steps over an UNSELECTED neighbour;
+// one that would step onto another selected block, or off the end, stays put.
+// That is what moves a run as one piece, and what lets a gapped selection
+// close up against the top instead of refusing to move at all.
+window.moveSelectedBlocks = function (dir) {
+    if (dir !== -1 && dir !== 1) return false;
+    const blocks = window.getActiveBlocks();
+    const picked = window.getSelectedBlockIndices();
+    if (!picked.length) return false;
+
+    // Decided BEFORE anything moves, for two reasons: the history snapshot has
+    // to be of the state being left (see saveBlockHistory's callers), and a
+    // selection already hard against the end must not push an identical state
+    // onto the undo stack.
+    const canMove = picked.some(i => (dir === -1
+        ? i !== 0 && !window.isEditorBlockSelected(blocks[i - 1])
+        : i !== blocks.length - 1 && !window.isEditorBlockSelected(blocks[i + 1])));
+    if (!canMove) return false;
+    window.saveBlockHistory();
+
+    const touched = [];
+    const swap = (a, b) => {
+        const tmp = blocks[a];
+        blocks[a] = blocks[b];
+        blocks[b] = tmp;
+        touched.push(a, b);
+    };
+
+    if (dir === -1) {
+        // Ascending: the topmost decides whether the one behind it can follow.
+        for (let k = 0; k < picked.length; k++) {
+            const i = picked[k];
+            if (i === 0 || window.isEditorBlockSelected(blocks[i - 1])) continue;
+            swap(i - 1, i);
+        }
+    } else {
+        for (let k = picked.length - 1; k >= 0; k--) {
+            const i = picked[k];
+            if (i === blocks.length - 1 || window.isEditorBlockSelected(blocks[i + 1])) continue;
+            swap(i, i + 1);
+        }
+    }
+
+    if (!touched.length) return false;
+    reconcileAround(blocks, touched);
+    return true;
 };
 
 /**
@@ -597,8 +935,15 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                              ~45 preset swatches already fill that, and the
                              surface and the USE button sat under the fold.
                              Opening the picker showed nothing but swatches. -->
+                        <!-- Gradients sit SECOND: Basic is what contributors
+                             reach for constantly and keeps the top, and a
+                             specialty tool one row down is still the first
+                             thing anybody scanning this popup sees.
+                             Not a workaround - the clipping that made the top
+                             row unclickable is fixed in keepColorPopupOnScreen
+                             below, so any position would work. -->
                         <div class="format-color-presets-scroll">
-                        ${colorPresetsHTML()}
+                        ${colorPresetsHTML(gradientPresetsHTML())}
                         </div>
                         <!-- A saturation/brightness surface and a hue slider,
                              replacing <input type="color">. That input opens
@@ -718,6 +1063,212 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
     const blockList = document.getElementById('block-list');
 
+    // --- CTRL-CLICK TO SELECT (v0.19 C2) ---
+    //
+    // Registered BEFORE the other two click listeners on this element, and
+    // stopping IMMEDIATE propagation: they are all bound to #block-list, where
+    // plain stopPropagation would leave both of them to run anyway. A
+    // Ctrl-click that toggled a selection AND opened a folder picker would be
+    // one gesture doing two things.
+    //
+    // The header only. It is always on screen - since v0.16 every block opens
+    // collapsed, so for most cards the header IS the card - and it keeps the
+    // gesture away from the body, where Ctrl-click belongs to the textarea.
+    // Controls inside the header are excluded by name rather than by guessing:
+    // the drag handle starts a drag, and the selects and buttons are their own
+    // gestures already.
+    blockList.addEventListener('click', (e) => {
+        if (!e.ctrlKey && !e.metaKey) return;
+        const header = e.target.closest('.block-header');
+        if (!header) return;
+        if (e.target.closest('button, select, input, textarea, .drag-handle')) return;
+
+        const card = header.closest('.block-card');
+        if (!card || !card.hasAttribute('data-index')) return;
+
+        const index = parseInt(card.getAttribute('data-index'), 10);
+        const block = window.getActiveBlocks()[index];
+        if (!block) return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const on = window.toggleEditorBlockSelected(block);
+        card.classList.toggle('block-card-selected', on);
+        renderBlockSelectionBar();
+    });
+
+    // The selection bar's own buttons.
+    //
+    // stopIMMEDIATEPropagation, not stopPropagation. All three of this file's
+    // click listeners are on #block-list itself, and stopPropagation only stops
+    // an event reaching OTHER elements - listeners already registered on the
+    // same node still run. The general button handler below resolves every
+    // button through `closest('.block-card').getAttribute(...)`, and its own
+    // comment records that a button outside a card throws exactly there. The
+    // bar is outside every card by design, so it hit that line four times, once
+    // per button, and nothing noticed: the bar's own work had already been done
+    // in this listener and the exception surfaced in a different one.
+    blockList.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-selection-action]');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        switch (btn.getAttribute('data-selection-action')) {
+            case 'clear':
+                window.clearEditorBlockSelection();
+                renderBlockList();
+                break;
+            case 'copy':
+                if (window.copySelectedBlocks()) flashSelectedCards();
+                break;
+            case 'delete':
+                if (window.deleteSelectedBlocks()) {
+                    renderBlockList();
+                    updateLivePreview();
+                }
+                break;
+            case 'up':
+            case 'down':
+                if (window.moveSelectedBlocks(btn.getAttribute('data-selection-action') === 'up' ? -1 : 1)) {
+                    renderBlockList();
+                    updateLivePreview();
+                }
+                break;
+        }
+    });
+
+    // Copy is the one action with nothing to show for itself - the list does
+    // not change - so it says so on the cards it took. A class rather than an
+    // inline style, which is what the rest of this editor was converted to.
+    function flashSelectedCards() {
+        blockList.querySelectorAll('.block-card-selected').forEach(card => {
+            card.classList.add('block-card-copied');
+            setTimeout(() => card.classList.remove('block-card-copied'), 400);
+        });
+    }
+    // --- SECTION BOX CONTROLS (v0.19 C3) ---
+    //
+    // Registered before the general button handler further down, which resolves
+    // every button through the card's data-index and would also fire for these.
+    blockList.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-sbox-intro], [data-sbox-edit], [data-sbox-remove], [data-sbox-add]');
+        if (!btn) return;
+
+        const card = btn.closest('.block-card');
+        if (!card) return;
+        const index = parseInt(card.getAttribute('data-index'), 10);
+        const block = window.getActiveBlocks()[index];
+        if (!block || block.type !== 'sectionedbox') return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();  // same element as the general handler - see C2 above
+
+        // Descending changes no data, so it takes no history snapshot.
+        if (btn.hasAttribute('data-sbox-intro')) {
+            window.enterBlockContainer(index, 'intro');
+            return;
+        }
+        if (btn.hasAttribute('data-sbox-edit')) {
+            const at = parseInt(btn.getAttribute('data-sbox-edit'), 10);
+            window.enterBlockContainer(index, `sections.${at}.content`);
+            return;
+        }
+
+        window.saveBlockHistory();
+        if (btn.hasAttribute('data-sbox-add')) {
+            if (!Array.isArray(block.sections)) block.sections = [];
+            block.sections.push({ title: `Section ${block.sections.length + 1}`, content: [] });
+        } else {
+            const at = parseInt(btn.getAttribute('data-sbox-remove'), 10);
+            if (Array.isArray(block.sections)) block.sections.splice(at, 1);
+        }
+        renderBlockList();
+        updateLivePreview();
+    });
+
+    // --- COMBO CARD SECTIONS (v0.19 C3b) ---
+    //
+    // Same shape as the Section Box controls above, against the Combo Card's
+    // own `sections`. Which one is on screen is session state in a WeakMap, not
+    // a field - it must not be serialised into desc_data.
+    blockList.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-cardsec], [data-cardsec-add], [data-cardsec-remove], [data-cardsec-edit]');
+        if (!btn) return;
+
+        const card = btn.closest('.block-card');
+        if (!card) return;
+        const index = parseInt(card.getAttribute('data-index'), 10);
+        const block = window.getActiveBlocks()[index];
+        if (!block || block.type !== 'theorybox') return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();  // same element as the general handler - see C2 above
+
+        // Descending and switching tab change no data, so neither snapshots.
+        if (btn.hasAttribute('data-cardsec-edit')) {
+            const at = parseInt(btn.getAttribute('data-cardsec-edit'), 10);
+            window.enterBlockContainer(index, at >= 0 ? `sections.${at}.content` : null);
+            return;
+        }
+        if (btn.hasAttribute('data-cardsec')) {
+            window.setEditorCardSection(block, parseInt(btn.getAttribute('data-cardsec'), 10));
+            renderBlockList();
+            return;
+        }
+
+        window.saveBlockHistory();
+        if (btn.hasAttribute('data-cardsec-add')) {
+            if (!Array.isArray(block.sections)) block.sections = [];
+            block.sections.push({ label: `Section ${block.sections.length + 1}`, title: '', sequence: [], content: [] });
+            // Opens on the one just added - it was added to write in it.
+            window.setEditorCardSection(block, block.sections.length - 1);
+        } else {
+            const at = parseInt(btn.getAttribute('data-cardsec-remove'), 10);
+            if (Array.isArray(block.sections) && block.sections.length > 1) {
+                block.sections.splice(at, 1);
+                window.setEditorCardSection(block, Math.max(0, at - 1));
+            }
+        }
+        renderBlockList();
+        updateLivePreview();
+    });
+
+    // A section's TAB LABEL. Like the Section Box title below, this must not
+    // re-render the list - that takes the focus out of the field being typed in.
+    blockList.addEventListener('input', (e) => {
+        const field = e.target.closest('[data-cardsec-label]');
+        if (!field) return;
+
+        const card = field.closest('.block-card');
+        if (!card) return;
+        const block = window.getActiveBlocks()[parseInt(card.getAttribute('data-index'), 10)];
+        if (!block || block.type !== 'theorybox' || !Array.isArray(block.sections)) return;
+
+        const at = parseInt(field.getAttribute('data-cardsec-label'), 10);
+        if (!block.sections[at]) return;
+        block.sections[at].label = field.value;
+        updateLivePreview();
+    });
+
+    // A section's title. Deliberately does NOT call renderBlockList - rebuilding
+    // the list under a field being typed in takes the focus and the caret with
+    // it, which is the bug the whole editor works hard to avoid elsewhere.
+    blockList.addEventListener('input', (e) => {
+        const field = e.target.closest('[data-sbox-title]');
+        if (!field) return;
+
+        const card = field.closest('.block-card');
+        if (!card) return;
+        const block = window.getActiveBlocks()[parseInt(card.getAttribute('data-index'), 10)];
+        if (!block || !Array.isArray(block.sections)) return;
+
+        const at = parseInt(field.getAttribute('data-sbox-title'), 10);
+        if (!block.sections[at]) return;
+        block.sections[at].title = field.value;
+        updateLivePreview();
+    });
+
     // --- VIRTUALIZATION ENGINE ---
     if (window.editorBlockObserver) window.editorBlockObserver.disconnect();
     
@@ -825,49 +1376,87 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (window.editorBuilderMode === 'gallery') return;
 
         const isInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
-        
+
         // If an input is focused, let native text copy/paste happen normally
         if (!isInput) {
+            // Scoped to #block-list. `.block-card` is also rendered by
+            // editor-tabs, editor-system and editor-framedata, and an
+            // unscoped :hover match there would index into the wrong array.
+            const hovered = () => document.querySelector('#block-list .block-card:hover');
+
             if (e.key.toLowerCase() === 'c' && !e.shiftKey) {
-                // Find whatever card the user's mouse is hovering over
-                const card = document.querySelector('.block-card:hover');
+                // A SELECTION WINS OVER THE HOVER. Hover copy is what this was
+                // before C2 and still works with nothing selected, so the
+                // gesture people already have keeps working - but once an
+                // author has said which blocks they mean, the mouse happening
+                // to rest on a sixth one must not overrule them.
+                if (window.copySelectedBlocks()) {
+                    e.preventDefault();
+                    flashSelectedCards();
+                    return;
+                }
+
+                const card = hovered();
                 if (card) {
                     const index = parseInt(card.getAttribute('data-index'));
-                    window.copiedWikiBlock = JSON.parse(JSON.stringify(window.getActiveBlocks()[index]));
-                    
-                    // Visual feedback Flash
-                    card.style.outline = '2px solid var(--accent-blue)';
-                    card.style.outlineOffset = '2px';
-                    setTimeout(() => { card.style.outline = 'none'; card.style.outlineOffset = '0'; }, 300);
+                    const block = window.getActiveBlocks()[index];
+                    if (!block) return;
+                    window.copiedWikiBlocks = [JSON.parse(JSON.stringify(block))];
+
+                    card.classList.add('block-card-copied');
+                    setTimeout(() => card.classList.remove('block-card-copied'), 400);
                     e.preventDefault();
                 }
             }
             else if (e.key.toLowerCase() === 'v' && !e.shiftKey) {
-                if (window.copiedWikiBlock) {
+                if (Array.isArray(window.copiedWikiBlocks) && window.copiedWikiBlocks.length) {
                     e.preventDefault();
-                    
-                    // Deep clone to prevent reference linking
-                    const newBlock = JSON.parse(JSON.stringify(window.copiedWikiBlock));
-                    const activeBlocks = window.getActiveBlocks();
-                    
-                    const card = document.querySelector('.block-card:hover');
-                    if (card) {
-                        const index = parseInt(card.getAttribute('data-index'));
-                        // Splice it directly below the hovered card
-                        activeBlocks.splice(index + 1, 0, newBlock);
-                    } else {
-                        // If hovering in empty space, append to the bottom
-                        activeBlocks.push(newBlock);
+
+                    const card = hovered();
+                    // Under the hovered card, or appended when the pointer is
+                    // in empty space - unchanged from before C2.
+                    const after = card ? parseInt(card.getAttribute('data-index')) : -1;
+                    if (window.pasteCopiedBlocks(after)) {
+                        renderBlockList();
+                        updateLivePreview();
                     }
-                    
-                    renderBlockList();
-                    updateLivePreview();
                 }
             }
         }
     };
     
     document.addEventListener('keydown', window._blockCopyPasteHandler);
+
+    // --- DELETE THE SELECTION (v0.19 C2) ---
+    //
+    // Its own handler, because the one above returns immediately unless Ctrl or
+    // Meta is held. Cleared and re-registered on the same discipline, or a tab
+    // switch leaves a listener behind holding the previous tab's array.
+    //
+    // Delete only, not Backspace: outside a text field Backspace still means
+    // "go back" to enough people that binding it to a destructive action is a
+    // trap. No confirmation, matching the single-block ✖ beside it - the undo
+    // snapshot taken inside deleteSelectedBlocks is what makes that safe.
+    if (window._blockSelectionKeyHandler) {
+        document.removeEventListener('keydown', window._blockSelectionKeyHandler);
+    }
+
+    window._blockSelectionKeyHandler = (e) => {
+        if (window.editorBuilderMode === 'gallery') return;
+        if (e.key !== 'Delete' || e.ctrlKey || e.metaKey || e.altKey) return;
+
+        const el = document.activeElement;
+        if (el && (['INPUT', 'TEXTAREA'].includes(el.tagName) || el.isContentEditable)) return;
+        if (!window.getSelectedBlockIndices().length) return;
+
+        e.preventDefault();
+        if (window.deleteSelectedBlocks()) {
+            renderBlockList();
+            updateLivePreview();
+        }
+    };
+
+    document.addEventListener('keydown', window._blockSelectionKeyHandler);
 
     const formatToolbar = container.querySelector('.format-toolbar');
     
@@ -949,11 +1538,41 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
         const bounds = (clipper && clipper !== document.body)
             ? clipper.getBoundingClientRect()
-            : { left: 0, right: window.innerWidth };
+            : { left: 0, right: window.innerWidth, top: 0 };
         const limit = Math.min(bounds.right, window.innerWidth) - 8;
 
         const overflow = popup.getBoundingClientRect().right - limit;
         if (overflow > 0) popup.style.left = `${-overflow}px`;
+
+        // VERTICAL, added v0.19. This function only ever clamped sideways, and
+        // the popup opens UPWARD (bottom: 100% + 5px) inside a scrolling pane -
+        // so anything taller than the space above the trigger has its top
+        // silently cut off by the clipper found above. Measured 2026-09-20: the
+        // first row sat at y=358 behind a strip ending at y=377, and
+        // elementFromPoint there returned the strip rather than the popup.
+        //
+        // Nobody had noticed because the clipped strip only ever held a LABEL.
+        // Adding one row of buttons pushed real controls into it, and moving
+        // that row lower only pushed a different row in - the height is the
+        // problem, not the order.
+        //
+        // Capping the SCROLL REGION rather than the popup keeps the custom
+        // picker pinned below it visible, which is the whole reason that region
+        // is separate. Derived from measurement rather than a fixed number: the
+        // swatch count grows with the roster, and a hardcoded height would go
+        // wrong the day a character is added.
+        const scroll = popup.querySelector('.format-color-presets-scroll');
+        if (!scroll) return;
+
+        scroll.style.maxHeight = '';
+        const top = popup.getBoundingClientRect().top;
+        const ceiling = Math.max(bounds.top, 0) + 8;
+        if (top < ceiling) {
+            const room = scroll.getBoundingClientRect().height - (ceiling - top);
+            // Below this it is a scrollbar with nothing beside it; better to
+            // let the popup stay clipped than to render a useless sliver.
+            scroll.style.maxHeight = `${Math.max(room, 80)}px`;
+        }
     }
 
     if (colorBtn && colorPopup) {
@@ -964,6 +1583,22 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         });
 
         colorPopup.addEventListener('click', (e) => {
+            // A gradient button deliberately does NOT carry .color-preset-btn.
+            // It did at first, to inherit the size and hover - and that made it
+            // a member of a family whose every other member carries data-color,
+            // which the "every swatch carries a usable colour" invariant in
+            // tests/color-presets.spec.js caught immediately. Sharing the class
+            // also meant this branch had to run first or the plain-colour
+            // handler would wrap a gradient in `[color=]` with no value. Two
+            // separate classes and a few duplicated CSS lines cost less than
+            // both of those, which is the trade CLAUDE.md already prefers.
+            const gradient = e.target.closest('.gradient-preset-btn');
+            if (gradient) {
+                applyFormat('multicolor', gradient.getAttribute('data-gradient'));
+                colorPopup.classList.add('hidden');
+                return;
+            }
+
             const preset = e.target.closest('.color-preset-btn');
             if (preset) {
                 applyFormat('color', preset.getAttribute('data-color'));
@@ -1598,14 +2233,32 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 updateLivePreview(); return;
             }
 
-            if (field === 'content-array') activeBlocks[index].content = e.target.value.split('\n');
+            // The Multiple Sections switch belongs to the CARD, never to the
+            // section on screen that the routing below points at, so it is
+            // handled first - and it re-renders, because it changes which
+            // fields the form is showing.
+            if (field === 'multiSections') {
+                const card = activeBlocks[index];
+                card.multiSections = e.target.checked;
+                seedCardSections(card, e.target.checked);
+                renderBlockList();
+                updateLivePreview();
+                return;
+            }
+
+            // A Combo Card in Multiple Sections mode edits its ACTIVE SECTION.
+            // Every other block, and that same card with the switch off, gets
+            // itself back - so nothing else changes behaviour.
+            const target = window.editorCardFieldTarget(activeBlocks[index]);
+
+            if (field === 'content-array') target.content = e.target.value.split('\n');
             // A combo route is an ARRAY of steps, edited one per line. Blank
             // lines are dropped rather than becoming empty chips in the route.
-            else if (field === 'sequence-lines') activeBlocks[index].sequence = e.target.value.split('\n').map(v => v.trim()).filter(Boolean);
-            else if (field === 'list-items') activeBlocks[index].items = e.target.value.split('\n').filter(i => i.trim() !== '');
-            else if (field === 'combo-sequence') activeBlocks[index].sequence = e.target.value.split(',').map(s => s.trim());
-            else if (e.target.type === 'checkbox') activeBlocks[index][field] = e.target.checked;
-            else activeBlocks[index][field] = e.target.value;
+            else if (field === 'sequence-lines') target.sequence = e.target.value.split('\n').map(v => v.trim()).filter(Boolean);
+            else if (field === 'list-items') target.items = e.target.value.split('\n').filter(i => i.trim() !== '');
+            else if (field === 'combo-sequence') target.sequence = e.target.value.split(',').map(s => s.trim());
+            else if (e.target.type === 'checkbox') target[field] = e.target.checked;
+            else target[field] = e.target.value;
 
             clearTimeout(typingTimer);
             typingTimer = setTimeout(() => {
@@ -1725,6 +2378,30 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             activeBlocks.splice(index + 1, 0, newBlock);
             renderBlockList();
             updateLivePreview();
+            return;
+        }
+
+        // A card that is part of the selection hands its three list actions to
+        // the whole selection (v0.19 C2). The rule a file manager uses, and the
+        // thing that stops ▲ on a selected card meaning something different
+        // from ▲ on the selection bar. A card OUTSIDE the selection keeps
+        // acting on itself, so the single-block behaviour is untouched.
+        const wantsUp = btn.classList.contains('btn-up');
+        const wantsDown = btn.classList.contains('btn-down');
+        const wantsDelete = btn.classList.contains('btn-delete');
+
+        if ((wantsUp || wantsDown || wantsDelete)
+            && window.isEditorBlockSelected(activeBlocks[index])) {
+            const changed = wantsDelete
+                ? !!window.deleteSelectedBlocks()
+                : window.moveSelectedBlocks(wantsUp ? -1 : 1);
+            if (changed) {
+                renderBlockList();
+                updateLivePreview();
+            }
+            // Returns either way: a selection already hard against the end has
+            // nothing to do, and must NOT fall through to moving this one card
+            // out of the run it is part of.
             return;
         }
 
@@ -1947,6 +2624,50 @@ function folderShellHTML(run, isCollapsed, isEmpty) {
     `;
 }
 
+// The selection made visible (v0.19 C2). Ctrl-click is not a discoverable
+// gesture, so the bar is what tells an author a selection exists at all, what
+// is in it, and what can be done to it. It draws only while something is
+// selected - an empty toolbar permanently above the list would be chrome
+// nobody asked for.
+//
+// Rebuilt in place rather than through renderBlockList, because toggling one
+// card must not tear down and re-lay-out every other card in the tab.
+function renderBlockSelectionBar() {
+    const list = document.getElementById('block-list');
+    if (!list) return;
+
+    const existing = document.getElementById('block-selection-bar');
+    const picked = typeof window.getSelectedBlockIndices === 'function'
+        ? window.getSelectedBlockIndices()
+        : [];
+
+    if (!picked.length) {
+        if (existing) existing.remove();
+        return;
+    }
+
+    const bar = existing || document.createElement('div');
+    if (!existing) {
+        bar.id = 'block-selection-bar';
+        bar.className = 'block-selection-bar';
+    }
+    // A count, not a name: block titles are contributor-written and this is
+    // rebuilt on every toggle. Numbers need no escaping and cannot be markup.
+    bar.innerHTML = `
+        <span class="block-selection-count">${picked.length} SELECTED</span>
+        <div class="block-selection-actions">
+            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="up" title="Move the selection up">▲</button>
+            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="down" title="Move the selection down">▼</button>
+            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="copy" title="Copy the selection">COPY</button>
+            <button type="button" class="btn-sys btn-sys-red" data-selection-action="delete" title="Delete the selection">DELETE</button>
+            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="clear" title="Clear the selection">CLEAR</button>
+        </div>
+    `;
+    // Always the first row, including after a re-render has rebuilt the list
+    // underneath it.
+    if (list.firstChild !== bar) list.insertBefore(bar, list.firstChild);
+}
+
 function renderBlockList() {
     const listContainer = document.getElementById('block-list');
     listContainer.innerHTML = '';
@@ -1971,18 +2692,55 @@ function renderBlockList() {
     };
 
     if (window.activeAccordionPath.length > 0) {
-        let parentBlock = currentStrategyBlocks;
-        for (let i = 0; i < window.activeAccordionPath.length - 1; i++) {
-            parentBlock = parentBlock[window.activeAccordionPath[i]].content;
+        // Walked through the same resolver getActiveBlocks uses, so the banner
+        // and the list below it cannot disagree about which level is on screen.
+        // The old walk read `.content` directly, which a Section Box step does
+        // not have.
+        let blocks = currentStrategyBlocks;
+        let parentTitle = 'Accordion';
+        let partLabel = '';
+
+        for (let i = 0; i < window.activeAccordionPath.length; i++) {
+            const step = window.activeAccordionPath[i];
+            const idx = (step && typeof step === 'object') ? step.index : step;
+            const host = blocks[idx];
+            if (!host) break;
+
+            const field = (step && typeof step === 'object') ? step.field : null;
+            if (i === window.activeAccordionPath.length - 1) {
+                parentTitle = host.title || 'Accordion';
+                // Which PART of a Section Box, since an index alone names the
+                // box and the author may be in any one of several arrays in it.
+                if (field === 'intro') {
+                    partLabel = 'Introduction';
+                } else if (field) {
+                    const m = /^sections\.(\d+)\.content$/.exec(field);
+                    const sec = m && Array.isArray(host.sections) ? host.sections[Number(m[1])] : null;
+                    // `label` first: a Section Box's section is named by its
+                    // title, but a Combo Card's section has BOTH - a tab label
+                    // and a card heading, which the owner's reference has
+                    // differ. The banner should say which TAB you are in.
+                    if (sec) partLabel = sec.label || sec.title || `Section ${Number(m[1]) + 1}`;
+                }
+            }
+
+            const nested = window.resolveNestedBlocks(host, field);
+            if (!nested) break;
+            blocks = nested;
         }
-        const activeIdx = window.activeAccordionPath[window.activeAccordionPath.length - 1];
-        const parentTitle = parentBlock[activeIdx].title || 'Accordion';
-        
+
+        // escField, not raw. The title is contributor-written and this string
+        // goes through insertAdjacentHTML - it was an unescaped innerHTML sink
+        // on every nested edit, found while extending this walk for C3.
+        const heading = partLabel
+            ? `${escField(parentTitle)} <span class="accordion-back-part">${escField(partLabel)}</span>`
+            : escField(parentTitle);
+
         const backBtnHTML = `
             <div class="accordion-back-banner">
                 <div>
                     <span class="accordion-back-label">EDITING INNER BLOCKS:</span>
-                    <div class="accordion-back-title">${parentTitle}</div>
+                    <div class="accordion-back-title">${heading}</div>
                 </div>
                 <button class="btn-sys btn-sys-purple btn-purple-fill" onclick="window.activeAccordionPath.pop(); renderBlockList();">⮑ BACK TO PARENT</button>
             </div>
@@ -2071,7 +2829,9 @@ function renderBlockList() {
     activeBlocks.forEach((block, index) => {
         const isOpen = window.isEditorBlockExpanded(block);
         const card = document.createElement('div');
-        card.className = 'block-card' + (isOpen ? '' : ' collapsed');
+        card.className = 'block-card'
+            + (isOpen ? '' : ' collapsed')
+            + (window.isEditorBlockSelected(block) ? ' block-card-selected' : '');
         card.setAttribute('data-index', index);
 
             const typeOptions = Object.keys(blockTemplates).map(t =>
@@ -2132,6 +2892,7 @@ function renderBlockList() {
                     <div>${getAlignUI(block.align, 'left')}</div>
                     <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
+                <label class="block-video-controls-label"><input type="checkbox" data-field="boxed" ${block.boxed ? 'checked' : ''}> Box this list</label>
             `;
         }
         else if (block.type === 'image') {
@@ -2233,16 +2994,84 @@ function renderBlockList() {
                 </div>
             `;
         }
-        else if (block.type === 'theorybox') {
-            const innerCount = block.content ? block.content.length : 0;
-            const route = Array.isArray(block.sequence) ? block.sequence.join('\n') : '';
-            const difficulties = ['', ...(window.COMBO_DIFFICULTIES || [])]
-                .map(d => `<option value="${escField(d)}" ${block.difficulty === d ? 'selected' : ''}>${escField(d || '- none -')}</option>`)
-                .join('');
+        // --- THE SECTION BOX (v0.19 C3) ---
+        //
+        // Three things to edit and they are different in kind: a title, one
+        // introduction, and N sections that are add/remove. The introduction
+        // and each section's contents are BLOCKS, reached through the same
+        // descend-and-come-back the accordion uses - the only difference is
+        // that a step has to say WHICH array, because this block has several.
+        else if (block.type === 'sectionedbox') {
+            const sections = Array.isArray(block.sections) ? block.sections : [];
+            const introCount = Array.isArray(block.intro) ? block.intro.length : 0;
+
+            const rows = sections.map((section, sIdx) => `
+                <div class="sbox-editor-row">
+                    <input type="text" class="editor-input" data-sbox-title="${sIdx}"
+                           value="${escField(section.title || '')}" placeholder="Section ${sIdx + 1}">
+                    <button class="btn-sys btn-sys-purple" data-sbox-edit="${sIdx}">
+                        ⮑ CONTENTS (${Array.isArray(section.content) ? section.content.length : 0})
+                    </button>
+                    <button class="btn-sys btn-sys-red" data-sbox-remove="${sIdx}" title="Remove this section">✖</button>
+                </div>
+            `).join('');
 
             html += `
-                <input type="text" class="editor-input" data-field="title" value="${escField(block.title || '')}" placeholder="Combo name (e.g. Corner BnB)">
-                <input type="text" class="editor-input" data-field="oneliner" value="${escField(block.oneliner || '')}" placeholder="One line: what this combo is for">
+                <input type="text" class="editor-input" data-field="title" value="${escField(block.title || '')}" placeholder="Section Box Title">
+                <div class="editor-row editor-row-spaced-md">
+                    <div>${getAlignUI(block.align, 'left')}</div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
+                </div>
+                <div class="accordion-inner-block-wrapper">
+                    <button class="btn-sys btn-sys-purple" data-sbox-intro="${index}">
+                        ⮑ EDIT INTRODUCTION (${introCount})
+                    </button>
+                </div>
+                <div class="sbox-editor-sections">
+                    <div class="sbox-editor-label">SECTIONS</div>
+                    ${rows || '<div class="sbox-editor-empty">No sections yet - the box needs at least one tab to show.</div>'}
+                    <button class="btn-sys btn-sys-green" data-sbox-add="${index}">+ ADD SECTION</button>
+                </div>
+            `;
+        }
+        else if (block.type === 'theorybox') {
+            const multi = !!block.multiSections;
+            const sections = Array.isArray(block.sections) ? block.sections : [];
+            const secIdx = multi ? window.editorCardSectionIndex(block) : -1;
+            // With the switch on, every field below edits the SECTION on
+            // screen; with it off they edit the card, exactly as before.
+            const card = (secIdx >= 0) ? sections[secIdx] : block;
+
+            const innerCount = card.content ? card.content.length : 0;
+            const route = Array.isArray(card.sequence) ? card.sequence.join('\n') : '';
+            const difficulties = ['', ...(window.COMBO_DIFFICULTIES || [])]
+                .map(d => `<option value="${escField(d)}" ${card.difficulty === d ? 'selected' : ''}>${escField(d || '- none -')}</option>`)
+                .join('');
+
+            // The tab strip, and the LABEL is its own field: the reference the
+            // owner asked this to mimic has a tab reading "In Corner 6H" over a
+            // card headed "Optimized 6H Counterhit Corner Starter".
+            const strip = (multi && sections.length) ? `
+                <div class="cardsec-strip">
+                    <div class="cardsec-label">SECTIONS</div>
+                    <div class="cardsec-tabs">
+                        ${sections.map((sec, i) =>
+                            `<button class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'} cardsec-tab" data-cardsec="${i}">`
+                            + `${escField(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
+                        <button class="btn-sys btn-sys-green" data-cardsec-add="1" title="Add a section">+</button>
+                        ${sections.length > 1 ? `<button class="btn-sys btn-sys-red" data-cardsec-remove="${secIdx}" title="Remove this section">&#10006;</button>` : ''}
+                    </div>
+                    <input type="text" class="editor-input" data-cardsec-label="${secIdx}"
+                           value="${escField(card.label || '')}" placeholder="Tab label (e.g. In Corner 6H)">
+                </div>` : '';
+
+            html += `
+                <label class="block-video-controls-label cardsec-switch">
+                    <input type="checkbox" data-field="multiSections" ${multi ? 'checked' : ''}> Multiple Sections
+                </label>
+                ${strip}
+                <input type="text" class="editor-input" data-field="title" value="${escField(card.title || '')}" placeholder="Combo name (e.g. Corner BnB)">
+                <input type="text" class="editor-input" data-field="oneliner" value="${escField(card.oneliner || '')}" placeholder="One line: what this combo is for">
                 <div class="editor-row editor-row-spaced-md">
                     <div>
                         <label class="editor-field-label-sm">Route - one step per line</label>
@@ -2250,15 +3079,15 @@ function renderBlockList() {
                     </div>
                 </div>
                 <div class="editor-row editor-row-spaced-md">
-                    <div><input type="text" class="editor-input" data-field="damage" value="${escField(block.damage || '')}" placeholder="Damage (e.g. 38-46)"></div>
+                    <div><input type="text" class="editor-input" data-field="damage" value="${escField(card.damage || '')}" placeholder="Damage (e.g. 38-46)"></div>
                     <div><select class="editor-select" data-field="difficulty">${difficulties}</select></div>
                 </div>
                 <div class="editor-row editor-row-spaced-md">
-                    <div><input type="text" class="editor-input" data-field="video" value="${escField(block.video || '')}" placeholder="Video URL (optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="video" value="${escField(card.video || '')}" placeholder="Video URL (optional)"></div>
                     <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
                 <div class="accordion-inner-block-wrapper">
-                    <button class="btn-sys btn-sys-purple" onclick="window.activeAccordionPath.push(${index}); renderBlockList();">
+                    <button class="btn-sys btn-sys-purple" data-cardsec-edit="${secIdx}">
                         &#11157; EDIT THE WRITE-UP (${innerCount})
                     </button>
                 </div>
@@ -2368,6 +3197,11 @@ function renderBlockList() {
             window.editorBlockObserver.observe(card);
         });
     }
+
+    // After the cards, so it can be put back at the top of a list that has
+    // just been rebuilt. A selection survives the re-render (it is keyed by
+    // object), so the bar has to survive it too.
+    renderBlockSelectionBar();
 
     if (typeof window.initializeMangaSelects === 'function') {
         window.initializeMangaSelects(); 

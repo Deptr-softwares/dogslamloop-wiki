@@ -218,6 +218,16 @@ window.buildGlobalSidebarMenu = async function(containerId) {
                 header.setAttribute('aria-expanded', String(open));
             });
         });
+
+        // v0.19 F1a. Injected here rather than shipped in markup: 19 pages are
+        // hand-authored and 45 come from three templates, so a searchbar in the
+        // markup would be the same block in 22 places. This function is the one
+        // hook every page on the site already calls.
+        //
+        // After the menu, so a failure to build the search cannot cost the
+        // navigation - and inside the try, so it is reported like anything else
+        // that goes wrong here.
+        if (typeof window.initSiteSearch === 'function') window.initSiteSearch(containerId);
     } catch (e) {
         console.error("Sidebar Menu Error:", e);
         container.innerHTML = `<p class="loading-msg loading-msg-error">Menu unavailable.</p>`;

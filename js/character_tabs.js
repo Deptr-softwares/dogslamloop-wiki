@@ -702,13 +702,64 @@
         Object.freeze({ tab: 'page', tabLabel: 'This Page', title: 'Discussion' }),
     ]);
 
-    function collectHeadings(blocks, push, depth) {
+    // The block keys that hold READABLE text, for the full-text index (v0.19
+    // F1b). A whitelist rather than "every string on the block", because the
+    // rest of what a block carries is machinery - `src`, `videoId`, `align`,
+    // `folder`, `intent`, `size`, `type` - and an index full of Supabase
+    // Storage URLs and the word "left" is worse than no index.
+    //
+    // Derived from the live block census on 2026-09-10: paragraph/callout carry
+    // `content`, list carries `items`, media carry `caption`/`alt`, theorybox
+    // carries `oneliner` and `sequence`, combo carries `note`/`sequence`, table
+    // carries `headers`/`rows`. `title` is shared by callout, accordion and
+    // theorybox.
+    const TEXT_KEYS = Object.freeze([
+        'content', 'items', 'title', 'caption', 'alt', 'note', 'oneliner', 'headers', 'rows', 'sequence',
+    ]);
+
+    /** Every readable string on ONE block, without descending into child blocks. */
+    function blockText(block) {
+        const out = [];
+        const take = (v) => {
+            if (typeof v === 'string') { const s = v.trim(); if (s) out.push(s); return; }
+            // rows are arrays of arrays; items and paragraph content are arrays
+            // of strings. Objects are child BLOCKS and belong to the recursion
+            // in collectHeadings, not here - taking them would duplicate every
+            // nested paragraph under its parent as well as under itself.
+            if (Array.isArray(v)) v.forEach(take);
+        };
+        for (const key of TEXT_KEYS) {
+            if (key === 'content' && block.type === 'heading') continue;   // it is the target's own title
+            if (Object.prototype.hasOwnProperty.call(block, key)) take(block[key]);
+        }
+        return out;
+    }
+
+    // `sink`, when given, is { current: <target> } and collects body text onto
+    // whichever target is in scope as the walk proceeds - the major section to
+    // begin with, then each minor heading as it is passed. That mirrors how a
+    // reader sees the page: text under a subheading belongs to the subheading.
+    //
+    // Opt-in, so the two callers that only want headings (the in-page link
+    // picker and the reader's table of contents) walk exactly as they did.
+    function collectHeadings(blocks, push, depth, sink) {
         if (!Array.isArray(blocks) || (depth || 0) > 6) return;
         blocks.forEach(block => {
             if (!block || typeof block !== 'object') return;
-            if (block.type === 'heading' && block.content) push(block.content);
+            if (block.type === 'heading' && block.content) {
+                const made = push(block.content);
+                // A heading whose title is generic or empty mints nothing; text
+                // after it keeps belonging to whatever was in scope before.
+                if (sink && made) sink.current = made;
+            } else if (sink && sink.current) {
+                const text = blockText(block);
+                if (text.length) {
+                    if (!sink.current.text) sink.current.text = [];
+                    sink.current.text.push(...text);
+                }
+            }
             // Blocks nest: an accordion, and now a Combo Card, carry their own.
-            if (Array.isArray(block.content)) collectHeadings(block.content, push, (depth || 0) + 1);
+            if (Array.isArray(block.content)) collectHeadings(block.content, push, (depth || 0) + 1, sink);
         });
     }
 
@@ -723,9 +774,20 @@
      * (`moveStrategies[moveId]`). Reading desc_data alone offered no way to
      * link to a skill - the thing this wiki is mostly about.
      */
-    window.collectSectionTargets = function (descData, frameData) {
+    window.collectSectionTargets = function (descData, frameData, opts) {
         const data = descData || {};
         const frame = frameData || {};
+        // opts.collectText (v0.19 F1b): additionally hang the body text of each
+        // section on its target, as `entry.text`. OFF by default, so the two
+        // surfaces that only want headings - the in-page link picker and the
+        // reader's table of contents - are unaffected and untouched.
+        //
+        // An option rather than a second function, for the reason this file
+        // exists: a second walker over desc_data would be a third derivation
+        // that has to agree with the renderer and the picker, and the picker's
+        // own history is what happens when one of them silently misses a page
+        // family.
+        const collectText = !!(opts && opts.collectText);
         const targets = [];
         const counts = Object.create(null);
 
@@ -768,15 +830,24 @@
         // A minor heading belongs to the major section above it. With none -
         // a page whose first heading is a block heading - it stands alone,
         // exactly as the ToC treats an orphan.
+        // Returns the entry it minted, or nothing. The return value is new in
+        // v0.19 F1b and is what lets collectHeadings move its text sink onto
+        // each subheading as it passes; every existing caller ignores it.
         const addMinor = (tabId, parent, title, tabLabel) => {
             const entry = mint(title);
-            if (!entry) return;
-            if (parent) { parent.children.push(entry); return; }
+            if (!entry) return null;
+            if (parent) { parent.children.push(entry); return entry; }
             entry.tab = tabId;
             entry.tabLabel = tabLabel || labels[tabId] || tabId;
             entry.children = [];
             targets.push(entry);
+            return entry;
         };
+
+        // One per major section, handed to collectHeadings so body text lands
+        // on the right target. Null when the caller did not ask for text, which
+        // is what keeps the picker's walk byte-identical to before.
+        const sinkFor = (parent) => (collectText ? { current: parent } : undefined);
 
         // --- A SYSTEM PAGE (v0.18 F5) ---
         //
@@ -806,7 +877,7 @@
                     // whatever major heading precedes them exactly as an orphan
                     // block heading does on a character page.
                     const parent = addMajor(tabId, section.sectionTitle, tabLabel);
-                    collectHeadings(section.blocks, t => addMinor(tabId, parent, t, tabLabel));
+                    collectHeadings(section.blocks, t => addMinor(tabId, parent, t, tabLabel), 0, sinkFor(parent));
                 });
             });
 
@@ -830,12 +901,12 @@
                     const blocks = data[fixed.field];
                     if (!Array.isArray(blocks) || !blocks.length) return;
                     const parent = addMajor(tabId, fixed.title);
-                    collectHeadings(blocks, t => addMinor(tabId, parent, t));
+                    collectHeadings(blocks, t => addMinor(tabId, parent, t), 0, sinkFor(parent));
                 });
                 (data.extras || []).forEach(extra => {
                     if (!extra) return;
                     const parent = addMajor(tabId, extra.title);
-                    collectHeadings(extra.content, t => addMinor(tabId, parent, t));
+                    collectHeadings(extra.content, t => addMinor(tabId, parent, t), 0, sinkFor(parent));
                 });
             }
 
@@ -847,7 +918,7 @@
                     if (!move) return;
                     const parent = addMajor(tabId, move.name);
                     const strategies = (data.moveStrategies || {})[move.id];
-                    collectHeadings(strategies, t => addMinor(tabId, parent, t));
+                    collectHeadings(strategies, t => addMinor(tabId, parent, t), 0, sinkFor(parent));
                 });
             }
 
@@ -858,7 +929,7 @@
                     const blocks = data[section.field];
                     if (!Array.isArray(blocks) || !blocks.length) return;
                     const parent = addMajor(tabId, section.label);
-                    collectHeadings(blocks, t => addMinor(tabId, parent, t));
+                    collectHeadings(blocks, t => addMinor(tabId, parent, t), 0, sinkFor(parent));
                 });
 
             // And the keyed ones - matchups, counterplay, starter guide, combo
@@ -878,7 +949,7 @@
                     const parent = key
                         ? addMajor(tabId, `${section.headingPrefix || ''}${key}`)
                         : null;
-                    collectHeadings(entry.content, t => addMinor(tabId, parent, t));
+                    collectHeadings(entry.content, t => addMinor(tabId, parent, t), 0, sinkFor(parent));
                 });
             });
         });

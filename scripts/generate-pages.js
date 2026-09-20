@@ -194,6 +194,7 @@ ${social}
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
+    <script src="../../js/search.js"></script>
     <script src="../../js/framedata.js"></script>
     <script src="../../js/description.js"></script>
     <script src="../../js/character_modes.js"></script>
@@ -226,6 +227,13 @@ ${social}
     <link rel="stylesheet" href="../../style/ColorCoding.css">
     <link rel="stylesheet" href="../../style/Alerts.css">
     <link rel="stylesheet" href="../../style/Modals.css">
+    <!-- Forms.css: site_utils.js below injects the auth and profile modals into
+         every page unconditionally, and both style their inputs with
+         .editor-input, which lives here. This was the ONE template of the three
+         missing it - the character stub and mediaStub both had it - so all 18
+         system and others/ stubs rendered the login form as bare browser
+         inputs. See tests/modal-stylesheets.spec.js. -->
+    <link rel="stylesheet" href="../../style/Forms.css">
 
     <script>window.PAGE_ROUTE = { pageId: "${pageId}", pageType: "system", title: "${title}" };</script>
 </head>
@@ -241,6 +249,7 @@ ${social}
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
+    <script src="../../js/search.js"></script>
     <script src="../../js/description.js"></script>
     <script src="../../js/internalstyling.js"></script>
 
@@ -298,6 +307,7 @@ ${social}
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
+    <script src="../../js/search.js"></script>
     <script src="../../js/description.js"></script>
     <script src="../../js/internalstyling.js"></script>
     <script src="../../js/${script}"></script>${extraScript ? `
