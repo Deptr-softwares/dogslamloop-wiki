@@ -335,6 +335,63 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 .block-card.collapsed:hover { border-left-color: #666; }
 .block-actions .btn-collapse { font-weight: bold; font-family: monospace; }
 
+/* --- BLOCK SELECTION (v0.19 C2) ---
+   Scoped to #block-list on purpose. `.block-card` is also rendered by
+   editor-tabs.js, editor-system.js and editor-framedata.js, none of which has
+   a selection, and an unscoped rule would be waiting for one of them to reuse
+   the class name.
+
+   The left border is already this card's state channel - #333 idle, blue on
+   hover, accent blue on focus-within - so selection speaks the same language
+   one step louder rather than inventing a second one. The `#block-list` in the
+   selector is also what makes it win: `.block-card.collapsed:hover` is three
+   classes, and without an id in the selector, hovering a selected collapsed
+   card would paint the selection away. */
+#block-list .block-card.block-card-selected {
+    border-left-color: var(--accent-yellow);
+    background: #14120a;
+}
+
+/* Copy is the one action that changes nothing on screen, so it has to say so
+   itself. A class, not the inline outline this used to set - the editor's
+   inline styles were moved into classes across six PRs and new ones should
+   not start the collection again. */
+#block-list .block-card.block-card-copied {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+/* Drawn only while something is selected, so it is never idle chrome. NOT
+   sticky: the per-card up/down/delete already act on the whole selection when
+   the card is part of it, so the actions are never far from the pointer, and a
+   sticky bar inside the scrolling workspace is the shape that produced v0.19's
+   clipped colour popup. */
+.block-selection-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    background: var(--bg-secondary);
+    border: 2px solid var(--accent-yellow);
+    padding: 0.4rem 0.6rem;
+    margin-bottom: 0.5rem;
+}
+
+.block-selection-count {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    color: var(--accent-yellow);
+}
+
+.block-selection-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
 /* --- FORM ELEMENTS (Inputs, Textareas) --- */
 .editor-input, .editor-textarea {
     width: 100%;
