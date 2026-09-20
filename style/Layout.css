@@ -1256,7 +1256,29 @@ summary:focus-visible {
 .manga-accordion { background: var(--bg-main, #050505); border: 1px solid var(--border-color, #333); box-shadow: 4px 4px 0px var(--manga-shadow, #000); width: 100%; }
 .wiki-accordion-summary { position: relative; padding: 0.75rem 2.5rem 0.75rem 1rem; cursor: pointer; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.8rem; color: var(--accent-blue, #3b82f6); list-style: none; outline: none; user-select: none; text-transform: uppercase; }
 .accordion-arrow { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.6rem; color: var(--text-muted, #888); transition: transform 0.2s; }
-.wiki-accordion-body { padding: 1rem; border-top: 1px dashed var(--border-color, #333); background: var(--bg-secondary, #111); display: flex; flex-direction: column; gap: 0.5rem; text-align: left; }
+/* NOT a flex container, and that is the whole point of this rule (owner bug,
+   2026-09-20: "alignment is broken inside accordion").
+
+   Media alignment on this site is `float` - .wiki-media-left and
+   .wiki-media-right in this same file - and FLOAT IS IGNORED ON A FLEX ITEM.
+   So an image set to Right inside an accordion silently rendered hard left,
+   while the same image one level out floated correctly. Centre survived only
+   because .wiki-media-center uses `margin: auto` rather than a float, which is
+   why this read as "middle and right do not work" rather than as nothing
+   working: measured at 800px, an image set to Right sat 40px from the left
+   edge instead of 420px.
+
+   The rest of the page lays blocks out as normal flow, so this now matches it
+   rather than inventing a second model inside a container. The gap becomes a
+   sibling margin, and the clearfix is needed for the same reason floats work
+   again: without it a float at the end of the body escapes its own box.
+
+   Anything else that nests blocks inside a container - SectionedBox in C3 -
+   has to avoid flex here too, or it inherits this bug on day one.
+   .theorybox-body, the other nesting container, is normal flow already. */
+.wiki-accordion-body { padding: 1rem; border-top: 1px dashed var(--border-color, #333); background: var(--bg-secondary, #111); text-align: left; }
+.wiki-accordion-body > * + * { margin-top: 0.5rem; }
+.wiki-accordion-body::after { content: ""; display: block; clear: both; }
 
 /* ONE COMBO = ONE BOX (owner, 2026-08-16, modelled on Dustloop's combo table).
    The route, its damage and its note are a single reading unit, so they share

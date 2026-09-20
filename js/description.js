@@ -1242,6 +1242,26 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
     const container = document.getElementById(containerId);
     if (!container) return;
 
+    // WHICH ACCORDIONS WERE OPEN (owner bug, 2026-09-20).
+    //
+    // `<details>` keeps `open` in the DOM and nowhere else, and the editor
+    // repaints this container on every keystroke - so an author writing inside
+    // an accordion had it shut in their face on each character typed. The
+    // repaint itself is intended and stays; what was missing is that the reader
+    // state around it was never carried over.
+    //
+    // Matched BY POSITION, not by title: the title is the very thing being
+    // typed when an author is renaming a section, and a key that changes on
+    // every keystroke preserves nothing. Position is stable for the case this
+    // exists to fix - editing content - and a reorder at worst hands one
+    // accordion its neighbour's state, which the next click corrects.
+    //
+    // Anything else that nests blocks and remembers open/closed - SectionedBox
+    // in C3 - needs this too, and for the same reason: state that lives only in
+    // the DOM does not survive the thing that rebuilds the DOM.
+    const wasOpen = Array.prototype.map.call(
+        container.querySelectorAll('details'), (d) => d.open);
+
     container.innerHTML = '';
     container.classList.remove('vessel-content');
     container.classList.add('content-section-wrapper');
@@ -1274,6 +1294,15 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
         bodyDiv.innerHTML = window.generateHTMLForBlocks(blocks, contextClass);
         section.appendChild(bodyDiv);
         container.appendChild(section);
+
+        // Put the open ones back. Only ever re-OPENS: a details element the
+        // author had closed stays closed, so this cannot override the markup's
+        // own default for a section that has just appeared.
+        if (wasOpen.length) {
+            container.querySelectorAll('details').forEach((d, i) => {
+                if (wasOpen[i]) d.open = true;
+            });
+        }
 
         // 2. Bind the tooltips (shared engine, see site_utils.js)
         const callouts = section.querySelectorAll('.inline-callout-btn');
