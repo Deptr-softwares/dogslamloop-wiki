@@ -2130,3 +2130,17 @@ summary:focus-visible {
 .ctl-tip-date { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.3rem; }
 .ctl-tip-note { max-width: 32ch; line-height: 1.45; }
 .ctl-tip-author { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-top: 0.3rem; }
+
+/* --- BOX-IN A LIST (v0.19 C7) ---
+   The owner's whole spec, carried since v0.15: "visual only, a sleek clean
+   border around the list". Opt-in per list (`boxed` on the block), so the
+   hundreds of lists already written are untouched.
+
+   The bullets move inside the box rather than hanging outside it - a marker
+   sitting on the border is the thing that stops it reading as clean - and the
+   list keeps its own bottom margin from .wiki-block-list above. */
+.wiki-block-list-boxed {
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+    padding: 0.85rem 1rem 0.85rem 2.1rem;
+}

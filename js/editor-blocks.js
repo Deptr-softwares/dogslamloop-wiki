@@ -368,7 +368,7 @@ window.spawnBlockWithAuthor = function(type) {
 const blockTemplates = {
     heading: { type: 'heading', content: 'New Heading', align: 'left', size: 'h3' },
     paragraph: { type: 'paragraph', content: 'Write your strategy here...', align: 'left' },
-    list: { type: 'list', items: ['List item 1', 'List item 2'], align: 'left', author: '' },
+    list: { type: 'list', items: ['List item 1', 'List item 2'], align: 'left', author: '', boxed: false },
     image: { type: 'image', src: '', alt: 'Image description', caption: '', align: 'center', width: '75%' },
     video: { type: 'video', src: '', align: 'center', width: '75%', controls: false, caption: '' }, 
     youtube: { type: 'youtube', videoId: '', align: 'center', width: '75%', caption: '' },
@@ -2892,6 +2892,7 @@ function renderBlockList() {
                     <div>${getAlignUI(block.align, 'left')}</div>
                     <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
+                <label class="block-video-controls-label"><input type="checkbox" data-field="boxed" ${block.boxed ? 'checked' : ''}> Box this list</label>
             `;
         }
         else if (block.type === 'image') {

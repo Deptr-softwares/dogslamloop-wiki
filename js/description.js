@@ -238,7 +238,14 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             contentHTML += `<p class="${pClass}" ${alignAttr}>${text}</p>`;
         }
         else if (block.type === 'list') {
-            const lClass = contextClass ? 'wiki-block-list space-y-2 card-text' : 'wiki-block-list space-y-2 text-gray-300';
+            // BOX-IN A LIST (v0.19 C7) - "visual only, a sleek clean border
+            // around the list", the owner's whole spec for it, carried since
+            // v0.15. Opt-in per list rather than applied to every list on the
+            // site: the wiki already has hundreds of them, and turning them all
+            // into boxes is a decision about existing pages rather than an
+            // option on a new one.
+            const lClass = (contextClass ? 'wiki-block-list space-y-2 card-text' : 'wiki-block-list space-y-2 text-gray-300')
+                + (block.boxed ? ' wiki-block-list-boxed' : '');
             contentHTML += `<ul class="${lClass}" ${alignAttr}>`;
             block.items.forEach(item => { contentHTML += `<li>${escBlockText(item)}</li>`; });
             contentHTML += `</ul>`;
