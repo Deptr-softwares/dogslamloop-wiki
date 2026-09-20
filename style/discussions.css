@@ -190,6 +190,10 @@
     align-items: baseline;
     gap: 0.6rem;
     margin-bottom: 0.4rem;
+    /* A name, an EXPERT chip and a 12rem flair can all share this row. When
+       they will not fit a phone, the timestamp drops to its own line rather
+       than being pushed off the side of the page. */
+    flex-wrap: wrap;
 }
 
 .discussion-author {
@@ -439,6 +443,27 @@ button.discussion-author-link:focus-visible {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* The author is a FLEX ITEM of .discussion-post-head, and a flex item's
+   automatic minimum size is its min-content width - so the button would not
+   shrink below name + EXPERT + flair, and pushed .discussion-time past the
+   right edge instead. That made the whole DOCUMENT scroll sideways on a phone.
+
+   Found 2026-09-20, and worth keeping because of how it surfaced: the cap
+   above was already there, and the header still fit Windows by 0.4px while
+   failing on CI's wider glyphs. Nothing in the repo had changed - a reader had
+   simply given themselves a long flair, so a content edit alone turned the
+   suite red and stopped the nightly regeneration from publishing anything.
+
+   min-width:0 removes that floor. The flair then gives way first for free: it
+   has overflow:hidden, so its own automatic minimum is already 0 and it just
+   ellipsises earlier. overflow-wrap covers the remaining case of a single
+   unbroken username longer than the screen. */
+.discussion-author {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
 }
 
 /* The EXPERT chip (v0.17 F5). Deliberately louder than .discussion-flair: the
