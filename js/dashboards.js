@@ -363,3 +363,152 @@ window.buildTerminologyPeek = async function(sectionId, containerId, limit = 6) 
         section.hidden = true;
     }
 };
+
+/**
+ * The site-wide matchup grid, for the systems hub (v0.19 F4).
+ *
+ * Every character against every other, one cell per pairing, coloured by the
+ * tier the row character's own page claims. Owner's request: a matchup table
+ * on the Side Dashboard, under the Terminology section.
+ *
+ * WHY A GRID AND NOT A PEEK
+ *
+ * buildTerminologyPeek above shows six of something and links to the rest,
+ * because a glossary is a list and six of it is a fair sample. A matchup chart
+ * is not a list - its whole value is seeing the shape of the roster at once,
+ * and six rows of it would say nothing. So this draws the full grid and
+ * scrolls sideways rather than sampling.
+ *
+ * THE DATA, read from production on 2026-09-20
+ *
+ *   desc_data.matchups = [{ opponent, tier, content, author? }]
+ *   22 pages carry one, 417 entries, and only 121 have any written content.
+ *
+ * `tier` is FREE TEXT and the data proves it: one entry reads "Aerial Circling
+ * tier". resolveMatchupTier (js/site_utils.js) already returns something
+ * renderable for any value, keeping unrecognised wording and colouring it
+ * white rather than guessing at a neighbouring difficulty - so every value
+ * goes through it and no tier is ever tested by name here.
+ *
+ * 266 of 417 are "Equal", so the finished grid is mostly grey. That is the
+ * honest picture of a roster nobody has finished rating, not a rendering bug.
+ */
+window.buildMatchupTable = async function (sectionId, containerId) {
+    const section = document.getElementById(sectionId);
+    const container = document.getElementById(containerId);
+    if (!section || !container) return;
+
+    try {
+        const rootPath = window.getRootPath ? window.getRootPath() : './';
+
+        // Narrowed with a PostgREST json selector rather than pulling desc_data
+        // whole: the full column is 533 KB across every page and this is 112 KB
+        // of it. `content` still rides along - PostgREST cannot project inside a
+        // json array - but it is empty on 296 of the 417 entries.
+        const [navData, rows] = await Promise.all([
+            window.fetchJson(rootPath + 'data/navigation.json', { cache: true }),
+            window.supabaseClient
+                .from('page_data')
+                .select('page_id,matchups:desc_data->matchups')
+                .then(r => { if (r.error) throw r.error; return r.data || []; }),
+        ]);
+
+        // Roster order comes from navigation.json, so the grid reads in the
+        // same order as every menu on the site. Archived pages are already
+        // absent from it, which is rule 3 in this file's header.
+        const roster = ((navData || {}).Characters || [])
+            .filter(c => c && c.cms_config && c.cms_config.pageId && c.name);
+        if (roster.length < 2) { section.hidden = true; return; }
+
+        const byPageId = new Map(rows.map(r => [r.page_id, r.matchups]));
+
+        // name -> tier, per character page. Opponents are stored by NAME, which
+        // is what the editor writes and what the heading renders.
+        const ratings = new Map();
+        let rated = 0;
+        for (const char of roster) {
+            const list = byPageId.get(char.cms_config.pageId);
+            if (!Array.isArray(list)) continue;
+            const row = new Map();
+            for (const m of list) {
+                if (!m || !m.opponent) continue;
+                row.set(m.opponent, m.tier);
+                rated += 1;
+            }
+            ratings.set(char.name, row);
+        }
+
+        if (rated === 0) { section.hidden = true; return; }
+
+        const slug = (text) => (window.sectionAnchorSlug
+            ? window.sectionAnchorSlug(text)
+            : String(text || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''));
+
+        // Two letters, because 22 full names across the top is a grid nobody
+        // can read. The full name is on every cell title and on the column
+        // header title, so nothing is lost to hovering or to a screen reader.
+        const abbrev = (name) => String(name || '').split(/\s+/)
+            .map(w => w[0] || '').join('').slice(0, 2).toUpperCase();
+
+        const colour = (name) =>
+            (window.CHARACTER_COLORS && window.CHARACTER_COLORS[name]) || 'var(--text-white)';
+
+        const head = roster.map(c =>
+            '<th class="matchup-grid-col" scope="col" title="' + esc(c.name) + '">'
+            + esc(abbrev(c.name)) + '</th>').join('');
+
+        const body = roster.map(rowChar => {
+            const row = ratings.get(rowChar.name);
+            const cells = roster.map(colChar => {
+                if (colChar.name === rowChar.name) {
+                    return '<td class="matchup-grid-cell is-self" aria-hidden="true"></td>';
+                }
+                const raw = row ? row.get(colChar.name) : undefined;
+                if (raw === undefined) {
+                    return '<td class="matchup-grid-cell is-blank" title="'
+                        + esc(rowChar.name) + ' vs ' + esc(colChar.name) + ': not rated"></td>';
+                }
+
+                const tier = window.resolveMatchupTier(raw);
+                // The anchor collectSectionTargets mints for the rendered
+                // "vs. X" heading, so this lands on the matchup itself rather
+                // than the top of the Matchups tab.
+                const href = rootPath + rowChar.url + '?tab=matchups#sec-vs-' + slug(colChar.name);
+                const label = esc(rowChar.name) + ' vs ' + esc(colChar.name) + ': ' + esc(tier.id);
+
+                return '<td class="matchup-grid-cell">'
+                    + '<a class="matchup-grid-link" href="' + esc(href) + '"'
+                    + ' style="background:' + esc(tier.color) + '" title="' + label + '">'
+                    + '<span class="sr-only">' + label + '</span></a></td>';
+            }).join('');
+
+            return '<tr><th class="matchup-grid-row" scope="row" style="color:'
+                + esc(colour(rowChar.name)) + '">'
+                + '<a href="' + esc(rootPath + rowChar.url) + '?tab=matchups">'
+                + esc(rowChar.name) + '</a></th>' + cells + '</tr>';
+        }).join('');
+
+        const legend = window.MATCHUP_TIERS.map(t =>
+            '<span class="matchup-legend-item">'
+            + '<span class="matchup-legend-swatch" style="background:' + esc(t.color) + '"></span>'
+            + esc(t.id) + '</span>').join('');
+
+        container.innerHTML =
+            '<p class="matchup-grid-caption">Read a row as that character page rates it: the row'
+            + ' is who you play, the column is who you face. Ratings are opinions written on each'
+            + ' character page, so the grid is not symmetrical and is not meant to be.</p>'
+            + '<div class="matchup-grid-scroll"><table class="matchup-grid">'
+            + '<thead><tr><td class="matchup-grid-corner"></td>' + head + '</tr></thead>'
+            + '<tbody>' + body + '</tbody></table></div>'
+            + '<div class="matchup-legend">' + legend + '</div>';
+
+        section.hidden = false;
+    } catch (e) {
+        // Rule 2 in this file's header: a failure explains itself rather than
+        // rendering an empty box. Deliberately unlike the terminology peek
+        // above, which hides on failure - that is a sample of something one
+        // click away, and this is the only place the whole grid exists.
+        section.hidden = false;
+        widgetError(container, 'The matchup grid could not be loaded - ' + e.message);
+    }
+};
