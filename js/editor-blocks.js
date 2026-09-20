@@ -944,10 +944,11 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
     // --- CTRL-CLICK TO SELECT (v0.19 C2) ---
     //
-    // Registered BEFORE the other two click listeners on this element, because
-    // it stops propagation: on the same node, order of registration is order of
-    // call, and a Ctrl-click that toggled a selection AND opened a folder
-    // picker would be one gesture doing two things.
+    // Registered BEFORE the other two click listeners on this element, and
+    // stopping IMMEDIATE propagation: they are all bound to #block-list, where
+    // plain stopPropagation would leave both of them to run anyway. A
+    // Ctrl-click that toggled a selection AND opened a folder picker would be
+    // one gesture doing two things.
     //
     // The header only. It is always on screen - since v0.16 every block opens
     // collapsed, so for most cards the header IS the card - and it keeps the
@@ -969,22 +970,28 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (!block) return;
 
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
         const on = window.toggleEditorBlockSelected(block);
         card.classList.toggle('block-card-selected', on);
         renderBlockSelectionBar();
     });
 
-    // The selection bar's own buttons. Registered before the general button
-    // handler below and stopping propagation, because that one resolves every
-    // button through `closest('.block-card').getAttribute(...)` - its own
-    // comment records that a button outside a card throws there. The bar sits
-    // in #block-list and is outside every card by design.
+    // The selection bar's own buttons.
+    //
+    // stopIMMEDIATEPropagation, not stopPropagation. All three of this file's
+    // click listeners are on #block-list itself, and stopPropagation only stops
+    // an event reaching OTHER elements - listeners already registered on the
+    // same node still run. The general button handler below resolves every
+    // button through `closest('.block-card').getAttribute(...)`, and its own
+    // comment records that a button outside a card throws exactly there. The
+    // bar is outside every card by design, so it hit that line four times, once
+    // per button, and nothing noticed: the bar's own work had already been done
+    // in this listener and the exception surfaced in a different one.
     blockList.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-selection-action]');
         if (!btn) return;
         e.preventDefault();
-        e.stopPropagation();
+        e.stopImmediatePropagation();
 
         switch (btn.getAttribute('data-selection-action')) {
             case 'clear':

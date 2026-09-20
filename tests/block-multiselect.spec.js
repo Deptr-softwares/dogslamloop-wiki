@@ -64,20 +64,33 @@ test('ctrl-click selects, and the bar says how many', async ({ page }) => {
 test('a selected card is painted, not merely recorded', async ({ page }) => {
     await boot(page);
     await build(page, ['one', 'two']);
+
+    // .block-card carries `transition: border-color 0.1s`, so a colour read
+    // straight after a class change catches it mid-flight - the first version
+    // of this test compared two frames of the same animation and accused the
+    // stylesheet. Turned off here so the assertion is about which rule won,
+    // which is the only thing it is trying to say.
+    await page.addStyleTag({ content: '#block-list .block-card { transition: none !important; }' });
     await ctrlClick(page, 0);
 
     // The class is not the claim - what the browser computed is. .block-card
     // uses border-left as its state channel, and the selection rule has to beat
     // :hover and .collapsed, which is what the #block-list in the selector is
     // there for.
-    const painted = await page.evaluate(() => {
-        const read = (i) => getComputedStyle(
-            document.querySelector(`#block-list .block-card[data-index="${i}"]`)
-        ).borderLeftColor;
-        return { picked: read(0), plain: read(1) };
-    });
+    const read = (i) => page.evaluate((n) => getComputedStyle(
+        document.querySelector(`#block-list .block-card[data-index="${n}"]`)
+    ).borderLeftColor, i);
 
-    expect(painted.picked).not.toBe(painted.plain);
+    const picked = await read(0);
+    expect(picked).not.toBe(await read(1));
+
+    // AND IT SURVIVES THE POINTER. Blocks open collapsed, and
+    // `.block-card.collapsed:hover` is three classes - without an id in the
+    // selector it outranks the selection rule, so hovering a selected card
+    // would quietly paint the selection away. Nothing above this line would
+    // have noticed.
+    await page.hover(summary(0));
+    expect(await read(0), 'hover must not repaint a selected card').toBe(picked);
 });
 
 test('ctrl-click on a control inside the header is not a selection', async ({ page }) => {
@@ -274,6 +287,29 @@ test('CLEAR empties the selection without touching the document', async ({ page 
     expect(await selected(page)).toEqual([]);
     expect(await contents(page)).toEqual(['a', 'b', 'c']);
     await expect(page.locator('#block-selection-bar')).toHaveCount(0);
+});
+
+test('no bar button reaches the handler that throws outside a card', async ({ page }) => {
+    // The bar lives in #block-list but outside every .block-card, and the
+    // general button handler there resolves buttons through
+    // closest('.block-card').getAttribute(...) - its own comment records that
+    // this throws for exactly that shape. The selection listeners are
+    // registered first and stop propagation, which is invisible to every
+    // assertion above: the work still happens, and the exception lands in a
+    // different listener where nothing was watching for it.
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+
+    await boot(page);
+    await build(page, ['a', 'b', 'c', 'd']);
+    await ctrlClick(page, 1);
+    await ctrlClick(page, 2);
+
+    for (const action of ['copy', 'up', 'down', 'delete']) {
+        await page.click(`[data-selection-action="${action}"]`);
+    }
+
+    expect(errors, 'a bar button must not fall through to the card handler').toEqual([]);
 });
 
 test('gallery mode is left alone, as v0.18 F9 required', async ({ page }) => {
