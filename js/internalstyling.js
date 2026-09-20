@@ -77,6 +77,124 @@ function safeColor(raw) {
     return SAFE_COLOR_PATTERN.test(color) ? color : null;
 }
 
+
+// --- THE MULTICOLOUR SHORTCODE (v0.19 C6) ---------------------------------
+//
+// [multicolor=#ef4444,#22d3ee]DOMAIN EXPANSION[/multicolor] sweeps the text
+// from the first colour to the last, one span per visible character. Any
+// number of stops: a,b,c runs through all three in order.
+//
+// Carried since v0.12 as "the auto-splitting multicolor text shortcode" and
+// deferred four times. Owner chose the gradient reading on 2026-09-20.
+//
+// WHY THE COLOURS ARE RESOLVED BY THE BROWSER AND NOT PARSED HERE
+//
+// safeColor accepts five grammars - #hex, rgb(), hsl(), var(--x) and named
+// colours. A gradient needs numeric channels, and two of those five cannot be
+// read numerically without a stylesheet: `var(--color-vessel)` is whatever
+// site_meta.js set it to, and `rebeccapurple` is whatever the browser says it
+// is. Parsing only hex would silently refuse half the colours the sibling
+// [color=] shortcode accepts, which is the kind of inconsistency nobody can
+// guess from the outside.
+//
+// So every stop goes through a probe element and comes back as rgb(). One
+// probe, created once, parented to <html> so custom properties on :root
+// resolve against the real cascade.
+let colorProbe = null;
+
+function resolveColorChannels(color) {
+    if (typeof document === 'undefined') return null;
+    if (!colorProbe) {
+        colorProbe = document.createElement('span');
+        // Out of flow and out of the accessibility tree: this element exists
+        // only to be measured, and it must never affect layout or be read out.
+        colorProbe.setAttribute('aria-hidden', 'true');
+        colorProbe.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;visibility:hidden';
+        document.documentElement.appendChild(colorProbe);
+    }
+    // Cleared first: an invalid value leaves the PREVIOUS colour in place,
+    // so without this a bad stop would silently inherit the one before it.
+    colorProbe.style.color = '';
+    colorProbe.style.color = color;
+    if (!colorProbe.style.color) return null;
+
+    const computed = getComputedStyle(colorProbe).color;
+    const m = /^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i.exec(computed || '');
+    return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+}
+
+/**
+ * Splits already-converted HTML into per-character spans along a gradient.
+ *
+ * Walks the string rather than the DOM because this runs inside the shortcode
+ * pass, where `content` is a half-built HTML string. Three things must survive
+ * the walk untouched:
+ *
+ *   TAGS      `<strong class="sc-b">` - nested shortcodes are converted first
+ *             (the do-while below is inside-out), so by the time this runs the
+ *             inner text may already carry markup. Splitting inside a tag
+ *             would produce `<str<span>ong>`.
+ *   ENTITIES  `&amp;` is ONE character to a reader and five to a string index.
+ *   SPACES    left unwrapped. Colouring a space shows nothing, and skipping it
+ *             keeps the output roughly a third smaller on ordinary prose.
+ *
+ * Only the characters a reader actually sees are counted for position, so the
+ * sweep is even regardless of how much markup is mixed in.
+ */
+function splitGradient(html, stops) {
+    // Pass 1: cut the string into units, marking which are visible characters.
+    const units = [];
+    let i = 0;
+    while (i < html.length) {
+        const ch = html[i];
+        if (ch === '<') {
+            const close = html.indexOf('>', i);
+            if (close === -1) { units.push({ raw: html.slice(i), visible: false }); break; }
+            units.push({ raw: html.slice(i, close + 1), visible: false });
+            i = close + 1;
+            continue;
+        }
+        if (ch === '&') {
+            const semi = html.indexOf(';', i);
+            // A bare ampersand is just a character; only a short, well-formed
+            // reference is treated as one unit.
+            if (semi !== -1 && semi - i <= 10 && /^&#?\w+;$/.test(html.slice(i, semi + 1))) {
+                units.push({ raw: html.slice(i, semi + 1), visible: true });
+                i = semi + 1;
+                continue;
+            }
+        }
+        units.push({ raw: ch, visible: !/\s/.test(ch) });
+        i += 1;
+    }
+
+    const total = units.filter(u => u.visible).length;
+    // One visible character has no gradient to be on - it takes the first stop
+    // rather than dividing by zero.
+    if (total === 0) return html;
+
+    const lerp = (a, b, t) => Math.round(a + (b - a) * t);
+
+    let seen = 0;
+    return units.map(unit => {
+        if (!unit.visible) return unit.raw;
+
+        const t = total === 1 ? 0 : seen / (total - 1);
+        seen += 1;
+
+        // Which pair of stops this character falls between, and how far along.
+        const span = 1 / (stops.length - 1);
+        let idx = Math.min(Math.floor(t / span), stops.length - 2);
+        const local = span === 0 ? 0 : (t - idx * span) / span;
+
+        const from = stops[idx];
+        const to = stops[idx + 1];
+        const rgb = `rgb(${lerp(from[0], to[0], local)}, ${lerp(from[1], to[1], local)}, ${lerp(from[2], to[2], local)})`;
+
+        return `<span class="sc-mc" style="color: ${rgb};">${unit.raw}</span>`;
+    }).join('');
+}
+
 // Spellings the community uses that are not the legend's own wording. Kept
 // small and explicit: an alias is a claim that two phrases mean the same
 // thing, which is a domain judgement rather than a formatting one.
@@ -512,6 +630,30 @@ function applyInternalStyling() {
                     return color
                         ? `<span class="sc-color" style="color: ${escAttr(color)};">${inner}</span>`
                         : inner;
+                });
+
+            // Multicolour (v0.19 C6): the same closed colour grammar as
+            // [color=] above, two or more stops, swept across the text.
+            //
+            // Refused WHOLE rather than per stop. [color=] drops the tint and
+            // keeps the words when its one value is bad; here, quietly ignoring
+            // one bad stop of three would change the gradient into a different
+            // gradient the writer never asked for, and they would have no way
+            // to tell. Dropping the tint and keeping the words is the same
+            // outcome the sibling shortcode already gives.
+            content = content.replace(/\[multicolor=([^\]]+)\]((?:(?!\[multicolor=)[\s\S])*?)\[\/multicolor\]/gi,
+                (whole, rawStops, inner) => {
+                    const raw = rawStops.split(',');
+                    if (raw.length < 2) return inner;
+
+                    const stops = [];
+                    for (const one of raw) {
+                        const safe = safeColor(one);
+                        const rgb = safe ? resolveColorChannels(safe) : null;
+                        if (!rgb) return inner;
+                        stops.push(rgb);
+                    }
+                    return splitGradient(inner, stops);
                 });
 
             // Hyperlink: the value is contributor text going into an href.

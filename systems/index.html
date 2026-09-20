@@ -169,6 +169,20 @@
                 <div id="glossary-peek"></div>
             </section>
 
+            <!-- v0.19 F4. Ships `hidden` and is un-hidden by buildMatchupTable
+                 once it has data, exactly like the Terminology section above:
+                 the ToC is built from the sections that are visible, so a
+                 section that renders nothing must not be in it. -->
+            <section class="wiki-section" id="matchup-section" hidden>
+                <div class="dashboard-header-split">
+                    <h2 class="section-title section-title-clean m-0">Matchup Chart</h2>
+                    <a href="../characters/index.html" class="btn-manga m-0" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">
+                        Roster
+                    </a>
+                </div>
+                <div id="matchup-grid"></div>
+            </section>
+
             <div class="grid-layout-2col">
 
                 <section class="wiki-section" id="contribute-section">
@@ -226,18 +240,18 @@
 
     <!-- V0.4 SYSTEM SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../js/character_tabs.js?v=e7834236"></script>
-    <script src="../js/input_slots.js?v=e7834236"></script>
-    <script src="../js/site_utils.js?v=e7834236"></script>
-    <script src="../js/site_meta.js?v=e7834236"></script>
-    <script src="../js/pagebuilder.js?v=e7834236"></script>
-    <script src="../js/search.js?v=e7834236"></script>
+    <script src="../js/character_tabs.js?v=6f133d9a"></script>
+    <script src="../js/input_slots.js?v=6f133d9a"></script>
+    <script src="../js/site_utils.js?v=6f133d9a"></script>
+    <script src="../js/site_meta.js?v=6f133d9a"></script>
+    <script src="../js/pagebuilder.js?v=6f133d9a"></script>
+    <script src="../js/search.js?v=6f133d9a"></script>
     <!-- Needed to render the hub's authored prose: generateHTMLForBlocks
          lives in description.js and relies on internalstyling.js. -->
-    <script src="../js/description.js?v=e7834236"></script>
-    <script src="../js/internalstyling.js?v=e7834236"></script>
-    <script src="../js/hub_content.js?v=e7834236"></script>
-    <script src="../js/dashboards.js?v=e7834236"></script>
+    <script src="../js/description.js?v=6f133d9a"></script>
+    <script src="../js/internalstyling.js?v=6f133d9a"></script>
+    <script src="../js/hub_content.js?v=6f133d9a"></script>
+    <script src="../js/dashboards.js?v=6f133d9a"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -269,6 +283,12 @@
             // built before the page knows which sections exist.
             if (window.buildTerminologyPeek) {
                 await window.buildTerminologyPeek('glossary-section', 'glossary-peek');
+            }
+            // Awaited for the same reason as the peek above: it un-hides its
+            // own section, and the ToC below is built from the sections that
+            // are visible by then.
+            if (window.buildMatchupTable) {
+                await window.buildMatchupTable('matchup-section', 'matchup-grid');
             }
             
             // 3. BOOT THE TABLE OF CONTENTS
