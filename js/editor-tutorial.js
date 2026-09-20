@@ -366,8 +366,8 @@
     const LANGUAGE_STANDARD = [
         'This wiki is written in <strong>American English</strong>, following '
         + "Wikipedia's Manual of Style for capitalization, headings and numbers.",
-        'Game terms keep the spelling and casing they have <strong>in-game</strong> - '
-        + 'that is what settles "Domain Expansion" against "domain expansion".',
+        'Game terms keep the spelling and casing they have <strong>in-game</strong> '
+        + '("Domain Expansion" &gt; "domain expansion")',
     ];
 
     /** The guide's "Basics" list, as an array of raw item strings. */

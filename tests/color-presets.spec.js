@@ -67,7 +67,9 @@ const swatches = (page) => page.locator('#format-color-popup .color-preset-btn')
 
 test('the picker is grouped, with the basics still first', async ({ page }) => {
     await openPicker(page);
-    await expect(groupLabels(page)).toHaveText(['Basic', 'Characters', 'Frame types']);
+    // Basic keeps the top - it is what contributors reach for constantly -
+    // and the gradient row sits under it.
+    await expect(groupLabels(page)).toHaveText(['Basic', 'Gradients', 'Characters', 'Frame types']);
 });
 
 test('every character colour is offered, and named', async ({ page }) => {
@@ -166,4 +168,110 @@ test('a colour that is not a safe css value is never rendered into a style attri
             : null;
     });
     expect(injected).toBe(false);
+});
+
+// --- GRADIENTS (v0.19, the owner's follow-on to C6) ------------------------
+//
+// [multicolor=a,b] sweeps text from one colour to another. Typing it by hand
+// means knowing the shortcode exists, that it takes two stops, and two hex
+// codes that look good together - so in practice nobody would. These are the
+// quick way in.
+
+const gradients = (page) => page.locator('#format-color-popup .gradient-preset-btn');
+
+test('a gradient preset wraps the selection in [multicolor=a,b]', async ({ page }) => {
+    // Drives the real control rather than calling applyFormat: whether the
+    // swatch is reachable, and whether the handler picks the gradient branch,
+    // are the two things most likely to be wrong.
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+
+    // openEditor, not openPicker: openPicker leaves the popup open over the
+    // block list, so the field click below lands on the popup instead.
+    await openEditor(page);
+
+    const field = page.locator('#block-list textarea').first();
+    await field.click();
+    // mouseup, because that is what the toolbar listens for.
+    // setSelectionRange on its own fires no event, so lastSelection stays at
+    // 0,0 and the shortcode lands at the caret with nothing inside it - which
+    // is exactly how this test first failed.
+    await field.evaluate(el => {
+        el.setSelectionRange(0, el.value.length);
+        el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    });
+
+    await page.locator('#btn-format-color').click();
+    const swatch = gradients(page).first();
+    await expect(swatch).toBeVisible();
+    const pair = await swatch.getAttribute('data-gradient');
+    await swatch.click();
+
+    expect(await field.inputValue()).toContain(`[multicolor=${pair}]Colour me[/multicolor]`);
+    expect(errors).toEqual([]);
+});
+
+test('a gradient swatch is not treated as a plain colour swatch', async ({ page }) => {
+    // It carries .color-preset-btn too, for the shared size and hover, so the
+    // click handler has to test the gradient class FIRST. Backwards, it writes
+    // [color=] with no value - which renders as nothing and looks like the
+    // button doing nothing at all.
+    // openEditor, not openPicker: openPicker leaves the popup open over the
+    // block list, so the field click below lands on the popup instead.
+    await openEditor(page);
+
+    const field = page.locator('#block-list textarea').first();
+    await field.click();
+    // mouseup, because that is what the toolbar listens for.
+    // setSelectionRange on its own fires no event, so lastSelection stays at
+    // 0,0 and the shortcode lands at the caret with nothing inside it - which
+    // is exactly how this test first failed.
+    await field.evaluate(el => {
+        el.setSelectionRange(0, el.value.length);
+        el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    });
+
+    await page.locator('#btn-format-color').click();
+    await gradients(page).first().click();
+
+    const value = await field.inputValue();
+    expect(value).not.toContain('[color=]');
+    expect(value).toContain('[multicolor=');
+});
+
+test('every gradient preset is two stops the shortcode will accept', async ({ page }) => {
+    // [multicolor=] refuses WHOLE when any stop is outside the colour grammar,
+    // so a typo in a preset is a button that visibly does nothing.
+    await openPicker(page);
+
+    const bad = await gradients(page).evaluateAll(nodes => {
+        const out = [];
+        nodes.forEach(btn => {
+            const raw = btn.getAttribute('data-gradient') || '';
+            const stops = raw.split(',');
+            if (stops.length !== 2) { out.push(`${raw}: not two stops`); return; }
+            stops.forEach(s => {
+                if (!/^#[0-9a-f]{6}$/i.test(s.trim())) out.push(`${raw}: ${s} is not a hex colour`);
+            });
+        });
+        return out;
+    });
+
+    expect(bad).toEqual([]);
+    await expect(gradients(page)).not.toHaveCount(0);
+});
+
+test('a gradient swatch actually shows its sweep', async ({ page }) => {
+    // A 20px square cannot show a gradient - the two ends are four pixels
+    // apart and every preset looks identical. Reads back what the browser
+    // computed rather than trusting the class.
+    await openPicker(page);
+
+    const painted = await gradients(page).first().evaluate(el => ({
+        image: getComputedStyle(el).backgroundImage,
+        width: el.getBoundingClientRect().width,
+    }));
+
+    expect(painted.image).toContain('linear-gradient');
+    expect(painted.width, 'wider than a plain swatch').toBeGreaterThan(20);
 });

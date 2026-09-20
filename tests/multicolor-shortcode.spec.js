@@ -172,3 +172,20 @@ test('styling twice does not double-wrap', async ({ page }) => {
     expect([...html.matchAll(/class="sc-mc"/g)]).toHaveLength(5);
     expect(html).not.toMatch(/<span class="sc-mc"[^>]*><span class="sc-mc"/);
 });
+
+// --- WHAT THE FOOTER'S GRADIENT PRESETS INSERT ----------------------------
+//
+// The buttons themselves are tested in tests/color-presets.spec.js, which owns
+// that popup and has the harness for it. This is the other half: that what
+// those buttons write is something this engine actually renders. Testing only
+// the insert would pass against an engine that had never heard of
+// [multicolor], which is exactly the state this repo was in an hour ago.
+
+test('what a gradient preset inserts renders as a gradient', async ({ page }) => {
+    const html = await render(page, '[multicolor=#a855f7,#22d3ee]Domain Expansion[/multicolor]');
+
+    const colours = [...html.matchAll(/color:\s*(rgb\([^)]*\))/g)].map(m => m[1]);
+    expect(colours.length, 'one span per visible character').toBe('DomainExpansion'.length);
+    expect(colours[0]).toBe('rgb(168, 85, 247)');
+    expect(colours[colours.length - 1]).toBe('rgb(34, 211, 238)');
+});

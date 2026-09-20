@@ -97,6 +97,49 @@ function colorPresetGroups() {
         .filter(group => group.swatches.length > 0);
 }
 
+
+// --- GRADIENT PRESETS (v0.19, owner's follow-on to C6) ---------------------
+//
+// [multicolor=a,b] sweeps text from one colour to another. Typing that by hand
+// means knowing the shortcode exists, knowing it takes two stops, and knowing
+// two hex codes that look good together - so in practice nobody would.
+//
+// These are two-stop pairs only. The shortcode accepts any number, and the
+// picker deliberately does not: a quick tool that asks how many stops you want
+// is not a quick tool, and the hand-written form is still there for anything
+// more elaborate.
+//
+// Every value is a plain hex so SAFE_CSS_COLOR passes it, the same filter the
+// single-colour swatches go through. Names are the effect rather than the
+// colours, because "red to cyan" is already visible on the swatch.
+const GRADIENT_PRESETS = [
+    { label: 'Cursed',   from: '#a855f7', to: '#22d3ee' },
+    { label: 'Fire',     from: '#fbbf24', to: '#dc2626' },
+    { label: 'Ice',      from: '#e0f2fe', to: '#2563eb' },
+    { label: 'Toxic',    from: '#a3e635', to: '#15803d' },
+    { label: 'Sunset',   from: '#fb923c', to: '#a855f7' },
+    { label: 'Steel',    from: '#e5e7eb', to: '#4b5563' },
+    { label: 'Blood',    from: '#ef4444', to: '#450a0a' },
+    { label: 'Rainbow',  from: '#ef4444', to: '#3b82f6' },
+];
+
+function gradientPresetsHTML() {
+    const usable = GRADIENT_PRESETS.filter(g => SAFE_CSS_COLOR.test(g.from) && SAFE_CSS_COLOR.test(g.to));
+    if (!usable.length) return '';
+
+    // data-gradient carries the shortcode's own value - "from,to" - so the
+    // click handler passes it straight to applyFormat without re-deriving it,
+    // and what is in the attribute is what ends up in the text.
+    return `
+                        <div class="format-color-popup-label">Gradients</div>
+                        <div class="format-color-presets-row">
+                            ${usable.map(g => `<button class="gradient-preset-btn"
+                                data-gradient="${window.escapeHtml(`${g.from},${g.to}`)}"
+                                style="background: linear-gradient(90deg, ${g.from}, ${g.to});"
+                                title="${window.escapeHtml(`${g.label} gradient`)}"></button>`).join('')}
+                        </div>`;
+}
+
 // --- THE VISUAL COLOUR PICKER (owner's fine-tuning item, 2026-08-13) ---
 //
 // Replaces <input type="color">, which opens the OPERATING SYSTEM's colour
@@ -245,12 +288,15 @@ function initColorPicker(container, onPick) {
     paint();
 }
 
-function colorPresetsHTML() {
-    return colorPresetGroups().map(group => `
+// `afterFirst` is emitted between the first group and the second. The gradient
+// row uses it, and the position is load-bearing rather than aesthetic - see the
+// comment at the call site.
+function colorPresetsHTML(afterFirst = '') {
+    return colorPresetGroups().map((group, i) => `
                         <div class="format-color-popup-label">${window.escapeHtml(group.label)}</div>
                         <div class="format-color-presets-row">
                             ${group.swatches.map(swatch => `<button class="color-preset-btn" data-color="${window.escapeHtml(swatch.color)}" style="background: ${swatch.color};" title="${window.escapeHtml(swatch.label)}"></button>`).join('')}
-                        </div>`).join('');
+                        </div>${i === 0 ? afterFirst : ''}`).join('');
 }
 
 // --- BLOCK BUILDER STATE ---
@@ -597,8 +643,15 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                              ~45 preset swatches already fill that, and the
                              surface and the USE button sat under the fold.
                              Opening the picker showed nothing but swatches. -->
+                        <!-- Gradients sit SECOND: Basic is what contributors
+                             reach for constantly and keeps the top, and a
+                             specialty tool one row down is still the first
+                             thing anybody scanning this popup sees.
+                             Not a workaround - the clipping that made the top
+                             row unclickable is fixed in keepColorPopupOnScreen
+                             below, so any position would work. -->
                         <div class="format-color-presets-scroll">
-                        ${colorPresetsHTML()}
+                        ${colorPresetsHTML(gradientPresetsHTML())}
                         </div>
                         <!-- A saturation/brightness surface and a hue slider,
                              replacing <input type="color">. That input opens
@@ -949,11 +1002,41 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
         const bounds = (clipper && clipper !== document.body)
             ? clipper.getBoundingClientRect()
-            : { left: 0, right: window.innerWidth };
+            : { left: 0, right: window.innerWidth, top: 0 };
         const limit = Math.min(bounds.right, window.innerWidth) - 8;
 
         const overflow = popup.getBoundingClientRect().right - limit;
         if (overflow > 0) popup.style.left = `${-overflow}px`;
+
+        // VERTICAL, added v0.19. This function only ever clamped sideways, and
+        // the popup opens UPWARD (bottom: 100% + 5px) inside a scrolling pane -
+        // so anything taller than the space above the trigger has its top
+        // silently cut off by the clipper found above. Measured 2026-09-20: the
+        // first row sat at y=358 behind a strip ending at y=377, and
+        // elementFromPoint there returned the strip rather than the popup.
+        //
+        // Nobody had noticed because the clipped strip only ever held a LABEL.
+        // Adding one row of buttons pushed real controls into it, and moving
+        // that row lower only pushed a different row in - the height is the
+        // problem, not the order.
+        //
+        // Capping the SCROLL REGION rather than the popup keeps the custom
+        // picker pinned below it visible, which is the whole reason that region
+        // is separate. Derived from measurement rather than a fixed number: the
+        // swatch count grows with the roster, and a hardcoded height would go
+        // wrong the day a character is added.
+        const scroll = popup.querySelector('.format-color-presets-scroll');
+        if (!scroll) return;
+
+        scroll.style.maxHeight = '';
+        const top = popup.getBoundingClientRect().top;
+        const ceiling = Math.max(bounds.top, 0) + 8;
+        if (top < ceiling) {
+            const room = scroll.getBoundingClientRect().height - (ceiling - top);
+            // Below this it is a scrollbar with nothing beside it; better to
+            // let the popup stay clipped than to render a useless sliver.
+            scroll.style.maxHeight = `${Math.max(room, 80)}px`;
+        }
     }
 
     if (colorBtn && colorPopup) {
@@ -964,6 +1047,22 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         });
 
         colorPopup.addEventListener('click', (e) => {
+            // A gradient button deliberately does NOT carry .color-preset-btn.
+            // It did at first, to inherit the size and hover - and that made it
+            // a member of a family whose every other member carries data-color,
+            // which the "every swatch carries a usable colour" invariant in
+            // tests/color-presets.spec.js caught immediately. Sharing the class
+            // also meant this branch had to run first or the plain-colour
+            // handler would wrap a gradient in `[color=]` with no value. Two
+            // separate classes and a few duplicated CSS lines cost less than
+            // both of those, which is the trade CLAUDE.md already prefers.
+            const gradient = e.target.closest('.gradient-preset-btn');
+            if (gradient) {
+                applyFormat('multicolor', gradient.getAttribute('data-gradient'));
+                colorPopup.classList.add('hidden');
+                return;
+            }
+
             const preset = e.target.closest('.color-preset-btn');
             if (preset) {
                 applyFormat('color', preset.getAttribute('data-color'));
