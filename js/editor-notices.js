@@ -96,6 +96,21 @@
         // while the editor notice may still be up.
         if (openOverlay) return false;
 
+        // v0.19 F2. The tutorial hands over FROM this notice, so on a first
+        // visit the tour is open by the time somebody reaches the Media
+        // Library - and the tour's text box sits at the bottom of the screen,
+        // exactly where this modal's GOT IT button lands. The notice rendered
+        // visible and could not be clicked, which is this project's recurring
+        // failure shape; tests/editor-notices.spec.js timed out on that click.
+        //
+        // The tour steps aside and comes back. The first fix REFUSED the
+        // notice instead, and that was worse: a first-time contributor would
+        // never have seen the Media Library notice at all, because the tour is
+        // always open by the time they open the library. Both are the owner's
+        // features and neither should cost the other.
+        const pausedTutorial = typeof window.pauseEditorTutorial === 'function'
+            && window.pauseEditorTutorial();
+
         const overlay = document.createElement('div');
         // editor-notice-overlay carries an explicit z-index. Appending to body
         // would put this last in DOM order and win at the shared 10000 anyway,
@@ -139,6 +154,18 @@
             // account, so a returning contributor gets nothing here.
             if (id === 'editor' && typeof window.startEditorTutorial === 'function') {
                 window.startEditorTutorial();
+            }
+
+            // Give the tour back. UNCONDITIONAL rather than only when this
+            // notice paused it, because the tour can also have opened paused
+            // on its own - it loads asynchronously and can arrive after this
+            // notice is already up. resumeEditorTutorial no-ops when there is
+            // no tour, so the unconditional call is the one that covers both
+            // orderings. `pausedTutorial` is kept only so the log of what
+            // happened stays readable at the pause site above.
+            void pausedTutorial;
+            if (typeof window.resumeEditorTutorial === 'function') {
+                window.resumeEditorTutorial();
             }
         });
         document.addEventListener('keydown', onKeydown);

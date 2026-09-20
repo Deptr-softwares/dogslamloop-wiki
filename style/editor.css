@@ -2521,3 +2521,10 @@ del.diff-del {
 .mos-footnote a { color: var(--accent-blue); }
 
 .mos-actions { display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem; }
+
+/* Paused while a notice is up: the tour keeps its place and its step, but
+   stops covering a modal whose button lands where the text box sits.
+   Hidden rather than removed so resuming is a class toggle, not a rebuild. */
+.tutorial-overlay.is-paused .tutorial-box,
+.tutorial-overlay.is-paused .tutorial-hole { display: none; }
+.tutorial-overlay.is-paused.is-centred::before { display: none; }

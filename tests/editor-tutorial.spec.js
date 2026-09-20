@@ -355,3 +355,83 @@ test('the Media Library notice does NOT hand over', async ({ page }) => {
     await page.locator('[data-notice-dismiss]').click();
     await expect(page.locator('#editor-tutorial')).toHaveCount(0);
 });
+
+test('a hostile guide paragraph is escaped in the TOUR body too', async ({ page }) => {
+    // The MoS modal and the tour body are two separate interpolations of the
+    // same guide text. The first falsification of the modal test accidentally
+    // broke THIS one instead and nothing went red - which is how it came to
+    // light that the tour half had no test at all.
+    const hostile = '<img src=x onerror="window.__xss2=1">';
+    await openEditor(page, {
+        descData: guide([{
+            sectionTitle: 'How to use the editor?',
+            blocks: [
+                { type: 'heading', size: 'h3', content: 'Workspace Header' },
+                { type: 'paragraph', content: hostile },
+                { type: 'list', items: [hostile] },
+            ],
+        }, UNIVERSAL_RULES]),
+    });
+    await page.evaluate(() => window.startEditorTutorial({ force: true }));
+
+    const body = page.locator('#editor-tutorial .tutorial-body');
+    await expect(body).toContainText('<img src=x');
+    expect(await page.evaluate(() => window.__xss2), 'no handler ran').toBeUndefined();
+    expect(await page.locator('#editor-tutorial img').count()).toBe(0);
+});
+
+test('a notice raised during the tour stays clickable, in either order', async ({ page }) => {
+    // The bug this exists for, and it was invisible from the call site.
+    //
+    // The tour is ASYNC - it waits on the Writing Guide fetch before it can
+    // draw. So pressing GOT IT starts it, the contributor opens the Media
+    // Library while it is still loading, and the tour arrives ON TOP of that
+    // notice. The tour box sits exactly where the notice GOT IT button lands,
+    // so the notice rendered visible and could not be clicked.
+    //
+    // Fixed on BOTH sides: a notice pauses a tour that is already open, and a
+    // tour that opens while a notice is up opens paused. Pausing from one
+    // side only handled one ordering and a probe showed the other still
+    // broken.
+    await openEditor(page, { seen: false });
+
+    // Order A: tour first, then the notice.
+    await page.evaluate(() => window.startEditorTutorial({ force: true }));
+    await expect(page.locator('#editor-tutorial .tutorial-box')).toBeVisible();
+    await page.evaluate(() => window.showEditorNotice('mediaLibrary', { force: true }));
+
+    const clickable = async () => page.evaluate(() => {
+        const btn = document.querySelector('#editor-notice-mediaLibrary [data-notice-dismiss]');
+        if (!btn) return null;
+        const r = btn.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return btn.contains(hit) || hit === btn;
+    });
+
+    expect(await clickable(), 'notice on top of an open tour').toBe(true);
+    await expect(page.locator('#editor-tutorial')).toHaveClass(/is-paused/);
+
+    // Dismissing it hands the tour back where it left off.
+    await page.locator('#editor-notice-mediaLibrary [data-notice-dismiss]').click();
+    await expect(page.locator('#editor-tutorial')).not.toHaveClass(/is-paused/);
+    await expect(page.locator('#editor-tutorial .tutorial-box')).toBeVisible();
+});
+
+test('a tour that opens while a notice is up opens paused', async ({ page }) => {
+    // Order B - the one the first fix missed.
+    await openEditor(page, { seen: false });
+
+    await page.evaluate(() => window.showEditorNotice('mediaLibrary', { force: true }));
+    await expect(page.locator('#editor-notice-mediaLibrary')).toBeVisible();
+
+    await page.evaluate(() => window.startEditorTutorial({ force: true }));
+    await expect(page.locator('#editor-tutorial')).toHaveClass(/is-paused/);
+
+    const onTop = await page.evaluate(() => {
+        const btn = document.querySelector('#editor-notice-mediaLibrary [data-notice-dismiss]');
+        const r = btn.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return btn.contains(hit) || hit === btn;
+    });
+    expect(onTop, 'the notice is still the element at that point').toBe(true);
+});

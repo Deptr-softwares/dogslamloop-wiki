@@ -271,6 +271,16 @@
         overlay.setAttribute('aria-modal', 'true');
         overlay.setAttribute('aria-label', 'Editor tutorial');
         overlay.innerHTML = '<div class="tutorial-hole hidden"></div><div class="tutorial-box"></div>';
+
+        // Opens PAUSED if a notice is already up. The tour is async - it waits
+        // on the Writing Guide fetch before it can draw anything - so the
+        // ordering is not the one it looks like from the call site: pressing
+        // GOT IT starts the tour, the contributor opens the Media Library
+        // while it is still loading, and the tour then arrives ON TOP of that
+        // notice. Pausing only from the notice side handled the other ordering
+        // and missed this one entirely, which is what the probe showed.
+        if (document.querySelector('.editor-notice-overlay')) overlay.classList.add('is-paused');
+
         document.body.appendChild(overlay);
 
         // Delegated: the box is re-rendered per step, so a listener bound to a
@@ -298,6 +308,37 @@
     /** The MoS modal's REWATCH TUTORIAL. */
     window.replayEditorTutorial = function () {
         return window.startEditorTutorial({ force: true });
+    };
+
+    /**
+     * Steps out of the way for a modal, and steps back afterwards.
+     *
+     * The tour's text box sits at the bottom of the screen, which is exactly
+     * where the v0.18 notices put their GOT IT button - so a notice raised
+     * during the tour rendered visible and could not be clicked. Caught by
+     * tests/editor-notices.spec.js timing out on that click.
+     *
+     * Pausing rather than refusing the notice, which was the first fix and was
+     * worse: it meant a first-time contributor never saw the Media Library
+     * notice at all, because the tour is always open by the time they get
+     * there. Both of these are the owner's features and neither should cost
+     * the other.
+     *
+     * Returns true if it actually paused something, so a caller knows whether
+     * it owes a resume.
+     */
+    window.pauseEditorTutorial = function () {
+        if (!overlay || overlay.classList.contains('is-paused')) return false;
+        overlay.classList.add('is-paused');
+        return true;
+    };
+
+    window.resumeEditorTutorial = function () {
+        if (!overlay) return false;
+        overlay.classList.remove('is-paused');
+        // The page may have scrolled or resized behind the modal.
+        positionSpotlight();
+        return true;
     };
 
 
