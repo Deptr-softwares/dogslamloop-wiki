@@ -161,6 +161,10 @@ function initDawEditor(containerId, moveData) {
                     // from the nominal weight of its label and its block reads
                     // "~Short" rather than a number it does not have.
                     const estimate = typeof window.frameEstimate === 'function' ? window.frameEstimate(p.estimate) : null;
+                    // A timed phase reads in its own unit for the same reason
+                    // an estimate does: showing "120f" for a typed 2 would
+                    // present a conversion as the thing the author wrote.
+                    const seconds = typeof window.phaseSeconds === 'function' ? window.phaseSeconds(p) : null;
                     const weight = typeof window.phaseWeight === 'function' ? window.phaseWeight(p) : (p.duration || 0);
                     let widthPct = (weight / totalScale) * 100;
                     let isSelected = (bIdx === selectedBarIdx && pIdx === selectedPhaseIdx);
@@ -174,10 +178,14 @@ function initDawEditor(containerId, moveData) {
                     let phaseColor = bgClassMap[p.styleClass] || "#555";
 
                     phasesHtml += `
-                        <div class="daw-phase-block ${isSelected ? 'selected' : ''}${estimate ? ' daw-phase-estimated' : ''}"
+                        <div class="daw-phase-block ${isSelected ? 'selected' : ''}${(estimate || seconds !== null) ? ' daw-phase-estimated' : ''}"
                                 style="width: ${widthPct}%; background-color: ${phaseColor};"
                                 onclick="window.selectDawPhase(${bIdx}, ${pIdx})">
-                            <span class="daw-phase-block-duration">${estimate ? '~' + window.escapeHtml(estimate.label) : p.duration + 'f'}</span>
+                            <span class="daw-phase-block-duration">${
+                                seconds !== null
+                                    ? window.escapeHtml(window.formatPhaseSeconds(seconds))
+                                    : (estimate ? '~' + window.escapeHtml(estimate.label) : p.duration + 'f')
+                            }</span>
                         </div>
                     `;
                 });
@@ -250,8 +258,9 @@ function initDawEditor(containerId, moveData) {
                                      always tell the two apart. -->
                                 <label class="editor-field-label-sm">How this was recorded</label>
                                 <select class="editor-select" id="insp-measure-mode">
-                                    <option value="counted" ${!p.estimate ? 'selected' : ''}>Counted - exact frames</option>
-                                    <option value="estimated" ${p.estimate ? 'selected' : ''}>Estimated - how it feels</option>
+                                    <option value="counted" ${(!p.estimate && !window.phaseSeconds(p)) ? 'selected' : ''}>Counted - exact frames</option>
+                                    <option value="estimated" ${(p.estimate && !window.phaseSeconds(p)) ? 'selected' : ''}>Estimated - how it feels</option>
+                                    <option value="timed" ${window.phaseSeconds(p) ? 'selected' : ''}>Timed - in seconds</option>
                                 </select>
                             </div>
                             <div>
@@ -263,14 +272,21 @@ function initDawEditor(containerId, moveData) {
                                      itself left its custom dropdown on screen -
                                      which is why an estimate picker appeared
                                      next to a frame count. -->
-                                <label class="editor-field-label-sm">${p.estimate ? 'Estimate' : 'Duration (Frames)'}</label>
-                                ${p.estimate ? `
+                                <label class="editor-field-label-sm">${
+                                    window.phaseSeconds(p) ? 'Duration (Seconds)' : (p.estimate ? 'Estimate' : 'Duration (Frames)')
+                                }</label>
+                                ${window.phaseSeconds(p) ? `
+                                <!-- step 0.05 rather than 0.01: at 60fps a
+                                     frame is 0.0167s, so finer steps offer a
+                                     precision the unit cannot carry. -->
+                                <input type="number" min="0" step="0.05" class="editor-input" id="insp-seconds" value="${window.phaseSeconds(p)}">`
+                                : (p.estimate ? `
                                 <select class="editor-select" id="insp-estimate">
                                     ${(window.FRAME_ESTIMATES || []).map(e =>
                                         `<option value="${e.id}" ${p.estimate === e.id ? 'selected' : ''}>${window.escapeHtml(e.label)}</option>`
                                     ).join('')}
                                 </select>` : `
-                                <input type="number" class="editor-input" id="insp-duration" value="${p.duration || 0}">`}
+                                <input type="number" class="editor-input" id="insp-duration" value="${p.duration || 0}">`)}
                             </div>
                         </div>
                         <div class="editor-row">
@@ -501,21 +517,37 @@ function initDawEditor(containerId, moveData) {
         if (inspMode) inspMode.addEventListener('change', (e) => {
             const phase = currentObj.bars[selectedBarIdx].phases[selectedPhaseIdx];
 
+            // What the phase is worth RIGHT NOW, in frames. That is the one
+            // currency the three modes share, so a switch keeps the shape of
+            // the bar rather than snapping it to whatever happens to be first
+            // in a list - which is what the counted/estimated pair already did
+            // between themselves, generalised now that there are three.
+            const frames = Math.round(window.phaseWeight(phase)) || 0;
+
+            // Only ever ONE of the three is stored. Keeping the others would
+            // leave a count in the data that nothing displays and a reviewer
+            // might reasonably trust.
+            delete phase.duration;
+            delete phase.estimate;
+            delete phase.seconds;
+
             if (e.target.value === 'estimated') {
-                // Seeded from the frame count already entered, so switching to
-                // an estimate keeps the shape of the bar rather than snapping
-                // it to whatever happens to be first in the list. The number is
-                // then dropped: keeping it would leave a count in the data that
-                // nothing displays and a reviewer might trust.
-                phase.estimate = closestEstimate(phase.duration);
-                delete phase.duration;
+                phase.estimate = closestEstimate(frames);
+            } else if (e.target.value === 'timed') {
+                // Two decimals, for the same reason the input steps by 0.05.
+                phase.seconds = Number((frames / window.FRAMES_PER_SECOND).toFixed(2)) || 0;
             } else {
-                // The other direction restores a real number from the estimate's
-                // nominal weight - a starting point to correct, not a claim.
-                const estimate = window.frameEstimate(phase.estimate);
-                phase.duration = estimate ? estimate.frames : 0;
-                delete phase.estimate;
+                // A starting point to correct, not a claim.
+                phase.duration = frames;
             }
+            renderDaw();
+        });
+
+        const inspSeconds = container.querySelector('#insp-seconds');
+        if (inspSeconds) inspSeconds.addEventListener('change', (e) => {
+            const value = Number(e.target.value);
+            currentObj.bars[selectedBarIdx].phases[selectedPhaseIdx].seconds =
+                Number.isFinite(value) && value > 0 ? value : 0;
             renderDaw();
         });
 

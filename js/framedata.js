@@ -75,11 +75,48 @@ window.frameEstimate = function(id) {
     return (window.FRAME_ESTIMATES || []).find(e => e.id === id) || null;
 };
 
-// The frames a phase occupies on the timeline, measured or estimated.
+// --- SECONDS DATA (v0.19 C4) ---
+//
+// A third way to say how long a phase lasts, BESIDE counted frames and an
+// estimate rather than replacing either (owner, 2026-08-24 - the list had
+// floated replacement and they decided against it).
+//
+// Some phases are genuinely timed rather than counted: a long animation, a
+// cooldown, a state that lasts "about two seconds". Writing 120 in a frame box
+// claims a precision nobody measured; writing 2 in a seconds box does not.
+//
+// JJS runs at 60fps server-side, so a second IS 60 frames and the conversion is
+// exact rather than a display convenience - which is why it happens here, in
+// the one function that decides how wide a phase is drawn, instead of at each
+// call site.
+window.FRAMES_PER_SECOND = 60;
+
+window.phaseSeconds = function(phaseObj) {
+    const raw = Number(phaseObj && phaseObj.seconds);
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+};
+
+// The frames a phase occupies on the timeline: timed, estimated, or counted.
+//
+// Seconds first. A typed duration is a claim about how long something actually
+// lasts, where an estimate is a bucket somebody picked - so if a phase carries
+// both, the number is the more specific of the two. Nothing carries both today;
+// the order is stated so that the first row which does is not a surprise.
 window.phaseWeight = function(phaseObj) {
+    const seconds = window.phaseSeconds(phaseObj);
+    if (seconds !== null) return seconds * window.FRAMES_PER_SECOND;
+
     const estimate = window.frameEstimate(phaseObj && phaseObj.estimate);
     if (estimate) return estimate.frames;
     return Number(phaseObj && phaseObj.duration) || 0;
+};
+
+// "2s", "1.5s" - trailing zeroes dropped, because 2.0s reads as a measurement
+// to three significant figures and it is not one.
+window.formatPhaseSeconds = function(seconds) {
+    const n = Number(seconds);
+    if (!Number.isFinite(n)) return '';
+    return `${Number(n.toFixed(2))}s`;
 };
 
 function createPhase(phaseObj, totalScale) {
@@ -88,8 +125,15 @@ function createPhase(phaseObj, totalScale) {
     let styleClass = phaseObj.styleClass || '';
 
     const estimate = window.frameEstimate(phaseObj.estimate);
+    // A seconds phase overrides an estimate for width, so it must do the same
+    // here - otherwise the block says "estimated" while being drawn to a timed
+    // width, which is the one combination that misreports the data.
+    const seconds = window.phaseSeconds(phaseObj);
+    const solid = seconds !== null || !!estimate;
 
-    phase.className = `phase-section ${styleClass}${estimate ? ' phase-estimated' : ''}`;
+    phase.className = `phase-section ${styleClass}`
+        + (solid ? ' phase-solid' : '')
+        + (seconds !== null ? ' phase-seconds' : (estimate ? ' phase-estimated' : ''));
     phase.style.width = `${(window.phaseWeight(phaseObj) / totalScale) * 100}%`;
 
     // --- STACKABLE OVERLAYS (Gradient Glows) ---
@@ -110,13 +154,24 @@ function createPhase(phaseObj, totalScale) {
     });
 
     // --- CUSTOM TOOLTIPS ---
-    if (phaseObj.label || estimate) {
+    if (phaseObj.label || estimate || seconds !== null) {
         let tooltipContent = `<strong>${phaseObj.label || (estimate ? estimate.label : '')}</strong>`;
+
+        // Said in words as well as shown by the missing divisions, for the same
+        // reason the estimate says so below: the hover is where somebody has
+        // asked for the detail, and the detail is which unit this was measured
+        // in. The frame figure is given too, because the timeline around it is
+        // drawn in frames and a reader comparing phases needs the same unit.
+        if (seconds !== null) {
+            tooltipContent += `<br><span class="tooltip-desc tooltip-desc-seconds">`
+                + `Timed: ${window.formatPhaseSeconds(seconds)}`
+                + ` - ${seconds * window.FRAMES_PER_SECOND} frames at ${window.FRAMES_PER_SECOND}fps</span>`;
+        }
 
         // Said in words as well as shown by the missing divisions. Somebody
         // reading a hover has already decided they want the detail, and the
         // one detail an estimate must not hide is that it is an estimate.
-        if (estimate) {
+        if (estimate && seconds === null) {
             tooltipContent += `<br><span class="tooltip-desc tooltip-desc-estimate">Estimated: ${estimate.label.toLowerCase()} - not frame-counted</span>`;
         }
         
@@ -131,9 +186,10 @@ function createPhase(phaseObj, totalScale) {
         window.bindTooltip(phase, tooltipContent);
     }
 
-    // No ticks for an estimate - that absence IS the marker. Drawing them would
-    // claim a per-frame breakdown nobody measured.
-    if (!estimate) {
+    // No ticks for an estimate or for a timed phase - that absence IS the
+    // marker. Drawing them would claim a per-frame breakdown nobody measured,
+    // and for seconds it would invent 120 divisions out of one typed "2".
+    if (!solid) {
         for (let i = 0; i < phaseObj.duration; i++) {
             const tick = document.createElement('div');
             tick.className = 'frame-tick';
