@@ -555,6 +555,177 @@ window.markEditorBlockNew = function (block) {
     return block;
 };
 
+// --- WHICH BLOCKS ARE SELECTED (v0.19 C2) ---
+//
+// Keyed by the BLOCK OBJECT, for the same three reasons expandedBlocks above
+// states, and they apply harder here: every action a selection offers - move,
+// delete, paste - CHANGES the indices of the blocks around it, so a selection
+// held as indices would be wrong the instant it was used. A flag on the block
+// would be serialised into desc_data and shipped to every reader.
+//
+// A WeakSet is membership only, so no ORDER is stored anywhere. Order is
+// derived from the live array each time it is needed, which is what makes
+// "copy these five" and "move these five up" still mean the same five blocks
+// after the array has been rewritten under them. There is no second copy of
+// the order to go stale, because there is no copy at all.
+//
+// Undo/redo replaces every block wholesale (a JSON round-trip), so the old
+// objects fall out of the WeakSet on their own and the selection empties.
+// That is right: the author is looking at a different document.
+const selectedBlocks = new WeakSet();
+
+window.isEditorBlockSelected = function (block) {
+    return !!block && selectedBlocks.has(block);
+};
+
+window.setEditorBlockSelected = function (block, on) {
+    if (!block || typeof block !== 'object') return;
+    if (on) selectedBlocks.add(block);
+    else selectedBlocks.delete(block);
+};
+
+window.toggleEditorBlockSelected = function (block) {
+    if (!block || typeof block !== 'object') return false;
+    const next = !selectedBlocks.has(block);
+    window.setEditorBlockSelected(block, next);
+    return next;
+};
+
+// The selected blocks AT THE LEVEL ON SCREEN, in document order, as indices
+// into that level's array. Everything else reads this rather than the WeakSet,
+// so nothing can act on a block the author cannot currently see - an accordion
+// holds its own list, and "delete the selection" must never reach into one.
+window.getSelectedBlockIndices = function () {
+    const blocks = window.getActiveBlocks();
+    const out = [];
+    for (let i = 0; i < blocks.length; i++) {
+        if (selectedBlocks.has(blocks[i])) out.push(i);
+    }
+    return out;
+};
+
+window.clearEditorBlockSelection = function () {
+    // Only the visible level, deliberately: descending into an accordion and
+    // coming back should find the outer selection as it was left.
+    window.getActiveBlocks().forEach(b => selectedBlocks.delete(b));
+};
+
+// --- WHAT A SELECTION CAN DO (v0.19 C2) ---
+//
+// Module scope, because three surfaces reach the same operations: the
+// selection bar, the keyboard, and a card's own up/down/delete buttons, which
+// act on the whole selection when the card they sit on is part of it. One
+// implementation, so those three cannot drift into meaning different things.
+
+// Folder membership is POSITIONAL - `reconcileFolderAt` decides it from the
+// blocks either side - so every position an operation disturbed has to be
+// settled, not just the block that moved. Deduped because a swap names two
+// positions and a run of swaps names the same ones repeatedly.
+function reconcileAround(blocks, indices) {
+    if (typeof window.reconcileFolderAt !== 'function') return;
+    [...new Set(indices)]
+        .filter(i => i >= 0 && i < blocks.length)
+        .sort((a, b) => a - b)
+        .forEach(i => window.reconcileFolderAt(blocks, i));
+}
+
+// An ARRAY, always, even for one block. The previous single-block global meant
+// the paste path had one shape for the hover case and would have needed
+// another for a selection; two shapes for one clipboard is the drift this file
+// has spent several versions removing elsewhere.
+window.copiedWikiBlocks = window.copiedWikiBlocks || [];
+
+window.copySelectedBlocks = function () {
+    const blocks = window.getActiveBlocks();
+    const picked = window.getSelectedBlockIndices();
+    if (!picked.length) return 0;
+    window.copiedWikiBlocks = picked.map(i => JSON.parse(JSON.stringify(blocks[i])));
+    return picked.length;
+};
+
+// `afterIndex` is the block to land under; null or negative appends. Deep
+// cloned on the way OUT as well as in, so pasting the same clipboard twice
+// cannot produce two blocks that share one object and edit as one.
+window.pasteCopiedBlocks = function (afterIndex) {
+    const copied = window.copiedWikiBlocks;
+    if (!Array.isArray(copied) || !copied.length) return 0;
+
+    const blocks = window.getActiveBlocks();
+    const clones = copied.map(b => JSON.parse(JSON.stringify(b)));
+    const at = (afterIndex === null || afterIndex === undefined || afterIndex < 0)
+        ? blocks.length
+        : afterIndex + 1;
+
+    window.saveBlockHistory();
+    blocks.splice(at, 0, ...clones);
+    reconcileAround(blocks, clones.map((_, k) => at + k).concat([at - 1, at + clones.length]));
+    return clones.length;
+};
+
+window.deleteSelectedBlocks = function () {
+    const blocks = window.getActiveBlocks();
+    const picked = window.getSelectedBlockIndices();
+    if (!picked.length) return 0;
+
+    window.saveBlockHistory();
+    // Descending, so removing one cannot renumber the ones still to remove.
+    for (let k = picked.length - 1; k >= 0; k--) {
+        window.setEditorBlockSelected(blocks[picked[k]], false);
+        blocks.splice(picked[k], 1);
+    }
+    // Taking blocks out can leave two halves of a folder touching.
+    reconcileAround(blocks, [picked[0] - 1, picked[0]]);
+    return picked.length;
+};
+
+// `dir` is -1 or 1. Each selected block steps over an UNSELECTED neighbour;
+// one that would step onto another selected block, or off the end, stays put.
+// That is what moves a run as one piece, and what lets a gapped selection
+// close up against the top instead of refusing to move at all.
+window.moveSelectedBlocks = function (dir) {
+    if (dir !== -1 && dir !== 1) return false;
+    const blocks = window.getActiveBlocks();
+    const picked = window.getSelectedBlockIndices();
+    if (!picked.length) return false;
+
+    // Decided BEFORE anything moves, for two reasons: the history snapshot has
+    // to be of the state being left (see saveBlockHistory's callers), and a
+    // selection already hard against the end must not push an identical state
+    // onto the undo stack.
+    const canMove = picked.some(i => (dir === -1
+        ? i !== 0 && !window.isEditorBlockSelected(blocks[i - 1])
+        : i !== blocks.length - 1 && !window.isEditorBlockSelected(blocks[i + 1])));
+    if (!canMove) return false;
+    window.saveBlockHistory();
+
+    const touched = [];
+    const swap = (a, b) => {
+        const tmp = blocks[a];
+        blocks[a] = blocks[b];
+        blocks[b] = tmp;
+        touched.push(a, b);
+    };
+
+    if (dir === -1) {
+        // Ascending: the topmost decides whether the one behind it can follow.
+        for (let k = 0; k < picked.length; k++) {
+            const i = picked[k];
+            if (i === 0 || window.isEditorBlockSelected(blocks[i - 1])) continue;
+            swap(i - 1, i);
+        }
+    } else {
+        for (let k = picked.length - 1; k >= 0; k--) {
+            const i = picked[k];
+            if (i === blocks.length - 1 || window.isEditorBlockSelected(blocks[i + 1])) continue;
+            swap(i, i + 1);
+        }
+    }
+
+    if (!touched.length) return false;
+    reconcileAround(blocks, touched);
+    return true;
+};
+
 /**
  * `opts.mode` is 'blocks' by default and 'gallery' for the character Gallery
  * tab (v0.18 F9), which wants this function's FOOTER - the quick styling tools
@@ -771,6 +942,84 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
     const blockList = document.getElementById('block-list');
 
+    // --- CTRL-CLICK TO SELECT (v0.19 C2) ---
+    //
+    // Registered BEFORE the other two click listeners on this element, because
+    // it stops propagation: on the same node, order of registration is order of
+    // call, and a Ctrl-click that toggled a selection AND opened a folder
+    // picker would be one gesture doing two things.
+    //
+    // The header only. It is always on screen - since v0.16 every block opens
+    // collapsed, so for most cards the header IS the card - and it keeps the
+    // gesture away from the body, where Ctrl-click belongs to the textarea.
+    // Controls inside the header are excluded by name rather than by guessing:
+    // the drag handle starts a drag, and the selects and buttons are their own
+    // gestures already.
+    blockList.addEventListener('click', (e) => {
+        if (!e.ctrlKey && !e.metaKey) return;
+        const header = e.target.closest('.block-header');
+        if (!header) return;
+        if (e.target.closest('button, select, input, textarea, .drag-handle')) return;
+
+        const card = header.closest('.block-card');
+        if (!card || !card.hasAttribute('data-index')) return;
+
+        const index = parseInt(card.getAttribute('data-index'), 10);
+        const block = window.getActiveBlocks()[index];
+        if (!block) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+        const on = window.toggleEditorBlockSelected(block);
+        card.classList.toggle('block-card-selected', on);
+        renderBlockSelectionBar();
+    });
+
+    // The selection bar's own buttons. Registered before the general button
+    // handler below and stopping propagation, because that one resolves every
+    // button through `closest('.block-card').getAttribute(...)` - its own
+    // comment records that a button outside a card throws there. The bar sits
+    // in #block-list and is outside every card by design.
+    blockList.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-selection-action]');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        switch (btn.getAttribute('data-selection-action')) {
+            case 'clear':
+                window.clearEditorBlockSelection();
+                renderBlockList();
+                break;
+            case 'copy':
+                if (window.copySelectedBlocks()) flashSelectedCards();
+                break;
+            case 'delete':
+                if (window.deleteSelectedBlocks()) {
+                    renderBlockList();
+                    updateLivePreview();
+                }
+                break;
+            case 'up':
+            case 'down':
+                if (window.moveSelectedBlocks(btn.getAttribute('data-selection-action') === 'up' ? -1 : 1)) {
+                    renderBlockList();
+                    updateLivePreview();
+                }
+                break;
+        }
+    });
+
+    // Copy is the one action with nothing to show for itself - the list does
+    // not change - so it says so on the cards it took. A class rather than an
+    // inline style, which is what the rest of this editor was converted to.
+    function flashSelectedCards() {
+        blockList.querySelectorAll('.block-card-selected').forEach(card => {
+            card.classList.add('block-card-copied');
+            setTimeout(() => card.classList.remove('block-card-copied'), 400);
+        });
+    }
+
     // --- VIRTUALIZATION ENGINE ---
     if (window.editorBlockObserver) window.editorBlockObserver.disconnect();
     
@@ -878,49 +1127,87 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (window.editorBuilderMode === 'gallery') return;
 
         const isInput = ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
-        
+
         // If an input is focused, let native text copy/paste happen normally
         if (!isInput) {
+            // Scoped to #block-list. `.block-card` is also rendered by
+            // editor-tabs, editor-system and editor-framedata, and an
+            // unscoped :hover match there would index into the wrong array.
+            const hovered = () => document.querySelector('#block-list .block-card:hover');
+
             if (e.key.toLowerCase() === 'c' && !e.shiftKey) {
-                // Find whatever card the user's mouse is hovering over
-                const card = document.querySelector('.block-card:hover');
+                // A SELECTION WINS OVER THE HOVER. Hover copy is what this was
+                // before C2 and still works with nothing selected, so the
+                // gesture people already have keeps working - but once an
+                // author has said which blocks they mean, the mouse happening
+                // to rest on a sixth one must not overrule them.
+                if (window.copySelectedBlocks()) {
+                    e.preventDefault();
+                    flashSelectedCards();
+                    return;
+                }
+
+                const card = hovered();
                 if (card) {
                     const index = parseInt(card.getAttribute('data-index'));
-                    window.copiedWikiBlock = JSON.parse(JSON.stringify(window.getActiveBlocks()[index]));
-                    
-                    // Visual feedback Flash
-                    card.style.outline = '2px solid var(--accent-blue)';
-                    card.style.outlineOffset = '2px';
-                    setTimeout(() => { card.style.outline = 'none'; card.style.outlineOffset = '0'; }, 300);
+                    const block = window.getActiveBlocks()[index];
+                    if (!block) return;
+                    window.copiedWikiBlocks = [JSON.parse(JSON.stringify(block))];
+
+                    card.classList.add('block-card-copied');
+                    setTimeout(() => card.classList.remove('block-card-copied'), 400);
                     e.preventDefault();
                 }
             }
             else if (e.key.toLowerCase() === 'v' && !e.shiftKey) {
-                if (window.copiedWikiBlock) {
+                if (Array.isArray(window.copiedWikiBlocks) && window.copiedWikiBlocks.length) {
                     e.preventDefault();
-                    
-                    // Deep clone to prevent reference linking
-                    const newBlock = JSON.parse(JSON.stringify(window.copiedWikiBlock));
-                    const activeBlocks = window.getActiveBlocks();
-                    
-                    const card = document.querySelector('.block-card:hover');
-                    if (card) {
-                        const index = parseInt(card.getAttribute('data-index'));
-                        // Splice it directly below the hovered card
-                        activeBlocks.splice(index + 1, 0, newBlock);
-                    } else {
-                        // If hovering in empty space, append to the bottom
-                        activeBlocks.push(newBlock);
+
+                    const card = hovered();
+                    // Under the hovered card, or appended when the pointer is
+                    // in empty space - unchanged from before C2.
+                    const after = card ? parseInt(card.getAttribute('data-index')) : -1;
+                    if (window.pasteCopiedBlocks(after)) {
+                        renderBlockList();
+                        updateLivePreview();
                     }
-                    
-                    renderBlockList();
-                    updateLivePreview();
                 }
             }
         }
     };
     
     document.addEventListener('keydown', window._blockCopyPasteHandler);
+
+    // --- DELETE THE SELECTION (v0.19 C2) ---
+    //
+    // Its own handler, because the one above returns immediately unless Ctrl or
+    // Meta is held. Cleared and re-registered on the same discipline, or a tab
+    // switch leaves a listener behind holding the previous tab's array.
+    //
+    // Delete only, not Backspace: outside a text field Backspace still means
+    // "go back" to enough people that binding it to a destructive action is a
+    // trap. No confirmation, matching the single-block ✖ beside it - the undo
+    // snapshot taken inside deleteSelectedBlocks is what makes that safe.
+    if (window._blockSelectionKeyHandler) {
+        document.removeEventListener('keydown', window._blockSelectionKeyHandler);
+    }
+
+    window._blockSelectionKeyHandler = (e) => {
+        if (window.editorBuilderMode === 'gallery') return;
+        if (e.key !== 'Delete' || e.ctrlKey || e.metaKey || e.altKey) return;
+
+        const el = document.activeElement;
+        if (el && (['INPUT', 'TEXTAREA'].includes(el.tagName) || el.isContentEditable)) return;
+        if (!window.getSelectedBlockIndices().length) return;
+
+        e.preventDefault();
+        if (window.deleteSelectedBlocks()) {
+            renderBlockList();
+            updateLivePreview();
+        }
+    };
+
+    document.addEventListener('keydown', window._blockSelectionKeyHandler);
 
     const formatToolbar = container.querySelector('.format-toolbar');
     
@@ -1827,6 +2114,30 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             return;
         }
 
+        // A card that is part of the selection hands its three list actions to
+        // the whole selection (v0.19 C2). The rule a file manager uses, and the
+        // thing that stops ▲ on a selected card meaning something different
+        // from ▲ on the selection bar. A card OUTSIDE the selection keeps
+        // acting on itself, so the single-block behaviour is untouched.
+        const wantsUp = btn.classList.contains('btn-up');
+        const wantsDown = btn.classList.contains('btn-down');
+        const wantsDelete = btn.classList.contains('btn-delete');
+
+        if ((wantsUp || wantsDown || wantsDelete)
+            && window.isEditorBlockSelected(activeBlocks[index])) {
+            const changed = wantsDelete
+                ? !!window.deleteSelectedBlocks()
+                : window.moveSelectedBlocks(wantsUp ? -1 : 1);
+            if (changed) {
+                renderBlockList();
+                updateLivePreview();
+            }
+            // Returns either way: a selection already hard against the end has
+            // nothing to do, and must NOT fall through to moving this one card
+            // out of the run it is part of.
+            return;
+        }
+
         let movedTo = -1;
         if (btn.classList.contains('btn-up') && index > 0) {
             [activeBlocks[index - 1], activeBlocks[index]] = [activeBlocks[index], activeBlocks[index - 1]];
@@ -2046,6 +2357,50 @@ function folderShellHTML(run, isCollapsed, isEmpty) {
     `;
 }
 
+// The selection made visible (v0.19 C2). Ctrl-click is not a discoverable
+// gesture, so the bar is what tells an author a selection exists at all, what
+// is in it, and what can be done to it. It draws only while something is
+// selected - an empty toolbar permanently above the list would be chrome
+// nobody asked for.
+//
+// Rebuilt in place rather than through renderBlockList, because toggling one
+// card must not tear down and re-lay-out every other card in the tab.
+function renderBlockSelectionBar() {
+    const list = document.getElementById('block-list');
+    if (!list) return;
+
+    const existing = document.getElementById('block-selection-bar');
+    const picked = typeof window.getSelectedBlockIndices === 'function'
+        ? window.getSelectedBlockIndices()
+        : [];
+
+    if (!picked.length) {
+        if (existing) existing.remove();
+        return;
+    }
+
+    const bar = existing || document.createElement('div');
+    if (!existing) {
+        bar.id = 'block-selection-bar';
+        bar.className = 'block-selection-bar';
+    }
+    // A count, not a name: block titles are contributor-written and this is
+    // rebuilt on every toggle. Numbers need no escaping and cannot be markup.
+    bar.innerHTML = `
+        <span class="block-selection-count">${picked.length} SELECTED</span>
+        <div class="block-selection-actions">
+            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="up" title="Move the selection up">▲</button>
+            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="down" title="Move the selection down">▼</button>
+            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="copy" title="Copy the selection">COPY</button>
+            <button type="button" class="btn-sys btn-sys-red" data-selection-action="delete" title="Delete the selection">DELETE</button>
+            <button type="button" class="btn-sys btn-sys-regular" data-selection-action="clear" title="Clear the selection">CLEAR</button>
+        </div>
+    `;
+    // Always the first row, including after a re-render has rebuilt the list
+    // underneath it.
+    if (list.firstChild !== bar) list.insertBefore(bar, list.firstChild);
+}
+
 function renderBlockList() {
     const listContainer = document.getElementById('block-list');
     listContainer.innerHTML = '';
@@ -2170,7 +2525,9 @@ function renderBlockList() {
     activeBlocks.forEach((block, index) => {
         const isOpen = window.isEditorBlockExpanded(block);
         const card = document.createElement('div');
-        card.className = 'block-card' + (isOpen ? '' : ' collapsed');
+        card.className = 'block-card'
+            + (isOpen ? '' : ' collapsed')
+            + (window.isEditorBlockSelected(block) ? ' block-card-selected' : '');
         card.setAttribute('data-index', index);
 
             const typeOptions = Object.keys(blockTemplates).map(t =>
@@ -2467,6 +2824,11 @@ function renderBlockList() {
             window.editorBlockObserver.observe(card);
         });
     }
+
+    // After the cards, so it can be put back at the top of a list that has
+    // just been rebuilt. A selection survives the re-render (it is keyed by
+    // object), so the bar has to survive it too.
+    renderBlockSelectionBar();
 
     if (typeof window.initializeMangaSelects === 'function') {
         window.initializeMangaSelects(); 
