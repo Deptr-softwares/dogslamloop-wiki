@@ -323,3 +323,31 @@ test('a hostile box title is not markup in the back banner', async ({ page }) =>
     expect(out.injected).toBe(0);
     expect(out.text).toContain('<img');
 });
+
+test('a hostile ACCORDION title is not markup in the banner either', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+
+    // The banner builds its heading in two branches - with a part label for a
+    // Section Box, without one for every container that came before it. A first
+    // attempt to falsify the escaping broke only the branch the Section Box
+    // test does NOT take, and nothing went red. Both are pinned now.
+    await editor(page, [{
+        type: 'accordion',
+        title: '<img src=x onerror="window.__PWN=1">',
+        content: [{ type: 'paragraph', content: 'inner' }],
+    }]);
+    await page.click('.accordion-inner-block-wrapper button');
+    await page.waitForTimeout(200);
+
+    const out = await page.evaluate(() => ({
+        fired: !!window.__PWN,
+        injected: document.querySelectorAll('.accordion-back-banner img').length,
+        text: document.querySelector('.accordion-back-title').textContent,
+    }));
+
+    expect(errors).toEqual([]);
+    expect(out.fired).toBe(false);
+    expect(out.injected).toBe(0);
+    expect(out.text).toContain('<img');
+});
