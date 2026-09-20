@@ -317,3 +317,103 @@ test('sections add and remove, and the write-up descends into the right one', as
         .toEqual(['corner explanation']);
     expect(inside.banner).toContain('In Corner 6H');
 });
+
+// --- THE OTHER EDITOR: a card inside a Combos/Techs group ---
+//
+// A Combo Card has TWO editor surfaces, and the first pass added the switch to
+// only one of them - the owner found it present on the block and missing on a
+// card in the Combos tab. The author-credit field went the same way once
+// before; the comment beside that field in editor-tabs.js records it. So the
+// first test here is derived from the source rather than rendered, because
+// "one of the two surfaces was forgotten" is not a thing a rendering test of
+// either surface can notice.
+test('both Combo Card editors offer the switch, and share one set of rules', () => {
+    const block = fs.readFileSync(path.join(ROOT, 'js', 'editor-blocks.js'), 'utf8');
+    const tabs = fs.readFileSync(path.join(ROOT, 'js', 'editor-tabs.js'), 'utf8');
+
+    expect(block, 'the theorybox block form').toMatch(/data-field="multiSections"/);
+    expect(tabs, 'the Combos/Techs card form').toMatch(/data-card-multi/);
+
+    // And the card form reaches the BLOCK form's helpers rather than carrying
+    // its own copy of when to seed, which section is open and where a field
+    // writes - three rules that would drift independently.
+    expect(tabs).toMatch(/window\.editorCardSectionIndex\(card\)/);
+    expect(tabs).toMatch(/window\.seedCardSections/);
+    expect(tabs).toMatch(/window\.editorCardFieldTarget\(card\)/);
+});
+
+test('the switch works on a card inside a Combos group', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+
+    await page.setViewportSize({ width: 1400, height: 950 });
+    await page.goto('/edit.html?char=boomcat&type=character&tab=combos', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+
+    // A card lives inside a group, and the card editor only exists once one is
+    // open - the same route theorybox.spec.js takes.
+    await page.locator('[onclick*="addDocumentGroup"]').click();
+    await page.waitForTimeout(400);
+    await page.locator('#combo-card-add').click();
+    await page.waitForTimeout(400);
+
+    // The oversight itself: the switch has to be here at all.
+    await expect(page.locator('[data-card-multi]')).toHaveCount(1);
+
+    await page.fill('[data-card-field="damage"]', '38');
+    await page.check('[data-card-multi]');
+    await page.waitForTimeout(400);
+
+    // Seeded from the card, so what was typed before the switch survives it.
+    await expect(page.locator('[data-cardsec]')).toHaveCount(1);
+    expect(await page.inputValue('[data-card-field="damage"]')).toBe('38');
+
+    await page.click('[data-cardsec-add]');
+    await page.waitForTimeout(400);
+    await expect(page.locator('[data-cardsec]')).toHaveCount(2);
+
+    // The fields now edit the NEW section, which is empty.
+    expect(await page.inputValue('[data-card-field="damage"]')).toBe('');
+    await page.fill('[data-card-field="damage"]', '112');
+
+    await page.click('[data-cardsec="0"]');
+    await page.waitForTimeout(400);
+    expect(await page.inputValue('[data-card-field="damage"]'), 'its own value, not the other tab\'s').toBe('38');
+
+    expect(errors).toEqual([]);
+});
+
+test("a section's write-up is flushed before switching away from it", async ({ page }) => {
+    await page.setViewportSize({ width: 1400, height: 950 });
+    await page.goto('/edit.html?char=boomcat&type=character&tab=combos', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    await page.locator('[onclick*="addDocumentGroup"]').click();
+    await page.waitForTimeout(400);
+    await page.locator('#combo-card-add').click();
+    await page.waitForTimeout(400);
+
+    await page.check('[data-card-multi]');
+    await page.waitForTimeout(400);
+    await page.click('[data-cardsec-add]');
+    await page.waitForTimeout(400);
+
+    // Write into the second section's write-up, then leave and come back. The
+    // builder holds the blocks in a buffer, so without a flush on the way out
+    // this is simply lost - which is the most expensive way for this to be
+    // wrong, because the author has no reason to suspect it.
+    await page.evaluate(() => {
+        window.getActiveBlocks().push({ type: 'paragraph', content: 'second section notes' });
+        window.renderBlockList();
+    });
+
+    await page.click('[data-cardsec="0"]');
+    await page.waitForTimeout(400);
+    const inFirst = await page.evaluate(() => window.getActiveBlocks().map(b => b.content));
+
+    await page.click('[data-cardsec="1"]');
+    await page.waitForTimeout(400);
+    const backInSecond = await page.evaluate(() => window.getActiveBlocks().map(b => b.content));
+
+    expect(inFirst, 'the first section has its own, empty write-up').toEqual([]);
+    expect(backInSecond, 'and the second still has what was typed into it').toEqual(['second section notes']);
+});

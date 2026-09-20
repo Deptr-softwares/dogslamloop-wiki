@@ -575,6 +575,10 @@ function seedCardSections(card, on) {
     card.sequence = Array.isArray(sec.sequence) ? sec.sequence.slice() : [];
     card.content = Array.isArray(sec.content) ? sec.content : [];
 }
+// Stated rather than left to the fact that this file is not IIFE-wrapped: the
+// Combos/Techs card editor in editor-tabs.js calls it, because a Combo Card has
+// two editors and the switch has to behave identically in both.
+window.seedCardSections = seedCardSections;
 
 window.resolveNestedBlocks = function (host, field) {
     if (!host || typeof host !== 'object') return null;
