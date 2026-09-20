@@ -1,6 +1,47 @@
 {
   "changelogs": [
     {
+      "version": "Beta v0.19",
+      "date": "09/20/2026",
+      "type": "site",
+      "title": "The 'Search' Update",
+      "description": "Every page now has a search bar, and a search page reads every paragraph on the wiki. The Systems hub has a matchup chart of the whole roster, and the editor opens with a guided tour.",
+      "changes": [
+        {
+          "heading": "Features"
+        },
+        "Every page has a search bar: page names, section headings and move names, and a result opens the right tab and jumps to the section",
+        "A search page reads every paragraph on the wiki, not just the headings, and ranks what it finds",
+        "The Systems hub has a matchup chart: all 24 characters against each other in one grid, coloured by tier, and a cell opens that matchup on the character's page",
+        "The editor runs a guided tour the first time it opens, and a Rewatch Tutorial button replays it",
+        "A red MoS button in the editor opens the Manual of Style, the house rules and the grounds for rejection, without leaving what is being written",
+        "The Media Library shows who uploaded each file",
+        "Text can be a gradient: [multicolor=Red,Blue] sweeps from the first colour to the last, and the colour button carries eight presets",
+        "A Section Box block puts tabs inside a section, each tab holding its own text, images and tables",
+        "A Combo Card can be split into Multiple Sections: one tab per variant, each with its own route, damage, clip and notes",
+        "A frame data phase can be given a length in seconds instead of frames, at 60 frames to the second",
+        "Ctrl-click a block's header in the editor to select it, then copy, paste, delete or move the whole selection at once",
+        "Hovering a character on a certified tier list shows the most recent change to that placement",
+        {
+          "heading": "Fine-tuning"
+        },
+        "A list can be boxed: a border around the list, and nothing else about it changes",
+        "The frame data legend calls a smooth block 'not counted' rather than an estimate, since it can now be a length in seconds instead",
+        {
+          "heading": "Bug fixes"
+        },
+        "The editor's tab strip went dark when the Techs tab was opened",
+        "The Edit and History buttons on system pages were larger than the ones on character pages",
+        "Sign-in and profile fields showed unstyled on 26 pages, the blog, submissions and the Systems hub among them",
+        "An accordion closed itself while its contents were being edited",
+        "Images set to centre or right inside an accordion sat on the left instead",
+        "The Terminology section on the Systems hub showed styling tags instead of coloured text",
+        "The top row of the colour picker in the editor could not be clicked",
+        "A long flair beside a name in a discussion could push the page sideways on a phone",
+        "Changed a few things under the hood"
+      ]
+    },
+    {
       "version": "Beta v0.18",
       "date": "09/09/2026",
       "type": "site",
