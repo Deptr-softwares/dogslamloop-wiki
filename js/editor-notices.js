@@ -126,6 +126,20 @@
         overlay.querySelector('[data-notice-dismiss]').addEventListener('click', () => {
             dismiss(overlay);
             openOverlay = null;
+
+            // v0.19 F2: the editor notice hands straight over to the tutorial.
+            // The owner's sequence - read the notice, press GOT IT, get shown
+            // around - so the tour starts on the one click that proves somebody
+            // is actually looking at the editor rather than passing through.
+            //
+            // Only the editor notice. The Media Library one fires while
+            // somebody is mid-task picking a file, and interrupting that with a
+            // five-step tour of a screen behind the modal would be the opposite
+            // of helpful. startEditorTutorial is once-per-browser on its own
+            // account, so a returning contributor gets nothing here.
+            if (id === 'editor' && typeof window.startEditorTutorial === 'function') {
+                window.startEditorTutorial();
+            }
         });
         document.addEventListener('keydown', onKeydown);
 
