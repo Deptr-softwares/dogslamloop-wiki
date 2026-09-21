@@ -171,6 +171,62 @@ Cut intensifiers while you are at it: "the real character portraits" became
 
 Verify it renders on `/systems/updatelog/index.html` before shipping.
 
+## The owner's voice, read off their own pages
+
+Established 2026-09-20 by reading the two pages the owner pointed at as their
+own writing: the **Writing Guide** (`page_data`, `page_id = 'writing_guide'`,
+tabs `basics` / `character-pages` / `combos` / `frame-data`) and
+**Terminologies** (`page_id = 'terminologies'`, tabs `archetypes` /
+`mechanics`). Read those, not this summary, when the register matters. This is
+a pointer with the traits that are easy to miss.
+
+**The rule underneath all of it: write to whoever is actually reading.** Their
+guide says so itself: pages that are not character pages *"can mention or refer
+to the reader"*. That is why "never write 'you'" is a **changelog** rule and not
+a site rule: in a changelog the only "you" available is the owner, and on a
+guide page "you" is the contributor standing in front of the editor. Do not
+carry the changelog's ban into anything else.
+
+What their prose actually does:
+
+- **Warm opener, then hard rules.** *"Hello! Welcome to the Writing Guide of
+  Dogslamloop Wiki."* Then, two headings later, a numbered list of grounds for
+  rejection. The friendliness is the door, not the room.
+- **Named concepts, capitalised, and reused.** Ground for Rejection, Combo Card,
+  Workspace Header, M1 Merchant, Neutral. Once a thing is named it keeps that
+  name everywhere. Never invent a second name for something they have named.
+- **A term, a colon, then the explanation.** Their lists are almost all this
+  shape, and the explanation is one sentence that ends.
+- **Right and wrong shown, not described.** `[s]granite blast[/s], Granite
+  blast`. Strikethrough for the wrong form, green for the right one, red for
+  anything that gets an edit rejected.
+- **Permitted and not-permitted as a pair.** Two lists, side by side, rather
+  than one list with exceptions buried in it.
+- **Pre-empt the misreading.** *"It is not a bad thing to be an M1 Merchant,
+  but..."*, *"Side Dash M1 is a great tool, not that it is weak or anything, but
+  we are excluding it from Neutral for the sake of making it clear."* They
+  answer the objection in the same breath as the claim.
+- **Rules carry their reason or their limit.** *"so long as these tones don't
+  undermine or break the baseline set by the Guide, they are fine to stay"*.
+- **Humour in small doses that never costs information.** *"Yay!"*, *"ok ok I
+  will stop"*, *"don't go around throwing a tantrum if someone perform your
+  combos"*. Their own rule: *"You can joke around a little bit but don't get to
+  the point where information is bogged down by humor."*
+- **Honest placeholders.** *"To be completed"* sits in a live page rather than
+  filler pretending to be content. Do not write filler to avoid an empty
+  section.
+- **Numbers and concrete examples over adjectives**, which is the same instinct
+  as changelog rule 4: *"a 14f M1"*, *"word limit of 50"*, *"#F4CC43"*.
+
+**Do not copy their typos.** *"editting"*, *"appropiate"*, *"every articles"*,
+*"PLaystyle"*. The register is theirs; the spelling follows their own Manual of
+Style, which is American English.
+
+**Where the changelog sits against this.** Warmer and plainer than a release
+note written cold, still third person about the site, still one line per thing a
+reader can point at. A good changelog line sounds like a Terminologies entry
+about the site instead of a summary of a diff.
+
 ### Three parts, in this order
 
 **Every release is divided into Features, Fine-tuning, and Bug fixes**

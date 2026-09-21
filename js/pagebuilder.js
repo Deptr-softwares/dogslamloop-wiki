@@ -1412,7 +1412,12 @@ window.buildSiteFooter = function() {
         <div class="site-footer-inner">
             <span class="site-footer-copy">&copy; ${new Date().getFullYear()} Deptr</span>
             <a href="${rootPath}privacy-policy.html" class="site-footer-link">Privacy Policy</a>
-            <a href="${rootPath}LICENSE" class="site-footer-link">License (MIT)</a>
+            <a href="${rootPath}terms.html" class="site-footer-link">Terms of Service</a>
+            <!-- Two licences now: MIT for the code, CC BY-NC-SA 4.0 for the
+                 content. CONTENT-LICENSE.md is the one a reader wants, and it
+                 states both and links to LICENSE, so the footer carries one
+                 link rather than two. -->
+            <a href="${rootPath}CONTENT-LICENSE.md" class="site-footer-link">Licence</a>
             <span class="site-footer-note">A fan-made wiki. Not affiliated with the game's developers.</span>
         </div>
     `;
