@@ -2060,7 +2060,13 @@ summary:focus-visible {
     font-size: 0.7rem; line-height: 1.5; margin: 0 0 0.75rem; max-width: 70ch;
 }
 
+/* position: relative makes this the containing block for every cell's
+   absolutely positioned .sr-only label. Without it the labels resolve against
+   an ancestor OUTSIDE the scroll box, escape its clipping, and the whole hub
+   page scrolled sideways on a phone: 639px wide at a 390px viewport, live from
+   v0.19 until v0.20 found it. */
 .matchup-grid-scroll {
+    position: relative;
     overflow-x: auto; border: 2px solid var(--border-color);
     background: var(--bg-main);
 }

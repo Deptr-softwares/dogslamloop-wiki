@@ -228,6 +228,41 @@ test('the chart appears in the table of contents', async ({ page }) => {
     await expect(page.locator('#dynamic-toc')).toContainText('Matchup Chart', { timeout: 10000 });
 });
 
+test('at phone width the grid scrolls inside its own box, never the page', async ({ page }) => {
+    // Live from v0.19 until v0.20: the hub was 639px wide at a 390px viewport.
+    // The wrapper scrolled, but every cell's .sr-only label is absolutely
+    // positioned and resolved against an ancestor outside it, so the labels
+    // escaped its clipping and widened the page. Found by measuring the page,
+    // which is the assertion here too.
+    //
+    // A roster wide enough to overflow a phone, every pair rated Equal both
+    // ways, so no cell is a Clash: a clashing link is itself position:
+    // relative and would contain its own label, hiding the bug.
+    const names = Array.from({ length: 24 }, (_, i) => 'Fighter ' + String.fromCharCode(65 + i));
+    const roster = { Characters: names.map(n => ({
+        id: n, name: n, url: 'characters/' + n.replace(' ', '_') + '/index.html',
+        cms_config: { pageType: 'character', pageId: n.replace(' ', '_').toLowerCase() },
+    })) };
+    const matchups = names.map(n => ({
+        page_id: n.replace(' ', '_').toLowerCase(),
+        matchups: names.filter(o => o !== n).map(o => ({ opponent: o, tier: 'Equal', content: [] })),
+    }));
+    await page.setViewportSize({ width: 390, height: 800 });
+    await mockHub(page, { roster, matchups });
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+    await expect(grid(page).locator('.matchup-grid-link')).toHaveCount(24 * 23);
+
+    const widths = await page.evaluate(() => ({
+        page: document.documentElement.scrollWidth,
+        viewport: window.innerWidth,
+        grid: document.querySelector('.matchup-grid').scrollWidth,
+    }));
+    // The grid really is wider than the phone, so the page staying narrow is
+    // the wrapper doing its job and not a small fixture.
+    expect(widths.grid).toBeGreaterThan(widths.viewport);
+    expect(widths.page).toBeLessThanOrEqual(widths.viewport);
+});
+
 test('an opponent name that matches no character is dropped, never guessed at', async ({ page }) => {
     // Found in production on 2026-09-20: twelve pages rate "Disaster Plant"
     // while the roster says "Disaster Plants", and one page has an opponent
