@@ -527,3 +527,62 @@ test('renaming a card renames its first tab, because the label is not pre-filled
     expect(out.html).toContain('Corner BnB');
     expect(out.html, 'the template default never reaches a reader').not.toContain('New Combo');
 });
+
+// --- v0.20 BUG 2: the preview snapping back to the first tab ---
+//
+// Owner, with a screen recording: "Editting multiple section in a section box
+// reset you back to the first section every single time (Also happens in Combo
+// Card)." The recording is the Combos tab. The form is editing the second
+// section, the author types one line into Route, and the preview beside it
+// jumps from "Stealing Evasive" to "Bread and Butter".
+//
+// v0.19 fixed exactly this, in populateTextSection, and that is the whole
+// lesson: renderDocumentTab is a SECOND repaint path and never got it. The
+// capture and restore is now one pair of functions called from both, so a third
+// path cannot quietly go without.
+test('the preview keeps the open tab while the form is typed into', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+
+    await page.setViewportSize({ width: 1500, height: 1000 });
+    await page.goto('/edit.html?char=boomcat&type=character&tab=combos', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    await page.locator('[onclick*="addDocumentGroup"]').click();
+    await page.waitForTimeout(400);
+    await page.locator('#combo-card-add').click();
+    await page.waitForTimeout(400);
+
+    await page.check('[data-card-multi]');
+    await page.waitForTimeout(400);
+    await page.fill('[data-card-field="title"]', 'First Variant');
+    await page.click('[data-cardsec-add]');
+    await page.waitForTimeout(400);
+    await page.fill('[data-card-field="title"]', 'Second Variant');
+    // Blur and let the preview settle BEFORE the reader-side click. Clicking a
+    // tab straight from a focused field repaints on the blur, under the click.
+    await page.locator('[data-card-field="title"]').blur();
+    await page.waitForTimeout(700);
+
+    const preview = page.locator('#tab-combos');
+    const tabs = preview.locator('.theorybox-sections .sbox-tab');
+    await expect(tabs).toHaveCount(2);
+
+    // The reader-side click, in the preview, on the second tab.
+    await tabs.nth(1).click();
+    await page.waitForTimeout(300);
+    await expect(tabs.nth(1)).toHaveClass(/is-active/);
+
+    // Now type, which repaints the preview.
+    await page.fill('[data-card-field="damage"]', '246');
+    await page.waitForTimeout(600);
+
+    await expect(tabs.nth(1), 'the tab the author was looking at').toHaveClass(/is-active/);
+    await expect(tabs.nth(0)).not.toHaveClass(/is-active/);
+
+    // And again on a second keystroke, since the repaint runs per character.
+    await page.fill('[data-card-field="oneliner"]', 'corner route');
+    await page.waitForTimeout(600);
+    await expect(tabs.nth(1)).toHaveClass(/is-active/);
+
+    expect(errors).toEqual([]);
+});
