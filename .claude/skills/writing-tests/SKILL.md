@@ -303,6 +303,37 @@ loosening them. The scan that broke here got *stronger*: it now checks the
 declaration the markup is generated from, and gained a site, while the rendered
 output stays pinned by the runtime test that was already there.
 
+### Derived and run is not the same as READ
+
+v0.20 FT2 reverted v0.16's default, so blocks open expanded again. This time the
+derivation above was done correctly: `block-multiselect.spec.js` was in the set,
+and it was run before pushing. **It failed 18 of 19, and was reported green.**
+
+The output was read with `| tail -6`. Playwright's line reporter prints the
+failure count and the failed-test list ABOVE the passed count, so a short tail
+shows a column of test names followed by `27 passed`, and a column of names
+reads like progress. CI cancelled PR #203 at the 30-minute job cap: each of the
+18 tests waited out its 30-second timeout three times, and a job cancelled at the
+cap never prints its failure report. The only place the answer existed was the
+local run that had been misread.
+
+Read the counts the reporter states:
+
+```bash
+npx playwright test <files> --reporter=line > run.log 2>&1
+grep -E "^\s+[0-9]+ (passed|failed|flaky|skipped|did not run)" run.log
+```
+
+**Anything other than a single `N passed` line is not green.** And check the log
+has lines before trusting a zero taken from it: a `grep -c` over a CI log that
+had not finished writing reported 0 failures in the same investigation.
+
+The failure itself is worth knowing too. The spec clicked `.block-card-summary`,
+the label only a COLLAPSED block shows, so flipping the default made every click
+wait for an element that would never appear. **A selector that only exists in
+one state of the thing being tested encodes the default**, and changing the
+default turns it into a timeout rather than an assertion.
+
 ## Anything that renders over a shared page on load changes every spec on it
 
 v0.18's first-visit editor notice opened on top of the page in **all 59 specs
