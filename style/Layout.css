@@ -1339,6 +1339,45 @@ summary:focus-visible {
 }
 .combo-container { display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem; }
 
+/* --- NOTATION STYLES (v0.20, js/description.js comboRouteHTML) ------------
+   A route with more than one notation. The route itself is the control, and
+   the mark is the owner's "small toggle visuals on the side, which is very
+   small and thin": one segment per style, the one showing lit.
+   Each style is display: contents, so its chips stay direct flex items of the
+   row and wrap exactly as a plain route's do. The [hidden] rule has to be
+   restated, because display: contents would otherwise beat the browser's. */
+.combo-has-notations { cursor: pointer; border-radius: 2px; }
+.combo-has-notations:hover .combo-notation-mark > i.is-on { background: var(--text-white); }
+.combo-has-notations:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 3px; }
+.combo-notation { display: contents; }
+.combo-notation[hidden] { display: none; }
+.combo-notation-mark {
+    display: inline-flex; flex-direction: column; gap: 2px;
+    width: 3px; height: 1.15em; margin-right: 0.3rem; flex: none;
+}
+.combo-notation-mark > i {
+    display: block; flex: 1; min-height: 3px;
+    background: var(--border-color); border-radius: 1px;
+}
+.combo-notation-mark > i.is-on { background: var(--accent-blue); }
+.combo-notation-name { display: none; }
+
+/* The review screens (the queue on admin.html, the editor's own diff) show
+   EVERY style at once, one per line with its name, so a reviewer never has to
+   click to find a changed route. Scoped to the diff container both screens
+   render into; js/description.js ignores clicks there too. */
+.diff-inline-target .combo-has-notations { cursor: default; }
+.diff-inline-target .combo-notation-mark { display: none; }
+.diff-inline-target .combo-notation,
+.diff-inline-target .combo-notation[hidden] {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem; flex-basis: 100%;
+}
+.diff-inline-target .combo-notation-name {
+    display: inline; margin-right: 0.4rem;
+    font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
+    letter-spacing: 0.06em; color: var(--accent-blue); text-transform: uppercase;
+}
+
 /* The separator, deliberately quiet - it is punctuation between steps, not a
    step. */
 .combo-sep { color: var(--text-muted); font-family: var(--text-mono); font-size: 0.75rem; opacity: 0.55; padding: 0 0.1rem; }

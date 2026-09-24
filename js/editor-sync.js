@@ -509,6 +509,9 @@ window.renderDiffView = function() {
                         }
                         b.damage = window.diffTextLCS(oldB.damage || '', newB.damage || '');
                         b.note = window.diffTextLCS(oldB.note || '', newB.note || '');
+                        // Notation styles (v0.20), through the helper both review
+                        // screens share, so neither can miss a changed style.
+                        if (oldB.notations || newB.notations) b.notations = window.diffComboNotations(oldB.notations, newB.notations);
                     }
                     else if (b.type === 'table') {
                         const oldHeaders = oldB.headers || [];
@@ -551,6 +554,7 @@ window.renderDiffView = function() {
                         for (let j = 0; j < Math.max(oldSeq.length, newSeq.length); j++) {
                             b.sequence[j] = window.diffTextLCS(oldSeq[j] || '', newSeq[j] || '');
                         }
+                        if (oldB.notations || newB.notations) b.notations = window.diffComboNotations(oldB.notations, newB.notations);
                         b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
                         // A card in Multiple Sections mode carries a whole
                         // variant per tab - route, damage, clip and write-up -
@@ -575,6 +579,7 @@ window.renderDiffView = function() {
                             for (let k = 0; k < Math.max(oSeq.length, nSeq.length); k++) {
                                 b.sections[j].sequence[k] = window.diffTextLCS(oSeq[k] || '', nSeq[k] || '');
                             }
+                            if (oSec.notations || nSec.notations) b.sections[j].notations = window.diffComboNotations(oSec.notations, nSec.notations);
                             b.sections[j].content = applyInlineDiffToBlocks(oSec.content || [], nSec.content || []);
                         }
                     }
