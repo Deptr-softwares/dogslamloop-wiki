@@ -235,14 +235,20 @@ test('a link arrived at by URL hash resolves after the content loads', async ({ 
 // reload, no init scripts, no network, and no arrival code, only the
 // hashchange handler on a page that is already built. Until v0.20 the arrival
 // test above did exactly that, so it never tested arriving at all.
+//
+// WAITS for one rather than reading once. `networkidle` can arrive before the
+// tab has rendered when the workers are competing, and a read that came back
+// empty then skipped the test: a silent pass, seen once in six runs.
 async function deepSection(page) {
   await page.goto(PAGE, { waitUntil: 'networkidle' });
-  const id = await page.evaluate(() => {
+  const id = await page.waitForFunction(() => {
     window.assignSectionAnchors();
     const els = [...document.querySelectorAll('.main-content-area [id^="sec-"]')];
     const deep = els.filter(el => el.getBoundingClientRect().top + window.scrollY > 400);
     return deep.length ? deep[0].id : null;
-  });
+  }, null, { timeout: 15000, polling: 200 })
+    .then(handle => handle.jsonValue())
+    .catch(() => null);
   await page.goto('about:blank');
   return id;
 }
