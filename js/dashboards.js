@@ -410,6 +410,26 @@ window.buildTerminologyPeek = async function(sectionId, containerId, limit = 6) 
  *
  * 266 of 417 are "Equal", so the finished grid is mostly grey. That is the
  * honest picture of a roster nobody has finished rating, not a rendering bug.
+ *
+ * CLASHES (v0.20)
+ *
+ * A pair whose two pages do not mirror each other: Advantage on one side
+ * should read Disadvantage on the other, Equal should read Equal. The owner's
+ * example is Honored One vs True Cannon at Equal while True Cannon vs Honored
+ * One is Hopeless.
+ *
+ * ANY mismatch is a Clash, one step included (owner, 2026-09-24). Offered
+ * "disagree on who wins" (86 pairs in production) and "three or more steps
+ * apart" (46), they chose this one, 96 of the 178 pairs rated from both
+ * sides. Do not loosen it to make the list shorter.
+ *
+ * The grid still reports both ratings exactly as written. A Clash is marked,
+ * never resolved: picking a winner would invent a rating nobody wrote.
+ *
+ * Two things are never a Clash. A pair rated from one side only has nothing
+ * to disagree with. A tier outside the ladder ("Aerial Circling tier") has no
+ * mirror to compare against, and guessing one is the same guess
+ * resolveMatchupTier refuses to make.
  */
 window.buildMatchupTable = async function (sectionId, containerId) {
     const section = document.getElementById(sectionId);
@@ -434,8 +454,13 @@ window.buildMatchupTable = async function (sectionId, containerId) {
         // Roster order comes from navigation.json, so the grid reads in the
         // same order as every menu on the site. Archived pages are already
         // absent from it, which is rule 3 in this file's header.
+        //
+        // Hidden characters (private server only, `isHidden`) are left out as
+        // row AND column, owner's request 2026-09-24. Filtered here, before
+        // anything else reads the roster, so a Clash involving one is never
+        // computed either.
         const roster = ((navData || {}).Characters || [])
-            .filter(c => c && c.cms_config && c.cms_config.pageId && c.name);
+            .filter(c => c && c.cms_config && c.cms_config.pageId && c.name && !c.isHidden);
         if (roster.length < 2) { section.hidden = true; return; }
 
         const byPageId = new Map(rows.map(r => [r.page_id, r.matchups]));
@@ -471,33 +496,89 @@ window.buildMatchupTable = async function (sectionId, containerId) {
         const colour = (name) =>
             (window.CHARACTER_COLORS && window.CHARACTER_COLORS[name]) || 'var(--text-white)';
 
+        // The anchor collectSectionTargets mints for the rendered "vs. X"
+        // heading, so a link lands on the matchup itself rather than the top
+        // of the Matchups tab.
+        const matchupHref = (rowChar, colChar) =>
+            rootPath + rowChar.url + '?tab=matchups#sec-vs-' + slug(colChar.name);
+
+        // undefined means "not rated", exactly as the cells below read it. An
+        // entry with an empty tier is rated, and resolves to Equal.
+        const ratingOf = (rowName, colName) => {
+            const row = ratings.get(rowName);
+            return row ? row.get(colName) : undefined;
+        };
+
+        // A rung on window.MATCHUP_TIERS, or -1 for wording off the ladder.
+        // Read through resolveMatchupTier so the two v0.13 renames compare as
+        // the words they became.
+        const ladder = window.MATCHUP_TIERS.map(t => t.id);
+        const rung = (raw) => ladder.indexOf(window.resolveMatchupTier(raw).id);
+
+        // Each unordered pair once. `clashOf` answers per cell, keyed row then
+        // column, with the OTHER page's tier; `clashes` is the notice list.
+        const clashes = [];
+        const clashOf = new Map();
+        const markClash = (rowName, colName, otherTier) => {
+            if (!clashOf.has(rowName)) clashOf.set(rowName, new Map());
+            clashOf.get(rowName).set(colName, otherTier);
+        };
+        roster.forEach((a, ai) => {
+            roster.slice(ai + 1).forEach(b => {
+                const ab = ratingOf(a.name, b.name);
+                const ba = ratingOf(b.name, a.name);
+                if (ab === undefined || ba === undefined) return;
+                const ra = rung(ab);
+                const rb = rung(ba);
+                if (ra < 0 || rb < 0) return;
+                // A mirror sits the same distance from the far end of the
+                // ladder, so a matching pair always sums to its last index.
+                const gap = Math.abs(ra + rb - (ladder.length - 1));
+                if (gap === 0) return;
+                const tierAB = window.resolveMatchupTier(ab);
+                const tierBA = window.resolveMatchupTier(ba);
+                markClash(a.name, b.name, tierBA);
+                markClash(b.name, a.name, tierAB);
+                clashes.push({ a, b, tierAB, tierBA, gap, order: clashes.length });
+            });
+        });
+        // Biggest gap first, then roster order, which is the order they were
+        // found in.
+        clashes.sort((x, y) => (y.gap - x.gap) || (x.order - y.order));
+
         const head = roster.map(c =>
             '<th class="matchup-grid-col" scope="col" title="' + esc(c.name) + '">'
             + esc(abbrev(c.name)) + '</th>').join('');
 
         const body = roster.map(rowChar => {
-            const row = ratings.get(rowChar.name);
+            const rowClashes = clashOf.get(rowChar.name);
             const cells = roster.map(colChar => {
                 if (colChar.name === rowChar.name) {
                     return '<td class="matchup-grid-cell is-self" aria-hidden="true"></td>';
                 }
-                const raw = row ? row.get(colChar.name) : undefined;
+                const raw = ratingOf(rowChar.name, colChar.name);
                 if (raw === undefined) {
                     return '<td class="matchup-grid-cell is-blank" title="'
                         + esc(rowChar.name) + ' vs ' + esc(colChar.name) + ': not rated"></td>';
                 }
 
                 const tier = window.resolveMatchupTier(raw);
-                // The anchor collectSectionTargets mints for the rendered
-                // "vs. X" heading, so this lands on the matchup itself rather
-                // than the top of the Matchups tab.
-                const href = rootPath + rowChar.url + '?tab=matchups#sec-vs-' + slug(colChar.name);
+                const href = matchupHref(rowChar, colChar);
                 const label = esc(rowChar.name) + ' vs ' + esc(colChar.name) + ': ' + esc(tier.id);
 
+                // A clashing cell names the other page's rating as well, so it
+                // says what it disagrees with without opening the list. A new
+                // line in the tooltip, a full stop for a screen reader.
+                const other = rowClashes ? rowClashes.get(colChar.name) : undefined;
+                const clash = other
+                    ? 'Clash: ' + esc(colChar.name) + ' vs ' + esc(rowChar.name) + ' is ' + esc(other.id)
+                    : '';
+
                 return '<td class="matchup-grid-cell">'
-                    + '<a class="matchup-grid-link" href="' + esc(href) + '"'
-                    + ' style="background:' + esc(tier.color) + '" title="' + label + '">'
-                    + '<span class="sr-only">' + label + '</span></a></td>';
+                    + '<a class="matchup-grid-link' + (clash ? ' is-clash' : '') + '" href="' + esc(href) + '"'
+                    + ' style="background:' + esc(tier.color) + '"'
+                    + ' title="' + label + (clash ? '&#10;' + clash : '') + '">'
+                    + '<span class="sr-only">' + label + (clash ? '. ' + clash : '') + '</span></a></td>';
             }).join('');
 
             return '<tr><th class="matchup-grid-row" scope="row" style="color:'
@@ -509,7 +590,30 @@ window.buildMatchupTable = async function (sectionId, containerId) {
         const legend = window.MATCHUP_TIERS.map(t =>
             '<span class="matchup-legend-item">'
             + '<span class="matchup-legend-swatch" style="background:' + esc(t.color) + '"></span>'
-            + esc(t.id) + '</span>').join('');
+            + esc(t.id) + '</span>').join('')
+            + (clashes.length
+                ? '<span class="matchup-legend-item"><span class="matchup-legend-swatch is-clash"></span>Clash</span>'
+                : '');
+
+        // One notice per pair, in the owner's own sentence: "Honored One vs
+        // True Cannon is Equal but True Cannon vs Honored One is Hopeless".
+        // Each half links to the page that wrote it, which is where a fix goes.
+        // Collapsed, because the list runs to about a hundred lines on
+        // production data and the grid is what the section is for. Absent
+        // entirely when there are none.
+        const side = (rowChar, colChar, tier) =>
+            '<a href="' + esc(matchupHref(rowChar, colChar)) + '">'
+            + esc(rowChar.name) + ' vs ' + esc(colChar.name) + '</a> is '
+            + '<span class="matchup-clash-tier" style="color:' + esc(tier.color) + '">'
+            + esc(tier.id) + '</span>';
+        const notices = clashes.length
+            ? '<details class="matchup-clashes"><summary>Clashes (' + clashes.length + ')</summary>'
+                + '<p class="matchup-grid-caption">Clash: the two character pages don\'t mirror each'
+                + ' other. Advantage on one page should read Disadvantage on the other, and such.</p><ol>'
+                + clashes.map(c => '<li>' + side(c.a, c.b, c.tierAB) + ', but '
+                    + side(c.b, c.a, c.tierBA) + '.</li>').join('')
+                + '</ol></details>'
+            : '';
 
         container.innerHTML =
             '<p class="matchup-grid-caption">Read a row as that character page rates it: the row'
@@ -518,7 +622,8 @@ window.buildMatchupTable = async function (sectionId, containerId) {
             + '<div class="matchup-grid-scroll"><table class="matchup-grid">'
             + '<thead><tr><td class="matchup-grid-corner"></td>' + head + '</tr></thead>'
             + '<tbody>' + body + '</tbody></table></div>'
-            + '<div class="matchup-legend">' + legend + '</div>';
+            + '<div class="matchup-legend">' + legend + '</div>'
+            + notices;
 
         section.hidden = false;
     } catch (e) {
