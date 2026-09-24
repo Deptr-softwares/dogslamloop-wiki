@@ -169,6 +169,9 @@ const DIFF_FIELD_LABELS = {
     // shown rather than hidden because joining a folder MOVES the block, and a
     // reordering with no stated reason is worse than one line of metadata.
     folder: 'Editor Folder',
+    // v0.20: a combo's extra routes. The general rule would read "Notations",
+    // which is not what anyone calls them on the page.
+    notations: 'Notation Styles',
 };
 
 window.humanFieldName = function(key) {

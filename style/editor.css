@@ -2630,3 +2630,16 @@ del.diff-del {
     letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
 }
 .cardsec-tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; }
+
+/* --- NOTATION STYLE FIELDS (v0.20, js/editor-blocks.js comboNotationFieldsHTML)
+   The same dashed box and blue label as the Combo Card's section strip above,
+   because it is the same kind of thing: optional structure hung off a combo. */
+.nstyle-editor { border: 1px dashed #333; padding: 0.5rem; margin: 0.5rem 0 0.6rem; }
+.nstyle-editor-label {
+    font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
+    letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
+}
+.nstyle-editor-empty { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+.nstyle-row { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.6rem; }
+.nstyle-row-head { display: flex; gap: 0.4rem; align-items: center; }
+.nstyle-row-head .editor-input { flex: 1; min-width: 0; }
