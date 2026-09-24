@@ -874,9 +874,11 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
     } else {
         cards.forEach((card, i) => {
             // A card is recognised by its name, and falls back to its route -
-            // an index is not something anyone remembers.
-            const steps = Array.isArray(card.sequence) ? card.sequence : [];
-            const label = card.title || steps.join(' > ') || `Card ${i + 1}`;
+            // an index is not something anyone remembers. Resolved through the
+            // shared helper because `card.title` is dead data once Multiple
+            // Sections is on, which is what showed "New Combo" here beside a
+            // name field reading something else.
+            const label = window.comboCardLabel(card, i);
             html += `<div class="daw-tab-item">`;
             html += `<button class="daw-tab-btn daw-tab-btn-removable${i === open ? ' active' : ''}" data-card="${i}">${esc(label)}</button>`;
             html += `<button class="daw-tab-remove-btn" data-remove-card="${i}" title="Remove Card">&#10006;</button>`;
@@ -979,7 +981,10 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
             <div class="cardsec-label">SECTIONS</div>
             <div class="cardsec-tabs">
                 ${sections.map((sec, i) =>
-                    `<button type="button" class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'}" data-cardsec="${i}">`
+                    // `cardsec-tab` as well, because the block form's strip
+                    // carries it and the CSS is written against it. The two
+                    // editors had drifted on this class alone.
+                    `<button type="button" class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'} cardsec-tab" data-cardsec="${i}">`
                     + `${esc(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
                 <button type="button" class="btn-sys btn-sys-green" data-cardsec-add="1" title="Add a section">+</button>
                 ${sections.length > 1 ? `<button type="button" class="btn-sys btn-sys-red" data-cardsec-remove="${secIdx}" title="Remove this section">&#10006;</button>` : ''}
@@ -1053,9 +1058,11 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
             }
             if (field === 'title' || field === 'sequence') {
                 const btn = document.querySelector(`[data-card="${idx}"]`);
-                const steps = Array.isArray(target.sequence) ? target.sequence : [];
+                // The same helper the row itself is built from, so the live
+                // keystroke update and the next full render cannot disagree
+                // about what this card is called.
                 // textContent, not innerHTML - this runs on every keystroke.
-                if (btn) btn.textContent = target.title || steps.join(' > ') || `Card ${idx + 1}`;
+                if (btn) btn.textContent = window.comboCardLabel(card, idx);
             }
             window.renderDocumentPreview(tabId);
         };
@@ -1127,6 +1134,13 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
             card.sections[secIdx].label = secLabel.value;
             const btn = container.querySelector(`[data-cardsec="${secIdx}"]`);
             if (btn) btn.textContent = secLabel.value || `Section ${secIdx + 1}`;
+            // The card's name in the list comes from the FIRST section's tab
+            // label, so renaming that tab renames the card. Only then, because
+            // renaming tab 3 says nothing about what the card is called.
+            if (secIdx === 0) {
+                const cardBtn = document.querySelector(`[data-card="${idx}"]`);
+                if (cardBtn) cardBtn.textContent = window.comboCardLabel(card, idx);
+            }
             window.renderDocumentPreview(tabId);
         });
     }

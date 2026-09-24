@@ -560,7 +560,17 @@ function seedCardSections(card, on) {
 
     if (on) {
         if (Array.isArray(card.sections) && card.sections.length) return;
-        const seeded = { label: card.title || 'Section 1' };
+        // The tab label is seeded EMPTY, deliberately (v0.20 bug 1). It is an
+        // optional override for the case the owner's reference shows, a tab
+        // reading "In Corner 6H" over a card headed "Optimized 6H Counterhit
+        // Corner Starter", and `description.js` already falls back to the card
+        // title when it is blank.
+        //
+        // Seeding it from `card.title` planted whatever the title was at the
+        // moment the switch was flipped, which for a card switched on before it
+        // was named is the template default, "New Combo". Renaming the card
+        // afterwards never cleared it, because the label is a separate field.
+        const seeded = { label: '' };
         CARD_TEXT_FIELDS.forEach(f => { seeded[f] = card[f] || ''; });
         seeded.sequence = Array.isArray(card.sequence) ? card.sequence.slice() : [];
         seeded.content = Array.isArray(card.content) ? card.content : [];
@@ -579,6 +589,33 @@ function seedCardSections(card, on) {
 // Combos/Techs card editor in editor-tabs.js calls it, because a Combo Card has
 // two editors and the switch has to behave identically in both.
 window.seedCardSections = seedCardSections;
+
+// WHAT A COMBO CARD IS CALLED IN A LIST OF CARDS (v0.20 bug 1).
+//
+// With Multiple Sections on, the card's own `title` is dead data: the reader
+// never sees it, because `description.js` renders a tab per section and each
+// section carries its own heading. So a list that reads `card.title` shows
+// whatever happened to be there when the switch was flipped, and a card
+// switched on before it was named reads "New Combo" forever while the name
+// field beside it shows the real one.
+//
+// The FIRST section, not the active one. A reader lands on tab 0, so that is
+// what the card is; using the active section would rename the card in the list
+// every time the author clicked a different tab.
+window.comboCardLabel = function (card, fallbackIndex) {
+    const nth = `Card ${(fallbackIndex || 0) + 1}`;
+    if (!card || typeof card !== 'object') return nth;
+
+    const sections = Array.isArray(card.sections) ? card.sections : [];
+    const source = (card.multiSections && sections.length) ? (sections[0] || {}) : card;
+
+    const steps = Array.isArray(source.sequence) ? source.sequence : [];
+    // TITLE first, then the tab label. This names a CARD in a list of cards,
+    // and the card's name is its heading; the tab label is a short switcher
+    // that may read "In Corner 6H" over a heading three times as long. The
+    // reader's tab row resolves the other way round, which is correct there.
+    return source.title || source.label || steps.join(' > ') || nth;
+};
 
 window.resolveNestedBlocks = function (host, field) {
     if (!host || typeof host !== 'object') return null;

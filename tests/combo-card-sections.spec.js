@@ -417,3 +417,84 @@ test("a section's write-up is flushed before switching away from it", async ({ p
     expect(inFirst, 'the first section has its own, empty write-up').toEqual([]);
     expect(backInSecond, 'and the second still has what was typed into it').toEqual(['second section notes']);
 });
+
+// --- v0.20 BUG 1: the card's name in the list of cards ---
+//
+// Owner: "Combo Card in the Combos tab when they have multiple sections turned
+// on, their name renders as 'New Combo' in the editor."
+//
+// Reproduced before it was fixed, and the reproduction is the whole point: the
+// list read `card.title` directly, which is DEAD DATA once the switch is on.
+// description.js renders a tab per section and each section carries its own
+// heading, so the card's own title reaches no reader. A card switched on before
+// it was named therefore kept the template default, "New Combo", in the list
+// while the name field beside it showed what the author had actually typed.
+//
+// Both surfaces now resolve through window.comboCardLabel, so the keystroke
+// update and the next full render cannot disagree.
+test('a card named after the switch is on is named in the list too', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+
+    await page.setViewportSize({ width: 1400, height: 950 });
+    await page.goto('/edit.html?char=boomcat&type=character&tab=combos', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    await page.locator('[onclick*="addDocumentGroup"]').click();
+    await page.waitForTimeout(400);
+    await page.locator('#combo-card-add').click();
+    await page.waitForTimeout(400);
+
+    // The owner's order: the switch goes on BEFORE the card is named, which is
+    // what strands the template default in `card.title`.
+    await page.check('[data-card-multi]');
+    await page.waitForTimeout(400);
+    await page.fill('[data-card-field="title"]', 'Corner BnB');
+    await page.waitForTimeout(300);
+
+    // Live, on the keystroke.
+    expect(await page.locator('[data-card="0"]').textContent()).toContain('Corner BnB');
+
+    // And after the row is rebuilt from scratch, which is the path that was
+    // wrong. Adding a second card is what rebuilds it.
+    await page.locator('#combo-card-add').click();
+    await page.waitForTimeout(500);
+
+    const labels = await page.locator('[data-card]').allTextContents();
+    expect(labels[0], 'the card the author named').toContain('Corner BnB');
+    expect(labels[0]).not.toContain('New Combo');
+
+    expect(errors).toEqual([]);
+});
+
+test('the tab label names the card, but only the first tab does', async ({ page }) => {
+    // comboCardLabel reads the FIRST section, not the active one: a reader
+    // lands on tab 0, and using the open tab would rename the card in the list
+    // every time the author clicked a different one.
+    // The EDITOR page: comboCardLabel lives in editor-blocks.js, which a
+    // reader page never loads.
+    await page.goto(EDITOR, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => typeof window.comboCardLabel === 'function', { timeout: 45000 });
+
+    const labels = await page.evaluate(() => {
+        const card = {
+            type: 'theorybox', title: 'New Combo', multiSections: true,
+            sections: [
+                { label: 'In Corner 6H', title: 'Optimized Corner Starter' },
+                { label: 'Midscreen 5H', title: 'Midscreen Oki' },
+            ],
+        };
+        const plain = { type: 'theorybox', title: 'Plain Card' };
+        const routeOnly = { type: 'theorybox', title: '', sequence: ['M1', '2'] };
+        return {
+            multi: window.comboCardLabel(card, 0),
+            plain: window.comboCardLabel(plain, 0),
+            routeOnly: window.comboCardLabel(routeOnly, 3),
+            empty: window.comboCardLabel({ type: 'theorybox' }, 4),
+        };
+    });
+
+    expect(labels.multi, 'the first section heading, not the stranded card title').toBe('Optimized Corner Starter');
+    expect(labels.plain, 'switch off: the card is still its own title').toBe('Plain Card');
+    expect(labels.routeOnly, 'falls back to the route').toBe('M1 > 2');
+    expect(labels.empty, 'and then to its position').toBe('Card 5');
+});
