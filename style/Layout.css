@@ -2114,6 +2114,35 @@ summary:focus-visible {
     border: 1px solid var(--border-color);
 }
 
+/* --- MATCHUP CLASHES (v0.20, js/dashboards.js buildMatchupTable) ---------
+   A pair whose two pages don't mirror each other, marked with a dark corner on
+   BOTH cells. The corner is a fixed #111 rather than a theme token because the
+   tier colours under it are fixed too, and every one of them, plus the white
+   an unknown tier gets, is light enough for it to read on. */
+.matchup-grid-link.is-clash,
+.matchup-legend-swatch.is-clash { position: relative; }
+.matchup-legend-swatch.is-clash { background: var(--text-muted); }
+.matchup-grid-link.is-clash::after,
+.matchup-legend-swatch.is-clash::after {
+    content: ''; position: absolute; top: 0; right: 0;
+    border-style: solid; border-color: transparent #111 transparent transparent;
+}
+.matchup-grid-link.is-clash::after { border-width: 0 9px 9px 0; }
+.matchup-legend-swatch.is-clash::after { border-width: 0 6px 6px 0; }
+
+.matchup-clashes { margin-top: 1rem; font-family: var(--text-mono); font-size: 0.7rem; }
+.matchup-clashes > summary {
+    cursor: pointer; font-weight: bold; color: var(--text-white);
+    padding: 0.35rem 0;
+}
+.matchup-clashes > .matchup-grid-caption { margin-top: 0.5rem; }
+.matchup-clashes ol {
+    margin: 0; padding-left: 2.25rem; line-height: 1.7; color: var(--text-muted);
+}
+.matchup-clashes a { color: var(--text-white); text-decoration: none; }
+.matchup-clashes a:hover { text-decoration: underline; }
+.matchup-clash-tier { font-weight: bold; }
+
 /* --- COMBO CARD: MULTIPLE SECTIONS (v0.19 C3b, owner 2026-09-20) ---
    Each tab is a whole variant, so the row switches CARDS. It sits ABOVE the
    card on the page background rather than inside it, which is how the owner's
