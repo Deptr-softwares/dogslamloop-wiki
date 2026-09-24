@@ -454,8 +454,13 @@ window.buildMatchupTable = async function (sectionId, containerId) {
         // Roster order comes from navigation.json, so the grid reads in the
         // same order as every menu on the site. Archived pages are already
         // absent from it, which is rule 3 in this file's header.
+        //
+        // Hidden characters (private server only, `isHidden`) are left out as
+        // row AND column, owner's request 2026-09-24. Filtered here, before
+        // anything else reads the roster, so a Clash involving one is never
+        // computed either.
         const roster = ((navData || {}).Characters || [])
-            .filter(c => c && c.cms_config && c.cms_config.pageId && c.name);
+            .filter(c => c && c.cms_config && c.cms_config.pageId && c.name && !c.isHidden);
         if (roster.length < 2) { section.hidden = true; return; }
 
         const byPageId = new Map(rows.map(r => [r.page_id, r.matchups]));
@@ -604,8 +609,7 @@ window.buildMatchupTable = async function (sectionId, containerId) {
         const notices = clashes.length
             ? '<details class="matchup-clashes"><summary>Clashes (' + clashes.length + ')</summary>'
                 + '<p class="matchup-grid-caption">Clash: the two character pages don\'t mirror each'
-                + ' other. Advantage on one page should read Disadvantage on the other, and Equal'
-                + ' should read Equal. Biggest gap first.</p><ol>'
+                + ' other. Advantage on one page should read Disadvantage on the other, and such.</p><ol>'
                 + clashes.map(c => '<li>' + side(c.a, c.b, c.tierAB) + ', but '
                     + side(c.b, c.a, c.tierBA) + '.</li>').join('')
                 + '</ol></details>'

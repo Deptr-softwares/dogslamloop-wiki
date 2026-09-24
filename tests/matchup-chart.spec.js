@@ -263,6 +263,43 @@ test('at phone width the grid scrolls inside its own box, never the page', async
     expect(widths.page).toBeLessThanOrEqual(widths.viewport);
 });
 
+test('a hidden character is left out as row, column and Clash', async ({ page }) => {
+    // Owner's request, 2026-09-24: Strongest of History is private-server-only
+    // (`isHidden` in navigation.json) and must not be in the chart. It both
+    // rates and is rated here, and one of those pairs would be a Clash, so a
+    // filter applied to any one of the three would still fail this.
+    const roster = { Characters: [
+        ...ROSTER.Characters,
+        { id: 'Strongest-of-History', name: 'Strongest of History', url: 'characters/Strongest_of_history/index.html',
+          isHidden: true, cms_config: { pageType: 'character', pageId: 'strongest_of_history' } },
+    ] };
+    await mockHub(page, { roster, matchups: [
+        ...MATCHUPS.filter(m => m.page_id !== 'boomcat'),
+        { page_id: 'boomcat', matchups: [
+            { opponent: 'Vessel', tier: 'Advantage', content: [] },
+            { opponent: 'Strongest of History', tier: 'Equal', content: [] },
+        ] },
+        { page_id: 'strongest_of_history', matchups: [
+            { opponent: 'Boomcat', tier: 'Hopeless', content: [] },
+        ] },
+    ] });
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    // The three visible characters are all there, so the absences below are
+    // about the filter and not about a chart that failed to render.
+    await expect(grid(page).locator('tbody tr')).toHaveCount(3);
+    await expect(grid(page).locator('thead .matchup-grid-col')).toHaveCount(3);
+    await expect(page.locator('.matchup-grid-link[title^="Boomcat vs Vessel:"]')).toHaveCount(1);
+
+    await expect(grid(page).locator('.matchup-grid-row', { hasText: 'Strongest of History' })).toHaveCount(0);
+    await expect(grid(page).locator('.matchup-grid-col[title="Strongest of History"]')).toHaveCount(0);
+    await expect(page.locator('.matchup-grid-cell[title*="Strongest of History"]')).toHaveCount(0);
+    await expect(page.locator('.matchup-grid-link[title*="Strongest of History"]')).toHaveCount(0);
+    // Boomcat vs Vessel is the one Clash left.
+    await expect(page.locator('.matchup-clashes li')).toHaveCount(1);
+    await expect(page.locator('.matchup-clashes')).not.toContainText('Strongest of History');
+});
+
 test('an opponent name that matches no character is dropped, never guessed at', async ({ page }) => {
     // Found in production on 2026-09-20: twelve pages rate "Disaster Plant"
     // while the roster says "Disaster Plants", and one page has an opponent
