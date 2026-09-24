@@ -232,15 +232,17 @@ test('a hostile label or step is escaped', async ({ page }) => {
 });
 
 test('dragging across the route to copy it does not switch it', async ({ page }) => {
+    // Within ONE chip, deliberately. A drag that ends on a different chip fires
+    // no click at all in Chromium, so it never reaches the guard and would
+    // pass with the guard deleted: the first draft of this test did exactly
+    // that. Selecting part of one step's text does fire a click.
     await boot(page);
     await render(page, [STYLED]);
-    const nodes = page.locator('#render-host .combo-has-notations .combo-node');
-    const first = await nodes.nth(0).boundingBox();
-    const last = await nodes.nth(2).boundingBox();
+    const chip = await page.locator('#render-host .combo-has-notations .combo-node').nth(2).boundingBox();
 
-    await page.mouse.move(first.x + 1, first.y + first.height / 2);
+    await page.mouse.move(chip.x + 2, chip.y + chip.height / 2);
     await page.mouse.down();
-    await page.mouse.move(last.x + last.width - 1, last.y + last.height / 2, { steps: 8 });
+    await page.mouse.move(chip.x + chip.width - 2, chip.y + chip.height / 2, { steps: 8 });
     await page.mouse.up();
 
     expect(await page.evaluate(() => String(window.getSelection())), 'the drag really selected text').not.toBe('');
