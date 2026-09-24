@@ -673,9 +673,16 @@ window.enterBlockContainer = function (index, field) {
 
 // --- WHICH BLOCKS ARE OPEN (v0.16 fine-tuning 2) ---
 //
-// The workspace now opens with EVERY block collapsed, so a section with thirty
-// blocks is a list you can read rather than a page you scroll. Expanding is the
-// opt-in.
+// The workspace opens with every block EXPANDED. It opened collapsed from v0.19
+// until v0.20, and the owner reverted it after living with it: "navigating
+// through huge amount of content is easier than navigating through a bunch of
+// boxes that have a tiny preview". Block FOLDERS still open collapsed, which is
+// where the structure now comes from.
+//
+// The set is inverted rather than gaining a "startExpanded" flag: a flag would
+// have to be consulted everywhere the set already is, and the two would
+// disagree the first time somebody added a third state. Same reasoning the
+// folder state in js/editor-folders.js records for the same decision.
 //
 // A WeakSet keyed by the BLOCK OBJECT, deliberately, and not by index:
 //
@@ -693,21 +700,22 @@ window.enterBlockContainer = function (index, field) {
 // Blocks are replaced wholesale by undo/redo (JSON round-trip), so state is
 // dropped there. That is correct - those are different objects and the author
 // is looking at a different document.
-const expandedBlocks = new WeakSet();
+const collapsedBlocks = new WeakSet();
 
 window.isEditorBlockExpanded = function (block) {
-    return !!block && expandedBlocks.has(block);
+    return !!block && !collapsedBlocks.has(block);
 };
 
 window.setEditorBlockExpanded = function (block, on) {
     if (!block || typeof block !== 'object') return;
-    if (on) expandedBlocks.add(block);
-    else expandedBlocks.delete(block);
+    if (on) collapsedBlocks.delete(block);
+    else collapsedBlocks.add(block);
 };
 
 // A block the author just created is open. They added it to write in it, and
 // making them click twice for that would be the feature working against the
-// reason it exists.
+// reason it exists. Redundant while expanded is the default, and kept because
+// it states the intent rather than relying on one.
 window.markEditorBlockNew = function (block) {
     window.setEditorBlockExpanded(block, true);
     return block;
@@ -905,10 +913,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
     window.activeAccordionPath = [];
 
-    // Which folders are closed is per-section view state. Opening a different
-    // section starts everything expanded rather than inheriting a collapse the
+    // Which folders are open is per-section view state. Opening a different
+    // section starts them all closed rather than inheriting an expansion the
     // author set somewhere else, which is also what makes a bare folder name a
-    // safe key for it.
+    // safe key for it. (This said "starts everything expanded" until v0.20 and
+    // was simply wrong: resetBlockFolderState empties the EXPANDED set, and
+    // isBlockFolderCollapsed is true for anything not in it.)
     if (typeof window.resetBlockFolderState === 'function') window.resetBlockFolderState();
 
     blockHistory = [JSON.parse(JSON.stringify(currentStrategyBlocks))];
