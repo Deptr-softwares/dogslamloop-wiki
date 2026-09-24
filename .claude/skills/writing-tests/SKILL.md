@@ -183,6 +183,22 @@ evidence in the whole investigation.
 A synthetic event that moves the viewport has invented the symptom you are
 hunting.
 
+### `goto(PAGE#id)` straight after `goto(PAGE)` is not an arrival
+
+Only the fragment changed, so it is a **same-document navigation**: no reload,
+no network, no init scripts, no load-time code. It runs the `hashchange` handler
+on a page that is already built. v0.20: the test named "a link arrived at by URL
+hash resolves after the content loads" had done exactly this since v0.15, so it
+never ran the arrival code and could not see the owner's bug in it. Anything
+that reads the page first and then arrives must leave in between:
+`page.goto('about:blank')`.
+
+The same investigation had a second probe that lied. A `scrollTo` wrapper that
+forwards `(opts, y)` calls `scrollTo(opts, undefined)`, which the browser reads
+as `scrollTo(x, y)` and sends to 0,0. Every scroll silently went nowhere, and
+the log read like a smooth scroll that had not started yet. **Wrap with
+`(...args)` and forward `...args`.**
+
 ## A live page is not an empty page
 
 Specs here load real pages against real Supabase data, and the owner edits that
