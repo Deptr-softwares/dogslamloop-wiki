@@ -958,6 +958,64 @@ window.renderComboListTable = function (group, section) {
 //
 // The first attempt made the table a group's content, which left nowhere for
 // the cards to live and put the reference index in the middle of the prose.
+// WHAT A REPAINT MUST NOT THROW AWAY.
+//
+// Two things a reader sets by clicking live ONLY in the DOM: whether an
+// accordion is open, and which tab a Section Box or a multi-section Combo Card
+// is showing. The editor repaints the preview on every keystroke, so without
+// this the author watches their accordion shut and their tab snap back to the
+// first one, once per character typed.
+//
+// ONE implementation, called from both repaint paths. It was inline in
+// populateTextSection when v0.19 shipped, which left renderDocumentTab - the
+// Combos and Techs preview - without it, and that is exactly where the owner
+// found it broken: the form kept editing section 2 while the preview beside it
+// showed section 1.
+//
+// MATCHED BY POSITION, never by title. The title is the thing being typed when
+// somebody renames a section, so keying on it would lose the state on the
+// keystroke that matters most. A reorder at worst hands one box its
+// neighbour's tab, which the next click corrects.
+window.captureNestedViewState = function (container) {
+    if (!container) return { open: [], tabs: [] };
+    return {
+        open: Array.prototype.map.call(container.querySelectorAll('details'), (d) => d.open),
+        tabs: Array.prototype.map.call(container.querySelectorAll('.sbox-tabbed'), (box) => {
+            const active = box.querySelector(':scope > .sbox-tabs > .sbox-tab.is-active');
+            return active ? active.getAttribute('data-sbox-tab') : null;
+        }),
+    };
+};
+
+window.restoreNestedViewState = function (container, state) {
+    if (!container || !state) return;
+
+    // Only ever re-OPENS: a details element the author had closed stays closed,
+    // so this cannot override the markup's own default for a section that has
+    // just appeared.
+    if (state.open && state.open.length) {
+        container.querySelectorAll('details').forEach((d, i) => {
+            if (state.open[i]) d.open = true;
+        });
+    }
+
+    // Skipped when the tab it names is gone: a box that has lost a section
+    // falls back to its first, which is what a fresh render does anyway.
+    if (state.tabs && state.tabs.length) {
+        container.querySelectorAll('.sbox-tabbed').forEach((box, i) => {
+            const want = state.tabs[i];
+            if (want === null || want === undefined || want === '0') return;
+            const btn = box.querySelector(`:scope > .sbox-tabs > [data-sbox-tab="${CSS.escape(want)}"]`);
+            const panel = box.querySelector(`:scope > [data-sbox-panel="${CSS.escape(want)}"]`);
+            if (!btn || !panel) return;
+            box.querySelectorAll(':scope > .sbox-tabs > .sbox-tab').forEach(b =>
+                b.classList.toggle('is-active', b === btn));
+            box.querySelectorAll(':scope > [data-sbox-panel]').forEach(p =>
+                p.classList.toggle('is-active', p === panel));
+        });
+    }
+};
+
 window.renderDocumentTab = function (tabId, data) {
     const sections = window.getDocumentSections ? window.getDocumentSections(tabId) : null;
     if (!sections) return;
@@ -966,6 +1024,11 @@ window.renderDocumentTab = function (tabId, data) {
     if (!container) return;
 
     const { intro, groups, list } = sections;
+
+    // Captured before the clear, restored at the end. This is the editor's
+    // Combos/Techs preview as well as the live tab, and it repaints on every
+    // keystroke.
+    const viewState = window.captureNestedViewState(container);
 
     container.innerHTML = '';
     container.classList.add('space-y-6');
@@ -1055,6 +1118,8 @@ window.renderDocumentTab = function (tabId, data) {
         tables.forEach(table => host.appendChild(window.renderComboListTable(table || {}, shared)));
         container.appendChild(host);
     }
+
+    window.restoreNestedViewState(container, viewState);
 
     if (typeof window.consolidateTabContributors === 'function') {
         window.consolidateTabContributors(container);
@@ -1358,19 +1423,7 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
     // Anything else that nests blocks and remembers open/closed - SectionedBox
     // in C3 - needs this too, and for the same reason: state that lives only in
     // the DOM does not survive the thing that rebuilds the DOM.
-    const wasOpen = Array.prototype.map.call(
-        container.querySelectorAll('details'), (d) => d.open);
-
-    // Same problem, same rule, for a Section Box's tab row (v0.19 C3). Which
-    // tab is open lives only in a class on the DOM the repaint is about to
-    // throw away, so without this a box resets to its first tab on every
-    // character typed - and worse than the accordion, because a tab row makes
-    // it look like the author's click did nothing at all.
-    const wasTab = Array.prototype.map.call(
-        container.querySelectorAll('.sbox-tabbed'), (box) => {
-            const active = box.querySelector(':scope > .sbox-tabs > .sbox-tab.is-active');
-            return active ? active.getAttribute('data-sbox-tab') : null;
-        });
+    const viewState = window.captureNestedViewState(container);
 
     container.innerHTML = '';
     container.classList.remove('vessel-content');
@@ -1405,32 +1458,7 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
         section.appendChild(bodyDiv);
         container.appendChild(section);
 
-        // Put the open ones back. Only ever re-OPENS: a details element the
-        // author had closed stays closed, so this cannot override the markup's
-        // own default for a section that has just appeared.
-        if (wasOpen.length) {
-            container.querySelectorAll('details').forEach((d, i) => {
-                if (wasOpen[i]) d.open = true;
-            });
-        }
-
-        // And the tab each Section Box was showing. Matched by position for the
-        // same reason, and skipped when the tab it names is gone - a box that
-        // has lost a section falls back to the first, which is what a fresh
-        // render does anyway.
-        if (wasTab.length) {
-            container.querySelectorAll('.sbox-tabbed').forEach((box, i) => {
-                const want = wasTab[i];
-                if (want === null || want === undefined || want === '0') return;
-                const btn = box.querySelector(`:scope > .sbox-tabs > [data-sbox-tab="${CSS.escape(want)}"]`);
-                const panel = box.querySelector(`:scope > [data-sbox-panel="${CSS.escape(want)}"]`);
-                if (!btn || !panel) return;
-                box.querySelectorAll(':scope > .sbox-tabs > .sbox-tab').forEach(b =>
-                    b.classList.toggle('is-active', b === btn));
-                box.querySelectorAll(':scope > [data-sbox-panel]').forEach(p =>
-                    p.classList.toggle('is-active', p === panel));
-            });
-        }
+        window.restoreNestedViewState(container, viewState);
 
         // 2. Bind the tooltips (shared engine, see site_utils.js)
         const callouts = section.querySelectorAll('.inline-callout-btn');
