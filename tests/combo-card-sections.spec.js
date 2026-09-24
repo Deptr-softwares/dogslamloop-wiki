@@ -498,3 +498,32 @@ test('the tab label names the card, but only the first tab does', async ({ page 
     expect(labels.routeOnly, 'falls back to the route').toBe('M1 > 2');
     expect(labels.empty, 'and then to its position').toBe('Card 5');
 });
+
+test('renaming a card renames its first tab, because the label is not pre-filled', async ({ page }) => {
+    // The half of v0.20 bug 1 that the list test does NOT cover, found by the
+    // falsification passing: restoring the old `label: card.title` seed left
+    // every list assertion green, because comboCardLabel reads the title first.
+    // The stale label is only visible on the READER's tab row.
+    await page.goto(EDITOR, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => typeof window.seedCardSections === 'function', { timeout: 45000 });
+
+    const out = await page.evaluate(() => {
+        // An unnamed card, exactly as the block registry creates one.
+        const card = { type: 'theorybox', title: 'New Combo', multiSections: false, sections: [] };
+        window.seedCardSections(card, true);
+        card.multiSections = true;
+
+        // The author names it afterwards, which writes to the section.
+        const seeded = card.sections[0];
+        seeded.title = 'Corner BnB';
+
+        return {
+            seededLabel: seeded.label,
+            html: window.generateHTMLForBlocks([card], 'combos'),
+        };
+    });
+
+    expect(out.seededLabel, 'the tab label is an override, not a copy').toBe('');
+    expect(out.html).toContain('Corner BnB');
+    expect(out.html, 'the template default never reaches a reader').not.toContain('New Combo');
+});
