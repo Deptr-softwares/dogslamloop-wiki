@@ -116,6 +116,19 @@ Taking backups is not the fix; committing first is. An extra commit on a
 feature branch costs nothing and turns a destructive command into a harmless
 one.
 
+### A mutation that did not apply looks exactly like a test that cannot fail
+
+v0.20: a one-line `node -e` mutation typed into the shell silently failed to
+apply, the spec stayed green, and it read as "this test cannot catch the
+guard". It could; the code under test was never changed. **Apply every mutation
+through something that checks its anchor was found exactly once** and says so
+when it was not. Replacing a string that is not there is a no-op, not an error.
+
+The same week a drag test passed with the guard it protects deleted, for a real
+reason this time: a drag that ends on a DIFFERENT element fires no `click` in
+Chromium, so the handler never ran. When a mutation survives, find out which of
+the two happened before rewriting the test or the code.
+
 ## Assert structure, not pixels
 
 Exact geometry is OS-dependent — Linux renders these fonts wider than Windows, so a `getBoundingClientRect()` comparison passes locally and fails in CI for reasons unrelated to the bug.
