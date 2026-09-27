@@ -1133,6 +1133,20 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 
 .report-quote-down { opacity: 0.65; font-style: italic; }
 
+/* v0.20: the broken-media report in owner tools (js/owner-media-report.js). */
+.media-report-summary { margin: 0.5rem 0; color: var(--text-white); font-size: 0.85rem; }
+.media-report-note { margin: 0 0 0.5rem 0; color: var(--text-muted); font-size: 0.75rem; }
+.media-report-page { border-top: 1px solid var(--border-color, #333); padding: 0.5rem 0; }
+.media-report-page-head { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; }
+.media-report-page-name { color: var(--text-white); font-weight: bold; }
+.media-report-count { font-family: var(--text-mono); font-size: 0.7rem; color: #ef4444; }
+.media-report-list { list-style: none; margin: 0.35rem 0 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.media-report-item { display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; align-items: baseline; font-size: 0.75rem; }
+.media-report-where { color: var(--text-muted); }
+.media-report-file { font-family: var(--text-mono); color: var(--accent-blue); overflow-wrap: anywhere; }
+.media-report-state { font-family: var(--text-mono); font-size: 0.65rem; text-transform: uppercase; color: #ef4444; }
+.media-report-state.is-unknown { color: #facc15; }
+
 /* v0.20: the images on a reported post, small, each opening the full file. */
 .report-images { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 0.5rem 0; }
 .report-images img { display: block; width: 96px; height: 96px; object-fit: cover; border: 1px solid var(--border-color, #333); }
