@@ -1004,9 +1004,9 @@ async function switchVersionView(mode) {
                     if (typeof window.populateTextSection === 'function') window.populateTextSection(`diff-inline-${safeId}`, '', diffedBlocks, context);
                     // The renderer has now escaped the contributor's text, once.
                     // Turn the diff markers it left alone into real tags.
-                    if (typeof window.resolveDiffMarkers === 'function') {
-                        window.resolveDiffMarkers(document.getElementById(`diff-inline-${safeId}`));
-                    }
+                    // Unguarded, like editor-sync.js: a typeof guard here is
+                    // how the editor's copy of this bug stayed invisible.
+                    window.resolveDiffMarkers(document.getElementById(`diff-inline-${safeId}`));
                 });
 
             } else {

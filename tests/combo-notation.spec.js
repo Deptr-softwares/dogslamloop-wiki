@@ -236,9 +236,23 @@ test('dragging across the route to copy it does not switch it', async ({ page })
     // no click at all in Chromium, so it never reaches the guard and would
     // pass with the guard deleted: the first draft of this test did exactly
     // that. Selecting part of one step's text does fire a click.
+    //
+    // Pinned to the viewport. The host is appended to a live character page,
+    // whose own content is still arriving after boot; under load it pushed the
+    // host down between measuring the chip and dragging, so the drag landed on
+    // something else and selected nothing (1 run in 3 at --repeat-each=6).
     await boot(page);
     await render(page, [STYLED]);
-    const chip = await page.locator('#render-host .combo-has-notations .combo-node').nth(2).boundingBox();
+    await page.evaluate(() => {
+        Object.assign(document.getElementById('render-host').style, {
+            position: 'fixed', top: '120px', left: '320px', zIndex: '2147483000', background: '#000',
+        });
+    });
+    const chipLocator = page.locator('#render-host .combo-has-notations .combo-node').nth(2);
+    const chip = await chipLocator.boundingBox();
+    const startsOnChip = await chipLocator.evaluate((el, [x, y]) => el.contains(document.elementFromPoint(x, y)),
+        [chip.x + 2, chip.y + chip.height / 2]);
+    expect(startsOnChip, 'the drag starts on the chip, not on whatever covers it').toBe(true);
 
     await page.mouse.move(chip.x + 2, chip.y + chip.height / 2);
     await page.mouse.down();
@@ -292,11 +306,10 @@ test('a changed style is marked in the diff, and its markers never land in an at
     // marker left in the title attribute would put <ins class="diff-add"> there,
     // and its quotes would end the attribute and break everything after it.
     //
-    // The review queue's own pair, diffTextLCS and resolveDiffMarkers from
-    // js/admin-diff.js, loaded onto a rendered page. edit.html does not load
-    // that file, and its own diffTextLCS still emits tags (see the devlog).
+    // The pair both review screens load, diffTextLCS and resolveDiffMarkers
+    // from js/diff-markers.js, added to a reader page that does not load it.
     await boot(page);
-    await page.addScriptTag({ url: '/js/admin-diff.js' });
+    await page.addScriptTag({ url: '/js/diff-markers.js' });
     const result = await page.evaluate(() => {
         const oldList = [{ label: 'Keyboard', sequence: ['LMB', 'Space'] }];
         const newList = [{ label: 'Keys', sequence: ['LMB', 'Shift'] }];

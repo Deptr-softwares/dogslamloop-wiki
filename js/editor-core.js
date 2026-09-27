@@ -324,8 +324,8 @@ window.cancelEditor = function() {
 };
 
 // applyDeltaToData is defined once, in site_utils.js (loaded before this file).
-// diffTextLCS, triggerManualSync, updateLivePreview, toggleDiffMode, and
-// renderDiffView all moved to js/editor-sync.js.
+// triggerManualSync, updateLivePreview, toggleDiffMode, and renderDiffView all
+// moved to js/editor-sync.js; diffTextLCS to js/diff-markers.js.
 
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
