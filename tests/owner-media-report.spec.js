@@ -53,8 +53,13 @@ async function openReport(page) {
         if (url === LINKS.murmurate) return r.fulfill({ status: 200, headers: cors, contentType: 'video/webm', path: 'medias/videos/example-video2.webm' });
         return r.fulfill({ status: url === LINKS.mangled ? 400 : 404, headers: cors, body: 'not found' });
     });
-    // No CORS header: fetch cannot read it, so the element probe has to.
-    await page.route(/^https:\/\/cdn\.discordapp\.test\//, r => r.fulfill({ status: 404, body: 'expired' }));
+    // A host fetch cannot read. Playwright's fulfilled responses are readable
+    // cross-origin even without a CORS header, so leaving the header off was not
+    // enough: the first version of this test never reached the element probe,
+    // and passed with it deleted. The HEAD is failed outright, which is what an
+    // unreadable host looks like to fetch; the probe's own GET gets the 404.
+    await page.route(/^https:\/\/cdn\.discordapp\.test\//, r =>
+        r.request().method() === 'HEAD' ? r.abort('failed') : r.fulfill({ status: 404, body: 'expired' }));
     await page.route(/^https:\/\/example\.test\//, r => { throw new Error('a non-media link was checked'); });
 
     await page.addInitScript(({ pageData, sitePages }) => {
