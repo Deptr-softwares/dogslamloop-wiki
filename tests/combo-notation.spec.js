@@ -254,13 +254,20 @@ test('dragging across the route to copy it does not switch it', async ({ page })
         [chip.x + 2, chip.y + chip.height / 2]);
     expect(startsOnChip, 'the drag starts on the chip, not on whatever covers it').toBe(true);
 
+    // The selection is read at mouseup, BEFORE the click handler runs. Read
+    // afterwards, a missing guard failed the wrong assertion: the route
+    // switched, the chips re-rendered, the selection collapsed, and the test
+    // blamed the drag instead of the guard.
+    await page.evaluate(() => document.addEventListener('mouseup',
+        () => { window.__selectionAtMouseup = String(window.getSelection()); }, { capture: true, once: true }));
+
     await page.mouse.move(chip.x + 2, chip.y + chip.height / 2);
     await page.mouse.down();
     await page.mouse.move(chip.x + chip.width - 2, chip.y + chip.height / 2, { steps: 8 });
     await page.mouse.up();
 
-    expect(await page.evaluate(() => String(window.getSelection())), 'the drag really selected text').not.toBe('');
-    expect(await visibleRoute(page)).toEqual(['M1', 'Uppercut', 'Murmurate']);
+    expect(await page.evaluate(() => window.__selectionAtMouseup), 'the drag really selected text').toBeTruthy();
+    expect(await visibleRoute(page), 'a drag to copy does not switch the route').toEqual(['M1', 'Uppercut', 'Murmurate']);
 });
 
 test('a Combo Row in a table switches the same way', async ({ page }) => {
