@@ -31,16 +31,46 @@
     // trigger is what actually enforces it.
     const POST_COOLDOWN_MS = 20000;
 
+    // --- IMAGES AND GIFS (v0.20) ---
+    //
+    // Both limits mirror the database, where the real rules live: the count is
+    // page_discussions_images_check, the size is discussion-media's own
+    // file_size_limit (supabase/migrations/20260928000000).
+    const MAX_IMAGES = 4;
+    const IMAGE_MAX_EDGE = 1600;
+    const IMAGE_MAX_BYTES = 1024 * 1024;
+    const IMAGE_BUCKET = 'discussion-media';
+
+    // A stored path: the poster's id, then a name this page chose. Same rule as
+    // the trigger's, so a row that somehow breaks it is not drawn at all.
+    const IMAGE_PATH = /^[0-9a-f-]{36}\/[A-Za-z0-9_-]{1,64}\.(webp|jpg)$/;
+
+    // KLIPY's media servers, read off klipy.com on 2026-09-28: every GIF, WebP
+    // and MP4 on its home page was served from these two hosts, under /ii/.
+    // Exact hosts and path, so a post can never point a reader's browser
+    // anywhere else. A KLIPY PAGE link (klipy.com/gifs/...) stays text: the page
+    // refuses scripted requests, so there is no way to find its GIF from here.
+    const KLIPY_MEDIA = /https:\/\/static2?\.klipy\.com\/ii\/[A-Za-z0-9/_-]+\.(gif|webp|mp4)(?![\w./-])/g;
+    const MAX_GIFS = 4;
+
     const state = {
         pageId: null,
         offset: 0,
         session: null,
         role: undefined,   // undefined = not looked up, null = signed in with no role
         canModerate: false,
+        canUploadMedia: false,
         exhausted: false,
         lastPostAt: 0,
         replyingTo: null,
+        // post id -> its image paths, as drawn. Removing your own post empties
+        // the column server-side, so the paths to delete are read from here.
+        imagesByPost: new Map(),
     };
+
+    // Images picked in a composer and prepared, waiting for POST. Keyed by the
+    // form, so a reply's attachments never leak into the top-level composer.
+    const pendingImages = new WeakMap();
 
     const client = () => window.supabaseClient;
 
@@ -159,6 +189,205 @@
         }
     }
 
+    // KLIPY media links in a post's text, the first MAX_GIFS of them.
+    function klipyLinks(text) {
+        return [...String(text || '').matchAll(KLIPY_MEDIA)].map(m => m[0]).slice(0, MAX_GIFS);
+    }
+
+    // The text with the links that are drawn as GIFs taken out, so a post that
+    // is only a GIF does not also print its address.
+    function textWithoutGifs(text, gifs) {
+        let out = String(text || '');
+        gifs.forEach(url => { out = out.split(url).join(''); });
+        return out.replace(/[ \t]+$/gm, '').trim();
+    }
+
+    // What a post carries besides words: its uploaded images, then its KLIPY
+    // GIFs. Every node is built with createElement and every address is set as
+    // a property, never interpolated, and each one has passed an exact pattern
+    // above: this renders unreviewed input on every character page.
+    function renderPostMedia(entry) {
+        const images = (Array.isArray(entry.images) ? entry.images : [])
+            .filter(p => typeof p === 'string' && IMAGE_PATH.test(p))
+            .slice(0, MAX_IMAGES);
+        const gifs = klipyLinks(entry.body);
+        if (!images.length && !gifs.length) return null;
+
+        const box = el('div', 'discussion-media');
+
+        images.forEach(path => {
+            const url = client().storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+            const link = el('a', 'discussion-media-link');
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.setAttribute('aria-label', 'Open the full image');
+            const img = document.createElement('img');
+            img.className = 'discussion-media-img';
+            img.src = url;
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            img.alt = 'Image attached to the post';
+            link.appendChild(img);
+            box.appendChild(link);
+        });
+
+        gifs.forEach(url => {
+            let node;
+            if (url.endsWith('.mp4')) {
+                // KLIPY's MP4 of a GIF is a fraction of the GIF's bytes. Muted,
+                // looping and inline: it plays the part of a GIF, nothing more.
+                node = document.createElement('video');
+                node.muted = true;
+                node.loop = true;
+                node.autoplay = true;
+                node.playsInline = true;
+                node.setAttribute('playsinline', '');
+                node.setAttribute('aria-label', 'GIF from KLIPY');
+            } else {
+                node = document.createElement('img');
+                node.loading = 'lazy';
+                node.decoding = 'async';
+                node.alt = 'GIF from KLIPY';
+            }
+            node.className = 'discussion-media-gif';
+            // KLIPY sees that a GIF was loaded, not which page it was on.
+            node.referrerPolicy = 'no-referrer';
+            node.src = url;
+            box.appendChild(node);
+        });
+
+        if (gifs.length) box.appendChild(el('span', 'discussion-media-credit', 'GIF via KLIPY'));
+        return box;
+    }
+
+    // --- PREPARING AN IMAGE FOR UPLOAD ---
+    //
+    // Shrunk to IMAGE_MAX_EDGE on its long side and re-encoded in the browser,
+    // so a 12-megapixel phone photo arrives as a few hundred KB. WebP where the
+    // browser can encode it; JPEG where it cannot, which is Safari and so every
+    // browser on iOS: asked for WebP, Safari's canvas silently returns a PNG.
+    // Probed once, by asking for a 1px WebP and reading back what came out.
+    let webpEncodes = null;
+
+    function canvasToBlob(canvas, type, quality) {
+        return new Promise(resolve => canvas.toBlob(resolve, type, quality));
+    }
+
+    async function canEncodeWebp() {
+        if (webpEncodes !== null) return webpEncodes;
+        const probe = document.createElement('canvas');
+        probe.width = probe.height = 1;
+        const blob = await canvasToBlob(probe, 'image/webp', 0.8);
+        webpEncodes = !!blob && blob.type === 'image/webp';
+        return webpEncodes;
+    }
+
+    async function prepareImage(file) {
+        let bitmap;
+        try {
+            bitmap = await createImageBitmap(file);
+        } catch (e) {
+            throw new Error('That image could not be read. PNG, JPEG and WebP all work.');
+        }
+
+        const type = (await canEncodeWebp()) ? 'image/webp' : 'image/jpeg';
+        const ext = type === 'image/webp' ? 'webp' : 'jpg';
+        let scale = Math.min(1, IMAGE_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+
+        // Quality first, then size: a sharp smaller image beats a blotchy big
+        // one, but most images fit at the first quality and never get here.
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+            canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+            const ctx = canvas.getContext('2d');
+            // JPEG has no transparency, and a transparent pixel would otherwise
+            // come out black by accident rather than on purpose.
+            if (type === 'image/jpeg') {
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+            ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+            for (const quality of [0.85, 0.72, 0.6]) {
+                const blob = await canvasToBlob(canvas, type, quality);
+                if (blob && blob.type === type && blob.size <= IMAGE_MAX_BYTES) {
+                    if (bitmap.close) bitmap.close();
+                    return { blob, ext, previewUrl: URL.createObjectURL(blob) };
+                }
+            }
+            scale *= 0.75;
+        }
+        if (bitmap.close) bitmap.close();
+        throw new Error('That image is too large, even after shrinking it.');
+    }
+
+    // Random, so two uploads can never collide and a name says nothing about
+    // its poster or content. The trigger allows letters, digits, - and _.
+    function newImageName() {
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+        return Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
+    }
+
+    // Best effort, and never awaited into anything a reader waits on: a file
+    // left behind costs a few hundred KB, not a broken post.
+    async function discardImages(paths) {
+        if (!paths || !paths.length || !client()) return;
+        try { await client().storage.from(IMAGE_BUCKET).remove(paths); } catch (e) { /* see above */ }
+    }
+
+    function renderAttachments(form) {
+        const strip = form.querySelector('.discussion-attachments');
+        if (!strip) return;
+        const list = pendingImages.get(form) || [];
+        strip.textContent = '';
+        list.forEach((item, i) => {
+            const cell = el('div', 'discussion-attachment');
+            const img = document.createElement('img');
+            img.src = item.previewUrl;
+            img.alt = `Image ${i + 1} to attach`;
+            cell.appendChild(img);
+            const x = el('button', 'discussion-attachment-remove', '×');
+            x.type = 'button';
+            x.dataset.removeAttachment = String(i);
+            x.setAttribute('aria-label', `Remove image ${i + 1}`);
+            cell.appendChild(x);
+            strip.appendChild(cell);
+        });
+        strip.hidden = list.length === 0;
+    }
+
+    function clearAttachments(form) {
+        (pendingImages.get(form) || []).forEach(item => URL.revokeObjectURL(item.previewUrl));
+        pendingImages.delete(form);
+        renderAttachments(form);
+    }
+
+    async function addImages(form, files) {
+        const images = files.filter(f => f && /^image\//.test(f.type));
+        if (!images.length) return;
+
+        const list = pendingImages.get(form) || [];
+        const room = MAX_IMAGES - list.length;
+        if (room <= 0) { setStatus(`Up to ${MAX_IMAGES} images a post.`, true); return; }
+
+        setStatus('Preparing images…');
+        let problem = images.length > room ? `Up to ${MAX_IMAGES} images a post; the rest were left out.` : '';
+        let note = '';
+        for (const file of images.slice(0, room)) {
+            try {
+                list.push(await prepareImage(file));
+                if (file.type === 'image/gif') note = 'A GIF is posted as a still image. For a moving one, paste a KLIPY link.';
+            } catch (err) {
+                problem = err.message;
+            }
+        }
+        pendingImages.set(form, list);
+        renderAttachments(form);
+        setStatus(problem || note, !!problem);
+    }
+
     // --- WHO IS READING ---
 
     async function loadViewer() {
@@ -170,7 +399,7 @@
             state.session = null;
         }
 
-        if (!state.session) { state.role = undefined; state.canModerate = false; return; }
+        if (!state.session) { state.role = undefined; state.canModerate = false; state.canUploadMedia = false; return; }
 
         try {
             // select('*') rather than naming columns: this row gains a column
@@ -189,9 +418,17 @@
             state.canModerate = !!data && (
                 window.roleMeets(data.role, 'reviewer') || data.can_moderate === true
             );
+            // Mirrors public.can_upload_media(): Trusted Editor and up, or the
+            // owner's tick, and never a viewer, who is banned by name because a
+            // ban is not a rung. Decides only whether the composer offers
+            // images; the bucket and the trigger are what refuse.
+            state.canUploadMedia = !!data && data.role !== 'viewer' && (
+                window.roleMeets(data.role, 'trusted_editor') || data.can_upload_media === true
+            );
         } catch (e) {
             state.role = null;
             state.canModerate = false;
+            state.canUploadMedia = false;
         }
     }
 
@@ -443,6 +680,16 @@
         return form;
     }
 
+    // A removed post draws no media, whatever its row says: removal empties the
+    // column server-side, and this holds even for a row removed before that
+    // rule existed. A hidden one keeps it, because only a moderator can see it.
+    function appendMedia(wrap, entry) {
+        if (entry.status !== 'visible' && entry.status !== 'hidden') return;
+        state.imagesByPost.set(entry.id, Array.isArray(entry.images) ? entry.images.slice() : []);
+        const media = renderPostMedia(entry);
+        if (media) wrap.appendChild(media);
+    }
+
     function renderPost(post, replies) {
         const removed = post.status !== 'visible';
 
@@ -464,16 +711,17 @@
             // wrap yet at this point, and insertBefore against a non-child
             // throws - taking the whole thread render down with it.
             wrap.appendChild(el('span', 'discussion-hidden-badge', 'HIDDEN FROM READERS'));
-            setTextWithBreaks(body, post.body);
+            setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
         } else if (removed) {
             body.classList.add('discussion-body-removed');
             body.textContent = post.status === 'removed_by_staff'
                 ? '[removed by a moderator]'
                 : '[removed by the author]';
         } else {
-            setTextWithBreaks(body, post.body);
+            setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
         }
         wrap.appendChild(body);
+        appendMedia(wrap, post);
 
         const actions = el('div', 'discussion-post-actions');
 
@@ -522,16 +770,17 @@
         const body = el('div', 'discussion-body');
         if (reply.status === 'hidden') {
             wrap.appendChild(el('span', 'discussion-hidden-badge', 'HIDDEN FROM READERS'));
-            setTextWithBreaks(body, reply.body);
+            setTextWithBreaks(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
         } else if (removed) {
             body.classList.add('discussion-body-removed');
             body.textContent = reply.status === 'removed_by_staff'
                 ? '[removed by a moderator]'
                 : '[removed by the author]';
         } else {
-            setTextWithBreaks(body, reply.body);
+            setTextWithBreaks(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
         }
         wrap.appendChild(body);
+        appendMedia(wrap, reply);
 
         const actions = el('div', 'discussion-post-actions');
 
@@ -587,11 +836,36 @@
         area.setAttribute('aria-label', parentId ? 'Reply' : 'New post');
         form.appendChild(area);
 
+        // Images, for whoever has the upload media permission. Nobody else sees
+        // a button: offering one that the bucket then refuses would be a
+        // control that only ever fails.
+        if (state.canUploadMedia) {
+            const strip = el('div', 'discussion-attachments');
+            strip.hidden = true;
+            form.appendChild(strip);
+
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.multiple = true;
+            input.hidden = true;
+            input.className = 'discussion-image-input';
+            form.appendChild(input);
+        }
+
         const row = el('div', 'discussion-composer-row');
 
         const submit = el('button', 'btn-sys btn-sys-blue discussion-submit', parentId ? 'REPLY' : 'POST');
         submit.type = 'submit';
         row.appendChild(submit);
+
+        if (state.canUploadMedia) {
+            const attach = el('button', 'btn-sys btn-sys-regular discussion-attach', 'IMAGE');
+            attach.type = 'button';
+            attach.dataset.attachImage = 'true';
+            attach.title = `Attach up to ${MAX_IMAGES} images. You can also paste one into the box.`;
+            row.appendChild(attach);
+        }
 
         if (parentId) {
             const cancel = el('button', 'btn-sys btn-sys-regular discussion-cancel', 'CANCEL');
@@ -664,6 +938,7 @@
         let list = root.querySelector('.discussion-list');
 
         if (!append) {
+            state.imagesByPost.clear();
             root.innerHTML = '';
             root.appendChild(el('h2', 'section-title discussion-title', 'Discussion'));
 
@@ -703,7 +978,8 @@
         if (!area) return;
 
         const body = area.value.trim();
-        if (!body) { setStatus('Write something first.', true); return; }
+        const attachments = pendingImages.get(form) || [];
+        if (!body && !attachments.length) { setStatus('Write something first.', true); return; }
 
         const since = Date.now() - state.lastPostAt;
         if (state.lastPostAt && since < POST_COOLDOWN_MS) {
@@ -712,6 +988,29 @@
         }
 
         if (submit) submit.disabled = true;
+
+        // Images go up FIRST, into the poster's own folder, and the post names
+        // them. If anything after that fails, the files are taken back down,
+        // so a refused post never leaves orphans in the bucket.
+        const paths = [];
+        if (attachments.length && state.session) {
+            setStatus('Uploading images…');
+            for (const item of attachments) {
+                const path = `${state.session.user.id}/${newImageName()}.${item.ext}`;
+                const { error: upErr } = await client().storage.from(IMAGE_BUCKET)
+                    .upload(path, item.blob, { contentType: item.blob.type, cacheControl: '31536000' });
+                if (upErr) {
+                    await discardImages(paths);
+                    if (submit) submit.disabled = false;
+                    setStatus(/row-level security|unauthori[sz]ed/i.test(upErr.message || '')
+                        ? 'Attaching images needs the upload media permission.'
+                        : `An image could not be uploaded: ${upErr.message || 'unknown error'}`, true);
+                    return;
+                }
+                paths.push(path);
+            }
+        }
+
         setStatus('Posting…');
 
         const parentId = form.dataset.parentId || null;
@@ -720,15 +1019,17 @@
         // trigger overwrites both from auth.uid(), so sending them would be
         // decoration that looks like it matters - and the day someone removes
         // the trigger, code that never claimed authorship keeps being safe.
-        const { error } = await client().from('page_discussions').insert([{
-            page_id: state.pageId,
-            parent_id: parentId,
-            body,
-        }]);
+        //
+        // `images` only when there are some, so a words-only post is the same
+        // request it always was.
+        const row = { page_id: state.pageId, parent_id: parentId, body };
+        if (paths.length) row.images = paths;
+        const { error } = await client().from('page_discussions').insert([row]);
 
         if (submit) submit.disabled = false;
 
         if (error) {
+            await discardImages(paths);
             // 53400 is the rate limit's own code; the message it carries is
             // already written for a person, so it is shown as-is.
             setStatus(error.message || 'Could not post.', true);
@@ -736,6 +1037,7 @@
         }
 
         state.lastPostAt = Date.now();
+        clearAttachments(form);
         area.value = '';
         state.replyingTo = null;
         state.offset = 0;
@@ -750,8 +1052,16 @@
             : window.confirm('Delete your post? The text is removed for good.');
         if (!ok) return;
 
+        // Read before the call: removal empties the column server-side.
+        const images = (state.imagesByPost.get(postId) || []).filter(p => IMAGE_PATH.test(p));
+
         const { error } = await client().rpc('remove_my_discussion_post', { p_post_id: postId });
         if (error) { setStatus(error.message || 'Could not remove that post.', true); return; }
+
+        // An author's removal is final, so the files go with the words. Only
+        // YOUR posts have a Delete button, and the bucket only lets you delete
+        // from your own folder, so this can never reach anyone else's image.
+        discardImages(images);
 
         state.offset = 0;
         state.exhausted = false;
@@ -848,6 +1158,24 @@
                 return;
             }
 
+            const attach = e.target.closest('[data-attach-image]');
+            if (attach) {
+                const form = attach.closest('.discussion-composer');
+                const input = form && form.querySelector('.discussion-image-input');
+                if (input) input.click();
+                return;
+            }
+
+            const dropAttachment = e.target.closest('[data-remove-attachment]');
+            if (dropAttachment) {
+                const form = dropAttachment.closest('.discussion-composer');
+                const list = (form && pendingImages.get(form)) || [];
+                const [gone] = list.splice(Number(dropAttachment.dataset.removeAttachment), 1);
+                if (gone) URL.revokeObjectURL(gone.previewUrl);
+                renderAttachments(form);
+                return;
+            }
+
             const reply = e.target.closest('[data-reply-to]');
             if (reply) { openReply(reply.dataset.replyTo); return; }
 
@@ -891,6 +1219,28 @@
 
             const signin = e.target.closest('[data-discussion-signin]');
             if (signin && typeof window.openAuthModal === 'function') window.openAuthModal();
+        });
+
+        root.addEventListener('change', async (e) => {
+            const input = e.target.closest('.discussion-image-input');
+            if (!input) return;
+            const files = Array.from(input.files || []);
+            // Cleared first, so picking the same file again after removing it
+            // still fires a change.
+            input.value = '';
+            await addImages(input.closest('.discussion-composer'), files);
+        });
+
+        // Pasting a screenshot straight into the box, which is how most people
+        // already share one. Only images are taken; pasted text is left alone.
+        root.addEventListener('paste', async (e) => {
+            const area = e.target.closest('.discussion-textarea');
+            if (!area || !state.canUploadMedia) return;
+            const files = Array.from((e.clipboardData && e.clipboardData.files) || [])
+                .filter(f => /^image\//.test(f.type));
+            if (!files.length) return;
+            e.preventDefault();
+            await addImages(area.closest('.discussion-composer'), files);
         });
 
         root.addEventListener('submit', async (e) => {

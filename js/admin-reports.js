@@ -33,6 +33,13 @@ function reportEscape(value) {
     return window.escapeHtml ? window.escapeHtml(value) : String(value == null ? '' : value);
 }
 
+// post_images arrives with list_content_reports since v0.20; absent before the
+// release, which reads as no images rather than an error.
+function reportImagePaths(row) {
+    return (Array.isArray(row.post_images) ? row.post_images : [])
+        .filter(p => typeof p === 'string' && /^[0-9a-f-]{36}\/[A-Za-z0-9_-]{1,64}\.(webp|jpg)$/.test(p));
+}
+
 function reportTimeAgo(iso) {
     const then = new Date(iso).getTime();
     if (!then) return '';
@@ -119,9 +126,33 @@ function renderReportQueue() {
                 ? row.post_body
                 : `[this post is already ${row.post_status.replace(/_/g, ' ')}]`;
         } else {
-            quote.textContent = row.post_body || '[the post is gone]';
+            const images = reportImagePaths(row);
+            quote.textContent = row.post_body || (images.length ? '[images only]' : '[the post is gone]');
         }
         card.appendChild(quote);
+
+        // v0.20: a moderator deciding about an image has to see it. Small here;
+        // each opens the full file. Paths are checked against the same rule the
+        // trigger enforces, and every address is set as a property.
+        const images = reportImagePaths(row);
+        if (images.length && window.supabaseClient) {
+            const strip = document.createElement('div');
+            strip.className = 'report-images';
+            images.forEach(path => {
+                const url = window.supabaseClient.storage.from('discussion-media').getPublicUrl(path).data.publicUrl;
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                link.rel = 'noopener';
+                const img = document.createElement('img');
+                img.src = url;
+                img.loading = 'lazy';
+                img.alt = 'Image attached to the reported post';
+                link.appendChild(img);
+                strip.appendChild(link);
+            });
+            card.appendChild(strip);
+        }
 
         if (row.post_status && row.post_status !== 'visible') {
             const already = document.createElement('div');

@@ -257,3 +257,23 @@ test('reporter notes and post bodies are never parsed as markup', async ({ page 
     expect(result.scripts).toBe(0);
     expect(result.quote).toContain('<script>');
 });
+
+test('a reported post shows its images, and only paths that pass the rule', async ({ page }) => {
+    // v0.20: a moderator deciding about an image has to see it. Routed to a
+    // local file, so the test never fetches production Storage.
+    const local = require('fs').readFileSync(require('path').join(__dirname, '..', 'medias', 'images', 'DogslamloopIcon.webp'));
+    await page.route(/\/storage\/v1\/object\/public\/discussion-media\//, r =>
+        r.fulfill({ status: 200, contentType: 'image/webp', body: local }));
+    const good = '22222222-2222-4222-8222-222222222222/c0ffee.webp';
+
+    await openQueue(page, {
+        rows: [report({ id: 'r1', post_body: '', post_images: [good, 'https://evil.test/x.webp', '../x.webp'] })],
+    });
+
+    const imgs = page.locator('.report-images img');
+    await expect(imgs).toHaveCount(1);
+    expect(await imgs.getAttribute('src')).toMatch(/\/storage\/v1\/object\/public\/discussion-media\/22222222-2222-4222-8222-222222222222\/c0ffee\.webp$/);
+    await expect.poll(() => imgs.evaluate(el => el.complete && el.naturalWidth > 0)).toBe(true);
+    // An image-only post is not "gone".
+    await expect(page.locator('.report-quote')).toHaveText('[images only]');
+});
