@@ -1019,6 +1019,10 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
                         <label class="editor-field-label-sm">Route - one step per line</label>
                         <textarea class="editor-textarea" data-card-field="sequence" rows="4">${esc(route)}</textarea>
                     </div>
+                    <!-- The same fields as the Combo Card block form, from the
+                         same helper: this editor has drifted from that one
+                         three times. -->
+                    <div class="combo-field-full">${window.comboNotationFieldsHTML(target, { lines: true })}</div>
                     <div><label class="editor-field-label-sm">Damage</label>
                         <input type="text" class="editor-input" data-card-field="damage" value="${esc(target.damage || '')}" placeholder="e.g. 38-46"></div>
                     <div><label class="editor-field-label-sm">Difficulty</label>
@@ -1068,6 +1072,28 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
         };
         input.addEventListener('input', handler);
         input.addEventListener('change', handler);
+    });
+
+    // --- NOTATION STYLES (v0.20) ---
+    //
+    // Written into `target`, so a card in Multiple Sections edits the section
+    // on screen, exactly like the route above it. Typing never re-renders;
+    // adding or removing a style does, so it flushes the write-up first for the
+    // same reason the section controls below do.
+    container.querySelectorAll('[data-nstyle-label], [data-nstyle-route]').forEach(input => {
+        input.addEventListener('input', () => {
+            window.applyComboNotationInput(target, input);
+            window.renderDocumentPreview(tabId);
+        });
+    });
+    container.querySelectorAll('[data-nstyle-add], [data-nstyle-remove]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            flushDocumentCard(tabId, groupIdx);
+            const focusAt = window.applyComboNotationClick(target, btn);
+            renderDocumentCardBody(tabId, groupIdx, cards);
+            window.renderDocumentPreview(tabId);
+            window.focusComboNotationField(document.getElementById('combo-card-body'), focusAt);
+        });
     });
 
     // --- SECTION CONTROLS ---
@@ -1434,10 +1460,13 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
     fields.innerHTML = window.comboRowFields().map(f => {
         if (f.field === 'sequence') {
             const value = Array.isArray(row.sequence) ? row.sequence.join('\n') : '';
+            // Notation styles (v0.20) sit directly under the route they are
+            // alternatives to, from the helper every other combo form uses.
             return `<div class="combo-field-full">
                 <label class="editor-field-label-sm">${esc(f.label)}<span class="admin-tool-hint"> - ${esc(f.hint)}</span></label>
                 <textarea class="editor-textarea" data-combo-field="sequence" rows="5">${esc(value)}</textarea>
-            </div>`;
+            </div>
+            <div class="combo-field-full">${window.comboNotationFieldsHTML(row, { lines: true })}</div>`;
         }
         if (f.field === 'difficulty') {
             // A select, because difficulty is an ordinal enum: a typo sorts the
@@ -1478,6 +1507,23 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
         };
         input.addEventListener('input', handler);
         input.addEventListener('change', handler);
+    });
+
+    // Notation styles: typing writes straight into the row; adding or removing
+    // one reopens the modal on the same row, which is how it re-renders.
+    fields.querySelectorAll('[data-nstyle-label], [data-nstyle-route]').forEach(input => {
+        input.addEventListener('input', () => {
+            window.applyComboNotationInput(row, input);
+            window.renderDocumentPreview(tabId);
+        });
+    });
+    fields.querySelectorAll('[data-nstyle-add], [data-nstyle-remove]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const focusAt = window.applyComboNotationClick(row, btn);
+            window.openDocumentRowModal(tabId, tableIdx, rowIdx);
+            window.renderDocumentPreview(tabId);
+            window.focusComboNotationField(fields, focusAt);
+        });
     });
 
     const close = () => {

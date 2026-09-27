@@ -606,7 +606,7 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
         }
         // --- COMBO STRINGS ---
         else if (block.type === 'combo') {
-            if (block.sequence && block.sequence.length > 0) {
+            if ((block.sequence && block.sequence.length > 0) || window.comboNotationStyles(block).length > 1) {
                 
                 // Determine flex justification based on alignment
                 let justifyClass = 'flex-start';
@@ -621,28 +621,20 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 // out what a combo did, and the note read as a caption on the
                 // damage rather than on the combo.
                 let comboHTML = `<div class="combo-block">`;
-                comboHTML += `<div class="combo-container" style="justify-content: ${justifyClass};">`;
 
-                block.sequence.forEach((move, index) => {
-                    comboHTML += `<span class="combo-node">${escBlockText(move)}</span>`;
-
-                    // '>' rather than an arrow glyph or an SVG, matching the
-                    // notation the community and Dustloop both already write
-                    // by hand. aria-hidden because a screen reader announcing
-                    // "greater than" between every step of an eight-step route
-                    // is noise; the steps read fine as a list without it.
-                    if (index < block.sequence.length - 1) {
-                        comboHTML += `<span class="combo-sep" aria-hidden="true">&gt;</span>`;
-                    }
-                });
-
+                // The steps are comboRouteHTML's, shared with the Combo Card
+                // and the Combo Row. '>' between them rather than an arrow
+                // glyph or an SVG, matching the notation the community and
+                // Dustloop both already write by hand; aria-hidden because a
+                // screen reader announcing "greater than" between every step
+                // of an eight-step route is noise.
+                //
                 // Damage trails the route directly - a last element of the
                 // sequence rather than a column at the page edge.
-                if (block.damage) {
-                    comboHTML += `<span class="combo-damage">${escBlockText(block.damage)}</span>`;
-                }
-
-                comboHTML += `</div>`;
+                comboHTML += window.comboRouteHTML(block, {
+                    style: `justify-content: ${justifyClass};`,
+                    trailing: block.damage ? `<span class="combo-damage">${escBlockText(block.damage)}</span>` : '',
+                });
 
                 // Under the route, full width, so it reads as a condition on
                 // the whole combo.
@@ -767,18 +759,214 @@ window.comboVisibleColumns = function (rows) {
     });
 };
 
+// --- NOTATION STYLES (v0.20) ---
+//
+// A combo can carry its route in more than one notation, and the reader
+// switches by clicking the route. Owner, 2026-09-25: the author TYPES each
+// style's label, and a reader's choice applies to EVERY combo and is
+// remembered. So the choice is a label, matched ignoring case and extra
+// spaces: "Keyboard" on one combo and "keyboard " on another are one style.
+//
+//   item.sequence   the first style, unlabelled - every combo written before
+//                   this has exactly this and renders exactly as it did
+//   item.notations  [{ label, sequence }] beside it, on a Combo Block, a
+//                   Combo Card or one of its sections, and a Combo Row
+//
+// Spec and reasoning: V0.20-DEVLOG.md, "notation styles on combo routes".
+const COMBO_NOTATION_STORE = 'dsl-combo-notation';
+// Held in memory too, so switching still works for the rest of the visit when
+// storage is blocked (a private window, cleared site data).
+let comboNotationChoice = null;
+
+window.comboNotationKey = function (label) {
+    return String(label === null || label === undefined ? '' : label)
+        .trim().replace(/\s+/g, ' ').toLowerCase();
+};
+
+// The first style's steps exactly as stored, blanks included, so a combo with
+// no styles renders byte-for-byte what it did before. An added style is new
+// data and drops blank steps, which the Combo Block's comma field produces
+// from a trailing comma.
+function comboFirstSteps(sequence) {
+    return Array.isArray(sequence) ? sequence : (sequence ? [sequence] : []);
+}
+
+// The styles a reader can switch between, the first style first. A style
+// counts only with a label AND a step: a half-filled one is an author mid-edit,
+// not an empty route to show a reader. A repeated label keeps its first route.
+window.comboNotationStyles = function (item) {
+    const styles = [{ label: '', key: '', sequence: comboFirstSteps(item && item.sequence) }];
+    const seen = new Set();
+    (item && Array.isArray(item.notations) ? item.notations : []).forEach(n => {
+        const label = String((n && n.label) || '').trim();
+        const key = window.comboNotationKey(label);
+        const steps = (n && Array.isArray(n.sequence) ? n.sequence : [])
+            .filter(s => String(s === null || s === undefined ? '' : s).trim() !== '');
+        if (!key || !steps.length || seen.has(key)) return;
+        seen.add(key);
+        styles.push({ label, key, sequence: steps });
+    });
+    return styles;
+};
+
+window.comboNotationPreference = function () {
+    if (comboNotationChoice !== null) return comboNotationChoice;
+    try { return window.localStorage.getItem(COMBO_NOTATION_STORE) || ''; } catch (e) { return ''; }
+};
+
+function saveComboNotationPreference(key) {
+    comboNotationChoice = key || '';
+    try {
+        if (key) window.localStorage.setItem(COMBO_NOTATION_STORE, key);
+        else window.localStorage.removeItem(COMBO_NOTATION_STORE);
+    } catch (e) { /* the in-memory choice above still holds for this visit */ }
+}
+
+function comboNotationTitle(label, index, count) {
+    return `Notation ${index + 1} of ${count}${label ? ': ' + label : ''}. Click the route to switch.`;
+}
+
+// The review screens diff a label with control-character markers that
+// resolveDiffMarkers (js/admin-diff.js) turns into <ins>/<del> by rewriting the
+// container's innerHTML as a string. That is right for text and wrong inside an
+// ATTRIBUTE, where the tag's own quotes would end the value. So anything a
+// label feeds into an attribute is stripped of them first; the visible name
+// keeps them.
+const stripDiffMarks = (s) => String(s === null || s === undefined ? '' : s).replace(/[\u0011-\u0014]/g, '');
+
+// Every style's label and steps diffed by position, the way the route beside
+// them already is. Shared by the review queue (js/admin-preview.js) and the
+// editor's own diff (js/editor-sync.js), which each carry a copy of the block
+// diff: one helper, so the two cannot disagree about notation styles.
+window.diffComboNotations = function (oldList, newList) {
+    const before = Array.isArray(oldList) ? oldList : [];
+    const after = Array.isArray(newList) ? newList : [];
+    const out = [];
+    for (let i = 0; i < Math.max(before.length, after.length); i++) {
+        const o = before[i] || {};
+        const n = after[i] || {};
+        const oSteps = Array.isArray(o.sequence) ? o.sequence : [];
+        const nSteps = Array.isArray(n.sequence) ? n.sequence : [];
+        const steps = [];
+        for (let k = 0; k < Math.max(oSteps.length, nSteps.length); k++) {
+            steps[k] = window.diffTextLCS(oSteps[k] || '', nSteps[k] || '');
+        }
+        out.push({ label: window.diffTextLCS(o.label || '', n.label || ''), sequence: steps });
+    }
+    return out;
+};
+
+// The chips, shared by all three surfaces. It used to be the same loop three
+// times, which is how a route would come to read differently in a table than
+// in prose.
+function comboStepsHTML(steps) {
+    return steps.map((step, i) => `<span class="combo-node">${escBlockText(step)}</span>`
+        + (i < steps.length - 1 ? '<span class="combo-sep" aria-hidden="true">&gt;</span>' : '')).join('');
+}
+
+// A whole route row. `className` joins `combo-container`, `style` is already a
+// safe declaration built by the caller, `trailing` is HTML that follows the
+// steps (the damage). Without styles this is exactly the old markup.
+//
+// With styles, EVERY route is in the DOM and one is visible, so switching is a
+// change of `hidden` rather than a re-render, and the colour-coding pass that
+// runs over `.combo-node` has already seen all of them.
+window.comboRouteHTML = function (item, opts) {
+    const o = opts || {};
+    const styles = window.comboNotationStyles(item);
+    const cls = 'combo-container' + (o.className ? ' ' + o.className : '');
+    const styleAttr = o.style ? ` style="${o.style}"` : '';
+    const trailing = o.trailing || '';
+
+    if (styles.length === 1) {
+        return `<div class="${cls}"${styleAttr}>${comboStepsHTML(styles[0].sequence)}${trailing}</div>`;
+    }
+
+    const choice = window.comboNotationPreference();
+    const active = Math.max(0, styles.findIndex(s => stripDiffMarks(s.key) === choice));
+    const title = escBlockText(comboNotationTitle(stripDiffMarks(styles[active].label), active, styles.length));
+
+    const mark = '<span class="combo-notation-mark" aria-hidden="true">'
+        + styles.map((s, i) => `<i${i === active ? ' class="is-on"' : ''}></i>`).join('')
+        + '</span>';
+    // `.combo-notation-name` is hidden on the page and shown in the review
+    // screens, where every style is laid out at once with its name, so a
+    // reviewer never has to click to find a changed route. The first style has
+    // no label of its own, so it is named for what it is.
+    const routes = styles.map((s, i) =>
+        `<span class="combo-notation" data-notation-key="${escBlockText(stripDiffMarks(s.key))}"`
+        + ` data-notation-label="${escBlockText(stripDiffMarks(s.label))}"${i === active ? '' : ' hidden'}>`
+        + `<span class="combo-notation-name">${escBlockText(s.label || 'Route')}</span>`
+        + comboStepsHTML(s.sequence) + '</span>').join('');
+
+    return `<div class="${cls} combo-has-notations"${styleAttr} role="button" tabindex="0"`
+        + ` data-notation-active="${active}" title="${title}" aria-label="${title}">`
+        + mark + routes + trailing + '</div>';
+};
+
+function showComboNotation(container, index) {
+    const routes = container.querySelectorAll(':scope > .combo-notation');
+    if (!routes.length) return;
+    const at = Math.max(0, Math.min(index, routes.length - 1));
+    routes.forEach((r, i) => { r.hidden = i !== at; });
+    container.querySelectorAll(':scope > .combo-notation-mark > i')
+        .forEach((m, i) => m.classList.toggle('is-on', i === at));
+    container.setAttribute('data-notation-active', String(at));
+    const text = comboNotationTitle(routes[at].getAttribute('data-notation-label') || '', at, routes.length);
+    container.title = text;
+    container.setAttribute('aria-label', text);
+}
+
+// Every combo on the page to the reader's choice: the style with that label
+// where a combo has one, its first route where it does not.
+window.applyComboNotationPreference = function (root) {
+    const choice = window.comboNotationPreference();
+    (root || document).querySelectorAll('.combo-has-notations').forEach(container => {
+        const routes = [...container.querySelectorAll(':scope > .combo-notation')];
+        showComboNotation(container, Math.max(0, routes.findIndex(r => r.getAttribute('data-notation-key') === choice)));
+    });
+};
+
+// The next style of THIS combo becomes the reader's choice everywhere.
+function cycleComboNotation(container) {
+    const routes = container.querySelectorAll(':scope > .combo-notation');
+    if (routes.length < 2) return;
+    const current = parseInt(container.getAttribute('data-notation-active'), 10) || 0;
+    const next = routes[(current + 1) % routes.length];
+    saveComboNotationPreference(next.getAttribute('data-notation-key') || '');
+    window.applyComboNotationPreference(document);
+}
+
+// The review screens lay every style out at once, so a click there has
+// nothing to switch, and must not change the reviewer's own reading choice.
+const inReviewDiff = (el) => !!el.closest('.diff-inline-target');
+
+document.addEventListener('click', (e) => {
+    const container = e.target.closest && e.target.closest('.combo-has-notations');
+    if (!container || inReviewDiff(container)) return;
+    // Dragging across the route to copy it is not a request to switch.
+    const selection = window.getSelection ? String(window.getSelection()) : '';
+    if (selection && container.contains(window.getSelection().anchorNode)) return;
+    cycleComboNotation(container);
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const container = e.target.closest && e.target.closest('.combo-has-notations');
+    // Only when the route itself has focus, never a field that happens to sit
+    // inside something with the class.
+    if (!container || container !== e.target || inReviewDiff(container)) return;
+    e.preventDefault();
+    cycleComboNotation(container);
+});
+
 // One route, rendered as the same chips the legacy combo block uses, so a
 // route reads identically whether it is inline in prose or a row in a table.
-function renderComboRoute(sequence) {
-    const steps = Array.isArray(sequence) ? sequence : (sequence ? [sequence] : []);
-    if (steps.length === 0) return '<span class="combo-route-empty">-</span>';
-
-    let html = '<div class="combo-container combo-route-inline">';
-    steps.forEach((step, i) => {
-        html += `<span class="combo-node">${escBlockText(step)}</span>`;
-        if (i < steps.length - 1) html += '<span class="combo-sep" aria-hidden="true">&gt;</span>';
-    });
-    return html + '</div>';
+// Takes the whole ROW now, not its sequence, so the row's styles come along.
+function renderComboRoute(row) {
+    const styles = window.comboNotationStyles(row);
+    if (styles.length === 1 && styles[0].sequence.length === 0) return '<span class="combo-route-empty">-</span>';
+    return window.comboRouteHTML(row, { className: 'combo-route-inline' });
 }
 
 // Ult Gain and Evasive Gain are the owner's two resources, replacing the
@@ -797,7 +985,7 @@ function renderComboNotes(row) {
 }
 
 function renderComboCell(row, column) {
-    if (column.field === 'sequence') return renderComboRoute(row.sequence);
+    if (column.field === 'sequence') return renderComboRoute(row);
     if (column.field === 'notes') return renderComboNotes(row);
 
     const value = String(row[column.field] === null || row[column.field] === undefined ? '' : row[column.field]).trim();
@@ -1278,17 +1466,15 @@ function theoryboxCardHTML(bData, contextClass) {
 
             // Same chips and separators as the legacy combo block and the
             // Combo List, so a route reads identically wherever it appears.
+            // A card with no route of its own but a notation style still gets
+            // the row, or the style would have nowhere to be switched to.
             const steps = Array.isArray(bData.sequence) ? bData.sequence : [];
-            let routeHTML = '';
-            if (steps.length) {
-                routeHTML = '<div class="combo-container theorybox-route">';
-                steps.forEach((step, i) => {
-                    routeHTML += `<span class="combo-node">${escBlockText(step)}</span>`;
-                    if (i < steps.length - 1) routeHTML += '<span class="combo-sep" aria-hidden="true">&gt;</span>';
-                });
-                if (bData.damage) routeHTML += `<span class="combo-damage">${escBlockText(bData.damage)}</span>`;
-                routeHTML += '</div>';
-            }
+            const routeHTML = (steps.length || window.comboNotationStyles(bData).length > 1)
+                ? window.comboRouteHTML(bData, {
+                    className: 'theorybox-route',
+                    trailing: bData.damage ? `<span class="combo-damage">${escBlockText(bData.damage)}</span>` : '',
+                })
+                : '';
 
             // Opens the modal player rather than navigating to the file. The
             // link sent the reader off the wiki to a bare video on a Supabase

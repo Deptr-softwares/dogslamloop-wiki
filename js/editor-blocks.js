@@ -573,6 +573,11 @@ function seedCardSections(card, on) {
         const seeded = { label: '' };
         CARD_TEXT_FIELDS.forEach(f => { seeded[f] = card[f] || ''; });
         seeded.sequence = Array.isArray(card.sequence) ? card.sequence.slice() : [];
+        // Notation styles live beside the route (v0.20), so they travel with
+        // it, or they would be stranded behind the switch.
+        if (Array.isArray(card.notations) && card.notations.length) {
+            seeded.notations = cloneComboNotations(card.notations);
+        }
         seeded.content = Array.isArray(card.content) ? card.content : [];
         card.sections = [seeded];
         return;
@@ -583,8 +588,110 @@ function seedCardSections(card, on) {
     const sec = card.sections[at] || {};
     CARD_TEXT_FIELDS.forEach(f => { card[f] = sec[f] || ''; });
     card.sequence = Array.isArray(sec.sequence) ? sec.sequence.slice() : [];
+    if (Array.isArray(sec.notations) && sec.notations.length) card.notations = cloneComboNotations(sec.notations);
+    else delete card.notations;
     card.content = Array.isArray(sec.content) ? sec.content : [];
 }
+
+function cloneComboNotations(list) {
+    return (Array.isArray(list) ? list : []).map(n => ({
+        label: String((n && n.label) || ''),
+        sequence: (n && Array.isArray(n.sequence)) ? n.sequence.slice() : [],
+    }));
+}
+
+// --- NOTATION STYLE FIELDS (v0.20) ---
+//
+// A combo's extra notation styles, edited on FOUR surfaces: the Combo Block
+// form, the Combo Card block form, the Combos/Techs card editor
+// (editor-tabs.js) and the Combo Row modal (editor-tabs.js). The Combo Card's
+// two editors have drifted three times, so the markup, the writes and the
+// add/remove rules are here once and every surface calls them. Each surface
+// only decides WHICH object is being edited, and re-renders its own form.
+//
+//   item.notations = [{ label, sequence }]   beside item.sequence
+//
+// `lines` follows the surface's own route field: one step per line on the
+// Combo Card and the Combo Row, comma separated on the Combo Block.
+window.comboNotationFieldsHTML = function (item, opts) {
+    const lines = !!(opts && opts.lines);
+    const esc = (v) => window.escapeHtml(v === null || v === undefined ? '' : v);
+    const list = (item && Array.isArray(item.notations)) ? item.notations : [];
+
+    const rows = list.map((n, i) => {
+        const steps = Array.isArray(n && n.sequence) ? n.sequence : [];
+        const route = lines
+            ? `<textarea class="editor-textarea" data-nstyle-route="${i}" rows="3"
+                   placeholder="The route in this style, one step per line">${esc(steps.join('\n'))}</textarea>`
+            : `<input type="text" class="editor-input" data-nstyle-route="${i}" value="${esc(steps.join(', '))}"
+                   placeholder="The route in this style (comma separated)">`;
+        return `<div class="nstyle-row" data-nstyle-row="${i}">
+                <div class="nstyle-row-head">
+                    <input type="text" class="editor-input" data-nstyle-label="${i}" value="${esc((n && n.label) || '')}"
+                           placeholder="Style name (e.g. Keyboard)">
+                    <button type="button" class="btn-sys btn-sys-red" data-nstyle-remove="${i}"
+                            title="Remove this notation style" aria-label="Remove this notation style">&#10006;</button>
+                </div>
+                ${route}
+            </div>`;
+    }).join('');
+
+    return `<div class="nstyle-editor">
+            <div class="nstyle-editor-label">NOTATION STYLES</div>
+            ${rows || '<div class="nstyle-editor-empty">Optional. Readers click the route to switch styles.</div>'}
+            <button type="button" class="btn-sys btn-sys-green" data-nstyle-add="1">+ ADD NOTATION STYLE</button>
+        </div>`;
+};
+
+// Writes one style field into `item`. True when `el` was a style field, so a
+// surface's own handler can stop there. Called on every keystroke, so it never
+// re-renders: that would take the caret out of the field being typed in.
+window.applyComboNotationInput = function (item, el) {
+    if (!item || !el) return false;
+    const labelAt = el.getAttribute('data-nstyle-label');
+    const routeAt = el.getAttribute('data-nstyle-route');
+    if (labelAt === null && routeAt === null) return false;
+
+    const at = parseInt(labelAt !== null ? labelAt : routeAt, 10);
+    if (!Array.isArray(item.notations) || !item.notations[at]) return true;
+
+    if (labelAt !== null) {
+        item.notations[at].label = el.value;
+    } else {
+        // Same split as the surface's own route field. Blank steps dropped:
+        // a style is new data, so there is no old behaviour to preserve.
+        const parts = el.tagName === 'TEXTAREA' ? el.value.split('\n') : el.value.split(',');
+        item.notations[at].sequence = parts.map(s => s.trim()).filter(Boolean);
+    }
+    return true;
+};
+
+// Add or remove, from a click on `btn`. Returns the index the surface should
+// focus after re-rendering (the new style's name, the owner's "they have to
+// fill in a new field"), -1 for a removal, or null when `btn` was not ours.
+window.applyComboNotationClick = function (item, btn) {
+    if (!item || !btn) return null;
+    if (btn.hasAttribute('data-nstyle-add')) {
+        if (!Array.isArray(item.notations)) item.notations = [];
+        item.notations.push({ label: '', sequence: [] });
+        return item.notations.length - 1;
+    }
+    if (btn.hasAttribute('data-nstyle-remove')) {
+        const at = parseInt(btn.getAttribute('data-nstyle-remove'), 10);
+        if (Array.isArray(item.notations)) item.notations.splice(at, 1);
+        // An empty list is dropped rather than stored, so a combo that tried a
+        // style and removed it serialises exactly as it did before.
+        if (Array.isArray(item.notations) && !item.notations.length) delete item.notations;
+        return -1;
+    }
+    return null;
+};
+
+window.focusComboNotationField = function (root, at) {
+    if (!root || at === null || at < 0) return;
+    const field = root.querySelector(`[data-nstyle-label="${at}"]`);
+    if (field) field.focus();
+};
 // Stated rather than left to the fact that this file is not IIFE-wrapped: the
 // Combos/Techs card editor in editor-tabs.js calls it, because a Combo Card has
 // two editors and the switch has to behave identically in both.
@@ -1296,6 +1403,50 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (!block.sections[at]) return;
         block.sections[at].label = field.value;
         updateLivePreview();
+    });
+
+    // --- NOTATION STYLES (v0.20) ---
+    //
+    // The Combo Block and the Combo Card forms. The fields and the rules are
+    // window.comboNotationFieldsHTML and its two apply functions, shared with
+    // the card editor and the Combo Row modal in editor-tabs.js. Registered
+    // ahead of the general handlers below and stops there: the general input
+    // handler writes `target[data-field]`, and these fields carry none.
+    const notationTarget = (el) => {
+        const card = el.closest('.block-card');
+        if (!card) return null;
+        const block = window.getActiveBlocks()[parseInt(card.getAttribute('data-index'), 10)];
+        if (!block || (block.type !== 'combo' && block.type !== 'theorybox')) return null;
+        // A Combo Card in Multiple Sections edits the section on screen.
+        return window.editorCardFieldTarget(block);
+    };
+
+    blockList.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-nstyle-add], [data-nstyle-remove]');
+        if (!btn) return;
+        const item = notationTarget(btn);
+        if (!item) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        window.saveBlockHistory();
+        const index = btn.closest('.block-card').getAttribute('data-index');
+        const focusAt = window.applyComboNotationClick(item, btn);
+        renderBlockList();
+        updateLivePreview();
+        window.focusComboNotationField(blockList.querySelector(`.block-card[data-index="${index}"]`), focusAt);
+    });
+
+    let notationTypingTimer;
+    blockList.addEventListener('input', (e) => {
+        const item = (e.target.matches && e.target.matches('[data-nstyle-label], [data-nstyle-route]'))
+            ? notationTarget(e.target) : null;
+        if (!item) return;
+        e.stopImmediatePropagation();
+        if (e.target.classList.contains('editor-textarea')) window.autoSizeEditorTextarea(e.target);
+        window.applyComboNotationInput(item, e.target);
+        clearTimeout(notationTypingTimer);
+        notationTypingTimer = setTimeout(() => updateLivePreview(), 400);
     });
 
     // A section's title. Deliberately does NOT call renderBlockList - rebuilding
@@ -2987,6 +3138,7 @@ function renderBlockList() {
             const seq = block.sequence ? block.sequence.join(', ') : '';
             html += `
                 <input type="text" class="editor-input" data-field="combo-sequence" value="${escField(seq)}" placeholder="Sequence (Comma separated: M1, M1, Skill)">
+                ${window.comboNotationFieldsHTML(block, { lines: false })}
                 <div class="editor-row">
                     <div><input type="text" class="editor-input" data-field="damage" value="${escField(block.damage || '')}" placeholder="Damage text (e.g. 40 DMG)"></div>
                     <div><input type="text" class="editor-input" data-field="note" value="${escField(block.note || '')}" placeholder="Condition/Note (e.g. Corner Only)"></div>
@@ -3125,6 +3277,7 @@ function renderBlockList() {
                         <textarea class="editor-textarea" data-field="sequence-lines" rows="4">${escField(route)}</textarea>
                     </div>
                 </div>
+                ${window.comboNotationFieldsHTML(card, { lines: true })}
                 <div class="editor-row editor-row-spaced-md">
                     <div><input type="text" class="editor-input" data-field="damage" value="${escField(card.damage || '')}" placeholder="Damage (e.g. 38-46)"></div>
                     <div><select class="editor-select" data-field="difficulty">${difficulties}</select></div>

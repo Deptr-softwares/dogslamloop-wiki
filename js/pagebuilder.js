@@ -990,6 +990,10 @@ const ANCHOR_PREFIX = 'sec-';
 const ANCHOR_HEADING_SELECTOR =
     '.section-title, .skill-title, .strategy-title, .card-header-title, .wiki-block-heading';
 
+// Breathing room above a heading that has been jumped to. Shared by a jump and
+// by the arrival follower below, which have to agree on where "landed" is.
+const ANCHOR_SCROLL_OFFSET = 40;
+
 window.sectionAnchorSlug = function(text) {
     return String(text == null ? '' : text)
         .trim()
@@ -1058,20 +1062,10 @@ window.assignSectionAnchors = function(root) {
     });
 };
 
-// Resolve a fragment to a section and go there, crossing a tab boundary and
-// opening a collapsed accordion on the way if it has to.
-//
-// Returns false rather than throwing when the target is not on the page. A
-// link into a character's other STATE is the case that returns false: modes
-// re-render the tabs rather than hiding a parallel copy, so the target does
-// not exist in the DOM at all and cannot be reached by unhiding anything.
-window.jumpToAnchor = function(rawId, options) {
-    const opts = options || {};
-    const id = String(rawId == null ? '' : rawId).replace(/^#/, '').trim();
-    if (!id) return false;
-
-    window.assignSectionAnchors();
-
+// The element a fragment names, or null. Shared by jumpToAnchor and the
+// arrival follower, so both resolve a link the same way. Expects ids to have
+// been assigned already.
+function findAnchorTarget(id) {
     let target = document.getElementById(id);
 
     // Links copied out of the address bar before anchors became stable carry
@@ -1086,6 +1080,30 @@ window.jumpToAnchor = function(rawId, options) {
         const slug = window.sectionAnchorSlug(id);
         if (slug) target = document.getElementById(ANCHOR_PREFIX + slug);
     }
+    return target;
+}
+
+function anchorIdOf(rawId) {
+    return String(rawId == null ? '' : rawId).replace(/^#/, '').trim();
+}
+
+// Resolve a fragment to a section and go there, crossing a tab boundary and
+// opening a collapsed accordion on the way if it has to.
+//
+// Returns false rather than throwing when the target is not on the page. A
+// link into a character's other STATE is the case that returns false: modes
+// re-render the tabs rather than hiding a parallel copy, so the target does
+// not exist in the DOM at all and cannot be reached by unhiding anything.
+//
+// Returns true, not the element: tests and callers read it as a boolean.
+window.jumpToAnchor = function(rawId, options) {
+    const opts = options || {};
+    const id = anchorIdOf(rawId);
+    if (!id) return false;
+
+    window.assignSectionAnchors();
+
+    const target = findAnchorTarget(id);
     if (!target) return false;
 
     // Click the real tab button rather than un-hiding the panel, so the strip's
@@ -1108,9 +1126,8 @@ window.jumpToAnchor = function(rawId, options) {
     }
 
     const scroll = () => {
-        const offset = 40; // Gives breathing room above the header
         const top = target.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({ top: top - offset, behavior: opts.behavior || 'smooth' });
+        window.scrollTo({ top: top - ANCHOR_SCROLL_OFFSET, behavior: opts.behavior || 'smooth' });
 
         if (opts.updateHash !== false) {
             history.pushState(null, null, `#${id}`);
@@ -1284,26 +1301,112 @@ window.smoothScroll = function(e, targetId) {
 // pasted into Discord landed at the top of the page and the reader had to
 // find the section by hand.
 //
-// Retried rather than run once, because the target usually does not exist yet.
+// Polled rather than run once, because the target usually does not exist yet.
 // Page content is fetched after boot and the two boot branches deliberately
 // differ in their timing (character pages fire concurrently with a 500ms ToC
 // delay, system pages await in order with 150ms), so a single attempt at
-// DOMContentLoaded would resolve on neither. Stops at the first hit.
-const HASH_RETRY_DELAYS = [0, 150, 400, 800, 1500, 2500];
+// DOMContentLoaded would resolve on neither.
+//
+// LOOK, LAND, THEN FOLLOW (v0.20). The owner's report: a search hit for
+// Murmurate on Crow Charmer, opened from the Main Dashboard, stopped at
+// Circling. Measured: the target first exists while the Skills tab is half
+// built, at 4,035px on a 6,662px page. The jump fires, and 180ms later the
+// skills above it finish rendering and push it to 6,679px. One smooth scroll
+// aimed at the first position ends two sections short. From the page itself
+// everything is already built, which is why it only failed on arrival.
+//
+// So there are two phases, and both used to be missing:
+//   - LOOK until the target exists, for up to HASH_FIND_MS. The old retries
+//     stopped 2.5s after DOMContentLoaded, so on a slow connection the content
+//     came after the last one and the page never moved at all.
+//   - FOLLOW it after landing, for up to HASH_HOLD_MS: whenever content above
+//     it grows, move with it. Instantly, never smoothly, because a smooth
+//     scroll aimed at a moving target is the bug itself.
+//
+// The reader's own scroll, key, click or touch ends it at once. A page that
+// pulls somebody back after they have started reading elsewhere is worse than
+// one that lands short.
+const HASH_POLL_MS = 100;
+const HASH_FIND_MS = 15000;
+const HASH_HOLD_MS = 10000;
+const HASH_READER_INPUT = ['wheel', 'touchstart', 'keydown', 'mousedown'];
 
 function resolveInitialHash() {
     const hash = window.location.hash;
     if (!hash || hash.length < 2) return;
+    // A reply link belongs to js/discussions.js, which centres the reply
+    // rather than topping it. Following it here would fight that scroll.
+    if (hash.startsWith('#post-')) return;
 
-    HASH_RETRY_DELAYS.forEach((delay, i) => {
-        setTimeout(() => {
-            if (window.__anchorHashResolved) return;
-            // Never rewrite the hash we are already sitting on.
-            if (window.jumpToAnchor(hash, { updateHash: false, behavior: i === 0 ? 'auto' : 'smooth' })) {
-                window.__anchorHashResolved = true;
-            }
-        }, delay);
-    });
+    const id = anchorIdOf(hash);
+    const started = Date.now();
+    let target = null;
+    let landedAt = 0;
+    let ownScrollUntil = 0;
+    let timer = null;
+
+    // Where the page has to be for the target to sit at the offset, clamped to
+    // what the document can scroll to. A heading near the end can never reach
+    // the top, and chasing that would read as the reader having moved.
+    const wanted = () => {
+        const top = target.getBoundingClientRect().top + window.scrollY - ANCHOR_SCROLL_OFFSET;
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        return Math.max(0, Math.min(top, max));
+    };
+    // False while the target sits in a hidden tab or a closed accordion, where
+    // its position reads as 0 and following it would scroll to nowhere.
+    const laidOut = () => target.isConnected && target.getClientRects().length > 0;
+
+    const release = () => {
+        clearInterval(timer);
+        HASH_READER_INPUT.forEach(type => window.removeEventListener(type, release, true));
+        window.removeEventListener('scroll', onScroll);
+    };
+
+    // A scrollbar drag fires none of the input events above, so a scroll that
+    // leaves the target off its mark, and did not come from here, is the
+    // reader too. Scroll anchoring moves the page WITH the target, so it never
+    // trips this.
+    function onScroll() {
+        if (performance.now() < ownScrollUntil || !target || !laidOut()) return;
+        if (Math.abs(window.scrollY - wanted()) > 2) release();
+    }
+
+    const tick = () => {
+        const now = Date.now();
+        if (!target) {
+            if (now - started > HASH_FIND_MS) { release(); return; }
+            // jumpToAnchor switches tab and opens accordions; never rewrite
+            // the hash we are already sitting on.
+            if (!window.jumpToAnchor(hash, { updateHash: false, behavior: 'auto' })) return;
+            target = findAnchorTarget(id);
+            landedAt = now;
+            // Covers jumpToAnchor's own scroll, which waits 60ms after a tab
+            // switch so the panel can be measured.
+            ownScrollUntil = performance.now() + 300;
+            window.__anchorHashResolved = true;
+            window.addEventListener('scroll', onScroll, { passive: true });
+            return;
+        }
+        if (now - landedAt > HASH_HOLD_MS) { release(); return; }
+        // A tab that re-renders replaces its headings with new elements under
+        // the same ids, so follow the id rather than the node.
+        if (!target.isConnected) {
+            window.assignSectionAnchors();
+            target = findAnchorTarget(id);
+            if (!target) { release(); return; }
+        }
+        if (!laidOut()) return;
+        const y = wanted();
+        if (Math.abs(window.scrollY - y) > 2) {
+            ownScrollUntil = performance.now() + 200;
+            window.scrollTo({ top: y, behavior: 'auto' });
+        }
+    };
+
+    HASH_READER_INPUT.forEach(type => window.addEventListener(type, release, { capture: true, passive: true }));
+    timer = setInterval(tick, HASH_POLL_MS);
+    tick();
 }
 
 document.addEventListener('DOMContentLoaded', resolveInitialHash);

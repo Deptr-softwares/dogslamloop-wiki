@@ -732,6 +732,12 @@
             if (key === 'content' && block.type === 'heading') continue;   // it is the target's own title
             if (Object.prototype.hasOwnProperty.call(block, key)) take(block[key]);
         }
+        // A combo's notation styles (v0.20) are objects, which `take` skips as
+        // child blocks, so they are read here: a route written in another
+        // notation is still the same combo, and should be found by it.
+        if (Array.isArray(block.notations)) {
+            block.notations.forEach(n => { if (n && typeof n === 'object') { take(n.label); take(n.sequence); } });
+        }
         return out;
     }
 
