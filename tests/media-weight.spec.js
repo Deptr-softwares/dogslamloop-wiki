@@ -112,6 +112,21 @@ test('upload anyway uploads them, and over 2 MB counts without 1080p', async ({ 
     expect(await uploads(page)).toEqual(['Long.webm', 'Heavy.gif', 'Light.gif']);
 });
 
+test('1080p is read off the short side, so an upright phone capture counts and 720p does not', async ({ page }) => {
+    // The measurement is stubbed here and only here: what is under test is the
+    // rule applied to a size, and no committed clip is portrait or 720p.
+    await openLibrary(page);
+    const notes = await page.evaluate(async () => {
+        const file = new File([new Uint8Array(64)], 'x.webm', { type: 'video/webm' });
+        const at = async (width, height) => {
+            window.measureMediaSource = async () => ({ width, height });
+            return window.mediaWeightNote(file);
+        };
+        return { upright: await at(1080, 1920), landscape: await at(1920, 1080), hd: await at(1280, 720), uprightHd: await at(720, 1280) };
+    });
+    expect(notes).toEqual({ upright: '1080x1920', landscape: '1920x1080', hd: null, uprightHd: null });
+});
+
 test('a still image is never asked about, whatever its size', async ({ page }) => {
     // It becomes WebP on the way up, so its size here says nothing about what
     // reaches the bucket.
