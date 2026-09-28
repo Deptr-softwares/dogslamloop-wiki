@@ -136,6 +136,32 @@ EXCEPTION WHEN OTHERS THEN
 END $$;
 
 -- ---------------------------------------------------------------------------
+-- SIGN-IN: no NULL token columns
+-- ---------------------------------------------------------------------------
+--
+-- GoTrue reads these four columns as strings and fails the whole sign-in on a
+-- NULL, answering 500 "Database error querying schema". A row it creates itself
+-- gets '' in each; a row inserted by hand, like the ones above, gets NULL. So
+-- until 2026-09-28 no fixture account could sign in at all, and every probe
+-- that needed a JWT had nothing to sign in with. That is how is_owner()
+-- answering NULL for a roleless account (20260927000000) went unseen: the one
+-- probe that would have shown it could never run.
+--
+-- After every account block, so it covers each of them; its own handler, so a
+-- change to auth.users costs the sign-ins and nothing else.
+DO $$
+BEGIN
+    UPDATE auth.users
+    SET confirmation_token     = COALESCE(confirmation_token, ''),
+        recovery_token         = COALESCE(recovery_token, ''),
+        email_change           = COALESCE(email_change, ''),
+        email_change_token_new = COALESCE(email_change_token_new, '')
+    WHERE email LIKE '%@dogslamloop.test';
+EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'Fixture token columns not filled: % (%). Fixture sign-ins may fail.', SQLERRM, SQLSTATE;
+END $$;
+
+-- ---------------------------------------------------------------------------
 -- CONTENT
 -- ---------------------------------------------------------------------------
 --

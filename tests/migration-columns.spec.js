@@ -182,6 +182,57 @@ test('every sql function body starts with a statement, not a bare CTE', () => {
     expect(problems).toEqual([]);
 });
 
+// A guard that can answer NULL lets everybody through.
+//
+// Every guarded RPC here opens `IF NOT "public"."<guard>"() THEN RAISE ...`.
+// When the guard returns NULL, `NOT NULL` is NULL, IF treats that as false, and
+// the RAISE is skipped. is_owner() was `get_my_role() = 'owner'`, which is NULL
+// for a signed-in account with no role, so from 2026-08-27 to 2026-09-28 any
+// such account passed all twenty owner checks, assign_role_by_email included
+// (20260927000000). A roleless account made itself owner in one call on a
+// preview branch.
+//
+// So a function used that way must be NULL-safe by construction: its latest
+// definition wraps the answer in COALESCE, or goes through role_rank(), which
+// maps NULL to 0. A heuristic, but it names the exact shape that failed, and it
+// reads the LATEST definition, because only that one is live.
+test('every IF NOT guard is a function that can never answer NULL', () => {
+    const files = migrationSql();
+
+    const guards = new Set();
+    for (const { sql } of files) {
+        const clean = sql.replace(/--[^\n]*/g, ' ');
+        const re = /IF\s+NOT\s+"?public"?\."?([a-z_]+)"?\s*\(\s*\)/gi;
+        let m;
+        while ((m = re.exec(clean))) guards.add(m[1]);
+    }
+    expect([...guards], 'found no IF NOT guards at all; the pattern has stopped matching').toContain('is_owner');
+
+    // Later files overwrite earlier ones, so this ends holding what is live.
+    const latest = new Map();
+    for (const { file, sql } of files) {
+        const clean = sql.replace(/--[^\n]*/g, ' ');
+        const re = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+"?public"?\."?([a-z_]+)"?\s*\(\s*\)[\s\S]*?AS\s+\$\$([\s\S]*?)\$\$/gi;
+        let m;
+        while ((m = re.exec(clean))) latest.set(m[1], { file, body: m[2] });
+    }
+
+    const problems = [];
+    for (const guard of guards) {
+        const def = latest.get(guard);
+        if (!def) {
+            problems.push(`${guard}() is used as an IF NOT guard but no migration defines it`);
+            continue;
+        }
+        if (!/COALESCE\s*\(|role_rank"?\s*\(/i.test(def.body)) {
+            problems.push(`${def.file}: ${guard}() can answer NULL, and IF NOT ${guard}() then skips its RAISE.`
+                + ` Wrap the answer in COALESCE(..., false).`);
+        }
+    }
+
+    expect(problems).toEqual([]);
+});
+
 // Every callable function revokes the grant Postgres hands out for free.
 //
 // CREATE FUNCTION grants EXECUTE to PUBLIC. Every new RPC is therefore
