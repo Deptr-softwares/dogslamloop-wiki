@@ -1641,6 +1641,22 @@ input[type="checkbox"]:checked {
 /* A failure has to survive the rest of the run finishing on top of it. */
 .media-upload-row-failed .media-upload-row-detail { color: #ef4444; }
 .media-upload-row-failed .media-upload-row-name { color: #ef4444; }
+/* v0.20: a clip heavier than the wiki needs, waiting on the question above the
+   queue. Yellow, the site's "look at this" colour, not red: nothing failed. */
+.media-upload-row-heavy .media-upload-row-detail { color: #f4cc43; }
+.media-upload-row-skipped .media-upload-row-name,
+.media-upload-row-skipped .media-upload-row-detail { color: #666; }
+.media-upload-ask {
+    margin: 0.5rem 0 0;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #f4cc43;
+    background: rgba(244, 204, 67, 0.06);
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+}
+.media-upload-ask[hidden] { display: none; }
+.media-upload-ask-text { margin: 0 0 0.6rem; color: #f4cc43; line-height: 1.5; }
+.media-upload-ask-actions { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
 
 /* --- CUSTOM MODAL THEMES --- */
 .editor-modal-overlay { z-index: 10000; }
