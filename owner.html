@@ -314,6 +314,22 @@
 
                     <div id="permission-results" class="admin-tool-results"></div>
                 </section>
+
+                <!--
+                    v0.20. Every image and video link on every page, checked,
+                    and the ones that point at nothing listed by page and by
+                    where on the page. Run on demand only: it reads owner
+                    content, so it must never become a test or a CI check, or
+                    one broken link would turn into a red required check.
+                -->
+                <section id="tool-media-report" class="update-log-item admin-tool-card pages">
+                    <div class="admin-tool-header-row">
+                        <h3 class="update-title admin-tool-title pages">Broken Media</h3>
+                        <button id="btn-media-report" class="btn-sys btn-sys-regular admin-refresh-btn">CHECK ALL MEDIA</button>
+                    </div>
+                    <p class="admin-tool-hint">Checks every image and video link on every page and lists the ones that load nothing. Takes a minute or so.</p>
+                    <div id="media-report-results" class="admin-tool-results"></div>
+                </section>
                 </div>
 
                 <div class="owner-group" data-group="content" hidden>
@@ -656,21 +672,22 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/character_tabs.js?v=505999ab"></script>
-    <script src="js/input_slots.js?v=505999ab"></script>
-    <script src="js/site_utils.js?v=505999ab"></script>
-    <script src="js/site_meta.js?v=505999ab"></script>
-    <script src="js/editor-folders.js?v=505999ab"></script>
-    <script src="js/editor-blocks.js?v=505999ab"></script>
-    <script src="js/owner.js?v=505999ab"></script>
+    <script src="js/character_tabs.js?v=af3985e4"></script>
+    <script src="js/input_slots.js?v=af3985e4"></script>
+    <script src="js/site_utils.js?v=af3985e4"></script>
+    <script src="js/site_meta.js?v=af3985e4"></script>
+    <script src="js/editor-folders.js?v=af3985e4"></script>
+    <script src="js/editor-blocks.js?v=af3985e4"></script>
+    <script src="js/owner.js?v=af3985e4"></script>
     <!-- After owner.js: both use its ownerEscape and contentNotDeployedMessage. -->
-    <script src="js/owner-site-meta.js?v=505999ab"></script>
-    <script src="js/owner-hub-text.js?v=505999ab"></script>
-    <script src="js/owner-hub-lists.js?v=505999ab"></script>
-    <script src="js/owner-page-meta.js?v=505999ab"></script>
-    <script src="js/owner-staff-perks.js?v=505999ab"></script>
-    <script src="js/owner-page-experts.js?v=505999ab"></script>
-    <script src="js/owner-tier-lists.js?v=505999ab"></script>
-    <script src="js/owner-nav.js?v=505999ab"></script>
+    <script src="js/owner-site-meta.js?v=af3985e4"></script>
+    <script src="js/owner-hub-text.js?v=af3985e4"></script>
+    <script src="js/owner-hub-lists.js?v=af3985e4"></script>
+    <script src="js/owner-page-meta.js?v=af3985e4"></script>
+    <script src="js/owner-staff-perks.js?v=af3985e4"></script>
+    <script src="js/owner-page-experts.js?v=af3985e4"></script>
+    <script src="js/owner-tier-lists.js?v=af3985e4"></script>
+    <script src="js/owner-media-report.js?v=af3985e4"></script>
+    <script src="js/owner-nav.js?v=af3985e4"></script>
 </body>
 </html>

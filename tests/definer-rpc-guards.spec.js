@@ -126,6 +126,7 @@ function anonExecutable(latest) {
 // v0.17 pass 1, and 20260903000001_page_experts.sql:102-108 documents it.
 const ANON_BY_DESIGN = {
     can_delete_media: 'read by a storage.objects policy evaluated as the querying role',
+    can_upload_media: 'read by storage.objects policies, and asked by the Media Library and the thread composer before offering an upload; it answers false for anon rather than erroring',
     can_moderate: 'read by RLS policies that carry no TO clause',
     can_review_page: 'read by both pending_revisions policies, which carry no TO clause',
     get_my_role: 'read by RLS policies that carry no TO clause',

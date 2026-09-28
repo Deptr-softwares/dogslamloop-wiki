@@ -70,6 +70,15 @@ test('the directory list still covers every folder a page can be created in', ()
 // --- the gallery renderer ------------------------------------------------
 
 async function mountGallery(page, items, intro = []) {
+  // The fixture's files are served, from real local media. They do not exist,
+  // and since v0.20 a file that 404s is replaced by the missing-media notice
+  // (js/description.js), which is right on a real page and would leave this
+  // test counting notices instead of the elements it is about.
+  await page.route(/\/medias\/videos\/(wave|salute)\./, r =>
+    r.fulfill({ path: 'medias/videos/example-video2.webm', contentType: 'video/webm' }));
+  await page.route(/\/medias\/images\/(sit|point)\./, r =>
+    r.fulfill({ path: 'medias/images/DogslamloopIcon.webp', contentType: 'image/webp' }));
+
   // A system page for the shared stack (site_utils, description.js), then the
   // real gallery renderer injected - no generated gallery page exists yet, and
   // hand-editing navigation.json to make one would be editing a generated file.

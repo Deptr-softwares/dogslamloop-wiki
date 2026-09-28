@@ -156,12 +156,19 @@
                     Files uploaded before 20 September 2026 have no uploader recorded, and show no
                     credit.
                 </p>
+                <p class="strategy-paragraph">
+                    Images attached to a discussion post are stored the same way, in a folder under
+                    your account, and are public like the post. Deleting your post deletes its
+                    images. A post removed by a moderator keeps its images in storage, so it can be
+                    put back.
+                </p>
 
                 <h2 class="section-title">Who else is involved</h2>
                 <ul class="wiki-block-list">
                     <li><strong>Supabase</strong> hosts the database and handles signing in. Your email and everything you write live there.</li>
                     <li><strong>Discord and Google</strong>, if you signed in with one of them. They tell the site your email address and nothing else. Your password stays with them, and this site never sees it.</li>
                     <li><strong>GitHub Pages</strong> and <strong>Cloudflare</strong> serve the site. Like any web host they see request logs, including IP addresses. That is ordinary server logging, not something this site reads, keeps or can search.</li>
+                    <li><strong>KLIPY</strong> hosts the GIFs linked in discussion posts. Your browser loads each one straight from KLIPY, so KLIPY sees your IP address the way any image host would. It is not told which page you were on.</li>
                     <li><strong>Ko-fi</strong> is linked in the sidebar. Clicking it takes you to their site, which has its own policies, and nothing about a donation comes back here.</li>
                 </ul>
 
@@ -177,7 +184,8 @@
                 </p>
                 <p class="strategy-paragraph">
                     Edits you already made stay on the page, but your name comes off them and they
-                    show as "Deleted user" instead.
+                    show as "Deleted user" instead. Discussion posts stay the same way, images
+                    included.
                 </p>
 
                 <h2 class="section-title">Changes to this page</h2>
@@ -199,12 +207,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/character_tabs.js?v=505999ab"></script>
-    <script src="js/input_slots.js?v=505999ab"></script>
-    <script src="js/site_utils.js?v=505999ab"></script>
-    <script src="js/site_meta.js?v=505999ab"></script>
-    <script src="js/pagebuilder.js?v=505999ab"></script>
-    <script src="js/search.js?v=505999ab"></script>
+    <script src="js/character_tabs.js?v=af3985e4"></script>
+    <script src="js/input_slots.js?v=af3985e4"></script>
+    <script src="js/site_utils.js?v=af3985e4"></script>
+    <script src="js/site_meta.js?v=af3985e4"></script>
+    <script src="js/pagebuilder.js?v=af3985e4"></script>
+    <script src="js/search.js?v=af3985e4"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {

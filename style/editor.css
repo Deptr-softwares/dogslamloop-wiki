@@ -1758,6 +1758,16 @@ input[type="checkbox"]:checked {
     font-size: 0.75rem;
 }
 
+/* v0.20: no upload media permission. The zone stays, as the sentence saying
+   why; the hover and drag-over states that invite a drop are cancelled. */
+#media-upload-zone.media-upload-zone-locked,
+#media-upload-zone.media-upload-zone-locked:hover {
+    cursor: not-allowed;
+    border-color: #333;
+    border-style: solid;
+    background: transparent !important;
+}
+
 /* --- STRICT MEDIA GRID REFACTOR --- */
 #media-gallery-grid {
     flex: 1;

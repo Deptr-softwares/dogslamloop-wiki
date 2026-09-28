@@ -2261,6 +2261,63 @@ window.initLazyMedia = function(rootElement = document) {
     }
 };
 
+// --- MEDIA THAT FAILS TO LOAD (v0.20 batch 3) ---
+//
+// A link to a file that does not exist used to draw a broken-image icon, or,
+// for a video, an empty black box that reads as "still loading" forever. On
+// 2026-09-28, 86 of the 466 files the wiki links to did not exist, on 15
+// pages. Now the same "[ Missing Media ]" box a skill card with no media has
+// always shown takes the failed element's place, so a reader can tell missing
+// from slow.
+//
+// One capture-phase listener on the document: `error` does not bubble, but it
+// does pass through capture, and this catches media drawn by any renderer at
+// any time, including the editor's live preview and the review screen.
+//
+// OPT-IN BY CLASS. Portraits, roster icons and tier-list art have their own
+// deliberate fallbacks (a portrait that 404s hides and leaves the name), and
+// replacing them would break those.
+const MISSING_MEDIA_TARGETS = [
+    'img.wiki-block-image', 'img.wiki-media', 'img.wiki-cell-media',
+    'video.wiki-video-native',
+    'img.skill-media-img', 'video.skill-media-img',
+    'img.gallery-media', 'video.gallery-media',
+    'img.discussion-media-img', 'img.discussion-media-gif', 'video.discussion-media-gif',
+].join(', ');
+
+function showMissingMedia(el) {
+    if (!el || !el.isConnected || !el.matches(MISSING_MEDIA_TARGETS)) return;
+    // A media element with no source has not failed, it has not started.
+    const src = el.currentSrc || el.getAttribute('src') || '';
+    if (!src) return;
+
+    const notice = document.createElement('div');
+    notice.className = 'media-missing-notice';
+    notice.textContent = '[ Missing Media ]';
+    notice.setAttribute('role', 'img');
+    notice.setAttribute('aria-label', 'Missing media');
+    // The file's name on hover, so whoever fixes the page knows which one.
+    // A property, never markup: the address came from page content.
+    try { notice.title = decodeURIComponent(src.split(/[?#]/)[0].split('/').pop() || ''); } catch (e) { notice.title = ''; }
+
+    // An image block's own alignment and width carry over, so the box sits
+    // where the image would have.
+    el.classList.forEach(c => { if (/^wiki-media(-|$)/.test(c)) notice.classList.add(c); });
+    if (el.style && el.style.width) notice.style.width = el.style.width;
+
+    // A thread image sits inside a link to itself; a link to a missing file
+    // goes nowhere, so the notice replaces the link.
+    const link = el.parentElement && el.parentElement.matches('a.discussion-media-link') ? el.parentElement : null;
+    (link || el).replaceWith(notice);
+}
+
+document.addEventListener('error', (e) => {
+    const t = e.target;
+    if (!t || !t.tagName) return;
+    // A <source> child fails on itself; its video is what the reader sees.
+    showMissingMedia(t.tagName === 'SOURCE' ? t.parentElement : t);
+}, true);
+
 // --- VIDEO PLAYER BEHAVIOUR (v0.15 item 10) ---
 //
 // One delegated listener on the document rather than per-player wiring: these

@@ -49,7 +49,7 @@ const CHARACTER_SECTIONS = [
     { key: 'has_playstyle', label: 'Playstyle' },
     { key: 'has_m1s', label: 'M1s' },
     { key: 'has_skills', label: 'Skills' },
-    { key: 'has_specials', label: 'Specials' },
+    { key: 'has_specials', label: 'Innate' },
     { key: 'has_strategy', label: 'Strategy' },
     { key: 'has_matchups', label: 'Matchups' },
     { key: 'has_counterplay', label: 'Counterplay' },

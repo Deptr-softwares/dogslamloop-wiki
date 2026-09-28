@@ -91,6 +91,29 @@ window.measureMediaSource = function(source) {
 // run, which the bucket listing below was taken before. Without it, two
 // images called logo.png and logo.jpg both resolve to logo.webp and the
 // second one gets a raw storage error instead of the guard's explanation.
+// v0.20: uploading needs the upload media permission. Trusted Editor and up
+// have it by role; the owner can tick it for anyone else. Storage enforces it
+// (the "Auth Upload" policy); this file only says so before somebody tries.
+const MEDIA_UPLOAD_LOCKED_TEXT = 'Uploading needs the upload media permission. Trusted Editors and up have it, and the owner can give it to anyone else. Media already in the library can still be used.';
+
+// Asked every time the library opens rather than once per page, so a
+// permission the owner ticks mid-session takes effect on the next open.
+//
+// Open unless the answer is an explicit false. Before the release that adds
+// it, the function does not exist (PGRST202) and uploading is not gated at
+// all; after it, Storage refuses anyway, so failing open costs a clearer
+// message and nothing else.
+async function mediaUploadAllowed() {
+    if (!window.supabaseClient) return true;
+    try {
+        const { data, error } = await window.supabaseClient.rpc('can_upload_media');
+        if (error) return true;
+        return data !== false;
+    } catch (e) {
+        return true;
+    }
+}
+
 window.uploadWikiMedia = async function(file, onStatus = () => {}, alsoKnown = []) {
     if (!window.supabaseClient) return { error: 'Not connected to the database.' };
 
@@ -153,6 +176,13 @@ Rename your file (e.g. append "_v2") before uploading, so you do not break pages
 
         onStatus('Uploading to Cloud...');
         const { error } = await window.supabaseClient.storage.from('wiki-media').upload(finalName, finalFile);
+        // Storage refusing on the upload permission (v0.20) says "new row
+        // violates row-level security policy", which tells nobody what to do.
+        // The Gallery bin reaches this without the Media Library's lock, so the
+        // sentence lives here rather than only on the drop zone.
+        if (error && /row-level security|unauthori[sz]ed|\b403\b/i.test(`${error.message} ${error.statusCode || ''}`)) {
+            return { error: MEDIA_UPLOAD_LOCKED_TEXT };
+        }
         if (error) return { error: 'Upload failed: ' + error.message };
 
         const { data: publicUrlData } = window.supabaseClient.storage.from('wiki-media').getPublicUrl(finalName);
@@ -275,6 +305,10 @@ window.initMediaLibrary = function() {
 
         window.currentMediaFiles = data.filter(f => !f.name.startsWith('.'));
         window.currentMediaPage = 1;
+
+        // Not awaited into the grid: the files are why the library was
+        // opened, and they stay usable whatever the answer is.
+        applyUploadPermission();
 
         // Render FIRST, then fill the credits in. The grid is the reason the
         // modal was opened and it does not need a name to be useful, so making
@@ -592,11 +626,25 @@ window.initMediaLibrary = function() {
         }
     }
 
+    // The zone's original words, kept so a lock lifted by a later open (the
+    // owner ticked the box mid-session) restores them.
+    const uploadTextNode = document.getElementById('media-upload-text');
+    const unlockedText = uploadTextNode ? uploadTextNode.textContent : '';
+    let uploadLocked = false;
+
+    async function applyUploadPermission() {
+        uploadLocked = !(await mediaUploadAllowed());
+        dropZone.classList.toggle('media-upload-zone-locked', uploadLocked);
+        dropZone.setAttribute('aria-disabled', uploadLocked ? 'true' : 'false');
+        if (uploadTextNode) uploadTextNode.textContent = uploadLocked ? MEDIA_UPLOAD_LOCKED_TEXT : unlockedText;
+    }
+
     btnRefresh.addEventListener('click', window.loadMediaGallery);
     document.getElementById('media-search-input').addEventListener('input', window.renderMediaGrid);
     document.getElementById('media-filter-select').addEventListener('change', window.renderMediaGrid);
 
     dropZone.addEventListener('click', () => {
+        if (uploadLocked) return;
         fileInput.click();
     });
 
@@ -621,6 +669,7 @@ window.initMediaLibrary = function() {
     dropZone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropZone.classList.remove('media-upload-zone-dragover');
+        if (uploadLocked) return;
         handleUploads(Array.from(e.dataTransfer.files));
     });
 };
