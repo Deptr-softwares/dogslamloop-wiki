@@ -61,6 +61,10 @@ test('a failed image and a failed video become the notice; a working image stays
     // No broken element survives, and the working image is untouched.
     await expect(page.locator(`#mm-host img[src="${MISSING_IMG}"]`)).toHaveCount(0);
     await expect(page.locator('#mm-host video')).toHaveCount(0);
+    // The clip's corner button (v0.20 V1) goes with it: a player for a file
+    // that does not exist would open onto nothing.
+    await expect(page.locator('#mm-host .wiki-clip-open')).toHaveCount(0);
+    await expect(page.locator('#mm-host .wiki-clip')).toHaveCount(0);
     const real = page.locator(`#mm-host img[src="${REAL_IMG}"]`);
     await expect(real).toHaveCount(1);
     await expect.poll(() => real.evaluate(el => el.complete && el.naturalWidth > 0)).toBe(true);

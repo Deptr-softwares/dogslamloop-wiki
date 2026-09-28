@@ -62,21 +62,15 @@ function buildGalleryCard(item) {
 
     if (item.src) {
         if (isVideoSrc(item.src)) {
-            const video = document.createElement('video');
-            // data-lazy-src, not src: initLazyMedia (js/description.js) swaps
-            // it in on approach. A gallery is the one page where loading every
-            // clip at once genuinely matters.
-            video.setAttribute('data-lazy-src', item.src);
-            video.className = 'gallery-media';
-            video.autoplay = true;
-            video.loop = true;
-            video.muted = true;
-            video.playsInline = true;
-            video.preload = 'none';
-            // <video> has no alt attribute - the same trap that made skill-card
-            // alt text look like it was not saving.
-            if (item.alt || item.name) video.setAttribute('aria-label', item.alt || item.name);
-            media.appendChild(video);
+            // The shared clip (js/description.js wikiClipHTML): lazy, because
+            // a gallery is the one page where loading every clip at once
+            // genuinely matters, and carrying the corner button that opens the
+            // player. aria-label because <video> has no alt attribute - the
+            // same trap that made skill-card alt text look like it was not
+            // saving.
+            media.innerHTML = window.wikiClipHTML(item.src, {
+                className: 'gallery-media', label: item.alt || item.name || '',
+            });
         } else {
             const img = document.createElement('img');
             img.src = item.src;

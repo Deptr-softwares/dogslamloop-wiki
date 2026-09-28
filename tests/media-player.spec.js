@@ -145,8 +145,9 @@ test('a video with controls on gets the player; one without keeps its silent loo
 
   expect(out.withControlsHasPlayer).toBe(true);
   // A block with controls off is a clip standing in for a GIF, and a great
-  // many existing pages are built on that. Giving it a play button would be a
-  // silent content change across the whole wiki.
+  // many existing pages are built on that. It keeps its silent loop and gets
+  // no player inline; since v0.20 a corner button opens one in the modal
+  // (clip-corner-and-queue.spec.js).
   expect(out.withoutHasPlayer, 'an autoplay clip is left alone').toBe(false);
   expect(out.loopAutoplay).toBe(true);
   expect(out.loopMuted).toBe(true);

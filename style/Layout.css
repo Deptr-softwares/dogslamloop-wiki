@@ -1170,6 +1170,47 @@ summary:focus-visible {
     flex: 0 0 auto;
 }
 
+/* --- THE CLIP'S CORNER BUTTON (v0.20 V1) ---
+   An autoplaying clip keeps its loop, and a small square in its bottom-right
+   corner opens the player in the modal (js/description.js wikiClipHTML). The
+   wrapper is only a positioning box: in a skill card or a gallery card it fills
+   the fixed-shape frame the video used to fill on its own. */
+.wiki-clip { position: relative; }
+.skill-media-wrapper > .wiki-clip,
+.gallery-card-media > .wiki-clip { width: 100%; height: 100%; }
+.wiki-clip-open {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    z-index: 1;
+    width: 1.9rem;
+    height: 1.9rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.65);
+    border: 2px solid var(--accent-blue);
+    box-shadow: 2px 2px 0px var(--manga-shadow);
+    cursor: pointer;
+    transition: background 0.1s ease, transform 0.1s ease;
+}
+/* A finger is bigger than the square. The hit area grows without the square
+   covering more of the clip. */
+.wiki-clip-open::before { content: ''; position: absolute; inset: -0.4rem; }
+.wiki-clip-open:hover { background: var(--accent-blue); transform: translate(-1px, -1px); }
+.wiki-clip-open:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0px var(--manga-shadow); }
+.wiki-clip-open:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.wiki-clip-open-glyph {
+    display: block;
+    width: 0.7rem;
+    height: 0.7rem;
+    margin-left: 2px;
+    background: var(--accent-blue);
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.wiki-clip-open:hover .wiki-clip-open-glyph { background: var(--character-ink, #000); }
+
 .wiki-video-modal { position: fixed; inset: 0; z-index: 10050; display: flex; align-items: center; justify-content: center; }
 .wiki-video-modal.hidden { display: none; }
 .wiki-video-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.8); }
