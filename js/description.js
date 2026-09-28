@@ -2260,9 +2260,13 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
 // the connection, and a 0.31 MB clip waited 4.9s behind a 4.24 MB one. 11 of
 // 26 were still blank two seconds after scrolling into view, on desktop too.
 //
-// So an autoplaying clip now joins a queue two screens ahead of the reader, at
-// most two download at once, the clip nearest the screen always goes next, and
-// a loop plays only while it is on screen.
+// So an autoplaying clip now joins a queue two screens ahead of the reader,
+// two start at a time, the clip nearest the screen always goes next, and a
+// loop plays only while it is on screen. A clip hands its turn on once it can
+// play through, not once its last byte lands, so the browser may still be
+// fetching the tail of one while the next starts: re-measured on 2026-09-29,
+// the most requests in flight fell from 9 to 7 on a phone profile, and no clip
+// was blank for over 2 seconds after coming into view (8 before).
 //
 // Everything else keeps the old rule, its source swapped in 300px ahead: a
 // player with controls downloads nothing until it is pressed

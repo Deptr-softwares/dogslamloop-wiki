@@ -8,9 +8,10 @@
 //
 // V2 fix 3, measured on Puppet Master on 2026-09-28: clips started loading
 // 300px ahead of the screen and a grid of them shared the connection, so a
-// 0.31 MB clip waited 4.9s behind a 4.24 MB one. Now at most two download at
-// once, nearest first, from two screens ahead, and a loop plays only while it
-// is on screen.
+// 0.31 MB clip waited 4.9s behind a 4.24 MB one. Now two start at a time,
+// nearest first, from two screens ahead, and a loop plays only while it is on
+// screen. A held response keeps a clip from ever being able to play through,
+// so in these tests "started" and "downloading" are the same thing.
 //
 // Every clip is one committed file served through page.route, never through
 // the shared dev server (media-player.spec.js has why). Supabase's REST API is
@@ -191,7 +192,7 @@ test('the player plays with sound, and the clip keeps looping under it', async (
 
 // --- 4.2: THE LOAD ORDER ---
 
-test('at most two clips download at once, nearest first, from two screens ahead', async ({ page }) => {
+test('clips start two at a time, nearest first, from two screens ahead', async ({ page }) => {
   const net = await boot(page, { hold: ['near1', 'near2', 'mid', 'far'] });
   // Written in the reverse of their distance, so a queue that took clips in
   // page order would start the two farthest instead.
