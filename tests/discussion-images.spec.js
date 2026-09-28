@@ -29,12 +29,17 @@ const post = (over = {}) => ({
 });
 
 async function openThread(page, { rows = [], session = null, roleRow = null, insertError = null, safari = false } = {}) {
-    // Every image address either host could produce answers with a real,
-    // decodable local file.
+    // Every address either host could produce answers with a real, decodable
+    // local file OF THE RIGHT KIND. An .mp4 once got the WebP too: the video
+    // could not play it, the missing-media listener (3.5) rightly replaced it,
+    // and the MP4 test passed locally only by asserting before the error
+    // arrived. It failed all three CI attempts. WebM stands in for the MP4:
+    // Playwright's Chromium has no H.264.
     await page.route(/\/storage\/v1\/object\/public\/discussion-media\//, r =>
         r.fulfill({ status: 200, contentType: 'image/webp', body: LOCAL_IMAGE }));
-    await page.route(/^https:\/\/static2?\.klipy\.com\//, r =>
-        r.fulfill({ status: 200, contentType: 'image/webp', body: LOCAL_IMAGE }));
+    await page.route(/^https:\/\/static2?\.klipy\.com\//, r => r.request().url().endsWith('.mp4')
+        ? r.fulfill({ status: 200, contentType: 'video/webm', path: path.join(__dirname, '..', 'medias', 'videos', 'example-video2.webm') })
+        : r.fulfill({ status: 200, contentType: 'image/webp', body: LOCAL_IMAGE }));
 
     await page.addInitScript(({ rows, session, roleRow, insertError, safari }) => {
         window.__inserts = [];
@@ -157,6 +162,11 @@ test('a KLIPY MP4 plays as a muted loop, the way a GIF would', async ({ page }) 
     await expect(video).toHaveCount(1);
     expect(await video.evaluate(v => [v.muted, v.loop, v.autoplay, v.getAttribute('src')]))
         .toEqual([true, true, true, mp4]);
+    // Playing, not merely present: a frame decoded, and it is still the video
+    // rather than the missing-media notice a failed one becomes.
+    await expect.poll(() => page.locator('#post-p1 video.discussion-media-gif')
+        .evaluate(v => v.readyState >= 2 && v.videoWidth > 0).catch(() => false), { timeout: 15000 }).toBe(true);
+    await expect(page.locator('#post-p1 .media-missing-notice')).toHaveCount(0);
     await expect(page.locator('#post-p1 .discussion-body')).toBeHidden();
 });
 
