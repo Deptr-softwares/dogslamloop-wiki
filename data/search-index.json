@@ -738,6 +738,8 @@
     ["New Heading","combos","Combos","sec-new-heading-2",35,"Read First"],
     ["Technical Overview","techs","Techs","sec-technical-overview",35,null],
     ["Personally, I prefer the Air!","techs","Techs","sec-personally-i-prefer-the-air",35,"Technical Overview"],
+    ["Sky breaker","techs","Techs","sec-sky-breaker",35,"Technical Overview"],
+    ["Blinded Barrage","techs","Techs","sec-blinded-barrage",35,"Technical Overview"],
     ["New Starter Guide Topic","starterGuide","Starter Guide","sec-new-starter-guide-topic",35,null],
     ["New Heading","starterGuide","Starter Guide","sec-new-heading-3",35,"New Starter Guide Topic"],
     ["New Counterplay","counterplay","Counterplay","sec-new-counterplay",35,null],
