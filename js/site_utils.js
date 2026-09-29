@@ -324,12 +324,14 @@ function blockedMediaSrcOf(element) {
 // matched. A <source> lives inside the media element it belongs to, and a
 // player's <video> lives inside a shell carrying its own play, sound and
 // duration controls - replacing either one alone leaves working chrome wired
-// to nothing, which reads as a broken player rather than a moderated one.
+// to nothing, which reads as a broken player rather than a moderated one. An
+// autoplaying clip (v0.20) sits in a wrapper with its corner button, and the
+// two go together for the same reason.
 function blockedMediaTarget(element) {
     let target = element;
     if (target.tagName === 'SOURCE' && target.parentNode) target = target.parentNode;
-    const player = target.closest ? target.closest('[data-wiki-player]') : null;
-    return player || target;
+    const shell = target.closest ? target.closest('[data-wiki-player], .wiki-clip') : null;
+    return shell || target;
 }
 
 window.sweepBlockedMedia = function(root, blocked) {
@@ -339,12 +341,14 @@ window.sweepBlockedMedia = function(root, blocked) {
 
     let removed = 0;
     candidates.forEach(element => {
-        // A node replaced earlier in this same sweep - a player shell taking
-        // its own video with it, say - is no longer on the page, and replacing
-        // a detached node throws.
-        if (!element.parentNode) return;
         if (!window.isBlockedMediaSrc(blockedMediaSrcOf(element), blocked)) return;
-        replaceWithBlockedNotice(blockedMediaTarget(element));
+        // A shell replaced earlier in this same sweep is no longer on the
+        // page, and replacing a detached node throws. Checked on the TARGET:
+        // a clip's video and its corner button both match, and both name the
+        // wrapper the video already took away.
+        const target = blockedMediaTarget(element);
+        if (!target.parentNode) return;
+        replaceWithBlockedNotice(target);
         removed += 1;
     });
     return removed;

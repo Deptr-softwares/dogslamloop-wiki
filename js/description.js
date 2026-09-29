@@ -115,8 +115,9 @@ window.wikiMediaKind = function (value) {
 //
 // And only when the block asked for controls. A video block with controls OFF
 // renders `autoplay loop muted playsinline`: a silent clip standing in for a
-// GIF, which is a deliberate authoring choice on a lot of existing pages.
-// Giving that a play button answers a question nobody asked.
+// GIF, which is a deliberate authoring choice on a lot of existing pages. It
+// keeps that loop and gets no player inline; a small button in its corner
+// opens this player in the video modal instead (wikiClipHTML, below).
 //
 // Painted with var(--accent-blue), which js/site_meta.js overrides on :root
 // per character page - so the player re-themes itself and there is nothing
@@ -156,6 +157,35 @@ window.wikiVideoButtonHTML = function (url, label) {
     return `<button type="button" class="wiki-video-btn" data-wiki-video="${safe}">`
         + `<span class="wiki-video-btn-glyph" aria-hidden="true"></span>`
         + `${escBlockText(label || 'Watch')}</button>`;
+};
+
+// --- THE CLIP AND ITS CORNER BUTTON (v0.20 V1) ---
+//
+// Owner: "On autoplaying video, give the option (as a small play button in the
+// corner of that video) to open up a modal that play the video with controls
+// on". The button opens the same modal as a video in a table cell, with
+// controls and sound, and the clip underneath keeps looping.
+//
+// One helper for all four places a clip renders: the video block, skill-card
+// media (js/framedata.js), the character Gallery tab and gallery pages
+// (js/gallery.js). Four copies of this markup would drift, the way the
+// notation fields did before they got one.
+//
+// The wrapper is what the corner is measured from, and it is what a failed or
+// moderated clip is replaced by, so the button never outlives its clip
+// (showMissingMedia below, blockedMediaTarget in js/site_utils.js).
+window.wikiClipHTML = function (url, opts) {
+    const safe = escBlockText(safeBlockUrl(url));
+    if (!safe) return '';
+    const o = opts || {};
+    const label = o.label ? ` aria-label="${escBlockText(o.label)}"` : '';
+    return `<div class="wiki-clip">`
+        + `<video data-lazy-src="${safe}" class="${escBlockText(o.className || 'wiki-video-native')}"${label}`
+        + ` autoplay loop muted playsinline preload="none"></video>`
+        + `<button type="button" class="wiki-clip-open" data-wiki-video="${safe}"`
+        + ` aria-label="Open in player" title="Open in player">`
+        + `<span class="wiki-clip-open-glyph" aria-hidden="true"></span></button>`
+        + `</div>`;
 };
 
 // Helper to assign CSS classes, inline widths, and safe style merging for media
@@ -470,10 +500,10 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 if (videoUrl) {
                     // Controls ON gets the player (item 10). Controls OFF is an
                     // autoplaying muted loop - a clip standing in for a GIF -
-                    // and is left exactly as it was.
+                    // with a corner button that opens the player (v0.20 V1).
                     mediaInnerHtml = bData.controls
                         ? window.wikiVideoPlayerHTML(videoUrl)
-                        : `<video data-lazy-src="${escBlockText(safeBlockUrl(videoUrl))}" autoplay loop muted playsinline class="wiki-video-native" preload="none"></video>`;
+                        : window.wikiClipHTML(videoUrl);
                 }
             }
 
@@ -1397,19 +1427,13 @@ function buildCharacterGalleryCard(item) {
 
     if (item.src) {
         if (isCharacterGalleryVideo(item.src)) {
-            const video = document.createElement('video');
-            // data-lazy-src, not src: initLazyMedia swaps it in on approach.
-            video.setAttribute('data-lazy-src', item.src);
-            video.className = 'gallery-media';
-            video.autoplay = true;
-            video.loop = true;
-            video.muted = true;
-            video.playsInline = true;
-            video.preload = 'none';
+            // The shared clip: lazy (initLazyMedia swaps the source in on
+            // approach) and carrying the corner button. aria-label because
             // <video> has no alt attribute - the trap that made skill-card alt
             // text look like it was not saving.
-            if (item.alt || item.name) video.setAttribute('aria-label', item.alt || item.name);
-            media.appendChild(video);
+            media.innerHTML = window.wikiClipHTML(item.src, {
+                className: 'gallery-media', label: item.alt || item.name || '',
+            });
         } else {
             const img = document.createElement('img');
             img.src = item.src;
@@ -2229,36 +2253,170 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
     }
 }
 
-// --- LAZY MEDIA OBSERVER ---
+// --- LAZY MEDIA, AND THE CLIP QUEUE (v0.20 V2 fix 3) ---
+//
+// Measured on Puppet Master's Overview on 2026-09-28: clips started loading
+// only 300px ahead of the screen, a grid of them started together and shared
+// the connection, and a 0.31 MB clip waited 4.9s behind a 4.24 MB one. 11 of
+// 26 were still blank two seconds after scrolling into view, on desktop too.
+//
+// So an autoplaying clip now joins a queue two screens ahead of the reader,
+// two start at a time, the clip nearest the screen always goes next, and a
+// loop plays only while it is on screen. A clip hands its turn on once it can
+// play through, not once its last byte lands, so the browser may still be
+// fetching the tail of one while the next starts: re-measured on 2026-09-29,
+// the most requests in flight fell from 9 to 7 on a phone profile, and no clip
+// was blank for over 2 seconds after coming into view (8 before).
+//
+// Everything else keeps the old rule, its source swapped in 300px ahead: a
+// player with controls downloads nothing until it is pressed
+// (preload="none"), and a YouTube embed is not ours to meter.
+//
+// The observers are shared and built once. initLazyMedia is called on every
+// render, the editor's preview renders on every keystroke, and observing an
+// element twice is a no-op, so a second call costs nothing.
+const CLIP_SLOTS = 2;
+const CLIP_AHEAD_MARGIN = '200% 0px';
+// A slot is freed when the browser can play the clip through, stops fetching
+// it, or fails. A clip that does none of those in this long stops holding the
+// queue up, so one stalled download cannot stop every clip below it.
+const CLIP_SLOT_TIMEOUT_MS = 8000;
+
+const clipWaiting = new Set();
+const clipLoading = new Map();    // clip -> the timeout that frees its slot
+const clipOnScreen = new WeakSet();
+let clipAheadObserver = null;
+let clipScreenObserver = null;
+let lazyMediaObserver = null;
+
+// 0 on screen, otherwise how many pixels away. A clip with no box (its tab is
+// hidden) is never picked; its tab showing again brings it back through the
+// ahead observer.
+function clipDistance(video) {
+    const r = video.getBoundingClientRect();
+    if (!r.width && !r.height) return Infinity;
+    const h = window.innerHeight || document.documentElement.clientHeight;
+    if (r.bottom < 0) return -r.bottom;
+    if (r.top > h) return r.top - h;
+    return 0;
+}
+
+function playClip(video) {
+    // Refused on a phone in Low Power Mode, or cut short by the reader
+    // scrolling past. Either way the corner button still opens the player.
+    const p = video.play();
+    if (p && p.catch) p.catch(() => {});
+}
+
+function freeClipSlot(video) {
+    if (!clipLoading.has(video)) return;
+    clearTimeout(clipLoading.get(video));
+    clipLoading.delete(video);
+    pumpClipQueue();
+}
+
+function startClip(video) {
+    const src = video.getAttribute('data-lazy-src');
+    if (!src) return;
+    clipAheadObserver.unobserve(video);
+
+    const free = () => freeClipSlot(video);
+    ['canplaythrough', 'suspend', 'error', 'abort'].forEach(type =>
+        video.addEventListener(type, free, { once: true }));
+    clipLoading.set(video, setTimeout(free, CLIP_SLOT_TIMEOUT_MS));
+
+    // From here the queue decides when the clip plays, not the attribute:
+    // autoplay would start a loop two screens down that nobody is watching.
+    // preload="auto" because without autoplay, "none" fetches nothing until
+    // play() is called on screen, which is the wait this exists to remove.
+    video.autoplay = false;
+    video.preload = 'auto';
+    video.src = src;
+    video.removeAttribute('data-lazy-src');
+    if (clipOnScreen.has(video)) playClip(video);
+}
+
+function pumpClipQueue() {
+    // A clip taken off the page stops counting: the editor repaints its
+    // preview on every keystroke, and a gallery search rebuilds the grid.
+    clipLoading.forEach((timer, video) => {
+        if (!video.isConnected) { clearTimeout(timer); clipLoading.delete(video); }
+    });
+    clipWaiting.forEach(video => { if (!video.isConnected) clipWaiting.delete(video); });
+
+    while (clipLoading.size < CLIP_SLOTS) {
+        let next = null;
+        let nearest = Infinity;
+        clipWaiting.forEach(video => {
+            const d = clipDistance(video);
+            if (d < nearest) { nearest = d; next = video; }
+        });
+        if (!next) return;
+        clipWaiting.delete(next);
+        startClip(next);
+    }
+}
+
+// Membership of the queue is "within two screens and not started". A clip the
+// reader scrolled far past leaves it, rather than downloading later for
+// nobody.
+function onClipAhead(entries) {
+    entries.forEach(({ target: video, isIntersecting }) => {
+        if (!video.hasAttribute('data-lazy-src')) return;
+        if (isIntersecting) clipWaiting.add(video);
+        else clipWaiting.delete(video);
+    });
+    pumpClipQueue();
+}
+
+function onClipScreen(entries) {
+    entries.forEach(({ target: video, isIntersecting }) => {
+        const started = !video.hasAttribute('data-lazy-src');
+        if (isIntersecting) {
+            clipOnScreen.add(video);
+            if (started) playClip(video);
+        } else {
+            clipOnScreen.delete(video);
+            if (started && !video.paused) video.pause();
+        }
+    });
+}
+
 window.initLazyMedia = function(rootElement = document) {
     const lazyMedia = rootElement.querySelectorAll('video[data-lazy-src], iframe[data-lazy-src]');
-    
-    if ('IntersectionObserver' in window) {
-        const mediaObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const media = entry.target;
-                    // Swap the lazy attribute to the real source
-                    media.src = media.getAttribute('data-lazy-src');
-                    media.removeAttribute('data-lazy-src');
-                    
-                    // If it's a video meant to auto-play, trigger it once loaded
-                    if (media.tagName === 'VIDEO' && media.hasAttribute('autoplay')) {
-                        media.play().catch(e => console.warn("Autoplay prevented:", e));
-                    }
-                    observer.unobserve(media);
-                }
-            });
-        }, { rootMargin: "300px 0px" }); // Start loading 300px BEFORE it enters the screen
 
-        lazyMedia.forEach(media => mediaObserver.observe(media));
-    } else {
-        // Fallback for ancient browsers
+    if (!('IntersectionObserver' in window)) {
+        // Fallback for ancient browsers: everything at once, as before.
         lazyMedia.forEach(media => {
             media.src = media.getAttribute('data-lazy-src');
             media.removeAttribute('data-lazy-src');
         });
+        return;
     }
+
+    if (!lazyMediaObserver) {
+        lazyMediaObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                const media = entry.target;
+                media.src = media.getAttribute('data-lazy-src');
+                media.removeAttribute('data-lazy-src');
+                observer.unobserve(media);
+            });
+        }, { rootMargin: '300px 0px' });
+        clipAheadObserver = new IntersectionObserver(onClipAhead, { rootMargin: CLIP_AHEAD_MARGIN });
+        clipScreenObserver = new IntersectionObserver(onClipScreen);
+    }
+
+    lazyMedia.forEach(media => {
+        // An autoplaying video is a clip, and clips queue.
+        if (media.tagName === 'VIDEO' && media.hasAttribute('autoplay')) {
+            clipAheadObserver.observe(media);
+            clipScreenObserver.observe(media);
+        } else {
+            lazyMediaObserver.observe(media);
+        }
+    });
 };
 
 // --- MEDIA THAT FAILS TO LOAD (v0.20 batch 3) ---
@@ -2306,9 +2464,11 @@ function showMissingMedia(el) {
     if (el.style && el.style.width) notice.style.width = el.style.width;
 
     // A thread image sits inside a link to itself; a link to a missing file
-    // goes nowhere, so the notice replaces the link.
+    // goes nowhere, so the notice replaces the link. A clip takes its corner
+    // button with it, for the same reason: a player for nothing.
     const link = el.parentElement && el.parentElement.matches('a.discussion-media-link') ? el.parentElement : null;
-    (link || el).replaceWith(notice);
+    const clip = el.closest('.wiki-clip');
+    (clip || link || el).replaceWith(notice);
 }
 
 document.addEventListener('error', (e) => {

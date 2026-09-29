@@ -179,6 +179,26 @@ test('a flagged video is not advertised by a button either', async ({ page }) =>
     expect(heights.marker).toBeLessThanOrEqual(heights.button + 4);
 });
 
+test('a flagged clip takes its corner button with it, as one notice', async ({ page }) => {
+    // v0.20 V1 put a button over every autoplaying clip, naming the same file
+    // in data-wiki-video. The video and the button both match, and taking them
+    // one at a time left a full notice with a "Blocked" marker beside it.
+    await mockModeration(page, { flagged: ['Clip.webm'] });
+    await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+
+    await page.evaluate((url) => {
+        const host = document.createElement('div');
+        host.id = 'clip-host';
+        document.body.appendChild(host);
+        host.innerHTML = window.generateHTMLForBlocks([{ type: 'video', src: url }], '');
+    }, `${BUCKET}/Clip.webm`);
+
+    await expect(page.locator('#clip-host .media-blocked-notice')).toHaveCount(1);
+    await expect(page.locator('#clip-host .media-blocked-inline')).toHaveCount(0);
+    await expect(page.locator('#clip-host video')).toHaveCount(0);
+    await expect(page.locator('#clip-host [data-wiki-video]')).toHaveCount(0);
+});
+
 test('an unflagged video keeps its player and its button', async ({ page }) => {
     // The other direction. A guard that removed every player and every button
     // would satisfy both tests above.

@@ -325,8 +325,12 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                     // persist" was reported. It persisted fine in the data;
                     // it just had nothing to render into. Plenty of skill
                     // media is .mp4/.webm, so this was the common case.
-                    mediaContent = `
-                        <video data-lazy-src="${esc(move.media.src)}" class="skill-media-img"${altText ? ` aria-label="${esc(altText)}"` : ''} autoplay loop muted playsinline style="object-fit: cover;" preload="none"></video>
+                    //
+                    // The shared clip (js/description.js wikiClipHTML), which
+                    // carries the corner button that opens the player.
+                    mediaContent = window.wikiClipHTML(move.media.src, {
+                        className: 'skill-media-img', label: altText,
+                    }) + `
                         <span class="skill-media-filename">${esc(filename)}</span>`;
                 } else {
                     // Native loading="lazy" with a real src, matching how

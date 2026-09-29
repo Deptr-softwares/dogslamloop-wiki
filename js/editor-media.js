@@ -114,6 +114,41 @@ async function mediaUploadAllowed() {
     }
 }
 
+// --- MEDIA WEIGHT (v0.20 V2 fix 4) ---
+//
+// Measured on 2026-09-28: every working clip on Puppet Master's Overview was
+// 1920x1080, 0.3 to 4.9 MB each, shown in a column about 800px wide on a
+// desktop and 350px on a phone. The pixels past 720p are never seen, and a
+// reader waits for them anyway. So the library asks before uploading a clip
+// that heavy. It asks and never refuses: a long clip can be over 2 MB and
+// still be the right file.
+const MEDIA_HEAVY_BYTES = 2 * 1024 * 1024;
+const MEDIA_HEAVY_SHORT_SIDE = 1080;
+window.MEDIA_WEIGHT_ADVICE = 'A 720p export under 2 MB looks the same on a page and loads faster for readers.';
+
+// What makes a file heavier than the wiki needs ("1920x1080, 4.9 MB"), or
+// null. The short side, so a phone capture held upright (1080x1920) counts as
+// 1080p too. Static images are left alone: they become WebP on the way up, so
+// their size here says nothing about what reaches the bucket. MP4 is refused
+// by uploadWikiMedia anyway, and a weight note on it would only be noise.
+window.mediaWeightNote = async function(file) {
+    if (!file || !file.type) return null;
+    const isVideo = file.type.startsWith('video/');
+    const isGif = file.type.includes('gif');
+    if (!isVideo && !isGif) return null;
+    if (file.type === 'video/mp4' || /\.mp4$/i.test(file.name || '')) return null;
+
+    const reasons = [];
+    if (isVideo) {
+        const dims = await window.measureMediaSource(file).catch(() => null);
+        if (dims && Math.min(dims.width, dims.height) >= MEDIA_HEAVY_SHORT_SIDE) {
+            reasons.push(`${dims.width}x${dims.height}`);
+        }
+    }
+    if (file.size > MEDIA_HEAVY_BYTES) reasons.push(`${(file.size / 1048576).toFixed(1)} MB`);
+    return reasons.length ? reasons.join(', ') : null;
+};
+
 window.uploadWikiMedia = async function(file, onStatus = () => {}, alsoKnown = []) {
     if (!window.supabaseClient) return { error: 'Not connected to the database.' };
 
@@ -562,6 +597,42 @@ window.initMediaLibrary = function() {
         `).join('');
     }
 
+    // The weight question (v0.20 V2 fix 4), asked inside the library rather
+    // than in the editor's confirmation modal: that one is the red delete
+    // dialog, and this is advice, not a warning about losing anything. Above
+    // the queue rather than in it, because the queue scrolls and the buttons
+    // must not scroll away. Resolves true for "upload anyway".
+    let heavyChoice = null;
+    function askAboutHeavy(count, firstName) {
+        const queue = document.getElementById('media-upload-queue');
+        let ask = document.getElementById('media-upload-ask');
+        if (!ask && queue) {
+            ask = document.createElement('div');
+            ask.id = 'media-upload-ask';
+            ask.className = 'media-upload-ask';
+            queue.parentNode.insertBefore(ask, queue);
+            ask.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-heavy-choice]');
+                if (!btn || !heavyChoice) return;
+                const resolve = heavyChoice;
+                heavyChoice = null;
+                ask.hidden = true;
+                resolve(btn.getAttribute('data-heavy-choice') === 'upload');
+            });
+        }
+        if (!ask) return Promise.resolve(true);
+
+        const who = count === 1 ? `"${firstName}" is` : `${count} of these are`;
+        ask.innerHTML = `
+            <p class="media-upload-ask-text">${window.escapeHtml(`${who} heavier than the wiki needs. ${window.MEDIA_WEIGHT_ADVICE}`)}</p>
+            <div class="media-upload-ask-actions">
+                <button type="button" class="btn-sys btn-sys-regular" data-heavy-choice="skip">SKIP ${count === 1 ? 'IT' : 'THEM'}</button>
+                <button type="button" class="btn-sys btn-sys-yellow" data-heavy-choice="upload">UPLOAD ANYWAY</button>
+            </div>`;
+        ask.hidden = false;
+        return new Promise((resolve) => { heavyChoice = resolve; });
+    }
+
     async function handleUploads(files) {
         if (!files.length) return;
 
@@ -580,12 +651,28 @@ window.initMediaLibrary = function() {
         const entries = files.map(file => ({ name: file.name, state: 'queued', detail: 'Waiting' }));
         renderUploadQueue(entries);
 
+        // Weighed before anything uploads, all at once, so one question covers
+        // the whole drop. Skipping only skips the heavy files; the rest go up.
+        const notes = await Promise.all(files.map(f => window.mediaWeightNote(f).catch(() => null)));
+        const heavy = entries.filter((entry, i) => notes[i]);
+        if (heavy.length) {
+            entries.forEach((entry, i) => { if (notes[i]) { entry.state = 'heavy'; entry.detail = notes[i]; } });
+            renderUploadQueue(entries);
+            const uploadAnyway = await askAboutHeavy(heavy.length, heavy[0].name);
+            heavy.forEach(entry => {
+                if (uploadAnyway) { entry.state = 'queued'; entry.detail = 'Waiting'; }
+                else { entry.state = 'skipped'; entry.detail = `Skipped: ${entry.detail}`; }
+            });
+            renderUploadQueue(entries);
+        }
+
         // Names accepted so far this run. The bucket listing the guard uses
         // was taken before any of them existed.
         const uploadedNames = [];
 
         for (let i = 0; i < files.length; i++) {
             const entry = entries[i];
+            if (entry.state === 'skipped') continue;
             entry.state = 'working';
             entry.detail = 'Starting...';
             renderUploadQueue(entries);
