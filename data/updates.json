@@ -1,7 +1,7 @@
 {
   "changelogs": [
     {
-      "version": "Beta v0.20",
+      "version": "Stable v0.20",
       "date": "10/01/2026",
       "type": "site",
       "title": "The 'Random' Update",
@@ -10,28 +10,28 @@
         {
           "heading": "Features"
         },
-        "Discussion posts can carry up to 4 images, picked with the IMAGE button or pasted straight in, and a KLIPY GIF link shows as the GIF",
-        "A combo route can be written in more than one notation. Click the route to switch styles, and the choice carries over to every combo on the wiki",
-        "The Matchup Chart marks a Clash: when two character pages rate each other differently, both cells get a dark corner, and a Clashes list under the legend names every pair",
-        "Every autoplaying clip has a small play button in its corner that opens it in the video player, with sound and controls",
-        "The wiki has Terms of Service, and its content has a licence of its own, CC BY-NC-SA 4.0. Both sit in the footer beside the Privacy Policy",
-        "Uploading to the Media Library needs the Upload media permission. Trusted Editors and up have it, and anyone else can be given it",
+        "Discussion posts can be attached with up to 4 images, picked with the IMAGE button or pasted straight in, and a KLIPY GIF link shows as the GIF",
+        "A combo route can be written in more than one notation. Click on the combo to switch styles",
+        "Add Matchup Clash to the Matchup Table",
+        "Add a small play button for every video on the site that opens up a small window to manually see the video",
+        "The wiki now has Terms of Service and CC BY-NC-SA 4.0",
+        "Uploading to the Media Library needs the Upload media permission. Trusted Editors and up have it by default",
+        "The Media Library now warns before uploading a clip that is 1080p or over 2 MB",
         {
           "heading": "Fine-tuning"
         },
         "Character tabs are in a new order: Overview & Strategy, M1s, Skills, Innate, Combos, Techs, Starter Guide, Matchups, Counterplay, Gallery. Specials is now called Innate",
-        "Clips load in order, nearest first, starting two screens ahead, and a clip scrolled off screen pauses. On Puppet Master's Overview no clip stays blank for over 2 seconds any more, down from 8",
+        "Clips load in order to reduce lag and clips that won't load",
         "A picture or clip that fails to load shows [ Missing Media ] instead of a broken icon or an empty box",
-        "The Media Library asks before uploading a clip that is 1080p or over 2 MB. A 720p export under 2 MB looks the same on a page",
-        "The Privacy Policy is rewritten, and now covers profiles, flairs, uploads and discussion images",
+        "The Privacy Policy is rewritten",
         "Nine characters have new roster icons",
         "Hidden characters are left out of the Matchup Chart",
-        "Blocks in the editor open expanded again, and folders still start collapsed",
+        "Blocks in the editor open expanded again",
         {
           "heading": "Bug fixes"
         },
         "A search result could stop short of the section it pointed at, or not scroll at all on a slow connection",
-        "A Combo Card named after Multiple Sections was switched on still read New Combo",
+        "Fixed where a Combo Card named after Multiple Sections was switched on still read New Combo",
         "The Combos preview in the editor jumped back to the first tab while a later one was being typed in",
         "The editor's diff mode showed raw tags instead of highlighting what changed",
         "The tier list editor opened every list as Portraits, even one set to Icons",

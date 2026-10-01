@@ -28,7 +28,7 @@ const PAGE = '/systems/updatelog/index.html';
 // this line is part of shipping a release.
 test('the newest entry is v0.20, named and dated', async () => {
     const first = UPDATES.changelogs[0];
-    expect(first.version).toBe('Beta v0.20');
+    expect(first.version).toBe('Stable v0.20');
     expect(first.title).toBe("The 'Random' Update");
     expect(first.date).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
 });
