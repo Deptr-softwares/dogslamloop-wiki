@@ -1,6 +1,45 @@
 {
   "changelogs": [
     {
+      "version": "Stable v0.20",
+      "date": "10/01/2026",
+      "type": "site",
+      "title": "The 'Random' Update",
+      "description": "Discussion threads take images and GIFs, combo routes can be written in more than one notation, and every looping clip gets a play button. The wiki also has Terms of Service and a licence for its content.",
+      "changes": [
+        {
+          "heading": "Features"
+        },
+        "Discussion posts can be attached with up to 4 images, picked with the IMAGE button or pasted straight in, and a KLIPY GIF link shows as the GIF",
+        "A combo route can be written in more than one notation. Click on the combo to switch styles",
+        "Add Matchup Clash to the Matchup Table",
+        "Add a small play button for every video on the site that opens up a small window to manually see the video",
+        "The wiki now has Terms of Service and CC BY-NC-SA 4.0",
+        "Uploading to the Media Library needs the Upload media permission. Trusted Editors and up have it by default",
+        "The Media Library now warns before uploading a clip that is 1080p or over 2 MB",
+        {
+          "heading": "Fine-tuning"
+        },
+        "Character tabs are in a new order: Overview & Strategy, M1s, Skills, Innate, Combos, Techs, Starter Guide, Matchups, Counterplay, Gallery. Specials is now called Innate",
+        "Clips load in order to reduce lag and clips that won't load",
+        "A picture or clip that fails to load shows [ Missing Media ] instead of a broken icon or an empty box",
+        "The Privacy Policy is rewritten",
+        "Nine characters have new roster icons",
+        "Hidden characters are left out of the Matchup Chart",
+        "Blocks in the editor open expanded again",
+        {
+          "heading": "Bug fixes"
+        },
+        "A search result could stop short of the section it pointed at, or not scroll at all on a slow connection",
+        "Fixed where a Combo Card named after Multiple Sections was switched on still read New Combo",
+        "The Combos preview in the editor jumped back to the first tab while a later one was being typed in",
+        "The editor's diff mode showed raw tags instead of highlighting what changed",
+        "The tier list editor opened every list as Portraits, even one set to Icons",
+        "The Systems hub scrolled sideways on phones",
+        "Changed a few things under the hood"
+      ]
+    },
+    {
       "version": "Beta v0.19",
       "date": "09/20/2026",
       "type": "site",

@@ -169,6 +169,52 @@ say what is true now, on the smallest surface it is true of, and stop.
 Cut intensifiers while you are at it: "the real character portraits" became
 "the character portraits", and lost nothing.
 
+### Five more the owner applied to the v0.20 draft
+
+The v0.20 draft was accurate and still came back shorter on almost every line.
+Same instinct as the four above, pushed further: a line names the change, and
+the site shows the rest.
+
+10. **One clause per line. The second clause goes.** Every trailing
+    explanation was cut: "and the choice carries over to every combo on the
+    wiki", "Both sit in the footer beside the Privacy Policy", "and anyone else
+    can be given it", "and now covers profiles, flairs, uploads and discussion
+    images", "and folders still start collapsed". If a sentence starts with
+    "and", or a second sentence starts at all, it is probably the part to cut.
+
+11. **Say what it is for, in plain words, not how it works.** "Clips load in
+    order, nearest first, starting two screens ahead, and a clip scrolled off
+    screen pauses" became "Clips load in order to reduce lag and clips that
+    won't load". The play button opens "a small window to manually see the
+    video", not "the video player, with sound and controls". Describe it the way
+    a reader would, not by the component's name.
+
+12. **A measurement is not a reader's number.** Rule 4 still holds for a number
+    that IS the feature: "up to 4 images" and "1080p or over 2 MB" stayed. "On
+    Puppet Master's Overview no clip stays blank for over 2 seconds any more,
+    down from 8" was cut: a figure measured on one page needs its context to
+    mean anything, and that context belongs in the devlog and the PR.
+
+13. **Use the feature's own name, and let the name be the line.** "The Matchup
+    Chart marks a Clash: when two character pages rate each other differently,
+    both cells get a dark corner, and a Clashes list..." became "Add Matchup
+    Clash to the Matchup Table". The register is theirs too: "Add ..." for a
+    feature and "Fixed where ..." for a fix are how they write. Do not flatten
+    them into "The site now has ...".
+
+14. **Features or Fine-tuning is decided by what the reader meets, not the tool
+    it lives in.** The heavy-clip warning sits in the Media Library, which
+    already existed, and it still moved up to Features: the warning itself is
+    new.
+
+The version field copies the label `site_meta` carries, exactly as the owner
+set it in owner tools: "Beta v0.19", then "Stable v0.20", which the owner chose
+to signal the site is close to Release. The label is theirs to change; the
+changelog follows it.
+
+When the owner returns an entry, take their wording. Fix only what is plainly a
+slip (v0.20: "every videos" to "every video"), and say which edits you made.
+
 Verify it renders on `/systems/updatelog/index.html` before shipping.
 
 ## The owner's voice, read off their own pages

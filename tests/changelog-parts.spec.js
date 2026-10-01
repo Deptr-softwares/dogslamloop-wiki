@@ -26,10 +26,10 @@ const PAGE = '/systems/updatelog/index.html';
 // write its changelog entry at all - a shape check would pass happily with the
 // previous version still sitting at the top, which is the vacuous form. Updating
 // this line is part of shipping a release.
-test('the newest entry is v0.19, named and dated', async () => {
+test('the newest entry is v0.20, named and dated', async () => {
     const first = UPDATES.changelogs[0];
-    expect(first.version).toBe('Beta v0.19');
-    expect(first.title).toBe("The 'Search' Update");
+    expect(first.version).toBe('Stable v0.20');
+    expect(first.title).toBe("The 'Random' Update");
     expect(first.date).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
 });
 
@@ -79,7 +79,9 @@ test('no changelog line mentions the machinery', async () => {
     // The reader is a player using the wiki, not the owner and not the person
     // who wrote it. v0.12's entry had to be rewritten for exactly this.
     const lines = UPDATES.changelogs[0].changes.filter(c => typeof c === 'string');
-    const leaked = lines.filter(l => /migration|RPC|RLS|policy|supabase|postgres|cache-stamp|\.js\b/i.test(l));
+    // "policy" means a database policy. The Privacy Policy is a page readers
+    // open from the footer, and v0.20's entry names it twice for that reason.
+    const leaked = lines.filter(l => /migration|RPC|RLS|(?<!privacy )policy|supabase|postgres|cache-stamp|\.js\b/i.test(l));
     expect(leaked, 'these read as a dev log, not an update').toEqual([]);
 
     // And nobody is addressed as "you" - the only "you" a changelog could mean

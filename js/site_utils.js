@@ -2020,9 +2020,14 @@ window.initializeMangaSelects = function() {
         wrapper.appendChild(optionsContainer);
         select.parentNode.insertBefore(wrapper, select.nextSibling);
 
-        // Sync trigger text if the DAW programmatic logic changes value
+        // Sync trigger text if the DAW programmatic logic changes value. The
+        // highlighted option too: a value set from code used to leave the open
+        // list marking the old option (the tier editor's Character art,
+        // 2026-10-01).
         select.addEventListener('change', () => {
             trigger.textContent = select.options[select.selectedIndex]?.textContent || 'Select...';
+            optionsContainer.querySelectorAll('.manga-option').forEach((el, i) =>
+                el.classList.toggle('selected', i === select.selectedIndex));
         });
     });
 };

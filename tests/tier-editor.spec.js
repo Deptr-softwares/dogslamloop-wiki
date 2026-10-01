@@ -53,8 +53,11 @@ const LIST = {
     reasoning: [],
 };
 
-async function openEditor(page, { list = LIST, session = { id: 'u-me' }, role = null, saveError = null } = {}) {
-    await page.addInitScript(({ list, session, role, saveError }) => {
+// listDelay holds the list back the way a real network does. Without it the
+// mocked list arrives before the site's dropdowns are built (100ms after
+// DOMContentLoaded), which is the one ordering production never has.
+async function openEditor(page, { list = LIST, session = { id: 'u-me' }, role = null, saveError = null, listDelay = 0 } = {}) {
+    await page.addInitScript(({ list, session, role, saveError, listDelay }) => {
         window.__rpcCalls = [];
         Object.defineProperty(window, 'supabase', {
             configurable: true,
@@ -73,7 +76,10 @@ async function openEditor(page, { list = LIST, session = { id: 'u-me' }, role = 
                         if (table === 'tier_lists') {
                             const chain = {
                                 select() { return chain; }, eq() { return chain; },
-                                maybeSingle: async () => ({ data: list, error: null }),
+                                maybeSingle: async () => {
+                                    if (listDelay) await new Promise(r => setTimeout(r, listDelay));
+                                    return { data: list, error: null };
+                                },
                                 then(r) { return r({ data: list ? [list] : [], error: null }); },
                             };
                             return chain;
@@ -106,7 +112,7 @@ async function openEditor(page, { list = LIST, session = { id: 'u-me' }, role = 
                 };
             },
         });
-    }, { list, session, role, saveError });
+    }, { list, session, role, saveError, listDelay });
 
     await page.goto(PAGE, { waitUntil: 'networkidle' });
     // Either outcome is a valid load: the board, or the denial screen that
@@ -753,6 +759,27 @@ test('short tier names keep the full size', async ({ page }) => {
 test('the control loads the choice already stored on the list', async ({ page }) => {
     await openEditor(page, { list: { ...LIST, art_style: 'icon' } });
     await expect(page.locator('#tier-art-style')).toHaveValue('icon');
+});
+
+test('an Icons list opens as Icons: the control says so, and the board draws icons', async ({ page }) => {
+    // Reported 2026-10-01: "Whenever you enter the editor for tier list, the
+    // tier list always default back to the Portraits mode". The stored value was
+    // never the problem (4 of the 5 live lists were 'icon' that day, and a save
+    // sent 'icon' back). Two things showed Portraits over it: the board was
+    // drawn before the control was set, and the site's dropdown, built before
+    // the list arrived, only re-reads its <select> on `change`. The test above
+    // reads the hidden <select>, which was right all along.
+    await openEditor(page, { list: { ...LIST, art_style: 'icon' }, listDelay: 600 });
+    await expect(page.locator('#tier-art-style')).toHaveValue('icon');
+
+    const control = page.locator('#tier-art-style + .manga-select-wrapper');
+    await expect(control.locator('.manga-select-trigger')).toHaveText('Icons');
+    await expect(control.locator('.manga-option.selected')).toHaveText('Icons');
+
+    // Every character, the unranked tray included, and none left as a portrait.
+    await expect(page.locator('.tier-portrait-icon').first()).toBeVisible();
+    await expect(page.locator('.tier-portrait:not(.tier-portrait-icon)')).toHaveCount(0);
+    expect(await page.locator('.tier-portrait-img').first().getAttribute('src')).toContain('medias/images/');
 });
 
 test('a list from before the column existed shows the default', async ({ page }) => {
