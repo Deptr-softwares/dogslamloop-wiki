@@ -43,8 +43,20 @@ const contents = (page) => page.evaluate(() => window.getActiveBlocks().map(b =>
 const selected = (page) => page.evaluate(() =>
     window.getSelectedBlockIndices().map(i => window.getActiveBlocks()[i].content));
 
-const summary = (n) => `#block-list .block-card[data-index="${n}"] .block-card-summary`;
-const ctrlClick = (page, n) => page.click(summary(n), { modifiers: ['Control'] });
+// The HEADER ROW, not the summary label. This targeted `.block-card-summary`
+// until v0.20, and every test in the file then hung for its full 30 seconds,
+// three times over, which is what cancelled PR #203 at the job's 30-minute
+// limit. The summary is the one-line label a COLLAPSED block shows; v0.20 FT2
+// opens blocks expanded, where it is `display: none`, and click and hover both
+// wait for visibility.
+//
+// The row's centre is what an author clicks either way. Measured on an
+// expanded card: the row is ~1285px, the block-type picker is 112px of it at
+// the far left, and the centre hit-tests as the row itself. On a collapsed
+// card the summary sits in the same row, and the listener takes any
+// non-control point in `.block-header`, so the same target serves both states.
+const headerRow = (n) => `#block-list .block-card[data-index="${n}"] .block-type-row`;
+const ctrlClick = (page, n) => page.click(headerRow(n), { modifiers: ['Control'] });
 
 test('ctrl-click selects, and the bar says how many', async ({ page }) => {
     await boot(page);
@@ -59,6 +71,30 @@ test('ctrl-click selects, and the bar says how many', async ({ page }) => {
 
     await expect(page.locator('.block-selection-count')).toHaveText('2 SELECTED');
     expect(await selected(page)).toEqual(['one', 'three']);
+});
+
+test('ctrl-click selects a COLLAPSED block too', async ({ page }) => {
+    // Every other test here now drives an expanded block, because that is what
+    // the editor opens with as of v0.20. The listener serves both states, and
+    // a collapsed card is still one click away for any author, so without this
+    // nothing would notice the collapsed path breaking.
+    await boot(page);
+    await build(page, ['one', 'two', 'three']);
+
+    await page.evaluate(() => {
+        window.getActiveBlocks().forEach(b => window.setEditorBlockExpanded(b, false));
+        window.renderBlockList();
+    });
+    const card = page.locator('#block-list .block-card[data-index="1"]');
+    await expect(card, 'setup: the block really is collapsed').toHaveClass(/collapsed/);
+    // And the summary is the visible text in its header, which is what an
+    // author would aim at.
+    await expect(card.locator('.block-card-summary')).toBeVisible();
+
+    await page.click('#block-list .block-card[data-index="1"] .block-card-summary', { modifiers: ['Control'] });
+
+    await expect(page.locator('.block-selection-count')).toHaveText('1 SELECTED');
+    expect(await selected(page)).toEqual(['two']);
 });
 
 test('a selected card is painted, not merely recorded', async ({ page }) => {
@@ -89,7 +125,7 @@ test('a selected card is painted, not merely recorded', async ({ page }) => {
     // selector it outranks the selection rule, so hovering a selected card
     // would quietly paint the selection away. Nothing above this line would
     // have noticed.
-    await page.hover(summary(0));
+    await page.hover(headerRow(0));
     expect(await read(0), 'hover must not repaint a selected card').toBe(picked);
 });
 
@@ -147,7 +183,7 @@ test('copy takes every selected block, and paste lands them under the hovered ca
     await ctrlClick(page, 1);
 
     await page.click('[data-selection-action="copy"]');
-    await page.hover(summary(2));
+    await page.hover(headerRow(2));
     await page.keyboard.press('Control+v');
 
     expect(await contents(page)).toEqual(['one', 'two', 'three', 'one', 'two']);
@@ -181,7 +217,7 @@ test('a selection beats the hover when both are live', async ({ page }) => {
     // before C2 and still works with nothing selected - but once the author has
     // said which block they mean, the pointer must not overrule them.
     await ctrlClick(page, 0);
-    await page.hover(summary(2));
+    await page.hover(headerRow(2));
     await page.keyboard.press('Control+c');
 
     // Paste in empty space appends, so the tail names which block was taken.
@@ -195,7 +231,7 @@ test('hover copy still works with nothing selected', async ({ page }) => {
     await boot(page);
     await build(page, ['one', 'two', 'three']);
 
-    await page.hover(summary(1));
+    await page.hover(headerRow(1));
     await page.keyboard.press('Control+c');
     await page.keyboard.press('Control+v');
 

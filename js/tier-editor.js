@@ -943,6 +943,31 @@
             if (status) status.textContent = 'This list belongs to somebody else.';
         }
 
+        // The art style is set BEFORE the first board is drawn, because
+        // portrait() reads it off this control. Set after, as it was until
+        // 2026-10-01, every list opened drawn as portraits whatever it stored
+        // ("the tier list always default back to the Portraits mode").
+        //
+        // Absent rather than a value between writing the migration and the
+        // release, and the default keeps the control showing what such a list
+        // actually renders as.
+        const artField = document.getElementById('tier-art-style');
+        if (artField) {
+            artField.value = data.art_style === 'icon' ? 'icon' : 'portrait';
+            artField.disabled = !state.canEdit;
+            // The site's dropdown (initializeMangaSelects) is built 100ms after
+            // the page loads, long before the list arrives, and it only re-reads
+            // the <select> on `change`. Without this it kept saying Portraits
+            // over an Icons list. Dispatched before the redraw listener below is
+            // attached, and not bubbling, so it changes nothing but the label.
+            artField.dispatchEvent(new Event('change'));
+            // Redrawn immediately rather than on save. Choosing between two
+            // pieces of art is a decision you make by LOOKING at them, and a
+            // control whose effect only appears after a round trip is one
+            // nobody trusts enough to try.
+            artField.addEventListener('change', () => renderBoard());
+        }
+
         renderBoard();
 
         state.intro = Array.isArray(data.intro) ? JSON.parse(JSON.stringify(data.intro)) : [];
@@ -956,20 +981,6 @@
         if (versionField) {
             versionField.value = data.game_version || '';
             versionField.disabled = !state.canEdit;
-        }
-
-        // Same shape, same reason: between writing this migration and the
-        // release, `data.art_style` is simply absent, and the default keeps the
-        // control showing what every list actually renders as today.
-        const artField = document.getElementById('tier-art-style');
-        if (artField) {
-            artField.value = data.art_style === 'icon' ? 'icon' : 'portrait';
-            artField.disabled = !state.canEdit;
-            // Redrawn immediately rather than on save. Choosing between two
-            // pieces of art is a decision you make by LOOKING at them, and a
-            // control whose effect only appears after a round trip is one
-            // nobody trusts enough to try.
-            artField.addEventListener('change', () => renderBoard());
         }
 
         if (typeof initStrategyBlockBuilder === 'function') {

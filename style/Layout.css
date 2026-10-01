@@ -1170,6 +1170,47 @@ summary:focus-visible {
     flex: 0 0 auto;
 }
 
+/* --- THE CLIP'S CORNER BUTTON (v0.20 V1) ---
+   An autoplaying clip keeps its loop, and a small square in its bottom-right
+   corner opens the player in the modal (js/description.js wikiClipHTML). The
+   wrapper is only a positioning box: in a skill card or a gallery card it fills
+   the fixed-shape frame the video used to fill on its own. */
+.wiki-clip { position: relative; }
+.skill-media-wrapper > .wiki-clip,
+.gallery-card-media > .wiki-clip { width: 100%; height: 100%; }
+.wiki-clip-open {
+    position: absolute;
+    right: 0.5rem;
+    bottom: 0.5rem;
+    z-index: 1;
+    width: 1.9rem;
+    height: 1.9rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.65);
+    border: 2px solid var(--accent-blue);
+    box-shadow: 2px 2px 0px var(--manga-shadow);
+    cursor: pointer;
+    transition: background 0.1s ease, transform 0.1s ease;
+}
+/* A finger is bigger than the square. The hit area grows without the square
+   covering more of the clip. */
+.wiki-clip-open::before { content: ''; position: absolute; inset: -0.4rem; }
+.wiki-clip-open:hover { background: var(--accent-blue); transform: translate(-1px, -1px); }
+.wiki-clip-open:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0px var(--manga-shadow); }
+.wiki-clip-open:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.wiki-clip-open-glyph {
+    display: block;
+    width: 0.7rem;
+    height: 0.7rem;
+    margin-left: 2px;
+    background: var(--accent-blue);
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+.wiki-clip-open:hover .wiki-clip-open-glyph { background: var(--character-ink, #000); }
+
 .wiki-video-modal { position: fixed; inset: 0; z-index: 10050; display: flex; align-items: center; justify-content: center; }
 .wiki-video-modal.hidden { display: none; }
 .wiki-video-modal-backdrop { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.8); }
@@ -1339,6 +1380,45 @@ summary:focus-visible {
 }
 .combo-container { display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem; }
 
+/* --- NOTATION STYLES (v0.20, js/description.js comboRouteHTML) ------------
+   A route with more than one notation. The route itself is the control, and
+   the mark is the owner's "small toggle visuals on the side, which is very
+   small and thin": one segment per style, the one showing lit.
+   Each style is display: contents, so its chips stay direct flex items of the
+   row and wrap exactly as a plain route's do. The [hidden] rule has to be
+   restated, because display: contents would otherwise beat the browser's. */
+.combo-has-notations { cursor: pointer; border-radius: 2px; }
+.combo-has-notations:hover .combo-notation-mark > i.is-on { background: var(--text-white); }
+.combo-has-notations:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 3px; }
+.combo-notation { display: contents; }
+.combo-notation[hidden] { display: none; }
+.combo-notation-mark {
+    display: inline-flex; flex-direction: column; gap: 2px;
+    width: 3px; height: 1.15em; margin-right: 0.3rem; flex: none;
+}
+.combo-notation-mark > i {
+    display: block; flex: 1; min-height: 3px;
+    background: var(--border-color); border-radius: 1px;
+}
+.combo-notation-mark > i.is-on { background: var(--accent-blue); }
+.combo-notation-name { display: none; }
+
+/* The review screens (the queue on admin.html, the editor's own diff) show
+   EVERY style at once, one per line with its name, so a reviewer never has to
+   click to find a changed route. Scoped to the diff container both screens
+   render into; js/description.js ignores clicks there too. */
+.diff-inline-target .combo-has-notations { cursor: default; }
+.diff-inline-target .combo-notation-mark { display: none; }
+.diff-inline-target .combo-notation,
+.diff-inline-target .combo-notation[hidden] {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem; flex-basis: 100%;
+}
+.diff-inline-target .combo-notation-name {
+    display: inline; margin-right: 0.4rem;
+    font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
+    letter-spacing: 0.06em; color: var(--accent-blue); text-transform: uppercase;
+}
+
 /* The separator, deliberately quiet - it is punctuation between steps, not a
    step. */
 .combo-sep { color: var(--text-muted); font-family: var(--text-mono); font-size: 0.75rem; opacity: 0.55; padding: 0 0.1rem; }
@@ -1448,6 +1528,24 @@ summary:focus-visible {
 .wiki-media-right { float: right; margin: 0.5rem 0 1rem 1.5rem; }
 .wiki-media-center { display: block; margin: 1.5rem auto; }
 .wiki-media-full { margin: 1.5rem 0; }
+
+/* v0.20: stands in for an image or video that failed to load (js/description.js,
+   showMissingMedia). The look of a skill card with no media, .skill-media-missing,
+   so "missing" reads the same everywhere. It keeps an image block's alignment
+   classes, hence the compound selector: .wiki-media's solid border must lose. */
+.media-missing-notice,
+.media-missing-notice.wiki-media {
+    display: flex; align-items: center; justify-content: center;
+    box-sizing: border-box; width: 100%; min-height: 6rem;
+    border: 1px dashed var(--border-color); border-radius: 0;
+    color: hsl(215, 8%, 47%);
+    font-family: var(--text-mono); font-size: 0.875rem; text-align: center;
+}
+/* In a fixed-shape frame it fills the frame, as the video it replaced did. */
+.skill-media-wrapper > .media-missing-notice,
+.gallery-card-media > .media-missing-notice { height: 100%; min-height: 0; }
+.discussion-media > .media-missing-notice { width: 160px; min-height: 90px; }
+.wiki-cell-media-td > .media-missing-notice { min-height: 3rem; font-size: 0.7rem; }
 
 /* --- 6. MOBILE SUPPORT --- */
 .mobile-top-bar { display: none; }
@@ -2060,7 +2158,13 @@ summary:focus-visible {
     font-size: 0.7rem; line-height: 1.5; margin: 0 0 0.75rem; max-width: 70ch;
 }
 
+/* position: relative makes this the containing block for every cell's
+   absolutely positioned .sr-only label. Without it the labels resolve against
+   an ancestor OUTSIDE the scroll box, escape its clipping, and the whole hub
+   page scrolled sideways on a phone: 639px wide at a 390px viewport, live from
+   v0.19 until v0.20 found it. */
 .matchup-grid-scroll {
+    position: relative;
     overflow-x: auto; border: 2px solid var(--border-color);
     background: var(--bg-main);
 }
@@ -2113,6 +2217,35 @@ summary:focus-visible {
     width: 10px; height: 10px; display: inline-block;
     border: 1px solid var(--border-color);
 }
+
+/* --- MATCHUP CLASHES (v0.20, js/dashboards.js buildMatchupTable) ---------
+   A pair whose two pages don't mirror each other, marked with a dark corner on
+   BOTH cells. The corner is a fixed #111 rather than a theme token because the
+   tier colours under it are fixed too, and every one of them, plus the white
+   an unknown tier gets, is light enough for it to read on. */
+.matchup-grid-link.is-clash,
+.matchup-legend-swatch.is-clash { position: relative; }
+.matchup-legend-swatch.is-clash { background: var(--text-muted); }
+.matchup-grid-link.is-clash::after,
+.matchup-legend-swatch.is-clash::after {
+    content: ''; position: absolute; top: 0; right: 0;
+    border-style: solid; border-color: transparent #111 transparent transparent;
+}
+.matchup-grid-link.is-clash::after { border-width: 0 9px 9px 0; }
+.matchup-legend-swatch.is-clash::after { border-width: 0 6px 6px 0; }
+
+.matchup-clashes { margin-top: 1rem; font-family: var(--text-mono); font-size: 0.7rem; }
+.matchup-clashes > summary {
+    cursor: pointer; font-weight: bold; color: var(--text-white);
+    padding: 0.35rem 0;
+}
+.matchup-clashes > .matchup-grid-caption { margin-top: 0.5rem; }
+.matchup-clashes ol {
+    margin: 0; padding-left: 2.25rem; line-height: 1.7; color: var(--text-muted);
+}
+.matchup-clashes a { color: var(--text-white); text-decoration: none; }
+.matchup-clashes a:hover { text-decoration: underline; }
+.matchup-clash-tier { font-weight: bold; }
 
 /* --- COMBO CARD: MULTIPLE SECTIONS (v0.19 C3b, owner 2026-09-20) ---
    Each tab is a whole variant, so the row switches CARDS. It sits ABOVE the

@@ -1641,6 +1641,22 @@ input[type="checkbox"]:checked {
 /* A failure has to survive the rest of the run finishing on top of it. */
 .media-upload-row-failed .media-upload-row-detail { color: #ef4444; }
 .media-upload-row-failed .media-upload-row-name { color: #ef4444; }
+/* v0.20: a clip heavier than the wiki needs, waiting on the question above the
+   queue. Yellow, the site's "look at this" colour, not red: nothing failed. */
+.media-upload-row-heavy .media-upload-row-detail { color: #f4cc43; }
+.media-upload-row-skipped .media-upload-row-name,
+.media-upload-row-skipped .media-upload-row-detail { color: #666; }
+.media-upload-ask {
+    margin: 0.5rem 0 0;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #f4cc43;
+    background: rgba(244, 204, 67, 0.06);
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+}
+.media-upload-ask[hidden] { display: none; }
+.media-upload-ask-text { margin: 0 0 0.6rem; color: #f4cc43; line-height: 1.5; }
+.media-upload-ask-actions { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
 
 /* --- CUSTOM MODAL THEMES --- */
 .editor-modal-overlay { z-index: 10000; }
@@ -1756,6 +1772,16 @@ input[type="checkbox"]:checked {
     color: var(--text-muted);
     font-family: var(--text-mono);
     font-size: 0.75rem;
+}
+
+/* v0.20: no upload media permission. The zone stays, as the sentence saying
+   why; the hover and drag-over states that invite a drop are cancelled. */
+#media-upload-zone.media-upload-zone-locked,
+#media-upload-zone.media-upload-zone-locked:hover {
+    cursor: not-allowed;
+    border-color: #333;
+    border-style: solid;
+    background: transparent !important;
 }
 
 /* --- STRICT MEDIA GRID REFACTOR --- */
@@ -2630,3 +2656,16 @@ del.diff-del {
     letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
 }
 .cardsec-tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; }
+
+/* --- NOTATION STYLE FIELDS (v0.20, js/editor-blocks.js comboNotationFieldsHTML)
+   The same dashed box and blue label as the Combo Card's section strip above,
+   because it is the same kind of thing: optional structure hung off a combo. */
+.nstyle-editor { border: 1px dashed #333; padding: 0.5rem; margin: 0.5rem 0 0.6rem; }
+.nstyle-editor-label {
+    font-family: var(--text-mono); font-size: 0.6rem; font-weight: bold;
+    letter-spacing: 0.08em; color: var(--accent-blue); margin-bottom: 0.4rem;
+}
+.nstyle-editor-empty { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+.nstyle-row { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.6rem; }
+.nstyle-row-head { display: flex; gap: 0.4rem; align-items: center; }
+.nstyle-row-head .editor-input { flex: 1; min-width: 0; }

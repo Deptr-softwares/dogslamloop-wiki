@@ -130,8 +130,10 @@ test('the chart is not symmetrical, because the two pages disagree', async ({ pa
     await mockHub(page);
     await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
 
-    await expect(page.locator('.matchup-grid-link[title="Boomcat vs Vessel: Advantage"]')).toHaveCount(1);
-    await expect(page.locator('.matchup-grid-link[title="Vessel vs Boomcat: Dominating"]')).toHaveCount(1);
+    // A prefix match: the two disagree, so both cells are also Clashes and
+    // their titles carry a second line naming the other side.
+    await expect(page.locator('.matchup-grid-link[title^="Boomcat vs Vessel: Advantage"]')).toHaveCount(1);
+    await expect(page.locator('.matchup-grid-link[title^="Vessel vs Boomcat: Dominating"]')).toHaveCount(1);
 });
 
 test('a cell links to the matchup section, not the top of the page', async ({ page }) => {
@@ -141,7 +143,7 @@ test('a cell links to the matchup section, not the top of the page', async ({ pa
     await mockHub(page);
     await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
 
-    const href = await page.locator('.matchup-grid-link[title="Boomcat vs Vessel: Advantage"]')
+    const href = await page.locator('.matchup-grid-link[title^="Boomcat vs Vessel: Advantage"]')
         .getAttribute('href');
     expect(href).toContain('characters/Boomcat/index.html');
     expect(href).toContain('?tab=matchups');
@@ -226,6 +228,78 @@ test('the chart appears in the table of contents', async ({ page }) => {
     await expect(page.locator('#dynamic-toc')).toContainText('Matchup Chart', { timeout: 10000 });
 });
 
+test('at phone width the grid scrolls inside its own box, never the page', async ({ page }) => {
+    // Live from v0.19 until v0.20: the hub was 639px wide at a 390px viewport.
+    // The wrapper scrolled, but every cell's .sr-only label is absolutely
+    // positioned and resolved against an ancestor outside it, so the labels
+    // escaped its clipping and widened the page. Found by measuring the page,
+    // which is the assertion here too.
+    //
+    // A roster wide enough to overflow a phone, every pair rated Equal both
+    // ways, so no cell is a Clash: a clashing link is itself position:
+    // relative and would contain its own label, hiding the bug.
+    const names = Array.from({ length: 24 }, (_, i) => 'Fighter ' + String.fromCharCode(65 + i));
+    const roster = { Characters: names.map(n => ({
+        id: n, name: n, url: 'characters/' + n.replace(' ', '_') + '/index.html',
+        cms_config: { pageType: 'character', pageId: n.replace(' ', '_').toLowerCase() },
+    })) };
+    const matchups = names.map(n => ({
+        page_id: n.replace(' ', '_').toLowerCase(),
+        matchups: names.filter(o => o !== n).map(o => ({ opponent: o, tier: 'Equal', content: [] })),
+    }));
+    await page.setViewportSize({ width: 390, height: 800 });
+    await mockHub(page, { roster, matchups });
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+    await expect(grid(page).locator('.matchup-grid-link')).toHaveCount(24 * 23);
+
+    const widths = await page.evaluate(() => ({
+        page: document.documentElement.scrollWidth,
+        viewport: window.innerWidth,
+        grid: document.querySelector('.matchup-grid').scrollWidth,
+    }));
+    // The grid really is wider than the phone, so the page staying narrow is
+    // the wrapper doing its job and not a small fixture.
+    expect(widths.grid).toBeGreaterThan(widths.viewport);
+    expect(widths.page).toBeLessThanOrEqual(widths.viewport);
+});
+
+test('a hidden character is left out as row, column and Clash', async ({ page }) => {
+    // Owner's request, 2026-09-24: Strongest of History is private-server-only
+    // (`isHidden` in navigation.json) and must not be in the chart. It both
+    // rates and is rated here, and one of those pairs would be a Clash, so a
+    // filter applied to any one of the three would still fail this.
+    const roster = { Characters: [
+        ...ROSTER.Characters,
+        { id: 'Strongest-of-History', name: 'Strongest of History', url: 'characters/Strongest_of_history/index.html',
+          isHidden: true, cms_config: { pageType: 'character', pageId: 'strongest_of_history' } },
+    ] };
+    await mockHub(page, { roster, matchups: [
+        ...MATCHUPS.filter(m => m.page_id !== 'boomcat'),
+        { page_id: 'boomcat', matchups: [
+            { opponent: 'Vessel', tier: 'Advantage', content: [] },
+            { opponent: 'Strongest of History', tier: 'Equal', content: [] },
+        ] },
+        { page_id: 'strongest_of_history', matchups: [
+            { opponent: 'Boomcat', tier: 'Hopeless', content: [] },
+        ] },
+    ] });
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    // The three visible characters are all there, so the absences below are
+    // about the filter and not about a chart that failed to render.
+    await expect(grid(page).locator('tbody tr')).toHaveCount(3);
+    await expect(grid(page).locator('thead .matchup-grid-col')).toHaveCount(3);
+    await expect(page.locator('.matchup-grid-link[title^="Boomcat vs Vessel:"]')).toHaveCount(1);
+
+    await expect(grid(page).locator('.matchup-grid-row', { hasText: 'Strongest of History' })).toHaveCount(0);
+    await expect(grid(page).locator('.matchup-grid-col[title="Strongest of History"]')).toHaveCount(0);
+    await expect(page.locator('.matchup-grid-cell[title*="Strongest of History"]')).toHaveCount(0);
+    await expect(page.locator('.matchup-grid-link[title*="Strongest of History"]')).toHaveCount(0);
+    // Boomcat vs Vessel is the one Clash left.
+    await expect(page.locator('.matchup-clashes li')).toHaveCount(1);
+    await expect(page.locator('.matchup-clashes')).not.toContainText('Strongest of History');
+});
+
 test('an opponent name that matches no character is dropped, never guessed at', async ({ page }) => {
     // Found in production on 2026-09-20: twelve pages rate "Disaster Plant"
     // while the roster says "Disaster Plants", and one page has an opponent
@@ -249,4 +323,235 @@ test('an opponent name that matches no character is dropped, never guessed at', 
         .filter({ has: page.locator('.matchup-grid-row', { hasText: 'Boomcat' }) });
     await expect(row.locator('.matchup-grid-link')).toHaveCount(1);
     await expect(row.locator('.matchup-grid-link')).toHaveAttribute('title', 'Boomcat vs Vessel: Equal');
+});
+
+// ---------------------------------------------------------------------------
+// v0.20: Clashes. A pair whose two pages don't mirror each other, in the
+// owner's words: "Honored One vs True Cannon is Equal but True Cannon vs
+// Honored One is Hopeless, that's a clash."
+//
+// ANY mismatch is a Clash, one step included. The owner chose that on
+// 2026-09-24 over "disagree on who wins" and "three or more steps apart", so
+// the one-step pair below is the assertion that pins their decision.
+//
+// One pair per case the rule has to decide. The three Clashes are found in
+// exactly the opposite order to their gaps (1, 3, 4), so the sort is tested,
+// not roster order.
+const CLASH_ROSTER = { Characters: [
+    ...ROSTER.Characters,
+    { id: 'True-Cannon', name: 'True Cannon', url: 'characters/True_Cannon/index.html',
+      cms_config: { pageType: 'character', pageId: 'true_cannon' } },
+    { id: 'Blood-Manipulator', name: 'Blood Manipulator', url: 'characters/Blood_Manipulator/index.html',
+      cms_config: { pageType: 'character', pageId: 'blood_manipulator' } },
+] };
+
+const CLASH_MATCHUPS = [
+    { page_id: 'boomcat', matchups: [
+        // vs Extreme Disadvantage: ONE step off, and both agree Boomcat wins.
+        // A Clash only under the rule the owner chose.
+        { opponent: 'Vessel', tier: 'Advantage', content: [] },
+        // vs Advantage: an exact mirror.
+        { opponent: 'Honored One', tier: 'Disadvantage', content: [] },
+        // vs Unwinnable, the v0.13 word for Hopeless: a mirror once resolved.
+        { opponent: 'True Cannon', tier: 'Dominating', content: [] },
+        // vs Unloseable, the v0.13 word for Dominating: a Clash three steps
+        // off, and ONLY once resolved. Unresolved, the word is off the ladder
+        // and would be skipped, so this is the pair that proves resolution.
+        { opponent: 'Blood Manipulator', tier: 'Slight Disadvantage', content: [] },
+    ] },
+    { page_id: 'vessel', matchups: [
+        { opponent: 'Boomcat', tier: 'Extreme Disadvantage', content: [] },
+        // vs Hopeless: the owner's own example, four steps off.
+        { opponent: 'Honored One', tier: 'Equal', content: [] },
+        // vs wording off the ladder: nothing to mirror.
+        { opponent: 'True Cannon', tier: 'Equal', content: [] },
+    ] },
+    { page_id: 'honored_one', matchups: [
+        { opponent: 'Boomcat', tier: 'Advantage', content: [] },
+        { opponent: 'Vessel', tier: 'Hopeless', content: [] },
+        // Never rates True Cannon, so that pair is one-sided.
+    ] },
+    { page_id: 'true_cannon', matchups: [
+        { opponent: 'Boomcat', tier: 'Unwinnable', content: [] },
+        { opponent: 'Vessel', tier: 'Aerial Circling tier', content: [] },
+        { opponent: 'Honored One', tier: 'Hopeless', content: [] },
+    ] },
+    { page_id: 'blood_manipulator', matchups: [
+        { opponent: 'Boomcat', tier: 'Unloseable', content: [] },
+    ] },
+];
+
+const mockClashes = page => mockHub(page, { roster: CLASH_ROSTER, matchups: CLASH_MATCHUPS });
+
+// Asserts the cell exists before asserting its class, so a title that stopped
+// matching fails here rather than passing a negative check on nothing.
+async function expectClash(page, titleStart, isClash) {
+    const cell = page.locator(`.matchup-grid-link[title^="${titleStart}"]`);
+    await expect(cell).toHaveCount(1);
+    if (isClash) await expect(cell).toHaveClass(/\bis-clash\b/);
+    else await expect(cell).not.toHaveClass(/\bis-clash\b/);
+}
+
+test('a Clash is marked on BOTH cells of the pair, and the mark is painted', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await mockClashes(page);
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    await expectClash(page, 'Vessel vs Honored One:', true);
+    await expectClash(page, 'Honored One vs Vessel:', true);
+    // Three Clashes in the fixture, two cells each.
+    await expect(page.locator('.matchup-grid-link.is-clash')).toHaveCount(6);
+
+    // The corner a reader sees, read off the pseudo-element rather than the
+    // class: a rule that loses in the cascade would leave the class in place.
+    const corner = el => {
+        const s = getComputedStyle(el, '::after');
+        return { content: s.content, colour: s.borderRightColor, width: parseFloat(s.borderRightWidth) };
+    };
+    const marked = await page.locator('.matchup-grid-link[title^="Vessel vs Honored One:"]').evaluate(corner);
+    expect(marked.content).not.toBe('none');
+    expect(marked.colour).not.toBe('rgba(0, 0, 0, 0)');
+    expect(marked.width).toBeGreaterThan(0);
+    const plain = await page.locator('.matchup-grid-link[title^="Boomcat vs Honored One:"]').evaluate(corner);
+    expect(plain.content).toBe('none');
+
+    expect(errors).toEqual([]);
+});
+
+test('a clashing cell names the other page\'s rating too', async ({ page }) => {
+    await mockClashes(page);
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    const cell = page.locator('.matchup-grid-link[title^="Vessel vs Honored One:"]');
+    await expect(cell).toHaveAttribute('title',
+        'Vessel vs Honored One: Equal\nClash: Honored One vs Vessel is Hopeless');
+    // A screen reader gets the same two facts, as a sentence.
+    await expect(cell.locator('.sr-only')).toHaveText(
+        'Vessel vs Honored One: Equal. Clash: Honored One vs Vessel is Hopeless');
+});
+
+test('an exact mirror is not a Clash, including through the renamed tier words', async ({ page }) => {
+    await mockClashes(page);
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    await expectClash(page, 'Boomcat vs Honored One: Disadvantage', false);
+    await expectClash(page, 'Honored One vs Boomcat: Advantage', false);
+    // True Cannon's page says Unwinnable. It resolves to Hopeless, which is
+    // Dominating's mirror, so comparing the stored words would call this a
+    // Clash that nobody wrote.
+    await expectClash(page, 'Boomcat vs True Cannon: Dominating', false);
+    await expectClash(page, 'True Cannon vs Boomcat: Hopeless', false);
+    // The other direction, and the one that fails if resolution is skipped:
+    // Unloseable is Dominating, three steps from Slight Disadvantage's mirror.
+    await expectClash(page, 'Boomcat vs Blood Manipulator: Slight Disadvantage', true);
+    await expectClash(page, 'Blood Manipulator vs Boomcat: Dominating', true);
+});
+
+test('a one-step difference is still a Clash (owner, 2026-09-24)', async ({ page }) => {
+    // Advantage against Extreme Disadvantage: both pages agree Boomcat wins
+    // and differ by one step on how much. The owner's rule is ANY mismatch,
+    // and this is the pair a looser rule would drop.
+    await mockClashes(page);
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    await expectClash(page, 'Boomcat vs Vessel: Advantage', true);
+    await expectClash(page, 'Vessel vs Boomcat: Extreme Disadvantage', true);
+});
+
+test('a one-sided rating, or wording off the ladder, is never a Clash', async ({ page }) => {
+    await mockClashes(page);
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    // Honored One never rates True Cannon: nothing to disagree with.
+    await expectClash(page, 'True Cannon vs Honored One: Hopeless', false);
+    // "Aerial Circling tier" has no mirror. Guessing one is the same guess
+    // resolveMatchupTier refuses to make.
+    await expectClash(page, 'True Cannon vs Vessel: Aerial Circling tier', false);
+    await expectClash(page, 'Vessel vs True Cannon: Equal', false);
+});
+
+test('each Clash is one notice in both pages\' words, biggest gap first', async ({ page }) => {
+    await mockClashes(page);
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    await expect(page.locator('.matchup-clashes > summary')).toHaveText('Clashes (3)');
+    const items = page.locator('.matchup-clashes li');
+    await expect(items).toHaveCount(3);
+    // Found last, listed first: four steps, then three, then one.
+    await expect(items.nth(0)).toHaveText(
+        'Vessel vs Honored One is Equal, but Honored One vs Vessel is Hopeless.');
+    await expect(items.nth(1)).toHaveText(
+        'Boomcat vs Blood Manipulator is Slight Disadvantage, but Blood Manipulator vs Boomcat is Dominating.');
+    await expect(items.nth(2)).toHaveText(
+        'Boomcat vs Vessel is Advantage, but Vessel vs Boomcat is Extreme Disadvantage.');
+
+    // Each tier word is painted in its own tier colour, compared against what
+    // the browser resolves that colour to rather than a pinned value.
+    const painted = await items.nth(0).locator('.matchup-clash-tier').evaluateAll(els => els.map(el => {
+        const probe = document.createElement('span');
+        probe.style.color = window.resolveMatchupTier(el.textContent).color;
+        document.body.appendChild(probe);
+        const want = getComputedStyle(probe).color;
+        probe.remove();
+        return getComputedStyle(el).color === want;
+    }));
+    expect(painted).toEqual([true, true]);
+});
+
+test('the notice list opens on click, and each half links to its own page', async ({ page }) => {
+    await mockClashes(page);
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    const first = page.locator('.matchup-clashes li').first();
+    // Collapsed by default: the grid is what the section is for.
+    await expect(first).toBeHidden();
+    await page.locator('.matchup-clashes > summary').click();
+    await expect(first).toBeVisible();
+
+    // Each half goes to the page that wrote it, which is where a fix is made.
+    const links = first.locator('a');
+    await expect(links).toHaveCount(2);
+    expect(await links.nth(0).getAttribute('href'))
+        .toMatch(/characters\/Vessel\/index\.html\?tab=matchups#sec-vs-honored-one$/);
+    expect(await links.nth(1).getAttribute('href'))
+        .toMatch(/characters\/Honored_one\/index\.html\?tab=matchups#sec-vs-vessel$/);
+});
+
+test('no Clash, no notice list and no legend entry', async ({ page }) => {
+    await mockHub(page, { matchups: [
+        { page_id: 'boomcat', matchups: [{ opponent: 'Vessel', tier: 'Advantage', content: [] }] },
+        { page_id: 'vessel', matchups: [{ opponent: 'Boomcat', tier: 'Disadvantage', content: [] }] },
+    ] });
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    // The grid rendered both ratings, so the absences below are about Clashes
+    // and not about an empty section.
+    await expect(grid(page).locator('.matchup-grid-link')).toHaveCount(2);
+    await expect(page.locator('.matchup-grid-link.is-clash')).toHaveCount(0);
+    await expect(page.locator('.matchup-clashes')).toHaveCount(0);
+    await expect(page.locator('.matchup-legend-swatch.is-clash')).toHaveCount(0);
+    // The tier legend itself is still there.
+    await expect(page.locator('.matchup-legend')).toContainText('Dominating');
+});
+
+test('a hostile character name is escaped in a Clash notice', async ({ page }) => {
+    // A notice interpolates both names twice, into text and into a link.
+    const hostile = '<img src=x onerror="window.__xss=1">';
+    await mockHub(page, {
+        roster: { Characters: [
+            { id: 'a', name: hostile, url: 'characters/A/index.html', cms_config: { pageId: 'a' } },
+            { id: 'b', name: 'Normal', url: 'characters/B/index.html', cms_config: { pageId: 'b' } },
+        ] },
+        matchups: [
+            { page_id: 'a', matchups: [{ opponent: 'Normal', tier: 'Equal', content: [] }] },
+            { page_id: 'b', matchups: [{ opponent: hostile, tier: 'Hopeless', content: [] }] },
+        ],
+    });
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    await expect(page.locator('.matchup-clashes li')).toHaveCount(1);
+    expect(await page.evaluate(() => window.__xss), 'no handler ran').toBeUndefined();
+    await expect(page.locator('.matchup-clashes li')).toContainText('<img src=x');
+    expect(await page.locator('#matchup-grid img').count()).toBe(0);
 });

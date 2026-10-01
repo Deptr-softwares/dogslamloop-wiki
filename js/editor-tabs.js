@@ -874,9 +874,11 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
     } else {
         cards.forEach((card, i) => {
             // A card is recognised by its name, and falls back to its route -
-            // an index is not something anyone remembers.
-            const steps = Array.isArray(card.sequence) ? card.sequence : [];
-            const label = card.title || steps.join(' > ') || `Card ${i + 1}`;
+            // an index is not something anyone remembers. Resolved through the
+            // shared helper because `card.title` is dead data once Multiple
+            // Sections is on, which is what showed "New Combo" here beside a
+            // name field reading something else.
+            const label = window.comboCardLabel(card, i);
             html += `<div class="daw-tab-item">`;
             html += `<button class="daw-tab-btn daw-tab-btn-removable${i === open ? ' active' : ''}" data-card="${i}">${esc(label)}</button>`;
             html += `<button class="daw-tab-remove-btn" data-remove-card="${i}" title="Remove Card">&#10006;</button>`;
@@ -979,7 +981,10 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
             <div class="cardsec-label">SECTIONS</div>
             <div class="cardsec-tabs">
                 ${sections.map((sec, i) =>
-                    `<button type="button" class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'}" data-cardsec="${i}">`
+                    // `cardsec-tab` as well, because the block form's strip
+                    // carries it and the CSS is written against it. The two
+                    // editors had drifted on this class alone.
+                    `<button type="button" class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'} cardsec-tab" data-cardsec="${i}">`
                     + `${esc(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
                 <button type="button" class="btn-sys btn-sys-green" data-cardsec-add="1" title="Add a section">+</button>
                 ${sections.length > 1 ? `<button type="button" class="btn-sys btn-sys-red" data-cardsec-remove="${secIdx}" title="Remove this section">&#10006;</button>` : ''}
@@ -1014,6 +1019,10 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
                         <label class="editor-field-label-sm">Route - one step per line</label>
                         <textarea class="editor-textarea" data-card-field="sequence" rows="4">${esc(route)}</textarea>
                     </div>
+                    <!-- The same fields as the Combo Card block form, from the
+                         same helper: this editor has drifted from that one
+                         three times. -->
+                    <div class="combo-field-full">${window.comboNotationFieldsHTML(target, { lines: true })}</div>
                     <div><label class="editor-field-label-sm">Damage</label>
                         <input type="text" class="editor-input" data-card-field="damage" value="${esc(target.damage || '')}" placeholder="e.g. 38-46"></div>
                     <div><label class="editor-field-label-sm">Difficulty</label>
@@ -1053,14 +1062,38 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
             }
             if (field === 'title' || field === 'sequence') {
                 const btn = document.querySelector(`[data-card="${idx}"]`);
-                const steps = Array.isArray(target.sequence) ? target.sequence : [];
+                // The same helper the row itself is built from, so the live
+                // keystroke update and the next full render cannot disagree
+                // about what this card is called.
                 // textContent, not innerHTML - this runs on every keystroke.
-                if (btn) btn.textContent = target.title || steps.join(' > ') || `Card ${idx + 1}`;
+                if (btn) btn.textContent = window.comboCardLabel(card, idx);
             }
             window.renderDocumentPreview(tabId);
         };
         input.addEventListener('input', handler);
         input.addEventListener('change', handler);
+    });
+
+    // --- NOTATION STYLES (v0.20) ---
+    //
+    // Written into `target`, so a card in Multiple Sections edits the section
+    // on screen, exactly like the route above it. Typing never re-renders;
+    // adding or removing a style does, so it flushes the write-up first for the
+    // same reason the section controls below do.
+    container.querySelectorAll('[data-nstyle-label], [data-nstyle-route]').forEach(input => {
+        input.addEventListener('input', () => {
+            window.applyComboNotationInput(target, input);
+            window.renderDocumentPreview(tabId);
+        });
+    });
+    container.querySelectorAll('[data-nstyle-add], [data-nstyle-remove]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            flushDocumentCard(tabId, groupIdx);
+            const focusAt = window.applyComboNotationClick(target, btn);
+            renderDocumentCardBody(tabId, groupIdx, cards);
+            window.renderDocumentPreview(tabId);
+            window.focusComboNotationField(document.getElementById('combo-card-body'), focusAt);
+        });
     });
 
     // --- SECTION CONTROLS ---
@@ -1127,6 +1160,13 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
             card.sections[secIdx].label = secLabel.value;
             const btn = container.querySelector(`[data-cardsec="${secIdx}"]`);
             if (btn) btn.textContent = secLabel.value || `Section ${secIdx + 1}`;
+            // The card's name in the list comes from the FIRST section's tab
+            // label, so renaming that tab renames the card. Only then, because
+            // renaming tab 3 says nothing about what the card is called.
+            if (secIdx === 0) {
+                const cardBtn = document.querySelector(`[data-card="${idx}"]`);
+                if (cardBtn) cardBtn.textContent = window.comboCardLabel(card, idx);
+            }
             window.renderDocumentPreview(tabId);
         });
     }
@@ -1420,10 +1460,13 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
     fields.innerHTML = window.comboRowFields().map(f => {
         if (f.field === 'sequence') {
             const value = Array.isArray(row.sequence) ? row.sequence.join('\n') : '';
+            // Notation styles (v0.20) sit directly under the route they are
+            // alternatives to, from the helper every other combo form uses.
             return `<div class="combo-field-full">
                 <label class="editor-field-label-sm">${esc(f.label)}<span class="admin-tool-hint"> - ${esc(f.hint)}</span></label>
                 <textarea class="editor-textarea" data-combo-field="sequence" rows="5">${esc(value)}</textarea>
-            </div>`;
+            </div>
+            <div class="combo-field-full">${window.comboNotationFieldsHTML(row, { lines: true })}</div>`;
         }
         if (f.field === 'difficulty') {
             // A select, because difficulty is an ordinal enum: a typo sorts the
@@ -1464,6 +1507,23 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
         };
         input.addEventListener('input', handler);
         input.addEventListener('change', handler);
+    });
+
+    // Notation styles: typing writes straight into the row; adding or removing
+    // one reopens the modal on the same row, which is how it re-renders.
+    fields.querySelectorAll('[data-nstyle-label], [data-nstyle-route]').forEach(input => {
+        input.addEventListener('input', () => {
+            window.applyComboNotationInput(row, input);
+            window.renderDocumentPreview(tabId);
+        });
+    });
+    fields.querySelectorAll('[data-nstyle-add], [data-nstyle-remove]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const focusAt = window.applyComboNotationClick(row, btn);
+            window.openDocumentRowModal(tabId, tableIdx, rowIdx);
+            window.renderDocumentPreview(tabId);
+            window.focusComboNotationField(fields, focusAt);
+        });
     });
 
     const close = () => {

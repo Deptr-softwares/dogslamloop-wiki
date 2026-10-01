@@ -136,6 +136,72 @@ EXCEPTION WHEN OTHERS THEN
 END $$;
 
 -- ---------------------------------------------------------------------------
+-- TWO MORE ACCOUNTS, for the upload permission (v0.20 batch 3)
+-- ---------------------------------------------------------------------------
+--
+--   trusted@dogslamloop.test -> 'trusted_editor', no flags: can_upload_media()
+--                               must be TRUE from the role alone
+--   banned@dogslamloop.test  -> 'viewer' WITH can_upload_media ticked: must be
+--                               FALSE, because a ban wins over a perk
+--
+-- Passwords follow the pattern above: seed-trusted-password and
+-- seed-banned-password.
+--
+-- Their own block and their own handler, so a failure here costs these two
+-- and never the admin and member that every other probe needs.
+DO $$
+DECLARE
+    trusted_uid uuid := '00000000-0000-4000-8000-0000000000e1';
+    banned_uid  uuid := '00000000-0000-4000-8000-0000000000f1';
+BEGIN
+    INSERT INTO auth.users (
+        instance_id, id, aud, role, email, encrypted_password,
+        email_confirmed_at, created_at, updated_at,
+        raw_app_meta_data, raw_user_meta_data, is_super_admin
+    ) VALUES
+    (
+        '00000000-0000-0000-0000-000000000000', trusted_uid,
+        'authenticated', 'authenticated', 'trusted@dogslamloop.test',
+        extensions.crypt('seed-trusted-password', extensions.gen_salt('bf')),
+        now(), now() - interval '10 days', now(),
+        '{"provider":"email","providers":["email"]}'::jsonb,
+        '{"display_name":"Seed Trusted"}'::jsonb, false
+    ),
+    (
+        '00000000-0000-0000-0000-000000000000', banned_uid,
+        'authenticated', 'authenticated', 'banned@dogslamloop.test',
+        extensions.crypt('seed-banned-password', extensions.gen_salt('bf')),
+        now(), now() - interval '5 days', now(),
+        '{"provider":"email","providers":["email"]}'::jsonb,
+        '{"display_name":"Seed Banned"}'::jsonb, false
+    );
+
+    INSERT INTO auth.identities (
+        provider_id, user_id, identity_data, provider,
+        last_sign_in_at, created_at, updated_at
+    ) VALUES
+    (
+        trusted_uid::text, trusted_uid,
+        jsonb_build_object('sub', trusted_uid::text, 'email', 'trusted@dogslamloop.test',
+                           'email_verified', true, 'phone_verified', false),
+        'email', now(), now(), now()
+    ),
+    (
+        banned_uid::text, banned_uid,
+        jsonb_build_object('sub', banned_uid::text, 'email', 'banned@dogslamloop.test',
+                           'email_verified', true, 'phone_verified', false),
+        'email', now(), now(), now()
+    );
+
+    INSERT INTO public.user_roles (user_id, role) VALUES (trusted_uid, 'trusted_editor');
+    INSERT INTO public.user_roles (user_id, role, can_upload_media) VALUES (banned_uid, 'viewer', true);
+
+    RAISE NOTICE 'Seeded trusted@dogslamloop.test and banned@dogslamloop.test.';
+EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'Upload-permission fixtures skipped: % (%).', SQLERRM, SQLSTATE;
+END $$;
+
+-- ---------------------------------------------------------------------------
 -- SIGN-IN: no NULL token columns
 -- ---------------------------------------------------------------------------
 --

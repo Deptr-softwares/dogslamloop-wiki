@@ -169,7 +169,109 @@ say what is true now, on the smallest surface it is true of, and stop.
 Cut intensifiers while you are at it: "the real character portraits" became
 "the character portraits", and lost nothing.
 
+### Five more the owner applied to the v0.20 draft
+
+The v0.20 draft was accurate and still came back shorter on almost every line.
+Same instinct as the four above, pushed further: a line names the change, and
+the site shows the rest.
+
+10. **One clause per line. The second clause goes.** Every trailing
+    explanation was cut: "and the choice carries over to every combo on the
+    wiki", "Both sit in the footer beside the Privacy Policy", "and anyone else
+    can be given it", "and now covers profiles, flairs, uploads and discussion
+    images", "and folders still start collapsed". If a sentence starts with
+    "and", or a second sentence starts at all, it is probably the part to cut.
+
+11. **Say what it is for, in plain words, not how it works.** "Clips load in
+    order, nearest first, starting two screens ahead, and a clip scrolled off
+    screen pauses" became "Clips load in order to reduce lag and clips that
+    won't load". The play button opens "a small window to manually see the
+    video", not "the video player, with sound and controls". Describe it the way
+    a reader would, not by the component's name.
+
+12. **A measurement is not a reader's number.** Rule 4 still holds for a number
+    that IS the feature: "up to 4 images" and "1080p or over 2 MB" stayed. "On
+    Puppet Master's Overview no clip stays blank for over 2 seconds any more,
+    down from 8" was cut: a figure measured on one page needs its context to
+    mean anything, and that context belongs in the devlog and the PR.
+
+13. **Use the feature's own name, and let the name be the line.** "The Matchup
+    Chart marks a Clash: when two character pages rate each other differently,
+    both cells get a dark corner, and a Clashes list..." became "Add Matchup
+    Clash to the Matchup Table". The register is theirs too: "Add ..." for a
+    feature and "Fixed where ..." for a fix are how they write. Do not flatten
+    them into "The site now has ...".
+
+14. **Features or Fine-tuning is decided by what the reader meets, not the tool
+    it lives in.** The heavy-clip warning sits in the Media Library, which
+    already existed, and it still moved up to Features: the warning itself is
+    new.
+
+The version field copies the label `site_meta` carries, exactly as the owner
+set it in owner tools: "Beta v0.19", then "Stable v0.20", which the owner chose
+to signal the site is close to Release. The label is theirs to change; the
+changelog follows it.
+
+When the owner returns an entry, take their wording. Fix only what is plainly a
+slip (v0.20: "every videos" to "every video"), and say which edits you made.
+
 Verify it renders on `/systems/updatelog/index.html` before shipping.
+
+## The owner's voice, read off their own pages
+
+Established 2026-09-20 by reading the two pages the owner pointed at as their
+own writing: the **Writing Guide** (`page_data`, `page_id = 'writing_guide'`,
+tabs `basics` / `character-pages` / `combos` / `frame-data`) and
+**Terminologies** (`page_id = 'terminologies'`, tabs `archetypes` /
+`mechanics`). Read those, not this summary, when the register matters. This is
+a pointer with the traits that are easy to miss.
+
+**The rule underneath all of it: write to whoever is actually reading.** Their
+guide says so itself: pages that are not character pages *"can mention or refer
+to the reader"*. That is why "never write 'you'" is a **changelog** rule and not
+a site rule: in a changelog the only "you" available is the owner, and on a
+guide page "you" is the contributor standing in front of the editor. Do not
+carry the changelog's ban into anything else.
+
+What their prose actually does:
+
+- **Warm opener, then hard rules.** *"Hello! Welcome to the Writing Guide of
+  Dogslamloop Wiki."* Then, two headings later, a numbered list of grounds for
+  rejection. The friendliness is the door, not the room.
+- **Named concepts, capitalised, and reused.** Ground for Rejection, Combo Card,
+  Workspace Header, M1 Merchant, Neutral. Once a thing is named it keeps that
+  name everywhere. Never invent a second name for something they have named.
+- **A term, a colon, then the explanation.** Their lists are almost all this
+  shape, and the explanation is one sentence that ends.
+- **Right and wrong shown, not described.** `[s]granite blast[/s], Granite
+  blast`. Strikethrough for the wrong form, green for the right one, red for
+  anything that gets an edit rejected.
+- **Permitted and not-permitted as a pair.** Two lists, side by side, rather
+  than one list with exceptions buried in it.
+- **Pre-empt the misreading.** *"It is not a bad thing to be an M1 Merchant,
+  but..."*, *"Side Dash M1 is a great tool, not that it is weak or anything, but
+  we are excluding it from Neutral for the sake of making it clear."* They
+  answer the objection in the same breath as the claim.
+- **Rules carry their reason or their limit.** *"so long as these tones don't
+  undermine or break the baseline set by the Guide, they are fine to stay"*.
+- **Humour in small doses that never costs information.** *"Yay!"*, *"ok ok I
+  will stop"*, *"don't go around throwing a tantrum if someone perform your
+  combos"*. Their own rule: *"You can joke around a little bit but don't get to
+  the point where information is bogged down by humor."*
+- **Honest placeholders.** *"To be completed"* sits in a live page rather than
+  filler pretending to be content. Do not write filler to avoid an empty
+  section.
+- **Numbers and concrete examples over adjectives**, which is the same instinct
+  as changelog rule 4: *"a 14f M1"*, *"word limit of 50"*, *"#F4CC43"*.
+
+**Do not copy their typos.** *"editting"*, *"appropiate"*, *"every articles"*,
+*"PLaystyle"*. The register is theirs; the spelling follows their own Manual of
+Style, which is American English.
+
+**Where the changelog sits against this.** Warmer and plainer than a release
+note written cold, still third person about the site, still one line per thing a
+reader can point at. A good changelog line sounds like a Terminologies entry
+about the site instead of a summary of a diff.
 
 ### Three parts, in this order
 

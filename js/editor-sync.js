@@ -32,62 +32,10 @@ function flushKeyedSection(id, blocks) {
 }
 
 
-// --- INLINE TEXT DIFF ALGORITHM (SMART GROUPING) ---
-window.diffTextLCS = function(oldStr, newStr) {
-    oldStr = String(oldStr || ''); 
-    newStr = String(newStr || '');
-    if (oldStr === newStr) return newStr;
-    if (!oldStr) return `<ins class="diff-add">${newStr}</ins>`;
-    if (!newStr) return `<del class="diff-del">${oldStr}</del>`;
-
-    const a = oldStr.split(/(\s+)/).filter(val => val.length > 0);
-    const b = newStr.split(/(\s+)/).filter(val => val.length > 0);
-    const matrix = Array(a.length + 1).fill(null).map(() => Array(b.length + 1).fill(0));
-
-    for (let i = 1; i <= a.length; i++) {
-        for (let j = 1; j <= b.length; j++) {
-            if (a[i - 1] === b[j - 1]) matrix[i][j] = matrix[i - 1][j - 1] + 1;
-            else matrix[i][j] = Math.max(matrix[i - 1][j], matrix[i][j - 1]);
-        }
-    }
-
-    let i = a.length, j = b.length;
-    const rawOps = [];
-    
-    while (i > 0 || j > 0) {
-        if (i > 0 && j > 0 && a[i - 1] === b[j - 1]) {
-            rawOps.unshift({ type: 'eq', text: a[i - 1] });
-            i--; j--;
-        } else if (j > 0 && (i === 0 || matrix[i][j - 1] >= matrix[i - 1][j])) {
-            rawOps.unshift({ type: 'ins', text: b[j - 1] }); j--;
-        } else if (i > 0 && (j === 0 || matrix[i][j - 1] < matrix[i - 1][j])) {
-            rawOps.unshift({ type: 'del', text: a[i - 1] }); i--;
-        }
-    }
-
-    for (let k = 1; k < rawOps.length - 1; k++) {
-        if (rawOps[k].type === 'eq' && (!rawOps[k].text.trim() || rawOps[k].text.length === 1)) {
-            if (rawOps[k-1].type !== 'eq' && rawOps[k+1].type !== 'eq') rawOps[k].type = 'trivial';
-        }
-    }
-
-    let finalHtml = '';
-    let currentDels = ''; let currentInss = '';
-    const flushEdits = () => {
-        if (currentDels) finalHtml += `<del class="diff-del">${currentDels}</del>`;
-        if (currentInss) finalHtml += `<ins class="diff-add">${currentInss}</ins>`;
-        currentDels = ''; currentInss = '';
-    };
-
-    for (const op of rawOps) {
-        if (op.type === 'eq') { flushEdits(); finalHtml += op.text; } 
-        else if (op.type === 'del') { currentDels += op.text; } 
-        else if (op.type === 'ins') { currentInss += op.text; } 
-        else if (op.type === 'trivial') { currentDels += op.text; currentInss += op.text; }
-    }
-    flushEdits(); 
-    return finalHtml;
-};
+// diffTextLCS and resolveDiffMarkers come from js/diff-markers.js, the same
+// file the review queue loads. This file carried its own older copy until
+// v0.20; it returned real <ins>/<del> tags, which the block renderer escapes,
+// so a contributor's diff mode showed the tags as text.
 
 // --- MASTER MANUAL SYNC ---
 window.triggerManualSync = async function() {
@@ -509,6 +457,9 @@ window.renderDiffView = function() {
                         }
                         b.damage = window.diffTextLCS(oldB.damage || '', newB.damage || '');
                         b.note = window.diffTextLCS(oldB.note || '', newB.note || '');
+                        // Notation styles (v0.20), through the helper both review
+                        // screens share, so neither can miss a changed style.
+                        if (oldB.notations || newB.notations) b.notations = window.diffComboNotations(oldB.notations, newB.notations);
                     }
                     else if (b.type === 'table') {
                         const oldHeaders = oldB.headers || [];
@@ -551,6 +502,7 @@ window.renderDiffView = function() {
                         for (let j = 0; j < Math.max(oldSeq.length, newSeq.length); j++) {
                             b.sequence[j] = window.diffTextLCS(oldSeq[j] || '', newSeq[j] || '');
                         }
+                        if (oldB.notations || newB.notations) b.notations = window.diffComboNotations(oldB.notations, newB.notations);
                         b.content = applyInlineDiffToBlocks(oldB.content || [], newB.content || []);
                         // A card in Multiple Sections mode carries a whole
                         // variant per tab - route, damage, clip and write-up -
@@ -575,6 +527,7 @@ window.renderDiffView = function() {
                             for (let k = 0; k < Math.max(oSeq.length, nSeq.length); k++) {
                                 b.sections[j].sequence[k] = window.diffTextLCS(oSeq[k] || '', nSeq[k] || '');
                             }
+                            if (oSec.notations || nSec.notations) b.sections[j].notations = window.diffComboNotations(oSec.notations, nSec.notations);
                             b.sections[j].content = applyInlineDiffToBlocks(oSec.content || [], nSec.content || []);
                         }
                     }
@@ -642,9 +595,13 @@ window.renderDiffView = function() {
                     // the text, then the diff markers become tags. Without this
                     // the contributor's own before/after preview shows raw
                     // <ins class="diff-add"> instead of a diff.
-                    if (typeof window.resolveDiffMarkers === 'function') {
-                        window.resolveDiffMarkers(document.getElementById(`diff-inline-${safeId}`));
-                    }
+                    //
+                    // No typeof guard. There was one, and edit.html never loaded
+                    // the file that defines this, so the guard turned "missing
+                    // script" into "diff mode quietly shows tags" for months.
+                    // js/diff-markers.js is on this page now; if it ever goes
+                    // missing again, this should throw where someone sees it.
+                    window.resolveDiffMarkers(document.getElementById(`diff-inline-${safeId}`));
                 });
             } else {
                 // Same diff-stacked-* classes admin.html's own raw/JSON diff view

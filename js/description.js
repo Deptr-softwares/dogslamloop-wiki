@@ -115,8 +115,9 @@ window.wikiMediaKind = function (value) {
 //
 // And only when the block asked for controls. A video block with controls OFF
 // renders `autoplay loop muted playsinline`: a silent clip standing in for a
-// GIF, which is a deliberate authoring choice on a lot of existing pages.
-// Giving that a play button answers a question nobody asked.
+// GIF, which is a deliberate authoring choice on a lot of existing pages. It
+// keeps that loop and gets no player inline; a small button in its corner
+// opens this player in the video modal instead (wikiClipHTML, below).
 //
 // Painted with var(--accent-blue), which js/site_meta.js overrides on :root
 // per character page - so the player re-themes itself and there is nothing
@@ -156,6 +157,35 @@ window.wikiVideoButtonHTML = function (url, label) {
     return `<button type="button" class="wiki-video-btn" data-wiki-video="${safe}">`
         + `<span class="wiki-video-btn-glyph" aria-hidden="true"></span>`
         + `${escBlockText(label || 'Watch')}</button>`;
+};
+
+// --- THE CLIP AND ITS CORNER BUTTON (v0.20 V1) ---
+//
+// Owner: "On autoplaying video, give the option (as a small play button in the
+// corner of that video) to open up a modal that play the video with controls
+// on". The button opens the same modal as a video in a table cell, with
+// controls and sound, and the clip underneath keeps looping.
+//
+// One helper for all four places a clip renders: the video block, skill-card
+// media (js/framedata.js), the character Gallery tab and gallery pages
+// (js/gallery.js). Four copies of this markup would drift, the way the
+// notation fields did before they got one.
+//
+// The wrapper is what the corner is measured from, and it is what a failed or
+// moderated clip is replaced by, so the button never outlives its clip
+// (showMissingMedia below, blockedMediaTarget in js/site_utils.js).
+window.wikiClipHTML = function (url, opts) {
+    const safe = escBlockText(safeBlockUrl(url));
+    if (!safe) return '';
+    const o = opts || {};
+    const label = o.label ? ` aria-label="${escBlockText(o.label)}"` : '';
+    return `<div class="wiki-clip">`
+        + `<video data-lazy-src="${safe}" class="${escBlockText(o.className || 'wiki-video-native')}"${label}`
+        + ` autoplay loop muted playsinline preload="none"></video>`
+        + `<button type="button" class="wiki-clip-open" data-wiki-video="${safe}"`
+        + ` aria-label="Open in player" title="Open in player">`
+        + `<span class="wiki-clip-open-glyph" aria-hidden="true"></span></button>`
+        + `</div>`;
 };
 
 // Helper to assign CSS classes, inline widths, and safe style merging for media
@@ -470,10 +500,10 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 if (videoUrl) {
                     // Controls ON gets the player (item 10). Controls OFF is an
                     // autoplaying muted loop - a clip standing in for a GIF -
-                    // and is left exactly as it was.
+                    // with a corner button that opens the player (v0.20 V1).
                     mediaInnerHtml = bData.controls
                         ? window.wikiVideoPlayerHTML(videoUrl)
-                        : `<video data-lazy-src="${escBlockText(safeBlockUrl(videoUrl))}" autoplay loop muted playsinline class="wiki-video-native" preload="none"></video>`;
+                        : window.wikiClipHTML(videoUrl);
                 }
             }
 
@@ -606,7 +636,7 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
         }
         // --- COMBO STRINGS ---
         else if (block.type === 'combo') {
-            if (block.sequence && block.sequence.length > 0) {
+            if ((block.sequence && block.sequence.length > 0) || window.comboNotationStyles(block).length > 1) {
                 
                 // Determine flex justification based on alignment
                 let justifyClass = 'flex-start';
@@ -621,28 +651,20 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 // out what a combo did, and the note read as a caption on the
                 // damage rather than on the combo.
                 let comboHTML = `<div class="combo-block">`;
-                comboHTML += `<div class="combo-container" style="justify-content: ${justifyClass};">`;
 
-                block.sequence.forEach((move, index) => {
-                    comboHTML += `<span class="combo-node">${escBlockText(move)}</span>`;
-
-                    // '>' rather than an arrow glyph or an SVG, matching the
-                    // notation the community and Dustloop both already write
-                    // by hand. aria-hidden because a screen reader announcing
-                    // "greater than" between every step of an eight-step route
-                    // is noise; the steps read fine as a list without it.
-                    if (index < block.sequence.length - 1) {
-                        comboHTML += `<span class="combo-sep" aria-hidden="true">&gt;</span>`;
-                    }
-                });
-
+                // The steps are comboRouteHTML's, shared with the Combo Card
+                // and the Combo Row. '>' between them rather than an arrow
+                // glyph or an SVG, matching the notation the community and
+                // Dustloop both already write by hand; aria-hidden because a
+                // screen reader announcing "greater than" between every step
+                // of an eight-step route is noise.
+                //
                 // Damage trails the route directly - a last element of the
                 // sequence rather than a column at the page edge.
-                if (block.damage) {
-                    comboHTML += `<span class="combo-damage">${escBlockText(block.damage)}</span>`;
-                }
-
-                comboHTML += `</div>`;
+                comboHTML += window.comboRouteHTML(block, {
+                    style: `justify-content: ${justifyClass};`,
+                    trailing: block.damage ? `<span class="combo-damage">${escBlockText(block.damage)}</span>` : '',
+                });
 
                 // Under the route, full width, so it reads as a condition on
                 // the whole combo.
@@ -767,18 +789,214 @@ window.comboVisibleColumns = function (rows) {
     });
 };
 
+// --- NOTATION STYLES (v0.20) ---
+//
+// A combo can carry its route in more than one notation, and the reader
+// switches by clicking the route. Owner, 2026-09-25: the author TYPES each
+// style's label, and a reader's choice applies to EVERY combo and is
+// remembered. So the choice is a label, matched ignoring case and extra
+// spaces: "Keyboard" on one combo and "keyboard " on another are one style.
+//
+//   item.sequence   the first style, unlabelled - every combo written before
+//                   this has exactly this and renders exactly as it did
+//   item.notations  [{ label, sequence }] beside it, on a Combo Block, a
+//                   Combo Card or one of its sections, and a Combo Row
+//
+// Spec and reasoning: V0.20-DEVLOG.md, "notation styles on combo routes".
+const COMBO_NOTATION_STORE = 'dsl-combo-notation';
+// Held in memory too, so switching still works for the rest of the visit when
+// storage is blocked (a private window, cleared site data).
+let comboNotationChoice = null;
+
+window.comboNotationKey = function (label) {
+    return String(label === null || label === undefined ? '' : label)
+        .trim().replace(/\s+/g, ' ').toLowerCase();
+};
+
+// The first style's steps exactly as stored, blanks included, so a combo with
+// no styles renders byte-for-byte what it did before. An added style is new
+// data and drops blank steps, which the Combo Block's comma field produces
+// from a trailing comma.
+function comboFirstSteps(sequence) {
+    return Array.isArray(sequence) ? sequence : (sequence ? [sequence] : []);
+}
+
+// The styles a reader can switch between, the first style first. A style
+// counts only with a label AND a step: a half-filled one is an author mid-edit,
+// not an empty route to show a reader. A repeated label keeps its first route.
+window.comboNotationStyles = function (item) {
+    const styles = [{ label: '', key: '', sequence: comboFirstSteps(item && item.sequence) }];
+    const seen = new Set();
+    (item && Array.isArray(item.notations) ? item.notations : []).forEach(n => {
+        const label = String((n && n.label) || '').trim();
+        const key = window.comboNotationKey(label);
+        const steps = (n && Array.isArray(n.sequence) ? n.sequence : [])
+            .filter(s => String(s === null || s === undefined ? '' : s).trim() !== '');
+        if (!key || !steps.length || seen.has(key)) return;
+        seen.add(key);
+        styles.push({ label, key, sequence: steps });
+    });
+    return styles;
+};
+
+window.comboNotationPreference = function () {
+    if (comboNotationChoice !== null) return comboNotationChoice;
+    try { return window.localStorage.getItem(COMBO_NOTATION_STORE) || ''; } catch (e) { return ''; }
+};
+
+function saveComboNotationPreference(key) {
+    comboNotationChoice = key || '';
+    try {
+        if (key) window.localStorage.setItem(COMBO_NOTATION_STORE, key);
+        else window.localStorage.removeItem(COMBO_NOTATION_STORE);
+    } catch (e) { /* the in-memory choice above still holds for this visit */ }
+}
+
+function comboNotationTitle(label, index, count) {
+    return `Notation ${index + 1} of ${count}${label ? ': ' + label : ''}. Click the route to switch.`;
+}
+
+// The review screens diff a label with control-character markers that
+// resolveDiffMarkers (js/admin-diff.js) turns into <ins>/<del> by rewriting the
+// container's innerHTML as a string. That is right for text and wrong inside an
+// ATTRIBUTE, where the tag's own quotes would end the value. So anything a
+// label feeds into an attribute is stripped of them first; the visible name
+// keeps them.
+const stripDiffMarks = (s) => String(s === null || s === undefined ? '' : s).replace(/[\u0011-\u0014]/g, '');
+
+// Every style's label and steps diffed by position, the way the route beside
+// them already is. Shared by the review queue (js/admin-preview.js) and the
+// editor's own diff (js/editor-sync.js), which each carry a copy of the block
+// diff: one helper, so the two cannot disagree about notation styles.
+window.diffComboNotations = function (oldList, newList) {
+    const before = Array.isArray(oldList) ? oldList : [];
+    const after = Array.isArray(newList) ? newList : [];
+    const out = [];
+    for (let i = 0; i < Math.max(before.length, after.length); i++) {
+        const o = before[i] || {};
+        const n = after[i] || {};
+        const oSteps = Array.isArray(o.sequence) ? o.sequence : [];
+        const nSteps = Array.isArray(n.sequence) ? n.sequence : [];
+        const steps = [];
+        for (let k = 0; k < Math.max(oSteps.length, nSteps.length); k++) {
+            steps[k] = window.diffTextLCS(oSteps[k] || '', nSteps[k] || '');
+        }
+        out.push({ label: window.diffTextLCS(o.label || '', n.label || ''), sequence: steps });
+    }
+    return out;
+};
+
+// The chips, shared by all three surfaces. It used to be the same loop three
+// times, which is how a route would come to read differently in a table than
+// in prose.
+function comboStepsHTML(steps) {
+    return steps.map((step, i) => `<span class="combo-node">${escBlockText(step)}</span>`
+        + (i < steps.length - 1 ? '<span class="combo-sep" aria-hidden="true">&gt;</span>' : '')).join('');
+}
+
+// A whole route row. `className` joins `combo-container`, `style` is already a
+// safe declaration built by the caller, `trailing` is HTML that follows the
+// steps (the damage). Without styles this is exactly the old markup.
+//
+// With styles, EVERY route is in the DOM and one is visible, so switching is a
+// change of `hidden` rather than a re-render, and the colour-coding pass that
+// runs over `.combo-node` has already seen all of them.
+window.comboRouteHTML = function (item, opts) {
+    const o = opts || {};
+    const styles = window.comboNotationStyles(item);
+    const cls = 'combo-container' + (o.className ? ' ' + o.className : '');
+    const styleAttr = o.style ? ` style="${o.style}"` : '';
+    const trailing = o.trailing || '';
+
+    if (styles.length === 1) {
+        return `<div class="${cls}"${styleAttr}>${comboStepsHTML(styles[0].sequence)}${trailing}</div>`;
+    }
+
+    const choice = window.comboNotationPreference();
+    const active = Math.max(0, styles.findIndex(s => stripDiffMarks(s.key) === choice));
+    const title = escBlockText(comboNotationTitle(stripDiffMarks(styles[active].label), active, styles.length));
+
+    const mark = '<span class="combo-notation-mark" aria-hidden="true">'
+        + styles.map((s, i) => `<i${i === active ? ' class="is-on"' : ''}></i>`).join('')
+        + '</span>';
+    // `.combo-notation-name` is hidden on the page and shown in the review
+    // screens, where every style is laid out at once with its name, so a
+    // reviewer never has to click to find a changed route. The first style has
+    // no label of its own, so it is named for what it is.
+    const routes = styles.map((s, i) =>
+        `<span class="combo-notation" data-notation-key="${escBlockText(stripDiffMarks(s.key))}"`
+        + ` data-notation-label="${escBlockText(stripDiffMarks(s.label))}"${i === active ? '' : ' hidden'}>`
+        + `<span class="combo-notation-name">${escBlockText(s.label || 'Route')}</span>`
+        + comboStepsHTML(s.sequence) + '</span>').join('');
+
+    return `<div class="${cls} combo-has-notations"${styleAttr} role="button" tabindex="0"`
+        + ` data-notation-active="${active}" title="${title}" aria-label="${title}">`
+        + mark + routes + trailing + '</div>';
+};
+
+function showComboNotation(container, index) {
+    const routes = container.querySelectorAll(':scope > .combo-notation');
+    if (!routes.length) return;
+    const at = Math.max(0, Math.min(index, routes.length - 1));
+    routes.forEach((r, i) => { r.hidden = i !== at; });
+    container.querySelectorAll(':scope > .combo-notation-mark > i')
+        .forEach((m, i) => m.classList.toggle('is-on', i === at));
+    container.setAttribute('data-notation-active', String(at));
+    const text = comboNotationTitle(routes[at].getAttribute('data-notation-label') || '', at, routes.length);
+    container.title = text;
+    container.setAttribute('aria-label', text);
+}
+
+// Every combo on the page to the reader's choice: the style with that label
+// where a combo has one, its first route where it does not.
+window.applyComboNotationPreference = function (root) {
+    const choice = window.comboNotationPreference();
+    (root || document).querySelectorAll('.combo-has-notations').forEach(container => {
+        const routes = [...container.querySelectorAll(':scope > .combo-notation')];
+        showComboNotation(container, Math.max(0, routes.findIndex(r => r.getAttribute('data-notation-key') === choice)));
+    });
+};
+
+// The next style of THIS combo becomes the reader's choice everywhere.
+function cycleComboNotation(container) {
+    const routes = container.querySelectorAll(':scope > .combo-notation');
+    if (routes.length < 2) return;
+    const current = parseInt(container.getAttribute('data-notation-active'), 10) || 0;
+    const next = routes[(current + 1) % routes.length];
+    saveComboNotationPreference(next.getAttribute('data-notation-key') || '');
+    window.applyComboNotationPreference(document);
+}
+
+// The review screens lay every style out at once, so a click there has
+// nothing to switch, and must not change the reviewer's own reading choice.
+const inReviewDiff = (el) => !!el.closest('.diff-inline-target');
+
+document.addEventListener('click', (e) => {
+    const container = e.target.closest && e.target.closest('.combo-has-notations');
+    if (!container || inReviewDiff(container)) return;
+    // Dragging across the route to copy it is not a request to switch.
+    const selection = window.getSelection ? String(window.getSelection()) : '';
+    if (selection && container.contains(window.getSelection().anchorNode)) return;
+    cycleComboNotation(container);
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const container = e.target.closest && e.target.closest('.combo-has-notations');
+    // Only when the route itself has focus, never a field that happens to sit
+    // inside something with the class.
+    if (!container || container !== e.target || inReviewDiff(container)) return;
+    e.preventDefault();
+    cycleComboNotation(container);
+});
+
 // One route, rendered as the same chips the legacy combo block uses, so a
 // route reads identically whether it is inline in prose or a row in a table.
-function renderComboRoute(sequence) {
-    const steps = Array.isArray(sequence) ? sequence : (sequence ? [sequence] : []);
-    if (steps.length === 0) return '<span class="combo-route-empty">-</span>';
-
-    let html = '<div class="combo-container combo-route-inline">';
-    steps.forEach((step, i) => {
-        html += `<span class="combo-node">${escBlockText(step)}</span>`;
-        if (i < steps.length - 1) html += '<span class="combo-sep" aria-hidden="true">&gt;</span>';
-    });
-    return html + '</div>';
+// Takes the whole ROW now, not its sequence, so the row's styles come along.
+function renderComboRoute(row) {
+    const styles = window.comboNotationStyles(row);
+    if (styles.length === 1 && styles[0].sequence.length === 0) return '<span class="combo-route-empty">-</span>';
+    return window.comboRouteHTML(row, { className: 'combo-route-inline' });
 }
 
 // Ult Gain and Evasive Gain are the owner's two resources, replacing the
@@ -797,7 +1015,7 @@ function renderComboNotes(row) {
 }
 
 function renderComboCell(row, column) {
-    if (column.field === 'sequence') return renderComboRoute(row.sequence);
+    if (column.field === 'sequence') return renderComboRoute(row);
     if (column.field === 'notes') return renderComboNotes(row);
 
     const value = String(row[column.field] === null || row[column.field] === undefined ? '' : row[column.field]).trim();
@@ -958,6 +1176,64 @@ window.renderComboListTable = function (group, section) {
 //
 // The first attempt made the table a group's content, which left nowhere for
 // the cards to live and put the reference index in the middle of the prose.
+// WHAT A REPAINT MUST NOT THROW AWAY.
+//
+// Two things a reader sets by clicking live ONLY in the DOM: whether an
+// accordion is open, and which tab a Section Box or a multi-section Combo Card
+// is showing. The editor repaints the preview on every keystroke, so without
+// this the author watches their accordion shut and their tab snap back to the
+// first one, once per character typed.
+//
+// ONE implementation, called from both repaint paths. It was inline in
+// populateTextSection when v0.19 shipped, which left renderDocumentTab - the
+// Combos and Techs preview - without it, and that is exactly where the owner
+// found it broken: the form kept editing section 2 while the preview beside it
+// showed section 1.
+//
+// MATCHED BY POSITION, never by title. The title is the thing being typed when
+// somebody renames a section, so keying on it would lose the state on the
+// keystroke that matters most. A reorder at worst hands one box its
+// neighbour's tab, which the next click corrects.
+window.captureNestedViewState = function (container) {
+    if (!container) return { open: [], tabs: [] };
+    return {
+        open: Array.prototype.map.call(container.querySelectorAll('details'), (d) => d.open),
+        tabs: Array.prototype.map.call(container.querySelectorAll('.sbox-tabbed'), (box) => {
+            const active = box.querySelector(':scope > .sbox-tabs > .sbox-tab.is-active');
+            return active ? active.getAttribute('data-sbox-tab') : null;
+        }),
+    };
+};
+
+window.restoreNestedViewState = function (container, state) {
+    if (!container || !state) return;
+
+    // Only ever re-OPENS: a details element the author had closed stays closed,
+    // so this cannot override the markup's own default for a section that has
+    // just appeared.
+    if (state.open && state.open.length) {
+        container.querySelectorAll('details').forEach((d, i) => {
+            if (state.open[i]) d.open = true;
+        });
+    }
+
+    // Skipped when the tab it names is gone: a box that has lost a section
+    // falls back to its first, which is what a fresh render does anyway.
+    if (state.tabs && state.tabs.length) {
+        container.querySelectorAll('.sbox-tabbed').forEach((box, i) => {
+            const want = state.tabs[i];
+            if (want === null || want === undefined || want === '0') return;
+            const btn = box.querySelector(`:scope > .sbox-tabs > [data-sbox-tab="${CSS.escape(want)}"]`);
+            const panel = box.querySelector(`:scope > [data-sbox-panel="${CSS.escape(want)}"]`);
+            if (!btn || !panel) return;
+            box.querySelectorAll(':scope > .sbox-tabs > .sbox-tab').forEach(b =>
+                b.classList.toggle('is-active', b === btn));
+            box.querySelectorAll(':scope > [data-sbox-panel]').forEach(p =>
+                p.classList.toggle('is-active', p === panel));
+        });
+    }
+};
+
 window.renderDocumentTab = function (tabId, data) {
     const sections = window.getDocumentSections ? window.getDocumentSections(tabId) : null;
     if (!sections) return;
@@ -966,6 +1242,11 @@ window.renderDocumentTab = function (tabId, data) {
     if (!container) return;
 
     const { intro, groups, list } = sections;
+
+    // Captured before the clear, restored at the end. This is the editor's
+    // Combos/Techs preview as well as the live tab, and it repaints on every
+    // keystroke.
+    const viewState = window.captureNestedViewState(container);
 
     container.innerHTML = '';
     container.classList.add('space-y-6');
@@ -1056,6 +1337,8 @@ window.renderDocumentTab = function (tabId, data) {
         container.appendChild(host);
     }
 
+    window.restoreNestedViewState(container, viewState);
+
     if (typeof window.consolidateTabContributors === 'function') {
         window.consolidateTabContributors(container);
     }
@@ -1144,19 +1427,13 @@ function buildCharacterGalleryCard(item) {
 
     if (item.src) {
         if (isCharacterGalleryVideo(item.src)) {
-            const video = document.createElement('video');
-            // data-lazy-src, not src: initLazyMedia swaps it in on approach.
-            video.setAttribute('data-lazy-src', item.src);
-            video.className = 'gallery-media';
-            video.autoplay = true;
-            video.loop = true;
-            video.muted = true;
-            video.playsInline = true;
-            video.preload = 'none';
+            // The shared clip: lazy (initLazyMedia swaps the source in on
+            // approach) and carrying the corner button. aria-label because
             // <video> has no alt attribute - the trap that made skill-card alt
             // text look like it was not saving.
-            if (item.alt || item.name) video.setAttribute('aria-label', item.alt || item.name);
-            media.appendChild(video);
+            media.innerHTML = window.wikiClipHTML(item.src, {
+                className: 'gallery-media', label: item.alt || item.name || '',
+            });
         } else {
             const img = document.createElement('img');
             img.src = item.src;
@@ -1213,17 +1490,15 @@ function theoryboxCardHTML(bData, contextClass) {
 
             // Same chips and separators as the legacy combo block and the
             // Combo List, so a route reads identically wherever it appears.
+            // A card with no route of its own but a notation style still gets
+            // the row, or the style would have nowhere to be switched to.
             const steps = Array.isArray(bData.sequence) ? bData.sequence : [];
-            let routeHTML = '';
-            if (steps.length) {
-                routeHTML = '<div class="combo-container theorybox-route">';
-                steps.forEach((step, i) => {
-                    routeHTML += `<span class="combo-node">${escBlockText(step)}</span>`;
-                    if (i < steps.length - 1) routeHTML += '<span class="combo-sep" aria-hidden="true">&gt;</span>';
-                });
-                if (bData.damage) routeHTML += `<span class="combo-damage">${escBlockText(bData.damage)}</span>`;
-                routeHTML += '</div>';
-            }
+            const routeHTML = (steps.length || window.comboNotationStyles(bData).length > 1)
+                ? window.comboRouteHTML(bData, {
+                    className: 'theorybox-route',
+                    trailing: bData.damage ? `<span class="combo-damage">${escBlockText(bData.damage)}</span>` : '',
+                })
+                : '';
 
             // Opens the modal player rather than navigating to the file. The
             // link sent the reader off the wiki to a bare video on a Supabase
@@ -1358,19 +1633,7 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
     // Anything else that nests blocks and remembers open/closed - SectionedBox
     // in C3 - needs this too, and for the same reason: state that lives only in
     // the DOM does not survive the thing that rebuilds the DOM.
-    const wasOpen = Array.prototype.map.call(
-        container.querySelectorAll('details'), (d) => d.open);
-
-    // Same problem, same rule, for a Section Box's tab row (v0.19 C3). Which
-    // tab is open lives only in a class on the DOM the repaint is about to
-    // throw away, so without this a box resets to its first tab on every
-    // character typed - and worse than the accordion, because a tab row makes
-    // it look like the author's click did nothing at all.
-    const wasTab = Array.prototype.map.call(
-        container.querySelectorAll('.sbox-tabbed'), (box) => {
-            const active = box.querySelector(':scope > .sbox-tabs > .sbox-tab.is-active');
-            return active ? active.getAttribute('data-sbox-tab') : null;
-        });
+    const viewState = window.captureNestedViewState(container);
 
     container.innerHTML = '';
     container.classList.remove('vessel-content');
@@ -1405,32 +1668,7 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
         section.appendChild(bodyDiv);
         container.appendChild(section);
 
-        // Put the open ones back. Only ever re-OPENS: a details element the
-        // author had closed stays closed, so this cannot override the markup's
-        // own default for a section that has just appeared.
-        if (wasOpen.length) {
-            container.querySelectorAll('details').forEach((d, i) => {
-                if (wasOpen[i]) d.open = true;
-            });
-        }
-
-        // And the tab each Section Box was showing. Matched by position for the
-        // same reason, and skipped when the tab it names is gone - a box that
-        // has lost a section falls back to the first, which is what a fresh
-        // render does anyway.
-        if (wasTab.length) {
-            container.querySelectorAll('.sbox-tabbed').forEach((box, i) => {
-                const want = wasTab[i];
-                if (want === null || want === undefined || want === '0') return;
-                const btn = box.querySelector(`:scope > .sbox-tabs > [data-sbox-tab="${CSS.escape(want)}"]`);
-                const panel = box.querySelector(`:scope > [data-sbox-panel="${CSS.escape(want)}"]`);
-                if (!btn || !panel) return;
-                box.querySelectorAll(':scope > .sbox-tabs > .sbox-tab').forEach(b =>
-                    b.classList.toggle('is-active', b === btn));
-                box.querySelectorAll(':scope > [data-sbox-panel]').forEach(p =>
-                    p.classList.toggle('is-active', p === panel));
-            });
-        }
+        window.restoreNestedViewState(container, viewState);
 
         // 2. Bind the tooltips (shared engine, see site_utils.js)
         const callouts = section.querySelectorAll('.inline-callout-btn');
@@ -2015,37 +2253,230 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
     }
 }
 
-// --- LAZY MEDIA OBSERVER ---
+// --- LAZY MEDIA, AND THE CLIP QUEUE (v0.20 V2 fix 3) ---
+//
+// Measured on Puppet Master's Overview on 2026-09-28: clips started loading
+// only 300px ahead of the screen, a grid of them started together and shared
+// the connection, and a 0.31 MB clip waited 4.9s behind a 4.24 MB one. 11 of
+// 26 were still blank two seconds after scrolling into view, on desktop too.
+//
+// So an autoplaying clip now joins a queue two screens ahead of the reader,
+// two start at a time, the clip nearest the screen always goes next, and a
+// loop plays only while it is on screen. A clip hands its turn on once it can
+// play through, not once its last byte lands, so the browser may still be
+// fetching the tail of one while the next starts: re-measured on 2026-09-29,
+// the most requests in flight fell from 9 to 7 on a phone profile, and no clip
+// was blank for over 2 seconds after coming into view (8 before).
+//
+// Everything else keeps the old rule, its source swapped in 300px ahead: a
+// player with controls downloads nothing until it is pressed
+// (preload="none"), and a YouTube embed is not ours to meter.
+//
+// The observers are shared and built once. initLazyMedia is called on every
+// render, the editor's preview renders on every keystroke, and observing an
+// element twice is a no-op, so a second call costs nothing.
+const CLIP_SLOTS = 2;
+const CLIP_AHEAD_MARGIN = '200% 0px';
+// A slot is freed when the browser can play the clip through, stops fetching
+// it, or fails. A clip that does none of those in this long stops holding the
+// queue up, so one stalled download cannot stop every clip below it.
+const CLIP_SLOT_TIMEOUT_MS = 8000;
+
+const clipWaiting = new Set();
+const clipLoading = new Map();    // clip -> the timeout that frees its slot
+const clipOnScreen = new WeakSet();
+let clipAheadObserver = null;
+let clipScreenObserver = null;
+let lazyMediaObserver = null;
+
+// 0 on screen, otherwise how many pixels away. A clip with no box (its tab is
+// hidden) is never picked; its tab showing again brings it back through the
+// ahead observer.
+function clipDistance(video) {
+    const r = video.getBoundingClientRect();
+    if (!r.width && !r.height) return Infinity;
+    const h = window.innerHeight || document.documentElement.clientHeight;
+    if (r.bottom < 0) return -r.bottom;
+    if (r.top > h) return r.top - h;
+    return 0;
+}
+
+function playClip(video) {
+    // Refused on a phone in Low Power Mode, or cut short by the reader
+    // scrolling past. Either way the corner button still opens the player.
+    const p = video.play();
+    if (p && p.catch) p.catch(() => {});
+}
+
+function freeClipSlot(video) {
+    if (!clipLoading.has(video)) return;
+    clearTimeout(clipLoading.get(video));
+    clipLoading.delete(video);
+    pumpClipQueue();
+}
+
+function startClip(video) {
+    const src = video.getAttribute('data-lazy-src');
+    if (!src) return;
+    clipAheadObserver.unobserve(video);
+
+    const free = () => freeClipSlot(video);
+    ['canplaythrough', 'suspend', 'error', 'abort'].forEach(type =>
+        video.addEventListener(type, free, { once: true }));
+    clipLoading.set(video, setTimeout(free, CLIP_SLOT_TIMEOUT_MS));
+
+    // From here the queue decides when the clip plays, not the attribute:
+    // autoplay would start a loop two screens down that nobody is watching.
+    // preload="auto" because without autoplay, "none" fetches nothing until
+    // play() is called on screen, which is the wait this exists to remove.
+    video.autoplay = false;
+    video.preload = 'auto';
+    video.src = src;
+    video.removeAttribute('data-lazy-src');
+    if (clipOnScreen.has(video)) playClip(video);
+}
+
+function pumpClipQueue() {
+    // A clip taken off the page stops counting: the editor repaints its
+    // preview on every keystroke, and a gallery search rebuilds the grid.
+    clipLoading.forEach((timer, video) => {
+        if (!video.isConnected) { clearTimeout(timer); clipLoading.delete(video); }
+    });
+    clipWaiting.forEach(video => { if (!video.isConnected) clipWaiting.delete(video); });
+
+    while (clipLoading.size < CLIP_SLOTS) {
+        let next = null;
+        let nearest = Infinity;
+        clipWaiting.forEach(video => {
+            const d = clipDistance(video);
+            if (d < nearest) { nearest = d; next = video; }
+        });
+        if (!next) return;
+        clipWaiting.delete(next);
+        startClip(next);
+    }
+}
+
+// Membership of the queue is "within two screens and not started". A clip the
+// reader scrolled far past leaves it, rather than downloading later for
+// nobody.
+function onClipAhead(entries) {
+    entries.forEach(({ target: video, isIntersecting }) => {
+        if (!video.hasAttribute('data-lazy-src')) return;
+        if (isIntersecting) clipWaiting.add(video);
+        else clipWaiting.delete(video);
+    });
+    pumpClipQueue();
+}
+
+function onClipScreen(entries) {
+    entries.forEach(({ target: video, isIntersecting }) => {
+        const started = !video.hasAttribute('data-lazy-src');
+        if (isIntersecting) {
+            clipOnScreen.add(video);
+            if (started) playClip(video);
+        } else {
+            clipOnScreen.delete(video);
+            if (started && !video.paused) video.pause();
+        }
+    });
+}
+
 window.initLazyMedia = function(rootElement = document) {
     const lazyMedia = rootElement.querySelectorAll('video[data-lazy-src], iframe[data-lazy-src]');
-    
-    if ('IntersectionObserver' in window) {
-        const mediaObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const media = entry.target;
-                    // Swap the lazy attribute to the real source
-                    media.src = media.getAttribute('data-lazy-src');
-                    media.removeAttribute('data-lazy-src');
-                    
-                    // If it's a video meant to auto-play, trigger it once loaded
-                    if (media.tagName === 'VIDEO' && media.hasAttribute('autoplay')) {
-                        media.play().catch(e => console.warn("Autoplay prevented:", e));
-                    }
-                    observer.unobserve(media);
-                }
-            });
-        }, { rootMargin: "300px 0px" }); // Start loading 300px BEFORE it enters the screen
 
-        lazyMedia.forEach(media => mediaObserver.observe(media));
-    } else {
-        // Fallback for ancient browsers
+    if (!('IntersectionObserver' in window)) {
+        // Fallback for ancient browsers: everything at once, as before.
         lazyMedia.forEach(media => {
             media.src = media.getAttribute('data-lazy-src');
             media.removeAttribute('data-lazy-src');
         });
+        return;
     }
+
+    if (!lazyMediaObserver) {
+        lazyMediaObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) return;
+                const media = entry.target;
+                media.src = media.getAttribute('data-lazy-src');
+                media.removeAttribute('data-lazy-src');
+                observer.unobserve(media);
+            });
+        }, { rootMargin: '300px 0px' });
+        clipAheadObserver = new IntersectionObserver(onClipAhead, { rootMargin: CLIP_AHEAD_MARGIN });
+        clipScreenObserver = new IntersectionObserver(onClipScreen);
+    }
+
+    lazyMedia.forEach(media => {
+        // An autoplaying video is a clip, and clips queue.
+        if (media.tagName === 'VIDEO' && media.hasAttribute('autoplay')) {
+            clipAheadObserver.observe(media);
+            clipScreenObserver.observe(media);
+        } else {
+            lazyMediaObserver.observe(media);
+        }
+    });
 };
+
+// --- MEDIA THAT FAILS TO LOAD (v0.20 batch 3) ---
+//
+// A link to a file that does not exist used to draw a broken-image icon, or,
+// for a video, an empty black box that reads as "still loading" forever. On
+// 2026-09-28, 86 of the 466 files the wiki links to did not exist, on 15
+// pages. Now the same "[ Missing Media ]" box a skill card with no media has
+// always shown takes the failed element's place, so a reader can tell missing
+// from slow.
+//
+// One capture-phase listener on the document: `error` does not bubble, but it
+// does pass through capture, and this catches media drawn by any renderer at
+// any time, including the editor's live preview and the review screen.
+//
+// OPT-IN BY CLASS. Portraits, roster icons and tier-list art have their own
+// deliberate fallbacks (a portrait that 404s hides and leaves the name), and
+// replacing them would break those.
+const MISSING_MEDIA_TARGETS = [
+    'img.wiki-block-image', 'img.wiki-media', 'img.wiki-cell-media',
+    'video.wiki-video-native',
+    'img.skill-media-img', 'video.skill-media-img',
+    'img.gallery-media', 'video.gallery-media',
+    'img.discussion-media-img', 'img.discussion-media-gif', 'video.discussion-media-gif',
+].join(', ');
+
+function showMissingMedia(el) {
+    if (!el || !el.isConnected || !el.matches(MISSING_MEDIA_TARGETS)) return;
+    // A media element with no source has not failed, it has not started.
+    const src = el.currentSrc || el.getAttribute('src') || '';
+    if (!src) return;
+
+    const notice = document.createElement('div');
+    notice.className = 'media-missing-notice';
+    notice.textContent = '[ Missing Media ]';
+    notice.setAttribute('role', 'img');
+    notice.setAttribute('aria-label', 'Missing media');
+    // The file's name on hover, so whoever fixes the page knows which one.
+    // A property, never markup: the address came from page content.
+    try { notice.title = decodeURIComponent(src.split(/[?#]/)[0].split('/').pop() || ''); } catch (e) { notice.title = ''; }
+
+    // An image block's own alignment and width carry over, so the box sits
+    // where the image would have.
+    el.classList.forEach(c => { if (/^wiki-media(-|$)/.test(c)) notice.classList.add(c); });
+    if (el.style && el.style.width) notice.style.width = el.style.width;
+
+    // A thread image sits inside a link to itself; a link to a missing file
+    // goes nowhere, so the notice replaces the link. A clip takes its corner
+    // button with it, for the same reason: a player for nothing.
+    const link = el.parentElement && el.parentElement.matches('a.discussion-media-link') ? el.parentElement : null;
+    const clip = el.closest('.wiki-clip');
+    (clip || link || el).replaceWith(notice);
+}
+
+document.addEventListener('error', (e) => {
+    const t = e.target;
+    if (!t || !t.tagName) return;
+    // A <source> child fails on itself; its video is what the reader sees.
+    showMissingMedia(t.tagName === 'SOURCE' ? t.parentElement : t);
+}, true);
 
 // --- VIDEO PLAYER BEHAVIOUR (v0.15 item 10) ---
 //

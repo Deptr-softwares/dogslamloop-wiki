@@ -40,6 +40,8 @@ Five real incidents in this project came from skipping steps below: an unauthent
 
 6. **`IS DISTINCT FROM`, never `<>`, against `get_my_role()`.** It returns NULL for a signed-in user with no role, and `NULL <> 'viewer'` evaluates to NULL — not true — so the obvious operator denies *every* ordinary user.
 
+6a. **A boolean helper used as `IF NOT fn() THEN RAISE` must never answer NULL.** `NOT NULL` is NULL, `IF` treats it as false, and the RAISE is skipped: NULL means *allowed*. `is_owner()` was `get_my_role() = 'owner'`, NULL for every roleless account, so from v0.17 until 2026-09-28 any signed-in account without a role passed all twenty owner checks and could make itself owner (hotfix `20260927000000`, PR #207). Wrap the answer: `SELECT COALESCE(<expr>, false)`, or go through `role_rank()`, which maps NULL to 0. `tests/migration-columns.spec.js` enforces this on every `IF NOT` guard's latest definition. **Probe the roleless account, not only staff:** the hole was invisible to every probe run from an account that held a role, because any role made the comparison false instead of NULL.
+
 7. Match the schema's existing shape: double-quoted schema-qualified identifiers, `TO "authenticated"` on write policies, `WITH CHECK` mirroring `USING`, and a header comment explaining the problem the migration solves.
 
 ## Data changes
@@ -84,6 +86,12 @@ curl -s -X POST "$BRANCH_URL/auth/v1/token?grant_type=password" \
   -H "apikey: $BRANCH_ANON_KEY" -H "Content-Type: application/json" \
   -d '{"email":"admin@dogslamloop.test","password":"seed-admin-password"}'
 ```
+
+**Getting the branch's URL and keys needs no dashboard.** The CLI on the owner's machine is logged in and linked: `npx supabase branches list --project-ref gtqswjspxymjdopljmfi` shows the preview's status, and `npx supabase branches get <git branch> --project-ref gtqswjspxymjdopljmfi -o env` prints its `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `POSTGRES_URL`. It also prints the branch's service-role key and JWT secret: grep out only what you need, write it to the scratchpad, never echo the rest. `npx supabase db query --db-url "$POSTGRES_URL" "<sql>"` then reads or fixes the PREVIEW directly. `--linked` instead of `--db-url` is PRODUCTION: reads only, never a write without the owner's explicit word.
+
+**A preview exists per PR, not per push.** With no PR open, `branches list` shows only `main`. To verify a migration while its batch is still being built, open the batch PR as a draft.
+
+**If a seeded account's sign-in answers 500 "Database error querying schema"**, its token columns are NULL. `seed.sql` fills them since 2026-09-28; a preview created before that needs `UPDATE auth.users SET confirmation_token = COALESCE(confirmation_token, ''), recovery_token = COALESCE(recovery_token, ''), email_change = COALESCE(email_change, ''), email_change_token_new = COALESCE(email_change_token_new, '')` through `--db-url`.
 
 Then `node scripts/probe-release.js` with `USER_JWT`, `ADMIN_JWT` and `--include-writes`. It refuses writes against the production ref, so point it at the branch.
 

@@ -101,9 +101,25 @@ test('every declared capability gets its own independent box', async ({ page }) 
     // which ones are meant to exist.
     const capabilities = await row.locator('.personnel-capability-box')
         .evaluateAll(boxes => boxes.map(b => b.dataset.capability));
-    expect(capabilities.sort()).toEqual(['bypass_cooldown', 'can_delete_media', 'can_moderate']);
+    expect(capabilities.sort()).toEqual(['bypass_cooldown', 'can_delete_media', 'can_moderate', 'can_upload_media']);
 
     await expect(boxFor(page, 'editor@site.test', 'can_moderate')).not.toBeChecked();
+});
+
+test('uploading media comes with Trusted Editor and up, and the row says so', async ({ page }) => {
+    // v0.20: one permission for the Media Library and thread images. Trusted
+    // Editors have it by role, so their box is inert, and the reason is TEXT
+    // on the row, the lesson of the 2026-09-04 "clicking on it and nothing
+    // happen" report.
+    await openOwner(page);
+
+    for (const email of ['owner@site.test', 'editor@site.test']) {
+        await expect(boxFor(page, email, 'can_upload_media')).toBeDisabled();
+        const label = page.locator('.personnel-capability')
+            .filter({ has: boxFor(page, email, 'can_upload_media') });
+        await expect(label).toContainText('Upload media');
+        await expect(label).toContainText('comes with the role');
+    }
 });
 
 test('deleting media is not implied by any role except admin', async ({ page }) => {

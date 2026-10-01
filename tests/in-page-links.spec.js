@@ -200,22 +200,215 @@ test('a link arrived at by URL hash resolves after the content loads', async ({ 
   // The section has to already exist on the page for this to be honest, so it
   // uses one of the character's own - read from the page rather than assumed,
   // because pinning a test to owner content is how regeneration broke before.
-  await page.goto(PAGE, { waitUntil: 'networkidle' });
-  const probe = await page.evaluate(() => {
-    window.assignSectionAnchors();
-    const els = [...document.querySelectorAll('.main-content-area [id^="sec-"]')];
-    // Far enough down that resolving it has to move the page.
-    const deep = els.filter(el => el.getBoundingClientRect().top + window.scrollY > 400);
-    return deep.length ? deep[deep.length - 1].id : null;
-  });
+  const probe = await deepSection(page);
   test.skip(!probe, 'this character page has no section far enough down to test with');
 
   await page.goto(`${PAGE}#${probe}`, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(1200);
 
-  const scrolled = await page.evaluate(() => Math.round(window.scrollY));
-  expect(scrolled, 'a pasted section link should land on the section').toBeGreaterThan(100);
+  // ON the section, not merely somewhere down the page. "scrollY > 100" was
+  // the old assertion, and the v0.20 bug below passed it while landing two
+  // sections short.
+  const top = await settledTop(page, probe);
+  expect(top, 'a pasted section link should land on the section').toBeGreaterThan(0);
+  expect(top).toBeLessThan(120);
   expect(errors).toEqual([]);
+});
+
+// --- ARRIVING WHILE THE PAGE IS STILL BUILDING (v0.20) ---
+//
+// The owner's report: a search hit for Murmurate on Crow Charmer, opened from
+// the Main Dashboard, stopped at Circling. Measured on the real page: the
+// target first existed while the Skills tab was half built, the jump fired,
+// and 180ms later the skills above it finished rendering and pushed it 2,644px
+// down. One smooth scroll aimed at the first position ended two sections short.
+// And on a slow connection the old retries ran out before the content arrived,
+// so the page never moved at all.
+//
+// These inject the growth rather than waiting for a real page to produce it,
+// because a real page only does it when the network is slow.
+
+// A section on the page's opening tab, deep enough that landing on it has to
+// move the page. Read from the page, never pinned to owner content.
+//
+// Leaves the page afterwards, and that is load-bearing. Going from PAGE to
+// PAGE#id changes only the fragment, which is a same-document navigation: no
+// reload, no init scripts, no network, and no arrival code, only the
+// hashchange handler on a page that is already built. Until v0.20 the arrival
+// test above did exactly that, so it never tested arriving at all.
+//
+// WAITS for one rather than reading once. `networkidle` can arrive before the
+// tab has rendered when the workers are competing, and a read that came back
+// empty then skipped the test: a silent pass, seen once in six runs.
+async function deepSection(page) {
+  await page.goto(PAGE, { waitUntil: 'networkidle' });
+  const id = await page.waitForFunction(() => {
+    window.assignSectionAnchors();
+    const els = [...document.querySelectorAll('.main-content-area [id^="sec-"]')];
+    const deep = els.filter(el => el.getBoundingClientRect().top + window.scrollY > 400);
+    return deep.length ? deep[0].id : null;
+  }, null, { timeout: 15000, polling: 200 })
+    .then(handle => handle.jsonValue())
+    .catch(() => null);
+  await page.goto('about:blank');
+  return id;
+}
+
+// The target's distance from the top of the viewport once the page has
+// stopped moving: three stable reads in a row, after it has moved at all.
+async function settledTop(page, id) {
+  return page.evaluate(async (id) => {
+    let last = null;
+    let stable = 0;
+    for (let i = 0; i < 120; i++) {
+      await new Promise(r => setTimeout(r, 100));
+      const el = document.getElementById(id);
+      if (!el || window.scrollY === 0) { stable = 0; continue; }
+      const top = Math.round(el.getBoundingClientRect().top);
+      stable = (last !== null && Math.abs(top - last) < 2) ? stable + 1 : 0;
+      last = top;
+      if (stable >= 3) break;
+    }
+    const el = document.getElementById(id);
+    return el ? Math.round(el.getBoundingClientRect().top) : null;
+  }, id);
+}
+
+// window.__zzqGrowAbove(id, px) puts `px` of new content at the top of the tab
+// the target lives in, which is what a section above it finishing its render
+// looks like to the page. Installed as an init script so every test and every
+// other init script can call the same one.
+const INSTALL_GROW_ABOVE = () => {
+  window.__zzqGrowAbove = (id, px) => {
+    const el = document.getElementById(id);
+    const panel = el && (el.closest('[id^="tab-"]') || el.parentElement);
+    if (!panel) return false;
+    const filler = document.createElement('div');
+    filler.className = 'zzq-late-render';
+    filler.style.height = px + 'px';
+    panel.insertBefore(filler, panel.firstChild);
+    return true;
+  };
+};
+
+// Takes the browser's own scroll anchoring out of the picture. Chromium moves
+// the page with content that grows above the viewport, which would hide a
+// missing follower here and not in a browser without it.
+const NO_SCROLL_ANCHORING = () => {
+  document.addEventListener('DOMContentLoaded', () => {
+    const s = document.createElement('style');
+    s.textContent = '* { overflow-anchor: none !important; }';
+    document.head.appendChild(s);
+  });
+};
+
+test('arriving by link lands on the section even when content above it renders just after the jump', async ({ page }) => {
+  const probe = await deepSection(page);
+  test.skip(!probe, 'this character page has no section far enough down to test with');
+
+  // The owner's case: the first real scroll toward the target is followed, in
+  // the same moment, by the sections above it finishing their render.
+  await page.addInitScript(INSTALL_GROW_ABOVE);
+  await page.addInitScript(() => {
+    const orig = window.scrollTo.bind(window);
+    let grown = false;
+    // Arguments passed through untouched: scrollTo(opts, undefined) is read as
+    // scrollTo(x, y) and goes to 0,0, which is how the first draft of this
+    // wrapper stopped the page scrolling at all.
+    window.scrollTo = function (...args) {
+      const out = orig(...args);
+      const opts = args[0];
+      if (!grown && opts && opts.top > 0) {
+        grown = true;
+        setTimeout(() => window.__zzqGrowAbove(window.location.hash.slice(1), 2500), 0);
+      }
+      return out;
+    };
+  });
+  await page.goto(`${PAGE}#${probe}`, { waitUntil: 'networkidle' });
+
+  const top = await settledTop(page, probe);
+  expect(await page.locator('.zzq-late-render').count(), 'the growth really happened').toBe(1);
+  expect(top).toBeGreaterThan(0);
+  expect(top).toBeLessThan(120);
+});
+
+test('arriving by link keeps following the section while late content grows above it', async ({ page }) => {
+  const probe = await deepSection(page);
+  test.skip(!probe, 'this character page has no section far enough down to test with');
+
+  await page.addInitScript(NO_SCROLL_ANCHORING);
+  // Two late renders after landing, the second well after the first, the way
+  // lazy media arrives on a slow connection.
+  await page.addInitScript(INSTALL_GROW_ABOVE);
+  await page.addInitScript(() => {
+    const wait = setInterval(() => {
+      if (!window.__anchorHashResolved) return;
+      clearInterval(wait);
+      const id = window.location.hash.slice(1);
+      setTimeout(() => window.__zzqGrowAbove(id, 1800), 400);
+      setTimeout(() => window.__zzqGrowAbove(id, 1200), 1400);
+    }, 50);
+  });
+  await page.goto(`${PAGE}#${probe}`, { waitUntil: 'networkidle' });
+  await expect(page.locator('.zzq-late-render')).toHaveCount(2, { timeout: 8000 });
+
+  const top = await settledTop(page, probe);
+  expect(top).toBeGreaterThan(0);
+  expect(top).toBeLessThan(120);
+});
+
+test('the reader scrolling away ends the follow, and is never pulled back', async ({ page }) => {
+  const probe = await deepSection(page);
+  test.skip(!probe, 'this character page has no section far enough down to test with');
+
+  await page.addInitScript(NO_SCROLL_ANCHORING);
+  await page.addInitScript(INSTALL_GROW_ABOVE);
+  await page.goto(`${PAGE}#${probe}`, { waitUntil: 'networkidle' });
+  const landed = await settledTop(page, probe);
+  expect(landed).toBeLessThan(120);
+
+  // The reader starts reading somewhere else, inside the follow window.
+  await page.mouse.move(700, 400);
+  await page.mouse.wheel(0, 600);
+  await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 3000 })
+    .toBeGreaterThan(0);
+  const readerY = await page.evaluate(async () => {
+    let last = -1;
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 100));
+      if (Math.abs(window.scrollY - last) < 1) break;
+      last = window.scrollY;
+    }
+    return Math.round(window.scrollY);
+  });
+
+  // Then content grows above the target. A follower still running would
+  // chase it and drag the reader back.
+  await page.evaluate((id) => window.__zzqGrowAbove(id, 2000), probe);
+  await page.waitForTimeout(800);
+  const after = await page.evaluate(() => Math.round(window.scrollY));
+  expect(after, 'the page moved the reader after they had scrolled').toBe(readerY);
+});
+
+test('arriving by link waits for content slower than the old 2.5 second budget', async ({ page }) => {
+  const probe = await deepSection(page);
+  test.skip(!probe, 'this character page has no section far enough down to test with');
+
+  // Every Supabase read held back 3.5s. The old retries gave up 2.5s after
+  // DOMContentLoaded, so the section arrived after the last one and the page
+  // stayed at the top.
+  let delayed = 0;
+  await page.route(/supabase\.co\/rest\//, async route => {
+    delayed += 1;
+    await new Promise(r => setTimeout(r, 3500));
+    route.continue().catch(() => {});
+  });
+  await page.goto(`${PAGE}#${probe}`, { waitUntil: 'commit' });
+
+  const top = await settledTop(page, probe);
+  expect(delayed, 'the content really was slow').toBeGreaterThan(0);
+  expect(top).toBeGreaterThan(0);
+  expect(top).toBeLessThan(120);
 });
 
 test('links written before ids were stable still resolve', async ({ page }) => {

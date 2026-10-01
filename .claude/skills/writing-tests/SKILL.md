@@ -116,6 +116,19 @@ Taking backups is not the fix; committing first is. An extra commit on a
 feature branch costs nothing and turns a destructive command into a harmless
 one.
 
+### A mutation that did not apply looks exactly like a test that cannot fail
+
+v0.20: a one-line `node -e` mutation typed into the shell silently failed to
+apply, the spec stayed green, and it read as "this test cannot catch the
+guard". It could; the code under test was never changed. **Apply every mutation
+through something that checks its anchor was found exactly once** and says so
+when it was not. Replacing a string that is not there is a no-op, not an error.
+
+The same week a drag test passed with the guard it protects deleted, for a real
+reason this time: a drag that ends on a DIFFERENT element fires no `click` in
+Chromium, so the handler never ran. When a mutation survives, find out which of
+the two happened before rewriting the test or the code.
+
 ## Assert structure, not pixels
 
 Exact geometry is OS-dependent — Linux renders these fonts wider than Windows, so a `getBoundingClientRect()` comparison passes locally and fails in CI for reasons unrelated to the bug.
@@ -182,6 +195,22 @@ evidence in the whole investigation.
 `locator.click()` — and reserve `.focus()` for asserting what already has focus.
 A synthetic event that moves the viewport has invented the symptom you are
 hunting.
+
+### `goto(PAGE#id)` straight after `goto(PAGE)` is not an arrival
+
+Only the fragment changed, so it is a **same-document navigation**: no reload,
+no network, no init scripts, no load-time code. It runs the `hashchange` handler
+on a page that is already built. v0.20: the test named "a link arrived at by URL
+hash resolves after the content loads" had done exactly this since v0.15, so it
+never ran the arrival code and could not see the owner's bug in it. Anything
+that reads the page first and then arrives must leave in between:
+`page.goto('about:blank')`.
+
+The same investigation had a second probe that lied. A `scrollTo` wrapper that
+forwards `(opts, y)` calls `scrollTo(opts, undefined)`, which the browser reads
+as `scrollTo(x, y)` and sends to 0,0. Every scroll silently went nowhere, and
+the log read like a smooth scroll that had not started yet. **Wrap with
+`(...args)` and forward `...args`.**
 
 ## A live page is not an empty page
 
@@ -302,6 +331,37 @@ Then update those tests to point at the new source of truth rather than
 loosening them. The scan that broke here got *stronger*: it now checks the
 declaration the markup is generated from, and gained a site, while the rendered
 output stays pinned by the runtime test that was already there.
+
+### Derived and run is not the same as READ
+
+v0.20 FT2 reverted v0.16's default, so blocks open expanded again. This time the
+derivation above was done correctly: `block-multiselect.spec.js` was in the set,
+and it was run before pushing. **It failed 18 of 19, and was reported green.**
+
+The output was read with `| tail -6`. Playwright's line reporter prints the
+failure count and the failed-test list ABOVE the passed count, so a short tail
+shows a column of test names followed by `27 passed`, and a column of names
+reads like progress. CI cancelled PR #203 at the 30-minute job cap: each of the
+18 tests waited out its 30-second timeout three times, and a job cancelled at the
+cap never prints its failure report. The only place the answer existed was the
+local run that had been misread.
+
+Read the counts the reporter states:
+
+```bash
+npx playwright test <files> --reporter=line > run.log 2>&1
+grep -E "^\s+[0-9]+ (passed|failed|flaky|skipped|did not run)" run.log
+```
+
+**Anything other than a single `N passed` line is not green.** And check the log
+has lines before trusting a zero taken from it: a `grep -c` over a CI log that
+had not finished writing reported 0 failures in the same investigation.
+
+The failure itself is worth knowing too. The spec clicked `.block-card-summary`,
+the label only a COLLAPSED block shows, so flipping the default made every click
+wait for an element that would never appear. **A selector that only exists in
+one state of the thing being tested encodes the default**, and changing the
+default turns it into a timeout rather than an assertion.
 
 ## Anything that renders over a shared page on load changes every spec on it
 

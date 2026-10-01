@@ -267,3 +267,37 @@ test('admin.html and edit.html ship a button and a panel for every tab they own'
 
   expect(missing).toEqual([]);
 });
+
+test('admin.html and edit.html draw their strips in vocabulary order, with its labels', () => {
+  // The test above checks that each button EXISTS, which is all it ever needed
+  // to while the two static strips only ever gained tabs. The owner's 2026-09-28
+  // reorder (M1s, Skills, Innate before Combos) and the Specials label becoming
+  // Innate are the first changes it cannot see: a strip left in the old order,
+  // or still reading "Specials", passes it. The reader page is built from the
+  // vocabulary and cannot drift; these two are markup, so they are read here.
+  const decode = s => s.replace(/&amp;/g, '&').trim();
+  const stripOf = (html, navId, idPrefix) => {
+    const nav = new RegExp(`<nav id="${navId}"[\\s\\S]*?</nav>`).exec(html);
+    expect(nav, `${navId} not found`).not.toBeNull();
+    const buttons = [];
+    const re = new RegExp(`id="${idPrefix}([A-Za-z0-9]+)"[\\s\\S]*?class="btn-manga-text">([^<]*)<`, 'g');
+    let m;
+    while ((m = re.exec(nav[0]))) buttons.push(`${m[1]}: ${decode(m[2])}`);
+    return buttons;
+  };
+  const expected = (opts, labelOf) => vocab.getCharacterTabIds(opts).map(id => {
+    const tab = vocab.CHARACTER_TABS.find(t => t.id === id);
+    return `${id}: ${labelOf(tab)}`;
+  });
+
+  // Optional tabs included: both strips draw Techs, hidden, for
+  // applyOptionalTabVisibility to reveal.
+  const adminHtml = fs.readFileSync(path.join(ROOT, 'admin.html'), 'utf8');
+  expect(stripOf(adminHtml, 'preview-tab-nav', 'nav-'))
+    .toEqual(expected({ editableOnly: true, includeOptional: true }, t => t.label));
+
+  const editHtml = fs.readFileSync(path.join(ROOT, 'edit.html'), 'utf8');
+  expect(stripOf(editHtml, 'editor-tab-nav', 'edit-nav-'))
+    .toEqual(expected({ editableOnly: true, includeOptional: true, includeInjected: true },
+      t => t.editorLabel || t.label));
+});

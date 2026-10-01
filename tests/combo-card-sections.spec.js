@@ -417,3 +417,172 @@ test("a section's write-up is flushed before switching away from it", async ({ p
     expect(inFirst, 'the first section has its own, empty write-up').toEqual([]);
     expect(backInSecond, 'and the second still has what was typed into it').toEqual(['second section notes']);
 });
+
+// --- v0.20 BUG 1: the card's name in the list of cards ---
+//
+// Owner: "Combo Card in the Combos tab when they have multiple sections turned
+// on, their name renders as 'New Combo' in the editor."
+//
+// Reproduced before it was fixed, and the reproduction is the whole point: the
+// list read `card.title` directly, which is DEAD DATA once the switch is on.
+// description.js renders a tab per section and each section carries its own
+// heading, so the card's own title reaches no reader. A card switched on before
+// it was named therefore kept the template default, "New Combo", in the list
+// while the name field beside it showed what the author had actually typed.
+//
+// Both surfaces now resolve through window.comboCardLabel, so the keystroke
+// update and the next full render cannot disagree.
+test('a card named after the switch is on is named in the list too', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+
+    await page.setViewportSize({ width: 1400, height: 950 });
+    await page.goto('/edit.html?char=boomcat&type=character&tab=combos', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    await page.locator('[onclick*="addDocumentGroup"]').click();
+    await page.waitForTimeout(400);
+    await page.locator('#combo-card-add').click();
+    await page.waitForTimeout(400);
+
+    // The owner's order: the switch goes on BEFORE the card is named, which is
+    // what strands the template default in `card.title`.
+    await page.check('[data-card-multi]');
+    await page.waitForTimeout(400);
+    await page.fill('[data-card-field="title"]', 'Corner BnB');
+    await page.waitForTimeout(300);
+
+    // Live, on the keystroke.
+    expect(await page.locator('[data-card="0"]').textContent()).toContain('Corner BnB');
+
+    // And after the row is rebuilt from scratch, which is the path that was
+    // wrong. Adding a second card is what rebuilds it.
+    await page.locator('#combo-card-add').click();
+    await page.waitForTimeout(500);
+
+    const labels = await page.locator('[data-card]').allTextContents();
+    expect(labels[0], 'the card the author named').toContain('Corner BnB');
+    expect(labels[0]).not.toContain('New Combo');
+
+    expect(errors).toEqual([]);
+});
+
+test('the tab label names the card, but only the first tab does', async ({ page }) => {
+    // comboCardLabel reads the FIRST section, not the active one: a reader
+    // lands on tab 0, and using the open tab would rename the card in the list
+    // every time the author clicked a different one.
+    // The EDITOR page: comboCardLabel lives in editor-blocks.js, which a
+    // reader page never loads.
+    await page.goto(EDITOR, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => typeof window.comboCardLabel === 'function', { timeout: 45000 });
+
+    const labels = await page.evaluate(() => {
+        const card = {
+            type: 'theorybox', title: 'New Combo', multiSections: true,
+            sections: [
+                { label: 'In Corner 6H', title: 'Optimized Corner Starter' },
+                { label: 'Midscreen 5H', title: 'Midscreen Oki' },
+            ],
+        };
+        const plain = { type: 'theorybox', title: 'Plain Card' };
+        const routeOnly = { type: 'theorybox', title: '', sequence: ['M1', '2'] };
+        return {
+            multi: window.comboCardLabel(card, 0),
+            plain: window.comboCardLabel(plain, 0),
+            routeOnly: window.comboCardLabel(routeOnly, 3),
+            empty: window.comboCardLabel({ type: 'theorybox' }, 4),
+        };
+    });
+
+    expect(labels.multi, 'the first section heading, not the stranded card title').toBe('Optimized Corner Starter');
+    expect(labels.plain, 'switch off: the card is still its own title').toBe('Plain Card');
+    expect(labels.routeOnly, 'falls back to the route').toBe('M1 > 2');
+    expect(labels.empty, 'and then to its position').toBe('Card 5');
+});
+
+test('renaming a card renames its first tab, because the label is not pre-filled', async ({ page }) => {
+    // The half of v0.20 bug 1 that the list test does NOT cover, found by the
+    // falsification passing: restoring the old `label: card.title` seed left
+    // every list assertion green, because comboCardLabel reads the title first.
+    // The stale label is only visible on the READER's tab row.
+    await page.goto(EDITOR, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => typeof window.seedCardSections === 'function', { timeout: 45000 });
+
+    const out = await page.evaluate(() => {
+        // An unnamed card, exactly as the block registry creates one.
+        const card = { type: 'theorybox', title: 'New Combo', multiSections: false, sections: [] };
+        window.seedCardSections(card, true);
+        card.multiSections = true;
+
+        // The author names it afterwards, which writes to the section.
+        const seeded = card.sections[0];
+        seeded.title = 'Corner BnB';
+
+        return {
+            seededLabel: seeded.label,
+            html: window.generateHTMLForBlocks([card], 'combos'),
+        };
+    });
+
+    expect(out.seededLabel, 'the tab label is an override, not a copy').toBe('');
+    expect(out.html).toContain('Corner BnB');
+    expect(out.html, 'the template default never reaches a reader').not.toContain('New Combo');
+});
+
+// --- v0.20 BUG 2: the preview snapping back to the first tab ---
+//
+// Owner, with a screen recording: "Editting multiple section in a section box
+// reset you back to the first section every single time (Also happens in Combo
+// Card)." The recording is the Combos tab. The form is editing the second
+// section, the author types one line into Route, and the preview beside it
+// jumps from "Stealing Evasive" to "Bread and Butter".
+//
+// v0.19 fixed exactly this, in populateTextSection, and that is the whole
+// lesson: renderDocumentTab is a SECOND repaint path and never got it. The
+// capture and restore is now one pair of functions called from both, so a third
+// path cannot quietly go without.
+test('the preview keeps the open tab while the form is typed into', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+
+    await page.setViewportSize({ width: 1500, height: 1000 });
+    await page.goto('/edit.html?char=boomcat&type=character&tab=combos', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    await page.locator('[onclick*="addDocumentGroup"]').click();
+    await page.waitForTimeout(400);
+    await page.locator('#combo-card-add').click();
+    await page.waitForTimeout(400);
+
+    await page.check('[data-card-multi]');
+    await page.waitForTimeout(400);
+    await page.fill('[data-card-field="title"]', 'First Variant');
+    await page.click('[data-cardsec-add]');
+    await page.waitForTimeout(400);
+    await page.fill('[data-card-field="title"]', 'Second Variant');
+    // Blur and let the preview settle BEFORE the reader-side click. Clicking a
+    // tab straight from a focused field repaints on the blur, under the click.
+    await page.locator('[data-card-field="title"]').blur();
+    await page.waitForTimeout(700);
+
+    const preview = page.locator('#tab-combos');
+    const tabs = preview.locator('.theorybox-sections .sbox-tab');
+    await expect(tabs).toHaveCount(2);
+
+    // The reader-side click, in the preview, on the second tab.
+    await tabs.nth(1).click();
+    await page.waitForTimeout(300);
+    await expect(tabs.nth(1)).toHaveClass(/is-active/);
+
+    // Now type, which repaints the preview.
+    await page.fill('[data-card-field="damage"]', '246');
+    await page.waitForTimeout(600);
+
+    await expect(tabs.nth(1), 'the tab the author was looking at').toHaveClass(/is-active/);
+    await expect(tabs.nth(0)).not.toHaveClass(/is-active/);
+
+    // And again on a second keystroke, since the repaint runs per character.
+    await page.fill('[data-card-field="oneliner"]', 'corner route');
+    await page.waitForTimeout(600);
+    await expect(tabs.nth(1)).toHaveClass(/is-active/);
+
+    expect(errors).toEqual([]);
+});

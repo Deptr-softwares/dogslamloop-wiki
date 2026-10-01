@@ -1,9 +1,19 @@
-// v0.16 fine-tuning 2 and 3: the editor workspace opens quiet.
+// The editor workspace: what opens expanded, what opens collapsed, and the
+// collapse machinery underneath both.
 //
-// "When working in the Editor, everything in the workspace is collapsed by
-// default (The Block Folders, and each Blocks)." And the folders get their own
-// visual - a small folder icon with a small name and small side buttons, in a
-// transparent wrapper rather than the grey box the Blocks use.
+// v0.16 fine-tuning 2 and 3 made EVERYTHING open collapsed: "When working in
+// the Editor, everything in the workspace is collapsed by default (The Block
+// Folders, and each Blocks)."
+//
+// v0.20 REVERTED HALF OF THAT, after the owner lived with it: "navigating
+// through huge amount of content is easier than navigating through a bunch of
+// boxes that have a tiny preview. Though, keep folder collapsed." So BLOCKS
+// open expanded and FOLDERS still open collapsed.
+//
+// The collapse machinery itself is untouched and most of this file still tests
+// it - a block the author collapses must stay collapsed across a redraw, and
+// must carry its state when it moves. Those tests now collapse first, because
+// the default no longer does it for them.
 //
 // Blocks are SEEDED through initStrategyBlockBuilder rather than read off a
 // real character page. Three v0.15 tests read the owner's own Boomcat content
@@ -49,18 +59,30 @@ const cardState = (page) => page.evaluate(() => {
   }));
 });
 
-// --- COLLAPSED BY DEFAULT ---
+// Blocks open expanded now, so anything testing collapsed BEHAVIOUR has to put
+// them away first. Driven through the real control rather than the store, so
+// these still exercise the button the author clicks.
+async function collapseAll(page) {
+  await page.evaluate(() => {
+    document.querySelectorAll('#block-list .block-card .btn-collapse').forEach(b => b.click());
+  });
+  await page.waitForTimeout(300);
+}
 
-test('every block starts collapsed', async ({ page }) => {
+// --- WHAT OPENS, AND WHAT DOES NOT ---
+
+test('every block starts expanded', async ({ page }) => {
+  // The v0.20 revert. This asserted the opposite from v0.16 until the owner
+  // used it on a long page and asked for it back.
   const errors = await openWorkspace(page);
 
   const cards = await cardState(page);
   expect(cards).toHaveLength(SEED.length);
   cards.forEach((c, i) => {
-    expect(c.collapsed, `block ${i} (${c.type}) should start collapsed`).toBe(true);
+    expect(c.collapsed, `block ${i} (${c.type}) should start expanded`).toBe(false);
     // The card class alone would prove the marker, not the consequence. The
-    // BODY is what takes the room.
-    expect(c.bodyMinimized, `block ${i} body should be minimized`).toBe(true);
+    // BODY is what the author came to write in.
+    expect(c.bodyMinimized, `block ${i} body should not be minimized`).toBe(false);
   });
 
   expect(errors).toEqual([]);
@@ -70,19 +92,15 @@ test('the collapsed list is dramatically shorter than the open one', async ({ pa
   // The point of the feature, stated as a measurement rather than an adjective.
   await openWorkspace(page);
 
-  const collapsedHeight = await page.evaluate(() =>
-    document.getElementById('block-list').scrollHeight);
-
-  await page.evaluate(() => {
-    document.querySelectorAll('#block-list .block-card .btn-collapse')
-      .forEach(b => b.click());
-  });
-  await page.waitForTimeout(300);
-
   const openHeight = await page.evaluate(() =>
     document.getElementById('block-list').scrollHeight);
 
-  expect(openHeight, 'sanity: opening everything makes it taller')
+  await collapseAll(page);
+
+  const collapsedHeight = await page.evaluate(() =>
+    document.getElementById('block-list').scrollHeight);
+
+  expect(openHeight, 'sanity: the open list is the taller one')
     .toBeGreaterThan(collapsedHeight);
   expect(collapsedHeight * 2, `collapsed ${collapsedHeight}px vs open ${openHeight}px`)
     .toBeLessThan(openHeight);
@@ -95,6 +113,7 @@ test('a collapsed block says what it holds, not just what type it is', async ({ 
   // PARAGRAPH / LIST / PARAGRAPH / HEADING identifies nothing, so the author
   // opens every block to find one.
   await openWorkspace(page);
+  await collapseAll(page);
 
   const cards = await cardState(page);
 
@@ -114,6 +133,7 @@ test('a collapsed block says what it holds, not just what type it is', async ({ 
 
 test('the label goes away once the block is open', async ({ page }) => {
   await openWorkspace(page);
+  await collapseAll(page);
 
   await page.locator('#block-list .block-card .btn-collapse').first().click();
   await page.waitForTimeout(200);
@@ -133,9 +153,12 @@ test('the folder picker only appears once a block is expanded', async ({ page })
     { type: 'paragraph', content: 'A paragraph long enough to need the room', align: 'left', folder: 'Neutral' },
   ]);
 
-  // Open the folder so the card is on screen at all, but leave the BLOCK shut.
+  // Open the folder so the card is on screen at all, then shut the BLOCK. It
+  // arrives expanded as of v0.20, so the state this test is about has to be
+  // set rather than inherited from the default.
   await page.locator('.block-folder-toggle').first().click();
   await page.waitForTimeout(250);
+  await collapseAll(page);
 
   const collapsed = await page.evaluate(() => {
     const card = document.querySelector('#block-list .block-card');
@@ -205,11 +228,13 @@ test('a label made of shortcodes is stripped, not rendered raw', async ({ page }
 // --- THE STATE SURVIVES A RE-RENDER ---
 
 test('expanding a block survives a redraw of the list', async ({ page }) => {
+  // eslint-disable-next-line no-unused-expressions
   // Collapse used to be pure DOM with no store behind it, so any renderBlockList
   // silently reopened everything. That was survivable when the default was
   // open; with the default closed it would throw away the one block the author
   // is working in, every time they touched anything.
   await openWorkspace(page);
+  await collapseAll(page);
 
   await page.locator('#block-list .block-card .btn-collapse').first().click();
   await page.waitForTimeout(200);
@@ -228,6 +253,7 @@ test('collapse follows the block when it moves, not the position', async ({ page
   // State is keyed by the block OBJECT rather than its index, so reordering
   // cannot hand one block another one's state.
   await openWorkspace(page);
+  await collapseAll(page);
 
   await page.locator('#block-list .block-card .btn-collapse').first().click();
   await page.waitForTimeout(200);
@@ -245,6 +271,7 @@ test('collapse follows the block when it moves, not the position', async ({ page
 
 test('a newly added block opens, because that is why it was added', async ({ page }) => {
   await openWorkspace(page);
+  await collapseAll(page);
 
   await page.locator('#block-list .block-card .btn-insert-below').first().click();
   await page.waitForTimeout(300);
@@ -387,8 +414,7 @@ test('a long field is usable the moment its block is expanded', async ({ page })
   const errors = await openWorkspace(page, [
     { type: 'paragraph', content: LONG_TEXT, align: 'left' },
   ]);
-
-  await page.locator('#block-list .block-card .btn-collapse').first().click();
+  // No click to open: blocks arrive expanded as of v0.20.
   await page.waitForTimeout(400);
 
   const ta = await page.evaluate(() => {
@@ -420,8 +446,7 @@ test('a short field is sized to its content, with no scrollbar', async ({ page }
   await openWorkspace(page, [
     { type: 'paragraph', content: 'One short line.', align: 'left' },
   ]);
-
-  await page.locator('#block-list .block-card .btn-collapse').first().click();
+  // No click to open: blocks arrive expanded as of v0.20.
   await page.waitForTimeout(400);
 
   const ta = await page.evaluate(() => {
@@ -455,7 +480,7 @@ test('an open field inside a folder survives the folder being shut and reopened'
 
   await page.locator('.block-folder-toggle').first().click();      // open folder
   await page.waitForTimeout(250);
-  await page.locator('#block-list .block-card .btn-collapse').first().click();  // open block
+  // The block inside is already expanded; only the FOLDER was shut.
   await page.waitForTimeout(300);
 
   const before = await page.evaluate(() =>

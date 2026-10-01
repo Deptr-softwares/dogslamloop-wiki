@@ -103,6 +103,9 @@
         title: 'Title',
         sectionTitle: 'Section name',
         combo: 'Combo route',
+        // v0.20: a combo's extra routes. Walked like everything else, so a
+        // rename reaches them; named so a match inside one says where it is.
+        notations: 'Notation style',
     };
 
     function keyedFieldLabel(field) {
@@ -125,8 +128,10 @@
     function entryName(container, index) {
         const entry = container && container[index];
         if (!entry || typeof entry !== 'object') return `#${index + 1}`;
+        // `label` last: a notation style has nothing else to go by, and every
+        // entry that has one of the others is still named by it.
         const named = entry.opponent || entry.topic || entry.title || entry.starter
-            || entry.sectionTitle || entry.tabLabel || entry.combo || entry.name;
+            || entry.sectionTitle || entry.tabLabel || entry.combo || entry.name || entry.label;
         return named ? String(named) : `#${index + 1}`;
     }
 

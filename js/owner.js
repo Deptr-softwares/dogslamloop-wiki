@@ -219,6 +219,16 @@ function capabilityState(person, capability) {
     if (capability === 'can_delete_media' && window.roleMeets(person.role, 'admin')) {
         return { disabled: true, note: 'comes with the role' };
     }
+    if (capability === 'can_upload_media' && window.roleMeets(person.role, 'trusted_editor')) {
+        return { disabled: true, note: 'comes with the role' };
+    }
+    // Left tickable: the owner may set it ahead of lifting a ban. But
+    // can_upload_media() refuses a viewer whatever the box says, so the row
+    // says so. 'viewer' by name is the one role CLAUDE.md allows that for:
+    // it is a ban, not a rung.
+    if (capability === 'can_upload_media' && person.role === 'viewer') {
+        return { disabled: false, note: 'no effect while banned' };
+    }
     return { disabled: false, note: '' };
 }
 
@@ -275,6 +285,7 @@ function personnelRowHTML(person) {
         const isLastAdmin = person.role === 'owner' && adminCount === 1;
         const moderateState = capabilityState(person, 'can_moderate');
         const deleteMediaState = capabilityState(person, 'can_delete_media');
+        const uploadMediaState = capabilityState(person, 'can_upload_media');
         return `
         <div class="personnel-row">
             <div class="personnel-row-main">
@@ -331,6 +342,19 @@ function personnelRowHTML(person) {
                        ${person.can_delete_media ? 'checked' : ''}
                        ${deleteMediaState.disabled ? 'disabled' : ''}>
                 <span>Delete media${deleteMediaState.note ? ` <span class="personnel-capability-note">(${ownerEscape(deleteMediaState.note)})</span>` : ''}</span>
+            </label>
+            <!--
+                v0.20. One permission for both places media is added: the
+                Media Library, and images in discussion posts. Trusted Editors
+                and up have it by role; this box is how anybody else gets it.
+            -->
+            <label class="personnel-capability" title="Lets this person upload to the Media Library and attach images to discussion posts. Trusted Editors and up already can.">
+                <input type="checkbox" class="personnel-capability-box"
+                       data-email="${ownerEscape(person.email)}"
+                       data-capability="can_upload_media"
+                       ${person.can_upload_media ? 'checked' : ''}
+                       ${uploadMediaState.disabled ? 'disabled' : ''}>
+                <span>Upload media${uploadMediaState.note ? ` <span class="personnel-capability-note">(${ownerEscape(uploadMediaState.note)})</span>` : ''}</span>
             </label>
         </div>`;
     }

@@ -24,17 +24,32 @@ for (const { label, url, prefix } of DEPTHS) {
       Array.from(document.querySelectorAll('#site-footer a')).map(a => a.getAttribute('href'))
     );
     expect(hrefs).toContain(`${prefix}privacy-policy.html`);
-    expect(hrefs).toContain(`${prefix}LICENSE`);
+    expect(hrefs).toContain(`${prefix}terms.html`);
+    // v0.20: two licences now - MIT for the code, CC BY-NC-SA for the content -
+    // so the footer points at CONTENT-LICENSE.md, which states both and links
+    // to LICENSE. The bare `LICENSE` link this asserted until v0.19 is gone.
+    expect(hrefs).toContain(`${prefix}CONTENT-LICENSE.md`);
   });
 }
 
-test('the privacy policy link actually resolves from a deep page (not a 404)', async ({ page }) => {
+test('every footer link actually resolves from a deep page (not a 404)', async ({ page }) => {
+  // Was the privacy link alone. Widened when Terms and the content licence were
+  // added, because "the link is in the markup" is not the claim this file
+  // exists to make - a footer that 404s does it on every page of the site at
+  // once, and the depth-resolution above is exactly the thing that gets it
+  // wrong.
   await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
   await expect(page.locator('#site-footer')).toBeAttached();
 
-  const href = await page.locator('#site-footer a[href$="privacy-policy.html"]').getAttribute('href');
-  const response = await page.request.get(new URL(href, page.url()).toString());
-  expect(response.status()).toBe(200);
+  const hrefs = await page.evaluate(() =>
+    Array.from(document.querySelectorAll('#site-footer a')).map(a => a.getAttribute('href'))
+  );
+  expect(hrefs.length).toBeGreaterThan(0);
+
+  for (const href of hrefs) {
+    const response = await page.request.get(new URL(href, page.url()).toString());
+    expect(response.status(), `${href} resolves`).toBe(200);
+  }
 });
 
 test('editor-family pages are excluded (their layout could never scroll to a footer)', async ({ page }) => {

@@ -28,12 +28,18 @@
  * loaded ahead of page_router.js on stubs and anywhere before the consumers on
  * admin.html and edit.html.
  *
- * THE TWO REAL TAB LISTS, per the owner (2026-08-16):
+ * THE TWO REAL TAB LISTS, per the owner (2026-08-16, reordered 2026-09-28):
  *
- *   Full character   (isBaseOnly: false)  Overview & Strategy, Combos, Starter
- *                                         Guide, M1s, Skills, Specials,
+ *   Full character   (isBaseOnly: false)  Overview & Strategy, M1s, Skills,
+ *                                         Innate, Combos, Starter Guide,
  *                                         Matchups, Counterplay, Gallery
  *                                         - repeated for every state.
+ *
+ * Innate is the tab whose id is `specials`. The owner renamed it on
+ * 2026-09-28; only the label changed. Stored frame data, delta scopes, page
+ * history and every open submission address a tab by id, so renaming the id
+ * would orphan all of them. Ultimate's id is `ultimateAtk` for the same kind
+ * of reason.
  *
  *   Base-only        (isBaseOnly: true)   ...the same, plus Ultimate between
  *                                         Counterplay and Gallery, for their
@@ -79,11 +85,27 @@
             panelClass: 'tab-content', isDefault: true,
             editable: true, frameMoves: false, modeScoped: true,
         },
-        // Combos and Starter Guide sit between Overview and M1s deliberately:
-        // both are things a reader wants before the frame-data tabs, and the
-        // owner's vocabulary puts them there. Their content is v0.15 items 2
-        // and 3 - the tabs themselves render empty until those land, the same
-        // way `gallery` has since v0.12.
+        // The kit first, then how to use it. The owner's order since
+        // 2026-09-28: M1s, Skills and Innate straight after Overview, with
+        // Combos, Techs and Starter Guide after them. It replaced their
+        // 2026-08-16 order, which put Combos and Starter Guide ahead of the
+        // frame-data tabs.
+        {
+            id: 'm1s', label: 'M1s',
+            panelClass: 'tab-content',
+            editable: true, frameMoves: true, modeScoped: true,
+        },
+        {
+            id: 'skills', label: 'Skills',
+            panelClass: 'vessel-content space-y-8',
+            editable: true, frameMoves: true, modeScoped: true,
+        },
+        {
+            // Labelled Innate, id `specials`: see the file header.
+            id: 'specials', label: 'Innate',
+            panelClass: 'tab-content',
+            editable: true, frameMoves: true, modeScoped: true,
+        },
         {
             id: 'combos', label: 'Combos',
             panelClass: 'tab-content',
@@ -127,21 +149,6 @@
                 emptyMessage: 'A starter guide for this character has not been written yet.',
                 emptyEntryMessage: 'No details recorded for this topic yet.',
             },
-        },
-        {
-            id: 'm1s', label: 'M1s',
-            panelClass: 'tab-content',
-            editable: true, frameMoves: true, modeScoped: true,
-        },
-        {
-            id: 'skills', label: 'Skills',
-            panelClass: 'vessel-content space-y-8',
-            editable: true, frameMoves: true, modeScoped: true,
-        },
-        {
-            id: 'specials', label: 'Specials',
-            panelClass: 'tab-content',
-            editable: true, frameMoves: true, modeScoped: true,
         },
         {
             id: 'matchups', label: 'Matchups',
@@ -731,6 +738,12 @@
         for (const key of TEXT_KEYS) {
             if (key === 'content' && block.type === 'heading') continue;   // it is the target's own title
             if (Object.prototype.hasOwnProperty.call(block, key)) take(block[key]);
+        }
+        // A combo's notation styles (v0.20) are objects, which `take` skips as
+        // child blocks, so they are read here: a route written in another
+        // notation is still the same combo, and should be found by it.
+        if (Array.isArray(block.notations)) {
+            block.notations.forEach(n => { if (n && typeof n === 'object') { take(n.label); take(n.sequence); } });
         }
         return out;
     }

@@ -1,0 +1,16 @@
+Features:
+- Add Clashing notices to the Matchup Chart in the Side Dashboard (systems/index.html). For example, Honored One vs True Cannon is Equal but True Cannon vs Honored One is Hopeless, that's a clash.
+- Add a forum that is connected to a forum channel on discord (for DSL discord server): posts are the same in the discord channel and the site forum. Message sent on Discord in a post will appear with a small discord icon next to it on the site, and message sent on the forum will be resent by a bot back to the post in Discord.
+- Combo Block, Combo Card, and Combo Row now have the options to be toggled between notation styles: On the reader side, the combo block, combo card + combo row line will have a small toggle visuals on the side, which is very small and thin; reader switch styles by clicking on the combo text itself; On the editor side, it will be an optional things to give to a Combo Block, Combo Card's line and Combo Row's line, and by creating new style option, they have to fill in a new field.
+- Drop the full user profile linking idea (don't log this)
+- It is close to release, maybe you can suggest something for this part?
+
+Fine-tuning:
+- Changes the name of the column "Recent Changes" in the homepage/Main Dashboard to "Site Updates"
+- Revert the change where blocks in the editor are all collapsed first when opening up the editor, as it turns out, navigating through huge amount of content is easier than navigating through a bunch of boxes that have a tiny preview. Though, keep folder collapsed.
+- Maybe you can suggest more?
+
+Bugs:
+- Combo Card in the Combos tab when they have multiple sections turned on, their name renders as "New Combo" in the editor (probably also apply to the Techs tab).
+- Editting multiple section in a section box reset you back to the first section every single time (Also happens in Combo Card).
+- Nesting a Combo Card inside a Section Box outside of the Combos/Techs tabs, broke the components. They render incorrectly, the editor navigation starts becoming weird, ...

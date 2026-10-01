@@ -261,8 +261,13 @@ test.describe('the board', () => {
         // display:none and leaves the reader looking at the same coloured
         // square as before, which is the bug this test exists for - so the
         // assertion is that the browser decoded it.
-        const decoded = await img.evaluate(el => el.complete && el.naturalWidth > 0);
-        expect(decoded, `${withPortrait}'s portrait did not load from ${src}`).toBe(true);
+        //
+        // POLLED, not read once. Read straight after the element appeared, it
+        // raced the image's own download: it failed 4 runs in 4 on Windows
+        // (2026-09-28) and passed with a 3-second wait. A 404 still fails
+        // here, because naturalWidth stays 0 until the poll gives up.
+        await expect.poll(() => img.evaluate(el => el.complete && el.naturalWidth > 0),
+            { message: `${withPortrait}'s portrait did not load from ${src}` }).toBe(true);
     });
 
     test('a character with no portrait still shows its name', async ({ page }) => {

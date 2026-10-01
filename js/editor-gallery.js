@@ -203,6 +203,20 @@ function openMediaItemModal(ctx) {
             pickedUrl = '';
             if (picked) picked.textContent = '';
         }
+        status.textContent = '';
+        // The Media Library's weight advice (v0.20 V2 fix 4), said here too:
+        // this modal uploads on its own, and a clip is exactly what a gallery
+        // holds. Said at pick time, while a lighter file can still be chosen;
+        // CONFIRM is the upload, so nothing is asked twice. Checked on arrival,
+        // so a slow measurement cannot talk over a newer pick, or over the
+        // upload's own status if CONFIRM was pressed first.
+        if (file && typeof window.mediaWeightNote === 'function') {
+            window.mediaWeightNote(file).then((note) => {
+                if (note && fileInput.files[0] === file && !status.textContent) {
+                    status.textContent = `Heavier than the wiki needs (${note}). ${window.MEDIA_WEIGHT_ADVICE}`;
+                }
+            }).catch(() => {});
+        }
         if (!file || nameInput.value.trim()) return;
         nameInput.value = nameFromFilename(file.name);
     };

@@ -85,6 +85,9 @@ const RPC = [
     { fn: 'can_delete_media', args: {},
       anon: 'ok', user: 'ok', admin: 'ok',
       why: 'same shape as can_moderate; narrower in what it returns, not in who may ask' },
+    { fn: 'can_upload_media', args: {},
+      anon: 'ok', user: 'ok', admin: 'ok',
+      why: 'storage policies call it for every caller, and a page asks it before offering an upload zone' },
     { fn: 'free_submit_eligibility', args: {},
       anon: 'ok', user: 'ok', admin: 'ok',
       why: 'a signed-out reader has to be told WHY there is no ballot' },
@@ -134,8 +137,8 @@ const RPC = [
       why: 'the same shape as the 2026-08-07 escalation' },
     { fn: 'save_tier_list',
       args: { p_list_id: '00000000-0000-0000-0000-000000000000', p_tiers: [], p_reasoning: null, p_changes: [], p_intro: null },
-      anon: 'denied', user: 'denied', admin: 'denied', writes: true,
-      why: 'per-ROW ownership: even an admin is refused a list id that does not exist, and a non-owner is refused one that does' },
+      anon: 'denied', user: 'ok', admin: 'ok', writes: true,
+      why: 'a list id that does not exist answers P0002 to any signed-in caller, which is "got in, then the data said no". Ownership needs a REAL list owned by someone else: on 2026-09-28 a seeded roleless account was refused (42501) an admin-owned list, and under the old NULL is_owner() it had overwritten it' },
     { fn: 'anonymize_user_by_email', args: { target_email: 'probe@example.invalid' },
       anon: 'denied', user: 'denied', admin: 'ok', writes: true,
       why: 'hard-deletes an auth.users row' },
@@ -175,8 +178,16 @@ const TABLES = [
     { table: 'free_submit_tiers', anon: 'ok', user: 'ok', admin: 'ok' },
     { table: 'free_submit_votes', anon: 'denied', user: 'ok', admin: 'ok',
       why: 'THE ONE THAT MATTERS: raw votes are private. "you rated my main F" is a harassment vector, and anon has no grant at all' },
-    { table: 'content_reports', anon: 'denied', user: 'denied', admin: 'ok' },
-    { table: 'moderation_log', anon: 'denied', user: 'denied', admin: 'ok' },
+    // `user: 'ok'` is not "the member can read them". Both tables are granted to
+    // authenticated and filtered by a can_moderate() policy, so a member gets
+    // 200 with NO ROWS: RLS filters, it does not refuse. Verified 2026-09-28 by
+    // seeding a moderation_log row on a preview and reading [] as the member.
+    // This probe cannot tell an empty table from a filtered one; the seeded
+    // read is what proved the filter.
+    { table: 'content_reports', anon: 'denied', user: 'ok', admin: 'ok',
+      why: 'a member reads [], filtered by can_moderate(); see above' },
+    { table: 'moderation_log', anon: 'denied', user: 'ok', admin: 'ok',
+      why: 'a member reads [], filtered by can_moderate(); see above' },
 ];
 
 // --------------------------------------------------------------------------
