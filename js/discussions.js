@@ -48,10 +48,28 @@
     // KLIPY's media servers, read off klipy.com on 2026-09-28: every GIF, WebP
     // and MP4 on its home page was served from these two hosts, under /ii/.
     // Exact hosts and path, so a post can never point a reader's browser
-    // anywhere else. A KLIPY PAGE link (klipy.com/gifs/...) stays text: the page
-    // refuses scripted requests, so there is no way to find its GIF from here.
+    // anywhere else.
     const KLIPY_MEDIA = /https:\/\/static2?\.klipy\.com\/ii\/[A-Za-z0-9/_-]+\.(gif|webp|mp4)(?![\w./-])/g;
+    const KLIPY_MEDIA_EXACT = new RegExp(`^${KLIPY_MEDIA.source}$`);
     const MAX_GIFS = 4;
+
+    // A KLIPY PAGE link, klipy.com/gifs/<slug>, which is what Discord's GIF
+    // picker copies (owner, 2026-10-01). The page itself answers only crawlers,
+    // so the GIF is found through KLIPY's API instead, ONCE, when the post is
+    // made: the page link in the text is swapped for the GIF's own address
+    // before it is saved. Readers never call KLIPY, so a thread of forty GIFs
+    // costs no lookups at all.
+    //
+    // The key is the owner's, and a browser calls the API, so it is visible to
+    // anyone reading the site's traffic: the owner's choice, made 2026-10-02,
+    // the same standing as the Supabase anon key. A test key allows 100
+    // lookups an hour.
+    const KLIPY_PAGE = /https?:\/\/(?:www\.)?klipy\.com\/gifs\/([A-Za-z0-9-]{1,120})[^\s]*/g;
+    const KLIPY_API = 'https://api.klipy.com/api/v1/xdjct5ccuBWrbiAxgyaEgQdKcnFW5LIpjd1glWvPLALxPE6bNDPGsXXJaMPg9Xv7/gifs/';
+    // MP4 first: on 2026-10-02 one GIF's HD .gif was 22.6 MB and its MP4
+    // 0.58 MB, and MP4 plays everywhere, iPhones included. Then smaller sizes,
+    // then the still-heavier formats.
+    const KLIPY_PICK = [['md', 'mp4'], ['hd', 'mp4'], ['sm', 'mp4'], ['md', 'webp'], ['sm', 'webp'], ['md', 'gif']];
 
     const state = {
         pageId: null,
@@ -189,6 +207,45 @@
         }
     }
 
+    // The GIF a KLIPY page link points at, as an address the renderer will
+    // draw, or null. KLIPY's answer is checked against KLIPY_MEDIA exactly like
+    // a pasted link: a third party's response gets no more trust than a post.
+    // No referrer, so KLIPY is not told which page the poster was on.
+    async function klipyMediaFor(slug) {
+        try {
+            const res = await fetch(KLIPY_API + encodeURIComponent(slug),
+                { referrerPolicy: 'no-referrer', credentials: 'omit' });
+            if (!res.ok) return null;
+            const json = await res.json();
+            const files = json && json.data && json.data.file;
+            if (!files) return null;
+            for (const [size, format] of KLIPY_PICK) {
+                const url = files[size] && files[size][format] && files[size][format].url;
+                if (typeof url === 'string' && KLIPY_MEDIA_EXACT.test(url)) return url;
+            }
+        } catch (e) { /* the link stays a link */ }
+        return null;
+    }
+
+    // Swaps each KLIPY page link in a post for its GIF, the first MAX_GIFS of
+    // them, one lookup at a time. A link that cannot be resolved stays as it
+    // is, and the post still goes up: a GIF is never worth losing what was
+    // written around it.
+    async function resolveKlipyPages(body) {
+        const found = [...String(body || '').matchAll(KLIPY_PAGE)].slice(0, MAX_GIFS);
+        let out = body;
+        let unresolved = 0;
+        for (const match of found) {
+            const media = await klipyMediaFor(match[1]);
+            if (media) out = out.split(match[0]).join(media);
+            else unresolved += 1;
+        }
+        // The addresses are longer than the links. Past the limit, nothing is
+        // swapped rather than some of it.
+        if (out.length > MAX_BODY) return { body, unresolved: found.length };
+        return { body: out, unresolved };
+    }
+
     // KLIPY media links in a post's text, the first MAX_GIFS of them.
     function klipyLinks(text) {
         return [...String(text || '').matchAll(KLIPY_MEDIA)].map(m => m[0]).slice(0, MAX_GIFS);
@@ -244,16 +301,29 @@
                 node.playsInline = true;
                 node.setAttribute('playsinline', '');
                 node.setAttribute('aria-label', 'GIF from KLIPY');
+                // Into the clip queue, not straight to its source (owner,
+                // 2026-10-02: a thread full of GIFs must not load them all at
+                // once). draw() hands the list to initLazyMedia: two at a
+                // time, nearest first, paused off screen. A <video> has no
+                // referrerPolicy; the browser's default sends KLIPY the site's
+                // origin and never the page.
+                if (typeof window.initLazyMedia === 'function') {
+                    node.preload = 'none';
+                    node.setAttribute('data-lazy-src', url);
+                } else {
+                    node.src = url;
+                }
             } else {
+                // Native lazy loading: an image off screen is not fetched.
                 node = document.createElement('img');
                 node.loading = 'lazy';
                 node.decoding = 'async';
                 node.alt = 'GIF from KLIPY';
+                // KLIPY sees that a GIF was loaded, not which page it was on.
+                node.referrerPolicy = 'no-referrer';
+                node.src = url;
             }
             node.className = 'discussion-media-gif';
-            // KLIPY sees that a GIF was loaded, not which page it was on.
-            node.referrerPolicy = 'no-referrer';
-            node.src = url;
             box.appendChild(node);
         });
 
@@ -953,6 +1023,9 @@
 
         posts.forEach(p => list.appendChild(renderPost(p, byParent.get(p.id) || [])));
 
+        // KLIPY clips join the page's clip queue (renderPostMedia).
+        if (typeof window.initLazyMedia === 'function') window.initLazyMedia(list);
+
         // Not awaited: the thread is already on screen and the flairs arrive
         // when they arrive. Awaiting here would hold the render open on a
         // request that is decoration, and before the release this RPC does not
@@ -989,6 +1062,15 @@
 
         if (submit) submit.disabled = true;
 
+        // KLIPY page links become their GIFs before anything is uploaded, so a
+        // slow lookup never holds uploaded files in limbo.
+        let postBody = body;
+        let unresolvedGifs = 0;
+        if (body.search(KLIPY_PAGE) !== -1) {
+            setStatus('Finding the GIF…');
+            ({ body: postBody, unresolved: unresolvedGifs } = await resolveKlipyPages(body));
+        }
+
         // Images go up FIRST, into the poster's own folder, and the post names
         // them. If anything after that fails, the files are taken back down,
         // so a refused post never leaves orphans in the bucket.
@@ -1022,7 +1104,7 @@
         //
         // `images` only when there are some, so a words-only post is the same
         // request it always was.
-        const row = { page_id: state.pageId, parent_id: parentId, body };
+        const row = { page_id: state.pageId, parent_id: parentId, body: postBody };
         if (paths.length) row.images = paths;
         const { error } = await client().from('page_discussions').insert([row]);
 
@@ -1043,7 +1125,9 @@
         state.offset = 0;
         state.exhausted = false;
         await draw();
-        setStatus('');
+        setStatus(unresolvedGifs
+            ? 'Posted. A KLIPY link could not be turned into its GIF, so it shows as a link.'
+            : '');
     }
 
     async function removePost(postId) {

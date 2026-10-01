@@ -142,6 +142,47 @@ test('the report lists every file that loads nothing, by page and by where on it
     expect(errors).toEqual([]);
 });
 
+test('a busy host is asked again, and a file it keeps refusing is "not checked", never missing', async ({ page }) => {
+    // Reported 2026-10-01: files that load fine on their pages were listed as
+    // missing. Storage answers too many requests at once with 429, and every
+    // non-2xx used to count as missing. Measured: 45 of 466 answers were 429
+    // at six at a time, and 38 of the "missing" loaded when asked one by one.
+    await openReport(page);
+    const asked = {};
+    // Registered after openReport's, so it answers first for these two.
+    await page.route(u => u.href === LINKS.murmurate || u.href === LINKS.firstM1, r => {
+        const url = r.request().url();
+        asked[url] = (asked[url] || 0) + 1;
+        const cors = { 'access-control-allow-origin': '*' };
+        if (url === LINKS.firstM1) return r.fulfill({ status: 429, headers: cors, body: 'slow down' });
+        // Busy twice, a 5xx and a 429, then the file.
+        if (asked[url] === 1) return r.fulfill({ status: 503, headers: cors, body: 'busy' });
+        if (asked[url] === 2) return r.fulfill({ status: 429, headers: cors, body: 'slow down' });
+        return r.fulfill({ status: 200, headers: cors, contentType: 'video/webm', path: 'medias/videos/example-video2.webm' });
+    });
+    await page.evaluate(() => Object.assign(window.mediaReportInternals.TIMING, { retries: 3, backoffMs: 10 }));
+
+    await page.click('#btn-media-report');
+    const out = page.locator('#media-report-results');
+    await expect(out.locator('.media-report-summary')).toHaveText(
+        '8 media links to 6 files checked. 3 files load nothing, on 1 page.', { timeout: 60000 });
+    await expect(out.locator('.media-report-note')).toHaveText(
+        '1 file could not be checked, because the host was slow or busy, and is marked "not checked". Run it again to retry it.');
+
+    // Asked again until it answered, and then not listed at all.
+    expect(asked[LINKS.murmurate]).toBe(3);
+    await expect(out).not.toContainText('murmurate.webm');
+
+    // Refused every time: asked 1 + 3 times, then honestly unknown.
+    expect(asked[LINKS.firstM1]).toBe(4);
+    const row = out.locator('.media-report-item').filter({ hasText: 'crow_firstm1.png' });
+    await expect(row.locator('.media-report-state')).toHaveText('not checked');
+
+    // An answer that the file is not there is still missing, first time.
+    const mangled = out.locator('.media-report-item').filter({ hasText: 'MedalTV.webm' });
+    await expect(mangled.locator('.media-report-state')).toHaveText('missing');
+});
+
 test('a link is a media link only when it is an address to a media file or into Storage', async ({ page }) => {
     await openReport(page);
     const verdicts = await page.evaluate(() => {
