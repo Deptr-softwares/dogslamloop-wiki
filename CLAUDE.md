@@ -8,6 +8,7 @@ Frame data, i-frames, matchup tiers and M1 trading are domain terms with real ga
 
 - Static HTML/CSS/JS. **No bundler, no build step.** Classic `<script src>` tags sharing one `window` global scope.
 - **Supabase** (Postgres + PostgREST + Auth + Storage), fetched client-side with the public anon key. That key ships in `js/site_utils.js` and is in every page's source — it is not a secret. The service-role key must never appear in this repo or in CI.
+- **KLIPY's API key ships in `js/discussions.js`** and is visible in page source, like the anon key: the owner's explicit choice, 2026-10-02. It is a test key, 100 lookups an hour. A KLIPY link is looked up once, when the post is made, and the post stores the GIF's own address, so readers never spend a lookup. Never move the lookup to render time.
 - **GitHub Pages** from `main`, custom domain `dogslamloop.com`.
 
 ## Deploy model

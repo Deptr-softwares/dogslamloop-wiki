@@ -147,13 +147,15 @@ Same reason `visual.spec.js` is `testIgnore`d in CI (`playwright.config.js`) —
 
 ## A failing test is a hypothesis, not a verdict
 
-Before changing code to satisfy a red test, confirm the test is asking the right question. Three times in this project a test accused correct code:
+Before changing code to satisfy a red test, confirm the test is asking the right question. Five times in this project a test accused correct code:
 
 | Symptom | Actual cause |
 |---|---|
 | "insert never fired" | Selector `button.btn-sys-green` matched a row's RESTORE button before the CREATE button |
 | "escaping is broken" | Route pattern lacked a trailing `*`; `fetchJson` appends a cache-buster, so the mock never matched and real data loaded |
 | "submit handler dead" | Mock session had no `email`; `getDisplayName` and `editor-core`'s fallback both call `session.user.email.split('@')`, so boot threw before the handler attached |
+| "the KLIPY lookup ignored its answer" | The test's `page.route` was registered **before** the `openThread` helper's route for the same URL. Playwright runs the **last-registered** handler first, so the helper's mock answered and the test's never ran. A helper that routes a URL takes the override as an option (`klipyMedia`), never a route added around it |
+| "the page never finished loading" | A route that holds its response on purpose (to watch a queue) means `waitUntil: 'networkidle'` never arrives, and `openThread` waits for `networkidle` by default. Pass `waitUntil: 'domcontentloaded'` when a test holds requests |
 
 When a test fails, reproduce the behaviour manually or add a debug spec that prints actual state before concluding the code is wrong.
 
