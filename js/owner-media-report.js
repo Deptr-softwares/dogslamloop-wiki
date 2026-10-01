@@ -203,8 +203,10 @@
                 : (unknownFiles.size ? 'None are missing.' : 'Every one of them loads.')));
         out.appendChild(summary);
         if (unknownFiles.size) {
+            const one = unknownFiles.size === 1;
             out.appendChild(el('p', 'media-report-note',
-                `${unknownFiles.size} could not be checked, because the host was slow or busy, and are marked "not checked". Run it again to retry them.`));
+                `${unknownFiles.size} ${one ? 'file' : 'files'} could not be checked, because the host was slow or busy, `
+                + `and ${one ? 'is' : 'are'} marked "not checked". Run it again to retry ${one ? 'it' : 'them'}.`));
         }
 
         [...byPage.entries()]

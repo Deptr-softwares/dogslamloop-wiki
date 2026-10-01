@@ -166,7 +166,8 @@ test('a busy host is asked again, and a file it keeps refusing is "not checked",
     const out = page.locator('#media-report-results');
     await expect(out.locator('.media-report-summary')).toHaveText(
         '8 media links to 6 files checked. 3 files load nothing, on 1 page.', { timeout: 60000 });
-    await expect(out.locator('.media-report-note')).toContainText('1 could not be checked');
+    await expect(out.locator('.media-report-note')).toHaveText(
+        '1 file could not be checked, because the host was slow or busy, and is marked "not checked". Run it again to retry it.');
 
     // Asked again until it answered, and then not listed at all.
     expect(asked[LINKS.murmurate]).toBe(3);
