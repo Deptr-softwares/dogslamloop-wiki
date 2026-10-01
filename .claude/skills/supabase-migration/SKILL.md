@@ -72,12 +72,17 @@ It is a required check on both branches now. It still lies in two specific ways,
 
 **Playwright cannot reach RLS, grants, or RPC guards** — every auth spec mocks Supabase and never touches real Postgres. A migration asserted but not probed is unverified.
 
-`supabase/seed.sql` gives every preview branch two accounts, so all three cases below can be run **before** merging rather than only after:
+`supabase/seed.sql` gives every preview branch five accounts, so all three cases below can be run **before** merging rather than only after:
 
 | | |
 |---|---|
-| `admin@dogslamloop.test` | password `seed-admin-password`, `user_roles.role = 'admin'` |
-| `member@dogslamloop.test` | password `seed-member-password`, **no role at all** — `get_my_role()` returns NULL |
+| `owner@dogslamloop.test` | password `seed-owner-password`, `user_roles.role = 'owner'`. **This is the `ADMIN_JWT` for `probe-release.js`** (since 2026-10-01) |
+| `admin@dogslamloop.test` | password `seed-admin-password`, `user_roles.role = 'admin'`. Refused by every owner tool, correctly |
+| `member@dogslamloop.test` | password `seed-member-password`, **no role at all** (`get_my_role()` returns NULL). The `USER_JWT`. 10 days old, so the 7-day voting rule lets it vote |
+| `trusted@dogslamloop.test` | password `seed-trusted-password`, `trusted_editor`: can upload by role |
+| `banned@dogslamloop.test` | password `seed-banned-password`, `viewer` with `can_upload_media` ticked: refused, a ban wins over a perk |
+
+**`ADMIN_JWT` means the OWNER's token**, a name kept from before v0.17. Given admin@'s token, nine owner tools report "failures" that are the system refusing an admin correctly. v0.20's release preview did exactly that before `owner@` existed.
 
 Mint a JWT against the branch's URL and anon key (both in the Supabase dashboard, Branches tab):
 
@@ -90,6 +95,8 @@ curl -s -X POST "$BRANCH_URL/auth/v1/token?grant_type=password" \
 **Getting the branch's URL and keys needs no dashboard.** The CLI on the owner's machine is logged in and linked: `npx supabase branches list --project-ref gtqswjspxymjdopljmfi` shows the preview's status, and `npx supabase branches get <git branch> --project-ref gtqswjspxymjdopljmfi -o env` prints its `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `POSTGRES_URL`. It also prints the branch's service-role key and JWT secret: grep out only what you need, write it to the scratchpad, never echo the rest. `npx supabase db query --db-url "$POSTGRES_URL" "<sql>"` then reads or fixes the PREVIEW directly. `--linked` instead of `--db-url` is PRODUCTION: reads only, never a write without the owner's explicit word.
 
 **A preview exists per PR, not per push.** With no PR open, `branches list` shows only `main`. To verify a migration while its batch is still being built, open the batch PR as a draft.
+
+**The branch's `status` in `branches list` is not the verdict.** On 2026-10-01 the v0.20 release preview read `MIGRATIONS_FAILED` while its database held 65 of 65 migrations, both new objects and all the seeded accounts, and the `Supabase Preview` check had passed. The label's timestamp predated the check run and was never updated. Read `supabase_migrations.schema_migrations` through `--db-url`, and look for the objects the migration creates; believe those over the label, in either direction.
 
 **If a seeded account's sign-in answers 500 "Database error querying schema"**, its token columns are NULL. `seed.sql` fills them since 2026-09-28; a preview created before that needs `UPDATE auth.users SET confirmation_token = COALESCE(confirmation_token, ''), recovery_token = COALESCE(recovery_token, ''), email_change = COALESCE(email_change, ''), email_change_token_new = COALESCE(email_change_token_new, '')` through `--db-url`.
 
