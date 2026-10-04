@@ -267,6 +267,11 @@ async function openForumPosts(ctx) {
     for (const w of work) {
         try {
             if (w.action === 'lock' || w.action === 'unlock') {
+                // Once a minute, in the sweep's tick: nothing waits on a lock,
+                // and a lock Discord keeps refusing (a permission missing on
+                // the channel: 61 refusals in ten minutes in the live test)
+                // then costs one request a minute, not six.
+                if (!ctx.report.sweep) continue;
                 const locked = w.action === 'lock';
                 await ctx.discord.setLocked(w.discord_thread_id, locked);
                 await rpc(ctx.db, 'discord_relay_set_locked', { p_discord_thread_id: w.discord_thread_id, p_locked: locked });

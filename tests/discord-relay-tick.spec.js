@@ -145,6 +145,8 @@ function world() {
         m = /^\/api\/v10\/channels\/(\d+)$/.exec(p);
         if (m && method === 'PATCH') {
             const t = discord.threads.find(x => x.id === m[1]);
+            // A permission missing on the channel, as on the owner's test server.
+            if (body.locked !== undefined && discord.denyLock) return json(403, { code: 50001, message: 'Missing Access' });
             if (t) Object.assign(t, body);
             return json(200, t || {});
         }
@@ -666,10 +668,31 @@ test('a forum post a wiki moderator hid is locked on Discord, and unlocked when 
 
     w.discord.calls.length = 0;
     w.db.forumOutbox = [{ action: 'unlock', thread_id: THREAD_A, discord_thread_id: t }];
+    w.db.sweepDue = true;
     await w.tick(FORUM_ENV);
     patch = w.discord.calls.find(c => c.method === 'PATCH');
     expect(patch.body).toEqual({ locked: false, archived: false });
     expect(w.db.lockedSet.map(x => x.p_locked)).toEqual([true, false]);
+});
+
+// Found live, 2026-10-04: a permission missing on the channel had Discord
+// refuse the lock 61 times in ten minutes, one per tick.
+test('a lock Discord refuses is tried once a minute, in the sweep, not every tick', async () => {
+    const w = world();
+    const t = w.forumPost('Spam');
+    w.discord.denyLock = true;
+    const lockRow = () => { w.db.forumOutbox = [{ action: 'lock', thread_id: THREAD_A, discord_thread_id: t }]; };
+
+    w.db.sweepDue = false;
+    for (let i = 0; i < 3; i++) { lockRow(); await w.tick(FORUM_ENV); }
+    expect(w.discord.calls.filter(c => c.method === 'PATCH')).toHaveLength(0);
+
+    lockRow();
+    w.db.sweepDue = true;
+    const report = await w.tick(FORUM_ENV);
+    expect(w.discord.calls.filter(c => c.method === 'PATCH')).toHaveLength(1);
+    expect(report.errors.join(' ')).toContain('Missing Access');
+    expect(w.db.lockedSet).toEqual([]);
 });
 
 test('the sweep follows a forum post renamed or re-tagged on Discord', async () => {
