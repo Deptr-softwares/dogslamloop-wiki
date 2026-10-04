@@ -157,6 +157,12 @@
     align-items: center;
 }
 
+/* Closed until an action is picked. display: flex above beats the browser's
+   own [hidden] rule, so it is restated. */
+.forum-mod-form[hidden] {
+    display: none;
+}
+
 .forum-mod-form .editor-input {
     flex: 1 1 14rem;
     min-width: 0;

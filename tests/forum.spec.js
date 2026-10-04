@@ -256,7 +256,11 @@ test('a moderator can hide a whole post, with a reason; nobody else sees the con
     await openForum(page, { path: `/forum.html?post=${T1}`, session: SESSION, roleRow: { role: 'reviewer' }, threads: [thread()], messages: [message()] });
     const mod = page.locator('.forum-mod');
     await expect(mod.locator('button')).toHaveText(['HIDE', 'REMOVE']);
+    // Closed until an action is picked. `.forum-mod-form` sets display: flex,
+    // which beats the browser's own [hidden] rule unless the sheet restates it.
+    await expect(page.locator('.forum-mod-form')).toBeHidden();
     await mod.locator('button', { hasText: 'HIDE' }).click();
+    await expect(page.locator('.forum-mod-form')).toBeVisible();
     await page.locator('.forum-mod-form .editor-input').fill('spam');
     await page.locator('.forum-mod-form button[type="submit"]').click();
     await expect.poll(() => page.evaluate(() => JSON.parse(sessionStorage.getItem('__rpcCalls') || '[]')
