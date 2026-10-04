@@ -134,6 +134,25 @@ reason this time: a drag that ends on a DIFFERENT element fires no `click` in
 Chromium, so the handler never ran. When a mutation survives, find out which of
 the two happened before rewriting the test or the code.
 
+### A mutation that breaks the file is not a catch either
+
+v1.0 batch 3: a mutation replaced one branch of an `if` and left its `else`
+dangling. The script stopped parsing, all 10 tests in the spec went red, and it
+read as "caught". Rewritten as valid code, it turned exactly its own test red.
+**`node --check` the mutated file, and distrust a catch that turns the whole
+spec red**: one guard broken should fail the tests about that guard.
+
+### A fake must behave like what it stands in for over time, not just answer
+
+v1.0 batch 2: the relay's fake database answered "when was the forum
+connected" with a fixed time. The real function stamps the moment on its first
+call, and the relay first called it only once a post had appeared, so the
+first Discord post was always skipped as older than the connection. No test
+could see it, because the fake's answer never depended on when it was asked.
+It took the live test on the owner's server to find it. **When the real thing
+has state (first call wins, a counter, a lease), the fake keeps the same
+state.**
+
 ## Assert structure, not pixels
 
 Exact geometry is OS-dependent — Linux renders these fonts wider than Windows, so a `getBoundingClientRect()` comparison passes locally and fails in CI for reasons unrelated to the bug.
