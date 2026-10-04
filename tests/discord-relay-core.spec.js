@@ -262,4 +262,20 @@ test.describe('agreement with the files the relay sits between', () => {
         expect(types).toEqual(Object.keys(core.IMAGE_TYPES).sort());
         expect(/VALUES \('discord-media', 'discord-media', true, (\d+)/.exec(sql)[1]).toBe(String(core.IMAGE_MAX_BYTES));
     });
+
+    // Found live, 2026-10-04: "Template & Guide" is a `character` page filed
+    // under "Site Info", and got a Discord post of its own. A character is
+    // whatever the sidebar colours as one.
+    test('the characters given a Discord post are the sidebar\'s Characters', () => {
+        const sidebar = fs.readFileSync(path.join(ROOT, 'js', 'pagebuilder.js'), 'utf8');
+        const word = /category === '([^']+)' && window\.CHARACTER_COLORS/.exec(sidebar);
+        expect(word, 'the sidebar\'s character test not found in js/pagebuilder.js').not.toBeNull();
+
+        const dir = path.join(ROOT, 'supabase', 'migrations');
+        const defs = fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()
+            .map(f => fs.readFileSync(path.join(dir, f), 'utf8'))
+            .flatMap(sql => [...sql.matchAll(/CREATE OR REPLACE FUNCTION "public"\."discord_relay_missing_threads"\(\)[\s\S]*?\n\$\$;/g)].map(m => m[0]));
+        expect(defs.length, 'discord_relay_missing_threads not defined in the migrations').toBeGreaterThan(0);
+        expect(defs[defs.length - 1]).toContain(`sp.category = '${word[1]}'`);
+    });
 });
