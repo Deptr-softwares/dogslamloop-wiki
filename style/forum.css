@@ -175,7 +175,8 @@
 }
 
 /* Batch 3: the starter's EDIT, then the title and category in a row, as in
-   NEW POST. */
+   NEW POST. Both set display (.btn-sys is inline-flex), so [hidden] is
+   restated for each. */
 .forum-edit-btn {
     align-self: flex-start;
 }
@@ -187,6 +188,7 @@
     align-items: center;
 }
 
+.forum-edit-btn[hidden],
 .forum-edit-form[hidden] {
     display: none;
 }

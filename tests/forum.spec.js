@@ -29,8 +29,8 @@ const message = (over = {}) => ({
     status: 'visible', created_at: '2026-10-04T10:00:00Z', removed_at: null, removed_by: null, ...over,
 });
 
-async function openForum(page, { path = '/forum.html', threads = [], messages = [], session = null, roleRow = null, createResult = null } = {}) {
-    await page.addInitScript(({ threads, messages, session, roleRow, createResult }) => {
+async function openForum(page, { path = '/forum.html', threads = [], messages = [], session = null, roleRow = null, createResult = null, titleEdits = [] } = {}) {
+    await page.addInitScript(({ threads, messages, session, roleRow, createResult, titleEdits }) => {
         window.__queries = [];
         window.__rpcCalls = [];
         Object.defineProperty(window, 'supabase', {
@@ -86,6 +86,7 @@ async function openForum(page, { path = '/forum.html', threads = [], messages = 
                     client.from = (name) => {
                         if (name === 'forum_threads') return table(name, threads);
                         if (name === 'page_discussions') return table(name, messages);
+                        if (name === 'forum_thread_edits') return table(name, titleEdits);
                         if (name === 'user_roles') {
                             return { select() { return this; }, eq() { return this; }, maybeSingle: async () => ({ data: roleRow, error: null }) };
                         }
@@ -100,7 +101,7 @@ async function openForum(page, { path = '/forum.html', threads = [], messages = 
                 };
             },
         });
-    }, { threads, messages, session, roleRow, createResult });
+    }, { threads, messages, session, roleRow, createResult, titleEdits });
     await page.goto(path, { waitUntil: 'networkidle' });
 }
 
@@ -293,4 +294,70 @@ test('on a phone, a long title never pushes the page sideways', async ({ page })
     await expect(page.locator('.forum-row')).toHaveCount(1);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(0);
+});
+
+// --- EDITING A POST'S TITLE AND CATEGORY (batch 3) ---
+
+test('the person who started a post can rename it and change its category', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await openForum(page, { path: `/forum.html?post=${T1}`, session: SESSION, threads: [thread({ author_id: ME })], messages: [message()] });
+
+    const open = page.locator('.forum-edit-btn');
+    const form = page.locator('.forum-edit-form');
+    await expect(open).toBeVisible();
+    await expect(form).toBeHidden();
+    await open.click();
+    // .btn-sys sets display, so this is the [hidden] rule doing its job.
+    await expect(open).toBeHidden();
+    await expect(form).toBeVisible();
+    await expect(form.locator('.forum-title-input')).toHaveValue('Best Boomcat combo?');
+    await expect(form.locator('.forum-tag-select')).toHaveValue('Question');
+
+    await form.locator('.forum-title-input').fill('Best Boomcat route?');
+    await form.locator('.forum-tag-select').selectOption('Guide');
+    await form.locator('button[type="submit"]').click();
+    await expect.poll(() => page.evaluate(() => JSON.parse(sessionStorage.getItem('__rpcCalls') || '[]')
+        .find(c => c.name === 'edit_my_forum_post'))).toEqual({
+        name: 'edit_my_forum_post', params: { p_thread_id: T1, p_title: 'Best Boomcat route?', p_tag: 'Guide' },
+    });
+    expect(errors).toEqual([]);
+});
+
+test('EDIT is offered to nobody but the person who started the post, and not to them once banned', async ({ page }) => {
+    const cases = [
+        { threads: [thread({ author_id: 'someone-else' })], session: SESSION },
+        { threads: [thread({ author_id: null, source: 'discord', discord_author_handle: 'mo' })], session: SESSION },
+        { threads: [thread({ author_id: ME })], session: SESSION, roleRow: { role: 'viewer' } },
+        { threads: [thread({ author_id: ME })], session: null },
+    ];
+    for (const c of cases) {
+        const p = await page.context().newPage();
+        await openForum(p, { path: `/forum.html?post=${T1}`, messages: [message()], ...c });
+        await expect(p.locator('.forum-post-title')).toBeVisible();
+        await expect(p.locator('.forum-edit-btn')).toHaveCount(0);
+        await p.close();
+    }
+});
+
+test('a moderator can see what a post was called before; a reader cannot', async ({ page }) => {
+    const titleEdits = [
+        { thread_id: T1, title: '<img src=x onerror="window.__xss=1">', tag: 'Discussion', edited_at: '2026-10-04T10:30:00Z', edited_by: ME },
+        { thread_id: T1, title: 'First title', tag: 'Question', edited_at: '2026-10-04T10:10:00Z', edited_by: null },
+    ];
+    await openForum(page, { path: `/forum.html?post=${T1}`, session: SESSION, roleRow: { role: 'reviewer' }, threads: [thread()], messages: [message()], titleEdits });
+    const btn = page.locator('.forum-post-meta .discussion-edited-open');
+    await expect(btn).toHaveText('title edited');
+    const box = page.locator('.forum-post-header .discussion-edits');
+    await expect(box).toBeHidden();
+    await btn.click();
+    await expect(box.locator('.discussion-edits-body')).toHaveText(['[Discussion] <img src=x onerror="window.__xss=1">', '[Question] First title']);
+    await expect(box.locator('.discussion-edits-when').nth(1)).toContainText('changed on Discord');
+    await expect(box.locator('img')).toHaveCount(0);
+    expect(await page.evaluate(() => window.__xss)).toBeUndefined();
+
+    const reader = await page.context().newPage();
+    await openForum(reader, { path: `/forum.html?post=${T1}`, session: SESSION, threads: [thread()], messages: [message()], titleEdits });
+    await expect(reader.locator('.forum-post-title')).toBeVisible();
+    await expect(reader.locator('.discussion-edited-open')).toHaveCount(0);
 });

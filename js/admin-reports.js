@@ -21,6 +21,8 @@
 
 let reportQueueRows = [];
 let reportQueueLoaded = false;
+// post id -> its earlier versions, newest first (v1.0 batch 3).
+let reportEditsByPost = new Map();
 
 const REPORT_REASON_LABELS = {
     spam: 'Spam',
@@ -87,9 +89,63 @@ window.loadReportQueue = async function () {
     }
 
     reportQueueRows = data || [];
+    reportEditsByPost = await loadReportEdits(reportQueueRows);
     reportQueueLoaded = true;
     renderReportQueue();
 };
+
+// v1.0 batch 3: a post can be edited after it is reported, so the queue shows
+// what an edited post said before, for every card at once in one read.
+// page_discussion_edits is readable by moderators only; before the release it
+// does not exist, and the queue is drawn as it always was.
+async function loadReportEdits(rows) {
+    const byPost = new Map();
+    const ids = [...new Set(rows.map(r => r.target_id).filter(Boolean))];
+    if (!ids.length) return byPost;
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('page_discussion_edits')
+            .select('post_id, body, edited_at, edited_by')
+            .in('post_id', ids)
+            .order('edited_at', { ascending: false });
+        if (error || !Array.isArray(data)) return byPost;
+        data.forEach(e => {
+            if (!byPost.has(e.post_id)) byPost.set(e.post_id, []);
+            byPost.get(e.post_id).push(e);
+        });
+    } catch (e) {
+        // The cards still say what the post says now.
+    }
+    return byPost;
+}
+
+function renderReportEdits(row) {
+    const earlier = reportEditsByPost.get(row.target_id) || [];
+    if (!earlier.length) return null;
+
+    const box = document.createElement('details');
+    box.className = 'report-edits';
+    // An edit after the report is the one that matters most: the words the
+    // reporter saw may be gone from the quote above.
+    const afterReport = earlier.some(e => Date.parse(e.edited_at) > Date.parse(row.created_at));
+    const summary = document.createElement('summary');
+    summary.className = 'report-edits-summary';
+    summary.textContent = `${afterReport ? 'EDITED AFTER THE REPORT' : 'EDITED'}: ${earlier.length} earlier version${earlier.length === 1 ? '' : 's'}`;
+    box.appendChild(summary);
+
+    earlier.forEach(e => {
+        const when = document.createElement('div');
+        when.className = 'report-edit-when';
+        when.textContent = `Until ${reportTimeAgo(e.edited_at)}${e.edited_by ? '' : ', changed on Discord'}:`;
+        const text = document.createElement('blockquote');
+        text.className = 'report-quote';
+        // textContent: earlier words are as attacker-reachable as current ones.
+        text.textContent = e.body || '[no words]';
+        box.appendChild(when);
+        box.appendChild(text);
+    });
+    return box;
+}
 
 function renderReportQueue() {
     const container = document.getElementById('report-queue-container');
@@ -145,6 +201,9 @@ function renderReportQueue() {
             quote.textContent = row.post_body || (images.length ? '[images only]' : '[the post is gone]');
         }
         card.appendChild(quote);
+
+        const edits = renderReportEdits(row);
+        if (edits) card.appendChild(edits);
 
         // v0.20: a moderator deciding about an image has to see it. Small here;
         // each opens the full file. Paths are checked against the same rule the
