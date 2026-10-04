@@ -24,6 +24,11 @@ export class RateLimited extends Error {}
 // Discord's "Unknown Channel": the post was deleted on Discord.
 const UNKNOWN_CHANNEL = 10003;
 const isGone = (e) => e && e.status === 404 && e.code === UNKNOWN_CHANNEL;
+// "Unknown Message": the copy was deleted on Discord.
+const UNKNOWN_MESSAGE = 10008;
+// "Thread is archived": a change to an archived post is refused until it is
+// opened again.
+const THREAD_ARCHIVED = 50083;
 
 // Rule 11: without every secret the relay does nothing. A preview branch is
 // never given them, so it never touches the real server.
@@ -120,6 +125,20 @@ export function makeDiscord(fetchImpl, token) {
         },
         async webhookDelete(webhookUrl, threadId, messageId) {
             await call('DELETE', `${webhookUrl}/messages/${messageId}?thread_id=${threadId}`, { bot: false, okStatuses: [404] });
+        },
+        // A webhook edits only its own messages (batch 3).
+        async webhookEdit(webhookUrl, threadId, messageId, payload) {
+            await call('PATCH', `${webhookUrl}/messages/${messageId}?thread_id=${threadId}`, { body: payload, bot: false });
+        },
+        // Open an archived post again, leaving whether it is locked alone.
+        async unarchive(threadId) {
+            await call('PATCH', `${API}/channels/${threadId}`, { body: { archived: false } });
+        },
+        // Name and category in one change. Needs Manage Threads.
+        async rename(threadId, name, tagIds) {
+            const body = { name };
+            if (tagIds) body.applied_tags = tagIds;
+            await call('PATCH', `${API}/channels/${threadId}`, { body });
         },
     };
 }
@@ -415,6 +434,7 @@ async function writeDiscord(ctx) {
         // exception: it ends the tick, and the next one carries on.
         try {
             if (w.action === 'send') await sendOne(ctx, w, webhook, record);
+            else if (w.action === 'edit') await editOne(ctx, w, webhook);
             else if (w.action === 'delete') {
                 await ctx.discord.webhookDelete(webhook, w.discord_thread_id, w.discord_message_id);
                 await record('deleted', null, null);
@@ -451,17 +471,9 @@ async function sendOne(ctx, w, webhook, record) {
     // Claimed before the request: a tick that dies mid-send leaves `sending`,
     // and the post is never sent twice.
     await record('sending', null, null);
+    let msg;
     try {
-        const payload = core.toDiscordMessage({
-            authorName: w.author_name,
-            body: w.body,
-            imageUrls: (w.images || []).map(p => publicImageUrl(ctx, p)),
-            isReply: Boolean(w.parent_id),
-            parentAuthor: w.parent_author_name,
-            parentBody: w.parent_body,
-            link: core.wikiLink(w.page_id, w.page_url, w.parent_id || w.post_id),
-        });
-        const msg = await ctx.discord.webhookSend(webhook, w.discord_thread_id, payload);
+        msg = await ctx.discord.webhookSend(webhook, w.discord_thread_id, core.toDiscordMessage(messageArgs(ctx, w)));
         await record('sent', msg && msg.id, null);
         ctx.report.sent++;
     } catch (e) {
@@ -469,6 +481,118 @@ async function sendOne(ctx, w, webhook, record) {
         if (isGone(e)) await threadGone(ctx, w.discord_thread_id);
         throw e;
     }
+    // The send carried the post as it is now, edits and all.
+    if (w.edited_at) await editResult(ctx, w, null);
+}
+
+// What a wiki post says on Discord, for a send and for an edit alike. A reply
+// quotes what it answers: the reply it answers, or the post at the top.
+function messageArgs(ctx, w) {
+    return {
+        authorName: w.author_name,
+        body: w.body,
+        imageUrls: (w.images || []).map(p => publicImageUrl(ctx, p)),
+        isReply: Boolean(w.parent_id),
+        parentAuthor: w.parent_author_name,
+        parentBody: w.parent_body,
+        link: core.wikiLink(w.page_id, w.page_url, w.parent_id || w.post_id),
+    };
+}
+
+const editResult = (ctx, w, error) => rpc(ctx.db, 'discord_relay_edit_result', {
+    p_post_id: w.post_id, p_edited_at: w.edited_at, p_error: error,
+});
+
+// A change to a post Discord has archived (left quiet too long) is refused
+// until the post is opened again; open it and try once more.
+async function unarchivedRetry(ctx, threadId, change) {
+    try {
+        return await change();
+    } catch (e) {
+        if (!e || e.code !== THREAD_ARCHIVED) throw e;
+        await ctx.discord.unarchive(threadId);
+        return change();
+    }
+}
+
+// Batch 3: a wiki post edited after it was sent. The message stays `sent`
+// whatever happens: marking it failed would send it a second time. A failed
+// edit is counted and tried again, five times at most.
+async function editOne(ctx, w, webhook) {
+    let blocked;
+    try {
+        blocked = w.author_discord_id ? await blockedOnServer(ctx, w.author_discord_id) : false;
+    } catch (e) {
+        if (e instanceof RateLimited) throw e;
+        await editResult(ctx, w, `Could not check the author on the server: ${e.message || e}`);
+        throw e;
+    }
+    if (blocked) {
+        await editResult(ctx, w, 'Author is banned or timed out on the server.');
+        ctx.report.skipped++;
+        return;
+    }
+
+    const payload = core.toDiscordEdit(messageArgs(ctx, w));
+    try {
+        await unarchivedRetry(ctx, w.discord_thread_id,
+            () => ctx.discord.webhookEdit(webhook, w.discord_thread_id, w.discord_message_id, payload));
+    } catch (e) {
+        if (e instanceof RateLimited) throw e;
+        // Deleted on Discord: the wiki follows, as the sweep would.
+        if (e.status === 404 && e.code === UNKNOWN_MESSAGE) {
+            await messageGone(ctx, w.discord_message_id);
+            return;
+        }
+        await editResult(ctx, w, String(e.message || e));
+        if (isGone(e)) await threadGone(ctx, w.discord_thread_id);
+        throw e;
+    }
+    await editResult(ctx, w, null);
+    ctx.report.editsSent++;
+}
+
+// A copy deleted on Discord. Only the pictures the relay copied are deleted
+// from storage; a wiki author's own uploads stay with the page that owns them.
+async function messageGone(ctx, messageId) {
+    const images = (await rpc(ctx.db, 'discord_relay_gone', { p_discord_message_id: messageId })) || [];
+    const copies = images.filter(p => core.COPIED_IMAGE_PATH.test(p));
+    if (copies.length) await ctx.db.storage.from('discord-media').remove(copies);
+    ctx.report.gone++;
+}
+
+// Batch 3: forum posts renamed on the wiki, renamed on Discord. Here in the
+// once-a-minute sweep rather than every tick: Discord limits renames, and a
+// refusal then costs one request a minute and never ends the rest of the tick.
+// Returns the posts renamed, whose names in this tick's `active` list are now
+// out of date.
+async function renameForumPosts(ctx) {
+    const renamed = new Set();
+    const work = (await rpc(ctx.db, 'discord_relay_forum_renames', { p_limit: OPEN_LIMIT })) || [];
+    for (const w of work) {
+        try {
+            // Left pending, not dropped: dropped, the sweep would copy the old
+            // Discord name back over the wiki's.
+            if (w.author_discord_id && await blockedOnServer(ctx, w.author_discord_id)) continue;
+            const tagId = core.tagIdFor(await forumTags(ctx), w.tag);
+            await unarchivedRetry(ctx, w.discord_thread_id,
+                () => ctx.discord.rename(w.discord_thread_id, core.forumPostName(w.title), tagId ? [tagId] : null));
+            await rpc(ctx.db, 'discord_relay_renamed', { p_discord_thread_id: w.discord_thread_id, p_edited_at: w.edited_at });
+            renamed.add(w.discord_thread_id);
+            ctx.report.renamed++;
+        } catch (e) {
+            if (e instanceof RateLimited) {
+                ctx.report.renameDeferred = true;
+                break;
+            }
+            if (isGone(e)) {
+                await threadGone(ctx, w.discord_thread_id);
+                continue;
+            }
+            ctx.report.errors.push(String(e.message || e));
+        }
+    }
+    return renamed;
 }
 
 // --- RULE 2: THE SWEEP ---
@@ -477,9 +601,12 @@ async function sweep(ctx, active) {
     // Rule: a post renamed or re-tagged on Discord. Active posts only: a
     // rename unarchives a post, so a changed one is always among them.
     if (ctx.cfg.channels.forum) {
+        // The wiki's renames go out first. Those posts' names in `active` were
+        // read before the rename, so they are not read back this time.
+        const renamed = await renameForumPosts(ctx);
         const links = new Set(((await rpc(ctx.db, 'discord_relay_threads')) || [])
             .filter(l => l.channel === 'forum').map(l => l.discord_thread_id));
-        const forumActive = active.filter(t => t.parent_id === ctx.cfg.channels.forum && links.has(t.id));
+        const forumActive = active.filter(t => t.parent_id === ctx.cfg.channels.forum && links.has(t.id) && !renamed.has(t.id));
         if (forumActive.length) {
             const tags = await forumTags(ctx);
             for (const t of forumActive) {
@@ -510,14 +637,7 @@ async function sweep(ctx, active) {
         }
         const { gone, edited } = core.sweepFindings(rows, fetched, SWEEP_LIMIT);
 
-        for (const id of gone) {
-            const images = (await rpc(ctx.db, 'discord_relay_gone', { p_discord_message_id: id })) || [];
-            // Only the copies the relay made. A wiki author's own uploads stay
-            // with the page that owns them.
-            const copies = images.filter(p => core.COPIED_IMAGE_PATH.test(p));
-            if (copies.length) await ctx.db.storage.from('discord-media').remove(copies);
-            ctx.report.gone++;
-        }
+        for (const id of gone) await messageGone(ctx, id);
         for (const e of edited) {
             await rpc(ctx.db, 'discord_relay_edit', { p_discord_message_id: e.id, p_body: e.body });
             ctx.report.edited++;
@@ -542,7 +662,7 @@ export async function runTick({ env, db, fetch: fetchImpl, now = () => Date.now(
         report: {
             relay: 'ran', sweep: Boolean(claim.sweep), forum: Boolean(cfg.channels.forum),
             opened: 0, linked: 0, taken: 0, sent: 0, deleted: 0, skipped: 0, gone: 0, edited: 0,
-            forumTaken: 0, forumOpened: 0, locked: 0, threadsGone: 0, errors: [],
+            forumTaken: 0, forumOpened: 0, locked: 0, threadsGone: 0, editsSent: 0, renamed: 0, errors: [],
         },
     };
 

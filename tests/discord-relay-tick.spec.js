@@ -56,6 +56,10 @@ function world() {
         forumTags: [],
         // Posts deleted on Discord: reading them answers Unknown Channel.
         deleted: new Set(),
+        // Batch 3: a webhook edit that fails outright, and Discord's limit on
+        // renaming a post.
+        failEdits: false,
+        rateLimitRename: false,
         calls: [],
     };
     const db = {
@@ -81,6 +85,10 @@ function world() {
         forumTaken: [],
         renames: [],
         threadsGone: [],
+        // Batch 3.
+        forumRenames: [],     // what discord_relay_forum_renames answers until renamed
+        renamedCalls: [],
+        editResults: [],
     };
 
     function post(threadId, msg) {
@@ -130,6 +138,16 @@ function world() {
                 discord.messages.set(u.searchParams.get('thread_id'), list.filter(m => m.id !== id));
                 return json(204, null);
             }
+            if (method === 'PATCH') {
+                if (discord.failEdits) return json(500, { message: 'Internal Server Error' });
+                const threadId = u.searchParams.get('thread_id');
+                const t = discord.threads.find(x => x.id === threadId);
+                if (t && t.archived) return json(400, { code: 50083, message: 'Thread is archived' });
+                const found = (discord.messages.get(threadId) || []).find(x => x.id === rest.split('/').pop());
+                if (!found) return json(404, { code: 10008, message: 'Unknown Message' });
+                found.content = body.content;
+                return json(200, found);
+            }
         }
         if (p === `/api/v10/guilds/${GUILD}/threads/active`) {
             return json(200, { threads: discord.threads.filter(t => !t.archived) });
@@ -147,6 +165,9 @@ function world() {
             const t = discord.threads.find(x => x.id === m[1]);
             // A permission missing on the channel, as on the owner's test server.
             if (body.locked !== undefined && discord.denyLock) return json(403, { code: 50001, message: 'Missing Access' });
+            if (body.name !== undefined && discord.rateLimitRename) return json(429, { retry_after: 600 });
+            // An archived post takes no change until one opens it again.
+            if (t && t.archived && body.archived !== false) return json(400, { code: 50083, message: 'Thread is archived' });
             if (t) Object.assign(t, body);
             return json(200, t || {});
         }
@@ -237,6 +258,13 @@ function world() {
             return key.slice(6);
         },
         discord_relay_forum_rename(a) { db.renames.push(a); return null; },
+        discord_relay_forum_renames() { return db.forumRenames.slice(); },
+        discord_relay_renamed(a) {
+            db.renamedCalls.push(a);
+            db.forumRenames = db.forumRenames.filter(r => r.discord_thread_id !== a.p_discord_thread_id);
+            return null;
+        },
+        discord_relay_edit_result(a) { db.editResults.push(a); return null; },
         discord_relay_thread_gone(a) {
             db.threadsGone.push(a.p_discord_thread_id);
             for (const [k, l] of db.links) if (l.discord_thread_id === a.p_discord_thread_id) db.links.delete(k);
@@ -777,4 +805,179 @@ test('a Discord post with none of the six tags leaves the wiki category as it is
         { p_discord_thread_id: untagged, p_title: 'Untagged', p_tag: null },
         { p_discord_thread_id: offTopic, p_title: 'Off-topic only', p_tag: null },
     ]);
+});
+
+// --- EDITS AND RENAMES FROM THE WIKI (batch 3) ---
+
+const EDITED_AT = '2026-10-04T12:05:00.000Z';
+const editOf = (thread, messageId, over = {}) => ({
+    action: 'edit', post_id: 'p1', page_id: 'boomcat', page_url: 'characters/Boomcat/', parent_id: null,
+    body: 'new words', images: [], author_name: 'Kai', author_discord_id: null,
+    parent_author_name: null, parent_body: null, channel: 'character',
+    discord_thread_id: thread, discord_message_id: messageId, attempts: 0, edited_at: EDITED_AT, ...over,
+});
+
+test('a wiki edit edits the Discord copy through its own webhook, quote line and all, and records which edit it carried', async () => {
+    const w = world();
+    const thread = w.linkedThread();
+    const copy = w.say(thread, { webhook_id: WEBHOOK_ID, content: 'old words' });
+    w.db.links.get('boomcat').last_message_id = copy.id;
+    // A reply to a reply: the quote is of the reply it answers.
+    w.db.outbox = [editOf(thread, copy.id, { parent_id: 'top', parent_author_name: 'Mo', parent_body: 'the reply answered' })];
+
+    const report = await w.tick();
+    expect(report).toMatchObject({ editsSent: 1, errors: [] });
+    const patch = w.discord.calls.find(c => c.method === 'PATCH');
+    expect(patch.url).toBe(`${WEBHOOK}/messages/${copy.id}?thread_id=${thread}`);
+    expect(patch.headers.Authorization).toBeUndefined();
+    // No `username`: a webhook message keeps the name it was sent under.
+    expect(patch.body).toEqual({ content: '> **Mo**: the reply answered\nnew words', allowed_mentions: { parse: [] } });
+    expect(w.discord.messages.get(thread).find(m => m.id === copy.id).content).toBe(patch.body.content);
+    expect(w.db.editResults).toEqual([{ p_post_id: 'p1', p_edited_at: EDITED_AT, p_error: null }]);
+    // The message's state is never touched by an edit.
+    expect(w.db.records).toEqual([]);
+});
+
+test('an edit to a copy deleted on Discord takes the post down on the wiki, as the sweep would', async () => {
+    const w = world();
+    const thread = w.linkedThread();
+    const missing = w.flake();
+    w.db.outbox = [editOf(thread, missing)];
+
+    const report = await w.tick();
+    expect(report).toMatchObject({ editsSent: 0, gone: 1, errors: [] });
+    expect(w.db.gone).toEqual([missing]);
+    expect(w.db.removed).toEqual(['discord-media/discord/123456789012345678-0.png']);
+    expect(w.db.editResults).toEqual([]);
+});
+
+test('an edit to an archived Discord post opens the post and tries once more', async () => {
+    const w = world();
+    const thread = w.linkedThread();
+    const copy = w.say(thread, { webhook_id: WEBHOOK_ID, content: 'old words' });
+    w.db.links.get('boomcat').last_message_id = copy.id;
+    w.discord.threads.find(t => t.id === thread).archived = true;
+    w.db.outbox = [editOf(thread, copy.id)];
+
+    const report = await w.tick();
+    expect(report).toMatchObject({ editsSent: 1, errors: [] });
+    const patches = w.discord.calls.filter(c => c.method === 'PATCH');
+    expect(patches.map(c => (c.url.startsWith(WEBHOOK) ? 'edit' : c.body))).toEqual(['edit', { archived: false }, 'edit']);
+    // Opening it changed nothing about whether it is locked.
+    expect(patches[1].body).not.toHaveProperty('locked');
+});
+
+test('a failed edit is counted and tried again, and the message is never marked failed or sent twice', async () => {
+    const w = world();
+    const thread = w.linkedThread();
+    const copy = w.say(thread, { webhook_id: WEBHOOK_ID, content: 'old words' });
+    w.db.links.get('boomcat').last_message_id = copy.id;
+    w.discord.failEdits = true;
+    w.db.outbox = [editOf(thread, copy.id)];
+
+    const report = await w.tick();
+    expect(report.errors.join(' ')).toContain('Discord answered 500');
+    expect(w.db.editResults).toHaveLength(1);
+    expect(w.db.editResults[0]).toMatchObject({ p_post_id: 'p1', p_edited_at: EDITED_AT });
+    expect(w.db.editResults[0].p_error).toContain('Discord answered 500');
+    expect(w.db.records).toEqual([]);
+    expect(w.discord.calls.some(c => c.method === 'POST')).toBe(false);
+});
+
+test('an edit by a linked author banned on the server is not carried over', async () => {
+    const w = world();
+    const thread = w.linkedThread();
+    const copy = w.say(thread, { webhook_id: WEBHOOK_ID, content: 'old words' });
+    w.db.links.get('boomcat').last_message_id = copy.id;
+    w.discord.banned.add('400000000000000001');
+    w.db.outbox = [editOf(thread, copy.id, { author_discord_id: '400000000000000001' })];
+
+    const report = await w.tick();
+    expect(report).toMatchObject({ editsSent: 0, skipped: 1, errors: [] });
+    expect(w.discord.calls.some(c => c.method === 'PATCH')).toBe(false);
+    expect(w.db.editResults).toEqual([{ p_post_id: 'p1', p_edited_at: EDITED_AT, p_error: 'Author is banned or timed out on the server.' }]);
+});
+
+test('a send of a post edited before it went out records that edit as carried', async () => {
+    const w = world();
+    const thread = w.linkedThread();
+    w.db.outbox = [{ ...editOf(thread, null), action: 'send' }];
+
+    await w.tick();
+    const sent = w.discord.messages.get(thread).at(-1);
+    expect(w.db.records.map(r => r.p_state)).toEqual(['sending', 'sent']);
+    expect(w.db.records[1].p_discord_message_id).toBe(sent.id);
+    expect(w.db.editResults).toEqual([{ p_post_id: 'p1', p_edited_at: EDITED_AT, p_error: null }]);
+});
+
+function renamedForumPost(w, over = {}) {
+    w.discord.forumTags = TAGS;
+    const t = w.forumPost('Old name', {}, { applied_tags: ['300000000000000001'] });
+    w.db.links.set(`forum:${THREAD_A}`, { site_key: `forum:${THREAD_A}`, channel: 'forum', discord_thread_id: t, last_message_id: t, linked_at: new Date(T0).toISOString() });
+    w.db.forumRenames = [{ thread_id: THREAD_A, title: 'New name', tag: 'Art', edited_at: EDITED_AT, discord_thread_id: t, author_discord_id: null, ...over }];
+    return t;
+}
+
+test('a wiki rename renames the Discord post in the sweep, name and category at once, and the old name is not copied back', async () => {
+    const w = world();
+    const t = renamedForumPost(w);
+
+    // Not in an ordinary tick.
+    w.db.sweepDue = false;
+    await w.tick(FORUM_ENV);
+    expect(w.discord.calls.some(c => c.method === 'PATCH')).toBe(false);
+
+    w.db.sweepDue = true;
+    const report = await w.tick(FORUM_ENV);
+    expect(report).toMatchObject({ renamed: 1, errors: [] });
+    const patch = w.discord.calls.find(c => c.method === 'PATCH');
+    expect(patch.url).toBe(`https://discord.com/api/v10/channels/${t}`);
+    expect(patch.body).toEqual({ name: 'New name', applied_tags: ['300000000000000002'] });
+    expect(w.db.renamedCalls).toEqual([{ p_discord_thread_id: t, p_edited_at: EDITED_AT }]);
+    // The tick read the post as "Old name" before renaming it; that is not
+    // copied back over the wiki's new name.
+    expect(w.db.renames).toEqual([]);
+});
+
+test('Discord rename limit puts a rename off to the next sweep without ending the tick', async () => {
+    const w = world();
+    renamedForumPost(w);
+    w.discord.rateLimitRename = true;
+    // Something else for the same sweep to do after the refused rename.
+    const thread = w.linkedThread();
+    const deletedId = w.flake();
+    w.db.recent = [{ post_id: 'c', direction: 'from_discord', discord_thread_id: thread, discord_message_id: deletedId, body: 'bye' }];
+    w.db.sweepDue = true;
+
+    const report = await w.tick(FORUM_ENV);
+    expect(report.renameDeferred).toBe(true);
+    expect(report.rateLimited).toBeUndefined();
+    expect(report.errors).toEqual([]);
+    expect(w.db.renamedCalls).toEqual([]);
+    expect(w.db.gone).toEqual([deletedId]);
+
+    w.discord.rateLimitRename = false;
+    w.db.sweepDue = true;
+    expect(await w.tick(FORUM_ENV)).toMatchObject({ renamed: 1 });
+});
+
+test('an archived forum post is opened before it is renamed; a banned starter rename waits', async () => {
+    const w = world();
+    const t = renamedForumPost(w);
+    w.discord.threads.find(x => x.id === t).archived = true;
+    w.db.sweepDue = true;
+    await w.tick(FORUM_ENV);
+    const named = { name: 'New name', applied_tags: ['300000000000000002'] };
+    expect(w.discord.calls.filter(c => c.method === 'PATCH').map(c => c.body)).toEqual([named, { archived: false }, named]);
+    expect(w.db.renamedCalls).toHaveLength(1);
+
+    const v = world();
+    renamedForumPost(v, { author_discord_id: '400000000000000001' });
+    v.discord.banned.add('400000000000000001');
+    v.db.sweepDue = true;
+    await v.tick(FORUM_ENV);
+    expect(v.discord.calls.some(c => c.method === 'PATCH')).toBe(false);
+    // Still waiting, so the sweep does not copy Discord's old name back.
+    expect(v.db.renamedCalls).toEqual([]);
+    expect(v.db.forumRenames).toHaveLength(1);
 });

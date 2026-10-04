@@ -159,9 +159,14 @@ export function tagFromApplied(appliedIds, availableTags, fallback = 'Discussion
 // opening message, the title as the post's name, the category as its tag.
 export function forumPostOpening({ title, tagId, authorName, body, imageUrls = [], link }) {
     const msg = toDiscordMessage({ authorName, body, imageUrls, link });
-    const out = { ...msg, thread_name: oneLine(title, 100) || 'Untitled' };
+    const out = { ...msg, thread_name: forumPostName(title) };
     if (tagId) out.applied_tags = [tagId];
     return out;
+}
+
+// A forum post's name on Discord, when it opens and when it is renamed.
+export function forumPostName(title) {
+    return oneLine(title, 100) || 'Untitled';
 }
 
 // One wiki post as a webhook payload. Rule 8: `allowed_mentions` is always
@@ -184,6 +189,14 @@ export function toDiscordMessage({ authorName, body, imageUrls = [], parentAutho
         username: webhookName(authorName),
         allowed_mentions: { parse: [] },
     };
+}
+
+// A wiki edit, as the change to the webhook's own message (batch 3): the words
+// and quote line a send would carry, and still no pings. The name a webhook
+// message was sent under cannot be changed, so it is left out.
+export function toDiscordEdit(args) {
+    const { content, allowed_mentions } = toDiscordMessage(args);
+    return { content, allowed_mentions };
 }
 
 // The message that opens a character's Discord post (rule: D3).
