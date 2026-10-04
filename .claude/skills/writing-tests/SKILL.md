@@ -101,6 +101,11 @@ Before claiming a fix works: temporarily revert it, confirm the new spec
 **fails**, restore, confirm it passes. A regression test that never failed
 against the old code proves nothing.
 
+**A breakage the tests survive is a question, not yet a gap.** Check that it
+changed what the code does. On 2026-10-04 "put the reply box first" survived:
+the code appended the same box again further down, and appending a node twice
+moves it, so the page was unchanged. Breaking the order for real was caught.
+
 **COMMIT THE FIX FIRST.** Then the undo is `git restore <file>`, which is exact
 and safe. This is not a style preference — it is the only version of this
 procedure that cannot lose work.

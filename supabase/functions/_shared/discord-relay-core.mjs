@@ -112,6 +112,58 @@ export function postUrl(pageUrl, topLevelPostId) {
     return `${SITE_ORIGIN}/${page}#post-${topLevelPostId}`;
 }
 
+// --- THE FORUM (batch 2) ---
+
+// The owner's six categories, 2026-10-04, in their order. The same names are
+// the tags on #dogslamloop-forum. A test checks them against the migration.
+export const FORUM_TAGS = ['Question', 'Guide', 'Discussion', 'Art', 'Game Update', 'Promotion'];
+const FORUM_KEY = /^forum:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
+
+export function forumThreadUrl(threadId) {
+    return `${SITE_ORIGIN}/forum.html?post=${threadId}`;
+}
+
+// Where a message lives on the wiki: a forum post's page, or a character's.
+export function wikiLink(pageId, pageUrl, topLevelPostId) {
+    const forum = FORUM_KEY.exec(String(pageId || ''));
+    if (forum) return `${forumThreadUrl(forum[1])}#post-${topLevelPostId}`;
+    return postUrl(pageUrl, topLevelPostId);
+}
+
+const tagKey = (s) => String(s || '').trim().toLowerCase();
+
+// The Discord tag id for a category, by name, from the channel's
+// `available_tags`; null when the channel has no tag of that name.
+export function tagIdFor(availableTags, tag) {
+    const hit = (availableTags || []).find(t => tagKey(t.name) === tagKey(tag));
+    return hit && isSnowflake(hit.id) ? hit.id : null;
+}
+
+// A Discord post's category: its first tag that is one of the six, spelled the
+// wiki's way; Discussion when none is.
+//
+// `fallback` is for a post with none of the six. A post copied in needs a
+// category, so it gets Discussion; a post the sweep is following keeps the
+// one it has (null), or an untagged Discord post would overwrite the wiki's
+// category with the default (found live, 2026-10-04).
+export function tagFromApplied(appliedIds, availableTags, fallback = 'Discussion') {
+    const byId = new Map((availableTags || []).map(t => [t.id, t.name]));
+    for (const id of appliedIds || []) {
+        const match = FORUM_TAGS.find(name => tagKey(name) === tagKey(byId.get(id)));
+        if (match) return match;
+    }
+    return fallback;
+}
+
+// A wiki forum post as the webhook payload that opens its Discord post: the
+// opening message, the title as the post's name, the category as its tag.
+export function forumPostOpening({ title, tagId, authorName, body, imageUrls = [], link }) {
+    const msg = toDiscordMessage({ authorName, body, imageUrls, link });
+    const out = { ...msg, thread_name: oneLine(title, 100) || 'Untitled' };
+    if (tagId) out.applied_tags = [tagId];
+    return out;
+}
+
 // One wiki post as a webhook payload. Rule 8: `allowed_mentions` is always
 // empty, so "@everyone" or a role mention typed on the wiki pings nobody.
 // Rule 10: over Discord's limit, the words are cut and the full post linked.

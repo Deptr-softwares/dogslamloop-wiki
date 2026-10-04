@@ -277,3 +277,23 @@ test('a reported post shows its images, and only paths that pass the rule', asyn
     // An image-only post is not "gone".
     await expect(page.locator('.report-quote')).toHaveText('[images only]');
 });
+
+test('a report on a forum post says FORUM, and a picture copied from Discord is shown from its bucket', async ({ page }) => {
+    // v1.0: forum posts live under page_id 'forum:<uuid>', and the Discord
+    // relay keeps its copies in discord-media.
+    const local = require('fs').readFileSync(require('path').join(__dirname, '..', 'medias', 'images', 'DogslamloopIcon.webp'));
+    await page.route(/\/storage\/v1\/object\/public\/(discussion|discord)-media\//, r =>
+        r.fulfill({ status: 200, contentType: 'image/webp', body: local }));
+
+    await openQueue(page, {
+        rows: [report({
+            id: 'r1', page_id: 'forum:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', post_body: 'look',
+            post_images: ['discord/123456789012345678-0.png', 'discord/123456789012345678-9.png'],
+        })],
+    });
+
+    await expect(page.locator('.report-page')).toHaveText('FORUM');
+    const imgs = page.locator('.report-images img');
+    await expect(imgs).toHaveCount(1);
+    expect(await imgs.getAttribute('src')).toMatch(/\/storage\/v1\/object\/public\/discord-media\/discord\/123456789012345678-0\.png$/);
+});

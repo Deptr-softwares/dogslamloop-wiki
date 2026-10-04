@@ -115,7 +115,13 @@ Three cases, in order of what they prove:
 - **non-admin authenticated** → must fail with 42501.
 - **admin** → **must succeed.** This is the one that matters most: over-tightening breaks the only legitimate caller, and that failure is invisible to every other check.
 
-Send the function's *real* signature. Posting a parameter to a zero-argument function returns `PGRST202`, which looks like a refusal but is only a signature mismatch.
+Send the function's *real* signature. Posting a parameter to a zero-argument function returns `PGRST202`, which looks like a refusal but is only a signature mismatch. The same trap for a table: a write naming a column the table lacks answers `400 PGRST204`, which also "refuses". A write probe sends the table's real columns and requires `42501` (found 2026-10-04, when a probe of the Discord link tables passed on `PGRST204`).
+
+**Three things a preview is not, found 2026-10-04 (v1.0 batch 1):**
+
+* **Its service role has no table grants it is not named on.** A preview builds from migrations under the newer "not auto-exposed" default (`supabase/config.toml`), so the service-role key gets `42501 permission denied for table site_pages`. Read public tables as anon in a probe. Code that runs as the service role should reach tables through `SECURITY DEFINER` functions, or a migration must `GRANT ... TO "service_role"`; production is older and may not show the gap.
+* **`POSTGRES_URL_NON_POOLING`'s host is IPv6-only** and does not resolve on this machine. Use `POSTGRES_URL`, the pooler.
+* **It deploys the PR's Edge Functions** (status `FUNCTIONS_DEPLOYED`; `npx supabase functions list --project-ref <branch ref>`), but secrets are per branch (`supabase secrets set --project-ref <branch ref>`), so a function there runs without production's.
 
 Migrations apply to **production** on merge, so the production half of this happens after merging. The preview half does not — run it while the PR is open, where a mistake costs a force-push instead of a hotfix.
 

@@ -37,7 +37,22 @@ function reportEscape(value) {
 // release, which reads as no images rather than an error.
 function reportImagePaths(row) {
     return (Array.isArray(row.post_images) ? row.post_images : [])
-        .filter(p => typeof p === 'string' && /^[0-9a-f-]{36}\/[A-Za-z0-9_-]{1,64}\.(webp|jpg)$/.test(p));
+        .filter(p => typeof p === 'string' && reportImageBucket(p));
+}
+
+// A post's picture lives in the bucket its path names: an upload from the wiki,
+// or a copy the Discord relay made (v1.0). A path matching neither is not drawn.
+function reportImageBucket(path) {
+    if (/^[0-9a-f-]{36}\/[A-Za-z0-9_-]{1,64}\.(webp|jpg)$/.test(path)) return 'discussion-media';
+    if (/^discord\/[0-9]{5,20}-[0-3]\.(png|jpg|webp|gif)$/.test(path)) return 'discord-media';
+    return null;
+}
+
+// Where a reported post was: a character's page, or a forum post (v1.0), whose
+// key is 'forum:<uuid>' and reads better as FORUM.
+function reportPageLabel(pageId) {
+    const id = String(pageId || '');
+    return id.startsWith('forum:') ? 'FORUM' : id.toUpperCase();
 }
 
 function reportTimeAgo(iso) {
@@ -99,7 +114,7 @@ function renderReportQueue() {
             ${Number(row.report_count) > 1
                 ? `<span class="update-badge report-count-badge">${reportEscape(String(row.report_count))} REPORTS</span>`
                 : ''}
-            <span class="report-page">${reportEscape((row.page_id || '').toUpperCase())}</span>
+            <span class="report-page">${reportEscape(reportPageLabel(row.page_id))}</span>
             <span class="report-time">${reportEscape(reportTimeAgo(row.created_at))}</span>
         `;
         card.appendChild(head);
@@ -139,7 +154,7 @@ function renderReportQueue() {
             const strip = document.createElement('div');
             strip.className = 'report-images';
             images.forEach(path => {
-                const url = window.supabaseClient.storage.from('discussion-media').getPublicUrl(path).data.publicUrl;
+                const url = window.supabaseClient.storage.from(reportImageBucket(path)).getPublicUrl(path).data.publicUrl;
                 const link = document.createElement('a');
                 link.href = url;
                 link.target = '_blank';
