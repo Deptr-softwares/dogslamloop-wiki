@@ -101,6 +101,24 @@ test.describe('wiki to Discord', () => {
         expect(core.sameTitle('Boomcat', 'Vessel')).toBe(false);
         expect(core.sameTitle('', '')).toBe(false);
     });
+
+    // Batch 3.
+    test('a wiki edit carries the same words and quote a send would, pings nobody, and no name', () => {
+        const args = { authorName: 'Kai', body: '@everyone new words', isReply: true, parentAuthor: 'Mo', parentBody: 'q', link: 'l' };
+        const edit = core.toDiscordEdit(args);
+        const send = core.toDiscordMessage(args);
+        expect(edit.content).toBe(send.content);
+        expect(edit.allowed_mentions).toEqual({ parse: [] });
+        expect(edit).not.toHaveProperty('username');
+    });
+
+    test('a forum post is named the same way when it opens and when it is renamed', () => {
+        expect(core.forumPostName('  Best\ncombo?  ')).toBe('Best combo?');
+        expect(core.forumPostName('')).toBe('Untitled');
+        expect(core.forumPostName('x'.repeat(150))).toHaveLength(100);
+        const open = core.forumPostOpening({ title: 'Best\ncombo?', authorName: 'Kai', body: 'b', link: 'l' });
+        expect(open.thread_name).toBe(core.forumPostName('Best\ncombo?'));
+    });
 });
 
 test.describe('Discord to wiki', () => {

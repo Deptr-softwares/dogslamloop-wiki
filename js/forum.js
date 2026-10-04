@@ -276,13 +276,103 @@
         box.appendChild(form);
     }
 
+    // Batch 3: the person who started a post can change its title and
+    // category. The rules are edit_my_forum_post's, including one rename every
+    // 5 minutes; this only draws the form.
+    function renderTitleEdit(head, row) {
+        const viewer = typeof window.discussionViewer === 'function' ? window.discussionViewer() : null;
+        if (!viewer || viewer.banned || !viewer.userId) return;
+        if (row.source !== 'site' || row.status !== 'visible' || row.author_id !== viewer.userId) return;
+
+        const open = el('button', 'btn-sys btn-sys-regular forum-edit-btn', 'EDIT');
+        open.type = 'button';
+
+        const form = el('form', 'forum-edit-form');
+        form.hidden = true;
+        const title = document.createElement('input');
+        title.type = 'text';
+        title.className = 'editor-input forum-title-input';
+        title.maxLength = MAX_TITLE;
+        title.value = row.title;
+        title.setAttribute('aria-label', 'Title');
+        const tag = document.createElement('select');
+        tag.className = 'editor-input forum-tag-select';
+        tag.setAttribute('aria-label', 'Category');
+        FORUM_TAGS.forEach(t => {
+            const o = el('option', null, t);
+            o.value = t;
+            o.selected = t === row.tag;
+            tag.appendChild(o);
+        });
+        const save = el('button', 'btn-sys btn-sys-blue', 'SAVE');
+        save.type = 'submit';
+        const cancel = el('button', 'btn-sys btn-sys-regular', 'CANCEL');
+        cancel.type = 'button';
+        const status = el('span', 'forum-mod-status');
+        [title, tag, save, cancel, status].forEach(n => form.appendChild(n));
+
+        open.addEventListener('click', () => {
+            form.hidden = false;
+            open.hidden = true;
+            title.focus();
+        });
+        cancel.addEventListener('click', () => {
+            form.hidden = true;
+            open.hidden = false;
+            status.textContent = '';
+        });
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const t = title.value.trim();
+            if (!t) { status.textContent = 'Give the post a title.'; return; }
+            if (t === row.title && tag.value === row.tag) { cancel.click(); return; }
+            save.disabled = true;
+            const { error } = await client().rpc('edit_my_forum_post', { p_thread_id: row.id, p_title: t, p_tag: tag.value });
+            save.disabled = false;
+            if (error) { status.textContent = error.message || 'Could not save that.'; return; }
+            window.location.reload();
+        });
+
+        head.appendChild(open);
+        head.appendChild(form);
+    }
+
+    // Batch 3: what a post was called before, for a moderator: renamed on the
+    // wiki or on Discord. forum_thread_edits is readable by moderators alone.
+    async function renderTitleHistory(head, meta, row) {
+        const viewer = typeof window.discussionViewer === 'function' ? window.discussionViewer() : null;
+        if (!viewer || !viewer.canModerate) return;
+        const { data, error } = await client().from('forum_thread_edits')
+            .select('title, tag, edited_at, edited_by')
+            .eq('thread_id', row.id)
+            .order('edited_at', { ascending: false });
+        if (error || !data || !data.length) return;
+
+        const btn = el('button', 'discussion-edited discussion-edited-open', 'title edited');
+        btn.type = 'button';
+        btn.title = 'Show what this post was called before (moderators only)';
+        const box = el('div', 'discussion-edits');
+        box.hidden = true;
+        box.appendChild(el('p', 'discussion-edits-title', 'Earlier titles (moderators only)'));
+        data.forEach(v => {
+            const item = el('div', 'discussion-edits-item');
+            item.appendChild(el('span', 'discussion-edits-when',
+                `Until ${timeAgo(v.edited_at)}${v.edited_by ? '' : ', changed on Discord'}:`));
+            item.appendChild(el('div', 'discussion-edits-body', `[${v.tag}] ${v.title}`));
+            box.appendChild(item);
+        });
+        btn.addEventListener('click', () => { box.hidden = !box.hidden; });
+        meta.appendChild(btn);
+        head.appendChild(box);
+    }
+
     async function showPost(root, id) {
         const back = document.getElementById('forum-back');
         if (back) { back.href = 'forum.html'; back.textContent = '← Forum'; }
 
         const { data: row, error } = UUID.test(id)
             ? await client().from('forum_threads')
-                .select('id, title, tag, source, author_name, discord_author_handle, status, created_at')
+                .select('id, title, tag, source, author_id, author_name, discord_author_handle, status, created_at')
                 .eq('id', id).maybeSingle()
             : { data: null, error: null };
 
@@ -321,7 +411,9 @@
             composerLast: true,
         });
         // After the component has learned who is reading.
+        renderTitleEdit(head, row);
         renderModeration(head, row);
+        await renderTitleHistory(head, meta, row);
     }
 
     window.initForum = async function () {

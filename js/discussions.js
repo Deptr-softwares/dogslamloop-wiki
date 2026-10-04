@@ -90,6 +90,9 @@
         // post id -> its image paths, as drawn. Removing your own post empties
         // the column server-side, so the paths to delete are read from here.
         imagesByPost: new Map(),
+        // post id -> the row, as drawn (batch 3): a reply's quote reads the
+        // reply it answers from here, and the edit box starts from the words.
+        postsById: new Map(),
         // How this page shows its thread. A character page keeps the defaults;
         // a forum post (v1.0 batch 2) reads oldest first, with the reply box
         // after the conversation, the way a forum reads.
@@ -795,16 +798,75 @@
         if (media) wrap.appendChild(media);
     }
 
-    // Who, when, and whether it changed since. Only a message copied from
-    // Discord can change: a wiki post is never edited, only removed.
+    // Who, when, and whether it changed since: edited by its author on the
+    // wiki (batch 3), or on Discord. A moderator's mark is a button that opens
+    // what it said before; everyone else only learns that it changed.
     function postHead(entry) {
         const head = el('div', 'discussion-post-head');
         head.appendChild(authorNode(entry));
         head.appendChild(el('span', 'discussion-time', timeAgo(entry.created_at)));
-        if (entry.status === 'visible' && entry.edited_at) {
-            head.appendChild(el('span', 'discussion-edited', 'edited on Discord'));
+        const shown = entry.status === 'visible' || (entry.status === 'hidden' && state.canModerate);
+        if (shown && entry.edited_at) {
+            const label = entry.source === 'discord' ? 'edited on Discord' : 'edited';
+            if (state.canModerate) {
+                const btn = el('button', 'discussion-edited discussion-edited-open', label);
+                btn.type = 'button';
+                btn.title = 'Show what this said before (moderators only)';
+                btn.dataset.showEdits = entry.id;
+                head.appendChild(btn);
+            } else {
+                head.appendChild(el('span', 'discussion-edited', label));
+            }
         }
         return head;
+    }
+
+    // Batch 3: a reply to a reply says which one it answers. Replies stay one
+    // step in (owner, 2026-10-04), so this line is what keeps a conversation
+    // inside a conversation readable. Every part is text.
+    function replyQuote(reply) {
+        if (!reply.reply_to) return null;
+        const answered = state.postsById.get(reply.reply_to);
+        const quote = el('button', 'discussion-quote');
+        quote.type = 'button';
+        quote.dataset.jumpTo = reply.reply_to;
+        if (answered && answered.status === 'visible') {
+            const words = textWithoutGifs(answered.body, klipyLinks(answered.body)).replace(/\s+/g, ' ').trim();
+            const shortened = words.length > 100 ? `${words.slice(0, 99).trimEnd()}…` : words;
+            quote.appendChild(el('span', 'discussion-quote-name', `↪ ${answered.author_name || 'Unknown'}:`));
+            quote.appendChild(document.createTextNode(` ${shortened || '[a picture]'}`));
+        } else {
+            quote.textContent = '↪ a removed message';
+        }
+        return quote;
+    }
+
+    // Reply, Edit and Delete, for whoever may use them. Edit and Delete are the
+    // author's own, and only on the wiki: a message copied from Discord has no
+    // wiki author.
+    function appendOwnActions(actions, entry) {
+        if (entry.status !== 'visible') return;
+        if (isSignedIn() && !isBanned()) {
+            const replyBtn = el('button', 'discussion-action-btn', 'Reply');
+            replyBtn.type = 'button';
+            // data- attribute plus a delegated listener, never an inline
+            // onclick: post ids and author names are user-influenced and an
+            // onclick would put them in an executable position.
+            replyBtn.dataset.replyTo = entry.id;
+            actions.appendChild(replyBtn);
+        }
+        const isMine = state.session && entry.author_id === state.session.user.id && entry.source !== 'discord';
+        if (!isMine) return;
+        if (!isBanned()) {
+            const editBtn = el('button', 'discussion-action-btn', 'Edit');
+            editBtn.type = 'button';
+            editBtn.dataset.editPost = entry.id;
+            actions.appendChild(editBtn);
+        }
+        const delBtn = el('button', 'discussion-action-btn discussion-action-danger', 'Delete');
+        delBtn.type = 'button';
+        delBtn.dataset.removePost = entry.id;
+        actions.appendChild(delBtn);
     }
 
     function removedText(status) {
@@ -842,25 +904,7 @@
         appendMedia(wrap, post);
 
         const actions = el('div', 'discussion-post-actions');
-
-        if (isSignedIn() && !isBanned() && post.status === 'visible') {
-            const replyBtn = el('button', 'discussion-action-btn', 'Reply');
-            replyBtn.type = 'button';
-            // data- attribute plus a delegated listener, never an inline
-            // onclick: post ids and author names are user-influenced and an
-            // onclick would put them in an executable position.
-            replyBtn.dataset.replyTo = post.id;
-            actions.appendChild(replyBtn);
-        }
-
-        const isMine = post.status === 'visible' && state.session && post.author_id === state.session.user.id;
-        if (isMine) {
-            const delBtn = el('button', 'discussion-action-btn discussion-action-danger', 'Delete');
-            delBtn.type = 'button';
-            delBtn.dataset.removePost = post.id;
-            actions.appendChild(delBtn);
-        }
-
+        appendOwnActions(actions, post);
         appendReportControl(actions, post);
         appendModerationControls(actions, post);
 
@@ -892,18 +936,13 @@
         } else {
             setTextWithBreaks(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
         }
+        const quote = removed && reply.status !== 'hidden' ? null : replyQuote(reply);
+        if (quote) wrap.appendChild(quote);
         wrap.appendChild(body);
         appendMedia(wrap, reply);
 
         const actions = el('div', 'discussion-post-actions');
-
-        if (reply.status === 'visible' && state.session && reply.author_id === state.session.user.id) {
-            const delBtn = el('button', 'discussion-action-btn discussion-action-danger', 'Delete');
-            delBtn.type = 'button';
-            delBtn.dataset.removePost = reply.id;
-            actions.appendChild(delBtn);
-        }
-
+        appendOwnActions(actions, reply);
         appendReportControl(actions, reply);
         appendModerationControls(actions, reply);
 
@@ -937,7 +976,10 @@
         form.dataset.parentId = parentId || '';
 
         if (parentId) {
-            const heading = el('div', 'discussion-composer-heading', 'Replying to this post');
+            // A reply to a reply names the person (batch 3); the name is set as
+            // text, like every name on the page.
+            const heading = el('div', 'discussion-composer-heading',
+                overrides.replyingTo ? `Replying to ${overrides.replyingTo}` : 'Replying to this post');
             form.appendChild(heading);
         }
 
@@ -1047,6 +1089,11 @@
         if (posts.length < PAGE_SIZE) state.exhausted = true;
 
         let list = root.querySelector('.discussion-list');
+
+        // Before anything is drawn, so a reply's quote can find the reply it
+        // answers wherever that sits in the list.
+        if (!append) state.postsById.clear();
+        [...posts, ...replies].forEach(p => state.postsById.set(p.id, p));
 
         if (!append) {
             state.imagesByPost.clear();
@@ -1272,14 +1319,140 @@
         const target = document.getElementById(`post-${postId}`);
         if (!target) return;
 
-        const composer = renderComposer(postId);
-        const replies = target.querySelector('.discussion-replies');
+        // A reply to a reply (batch 3) goes at the end of the same
+        // conversation; the database records which reply it answers.
+        const onReply = target.classList.contains('discussion-reply');
+        const answered = state.postsById.get(postId);
+        const composer = renderComposer(postId, onReply && answered ? { replyingTo: answered.author_name || 'Unknown' } : {});
+        const replies = onReply ? target.closest('.discussion-replies') : target.querySelector('.discussion-replies');
         if (replies) replies.appendChild(composer);
         else target.appendChild(composer);
 
         state.replyingTo = postId;
         const area = composer.querySelector('.discussion-textarea');
         if (area) area.focus();
+    }
+
+    // --- EDITING (batch 3) ---
+    //
+    // The words only (owner, 2026-10-04). The rules are edit_my_discussion_post's:
+    // the author, a visible post, the same limits as posting, one edit every
+    // 10 seconds. This only draws the box.
+    function openEdit(postId) {
+        const target = document.getElementById(`post-${postId}`);
+        const entry = state.postsById.get(postId);
+        if (!target || !entry) return;
+
+        document.querySelectorAll('.discussion-edit-form').forEach(closeEdit);
+
+        const body = target.querySelector(':scope > .discussion-body');
+        if (!body) return;
+
+        const form = el('form', 'discussion-edit-form');
+        form.dataset.editing = postId;
+        const area = document.createElement('textarea');
+        area.className = 'discussion-edit-text';
+        area.maxLength = MAX_BODY;
+        area.rows = 3;
+        area.value = entry.body || '';
+        area.setAttribute('aria-label', 'Edit your post');
+        form.appendChild(area);
+
+        const row = el('div', 'discussion-composer-row');
+        const save = el('button', 'btn-sys btn-sys-blue discussion-edit-save', 'SAVE');
+        save.type = 'submit';
+        const cancel = el('button', 'btn-sys btn-sys-regular discussion-cancel', 'CANCEL');
+        cancel.type = 'button';
+        cancel.dataset.cancelEdit = 'true';
+        row.appendChild(save);
+        row.appendChild(cancel);
+        row.appendChild(el('span', 'discussion-composer-status'));
+        form.appendChild(row);
+
+        body.hidden = true;
+        body.insertAdjacentElement('afterend', form);
+        area.focus();
+    }
+
+    function closeEdit(form) {
+        const body = form.previousElementSibling;
+        if (body && body.classList.contains('discussion-body')) body.hidden = false;
+        form.remove();
+    }
+
+    async function submitEdit(form) {
+        const postId = form.dataset.editing;
+        const entry = state.postsById.get(postId);
+        const area = form.querySelector('.discussion-edit-text');
+        const save = form.querySelector('.discussion-edit-save');
+        if (!entry || !area) return;
+
+        const body = area.value.trim();
+        const hasImages = Array.isArray(entry.images) && entry.images.length > 0;
+        if (!body && !hasImages) { setStatus('Write something first.', true); return; }
+        if (body === String(entry.body || '').trim()) { closeEdit(form); return; }
+
+        if (save) save.disabled = true;
+
+        // A KLIPY link typed in becomes its GIF, as when posting.
+        let newBody = body;
+        let unresolvedGifs = 0;
+        if (body.search(KLIPY_PAGE) !== -1) {
+            setStatus('Finding the GIF…');
+            ({ body: newBody, unresolved: unresolvedGifs } = await resolveKlipyPages(body));
+        }
+
+        setStatus('Saving…');
+        const { error } = await client().rpc('edit_my_discussion_post', { p_post_id: postId, p_body: newBody });
+        if (save) save.disabled = false;
+        if (error) { setStatus(error.message || 'Could not save the edit.', true); return; }
+
+        state.offset = 0;
+        state.exhausted = false;
+        await draw();
+        setStatus(unresolvedGifs
+            ? 'Saved. A KLIPY link could not be turned into its GIF, so it shows as a link.'
+            : '');
+    }
+
+    // What a post said before, for a moderator (batch 3). Read straight from
+    // page_discussion_edits, which only a moderator can read at all.
+    async function toggleEdits(postId) {
+        const target = document.getElementById(`post-${postId}`);
+        if (!target) return;
+        const open = target.querySelector(':scope > .discussion-edits');
+        if (open) { open.remove(); return; }
+
+        const box = el('div', 'discussion-edits');
+        box.appendChild(el('p', 'discussion-edits-title', 'Earlier versions (moderators only)'));
+        const head = target.querySelector(':scope > .discussion-post-head');
+        if (head) head.insertAdjacentElement('afterend', box);
+        else target.prepend(box);
+
+        const { data, error } = await client()
+            .from('page_discussion_edits')
+            .select('body, edited_at, edited_by')
+            .eq('post_id', postId)
+            .order('edited_at', { ascending: false });
+        if (error) { box.appendChild(el('p', 'discussion-edits-empty', 'Could not load the earlier versions.')); return; }
+        if (!data || !data.length) { box.appendChild(el('p', 'discussion-edits-empty', 'No earlier versions were kept.')); return; }
+
+        data.forEach(v => {
+            const item = el('div', 'discussion-edits-item');
+            item.appendChild(el('span', 'discussion-edits-when',
+                `Until ${timeAgo(v.edited_at)}${v.edited_by ? '' : ', changed on Discord'}:`));
+            const text = el('div', 'discussion-edits-body');
+            setTextWithBreaks(text, v.body);
+            item.appendChild(text);
+            box.appendChild(item);
+        });
+    }
+
+    function jumpTo(postId) {
+        const target = document.getElementById(`post-${postId}`);
+        if (!target) return;
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.add('discussion-post-linked');
     }
 
     // One delegated listener for the whole section, so posts drawn later are
@@ -1330,6 +1503,22 @@
 
             const remove = e.target.closest('[data-remove-post]');
             if (remove) { await removePost(remove.dataset.removePost); return; }
+
+            const edit = e.target.closest('[data-edit-post]');
+            if (edit) { openEdit(edit.dataset.editPost); return; }
+
+            const cancelEdit = e.target.closest('[data-cancel-edit]');
+            if (cancelEdit) {
+                const form = cancelEdit.closest('.discussion-edit-form');
+                if (form) closeEdit(form);
+                return;
+            }
+
+            const edits = e.target.closest('[data-show-edits]');
+            if (edits) { await toggleEdits(edits.dataset.showEdits); return; }
+
+            const jump = e.target.closest('[data-jump-to]');
+            if (jump) { jumpTo(jump.dataset.jumpTo); return; }
 
             const report = e.target.closest('[data-report-post]');
             if (report) { openReportForm(report.dataset.reportPost); return; }
@@ -1390,6 +1579,9 @@
 
             const mod = e.target.closest('.discussion-mod-form');
             if (mod) { e.preventDefault(); await submitModeration(mod); return; }
+
+            const editForm = e.target.closest('.discussion-edit-form');
+            if (editForm) { e.preventDefault(); await submitEdit(editForm); return; }
 
             const form = e.target.closest('.discussion-composer');
             if (!form) return;
@@ -1481,7 +1673,12 @@
     // Who is reading, for a page that draws its own controls around a thread.
     // Only decides what to draw; every action is refused server-side.
     window.discussionViewer = function () {
-        return { signedIn: isSignedIn(), banned: isBanned(), canModerate: state.canModerate };
+        return {
+            signedIn: isSignedIn(),
+            banned: isBanned(),
+            canModerate: state.canModerate,
+            userId: state.session ? state.session.user.id : null,
+        };
     };
 
     window.initPageDiscussions = async function (pageId, opts = {}) {
