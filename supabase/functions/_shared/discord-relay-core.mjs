@@ -141,13 +141,18 @@ export function tagIdFor(availableTags, tag) {
 
 // A Discord post's category: its first tag that is one of the six, spelled the
 // wiki's way; Discussion when none is.
-export function tagFromApplied(appliedIds, availableTags) {
+//
+// `fallback` is for a post with none of the six. A post copied in needs a
+// category, so it gets Discussion; a post the sweep is following keeps the
+// one it has (null), or an untagged Discord post would overwrite the wiki's
+// category with the default (found live, 2026-10-04).
+export function tagFromApplied(appliedIds, availableTags, fallback = 'Discussion') {
     const byId = new Map((availableTags || []).map(t => [t.id, t.name]));
     for (const id of appliedIds || []) {
         const match = FORUM_TAGS.find(name => tagKey(name) === tagKey(byId.get(id)));
         if (match) return match;
     }
-    return 'Discussion';
+    return fallback;
 }
 
 // A wiki forum post as the webhook payload that opens its Discord post: the

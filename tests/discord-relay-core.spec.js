@@ -247,6 +247,9 @@ test.describe('the forum', () => {
         expect(core.tagFromApplied(['999', '300000000000000002'], [...TAGS, { id: '999', name: 'Off-topic' }])).toBe('Art');
         expect(core.tagFromApplied([], TAGS)).toBe('Discussion');
         expect(core.tagFromApplied(['999'], [{ id: '999', name: 'Off-topic' }])).toBe('Discussion');
+        // Following a post already copied in: no fallback, so the category stays.
+        expect(core.tagFromApplied([], TAGS, null)).toBeNull();
+        expect(core.tagFromApplied(['999'], [{ id: '999', name: 'Off-topic' }], null)).toBeNull();
     });
 
     test('a wiki forum post opens with its title, its tag, and the same no-ping message', () => {

@@ -222,6 +222,13 @@ async function prepareMessage(ctx, msg, parsed) {
 // Posts started on Discord, copied in as Forum posts. Start fresh: only posts
 // begun after the forum was first connected.
 async function importForumPosts(ctx, active) {
+    // First, on every forum tick, before anything can return early: the first
+    // call stamps when the forum was connected. Called only once a post
+    // appeared, it stamped THAT moment, a few seconds after the first post
+    // was made, and the first post was skipped as "from before" (found live,
+    // 2026-10-04).
+    const since = Date.parse(await rpc(ctx.db, 'discord_relay_forum_since'));
+
     const channelId = ctx.cfg.channels.forum;
     const fresh = active.filter(t => t.parent_id === channelId && core.isSnowflake(t.id));
     if (!fresh.length) return;
@@ -230,7 +237,6 @@ async function importForumPosts(ctx, active) {
     const unlinked = fresh.filter(t => !links.has(t.id));
     if (!unlinked.length) return;
 
-    const since = Date.parse(await rpc(ctx.db, 'discord_relay_forum_since'));
     for (const thread of unlinked) {
         if (core.snowflakeTime(thread.id) < since) continue;
         // A forum post's starter message shares the post's id.
@@ -473,7 +479,7 @@ async function sweep(ctx, active) {
             const tags = await forumTags(ctx);
             for (const t of forumActive) {
                 await rpc(ctx.db, 'discord_relay_forum_rename', {
-                    p_discord_thread_id: t.id, p_title: t.name, p_tag: core.tagFromApplied(t.applied_tags, tags),
+                    p_discord_thread_id: t.id, p_title: t.name, p_tag: core.tagFromApplied(t.applied_tags, tags, null),
                 });
             }
         }

@@ -215,7 +215,8 @@ function world() {
             return ['discord/123456789012345678-0.png', '00000000-0000-0000-0000-000000000000/own.webp'];
         },
         discord_relay_edit(a) { db.edits.push(a); return null; },
-        discord_relay_forum_since() { return db.forumSince; },
+        // As the SQL does: the first call stamps the moment, later calls read it.
+        discord_relay_forum_since() { if (!db.forumSince) db.forumSince = new Date(clock).toISOString(); return db.forumSince; },
         discord_relay_forum_outbox() { const out = db.forumOutbox; db.forumOutbox = []; return out; },
         discord_relay_link_forum(a) {
             db.forumLinks.push(a);
@@ -718,4 +719,39 @@ test('a forum message too long for Discord links back to the forum post', async 
     await w.tick(FORUM_ENV);
     const send = w.discord.calls.find(c => c.method === 'POST' && c.url.startsWith(FORUM_WEBHOOK));
     expect(send.body.content).toContain(`<https://dogslamloop.com/forum.html?post=${THREAD_A}#post-p1>`);
+});
+
+// --- FOUND IN THE LIVE FORUM TEST, 2026-10-04 ---
+
+test('the forum is stamped as connected on its first tick, so the first post started on Discord is copied in', async () => {
+    const w = world();
+    w.db.forumSince = null;   // never connected
+    // The first tick finds an empty forum channel.
+    await w.tick(FORUM_ENV);
+    expect(w.db.forumSince).toBe(new Date(T0).toISOString());
+
+    w.advance(60000);
+    const first = w.forumPost('First post on Discord');
+    // Seen a few seconds after it was made, as a 10-second timer sees it.
+    w.advance(5000);
+    const report = await w.tick(FORUM_ENV);
+    expect(report).toMatchObject({ forumTaken: 1, errors: [] });
+    expect(w.db.forumTaken[0].p_discord_thread_id).toBe(first);
+});
+
+test('a Discord post with none of the six tags leaves the wiki category as it is', async () => {
+    const w = world();
+    w.discord.forumTags = TAGS;
+    const link = (t) => w.db.links.set(`forum:${t}`, { site_key: `forum:${t}`, channel: 'forum', discord_thread_id: t, last_message_id: t, linked_at: new Date(T0).toISOString() });
+    const untagged = w.forumPost('Untagged', {}, { applied_tags: [] });
+    const offTopic = w.forumPost('Off-topic only', {}, { applied_tags: ['300000000000000003'] });
+    link(untagged);
+    link(offTopic);
+    w.db.sweepDue = true;
+
+    await w.tick(FORUM_ENV);
+    expect(w.db.renames).toEqual([
+        { p_discord_thread_id: untagged, p_title: 'Untagged', p_tag: null },
+        { p_discord_thread_id: offTopic, p_title: 'Off-topic only', p_tag: null },
+    ]);
 });
