@@ -564,3 +564,38 @@ button.discussion-author-link:focus-visible {
     padding: 0.1rem 0.35rem;
     white-space: nowrap;
 }
+
+/* A message copied in from the Discord forum (v1.0 batch 1). The name is
+   plain text, since there is no wiki profile to open, so it sits in a span
+   laid out like the profile button. The chip is Discord's blurple with white
+   text, 4.6:1, the same in either theme. */
+.discussion-author-discord {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.discussion-discord {
+    font-family: var(--text-mono);
+    font-size: 0.58rem;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    color: #fff;
+    background: #5865f2;
+    border: 1px solid #5865f2;
+    padding: 0.1rem 0.35rem;
+    white-space: nowrap;
+}
+
+.discussion-handle,
+.discussion-edited {
+    font-family: var(--text-mono);
+    font-size: 0.62rem;
+    font-weight: normal;
+    color: var(--text-muted);
+}
+
+.discussion-edited {
+    font-style: italic;
+}

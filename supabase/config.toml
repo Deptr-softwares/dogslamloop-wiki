@@ -385,6 +385,13 @@ deno_version = 2
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 
+# The Discord relay (v1.0 batch 1), deployed on merge to main because it is
+# declared here. Its caller is checked with RELAY_SECRET instead of a JWT: the
+# anon key is in every page's source, so a valid JWT proves nothing.
+[functions.discord-relay]
+enabled = true
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327
