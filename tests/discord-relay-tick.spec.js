@@ -981,3 +981,28 @@ test('an archived forum post is opened before it is renamed; a banned starter re
     expect(v.db.renamedCalls).toEqual([]);
     expect(v.db.forumRenames).toHaveLength(1);
 });
+
+// Found live, 2026-10-04: a post renamed on the wiki before it reached
+// Discord opened under the new name, and the sweep renamed it again to the
+// same name, spending one of the renames Discord allows.
+test('a rename Discord already shows is marked done without asking Discord again', async () => {
+    const w = world();
+    const t = renamedForumPost(w);
+    const thread = w.discord.threads.find(x => x.id === t);
+    thread.name = 'New name';
+    thread.applied_tags = ['300000000000000002'];
+    w.db.sweepDue = true;
+
+    const report = await w.tick(FORUM_ENV);
+    expect(w.discord.calls.filter(c => c.method === 'PATCH')).toEqual([]);
+    expect(report.renamed).toBe(0);
+    expect(w.db.renamedCalls).toEqual([{ p_discord_thread_id: t, p_edited_at: EDITED_AT }]);
+
+    // The same name under another category is still a change.
+    const v = world();
+    const u = renamedForumPost(v);
+    v.discord.threads.find(x => x.id === u).name = 'New name';
+    v.db.sweepDue = true;
+    await v.tick(FORUM_ENV);
+    expect(v.discord.calls.filter(c => c.method === 'PATCH').map(c => c.body)).toEqual([{ name: 'New name', applied_tags: ['300000000000000002'] }]);
+});

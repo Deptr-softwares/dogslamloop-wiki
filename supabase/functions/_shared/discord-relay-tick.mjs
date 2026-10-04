@@ -566,7 +566,7 @@ async function messageGone(ctx, messageId) {
 // refusal then costs one request a minute and never ends the rest of the tick.
 // Returns the posts renamed, whose names in this tick's `active` list are now
 // out of date.
-async function renameForumPosts(ctx) {
+async function renameForumPosts(ctx, active) {
     const renamed = new Set();
     const work = (await rpc(ctx.db, 'discord_relay_forum_renames', { p_limit: OPEN_LIMIT })) || [];
     for (const w of work) {
@@ -575,11 +575,21 @@ async function renameForumPosts(ctx) {
             // Discord name back over the wiki's.
             if (w.author_discord_id && await blockedOnServer(ctx, w.author_discord_id)) continue;
             const tagId = core.tagIdFor(await forumTags(ctx), w.tag);
-            await unarchivedRetry(ctx, w.discord_thread_id,
-                () => ctx.discord.rename(w.discord_thread_id, core.forumPostName(w.title), tagId ? [tagId] : null));
+            const name = core.forumPostName(w.title);
+            const tags = tagId ? [tagId] : null;
+            // A post renamed on the wiki before it reached Discord opens under
+            // the new name already (found live, 2026-10-04). Asking again
+            // would spend one of the few renames Discord allows for nothing.
+            const current = (active || []).find(t => t.id === w.discord_thread_id);
+            const shown = current && current.name === name
+                && (!tags || ((current.applied_tags || []).length === 1 && current.applied_tags[0] === tagId));
+            if (!shown) {
+                await unarchivedRetry(ctx, w.discord_thread_id,
+                    () => ctx.discord.rename(w.discord_thread_id, name, tags));
+                ctx.report.renamed++;
+            }
             await rpc(ctx.db, 'discord_relay_renamed', { p_discord_thread_id: w.discord_thread_id, p_edited_at: w.edited_at });
             renamed.add(w.discord_thread_id);
-            ctx.report.renamed++;
         } catch (e) {
             if (e instanceof RateLimited) {
                 ctx.report.renameDeferred = true;
@@ -603,7 +613,7 @@ async function sweep(ctx, active) {
     if (ctx.cfg.channels.forum) {
         // The wiki's renames go out first. Those posts' names in `active` were
         // read before the rename, so they are not read back this time.
-        const renamed = await renameForumPosts(ctx);
+        const renamed = await renameForumPosts(ctx, active);
         const links = new Set(((await rpc(ctx.db, 'discord_relay_threads')) || [])
             .filter(l => l.channel === 'forum').map(l => l.discord_thread_id));
         const forumActive = active.filter(t => t.parent_id === ctx.cfg.channels.forum && links.has(t.id) && !renamed.has(t.id));
