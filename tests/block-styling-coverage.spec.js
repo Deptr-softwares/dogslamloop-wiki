@@ -44,18 +44,27 @@ test('every authored block class is styled by a stylesheet all page types load',
     const universal = universalSheets();
     expect(universal.length, 'the page types share no stylesheets at all').toBeGreaterThan(3);
 
+    // Comments are stripped: only a rule styles anything. A comment saying
+    // "(v1.0 batch 1)" once read here as a rule for `.0`, and failed the
+    // check for a block nobody had touched.
     const sheets = fs.readdirSync(STYLE_DIR)
         .filter(f => f.endsWith('.css'))
-        .map(f => ({ name: f, css: fs.readFileSync(path.join(STYLE_DIR, f), 'utf8') }));
+        .map(f => ({ name: f, css: fs.readFileSync(path.join(STYLE_DIR, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '') }));
 
     // The renderer that produces authored blocks on every page type.
     const src = fs.readFileSync(path.join(ROOT, 'js', 'description.js'), 'utf8');
     const body = src.slice(src.indexOf('generateHTMLForBlocks'));
 
+    // A class attribute holding a template, `sbox-tab${i === 0 ? ' is-active' : ''}`,
+    // has the template taken out before it is split. Split whole, it gave
+    // `sbox-tab${i` (dropped for its `$`, so .sbox-tab was never audited) and
+    // `===`, `0`, `?`, which are pieces of code, not classes. Only tokens that
+    // can be class names are kept.
     const classes = new Set();
     for (const attr of body.match(/class="[^"]+"/g) || []) {
-        for (const cls of attr.slice(7, -1).split(/\s+/)) {
-            if (cls && !cls.includes('$')) classes.add(cls);
+        const plain = attr.slice(7, -1).replace(/\$\{[^}]*\}/g, ' ');
+        for (const cls of plain.split(/\s+/)) {
+            if (cls && /^-?[_a-zA-Z][\w-]*$/.test(cls)) classes.add(cls);
         }
     }
     expect(classes.size, 'found no block classes - the renderer moved').toBeGreaterThan(20);

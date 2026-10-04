@@ -45,6 +45,12 @@
     // the trigger's, so a row that somehow breaks it is not drawn at all.
     const IMAGE_PATH = /^[0-9a-f-]{36}\/[A-Za-z0-9_-]{1,64}\.(webp|jpg)$/;
 
+    // A picture copied off Discord by the relay (v1.0 batch 1): its own
+    // bucket, named after the message. Same rule as the shape trigger's and
+    // supabase/functions/_shared/discord-relay-core.mjs's COPIED_IMAGE_PATH.
+    const DISCORD_IMAGE_PATH = /^discord\/[0-9]{5,20}-[0-3]\.(png|jpg|webp|gif)$/;
+    const DISCORD_BUCKET = 'discord-media';
+
     // KLIPY's media servers, read off klipy.com on 2026-09-28: every GIF, WebP
     // and MP4 on its home page was served from these two hosts, under /ii/.
     // Exact hosts and path, so a post can never point a reader's browser
@@ -143,6 +149,19 @@
     function authorNode(entry) {
         const removed = entry.status !== 'visible';
         const name = removed ? '—' : (entry.author_name || 'Unknown');
+
+        // A message copied in from the Discord forum (v1.0 batch 1). There is
+        // no wiki account to open, so the name is plain text, followed by
+        // where it came from and the person's Discord handle. Every part is
+        // set as text: all of it was typed by somebody on Discord.
+        if (!removed && entry.source === 'discord') {
+            const span = el('span', 'discussion-author discussion-author-discord', name);
+            span.appendChild(el('span', 'discussion-discord', 'DISCORD'));
+            if (entry.discord_author_handle) {
+                span.appendChild(el('span', 'discussion-handle', `@${entry.discord_author_handle}`));
+            }
+            return span;
+        }
 
         if (removed || !entry.author_id) return el('span', 'discussion-author', name);
 
@@ -264,8 +283,11 @@
     // a property, never interpolated, and each one has passed an exact pattern
     // above: this renders unreviewed input on every character page.
     function renderPostMedia(entry) {
+        // Each path is drawn from the bucket its own pattern names, and a path
+        // matching neither is not drawn at all.
+        const bucketFor = (p) => (IMAGE_PATH.test(p) ? IMAGE_BUCKET : DISCORD_IMAGE_PATH.test(p) ? DISCORD_BUCKET : null);
         const images = (Array.isArray(entry.images) ? entry.images : [])
-            .filter(p => typeof p === 'string' && IMAGE_PATH.test(p))
+            .filter(p => typeof p === 'string' && bucketFor(p))
             .slice(0, MAX_IMAGES);
         const gifs = klipyLinks(entry.body);
         if (!images.length && !gifs.length) return null;
@@ -273,7 +295,7 @@
         const box = el('div', 'discussion-media');
 
         images.forEach(path => {
-            const url = client().storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+            const url = client().storage.from(bucketFor(path)).getPublicUrl(path).data.publicUrl;
             const link = el('a', 'discussion-media-link');
             link.href = url;
             link.target = '_blank';
@@ -760,16 +782,31 @@
         if (media) wrap.appendChild(media);
     }
 
+    // Who, when, and whether it changed since. Only a message copied from
+    // Discord can change: a wiki post is never edited, only removed.
+    function postHead(entry) {
+        const head = el('div', 'discussion-post-head');
+        head.appendChild(authorNode(entry));
+        head.appendChild(el('span', 'discussion-time', timeAgo(entry.created_at)));
+        if (entry.status === 'visible' && entry.edited_at) {
+            head.appendChild(el('span', 'discussion-edited', 'edited on Discord'));
+        }
+        return head;
+    }
+
+    function removedText(status) {
+        if (status === 'removed_by_staff') return '[removed by a moderator]';
+        if (status === 'removed_on_discord') return '[removed on Discord]';
+        return '[removed by the author]';
+    }
+
     function renderPost(post, replies) {
         const removed = post.status !== 'visible';
 
         const wrap = el('article', 'discussion-post' + (removed ? ' discussion-post-removed' : ''));
         wrap.id = `post-${post.id}`;
 
-        const head = el('div', 'discussion-post-head');
-        head.appendChild(authorNode(post));
-        head.appendChild(el('span', 'discussion-time', timeAgo(post.created_at)));
-        wrap.appendChild(head);
+        wrap.appendChild(postHead(post));
 
         const body = el('div', 'discussion-body');
         if (post.status === 'hidden') {
@@ -784,9 +821,7 @@
             setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
         } else if (removed) {
             body.classList.add('discussion-body-removed');
-            body.textContent = post.status === 'removed_by_staff'
-                ? '[removed by a moderator]'
-                : '[removed by the author]';
+            body.textContent = removedText(post.status);
         } else {
             setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
         }
@@ -832,10 +867,7 @@
         const wrap = el('div', 'discussion-reply' + (removed ? ' discussion-post-removed' : ''));
         wrap.id = `post-${reply.id}`;
 
-        const head = el('div', 'discussion-post-head');
-        head.appendChild(authorNode(reply));
-        head.appendChild(el('span', 'discussion-time', timeAgo(reply.created_at)));
-        wrap.appendChild(head);
+        wrap.appendChild(postHead(reply));
 
         const body = el('div', 'discussion-body');
         if (reply.status === 'hidden') {
@@ -843,9 +875,7 @@
             setTextWithBreaks(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
         } else if (removed) {
             body.classList.add('discussion-body-removed');
-            body.textContent = reply.status === 'removed_by_staff'
-                ? '[removed by a moderator]'
-                : '[removed by the author]';
+            body.textContent = removedText(reply.status);
         } else {
             setTextWithBreaks(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
         }

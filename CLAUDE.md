@@ -9,6 +9,7 @@ Frame data, i-frames, matchup tiers and M1 trading are domain terms with real ga
 - Static HTML/CSS/JS. **No bundler, no build step.** Classic `<script src>` tags sharing one `window` global scope.
 - **Supabase** (Postgres + PostgREST + Auth + Storage), fetched client-side with the public anon key. That key ships in `js/site_utils.js` and is in every page's source — it is not a secret. The service-role key must never appear in this repo or in CI.
 - **KLIPY's API key ships in `js/discussions.js`** and is visible in page source, like the anon key: the owner's explicit choice, 2026-10-02. It is a test key, 100 lookups an hour. A KLIPY link is looked up once, when the post is made, and the post stores the GIF's own address, so readers never spend a lookup. Never move the lookup to render time.
+- **The Discord relay** (`supabase/functions/discord-relay`, v1.0) is the one Edge Function. It deploys on merge to `main` because `supabase/config.toml` declares it, and Supabase Cron calls it every 10 seconds. **Its bot token and webhook URLs live in Supabase secrets, set by the owner, and never appear in this repo, in CI or in a chat message**, the same as the service-role key. Without them it does nothing, which is what every preview branch gets. Its rules are plain JS in `supabase/functions/_shared/`, tested in Node.
 - **GitHub Pages** from `main`, custom domain `dogslamloop.com`.
 
 ## Deploy model

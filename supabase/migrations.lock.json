@@ -64,6 +64,8 @@
         "20260910000000_media_uploader_credit.sql": "ba0d719ce958cbb9245baea554173163eb093175c3fa39cb8384a3c30c1f50d8",
         "20260927000000_is_owner_never_null.sql": "cae1a6d70cb26d3b6a1def13e6736fd7f05930fa06829a8ce72454307662df26",
         "20260928000000_upload_media_permission.sql": "3e5363611316039f91651fcff50a84246ebbf6990134cb8d85bc6f9895955514",
-        "20260928000001_discussion_media_jpeg.sql": "04810eee4da225c096a18cf41d990af4ad55a25e88191972a5bb994f359ad892"
+        "20260928000001_discussion_media_jpeg.sql": "04810eee4da225c096a18cf41d990af4ad55a25e88191972a5bb994f359ad892",
+        "20261004000000_discord_relay.sql": "160ec752835c9f1f0914d22c32b9f465d6d3c5253e9fcf0e091bf1bcf0fa8bc2",
+        "20261004000001_discord_relay_characters_only.sql": "c3ae4f08c3b7f443d32c97d43f7774a0a4cfdb6c28446da2b91adb7da464824a"
     }
 }
