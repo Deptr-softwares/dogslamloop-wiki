@@ -3,20 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blog | Dogslamloop Wiki</title>
+    <title>Forum | Dogslamloop Wiki</title>
     <link rel="icon" type="image/jpg" href="medias/images/DogslamloopIcon.webp">
 
     <!-- Social/SEO metadata. Hand-maintained: this page is not produced by
-         scripts/generate-pages.js. Must be static - unfurlers don't run JS.
-         Individual posts share this page's tags; per-post OG would need the
-         posts to be generated as files, which is a v0.10 job. -->
-    <meta name="description" content="News, notes, and writing from the Dogslamloop wiki team.">
-    <link rel="canonical" href="https://dogslamloop.com/blog.html">
+         scripts/generate-pages.js. Must be static - unfurlers don't run JS. -->
+    <meta name="description" content="The Dogslamloop wiki forum: questions, guides, discussion and art about Jujutsu Shenanigans.">
+    <link rel="canonical" href="https://dogslamloop.com/forum.html">
     <meta property="og:site_name" content="Dogslamloop Wiki">
     <meta property="og:type" content="website">
-    <meta property="og:title" content="Blog | Dogslamloop Wiki">
-    <meta property="og:description" content="News, notes, and writing from the Dogslamloop wiki team.">
-    <meta property="og:url" content="https://dogslamloop.com/blog.html">
+    <meta property="og:title" content="Forum | Dogslamloop Wiki">
+    <meta property="og:description" content="The Dogslamloop wiki forum: questions, guides, discussion and art about Jujutsu Shenanigans.">
+    <meta property="og:url" content="https://dogslamloop.com/forum.html">
     <meta property="og:image" content="https://dogslamloop.com/medias/images/DogslamloopIcon.webp">
     <meta name="twitter:card" content="summary">
 
@@ -29,10 +27,12 @@
     <link rel="stylesheet" href="style/Alerts.css">
     <link rel="stylesheet" href="style/Modals.css">
     <!-- Forms.css defines .editor-input, which the auth and profile modals
-         injected by js/site_utils.js both use. Without it the login form and
-         the profile fields render unstyled. -->
+         injected by js/site_utils.js both use, and the new-post fields. -->
     <link rel="stylesheet" href="style/Forms.css">
     <link rel="stylesheet" href="style/FrameData.css">
+    <!-- The conversation is the same component as a character thread. -->
+    <link rel="stylesheet" href="style/discussions.css">
+    <link rel="stylesheet" href="style/forum.css">
 </head>
 <body class="site-body p-0">
 
@@ -78,19 +78,18 @@
         </aside>
 
         <!-- Content must live inside <main>: js/internalstyling.js watches it
-             with a MutationObserver, and that is what expands [b]/[color=]/
-             [url=] shortcodes in injected post content. -->
+             with a MutationObserver. -->
         <main class="main-content-area space-y-6">
 
             <div class="back-home-wrapper">
-                <a href="index.html" class="btn-ghost">← Back to Home</a>
+                <a href="index.html" class="btn-ghost" id="forum-back">← Back to Home</a>
             </div>
 
-            <header class="home-main-header" id="blog-page-header">
-                <h1 class="home-main-title">Blog</h1>
-            </header>
+            <!-- js/forum.js fills this: the list of posts, or one post. -->
+            <div id="forum-root"></div>
 
-            <div id="blog-content"></div>
+            <!-- A post's conversation: the character-thread component. -->
+            <section id="discussion-section" class="discussion-section" aria-label="Discussion" hidden></section>
 
         </main>
 
@@ -104,8 +103,9 @@
     <script src="js/pagebuilder.js?v=c4dda896"></script>
     <script src="js/search.js?v=c4dda896"></script>
     <script src="js/description.js?v=c4dda896"></script>
+    <script src="js/discussions.js?v=c4dda896"></script>
     <script src="js/internalstyling.js?v=c4dda896"></script>
-    <script src="js/posts.js?v=c4dda896"></script>
+    <script src="js/forum.js?v=c4dda896"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -113,24 +113,7 @@
             if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
             if (typeof window.initAuthDock === 'function') await window.initAuthDock();
             if (typeof window.initSidebarToggle === 'function') window.initSidebarToggle();
-
-            const slug = new URLSearchParams(window.location.search).get('post');
-
-            if (slug) {
-                const found = await window.loadSinglePost('blog-content', slug);
-                if (found) {
-                    // The post supplies its own <h1>, so the page's generic
-                    // heading would be a duplicate.
-                    document.getElementById('blog-page-header').classList.add('hidden');
-                    return;
-                }
-                // Unknown or unpublished slug: show the list rather than an
-                // error, so a stale link still lands somewhere useful.
-                document.getElementById('blog-content').insertAdjacentHTML('beforebegin',
-                    '<div class="wiki-section-empty">That post could not be found. Here is everything else:</div>');
-            }
-
-            await window.loadPostList('blog-content', { kind: 'blog', emptyMessage: 'No posts yet. Check back soon.' });
+            if (typeof window.initForum === 'function') await window.initForum();
         });
     </script>
 </body>

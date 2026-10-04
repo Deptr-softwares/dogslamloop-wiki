@@ -90,7 +90,20 @@
         // post id -> its image paths, as drawn. Removing your own post empties
         // the column server-side, so the paths to delete are read from here.
         imagesByPost: new Map(),
+        // How this page shows its thread. A character page keeps the defaults;
+        // a forum post (v1.0 batch 2) reads oldest first, with the reply box
+        // after the conversation, the way a forum reads.
+        opts: null,
     };
+
+    const DEFAULT_OPTS = {
+        title: 'Discussion',
+        order: 'newest',
+        placeholder: 'Start a discussion about this character…',
+        moreLabel: 'LOAD OLDER POSTS',
+        composerLast: false,
+    };
+    state.opts = { ...DEFAULT_OPTS };
 
     // Images picked in a composer and prepared, waiting for POST. Keyed by the
     // form, so a reply's attachments never leak into the top-level composer.
@@ -542,8 +555,8 @@
             .select('*')
             .eq('page_id', state.pageId)
             .is('parent_id', null)
-            .order('created_at', { ascending: false })
-            .order('id', { ascending: false })
+            .order('created_at', { ascending: state.opts.order === 'oldest' })
+            .order('id', { ascending: state.opts.order === 'oldest' })
             .range(offset, offset + PAGE_SIZE - 1);
 
         if (error) throw error;
@@ -919,7 +932,7 @@
         return box;
     }
 
-    function renderComposer(parentId) {
+    function renderComposer(parentId, overrides = {}) {
         const form = el('form', 'discussion-composer');
         form.dataset.parentId = parentId || '';
 
@@ -932,7 +945,7 @@
         area.className = 'discussion-textarea';
         area.maxLength = MAX_BODY;
         area.rows = parentId ? 2 : 3;
-        area.placeholder = parentId ? 'Write a reply…' : 'Start a discussion about this character…';
+        area.placeholder = parentId ? 'Write a reply…' : (overrides.placeholder || state.opts.placeholder);
         area.setAttribute('aria-label', parentId ? 'Reply' : 'New post');
         form.appendChild(area);
 
@@ -955,7 +968,7 @@
 
         const row = el('div', 'discussion-composer-row');
 
-        const submit = el('button', 'btn-sys btn-sys-blue discussion-submit', parentId ? 'REPLY' : 'POST');
+        const submit = el('button', 'btn-sys btn-sys-blue discussion-submit', parentId ? 'REPLY' : (overrides.submitLabel || 'POST'));
         submit.type = 'submit';
         row.appendChild(submit);
 
@@ -996,9 +1009,7 @@
     }
 
     function setStatus(text, isError) {
-        const root = document.getElementById('discussion-section');
-        if (!root) return;
-        root.querySelectorAll('.discussion-composer-status').forEach(node => {
+        document.querySelectorAll('.discussion-composer-status').forEach(node => {
             node.textContent = text || '';
             node.classList.toggle('discussion-status-error', !!isError);
         });
@@ -1018,7 +1029,7 @@
             // migrations apply on merge, so the table genuinely does not exist
             // yet. Says so plainly rather than rendering a broken section.
             root.innerHTML = '';
-            root.appendChild(el('h2', 'section-title discussion-title', 'Discussion'));
+            root.appendChild(el('h2', 'section-title discussion-title', state.opts.title));
             const msg = (e && (e.code === 'PGRST205' || e.code === '42P01'))
                 ? 'Discussions are not available on this page yet.'
                 : 'Could not load the discussion. Try refreshing.';
@@ -1040,13 +1051,14 @@
         if (!append) {
             state.imagesByPost.clear();
             root.innerHTML = '';
-            root.appendChild(el('h2', 'section-title discussion-title', 'Discussion'));
+            root.appendChild(el('h2', 'section-title discussion-title', state.opts.title));
 
-            if (isSignedIn() && !isBanned()) root.appendChild(renderComposer(null));
-            else root.appendChild(renderSignInPrompt());
+            const box = isSignedIn() && !isBanned() ? renderComposer(null) : renderSignInPrompt();
+            if (!state.opts.composerLast) root.appendChild(box);
 
             list = el('div', 'discussion-list');
             root.appendChild(list);
+            if (state.opts.composerLast) root.appendChild(box);
 
             if (!posts.length) list.appendChild(renderEmptyState());
         }
@@ -1066,10 +1078,12 @@
         if (oldMore) oldMore.remove();
 
         if (!state.exhausted) {
-            const more = el('button', 'btn-sys btn-sys-regular discussion-more', 'LOAD OLDER POSTS');
+            const more = el('button', 'btn-sys btn-sys-regular discussion-more', state.opts.moreLabel);
             more.type = 'button';
             more.dataset.loadMore = 'true';
-            root.appendChild(more);
+            // Straight after the list, which is the end of the section unless
+            // the reply box comes last.
+            list.insertAdjacentElement('afterend', more);
         }
     }
 
@@ -1134,9 +1148,17 @@
         //
         // `images` only when there are some, so a words-only post is the same
         // request it always was.
-        const row = { page_id: state.pageId, parent_id: parentId, body: postBody };
-        if (paths.length) row.images = paths;
-        const { error } = await client().from('page_discussions').insert([row]);
+        // A composer mounted by another page (the forum's NEW POST) carries its
+        // own insert; the images, KLIPY links and the limits above are the same.
+        const custom = typeof form.discussionInsert === 'function' ? form.discussionInsert : null;
+        let error;
+        if (custom) {
+            ({ error } = await custom({ body: postBody, images: paths }));
+        } else {
+            const row = { page_id: state.pageId, parent_id: parentId, body: postBody };
+            if (paths.length) row.images = paths;
+            ({ error } = await client().from('page_discussions').insert([row]));
+        }
 
         if (submit) submit.disabled = false;
 
@@ -1149,6 +1171,11 @@
         }
 
         state.lastPostAt = Date.now();
+        if (custom) {
+            clearAttachments(form);
+            area.value = '';
+            return;
+        }
         clearAttachments(form);
         area.value = '';
         state.replyingTo = null;
@@ -1431,7 +1458,33 @@
         if (btn) btn.setAttribute('aria-label', `Jump to the discussion (${count})`);
     }
 
-    window.initPageDiscussions = async function (pageId) {
+    // A composer outside a thread: the forum's NEW POST (v1.0 batch 2). The
+    // caller adds its own fields with `leading` and receives the prepared
+    // message in `insert({ body, images })`, which returns { error }. Images,
+    // paste, KLIPY links and the limits work as in a thread. Returns the form,
+    // or null when the reader cannot post (a prompt is drawn instead).
+    window.mountDiscussionComposer = async function (container, { placeholder, submitLabel, leading = [], insert } = {}) {
+        if (!container || !client()) return null;
+        await loadViewer();
+        wire(container);
+        if (!isSignedIn() || isBanned()) {
+            container.appendChild(renderSignInPrompt());
+            return null;
+        }
+        const form = renderComposer(null, { placeholder, submitLabel });
+        [...leading].reverse().forEach(node => form.insertBefore(node, form.firstChild));
+        form.discussionInsert = insert;
+        container.appendChild(form);
+        return form;
+    };
+
+    // Who is reading, for a page that draws its own controls around a thread.
+    // Only decides what to draw; every action is refused server-side.
+    window.discussionViewer = function () {
+        return { signedIn: isSignedIn(), banned: isBanned(), canModerate: state.canModerate };
+    };
+
+    window.initPageDiscussions = async function (pageId, opts = {}) {
         const root = document.getElementById('discussion-section');
 
         // The button is wired even when the section is missing, so a page that
@@ -1441,6 +1494,7 @@
         if (!root || !client() || !pageId) return;
 
         state.pageId = pageId;
+        state.opts = { ...DEFAULT_OPTS, ...opts };
         state.offset = 0;
         state.exhausted = false;
 

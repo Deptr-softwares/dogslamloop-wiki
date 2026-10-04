@@ -232,7 +232,60 @@ test.describe('the sweep', () => {
     });
 });
 
+test.describe('the forum', () => {
+    const TAGS = [{ id: '300000000000000001', name: ' question ' }, { id: '300000000000000002', name: 'ART' }, { id: 'x', name: 'Guide' }];
+
+    test('a category finds its Discord tag by name, and nothing when the channel has none', () => {
+        expect(core.tagIdFor(TAGS, 'Question')).toBe('300000000000000001');
+        expect(core.tagIdFor(TAGS, 'Art')).toBe('300000000000000002');
+        // A tag whose id is not a snowflake is not used.
+        expect(core.tagIdFor(TAGS, 'Guide')).toBeNull();
+        expect(core.tagIdFor(TAGS, 'Promotion')).toBeNull();
+    });
+
+    test('a Discord post takes its first tag that is a category, spelled the wiki way, else Discussion', () => {
+        expect(core.tagFromApplied(['999', '300000000000000002'], [...TAGS, { id: '999', name: 'Off-topic' }])).toBe('Art');
+        expect(core.tagFromApplied([], TAGS)).toBe('Discussion');
+        expect(core.tagFromApplied(['999'], [{ id: '999', name: 'Off-topic' }])).toBe('Discussion');
+    });
+
+    test('a wiki forum post opens with its title, its tag, and the same no-ping message', () => {
+        const out = core.forumPostOpening({ title: 'Combo\nhelp', tagId: '300000000000000001', authorName: 'Kai', body: '@everyone help', link: 'l' });
+        expect(out).toEqual({
+            content: '@everyone help', username: 'Kai', allowed_mentions: { parse: [] },
+            thread_name: 'Combo help', applied_tags: ['300000000000000001'],
+        });
+        expect(core.forumPostOpening({ title: '', tagId: null, authorName: 'Kai', body: 'x', link: 'l' }))
+            .toMatchObject({ thread_name: 'Untitled' });
+        expect(core.forumPostOpening({ title: 't', tagId: null, authorName: 'Kai', body: 'x', link: 'l' }).applied_tags).toBeUndefined();
+    });
+
+    test('a message links back to its forum post, or its character page', () => {
+        const id = '11111111-1111-4111-8111-111111111111';
+        expect(core.wikiLink(`forum:${id}`, null, 'p1')).toBe(`https://dogslamloop.com/forum.html?post=${id}#post-p1`);
+        expect(core.wikiLink('boomcat', 'characters/Boomcat/index.html', 'p1')).toBe('https://dogslamloop.com/characters/Boomcat/index.html#post-p1');
+        // Not a forum key: never read as one.
+        expect(core.wikiLink('forum:../x', 'u/', 'p1')).toBe('https://dogslamloop.com/u/#post-p1');
+    });
+});
+
 test.describe('agreement with the files the relay sits between', () => {
+    test('the six categories match the migration\'s, in both of its places', () => {
+        const sql = fs.readFileSync(path.join(ROOT, 'supabase', 'migrations', '20261004000002_forum.sql'), 'utf8');
+        const check = /forum_threads_tag_check" CHECK \("tag" = ANY \(ARRAY\[([\s\S]*?)\]\)\)/.exec(sql);
+        expect(check, 'no tag CHECK in the forum migration').not.toBeNull();
+        expect(check[1].match(/'([^']+)'::text/g).map(s => s.slice(1, -7))).toEqual(core.FORUM_TAGS);
+        // The functions that check a category by hand list the same six.
+        const lists = [...sql.matchAll(/ARRAY\['Question', 'Guide'[^\]]*\]/g)].map(m => m[0]);
+        expect(lists.length).toBeGreaterThanOrEqual(3);
+        for (const l of lists) expect(l.match(/'([^']+)'/g).map(s => s.slice(1, -1))).toEqual(core.FORUM_TAGS);
+        // And the Forum page's own list, which draws the filter and the picker.
+        const page = fs.readFileSync(path.join(ROOT, 'js', 'forum.js'), 'utf8');
+        const forumList = /const FORUM_TAGS = \[([^\]]+)\];/.exec(page);
+        expect(forumList, 'no FORUM_TAGS in js/forum.js').not.toBeNull();
+        expect(forumList[1].match(/'([^']+)'/g).map(s => s.slice(1, -1))).toEqual(core.FORUM_TAGS);
+    });
+
     test('KLIPY patterns, key and order match the thread page', () => {
         const page = fs.readFileSync(path.join(ROOT, 'js', 'discussions.js'), 'utf8');
         const grab = (name) => {

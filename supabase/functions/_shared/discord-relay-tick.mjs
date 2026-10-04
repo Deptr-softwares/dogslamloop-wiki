@@ -21,6 +21,10 @@ const LEASE_SECONDS = 60;
 
 export class RateLimited extends Error {}
 
+// Discord's "Unknown Channel": the post was deleted on Discord.
+const UNKNOWN_CHANNEL = 10003;
+const isGone = (e) => e && e.status === 404 && e.code === UNKNOWN_CHANNEL;
+
 // Rule 11: without every secret the relay does nothing. A preview branch is
 // never given them, so it never touches the real server.
 export function readConfig(env) {
@@ -34,13 +38,23 @@ export function readConfig(env) {
     const hook = WEBHOOK_URL.exec(webhookUrl);
     if (!token || !core.isSnowflake(guildId) || !core.isSnowflake(channelId) || !hook || !supabaseUrl) return null;
 
-    return {
+    const cfg = {
         token,
         guildId,
         supabaseUrl: supabaseUrl.replace(/\/+$/, ''),
         channels: { character: channelId },
         webhooks: { character: webhookUrl },
     };
+
+    // The forum (batch 2) is optional: both secrets, or the forum stays on the
+    // wiki while the character threads relay as before.
+    const forumChannel = get('DISCORD_FORUM_CHANNEL_ID');
+    const forumWebhook = get('DISCORD_FORUM_WEBHOOK_URL');
+    if (core.isSnowflake(forumChannel) && WEBHOOK_URL.test(forumWebhook)) {
+        cfg.channels.forum = forumChannel;
+        cfg.webhooks.forum = forumWebhook;
+    }
+    return cfg;
 }
 
 export function makeDiscord(fetchImpl, token) {
@@ -56,6 +70,7 @@ export function makeDiscord(fetchImpl, token) {
             const text = await res.text().catch(() => '');
             const err = new Error(`Discord answered ${res.status} to ${method}: ${text.slice(0, 200)}`);
             err.status = res.status;
+            try { err.code = JSON.parse(text).code; } catch (_) { err.code = null; }
             throw err;
         }
         return res;
@@ -74,6 +89,17 @@ export function makeDiscord(fetchImpl, token) {
         },
         async messagesAfter(threadId, after, limit) {
             return (await json(await call('GET', `${API}/channels/${threadId}/messages?after=${after}&limit=${limit}`))) || [];
+        },
+        async message(threadId, messageId) {
+            const res = await call('GET', `${API}/channels/${threadId}/messages/${messageId}`, { okStatuses: [404] });
+            return res.status === 404 ? null : res.json();
+        },
+        async channel(channelId) {
+            return json(await call('GET', `${API}/channels/${channelId}`));
+        },
+        // Lock and archive a post, or open it again. Needs Manage Threads.
+        async setLocked(threadId, locked) {
+            await call('PATCH', `${API}/channels/${threadId}`, { body: { locked, archived: locked } });
         },
         // 200 when banned; 404 when not. Needs View Audit Log (or Ban Members,
         // which the bot is never given).
@@ -173,6 +199,123 @@ async function openCharacterPosts(ctx, active) {
             ctx.report.opened++;
         }
     }
+}
+
+// --- D4: THE FORUM ---
+
+// The forum channel's tags, read once a tick and only when needed.
+async function forumTags(ctx) {
+    if (!ctx.forumTags) {
+        const channel = await ctx.discord.channel(ctx.cfg.channels.forum);
+        ctx.forumTags = (channel && channel.available_tags) || [];
+    }
+    return ctx.forumTags;
+}
+
+// Words and copied pictures for one Discord message, ready for the database.
+async function prepareMessage(ctx, msg, parsed) {
+    const media = await resolveKlipy(ctx.fetch, parsed);
+    const images = await copyImages(ctx.db, ctx.fetch, parsed);
+    return { body: core.wikiBody(msg, media), images };
+}
+
+// Posts started on Discord, copied in as Forum posts. Start fresh: only posts
+// begun after the forum was first connected.
+async function importForumPosts(ctx, active) {
+    const channelId = ctx.cfg.channels.forum;
+    const fresh = active.filter(t => t.parent_id === channelId && core.isSnowflake(t.id));
+    if (!fresh.length) return;
+
+    const links = new Set(((await rpc(ctx.db, 'discord_relay_threads')) || []).map(l => l.discord_thread_id));
+    const unlinked = fresh.filter(t => !links.has(t.id));
+    if (!unlinked.length) return;
+
+    const since = Date.parse(await rpc(ctx.db, 'discord_relay_forum_since'));
+    for (const thread of unlinked) {
+        if (core.snowflakeTime(thread.id) < since) continue;
+        // A forum post's starter message shares the post's id.
+        const starter = await ctx.discord.message(thread.id, thread.id);
+        const parsed = starter && core.fromDiscordMessage(starter);
+        // The relay's own posts, and a starter already deleted, are not copied.
+        if (!parsed || parsed.skip) continue;
+
+        const { body, images } = await prepareMessage(ctx, starter, parsed);
+        const id = await rpc(ctx.db, 'discord_relay_take_forum', {
+            p_discord_thread_id: thread.id,
+            p_title: thread.name,
+            p_tag: core.tagFromApplied(thread.applied_tags, await forumTags(ctx)),
+            p_author_discord_id: parsed.authorDiscordId,
+            p_author_name: parsed.authorName,
+            p_author_handle: parsed.authorHandle,
+            p_body: body,
+            p_images: images,
+        });
+        if (id) ctx.report.forumTaken++;
+    }
+}
+
+// Wiki forum posts not yet on Discord are opened there; a post a wiki
+// moderator hid or removed is locked, and unlocked if restored.
+async function openForumPosts(ctx) {
+    const work = (await rpc(ctx.db, 'discord_relay_forum_outbox', { p_limit: OPEN_LIMIT })) || [];
+    for (const w of work) {
+        try {
+            if (w.action === 'lock' || w.action === 'unlock') {
+                const locked = w.action === 'lock';
+                await ctx.discord.setLocked(w.discord_thread_id, locked);
+                await rpc(ctx.db, 'discord_relay_set_locked', { p_discord_thread_id: w.discord_thread_id, p_locked: locked });
+                ctx.report.locked++;
+                continue;
+            }
+
+            // Until the post exists on Discord, its opening message is filed
+            // under the forum channel: there is no post id to give it yet.
+            const record = (state, threadId, messageId, error) => rpc(ctx.db, 'discord_relay_record', {
+                p_post_id: w.opening_post_id, p_discord_thread_id: threadId || ctx.cfg.channels.forum,
+                p_direction: 'to_discord', p_state: state, p_discord_message_id: messageId, p_error: error,
+            });
+
+            if (w.author_discord_id && await blockedOnServer(ctx, w.author_discord_id)) {
+                await record('skipped', null, null, 'Author is banned or timed out on the server.');
+                ctx.report.skipped++;
+                continue;
+            }
+
+            await record('sending', null, null, null);
+            const payload = core.forumPostOpening({
+                title: w.title,
+                tagId: core.tagIdFor(await forumTags(ctx), w.tag),
+                authorName: w.author_name,
+                body: w.body,
+                imageUrls: (w.images || []).map(p => publicImageUrl(ctx, p)),
+                link: `${core.forumThreadUrl(w.thread_id)}#post-${w.opening_post_id}`,
+            });
+            let msg;
+            try {
+                msg = await ctx.discord.webhookSend(ctx.cfg.webhooks.forum, null, payload);
+            } catch (e) {
+                await record('failed', null, null, String(e.message || e));
+                throw e;
+            }
+            await rpc(ctx.db, 'discord_relay_link_forum', {
+                p_thread_id: w.thread_id, p_discord_thread_id: msg.channel_id, p_last_message_id: msg.id,
+            });
+            await record('sent', msg.channel_id, msg.id, null);
+            ctx.report.forumOpened++;
+        } catch (e) {
+            if (e instanceof RateLimited) throw e;
+            ctx.report.errors.push(String(e.message || e));
+        }
+    }
+}
+
+// A Discord post that is gone: the wiki follows (a forum post is removed; a
+// character post is unlinked and opened afresh by the next sweep).
+async function threadGone(ctx, threadId) {
+    const copies = (await rpc(ctx.db, 'discord_relay_thread_gone', { p_discord_thread_id: threadId })) || [];
+    const ours = copies.filter(p => core.COPIED_IMAGE_PATH.test(p));
+    if (ours.length) await ctx.db.storage.from('discord-media').remove(ours);
+    ctx.report.threadsGone++;
 }
 
 // --- DISCORD TO WIKI ---
@@ -305,20 +448,37 @@ async function sendOne(ctx, w, webhook, record) {
             isReply: Boolean(w.parent_id),
             parentAuthor: w.parent_author_name,
             parentBody: w.parent_body,
-            link: core.postUrl(w.page_url, w.parent_id || w.post_id),
+            link: core.wikiLink(w.page_id, w.page_url, w.parent_id || w.post_id),
         });
         const msg = await ctx.discord.webhookSend(webhook, w.discord_thread_id, payload);
         await record('sent', msg && msg.id, null);
         ctx.report.sent++;
     } catch (e) {
         await record('failed', null, String(e.message || e));
+        if (isGone(e)) await threadGone(ctx, w.discord_thread_id);
         throw e;
     }
 }
 
 // --- RULE 2: THE SWEEP ---
 
-async function sweep(ctx) {
+async function sweep(ctx, active) {
+    // Rule: a post renamed or re-tagged on Discord. Active posts only: a
+    // rename unarchives a post, so a changed one is always among them.
+    if (ctx.cfg.channels.forum) {
+        const links = new Set(((await rpc(ctx.db, 'discord_relay_threads')) || [])
+            .filter(l => l.channel === 'forum').map(l => l.discord_thread_id));
+        const forumActive = active.filter(t => t.parent_id === ctx.cfg.channels.forum && links.has(t.id));
+        if (forumActive.length) {
+            const tags = await forumTags(ctx);
+            for (const t of forumActive) {
+                await rpc(ctx.db, 'discord_relay_forum_rename', {
+                    p_discord_thread_id: t.id, p_title: t.name, p_tag: core.tagFromApplied(t.applied_tags, tags),
+                });
+            }
+        }
+    }
+
     const recent = (await rpc(ctx.db, 'discord_relay_recent')) || [];
     const byThread = new Map();
     for (const row of recent) {
@@ -329,7 +489,14 @@ async function sweep(ctx) {
     for (const [threadId, rows] of byThread) {
         const oldest = rows.map(r => r.discord_message_id).reduce((a, b) => (core.snowflakeAfter(a, b) ? b : a));
         const after = (BigInt(oldest) - 1n).toString();
-        const fetched = await ctx.discord.messagesAfter(threadId, after, SWEEP_LIMIT);
+        let fetched;
+        try {
+            fetched = await ctx.discord.messagesAfter(threadId, after, SWEEP_LIMIT);
+        } catch (e) {
+            if (!isGone(e)) throw e;
+            await threadGone(ctx, threadId);
+            continue;
+        }
         const { gone, edited } = core.sweepFindings(rows, fetched, SWEEP_LIMIT);
 
         for (const id of gone) {
@@ -361,16 +528,24 @@ export async function runTick({ env, db, fetch: fetchImpl, now = () => Date.now(
         fetch: fetchImpl,
         discord: makeDiscord(fetchImpl, cfg.token),
         blocked: new Map(),
-        report: { relay: 'ran', sweep: Boolean(claim.sweep), opened: 0, linked: 0, taken: 0, sent: 0, deleted: 0, skipped: 0, gone: 0, edited: 0, errors: [] },
+        report: {
+            relay: 'ran', sweep: Boolean(claim.sweep), forum: Boolean(cfg.channels.forum),
+            opened: 0, linked: 0, taken: 0, sent: 0, deleted: 0, skipped: 0, gone: 0, edited: 0,
+            forumTaken: 0, forumOpened: 0, locked: 0, threadsGone: 0, errors: [],
+        },
     };
 
     try {
         // One request answers "which posts have new messages" for every thread.
         const active = await ctx.discord.activeThreads(cfg.guildId);
         if (claim.sweep) await openCharacterPosts(ctx, active);
+        // New Discord forum posts first, so their replies are read this tick.
+        if (cfg.channels.forum) await importForumPosts(ctx, active);
         await readDiscord(ctx, active);
+        // New wiki forum posts open on Discord before their replies are sent.
+        if (cfg.channels.forum) await openForumPosts(ctx);
         await writeDiscord(ctx);
-        if (claim.sweep) await sweep(ctx);
+        if (claim.sweep) await sweep(ctx, active);
     } catch (e) {
         if (e instanceof RateLimited) ctx.report.rateLimited = true;
         ctx.report.errors.push(String(e.message || e));

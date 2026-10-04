@@ -1,0 +1,169 @@
+/* The Forum (v1.0 batch 2): forum.html only. A post's conversation is the
+   character-thread component and is styled by discussions.css. */
+
+.forum-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.forum-new-panel {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    box-shadow: 3px 3px 0px var(--manga-shadow);
+    padding: 0.9rem 1.1rem;
+}
+
+.forum-new-fields {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.6rem;
+}
+
+.forum-title-input {
+    flex: 1 1 16rem;
+    min-width: 0;
+}
+
+.forum-tag-select {
+    flex: 0 1 12rem;
+    min-width: 0;
+}
+
+.forum-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.forum-filter[aria-pressed="true"] {
+    border-color: var(--accent-blue);
+    color: var(--text-white);
+}
+
+.forum-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.forum-row {
+    display: block;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    box-shadow: 3px 3px 0px var(--manga-shadow);
+    padding: 0.75rem 1rem;
+    color: var(--text-white);
+    text-decoration: none;
+}
+
+.forum-row:hover,
+.forum-row:focus-visible {
+    border-color: var(--accent-blue);
+}
+
+.forum-row-top,
+.forum-row-meta,
+.forum-post-meta {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.forum-row-title {
+    font-weight: bold;
+    font-size: 0.95rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.forum-row-meta {
+    margin-top: 0.35rem;
+}
+
+.forum-author {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    font-weight: bold;
+    color: var(--accent-blue);
+}
+
+.forum-row-count,
+.forum-row-time {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+/* One look for every category; the name is the information. */
+.forum-tag {
+    font-family: var(--text-mono);
+    font-size: 0.6rem;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-white);
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    padding: 0.1rem 0.35rem;
+    white-space: nowrap;
+}
+
+.forum-empty {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.forum-more {
+    align-self: flex-start;
+}
+
+.forum-post-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.forum-post-title {
+    overflow-wrap: anywhere;
+}
+
+.forum-post-removed {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.forum-mod {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.forum-mod-form {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.forum-mod-form .editor-input {
+    flex: 1 1 14rem;
+    min-width: 0;
+}
+
+.forum-mod-status {
+    font-size: 0.75rem;
+    color: var(--text-white);
+    font-weight: bold;
+}
