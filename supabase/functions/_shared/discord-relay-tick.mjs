@@ -18,6 +18,10 @@ const OPEN_LIMIT = 5;
 const READ_LIMIT = 50;
 const SWEEP_LIMIT = 100;
 const LEASE_SECONDS = 60;
+// People whose roles are brought up to date in one sweep (batch 4, role rule 7).
+const ROLE_LIMIT = 25;
+const ROLE_RETRY_MS = 24 * 60 * 60 * 1000;
+const ROLE_REASON = 'Wiki role sync';
 
 export class RateLimited extends Error {}
 
@@ -29,6 +33,8 @@ const UNKNOWN_MESSAGE = 10008;
 // "Thread is archived": a change to an archived post is refused until it is
 // opened again.
 const THREAD_ARCHIVED = 50083;
+// "Unknown Member": the person is not on the server.
+const UNKNOWN_MEMBER = 10007;
 
 // Rule 11: without every secret the relay does nothing. A preview branch is
 // never given them, so it never touches the real server.
@@ -63,10 +69,12 @@ export function readConfig(env) {
 }
 
 export function makeDiscord(fetchImpl, token) {
-    async function call(method, url, { body = null, bot = true, okStatuses = [] } = {}) {
+    async function call(method, url, { body = null, bot = true, okStatuses = [], reason = null } = {}) {
         const headers = { 'User-Agent': 'DiscordBot (https://dogslamloop.com, 1.0)' };
         if (bot) headers.Authorization = `Bot ${token}`;
         if (body) headers['Content-Type'] = 'application/json';
+        // Shown in the server's audit log beside the change.
+        if (reason) headers['X-Audit-Log-Reason'] = encodeURIComponent(reason);
 
         const res = await fetchImpl(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
         if (res.status === 429) throw new RateLimited(`Discord asked the relay to slow down (${method} ${url.split('?')[0]})`);
@@ -139,6 +147,21 @@ export function makeDiscord(fetchImpl, token) {
             const body = { name };
             if (tagIds) body.applied_tags = tagIds;
             await call('PATCH', `${API}/channels/${threadId}`, { body });
+        },
+        // Roles (batch 4). Giving and taking need Manage Roles, and only reach
+        // roles below the bot's highest; both answer 204 whether or not the
+        // member already had it.
+        async roles(guildId) {
+            return (await json(await call('GET', `${API}/guilds/${guildId}/roles`))) || [];
+        },
+        async me() {
+            return json(await call('GET', `${API}/users/@me`));
+        },
+        async addRole(guildId, userId, roleId, reason) {
+            await call('PUT', `${API}/guilds/${guildId}/members/${userId}/roles/${roleId}`, { reason });
+        },
+        async removeRole(guildId, userId, roleId, reason) {
+            await call('DELETE', `${API}/guilds/${guildId}/members/${userId}/roles/${roleId}`, { reason });
         },
     };
 }
@@ -655,6 +678,113 @@ async function sweep(ctx, active) {
     }
 }
 
+// --- ROLES (batch 4) ---
+//
+// Spec: V1.0-DEVLOG.md, "SPEC 2026-10-05: batch 4", D2. The last step of the
+// sweep, so a 429 here costs nothing else; with nobody waiting it makes no
+// request at all.
+
+async function syncRoles(ctx) {
+    const jobs = (await rpc(ctx.db, 'discord_relay_role_jobs', { p_limit: ROLE_LIMIT })) || [];
+    if (!jobs.length) return;
+
+    // Role rule 5: without Manage Roles, wait. Nobody is marked done, so
+    // switching it on later loses nobody.
+    const guildId = ctx.cfg.guildId;
+    const serverRoles = await ctx.discord.roles(guildId);
+    const me = await ctx.discord.me();
+    const self = me && await ctx.discord.member(guildId, me.id);
+    const reach = core.botRoleReach(serverRoles, self ? self.roles : [], guildId);
+    if (!reach.canManage) {
+        ctx.report.roleSync = 'waiting: the bot lacks Manage Roles';
+        return;
+    }
+
+    const saved = (await rpc(ctx.db, 'discord_relay_role_map')) || [];
+    const pages = (await rpc(ctx.db, 'discord_relay_role_pages')) || [];
+    const map = core.resolveRoleMap({ serverRoles, saved, pages });
+    for (const key of map.forgotten) await rpc(ctx.db, 'discord_relay_unmap_role', { p_key: key });
+    for (const m of map.matched) {
+        await rpc(ctx.db, 'discord_relay_map_role', { p_key: m.key, p_discord_role_id: m.id, p_name: m.name });
+    }
+    if (map.ambiguous.length) ctx.report.rolesAmbiguous = map.ambiguous;
+
+    // A role above the bot's own is skipped and named.
+    const byId = new Map(serverRoles.map(r => [r.id, r]));
+    const ids = {};
+    const above = [];
+    for (const [key, id] of Object.entries(map.ids)) {
+        if (core.canGiveRole(byId.get(id), reach.top)) ids[key] = id;
+        else above.push(byId.get(id) ? byId.get(id).name : key);
+    }
+    if (above.length) ctx.report.rolesAboveBot = above;
+
+    for (const job of jobs) await syncPerson(ctx, job, ids);
+}
+
+// `dirty_at` goes back exactly as it came: the database compares it to decide
+// whether a newer change arrived, and a Date would drop its microseconds.
+async function roleDone(ctx, job, { synced = null, taken = null, retryAt = null, error = null }) {
+    await rpc(ctx.db, 'discord_relay_role_done', {
+        p_user_id: job.user_id,
+        p_dirty_at: job.dirty_at,
+        p_synced: synced,
+        p_taken: taken,
+        p_retry_at: retryAt,
+        p_error: error,
+    });
+}
+
+async function syncPerson(ctx, job, ids) {
+    const guildId = ctx.cfg.guildId;
+    const taken = job.taken || [];
+    const notOnServer = (change) => roleDone(ctx, job, {
+        synced: [],
+        taken,
+        // Role rule 6: something to give waits for them to join.
+        retryAt: change && (change.add.length || change.synced.length)
+            ? new Date(ctx.now() + ROLE_RETRY_MS).toISOString()
+            : null,
+    });
+
+    let current = null;
+    if (core.needsMemberRoles(job)) {
+        const member = await ctx.discord.member(guildId, job.discord_id);
+        if (!member) return notOnServer(null);
+        current = member.roles || [];
+    }
+
+    const change = core.roleChanges({
+        wanted: core.wantedRoles(job),
+        synced: job.synced,
+        taken,
+        banned: core.isWikiBan(job.role),
+        current,
+        ids,
+    });
+
+    try {
+        for (const roleId of change.add) {
+            await ctx.discord.addRole(guildId, job.discord_id, roleId, ROLE_REASON);
+            ctx.report.rolesAdded++;
+        }
+        for (const roleId of change.remove) {
+            await ctx.discord.removeRole(guildId, job.discord_id, roleId, ROLE_REASON);
+            ctx.report.rolesRemoved++;
+        }
+    } catch (e) {
+        // Role rule 7: a 429 ends the run, and this person waits as they were.
+        if (e instanceof RateLimited) throw e;
+        if (e && e.status === 404 && e.code === UNKNOWN_MEMBER) return notOnServer(change);
+        // Role rule 8: counted, and tried again on a later run.
+        ctx.report.errors.push(String(e.message || e));
+        return roleDone(ctx, job, { error: String(e.message || e) });
+    }
+
+    await roleDone(ctx, job, { synced: change.synced, taken: change.taken });
+    ctx.report.rolePeople++;
+}
+
 // --- ONE TICK ---
 
 export async function runTick({ env, db, fetch: fetchImpl, now = () => Date.now() }) {
@@ -672,7 +802,8 @@ export async function runTick({ env, db, fetch: fetchImpl, now = () => Date.now(
         report: {
             relay: 'ran', sweep: Boolean(claim.sweep), forum: Boolean(cfg.channels.forum),
             opened: 0, linked: 0, taken: 0, sent: 0, deleted: 0, skipped: 0, gone: 0, edited: 0,
-            forumTaken: 0, forumOpened: 0, locked: 0, threadsGone: 0, editsSent: 0, renamed: 0, errors: [],
+            forumTaken: 0, forumOpened: 0, locked: 0, threadsGone: 0, editsSent: 0, renamed: 0,
+            rolePeople: 0, rolesAdded: 0, rolesRemoved: 0, errors: [],
         },
     };
 
@@ -687,6 +818,7 @@ export async function runTick({ env, db, fetch: fetchImpl, now = () => Date.now(
         if (cfg.channels.forum) await openForumPosts(ctx);
         await writeDiscord(ctx);
         if (claim.sweep) await sweep(ctx, active);
+        if (claim.sweep) await syncRoles(ctx);
     } catch (e) {
         if (e instanceof RateLimited) ctx.report.rateLimited = true;
         ctx.report.errors.push(String(e.message || e));

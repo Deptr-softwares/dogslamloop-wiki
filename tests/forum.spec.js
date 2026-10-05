@@ -202,6 +202,22 @@ test('what a new post sends to create_forum_post', async ({ page }) => {
     await expect(panel.locator('.discussion-textarea')).toHaveValue('first words');
 });
 
+// v1.0 batch 4, D1. The thread's own box is tests/discussion-rules-link.spec.js's.
+test('the new-post form links the Rules page once it exists', async ({ page }) => {
+    const nav = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'data', 'navigation.json'), 'utf8'));
+    nav['Site Info'] = [...nav['Site Info'], {
+        id: 'Rules', name: 'Rules', url: 'systems/rules/index.html',
+        cms_config: { pageType: 'system', pageId: 'rules', editRole: 'locked' },
+    }];
+    await page.route('**/data/navigation.json**', route => route.fulfill({ json: nav }));
+    await openForum(page, { session: SESSION });
+    await page.locator('.forum-new-btn').click();
+    const link = page.locator('.forum-new-panel .discussion-rules-link');
+    await expect(link).toBeVisible();
+    expect(new URL(await link.evaluate(a => a.href)).pathname).toBe('/systems/rules/index.html');
+    await expect(link).toHaveAttribute('target', '_blank');
+});
+
 test('a post page reads oldest first, with the reply box after the conversation', async ({ page }) => {
     await openForum(page, {
         path: `/forum.html?post=${T1}`,

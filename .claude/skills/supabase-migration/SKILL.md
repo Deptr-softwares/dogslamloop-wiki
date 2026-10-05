@@ -123,6 +123,13 @@ Send the function's *real* signature. Posting a parameter to a zero-argument fun
 * **`POSTGRES_URL_NON_POOLING`'s host is IPv6-only** and does not resolve on this machine. Use `POSTGRES_URL`, the pooler.
 * **It deploys the PR's Edge Functions** (status `FUNCTIONS_DEPLOYED`; `npx supabase functions list --project-ref <branch ref>`), but secrets are per branch (`supabase secrets set --project-ref <branch ref>`), so a function there runs without production's.
 
+**Four probe traps, found 2026-10-04 and 05 (v1.0 batches 2 to 4):**
+
+* **The site's own rate limits apply to probes.** One post every 20 seconds per account and one forum post every 2 minutes: a probe that posts twice from the same seeded account in quick succession gets `53400` and every check after it reads garbage. Spread the writes across the five seeded accounts.
+* **A JS assignment to an undeclared variable still sends the request.** `r = await fetch(...)` in a module with no `let r` throws a ReferenceError, but only after the right-hand side has run, so the write happened. Read the database before concluding a crashed probe changed nothing.
+* **`npx` echoes the whole command line to stderr** as `npm notice run <command>`. With `2>&1 | grep <column>`, a secret passed in the command (a Postgres URL with its password, a value written into SQL) is printed whenever the grep pattern also appears in the command. On 2026-10-05, `grep secret_set` matched the notice and printed a preview's database URL and its relay secret. Send stderr to `/dev/null` on any command that carries a secret, and rotate one that was printed.
+* **What a preview holds is not on dogslamloop.com.** The live site reads production. To show the owner a preview's data in the real page, serve the repo locally and set `localStorage.dsl_supabase_override` to the branch's URL and anon key (`js/site_utils.js`, `resolveSupabaseTarget`); the page shows a banner while it is on. Sign in as a seeded account from the console for a moderator's view.
+
 Migrations apply to **production** on merge, so the production half of this happens after merging. The preview half does not — run it while the PR is open, where a mistake costs a force-push instead of a hotfix.
 
 ## More detail

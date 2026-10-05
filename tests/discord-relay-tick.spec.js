@@ -40,6 +40,9 @@ const HOOKS = [
     { url: WEBHOOK, id: WEBHOOK_ID, channel: CHANNEL },
     { url: FORUM_WEBHOOK, id: FORUM_WEBHOOK_ID, channel: FORUM },
 ];
+// Batch 4: the bot's own account, and Discord's Manage Roles bit.
+const BOT = '100000000000000009';
+const MANAGE_ROLES = String(1n << 28n);
 
 function world() {
     let seq = 0;
@@ -60,6 +63,13 @@ function world() {
         // renaming a post.
         failEdits: false,
         rateLimitRename: false,
+        // Batch 4: the server's roles ({ id, name, position, permissions,
+        // managed }), a 429 or a refusal on every role change, and a hook run
+        // after each one.
+        roles: [],
+        rateLimitRoles: false,
+        refuseRoles: false,
+        onRoleChange: null,
         calls: [],
     };
     const db = {
@@ -89,7 +99,18 @@ function world() {
         forumRenames: [],     // what discord_relay_forum_renames answers until renamed
         renamedCalls: [],
         editResults: [],
+        // Batch 4, kept as the SQL keeps it, across ticks: who signed in with
+        // Discord, what the wiki gives them, the relay's row for each, and the
+        // role map.
+        identities: new Map(),  // user id -> Discord id
+        wiki: new Map(),        // user id -> { role, can_moderate, experts }
+        roleRows: new Map(),    // user id -> { synced, taken, dirty_at, next_try_at, attempts, last_error }
+        roleMap: new Map(),     // key -> Discord role id
+        rolePages: [],
     };
+    let dirtySeq = 0;
+    // A value no two changes share, as clock_timestamp() gives.
+    const dirtyStamp = () => new Date(clock).toISOString().replace('Z', `${String(++dirtySeq).padStart(3, '0')}Z`);
 
     function post(threadId, msg) {
         const list = discord.messages.get(threadId) || [];
@@ -191,10 +212,34 @@ function world() {
             discord.messages.set(m[1], (discord.messages.get(m[1]) || []).filter(x => x.id !== m[2]));
             return json(204, null);
         }
+        if (p === '/api/v10/users/@me') return json(200, { id: BOT, bot: true });
+        if (p === `/api/v10/guilds/${GUILD}/roles`) return json(200, discord.roles);
+        m = /^\/api\/v10\/guilds\/\d+\/members\/(\d+)\/roles\/(\d+)$/.exec(p);
+        if (m && (method === 'PUT' || method === 'DELETE')) {
+            if (discord.rateLimitRoles) return json(429, { retry_after: 1 });
+            const role = discord.roles.find(r => r.id === m[2]);
+            if (!role) return json(404, { code: 10011, message: 'Unknown Role' });
+            // As Discord decides it: Manage Roles from @everyone or the bot's
+            // roles, and only below the bot's highest.
+            const own = (discord.members.get(BOT) || { roles: [] }).roles;
+            const mine = discord.roles.filter(r => r.id === GUILD || own.includes(r.id));
+            const perms = mine.reduce((a, r) => a | BigInt(r.permissions || '0'), 0n);
+            const top = Math.max(0, ...mine.filter(r => r.id !== GUILD).map(r => r.position));
+            if (discord.refuseRoles || !(perms & (1n << 28n)) || role.position >= top) {
+                return json(403, { code: 50013, message: 'Missing Permissions' });
+            }
+            const member = discord.members.get(m[1]);
+            if (!member) return json(404, { code: 10007, message: 'Unknown Member' });
+            member.roles = method === 'PUT'
+                ? [...new Set([...(member.roles || []), m[2]])]
+                : (member.roles || []).filter(r => r !== m[2]);
+            if (discord.onRoleChange) discord.onRoleChange(method, m[1], m[2]);
+            return json(204, null);
+        }
         m = /^\/api\/v10\/guilds\/\d+\/bans\/(\d+)$/.exec(p);
         if (m) return discord.banned.has(m[1]) ? json(200, { user: { id: m[1] } }) : json(404, { message: 'Unknown Ban' });
         m = /^\/api\/v10\/guilds\/\d+\/members\/(\d+)$/.exec(p);
-        if (m) return discord.members.has(m[1]) ? json(200, discord.members.get(m[1])) : json(404, { message: 'Unknown Member' });
+        if (m) return discord.members.has(m[1]) ? json(200, discord.members.get(m[1])) : json(404, { code: 10007, message: 'Unknown Member' });
         throw new Error(`fake Discord has no route for ${method} ${url}`);
     }
 
@@ -270,6 +315,48 @@ function world() {
             for (const [k, l] of db.links) if (l.discord_thread_id === a.p_discord_thread_id) db.links.delete(k);
             return ['discord/123456789012345678-1.png'];
         },
+        // Batch 4, the contract of 20261005000000_discord_role_sync.sql.
+        discord_relay_role_jobs(a) {
+            for (const userId of db.identities.keys()) {
+                if (!db.roleRows.has(userId)) {
+                    db.roleRows.set(userId, { synced: null, taken: [], dirty_at: dirtyStamp(), next_try_at: null, attempts: 0, last_error: null });
+                }
+            }
+            return [...db.roleRows]
+                .filter(([userId, r]) => db.identities.has(userId) && r.dirty_at
+                    && (!r.next_try_at || Date.parse(r.next_try_at) <= clock) && r.attempts < 5)
+                .sort((x, y) => (x[1].dirty_at < y[1].dirty_at ? -1 : 1))
+                .slice(0, a.p_limit)
+                .map(([userId, r]) => {
+                    const wk = db.wiki.get(userId) || {};
+                    return {
+                        user_id: userId, discord_id: db.identities.get(userId),
+                        role: wk.role || null, can_moderate: Boolean(wk.can_moderate),
+                        expert_pages: [...(wk.experts || [])].sort(),
+                        synced: r.synced ? [...r.synced] : null, taken: [...r.taken], dirty_at: r.dirty_at,
+                    };
+                });
+        },
+        discord_relay_role_done(a) {
+            const r = db.roleRows.get(a.p_user_id);
+            if (!r) return null;
+            if (a.p_error) { r.attempts++; r.last_error = a.p_error; return null; }
+            r.synced = [...(a.p_synced || [])];
+            r.taken = [...(a.p_taken || [])];
+            r.attempts = 0;
+            r.next_try_at = a.p_retry_at;
+            r.last_error = a.p_retry_at ? 'Not on the server.' : null;
+            if (!a.p_retry_at && r.dirty_at === a.p_dirty_at) r.dirty_at = null;
+            return null;
+        },
+        discord_relay_role_map() { return [...db.roleMap].map(([key, id]) => ({ key, discord_role_id: id })); },
+        discord_relay_role_pages() { return db.rolePages.slice(); },
+        discord_relay_map_role(a) {
+            for (const [k, id] of db.roleMap) if (id === a.p_discord_role_id && k !== a.p_key) db.roleMap.delete(k);
+            db.roleMap.set(a.p_key, a.p_discord_role_id);
+            return null;
+        },
+        discord_relay_unmap_role(a) { db.roleMap.delete(a.p_key); return null; },
     };
 
     const client = {
@@ -321,8 +408,22 @@ function world() {
         return id;
     }
 
+    // Batch 4: a change on the wiki, as the triggers record it. Only a person
+    // the relay has already seen is marked; the rest wait for its first-run
+    // pass.
+    function wikiChange(userId, change) {
+        db.wiki.set(userId, { ...(db.wiki.get(userId) || {}), ...change });
+        const r = db.roleRows.get(userId);
+        if (r) Object.assign(r, { dirty_at: dirtyStamp(), next_try_at: null, attempts: 0 });
+    }
+
     const tick = (env = ENV) => runTick({ env, db: client, fetch: fetchFake, now: () => clock });
-    return { discord, db, tick, linkedThread, say, forumPost, flake, advance: (ms) => { clock += ms; } };
+    // A tick with the once-a-minute sweep in it, where the role step runs.
+    const sweepTick = (env = ENV) => { db.sweepDue = true; return tick(env); };
+    return {
+        discord, db, tick, sweepTick, linkedThread, say, forumPost, flake, wikiChange,
+        advance: (ms) => { clock += ms; },
+    };
 }
 
 test('without its secrets the relay does nothing at all', async () => {
@@ -1005,4 +1106,320 @@ test('a rename Discord already shows is marked done without asking Discord again
     v.db.sweepDue = true;
     await v.tick(FORUM_ENV);
     expect(v.discord.calls.filter(c => c.method === 'PATCH').map(c => c.body)).toEqual([{ name: 'New name', applied_tags: ['300000000000000002'] }]);
+});
+
+// --- BATCH 4: DISCORD ROLES FOLLOW THE WIKI ---
+//
+// Spec: V1.0-DEVLOG.md, "SPEC 2026-10-05: batch 4", D2. The fake database
+// keeps each person's row across ticks, as the SQL does: the batch 2 lesson,
+// where a fake with a fixed answer hid a skipped first post.
+
+const R = {
+    bot: '300000000000000001', boomcat: '300000000000000002', admin: '300000000000000003',
+    reviewer: '300000000000000004', trusted: '300000000000000005', moderate: '300000000000000006',
+    honored: '300000000000000007', vessel: '300000000000000008',
+};
+const ANA = '400000000000000001';
+const BO = '400000000000000002';
+const CY = '400000000000000003';
+const DI = '400000000000000004';
+const OWN = '400000000000000005';
+const DAY = 24 * 60 * 60 * 1000;
+
+// The owner's server, as they named the roles (2026-10-04), with the bot's
+// role above every synced one and below Boomcat.
+function roleServer(w, { botPerms = MANAGE_ROLES } = {}) {
+    w.discord.roles = [
+        { id: GUILD, name: '@everyone', position: 0, permissions: '0', managed: false },
+        { id: R.boomcat, name: 'Boomcat', position: 9, permissions: '0', managed: false },
+        { id: R.bot, name: 'DSL Relay', position: 8, permissions: botPerms, managed: true },
+        { id: R.admin, name: 'Admin of DSL', position: 7, permissions: '0', managed: false },
+        { id: R.reviewer, name: 'Reviewer of DSL', position: 6, permissions: '0', managed: false },
+        { id: R.trusted, name: 'Trusted Editor of DSL', position: 5, permissions: '0', managed: false },
+        { id: R.moderate, name: 'Moderation Perms', position: 4, permissions: '0', managed: false },
+        { id: R.honored, name: 'Honored One Expert', position: 3, permissions: '0', managed: false },
+        { id: R.vessel, name: 'Vessel Expert', position: 2, permissions: '0', managed: false },
+    ];
+    w.discord.members.set(BOT, { user: { id: BOT }, roles: [R.bot] });
+    w.db.rolePages = [
+        { page_id: 'honored_one', name: 'Honored One' },
+        { page_id: 'vessel', name: 'Vessel' },
+        { page_id: 'boomcat', name: 'Boomcat' },
+    ];
+}
+
+// Someone signed in with Discord, on the server unless told otherwise.
+function person(w, userId, discordId, wiki = {}, { roles = [], onServer = true } = {}) {
+    w.db.identities.set(userId, discordId);
+    w.db.wiki.set(userId, { role: null, can_moderate: false, experts: [], ...wiki });
+    if (onServer) w.discord.members.set(discordId, { user: { id: discordId }, roles: [...roles] });
+}
+
+const rolesOf = (w, discordId) => [...w.discord.members.get(discordId).roles].sort();
+const sorted = (...ids) => ids.sort();
+const roleChanges = (w) => w.discord.calls.filter(c => /\/members\/\d+\/roles\/\d+$/.test(new URL(c.url).pathname));
+const roleReads = (w) => w.discord.calls.filter(c => /\/roles$|\/users\/@me$/.test(new URL(c.url).pathname));
+
+test('roles: with nobody waiting, the step asks Discord nothing, and it only runs in the sweep', async () => {
+    const w = world();
+    roleServer(w);
+    const report = await w.sweepTick();
+    expect(report.errors).toEqual([]);
+    expect(w.db.calls).toContain('discord_relay_role_jobs');
+    expect(roleReads(w)).toEqual([]);
+
+    // A tick between sweeps does not even ask the database.
+    person(w, 'ana', ANA, { role: 'reviewer' });
+    w.db.calls = [];
+    await w.tick();
+    expect(w.db.calls).not.toContain('discord_relay_role_jobs');
+    expect(rolesOf(w, ANA)).toEqual([]);
+
+    // Done once, nobody waits, and the next sweep reads no roles.
+    await w.sweepTick();
+    w.discord.calls = [];
+    await w.sweepTick();
+    expect(roleReads(w)).toEqual([]);
+    expect(roleChanges(w)).toEqual([]);
+});
+
+test('roles: the first run gives everyone signed in with Discord what the wiki gives, once, and takes nothing', async () => {
+    const w = world();
+    roleServer(w);
+    person(w, 'ana', ANA, { role: 'reviewer', can_moderate: true, experts: ['honored_one'] });
+    person(w, 'bo', BO, {});
+    // Banned on the wiki, with an Expert role given by hand before the sync.
+    person(w, 'cy', CY, { role: 'viewer' }, { roles: [R.vessel] });
+    // A rank role given by hand that the wiki does not give.
+    person(w, 'di', DI, { role: 'trusted_editor' }, { roles: [R.admin] });
+    person(w, 'own', OWN, { role: 'owner' });
+
+    const report = await w.sweepTick();
+    expect(report.errors).toEqual([]);
+    expect(rolesOf(w, ANA)).toEqual(sorted(R.reviewer, R.moderate, R.honored));
+    expect(rolesOf(w, BO)).toEqual([]);
+    expect(rolesOf(w, CY)).toEqual([R.vessel]);
+    expect(rolesOf(w, DI)).toEqual(sorted(R.admin, R.trusted));
+    // Boomcat is the owner's alone and never synced.
+    expect(rolesOf(w, OWN)).toEqual([]);
+    expect(report).toMatchObject({ rolePeople: 5, rolesAdded: 4, rolesRemoved: 0 });
+    expect([...w.db.roleRows.values()].every(r => r.dirty_at === null)).toBe(true);
+
+    // Found by name and kept by id. The owner's role "Boomcat" is not
+    // "Boomcat Expert".
+    expect(Object.fromEntries(w.db.roleMap)).toEqual({
+        admin: R.admin, reviewer: R.reviewer, trusted_editor: R.trusted, moderate: R.moderate,
+        'expert:honored_one': R.honored, 'expert:vessel': R.vessel,
+    });
+    // Every change says why in the server's audit log.
+    expect(roleChanges(w).map(c => c.headers['X-Audit-Log-Reason'])).toEqual(Array(4).fill('Wiki%20role%20sync'));
+
+    // Once is once.
+    w.discord.calls = [];
+    await w.sweepTick();
+    expect(roleChanges(w)).toEqual([]);
+});
+
+test('roles: a change on the wiki changes only the role it is about, and leaves what was done by hand', async () => {
+    const w = world();
+    roleServer(w);
+    person(w, 'ana', ANA, { role: 'reviewer', can_moderate: true });
+    await w.sweepTick();
+
+    // By hand on Discord: Vessel Expert given, Moderation Perms taken.
+    w.discord.members.get(ANA).roles = [R.reviewer, R.vessel];
+
+    w.wikiChange('ana', { role: 'admin' });
+    await w.sweepTick();
+    expect(rolesOf(w, ANA)).toEqual(sorted(R.admin, R.vessel));
+
+    w.wikiChange('ana', { experts: ['honored_one'] });
+    await w.sweepTick();
+    expect(rolesOf(w, ANA)).toEqual(sorted(R.admin, R.vessel, R.honored));
+
+    w.wikiChange('ana', { experts: [], can_moderate: false });
+    const report = await w.sweepTick();
+    expect(report.errors).toEqual([]);
+    expect(rolesOf(w, ANA)).toEqual(sorted(R.admin, R.vessel));
+});
+
+test("roles: a wiki ban takes every synced role, hand-given ones too, and lifting it gives back the wiki's and what the ban took", async () => {
+    const w = world();
+    roleServer(w);
+    person(w, 'bo', BO, { role: 'reviewer', experts: ['honored_one'] }, { roles: [R.vessel] });
+    await w.sweepTick();
+    expect(rolesOf(w, BO)).toEqual(sorted(R.reviewer, R.honored, R.vessel));
+
+    w.wikiChange('bo', { role: 'viewer' });
+    let report = await w.sweepTick();
+    expect(report.errors).toEqual([]);
+    expect(rolesOf(w, BO)).toEqual([]);
+    expect(w.db.roleRows.get('bo')).toMatchObject({ synced: [], taken: ['expert:vessel'], dirty_at: null });
+
+    // Restored as a trusted editor: not Reviewer, which the wiki no longer
+    // gives; Honored One Expert, which it still does; Vessel Expert, which
+    // the ban took.
+    w.wikiChange('bo', { role: 'trusted_editor' });
+    report = await w.sweepTick();
+    expect(report.errors).toEqual([]);
+    expect(rolesOf(w, BO)).toEqual(sorted(R.trusted, R.honored, R.vessel));
+    expect(w.db.roleRows.get('bo')).toMatchObject({ synced: ['expert:honored_one', 'trusted_editor'], taken: [] });
+});
+
+test('roles: a role renamed on Discord keeps working; one deleted is found again by name', async () => {
+    const w = world();
+    roleServer(w);
+    person(w, 'ana', ANA, { role: 'reviewer' });
+    await w.sweepTick();
+
+    w.discord.roles.find(r => r.id === R.reviewer).name = 'DSL Reviewers';
+    w.wikiChange('ana', { role: 'trusted_editor' });
+    await w.sweepTick();
+    expect(rolesOf(w, ANA)).toEqual([R.trusted]);
+
+    // Trusted Editor of DSL deleted and made again.
+    const NEW_TRUSTED = '300000000000000010';
+    w.discord.roles = w.discord.roles.filter(r => r.id !== R.trusted);
+    w.discord.members.get(ANA).roles = [];
+    w.discord.roles.push({ id: NEW_TRUSTED, name: 'trusted editor of dsl', position: 5, permissions: '0', managed: false });
+    person(w, 'di', DI, { role: 'trusted_editor' });
+    const report = await w.sweepTick();
+    expect(report.errors).toEqual([]);
+    expect(w.db.roleMap.get('trusted_editor')).toBe(NEW_TRUSTED);
+    expect(rolesOf(w, DI)).toEqual([NEW_TRUSTED]);
+});
+
+test('roles: without Manage Roles the step waits, and nobody is lost when it is switched on', async () => {
+    const w = world();
+    roleServer(w, { botPerms: '0' });
+    person(w, 'ana', ANA, { role: 'reviewer' });
+
+    let report = await w.sweepTick();
+    expect(report.roleSync).toBe('waiting: the bot lacks Manage Roles');
+    expect(roleChanges(w)).toEqual([]);
+    expect(w.db.roleRows.get('ana').dirty_at).not.toBeNull();
+
+    w.discord.roles.find(r => r.id === R.bot).permissions = MANAGE_ROLES;
+    report = await w.sweepTick();
+    expect(report.roleSync).toBeUndefined();
+    expect(rolesOf(w, ANA)).toEqual([R.reviewer]);
+});
+
+test("roles: a role above the bot's is skipped and named; moved below, the next wiki change gives it", async () => {
+    const w = world();
+    roleServer(w);
+    w.discord.roles.find(r => r.id === R.admin).position = 10;
+    person(w, 'ana', ANA, { role: 'admin', experts: ['honored_one'] });
+
+    let report = await w.sweepTick();
+    expect(report.errors).toEqual([]);
+    expect(report.rolesAboveBot).toEqual(['Admin of DSL']);
+    expect(rolesOf(w, ANA)).toEqual([R.honored]);
+    // Never asked for, so Discord never refused it.
+    expect(roleChanges(w).filter(c => c.url.includes(R.admin))).toEqual([]);
+
+    w.discord.roles.find(r => r.id === R.admin).position = 7;
+    w.wikiChange('ana', { can_moderate: true });
+    report = await w.sweepTick();
+    expect(report.rolesAboveBot).toBeUndefined();
+    expect(rolesOf(w, ANA)).toEqual(sorted(R.admin, R.moderate, R.honored));
+});
+
+test('roles: someone not on the server is tried again a day later; someone with nothing to give is simply done', async () => {
+    const w = world();
+    roleServer(w);
+    person(w, 'ana', ANA, { role: 'reviewer' }, { onServer: false });
+    person(w, 'bo', BO, {}, { onServer: false });
+
+    let report = await w.sweepTick();
+    expect(report.errors).toEqual([]);
+    expect(w.db.roleRows.get('ana')).toMatchObject({ synced: [], last_error: 'Not on the server.' });
+    expect(w.db.roleRows.get('ana').dirty_at).not.toBeNull();
+    expect(Date.parse(w.db.roleRows.get('ana').next_try_at)).toBeGreaterThan(Date.parse('2026-10-05T11:00:00Z'));
+    expect(w.db.roleRows.get('bo')).toMatchObject({ dirty_at: null, next_try_at: null });
+
+    // An hour later: not asked again.
+    w.advance(60 * 60 * 1000);
+    w.discord.calls = [];
+    await w.sweepTick();
+    expect(roleChanges(w)).toEqual([]);
+
+    // They join, and the day passes.
+    w.discord.members.set(ANA, { user: { id: ANA }, roles: [] });
+    w.advance(DAY);
+    report = await w.sweepTick();
+    expect(report.errors).toEqual([]);
+    expect(rolesOf(w, ANA)).toEqual([R.reviewer]);
+    expect(w.db.roleRows.get('ana')).toMatchObject({ dirty_at: null, next_try_at: null, last_error: null });
+});
+
+test('roles: when Discord says slow down, the person waits exactly as they were', async () => {
+    const w = world();
+    roleServer(w);
+    person(w, 'ana', ANA, { role: 'reviewer', can_moderate: true });
+    w.discord.rateLimitRoles = true;
+
+    let report = await w.sweepTick();
+    expect(report.rateLimited).toBe(true);
+    expect(w.db.roleRows.get('ana')).toMatchObject({ synced: null, attempts: 0 });
+    expect(w.db.roleRows.get('ana').dirty_at).not.toBeNull();
+    expect(w.db.lease).toBe(false);
+
+    w.discord.rateLimitRoles = false;
+    report = await w.sweepTick();
+    expect(report.errors).toEqual([]);
+    expect(rolesOf(w, ANA)).toEqual(sorted(R.reviewer, R.moderate));
+});
+
+test('roles: a wiki change made while the relay works keeps the person waiting for the next run', async () => {
+    const w = world();
+    roleServer(w);
+    person(w, 'ana', ANA, { role: 'reviewer' });
+    w.discord.onRoleChange = () => {
+        w.discord.onRoleChange = null;
+        w.wikiChange('ana', { role: 'admin' });
+    };
+
+    await w.sweepTick();
+    expect(rolesOf(w, ANA)).toEqual([R.reviewer]);
+    expect(w.db.roleRows.get('ana').dirty_at).not.toBeNull();
+
+    await w.sweepTick();
+    expect(rolesOf(w, ANA)).toEqual([R.admin]);
+    expect(w.db.roleRows.get('ana').dirty_at).toBeNull();
+});
+
+test('roles: two roles with one name match neither, and the report says which', async () => {
+    const w = world();
+    roleServer(w);
+    w.discord.roles.push({ id: '300000000000000011', name: 'vessel expert', position: 1, permissions: '0', managed: false });
+    person(w, 'ana', ANA, { experts: ['vessel', 'honored_one'] });
+
+    const report = await w.sweepTick();
+    expect(report.rolesAmbiguous).toEqual(['Vessel Expert']);
+    expect(w.db.roleMap.has('expert:vessel')).toBe(false);
+    expect(rolesOf(w, ANA)).toEqual([R.honored]);
+});
+
+test("roles: a refused change is tried on 5 runs, then left until the person's next wiki change", async () => {
+    const w = world();
+    roleServer(w);
+    person(w, 'ana', ANA, { role: 'reviewer' });
+    w.discord.refuseRoles = true;
+
+    for (let i = 0; i < 5; i++) {
+        const report = await w.sweepTick();
+        expect(report.errors.join(' ')).toContain('403');
+    }
+    expect(w.db.roleRows.get('ana')).toMatchObject({ attempts: 5, synced: null });
+
+    w.discord.calls = [];
+    await w.sweepTick();
+    expect(roleChanges(w)).toEqual([]);
+
+    w.discord.refuseRoles = false;
+    w.wikiChange('ana', { can_moderate: true });
+    const report = await w.sweepTick();
+    expect(report.errors).toEqual([]);
+    expect(rolesOf(w, ANA)).toEqual(sorted(R.reviewer, R.moderate));
 });
