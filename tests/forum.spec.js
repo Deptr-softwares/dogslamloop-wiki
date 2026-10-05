@@ -204,17 +204,21 @@ test('what a new post sends to create_forum_post', async ({ page }) => {
 
 // v1.0 batch 4, D1. The thread's own box is tests/discussion-rules-link.spec.js's.
 test('the new-post form links the Rules page once it exists', async ({ page }) => {
-    const nav = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'data', 'navigation.json'), 'utf8'));
+    const real = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'data', 'navigation.json'), 'utf8'));
+    // The owner's own page is taken out, so moving or renaming it can never
+    // turn this red.
+    const nav = Object.fromEntries(Object.entries(real).map(([category, pages]) =>
+        [category, pages.filter(p => !(p.cms_config && p.cms_config.pageId === 'forum_rules'))]));
     nav['Site Info'] = [...nav['Site Info'], {
-        id: 'Rules', name: 'Rules', url: 'systems/rules/index.html',
-        cms_config: { pageType: 'system', pageId: 'rules', editRole: 'locked' },
+        id: 'Forum-Rules', name: 'Forum Rules', url: 'systems/forum-rules/index.html',
+        cms_config: { pageType: 'system', pageId: 'forum_rules', editRole: 'locked' },
     }];
     await page.route('**/data/navigation.json**', route => route.fulfill({ json: nav }));
     await openForum(page, { session: SESSION });
     await page.locator('.forum-new-btn').click();
     const link = page.locator('.forum-new-panel .discussion-rules-link');
     await expect(link).toBeVisible();
-    expect(new URL(await link.evaluate(a => a.href)).pathname).toBe('/systems/rules/index.html');
+    expect(new URL(await link.evaluate(a => a.href)).pathname).toBe('/systems/forum-rules/index.html');
     await expect(link).toHaveAttribute('target', '_blank');
 });
 
