@@ -97,6 +97,8 @@
         // a forum post (v1.0 batch 2) reads oldest first, with the reply box
         // after the conversation, the way a forum reads.
         opts: null,
+        // The Rules page's address, or null while it does not exist (batch 4).
+        rulesUrl: null,
     };
 
     const DEFAULT_OPTS = {
@@ -494,6 +496,32 @@
         pendingImages.set(form, list);
         renderAttachments(form);
         setStatus(problem || note, !!problem);
+    }
+
+    // --- THE RULES PAGE (v1.0 batch 4, D1) ---
+    //
+    // A CMS page the owner makes, named "Rules", so its id is `rules`. Its
+    // address is read from navigation.json, which lists live pages only: until
+    // the page is live there is no link, rather than a link to nothing.
+    const RULES_PAGE_ID = 'rules';
+    let rulesLinkLoad = null;
+
+    function loadRulesLink() {
+        if (!rulesLinkLoad) {
+            rulesLinkLoad = (async () => {
+                try {
+                    const nav = await fetchNavigationData();
+                    for (const entries of Object.values(nav || {})) {
+                        const hit = (entries || []).find(e => e && e.cms_config && e.cms_config.pageId === RULES_PAGE_ID && e.url);
+                        if (hit) return `${getRootPath()}${hit.url}`;
+                    }
+                } catch (e) {
+                    // No navigation, no link.
+                }
+                return null;
+            })().then(url => { state.rulesUrl = url; });
+        }
+        return rulesLinkLoad;
     }
 
     // --- WHO IS READING ---
@@ -1030,6 +1058,16 @@
         }
 
         row.appendChild(el('span', 'discussion-composer-status'));
+
+        // On the box that starts a conversation, not on every reply box. A new
+        // tab, so a half-written post is not lost.
+        if (!parentId && state.rulesUrl) {
+            const rules = el('a', 'discussion-rules-link', 'Rules');
+            rules.href = state.rulesUrl;
+            rules.target = '_blank';
+            rules.rel = 'noopener';
+            row.appendChild(rules);
+        }
         form.appendChild(row);
 
         return form;
@@ -1657,7 +1695,7 @@
     // or null when the reader cannot post (a prompt is drawn instead).
     window.mountDiscussionComposer = async function (container, { placeholder, submitLabel, leading = [], insert } = {}) {
         if (!container || !client()) return null;
-        await loadViewer();
+        await Promise.all([loadViewer(), loadRulesLink()]);
         wire(container);
         if (!isSignedIn() || isBanned()) {
             container.appendChild(renderSignInPrompt());
@@ -1695,7 +1733,7 @@
         state.offset = 0;
         state.exhausted = false;
 
-        await loadViewer();
+        await Promise.all([loadViewer(), loadRulesLink()]);
         wire(root);
         await draw();
         updateJumpCount();

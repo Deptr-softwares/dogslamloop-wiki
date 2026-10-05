@@ -118,6 +118,19 @@
     color: var(--text-muted);
 }
 
+/* v1.0 batch 4: the Rules page, at the far end of the reply box's row. */
+.discussion-rules-link {
+    margin-left: auto;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-decoration: underline;
+}
+
+.discussion-rules-link:hover {
+    color: var(--accent-blue);
+}
+
 .discussion-status-error {
     color: #ef4444;
 }

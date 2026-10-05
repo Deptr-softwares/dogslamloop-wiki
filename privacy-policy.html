@@ -98,16 +98,18 @@
 
                 <h2 class="section-title">If you make an account</h2>
                 <p class="strategy-paragraph">
-                    Accounts exist so you can submit edits and be told what happened to them. Signing up
-                    stores two things:
+                    Accounts exist so you can submit edits, take part in discussions, and be told what
+                    happened to them. Signing up stores two things:
                 </p>
                 <ul class="wiki-block-list">
                     <li><strong>Your email address</strong>: used to sign you in, and nothing else. It is never shown to other readers.</li>
                     <li><strong>Your display name</strong>: up to 32 characters, and this one is public. It is the name on your edits.</li>
                 </ul>
                 <p class="strategy-paragraph">
-                    That is it. No real name, no age, no location, no phone number. None of it is asked
-                    for, so none of it can be stored.
+                    That is it, for an account made with an email address. No real name, no age, no
+                    location, no phone number. None of it is asked for, so none of it can be stored.
+                    Signing in with Discord, Google or GitHub stores a little more, set out under
+                    "Who else is involved" below.
                 </p>
 
                 <h2 class="section-title">Your profile</h2>
@@ -163,10 +165,38 @@
                     put back.
                 </p>
 
+                <h2 class="section-title">If you post in a discussion</h2>
+                <p class="strategy-paragraph">
+                    A post is public, like an edit. It shows under your display name, in the thread or
+                    the Forum post it was made in.
+                </p>
+                <p class="strategy-paragraph">
+                    Editing a post keeps the words it replaced. Moderators can read them; nobody else
+                    can. They are deleted when you delete the post.
+                </p>
+                <p class="strategy-paragraph">
+                    Reporting a post records your account with the report. Only moderators can see it.
+                </p>
+
+                <h2 class="section-title">The Discord server</h2>
+                <p class="strategy-paragraph">
+                    Every character's discussion and the Forum are connected to the Dogslamloop Discord
+                    server, so a conversation shows in both places.
+                </p>
+                <ul class="wiki-block-list">
+                    <li><strong>What you post on the wiki</strong> is copied to the server within seconds, under your display name. Deleting or editing it on the wiki deletes or edits the copy. Its images are shown there from the wiki's own storage.</li>
+                    <li><strong>What is posted in those channels on Discord</strong> is copied to the wiki with the Discord display name, handle and account id of whoever posted it, and its images are copied into the wiki's storage. A message deleted or edited on Discord within a day of being sent is deleted or edited on the wiki too. After that, staff remove it on request.</li>
+                    <li><strong>If you signed in with Discord</strong>, your Discord account id is used to check the server's bans and timeouts before your post is copied there, and to give you the Discord roles that match your role on the wiki.</li>
+                </ul>
+                <p class="strategy-paragraph">
+                    Your email address never goes to Discord.
+                </p>
+
                 <h2 class="section-title">Who else is involved</h2>
                 <ul class="wiki-block-list">
                     <li><strong>Supabase</strong> hosts the database and handles signing in. Your email and everything you write live there.</li>
-                    <li><strong>Discord and Google</strong>, if you signed in with one of them. They tell the site your email address and nothing else. Your password stays with them, and this site never sees it.</li>
+                    <li><strong>Discord, Google and GitHub</strong>, if you signed in with one of them. They tell the site your email address, your name there, a link to your picture there, and your account id there. The site starts your display name from that name, and you can change it; the name they sent stays stored with your account. The picture is never shown. A Discord account id is used as set out under "The Discord server". Your password stays with them, and this site never sees it.</li>
+                    <li><strong>Discord</strong> also hosts the server the discussions are connected to. What is copied there is on Discord, under Discord's own privacy policy.</li>
                     <li><strong>GitHub Pages</strong> and <strong>Cloudflare</strong> serve the site. Like any web host they see request logs, including IP addresses. That is ordinary server logging, not something this site reads, keeps or can search.</li>
                     <li><strong>KLIPY</strong> hosts the GIFs linked in discussion posts. Your browser loads each one straight from KLIPY, so KLIPY sees your IP address the way any image host would. It is not told which page you were on. When you post a klipy.com link, your browser asks KLIPY for that GIF's file once, as the post is made, and the post keeps the file's address.</li>
                     <li><strong>Ko-fi</strong> is linked in the sidebar. Clicking it takes you to their site, which has its own policies, and nothing about a donation comes back here.</li>
@@ -185,7 +215,8 @@
                 <p class="strategy-paragraph">
                     Edits you already made stay on the page, but your name comes off them and they
                     show as "Deleted user" instead. Discussion posts stay the same way, images
-                    included.
+                    included. Copies already on the Discord server keep the name they were sent
+                    under.
                 </p>
 
                 <h2 class="section-title">Changes to this page</h2>
@@ -207,12 +238,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/character_tabs.js?v=0a3c3e19"></script>
-    <script src="js/input_slots.js?v=0a3c3e19"></script>
-    <script src="js/site_utils.js?v=0a3c3e19"></script>
-    <script src="js/site_meta.js?v=0a3c3e19"></script>
-    <script src="js/pagebuilder.js?v=0a3c3e19"></script>
-    <script src="js/search.js?v=0a3c3e19"></script>
+    <script src="js/character_tabs.js?v=c02897ef"></script>
+    <script src="js/input_slots.js?v=c02897ef"></script>
+    <script src="js/site_utils.js?v=c02897ef"></script>
+    <script src="js/site_meta.js?v=c02897ef"></script>
+    <script src="js/pagebuilder.js?v=c02897ef"></script>
+    <script src="js/search.js?v=c02897ef"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {

@@ -353,3 +353,141 @@ test.describe('agreement with the files the relay sits between', () => {
         expect(defs[defs.length - 1]).toContain(`sp.category = '${word[1]}'`);
     });
 });
+
+// Batch 4: Discord roles follow the wiki. Spec: V1.0-DEVLOG.md, "SPEC
+// 2026-10-05: batch 4", D2.
+test.describe('roles', () => {
+    const GUILD = '100000000000000001';
+    const role = (id, name, position, extra = {}) => ({ id, name, position, permissions: '0', managed: false, ...extra });
+    const SERVER = [
+        role(GUILD, '@everyone', 0),
+        role('11', 'Boomcat', 9),
+        role('12', 'DSL Relay', 8, { managed: true, permissions: String(1n << 28n) }),
+        role('13', 'Admin of DSL', 7),
+        role('14', 'Reviewer of DSL', 6),
+        role('15', 'Trusted Editor of DSL', 5),
+        role('16', 'Moderation Perms', 4),
+        role('17', 'Honored One Expert', 3),
+        role('18', 'Head of the Hei Expert', 2),
+    ];
+    const PAGES = [
+        { page_id: 'honored_one', name: 'Honored One' },
+        { page_id: 'head_of_the_hei', name: 'Head of the Hei' },
+        { page_id: 'boomcat', name: 'Boomcat' },
+    ];
+
+    // Derived: a role added to the wiki's ladder must be given a Discord
+    // answer (a role, or a stated "never synced"), and the relay must not
+    // answer for a role the ladder does not have.
+    test('every wiki role has an answer, from role_rank() in the migrations', () => {
+        const dir = path.join(ROOT, 'supabase', 'migrations');
+        const defs = fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()
+            .map(f => fs.readFileSync(path.join(dir, f), 'utf8'))
+            .flatMap(sql => [...sql.matchAll(/CREATE OR REPLACE FUNCTION "public"\."role_rank"\([\s\S]*?\n\$\$;/g)].map(m => m[0]));
+        expect(defs.length, 'role_rank not defined in the migrations').toBeGreaterThan(0);
+        const ladder = [...defs[defs.length - 1].matchAll(/WHEN '([a-z_]+)'/g)].map(m => m[1]).sort();
+        expect(ladder.length).toBeGreaterThan(3);
+        expect([...Object.keys(core.RANK_ROLES), ...core.UNSYNCED_ROLES].sort()).toEqual(ladder);
+    });
+
+    test('what the wiki gives: a rank role, the Moderate tick, each expertise; the owner no rank role; a ban nothing', () => {
+        expect(core.wantedRoles({ role: 'reviewer', can_moderate: true, expert_pages: ['vessel'] }))
+            .toEqual(['reviewer', 'moderate', 'expert:vessel']);
+        expect(core.wantedRoles({ role: 'trusted_editor', can_moderate: false, expert_pages: [] })).toEqual(['trusted_editor']);
+        expect(core.wantedRoles({ role: 'owner', can_moderate: true, expert_pages: ['vessel'] })).toEqual(['moderate', 'expert:vessel']);
+        expect(core.wantedRoles({ role: null, can_moderate: false, expert_pages: ['vessel'] })).toEqual(['expert:vessel']);
+        expect(core.wantedRoles({ role: 'viewer', can_moderate: true, expert_pages: ['vessel'] })).toEqual([]);
+    });
+
+    test('roles are found by name ignoring case, spaces and punctuation, then kept by id', () => {
+        const first = core.resolveRoleMap({ serverRoles: SERVER, saved: [], pages: PAGES });
+        expect(first.ids).toEqual({
+            admin: '13', reviewer: '14', trusted_editor: '15', moderate: '16',
+            'expert:honored_one': '17', 'expert:head_of_the_hei': '18',
+        });
+        expect(first.matched.map(m => m.key)).toEqual(Object.keys(first.ids));
+        expect(first.forgotten).toEqual([]);
+
+        // Renamed on Discord: kept. Deleted: forgotten, and nothing else takes
+        // its id.
+        const saved = Object.entries(first.ids).map(([key, discord_role_id]) => ({ key, discord_role_id }));
+        const renamed = SERVER.filter(r => r.id !== '16').map(r => (r.id === '14' ? { ...r, name: 'Reviewers' } : r));
+        const again = core.resolveRoleMap({ serverRoles: renamed, saved, pages: PAGES });
+        expect(again.ids.reviewer).toBe('14');
+        expect(again.forgotten).toEqual(['moderate']);
+        expect(again.ids.moderate).toBeUndefined();
+        expect(again.matched).toEqual([]);
+
+        // Found by name in another spelling.
+        const loose = core.resolveRoleMap({ serverRoles: [role('20', 'head of the hei  EXPERT', 2)], saved: [], pages: PAGES });
+        expect(loose.ids).toEqual({ 'expert:head_of_the_hei': '20' });
+    });
+
+    test('a name two roles share, or a role an integration owns, matches nothing', () => {
+        const twice = core.resolveRoleMap({
+            serverRoles: [role('21', 'Moderation Perms', 4), role('22', 'moderation perms', 3), role('23', 'Admin of DSL', 7, { managed: true })],
+            saved: [], pages: [],
+        });
+        expect(twice.ids).toEqual({});
+        expect(twice.ambiguous).toEqual(['Moderation Perms']);
+    });
+
+    test('the bot gives roles only with Manage Roles (or Administrator), and only below its highest role', () => {
+        expect(core.botRoleReach(SERVER, ['12'], GUILD)).toEqual({ canManage: true, top: 8 });
+        // From @everyone counts too.
+        const everyone = SERVER.map(r => (r.id === GUILD ? { ...r, permissions: String(1n << 28n) } : { ...r, permissions: '0' }));
+        expect(core.botRoleReach(everyone, ['12'], GUILD).canManage).toBe(true);
+        const admin = SERVER.map(r => (r.id === '12' ? { ...r, permissions: String(1n << 3n) } : r));
+        expect(core.botRoleReach(admin, ['12'], GUILD).canManage).toBe(true);
+        // Every other bit below Manage Roles, Administrator (bit 3) excepted.
+        const none = SERVER.map(r => (r.id === '12' ? { ...r, permissions: String(((1n << 28n) - 1n) & ~(1n << 3n)) } : r));
+        expect(core.botRoleReach(none, ['12'], GUILD).canManage).toBe(false);
+
+        expect(core.canGiveRole(role('30', 'x', 7), 8)).toBe(true);
+        expect(core.canGiveRole(role('30', 'x', 8), 8)).toBe(false);
+        expect(core.canGiveRole(role('30', 'x', 9), 8)).toBe(false);
+        expect(core.canGiveRole(role('30', 'x', 1, { managed: true }), 8)).toBe(false);
+        expect(core.canGiveRole(undefined, 8)).toBe(false);
+    });
+
+    const IDS = { admin: 'A', reviewer: 'R', trusted_editor: 'T', moderate: 'M', 'expert:vessel': 'V', 'expert:honored_one': 'H' };
+
+    test('the first run adds what the wiki gives and takes nothing, even from a banned person', () => {
+        expect(core.roleChanges({ wanted: ['reviewer', 'moderate'], synced: null, taken: [], banned: false, current: null, ids: IDS }))
+            .toEqual({ add: ['R', 'M'], remove: [], synced: ['moderate', 'reviewer'], taken: [] });
+        expect(core.needsMemberRoles({ role: 'viewer', synced: null })).toBe(false);
+        expect(core.roleChanges({ wanted: [], synced: null, taken: [], banned: true, current: null, ids: IDS }))
+            .toEqual({ add: [], remove: [], synced: [], taken: [] });
+    });
+
+    test('a change applies only itself: what the wiki newly gives is added, what it stopped giving removed', () => {
+        expect(core.roleChanges({
+            wanted: ['admin', 'moderate', 'expert:vessel'], synced: ['moderate', 'reviewer'], taken: [], banned: false, current: null, ids: IDS,
+        })).toEqual({ add: ['A', 'V'], remove: ['R'], synced: ['admin', 'expert:vessel', 'moderate'], taken: [] });
+        // Nothing changed: nothing asked of Discord, whatever it shows.
+        expect(core.roleChanges({ wanted: ['reviewer'], synced: ['reviewer'], taken: [], banned: false, current: null, ids: IDS }))
+            .toEqual({ add: [], remove: [], synced: ['reviewer'], taken: [] });
+    });
+
+    test('a ban takes every known role the member holds and remembers the hand-given ones; lifting it gives them back', () => {
+        expect(core.needsMemberRoles({ role: 'viewer', synced: ['reviewer'] })).toBe(true);
+        expect(core.needsMemberRoles({ role: 'reviewer', synced: ['reviewer'] })).toBe(false);
+        const ban = core.roleChanges({
+            wanted: [], synced: ['reviewer', 'expert:honored_one'], taken: [], banned: true,
+            current: ['R', 'H', 'V', 'someone-elses-role'], ids: IDS,
+        });
+        expect(ban).toEqual({ add: [], remove: ['R', 'V', 'H'], synced: [], taken: ['expert:vessel'] });
+
+        const lifted = core.roleChanges({
+            wanted: ['trusted_editor', 'expert:honored_one'], synced: [], taken: ['expert:vessel'], banned: false, current: null, ids: IDS,
+        });
+        expect(lifted).toEqual({ add: ['T', 'H', 'V'], remove: [], synced: ['expert:honored_one', 'trusted_editor'], taken: [] });
+    });
+
+    test('a role the bot cannot give is neither given nor counted as given, so the next change gives it', () => {
+        const noAdmin = { ...IDS };
+        delete noAdmin.admin;
+        const out = core.roleChanges({ wanted: ['admin', 'moderate'], synced: [], taken: ['admin'], banned: false, current: null, ids: noAdmin });
+        expect(out).toEqual({ add: ['M'], remove: [], synced: ['moderate'], taken: ['admin'] });
+    });
+});

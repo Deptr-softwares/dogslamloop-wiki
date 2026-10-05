@@ -393,3 +393,141 @@ export function sweepFindings(recent, fetched, limit) {
     }
     return { gone, edited };
 }
+
+// --- ROLES (batch 4) ---
+//
+// Discord roles follow the wiki, one way. Spec: V1.0-DEVLOG.md, "SPEC
+// 2026-10-05: batch 4", D2; "role rule N" cites its list.
+
+// Role rule 1: the Discord role each wiki role gives, named as the owner named
+// them on the server (2026-10-04). `owner` gives none (Boomcat is never
+// synced) and `viewer` is the ban, role rule 3.
+export const RANK_ROLES = Object.freeze({
+    admin: 'Admin of DSL',
+    reviewer: 'Reviewer of DSL',
+    trusted_editor: 'Trusted Editor of DSL',
+});
+export const UNSYNCED_ROLES = Object.freeze(['owner', 'viewer']);
+export const MODERATE_ROLE = 'Moderation Perms';
+
+export function expertRoleName(pageName) {
+    return `${String(pageName || '').trim()} Expert`;
+}
+
+// A name, not a rank: the ban is tested by name everywhere (CLAUDE.md, Roles).
+export function isWikiBan(role) {
+    return role === 'viewer';
+}
+
+// W: the keys the wiki gives a person now.
+export function wantedRoles({ role, can_moderate, expert_pages }) {
+    if (isWikiBan(role)) return [];
+    const keys = [];
+    if (Object.prototype.hasOwnProperty.call(RANK_ROLES, role)) keys.push(role);
+    if (can_moderate) keys.push('moderate');
+    for (const pageId of expert_pages || []) keys.push(`expert:${pageId}`);
+    return keys;
+}
+
+// Role rule 4: each key's Discord role. One already found is kept by id, so a
+// rename on Discord keeps working; one whose id is gone is forgotten; the rest
+// are found by name. A name two roles share matches neither.
+export function resolveRoleMap({ serverRoles, saved, pages }) {
+    const onServer = new Map((serverRoles || []).map(r => [r.id, r]));
+    const ids = {};
+    const forgotten = [];
+    for (const row of saved || []) {
+        if (onServer.has(row.discord_role_id)) ids[row.key] = row.discord_role_id;
+        else forgotten.push(row.key);
+    }
+
+    const names = Object.entries(RANK_ROLES).map(([key, name]) => ({ key, name }));
+    names.push({ key: 'moderate', name: MODERATE_ROLE });
+    for (const p of pages || []) {
+        if (p && p.page_id && String(p.name || '').trim()) names.push({ key: `expert:${p.page_id}`, name: expertRoleName(p.name) });
+    }
+
+    const used = new Set(Object.values(ids));
+    const matched = [];
+    const ambiguous = [];
+    for (const { key, name } of names) {
+        if (ids[key]) continue;
+        const hits = (serverRoles || []).filter(r => !r.managed && !used.has(r.id) && sameTitle(r.name, name));
+        if (hits.length > 1) {
+            ambiguous.push(name);
+        } else if (hits.length === 1) {
+            ids[key] = hits[0].id;
+            used.add(hits[0].id);
+            matched.push({ key, id: hits[0].id, name: hits[0].name });
+        }
+    }
+    return { ids, matched, forgotten, ambiguous };
+}
+
+const MANAGE_ROLES = 1n << 28n;
+const ADMINISTRATOR = 1n << 3n;
+
+// Role rule 5: whether the bot may give roles at all, and how high. Its
+// permissions are @everyone's (the role whose id is the server's) and its own
+// roles' together.
+export function botRoleReach(serverRoles, botRoleIds, guildId) {
+    const own = new Set([guildId, ...(botRoleIds || [])]);
+    let perms = 0n;
+    let top = 0;
+    for (const r of serverRoles || []) {
+        if (!own.has(r.id)) continue;
+        try { perms |= BigInt(r.permissions || '0'); } catch (_) { /* not a number: adds nothing */ }
+        if (r.id !== guildId) top = Math.max(top, Number(r.position) || 0);
+    }
+    return { canManage: (perms & (MANAGE_ROLES | ADMINISTRATOR)) !== 0n, top };
+}
+
+// A role the bot can give: strictly below its highest role, and not one an
+// integration owns.
+export function canGiveRole(role, top) {
+    return Boolean(role) && !role.managed && (Number(role.position) || 0) < top;
+}
+
+// Role rules 2 and 3, as one function. Keys in, Discord role ids out.
+//
+//   wanted   W, the keys the wiki gives now
+//   synced   S, the keys the relay last applied; null before the first run
+//   taken    keys a ban took that the sync had not given
+//   banned   the person holds the wiki ban
+//   current  the member's role ids, read for a ban only
+//   ids      key -> role id, for the roles the bot can give
+//
+// Not banned: add W - S and everything taken, remove S - W. Banned: remove
+// every role it knows of that the member holds, and remember the ones S did
+// not hold. The first run (S null) never takes anything away.
+export function roleChanges({ wanted, synced, taken, banned, current, ids }) {
+    const can = (k) => Object.prototype.hasOwnProperty.call(ids || {}, k);
+    const S = new Set(synced || []);
+    const T = new Set(taken || []);
+
+    if (banned) {
+        if (synced === null || synced === undefined) {
+            return { add: [], remove: [], synced: [], taken: [...T].sort() };
+        }
+        const held = new Set(current || []);
+        const removeKeys = Object.keys(ids || {}).filter(k => held.has(ids[k]));
+        for (const k of removeKeys) if (!S.has(k)) T.add(k);
+        return { add: [], remove: removeKeys.map(k => ids[k]), synced: [], taken: [...T].sort() };
+    }
+
+    const W = new Set(wanted || []);
+    const addKeys = new Set([...W].filter(k => !S.has(k)));
+    for (const k of T) addKeys.add(k);
+    const removeKeys = [...S].filter(k => !W.has(k) && !addKeys.has(k));
+    return {
+        add: [...addKeys].filter(can).map(k => ids[k]),
+        remove: removeKeys.filter(can).map(k => ids[k]),
+        synced: [...W].filter(can).sort(),
+        taken: [...T].filter(k => !can(k)).sort(),
+    };
+}
+
+// Whether a ban needs the member's roles read first.
+export function needsMemberRoles({ role, synced }) {
+    return isWikiBan(role) && synced !== null && synced !== undefined;
+}
