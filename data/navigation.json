@@ -492,6 +492,17 @@
         "pageId": "collaborators",
         "editRole": "locked"
       }
+    },
+    {
+      "id": "Forum-Rules",
+      "name": "Forum Rules",
+      "url": "systems/forum-rules/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "system",
+        "pageId": "forum_rules",
+        "editRole": "open"
+      }
     }
   ],
   "Guides": [
