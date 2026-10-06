@@ -500,10 +500,10 @@
 
     // --- THE RULES PAGE (v1.0 batch 4, D1) ---
     //
-    // A CMS page the owner makes, named "Rules", so its id is `rules`. Its
+    // A CMS page the owner made, "Forum Rules", so its id is `forum_rules`. Its
     // address is read from navigation.json, which lists live pages only: until
     // the page is live there is no link, rather than a link to nothing.
-    const RULES_PAGE_ID = 'rules';
+    const RULES_PAGE_ID = 'forum_rules';
     let rulesLinkLoad = null;
 
     function loadRulesLink() {

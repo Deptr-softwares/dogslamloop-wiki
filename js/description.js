@@ -485,9 +485,11 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                 if (!/^[\w-]{11}$/.test(videoId)) videoId = '';
 
                 if (videoId) {
-                    // Injecting data-lazy-src
+                    // Injecting data-lazy-src. YouTube's privacy-enhanced address:
+                    // no cookies until the reader presses play (the Privacy
+                    // Policy says so, v1.0).
                     mediaInnerHtml = `
-                        <iframe data-lazy-src="https://www.youtube.com/embed/${videoId}" src="about:blank"
+                        <iframe data-lazy-src="https://www.youtube-nocookie.com/embed/${videoId}" src="about:blank"
                                 class="wiki-video-embed"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                 allowfullscreen>

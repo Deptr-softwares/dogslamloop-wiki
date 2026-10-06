@@ -1,7 +1,7 @@
 // The Rules link beside the reply box (v1.0 batch 4, D1). Spec:
 // V1.0-DEVLOG.md, "SPEC 2026-10-05: batch 4".
 //
-// The Rules page is a CMS page the owner makes, named "Rules", id `rules`.
+// The Rules page is a CMS page the owner makes, "Forum Rules", id `forum_rules`.
 // The link takes its address from navigation.json, so it appears once the page
 // is live and never points at a page that does not exist.
 //
@@ -18,8 +18,8 @@ const ME = '11111111-1111-4111-8111-111111111111';
 const SESSION = { user: { id: ME, email: 'me@site.test' }, access_token: 't' };
 const NAV = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'navigation.json'), 'utf8'));
 const RULES = {
-    id: 'Rules', name: 'Rules', url: 'systems/rules/index.html',
-    cms_config: { pageType: 'system', pageId: 'rules', editRole: 'locked' },
+    id: 'Forum-Rules', name: 'Forum Rules', url: 'systems/forum-rules/index.html',
+    cms_config: { pageType: 'system', pageId: 'forum_rules', editRole: 'locked' },
 };
 
 const post = {
@@ -31,7 +31,12 @@ const post = {
 
 async function openThread(page, { withRules }) {
     // The real sidebar's pages, with or without the owner's Rules page.
-    const nav = withRules ? { ...NAV, 'Site Info': [...NAV['Site Info'], RULES] } : NAV;
+    // The owner's real page is taken out first: navigation.json lists it once
+    // the regeneration run has, and a test the owner's own page could turn
+    // red would stop every regeneration after it (CLAUDE.md, deploy model).
+    const nav = Object.fromEntries(Object.entries(NAV).map(([category, pages]) =>
+        [category, pages.filter(p => !(p.cms_config && p.cms_config.pageId === 'forum_rules'))]));
+    if (withRules) nav['Site Info'] = [...nav['Site Info'], RULES];
     await page.route('**/data/navigation.json**', route => route.fulfill({ json: nav }));
     await page.addInitScript(({ session, rows }) => {
         Object.defineProperty(window, 'supabase', {
@@ -94,11 +99,11 @@ test('the box that starts a conversation links the Rules page, in a new tab, lea
     await expect(link).toHaveText('Rules');
     await expect(link).toBeVisible();
     // Two folders deep, the address still lands on the page.
-    expect(new URL(await link.evaluate(a => a.href)).pathname).toBe('/systems/rules/index.html');
+    expect(new URL(await link.evaluate(a => a.href)).pathname).toBe('/systems/forum-rules/index.html');
 
     await composer.locator('.discussion-textarea').fill('half a thought');
     const [rules] = await Promise.all([page.waitForEvent('popup'), link.click()]);
-    expect(new URL(rules.url()).pathname).toBe('/systems/rules/index.html');
+    expect(new URL(rules.url()).pathname).toBe('/systems/forum-rules/index.html');
     await expect(composer.locator('.discussion-textarea')).toHaveValue('half a thought');
     expect(errors).toEqual([]);
 });
