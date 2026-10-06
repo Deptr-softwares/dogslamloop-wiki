@@ -346,7 +346,33 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
 // initTabEditorButtons above, which builds the actual per-page Edit/History
 // buttons into a separate DOM container. Renamed 2026-08-02 after the two
 // were confused for each other - see project memory for the backstory.
+// The Ko-fi button sits at the top of the right sidebar on every page that has
+// one (owner, 2026-10-06: under the left sidebar's categories and the dock it
+// was buried). A page with no right sidebar - the Forum, the legal pages,
+// search, the hubs - keeps it on the left, so no page loses it. The page's own
+// link is moved, not rebuilt, so its address stays written in one place per
+// page. Below 1024px the right sidebar is the drawer behind the top-right menu
+// button, so the button is reachable at every width.
+function placeKofiOnTheRight() {
+    const right = document.querySelector('.local-sidebar-right');
+    if (!right || right.querySelector('.kofi-btn-wrapper')) return;
+    const link = document.querySelector('.global-sidebar-left a[href*="Ko-fi"]');
+    if (!link) return;
+
+    const left = link.closest('.kofi-btn-wrapper');
+    const wrap = document.createElement('div');
+    wrap.className = 'kofi-btn-wrapper';
+    link.className = 'btn-sys btn-sys-yellow kofi-btn-full';
+    wrap.appendChild(link);
+    right.prepend(wrap);
+    if (left && !left.querySelector('a')) left.remove();
+}
+
 window.initAuthDock = async function() {
+    // First, before any request: the button never shows on the left and then
+    // jumps.
+    placeKofiOnTheRight();
+
     let container = document.getElementById('sidebar-dynamic-dock')
                  || document.getElementById('auth-dock-container')
                  || document.getElementById('auth-btn-container');

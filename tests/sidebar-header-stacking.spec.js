@@ -39,8 +39,11 @@ for (const dir of ROUTED_SYSTEM_PAGES) {
     await expect(page.locator('#btn-history-current-tab')).toBeAttached();
 
     const result = await page.evaluate(() => {
-      const header = document.querySelector('.local-sidebar-right > div');
-      const title = header.querySelector('.sidebar-master-title');
+      // Found through its title, not as the sidebar's first div: the Ko-fi
+      // button sits above it since 2026-10-06. Not by its class either, which
+      // would make the class check below pass by construction.
+      const title = document.querySelector('.local-sidebar-right .sidebar-master-title');
+      const header = title.parentElement;
       const btnGroup = document.getElementById('sidebar-btn-group');
       return {
         hasBaseClass: header.classList.contains('sidebar-tab-header'),
@@ -72,8 +75,11 @@ for (const dir of CHARACTER_PAGES) {
     await expect(page.locator('#btn-history-current-tab')).toBeAttached();
 
     const result = await page.evaluate(() => {
-      const header = document.querySelector('.local-sidebar-right > div');
-      const title = header.querySelector('.sidebar-master-title');
+      // Found through its title, not as the sidebar's first div: the Ko-fi
+      // button sits above it since 2026-10-06. Not by its class either, which
+      // would make the class check below pass by construction.
+      const title = document.querySelector('.local-sidebar-right .sidebar-master-title');
+      const header = title.parentElement;
       const btnGroup = document.getElementById('sidebar-btn-group');
       return {
         flexDirection: getComputedStyle(header).flexDirection,
