@@ -554,7 +554,6 @@
       "id": "tierlist",
       "name": "Tier List",
       "url": "systems/tierlist/index.html",
-      "isWip": true,
       "isSubjective": true,
       "cms_config": {
         "pageType": "tierlist",
