@@ -342,6 +342,9 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     align-items: center; justify-content: center; gap: 0.5rem;
 }
 .kofi-btn-wrapper svg { width: 1rem; height: 1rem; }
+/* At the top of the right sidebar (js/pagebuilder.js, placeKofiOnTheRight),
+   with the sidebar's own headings below it. */
+.local-sidebar-right > .kofi-btn-wrapper { margin: 0 0 1.5rem; }
 
 /* --- 3. PAGE HEADERS & GRIDS --- */
 .home-main-header { border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 2rem; }

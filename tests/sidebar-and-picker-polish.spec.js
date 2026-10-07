@@ -133,3 +133,48 @@ test('a preset swatch is square and shows it is clickable', async ({ page }) => 
     expect(style.radius).toBe('0px');
     expect(style.cursor, 'a swatch has no label, so the cursor is the affordance').toBe('pointer');
 });
+
+// Owner, 2026-10-06: the Ko-fi button was still buried under the left
+// sidebar's categories and dock. It now opens the right sidebar on every page
+// that has one (js/pagebuilder.js, placeKofiOnTheRight), and stays on the left
+// where a page has none, so no page loses it.
+for (const url of ['/', '/characters/Ten_shadows/index.html', '/systems/updatelog/index.html']) {
+    test(`Ko-fi opens the right sidebar, and is gone from the left: ${url}`, async ({ page }) => {
+        const errors = [];
+        page.on('pageerror', e => errors.push(e.message));
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.goto(url, { waitUntil: 'networkidle' });
+
+        const first = page.locator('.local-sidebar-right > :first-child');
+        await expect(first).toHaveClass(/kofi-btn-wrapper/);
+        const link = first.locator('a');
+        await expect(link).toBeInViewport();
+        await expect(link).toHaveAttribute('href', /ko-fi\.com/i);
+        await expect(link).toHaveAttribute('target', '_blank');
+        await expect(page.locator('.global-sidebar-left a[href*="Ko-fi"]')).toHaveCount(0);
+
+        // Reachable, not just drawn: nothing sits over it.
+        const onTop = await link.evaluate(a => {
+            const r = a.getBoundingClientRect();
+            const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+            return a.contains(hit);
+        });
+        expect(onTop).toBe(true);
+        expect(errors).toEqual([]);
+    });
+}
+
+test('on a phone, Ko-fi is at the top of the drawer behind the top-right menu', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/characters/Ten_shadows/index.html', { waitUntil: 'networkidle' });
+    await page.locator('#mobile-menu-toggle').click();
+    await expect(page.locator('.local-sidebar-right > :first-child a[href*="Ko-fi"]')).toBeInViewport();
+});
+
+test('a page with no right sidebar keeps Ko-fi on the left', async ({ page }) => {
+    for (const url of ['/privacy-policy.html', '/forum.html']) {
+        await page.goto(url, { waitUntil: 'networkidle' });
+        await expect(page.locator('.local-sidebar-right'), url).toHaveCount(0);
+        await expect(page.locator('.global-sidebar-left a[href*="Ko-fi"]'), url).toHaveCount(1);
+    }
+});
