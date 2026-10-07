@@ -45,13 +45,37 @@
     // the trigger's, so a row that somehow breaks it is not drawn at all.
     const IMAGE_PATH = /^[0-9a-f-]{36}\/[A-Za-z0-9_-]{1,64}\.(webp|jpg)$/;
 
+    // A picture copied off Discord by the relay (v1.0 batch 1): its own
+    // bucket, named after the message. Same rule as the shape trigger's and
+    // supabase/functions/_shared/discord-relay-core.mjs's COPIED_IMAGE_PATH.
+    const DISCORD_IMAGE_PATH = /^discord\/[0-9]{5,20}-[0-3]\.(png|jpg|webp|gif)$/;
+    const DISCORD_BUCKET = 'discord-media';
+
     // KLIPY's media servers, read off klipy.com on 2026-09-28: every GIF, WebP
     // and MP4 on its home page was served from these two hosts, under /ii/.
     // Exact hosts and path, so a post can never point a reader's browser
-    // anywhere else. A KLIPY PAGE link (klipy.com/gifs/...) stays text: the page
-    // refuses scripted requests, so there is no way to find its GIF from here.
+    // anywhere else.
     const KLIPY_MEDIA = /https:\/\/static2?\.klipy\.com\/ii\/[A-Za-z0-9/_-]+\.(gif|webp|mp4)(?![\w./-])/g;
+    const KLIPY_MEDIA_EXACT = new RegExp(`^${KLIPY_MEDIA.source}$`);
     const MAX_GIFS = 4;
+
+    // A KLIPY PAGE link, klipy.com/gifs/<slug>, which is what Discord's GIF
+    // picker copies (owner, 2026-10-01). The page itself answers only crawlers,
+    // so the GIF is found through KLIPY's API instead, ONCE, when the post is
+    // made: the page link in the text is swapped for the GIF's own address
+    // before it is saved. Readers never call KLIPY, so a thread of forty GIFs
+    // costs no lookups at all.
+    //
+    // The key is the owner's, and a browser calls the API, so it is visible to
+    // anyone reading the site's traffic: the owner's choice, made 2026-10-02,
+    // the same standing as the Supabase anon key. A test key allows 100
+    // lookups an hour.
+    const KLIPY_PAGE = /https?:\/\/(?:www\.)?klipy\.com\/gifs\/([A-Za-z0-9-]{1,120})[^\s]*/g;
+    const KLIPY_API = 'https://api.klipy.com/api/v1/xdjct5ccuBWrbiAxgyaEgQdKcnFW5LIpjd1glWvPLALxPE6bNDPGsXXJaMPg9Xv7/gifs/';
+    // MP4 first: on 2026-10-02 one GIF's HD .gif was 22.6 MB and its MP4
+    // 0.58 MB, and MP4 plays everywhere, iPhones included. Then smaller sizes,
+    // then the still-heavier formats.
+    const KLIPY_PICK = [['md', 'mp4'], ['hd', 'mp4'], ['sm', 'mp4'], ['md', 'webp'], ['sm', 'webp'], ['md', 'gif']];
 
     const state = {
         pageId: null,
@@ -66,7 +90,25 @@
         // post id -> its image paths, as drawn. Removing your own post empties
         // the column server-side, so the paths to delete are read from here.
         imagesByPost: new Map(),
+        // post id -> the row, as drawn (batch 3): a reply's quote reads the
+        // reply it answers from here, and the edit box starts from the words.
+        postsById: new Map(),
+        // How this page shows its thread. A character page keeps the defaults;
+        // a forum post (v1.0 batch 2) reads oldest first, with the reply box
+        // after the conversation, the way a forum reads.
+        opts: null,
+        // The Rules page's address, or null while it does not exist (batch 4).
+        rulesUrl: null,
     };
+
+    const DEFAULT_OPTS = {
+        title: 'Discussion',
+        order: 'newest',
+        placeholder: 'Start a discussion about this character…',
+        moreLabel: 'LOAD OLDER POSTS',
+        composerLast: false,
+    };
+    state.opts = { ...DEFAULT_OPTS };
 
     // Images picked in a composer and prepared, waiting for POST. Keyed by the
     // form, so a reply's attachments never leak into the top-level composer.
@@ -125,6 +167,19 @@
     function authorNode(entry) {
         const removed = entry.status !== 'visible';
         const name = removed ? '—' : (entry.author_name || 'Unknown');
+
+        // A message copied in from the Discord forum (v1.0 batch 1). There is
+        // no wiki account to open, so the name is plain text, followed by
+        // where it came from and the person's Discord handle. Every part is
+        // set as text: all of it was typed by somebody on Discord.
+        if (!removed && entry.source === 'discord') {
+            const span = el('span', 'discussion-author discussion-author-discord', name);
+            span.appendChild(el('span', 'discussion-discord', 'DISCORD'));
+            if (entry.discord_author_handle) {
+                span.appendChild(el('span', 'discussion-handle', `@${entry.discord_author_handle}`));
+            }
+            return span;
+        }
 
         if (removed || !entry.author_id) return el('span', 'discussion-author', name);
 
@@ -189,6 +244,45 @@
         }
     }
 
+    // The GIF a KLIPY page link points at, as an address the renderer will
+    // draw, or null. KLIPY's answer is checked against KLIPY_MEDIA exactly like
+    // a pasted link: a third party's response gets no more trust than a post.
+    // No referrer, so KLIPY is not told which page the poster was on.
+    async function klipyMediaFor(slug) {
+        try {
+            const res = await fetch(KLIPY_API + encodeURIComponent(slug),
+                { referrerPolicy: 'no-referrer', credentials: 'omit' });
+            if (!res.ok) return null;
+            const json = await res.json();
+            const files = json && json.data && json.data.file;
+            if (!files) return null;
+            for (const [size, format] of KLIPY_PICK) {
+                const url = files[size] && files[size][format] && files[size][format].url;
+                if (typeof url === 'string' && KLIPY_MEDIA_EXACT.test(url)) return url;
+            }
+        } catch (e) { /* the link stays a link */ }
+        return null;
+    }
+
+    // Swaps each KLIPY page link in a post for its GIF, the first MAX_GIFS of
+    // them, one lookup at a time. A link that cannot be resolved stays as it
+    // is, and the post still goes up: a GIF is never worth losing what was
+    // written around it.
+    async function resolveKlipyPages(body) {
+        const found = [...String(body || '').matchAll(KLIPY_PAGE)].slice(0, MAX_GIFS);
+        let out = body;
+        let unresolved = 0;
+        for (const match of found) {
+            const media = await klipyMediaFor(match[1]);
+            if (media) out = out.split(match[0]).join(media);
+            else unresolved += 1;
+        }
+        // The addresses are longer than the links. Past the limit, nothing is
+        // swapped rather than some of it.
+        if (out.length > MAX_BODY) return { body, unresolved: found.length };
+        return { body: out, unresolved };
+    }
+
     // KLIPY media links in a post's text, the first MAX_GIFS of them.
     function klipyLinks(text) {
         return [...String(text || '').matchAll(KLIPY_MEDIA)].map(m => m[0]).slice(0, MAX_GIFS);
@@ -207,8 +301,11 @@
     // a property, never interpolated, and each one has passed an exact pattern
     // above: this renders unreviewed input on every character page.
     function renderPostMedia(entry) {
+        // Each path is drawn from the bucket its own pattern names, and a path
+        // matching neither is not drawn at all.
+        const bucketFor = (p) => (IMAGE_PATH.test(p) ? IMAGE_BUCKET : DISCORD_IMAGE_PATH.test(p) ? DISCORD_BUCKET : null);
         const images = (Array.isArray(entry.images) ? entry.images : [])
-            .filter(p => typeof p === 'string' && IMAGE_PATH.test(p))
+            .filter(p => typeof p === 'string' && bucketFor(p))
             .slice(0, MAX_IMAGES);
         const gifs = klipyLinks(entry.body);
         if (!images.length && !gifs.length) return null;
@@ -216,7 +313,7 @@
         const box = el('div', 'discussion-media');
 
         images.forEach(path => {
-            const url = client().storage.from(IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+            const url = client().storage.from(bucketFor(path)).getPublicUrl(path).data.publicUrl;
             const link = el('a', 'discussion-media-link');
             link.href = url;
             link.target = '_blank';
@@ -244,16 +341,29 @@
                 node.playsInline = true;
                 node.setAttribute('playsinline', '');
                 node.setAttribute('aria-label', 'GIF from KLIPY');
+                // Into the clip queue, not straight to its source (owner,
+                // 2026-10-02: a thread full of GIFs must not load them all at
+                // once). draw() hands the list to initLazyMedia: two at a
+                // time, nearest first, paused off screen. A <video> has no
+                // referrerPolicy; the browser's default sends KLIPY the site's
+                // origin and never the page.
+                if (typeof window.initLazyMedia === 'function') {
+                    node.preload = 'none';
+                    node.setAttribute('data-lazy-src', url);
+                } else {
+                    node.src = url;
+                }
             } else {
+                // Native lazy loading: an image off screen is not fetched.
                 node = document.createElement('img');
                 node.loading = 'lazy';
                 node.decoding = 'async';
                 node.alt = 'GIF from KLIPY';
+                // KLIPY sees that a GIF was loaded, not which page it was on.
+                node.referrerPolicy = 'no-referrer';
+                node.src = url;
             }
             node.className = 'discussion-media-gif';
-            // KLIPY sees that a GIF was loaded, not which page it was on.
-            node.referrerPolicy = 'no-referrer';
-            node.src = url;
             box.appendChild(node);
         });
 
@@ -388,6 +498,32 @@
         setStatus(problem || note, !!problem);
     }
 
+    // --- THE RULES PAGE (v1.0 batch 4, D1) ---
+    //
+    // A CMS page the owner made, "Forum Rules", so its id is `forum_rules`. Its
+    // address is read from navigation.json, which lists live pages only: until
+    // the page is live there is no link, rather than a link to nothing.
+    const RULES_PAGE_ID = 'forum_rules';
+    let rulesLinkLoad = null;
+
+    function loadRulesLink() {
+        if (!rulesLinkLoad) {
+            rulesLinkLoad = (async () => {
+                try {
+                    const nav = await fetchNavigationData();
+                    for (const entries of Object.values(nav || {})) {
+                        const hit = (entries || []).find(e => e && e.cms_config && e.cms_config.pageId === RULES_PAGE_ID && e.url);
+                        if (hit) return `${getRootPath()}${hit.url}`;
+                    }
+                } catch (e) {
+                    // No navigation, no link.
+                }
+                return null;
+            })().then(url => { state.rulesUrl = url; });
+        }
+        return rulesLinkLoad;
+    }
+
     // --- WHO IS READING ---
 
     async function loadViewer() {
@@ -450,8 +586,8 @@
             .select('*')
             .eq('page_id', state.pageId)
             .is('parent_id', null)
-            .order('created_at', { ascending: false })
-            .order('id', { ascending: false })
+            .order('created_at', { ascending: state.opts.order === 'oldest' })
+            .order('id', { ascending: state.opts.order === 'oldest' })
             .range(offset, offset + PAGE_SIZE - 1);
 
         if (error) throw error;
@@ -690,16 +826,90 @@
         if (media) wrap.appendChild(media);
     }
 
+    // Who, when, and whether it changed since: edited by its author on the
+    // wiki (batch 3), or on Discord. A moderator's mark is a button that opens
+    // what it said before; everyone else only learns that it changed.
+    function postHead(entry) {
+        const head = el('div', 'discussion-post-head');
+        head.appendChild(authorNode(entry));
+        head.appendChild(el('span', 'discussion-time', timeAgo(entry.created_at)));
+        const shown = entry.status === 'visible' || (entry.status === 'hidden' && state.canModerate);
+        if (shown && entry.edited_at) {
+            const label = entry.source === 'discord' ? 'edited on Discord' : 'edited';
+            if (state.canModerate) {
+                const btn = el('button', 'discussion-edited discussion-edited-open', label);
+                btn.type = 'button';
+                btn.title = 'Show what this said before (moderators only)';
+                btn.dataset.showEdits = entry.id;
+                head.appendChild(btn);
+            } else {
+                head.appendChild(el('span', 'discussion-edited', label));
+            }
+        }
+        return head;
+    }
+
+    // Batch 3: a reply to a reply says which one it answers. Replies stay one
+    // step in (owner, 2026-10-04), so this line is what keeps a conversation
+    // inside a conversation readable. Every part is text.
+    function replyQuote(reply) {
+        if (!reply.reply_to) return null;
+        const answered = state.postsById.get(reply.reply_to);
+        const quote = el('button', 'discussion-quote');
+        quote.type = 'button';
+        quote.dataset.jumpTo = reply.reply_to;
+        if (answered && answered.status === 'visible') {
+            const words = textWithoutGifs(answered.body, klipyLinks(answered.body)).replace(/\s+/g, ' ').trim();
+            const shortened = words.length > 100 ? `${words.slice(0, 99).trimEnd()}…` : words;
+            quote.appendChild(el('span', 'discussion-quote-name', `↪ ${answered.author_name || 'Unknown'}:`));
+            quote.appendChild(document.createTextNode(` ${shortened || '[a picture]'}`));
+        } else {
+            quote.textContent = '↪ a removed message';
+        }
+        return quote;
+    }
+
+    // Reply, Edit and Delete, for whoever may use them. Edit and Delete are the
+    // author's own, and only on the wiki: a message copied from Discord has no
+    // wiki author.
+    function appendOwnActions(actions, entry) {
+        if (entry.status !== 'visible') return;
+        if (isSignedIn() && !isBanned()) {
+            const replyBtn = el('button', 'discussion-action-btn', 'Reply');
+            replyBtn.type = 'button';
+            // data- attribute plus a delegated listener, never an inline
+            // onclick: post ids and author names are user-influenced and an
+            // onclick would put them in an executable position.
+            replyBtn.dataset.replyTo = entry.id;
+            actions.appendChild(replyBtn);
+        }
+        const isMine = state.session && entry.author_id === state.session.user.id && entry.source !== 'discord';
+        if (!isMine) return;
+        if (!isBanned()) {
+            const editBtn = el('button', 'discussion-action-btn', 'Edit');
+            editBtn.type = 'button';
+            editBtn.dataset.editPost = entry.id;
+            actions.appendChild(editBtn);
+        }
+        const delBtn = el('button', 'discussion-action-btn discussion-action-danger', 'Delete');
+        delBtn.type = 'button';
+        delBtn.dataset.removePost = entry.id;
+        actions.appendChild(delBtn);
+    }
+
+    function removedText(status) {
+        if (status === 'removed_by_staff') return '[removed by a moderator]';
+        if (status === 'removed_on_discord') return '[removed on Discord]';
+        return '[removed by the author]';
+    }
+
     function renderPost(post, replies) {
         const removed = post.status !== 'visible';
 
         const wrap = el('article', 'discussion-post' + (removed ? ' discussion-post-removed' : ''));
         wrap.id = `post-${post.id}`;
 
-        const head = el('div', 'discussion-post-head');
-        head.appendChild(authorNode(post));
-        head.appendChild(el('span', 'discussion-time', timeAgo(post.created_at)));
-        wrap.appendChild(head);
+        wrap.appendChild(postHead(post));
 
         const body = el('div', 'discussion-body');
         if (post.status === 'hidden') {
@@ -714,9 +924,7 @@
             setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
         } else if (removed) {
             body.classList.add('discussion-body-removed');
-            body.textContent = post.status === 'removed_by_staff'
-                ? '[removed by a moderator]'
-                : '[removed by the author]';
+            body.textContent = removedText(post.status);
         } else {
             setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
         }
@@ -724,25 +932,7 @@
         appendMedia(wrap, post);
 
         const actions = el('div', 'discussion-post-actions');
-
-        if (isSignedIn() && !isBanned() && post.status === 'visible') {
-            const replyBtn = el('button', 'discussion-action-btn', 'Reply');
-            replyBtn.type = 'button';
-            // data- attribute plus a delegated listener, never an inline
-            // onclick: post ids and author names are user-influenced and an
-            // onclick would put them in an executable position.
-            replyBtn.dataset.replyTo = post.id;
-            actions.appendChild(replyBtn);
-        }
-
-        const isMine = post.status === 'visible' && state.session && post.author_id === state.session.user.id;
-        if (isMine) {
-            const delBtn = el('button', 'discussion-action-btn discussion-action-danger', 'Delete');
-            delBtn.type = 'button';
-            delBtn.dataset.removePost = post.id;
-            actions.appendChild(delBtn);
-        }
-
+        appendOwnActions(actions, post);
         appendReportControl(actions, post);
         appendModerationControls(actions, post);
 
@@ -762,10 +952,7 @@
         const wrap = el('div', 'discussion-reply' + (removed ? ' discussion-post-removed' : ''));
         wrap.id = `post-${reply.id}`;
 
-        const head = el('div', 'discussion-post-head');
-        head.appendChild(authorNode(reply));
-        head.appendChild(el('span', 'discussion-time', timeAgo(reply.created_at)));
-        wrap.appendChild(head);
+        wrap.appendChild(postHead(reply));
 
         const body = el('div', 'discussion-body');
         if (reply.status === 'hidden') {
@@ -773,24 +960,17 @@
             setTextWithBreaks(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
         } else if (removed) {
             body.classList.add('discussion-body-removed');
-            body.textContent = reply.status === 'removed_by_staff'
-                ? '[removed by a moderator]'
-                : '[removed by the author]';
+            body.textContent = removedText(reply.status);
         } else {
             setTextWithBreaks(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
         }
+        const quote = removed && reply.status !== 'hidden' ? null : replyQuote(reply);
+        if (quote) wrap.appendChild(quote);
         wrap.appendChild(body);
         appendMedia(wrap, reply);
 
         const actions = el('div', 'discussion-post-actions');
-
-        if (reply.status === 'visible' && state.session && reply.author_id === state.session.user.id) {
-            const delBtn = el('button', 'discussion-action-btn discussion-action-danger', 'Delete');
-            delBtn.type = 'button';
-            delBtn.dataset.removePost = reply.id;
-            actions.appendChild(delBtn);
-        }
-
+        appendOwnActions(actions, reply);
         appendReportControl(actions, reply);
         appendModerationControls(actions, reply);
 
@@ -819,12 +999,15 @@
         return box;
     }
 
-    function renderComposer(parentId) {
+    function renderComposer(parentId, overrides = {}) {
         const form = el('form', 'discussion-composer');
         form.dataset.parentId = parentId || '';
 
         if (parentId) {
-            const heading = el('div', 'discussion-composer-heading', 'Replying to this post');
+            // A reply to a reply names the person (batch 3); the name is set as
+            // text, like every name on the page.
+            const heading = el('div', 'discussion-composer-heading',
+                overrides.replyingTo ? `Replying to ${overrides.replyingTo}` : 'Replying to this post');
             form.appendChild(heading);
         }
 
@@ -832,7 +1015,7 @@
         area.className = 'discussion-textarea';
         area.maxLength = MAX_BODY;
         area.rows = parentId ? 2 : 3;
-        area.placeholder = parentId ? 'Write a reply…' : 'Start a discussion about this character…';
+        area.placeholder = parentId ? 'Write a reply…' : (overrides.placeholder || state.opts.placeholder);
         area.setAttribute('aria-label', parentId ? 'Reply' : 'New post');
         form.appendChild(area);
 
@@ -855,7 +1038,7 @@
 
         const row = el('div', 'discussion-composer-row');
 
-        const submit = el('button', 'btn-sys btn-sys-blue discussion-submit', parentId ? 'REPLY' : 'POST');
+        const submit = el('button', 'btn-sys btn-sys-blue discussion-submit', parentId ? 'REPLY' : (overrides.submitLabel || 'POST'));
         submit.type = 'submit';
         row.appendChild(submit);
 
@@ -875,6 +1058,16 @@
         }
 
         row.appendChild(el('span', 'discussion-composer-status'));
+
+        // On the box that starts a conversation, not on every reply box. A new
+        // tab, so a half-written post is not lost.
+        if (!parentId && state.rulesUrl) {
+            const rules = el('a', 'discussion-rules-link', 'Rules');
+            rules.href = state.rulesUrl;
+            rules.target = '_blank';
+            rules.rel = 'noopener';
+            row.appendChild(rules);
+        }
         form.appendChild(row);
 
         return form;
@@ -896,9 +1089,7 @@
     }
 
     function setStatus(text, isError) {
-        const root = document.getElementById('discussion-section');
-        if (!root) return;
-        root.querySelectorAll('.discussion-composer-status').forEach(node => {
+        document.querySelectorAll('.discussion-composer-status').forEach(node => {
             node.textContent = text || '';
             node.classList.toggle('discussion-status-error', !!isError);
         });
@@ -918,7 +1109,7 @@
             // migrations apply on merge, so the table genuinely does not exist
             // yet. Says so plainly rather than rendering a broken section.
             root.innerHTML = '';
-            root.appendChild(el('h2', 'section-title discussion-title', 'Discussion'));
+            root.appendChild(el('h2', 'section-title discussion-title', state.opts.title));
             const msg = (e && (e.code === 'PGRST205' || e.code === '42P01'))
                 ? 'Discussions are not available on this page yet.'
                 : 'Could not load the discussion. Try refreshing.';
@@ -937,21 +1128,30 @@
 
         let list = root.querySelector('.discussion-list');
 
+        // Before anything is drawn, so a reply's quote can find the reply it
+        // answers wherever that sits in the list.
+        if (!append) state.postsById.clear();
+        [...posts, ...replies].forEach(p => state.postsById.set(p.id, p));
+
         if (!append) {
             state.imagesByPost.clear();
             root.innerHTML = '';
-            root.appendChild(el('h2', 'section-title discussion-title', 'Discussion'));
+            root.appendChild(el('h2', 'section-title discussion-title', state.opts.title));
 
-            if (isSignedIn() && !isBanned()) root.appendChild(renderComposer(null));
-            else root.appendChild(renderSignInPrompt());
+            const box = isSignedIn() && !isBanned() ? renderComposer(null) : renderSignInPrompt();
+            if (!state.opts.composerLast) root.appendChild(box);
 
             list = el('div', 'discussion-list');
             root.appendChild(list);
+            if (state.opts.composerLast) root.appendChild(box);
 
             if (!posts.length) list.appendChild(renderEmptyState());
         }
 
         posts.forEach(p => list.appendChild(renderPost(p, byParent.get(p.id) || [])));
+
+        // KLIPY clips join the page's clip queue (renderPostMedia).
+        if (typeof window.initLazyMedia === 'function') window.initLazyMedia(list);
 
         // Not awaited: the thread is already on screen and the flairs arrive
         // when they arrive. Awaiting here would hold the render open on a
@@ -963,10 +1163,12 @@
         if (oldMore) oldMore.remove();
 
         if (!state.exhausted) {
-            const more = el('button', 'btn-sys btn-sys-regular discussion-more', 'LOAD OLDER POSTS');
+            const more = el('button', 'btn-sys btn-sys-regular discussion-more', state.opts.moreLabel);
             more.type = 'button';
             more.dataset.loadMore = 'true';
-            root.appendChild(more);
+            // Straight after the list, which is the end of the section unless
+            // the reply box comes last.
+            list.insertAdjacentElement('afterend', more);
         }
     }
 
@@ -988,6 +1190,15 @@
         }
 
         if (submit) submit.disabled = true;
+
+        // KLIPY page links become their GIFs before anything is uploaded, so a
+        // slow lookup never holds uploaded files in limbo.
+        let postBody = body;
+        let unresolvedGifs = 0;
+        if (body.search(KLIPY_PAGE) !== -1) {
+            setStatus('Finding the GIF…');
+            ({ body: postBody, unresolved: unresolvedGifs } = await resolveKlipyPages(body));
+        }
 
         // Images go up FIRST, into the poster's own folder, and the post names
         // them. If anything after that fails, the files are taken back down,
@@ -1022,9 +1233,17 @@
         //
         // `images` only when there are some, so a words-only post is the same
         // request it always was.
-        const row = { page_id: state.pageId, parent_id: parentId, body };
-        if (paths.length) row.images = paths;
-        const { error } = await client().from('page_discussions').insert([row]);
+        // A composer mounted by another page (the forum's NEW POST) carries its
+        // own insert; the images, KLIPY links and the limits above are the same.
+        const custom = typeof form.discussionInsert === 'function' ? form.discussionInsert : null;
+        let error;
+        if (custom) {
+            ({ error } = await custom({ body: postBody, images: paths }));
+        } else {
+            const row = { page_id: state.pageId, parent_id: parentId, body: postBody };
+            if (paths.length) row.images = paths;
+            ({ error } = await client().from('page_discussions').insert([row]));
+        }
 
         if (submit) submit.disabled = false;
 
@@ -1037,13 +1256,20 @@
         }
 
         state.lastPostAt = Date.now();
+        if (custom) {
+            clearAttachments(form);
+            area.value = '';
+            return;
+        }
         clearAttachments(form);
         area.value = '';
         state.replyingTo = null;
         state.offset = 0;
         state.exhausted = false;
         await draw();
-        setStatus('');
+        setStatus(unresolvedGifs
+            ? 'Posted. A KLIPY link could not be turned into its GIF, so it shows as a link.'
+            : '');
     }
 
     async function removePost(postId) {
@@ -1131,14 +1357,140 @@
         const target = document.getElementById(`post-${postId}`);
         if (!target) return;
 
-        const composer = renderComposer(postId);
-        const replies = target.querySelector('.discussion-replies');
+        // A reply to a reply (batch 3) goes at the end of the same
+        // conversation; the database records which reply it answers.
+        const onReply = target.classList.contains('discussion-reply');
+        const answered = state.postsById.get(postId);
+        const composer = renderComposer(postId, onReply && answered ? { replyingTo: answered.author_name || 'Unknown' } : {});
+        const replies = onReply ? target.closest('.discussion-replies') : target.querySelector('.discussion-replies');
         if (replies) replies.appendChild(composer);
         else target.appendChild(composer);
 
         state.replyingTo = postId;
         const area = composer.querySelector('.discussion-textarea');
         if (area) area.focus();
+    }
+
+    // --- EDITING (batch 3) ---
+    //
+    // The words only (owner, 2026-10-04). The rules are edit_my_discussion_post's:
+    // the author, a visible post, the same limits as posting, one edit every
+    // 10 seconds. This only draws the box.
+    function openEdit(postId) {
+        const target = document.getElementById(`post-${postId}`);
+        const entry = state.postsById.get(postId);
+        if (!target || !entry) return;
+
+        document.querySelectorAll('.discussion-edit-form').forEach(closeEdit);
+
+        const body = target.querySelector(':scope > .discussion-body');
+        if (!body) return;
+
+        const form = el('form', 'discussion-edit-form');
+        form.dataset.editing = postId;
+        const area = document.createElement('textarea');
+        area.className = 'discussion-edit-text';
+        area.maxLength = MAX_BODY;
+        area.rows = 3;
+        area.value = entry.body || '';
+        area.setAttribute('aria-label', 'Edit your post');
+        form.appendChild(area);
+
+        const row = el('div', 'discussion-composer-row');
+        const save = el('button', 'btn-sys btn-sys-blue discussion-edit-save', 'SAVE');
+        save.type = 'submit';
+        const cancel = el('button', 'btn-sys btn-sys-regular discussion-cancel', 'CANCEL');
+        cancel.type = 'button';
+        cancel.dataset.cancelEdit = 'true';
+        row.appendChild(save);
+        row.appendChild(cancel);
+        row.appendChild(el('span', 'discussion-composer-status'));
+        form.appendChild(row);
+
+        body.hidden = true;
+        body.insertAdjacentElement('afterend', form);
+        area.focus();
+    }
+
+    function closeEdit(form) {
+        const body = form.previousElementSibling;
+        if (body && body.classList.contains('discussion-body')) body.hidden = false;
+        form.remove();
+    }
+
+    async function submitEdit(form) {
+        const postId = form.dataset.editing;
+        const entry = state.postsById.get(postId);
+        const area = form.querySelector('.discussion-edit-text');
+        const save = form.querySelector('.discussion-edit-save');
+        if (!entry || !area) return;
+
+        const body = area.value.trim();
+        const hasImages = Array.isArray(entry.images) && entry.images.length > 0;
+        if (!body && !hasImages) { setStatus('Write something first.', true); return; }
+        if (body === String(entry.body || '').trim()) { closeEdit(form); return; }
+
+        if (save) save.disabled = true;
+
+        // A KLIPY link typed in becomes its GIF, as when posting.
+        let newBody = body;
+        let unresolvedGifs = 0;
+        if (body.search(KLIPY_PAGE) !== -1) {
+            setStatus('Finding the GIF…');
+            ({ body: newBody, unresolved: unresolvedGifs } = await resolveKlipyPages(body));
+        }
+
+        setStatus('Saving…');
+        const { error } = await client().rpc('edit_my_discussion_post', { p_post_id: postId, p_body: newBody });
+        if (save) save.disabled = false;
+        if (error) { setStatus(error.message || 'Could not save the edit.', true); return; }
+
+        state.offset = 0;
+        state.exhausted = false;
+        await draw();
+        setStatus(unresolvedGifs
+            ? 'Saved. A KLIPY link could not be turned into its GIF, so it shows as a link.'
+            : '');
+    }
+
+    // What a post said before, for a moderator (batch 3). Read straight from
+    // page_discussion_edits, which only a moderator can read at all.
+    async function toggleEdits(postId) {
+        const target = document.getElementById(`post-${postId}`);
+        if (!target) return;
+        const open = target.querySelector(':scope > .discussion-edits');
+        if (open) { open.remove(); return; }
+
+        const box = el('div', 'discussion-edits');
+        box.appendChild(el('p', 'discussion-edits-title', 'Earlier versions (moderators only)'));
+        const head = target.querySelector(':scope > .discussion-post-head');
+        if (head) head.insertAdjacentElement('afterend', box);
+        else target.prepend(box);
+
+        const { data, error } = await client()
+            .from('page_discussion_edits')
+            .select('body, edited_at, edited_by')
+            .eq('post_id', postId)
+            .order('edited_at', { ascending: false });
+        if (error) { box.appendChild(el('p', 'discussion-edits-empty', 'Could not load the earlier versions.')); return; }
+        if (!data || !data.length) { box.appendChild(el('p', 'discussion-edits-empty', 'No earlier versions were kept.')); return; }
+
+        data.forEach(v => {
+            const item = el('div', 'discussion-edits-item');
+            item.appendChild(el('span', 'discussion-edits-when',
+                `Until ${timeAgo(v.edited_at)}${v.edited_by ? '' : ', changed on Discord'}:`));
+            const text = el('div', 'discussion-edits-body');
+            setTextWithBreaks(text, v.body);
+            item.appendChild(text);
+            box.appendChild(item);
+        });
+    }
+
+    function jumpTo(postId) {
+        const target = document.getElementById(`post-${postId}`);
+        if (!target) return;
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.classList.add('discussion-post-linked');
     }
 
     // One delegated listener for the whole section, so posts drawn later are
@@ -1189,6 +1541,22 @@
 
             const remove = e.target.closest('[data-remove-post]');
             if (remove) { await removePost(remove.dataset.removePost); return; }
+
+            const edit = e.target.closest('[data-edit-post]');
+            if (edit) { openEdit(edit.dataset.editPost); return; }
+
+            const cancelEdit = e.target.closest('[data-cancel-edit]');
+            if (cancelEdit) {
+                const form = cancelEdit.closest('.discussion-edit-form');
+                if (form) closeEdit(form);
+                return;
+            }
+
+            const edits = e.target.closest('[data-show-edits]');
+            if (edits) { await toggleEdits(edits.dataset.showEdits); return; }
+
+            const jump = e.target.closest('[data-jump-to]');
+            if (jump) { jumpTo(jump.dataset.jumpTo); return; }
 
             const report = e.target.closest('[data-report-post]');
             if (report) { openReportForm(report.dataset.reportPost); return; }
@@ -1249,6 +1617,9 @@
 
             const mod = e.target.closest('.discussion-mod-form');
             if (mod) { e.preventDefault(); await submitModeration(mod); return; }
+
+            const editForm = e.target.closest('.discussion-edit-form');
+            if (editForm) { e.preventDefault(); await submitEdit(editForm); return; }
 
             const form = e.target.closest('.discussion-composer');
             if (!form) return;
@@ -1317,7 +1688,38 @@
         if (btn) btn.setAttribute('aria-label', `Jump to the discussion (${count})`);
     }
 
-    window.initPageDiscussions = async function (pageId) {
+    // A composer outside a thread: the forum's NEW POST (v1.0 batch 2). The
+    // caller adds its own fields with `leading` and receives the prepared
+    // message in `insert({ body, images })`, which returns { error }. Images,
+    // paste, KLIPY links and the limits work as in a thread. Returns the form,
+    // or null when the reader cannot post (a prompt is drawn instead).
+    window.mountDiscussionComposer = async function (container, { placeholder, submitLabel, leading = [], insert } = {}) {
+        if (!container || !client()) return null;
+        await Promise.all([loadViewer(), loadRulesLink()]);
+        wire(container);
+        if (!isSignedIn() || isBanned()) {
+            container.appendChild(renderSignInPrompt());
+            return null;
+        }
+        const form = renderComposer(null, { placeholder, submitLabel });
+        [...leading].reverse().forEach(node => form.insertBefore(node, form.firstChild));
+        form.discussionInsert = insert;
+        container.appendChild(form);
+        return form;
+    };
+
+    // Who is reading, for a page that draws its own controls around a thread.
+    // Only decides what to draw; every action is refused server-side.
+    window.discussionViewer = function () {
+        return {
+            signedIn: isSignedIn(),
+            banned: isBanned(),
+            canModerate: state.canModerate,
+            userId: state.session ? state.session.user.id : null,
+        };
+    };
+
+    window.initPageDiscussions = async function (pageId, opts = {}) {
         const root = document.getElementById('discussion-section');
 
         // The button is wired even when the section is missing, so a page that
@@ -1327,10 +1729,11 @@
         if (!root || !client() || !pageId) return;
 
         state.pageId = pageId;
+        state.opts = { ...DEFAULT_OPTS, ...opts };
         state.offset = 0;
         state.exhausted = false;
 
-        await loadViewer();
+        await Promise.all([loadViewer(), loadRulesLink()]);
         wire(root);
         await draw();
         updateJumpCount();

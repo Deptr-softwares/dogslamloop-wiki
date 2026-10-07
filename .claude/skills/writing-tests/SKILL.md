@@ -101,6 +101,11 @@ Before claiming a fix works: temporarily revert it, confirm the new spec
 **fails**, restore, confirm it passes. A regression test that never failed
 against the old code proves nothing.
 
+**A breakage the tests survive is a question, not yet a gap.** Check that it
+changed what the code does. On 2026-10-04 "put the reply box first" survived:
+the code appended the same box again further down, and appending a node twice
+moves it, so the page was unchanged. Breaking the order for real was caught.
+
 **COMMIT THE FIX FIRST.** Then the undo is `git restore <file>`, which is exact
 and safe. This is not a style preference — it is the only version of this
 procedure that cannot lose work.
@@ -129,6 +134,25 @@ reason this time: a drag that ends on a DIFFERENT element fires no `click` in
 Chromium, so the handler never ran. When a mutation survives, find out which of
 the two happened before rewriting the test or the code.
 
+### A mutation that breaks the file is not a catch either
+
+v1.0 batch 3: a mutation replaced one branch of an `if` and left its `else`
+dangling. The script stopped parsing, all 10 tests in the spec went red, and it
+read as "caught". Rewritten as valid code, it turned exactly its own test red.
+**`node --check` the mutated file, and distrust a catch that turns the whole
+spec red**: one guard broken should fail the tests about that guard.
+
+### A fake must behave like what it stands in for over time, not just answer
+
+v1.0 batch 2: the relay's fake database answered "when was the forum
+connected" with a fixed time. The real function stamps the moment on its first
+call, and the relay first called it only once a post had appeared, so the
+first Discord post was always skipped as older than the connection. No test
+could see it, because the fake's answer never depended on when it was asked.
+It took the live test on the owner's server to find it. **When the real thing
+has state (first call wins, a counter, a lease), the fake keeps the same
+state.**
+
 ## Assert structure, not pixels
 
 Exact geometry is OS-dependent — Linux renders these fonts wider than Windows, so a `getBoundingClientRect()` comparison passes locally and fails in CI for reasons unrelated to the bug.
@@ -147,13 +171,15 @@ Same reason `visual.spec.js` is `testIgnore`d in CI (`playwright.config.js`) —
 
 ## A failing test is a hypothesis, not a verdict
 
-Before changing code to satisfy a red test, confirm the test is asking the right question. Three times in this project a test accused correct code:
+Before changing code to satisfy a red test, confirm the test is asking the right question. Five times in this project a test accused correct code:
 
 | Symptom | Actual cause |
 |---|---|
 | "insert never fired" | Selector `button.btn-sys-green` matched a row's RESTORE button before the CREATE button |
 | "escaping is broken" | Route pattern lacked a trailing `*`; `fetchJson` appends a cache-buster, so the mock never matched and real data loaded |
 | "submit handler dead" | Mock session had no `email`; `getDisplayName` and `editor-core`'s fallback both call `session.user.email.split('@')`, so boot threw before the handler attached |
+| "the KLIPY lookup ignored its answer" | The test's `page.route` was registered **before** the `openThread` helper's route for the same URL. Playwright runs the **last-registered** handler first, so the helper's mock answered and the test's never ran. A helper that routes a URL takes the override as an option (`klipyMedia`), never a route added around it |
+| "the page never finished loading" | A route that holds its response on purpose (to watch a queue) means `waitUntil: 'networkidle'` never arrives, and `openThread` waits for `networkidle` by default. Pass `waitUntil: 'domcontentloaded'` when a test holds requests |
 
 When a test fails, reproduce the behaviour manually or add a debug spec that prints actual state before concluding the code is wrong.
 

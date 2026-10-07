@@ -163,7 +163,9 @@ test('youtube blocks are untouched', async ({ page }) => {
   // The owner chose native-only. YouTube keeps its iframe and its own
   // controls, so a change here is a change nobody asked for.
   expect(html).toContain('wiki-video-embed');
-  expect(html).toContain('youtube.com/embed/dQw4w9WgXcQ');
+  // YouTube's privacy-enhanced address, which the Privacy Policy promises
+  // (v1.0): no cookies until the reader presses play.
+  expect(html).toContain('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
   expect(html).not.toContain('data-wiki-player');
 });
 

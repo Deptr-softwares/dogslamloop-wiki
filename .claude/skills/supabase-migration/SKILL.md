@@ -72,12 +72,17 @@ It is a required check on both branches now. It still lies in two specific ways,
 
 **Playwright cannot reach RLS, grants, or RPC guards** — every auth spec mocks Supabase and never touches real Postgres. A migration asserted but not probed is unverified.
 
-`supabase/seed.sql` gives every preview branch two accounts, so all three cases below can be run **before** merging rather than only after:
+`supabase/seed.sql` gives every preview branch five accounts, so all three cases below can be run **before** merging rather than only after:
 
 | | |
 |---|---|
-| `admin@dogslamloop.test` | password `seed-admin-password`, `user_roles.role = 'admin'` |
-| `member@dogslamloop.test` | password `seed-member-password`, **no role at all** — `get_my_role()` returns NULL |
+| `owner@dogslamloop.test` | password `seed-owner-password`, `user_roles.role = 'owner'`. **This is the `ADMIN_JWT` for `probe-release.js`** (since 2026-10-01) |
+| `admin@dogslamloop.test` | password `seed-admin-password`, `user_roles.role = 'admin'`. Refused by every owner tool, correctly |
+| `member@dogslamloop.test` | password `seed-member-password`, **no role at all** (`get_my_role()` returns NULL). The `USER_JWT`. 10 days old, so the 7-day voting rule lets it vote |
+| `trusted@dogslamloop.test` | password `seed-trusted-password`, `trusted_editor`: can upload by role |
+| `banned@dogslamloop.test` | password `seed-banned-password`, `viewer` with `can_upload_media` ticked: refused, a ban wins over a perk |
+
+**`ADMIN_JWT` means the OWNER's token**, a name kept from before v0.17. Given admin@'s token, nine owner tools report "failures" that are the system refusing an admin correctly. v0.20's release preview did exactly that before `owner@` existed.
 
 Mint a JWT against the branch's URL and anon key (both in the Supabase dashboard, Branches tab):
 
@@ -90,6 +95,8 @@ curl -s -X POST "$BRANCH_URL/auth/v1/token?grant_type=password" \
 **Getting the branch's URL and keys needs no dashboard.** The CLI on the owner's machine is logged in and linked: `npx supabase branches list --project-ref gtqswjspxymjdopljmfi` shows the preview's status, and `npx supabase branches get <git branch> --project-ref gtqswjspxymjdopljmfi -o env` prints its `SUPABASE_URL`, `SUPABASE_ANON_KEY` and `POSTGRES_URL`. It also prints the branch's service-role key and JWT secret: grep out only what you need, write it to the scratchpad, never echo the rest. `npx supabase db query --db-url "$POSTGRES_URL" "<sql>"` then reads or fixes the PREVIEW directly. `--linked` instead of `--db-url` is PRODUCTION: reads only, never a write without the owner's explicit word.
 
 **A preview exists per PR, not per push.** With no PR open, `branches list` shows only `main`. To verify a migration while its batch is still being built, open the batch PR as a draft.
+
+**The branch's `status` in `branches list` is not the verdict.** On 2026-10-01 the v0.20 release preview read `MIGRATIONS_FAILED` while its database held 65 of 65 migrations, both new objects and all the seeded accounts, and the `Supabase Preview` check had passed. The label's timestamp predated the check run and was never updated. Read `supabase_migrations.schema_migrations` through `--db-url`, and look for the objects the migration creates; believe those over the label, in either direction.
 
 **If a seeded account's sign-in answers 500 "Database error querying schema"**, its token columns are NULL. `seed.sql` fills them since 2026-09-28; a preview created before that needs `UPDATE auth.users SET confirmation_token = COALESCE(confirmation_token, ''), recovery_token = COALESCE(recovery_token, ''), email_change = COALESCE(email_change, ''), email_change_token_new = COALESCE(email_change_token_new, '')` through `--db-url`.
 
@@ -108,7 +115,20 @@ Three cases, in order of what they prove:
 - **non-admin authenticated** → must fail with 42501.
 - **admin** → **must succeed.** This is the one that matters most: over-tightening breaks the only legitimate caller, and that failure is invisible to every other check.
 
-Send the function's *real* signature. Posting a parameter to a zero-argument function returns `PGRST202`, which looks like a refusal but is only a signature mismatch.
+Send the function's *real* signature. Posting a parameter to a zero-argument function returns `PGRST202`, which looks like a refusal but is only a signature mismatch. The same trap for a table: a write naming a column the table lacks answers `400 PGRST204`, which also "refuses". A write probe sends the table's real columns and requires `42501` (found 2026-10-04, when a probe of the Discord link tables passed on `PGRST204`).
+
+**Three things a preview is not, found 2026-10-04 (v1.0 batch 1):**
+
+* **Its service role has no table grants it is not named on.** A preview builds from migrations under the newer "not auto-exposed" default (`supabase/config.toml`), so the service-role key gets `42501 permission denied for table site_pages`. Read public tables as anon in a probe. Code that runs as the service role should reach tables through `SECURITY DEFINER` functions, or a migration must `GRANT ... TO "service_role"`; production is older and may not show the gap.
+* **`POSTGRES_URL_NON_POOLING`'s host is IPv6-only** and does not resolve on this machine. Use `POSTGRES_URL`, the pooler.
+* **It deploys the PR's Edge Functions** (status `FUNCTIONS_DEPLOYED`; `npx supabase functions list --project-ref <branch ref>`), but secrets are per branch (`supabase secrets set --project-ref <branch ref>`), so a function there runs without production's.
+
+**Four probe traps, found 2026-10-04 and 05 (v1.0 batches 2 to 4):**
+
+* **The site's own rate limits apply to probes.** One post every 20 seconds per account and one forum post every 2 minutes: a probe that posts twice from the same seeded account in quick succession gets `53400` and every check after it reads garbage. Spread the writes across the five seeded accounts.
+* **A JS assignment to an undeclared variable still sends the request.** `r = await fetch(...)` in a module with no `let r` throws a ReferenceError, but only after the right-hand side has run, so the write happened. Read the database before concluding a crashed probe changed nothing.
+* **`npx` echoes the whole command line to stderr** as `npm notice run <command>`. With `2>&1 | grep <column>`, a secret passed in the command (a Postgres URL with its password, a value written into SQL) is printed whenever the grep pattern also appears in the command. On 2026-10-05, `grep secret_set` matched the notice and printed a preview's database URL and its relay secret. Send stderr to `/dev/null` on any command that carries a secret, and rotate one that was printed.
+* **What a preview holds is not on dogslamloop.com.** The live site reads production. To show the owner a preview's data in the real page, serve the repo locally and set `localStorage.dsl_supabase_override` to the branch's URL and anon key (`js/site_utils.js`, `resolveSupabaseTarget`); the page shows a banner while it is on. Sign in as a seeded account from the console for a moderator's view.
 
 Migrations apply to **production** on merge, so the production half of this happens after merging. The preview half does not — run it while the PR is open, where a mistake costs a force-push instead of a hotfix.
 

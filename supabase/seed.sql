@@ -98,7 +98,11 @@ BEGIN
         '00000000-0000-0000-0000-000000000000', member_uid,
         'authenticated', 'authenticated', 'member@dogslamloop.test',
         extensions.crypt('seed-member-password', extensions.gen_salt('bf')),
-        now(), now() - interval '2 days', now(),
+        -- Older than the 7 days submit_tier_votes asks of a voter (v0.14). At
+        -- 2 days the probe's "user may vote" leg was refused on every preview
+        -- by a rule working correctly, while it passed on production, where
+        -- the user token belongs to a real, older account (2026-10-01).
+        now(), now() - interval '10 days', now(),
         '{"provider":"email","providers":["email"]}'::jsonb,
         '{"display_name":"Seed Member"}'::jsonb, false
     );
@@ -199,6 +203,54 @@ BEGIN
     RAISE NOTICE 'Seeded trusted@dogslamloop.test and banned@dogslamloop.test.';
 EXCEPTION WHEN OTHERS THEN
     RAISE WARNING 'Upload-permission fixtures skipped: % (%).', SQLERRM, SQLSTATE;
+END $$;
+
+-- ---------------------------------------------------------------------------
+-- AN OWNER, for the owner tools (2026-10-01)
+-- ---------------------------------------------------------------------------
+--
+--   owner@dogslamloop.test -> 'owner', password seed-owner-password
+--
+-- probe-release.js's ADMIN_JWT has meant "the OWNER's token" since the v0.17
+-- owner/admin split, and no fixture held the role. So every preview run
+-- reported the owner tools (list_personnel, assign_role_by_email and seven
+-- more) as failures, which were admin@ being refused correctly. v0.20's release
+-- preview needed the admin promoted by hand to tell the two apart. admin@ stays
+-- 'admin', so the refusal itself is still there to probe.
+--
+-- Its own block, like the two above it.
+DO $$
+DECLARE
+    owner_uid uuid := '00000000-0000-4000-8000-0000000000c1';
+BEGIN
+    INSERT INTO auth.users (
+        instance_id, id, aud, role, email, encrypted_password,
+        email_confirmed_at, created_at, updated_at,
+        raw_app_meta_data, raw_user_meta_data, is_super_admin
+    ) VALUES (
+        '00000000-0000-0000-0000-000000000000', owner_uid,
+        'authenticated', 'authenticated', 'owner@dogslamloop.test',
+        extensions.crypt('seed-owner-password', extensions.gen_salt('bf')),
+        now(), now() - interval '30 days', now(),
+        '{"provider":"email","providers":["email"]}'::jsonb,
+        '{"display_name":"Seed Owner"}'::jsonb, false
+    );
+
+    INSERT INTO auth.identities (
+        provider_id, user_id, identity_data, provider,
+        last_sign_in_at, created_at, updated_at
+    ) VALUES (
+        owner_uid::text, owner_uid,
+        jsonb_build_object('sub', owner_uid::text, 'email', 'owner@dogslamloop.test',
+                           'email_verified', true, 'phone_verified', false),
+        'email', now(), now(), now()
+    );
+
+    INSERT INTO public.user_roles (user_id, role) VALUES (owner_uid, 'owner');
+
+    RAISE NOTICE 'Seeded owner@dogslamloop.test.';
+EXCEPTION WHEN OTHERS THEN
+    RAISE WARNING 'Owner fixture skipped: % (%).', SQLERRM, SQLSTATE;
 END $$;
 
 -- ---------------------------------------------------------------------------

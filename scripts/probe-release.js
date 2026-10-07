@@ -18,7 +18,9 @@
  *   SUPABASE_URL   the preview branch's URL
  *   ANON_KEY       that branch's anon key
  *   USER_JWT       optional: access token of a signed-in user with NO role
- *   ADMIN_JWT      optional: access token of an admin
+ *                  (on a preview: member@dogslamloop.test)
+ *   ADMIN_JWT      optional: access token of the OWNER (on a preview:
+ *                  owner@dogslamloop.test, NOT admin@; see IDENTITIES)
  *
  * A JWT is the `access_token` in the Supabase session; both are short-lived.
  * Without them the authenticated cases are skipped and reported as skipped
@@ -197,7 +199,9 @@ const TABLES = [
 // pass the owner-only checks" - i.e. the OWNER's. An account holding the
 // `admin` role is genuinely denied by every is_owner() function here, so
 // supplying an admin token makes the run report failures that are the system
-// working correctly.
+// working correctly. On a preview branch, sign in as owner@dogslamloop.test
+// (supabase/seed.sql, since 2026-10-01); before that no fixture held the role,
+// and v0.20's release preview showed nine of these false failures.
 const IDENTITIES = [
     { id: 'anon', jwt: null },
     { id: 'user', jwt: USER_JWT },

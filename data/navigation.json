@@ -492,6 +492,17 @@
         "pageId": "collaborators",
         "editRole": "locked"
       }
+    },
+    {
+      "id": "Forum-Rules",
+      "name": "Forum Rules",
+      "url": "systems/forum-rules/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "system",
+        "pageId": "forum_rules",
+        "editRole": "open"
+      }
     }
   ],
   "Guides": [
@@ -543,7 +554,6 @@
       "id": "tierlist",
       "name": "Tier List",
       "url": "systems/tierlist/index.html",
-      "isWip": true,
       "isSubjective": true,
       "cms_config": {
         "pageType": "tierlist",

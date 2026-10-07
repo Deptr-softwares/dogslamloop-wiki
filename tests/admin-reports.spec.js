@@ -25,8 +25,8 @@ const report = (over = {}) => ({
     ...over,
 });
 
-async function openQueue(page, { rows = [], rpcError = null, modError = null, resolveError = null } = {}) {
-    await page.addInitScript(({ rows, rpcError, modError, resolveError }) => {
+async function openQueue(page, { rows = [], rpcError = null, modError = null, resolveError = null, edits = [] } = {}) {
+    await page.addInitScript(({ rows, rpcError, modError, resolveError, edits }) => {
         window.__rpcCalls = [];
         window.__prompts = [];
 
@@ -46,6 +46,18 @@ async function openQueue(page, { rows = [], rpcError = null, modError = null, re
                     client.from = (table) => {
                         if (table === 'user_roles') {
                             return { select() { return this; }, eq: async () => ({ data: [{ role: 'admin' }], error: null }) };
+                        }
+                        if (table === 'page_discussion_edits') {
+                            const q = { ids: null };
+                            return {
+                                select() { return this; },
+                                in(c, v) { if (c === 'post_id') q.ids = v; return this; },
+                                order() { return this; },
+                                then(resolve) {
+                                    window.__editsAsked = q.ids;
+                                    return resolve({ data: edits.filter(e => (q.ids || []).includes(e.post_id)), error: null });
+                                },
+                            };
                         }
                         const inert = new Proxy({}, {
                             get(_t, prop) {
@@ -73,7 +85,7 @@ async function openQueue(page, { rows = [], rpcError = null, modError = null, re
                 };
             },
         });
-    }, { rows, rpcError, modError, resolveError });
+    }, { rows, rpcError, modError, resolveError, edits });
 
     await page.goto('/admin.html', { waitUntil: 'networkidle' });
     // adminPrompt is the shared modal helper; stubbed so the reason step is
@@ -276,4 +288,57 @@ test('a reported post shows its images, and only paths that pass the rule', asyn
     await expect.poll(() => imgs.evaluate(el => el.complete && el.naturalWidth > 0)).toBe(true);
     // An image-only post is not "gone".
     await expect(page.locator('.report-quote')).toHaveText('[images only]');
+});
+
+test('a report on a forum post says FORUM, and a picture copied from Discord is shown from its bucket', async ({ page }) => {
+    // v1.0: forum posts live under page_id 'forum:<uuid>', and the Discord
+    // relay keeps its copies in discord-media.
+    const local = require('fs').readFileSync(require('path').join(__dirname, '..', 'medias', 'images', 'DogslamloopIcon.webp'));
+    await page.route(/\/storage\/v1\/object\/public\/(discussion|discord)-media\//, r =>
+        r.fulfill({ status: 200, contentType: 'image/webp', body: local }));
+
+    await openQueue(page, {
+        rows: [report({
+            id: 'r1', page_id: 'forum:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', post_body: 'look',
+            post_images: ['discord/123456789012345678-0.png', 'discord/123456789012345678-9.png'],
+        })],
+    });
+
+    await expect(page.locator('.report-page')).toHaveText('FORUM');
+    const imgs = page.locator('.report-images img');
+    await expect(imgs).toHaveCount(1);
+    expect(await imgs.getAttribute('src')).toMatch(/\/storage\/v1\/object\/public\/discord-media\/discord\/123456789012345678-0\.png$/);
+});
+
+// v1.0 batch 3: posts can be edited, so a report could be dodged by editing
+// the words away. The queue shows what an edited post said before.
+test('an edited post shows what it said before, flagged when the edit came after the report', async ({ page }) => {
+    await openQueue(page, {
+        rows: [
+            report({ id: 'r1', target_id: 'post-1', post_body: 'hello' }),
+            report({ id: 'r2', target_id: 'post-2', post_body: 'never edited' }),
+            report({ id: 'r3', target_id: 'post-3', post_body: 'edited before' }),
+        ],
+        edits: [
+            { post_id: 'post-1', body: 'the words reported', edited_at: '2026-08-13T12:30:00Z', edited_by: 'u1' },
+            { post_id: 'post-1', body: '<b>first</b>', edited_at: '2026-08-13T11:00:00Z', edited_by: null },
+            { post_id: 'post-3', body: 'older', edited_at: '2026-08-13T11:00:00Z', edited_by: 'u3' },
+        ],
+    });
+
+    // One read for every card.
+    expect((await page.evaluate(() => window.__editsAsked)).sort()).toEqual(['post-1', 'post-2', 'post-3']);
+
+    const edited = page.locator('#report-r1 .report-edits');
+    await expect(edited.locator('.report-edits-summary')).toHaveText('EDITED AFTER THE REPORT: 2 earlier versions');
+    // Closed until opened, under the post as it reads now.
+    await expect(edited.locator('.report-quote').first()).toBeHidden();
+    await edited.locator('.report-edits-summary').click();
+    await expect(edited.locator('.report-quote')).toHaveText(['the words reported', '<b>first</b>']);
+    await expect(edited.locator('b')).toHaveCount(0);
+    await expect(edited.locator('.report-edit-when').nth(1)).toContainText('changed on Discord');
+    await expect(page.locator('#report-r1 > .report-quote')).toHaveText('hello');
+
+    await expect(page.locator('#report-r2 .report-edits')).toHaveCount(0);
+    await expect(page.locator('#report-r3 .report-edits-summary')).toHaveText('EDITED: 1 earlier version');
 });

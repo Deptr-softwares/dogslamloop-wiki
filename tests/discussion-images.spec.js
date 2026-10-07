@@ -28,7 +28,10 @@ const post = (over = {}) => ({
     ...over,
 });
 
-async function openThread(page, { rows = [], session = null, roleRow = null, insertError = null, safari = false } = {}) {
+// klipyMedia replaces the KLIPY media route below. Playwright runs the LAST
+// registered handler first, so a test's own route registered before this one
+// would never be reached.
+async function openThread(page, { rows = [], session = null, roleRow = null, insertError = null, safari = false, klipyMedia = null, waitUntil = 'networkidle' } = {}) {
     // Every address either host could produce answers with a real, decodable
     // local file OF THE RIGHT KIND. An .mp4 once got the WebP too: the video
     // could not play it, the missing-media listener (3.5) rightly replaced it,
@@ -37,9 +40,9 @@ async function openThread(page, { rows = [], session = null, roleRow = null, ins
     // Playwright's Chromium has no H.264.
     await page.route(/\/storage\/v1\/object\/public\/discussion-media\//, r =>
         r.fulfill({ status: 200, contentType: 'image/webp', body: LOCAL_IMAGE }));
-    await page.route(/^https:\/\/static2?\.klipy\.com\//, r => r.request().url().endsWith('.mp4')
+    await page.route(/^https:\/\/static2?\.klipy\.com\//, klipyMedia || (r => r.request().url().endsWith('.mp4')
         ? r.fulfill({ status: 200, contentType: 'video/webm', path: path.join(__dirname, '..', 'medias', 'videos', 'example-video2.webm') })
-        : r.fulfill({ status: 200, contentType: 'image/webp', body: LOCAL_IMAGE }));
+        : r.fulfill({ status: 200, contentType: 'image/webp', body: LOCAL_IMAGE })));
 
     await page.addInitScript(({ rows, session, roleRow, insertError, safari }) => {
         window.__inserts = [];
@@ -133,8 +136,8 @@ async function openThread(page, { rows = [], session = null, roleRow = null, ins
         });
     }, { rows, session, roleRow, insertError, safari });
 
-    await page.goto(PAGE, { waitUntil: 'networkidle' });
-    await page.waitForSelector('#discussion-section .discussion-title');
+    await page.goto(PAGE, { waitUntil });
+    await page.waitForSelector('#discussion-section .discussion-title', { timeout: 30000 });
 }
 
 // Painted, not merely present: a broken image has naturalWidth 0.
@@ -160,14 +163,111 @@ test('a KLIPY MP4 plays as a muted loop, the way a GIF would', async ({ page }) 
 
     const video = page.locator('#post-p1 video.discussion-media-gif');
     await expect(video).toHaveCount(1);
-    expect(await video.evaluate(v => [v.muted, v.loop, v.autoplay, v.getAttribute('src')]))
-        .toEqual([true, true, true, mp4]);
+    expect(await video.evaluate(v => [v.muted, v.loop])).toEqual([true, true]);
+    // Its source comes from the clip queue when its turn comes (2026-10-02),
+    // not the moment the thread is drawn.
+    await video.scrollIntoViewIfNeeded();
+    await expect(video).toHaveAttribute('src', mp4, { timeout: 15000 });
     // Playing, not merely present: a frame decoded, and it is still the video
     // rather than the missing-media notice a failed one becomes.
     await expect.poll(() => page.locator('#post-p1 video.discussion-media-gif')
         .evaluate(v => v.readyState >= 2 && v.videoWidth > 0).catch(() => false), { timeout: 15000 }).toBe(true);
     await expect(page.locator('#post-p1 .media-missing-notice')).toHaveCount(0);
     await expect(page.locator('#post-p1 .discussion-body')).toBeHidden();
+});
+
+// --- KLIPY PAGE LINKS, AND A THREAD FULL OF GIFS (2026-10-02) ---
+//
+// Discord's GIF picker copies a klipy.com/gifs/<slug> PAGE link, which a
+// browser cannot read (the owner's test post, 2026-10-01). Posting one asks
+// KLIPY's API for the GIF once and stores the GIF's own address; readers never
+// call the API. The API is routed here: no test spends the owner's key.
+const KLIPY_PAGE_LINK = 'https://klipy.com/gifs/ronaldo-smile-4';
+const KLIPY_HOST = 'https://static.klipy.com/ii/a15b48460c436e1e92c85ffc680932cc/41/4e';
+const KLIPY_MD_MP4 = `${KLIPY_HOST}/eH5CypZVAuqHLGZ.mp4`;
+// The shape the API answered on 2026-10-02, cut down: four sizes, and the
+// heaviest format first in each, so a picker taking the first one it sees
+// would choose the 22.6 MB .gif.
+const klipyItem = (files) => ({ result: true, data: { slug: 'ronaldo-smile-4', file: files || {
+    hd: { gif: { url: `${KLIPY_HOST}/Ez36P8OR.gif` }, mp4: { url: `${KLIPY_HOST}/wht0lcijYnZFyv.mp4` } },
+    md: { gif: { url: `${KLIPY_HOST}/hCso4Vnx.gif` }, webp: { url: `${KLIPY_HOST}/mErnTlx4.webp` }, mp4: { url: KLIPY_MD_MP4 } },
+    sm: { gif: { url: `${KLIPY_HOST}/cUOA8wd6.gif` }, mp4: { url: `${KLIPY_HOST}/rJMa4ywu75WmYdDZI8.mp4` } },
+} } });
+
+async function routeKlipyApi(page, answer) {
+    const asked = [];
+    await page.route(/^https:\/\/api\.klipy\.com\//, r => {
+        asked.push({ url: r.request().url(), referer: r.request().headers()['referer'] });
+        const { status = 200, body } = answer(r.request().url());
+        return r.fulfill({ status, contentType: 'application/json',
+            headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify(body) });
+    });
+    return asked;
+}
+
+test('a klipy.com page link, which Discord copies, is posted as its GIF', async ({ page }) => {
+    await openThread(page, { session: SESSION });
+    const asked = await routeKlipyApi(page, () => ({ body: klipyItem() }));
+
+    await page.fill('#discussion-section .discussion-textarea', `gg\n${KLIPY_PAGE_LINK}`);
+    await page.click('#discussion-section .discussion-submit');
+    await expect.poll(() => page.evaluate(() => window.__inserts.length)).toBe(1);
+
+    const [[row]] = await page.evaluate(() => window.__inserts);
+    // The medium MP4, not the first file in the answer: the lightest that
+    // plays everywhere.
+    expect(row.body).toBe(`gg\n${KLIPY_MD_MP4}`);
+    // One lookup, by the slug, and KLIPY is not told which page this was.
+    expect(asked).toHaveLength(1);
+    expect(asked[0].url).toMatch(/\/api\/v1\/[^/]+\/gifs\/ronaldo-smile-4$/);
+    expect(asked[0].referer).toBeUndefined();
+});
+
+test('a lookup that fails leaves the link as it was, and the post still goes up', async ({ page }) => {
+    await openThread(page, { session: SESSION });
+    await routeKlipyApi(page, () => ({ status: 429, body: { result: false } }));
+
+    await page.fill('#discussion-section .discussion-textarea', `gg ${KLIPY_PAGE_LINK}`);
+    await page.click('#discussion-section .discussion-submit');
+    await expect.poll(() => page.evaluate(() => window.__inserts.length)).toBe(1);
+
+    const [[row]] = await page.evaluate(() => window.__inserts);
+    expect(row.body).toBe(`gg ${KLIPY_PAGE_LINK}`);
+    await expect(page.locator('#discussion-section .discussion-composer-status').first())
+        .toContainText('could not be turned into its GIF');
+});
+
+test('an API answer that is not KLIPY media is never put in a post', async ({ page }) => {
+    // KLIPY is a third party: its answer is checked like a pasted link is.
+    await openThread(page, { session: SESSION });
+    await routeKlipyApi(page, () => ({ body: klipyItem({
+        md: { mp4: { url: 'https://evil.test/ii/a/b/c.mp4' }, gif: { url: 'http://static.klipy.com/ii/a/b/c.gif' } },
+    }) }));
+
+    await page.fill('#discussion-section .discussion-textarea', KLIPY_PAGE_LINK);
+    await page.click('#discussion-section .discussion-submit');
+    await expect.poll(() => page.evaluate(() => window.__inserts.length)).toBe(1);
+    const [[row]] = await page.evaluate(() => window.__inserts);
+    expect(row.body).toBe(KLIPY_PAGE_LINK);
+});
+
+test('a thread full of KLIPY clips loads two at a time, not all at once', async ({ page }) => {
+    // The owner, 2026-10-02: "there should be a system in place to avoid
+    // loading in all the GIF all at once". Eight clips across two posts; every
+    // answer is held, so a clip that has started is still downloading.
+    const asked = new Set();
+    const clip = (p, i) => `https://static.klipy.com/ii/aa/bb/clip${p}${i}.mp4`;
+    const rows = [1, 2].map(p => post({ id: `p${p}`, body: [0, 1, 2, 3].map(i => clip(p, i)).join('\n'),
+        created_at: `2026-09-28T10:0${p}:00Z` }));
+    // Held answers never let the network go quiet, so wait for the page instead.
+    await openThread(page, { rows, waitUntil: 'domcontentloaded', klipyMedia: r => { asked.add(r.request().url()); } });
+    await page.locator('#discussion-section .discussion-list').scrollIntoViewIfNeeded();
+
+    await expect.poll(() => asked.size, { timeout: 15000 }).toBe(2);
+    // Held, so nothing can free a slot: the other six are still waiting.
+    const waiting = await page.locator('#discussion-section video.discussion-media-gif[data-lazy-src]').count();
+    expect(waiting).toBe(6);
+    expect(asked.size).toBe(2);
 });
 
 test('anything that is not KLIPY media stays text, lookalikes included', async ({ page }) => {

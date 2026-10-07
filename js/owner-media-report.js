@@ -22,12 +22,31 @@
  *     sees it.
  * A file that answers neither way within TIMEOUT_MS is "not checked", never
  * "fine": a slow host is not a working link.
+ *
+ * ONLY "IT IS NOT THERE" IS MISSING. Storage answers a request it is getting
+ * too many of with 429, and the first version counted every non-2xx as
+ * missing. On 2026-10-01 the owner's run listed files that load fine on their
+ * pages; measured from here at six at a time, 45 of 466 answers were 429 and
+ * 38 of the "missing" came back 200 one by one. Even two at a time drew a few.
+ * So a 429, a 408 or a 5xx is the host, not the file: every lane waits, the
+ * request is asked again, and one still refused after RETRIES is "not
+ * checked". A 4xx otherwise (Storage's 400 for an absent object, a 404) is
+ * missing, as before.
  */
 (function () {
     const MEDIA_EXT = /\.(webm|mp4|mov|m4v|ogv|gif|webp|png|jpe?g|avif)$/i;
     const VIDEO_EXT = /\.(webm|mp4|mov|m4v|ogv)$/i;
-    const CONCURRENCY = 6;
+    const CONCURRENCY = 3;
     const TIMEOUT_MS = 15000;
+    // Read at call time, so the test can shorten the waits without the
+    // real report getting any less patient.
+    const TIMING = { retries: 4, backoffMs: 1500 };
+
+    // Shared by every lane: the limit is the host's, not one request's, so
+    // when one is told to slow down they all wait.
+    let pauseUntil = 0;
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    const isBusy = (status) => status === 429 || status === 408 || status >= 500;
 
     // An address, to a media file or into Storage. Relative /medias/ paths are
     // the site's own files and count too.
@@ -87,15 +106,25 @@
 
     // null when the host will not say (no CORS), so the element probe decides.
     async function checkWithFetch(url) {
-        const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
-        try {
-            const res = await fetch(url, { method: 'HEAD', cache: 'no-store', signal: ctrl.signal });
-            return res.ok ? 'ok' : 'missing';
-        } catch (e) {
-            return null;
-        } finally {
-            clearTimeout(timer);
+        for (let attempt = 0; ; attempt++) {
+            const wait = pauseUntil - Date.now();
+            if (wait > 0) await sleep(wait);
+
+            const ctrl = new AbortController();
+            const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+            let res;
+            try {
+                res = await fetch(url, { method: 'HEAD', cache: 'no-store', signal: ctrl.signal });
+            } catch (e) {
+                return null;
+            } finally {
+                clearTimeout(timer);
+            }
+
+            if (res.ok) return 'ok';
+            if (!isBusy(res.status)) return 'missing';
+            if (attempt >= TIMING.retries) return 'unknown';
+            pauseUntil = Math.max(pauseUntil, Date.now() + TIMING.backoffMs * 2 ** attempt);
         }
     }
 
@@ -174,8 +203,10 @@
                 : (unknownFiles.size ? 'None are missing.' : 'Every one of them loads.')));
         out.appendChild(summary);
         if (unknownFiles.size) {
+            const one = unknownFiles.size === 1;
             out.appendChild(el('p', 'media-report-note',
-                `${unknownFiles.size} did not answer in time and are marked "not checked". Run it again to retry them.`));
+                `${unknownFiles.size} ${one ? 'file' : 'files'} could not be checked, because the host was slow or busy, `
+                + `and ${one ? 'is' : 'are'} marked "not checked". Run it again to retry ${one ? 'it' : 'them'}.`));
         }
 
         [...byPage.entries()]
@@ -245,8 +276,9 @@
         }
     }
 
-    // Exposed for the test, which drives the walk without a network.
-    window.mediaReportInternals = { isMediaLink, collectRefs };
+    // Exposed for the test, which drives the walk without a network and
+    // shortens the retry waits.
+    window.mediaReportInternals = { isMediaLink, collectRefs, TIMING };
 
     document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('btn-media-report');
