@@ -1013,15 +1013,24 @@ window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = '
 // in Overview pointed at an element that had no id until the reader happened
 // to open Overview first - precisely the case in-page links exist for.
 const ANCHOR_PREFIX = 'sec-';
+// A Combo Card's name is a heading too (v1.0 Part 2, owner: "so you can link
+// sections to a combo card within a page"), and so is each section's name on a
+// Multiple Sections card. A card with no name renders "Combo", which names
+// nothing, so it is marked `is-untitled` and left out.
 const ANCHOR_HEADING_SELECTOR =
-    '.section-title, .skill-title, .strategy-title, .card-header-title, .wiki-block-heading';
+    '.section-title, .skill-title, .strategy-title, .card-header-title, .wiki-block-heading,'
+    + ' .theorybox-title:not(.is-untitled)';
+// The two kinds the contents nests under the heading above them.
+const ANCHOR_MINOR_CLASSES = ['wiki-block-heading', 'theorybox-title'];
 
 // Breathing room above a heading that has been jumped to. Shared by a jump and
 // by the arrival follower below, which have to agree on where "landed" is.
 const ANCHOR_SCROLL_OFFSET = 40;
 
+// Shortcodes out first (js/character_tabs.js, v1.0 Part 2): the walk that
+// feeds the picker and the search index reads text that still has them.
 window.sectionAnchorSlug = function(text) {
-    return String(text == null ? '' : text)
+    return window.stripStyleShortcodes(text)
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
@@ -1044,7 +1053,9 @@ window.sectionAnchorSlug = function(text) {
 function anchorLabel(header) {
     const labelSource = header.cloneNode(true);
     labelSource.querySelectorAll('button, a[class*="btn-"]').forEach(el => el.remove());
-    return labelSource.textContent.trim() || header.textContent.trim();
+    // Shortcodes out too, for a heading swept before the styling pass reached it.
+    return window.stripStyleShortcodes(labelSource.textContent).trim()
+        || window.stripStyleShortcodes(header.textContent).trim();
 }
 window.sectionAnchorLabel = anchorLabel;
 
@@ -1113,6 +1124,25 @@ function anchorIdOf(rawId) {
     return String(rawId == null ? '' : rawId).replace(/^#/, '').trim();
 }
 
+// Makes a heading showable where it is: opens every closed accordion above
+// it, and switches every Section Box or Multiple Sections card above it to the
+// tab it is on (v1.0 Part 2). Without the second half a link to a card's third
+// section scrolled to a panel with no height. Clicks the tab's own button, so
+// the box's bookkeeping runs as it does for a reader.
+function revealAnchorTarget(target) {
+    let node = target.parentElement;
+    while (node) {
+        if (node.tagName === 'DETAILS') node.open = true;
+        if (node.hasAttribute && node.hasAttribute('data-sbox-panel') && !node.classList.contains('is-active')) {
+            const box = node.parentElement;
+            const idx = node.getAttribute('data-sbox-panel');
+            const btn = box && box.querySelector(`:scope > .sbox-tabs > [data-sbox-tab="${CSS.escape(idx)}"]`);
+            if (btn) btn.click();
+        }
+        node = node.parentElement;
+    }
+}
+
 // Resolve a fragment to a section and go there, crossing a tab boundary and
 // opening a collapsed accordion on the way if it has to.
 //
@@ -1142,14 +1172,10 @@ window.jumpToAnchor = function(rawId, options) {
         if (btn) btn.click();
     }
 
-    // A heading inside a closed accordion is scrolled to correctly and then
-    // not there, because the body it lives in has no height. Open every
-    // <details> above it first.
-    let node = target.parentElement;
-    while (node) {
-        if (node.tagName === 'DETAILS') node.open = true;
-        node = node.parentElement;
-    }
+    // A heading inside a closed accordion, or on a tab of a box that is not
+    // showing, is scrolled to correctly and then not there, because the body
+    // it lives in has no height.
+    revealAnchorTarget(target);
 
     const scroll = () => {
         const top = target.getBoundingClientRect().top + window.scrollY;
@@ -1197,7 +1223,9 @@ window.refreshTOC = function() {
 
     // 2. The Expansive Header System
     // Added '.section-title' so it can index Dashboard headers!
-    const headers = targetArea.querySelectorAll('.section-title, .skill-title, .strategy-title, .card-header-title, .wiki-block-heading');
+    // The anchor sweep's own list, so the contents can never index a heading
+    // that has no id or skip one that has.
+    const headers = targetArea.querySelectorAll(ANCHOR_HEADING_SELECTOR);
 
     if (headers.length === 0) {
         tocContainer.innerHTML = '<li><p class="loading-msg loading-msg-toc">Nothing to index here.</p></li>';
@@ -1228,7 +1256,7 @@ window.refreshTOC = function() {
         if (header.textContent.trim() === 'Move Overview and Strategy') return;
         if (!header.id) return;
 
-        const isMinor = header.classList.contains('wiki-block-heading');
+        const isMinor = ANCHOR_MINOR_CLASSES.some(c => header.classList.contains(c));
         const itemData = { id: header.id, text: anchorLabel(header) };
 
         if (!isMinor) {
@@ -1421,6 +1449,8 @@ function resolveInitialHash() {
             window.assignSectionAnchors();
             target = findAnchorTarget(id);
             if (!target) { release(); return; }
+            // The repaint put its box back on its first tab.
+            revealAnchorTarget(target);
         }
         if (!laidOut()) return;
         const y = wanted();

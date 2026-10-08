@@ -1027,6 +1027,8 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
                         <input type="text" class="editor-input" data-card-field="damage" value="${esc(target.damage || '')}" placeholder="e.g. 38-46"></div>
                     <div><label class="editor-field-label-sm">Difficulty</label>
                         <select class="editor-select" data-card-field="difficulty">${difficulties}</select></div>
+                    <div><label class="editor-field-label-sm">Practicality</label>
+                        <input type="text" class="editor-input" data-card-field="practicality" value="${esc(target.practicality || '')}" placeholder="Anything"></div>
                     <div><label class="editor-field-label-sm">Video</label>
                         <input type="text" class="editor-input" data-card-field="video" value="${esc(target.video || '')}" placeholder="Optional URL"></div>
                     <!-- Author credit was set when the card was spawned and

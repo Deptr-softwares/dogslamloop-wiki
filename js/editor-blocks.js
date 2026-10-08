@@ -382,7 +382,7 @@ const blockTemplates = {
     // `multiSections` off and `sections` empty by default: a card is one combo
     // until an author says otherwise, and the switch seeds the first section
     // from the card's own fields so turning it on strands nothing.
-    theorybox: { type: 'theorybox', title: 'New Combo', oneliner: '', difficulty: '', sequence: [], damage: '', video: '', content: [], anchor: '', align: 'left', author: '', multiSections: false, sections: [] },
+    theorybox: { type: 'theorybox', title: 'New Combo', oneliner: '', difficulty: '', practicality: '', sequence: [], damage: '', video: '', content: [], anchor: '', align: 'left', author: '', multiSections: false, sections: [] },
     divider: { type: 'divider', style: 'diamond', padding: 'normal' },
     author: { type: 'author', author: '' },
     table: { type: 'table', headers: ['Stat', 'Value'], rows: [['Damage', '10'], ['Startup', '5f']], align: 'center', author: '' },
@@ -553,7 +553,7 @@ window.editorCardFieldTarget = function (block) {
 // switch. Turning it OFF copies the section on screen back up, so what was on
 // screen stays on screen. Between them the switch round-trips without losing
 // anything the author can see.
-const CARD_TEXT_FIELDS = ['title', 'oneliner', 'difficulty', 'damage', 'video', 'anchor'];
+const CARD_TEXT_FIELDS = ['title', 'oneliner', 'difficulty', 'practicality', 'damage', 'video', 'anchor'];
 
 function seedCardSections(card, on) {
     if (!card || typeof card !== 'object') return;
@@ -3281,6 +3281,7 @@ function renderBlockList() {
                 <div class="editor-row editor-row-spaced-md">
                     <div><input type="text" class="editor-input" data-field="damage" value="${escField(card.damage || '')}" placeholder="Damage (e.g. 38-46)"></div>
                     <div><select class="editor-select" data-field="difficulty">${difficulties}</select></div>
+                    <div><input type="text" class="editor-input" data-field="practicality" value="${escField(card.practicality || '')}" placeholder="Practicality (anything)"></div>
                 </div>
                 <div class="editor-row editor-row-spaced-md">
                     <div><input type="text" class="editor-input" data-field="video" value="${escField(card.video || '')}" placeholder="Video URL (optional)"></div>
