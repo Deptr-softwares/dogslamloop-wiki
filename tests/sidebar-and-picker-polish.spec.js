@@ -136,8 +136,8 @@ test('a preset swatch is square and shows it is clickable', async ({ page }) => 
 
 // Owner, 2026-10-06: the Ko-fi button was still buried under the left
 // sidebar's categories and dock. It now opens the right sidebar on every page
-// that has one (js/pagebuilder.js, placeKofiOnTheRight), and stays on the left
-// where a page has none, so no page loses it.
+// that has one (js/pagebuilder.js, placeKofiOnTheRight). The pages that had
+// none were given one in v1.0 Part 2: tests/sitewide-sidebar.spec.js.
 for (const url of ['/', '/characters/Ten_shadows/index.html', '/systems/updatelog/index.html']) {
     test(`Ko-fi opens the right sidebar, and is gone from the left: ${url}`, async ({ page }) => {
         const errors = [];
@@ -169,12 +169,4 @@ test('on a phone, Ko-fi is at the top of the drawer behind the top-right menu', 
     await page.goto('/characters/Ten_shadows/index.html', { waitUntil: 'networkidle' });
     await page.locator('#mobile-menu-toggle').click();
     await expect(page.locator('.local-sidebar-right > :first-child a[href*="Ko-fi"]')).toBeInViewport();
-});
-
-test('a page with no right sidebar keeps Ko-fi on the left', async ({ page }) => {
-    for (const url of ['/privacy-policy.html', '/forum.html']) {
-        await page.goto(url, { waitUntil: 'networkidle' });
-        await expect(page.locator('.local-sidebar-right'), url).toHaveCount(0);
-        await expect(page.locator('.global-sidebar-left a[href*="Ko-fi"]'), url).toHaveCount(1);
-    }
 });

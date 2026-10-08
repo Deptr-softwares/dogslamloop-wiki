@@ -85,11 +85,15 @@ window.initMobileNav = function() {
 
     if (!backdrop) return;
 
-    // Five pages carry the mobile bar and have no contents at all - 404, the
-    // blog index, the privacy policy, recent changes, submissions. A button
-    // that opens an empty drawer is worse than no button, and the left drawer
-    // is still reachable from the site name, so nothing is stranded.
+    // A page with no right sidebar hides the button: one that opens an empty
+    // drawer is worse than none, and the left drawer is still reachable from
+    // the site name. Since v1.0 Part 2 every page with the bar has one.
     if (tocBtn && !right) tocBtn.hidden = true;
+
+    // Eight pages have a right sidebar with no contents in it, only Ko-fi and
+    // the Sitewide links (v1.0 Part 2), so their button is not called that.
+    const drawerName = right && !right.querySelector('#dynamic-toc') ? 'sidebar' : 'table of contents';
+    if (tocBtn) tocBtn.setAttribute('aria-label', `Open ${drawerName}`);
 
     // aria-controls needs a target that exists, and the right sidebar has no
     // id of its own on any page. Given one here rather than in fourteen files.
@@ -100,7 +104,7 @@ window.initMobileNav = function() {
 
     const panels = [
         { el: left, btn: navBtn, open: 'Open navigation menu', close: 'Close navigation menu' },
-        { el: right, btn: tocBtn, open: 'Open table of contents', close: 'Close table of contents' },
+        { el: right, btn: tocBtn, open: `Open ${drawerName}`, close: `Close ${drawerName}` },
     ].filter(p => p.el && p.btn);
 
     // Only ever one at a time: they slide in from opposite edges over the same
