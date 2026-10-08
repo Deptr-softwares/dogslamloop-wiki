@@ -189,3 +189,93 @@ test("a card's words are found under the card, and words after it under the head
     expect(out.before).toContain('zeta words after the card');
     expect(out.card).not.toContain('zeta words after the card');
 });
+
+// --- THE STYLING TOOLBAR ON THE NAME FIELD (owner, 2026-10-08) ---
+//
+// "the quick styling buttons don't work in the Name field for Combo Card...
+// I press on the button but nothing is generated there". The card form in a
+// Combos group draws its Name field above the write-up's block builder, and
+// the toolbar only ever listened inside that builder. Driven through the real
+// buttons, in both card editors.
+async function openCardForm(page) {
+    await page.setViewportSize({ width: 1400, height: 950 });
+    await page.goto('/edit.html?char=boomcat&type=character&tab=combos', { waitUntil: 'networkidle' });
+    await page.waitForTimeout(1200);
+    await page.locator('[onclick*="addDocumentGroup"]').click();
+    await page.waitForTimeout(400);
+    await page.locator('#combo-card-add').click();
+    await page.waitForTimeout(400);
+}
+
+async function selectIn(locator, start, end) {
+    await locator.click();
+    await locator.evaluate((el, r) => el.setSelectionRange(r[0], r[1]), [start, end]);
+    // The toolbar reads the selection the field reported on mouseup or keyup.
+    await locator.dispatchEvent('keyup');
+}
+
+test('the Bold button styles the Name field of a card in a Combos group', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await openCardForm(page);
+
+    const name = page.locator('[data-card-field="title"]');
+    await name.fill('Corner BnB');
+    await selectIn(name, 0, 6);
+    await page.locator('.format-btn[data-tag="b"]').click();
+
+    expect(await name.inputValue()).toBe('[b]Corner[/b] BnB');
+    // Written through to the card, so the preview and the submission have it.
+    await expect(page.locator('.theorybox-title strong.sc-b', { hasText: 'Corner' }).first()).toBeVisible();
+    expect(errors).toEqual([]);
+});
+
+test('Ctrl+I works in the card Name field too', async ({ page }) => {
+    await openCardForm(page);
+    const name = page.locator('[data-card-field="title"]');
+    await name.fill('Corner BnB');
+    await selectIn(name, 7, 10);
+    await page.keyboard.press('Control+i');
+    expect(await name.inputValue()).toBe('Corner [i]BnB[/i]');
+});
+
+test('Bold goes to the Name field, not the write-up field focused before it', async ({ page }) => {
+    await openCardForm(page);
+
+    // A paragraph in the card's write-up, focused first: the field the toolbar
+    // kept as its target while the Name field was invisible to it.
+    await page.evaluate(() => {
+        window.getActiveBlocks().push({ type: 'paragraph', content: 'write-up words' });
+        window.getActiveBlocks().forEach(blk => window.setEditorBlockExpanded(blk, true));
+        window.renderBlockList();
+    });
+    const paragraph = page.locator('#strategy-block-target .block-card textarea').first();
+    await expect(paragraph).toHaveValue('write-up words');
+    await paragraph.click();
+
+    const name = page.locator('[data-card-field="title"]');
+    await name.fill('Corner BnB');
+    await selectIn(name, 0, 6);
+    await page.locator('.format-btn[data-tag="b"]').click();
+
+    expect(await name.inputValue()).toBe('[b]Corner[/b] BnB');
+    await expect(paragraph, 'the write-up field is left alone').toHaveValue('write-up words');
+});
+
+test('the Bold button styles the Name field of a Combo Card block', async ({ page }) => {
+    await page.goto('/edit.html?char=testchar&tab=overview', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => typeof window.initStrategyBlockBuilder === 'function', { timeout: 15000 });
+    await page.waitForTimeout(800);
+    await page.evaluate(() => {
+        window.activeAccordionPath = [];
+        window.initStrategyBlockBuilder('strategy-block-target', [{ type: 'theorybox', title: 'Corner BnB', sequence: ['M1'] }]);
+        (window.getActiveBlocks() || []).forEach(blk => window.setEditorBlockExpanded(blk, true));
+        window.renderBlockList();
+    });
+
+    const name = page.locator('#strategy-block-target [data-field="title"]').first();
+    await selectIn(name, 0, 6);
+    await page.locator('.format-btn[data-tag="b"]').first().click();
+    expect(await name.inputValue()).toBe('[b]Corner[/b] BnB');
+    expect(await page.evaluate(() => window.getActiveBlocks()[0].title)).toBe('[b]Corner[/b] BnB');
+});

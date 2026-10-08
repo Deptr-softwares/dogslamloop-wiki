@@ -1009,7 +1009,10 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
                 <div class="combo-card-fields">
                     <div class="combo-field-full">
                         <label class="editor-field-label-sm">Name</label>
-                        <input type="text" class="editor-input" data-card-field="title" value="${esc(target.title || '')}" placeholder="e.g. Corner BnB">
+                        <!-- data-format-field: the styling toolbar reaches
+                             it, though it sits outside the write-up's
+                             builder (v1.0 Part 2). The name renders styled. -->
+                        <input type="text" class="editor-input" data-card-field="title" data-format-field value="${esc(target.title || '')}" placeholder="e.g. Corner BnB">
                     </div>
                     <div class="combo-field-full">
                         <label class="editor-field-label-sm">One line</label>
