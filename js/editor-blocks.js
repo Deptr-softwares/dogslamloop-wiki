@@ -382,7 +382,7 @@ const blockTemplates = {
     // `multiSections` off and `sections` empty by default: a card is one combo
     // until an author says otherwise, and the switch seeds the first section
     // from the card's own fields so turning it on strands nothing.
-    theorybox: { type: 'theorybox', title: 'New Combo', oneliner: '', difficulty: '', sequence: [], damage: '', video: '', content: [], anchor: '', align: 'left', author: '', multiSections: false, sections: [] },
+    theorybox: { type: 'theorybox', title: 'New Combo', oneliner: '', difficulty: '', practicality: '', sequence: [], damage: '', video: '', content: [], anchor: '', align: 'left', author: '', multiSections: false, sections: [] },
     divider: { type: 'divider', style: 'diamond', padding: 'normal' },
     author: { type: 'author', author: '' },
     table: { type: 'table', headers: ['Stat', 'Value'], rows: [['Damage', '10'], ['Startup', '5f']], align: 'center', author: '' },
@@ -553,7 +553,7 @@ window.editorCardFieldTarget = function (block) {
 // switch. Turning it OFF copies the section on screen back up, so what was on
 // screen stays on screen. Between them the switch round-trips without losing
 // anything the author can see.
-const CARD_TEXT_FIELDS = ['title', 'oneliner', 'difficulty', 'damage', 'video', 'anchor'];
+const CARD_TEXT_FIELDS = ['title', 'oneliner', 'difficulty', 'practicality', 'damage', 'video', 'anchor'];
 
 function seedCardSections(card, on) {
     if (!card || typeof card !== 'object') return;
@@ -1525,19 +1525,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     container.addEventListener('keyup', saveSelection);
 
     // --- 2. FORMAT INJECTOR & HOTKEYS ---
-    container.addEventListener('keydown', (e) => {
-        // We only care about Ctrl or Meta (Cmd on Mac)
-        if (!e.ctrlKey && !e.metaKey) return;
-
-        // Formatting strictly targets text areas and inputs
-        const isInput = ['INPUT', 'TEXTAREA'].includes(e.target.tagName);
-        if (!isInput) return;
-        // Content fields only, the same test the focus tracker applies. This
-        // listener moved from #block-list to the whole builder for the Gallery
-        // bin, and without the guard Ctrl+B in the colour picker's hex field
-        // or the section-link search would write [b][/b] into them.
-        if (!e.target.closest('.block-card') && !e.target.closest('.gallery-bin-row')) return;
-
+    // Applies a Ctrl+key format to the field the key was pressed in. The
+    // caller has already decided the field is one formatting may touch.
+    const formatHotkey = (e) => {
         let formatTag = null;
         if (e.key.toLowerCase() === 'b') formatTag = 'b';
         else if (e.key.toLowerCase() === 'i') formatTag = 'i';
@@ -1555,7 +1545,51 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             lastSelection.end = e.target.selectionEnd;
             applyFormat(formatTag);
         }
+    };
+
+    container.addEventListener('keydown', (e) => {
+        // We only care about Ctrl or Meta (Cmd on Mac)
+        if (!e.ctrlKey && !e.metaKey) return;
+
+        // Formatting strictly targets text areas and inputs
+        const isInput = ['INPUT', 'TEXTAREA'].includes(e.target.tagName);
+        if (!isInput) return;
+        // Content fields only, the same test the focus tracker applies. This
+        // listener moved from #block-list to the whole builder for the Gallery
+        // bin, and without the guard Ctrl+B in the colour picker's hex field
+        // or the section-link search would write [b][/b] into them.
+        if (!e.target.closest('.block-card') && !e.target.closest('.gallery-bin-row')) return;
+
+        formatHotkey(e);
     });
+
+    // --- FIELDS OUTSIDE THIS BUILDER (v1.0 Part 2) ---
+    //
+    // The Combo Card form in a Combos or Techs group (js/editor-tabs.js) draws
+    // its Name field ABOVE the write-up's builder, not inside it. Every
+    // listener above is on the builder, so they never saw that field: the
+    // toolbar wrote nothing into it, or into whatever builder field had focus
+    // last (owner, 2026-10-08). A field like that carries `data-format-field`.
+    //
+    // On `document`, because the field is outside `container`. Replaced on
+    // every init like the copy/paste handler below, so a tab switch never
+    // leaves one behind holding the previous builder's state.
+    const outsideField = (el) => !!(el && el.matches && el.matches('[data-format-field]')
+        && !container.contains(el));
+    if (window._formatFieldHandlers) {
+        Object.entries(window._formatFieldHandlers)
+            .forEach(([type, fn]) => document.removeEventListener(type, fn));
+    }
+    window._formatFieldHandlers = {
+        focusin: (e) => { if (outsideField(e.target)) lastFocusedInput = e.target; },
+        mouseup: (e) => { if (outsideField(e.target)) saveSelection(e); },
+        keyup: (e) => { if (outsideField(e.target)) saveSelection(e); },
+        keydown: (e) => {
+            if ((e.ctrlKey || e.metaKey) && outsideField(e.target)) formatHotkey(e);
+        },
+    };
+    Object.entries(window._formatFieldHandlers)
+        .forEach(([type, fn]) => document.addEventListener(type, fn));
 
     // --- HOVER BLOCK COPY/PASTE ENGINE ---
     // Clears any ghost listeners from previous tab switches
@@ -3281,6 +3315,7 @@ function renderBlockList() {
                 <div class="editor-row editor-row-spaced-md">
                     <div><input type="text" class="editor-input" data-field="damage" value="${escField(card.damage || '')}" placeholder="Damage (e.g. 38-46)"></div>
                     <div><select class="editor-select" data-field="difficulty">${difficulties}</select></div>
+                    <div><input type="text" class="editor-input" data-field="practicality" value="${escField(card.practicality || '')}" placeholder="Practicality (anything)"></div>
                 </div>
                 <div class="editor-row editor-row-spaced-md">
                     <div><input type="text" class="editor-input" data-field="video" value="${escField(card.video || '')}" placeholder="Video URL (optional)"></div>

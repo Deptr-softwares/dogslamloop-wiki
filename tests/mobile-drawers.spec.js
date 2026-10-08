@@ -127,13 +127,15 @@ test.describe('on a phone', () => {
         await expect(page.locator('.local-sidebar-right')).not.toHaveClass(/mobile-open/);
     });
 
-    test('a page with no contents hides the burger rather than opening nothing', async ({ page }) => {
+    test('a page with no contents names the burger for what it opens', async ({ page }) => {
         // 404, the blog index, the privacy policy, recent changes and
-        // submissions all carry the bar and have no table of contents.
+        // submissions carry the bar and have no table of contents. They hid
+        // the burger until v1.0 Part 2 gave them a right sidebar of Ko-fi and
+        // the Sitewide links; tests/sitewide-sidebar.spec.js opens it.
         await page.goto('/404.html', { waitUntil: 'networkidle' });
 
-        await expect(page.locator('#mobile-menu-toggle')).toBeHidden();
-        // The navigation is still reachable, so nothing is stranded.
+        await expect(page.locator('#mobile-menu-toggle')).toHaveAttribute('aria-label', 'Open sidebar');
+        // The navigation is reachable too.
         await expect(page.locator('#mobile-nav-toggle')).toBeVisible();
         await page.locator('#mobile-nav-toggle').click();
         await expect(page.locator('#master-sidebar')).toHaveClass(/mobile-open/);

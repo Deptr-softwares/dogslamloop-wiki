@@ -701,6 +701,25 @@
     // and it is listed here so the two agree.
     window.GENERIC_SECTION_TITLES = Object.freeze(['Move Overview and Strategy']);
 
+    // A heading's text with js/internalstyling.js's shortcodes taken out, so
+    // that an anchor is made from what the reader sees (v1.0 Part 2).
+    //
+    // The page's ids already came out plain: by the time the anchor sweep read
+    // a heading, the styling pass had replaced its shortcodes, so
+    // "[b]Neutral[/b]" got sec-neutral (seen on Locust Guy, 2026-10-08). This
+    // walk reads desc_data, where the shortcodes are still there, and offered
+    // sec-b-neutral-b. Every link the picker made to a styled heading, and 49
+    // entries in the search index, pointed at an id nothing had. Taking them
+    // out on both sides also makes the page's ids independent of which of the
+    // two passes runs first. Shared from here, because this file loads before
+    // js/pagebuilder.js on every page and is the one evaluated in Node.
+    //
+    // The tags are internalstyling.js's own, opening and closing alike.
+    const STYLE_SHORTCODES = /\[\/?(?:b|i|u|s|code|kbd|noauto)\]|\[(?:color|multicolor|url)=[^\]]*\]|\[\/(?:color|multicolor|url)\]/gi;
+    window.stripStyleShortcodes = function (text) {
+        return String(text == null ? '' : text).replace(STYLE_SHORTCODES, '');
+    };
+
     // Sections that are page FURNITURE - always present, not editable content,
     // and outside the tab strip. They still carry a heading and are still a
     // reasonable thing to link to, so the picker offers them; they are listed
@@ -759,6 +778,38 @@
         if (!Array.isArray(blocks) || (depth || 0) > 6) return;
         blocks.forEach(block => {
             if (!block || typeof block !== 'object') return;
+
+            // A COMBO CARD (v1.0 Part 2): its name is a heading, and on a
+            // Multiple Sections card so is each section's name, in tab order,
+            // each followed by the write-up under it. That is the order the
+            // page renders them in, which is what the numbering of a repeated
+            // name depends on. A multi-section card renders its sections and
+            // never its own fields, so those are not walked.
+            if (block.type === 'theorybox') {
+                const card = block.data || block;
+                const parts = (card.multiSections && Array.isArray(card.sections) && card.sections.length)
+                    ? card.sections : [card];
+                // Text after the card belongs to whatever was in scope before
+                // it, not to its last section: the card is a box with an end.
+                const outside = sink ? sink.current : null;
+                parts.forEach(part => {
+                    if (!part || typeof part !== 'object') return;
+                    const made = push(part.title);
+                    if (sink && made) sink.current = made;
+                    if (sink && sink.current) {
+                        // Its name is the target's own title, as a heading's is.
+                        const text = blockText(made ? { ...part, title: undefined } : part);
+                        if (text.length) {
+                            if (!sink.current.text) sink.current.text = [];
+                            sink.current.text.push(...text);
+                        }
+                    }
+                    collectHeadings(part.content, push, (depth || 0) + 1, sink);
+                });
+                if (sink) sink.current = outside;
+                return;
+            }
+
             if (block.type === 'heading' && block.content) {
                 const made = push(block.content);
                 // A heading whose title is generic or empty mints nothing; text
@@ -806,7 +857,7 @@
 
         const slugify = (text) => (window.sectionAnchorSlug
             ? window.sectionAnchorSlug(text)
-            : String(text == null ? '' : text).trim().toLowerCase()
+            : window.stripStyleShortcodes(text).trim().toLowerCase()
                 .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, ''));
 
         const labels = window.getCharacterTabLabels();
@@ -817,7 +868,9 @@
         // order. Which is why the walk below follows the rendered order of the
         // page rather than any order convenient here.
         const mint = (title) => {
-            const text = String(title == null ? '' : title).trim();
+            // The name the reader sees, which is also what a search result
+            // and the picker show: "Neutral", never "[b]Neutral[/b]".
+            const text = window.stripStyleShortcodes(title).trim();
             if (!text || skipTitles.includes(text)) return null;
             const slug = slugify(text);
             if (!slug) return null;

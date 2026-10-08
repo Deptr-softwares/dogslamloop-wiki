@@ -907,6 +907,7 @@ async function switchVersionView(mode) {
                         b.oneliner = window.diffTextLCS(oldB.oneliner || '', newB.oneliner || '');
                         b.damage = window.diffTextLCS(oldB.damage || '', newB.damage || '');
                         b.difficulty = window.diffTextLCS(oldB.difficulty || '', newB.difficulty || '');
+                        b.practicality = window.diffTextLCS(oldB.practicality || '', newB.practicality || '');
                         const oldSeq = oldB.sequence || [];
                         const newSeq = newB.sequence || [];
                         if (!b.sequence) b.sequence = [];
@@ -932,6 +933,7 @@ async function switchVersionView(mode) {
                             b.sections[j].oneliner = window.diffTextLCS(oSec.oneliner || '', nSec.oneliner || '');
                             b.sections[j].damage = window.diffTextLCS(oSec.damage || '', nSec.damage || '');
                             b.sections[j].difficulty = window.diffTextLCS(oSec.difficulty || '', nSec.difficulty || '');
+                            b.sections[j].practicality = window.diffTextLCS(oSec.practicality || '', nSec.practicality || '');
                             const oSeq = oSec.sequence || [];
                             const nSeq = nSec.sequence || [];
                             b.sections[j].sequence = [];

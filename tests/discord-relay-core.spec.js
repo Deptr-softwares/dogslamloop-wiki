@@ -155,7 +155,7 @@ test.describe('Discord to wiki', () => {
         expect(core.handleOf({ username: 'old', discriminator: '1234' })).toBe('old#1234');
     });
 
-    test('still images up to 8 MB are copied, four at most, and every other file is named', () => {
+    test('still images up to 8 MB are copied, four at most, and every other file is named with why', () => {
         const att = (filename, content_type, size) => ({ filename, content_type, size, url: `https://cdn.discordapp.com/attachments/1/2/${filename}` });
         const { images, notes } = core.pickAttachments(message({
             attachments: [
@@ -171,10 +171,11 @@ test.describe('Discord to wiki', () => {
         expect(images.map(i => [i.ext, i.index, i.contentType])).toEqual([
             ['png', 0, 'image/png'], ['jpg', 1, 'image/jpeg'], ['webp', 2, 'image/webp'], ['gif', 3, 'image/gif'],
         ]);
+        // The owner's wording (v1.0 Part 2), one reason per file.
         expect(notes).toEqual([
-            '[file left on Discord: clip.mp4]',
-            '[file left on Discord: huge.png]',
-            '[file left on Discord: e.png]',
+            '[clip.mp4 left on Discord: file type not supported]',
+            '[huge.png left on Discord: over 8 MB]',
+            '[e.png left on Discord: more than 4 images]',
         ]);
         expect(core.imagePath('123456789012345678', 2, 'webp')).toBe('discord/123456789012345678-2.webp');
         expect(core.COPIED_IMAGE_PATH.test('discord/123456789012345678-2.webp')).toBe(true);
@@ -200,8 +201,41 @@ test.describe('Discord to wiki', () => {
         expect(core.klipyPick({ data: { file: { md: { mp4: { url: 'https://evil.example/a.mp4' } } } } })).toBeNull();
     });
 
-    test('a long Discord message is cut to the wiki\'s 4,000 characters', () => {
-        expect(core.wikiBody(message({ content: 'a'.repeat(4500) }))).toHaveLength(4000);
+    test('a long Discord message is cut to the wiki\'s 4,000 characters, and says so', () => {
+        const cut = core.wikiBody(message({ content: 'a'.repeat(4500) }));
+        expect(cut.length).toBeLessThanOrEqual(4000);
+        expect(cut.endsWith('\n[Message is cut off, because it is longer than 4000 characters]')).toBe(true);
+        expect(cut.startsWith('a'.repeat(3900))).toBe(true);
+
+        // The cut takes words, never the lines naming what stayed on Discord.
+        const withFile = core.wikiBody(message({
+            content: 'b'.repeat(4500),
+            attachments: [{ filename: 'clip.mp4', content_type: 'video/mp4', size: 10, url: 'https://cdn/x' }],
+        }));
+        expect(withFile.length).toBeLessThanOrEqual(4000);
+        expect(withFile.endsWith('[Message is cut off, because it is longer than 4000 characters]\n[clip.mp4 left on Discord: file type not supported]')).toBe(true);
+
+        // A message that fits is left whole, with no line.
+        const fits = core.wikiBody(message({ content: 'c'.repeat(3999) }));
+        expect(fits).toBe('c'.repeat(3999));
+    });
+
+    test('a forward and a poll arrive as a line saying they cannot be shown', () => {
+        // A forward is an ordinary message whose words are in a snapshot, so
+        // without the line it would be an empty post.
+        const forward = message({
+            content: '',
+            message_reference: { type: 1, channel_id: '123456789012345678', message_id: '123456789012345679' },
+            message_snapshots: [{ message: { content: 'from somewhere else', attachments: [] } }],
+        });
+        expect(core.wikiBody(forward)).toBe('[Forwarded message cannot be shown, not supported]');
+        expect(core.fromDiscordMessage(forward).replyTo, 'a forward is not a reply').toBeNull();
+
+        const poll = message({ content: '', poll: { question: { text: 'Best M1?' }, answers: [] } });
+        expect(core.wikiBody(poll)).toBe('[Poll cannot be shown, not supported]');
+
+        // An ordinary reply carries a reference too, of type 0 or none.
+        expect(core.wikiBody(message({ type: 19, content: 'yes', message_reference: { message_id: '123456789012345678' } }))).toBe('yes');
     });
 });
 

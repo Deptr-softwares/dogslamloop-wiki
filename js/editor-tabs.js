@@ -1009,7 +1009,10 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
                 <div class="combo-card-fields">
                     <div class="combo-field-full">
                         <label class="editor-field-label-sm">Name</label>
-                        <input type="text" class="editor-input" data-card-field="title" value="${esc(target.title || '')}" placeholder="e.g. Corner BnB">
+                        <!-- data-format-field: the styling toolbar reaches
+                             it, though it sits outside the write-up's
+                             builder (v1.0 Part 2). The name renders styled. -->
+                        <input type="text" class="editor-input" data-card-field="title" data-format-field value="${esc(target.title || '')}" placeholder="e.g. Corner BnB">
                     </div>
                     <div class="combo-field-full">
                         <label class="editor-field-label-sm">One line</label>
@@ -1027,6 +1030,8 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
                         <input type="text" class="editor-input" data-card-field="damage" value="${esc(target.damage || '')}" placeholder="e.g. 38-46"></div>
                     <div><label class="editor-field-label-sm">Difficulty</label>
                         <select class="editor-select" data-card-field="difficulty">${difficulties}</select></div>
+                    <div><label class="editor-field-label-sm">Practicality</label>
+                        <input type="text" class="editor-input" data-card-field="practicality" value="${esc(target.practicality || '')}" placeholder="Anything"></div>
                     <div><label class="editor-field-label-sm">Video</label>
                         <input type="text" class="editor-input" data-card-field="video" value="${esc(target.video || '')}" placeholder="Optional URL"></div>
                     <!-- Author credit was set when the card was spawned and
