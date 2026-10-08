@@ -61,6 +61,18 @@
 /* Auth modal inline feedback (error/success message) */
 #auth-feedback-message { display: block; }
 
+/* The agreement line above the sign-in buttons (v1.0 Part 3). Every page
+   loads this file, and every sign-in goes through this modal. */
+.auth-terms-notice {
+    margin: 0 0 0.75rem;
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+    text-align: left;
+}
+.auth-terms-notice a { color: var(--accent-blue); text-decoration: underline; }
+
 
 /* --- 3. MODAL ACCENT COLORS (The Top Bar) --- */
 .modal-box.accent-blue, .editor-modal.accent-blue { border-top-color: var(--accent-blue); }
