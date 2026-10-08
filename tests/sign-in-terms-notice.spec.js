@@ -35,9 +35,12 @@ for (const path of ['/', '/systems/tierlist/index.html']) {
 
         const hrefs = await notice.locator('a').evaluateAll(as => as.map(a => new URL(a.href).pathname));
         expect(hrefs).toEqual(['/terms.html', '/privacy-policy.html']);
+        // Fetched from the page, as the reader's browser would. Not
+        // page.request: under load, Node tried ::1 first and the test server
+        // listens on IPv4 only (ECONNREFUSED, seen 2026-10-08).
         for (const href of hrefs) {
-            const res = await page.request.get(href);
-            expect(res.status(), href).toBe(200);
+            const status = await page.evaluate(async h => (await fetch(h)).status, href);
+            expect(status, href).toBe(200);
         }
         expect(errors).toEqual([]);
     });
