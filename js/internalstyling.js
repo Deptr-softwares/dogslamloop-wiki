@@ -569,6 +569,12 @@ function applyInternalStyling() {
         // (js/gallery.js:99, js/description.js), so what this engine reads
         // back is already escaped - the same contract as every other entry.
         + ' .gallery-card-name:not(.is-styled), .gallery-card-note:not(.is-styled),'
+        // A Combo Card's name, and each section's (v1.0 Part 2 bug). The same
+        // split as headings above: reached only through `.vessel-content h4`,
+        // so in the Combos and Techs tabs, which are `.tab-content`, a name
+        // kept its literal [b]...[/b]. Rendered through escBlockText
+        // (js/description.js), so what this reads back is already escaped.
+        + ' .theorybox-title:not(.is-styled),'
         + ' .update-table th:not(.is-styled), .update-table td:not(.is-styled)');
     
     // 2. Characters, canonical names and every alias the community uses.

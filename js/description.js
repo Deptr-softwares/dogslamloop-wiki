@@ -622,7 +622,10 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             // what makes a "Preface" tab possible without a second block type -
             // every part of the card below is already conditional.
             if (bData.multiSections && sections.length) {
-                const labels = sections.map((sec, i) => sec.label || sec.title || `Section ${i + 1}`);
+                // A label falling back to a styled name shows its plain text:
+                // a tab is a button, and the styling pass never reaches it.
+                const labels = sections.map((sec, i) => sec.label
+                    || window.stripStyleShortcodes(sec.title).trim() || `Section ${i + 1}`);
                 const panels = sections.map((sec, i) =>
                     sboxPanelHTML(i, theoryboxCardHTML(sec, contextClass))).join('');
 
@@ -748,6 +751,8 @@ window.COMBO_COLUMNS = [
     { field: 'damage',      label: 'Damage',      sort: 'leadingNumber' },
     { field: 'position',    label: 'Position',    sort: 'text' },
     { field: 'difficulty',  label: 'Difficulty',  sort: 'difficulty' },
+    // Free text (v1.0 Part 2): the owner's call, "You can enter anything".
+    { field: 'practicality', label: 'Practicality', sort: 'text', conditional: true },
     { field: 'worksOn',     label: 'Works On',    sort: 'text' },
     { field: 'setup',       label: 'Setup',       sort: 'text', conditional: true },
     { field: 'controls',    label: 'Controls',    sort: null,   conditional: true },
@@ -1481,13 +1486,20 @@ function theoryboxCardHTML(bData, contextClass) {
             // anyone having to think about anchors. Everything that is not a
             // word character is dropped: a raw title in an id breaks the
             // selector that would scroll to it.
-            const anchor = String(bData.anchor || bData.title || '')
+            const anchor = window.stripStyleShortcodes(bData.anchor || bData.title || '')
                 .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
             const difficulty = String(bData.difficulty || '').trim();
             const diffIndex = (window.COMBO_DIFFICULTIES || []).indexOf(difficulty);
             const diffHTML = difficulty
                 ? `<span class="theorybox-difficulty combo-difficulty${diffIndex === -1 ? '' : ` combo-difficulty-${diffIndex}`}">${escBlockText(difficulty)}</span>`
+                : '';
+
+            // Free text, so it is labelled: a bare "High" beside a difficulty
+            // chip would read as a second difficulty.
+            const practicality = String(bData.practicality || '').trim();
+            const practicalityHTML = practicality
+                ? `<span class="theorybox-practicality">Practicality: ${escBlockText(practicality)}</span>`
                 : '';
 
             // Same chips and separators as the legacy combo block and the
@@ -1512,11 +1524,18 @@ function theoryboxCardHTML(bData, contextClass) {
 
             const innerHTML = window.generateHTMLForBlocks(bData.content || [], contextClass);
 
+            // The name is a heading (v1.0 Part 2): the anchor sweep and the
+            // contents pick it up. "Combo" stands in for a missing name and
+            // names nothing, so it is marked to be left out, the same rule
+            // collectSectionTargets applies to the data.
+            const untitled = !window.stripStyleShortcodes(bData.title).trim();
+
             return `
                 <section class="theorybox"${anchor ? ` id="combo-${escBlockText(anchor)}"` : ''}>
                     <div class="theorybox-head">
-                        <h4 class="theorybox-title">${escBlockText(bData.title || 'Combo')}</h4>
+                        <h4 class="theorybox-title${untitled ? ' is-untitled' : ''}">${escBlockText(bData.title || 'Combo')}</h4>
                         ${diffHTML}
+                        ${practicalityHTML}
                         ${videoHTML}
                     </div>
                     ${bData.oneliner ? `<p class="theorybox-oneliner">${escBlockText(bData.oneliner)}</p>` : ''}

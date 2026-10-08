@@ -231,10 +231,21 @@ test('the Node slug and the browser slug produce identical anchors', async ({ pa
         'Neutral', 'General Strategy', 'vs. Honored One', 'Punish Combos',
         'M1 Trading', "Sukuna's Domain", 'Notes  &  Tips', '  leading spaces  ',
         'Multi--dash', 'UPPER CASE', '123 numbers', 'accents: café',
+        // Shortcodes, which both sides take out (v1.0 Part 2). Live headings
+        // carry every one of these shapes.
+        '[b]Summary[/b]', 'Use of [color=hsl(3, 93%, 63%)]Red Seal Coupon[/color]',
+        '[multicolor=#a3e635,#15803d]The awesome Okizeme Technique[/multicolor]',
+        '[s][color=hsl(127, 59%, 58%)]Cursed Child[/color][/s]', '[url=#sec-x]Linked[/url] name',
     ];
 
     const fromBrowser = await page.evaluate(
         list => list.map(t => window.sectionAnchorSlug(t)), samples);
+
+    // Agreement alone would also hold if both sides kept the shortcodes, which
+    // is the bug: the page's styled heading has the plain id.
+    expect(fromBrowser[samples.indexOf('[b]Summary[/b]')]).toBe('summary');
+    expect(fromBrowser[samples.indexOf('Use of [color=hsl(3, 93%, 63%)]Red Seal Coupon[/color]')])
+        .toBe('use-of-red-seal-coupon');
 
     // The exact expression collectSectionTargets falls back to, read out of
     // the module rather than retyped - a retyped copy would agree with itself

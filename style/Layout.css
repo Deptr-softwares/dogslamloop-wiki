@@ -1925,6 +1925,8 @@ summary:focus-visible {
     color: var(--text-white); flex: 1 1 auto;
 }
 .theorybox-difficulty { font-family: var(--text-mono); font-size: 0.75rem; }
+/* Plain: Practicality is free text, so it has no scale to colour. */
+.theorybox-practicality { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
 /* Not var(--accent-blue): on a character page that is the character's colour,
    and the dark ones render an unreadable link. Same reason as .combo-video-link. */
 .theorybox-video { color: var(--text-white); text-decoration: underline; text-underline-offset: 2px; font-family: var(--text-mono); font-size: 0.75rem; }
