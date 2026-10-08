@@ -162,9 +162,9 @@ test('no hand-authored page still sizes Ko-fi with an inline style', async ({ pa
 
 const ROSTER_NAV = {
     Characters: [
-        { id: 'A', name: 'Alpha', url: 'characters/Alpha/index.html', archetype: 'Rushdown', tier: 'S', cms_config: { pageType: 'character', pageId: 'alpha' } },
-        { id: 'B', name: 'Beta', url: 'characters/Beta/index.html', archetype: 'Zoner', tier: 'B', cms_config: { pageType: 'character', pageId: 'beta' } },
-        { id: 'C', name: 'Gamma', url: 'characters/Gamma/index.html', archetype: 'Zoner', tier: 'C', cms_config: { pageType: 'character', pageId: 'gamma' } },
+        { id: 'A', name: 'Alpha', url: 'characters/Alpha/index.html', archetype: 'Rushdown', cms_config: { pageType: 'character', pageId: 'alpha' } },
+        { id: 'B', name: 'Beta', url: 'characters/Beta/index.html', archetype: 'Zoner', cms_config: { pageType: 'character', pageId: 'beta' } },
+        { id: 'C', name: 'Gamma', url: 'characters/Gamma/index.html', archetype: 'Zoner', cms_config: { pageType: 'character', pageId: 'gamma' } },
     ],
 };
 
@@ -174,7 +174,8 @@ test('the roster filters use the wiki dropdown, not the operating system one', a
 
     const wrapper = page.locator('#filter-archetype + .manga-select-wrapper');
     await expect(wrapper).toHaveCount(1);
-    await expect(page.locator('#filter-tier + .manga-select-wrapper')).toHaveCount(1);
+    // No Tier filter since v1.0 Part 3: the column it read was dropped.
+    await expect(page.locator('#filter-tier')).toHaveCount(0);
 
     // The native control must be gone, not merely covered - one visible beside
     // the other is worse than the plain select this replaced.
