@@ -704,12 +704,14 @@
     // A heading's text with js/internalstyling.js's shortcodes taken out, so
     // that an anchor is made from what the reader sees (v1.0 Part 2).
     //
-    // The page always did this by accident: the styling pass runs before the
-    // anchor sweep, so "[b]Neutral[/b]" was already "Neutral" in the DOM and
-    // got sec-neutral. This walk reads desc_data, where the shortcodes are
-    // still there, and offered sec-b-neutral-b. Every link the picker made to
-    // a styled heading, and 49 entries in the search index, pointed at an id
-    // nothing had. Shared by both sides, here, because this file loads before
+    // The page's ids already came out plain: by the time the anchor sweep read
+    // a heading, the styling pass had replaced its shortcodes, so
+    // "[b]Neutral[/b]" got sec-neutral (seen on Locust Guy, 2026-10-08). This
+    // walk reads desc_data, where the shortcodes are still there, and offered
+    // sec-b-neutral-b. Every link the picker made to a styled heading, and 49
+    // entries in the search index, pointed at an id nothing had. Taking them
+    // out on both sides also makes the page's ids independent of which of the
+    // two passes runs first. Shared from here, because this file loads before
     // js/pagebuilder.js on every page and is the one evaluated in Node.
     //
     // The tags are internalstyling.js's own, opening and closing alike.
@@ -787,8 +789,8 @@
                 const card = block.data || block;
                 const parts = (card.multiSections && Array.isArray(card.sections) && card.sections.length)
                     ? card.sections : [card];
-                // Text after the card is the group's again, not the last
-                // section's: the card is a box with an end.
+                // Text after the card belongs to whatever was in scope before
+                // it, not to its last section: the card is a box with an end.
                 const outside = sink ? sink.current : null;
                 parts.forEach(part => {
                     if (!part || typeof part !== 'object') return;
