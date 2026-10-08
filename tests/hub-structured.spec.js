@@ -185,14 +185,19 @@ test.describe('editable section headings', () => {
         await expect(page.locator('#roster-section a.btn-ghost')).toBeVisible();
     });
 
-    test('a missing or blank heading keeps the static text', async ({ page }) => {
+    test('a heading site_meta does not set keeps its markup text, and a blank one stays blank', async ({ page }) => {
+        // Since v1.0 Part 3 a heading site_meta sets ships blank, not with a
+        // hand-written copy of its text, so a blank value cannot bring back
+        // old wording. "Others" has no site_meta value at all, so its markup
+        // is its only copy and has to survive.
         const meta = JSON.parse(JSON.stringify(committedMeta));
         meta.hubs['main-hub'].headings = { about: '   ' };   // blank, and the rest absent
         await mockSiteMeta(page, meta);
 
         await page.goto('/index.html', { waitUntil: 'networkidle' });
-        await expect(page.locator('[data-heading-key="about"]')).toHaveText('About Us');
-        await expect(page.locator('[data-heading-key="credits"]')).toHaveText('Credits');
+        await expect(page.locator('[data-heading-key="others"]')).toHaveText('Others');
+        await expect(page.locator('[data-heading-key="about"]')).toHaveText(/^\s*$/);
+        await expect(page.locator('[data-heading-key="credits"]')).toHaveText(/^\s*$/);
     });
 
     test('headings are set as text, never as markup', async ({ page }) => {
@@ -222,13 +227,16 @@ test.describe('Game Info panel', () => {
         await expect(panel).not.toContainText('nyTYVCDMBF');
     });
 
-    test('keeps the static panel when site_meta has no game info', async ({ page }) => {
+    test('empties the panel, rather than keep loading, when site_meta has no game info', async ({ page }) => {
+        // v1.0 Part 3: the panel no longer ships a hand-written copy (it had
+        // gone stale), so with no game info there is nothing to show.
         const meta = JSON.parse(JSON.stringify(committedMeta));
         meta.gameInfo = { fields: [], links: [] };
         await mockSiteMeta(page, meta);
 
         await page.goto('/index.html', { waitUntil: 'networkidle' });
-        await expect(page.locator('#game-info-fields')).toContainText("Tze's Shenanigans");
+        await expect(page.locator('[data-heading-key="gameinfo"]')).toHaveText('Game Info');
+        await expect(page.locator('#game-info-fields')).toHaveText('');
     });
 
     test('refuses a non-http link scheme', async ({ page }) => {

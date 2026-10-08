@@ -67,7 +67,7 @@ const NAV_FLAGS = {
  * Pure: registry rows in, the navigation.json object out.
  *
  * Field presence matters as much as field values. The existing JSON omits
- * optional flags rather than writing `false`, and omits archetype/tier for
+ * optional flags rather than writing `false`, and omits archetype for
  * non-characters - emitting them unconditionally would produce a valid but
  * enormous diff and change what `renderFilteredRoster` filters on.
  */
@@ -87,7 +87,6 @@ function buildNavigation(rows) {
         }
 
         if (row.archetype) entry.archetype = row.archetype;
-        if (row.tier) entry.tier = row.tier;
         if (row.release_date) entry.releaseDate = row.release_date;
 
         entry.cms_config = {

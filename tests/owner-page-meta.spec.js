@@ -1,11 +1,11 @@
 // Coverage for the Page Details and Dashboard Steps tools.
 //
 // Page Details edits site_pages columns that drive presentation rather than
-// content: the WIP/EA badges, the roster filters, and a character's archetype,
-// tier and release date. Until v0.11 the only way to change one was a SQL
-// edit.
+// content: the WIP/EA badges, the roster filters, and a character's archetype
+// and release date. Until v0.11 the only way to change one was a SQL edit.
+// (Tier was one too, until the owner had the column dropped in v1.0 Part 3.)
 //
-// The trap specific to this form is that archetype/tier/release_date apply to
+// The trap specific to this form is that archetype/release_date apply to
 // characters only - scripts/fetch-registry.js omits them for other page types
 // on purpose - so offering them for a system page would be offering an edit
 // that is silently dropped on the next regeneration run.
@@ -19,13 +19,13 @@ const { test, expect } = require('@playwright/test');
 const PAGES = [
     { page_id: 'boomcat', name: 'Boomcat', page_type: 'character', category: 'Characters', status: 'live',
       is_wip: false, is_ea: false, is_base_only: false, is_missing_media: false, is_subjective: false,
-      archetype: 'TBD', tier: 'TBD', release_date: 'TBD' },
+      archetype: 'TBD', release_date: 'TBD' },
     { page_id: 'framedata', name: 'Frame data', page_type: 'system', category: 'System Pages', status: 'live',
       is_wip: true, is_ea: false, is_base_only: false, is_missing_media: false, is_subjective: false,
-      archetype: null, tier: null, release_date: null },
+      archetype: null, release_date: null },
     { page_id: 'source-code', name: 'Source Code', page_type: 'external', category: 'Site Info', status: 'archived',
       is_wip: false, is_ea: false, is_base_only: false, is_missing_media: false, is_subjective: false,
-      archetype: null, tier: null, release_date: null },
+      archetype: null, release_date: null },
 ];
 
 const HUBS = {
@@ -134,7 +134,7 @@ test('page details loads a character with all its fields', async ({ page }) => {
 });
 
 test('character-only fields are hidden for a system page', async ({ page }) => {
-    // fetch-registry omits archetype/tier/release_date for non-characters, so
+    // fetch-registry omits archetype/release_date for non-characters, so
     // offering them here would offer an edit that is silently dropped.
     await mockOwner(page);
     await openGroup(page, 'pages');
@@ -158,7 +158,6 @@ test('saving writes the flags and the character fields', async ({ page }) => {
     await page.locator('.page-meta-checkbox[data-column="is_wip"]').check();
     await page.locator('.page-meta-checkbox[data-column="is_ea"]').check();
     await page.fill('#page-meta-archetype', 'Rushdown');
-    await page.fill('#page-meta-tier', 'S');
     await page.fill('#page-meta-release', '2026-04-12');
     await page.click('#btn-save-page-meta');
 
@@ -171,7 +170,9 @@ test('saving writes the flags and the character fields', async ({ page }) => {
     expect(writes[0].payload.is_ea).toBe(true);
     expect(writes[0].payload.is_base_only).toBe(false);
     expect(writes[0].payload.archetype).toBe('Rushdown');
-    expect(writes[0].payload.tier).toBe('S');
+    // The column is gone (v1.0 Part 3), so a save naming it would fail.
+    expect(Object.keys(writes[0].payload)).not.toContain('tier');
+    await expect(page.locator('#page-meta-tier')).toHaveCount(0);
 });
 
 test('a cleared character field is written as null, not an empty string', async ({ page }) => {
@@ -325,12 +326,16 @@ test('the Side Dashboard renders its steps from site_meta', async ({ page }) => 
     await expect(page.locator('#start-here-list')).not.toContainText('Fundamentals');
 });
 
-test('the Side Dashboard keeps its static steps when site_meta has none', async ({ page }) => {
+test('the Side Dashboard shows empty lists, not old copy, when site_meta has none', async ({ page }) => {
+    // v1.0 Part 3: the lists no longer ship a hand-written copy of their steps
+    // (the owner's "clear the old hardcoded texts"), so with no lists in
+    // site_meta there is nothing to show, and "Loading..." must not stay.
     await mockRenderedMeta(page, meta => { meta.hubs['systems-hub'].lists = {}; });
 
     await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
-    await expect(page.locator('#start-here-list')).toContainText('Starter Guide');
-    await expect(page.locator('#contribute-list')).toContainText('Sign in');
+    await expect(page.locator('#start-here-section, #start-here-list').first()).toBeAttached();
+    await expect(page.locator('#start-here-list')).toHaveText('');
+    await expect(page.locator('#contribute-list')).toHaveText('');
 });
 
 test('a hostile step cannot inject markup or a javascript href', async ({ page }) => {
@@ -345,4 +350,23 @@ test('a hostile step cannot inject markup or a javascript href', async ({ page }
     expect(await page.evaluate(() => window.__xss)).toBeUndefined();
     // A rejected link renders as plain text rather than a dead anchor.
     await expect(page.locator('#start-here-list a')).toHaveCount(0);
+});
+
+test('nothing reads or writes the dropped site_pages.tier column', () => {
+    // 20261008000000 drops it (v1.0 Part 3, owner: "Delete the Tier key on all
+    // characters"). The mocks above answer any select, so a query still naming
+    // the column would pass every test here and fail on production, where
+    // PostgREST refuses a column that does not exist. Read from the code.
+    const fs = require('fs');
+    const path = require('path');
+    const root = path.join(__dirname, '..');
+    const pageMeta = fs.readFileSync(path.join(root, 'js', 'owner-page-meta.js'), 'utf8');
+    const select = /\.from\('site_pages'\)\s*\.select\('([^']+)'\)/.exec(pageMeta);
+    expect(select, 'the Page Details query').not.toBeNull();
+    expect(select[1].split(',').map(s => s.trim())).toContain('archetype');
+    expect(select[1].split(',').map(s => s.trim())).not.toContain('tier');
+    expect(pageMeta).not.toMatch(/payload\.tier\b/);
+
+    const registry = fs.readFileSync(path.join(root, 'scripts', 'fetch-registry.js'), 'utf8');
+    expect(registry).not.toMatch(/row\.tier\b/);
 });

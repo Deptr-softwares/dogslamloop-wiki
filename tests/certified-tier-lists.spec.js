@@ -31,8 +31,8 @@ const list = (over = {}) => ({
     ...over,
 });
 
-async function mockLists(page, { lists = [], changes = [], listError = null } = {}) {
-    await page.addInitScript(({ lists, changes, listError }) => {
+async function mockLists(page, { lists = [], changes = [], listError = null, intro = null, introError = null } = {}) {
+    await page.addInitScript(({ lists, changes, listError, intro, introError }) => {
         Object.defineProperty(window, 'supabase', {
             configurable: true,
             get() { return window.__lib; },
@@ -63,6 +63,16 @@ async function mockLists(page, { lists = [], changes = [], listError = null } = 
                             };
                             return chain;
                         }
+                        // The page's own introduction (v1.0 Part 3 tests).
+                        if (table === 'tier_page_settings') {
+                            const chain = {
+                                select() { return chain; },
+                                maybeSingle: async () => (introError
+                                    ? { data: null, error: introError }
+                                    : { data: intro ? { intro } : null, error: null }),
+                            };
+                            return chain;
+                        }
                         if (table === 'tier_list_changes') {
                             const chain = {
                                 select() { return chain; }, eq() { return chain; },
@@ -85,7 +95,7 @@ async function mockLists(page, { lists = [], changes = [], listError = null } = 
                 };
             },
         });
-    }, { lists, changes, listError });
+    }, { lists, changes, listError, intro, introError });
 }
 
 async function open(page, url = PAGE) {
@@ -265,12 +275,14 @@ test('a missing migration says so rather than rendering a broken page', async ({
     expect(pageErrors).toEqual([]);
 });
 
-test('the intro explains why the lists are attributed', async ({ page, request }) => {
-    // Asserted against the served markup: it is hand-authored copy, and it is
-    // the only place the page states the reasoning behind its own design.
+test('the served page carries no hand-written introduction', async ({ request }) => {
+    // This test used to hold the page TO its hand-written introduction. The
+    // owner rewrote the stored one and had the old copy removed (v1.0 Part 3,
+    // 2026-10-08), so the served markup holds only a loading line.
     const html = await (await request.get(PAGE)).text();
-    expect(html).toContain('belongs to one person');
-    expect(html).toMatch(/opinion/i);
+    const body = /<div id="tier-page-intro-body">([\s\S]*?)<\/div>/.exec(html);
+    expect(body, 'the introduction container').not.toBeNull();
+    expect(body[1].replace(/<[^>]+>/g, '').trim()).toBe('Loading...');
 });
 
 // --- INTRODUCTIONS (v0.14 owner tools) -----------------------------------
@@ -736,4 +748,45 @@ test('nothing in a change note becomes markup in the tooltip', async ({ page }) 
     expect(out.fired).toBe(false);
     expect(out.injected).toBe(0);
     expect(out.note, 'it survives escaped rather than being dropped').toContain('<img');
+});
+
+// --- THE PAGE INTRODUCTION'S ONLY COPY (v1.0 Part 3) ---
+//
+// The page used to ship the seeded introduction as a fallback, which showed
+// until the stored one arrived, and stayed if it never did. The owner rewrote
+// theirs and had the old one removed (2026-10-08). "Every list here belongs"
+// is a phrase from it.
+const OLD_INTRO = 'Every list here belongs';
+
+test('the introduction is the stored one, and never the old copy', async ({ page }) => {
+    await mockLists(page, { lists: [list()], intro: [{ type: 'paragraph', content: 'Stored introduction words.' }] });
+    await open(page);
+
+    const body = page.locator('#tier-page-intro-body');
+    await expect(body).toContainText('Stored introduction words.');
+    await expect(body).not.toContainText('Loading...');
+    await expect(body).not.toContainText(OLD_INTRO);
+});
+
+test('a failed read of the introduction says so', async ({ page }) => {
+    await mockLists(page, { lists: [list()], introError: { message: 'offline' } });
+    await open(page);
+
+    await expect(page.locator('#tier-page-intro-body')).toContainText('Could not load this text.');
+    await expect(page.locator('#tier-page-intro-body')).not.toContainText(OLD_INTRO);
+});
+
+test('no stored introduction leaves the band empty, not loading', async ({ page }) => {
+    await mockLists(page, { lists: [list()] });
+    await open(page);
+
+    await expect(page.locator('#tier-page-intro-body')).toHaveText('');
+});
+
+test('the Character Dashboard tier box has no "Community opinion" line', async ({ page }) => {
+    // Owner, 2026-10-08: delete "Community opinion, not settled fact."
+    await page.goto('/characters/index.html', { waitUntil: 'domcontentloaded' });
+    const box = page.locator('#tierlist-section');
+    await expect(box).toContainText('Community Tier List');
+    await expect(box).not.toContainText('Community opinion');
 });

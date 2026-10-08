@@ -241,21 +241,28 @@
         if (section) section.classList.toggle('hidden', !visible);
     }
 
+    // tier_page_settings is the only copy (v1.0 Part 3). The page used to ship
+    // the seeded introduction as a fallback; the owner rewrote theirs and had
+    // the old one removed, so the page ships "Loading..." and this always
+    // replaces it: with the introduction, with nothing when there is none, or
+    // with a line when it could not be read.
     async function loadPageIntro() {
         const body = document.getElementById('tier-page-intro-body');
-        if (!body || typeof window.generateHTMLForBlocks !== 'function') return;
+        if (!body) return;
+        const failed = () => {
+            body.innerHTML = '<p class="loading-msg">Could not load this text. Try reloading the page.</p>';
+        };
+        if (typeof window.generateHTMLForBlocks !== 'function') { failed(); return; }
 
         try {
             const { data, error } = await client()
                 .from('tier_page_settings').select('intro').maybeSingle();
-            // The markup already in the page is the fallback and matches what
-            // the migration seeds, so a failed fetch leaves the reader with the
-            // right words rather than a blank band.
-            if (error || !data || !Array.isArray(data.intro) || !data.intro.length) return;
+            if (error) { failed(); return; }
+            if (!data || !Array.isArray(data.intro) || !data.intro.length) { body.innerHTML = ''; return; }
             body.innerHTML = window.generateHTMLForBlocks(data.intro);
             if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
         } catch (e) {
-            /* keep the fallback */
+            failed();
         }
     }
 
@@ -553,10 +560,13 @@
     // --- BOOT ---
     window.loadCertifiedTierLists = async function () {
         const ui = document.getElementById('tier-list-ui');
-        if (!ui || !client()) return;
+        if (!ui) return;
+        // First, before anything can return: the introduction ships
+        // "Loading..." and has to be replaced whatever happens below.
+        loadPageIntro();
+        if (!client()) return;
 
         await loadRoster();
-        loadPageIntro();
 
         // Only what the picker needs. The placements are the bulk of the data
         // and are fetched per list on click.
