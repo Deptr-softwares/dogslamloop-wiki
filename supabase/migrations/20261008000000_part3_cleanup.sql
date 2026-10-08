@@ -1,4 +1,4 @@
--- v1.0 Part 3: two cleanups the owner asked for (2026-10-08). Spec:
+-- v1.0 Part 3: three cleanups the owner asked for (2026-10-08). Spec:
 -- V1.0-DEVLOG.md, "Part 3", "Decided 2026-10-08".
 --
 -- 1. THE TEMPLATE M1 IMAGES. 55 M1 cards on 14 characters link to
@@ -30,6 +30,14 @@
 --    the same release. No view or function reads it (checked against
 --    production: submit_tier_votes names site_pages, but its "tier" is
 --    free_submit_votes').
+--
+-- 3. THE OWNER'S TIER LIST DESCRIPTION. 20260813000005 seeded the owner's list
+--    with the blurb "The original certified ranking, carried over from the
+--    site's single tier list." The owner asked for that line deleted. Nothing
+--    on the site edits a blurb after a list is made, so it is cleared here,
+--    and only while it still reads exactly as seeded. A blurb that is NULL is
+--    not shown (js/certified-tier-lists.js). tier_lists has no trigger, so
+--    the list's "updated" time does not move.
 
 UPDATE "public"."page_data" pd
 SET "last_editor_name" = 'Site cleanup (v1.0): template M1 images removed',
@@ -56,3 +64,8 @@ WHERE jsonb_typeof(pd."frame_data"->'m1s') = 'array'
   );
 
 ALTER TABLE "public"."site_pages" DROP COLUMN IF EXISTS "tier";
+
+UPDATE "public"."tier_lists"
+SET "blurb" = NULL
+WHERE "slug" = 'owner'
+  AND "blurb" = 'The original certified ranking, carried over from the site''s single tier list.';
