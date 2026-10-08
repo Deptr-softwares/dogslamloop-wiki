@@ -488,7 +488,7 @@ test('a member\'s Discord message is copied in, with its picture; the relay\'s o
         p_author_discord_id: '200000000000000001',
         p_author_name: 'Kai',
         p_author_handle: 'kai',
-        p_body: 'nice @Mo\n[file left on Discord: clip.mp4]',
+        p_body: 'nice @Mo\n[clip.mp4 left on Discord: file type not supported]',
         p_images: [`discord/${msg.id}-0.png`],
         p_reply_to_discord_id: null,
     }]);

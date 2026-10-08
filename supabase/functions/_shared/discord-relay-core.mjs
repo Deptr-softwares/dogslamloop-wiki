@@ -309,19 +309,48 @@ export function klipyPick(answer) {
     return null;
 }
 
-// Rule 6: which attachments are copied, and a line naming each one that is not.
+// What the wiki copy says when part of a message stays on Discord (v1.0 Part
+// 2). The owner's wording, 2026-10-08.
+export const LEFT_OUT = {
+    type: 'file type not supported',
+    size: `over ${IMAGE_MAX_BYTES / (1024 * 1024)} MB`,
+    count: `more than ${MAX_IMAGES} images`,
+};
+export const FORWARD_LINE = '[Forwarded message cannot be shown, not supported]';
+export const POLL_LINE = '[Poll cannot be shown, not supported]';
+export const CUT_LINE = `[Message is cut off, because it is longer than ${WIKI_MAX} characters]`;
+
+// Discord's message reference type for a forward. A forward is an ordinary
+// message (type 0) whose words and files are in `message_snapshots`, not its
+// own, so it would otherwise arrive empty.
+const FORWARD = 1;
+
+// Rule 6: which attachments are copied, and a line naming each one that is
+// not, with the reason.
 export function pickAttachments(msg) {
     const images = [];
     const notes = [];
     for (const a of msg.attachments || []) {
         const ext = IMAGE_TYPES[String(a.content_type || '').split(';')[0].trim().toLowerCase()];
-        if (ext && Number(a.size) <= IMAGE_MAX_BYTES && images.length < MAX_IMAGES && typeof a.url === 'string') {
-            images.push({ url: a.url, ext, contentType: Object.keys(IMAGE_TYPES).find(k => IMAGE_TYPES[k] === ext), index: images.length });
+        const why = (!ext || typeof a.url !== 'string') ? LEFT_OUT.type
+            : !(Number(a.size) <= IMAGE_MAX_BYTES) ? LEFT_OUT.size
+            : images.length >= MAX_IMAGES ? LEFT_OUT.count
+            : null;
+        if (why) {
+            notes.push(`[${oneLine(a.filename || 'a file', 80)} left on Discord: ${why}]`);
         } else {
-            notes.push(`[file left on Discord: ${oneLine(a.filename || 'a file', 80)}]`);
+            images.push({ url: a.url, ext, contentType: Object.keys(IMAGE_TYPES).find(k => IMAGE_TYPES[k] === ext), index: images.length });
         }
     }
     return { images, notes };
+}
+
+// The lines for a part of a message the wiki cannot show at all.
+function unshownLines(msg) {
+    const lines = [];
+    if (msg.message_reference && Number(msg.message_reference.type) === FORWARD) lines.push(FORWARD_LINE);
+    if (msg.poll) lines.push(POLL_LINE);
+    return lines;
 }
 
 export function imagePath(messageId, index, ext) {
@@ -329,11 +358,18 @@ export function imagePath(messageId, index, ext) {
 }
 
 // The wiki post's words for a Discord message, before KLIPY lookups and image
-// copies. Cut to the wiki's limit, notes included.
+// copies. Within the wiki's limit, notes included: words that do not fit are
+// cut, and the cut line says so, so the notes after it are never lost.
 export function wikiBody(msg, mediaBySlug = new Map()) {
-    const { notes } = pickAttachments(msg);
-    const text = applyKlipy(discordText(msg), mediaBySlug);
-    return [text, ...notes].filter(Boolean).join('\n').slice(0, WIKI_MAX);
+    const notes = [...unshownLines(msg), ...pickAttachments(msg).notes];
+    let text = applyKlipy(discordText(msg), mediaBySlug);
+    const whole = (t) => [t, ...notes].filter(Boolean).join('\n');
+    if (whole(text).length > WIKI_MAX) {
+        const room = WIKI_MAX - whole('').length - CUT_LINE.length - (notes.length ? 2 : 1);
+        text = `${text.slice(0, Math.max(0, room)).trimEnd()}\n${CUT_LINE}`;
+    }
+    // A last guard only: the notes alone would need hundreds of files.
+    return whole(text).slice(0, WIKI_MAX);
 }
 
 // Everything the database needs to copy one Discord message in, or a reason
