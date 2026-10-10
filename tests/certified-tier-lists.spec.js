@@ -31,8 +31,8 @@ const list = (over = {}) => ({
     ...over,
 });
 
-async function mockLists(page, { lists = [], changes = [], listError = null } = {}) {
-    await page.addInitScript(({ lists, changes, listError }) => {
+async function mockLists(page, { lists = [], changes = [], listError = null, intro = null, introError = null } = {}) {
+    await page.addInitScript(({ lists, changes, listError, intro, introError }) => {
         Object.defineProperty(window, 'supabase', {
             configurable: true,
             get() { return window.__lib; },
@@ -63,11 +63,35 @@ async function mockLists(page, { lists = [], changes = [], listError = null } = 
                             };
                             return chain;
                         }
-                        if (table === 'tier_list_changes') {
+                        // The page's own introduction (v1.0 Part 3 tests).
+                        if (table === 'tier_page_settings') {
                             const chain = {
-                                select() { return chain; }, eq() { return chain; },
-                                order() { return chain; }, limit() { return chain; },
-                                then(resolve) { return resolve({ data: changes, error: null }); },
+                                select() { return chain; },
+                                maybeSingle: async () => (introError
+                                    ? { data: null, error: introError }
+                                    : { data: intro ? { intro } : null, error: null }),
+                            };
+                            return chain;
+                        }
+                        // Pages since v1.0 Part 3: a range and a count for the
+                        // changelog, a limit for the portraits' tooltips.
+                        // `changes` is given newest first, as the query orders.
+                        if (table === 'tier_list_changes') {
+                            const q = { range: null, limit: null, count: false, cols: null };
+                            window.__changeQueries = window.__changeQueries || [];
+                            window.__changeQueries.push(q);
+                            const chain = {
+                                select(cols, o) { q.cols = cols; if (o && o.count) q.count = true; return chain; },
+                                eq() { return chain; },
+                                order() { return chain; },
+                                limit(n) { q.limit = n; return chain; },
+                                range(a, b) { q.range = [a, b]; return chain; },
+                                then(resolve) {
+                                    let out = changes;
+                                    if (q.range) out = changes.slice(q.range[0], q.range[1] + 1);
+                                    else if (q.limit) out = changes.slice(0, q.limit);
+                                    return resolve({ data: out, count: q.count ? changes.length : null, error: null });
+                                },
                             };
                             return chain;
                         }
@@ -85,7 +109,7 @@ async function mockLists(page, { lists = [], changes = [], listError = null } = 
                 };
             },
         });
-    }, { lists, changes, listError });
+    }, { lists, changes, listError, intro, introError });
 }
 
 async function open(page, url = PAGE) {
@@ -201,6 +225,49 @@ test('every move in the changelog carries its note', async ({ page }) => {
     expect(notes.every(n => n.trim().length > 0), 'no move without a note').toBe(true);
 });
 
+// v1.0 Part 3 (owner, 2026-10-10): "20 changelogs per page". It used to load
+// the latest 100 and show nothing older.
+test('the changelog shows 20 moves a page, newest first, and every page is reachable', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    // 45 moves, newest first; Ten Shadows moves only in the oldest one.
+    const changes = Array.from({ length: 45 }, (_, i) => ({
+        id: `c${i}`, list_id: 'id-owner',
+        character_id: i === 44 ? 'ten_shadows' : 'vessel',
+        from_tier: 'B', to_tier: 'A', note: `move ${i}`,
+        created_at: new Date(Date.parse('2026-09-30T00:00:00Z') - i * 3600000).toISOString(),
+    }));
+    await mockLists(page, { lists: [list()], changes });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+
+    const notes = page.locator('.ctl-change .ctl-change-note');
+    await expect(notes).toHaveCount(20);
+    await expect(notes.first()).toHaveText('move 0');
+    await expect(notes.last()).toHaveText('move 19');
+    await expect(page.locator('.ctl-pager .ctl-page-label')).toHaveText('Page 1 of 3');
+    await expect(page.locator('.ctl-pager button', { hasText: 'NEWER' })).toHaveCount(0);
+
+    await page.locator('.ctl-pager button', { hasText: 'OLDER' }).click();
+    await expect(notes.first()).toHaveText('move 20');
+    await page.locator('.ctl-pager button', { hasText: 'OLDER' }).click();
+    await expect(notes).toHaveCount(5);
+    await expect(notes.last()).toHaveText('move 44');
+    await expect(page.locator('.ctl-pager button', { hasText: 'OLDER' })).toHaveCount(0);
+    await page.locator('.ctl-pager button', { hasText: 'NEWER' }).click();
+    await expect(notes.first()).toHaveText('move 20');
+
+    // Each page asked for its own 20.
+    const ranges = await page.evaluate(() => window.__changeQueries.filter(q => q.range).map(q => q.range));
+    expect(ranges).toEqual([[0, 19], [20, 39], [40, 59], [20, 39]]);
+
+    // The portrait tooltips do not shrink to one page: Ten Shadows's only
+    // move is on page 3 and its portrait still has it.
+    await page.hover('[data-ctl-char="ten_shadows"]');
+    await expect(page.locator(`${TIP} .ctl-tip-note`)).toHaveText('move 44');
+    expect(errors).toEqual([]);
+});
+
 test('the picker says when each list was last updated', async ({ page }) => {
     // What gives a returning reader a reason to pick one out of several.
     await mockLists(page, {
@@ -265,12 +332,14 @@ test('a missing migration says so rather than rendering a broken page', async ({
     expect(pageErrors).toEqual([]);
 });
 
-test('the intro explains why the lists are attributed', async ({ page, request }) => {
-    // Asserted against the served markup: it is hand-authored copy, and it is
-    // the only place the page states the reasoning behind its own design.
+test('the served page carries no hand-written introduction', async ({ request }) => {
+    // This test used to hold the page TO its hand-written introduction. The
+    // owner rewrote the stored one and had the old copy removed (v1.0 Part 3,
+    // 2026-10-08), so the served markup holds only a loading line.
     const html = await (await request.get(PAGE)).text();
-    expect(html).toContain('belongs to one person');
-    expect(html).toMatch(/opinion/i);
+    const body = /<div id="tier-page-intro-body">([\s\S]*?)<\/div>/.exec(html);
+    expect(body, 'the introduction container').not.toBeNull();
+    expect(body[1].replace(/<[^>]+>/g, '').trim()).toBe('Loading...');
 });
 
 // --- INTRODUCTIONS (v0.14 owner tools) -----------------------------------
@@ -736,4 +805,45 @@ test('nothing in a change note becomes markup in the tooltip', async ({ page }) 
     expect(out.fired).toBe(false);
     expect(out.injected).toBe(0);
     expect(out.note, 'it survives escaped rather than being dropped').toContain('<img');
+});
+
+// --- THE PAGE INTRODUCTION'S ONLY COPY (v1.0 Part 3) ---
+//
+// The page used to ship the seeded introduction as a fallback, which showed
+// until the stored one arrived, and stayed if it never did. The owner rewrote
+// theirs and had the old one removed (2026-10-08). "Every list here belongs"
+// is a phrase from it.
+const OLD_INTRO = 'Every list here belongs';
+
+test('the introduction is the stored one, and never the old copy', async ({ page }) => {
+    await mockLists(page, { lists: [list()], intro: [{ type: 'paragraph', content: 'Stored introduction words.' }] });
+    await open(page);
+
+    const body = page.locator('#tier-page-intro-body');
+    await expect(body).toContainText('Stored introduction words.');
+    await expect(body).not.toContainText('Loading...');
+    await expect(body).not.toContainText(OLD_INTRO);
+});
+
+test('a failed read of the introduction says so', async ({ page }) => {
+    await mockLists(page, { lists: [list()], introError: { message: 'offline' } });
+    await open(page);
+
+    await expect(page.locator('#tier-page-intro-body')).toContainText('Could not load this text.');
+    await expect(page.locator('#tier-page-intro-body')).not.toContainText(OLD_INTRO);
+});
+
+test('no stored introduction leaves the band empty, not loading', async ({ page }) => {
+    await mockLists(page, { lists: [list()] });
+    await open(page);
+
+    await expect(page.locator('#tier-page-intro-body')).toHaveText('');
+});
+
+test('the Character Dashboard tier box has no "Community opinion" line', async ({ page }) => {
+    // Owner, 2026-10-08: delete "Community opinion, not settled fact."
+    await page.goto('/characters/index.html', { waitUntil: 'domcontentloaded' });
+    const box = page.locator('#tierlist-section');
+    await expect(box).toContainText('Community Tier List');
+    await expect(box).not.toContainText('Community opinion');
 });

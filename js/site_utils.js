@@ -1295,6 +1295,18 @@ window.injectAuthModal = function() {
             </div>
 
             <div class="modal-body" style="padding-top: 0;">
+                <!-- v1.0 Part 3 (owner, 2026-10-08). Terms linked only from a
+                     footer are often held to bind nobody; courts look for a
+                     notice where the person signs in. Above every button, so it
+                     covers both tabs and all three providers. New tab, so the
+                     modal is still open when they come back. -->
+                <p class="auth-terms-notice" id="auth-terms-notice">
+                    By logging in or registering, you agree to the
+                    <a href="${getRootPath()}terms.html" target="_blank" rel="noopener">Terms of Service</a>
+                    and the
+                    <a href="${getRootPath()}privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a>,
+                    and confirm you are 13 or older.
+                </p>
                 <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; border-bottom: 2px dashed var(--border-color); padding-bottom: 1.5rem;">
                     <button class="btn-sys btn-sys-regular" style="width: 100%; display: flex; gap: 0.75rem;" onclick="window.triggerOAuth('discord')">
                         <span style="display: flex; align-items: center;"><svg width="18" height="18" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1,105.25,105.25,0,0,0,32.19-16.14c2.64-27.38-4.51-51.11-19.32-72.15ZM42.68,65.33C38,65.33,34.2,61.13,34.2,56s3.76-9.33,8.48-9.33,8.55,4.19,8.48,9.33c0,5.14-3.79,9.33-8.48,9.33Zm41.72,0c-4.73,0-8.52-4.2-8.52-9.33s3.75-9.33,8.52-9.33,8.55,4.19,8.48,9.33c0,5.14-3.79,9.33-8.48,9.33Z"/></svg></span> LOGIN WITH DISCORD

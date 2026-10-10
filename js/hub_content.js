@@ -77,11 +77,15 @@ function fetchSiteMeta() {
     return siteMetaPromise;
 }
 
+// The answer when the row could not be read at all, as opposed to there being
+// no row: the first gets a line saying so, the second shows nothing.
+const HUB_FETCH_FAILED = false;
+
 async function fetchHubData(pageId) {
     if (hubDataCache[pageId] !== undefined) return hubDataCache[pageId];
 
     hubDataCache[pageId] = (async () => {
-        if (!window.supabaseClient) return null;
+        if (!window.supabaseClient) return HUB_FETCH_FAILED;
         try {
             const { data, error } = await window.supabaseClient
                 .from('page_data')
@@ -89,14 +93,14 @@ async function fetchHubData(pageId) {
                 .eq('page_id', pageId)
                 .maybeSingle();
 
-            if (error || !data) return null;
-            return data.desc_data || null;
+            if (error) {
+                console.warn(`[Hub] Could not load content for "${pageId}":`, error.message);
+                return HUB_FETCH_FAILED;
+            }
+            return (data && data.desc_data) || null;
         } catch (e) {
-            // Never surfaced to the visitor. The container keeps whatever
-            // static markup it shipped with, which is the whole point of the
-            // fallback design below.
             console.warn(`[Hub] Could not load content for "${pageId}":`, e.message);
-            return null;
+            return HUB_FETCH_FAILED;
         }
     })();
 
@@ -118,14 +122,17 @@ function blocksForSlot(descData, slotId) {
 /**
  * Render one authored slot into one container.
  *
- * Returns true if it replaced the container's contents.
+ * Returns true if it rendered authored content.
  *
- * The container's existing markup is the fallback and is left untouched unless
- * there is real content to put in its place. That matters more than it looks:
- * these are the first paragraphs on the three most-visited pages on the site,
- * and "Supabase is briefly unreachable" should not read as "this wiki is
- * empty". It also means the seeded copy and the shipped HTML can diverge
- * without a visitor ever seeing a blank panel.
+ * THE CMS IS THE ONLY COPY (v1.0 Part 3). The containers used to ship a
+ * hand-written paragraph that stayed until this replaced it, so an outage
+ * would still show text. It went stale instead: by 2026-10-08 the About Us a
+ * reader saw for the first moment of every visit was text the owner had
+ * rewritten long before, and the owner asked for it gone ("clear the old
+ * hardcoded texts in place of the CMS generated texts"). The container now
+ * ships "Loading...", and this always replaces it: with the slot's content,
+ * with a line saying it could not be loaded, or with nothing when the slot is
+ * empty.
  */
 window.renderHubSlot = async function(pageId, slotId, containerId) {
     const container = document.getElementById(containerId);
@@ -133,10 +140,10 @@ window.renderHubSlot = async function(pageId, slotId, containerId) {
 
     const descData = await fetchHubData(pageId);
     const blocks = blocksForSlot(descData, slotId);
-    if (blocks.length === 0) return false;
-
-    if (typeof window.generateHTMLForBlocks !== 'function') {
-        console.warn('[Hub] description.js is not loaded; keeping static copy.');
+    if (blocks.length === 0 || typeof window.generateHTMLForBlocks !== 'function') {
+        container.innerHTML = descData === HUB_FETCH_FAILED || blocks.length
+            ? '<p class="loading-msg">Could not load this text. Try reloading the page.</p>'
+            : '';
         return false;
     }
 
@@ -177,9 +184,10 @@ window.renderHubSlots = async function(pageId, slots) {
 //
 // Rendered at runtime, not through the marked region that handles <title> and
 // OG tags. Headings are body content: no unfurler reads them, so the
-// build-time machinery buys nothing, and the static markup already in the page
-// works as the fallback. A heading is only replaced when site_meta actually
-// carries a value for its key.
+// build-time machinery buys nothing. A heading is only replaced when site_meta
+// carries a value for its key. Since v1.0 Part 3 a heading site_meta sets
+// ships as &nbsp; rather than a hand-written copy of its text; the few with
+// no site_meta value keep their markup text, which is then their only copy.
 //
 // Elements opt in with data-heading-key, so this can never rewrite a heading
 // that was not meant to be editable.
@@ -211,8 +219,9 @@ window.applyHubHeadings = async function(pageId) {
 // paragraph that only looks like one - losing .game-info-label, the subtext
 // styling and the mobile layout.
 //
-// Same fallback rule as everything else here: the static markup stays unless
-// there is real data to replace it with.
+// site_meta is the only copy (v1.0 Part 3): the panel ships "Loading...",
+// which this always replaces, with nothing when there is no game info.
+// fetchSiteMeta already falls back to the committed data/site_meta.json.
 window.renderGameInfo = async function(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return false;
@@ -221,7 +230,10 @@ window.renderGameInfo = async function(containerId) {
     const info = meta.gameInfo || {};
     const fields = Array.isArray(info.fields) ? info.fields : [];
     const links = Array.isArray(info.links) ? info.links : [];
-    if (fields.length === 0 && links.length === 0) return false;
+    if (fields.length === 0 && links.length === 0) {
+        container.innerHTML = '';
+        return false;
+    }
 
     const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
 
@@ -265,8 +277,8 @@ window.renderGameInfo = async function(containerId) {
 // and that opinion is the entire value of the section - so it is owner-edited
 // from owner.html rather than derived from navigation.json.
 //
-// Same fallback rule as everything else here: the static markup shipped in the
-// page stays unless site_meta has a list to put in its place.
+// site_meta is the only copy (v1.0 Part 3), as for the Game Info panel: the
+// list ships "Loading...", which this always replaces.
 window.renderHubList = async function(pageId, listId, containerId) {
     const container = document.getElementById(containerId);
     if (!container) return false;
@@ -274,7 +286,10 @@ window.renderHubList = async function(pageId, listId, containerId) {
     const meta = await fetchSiteMeta();
     const lists = ((meta.hubs || {})[pageId] || {}).lists || {};
     const steps = Array.isArray(lists[listId]) ? lists[listId] : [];
-    if (steps.length === 0) return false;
+    if (steps.length === 0) {
+        container.innerHTML = '';
+        return false;
+    }
 
     const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
 

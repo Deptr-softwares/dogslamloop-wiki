@@ -125,8 +125,9 @@ test('a reply to a reply quotes who and what it answers, and the quote jumps the
     // Above the words it introduces.
     const order = await page.locator('#post-r2').evaluate(el => [...el.children].map(c => c.className.split(' ')[0]));
     expect(order.indexOf('discussion-quote')).toBeLessThan(order.indexOf('discussion-body'));
-    // A reply that answers the post at the top quotes nothing.
-    await expect(page.locator('#post-r1 .discussion-quote')).toHaveCount(0);
+    // Since Part 3 replies sit in the timeline rather than under their post,
+    // so a reply to the post at the top quotes the post.
+    await expect(page.locator('#post-r1 .discussion-quote')).toHaveText('↪ Gojo main: Is Blue worth using?');
     // An answer to a removed message does not resurrect it.
     await expect(page.locator('#post-r3 .discussion-quote')).toHaveText('↪ a removed message');
 
@@ -150,14 +151,15 @@ test('a quote shows the answered name and words as text, cut at 100 characters',
     expect(await page.evaluate(() => window.__xss)).toBeUndefined();
 });
 
-test('Reply on a reply opens the box at the end of the conversation, naming who it answers, and sends that reply as the parent', async ({ page }) => {
+test('Reply on a reply puts "Replying to" on the thread\'s box, naming who it answers, and sends that reply as the parent', async ({ page }) => {
     await openThread(page, { rows: CONVERSATION, session: SESSION });
     await page.locator('#post-r1 [data-reply-to="r1"]').click();
 
-    const replies = page.locator('#post-p1 > .discussion-replies');
-    const composer = replies.locator('.discussion-composer');
-    await expect(composer).toHaveCount(1);
-    expect(await replies.evaluate(el => el.lastElementChild.classList.contains('discussion-composer'))).toBe(true);
+    // One box, under the messages (Part 3): no second box opens in the thread.
+    await expect(page.locator('.discussion-composer')).toHaveCount(1);
+    const composer = page.locator('#discussion-section > .discussion-composer');
+    expect(await page.locator('#discussion-section').evaluate(
+        el => el.lastElementChild.classList.contains('discussion-composer'))).toBe(true);
     await expect(composer.locator('.discussion-composer-heading')).toHaveText('Replying to Yuta');
 
     await composer.locator('.discussion-textarea').fill('Which patch?');
@@ -177,7 +179,8 @@ test('Reply is offered on every visible reply to anyone signed in, and to nobody
 
     const banned = await page.context().newPage();
     await openThread(banned, { rows: CONVERSATION, session: SESSION, roleRow: { role: 'viewer' } });
-    await expect(banned.locator('.discussion-replies [data-reply-to]')).toHaveCount(0);
+    await expect(banned.locator('#post-r1')).toBeVisible();
+    await expect(banned.locator('[data-reply-to]')).toHaveCount(0);
 
     const out = await page.context().newPage();
     await openThread(out, { rows: CONVERSATION });

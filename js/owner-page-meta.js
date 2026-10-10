@@ -3,15 +3,17 @@
  *
  * The flags and labels that drive how a page is presented rather than what it
  * says: the WIP and EA badges in the sidebar, the roster filters, and a
- * character's archetype / tier / release date.
+ * character's archetype and release date. (A tier field was here until v1.0
+ * Part 3, when the owner had the column dropped: it was "TBD" on every
+ * character.)
  *
  * All of them are site_pages columns, and until now the only way to change one
  * was a SQL edit. They surface through data/navigation.json, so - like every
  * other registry change - they reach the site on the next regeneration run
  * rather than immediately.
  *
- * Which fields apply depends on the page type. archetype, tier and
- * release_date are emitted only for characters (scripts/fetch-registry.js
+ * Which fields apply depends on the page type. archetype and release_date
+ * are emitted only for characters (scripts/fetch-registry.js
  * omits them for everything else, deliberately, so the JSON does not grow
  * columns that mean nothing), so the form hides them for a system page rather
  * than offering an edit that would be silently dropped.
@@ -47,7 +49,7 @@ async function loadPageMeta() {
 
     const { data, error } = await window.supabaseClient
         .from('site_pages')
-        .select('page_id, name, page_type, category, status, is_wip, is_hidden, is_ea, is_base_only, is_missing_media, is_subjective, archetype, tier, release_date, color')
+        .select('page_id, name, page_type, category, status, is_wip, is_hidden, is_ea, is_base_only, is_missing_media, is_subjective, archetype, release_date, color')
         .order('category')
         .order('sort_order');
 
@@ -154,7 +156,6 @@ function renderPageMetaFields() {
     characterFields.hidden = !isCharacter;
     if (isCharacter) {
         document.getElementById('page-meta-archetype').value = row.archetype || '';
-        document.getElementById('page-meta-tier').value = row.tier || '';
         document.getElementById('page-meta-release').value = row.release_date || '';
         document.getElementById('page-meta-color').value = row.color || '';
         syncColorPreview();
@@ -205,7 +206,6 @@ async function savePageMeta() {
         // that exists and is blank, rather than data that was never set.
         const value = (id) => document.getElementById(id).value.trim() || null;
         payload.archetype = value('page-meta-archetype');
-        payload.tier = value('page-meta-tier');
         payload.release_date = value('page-meta-release');
 
         // Checked with the browser's own parser rather than a regex. The

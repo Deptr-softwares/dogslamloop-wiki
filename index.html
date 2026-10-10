@@ -99,9 +99,12 @@
             </header>
 
             <!-- Prose is editable from owner.html (Dashboard Text); the
-                 heading text comes from site_meta. Both keep the markup below
-                 as their fallback, so an outage degrades to this rather than
-                 to an empty panel.
+                 heading text comes from site_meta. Neither has a hand-written
+                 copy here any more (v1.0 Part 3, owner: "clear the old
+                 hardcoded texts in place of the CMS generated texts"): the
+                 copy that was here had gone stale, and showed until the CMS
+                 text replaced it. A heading the CMS sets holds &nbsp; so its
+                 line keeps its height while it loads.
                  The heading lives OUTSIDE #about-body deliberately: the slot
                  renderer replaces its container wholesale, and the table of
                  contents indexes .section-title, so a heading inside the
@@ -111,11 +114,9 @@
                      variant strips the bottom border and exists for headings
                      that share a row with a button. This one stands alone, so
                      it keeps the divider the other two dashboards have. -->
-                <h2 class="section-title" data-heading-key="about">About Us</h2>
+                <h2 class="section-title" data-heading-key="about">&nbsp;</h2>
                 <div id="about-body">
-                    <p class="text-gray-300 text-sm leading-relaxed m-0">
-                        <span class="font-bold text-white italic">Jujutsu Shenanigans</span> is a casual (shenanigans) battleground game on Roblox. However, this hub provides in-depth frame data, and strategy breakdowns to help all users, Tier 5 and Tier 1, to get better at the game via better understanding of the game.
-                    </p>
+                    <p class="loading-msg">Loading...</p>
                 </div>
             </section>
             
@@ -125,7 +126,7 @@
                          applyHubHeadings sets textContent, which on the <h2>
                          would delete the link nested inside it. -->
                     <h2 class="section-title section-title-flex m-0">
-                        <span data-heading-key="roster">Characters</span>
+                        <span data-heading-key="roster">&nbsp;</span>
                         <!-- REFACTORED: hub-link is now btn-ghost -->
                         <a href="characters/index.html" class="btn-ghost">View More ➔</a>
                     </h2>
@@ -139,7 +140,7 @@
                 
                 <section class="wiki-section" id="navigation-section">
                     <div class="dashboard-header-split">
-                        <h2 class="section-title section-title-clean m-0" data-heading-key="navigation">Guides &amp; Such</h2>
+                        <h2 class="section-title section-title-clean m-0" data-heading-key="navigation">&nbsp;</h2>
                         <a href="systems/index.html" class="btn-ghost" style="font-size: 0.65rem; text-transform: uppercase;">View More ➔</a>
                     </div>
                     
@@ -152,7 +153,7 @@
 
                 <section class="wiki-section main-dashboard" id="updates-section">
                     <div class="dashboard-header-split">
-                        <h2 class="section-title section-title-clean m-0" data-heading-key="updates">Recent Changes</h2>
+                        <h2 class="section-title section-title-clean m-0" data-heading-key="updates">&nbsp;</h2>
                         <a href="systems/updatelog/index.html" class="btn-manga m-0" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">
                             View All
                         </a>
@@ -165,7 +166,7 @@
 
                 <section class="wiki-section main-dashboard" id="blog-section">
                     <div class="dashboard-header-split">
-                        <h2 class="section-title section-title-clean m-0" data-heading-key="blog">From the Blog</h2>
+                        <h2 class="section-title section-title-clean m-0" data-heading-key="blog">&nbsp;</h2>
                         <a href="blog.html" class="btn-manga m-0" style="padding: 0.25rem 0.5rem; font-size: 0.65rem;">
                             View All
                         </a>
@@ -207,7 +208,7 @@
 
                 <section class="wiki-section" id="gameinfo-section">
                     <div class="dashboard-header-split">
-                        <h2 class="section-title section-title-clean m-0" data-heading-key="gameinfo">Game Info</h2>
+                        <h2 class="section-title section-title-clean m-0" data-heading-key="gameinfo">&nbsp;</h2>
                     </div>
                     
                     <div class="faq-scroll-box scroll-lg">
@@ -225,23 +226,10 @@
                              Discord invite is the field that actually drives
                              this being editable - it expires or gets rotated,
                              and changing it used to need a deploy. -->
+                        <!-- From site_meta only (v1.0 Part 3): the hand-written
+                             copy here had gone stale. -->
                         <div class="space-y-4 text-sm" id="game-info-fields">
-                            <div>
-                                <span class="game-info-label">Developers</span>
-                                <span class="text-gray-300">Tze's Shenanigans</span>
-                                <span class="game-info-subtext">(Tze, Imed, Frost)</span>
-                            </div>
-                            <div>
-                                <span class="game-info-label">Platform</span>
-                                <span class="text-gray-300">Roblox (PC, Mobile, Console, VR)</span>
-                            </div>
-                            <div class="game-info-footer">
-                                <span class="game-info-label mb-2">Official Links</span>
-                                <div class="space-y-2">
-                                    <a href="https://www.roblox.com/games/9391468976/Jujutsu-Shenanigans" target="_blank" rel="noopener noreferrer" class="game-info-link">▶ Roblox Game Page</a>
-                                    <a href="https://discord.gg/nyTYVCDMBF" target="_blank" rel="noopener noreferrer" class="game-info-link">▶ Official Discord</a>
-                                </div>
-                            </div>
+                            <p class="loading-msg">Loading...</p>
                         </div>
                     </div>
                 </section>
@@ -251,7 +239,7 @@
                 
                 <section class="wiki-section lg:col-span-2" id="faq-section">
                     <div class="dashboard-header-split">
-                        <h2 class="section-title section-title-clean m-0 text-xl" data-heading-key="faq">Frequently Asked Questions (FAQ)</h2>
+                        <h2 class="section-title section-title-clean m-0 text-xl" data-heading-key="faq">&nbsp;</h2>
                     </div>
                     
                     <div id="faq-dynamic-container" class="faq-scroll-box space-y-4" style="margin-top: 1rem;">
@@ -262,7 +250,7 @@
                 <div class="space-y-6">
                     <section class="wiki-section" id="credits-section">
                         <div class="dashboard-header-split">
-                            <h2 class="section-title section-title-clean m-0" data-heading-key="credits">Credits</h2>
+                            <h2 class="section-title section-title-clean m-0" data-heading-key="credits">&nbsp;</h2>
                         </div>
                         
                         <div class="faq-scroll-box scroll-sm" style="margin-top: 1rem;">
@@ -302,21 +290,21 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <script src="js/site_meta.js?v=5dba0cfb"></script>
-    <script src="js/character_tabs.js?v=5dba0cfb"></script>
-    <script src="js/input_slots.js?v=5dba0cfb"></script>
-    <script src="js/site_utils.js?v=5dba0cfb"></script>
-    <script src="js/home_widgets.js?v=5dba0cfb"></script>
-    <script src="js/pagebuilder.js?v=5dba0cfb"></script>
-    <script src="js/search.js?v=5dba0cfb"></script>
+    <script src="js/site_meta.js?v=7100a4a8"></script>
+    <script src="js/character_tabs.js?v=7100a4a8"></script>
+    <script src="js/input_slots.js?v=7100a4a8"></script>
+    <script src="js/site_utils.js?v=7100a4a8"></script>
+    <script src="js/home_widgets.js?v=7100a4a8"></script>
+    <script src="js/pagebuilder.js?v=7100a4a8"></script>
+    <script src="js/search.js?v=7100a4a8"></script>
     <!-- The homepage post widget lists posts only (escaped title/summary/date)
          and needs neither of these. The About Us section does: it renders
          authored blocks through generateHTMLForBlocks, which lives in
          description.js and relies on internalstyling.js for inline markup. -->
-    <script src="js/description.js?v=5dba0cfb"></script>
-    <script src="js/internalstyling.js?v=5dba0cfb"></script>
-    <script src="js/posts.js?v=5dba0cfb"></script>
-    <script src="js/hub_content.js?v=5dba0cfb"></script>
+    <script src="js/description.js?v=7100a4a8"></script>
+    <script src="js/internalstyling.js?v=7100a4a8"></script>
+    <script src="js/posts.js?v=7100a4a8"></script>
+    <script src="js/hub_content.js?v=7100a4a8"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {

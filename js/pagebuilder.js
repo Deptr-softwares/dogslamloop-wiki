@@ -565,7 +565,9 @@ let masterRosterData = [];
 // isWip, so that button emptied the roster completely, and the flag it reads is
 // about whether a page is FINISHED - which is the owner's business, not a thing
 // a reader filters on.
-let currentFilters = { archetype: 'All', tier: 'All', eaOnly: false, baseOnly: false, showHidden: false };
+// No tier filter since v1.0 Part 3: the owner had the tier column dropped,
+// as it was "TBD" on every character and the filter offered only "All".
+let currentFilters = { archetype: 'All', eaOnly: false, baseOnly: false, showHidden: false };
 
 window.initRosterFilters = async function() {
     const filterContainer = document.getElementById('roster-filter-bar');
@@ -584,16 +586,14 @@ window.initRosterFilters = async function() {
     if (masterRosterData.length === 0) return;
 
     const archetypes = ['All', ...new Set(masterRosterData.map(c => c.archetype).filter(a => a && a !== "TBD"))];
-    const tiers = ['All', ...new Set(masterRosterData.map(c => c.tier).filter(t => t && t !== "TBD"))];
 
     filterContainer.innerHTML = `
         <!-- editor-select is the opt-in marker window.initializeMangaSelects
-             looks for, and these two were the only dropdowns on the site
-             without it - so they alone still summoned the operating system's
+             looks for, and this was once one of the only dropdowns on the site
+             without it - so it alone still summoned the operating system's
              own dropdown over the wiki's palette. Paired with a layout class
              the same way #media-filter-select already is. -->
         <div class="filter-group"><span class="filter-label">Archetype</span><select id="filter-archetype" class="filter-select editor-select">${archetypes.map(a => `<option value="${a}">${a}</option>`).join('')}</select></div>
-        <div class="filter-group"><span class="filter-label">Tier</span><select id="filter-tier" class="filter-select editor-select">${tiers.map(t => `<option value="${t}">${t}</option>`).join('')}</select></div>
         <div class="filter-group filter-group-right">
             <button id="filter-ea" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">EA Only</span></div></button>
             <button id="filter-base" class="filter-toggle btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Base Only</span></div></button>
@@ -602,7 +602,6 @@ window.initRosterFilters = async function() {
     `;
 
     document.getElementById('filter-archetype').addEventListener('change', (e) => { currentFilters.archetype = e.target.value; renderFilteredRoster(); });
-    document.getElementById('filter-tier').addEventListener('change', (e) => { currentFilters.tier = e.target.value; renderFilteredRoster(); });
 
     const setupToggle = (btnId, filterKey) => {
         const btn = document.getElementById(btnId);
@@ -677,7 +676,6 @@ window.renderFilteredRoster = function() {
     const filteredChars = masterRosterData.filter(char => {
         if (char.published === false) return false;
         if (currentFilters.archetype !== 'All' && char.archetype !== currentFilters.archetype) return false;
-        if (currentFilters.tier !== 'All' && char.tier !== currentFilters.tier) return false;
         if (currentFilters.eaOnly && !char.isEA) return false;
         if (currentFilters.baseOnly && !char.isBaseOnly) return false;
         // Hidden characters are OUT by default and the toggle lets them in -
@@ -1579,8 +1577,9 @@ window.buildSiteFooter = function() {
             <!-- Two licences now: MIT for the code, CC BY-NC-SA 4.0 for the
                  content. CONTENT-LICENSE.md is the one a reader wants, and it
                  states both and links to LICENSE, so the footer carries one
-                 link rather than two. -->
-            <a href="${rootPath}CONTENT-LICENSE.md" class="site-footer-link">Licence</a>
+                 link rather than two. GitHub's view of it, because the site
+                 serves the file as raw Markdown (v1.0 Part 3). -->
+            <a href="https://github.com/Deptr-softwares/dogslamloop-wiki/blob/main/CONTENT-LICENSE.md" target="_blank" rel="noopener" class="site-footer-link">Licence</a>
             <span class="site-footer-note">A fan-made wiki. Not affiliated with the game's developers.</span>
         </div>
     `;

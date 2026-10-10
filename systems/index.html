@@ -94,22 +94,20 @@
             <!-- ALERTS INJECTION TARGET -->
             <div id="character-alerts-container" class="character-alerts-container"></div>
 
-            <!-- Editable from owner.html (Dashboard Text), which previews it in place. This
-                 markup is the fallback; js/hub_content.js replaces it only
-                 when the CMS has content for the slot. -->
+            <!-- Editable from owner.html (Dashboard Text), which previews it in
+                 place. From the CMS only (v1.0 Part 3): no hand-written copy,
+                 so nothing old shows while it loads. -->
             <section class="wiki-section" id="about-section">
                 <!-- Removed section-title-clean to keep the blue bottom border -->
-                <h2 class="section-title" data-heading-key="about">Info, Guides &amp; Resources</h2>
+                <h2 class="section-title" data-heading-key="about">&nbsp;</h2>
                 <div id="about-body">
-                    <p class="strategy-paragraph m-0" style="color: var(--text-primary);">
-                        Welcome to the Side Dashboard. This is where the wiki explains itself: how the site works, how to read it, and how to help build it.
-                    </p>
+                    <p class="loading-msg">Loading...</p>
                 </div>
             </section>
             
             <section class="wiki-section" id="guides-section">
                 <div class="header-split-wrapper">
-                    <h2 class="section-title section-title-flex m-0" data-heading-key="guides">System Directories</h2>
+                    <h2 class="section-title section-title-flex m-0" data-heading-key="guides">&nbsp;</h2>
                 </div>
 
                 <!-- Your pagebuilder.js automatically injects the grid here -->
@@ -129,30 +127,8 @@
                 </p>
 
                 <ol class="reading-path" id="start-here-list">
-                    <li class="reading-step">
-                        <a href="starter-guide/index.html" class="reading-step-title">Starter Guide</a>
-                        <span class="reading-step-desc">What the game is, and what you should be doing in a match.</span>
-                    </li>
-                    <li class="reading-step">
-                        <a href="hud/index.html" class="reading-step-title">HUD</a>
-                        <span class="reading-step-desc">Reading the screen: cooldowns, meters, and what the numbers mean.</span>
-                    </li>
-                    <li class="reading-step">
-                        <a href="fundamentals/index.html" class="reading-step-title">Fundamentals</a>
-                        <span class="reading-step-desc">Spacing, timing, and the habits that decide most matches.</span>
-                    </li>
-                    <li class="reading-step">
-                        <a href="framedata/index.html" class="reading-step-title">Frame Data</a>
-                        <span class="reading-step-desc">Startup, active and recovery &mdash; how to read every move page on this wiki.</span>
-                    </li>
-                    <li class="reading-step">
-                        <a href="evasive/index.html" class="reading-step-title">Evasive</a>
-                        <span class="reading-step-desc">I-frames, dodging, and getting out of trouble.</span>
-                    </li>
-                    <li class="reading-step">
-                        <a href="m1-trading/index.html" class="reading-step-title">M1 Trading</a>
-                        <span class="reading-step-desc">The 4-frame rule, and who wins when two attacks land together.</span>
-                    </li>
+                    <!-- From site_meta only (v1.0 Part 3). -->
+                    <li class="loading-msg">Loading...</li>
                 </ol>
             </section>
 
@@ -192,22 +168,8 @@
                         so there is nothing you can break.
                     </p>
                     <ol class="reading-path" id="contribute-list">
-                        <li class="reading-step">
-                            <span class="reading-step-title">Sign in</span>
-                            <span class="reading-step-desc">Use the button at the bottom of the sidebar.</span>
-                        </li>
-                        <li class="reading-step">
-                            <span class="reading-step-title">Open a page and press EDIT</span>
-                            <span class="reading-step-desc">Every character and system page has one.</span>
-                        </li>
-                        <li class="reading-step">
-                            <a href="writing_guide/index.html" class="reading-step-title">Follow the Writing Guide</a>
-                            <span class="reading-step-desc">House style, and how frame data should be recorded.</span>
-                        </li>
-                        <li class="reading-step">
-                            <a href="../submissions.html" class="reading-step-title">Track your submissions</a>
-                            <span class="reading-step-desc">See what was approved, and what a reviewer asked about.</span>
-                        </li>
+                        <!-- From site_meta only (v1.0 Part 3). -->
+                        <li class="loading-msg">Loading...</li>
                     </ol>
                 </section>
 
@@ -240,18 +202,18 @@
 
     <!-- V0.4 SYSTEM SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="../js/character_tabs.js?v=5dba0cfb"></script>
-    <script src="../js/input_slots.js?v=5dba0cfb"></script>
-    <script src="../js/site_utils.js?v=5dba0cfb"></script>
-    <script src="../js/site_meta.js?v=5dba0cfb"></script>
-    <script src="../js/pagebuilder.js?v=5dba0cfb"></script>
-    <script src="../js/search.js?v=5dba0cfb"></script>
+    <script src="../js/character_tabs.js?v=7100a4a8"></script>
+    <script src="../js/input_slots.js?v=7100a4a8"></script>
+    <script src="../js/site_utils.js?v=7100a4a8"></script>
+    <script src="../js/site_meta.js?v=7100a4a8"></script>
+    <script src="../js/pagebuilder.js?v=7100a4a8"></script>
+    <script src="../js/search.js?v=7100a4a8"></script>
     <!-- Needed to render the hub's authored prose: generateHTMLForBlocks
          lives in description.js and relies on internalstyling.js. -->
-    <script src="../js/description.js?v=5dba0cfb"></script>
-    <script src="../js/internalstyling.js?v=5dba0cfb"></script>
-    <script src="../js/hub_content.js?v=5dba0cfb"></script>
-    <script src="../js/dashboards.js?v=5dba0cfb"></script>
+    <script src="../js/description.js?v=7100a4a8"></script>
+    <script src="../js/internalstyling.js?v=7100a4a8"></script>
+    <script src="../js/hub_content.js?v=7100a4a8"></script>
+    <script src="../js/dashboards.js?v=7100a4a8"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {

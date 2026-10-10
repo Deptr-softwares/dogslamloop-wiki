@@ -1,6 +1,46 @@
 {
   "changelogs": [
     {
+      "version": "Release v1.0",
+      "date": "10/11/2026",
+      "type": "site",
+      "title": "The 'Nothing' Update",
+      "description": "The wiki is now connected to its Discord server: a new Forum, character threads that talk to Discord both ways, and Discord roles that follow the wiki. Discussion threads read like a Discord channel, and the Terms of Service are rewritten.",
+      "changes": [
+        {
+          "heading": "Features"
+        },
+        "Add the Forum, a sitewide page for posts on any topic. It is connected to #dogslamloop-forum on Discord, so a post made on either side shows on both",
+        "Every character's discussion thread is connected to its own post in #character-discussion on Discord, and messages go both ways",
+        "Wiki roles show on the Discord server for accounts signed in with Discord: staff, Trusted Editor, Moderation Perms and each character's Expert role",
+        "Replies can be replied to. A reply quotes the message it answers, and clicking the quote jumps to it",
+        "Posts and replies can be edited by their author at any time, and show \"edited\" once changed. A Forum post's title and category can be edited too",
+        "Add the Forum Rules page, linked from every discussion thread",
+        "Add a Practicality column to the Combo and Tech Lists, and a Practicality stat to Combo and Tech Cards",
+        "A hidden or removed post now sends its author a notification with the staff's reason",
+        {
+          "heading": "Fine-tuning"
+        },
+        "Discussion threads read like a Discord channel: newest at the bottom, and messages sent in a row by the same person grouped under one name",
+        "Discussion threads, Forum posts included, show 100 messages a page, and the certified tier list changelog 20 moves a page",
+        "The Terms of Service are rewritten, with a short version at the top. AI-generated images, video, art and wiki writing are not allowed",
+        "The Privacy Policy is rewritten, and covers what passes between the wiki and Discord",
+        "Signing in now notes that it means agreeing to the Terms of Service and the Privacy Policy, and being 13 or older",
+        "Combo Card names, and each of their extra names, show in the page's contents and can be linked to",
+        "A Discord message that can't be copied to the wiki says why, such as a file type that isn't supported or more than 4 images",
+        "The Ko-fi button is at the top of the right sidebar, and eight pages that had no right sidebar now have one, with links to the Forum and the Wiki Edit History",
+        "The dashboards no longer flash old text before their content loads",
+        "The roster's Tier filter is removed",
+        {
+          "heading": "Bug fixes"
+        },
+        "Combo Card names can be styled",
+        "Broken Media no longer lists files that load fine as missing",
+        "KLIPY links posted from Discord show as their GIF",
+        "Changed a few things under the hood"
+      ]
+    },
+    {
       "version": "Stable v0.20",
       "date": "10/01/2026",
       "type": "site",

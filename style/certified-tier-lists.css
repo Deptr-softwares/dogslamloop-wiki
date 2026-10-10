@@ -173,6 +173,21 @@
 
 .ctl-changelog { margin-top: 1.5rem; }
 
+/* Older and newer pages of the changelog, 20 moves each (v1.0 Part 3). */
+.ctl-pager {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.9rem;
+}
+
+.ctl-page-label {
+    font-family: var(--text-mono);
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
 /* One entry per move, because every move carries its own note. The left rule
    is blue like the old changelog entries so the page still reads as the same
    section it was. */

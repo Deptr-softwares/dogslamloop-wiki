@@ -28,7 +28,9 @@ for (const { label, url, prefix } of DEPTHS) {
     // v0.20: two licences now - MIT for the code, CC BY-NC-SA for the content -
     // so the footer points at CONTENT-LICENSE.md, which states both and links
     // to LICENSE. The bare `LICENSE` link this asserted until v0.19 is gone.
-    expect(hrefs).toContain(`${prefix}CONTENT-LICENSE.md`);
+    // v1.0 Part 3: GitHub's rendered view of it, since the site serves the
+    // file as raw Markdown, the same link the Terms and Privacy Policy use.
+    expect(hrefs).toContain('https://github.com/Deptr-softwares/dogslamloop-wiki/blob/main/CONTENT-LICENSE.md');
   });
 }
 
@@ -44,11 +46,18 @@ test('every footer link actually resolves from a deep page (not a 404)', async (
   const hrefs = await page.evaluate(() =>
     Array.from(document.querySelectorAll('#site-footer a')).map(a => a.getAttribute('href'))
   );
-  expect(hrefs.length).toBeGreaterThan(0);
+  // The site's own links only. The licence link goes to GitHub (v1.0 Part 3),
+  // which the depth resolution cannot get wrong and a test must not fetch; the
+  // test above pins its address.
+  const origin = new URL(page.url()).origin;
+  const local = hrefs.map(h => new URL(h, page.url())).filter(u => u.origin === origin);
+  expect(local.length).toBeGreaterThan(0);
 
-  for (const href of hrefs) {
-    const response = await page.request.get(new URL(href, page.url()).toString());
-    expect(response.status(), `${href} resolves`).toBe(200);
+  // Fetched from inside the page: page.request.get sends Node to ::1 for
+  // localhost on some machines, which the IPv4-only test server refuses.
+  for (const url of local) {
+    const status = await page.evaluate(async u => (await fetch(u)).status, url.toString());
+    expect(status, `${url.pathname} resolves`).toBe(200);
   }
 });
 
