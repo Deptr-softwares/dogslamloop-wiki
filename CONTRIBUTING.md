@@ -193,6 +193,17 @@ data.
 
 **Never run two full test runs at once.**
 
+## Licence and Your Contribution
+
+- **Code:** anything you add to this repo is licensed under its
+  [MIT License](LICENSE), as section D.6 of
+  [GitHub's Terms of Service](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service#6-contributions-under-repository-license)
+  says.
+- **Content:** what you write on the site comes under the
+  [Terms of Service](https://dogslamloop.com/terms.html) and is licensed
+  [CC BY-NC-SA 4.0](CONTENT-LICENSE.md). Anyone may reuse it with credit, but
+  not to make money, and only under the same licence.
+
 <!-- Everything below is the old file, kept until each part is rewritten. -->
 
 ---
