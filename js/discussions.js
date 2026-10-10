@@ -916,9 +916,15 @@
         const node = el('span', 'discussion-avatar', removed ? '' : letter.toUpperCase());
         node.setAttribute('aria-hidden', 'true');
         if (!removed) {
-            let hue = 0;
-            for (const ch of authorKey(entry)) hue = (hue * 31 + ch.charCodeAt(0)) % 360;
-            node.style.backgroundColor = `hsl(${hue}, 45%, 42%)`;
+            // FNV-1a, so two keys one character apart ("w:u1", "w:u2") still
+            // land far apart on the colour wheel. A plain running sum put them
+            // one degree apart: two people, the same blue.
+            let hash = 0x811c9dc5;
+            for (const ch of authorKey(entry)) {
+                hash ^= ch.charCodeAt(0);
+                hash = Math.imul(hash, 0x01000193) >>> 0;
+            }
+            node.style.backgroundColor = `hsl(${hash % 360}, 45%, 42%)`;
         }
         return node;
     }

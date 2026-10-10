@@ -142,6 +142,28 @@ test('messages from one person within 7 minutes share one name line; anything el
     expect(errors).toEqual([]);
 });
 
+// Found in a screenshot on 2026-10-10: two accounts whose ids differ by one
+// character got letters one degree apart on the colour wheel, so Boomcat and
+// Deptr were the same blue. Measured off the browser, as a hue.
+test('two people get clearly different letter colours, and one person keeps theirs', async ({ page }) => {
+    await openThread(page, { rows: [
+        msg(0, { author_id: 'u1', author_name: 'Boomcat' }),
+        msg(10, { author_id: 'u2', author_name: 'Deptr' }),
+        msg(20, { author_id: 'u1', author_name: 'Boomcat' }),
+    ] });
+    const hueOf = (id) => page.locator(`${id} .discussion-avatar`).evaluate(el => {
+        const [r, g, b] = getComputedStyle(el).backgroundColor.match(/\d+/g).map(Number).map(v => v / 255);
+        const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+        if (!d) return 0;
+        let h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+        return (h * 60 + 360) % 360;
+    });
+    const [a, b, again] = [await hueOf('#post-m000'), await hueOf('#post-m010'), await hueOf('#post-m020')];
+    const apart = Math.min(Math.abs(a - b), 360 - Math.abs(a - b));
+    expect(apart).toBeGreaterThan(30);
+    expect(Math.abs(a - again)).toBeLessThan(1);
+});
+
 test('a grouped message takes one line, not a name line and a message line', async ({ page }) => {
     const yuta = { author_id: 'u-yuta', author_name: 'Yuta' };
     await openThread(page, { rows: [msg(0, yuta), msg(1, yuta), msg(2, yuta)] });
