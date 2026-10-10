@@ -204,11 +204,12 @@ data.
   [CC BY-NC-SA 4.0](CONTENT-LICENSE.md). Anyone may reuse it with credit, but
   not to make money, and only under the same licence.
 
-<!-- Everything below is the old file, kept until each part is rewritten. -->
-
----
-
 ## Security
 
-**Found a security problem?** Do not open a public issue. Contact the maintainer
-directly and give them a chance to ship a fix first.
+**Found a security problem?** Do not report it in GitHub Issues or on the
+Discord server. Use
+[GitHub's private reporting](https://github.com/Deptr-softwares/dogslamloop-wiki/security/advisories/new)
+instead. As a backup, message @deptr4869 on Discord.
+
+Include what the problem is, how to reproduce it, and what it lets someone do.
+You can also suggest a fix.
