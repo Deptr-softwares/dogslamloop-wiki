@@ -86,6 +86,9 @@ work.
 Always branch from `next-update` and open your PR against it. Never open one
 against `main`, which is the live site.
 
+Any change under `supabase/`, which holds the database and the Discord relay,
+is a big change. Message @deptr4869 on Discord before you start it.
+
 If you changed anything under `js/`, first run:
 
 ```bash
@@ -163,35 +166,36 @@ anywhere else public.
 `.thing[hidden] { display: none; }`, or the `hidden` attribute will not hide
 it.
 
+## Tests
+
+**A failing test is a production outage.** The regeneration job runs the full
+suite before it commits, so a red test stops every generated file from
+reaching the site until it is fixed. Never assert a count of pages,
+characters, categories or colours.
+
+**Specs live flat in `tests/*.spec.js`, one per feature or bug.** Start each
+file with a comment saying what it exists to protect.
+
+**Test the interaction, not the render.** A page that loads is not a page that
+works. Click the real control and check for a visible result, and that no
+`pageerror` fired.
+
+**A passing test may be passing for the wrong reason.** If a new test passes
+first time, ask what would have to break for it to fail. If the answer is
+"nothing reachable", it is not a test yet. Prove a regression test fails
+against the old code before trusting it.
+
+**`visual.spec.js` is not run in CI.** Run it on your own computer, before and
+after a CSS change.
+
+**Never assume a page starts empty.** Some tests load real pages with live
+data.
+
+**Never run two full test runs at once.**
+
 <!-- Everything below is the old file, kept until each part is rewritten. -->
 
 ---
-
-## Tests
-
-**A failing test is a production outage, not a failing test.** The nightly
-regeneration job runs the full suite *before* it commits, so a red test stops
-every generated artifact — navigation, colours, portraits, stubs — from reaching
-the site, and keeps stopping them until it is fixed. It has happened twice.
-Never assert a count of pages, characters or colours; the owner adds those, and
-your test would block them.
-
-Specs live flat in `tests/*.spec.js`, one per feature or bug. Lead each file
-with a comment saying what it exists to protect — the next reader needs to know
-why an assertion is there before they relax it.
-
-Two rules worth stating up front:
-
-- **Test the interaction, not the render.** A page that loads is not a page that
-  works. Click the real control and assert a visible consequence, plus that no
-  `pageerror` fired.
-- **A passing test may be passing for the wrong reason.** If a new test passes
-  first time, ask what would have to break for it to fail. If the answer is
-  "nothing reachable", it is not a test yet. Prove a regression test fails
-  against the old code before trusting it.
-
-`visual.spec.js` is excluded from CI — its baselines are per-OS and can never
-match a Linux runner. It is a local before/after tool for CSS work.
 
 ## Security
 
