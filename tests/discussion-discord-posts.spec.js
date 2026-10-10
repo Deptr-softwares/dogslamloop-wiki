@@ -125,11 +125,14 @@ test('a name and handle typed on Discord are shown as text, never as markup', as
     expect(await page.evaluate(() => window.__xss)).toBeUndefined();
 });
 
-test('a reply from Discord sits under its post with the chip', async ({ page }) => {
+// Since Part 3 a reply sits in the timeline with a quote of what it answers,
+// the way it looked on Discord in the first place.
+test('a reply from Discord sits in the timeline with the chip, quoting its post', async ({ page }) => {
     await openThread(page, { rows: [row(), fromDiscord({ id: 'r1', parent_id: 'p1', body: 'agreed' })] });
-    const reply = page.locator('#post-p1 .discussion-replies #post-r1');
+    const reply = page.locator('.discussion-list > #post-r1');
     await expect(reply.locator('.discussion-discord')).toHaveText('DISCORD');
     await expect(reply.locator('.discussion-body')).toHaveText('agreed');
+    await expect(reply.locator('.discussion-quote')).toHaveAttribute('data-jump-to', 'p1');
 });
 
 test('a message deleted on Discord leaves a placeholder that says so, and nothing else', async ({ page }) => {

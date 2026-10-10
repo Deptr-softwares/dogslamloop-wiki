@@ -24,7 +24,15 @@
  */
 
 (function () {
-    const PAGE_SIZE = 20;
+    // v1.0 Part 3 (owner, 2026-10-10): a thread reads like a Discord channel.
+    // Every message in time order, newest at the bottom of a box that opens
+    // there, and 100 messages a page, counting replies, so a long thread loads
+    // one page at a time.
+    const PAGE_SIZE = 100;
+    // Messages from one person this close together share one name line, the
+    // window Discord itself uses. People there send several short messages in
+    // a row because the name is not repeated on every one.
+    const GROUP_WINDOW_MS = 7 * 60 * 1000;
     const MAX_BODY = 4000;
 
     // Mirrors the migration's own limit. Client-side only as a courtesy - the
@@ -79,23 +87,28 @@
 
     const state = {
         pageId: null,
-        offset: 0,
+        // 0 is the newest page; higher numbers go back in time.
+        page: 0,
+        pageCount: 1,
+        // Whether the box should stay at its newest message while pictures
+        // and GIFs load and grow it. Cleared as soon as the reader scrolls up.
+        stickToBottom: true,
         session: null,
         role: undefined,   // undefined = not looked up, null = signed in with no role
         canModerate: false,
         canUploadMedia: false,
-        exhausted: false,
         lastPostAt: 0,
+        // The message the main box is replying to, or null.
         replyingTo: null,
         // post id -> its image paths, as drawn. Removing your own post empties
         // the column server-side, so the paths to delete are read from here.
         imagesByPost: new Map(),
         // post id -> the row, as drawn (batch 3): a reply's quote reads the
-        // reply it answers from here, and the edit box starts from the words.
+        // message it answers from here, and the edit box starts from the words.
+        // Also holds the messages replies on this page answer from older pages.
         postsById: new Map(),
-        // How this page shows its thread. A character page keeps the defaults;
-        // a forum post (v1.0 batch 2) reads oldest first, with the reply box
-        // after the conversation, the way a forum reads.
+        // The thread's title and the box's placeholder. A character page and a
+        // forum post read the same way since Part 3; only the words differ.
         opts: null,
         // The Rules page's address, or null while it does not exist (batch 4).
         rulesUrl: null,
@@ -103,10 +116,7 @@
 
     const DEFAULT_OPTS = {
         title: 'Discussion',
-        order: 'newest',
         placeholder: 'Start a discussion about this character…',
-        moreLabel: 'LOAD OLDER POSTS',
-        composerLast: false,
     };
     state.opts = { ...DEFAULT_OPTS };
 
@@ -576,35 +586,82 @@
 
     // --- DATA ---
 
-    async function fetchTopLevel(offset) {
-        // Ordered by created_at AND id. range() needs a total order to
-        // paginate correctly, and two posts sharing a timestamp would
-        // otherwise be able to swap places between pages - showing one twice
-        // and hiding the other.
-        const { data, error } = await client()
-            .from('page_discussions')
-            .select('*')
-            .eq('page_id', state.pageId)
-            .is('parent_id', null)
-            .order('created_at', { ascending: state.opts.order === 'oldest' })
-            .order('id', { ascending: state.opts.order === 'oldest' })
-            .range(offset, offset + PAGE_SIZE - 1);
-
-        if (error) throw error;
-        return data || [];
+    // Oldest first, ties broken by id: the order the box shows them in.
+    function chronological(a, b) {
+        return String(a.created_at).localeCompare(String(b.created_at))
+            || String(a.id).localeCompare(String(b.id));
     }
 
-    async function fetchReplies(parentIds) {
-        if (!parentIds.length) return [];
-        const { data, error } = await client()
+    // One page of the thread: posts and replies together, since Part 3 shows
+    // them as one timeline. Fetched newest first so page 0 is the newest 100,
+    // then put back in time order here, so the order never depends on how the
+    // response arrived.
+    //
+    // Ordered by created_at AND id. range() needs a total order to paginate
+    // correctly, and two messages sharing a timestamp would otherwise be able
+    // to swap places between pages - showing one twice and hiding the other.
+    //
+    // The count rides on the same request. It is counted under the reader's
+    // own RLS, so a moderator's pages include hidden messages and everyone
+    // else's do not, and both page through what they can actually see.
+    async function fetchPage(page) {
+        const { data, error, count } = await client()
             .from('page_discussions')
-            .select('*')
-            .in('parent_id', parentIds)
-            .order('created_at', { ascending: true })
-            .order('id', { ascending: true });
+            .select('*', { count: 'exact' })
+            .eq('page_id', state.pageId)
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
 
         if (error) throw error;
-        return data || [];
+        const rows = (data || []).slice().sort(chronological);
+        return { rows, count: typeof count === 'number' ? count : null };
+    }
+
+    // The messages that replies on this page answer, when they sit on an older
+    // page, so each reply's quote can still show who and what it answers. One
+    // request for the whole page, and a failure only costs the quotes.
+    async function fetchAnswered(rows) {
+        const missing = [...new Set(rows
+            .map(r => r.reply_to || r.parent_id)
+            .filter(id => id && !state.postsById.has(id)))];
+        if (!missing.length) return [];
+        try {
+            const { data, error } = await client()
+                .from('page_discussions')
+                .select('*')
+                .in('id', missing);
+            if (error) return [];
+            return (data || []).filter(r => missing.includes(r.id));
+        } catch (e) {
+            return [];
+        }
+    }
+
+    // Which page a message is on: how many messages are newer than it,
+    // counted in the same order fetchPage pages in. For a notification's
+    // #post- link, and for a reply quote whose message is on another page.
+    // Page 0 whenever it cannot be worked out, which is where it most likely
+    // is anyway.
+    async function pageOf(postId) {
+        try {
+            const { data: target } = await client()
+                .from('page_discussions')
+                .select('id, created_at')
+                .eq('id', postId)
+                .maybeSingle();
+            if (!target) return 0;
+            const at = `"${target.created_at}"`;
+            const { count, error } = await client()
+                .from('page_discussions')
+                .select('id', { count: 'exact', head: true })
+                .eq('page_id', state.pageId)
+                .or(`created_at.gt.${at},and(created_at.eq.${at},id.gt.${target.id})`);
+            if (error || typeof count !== 'number') return 0;
+            return Math.floor(count / PAGE_SIZE);
+        } catch (e) {
+            return 0;
+        }
     }
 
     // --- RENDERING ---
@@ -826,45 +883,100 @@
         if (media) wrap.appendChild(media);
     }
 
-    // Who, when, and whether it changed since: edited by its author on the
-    // wiki (batch 3), or on Discord. A moderator's mark is a button that opens
-    // what it said before; everyone else only learns that it changed.
-    function postHead(entry) {
+    // Who said it, which decides whether a message joins the name line above
+    // it. A Discord message is its Discord account, a wiki one its wiki
+    // account, and a deleted account its name.
+    function authorKey(entry) {
+        if (entry.source === 'discord') return `d:${entry.discord_author_id || entry.author_name}`;
+        return entry.author_id ? `w:${entry.author_id}` : `n:${entry.author_name}`;
+    }
+
+    // Whether a message goes under the previous one's name line (Part 3).
+    // Same person, within GROUP_WINDOW_MS, and neither is a reply or out of
+    // the ordinary: a reply carries its own quote and name, as on Discord, and
+    // a removed or hidden message always gets a line of its own. A removed
+    // message's author is deliberately not named, and grouping it under
+    // somebody's name would name them.
+    function joinsPrevious(entry, prev) {
+        if (!prev) return false;
+        if (entry.parent_id) return false;
+        if (entry.status !== 'visible' || prev.status !== 'visible') return false;
+        if (authorKey(entry) !== authorKey(prev)) return false;
+        const gap = new Date(entry.created_at).getTime() - new Date(prev.created_at).getTime();
+        return gap >= 0 && gap <= GROUP_WINDOW_MS;
+    }
+
+    // The round letter where Discord shows a picture: the site has no profile
+    // pictures. The colour comes from who it is, so one person keeps one
+    // colour down the thread. Text and a style property, never markup.
+    function avatarNode(entry) {
+        const removed = entry.status !== 'visible' && entry.status !== 'hidden';
+        const name = removed ? '' : String(entry.author_name || '?');
+        const letter = Array.from(name.trim())[0] || '?';
+        const node = el('span', 'discussion-avatar', removed ? '' : letter.toUpperCase());
+        node.setAttribute('aria-hidden', 'true');
+        if (!removed) {
+            let hue = 0;
+            for (const ch of authorKey(entry)) hue = (hue * 31 + ch.charCodeAt(0)) % 360;
+            node.style.backgroundColor = `hsl(${hue}, 45%, 42%)`;
+        }
+        return node;
+    }
+
+    // Who and when. A message under someone's name line gets no name of its
+    // own, only its time, which shows beside it on hover.
+    function postHead(entry, grouped) {
+        if (grouped) {
+            const head = el('div', 'discussion-post-head discussion-post-head-grouped');
+            head.appendChild(el('span', 'discussion-time', timeAgo(entry.created_at)));
+            return head;
+        }
         const head = el('div', 'discussion-post-head');
         head.appendChild(authorNode(entry));
         head.appendChild(el('span', 'discussion-time', timeAgo(entry.created_at)));
-        const shown = entry.status === 'visible' || (entry.status === 'hidden' && state.canModerate);
-        if (shown && entry.edited_at) {
-            const label = entry.source === 'discord' ? 'edited on Discord' : 'edited';
-            if (state.canModerate) {
-                const btn = el('button', 'discussion-edited discussion-edited-open', label);
-                btn.type = 'button';
-                btn.title = 'Show what this said before (moderators only)';
-                btn.dataset.showEdits = entry.id;
-                head.appendChild(btn);
-            } else {
-                head.appendChild(el('span', 'discussion-edited', label));
-            }
-        }
         return head;
     }
 
-    // Batch 3: a reply to a reply says which one it answers. Replies stay one
-    // step in (owner, 2026-10-04), so this line is what keeps a conversation
-    // inside a conversation readable. Every part is text.
+    // Whether it changed since: edited by its author on the wiki (batch 3), or
+    // on Discord. At the end of the words, as Discord marks it. A moderator's
+    // mark is a button that opens what it said before; everyone else only
+    // learns that it changed.
+    function editedMark(entry) {
+        const shown = entry.status === 'visible' || (entry.status === 'hidden' && state.canModerate);
+        if (!shown || !entry.edited_at) return null;
+        const label = entry.source === 'discord' ? 'edited on Discord' : 'edited';
+        if (state.canModerate) {
+            const btn = el('button', 'discussion-edited discussion-edited-open', label);
+            btn.type = 'button';
+            btn.title = 'Show what this said before (moderators only)';
+            btn.dataset.showEdits = entry.id;
+            return btn;
+        }
+        return el('span', 'discussion-edited', label);
+    }
+
+    // Which message a reply answers (batch 3; every reply since Part 3, now
+    // that replies sit in the timeline rather than under their post). A
+    // button, because it jumps to that message, wherever it is. Every part is
+    // text.
     function replyQuote(reply) {
-        if (!reply.reply_to) return null;
-        const answered = state.postsById.get(reply.reply_to);
+        const answeredId = reply.reply_to || reply.parent_id;
+        if (!answeredId) return null;
+        const answered = state.postsById.get(answeredId);
         const quote = el('button', 'discussion-quote');
         quote.type = 'button';
-        quote.dataset.jumpTo = reply.reply_to;
+        quote.dataset.jumpTo = answeredId;
         if (answered && answered.status === 'visible') {
             const words = textWithoutGifs(answered.body, klipyLinks(answered.body)).replace(/\s+/g, ' ').trim();
             const shortened = words.length > 100 ? `${words.slice(0, 99).trimEnd()}…` : words;
             quote.appendChild(el('span', 'discussion-quote-name', `↪ ${answered.author_name || 'Unknown'}:`));
             quote.appendChild(document.createTextNode(` ${shortened || '[a picture]'}`));
-        } else {
+        } else if (answered) {
             quote.textContent = '↪ a removed message';
+        } else {
+            // Not found at all: hidden from this reader, or the lookup failed.
+            // Not "removed", which would claim something nobody checked.
+            quote.textContent = '↪ an earlier message';
         }
         return quote;
     }
@@ -903,16 +1015,30 @@
         return '[removed by the author]';
     }
 
-    function renderPost(post, replies) {
-        const removed = post.status !== 'visible';
+    // One message in the timeline (Part 3). Posts and replies are drawn the
+    // same way; a reply only adds its quote line on top, as on Discord.
+    // `grouped` puts it under the previous message's name line.
+    function renderMessage(entry, grouped) {
+        const removed = entry.status !== 'visible';
+        const isReply = !!entry.parent_id;
 
-        const wrap = el('article', 'discussion-post' + (removed ? ' discussion-post-removed' : ''));
-        wrap.id = `post-${post.id}`;
+        const cls = ['discussion-post'];
+        if (grouped) cls.push('discussion-post-grouped');
+        if (isReply) cls.push('discussion-post-reply');
+        if (removed) cls.push('discussion-post-removed');
+        const wrap = el('article', cls.join(' '));
+        wrap.id = `post-${entry.id}`;
 
-        wrap.appendChild(postHead(post));
+        // Above the name line, as Discord places it. A removed reply drops it,
+        // like its words.
+        const quote = isReply && (!removed || entry.status === 'hidden') ? replyQuote(entry) : null;
+        if (quote) wrap.appendChild(quote);
+
+        if (!grouped) wrap.appendChild(avatarNode(entry));
+        wrap.appendChild(postHead(entry, grouped));
 
         const body = el('div', 'discussion-body');
-        if (post.status === 'hidden') {
+        if (entry.status === 'hidden') {
             // Only a moderator can see this at all - the SELECT policy filters
             // the row out for everyone else - so the body is shown intact
             // under a marker rather than replaced by a placeholder.
@@ -921,58 +1047,24 @@
             // wrap yet at this point, and insertBefore against a non-child
             // throws - taking the whole thread render down with it.
             wrap.appendChild(el('span', 'discussion-hidden-badge', 'HIDDEN FROM READERS'));
-            setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
+            setTextWithBreaks(body, textWithoutGifs(entry.body, klipyLinks(entry.body)));
         } else if (removed) {
             body.classList.add('discussion-body-removed');
-            body.textContent = removedText(post.status);
+            body.textContent = removedText(entry.status);
         } else {
-            setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
+            setTextWithBreaks(body, textWithoutGifs(entry.body, klipyLinks(entry.body)));
         }
         wrap.appendChild(body);
-        appendMedia(wrap, post);
+        // Beside the words rather than in them, so the words stay exactly
+        // what was written; the stylesheet runs the two on together.
+        const mark = editedMark(entry);
+        if (mark) wrap.appendChild(mark);
+        appendMedia(wrap, entry);
 
         const actions = el('div', 'discussion-post-actions');
-        appendOwnActions(actions, post);
-        appendReportControl(actions, post);
-        appendModerationControls(actions, post);
-
-        if (actions.childNodes.length) wrap.appendChild(actions);
-
-        if (replies.length) {
-            const list = el('div', 'discussion-replies');
-            replies.forEach(reply => list.appendChild(renderReply(reply)));
-            wrap.appendChild(list);
-        }
-
-        return wrap;
-    }
-
-    function renderReply(reply) {
-        const removed = reply.status !== 'visible';
-        const wrap = el('div', 'discussion-reply' + (removed ? ' discussion-post-removed' : ''));
-        wrap.id = `post-${reply.id}`;
-
-        wrap.appendChild(postHead(reply));
-
-        const body = el('div', 'discussion-body');
-        if (reply.status === 'hidden') {
-            wrap.appendChild(el('span', 'discussion-hidden-badge', 'HIDDEN FROM READERS'));
-            setTextWithBreaks(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
-        } else if (removed) {
-            body.classList.add('discussion-body-removed');
-            body.textContent = removedText(reply.status);
-        } else {
-            setTextWithBreaks(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
-        }
-        const quote = removed && reply.status !== 'hidden' ? null : replyQuote(reply);
-        if (quote) wrap.appendChild(quote);
-        wrap.appendChild(body);
-        appendMedia(wrap, reply);
-
-        const actions = el('div', 'discussion-post-actions');
-        appendOwnActions(actions, reply);
-        appendReportControl(actions, reply);
-        appendModerationControls(actions, reply);
+        appendOwnActions(actions, entry);
+        appendReportControl(actions, entry);
+        appendModerationControls(actions, entry);
 
         if (actions.childNodes.length) wrap.appendChild(actions);
 
@@ -999,24 +1091,35 @@
         return box;
     }
 
-    function renderComposer(parentId, overrides = {}) {
+    // The one box a thread has, under the messages (Part 3). Replying no
+    // longer opens a second box under the message: it puts a "Replying to"
+    // bar on this one, as Discord does, and the message goes to the bottom of
+    // the timeline with its quote. `thread` is false for a box mounted outside
+    // a thread (the forum's NEW POST), which can never be replying.
+    function renderComposer(overrides = {}, thread = true) {
         const form = el('form', 'discussion-composer');
-        form.dataset.parentId = parentId || '';
+        form.dataset.parentId = '';
 
-        if (parentId) {
-            // A reply to a reply names the person (batch 3); the name is set as
-            // text, like every name on the page.
-            const heading = el('div', 'discussion-composer-heading',
-                overrides.replyingTo ? `Replying to ${overrides.replyingTo}` : 'Replying to this post');
-            form.appendChild(heading);
+        if (thread) {
+            form.dataset.threadComposer = 'true';
+            // The name is set as text, like every name on the page.
+            const bar = el('div', 'discussion-reply-bar');
+            bar.hidden = true;
+            bar.appendChild(el('span', 'discussion-composer-heading'));
+            const cancel = el('button', 'discussion-reply-cancel', '✕');
+            cancel.type = 'button';
+            cancel.dataset.cancelReply = 'true';
+            cancel.setAttribute('aria-label', 'Stop replying');
+            bar.appendChild(cancel);
+            form.appendChild(bar);
         }
 
         const area = document.createElement('textarea');
         area.className = 'discussion-textarea';
         area.maxLength = MAX_BODY;
-        area.rows = parentId ? 2 : 3;
-        area.placeholder = parentId ? 'Write a reply…' : (overrides.placeholder || state.opts.placeholder);
-        area.setAttribute('aria-label', parentId ? 'Reply' : 'New post');
+        area.rows = 2;
+        area.placeholder = overrides.placeholder || state.opts.placeholder;
+        area.setAttribute('aria-label', 'New message');
         form.appendChild(area);
 
         // Images, for whoever has the upload media permission. Nobody else sees
@@ -1038,7 +1141,7 @@
 
         const row = el('div', 'discussion-composer-row');
 
-        const submit = el('button', 'btn-sys btn-sys-blue discussion-submit', parentId ? 'REPLY' : (overrides.submitLabel || 'POST'));
+        const submit = el('button', 'btn-sys btn-sys-blue discussion-submit', overrides.submitLabel || 'POST');
         submit.type = 'submit';
         row.appendChild(submit);
 
@@ -1050,18 +1153,10 @@
             row.appendChild(attach);
         }
 
-        if (parentId) {
-            const cancel = el('button', 'btn-sys btn-sys-regular discussion-cancel', 'CANCEL');
-            cancel.type = 'button';
-            cancel.dataset.cancelReply = 'true';
-            row.appendChild(cancel);
-        }
-
         row.appendChild(el('span', 'discussion-composer-status'));
 
-        // On the box that starts a conversation, not on every reply box. A new
-        // tab, so a half-written post is not lost.
-        if (!parentId && state.rulesUrl) {
+        // A new tab, so a half-written message is not lost.
+        if (state.rulesUrl) {
             const rules = el('a', 'discussion-rules-link', 'Rules');
             rules.href = state.rulesUrl;
             rules.target = '_blank';
@@ -1097,13 +1192,72 @@
 
     // --- THE MAIN DRAW ---
 
-    async function draw({ append = false } = {}) {
+    // The parts of a thread that outlive a redraw (Part 3): the title, the
+    // scroll box and the message box under it. Built once, so turning a page
+    // or moderating a message never throws away what somebody was typing.
+    function ensureFrame(root) {
+        const existing = root.querySelector(':scope > .discussion-scroll');
+        if (existing) return existing;
+
+        root.innerHTML = '';
+        root.appendChild(el('h2', 'section-title discussion-title', state.opts.title));
+
+        const scroller = el('div', 'discussion-scroll');
+        // A log: new messages arrive at the end. Focusable, so a keyboard can
+        // scroll it.
+        scroller.setAttribute('role', 'log');
+        scroller.setAttribute('aria-label', `${state.opts.title}: messages`);
+        scroller.tabIndex = 0;
+        const inner = el('div', 'discussion-scroll-inner');
+        scroller.appendChild(inner);
+        root.appendChild(scroller);
+
+        root.appendChild(isSignedIn() && !isBanned() ? renderComposer() : renderSignInPrompt());
+
+        // Within 40px of the end counts as reading the newest message.
+        scroller.addEventListener('scroll', () => {
+            state.stickToBottom = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 40;
+        });
+        // Pictures and GIFs load after the box has opened at its end and push
+        // the end further down. Follow it while the reader is still there.
+        if (typeof ResizeObserver === 'function') {
+            new ResizeObserver(() => {
+                if (state.stickToBottom) scroller.scrollTop = scroller.scrollHeight;
+            }).observe(inner);
+        }
+        return scroller;
+    }
+
+    // Older and newer pages, at the top and the bottom of the box. Page 1 is
+    // the newest, the one a thread opens on.
+    function renderPager(direction) {
+        const bar = el('div', `discussion-pager discussion-pager-${direction}`);
+        const go = (label, page) => {
+            const btn = el('button', 'btn-sys btn-sys-regular discussion-page-btn', label);
+            btn.type = 'button';
+            btn.dataset.pageGo = String(page);
+            bar.appendChild(btn);
+        };
+        if (direction === 'older') {
+            go('OLDER MESSAGES', state.page + 1);
+        } else {
+            go('NEWER MESSAGES', state.page - 1);
+            if (state.page > 1) go('JUMP TO PRESENT', 0);
+        }
+        bar.appendChild(el('span', 'discussion-page-label', `Page ${state.page + 1} of ${state.pageCount}`));
+        return bar;
+    }
+
+    // `position` is where the box should be afterwards: at its newest message
+    // ('bottom'), its oldest ('top'), or where the reader left it ('keep').
+    async function draw({ position = 'bottom' } = {}) {
         const root = document.getElementById('discussion-section');
         if (!root) return;
 
-        let posts;
+        let rows;
+        let count;
         try {
-            posts = await fetchTopLevel(state.offset);
+            ({ rows, count } = await fetchPage(state.page));
         } catch (e) {
             // The normal state between pushing this branch and merging it -
             // migrations apply on merge, so the table genuinely does not exist
@@ -1117,38 +1271,44 @@
             return;
         }
 
-        const replies = await fetchReplies(posts.map(p => p.id)).catch(() => []);
-        const byParent = new Map();
-        replies.forEach(r => {
-            if (!byParent.has(r.parent_id)) byParent.set(r.parent_id, []);
-            byParent.get(r.parent_id).push(r);
-        });
-
-        if (posts.length < PAGE_SIZE) state.exhausted = true;
-
-        let list = root.querySelector('.discussion-list');
-
-        // Before anything is drawn, so a reply's quote can find the reply it
-        // answers wherever that sits in the list.
-        if (!append) state.postsById.clear();
-        [...posts, ...replies].forEach(p => state.postsById.set(p.id, p));
-
-        if (!append) {
-            state.imagesByPost.clear();
-            root.innerHTML = '';
-            root.appendChild(el('h2', 'section-title discussion-title', state.opts.title));
-
-            const box = isSignedIn() && !isBanned() ? renderComposer(null) : renderSignInPrompt();
-            if (!state.opts.composerLast) root.appendChild(box);
-
-            list = el('div', 'discussion-list');
-            root.appendChild(list);
-            if (state.opts.composerLast) root.appendChild(box);
-
-            if (!posts.length) list.appendChild(renderEmptyState());
+        // A page that has emptied since (messages removed while it was open)
+        // falls back to the newest one rather than showing nothing.
+        if (!rows.length && state.page > 0) {
+            state.page = 0;
+            return draw({ position: 'bottom' });
         }
 
-        posts.forEach(p => list.appendChild(renderPost(p, byParent.get(p.id) || [])));
+        state.pageCount = count !== null
+            ? Math.max(1, Math.ceil(count / PAGE_SIZE))
+            : (rows.length === PAGE_SIZE ? state.page + 2 : state.page + 1);
+
+        // Before anything is drawn, so a reply's quote can find the message it
+        // answers, on this page or an older one.
+        state.postsById.clear();
+        state.imagesByPost.clear();
+        rows.forEach(r => state.postsById.set(r.id, r));
+        (await fetchAnswered(rows)).forEach(r => {
+            if (!state.postsById.has(r.id)) state.postsById.set(r.id, r);
+        });
+
+        const scroller = ensureFrame(root);
+        const inner = scroller.querySelector('.discussion-scroll-inner');
+        const keptTop = scroller.scrollTop;
+        const wasAtBottom = state.stickToBottom;
+
+        inner.innerHTML = '';
+        if (state.page < state.pageCount - 1) inner.appendChild(renderPager('older'));
+
+        const list = el('div', 'discussion-list');
+        if (!rows.length) list.appendChild(renderEmptyState());
+        let prev = null;
+        rows.forEach(row => {
+            list.appendChild(renderMessage(row, joinsPrevious(row, prev)));
+            prev = row;
+        });
+        inner.appendChild(list);
+
+        if (state.page > 0) inner.appendChild(renderPager('newer'));
 
         // KLIPY clips join the page's clip queue (renderPostMedia).
         if (typeof window.initLazyMedia === 'function') window.initLazyMedia(list);
@@ -1159,16 +1319,15 @@
         // exist in production at all.
         decorateFlairs(root);
 
-        const oldMore = root.querySelector('.discussion-more');
-        if (oldMore) oldMore.remove();
-
-        if (!state.exhausted) {
-            const more = el('button', 'btn-sys btn-sys-regular discussion-more', state.opts.moreLabel);
-            more.type = 'button';
-            more.dataset.loadMore = 'true';
-            // Straight after the list, which is the end of the section unless
-            // the reply box comes last.
-            list.insertAdjacentElement('afterend', more);
+        if (position === 'top') {
+            state.stickToBottom = false;
+            scroller.scrollTop = 0;
+        } else if (position === 'keep' && !wasAtBottom) {
+            state.stickToBottom = false;
+            scroller.scrollTop = keptTop;
+        } else {
+            state.stickToBottom = true;
+            scroller.scrollTop = scroller.scrollHeight;
         }
     }
 
@@ -1263,10 +1422,11 @@
         }
         clearAttachments(form);
         area.value = '';
-        state.replyingTo = null;
-        state.offset = 0;
-        state.exhausted = false;
-        await draw();
+        cancelReply(form);
+        // A new message is the newest one, so the box goes to it, from
+        // whichever page the reader was on.
+        state.page = 0;
+        await draw({ position: 'bottom' });
         setStatus(unresolvedGifs
             ? 'Posted. A KLIPY link could not be turned into its GIF, so it shows as a link.'
             : '');
@@ -1289,9 +1449,7 @@
         // from your own folder, so this can never reach anyone else's image.
         discardImages(images);
 
-        state.offset = 0;
-        state.exhausted = false;
-        await draw();
+        await draw({ position: 'keep' });
     }
 
     function openModerationForm(postId, action) {
@@ -1341,34 +1499,39 @@
 
         if (error) { setStatus(error.message || 'Could not moderate that post.', true); return; }
 
-        state.offset = 0;
-        state.exhausted = false;
-        await draw();
+        await draw({ position: 'keep' });
         updateJumpCount();
     }
 
+    // Reply puts a "Replying to" bar on the thread's one box (Part 3). The
+    // message goes in with parent_id set to whatever is being answered, post
+    // or reply: the shape trigger files a reply to a reply under its post and
+    // records which reply it answers (reply_to), so the client never has to.
     function openReply(postId) {
         const root = document.getElementById('discussion-section');
-        if (!root) return;
+        const form = root && root.querySelector('.discussion-composer[data-thread-composer]');
+        if (!form) return;
 
-        const existing = root.querySelector('.discussion-composer[data-parent-id]:not([data-parent-id=""])');
-        if (existing) existing.remove();
-
-        const target = document.getElementById(`post-${postId}`);
-        if (!target) return;
-
-        // A reply to a reply (batch 3) goes at the end of the same
-        // conversation; the database records which reply it answers.
-        const onReply = target.classList.contains('discussion-reply');
         const answered = state.postsById.get(postId);
-        const composer = renderComposer(postId, onReply && answered ? { replyingTo: answered.author_name || 'Unknown' } : {});
-        const replies = onReply ? target.closest('.discussion-replies') : target.querySelector('.discussion-replies');
-        if (replies) replies.appendChild(composer);
-        else target.appendChild(composer);
-
+        form.dataset.parentId = postId;
         state.replyingTo = postId;
-        const area = composer.querySelector('.discussion-textarea');
+
+        const bar = form.querySelector('.discussion-reply-bar');
+        if (bar) {
+            bar.querySelector('.discussion-composer-heading').textContent =
+                `Replying to ${answered ? (answered.author_name || 'Unknown') : 'a message'}`;
+            bar.hidden = false;
+        }
+        const area = form.querySelector('.discussion-textarea');
         if (area) area.focus();
+    }
+
+    function cancelReply(form) {
+        if (!form || !form.dataset.threadComposer) return;
+        form.dataset.parentId = '';
+        state.replyingTo = null;
+        const bar = form.querySelector('.discussion-reply-bar');
+        if (bar) bar.hidden = true;
     }
 
     // --- EDITING (batch 3) ---
@@ -1408,6 +1571,9 @@
         form.appendChild(row);
 
         body.hidden = true;
+        // The "(edited)" beside the words goes with them while the box is open.
+        const mark = target.querySelector(':scope > .discussion-edited');
+        if (mark) mark.hidden = true;
         body.insertAdjacentElement('afterend', form);
         area.focus();
     }
@@ -1415,6 +1581,9 @@
     function closeEdit(form) {
         const body = form.previousElementSibling;
         if (body && body.classList.contains('discussion-body')) body.hidden = false;
+        const article = form.closest('.discussion-post');
+        const mark = article && article.querySelector(':scope > .discussion-edited');
+        if (mark) mark.hidden = false;
         form.remove();
     }
 
@@ -1445,9 +1614,7 @@
         if (save) save.disabled = false;
         if (error) { setStatus(error.message || 'Could not save the edit.', true); return; }
 
-        state.offset = 0;
-        state.exhausted = false;
-        await draw();
+        await draw({ position: 'keep' });
         setStatus(unresolvedGifs
             ? 'Saved. A KLIPY link could not be turned into its GIF, so it shows as a link.'
             : '');
@@ -1486,11 +1653,28 @@
         });
     }
 
-    function jumpTo(postId) {
-        const target = document.getElementById(`post-${postId}`);
-        if (!target) return;
+    // Puts a message in the middle of the box under the marker, turning to its
+    // page first when it is on another one (a reply quoting a message from an
+    // older page, or a notification's link).
+    function markAndScroll(target) {
+        state.stickToBottom = false;
+        document.querySelectorAll('.discussion-post-linked')
+            .forEach(node => node.classList.remove('discussion-post-linked'));
         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
         target.classList.add('discussion-post-linked');
+    }
+
+    async function jumpTo(postId) {
+        let target = document.getElementById(`post-${postId}`);
+        if (!target) {
+            const page = await pageOf(postId);
+            if (page !== state.page) {
+                state.page = page;
+                await draw({ position: 'keep' });
+            }
+            target = document.getElementById(`post-${postId}`);
+        }
+        if (target) markAndScroll(target);
     }
 
     // One delegated listener for the whole section, so posts drawn later are
@@ -1533,9 +1717,7 @@
 
             const cancel = e.target.closest('[data-cancel-reply]');
             if (cancel) {
-                const form = cancel.closest('.discussion-composer');
-                if (form) form.remove();
-                state.replyingTo = null;
+                cancelReply(cancel.closest('.discussion-composer'));
                 return;
             }
 
@@ -1578,10 +1760,15 @@
                 return;
             }
 
-            const more = e.target.closest('[data-load-more]');
-            if (more) {
-                state.offset += PAGE_SIZE;
-                await draw({ append: true });
+            // Older pages open at their newest message, so the conversation
+            // carries on from where the newer page began; newer pages open at
+            // their oldest, for the same reason. The present opens at the end.
+            const pageBtn = e.target.closest('[data-page-go]');
+            if (pageBtn) {
+                const to = Math.max(0, Number(pageBtn.dataset.pageGo) || 0);
+                const older = to > state.page;
+                state.page = to;
+                await draw({ position: older || to === 0 ? 'bottom' : 'top' });
                 return;
             }
 
@@ -1630,14 +1817,17 @@
 
     // A notification links to characters/X/index.html#post-<id>, and the
     // browser resolves that fragment long before this section exists. Scrolls
-    // to it once it does, so a reply notification lands on the reply.
+    // to it once it does, so a reply notification lands on the reply. Its
+    // page was worked out before the first draw (initPageDiscussions).
+    function hashPostId() {
+        const match = /^#post-([A-Za-z0-9-]{1,64})$/.exec(window.location.hash || '');
+        return match ? match[1] : null;
+    }
+
     function honourHashTarget() {
-        const hash = window.location.hash;
-        if (!hash || !hash.startsWith('#post-')) return;
-        const target = document.getElementById(hash.slice(1));
-        if (!target) return;
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        target.classList.add('discussion-post-linked');
+        const id = hashPostId();
+        const target = id && document.getElementById(`post-${id}`);
+        if (target) markAndScroll(target);
     }
 
     // --- THE JUMP BUTTON ---
@@ -1701,7 +1891,7 @@
             container.appendChild(renderSignInPrompt());
             return null;
         }
-        const form = renderComposer(null, { placeholder, submitLabel });
+        const form = renderComposer({ placeholder, submitLabel }, false);
         [...leading].reverse().forEach(node => form.insertBefore(node, form.firstChild));
         form.discussionInsert = insert;
         container.appendChild(form);
@@ -1730,12 +1920,17 @@
 
         state.pageId = pageId;
         state.opts = { ...DEFAULT_OPTS, ...opts };
-        state.offset = 0;
-        state.exhausted = false;
+        state.page = 0;
+        state.stickToBottom = true;
+        state.replyingTo = null;
+        // A fresh frame for this thread's title and box.
+        root.innerHTML = '';
 
         await Promise.all([loadViewer(), loadRulesLink()]);
         wire(root);
-        await draw();
+        const linked = hashPostId();
+        if (linked) state.page = await pageOf(linked);
+        await draw({ position: 'bottom' });
         updateJumpCount();
         setTimeout(honourHashTarget, 300);
     };

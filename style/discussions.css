@@ -185,30 +185,130 @@
     color: var(--text-muted);
 }
 
-/* --- POSTS --- */
+/* --- THE CHANNEL (v1.0 Part 3) ---
+   A thread reads like a Discord channel (owner, 2026-10-10): messages in time
+   order inside a box that opens at the newest one, the box above the message
+   box. The box is a fixed share of the screen so a long thread never pushes
+   the message box out of reach. */
+
+.discussion-scroll {
+    max-height: 70vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    box-shadow: 3px 3px 0px var(--manga-shadow);
+    padding: 0.5rem 0;
+    margin-bottom: 1rem;
+}
+
+.discussion-scroll:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+.discussion-pager {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    padding: 0.5rem 0.75rem;
+}
+
+.discussion-pager-older {
+    border-bottom: 1px dashed var(--border-color);
+    margin-bottom: 0.5rem;
+}
+
+.discussion-pager-newer {
+    border-top: 1px dashed var(--border-color);
+    margin-top: 0.5rem;
+}
+
+.discussion-page-label {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+/* --- MESSAGES --- */
 
 .discussion-list {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
 }
 
+/* A gutter on the left holds the letter on a message that starts a name line,
+   and the time on a message under one. */
 .discussion-post {
-    background: var(--bg-secondary);
-    border: 2px solid var(--border-color);
-    box-shadow: 3px 3px 0px var(--manga-shadow);
-    padding: 0.9rem 1.1rem;
+    position: relative;
+    padding: 0.15rem 0.75rem 0.15rem 3.4rem;
+}
+
+.discussion-post:not(.discussion-post-grouped) {
+    margin-top: 0.85rem;
+}
+
+.discussion-list > .discussion-post:first-child {
+    margin-top: 0;
+}
+
+.discussion-post:hover,
+.discussion-post:focus-within {
+    background: var(--bg-main);
+}
+
+.discussion-avatar {
+    position: absolute;
+    left: 0.75rem;
+    top: 0.25rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.85rem;
+    color: #fff;
+    background: var(--border-color);
+    user-select: none;
+}
+
+/* A reply's quote sits above its name line, so the letter moves down with it. */
+.discussion-post-reply > .discussion-avatar {
+    top: 1.65rem;
 }
 
 .discussion-post-head {
     display: flex;
     align-items: baseline;
     gap: 0.6rem;
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.15rem;
     /* A name, an EXPERT chip and a 12rem flair can all share this row. When
        they will not fit a phone, the timestamp drops to its own line rather
        than being pushed off the side of the page. */
     flex-wrap: wrap;
+}
+
+/* Under a name line, the head is only the time, in the gutter, on hover. */
+.discussion-post-head-grouped {
+    position: absolute;
+    left: 0;
+    top: 0.3rem;
+    width: 3.4rem;
+    margin: 0;
+    justify-content: center;
+}
+
+.discussion-post-head-grouped .discussion-time {
+    font-size: 0.55rem;
+    visibility: hidden;
+}
+
+.discussion-post-grouped:hover .discussion-post-head-grouped .discussion-time,
+.discussion-post-grouped:focus-within .discussion-post-head-grouped .discussion-time {
+    visibility: visible;
 }
 
 .discussion-author {
@@ -324,17 +424,46 @@
     opacity: 0.75;
 }
 
-/* The target of a reply notification, so landing on the page puts the post
-   somebody was told about under an obvious marker rather than merely
-   somewhere on screen. */
+/* The target of a reply notification or a quote, so landing on it puts the
+   message under an obvious marker rather than merely somewhere on screen. */
 .discussion-post-linked {
-    border-color: var(--accent-yellow);
+    background: var(--bg-main);
+    box-shadow: inset 3px 0 0 var(--accent-yellow);
 }
 
+/* Reply, Edit, Report and the rest: a small bar at the message's top right,
+   shown while the message is hovered or holds focus, as on Discord. Faded
+   rather than removed, so a keyboard can still Tab into it. It never needs to
+   ignore the mouse while faded: a pointer over the bar is over the message,
+   which is what shows it. */
 .discussion-post-actions {
+    position: absolute;
+    top: 0.1rem;
+    right: 0.5rem;
     display: flex;
     gap: 0.75rem;
-    margin-top: 0.5rem;
+    padding: 0.2rem 0.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    opacity: 0;
+    z-index: 1;
+}
+
+.discussion-post:hover > .discussion-post-actions,
+.discussion-post:focus-within > .discussion-post-actions {
+    opacity: 1;
+}
+
+/* No hover on a touch screen, so the bar sits under the words, always shown. */
+@media (hover: none) {
+    .discussion-post-actions {
+        position: static;
+        opacity: 1;
+        background: none;
+        border: none;
+        padding: 0;
+        margin-top: 0.3rem;
+    }
 }
 
 .discussion-action-btn {
@@ -454,25 +583,42 @@
     color: #eab308;
 }
 
-/* --- REPLIES ---
-   One level only, so a single indent is the whole depth story. The left rule
-   is what carries it: no nesting to communicate, just membership. */
+/* --- REPLYING ---
+   Replies sit in the timeline since Part 3, each under a quote of what it
+   answers. Replying puts this bar on the message box. */
 
-.discussion-replies {
-    margin-top: 0.9rem;
-    padding-left: 1rem;
-    border-left: 2px solid var(--border-color);
+.discussion-reply-bar {
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.35rem 0.6rem;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-bottom: none;
 }
 
-.discussion-reply {
-    padding: 0.5rem 0;
+/* The hidden attribute loses to the display above (CLAUDE.md). */
+.discussion-reply-bar[hidden] {
+    display: none;
 }
 
-.discussion-more {
-    margin-top: 1.25rem;
+.discussion-reply-bar .discussion-composer-heading {
+    margin: 0;
+}
+
+.discussion-reply-cancel {
+    background: none;
+    border: none;
+    padding: 0 0.2rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.discussion-reply-cancel:hover,
+.discussion-reply-cancel:focus-visible {
+    color: var(--text-white);
 }
 
 @media (max-width: 700px) {
@@ -480,9 +626,19 @@
         margin-top: 2rem;
         padding-top: 1.5rem;
     }
-    /* The indent is worth less than the reading width on a phone. */
-    .discussion-replies {
-        padding-left: 0.6rem;
+    /* A narrower gutter is worth more reading width on a phone. */
+    .discussion-post {
+        padding-left: 2.6rem;
+        padding-right: 0.5rem;
+    }
+    .discussion-avatar {
+        left: 0.5rem;
+        width: 1.6rem;
+        height: 1.6rem;
+        font-size: 0.7rem;
+    }
+    .discussion-post-head-grouped {
+        width: 2.6rem;
     }
 }
 
@@ -613,6 +769,33 @@ button.discussion-author-link:focus-visible {
 
 .discussion-edited {
     font-style: italic;
+}
+
+/* At the end of the words since Part 3, in brackets as Discord writes it. It
+   is the next element after the words, so the words run inline and the mark
+   follows on the same line. The brackets are drawn, not typed, so the text
+   stays "edited". */
+.discussion-body:has(+ .discussion-edited) {
+    display: inline;
+}
+
+.discussion-body + .discussion-edited {
+    display: inline;
+    margin-left: 0.35rem;
+}
+
+.discussion-body + .discussion-edited::before { content: '('; }
+.discussion-body + .discussion-edited::after { content: ')'; }
+
+/* The hidden attribute loses to the display above (CLAUDE.md). */
+.discussion-body[hidden],
+.discussion-body + .discussion-edited[hidden] {
+    display: none;
+}
+
+/* Inside the box the invitation needs no frame of its own. */
+.discussion-scroll .discussion-empty {
+    border: none;
 }
 
 /* Replies to replies and editing (v1.0 batch 3). */

@@ -108,13 +108,16 @@ test('the box that starts a conversation links the Rules page, in a new tab, lea
     expect(errors).toEqual([]);
 });
 
-test('a reply box carries no Rules link', async ({ page }) => {
+// Replying uses the thread's one box since Part 3, so the link is never
+// doubled and never lost while replying.
+test('replying keeps the one box, and its single Rules link', async ({ page }) => {
     await openThread(page, { withRules: true });
     await page.locator('#post-p1 .discussion-action-btn', { hasText: 'Reply' }).first().click();
-    const reply = page.locator('#post-p1 .discussion-composer');
-    await expect(reply.locator('.discussion-textarea')).toBeVisible();
-    await expect(reply.locator('.discussion-rules-link')).toHaveCount(0);
+    const box = page.locator('#discussion-section > .discussion-composer');
+    await expect(box.locator('.discussion-reply-bar')).toBeVisible();
+    await expect(page.locator('.discussion-composer')).toHaveCount(1);
     await expect(page.locator('.discussion-rules-link')).toHaveCount(1);
+    await expect(box.locator('.discussion-rules-link')).toBeVisible();
 });
 
 test('until the Rules page exists there is no link at all', async ({ page }) => {
