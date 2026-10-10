@@ -50,31 +50,40 @@ you start building it.
 
 Do not report security problems here. See Security below.
 
-<!-- Everything below is the old file, kept until each part is rewritten. -->
+## Getting the Wiki on Your Device
 
----
+First, you need Git, Node.js (version 20 or newer), Python 3, and a code
+editor for HTML, CSS and JavaScript.
 
-## Getting it running
+There is no **build step** here. The site is static HTML, CSS and classic
+`<script src>` tags sharing one `window` scope. There's no bundler, no
+framework and nothing to transpile. You just open a file, edit it and reload
+the page.
 
-There is **no build step**. The site is static HTML, CSS and classic
-`<script src>` tags sharing one `window` scope — no bundler, no framework, no
-transpile. Open a file, edit it, reload the page.
+To get a copy and start a local server, run:
 
 ```bash
 git clone https://github.com/Deptr-softwares/dogslamloop-wiki.git
 cd dogslamloop-wiki
-npm install            # Playwright and the generator scripts only
+npm install                       # Playwright and the generator scripts only
+npx playwright install chromium   # the browser the tests run in
 python -m http.server 8123
 ```
 
-Then open <http://localhost:8123/index.html>. Port 8123 is what the test suite
-expects, so using it means the tests and your browser agree about what they are
-looking at.
+Then open <http://localhost:8123/index.html>.
 
-You get a read-only site out of the box. It talks to the live Supabase project
-with the public anon key, which ships in `js/site_utils.js` and is in every
-page's source — **it is not a secret**. Signing in locally works; anything
-requiring a role will refuse you, which is correct.
+Signed out, the local site is read-only. It talks to the live Supabase project
+with the public anon key, which is in `js/site_utils.js` and in every page's
+source (**it is not a secret**).
+
+You can sign in locally with an email and password, but not with Discord,
+Google or GitHub. Signed in, you are using the live wiki: anything you post,
+submit or upload is real. Anything that needs a role you don't have will not
+work.
+
+<!-- Everything below is the old file, kept until each part is rewritten. -->
+
+---
 
 ## Before you open a pull request
 
