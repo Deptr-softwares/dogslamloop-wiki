@@ -1,7 +1,6 @@
 # Content Licence
 
-The `LICENSE` file next to this one covers the **code** that runs the site. It
-is MIT, and it stays MIT.
+The `LICENSE` file next to this one covers the **code** that runs the site.
 
 This file covers the **content**: the writing, the frame data, the archetypes,
 the matchup ratings, the tier lists, and everything else people have written
@@ -44,7 +43,7 @@ The short version. The full text is at the link above.
   to Tze's Shenanigans. Screenshots and clips of the game are theirs, and no
   licence here grants you rights to them. This wiki is fan-made and not
   affiliated with the developers.
-- **Roblox assets.** UGC items, faces and bundles linked in the Writing Guide
+- **Roblox assets.** UGC items, faces and bundles linked in the wiki
   belong to the people who made them.
 - **The code.** See `LICENSE`.
 
