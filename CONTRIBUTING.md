@@ -1,17 +1,56 @@
 # Contributing
 
-Two very different things get called "contributing" here, and only one of them
-involves this repository.
+## Welcome
 
-**Writing wiki content — frame data, combos, matchups, guides.** That happens on
-the site, not on GitHub. Sign in at [dogslamloop.com](https://dogslamloop.com),
-open a page and press EDIT. Read the
-[Writing Guide](https://dogslamloop.com/systems/writing_guide/index.html)
-first — it is the style and sourcing standard, and submissions that ignore it
-get rejected. You do not need to clone anything, and nothing below applies to
-you.
+Thank you for taking the time to come here and read this. This file explains
+how to contribute to the wiki's code itself, instead of the usual way (edits,
+posts, media and so on). To contribute content, check out the
+[Writing Guide](https://dogslamloop.com/systems/writing_guide/index.html) and
+the [Terms of Service](https://dogslamloop.com/terms.html).
 
-**Changing how the site works.** That is this file.
+Let's get started, shall we?
+
+## Quick Links
+
+Here are all the links you need:
+
+- [Dogslamloop Wiki](https://dogslamloop.com/)
+- [Writing Guide](https://dogslamloop.com/systems/writing_guide/index.html)
+- [Terms of Service](https://dogslamloop.com/terms.html)
+- [Privacy Policy](https://dogslamloop.com/privacy-policy.html)
+- [Forum Rules](https://dogslamloop.com/systems/forum-rules/index.html)
+- [Discord server](https://discord.gg/FR2DeR6c5h)
+- [GitHub Issues](https://github.com/Deptr-softwares/dogslamloop-wiki/issues)
+- [MIT License](LICENSE) (the code)
+- [Content Licence, CC BY-NC-SA 4.0](CONTENT-LICENSE.md) (the wiki's content)
+
+## Bug Reports and Suggestions
+
+You can report bugs and issues you find on the wiki's official
+[Discord server](https://discord.gg/FR2DeR6c5h), in the
+#bugs-feedback-suggestions channel. If you don't have a Discord account, or
+prefer another way, use
+[GitHub Issues](https://github.com/Deptr-softwares/dogslamloop-wiki/issues)
+instead.
+
+A good bug report says:
+
+- what you did, step by step;
+- what happened;
+- what you expected to happen;
+- your role, if you were signed in;
+- whether you were on a phone or a computer, and which browser.
+
+A screenshot or a short video helps.
+
+You can also make a suggestion in the same Discord channel, or on GitHub
+Issues. A suggestion can be just words. It needs to say what it is and why the
+wiki should have it. For a big change, message @deptr4869 on Discord before
+you start building it.
+
+Do not report security problems here. See Security below.
+
+<!-- Everything below is the old file, kept until each part is rewritten. -->
 
 ---
 
@@ -122,11 +161,7 @@ Two rules worth stating up front:
 `visual.spec.js` is excluded from CI — its baselines are per-OS and can never
 match a Linux runner. It is a local before/after tool for CSS work.
 
-## Reporting a bug
-
-Open an issue with what you did, what happened, and what you expected. If it is
-visual, a screenshot saves more time than a paragraph. If it involves being
-signed in, say what role you had.
+## Security
 
 **Found a security problem?** Do not open a public issue. Contact the maintainer
 directly and give them a chance to ship a fix first.
