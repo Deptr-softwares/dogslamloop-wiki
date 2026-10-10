@@ -81,38 +81,29 @@ Google or GitHub. Signed in, you are using the live wiki: anything you post,
 submit or upload is real. Anything that needs a role you don't have will not
 work.
 
-<!-- Everything below is the old file, kept until each part is rewritten. -->
+## Changes and Pull Requests
 
----
+Always branch from `next-update` and open your PR against it. Never open one
+against `main`, which is the live site.
 
-## Before you open a pull request
-
-```bash
-npm test               # the Playwright suite
-npm run validate       # migration lock, navigation, generated stubs, asset stamps
-```
-
-Both must pass. If you changed anything under `js/`, also run:
+If you changed anything under `js/`, first run:
 
 ```bash
 npm run generate       # restamps every page's asset version
 ```
 
-Skipping that is the most common reason `validate` fails in CI on an otherwise
-fine change.
+Then run these before opening a PR. Both must pass.
 
-## Where work lands
+```bash
+npm test               # the Playwright suite
+npm run validate       # migration lock, navigation, generated pages, sitemap, asset stamps
+```
 
-**`next-update` is the integration branch. `main` is production**, served by
-GitHub Pages — every merge to `main` is a live deploy.
+Releases are the maintainer's job.
 
-- Target your PR at **`next-update`**. Never `main`.
-- CI runs on `main` and `next-update` only. A PR targeting anything else runs
-  no tests **and reports green because nothing ran**.
-- Direct pushes to either branch are rejected. Everything lands through a PR.
+<!-- Everything below is the old file, kept until each part is rewritten. -->
 
-Releases are the maintainer's job: one PR from `next-update` to `main`, carrying
-the changelog and the version bump together.
+---
 
 ## Things that will surprise you
 
