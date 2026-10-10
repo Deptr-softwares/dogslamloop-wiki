@@ -230,27 +230,35 @@ test('a viewer is told they cannot post rather than being handed a box that fail
     await expect(page.locator('[data-reply-to]'), 'no reply controls either').toHaveCount(0);
 });
 
-test('replies render one level deep, under their parent', async ({ page }) => {
+// v1.0 Part 3: a thread is one timeline, like a Discord channel. Posts and
+// replies together, oldest at the top, and a reply quotes what it answers
+// instead of sitting under it. The rows arrive out of order on purpose: the
+// order on screen must come from the times, never from the response.
+test('posts and replies render as one timeline, oldest first, each reply quoting what it answers', async ({ page }) => {
     await mockThread(page, {
         rows: [
+            post({ id: 'later', body: 'a later post', author_name: 'voidwalker', created_at: '2026-08-13T10:30:00Z' }),
+            post({ id: 'r2', parent_id: 'top', body: 'second reply', author_name: 'voidwalker', created_at: '2026-08-13T10:06:00Z' }),
             post({ id: 'top', body: 'top level' }),
             post({ id: 'r1', parent_id: 'top', body: 'first reply', author_name: 'frameperfect', created_at: '2026-08-13T10:05:00Z' }),
-            post({ id: 'r2', parent_id: 'top', body: 'second reply', author_name: 'voidwalker', created_at: '2026-08-13T10:06:00Z' }),
         ],
         session: SESSION, role: null,
     });
     await open(page);
 
-    await expect(page.locator('.discussion-post')).toHaveCount(1);
-    const replies = page.locator('#post-top .discussion-replies .discussion-reply');
-    await expect(replies).toHaveCount(2);
-    // Oldest first inside a conversation, even though the posts themselves are
-    // newest first - a thread is read downwards.
-    await expect(replies.nth(0)).toContainText('first reply');
-    await expect(replies.nth(1)).toContainText('second reply');
-    // No nesting inside a reply: the flattening happens server-side, and the
-    // renderer must not grow a second opinion about it.
-    await expect(page.locator('.discussion-reply .discussion-replies')).toHaveCount(0);
+    const order = await page.locator('.discussion-list > .discussion-post')
+        .evaluateAll(nodes => nodes.map(n => n.id));
+    expect(order).toEqual(['post-top', 'post-r1', 'post-r2', 'post-later']);
+
+    // Flat: no message holds another.
+    await expect(page.locator('.discussion-post .discussion-post')).toHaveCount(0);
+
+    // Each reply quotes the post it answers, and the quote jumps there.
+    const quote = page.locator('#post-r1 .discussion-quote');
+    await expect(quote).toHaveText('↪ mango_kun: top level');
+    await expect(quote).toHaveAttribute('data-jump-to', 'top');
+    await expect(page.locator('#post-top .discussion-quote')).toHaveCount(0);
+    await expect(page.locator('#post-later .discussion-quote')).toHaveCount(0);
 });
 
 test('posting sends only the page, parent and body - never an author', async ({ page }) => {
@@ -275,20 +283,47 @@ test('posting sends only the page, parent and body - never an author', async ({ 
     expect(Object.keys(inserts[0][0])).not.toContain('author_name');
 });
 
-test('replying targets the post being replied to', async ({ page }) => {
+// Replying puts a bar on the thread's one box rather than opening a second box
+// under the message (Part 3), and cancelling it sends the next message as an
+// ordinary post again.
+test('replying targets the post being replied to, through the one box', async ({ page }) => {
     await mockThread(page, { rows: [post({ id: 'top' })], session: SESSION, role: null });
     await open(page);
 
     await page.click('[data-reply-to="top"]');
-    const replyBox = page.locator('#post-top .discussion-composer');
-    await expect(replyBox).toBeVisible();
+    await expect(page.locator('.discussion-composer')).toHaveCount(1);
+    const box = page.locator('#discussion-section > .discussion-composer');
+    const bar = box.locator('.discussion-reply-bar');
+    await expect(bar).toBeVisible();
+    await expect(bar).toContainText('Replying to mango_kun');
+    await expect(box.locator('.discussion-textarea')).toBeFocused();
 
-    await replyBox.locator('.discussion-textarea').fill('source?');
-    await replyBox.locator('.discussion-submit').click();
+    await box.locator('.discussion-textarea').fill('source?');
+    await box.locator('.discussion-submit').click();
 
+    await expect.poll(() => page.evaluate(() => window.__inserts.length)).toBe(1);
     const inserts = await page.evaluate(() => window.__inserts);
     expect(inserts[0][0].parent_id).toBe('top');
     expect(inserts[0][0].body).toBe('source?');
+    await expect(bar).toBeHidden();
+});
+
+test('a cancelled reply sends the next message as a post of its own', async ({ page }) => {
+    await mockThread(page, { rows: [post({ id: 'top' })], session: SESSION, role: null });
+    await open(page);
+
+    await page.click('[data-reply-to="top"]');
+    const box = page.locator('#discussion-section > .discussion-composer');
+    const bar = box.locator('.discussion-reply-bar');
+    await expect(bar).toBeVisible();
+    await box.locator('[data-cancel-reply]').click();
+    await expect(bar).toBeHidden();
+
+    await box.locator('.discussion-textarea').fill('a new point');
+    await box.locator('.discussion-submit').click();
+    await expect.poll(() => page.evaluate(() => window.__inserts.length)).toBe(1);
+    const inserts = await page.evaluate(() => window.__inserts);
+    expect(inserts[0][0].parent_id).toBeNull();
 });
 
 test('a refused post says why and keeps what was typed', async ({ page }) => {

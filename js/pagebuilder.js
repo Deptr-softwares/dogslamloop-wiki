@@ -1577,8 +1577,9 @@ window.buildSiteFooter = function() {
             <!-- Two licences now: MIT for the code, CC BY-NC-SA 4.0 for the
                  content. CONTENT-LICENSE.md is the one a reader wants, and it
                  states both and links to LICENSE, so the footer carries one
-                 link rather than two. -->
-            <a href="${rootPath}CONTENT-LICENSE.md" class="site-footer-link">Licence</a>
+                 link rather than two. GitHub's view of it, because the site
+                 serves the file as raw Markdown (v1.0 Part 3). -->
+            <a href="https://github.com/Deptr-softwares/dogslamloop-wiki/blob/main/CONTENT-LICENSE.md" target="_blank" rel="noopener" class="site-footer-link">Licence</a>
             <span class="site-footer-note">A fan-made wiki. Not affiliated with the game's developers.</span>
         </div>
     `;

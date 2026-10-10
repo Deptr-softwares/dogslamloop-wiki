@@ -514,26 +514,52 @@
             if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
         }
 
-        const { data: changes } = await client()
+        // Hovering a portrait shows that character's most recent move (owner,
+        // 2026-09-20). One query for the whole board rather than a query per
+        // icon: the rows arrive newest first, so the first one seen for a
+        // character is its most recent by construction. Its own query since
+        // the changelog went to pages (Part 3), so a character whose last move
+        // is on page 3 still gets its tooltip. Only the columns the tooltip
+        // shows, and the same 100-move reach it always had.
+        const { data: recent } = await client()
             .from('tier_list_changes')
-            .select('*')
+            .select('character_id, from_tier, to_tier, note, author_name, created_at')
             .eq('list_id', row.id)
             .order('created_at', { ascending: false })
             .limit(100);
-
-        // Hovering a portrait shows that character's most recent move (owner,
-        // 2026-09-20). Built from the changelog ALREADY FETCHED above rather
-        // than a query per icon: a full board is 20-odd characters, and the
-        // rows are here, newest first, so the first one seen for a character is
-        // the most recent one by construction.
-        attachPortraitChangeTooltips(changes);
+        attachPortraitChangeTooltips(recent);
 
         const box = el('div', 'ctl-changelog');
         box.appendChild(el('h3', 'ctl-subheading', 'Changelog'));
+        container.appendChild(box);
+        await drawChangelogPage(box, row.id, 0);
+    }
 
-        if (!changes || !changes.length) {
+    // --- THE CHANGELOG, 20 MOVES A PAGE (v1.0 Part 3, owner, 2026-10-10) ---
+    //
+    // Newest first. It used to load the latest 100 at once and show nothing
+    // older; each page now asks for its own 20, and every move is reachable.
+    const CHANGELOG_PAGE_SIZE = 20;
+
+    async function drawChangelogPage(box, listId, page) {
+        // Ordered by created_at AND id, so two moves saved in the same instant
+        // cannot swap pages. The count rides on the same request.
+        const { data, count } = await client()
+            .from('tier_list_changes')
+            .select('*', { count: 'exact' })
+            .eq('list_id', listId)
+            .order('created_at', { ascending: false })
+            .order('id', { ascending: false })
+            .range(page * CHANGELOG_PAGE_SIZE, page * CHANGELOG_PAGE_SIZE + CHANGELOG_PAGE_SIZE - 1);
+        const changes = data || [];
+
+        box.querySelectorAll(':scope > .ctl-change, :scope > .ctl-empty-note, :scope > .ctl-pager')
+            .forEach(node => node.remove());
+
+        // A page emptied since it was offered goes back to the newest.
+        if (!changes.length && page > 0) return drawChangelogPage(box, listId, 0);
+        if (!changes.length) {
             box.appendChild(el('p', 'ctl-empty-note', 'No moves recorded yet.'));
-            container.appendChild(box);
             return;
         }
 
@@ -554,7 +580,27 @@
             box.appendChild(entry);
         });
 
-        container.appendChild(box);
+        const pages = typeof count === 'number'
+            ? Math.max(1, Math.ceil(count / CHANGELOG_PAGE_SIZE))
+            : (changes.length === CHANGELOG_PAGE_SIZE ? page + 2 : page + 1);
+        if (pages < 2) return;
+
+        // Listeners on the buttons themselves: they are built here, with the
+        // list's id in hand, and never carry anything user-written.
+        const pager = el('div', 'ctl-pager');
+        const go = (label, to) => {
+            const btn = el('button', 'btn-sys btn-sys-regular ctl-page-btn', label);
+            btn.type = 'button';
+            btn.addEventListener('click', async () => {
+                await drawChangelogPage(box, listId, to);
+                box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+            pager.appendChild(btn);
+        };
+        if (page > 0) go('NEWER', page - 1);
+        pager.appendChild(el('span', 'ctl-page-label', `Page ${page + 1} of ${pages}`));
+        if (page < pages - 1) go('OLDER', page + 1);
+        box.appendChild(pager);
     }
 
     // --- BOOT ---

@@ -403,12 +403,10 @@
 
         const section = document.getElementById('discussion-section');
         section.hidden = false;
+        // Reads like a Discord channel, as a character thread does (Part 3).
         await window.initPageDiscussions(`forum:${row.id}`, {
             title: 'Discussion',
-            order: 'oldest',
             placeholder: 'Write a message…',
-            moreLabel: 'LOAD MORE',
-            composerLast: true,
         });
         // After the component has learned who is reading.
         renderTitleEdit(head, row);

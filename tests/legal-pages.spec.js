@@ -89,6 +89,36 @@ test('the two licences agree with each other, in both directions', async ({ requ
     expect(content).toContain('LICENSE');
 });
 
+// The age rule, word for word in both pages (v1.0 Part 3). The owner wrote the
+// Terms' "Account Eligibility" as "Exact same as Privacy Policy right now", so
+// the two pages now make the same promise twice, and an edit to one would leave
+// the site stating two different age rules.
+//
+// Found by content, not by heading: the section is whichever one holds
+// "13 years old", so renaming a heading does not break this, but changing a
+// word of the rule on one page only does.
+async function ageRule(page, path) {
+    await page.goto(path, { waitUntil: 'domcontentloaded' });
+    return page.evaluate(() => {
+        for (const h of document.querySelectorAll('main h2')) {
+            const paras = [];
+            for (let el = h.nextElementSibling; el && el.tagName !== 'H2'; el = el.nextElementSibling) {
+                if (el.tagName === 'P') paras.push(el.textContent.replace(/\s+/g, ' ').trim());
+            }
+            if (paras.some(p => p.includes('13 years old'))) return paras;
+        }
+        return [];
+    });
+}
+
+test('the Terms and the Privacy Policy state the same age rule', async ({ page }) => {
+    const privacy = await ageRule(page, '/privacy-policy.html');
+    const terms = await ageRule(page, '/terms.html');
+    // Not vacuous: two pages that both lost the rule would otherwise agree.
+    expect(privacy.join(' ')).toContain('parent or legal guardian');
+    expect(terms).toEqual(privacy);
+});
+
 test('the licence and terms are reachable from the footer, not just from each other', async ({ page }) => {
     await page.goto('/index.html', { waitUntil: 'networkidle' });
     await expect(page.locator('#site-footer')).toBeAttached();

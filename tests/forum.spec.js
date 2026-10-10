@@ -222,7 +222,7 @@ test('the new-post form links the Rules page once it exists', async ({ page }) =
     await expect(link).toHaveAttribute('target', '_blank');
 });
 
-test('a post page reads oldest first, with the reply box after the conversation', async ({ page }) => {
+test('a post page reads oldest first, replies in the timeline, with the message box after the conversation', async ({ page }) => {
     await openForum(page, {
         path: `/forum.html?post=${T1}`,
         session: SESSION,
@@ -239,21 +239,24 @@ test('a post page reads oldest first, with the reply box after the conversation'
     await expect(page.locator('.forum-post-meta .forum-tag')).toHaveText('Question');
     await expect(page.locator('#forum-back')).toHaveAttribute('href', 'forum.html');
 
+    // One timeline since Part 3: the reply between the two posts, in time.
     const bodies = page.locator('.discussion-list > .discussion-post > .discussion-body');
-    await expect(bodies).toHaveText(['opening', 'second']);
-    await expect(page.locator('#post-m1 .discussion-replies .discussion-body')).toHaveText('a reply');
+    await expect(bodies).toHaveText(['opening', 'a reply', 'second']);
+    await expect(page.locator('#post-r1 .discussion-quote')).toHaveAttribute('data-jump-to', 'm1');
 
     const order = await page.evaluate(() => {
         const root = document.getElementById('discussion-section');
-        const kids = [...root.children].map(c => c.className.split(' ')[0]);
-        return kids;
+        return [...root.children].map(c => c.className.split(' ')[0]);
     });
-    expect(order.indexOf('discussion-list')).toBeLessThan(order.indexOf('discussion-composer'));
+    expect(order.indexOf('discussion-scroll')).toBeGreaterThan(-1);
+    expect(order.indexOf('discussion-scroll')).toBeLessThan(order.indexOf('discussion-composer'));
     await expect(page.locator('.discussion-composer .discussion-textarea')).toHaveAttribute('placeholder', 'Write a message…');
 
-    const q = await page.evaluate(() => window.__queries.find(x => x.table === 'page_discussions' && x.is.parent_id === null));
+    // Fetched newest first, so the first page is the newest 100; shown oldest
+    // first.
+    const q = await page.evaluate(() => window.__queries.find(x => x.table === 'page_discussions' && !x.head && x.order.length));
     expect(q.eq.page_id).toBe(`forum:${T1}`);
-    expect(q.order[0]).toEqual({ col: 'created_at', asc: true });
+    expect(q.order[0]).toEqual({ col: 'created_at', asc: false });
 });
 
 test('a removed post shows what happened and no conversation', async ({ page }) => {
