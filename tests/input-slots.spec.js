@@ -16,6 +16,25 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 
+// THE CROW CHARMER PAGE, WITH A FROZEN COPY OF ITS DATA. These tests used to
+// read the live row, so an owner edit to Crow Charmer could turn them red, and
+// a red test stops the nightly regeneration for the whole site: on 2026-10-12
+// the owner added a second "Bounding" (in Skills, input M1, beside the Innate
+// one on Q) and every regeneration failed from then on. The copy is the live
+// row of 2026-10-13 without that second entry. Only Crow Charmer's own row
+// is served from it; every other request goes through.
+const CROW = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'fixtures', 'crow-charmer-page-data.json'), 'utf8'));
+
+async function openCrowCharmer(page, waitUntil = 'networkidle') {
+  await page.route('**/rest/v1/page_data**', route => {
+    if (!route.request().url().includes('page_id=eq.crow_charmer')) return route.continue();
+    // .single() and .maybeSingle() ask for one object; anything else, a list.
+    const one = /vnd.pgrst.object/.test(route.request().headers()['accept'] || '');
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(one ? CROW : [CROW]) });
+  });
+  await page.goto('/characters/Crow_charmer/index.html', { waitUntil });
+}
+
 // Both modules against one window, in the order every page loads them:
 // input_slots.js reads the tab vocabulary for which categories hold moves,
 // rather than keeping its own copy of that list.
@@ -166,7 +185,7 @@ test('a real character page colours its own route', async ({ page }) => {
   page.on('pageerror', e => errors.push(e.message));
 
   // Crow Charmer, because its live frame data uses three input conventions.
-  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await openCrowCharmer(page);
   await page.waitForTimeout(1000);
 
   const chips = await page.evaluate(() => {
@@ -208,7 +227,7 @@ test('slot colouring stays inside combo contexts', async ({ page }) => {
   //   a bare KEY only counts inside a chip - "1" and "2" are frame counts and
   //     damage figures in prose far more often than inputs;
   //   a move NAME only counts inside the Combos tab.
-  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await openCrowCharmer(page);
   await page.waitForTimeout(1000);
 
   const result = await page.evaluate(() => {
@@ -246,7 +265,7 @@ test('a step keeps its colour when the contributor adds a note to it', async ({ 
   // found instead - and a plain "MURMURATE" must still colour, which it did
   // not: the styling pass runs before frame data lands, and marking every chip
   // processed on that first pass left them flagged with no colour forever.
-  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await openCrowCharmer(page);
   await page.waitForTimeout(1200);
 
   const chips = await page.evaluate(() => {
@@ -294,7 +313,7 @@ test("the owner's real Crow Charmer combo colours every step", async ({ page }) 
   //                                   flex container drops whitespace between
   //                                   its items
   //   Dive Bomb                       frame data spells it "Dive-Bomb"
-  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await openCrowCharmer(page);
   await page.waitForTimeout(1200);
 
   const chips = await page.evaluate(() => {
@@ -343,7 +362,7 @@ test('universal mechanics colour even though no character owns them', async ({ p
   //
   // They fill GAPS rather than seeding the map, so a character whose own kit
   // has a move by one of these names keeps its own slot.
-  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await openCrowCharmer(page);
   await page.waitForTimeout(1200);
 
   const chips = await page.evaluate(() => {
@@ -407,7 +426,7 @@ test('a slot class actually CHANGES THE COLOUR, on the chip as well as inside it
   // Every earlier test here asserted the CLASS, which was present the whole
   // time. Asserting the class is asserting the setup; the colour is the
   // consequence, and it is what a reader actually sees.
-  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await openCrowCharmer(page);
   await page.waitForTimeout(1200);
 
   const measured = await page.evaluate((slotList) => {
@@ -445,7 +464,7 @@ test('a slot class actually CHANGES THE COLOUR, on the chip as well as inside it
 test('a resolved step is coloured on the page, not merely classed', async ({ page }) => {
   // The same claim through the real renderer, for the two shapes that behaved
   // differently: a whole-chip match and a name found inside a compound step.
-  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await openCrowCharmer(page);
   await page.waitForTimeout(1200);
 
   const result = await page.evaluate(() => {
@@ -483,7 +502,7 @@ test('the same name can be a different slot in a different state', async ({ page
   // A character's ultimate state has different skills in the same slots, so
   // the map has to be per-state. Derivation handles this for free; a flat
   // hand-authored map could not.
-  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'domcontentloaded' });
+  await openCrowCharmer(page, 'domcontentloaded');
 
   const result = await page.evaluate(() => {
     const base = { skills: [{ id: 'x', name: 'Shared Name', input: '1' }] };
@@ -507,7 +526,7 @@ test('every slot paints a black outline, and the four that were dark are brighte
   // Measured off the browser, not read out of the stylesheet. The rule that
   // matters is whichever one wins after Layout.css loads, and this project has
   // already shipped nine passing tests against a colour that never painted.
-  await page.goto('/characters/Crow_charmer/index.html', { waitUntil: 'networkidle' });
+  await openCrowCharmer(page);
   await page.waitForTimeout(1200);
 
   const measured = await page.evaluate(() => {

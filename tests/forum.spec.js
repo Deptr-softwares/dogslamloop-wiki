@@ -222,13 +222,15 @@ test('the new-post form links the Rules page once it exists', async ({ page }) =
     await expect(link).toHaveAttribute('target', '_blank');
 });
 
-test('a post page reads oldest first, replies in the timeline, with the message box after the conversation', async ({ page }) => {
+test('a post page reads oldest first, with the reply box after the conversation', async ({ page }) => {
     await openForum(page, {
         path: `/forum.html?post=${T1}`,
         session: SESSION,
         threads: [thread()],
         messages: [
-            message({ id: 'm2', body: 'second', created_at: '2026-10-04T10:05:00Z' }),
+            // Someone else, so the two stay two cards: one person within 7
+            // minutes would stack (tests/discussion-stacks.spec.js).
+            message({ id: 'm2', author_id: 'y', author_name: 'Mo', body: 'second', created_at: '2026-10-04T10:05:00Z' }),
             message({ id: 'm1', body: 'opening', created_at: '2026-10-04T10:00:00Z' }),
             message({ id: 'r1', parent_id: 'm1', body: 'a reply', created_at: '2026-10-04T10:01:00Z' }),
             message({ id: 'other', page_id: 'boomcat', body: 'not this thread' }),
@@ -239,24 +241,21 @@ test('a post page reads oldest first, replies in the timeline, with the message 
     await expect(page.locator('.forum-post-meta .forum-tag')).toHaveText('Question');
     await expect(page.locator('#forum-back')).toHaveAttribute('href', 'forum.html');
 
-    // One timeline since Part 3: the reply between the two posts, in time.
     const bodies = page.locator('.discussion-list > .discussion-post > .discussion-body');
-    await expect(bodies).toHaveText(['opening', 'a reply', 'second']);
-    await expect(page.locator('#post-r1 .discussion-quote')).toHaveAttribute('data-jump-to', 'm1');
+    await expect(bodies).toHaveText(['opening', 'second']);
+    await expect(page.locator('#post-m1 .discussion-replies .discussion-body')).toHaveText('a reply');
 
     const order = await page.evaluate(() => {
         const root = document.getElementById('discussion-section');
-        return [...root.children].map(c => c.className.split(' ')[0]);
+        const kids = [...root.children].map(c => c.className.split(' ')[0]);
+        return kids;
     });
-    expect(order.indexOf('discussion-scroll')).toBeGreaterThan(-1);
-    expect(order.indexOf('discussion-scroll')).toBeLessThan(order.indexOf('discussion-composer'));
+    expect(order.indexOf('discussion-list')).toBeLessThan(order.indexOf('discussion-composer'));
     await expect(page.locator('.discussion-composer .discussion-textarea')).toHaveAttribute('placeholder', 'Write a message…');
 
-    // Fetched newest first, so the first page is the newest 100; shown oldest
-    // first.
-    const q = await page.evaluate(() => window.__queries.find(x => x.table === 'page_discussions' && !x.head && x.order.length));
+    const q = await page.evaluate(() => window.__queries.find(x => x.table === 'page_discussions' && x.is.parent_id === null));
     expect(q.eq.page_id).toBe(`forum:${T1}`);
-    expect(q.order[0]).toEqual({ col: 'created_at', asc: false });
+    expect(q.order[0]).toEqual({ col: 'created_at', asc: true });
 });
 
 test('a removed post shows what happened and no conversation', async ({ page }) => {

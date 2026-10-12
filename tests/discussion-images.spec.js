@@ -282,8 +282,11 @@ test('anything that is not KLIPY media stays text, lookalikes included', async (
     await openThread(page, { rows: lookalikes.map((body, i) => post({ id: `p${i}`, body, created_at: `2026-09-28T10:0${i}:00Z` })) });
 
     await expect(page.locator('#discussion-section .discussion-media')).toHaveCount(0);
+    // Each post's own words, whether it is its own card or stacked under the
+    // first (one person, a minute apart: tests/discussion-stacks.spec.js).
     for (let i = 0; i < lookalikes.length; i++) {
-        await expect(page.locator(`#post-p${i} .discussion-body`)).toHaveText(lookalikes[i]);
+        const own = `#post-p${i} > .discussion-body, #post-p${i} > .discussion-item-row > .discussion-body`;
+        await expect(page.locator(own)).toHaveText(lookalikes[i]);
     }
 });
 
