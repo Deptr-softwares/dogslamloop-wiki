@@ -1,0 +1,2099 @@
+{
+  "page_id": "crow_charmer",
+  "desc_data": {
+    "extras": [
+      {
+        "title": "combo section",
+        "content": [
+          {
+            "size": "h2",
+            "type": "heading",
+            "align": "left",
+            "content": "Evasive Baiting"
+          },
+          {
+            "type": "paragraph",
+            "align": "left",
+            "content": [
+              "Evasive baiting as Crow Charmer revolves entirely around [u]mind games.[/u] Her melee moves are rarely ever punished on hit as they're all fast or send at a difficult angle. However, they [i]all[/i] have sizable endlag, a window that will open up Crow Charmer to a punish. This means, if the opponent understands how Crow Charmer plays, her options in baiting out evasive rely almost exclusively on [b]prediction.[/b]"
+            ]
+          },
+          {
+            "note": "",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "14",
+            "sequence": [
+              "Murmurate",
+              "..."
+            ]
+          },
+          {
+            "type": "paragraph",
+            "align": "left",
+            "content": [
+              "Any time Crow Charmer lands Murmurate in neutral on an opponent with evasive, she creates a guessing game scenario."
+            ]
+          },
+          {
+            "note": "",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "14",
+            "sequence": [
+              "Murmurate",
+              "R↑"
+            ]
+          },
+          {
+            "type": "paragraph",
+            "align": "left",
+            "content": [
+              "R↑ after an attack is only punishable on prediction if Crow Charmer inputs a move directly after teleporting. Because the opponent has to guess whether the teleport comes out, Crow Charmer can choose to instead [i]abstain[/i] from teleporting, making them waste their evasive and setting things back to neutral."
+            ]
+          },
+          {
+            "note": "",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "36",
+            "sequence": [
+              "Murmurate",
+              "R↑",
+              "Air Updraft",
+              "Bird Control(S)"
+            ]
+          },
+          {
+            "note": "Leads into another R↑ guessing game",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "28",
+            "sequence": [
+              "Murmurate",
+              "R↑",
+              "Circling",
+              "R↑"
+            ]
+          },
+          {
+            "type": "paragraph",
+            "align": "center",
+            "content": [
+              "Follow ups if Crow Charmer chooses to commit to an R↑"
+            ]
+          },
+          {
+            "size": "h3",
+            "type": "heading",
+            "align": "left",
+            "content": "True Combos"
+          },
+          {
+            "type": "paragraph",
+            "align": "left",
+            "content": [
+              "If Crow Charmer lands M1s, it might be more beneficial to go for a true combo for quick damage instead."
+            ]
+          },
+          {
+            "note": "Requires practice to add Bird Control, otherwise simple.",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "38-46",
+            "sequence": [
+              "M1 (x3)",
+              "Murmurate",
+              "R↑",
+              "Bird Control(W) - optional",
+              "Dive Bomb"
+            ]
+          },
+          {
+            "size": "h3",
+            "type": "heading",
+            "align": "left",
+            "content": "Extra Info"
+          },
+          {
+            "type": "paragraph",
+            "align": "left",
+            "content": [
+              "Free Fall can steal evasives similarly to Locust Guy Wing Throw or Register Homerun.",
+              "",
+              "Circling has massive range and is nearly impossible to evasive punish. It is also the only restand move-moves akin to True Cannon's [i]Unsatisfied[/i] or Black Death's [i]Festering Strikes[/i]-that hits grounded opponents, making it completely safe if the first hit lands.",
+              "",
+              "While Impetus Updraft is fast and safe on hit, the moment its hitbox comes out, it becomes unfeintable with Spatial Transference, making it a high risk option on ragdolled opponents with evasive."
+            ]
+          },
+          {
+            "type": "divider",
+            "style": "diamond",
+            "padding": "small"
+          },
+          {
+            "size": "h2",
+            "type": "heading",
+            "align": "left",
+            "content": "Combo Routes"
+          },
+          {
+            "type": "paragraph",
+            "align": "left",
+            "content": [
+              "Once the opponent has wasted their evasive, Crow Charmer combo routes become extremely free. All of her moves combo into each other and out of each other. She can 1234, 2134, 4231, anything, and it will combo. "
+            ]
+          },
+          {
+            "note": "",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "76",
+            "sequence": [
+              "M1 (x3)",
+              "uppercut (surf)",
+              "Bounding",
+              "Dive Bomb",
+              "R↑",
+              "Bounding",
+              "Bird Control(S)",
+              "Murmurate (surf)",
+              "Bounding",
+              "R↓",
+              "Impetus Updraft (use twice)"
+            ]
+          },
+          {
+            "type": "callout",
+            "align": "center",
+            "title": "Note",
+            "intent": "warning",
+            "content": [
+              "Far more difficult on dummies than it is on players due to how dummies have zero ping and interact differently with uppercut surfing."
+            ]
+          },
+          {
+            "type": "paragraph",
+            "align": "left",
+            "content": [
+              "This is the highest damaging combo Crow Charmer can perform that doesn't use any of her techs. Fills opponent's evasive bar after the last swing of Impetus. It may be worth going for this combo if Crow Charmer's opponent has [i]just[/i] evasived.",
+              "",
+              "A single strong combo like this is not main draw of Crow Charmer. Her true strength within her combos comes from the sheer amount of routes she has to offer."
+            ]
+          },
+          {
+            "note": "Leads into an extremely safe finish within -> Bird Control and Murmurate",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "31",
+            "sequence": [
+              "Impetus Updraft (use twice)",
+              "R(w)",
+              "Circling",
+              "..."
+            ]
+          },
+          {
+            "note": "Easy combo that can easily catch people off guard due to its speed",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "25",
+            "sequence": [
+              "Impetus Updraft",
+              "R↑",
+              "Dive Bomb",
+              "..."
+            ]
+          },
+          {
+            "note": "Out of M1s, Circling can be charged to yellow, giving her more conversion options",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "24",
+            "sequence": [
+              "M1 (x3)",
+              "Circling",
+              "..."
+            ]
+          },
+          {
+            "note": "Extremely stylish combo that can convert into a high area Dive Bomb",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "35",
+            "sequence": [
+              "...",
+              "Bounding",
+              "Bird Control(W)",
+              "Air Updraft",
+              "Free Fall",
+              "..."
+            ]
+          },
+          {
+            "note": "Circling can combo into Impetus without a teleport, by changing the direction of Circling's knockback",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "25",
+            "sequence": [
+              "Circling",
+              "side dash",
+              "Impetus Updraft"
+            ]
+          },
+          {
+            "note": "Mentioned because Impetus Updraft's only true follow up is Murmurate",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "31",
+            "sequence": [
+              "Impetus Updraft (use twice)",
+              "Murmurate"
+            ]
+          },
+          {
+            "type": "paragraph",
+            "align": "left",
+            "content": [
+              "...and there's far more Crow Charmer has to offer within combos, but those are self-explanatory. Crow Charmer's best neutral option is Murmurate, and that'll combo into any one of her other grounded moves. She has some of the most combo freedom within JJS."
+            ]
+          },
+          {
+            "type": "divider",
+            "style": "diamond",
+            "padding": "small"
+          },
+          {
+            "size": "h2",
+            "type": "heading",
+            "align": "left",
+            "content": "Green Combos and the Bounding Mixup"
+          },
+          {
+            "type": "paragraph",
+            "align": "left",
+            "content": [
+              "Because of the very small ragdoll duration of a lot of Crow Charmer's moves, green combos become more of a boon than a flaw, something she can take advantage of when moves are on cooldown. Crow Charmer has some of the longest cooldowns in the game. Combine that with short cooldowns, and sometimes it can feel as though Crow Charmer has nothing to do after landing a hit. Fortunately, she can get around that hurdle by utilizing Bounding."
+            ]
+          },
+          {
+            "note": "",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "17",
+            "sequence": [
+              "M1 (x3)",
+              "Uppercut (surf)",
+              "Bounding",
+              "..."
+            ]
+          },
+          {
+            "type": "paragraph",
+            "align": "left",
+            "content": [
+              "Bounding is completely safe on hit and launches Crow Charmer directly above the opponent. The opponent stalls in the air and exits ragdoll while she is [i]still[/i] airborne, letting her come down in an attempt to get another M1 combo. This is a mix up opportunity that Crow Charmer gains access to every time she lands a Bounding. She can land on top of the opponent and ride them on the way down. She can land before the opponent does, roll, and side dash to get around their block that way. She react and dash in the direction the opponent dashes to catch them. Crow Charmer has a whole conrucopia of options available to her after Bounding lands. These Bounding loops can singlehandedly win her fights.",
+              "",
+              "Alongside the Bounding mixup, there are some other green combos she has access to."
+            ]
+          },
+          {
+            "note": "Jump on the opponent's head",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "5",
+            "sequence": [
+              "Flock",
+              "M1s",
+              "..."
+            ]
+          },
+          {
+            "note": "This might cause an M1 trade, but often times the opponent is simply not ready for this",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "14",
+            "sequence": [
+              "Impetus Updraft (use twice) (Aim the second hit away)",
+              "M1s",
+              "..."
+            ]
+          },
+          {
+            "note": "First hit of Murmurate has no ragdoll time once the opponent touches the ground.",
+            "type": "combo",
+            "align": "left",
+            "author": "",
+            "damage": "9",
+            "sequence": [
+              "First hit of Murmurate",
+              "M1s",
+              "..."
+            ]
+          },
+          {
+            "type": "callout",
+            "align": "center",
+            "title": "Note",
+            "intent": "info",
+            "content": [
+              "Usually happens on accident, but Crow Charmer can capitalize if it happens."
+            ]
+          }
+        ]
+      },
+      {
+        "title": "ADVANCED TECH: Umbilical Cord",
+        "content": [
+          {
+            "type": "paragraph",
+            "align": "left",
+            "author": "Umbilical Cord Fully Made By Umbra",
+            "content": [
+              "Umbilical cord is a way to stack moves with other moves, duplicate moves, open up new follow ups to other moves, and apply extreme pressure in neutral. While it takes away your main m1 trading tool, being bird control, it makes up for it by adding egregious amounts of damage."
+            ]
+          },
+          {
+            "type": "youtube",
+            "align": "center",
+            "width": "75%",
+            "caption": "Bilicing my FUCKING cord so FUCKING hard rn",
+            "videoId": "https://youtu.be/8_9IA9lSgvg"
+          }
+        ]
+      },
+      {
+        "title": "TECHS",
+        "content": [
+          {
+            "rows": [
+              [
+                "DELAY BOUNCE",
+                "M1X4 UPPER, R, Q, 4+W, 3.",
+                "Using this tech makes any combo coming off of it unpunishable. By using forward bird control, and sky high, it delays the upwards momentum until they hit the ground again. You can combine this with any move following it, and even if they evasive, as soon as they hit the ground they will be ragdolled."
+              ],
+              [
+                "",
+                "",
+                ""
+              ]
+            ],
+            "type": "table",
+            "align": "center",
+            "author": "",
+            "headers": [
+              "TECH",
+              "HOW",
+              "WHY ITS USEFUL"
+            ]
+          }
+        ]
+      }
+    ],
+    "profile": {
+      "image": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/CrowCharmerPortrait3.webp",
+      "stats": [
+        {
+          "label": "Archetype",
+          "value": "Mixup Oppressor"
+        },
+        {
+          "label": "Difficulty",
+          "value": "Moderate"
+        },
+        {
+          "label": "Health",
+          "value": "100"
+        }
+      ]
+    },
+    "matchups": [
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Honored One"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Vessel"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Restless Gambler"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Ten Shadows"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Perfection"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Blood Manipulator"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Switcher"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Defense Attorney"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Cursed Partners"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Puppet Master"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Head of the Hei"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Salaryman"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Disaster Plant"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "True Cannon"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Locust Guy"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Star Rage"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Aspiring Mangaka"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Lucky Coward"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Crow Charmer"
+      },
+      {
+        "tier": "Equal",
+        "content": [],
+        "opponent": "Black Death"
+      }
+    ],
+    "overview": [
+      {
+        "type": "paragraph",
+        "content": [
+          "Crow Charmer is a Swiss Army Knife, who has tools for every situation. Every move in her kit brings unique utility to her gameplan. [i]Bird Control[/i] functions as a strong approach and M1 trading option. Her aerial front dash, [i]Flock[/i], is unique, being useful as a quick mid range combo starter that can catch opponents off guard, while also enabling mix up potential if your moves are on cooldown. [i]Spatial Transference[/i] is Crow Charmer's main combo enabler, but it also serves as a powerful mixup option and neutral tool due to its speed and low endlag. ",
+          "",
+          "Crow Charmer’s combos are more difficult than most other characters, requiring many inputs in a short timeframe. Her moves don't ragdoll for long and the endlag on her moves when whiffed can be very high, but if you can master Crow Charmer's air combos, you'll be met with great reward in devastating damage while maintaining high amounts of safety. "
+        ]
+      }
+    ],
+    "strategy": [
+      {
+        "size": "h2",
+        "type": "heading",
+        "align": "center",
+        "content": "HOW TO [color=hsl(217, 91%, 60%)]NEUTRAL[/color]"
+      },
+      {
+        "type": "paragraph",
+        "align": "left",
+        "content": [
+          "Crow Charmer's neutral revolves around four main options. ",
+          "",
+          "- Flock",
+          "- Spatial Transference",
+          "- Bird Control",
+          "- Murmurate",
+          "",
+          "Flock's usability in neutral varies greatly depending on the playstyle of Crow Charmer's opponent. Against an opponent playing more defensive, she'll have less opportunities to use Flock, as it essentially becomes a front dash that can't go around the opponent. However, against more aggressive opponents, Flock can function as a way to catch side dashes towards her and punish. The opponent being aware of Flock can also make constantly jumping at midrange a viable strategy to keep them on their toes.",
+          "",
+          "Spatial Transference is a neutral skip, allowing Crow Charmer to instantly engage her opponent. It has less endlag than Naoya's teleport, while being less restrictive than Gojo's. Having a teleport off cooldown at midrange means Crow Charmer can teleport in front, behind, on top, or to either side of the opponent whenever she so pleases. Teleporting upwards can also be used to escape situations where Crow Charmer on the defensive without a side dash.",
+          "",
+          "Bird Control’s directional variants function as a one time use Divine Dogs: Totality swipe. This means Crow Charmer is entirely actionable during the start-up of the move, and does [i]not[/i] cancel upon receiving stun, although the bird will be cancelled if Crow Charmer is ragdolled. The ability to perform any movement or attack during the start-up makes Bird Control an excellent move for engaging with the opponent. Combos into anything on hit, regardless of the directional input used. But Crow Charmer can be caught by an evasive during the start-up of her follow-up attack if caught unaware.",
+          "",
+          "Murmurate is Crow Charmer’s most prominent neutral tool. Murmurate is extremely fast with monstrous range, often hitting way further than most expect. Crow Charmer is able to move however she like during the duration of the move, similarly to Charles' Despair or Sword-off Haruta. So despite not having any actual defensive options like blocking, the free movement makes the move far more difficult to punish. This does not mean that the move is unpublishable though, and it is still fairly risky to throw out against skilled opponents.",
+          "",
+          ""
+        ]
+      }
+    ],
+    "playstyle": {
+      "likes": [
+        "[b]Strong Combo Game:[/b] Crow Charmer has high damage combos off many starters that are very safe from being evasive punished.",
+        "[b]Strong Mixups:[/b] Spatial Transference grants effective mixups in neutral, and bird control keeps you safe from being caught out.",
+        "[b]Strong Neutral Tools:[/b] Aerial Circling and Murmurate cover large distances with short startup and lead into combos on hit. Flock is a decent suprise option, and Bird Control is powerful in M1 trades.",
+        "[b]The Devil May Cry Series[/b]"
+      ],
+      "dislikes": [
+        "[b]Demanding Execution:[/b] Crow Charmer’s Combo Routes require precise inputs in rapid succession, and sometimes timings have to be adapted on the fly to account for ping. ",
+        "[b]High Commitment Buttons:[/b] While Cirling and Murmurate* are strong tools, they are very punishable if your opponent blocks them.",
+        "[b]Downtime:[/b] Long cooldowns on every moves and Spatial Transference can leave Crow Charmer vulnerable in neutral."
+      ]
+    },
+    "techIntro": [],
+    "comboIntro": [],
+    "characterId": "crow_charmer",
+    "counterplay": [],
+    "moveStrategies": {
+      "flock": [],
+      "bounding": [],
+      "circling": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Crow Charmer performs 2 large swings with her axe. This move can be charged to 3 distinct levels."
+          ]
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "items": [
+            "[b]Uncharged[/b]: Both swings are blockable. The second swing will launch the opponent far forward.",
+            "[b]Partially Charged[/b] ([color=#fffd00]Yellow [/color]Outline): The second swing becomes unblockable. The second swing will launch the opponent straight upwards.",
+            "[b]Fully Charged[/b] ([color=#ff0000]Red[/color] Outline): Both swings become unblockable. The second swing will launch the opponent straight upwards like the partially charged version."
+          ],
+          "author": ""
+        },
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "This move cannot be cancelled with [i]Spatial Transference[/i] once the second swing comes out, unless it hits the opponent."
+          ]
+        },
+        {
+          "size": "h2",
+          "type": "heading",
+          "align": "center",
+          "content": "USE CASES"
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "COMBO STARTING/NEUTRAL APPLICATION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "items": [
+            "Combo starting with [i]Circling[/i] is fairly risky. Its high speed and large hitbox make up for it being blockable, but extremely committal on whiff or block.",
+            "When approaching with [i]Circling[/i], charging the attack varies upon opponent. If they can't punish it in between swings, charging to yellow is recommended.",
+            "Comboing after [i]Circling[/i] is simple. No charge allows you to follow up with [i]Spatial Transference (Forward)[/i], then most consistently [i]Murmurate[/i] or [i]Bird Control(S)[/i]. While the charged version can be followed up using nearly anything."
+          ],
+          "author": ""
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "COMBO EXTENSION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "items": [
+            "[i]Circling[/i] is best used after a downslam, uppercut, or 3 M1s. By using downslams and uppercuts, it gives Crow Charmer more time to charge to the other variants of the move.",
+            "The most she can charge [i]Circling[/i] after 3 M1s is to the yellow charge, immediately allowing a air combo follow up.",
+            "[i]Circling[/i] can fit anywhere in any combo due to it hitting ground and leading into other moves seamlessly. "
+          ],
+          "author": ""
+        }
+      ],
+      "murmurate": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Crow Charmer throws her axe in a circle around her. This move can hit up to two times, and the first hit has true ragdoll. Crow Charmer can move freely during this move, similar to Aspiring Mangaka's [i]Despair[/i]. If used mid-air, Crow Charmer will be stalled in the air until the move ends and will not be able to move freely.",
+            "",
+            "This move cannot be canceled with [i]Spatial Transference[/i] on specifically block."
+          ]
+        },
+        {
+          "size": "h2",
+          "type": "heading",
+          "align": "center",
+          "content": "USE CASES"
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "COMBO STARTING/NEUTRAL APPLICATION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "[i]Murmurate[/i] is byfar the best move for neutral in Crow Charmer's kit. Its extreme speed and range make it a powerful prediction tool, as well as an amazing call out tool. As well as that, it's an incredibly safe poke as long as the user keeps a safe distance. This is best done by positioning oneself and poking with [i]Murmurate[/i]'s longest hitbox, then immediately S keying if blocked.",
+            "On hit from a far range, it can immediately be canceled with [i]Spatial Transference[/i], allowing Crow Charmer to immediately follow up with the true ragdoll by using another move. This is best done by using [i]Spatial Transference↑[/i], then [i]Impetus Updraft[/i] or [i]Circling[/i] ([color=#ffcc00]Yellow[/color])",
+            "Similar to the previous on hit, hitting it close range allows you to use [i]Spatial Transference[/i] to follow up with [i]Dive-Bomb[/i] or [i]Bounding[/i]. Air updraft however is fairly inconsistent."
+          ],
+          "author": ""
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "COMBO EXTENSION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "Byfar, this move is amazing at catching her rather high knockback moves. Meaning [i]Circling[/i] and double use [i]Impetus Updraft[/i]. It can also catch [i]Air Updraft[/i]'s knockback, but requires [i]Spatial Transference↑[/i] to be used first.",
+            "As previously mentioned, follow ups after this move are done with [i]Spatial Transference[/i]. After using its forward variant, [i]Circling[/i] and [i]Impetus Updraft[/i] is most consistent. After using its neutral variant, [i]Dive-Bomb[/i] and [i]Bounding[/i] is most consistent"
+          ],
+          "author": ""
+        }
+      ],
+      "bird_strike": [],
+      "bird_control": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Crow Charmer calls a bird to attack the player she's targeting with her cursor. Crow Charmer can act freely during this move and the bird will not disappear if she is stunned, only if she is ragdolled. "
+          ]
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "If Crow Charmer is moving backwards, the bird will launch the opponent downwards.",
+            "This move will swarm around a grabbed player, most notably from [i]Bounding[/i] or [i]Dive-Bomb[/i]."
+          ],
+          "author": ""
+        },
+        {
+          "size": "h2",
+          "type": "heading",
+          "align": "center",
+          "content": "USE CASES"
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "COMBO STARTING/NEUTRAL APPLICATION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "Same benefits as [i]Bird Control↑[/i], however, it not replenishing R special as well as its less favorable ragdoll duration makes it notably less viable."
+          ],
+          "author": ""
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "COMBO EXTENSION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "Extremely crucial combo tool that allows her to quicken combos and fit more damage into them. Since all of her moves hit on grounded, it never hurts to use in the middle of one.",
+            "As with [i]Bird Control↑[/i], it allows her to movestack the bird into other skills. As long as it's used before the follow up. The best use case of this is with [i]Dive-Bomb[/i], allowing her to immediately hit the opponent as soon as the skill ends."
+          ],
+          "author": ""
+        }
+      ],
+      "aerial-circling": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Crow Charmer flies forward, grabbing her opponent with her axe before slamming down into the ground. Then, the opponent is knocked up vertically.",
+            ""
+          ]
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "items": [
+            "The damage of the slam increases when it falls a far enough distance. This move cannot be cancelled using [i]Spatial Transference[/i].",
+            "The grab hitbox of [i]Dive-Bomb[/i] is immensely large, making it extremely consistent for air combos/follow ups."
+          ],
+          "author": ""
+        },
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "This move is entirely uncancelable via [i]Spaital Transference[/i]."
+          ]
+        },
+        {
+          "size": "h2",
+          "type": "heading",
+          "align": "center",
+          "content": "USE CASES"
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "COMBO STARTING/NEUTRAL APPLICATION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "While being fairly minor, [i]Dive-Bomb[/i]'s initial grab can be used at a lower range after something such as a headtap, [i]Spatial Transference[/i], or [i]Bird Control[/i].",
+            "In the case of Crow Charmer whiffing this move, attempt to turn around with the initial forward velocity and avoid someone's block. This greatly reduces it's punishability. "
+          ],
+          "author": ""
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "COMBO EXTENSION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "[i]Dive-Bomb[/i] combos flawlessly after all of her moves. After [i]Air Updraft[/i] she can do R↑, [i]Flock[/i]. After which, [i]Dive-Bomb[/i] will get it's max height. It can also be done after [i]Bird Control↑[/i], Murmurate, single use [i]Impetus Updraft[/i], [i]Bounding[/i], and [i]Flock[/i]. All of which requiring [i]Spatial Transference[/i] to be used first.",
+            "Comboing after the move is done by either waiting for them to fall, or using [i]Spatial Transference[/i] to follow up with [i]Flock/Bounding[/i] or [i]Air Updraft[/i]."
+          ],
+          "author": ""
+        }
+      ],
+      "impetus-updraft": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Crow Charmer quickly swings her axe upwards, launching opponents into the air. This move cannot be cancelled with [i]Spatial Transference[/i] if you miss the swing.",
+            "",
+            "Fast startup with a very large upwards hitbox, but leaves a lot to be desired horizontally and downwards. This means just a tiny bit of rubble can completely mess up Crow Charmer's combo. With Impetus also having some of the highest [noauto]whiff endlag[/noauto] of any base attacking move, Crow Charmer will need to be very wary of how and when she uses this attack against an enemy. The endlag also makes it a poor option in M1 trading. As well as the fact that Crow Charmer cannot feint after the hitbox comes out.",
+            "",
+            "Impetus Updraft is unpunishable on hit when used out of M1s. It's technically punishable on hit on a ragdolled enemy and on reaction, but it is very rare for an opponent to be able to do this to Crow Charmer consistently. An opponent who knows how to face her will likely choose to save their evasive for more useful areas, like predicting an upwards Spatial Transference."
+          ]
+        },
+        {
+          "note": "Quick combo that will catch those who are not ready to evasive punish the teleport.",
+          "type": "combo",
+          "align": "left",
+          "author": "",
+          "damage": "35",
+          "sequence": [
+            "m1s (x3)",
+            "Impetus Updraft",
+            "R↑",
+            "Dive Bomb",
+            "..."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Additionally, with correct positioning on a ragdolled opponent, Crow Charmer can surf and lead into a Bounding [i]without[/i] the use of a Spatial Transference. Useful, if she wants to go into some Bounding loops.",
+            "",
+            "Overall, single-use Impetus Updraft finds itself to be much [i]less[/i] valuable to the Crow Charmer gameplan than Air Updraft or double-use Impetus."
+          ]
+        }
+      ],
+      "bird-control-attack": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Crow Charmer calls a bird to attack the player she's targeting with her cursor. Crow Charmer can act freely during this move and the bird will not disappear if she is stunned, only if she is ragdolled. "
+          ]
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "items": [
+            "If Crow Charmer is moving forwards, the bird will launch the opponent upwards and not hit grounded ragdoll.",
+            "This move will swarm around a grabbed player, most notably from [i]Bounding[/i] or [i]Dive-Bomb[/i].",
+            "This move can only hit upwards ragdoll.",
+            "Its ragdoll time is set, similar to bounding."
+          ],
+          "author": ""
+        },
+        {
+          "size": "h2",
+          "type": "heading",
+          "align": "center",
+          "content": "USE CASES"
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "COMBO STARTING/NEUTRAL APPLICATION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "[i]Bird-Control↑[/i] is an amazing M1 trading tool. Due to the fact it still triggers if Crow charmer is stunned after its use, being extra block pressure, and the fact it allows her to get out of bad/disadvantageous situations.",
+            "It's far better to use in neutral over [i]Bird Control↓[/i] due to the fact that, on hit, it replenishes R special."
+          ],
+          "author": ""
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "COMBO EXTENSION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "Due to the fact it can't hit grounded ragdoll, its combo potential is heavily limited. However, it's possible to use after an uppercut or bounding.",
+            "If Crow Charmer uses [i]Bird Control↑[/i] before a move, it allows it to seamlessly connect."
+          ],
+          "author": ""
+        }
+      ],
+      "spatial-transference": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Crow Charmer calls her brother to use his cursed technique to teleport her in a direction. She can teleport forwards, backwards, left, or right depending on which direction she is moving when she uses the move. If she uses [i]Spatial Transference[/i] while not holding any directional button she will teleport upwards into the air if she is on the ground, and downwards onto the ground if she is in the air.",
+            "",
+            "Crow Charmer can cancel any of her moves into [i]Spatial Transference[/i] (with exceptions, written in each moves description) until they are blocked. When Crow Charmer lands any move (except Bounding and backwards Bird Control), this move will be taken off cooldown.",
+            "",
+            "Due to these properties, [i]Spatial Transference[/i] is what enables most of Crow Charmer's air combos. It is also a potent mixup option due to its fast speed and ambiguity."
+          ]
+        }
+      ],
+      "bird-control-movement": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Crow Charmer grabs onto a crow and uses it to hover in the air for a short time before letting go of it."
+          ]
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "items": [
+            "If used again, the move will cancel early.",
+            "If Crow Charmer cancels the move during the flight using [i]Spatial Transference[/i], Bird Control will not be put on cooldown and can be used again.",
+            "The move can be used again if a directional variant (↑/↓) is used, causing it to then lock onto a selected target."
+          ],
+          "author": ""
+        },
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Evil things occur if you immediately feint this move."
+          ]
+        },
+        {
+          "size": "h2",
+          "type": "heading",
+          "align": "center",
+          "content": "USE CASES"
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "NEUTRAL APPLICATION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "This moves neutral application is entirely dependent on the users ability to approach with M1s. By using it to mixup her landing in various ways as mentioned above, its essentially a mind game for whoever the Crow Charmer is fighting.",
+            "If disengaging or repositioning, it's advised to feint it to replenish itss cooldown.",
+            "If approaching, it's advised to at some point cancel the bird early by locking it onto a opponent."
+          ],
+          "author": ""
+        }
+      ],
+      "crow-charmer-downslam": [],
+      "crow-charmer-first-m1": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Does not hit ragdolls."
+          ]
+        }
+      ],
+      "crow-charmer-third-m1": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Does not hit ragdolls."
+          ]
+        }
+      ],
+      "crow-charmer-uppercut": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Crow Charmer’s Uppercut launches the opponent much higher than usual."
+          ]
+        }
+      ],
+      "high-aerial-murmurate": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Crow Charmer stalls in the air and slams down with her axe, launching opponents straight into the ground. Upon hitting the ground, the opponent will be bounced back up to Crow Charmer's elevation. ",
+            ""
+          ]
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "Activates when using [i]Murmurate[/i] above a certain height threshold, slightly higher than [i]Spatial Transference[/i]."
+          ],
+          "author": ""
+        },
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Due to how the move is coded, it flings anyone hit by it that's above the JJS map. This means it affects any map in ranked other than the grasslands."
+          ]
+        },
+        {
+          "size": "h2",
+          "type": "heading",
+          "align": "center",
+          "content": "USE CASES"
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "COMBO EXTENSION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "[i]Freefall[/i] is fairly specific. It's conditions can't be fulfilled all that easily compared to her other moves. However, it can be used after bounding in most cases. Usually after [i]Circling[/I] ([color=#ff0000]Red[/color] or [color=#ffdf00]Yellow[/color] charge), [i]Dive-Bomb[/i], single use [i]Impetus Updraft[/i], and uppercut. All of which possible after [i]Spatial Transference[/i].",
+            "Comboing after is fairly simple. Just by using [i]Spatial Transference[/i], Crow Charmer can immediately go back down to follow up with any move. If she wants to continue it midair, [i]Dive-Bomb[/i] is most consistent. She can also movestack with [i]Bird Control↑/↓[/i] to make follow ups easier. If downslam bird is used, she can immediately teleport downwards to quickly follow up."
+          ],
+          "author": ""
+        },
+        {
+          "size": "h2",
+          "type": "heading",
+          "align": "center",
+          "content": "NOTABLE CONS"
+        },
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "For Crow Charmer, this move is rarely used due to the fact it's both unoptimal damage wise and has fairly unfavorable knockback. It's mostly delegated to style."
+          ]
+        }
+      ],
+      "aerial-impetus-updraft": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Crow Charmer[color=hsl(233, 39%, 23%)][/color] swings her axe in a diagonal arc, hitting any opponent above her and knocking them in a arc.",
+            "",
+            "During the swing, the move cannot be feinted with [i]Spatial Transference[/i] unless it hits anyone.",
+            "",
+            "Due to it's nature as an air exclusive move, as long as it's fairly unwelcoming hitbox, it's exclusively a combo extender. However, by no means is it a bad one. By using it, [color=hsl(233, 39%, 23%)]Crow Charmer[/color] able to consistently link with other moves via the use of [i]Flock[/i], and creates a path to use max height [i]Dive-Bomb[/i]. On top of that, it has extremely low punishability due to it's fast [color=hsl(217, 91%, 60%)]startup[/color] and high knockback."
+          ]
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "center",
+          "content": "USE CASES"
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "COMBO EXTENSION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "[i]Air Updraft[/i] is an amazing combo extender, due to how easily it links into other moves as well as it's ability to achieve max height [i]Dive-Bomb[/i]. This key factor allows it to surpass grounded combo routes.",
+            "Following up with [i]Air Updraft[/i] is possible after an uppercut, [i]Dive-Bomb[/i], [i]Bird Control(W)[/i], and sometimes [i]Murmurate[/i]. Extending after [i]Murmurate[/i] requires the ragdolled player to be hit higher, because if it's used when they're too low it'll whiff. It's advised to stick to using the former 3 options.",
+            "Follow ups after [i]Air Updraft[/i] are capable of is [i]Flock[/i] and [i]Murmurate[/i]. Both of these require the usage of [i]Spatial Transference(W)[/i]."
+          ],
+          "author": ""
+        }
+      ],
+      "crow-charmer-fourth-m1": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Crow Charmer’s fourth M1 is extremely slow and easy to punish compared to other characters.",
+            "",
+            "Never use this over uppercut. Or in general. There’s no point."
+          ]
+        }
+      ],
+      "crow-charmer-second-m1": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Does not hit ragdolls."
+          ]
+        }
+      ],
+      "impetus-updraft-use-twice": [
+        {
+          "type": "paragraph",
+          "align": "left",
+          "content": [
+            "Crow Charmer swings her axe and additional two times, the first juggling while the second knocks them away.",
+            "",
+            "It's fairly high damage makes it great in combos, however it's main flaw is the fact it has trouble linking into max height [i]Dive-Bomb[/i] due to it sacrificing [i]Air Updraft[/i].",
+            "",
+            "Unlike single-use Impetus, this move can be cancelled with a Spatial Transference [i]after[/i] the hitbox comes out, letting Crow Charmer bail out of it to bait evasive, or reposition entirely for another interaction."
+          ]
+        },
+        {
+          "size": "h2",
+          "type": "heading",
+          "align": "center",
+          "content": "USE CASES"
+        },
+        {
+          "size": "h3",
+          "type": "heading",
+          "align": "left",
+          "content": "COMBO EXTENSION"
+        },
+        {
+          "type": "list",
+          "align": "left",
+          "boxed": false,
+          "items": [
+            "Double use [i]Impetus Updraft[/i] can be extended with after any move in her kit. Other than [i]Flock[/i] and [i]Bounding[/i], they're all extremely consistent to combo afterwards.",
+            "Comboing [b]after[/b] double use [i]Impetus Updraft[/i] can be done with [i]Spatial Transference↑[/i]. After using the teleport, Circling (or [color=#ffdf00]Yellow[/color]) and Murmurate are amazing follow ups.",
+            "Another follow up it has that's rather precise is [i]Flock[/i]. By teleporting, jumping, and immediately using [i]Flock[/i], she can land the grab portion and immediately follow up with [i]Dive-bomb[/i]."
+          ],
+          "author": ""
+        }
+      ]
+    }
+  },
+  "frame_data": {
+    "m1s": [
+      {
+        "id": "crow-charmer-first-m1",
+        "name": "First M1",
+        "type": "Basic Attack",
+        "input": "M1",
+        "media": {
+          "alt": "",
+          "src": ""
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "3"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          },
+          {
+            "label": "Punishability",
+            "value": "Safe (12f)",
+            "isHighlighted": true
+          }
+        ],
+        "variant": "Standard Variant",
+        "variants": {
+          "block": {
+            "bars": [
+              {
+                "type": "single",
+                "phases": [
+                  {
+                    "label": "Startup: 14f",
+                    "duration": 14,
+                    "styleClass": "bg-tick-start"
+                  },
+                  {
+                    "label": "Active Hitbox: 1f",
+                    "duration": 1,
+                    "styleClass": "bg-tick-active"
+                  },
+                  {
+                    "label": "Block Endlag: 11f",
+                    "duration": 11,
+                    "styleClass": "bg-tick-blockendlag"
+                  }
+                ],
+                "headerInfo": "M1 duration on Block (26f)"
+              }
+            ],
+            "label": "On Block",
+            "totalScale": 40,
+            "inlineLegend": [
+              {
+                "text": "Startup (14f)",
+                "color": "hsl(217.18, 100%, 50%)"
+              },
+              {
+                "text": "Active Hitbox (1f)",
+                "color": "hsl(0, 100%, 45%)"
+              },
+              {
+                "text": "Block Endlag (11f)",
+                "color": "hsl(319.73, 88.24%, 50%)"
+              }
+            ]
+          },
+          "hit/whiff": {
+            "bars": [
+              {
+                "type": "single",
+                "phases": [
+                  {
+                    "label": "Startup: 14f",
+                    "duration": 14,
+                    "styleClass": "bg-tick-start"
+                  },
+                  {
+                    "label": "Active Hitbox: 1f",
+                    "duration": 1,
+                    "styleClass": "bg-tick-active"
+                  },
+                  {
+                    "label": "Recovery: 5f",
+                    "duration": 5,
+                    "styleClass": "bg-tick-recov"
+                  }
+                ],
+                "headerInfo": "M1 duration (20f)"
+              }
+            ],
+            "label": "On Hit/On Whiff",
+            "totalScale": 40,
+            "inlineLegend": [
+              {
+                "text": "Startup (14f)",
+                "color": "hsl(217.18, 100%, 50%)"
+              },
+              {
+                "text": "Active Hitbox (1f)",
+                "color": "hsl(0, 100%, 45%)"
+              },
+              {
+                "text": "Recovery (5f)",
+                "color": "hsl(295, 89.76%, 50.2%)"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "crow-charmer-second-m1",
+        "name": "Second M1",
+        "type": "Basic Attack",
+        "input": "M1 x2 or Hold M1",
+        "media": {
+          "alt": "",
+          "src": ""
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "3"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          },
+          {
+            "label": "Punishability",
+            "value": "Safe (12f)",
+            "isHighlighted": false
+          }
+        ],
+        "variant": "Standard Variant",
+        "variants": {
+          "block": {
+            "bars": [
+              {
+                "type": "single",
+                "phases": [
+                  {
+                    "label": "Startup: 14f",
+                    "duration": 14,
+                    "styleClass": "bg-tick-start"
+                  },
+                  {
+                    "label": "Active Hitbox: 1f",
+                    "duration": 1,
+                    "styleClass": "bg-tick-active"
+                  },
+                  {
+                    "label": "Block Endlag: 11f",
+                    "duration": 11,
+                    "styleClass": "bg-tick-blockendlag"
+                  }
+                ],
+                "headerInfo": "M1 duration on Block (26f)"
+              }
+            ],
+            "label": "On Block",
+            "totalScale": 40,
+            "inlineLegend": [
+              {
+                "text": "Startup (14f)",
+                "color": "hsl(217.18, 100%, 50%)"
+              },
+              {
+                "text": "Active Hitbox (1f)",
+                "color": "hsl(0, 100%, 45%)"
+              },
+              {
+                "text": "Block Endlag (11f)",
+                "color": "hsl(319.73, 88.24%, 50%)"
+              }
+            ]
+          },
+          "hit/whiff": {
+            "bars": [
+              {
+                "type": "single",
+                "phases": [
+                  {
+                    "label": "Startup: 14f",
+                    "duration": 14,
+                    "styleClass": "bg-tick-start"
+                  },
+                  {
+                    "label": "Active Hitbox: 1f",
+                    "duration": 1,
+                    "styleClass": "bg-tick-active"
+                  },
+                  {
+                    "label": "Recovery: 5f",
+                    "duration": 5,
+                    "styleClass": "bg-tick-recov"
+                  }
+                ],
+                "headerInfo": "M1 duration (20f)"
+              }
+            ],
+            "label": "On Hit/On Whiff",
+            "totalScale": 40,
+            "inlineLegend": [
+              {
+                "text": "Startup (14f)",
+                "color": "hsl(217.18, 100%, 50%)"
+              },
+              {
+                "text": "Active Hitbox (1f)",
+                "color": "hsl(0, 100%, 45%)"
+              },
+              {
+                "text": "Recovery (5f)",
+                "color": "hsl(295, 89.76%, 50.2%)"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "crow-charmer-third-m1",
+        "name": "Third M1",
+        "type": "Basic Attack",
+        "input": "M1 x3 or Hold M1",
+        "media": {
+          "alt": "",
+          "src": ""
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "4"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          },
+          {
+            "label": "Punishability",
+            "value": "Safe (12f)",
+            "isHighlighted": true
+          }
+        ],
+        "variant": "Standard Variant",
+        "variants": {
+          "block": {
+            "bars": [
+              {
+                "type": "single",
+                "phases": [
+                  {
+                    "label": "Startup: 12f",
+                    "duration": 14,
+                    "styleClass": "bg-tick-start"
+                  },
+                  {
+                    "label": "Active Hitbox: 1f",
+                    "duration": 1,
+                    "styleClass": "bg-tick-active"
+                  },
+                  {
+                    "label": "Block Endlag: 11f",
+                    "duration": 11,
+                    "styleClass": "bg-tick-blockendlag"
+                  }
+                ],
+                "headerInfo": "M1 duration on Block (26f)"
+              }
+            ],
+            "label": "On Block",
+            "totalScale": 40,
+            "inlineLegend": [
+              {
+                "text": "Startup (14f)",
+                "color": "hsl(217.18, 100%, 50%)"
+              },
+              {
+                "text": "Active Hitbox (1f)",
+                "color": "hsl(0, 100%, 45%)"
+              },
+              {
+                "text": "Block Endlag (11f)",
+                "color": "hsl(319.73, 88.24%, 50%)"
+              }
+            ]
+          },
+          "hit/whiff": {
+            "bars": [
+              {
+                "type": "single",
+                "phases": [
+                  {
+                    "label": "Startup: 14f",
+                    "duration": 14,
+                    "styleClass": "bg-tick-start"
+                  },
+                  {
+                    "label": "Active Hitbox: 1f",
+                    "duration": 1,
+                    "styleClass": "bg-tick-active"
+                  },
+                  {
+                    "label": "Recovery: 5f",
+                    "duration": 5,
+                    "styleClass": "bg-tick-recov"
+                  }
+                ],
+                "headerInfo": "M1 duration (20f)"
+              }
+            ],
+            "label": "On Hit/On Whiff",
+            "totalScale": 40,
+            "inlineLegend": [
+              {
+                "text": "Startup (14f)",
+                "color": "hsl(217.18, 100%, 50%)"
+              },
+              {
+                "text": "Active Hitbox (1f)",
+                "color": "hsl(0, 100%, 45%)"
+              },
+              {
+                "text": "Recovery (5f)",
+                "color": "hsl(295, 89.76%, 50.2%)"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "crow-charmer-fourth-m1",
+        "name": "Fourth M1",
+        "type": "Basic Attack",
+        "input": "M1 x4 or Hold M1",
+        "media": {
+          "alt": "",
+          "src": ""
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "4"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          }
+        ],
+        "variant": "Ground Variant",
+        "variants": {}
+      },
+      {
+        "id": "crow-charmer-uppercut",
+        "name": "Uppercut",
+        "type": "Basic Attack",
+        "input": "Space + M1",
+        "media": {
+          "alt": "Uppercut animation",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/crowcharmer_uppercut.png"
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "4"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          }
+        ],
+        "variant": "Standard Variant",
+        "variants": {}
+      },
+      {
+        "id": "crow-charmer-downslam",
+        "name": "Downslam",
+        "type": "Basic Attack",
+        "input": "Air + M1",
+        "media": {
+          "alt": "Downslam animation",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/crowcharmer-downslam.png"
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "4"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          },
+          {
+            "label": "Blockbreak",
+            "value": "True"
+          }
+        ],
+        "variant": "Standard Variant",
+        "variants": {}
+      }
+    ],
+    "skills": [
+      {
+        "id": "impetus-updraft",
+        "name": "Impetus Updraft",
+        "type": "Skill",
+        "input": "1",
+        "media": {
+          "alt": "",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/Impetus1-converted.webm",
+          "width": 592,
+          "height": 536
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "11"
+          },
+          {
+            "label": "Cooldown",
+            "value": "16"
+          },
+          {
+            "label": "Blockable?",
+            "value": "Yes"
+          },
+          {
+            "label": "Hits Grounded Ragdoll?",
+            "value": "Yes"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          }
+        ],
+        "variant": "Standard",
+        "variants": {},
+        "damageType": "Melee"
+      },
+      {
+        "id": "impetus-updraft-use-twice",
+        "name": "Impetus Updraft",
+        "type": "Skill",
+        "input": "1 + 1",
+        "media": {
+          "alt": "",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/Impetus2-converted.webm",
+          "width": 616,
+          "height": 536
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "6 (3 + 3)"
+          },
+          {
+            "label": "Cooldown",
+            "value": "16"
+          },
+          {
+            "label": "Blockable?",
+            "value": "Yes"
+          },
+          {
+            "label": "Hits Grounded Ragdoll?",
+            "value": "Yes"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          }
+        ],
+        "variant": "Use Twice",
+        "variants": {},
+        "damageType": "Melee"
+      },
+      {
+        "id": "aerial-impetus-updraft",
+        "name": "Air Updraft",
+        "type": "Skill",
+        "input": "1",
+        "media": {
+          "alt": "",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/2026-09-22%2017-32-54.webm",
+          "width": 1920,
+          "height": 1080
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "14"
+          },
+          {
+            "label": "Cooldown",
+            "value": "16"
+          },
+          {
+            "label": "Blockable",
+            "value": "Yes"
+          },
+          {
+            "label": "Hits Grounded Ragdoll?",
+            "value": "Yes"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          }
+        ],
+        "variant": "Aerial",
+        "variants": {},
+        "damageType": "Melee"
+      },
+      {
+        "id": "circling",
+        "name": "Circling",
+        "type": "Skill",
+        "input": "2",
+        "media": {
+          "alt": "",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/Circling-converted.webm",
+          "width": 592,
+          "height": 512
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "6, 8",
+            "isHighlighted": false
+          },
+          {
+            "label": "Cooldown",
+            "value": "18"
+          },
+          {
+            "label": "Blockable?",
+            "value": "Yes"
+          },
+          {
+            "label": "Hits Grounded Ragdoll?",
+            "value": "Yes"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          }
+        ],
+        "variant": "Hold",
+        "variants": {},
+        "damageType": "Melee"
+      },
+      {
+        "id": "aerial-circling",
+        "name": "Dive-Bomb",
+        "type": "Skill",
+        "input": "2",
+        "media": {
+          "alt": "",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/2026-10-11%2010-30-56.webm",
+          "width": 1920,
+          "height": 1080
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "6, 4 (+4-8 for height)"
+          },
+          {
+            "label": "Cooldown",
+            "value": "18"
+          },
+          {
+            "label": "Blockable?",
+            "value": "Yes"
+          },
+          {
+            "label": "Hits Grounded Ragdoll?",
+            "value": "Yes"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          }
+        ],
+        "variant": "Aerial",
+        "variants": {},
+        "damageType": "Melee"
+      },
+      {
+        "id": "murmurate",
+        "name": "Murmurate",
+        "type": "Skill",
+        "input": "3",
+        "media": {
+          "alt": "",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/Murmurate-converted.webm",
+          "width": 604,
+          "height": 524
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "14 (9 + 5)"
+          },
+          {
+            "label": "Cooldown",
+            "value": "16"
+          },
+          {
+            "label": "Blockable?",
+            "value": "Yes"
+          },
+          {
+            "label": "Hits Grounded Ragdoll?",
+            "value": "Yes"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          }
+        ],
+        "variant": "Standard",
+        "variants": {},
+        "damageType": "Melee"
+      },
+      {
+        "id": "high-aerial-murmurate",
+        "name": "Free Fall",
+        "type": "Skill",
+        "input": "3",
+        "media": {
+          "alt": "",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/2026-10-11%2010-31-34.webm",
+          "width": 1920,
+          "height": 1080
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "12"
+          },
+          {
+            "label": "Cooldown",
+            "value": "16"
+          },
+          {
+            "label": "Blockable?",
+            "value": "No"
+          },
+          {
+            "label": "Hits Ragdoll?",
+            "value": "Yes"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          }
+        ],
+        "variant": "Aerial",
+        "variants": {},
+        "damageType": "Melee"
+      },
+      {
+        "id": "bird-control-movement",
+        "name": "Bird Control",
+        "type": "Skill",
+        "input": "4",
+        "media": {
+          "alt": "",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/2026-10-11%2016-11-54.webm",
+          "width": 1920,
+          "height": 1080
+        },
+        "stats": [
+          {
+            "label": "Cooldown",
+            "value": "18"
+          }
+        ],
+        "variant": "Directional; Left, Right, Idle",
+        "variants": {},
+        "damageType": "None"
+      },
+      {
+        "id": "bird-control-attack",
+        "name": "Bird Control (↑)",
+        "type": "Skill",
+        "input": "↑ 4",
+        "media": {
+          "alt": "",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/2026-10-11%2016-57-58.webm",
+          "width": 1920,
+          "height": 1080
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "6"
+          },
+          {
+            "label": "Cooldown",
+            "value": "18"
+          },
+          {
+            "label": "Blockable?",
+            "value": "Yes"
+          },
+          {
+            "label": "Hits Grounded Ragdoll?",
+            "value": "No"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Bullet"
+          },
+          {
+            "label": "Hits Upwards Ragdoll?",
+            "value": "Yes",
+            "isHighlighted": false
+          }
+        ],
+        "variant": "Directional; Forwards",
+        "variants": {},
+        "damageType": "Bullet"
+      },
+      {
+        "id": "bird_control",
+        "bars": [],
+        "name": "Bird Control (↓)",
+        "type": "Skill",
+        "input": "↓ 4",
+        "media": {
+          "alt": "",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/2026-10-11%2016-59-33.webm",
+          "width": 1920,
+          "height": 1080
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "8"
+          },
+          {
+            "label": "Cooldown",
+            "value": "18"
+          },
+          {
+            "label": "Blockable?",
+            "value": "Yes"
+          },
+          {
+            "label": "Hits grounded ragdoll?",
+            "value": "Yes"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Bullet"
+          }
+        ],
+        "variant": "Directional; Backwards",
+        "variants": {},
+        "damageType": "Bullet",
+        "totalScale": 100
+      },
+      {
+        "id": "flock",
+        "bars": [
+          {
+            "type": "single",
+            "phases": [],
+            "headerInfo": "Track 1"
+          }
+        ],
+        "name": "Flock",
+        "type": "Attack",
+        "input": "Chase (Q)",
+        "media": {
+          "alt": "",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/2026-10-11%2018-26-17.webm",
+          "width": 1920,
+          "height": 1080
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "5"
+          },
+          {
+            "label": "Cooldown",
+            "value": "10"
+          },
+          {
+            "label": "Blockable?",
+            "value": "Yes"
+          },
+          {
+            "label": "Hits grounded ragdoll?",
+            "value": "No"
+          },
+          {
+            "label": "Damage Type",
+            "value": "Melee"
+          }
+        ],
+        "variant": "Air Variant; Chase",
+        "variants": {},
+        "damageType": "Melee",
+        "totalScale": 100
+      }
+    ],
+    "specials": [
+      {
+        "id": "spatial-transference",
+        "name": "Spatial Transference",
+        "type": "",
+        "input": "",
+        "media": {
+          "alt": "",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/SpatialTranserence-converted.webm",
+          "width": 578,
+          "height": 524
+        },
+        "stats": [
+          {
+            "label": "Cooldown",
+            "value": "18"
+          }
+        ],
+        "variant": "",
+        "variants": {}
+      },
+      {
+        "id": "flock",
+        "bars": [
+          {
+            "type": "single",
+            "phases": [],
+            "headerInfo": "Track 1"
+          }
+        ],
+        "name": "Flock",
+        "type": "Attack",
+        "input": "Q",
+        "media": {
+          "alt": "",
+          "src": ""
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "5",
+            "isHighlighted": false
+          },
+          {
+            "label": "Cooldown",
+            "value": "10"
+          }
+        ],
+        "variant": "Aerial",
+        "variants": {},
+        "damageType": "Melee",
+        "totalScale": 100
+      },
+      {
+        "id": "bounding",
+        "bars": [
+          {
+            "type": "single",
+            "phases": [],
+            "headerInfo": "Track 1"
+          }
+        ],
+        "name": "Bounding",
+        "type": "Attack",
+        "input": "Q",
+        "media": {
+          "alt": "",
+          "src": ""
+        },
+        "stats": [
+          {
+            "label": "Damage",
+            "value": "3"
+          },
+          {
+            "label": "Cooldown",
+            "value": "2"
+          }
+        ],
+        "variant": "Close Aerial",
+        "variants": {},
+        "damageType": "Melee",
+        "totalScale": 100
+      }
+    ],
+    "characterId": "crow_charmer",
+    "ultimateAtk": [
+      {
+        "id": "bird_strike",
+        "bars": [
+          {
+            "type": "single",
+            "phases": [],
+            "headerInfo": "Track 1"
+          }
+        ],
+        "name": "Bird Strike",
+        "type": "Crow",
+        "input": "G",
+        "media": {
+          "alt": "",
+          "src": "https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/BirdStrike-converted.webm",
+          "width": 1042,
+          "height": 530
+        },
+        "stats": [
+          {
+            "label": "damage",
+            "value": "120"
+          },
+          {
+            "label": "kills you opponent?",
+            "value": "Unless they’re heian or something"
+          }
+        ],
+        "variants": {},
+        "damageType": "very explosive birb",
+        "totalScale": 100
+      }
+    ]
+  },
+  "page_type": "character",
+  "last_editor_name": "test fixture",
+  "tab_settings": {
+    "techs": true
+  }
+}
