@@ -156,7 +156,9 @@ function createPhase(phaseObj, totalScale) {
 
     // --- CUSTOM TOOLTIPS ---
     if (phaseObj.label || estimate || seconds !== null) {
-        let tooltipContent = `<strong>${phaseObj.label || (estimate ? estimate.label : '')}</strong>`;
+        // The tooltip is written as HTML (window.bindTooltip), and the label is
+        // contributor text.
+        let tooltipContent = `<strong>${window.escapeHtmlKeepBreaks(phaseObj.label || (estimate ? estimate.label : ''))}</strong>`;
 
         // Said in words as well as shown by the missing divisions, for the same
         // reason the estimate says so below: the hover is where somebody has
@@ -289,10 +291,12 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                 move.stats.forEach(stat => {
                     // FIXED: Replaced Tailwind with explicit CSS color
                     const highlightStyle = stat.isHighlighted ? 'color: #ef4444;' : '';
+                    // Contributor text, written into innerHTML: escaped, with
+                    // the <br> editors use for a second line kept.
                     statsHTML += `
                         <div class="stat-row">
-                            <span class="stat-label">${stat.label}</span> 
-                            <span class="stat-value" style="${highlightStyle}">${stat.value}</span>
+                            <span class="stat-label">${window.escapeHtmlKeepBreaks(stat.label)}</span>
+                            <span class="stat-value" style="${highlightStyle}">${window.escapeHtmlKeepBreaks(stat.value)}</span>
                         </div>`;
                 });
             } else {
@@ -371,7 +375,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                         </div>
                         <div class="skill-stats-box">${statsHTML}</div>
                     </div>
-                    <div class="skill-right-col" id="right-col-${move.id}"></div>
+                    <div class="skill-right-col" id="right-col-${window.escapeHtml(move.id || '')}"></div>
                 </div>
             `;
 
@@ -420,6 +424,10 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                     const safeMinWidth = `${dataNode.totalScale * 5}px`;
 
                     dataNode.bars.forEach(bar => {
+                        // headerClass is one of the editor's colour classes
+                        // (text-red-400 and so on), but it is stored data and
+                        // lands inside a class attribute.
+                        const headerClass = String(bar.headerClass || '').replace(/[^\w -]/g, '');
                         const barGroup = document.createElement('div');
                         if (bar.type === 'target') barGroup.className = 'bar-group-target';
 
@@ -429,7 +437,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                             const infoHeader = document.createElement('div');
                             infoHeader.className = 'bar-header-info';
                             if (bar.type === 'target') infoHeader.classList.add('bar-header-target');
-                            infoHeader.innerHTML = `<span class="${bar.headerClass || ''}">${headerText}</span>`;
+                            infoHeader.innerHTML = `<span class="${headerClass}">${window.escapeHtmlKeepBreaks(headerText)}</span>`;
                             barGroup.appendChild(infoHeader);
                         }
                         
@@ -494,7 +502,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                             infoFooter.className = 'bar-header-info'; // Reusing font styling class
                             infoFooter.style.marginTop = '0.25rem';  // Give it a gap from the timeline
                             infoFooter.style.marginBottom = '0.5rem';
-                            infoFooter.innerHTML = `<span class="${bar.headerClass || ''}">${bar.footerInfo}</span>`;
+                            infoFooter.innerHTML = `<span class="${headerClass}">${window.escapeHtmlKeepBreaks(bar.footerInfo)}</span>`;
                             barGroup.appendChild(infoFooter);
                         }
                         
@@ -538,10 +546,16 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
 
                             legendItem.style.cssText = "display: flex; align-items: flex-start; gap: 0.4rem;";
 
+                            // An inlineLegend is stored data, colour and text
+                            // both, so the colour is whitelisted (it lands in a
+                            // style attribute) and the text escaped.
+                            const color = (typeof window.safeColor === 'function' && window.safeColor(item.color)) || '#ffffff';
+                            const text = window.escapeHtmlKeepBreaks(item.text);
+
                             if (item.isWindow) {
-                                legendItem.innerHTML = `<span style="width: 0.6rem; height: 0.6rem; background: transparent; border: 2px solid ${item.color}; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); flex-shrink: 0; margin-top: 0.15rem;"></span><span>${item.text}</span>`;
+                                legendItem.innerHTML = `<span style="width: 0.6rem; height: 0.6rem; background: transparent; border: 2px solid ${color}; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); flex-shrink: 0; margin-top: 0.15rem;"></span><span>${text}</span>`;
                             } else {
-                                legendItem.innerHTML = `<span style="width: 0.6rem; height: 0.6rem; background: ${item.color}; border: 1px solid #000; flex-shrink: 0; margin-top: 0.15rem;"></span><span>${item.text}</span>`;
+                                legendItem.innerHTML = `<span style="width: 0.6rem; height: 0.6rem; background: ${color}; border: 1px solid #000; flex-shrink: 0; margin-top: 0.15rem;"></span><span>${text}</span>`;
                             }
                             legendGrid.appendChild(legendItem);
                         });
@@ -572,7 +586,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                         const btn = document.createElement('button');
                         btn.id = `tab-${childId}`;
                         btn.className = `btn-manga btn-manga-slanted btn-manga-gray ${index === 0 ? 'active' : ''}`;
-                        btn.innerHTML = `<div class="btn-manga-content"><span class="btn-manga-text">${childNode.label || key}</span></div>`;
+                        btn.innerHTML = `<div class="btn-manga-content"><span class="btn-manga-text">${window.escapeHtmlKeepBreaks(childNode.label || key)}</span></div>`;
                         tabBar.appendChild(btn);
 
                         const viewSection = document.createElement('div');
