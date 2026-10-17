@@ -132,6 +132,8 @@ On a draft the owner hands over: grammar and spelling only, keep their wording, 
 
 **The current version's devlog is its SPEC.** Design decisions recorded there come before building: read the whole section first (v0.15's Combos tab was built to an invented shape while the real one sat in the same file). `devlogs/` holds past versions; the current one is at the root (`V<x.y>-DEVLOG.md`).
 
+**The current devlog stays untracked until the release** (owner, 2026-10-18). Read it from disk. Never stage it in an item PR, and never run anything that deletes untracked files (`git clean`, `git stash -u`). It is committed, exactly as the owner wrote it, in the last PR into `next-update` before the release PR (the `ship-a-release` skill). If it ever cannot be read from disk, commit it in every PR instead.
+
 ## Conventions
 
 - **NEVER use an em-dash (`—`).** The owner banned it outright, 2026-09-21: *"I strictly ban the usage of the Em-dash"*. Every file and every message: site pages, commit messages, PR bodies, code comments, replies. A colon, full stop, comma or brackets always cover it. En-dashes only in numeric ranges (`#190–#199`). Older text still has them; don't sweep it in unrelated work.

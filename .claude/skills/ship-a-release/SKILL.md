@@ -11,13 +11,14 @@ Side effects: commits, a PR, a live deploy. Run it when asked, not on inference.
 ## Before the release PR
 
 1. **The version bump goes in the LAST item PR, not after it.** `data/site_meta.json` is generated from the `site_meta` row, so the bump is the owner's edit in owner tools (Site Meta -> VERSION) followed by `npm run refresh-content`. Direct pushes to `next-update` are rejected, so a bump found missing at release time needs a PR of its own (v0.17 lost a merge cycle to this). Ask the owner to set it before the last item PR, and let `refresh-content` ride in that PR.
-2. **The owner writes the entry, name included.** Give them the whole version's change notes in one list. Put their entry into `data/updates.json` as written, in the shape in the `writing-site-text` skill's [update-log.md](../writing-site-text/update-log.md). Fix only plain slips (v0.20: "every videos" to "every video") and list them.
-3. **Check the header and the entry agree:**
+2. **Commit the owner's devlog in that same last item PR.** `V<x.y>-DEVLOG.md` stays untracked until now; stage it exactly as they wrote it, with no edits.
+3. **The owner writes the entry, name included.** Give them the whole version's change notes in one list. Put their entry into `data/updates.json` as written, in the shape in the `writing-site-text` skill's [update-log.md](../writing-site-text/update-log.md). Fix only plain slips (v0.20: "every videos" to "every video") and list them.
+4. **Check the header and the entry agree:**
    ```bash
    node -e "console.log(require('./data/site_meta.json').version)"
    node -e "console.log(require('./data/updates.json').changelogs[0].version)"
    ```
-4. **Check no hotfix is stranded on `main`**: the back-merge check in `silent-release`.
+5. **Check no hotfix is stranded on `main`**: the back-merge check in `silent-release`.
 
 ## The release PR
 
