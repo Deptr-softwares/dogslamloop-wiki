@@ -76,6 +76,9 @@ function safeColor(raw) {
     const color = String(raw == null ? '' : raw).trim();
     return SAFE_COLOR_PATTERN.test(color) ? color : null;
 }
+// Shared with js/framedata.js, whose legend writes a stored colour into a
+// style attribute. It calls this at render time, after both files have loaded.
+window.safeColor = safeColor;
 
 
 // --- THE MULTICOLOUR SHORTCODE (v0.19 C6) ---------------------------------

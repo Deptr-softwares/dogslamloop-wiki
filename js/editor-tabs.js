@@ -219,11 +219,17 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             navHTML += `<span class="daw-empty-state">No moves mapped in this category yet.</span>`;
         } else {
             moves.forEach((m, idx) => {
+                // A move's id and name are stored data. They used to sit inside
+                // an inline onclick string, where escaping cannot help: the
+                // browser decodes &#39; back into a quote before the handler
+                // runs. So the id rides in a data- attribute and the listeners
+                // are attached below, once the markup exists.
+                const id = window.escapeHtml(m.id);
                 navHTML += `<div class="daw-tab-item">`;
-                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${idx === 0 ? 'active' : ''}" id="move-nav-${m.id}" onclick="loadMoveIntoEditor('${m.id}')">${m.name || m.id}</button>`;
+                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${idx === 0 ? 'active' : ''}" id="move-nav-${id}" data-move-load="${id}">${window.escapeHtml(m.name || m.id)}</button>`;
                 // Item 8: a move could only be appended, so putting one next to
                 // Skill 1 meant re-entering every skill after it.
-                navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeMove('${m.id}')" title="Remove Move">✖</button>`;
+                navHTML += `<button class="daw-tab-remove-btn" data-move-remove="${id}" title="Remove Move">✖</button>`;
                 navHTML += `</div>`;
             });
             window.registerInserter(`frame.${tabId}`, () => window.addMove());
@@ -236,6 +242,11 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             ${navHTML}
             <div id="move-editor-container"></div>
         `;
+
+        builder.querySelectorAll('[data-move-load]').forEach(btn =>
+            btn.addEventListener('click', () => loadMoveIntoEditor(btn.dataset.moveLoad)));
+        builder.querySelectorAll('[data-move-remove]').forEach(btn =>
+            btn.addEventListener('click', () => window.removeMove(btn.dataset.moveRemove)));
 
         if (moves.length > 0) {
             loadMoveIntoEditor(moves[0].id);
@@ -258,7 +269,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         const extras = window.currentEditorDescData.extras;
         extras.forEach((ext, idx) => {
             navHTML += `<div class="daw-tab-item">`;
-            navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="overview-nav-extra-${idx}" onclick="loadOverviewSectionIntoEditor('extra-${idx}')">${ext.title}</button>`;
+            navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="overview-nav-extra-${idx}" onclick="loadOverviewSectionIntoEditor('extra-${idx}')">${window.escapeHtml(ext.title)}</button>`;
             navHTML += `<button class="daw-tab-remove-btn" onclick="removeExtraTab(${idx})" title="Remove Tab">✖</button>`;
             navHTML += `</div>`;
         });
@@ -463,7 +474,7 @@ window.removeMove = async function(moveId) {
         }
 
         // 3. CRITICAL: Immediately purge the deleted move from the Live Preview DOM
-        const previewCard = document.querySelector(`.live-preview-pane #strategy-${moveId}`);
+        const previewCard = document.querySelector(`.live-preview-pane #strategy-${CSS.escape(String(moveId))}`);
         if (previewCard) previewCard.remove();
 
         // 4. Reload the UI
@@ -1615,7 +1626,7 @@ window.loadKeyedEntryIntoEditor = function(tabId, idx) {
 
     setTimeout(() => {
         const safeKey = String(entry[section.keyField] || 'Unknown').replace(/\s+/g, '-');
-        const previewCard = document.querySelector(`.live-preview-pane #${section.tab}-content-${safeKey}`);
+        const previewCard = document.querySelector(`.live-preview-pane #${section.tab}-content-${CSS.escape(String(safeKey))}`);
         if (previewCard) {
             previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
             previewCard.parentElement.style.outline = '2px solid var(--accent-blue)';
@@ -1684,7 +1695,7 @@ window.loadMatchupIntoEditor = function(idx) {
     renderMatchupsPreview();
 
     setTimeout(() => {
-        const previewCard = document.querySelector(`.live-preview-pane #matchup-content-${(matchup.opponent||'').replace(/\s+/g, '-')}`);
+        const previewCard = document.querySelector(`.live-preview-pane #matchup-content-${CSS.escape((matchup.opponent||'').replace(/\s+/g, '-'))}`);
         if (previewCard) {
             previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
             previewCard.parentElement.style.outline = '2px solid var(--accent-blue)';
@@ -1720,7 +1731,7 @@ window.loadMoveIntoEditor = async function(moveId) {
     const container = document.getElementById('move-editor-container');
     container.innerHTML = `
         <div class="editor-section-banner editor-section-banner-spaced">
-            <span class="editor-section-banner-text">1. STATS & FRAME DATA: ${moveStats?.name || moveId}</span>
+            <span class="editor-section-banner-text">1. STATS & FRAME DATA: ${window.escapeHtml(moveStats?.name || moveId)}</span>
         </div>
         <div id="daw-editor-target" class="daw-editor-target-spacing"></div>
 
@@ -1738,7 +1749,7 @@ window.loadMoveIntoEditor = async function(moveId) {
     }
 
     setTimeout(() => {
-        const previewCard = document.querySelector(`.live-preview-pane #strategy-${moveId}`);
+        const previewCard = document.querySelector(`.live-preview-pane #strategy-${CSS.escape(String(moveId))}`);
         if (previewCard) previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 150);
 };

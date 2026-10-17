@@ -2154,6 +2154,15 @@ window.escapeHtml = function(str) {
         .replace(/'/g, '&#39;');
 };
 
+// Contributor text that may carry the one tag editors type on purpose: <br>,
+// for a line break inside a stat value ("5 for kick<br>9 for distortion").
+// On 2026-10-18 production held 133 of them and no other tag anywhere in frame
+// data or profile stats. Everything is escaped, then only that tag is put back,
+// so a value can still break a line and can no longer add an element.
+window.escapeHtmlKeepBreaks = function(str) {
+    return window.escapeHtml(str).replace(/&lt;\s*\/?\s*br\s*\/?\s*&gt;/gi, '<br>');
+};
+
 window.initNotifications = async function() {
     if (!window.supabaseClient) return;
     const { data: { session } } = await window.supabaseClient.auth.getSession();

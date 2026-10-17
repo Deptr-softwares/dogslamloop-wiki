@@ -54,18 +54,22 @@ function initDawEditor(containerId, moveData) {
     }
 
     function renderDaw() {
+        // Every stored string below is contributor text written into innerHTML,
+        // so it is escaped where it is interpolated. A reviewer opening a ticket
+        // here is the person a crafted value would run as.
+        const esc = window.escapeHtml;
         let metaHtml = `
             <div class="block-editor-container block-editor-container-tight">
                 <div class="block-card">
                     <div class="block-header"><span class="block-type-badge">MOVE METADATA</span></div>
                     <div class="editor-row">
-                        <div><input type="text" class="editor-input meta-inp" data-field="name" value="${moveData.name || ''}" placeholder="Move Name"></div>
-                        <div><input type="text" class="editor-input meta-inp" data-field="input" value="${moveData.input || ''}" placeholder="Input (e.g. M1)"></div>
+                        <div><input type="text" class="editor-input meta-inp" data-field="name" value="${esc(moveData.name || '')}" placeholder="Move Name"></div>
+                        <div><input type="text" class="editor-input meta-inp" data-field="input" value="${esc(moveData.input || '')}" placeholder="Input (e.g. M1)"></div>
                     </div>
                     <div class="editor-row">
-                        <div><input type="text" class="editor-input meta-inp" data-field="type" value="${moveData.type || ''}" placeholder="Skill Type (e.g. Basic Attack)"></div>
-                        <div><input type="text" class="editor-input meta-inp" data-field="damageType" value="${moveData.damageType || ''}" placeholder="Damage Type (e.g. Melee, Bullet)"></div>
-                        <div><input type="text" class="editor-input meta-inp" data-field="variant" value="${moveData.variant || ''}" placeholder="Variant (e.g. Standard)"></div>
+                        <div><input type="text" class="editor-input meta-inp" data-field="type" value="${esc(moveData.type || '')}" placeholder="Skill Type (e.g. Basic Attack)"></div>
+                        <div><input type="text" class="editor-input meta-inp" data-field="damageType" value="${esc(moveData.damageType || '')}" placeholder="Damage Type (e.g. Melee, Bullet)"></div>
+                        <div><input type="text" class="editor-input meta-inp" data-field="variant" value="${esc(moveData.variant || '')}" placeholder="Variant (e.g. Standard)"></div>
                     </div>
                     <div class="editor-row mt-2">
                         <div><input type="text" class="editor-input meta-inp" data-field="media.src" value="${window.escapeHtml(moveData.media.src || '')}" placeholder="Media Src (e.g. /medias/images/m1.png)"></div>
@@ -94,8 +98,8 @@ function initDawEditor(containerId, moveData) {
         moveData.stats.forEach((stat, idx) => {
             statsHtml += `
                 <div class="editor-row editor-row-spaced-sm">
-                    <div><input type="text" class="editor-input stat-inp" data-idx="${idx}" data-field="label" value="${stat.label}" placeholder="Stat Name"></div>
-                    <div><input type="text" class="editor-input stat-inp" data-idx="${idx}" data-field="value" value="${stat.value}" placeholder="Stat Value"></div>
+                    <div><input type="text" class="editor-input stat-inp" data-idx="${idx}" data-field="label" value="${esc(stat.label)}" placeholder="Stat Name"></div>
+                    <div><input type="text" class="editor-input stat-inp" data-idx="${idx}" data-field="value" value="${esc(stat.value)}" placeholder="Stat Value"></div>
                     <div class="daw-stat-actions">
                         <label class="editor-checkbox-label"><input type="checkbox" class="stat-highlight" data-idx="${idx}" ${stat.isHighlighted ? 'checked' : ''}> Highlight</label>
                         <button class="add-block-btn btn-action-delete btn-del-stat daw-stat-del-btn" data-idx="${idx}" title="Remove Stat">✖</button>
@@ -130,11 +134,11 @@ function initDawEditor(containerId, moveData) {
                 let v = walkNode.variants[k];
                 let isActive = (k === activeKey);
                 let pathStr = JSON.stringify(activePath.slice(0, depth).concat(k));
-                variantTabsHtml += `<button class="daw-tab-btn ${isActive ? 'active' : ''}" onclick='window.setDawPath(${pathStr})'>${v.label || k}</button>`;
+                variantTabsHtml += `<button class="daw-tab-btn ${isActive ? 'active' : ''}" data-daw-path="${esc(pathStr)}">${esc(v.label || k)}</button>`;
             });
 
             let parentPathStr = JSON.stringify(activePath.slice(0, depth));
-            variantTabsHtml += `<button class="daw-tab-btn daw-tab-btn-add-variant" onclick='window.addDawVariant(${parentPathStr})'>+ ADD VARIANT</button></div>`;
+            variantTabsHtml += `<button class="daw-tab-btn daw-tab-btn-add-variant" data-daw-add-variant="${esc(parentPathStr)}">+ ADD VARIANT</button></div>`;
 
             if (activeKey && walkNode.variants[activeKey]) {
                 walkNode = walkNode.variants[activeKey];
@@ -184,7 +188,7 @@ function initDawEditor(containerId, moveData) {
                             <span class="daw-phase-block-duration">${
                                 seconds !== null
                                     ? window.escapeHtml(window.formatPhaseSeconds(seconds))
-                                    : (estimate ? '~' + window.escapeHtml(estimate.label) : p.duration + 'f')
+                                    : (estimate ? '~' + window.escapeHtml(estimate.label) : esc(p.duration) + 'f')
                             }</span>
                         </div>
                     `;
@@ -195,14 +199,14 @@ function initDawEditor(containerId, moveData) {
                         <div class="daw-track-header-row">
 
                             <div class="daw-track-input-row">
-                                <input type="text" class="editor-input daw-track-inp daw-track-inp-flex" data-bidx="${bIdx}" data-field="headerInfo" value="${bar.headerInfo || ''}" placeholder="Header Title (Top)">
+                                <input type="text" class="editor-input daw-track-inp daw-track-inp-flex" data-bidx="${bIdx}" data-field="headerInfo" value="${esc(bar.headerInfo || '')}" placeholder="Header Title (Top)">
                                 <button onclick="window.addDawPhase(${bIdx})" class="btn-sys btn-sys-green" title="Add Phase">+</button>
                                 <button onclick="window.deleteDawTrack(${bIdx})" class="btn-sys btn-sys-red" title="Delete Track">✖</button>
                             </div>
 
                             <div class="daw-track-input-row">
-                                <input type="text" class="editor-input daw-track-inp daw-track-inp-flex" data-bidx="${bIdx}" data-field="footerInfo" value="${bar.footerInfo || ''}" placeholder="Footer Title (Bottom)">
-                                <select class="editor-select daw-track-color daw-track-color-select ${bar.headerClass || ''}" data-bidx="${bIdx}">
+                                <input type="text" class="editor-input daw-track-inp daw-track-inp-flex" data-bidx="${bIdx}" data-field="footerInfo" value="${esc(bar.footerInfo || '')}" placeholder="Footer Title (Bottom)">
+                                <select class="editor-select daw-track-color daw-track-color-select ${esc(bar.headerClass || '')}" data-bidx="${bIdx}">
                                     <option value="" class="daw-option-default" ${!bar.headerClass ? 'selected' : ''}>Default</option>
                                     <option value="text-red-400" class="daw-option-red-400" ${bar.headerClass === 'text-red-400' ? 'selected' : ''}>Red (L)</option>
                                     <option value="text-red-600" class="daw-option-red-600" ${bar.headerClass === 'text-red-600' ? 'selected' : ''}>Red (D)</option>
@@ -286,7 +290,7 @@ function initDawEditor(containerId, moveData) {
                                         `<option value="${e.id}" ${p.estimate === e.id ? 'selected' : ''}>${window.escapeHtml(e.label)}</option>`
                                     ).join('')}
                                 </select>` : `
-                                <input type="number" class="editor-input" id="insp-duration" value="${p.duration || 0}">`)}
+                                <input type="number" class="editor-input" id="insp-duration" value="${esc(p.duration || 0)}">`)}
                             </div>
                         </div>
                         <div class="editor-row">
@@ -315,7 +319,7 @@ function initDawEditor(containerId, moveData) {
                         <div class="editor-row">
                             <div>
                                 <label class="editor-field-label-sm">Tooltip</label>
-                                <input type="text" class="editor-input" id="insp-label" value="${p.label || ''}">
+                                <input type="text" class="editor-input" id="insp-label" value="${esc(p.label || '')}">
                             </div>
                             <div>
                                 <label class="editor-field-label-sm daw-overlay-label-block">Overlays</label>
@@ -330,7 +334,7 @@ function initDawEditor(containerId, moveData) {
                         <div class="editor-row">
                             <div class="daw-inspector-field-flex1">
                                 <label class="editor-field-label-sm">Legend Description (Overrides the normal tooltip in the bottom Legend)</label>
-                                <input type="text" class="editor-input" id="insp-legend" value="${p.legendDesc || ''}" placeholder="e.g. Has Super Armor">
+                                <input type="text" class="editor-input" id="insp-legend" value="${esc(p.legendDesc || '')}" placeholder="e.g. Has Super Armor">
                             </div>
                         </div>
                     </div>
@@ -341,8 +345,8 @@ function initDawEditor(containerId, moveData) {
                 <div class="daw-container">
                     <div class="daw-container-header-row">
                         <div class="editor-row daw-container-header-meta">
-                            <input type="text" class="editor-input daw-variant-label-inp" placeholder="Variant Label" id="daw-variant-label" value="${currentObj.label || ''}">
-                            <input type="number" class="editor-input daw-variant-scale-inp" placeholder="Scale" id="daw-variant-scale" value="${totalScale}">
+                            <input type="text" class="editor-input daw-variant-label-inp" placeholder="Variant Label" id="daw-variant-label" value="${esc(currentObj.label || '')}">
+                            <input type="number" class="editor-input daw-variant-scale-inp" placeholder="Scale" id="daw-variant-scale" value="${esc(totalScale)}">
                         </div>
                         <div class="daw-container-header-actions">
                             <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red" title="Delete this Variant completely">✖ DELETE</button>
@@ -361,7 +365,7 @@ function initDawEditor(containerId, moveData) {
                     <p class="daw-branch-title">Variant Branch</p>
 
                     <div class="daw-branch-label-row">
-                        <input type="text" class="editor-input daw-branch-label-inp" placeholder="Branch Name" id="daw-variant-label" value="${currentObj.label || ''}">
+                        <input type="text" class="editor-input daw-branch-label-inp" placeholder="Branch Name" id="daw-variant-label" value="${esc(currentObj.label || '')}">
                     </div>
 
                     <p class="daw-branch-hint">Select a sub-variant from the tabs above to view or edit its timeline.</p>
@@ -375,7 +379,7 @@ function initDawEditor(containerId, moveData) {
                 <div class="daw-container daw-branch-empty-notice">
 
                     <div class="daw-branch-label-row">
-                        <input type="text" class="editor-input daw-branch-label-inp" placeholder="Variant Name" id="daw-variant-label" value="${currentObj.label || ''}">
+                        <input type="text" class="editor-input daw-branch-label-inp" placeholder="Variant Name" id="daw-variant-label" value="${esc(currentObj.label || '')}">
                     </div>
 
                     <p class="daw-branch-hint">This variant is currently empty.</p>
@@ -415,6 +419,13 @@ function initDawEditor(containerId, moveData) {
     }
 
     function bindDawEvents(container, currentObj) {
+        // Variant paths are built from stored variant keys, so they ride in
+        // data- attributes rather than an inline onclick (CLAUDE.md).
+        container.querySelectorAll('[data-daw-path]').forEach(btn =>
+            btn.addEventListener('click', () => window.setDawPath(JSON.parse(btn.dataset.dawPath))));
+        container.querySelectorAll('[data-daw-add-variant]').forEach(btn =>
+            btn.addEventListener('click', () => window.addDawVariant(JSON.parse(btn.dataset.dawAddVariant))));
+
         container.querySelectorAll('.meta-inp').forEach(inp => {
             inp.addEventListener('input', (e) => {
                 let field = e.target.dataset.field;
