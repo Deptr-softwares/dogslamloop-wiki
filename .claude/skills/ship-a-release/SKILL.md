@@ -1,6 +1,6 @@
 ---
 name: ship-a-release
-description: Ship work on this project - branch naming, devlog, changelog, Discord post, PR, and post-merge cleanup. Invoke by name when asked to ship, release, or open a PR.
+description: Ship work on this project - branch naming, change notes for the owner's devlog and changelog, the Discord post, PR, and post-merge cleanup. Invoke by name when asked to ship, release, or open a PR.
 disable-model-invocation: true
 ---
 
@@ -50,15 +50,44 @@ Taking a roadmap number for unplanned work forces a renumbering of everything af
 
 ## During the work
 
-Append to the current version's devlog at the repo root (`V0.N-DEVLOG.md`) as phases land: a short player-facing line first, then the technical detail. This is the source material for the changelog later.
+**The owner writes the devlog** (owner, 2026-10-18). Do not write in it. As each item lands, give the owner change notes (below) so they can record it. The current version's devlog is still the spec: read it before building.
 
 Full suite green after every phase. `npm test` and `npm run validate`.
 
+## Change notes
+
+The owner writes the Update Log and the devlogs. The job here is telling them
+exactly what changed, so they can. Give the notes in the reply when an item's PR
+opens, and put the same notes in the PR body so they stay findable. At release,
+give the whole version's notes in one list.
+
+Per change:
+
+**For the Update Log**
+- What a reader sees now, and what they saw before. Exact names, numbers and
+  the page it is on.
+- The part it fits: Features, Fine-tuning, Bug fixes, or under the hood
+  (nothing a reader can point at).
+
+**For the devlog**
+- What changed in the code and the data: files, tables, migrations.
+- Each decision, its reason, and what was turned down.
+- What broke along the way, and how it was found.
+- What was checked against the live site or database, and what was not.
+- What is still open, and whose it is.
+
+Facts, not drafted lines. The wording is the owner's.
+
+**On a draft the owner hands over**, correct grammar and spelling only. Keep
+their wording, list every edit made, and flag (do not fix) a line that does not
+match what changed.
+
 ## Changelog
 
-Written as part of the release PR, not shipped separately afterwards — the
-entry, the version bump and the code all land in the same merge, so the site
-never announces a version it is not running.
+**The owner writes the entry, its name included** (2026-10-18). It still lands
+in the release PR, not separately afterwards: the entry, the version bump and
+the code all land in the same merge, so the site never announces a version it
+is not running. Put their entry into the file as they wrote it.
 
 `data/updates.json`, newest entry first:
 
@@ -94,11 +123,12 @@ node -e "console.log(require('./data/site_meta.json').version)"
 node -e "console.log(require('./data/updates.json').changelogs[0].version)"
 ```
 
-**Ask the owner what to call the update before writing the entry.** The name
-is theirs, not a summary to be derived from the diff — v0.12 was drafted as
-"The 'Ultimate Mode' update" and the owner renamed it to "The 'General'
-update", because they know what the release means to the community and the
-changelog does not. One question, before the entry, not after.
+### The owner's rules for an entry
+
+These are the rules the owner applied to the entries Claude drafted before
+2026-10-18. They are kept so the change notes sort a change the way the owner
+would (reader-visible or under the hood, and which part), and so a grammar pass
+never undoes them. They are not a licence to rewrite the owner's entry.
 
 **The reader is a player using the wiki. Not the owner, and not you.**
 
@@ -212,8 +242,8 @@ set it in owner tools: "Beta v0.19", then "Stable v0.20", which the owner chose
 to signal the site is close to Release. The label is theirs to change; the
 changelog follows it.
 
-When the owner returns an entry, take their wording. Fix only what is plainly a
-slip (v0.20: "every videos" to "every video"), and say which edits you made.
+On the owner's entry, take their wording. Fix only what is plainly a slip
+(v0.20: "every videos" to "every video"), and say which edits you made.
 
 Verify it renders on `/systems/updatelog/index.html` before shipping.
 
@@ -319,8 +349,9 @@ somebody writes a line that reads "Bug fixes".
 
 ## Discord post
 
-Provide a copy-paste block. Same content as the changelog, under the same three
-headings. Discord markdown, so the asterisks are load-bearing.
+When the owner asks for it, render their changelog entry as a copy-paste block:
+their lines, unchanged, under the same three headings. Discord markdown, so the
+asterisks are load-bearing.
 
 ```
 **v0.10**
@@ -494,6 +525,7 @@ whether the SQL ran. v0.13's capability migration failed with `42P13`, rolled
 back, and left a green PR and an empty database. See the `supabase-migration`
 skill for the probe procedure.
 
-Rotate the devlog: `git mv V0.N-DEVLOG.md devlogs/` and start the next one.
+Rotating the devlog (`git mv V0.N-DEVLOG.md devlogs/`) is a file move, and the
+file is the owner's: ask before moving it, and leave the next one to them.
 
 Update `project_dogslamloop_v1_roadmap` in memory: mark the version shipped with its PR number and merge commit, and note anything deferred.

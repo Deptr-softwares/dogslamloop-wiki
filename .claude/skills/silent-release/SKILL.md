@@ -54,7 +54,8 @@ Identical to a normal release except:
 Everything else still happens:
 
 - **The devlog still gets its entry.** Silent means unannounced, not
-  unrecorded. Write it in the version's own voice as usual.
+  unrecorded. The owner writes it; give them the change notes
+  (`ship-a-release`).
 - **The devlog is NOT rotated and the version does NOT close.** A silent
   release ships mid-version work; the current `V0.N-DEVLOG.md` stays at the
   root and that version is still open afterwards. The 2026-08-27 silent
@@ -195,8 +196,9 @@ migration hotfix exists is that a green preview and production disagreed.
 ## 3. Hotfix note in the Update Log
 
 **This is the owner's action, not yours.** The `site_posts` write policy is
-`is_owner()` (`20260827000003_owner_role.sql:702`) — admin is not enough. Your
-part is to draft the text and tell them where it goes.
+`is_owner()` (`20260827000003_owner_role.sql:702`); admin is not enough. The
+owner writes the text too (2026-10-18). Your part is to say exactly what was
+fixed and where the note goes.
 
 Where: **post-editor.html**, TYPE → *"Hotfix note — appears in the Update
 Log"* (`post-editor.html:87`), status `published`.

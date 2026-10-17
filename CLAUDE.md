@@ -114,6 +114,8 @@ Restricting an editable tool page to one person is configuration, not code: `sit
 
 ## History
 
+**The owner writes the devlogs and the Update Log** (owner, 2026-10-18). Do not write in either. Give the owner change notes instead: exactly what changed, in the reply when a PR opens and again in the PR body (the shape is in the `ship-a-release` skill, under *"Change notes"*). On a draft they hand over, correct grammar and spelling only, keep their wording and list each edit.
+
 **The current version's devlog is its SPEC, not a diary.** Design decisions are
 recorded there before they are built, with the data shapes and delta scopes
 worked out. Read the whole section before building from it — v0.15's Combos tab
