@@ -637,7 +637,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const moveStrats = editDesc ? editDesc.moveStrategies?.[moveId] : null;
             initPerMoveEditor(moveId, moveStats, moveStrats);
             setTimeout(() => {
-                const previewCard = document.querySelector(`.live-preview-pane #strategy-${moveId}`);
+                const previewCard = document.querySelector(`.live-preview-pane #strategy-${CSS.escape(String(moveId))}`);
                 if (previewCard) previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
             }, 300);
         } else {
