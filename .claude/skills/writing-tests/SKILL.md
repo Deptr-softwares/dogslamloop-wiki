@@ -1,453 +1,78 @@
 ---
 name: writing-tests
-description: Use when writing, fixing, or reviewing Playwright tests for this project, or when a test fails and you are deciding whether the code or the test is wrong. Covers interaction coverage, revert-confirm-restore, OS-dependent assertions, and what the suite fundamentally cannot reach.
-paths: tests/**
+description: How to write, falsify, run and read Playwright tests in this project, and how to decide whether a red test or the code is wrong. Use when writing or reviewing a spec, proving a fix with a test, choosing which specs to run, reading a test run or CI failure, or diagnosing a bug that will not reproduce.
+paths:
+  - "tests/**"
+  - "playwright.config.js"
 ---
 
 # Writing tests here
 
-## Test the interaction, not the render
-
-A page that loads is not a page that works. **Drive a real control** — click the primary action, type in the primary field — and assert both:
-
-- no `pageerror` fired, and
-- a visible consequence occurred.
-
-`post-editor.html` shipped into a PR with a green 241-spec suite and three bugs that made it unusable, because its test only asserted the page rendered. Every block operation threw a `ReferenceError`; the Add Block button was unreachable below a non-scrolling container.
-
-```js
-const errors = [];
-page.on('pageerror', e => errors.push(e.message));
-await page.click('#primary-action');
-expect(errors).toEqual([]);
-await expect(page.locator('#result')).toBeVisible();
-```
-
-## Assert the rendered consequence, not the thing that should cause it
-
-A class, an attribute or a data field being correct is **not** evidence that
-the page looks right. Read back what the browser actually computed.
-
-v0.15's notation colouring shipped nine passing tests while the feature was
-visibly broken: every one asserted `classList` contained `is-2`, which it
-always did. `.combo-node` sets `color` in a stylesheet that loads later at
-equal specificity, so the class applied its `font-weight` and not its colour.
-The owner diagnosed it in four words — *"thickened but not orange"* — because
-they were looking at the page and the tests were looking at the DOM.
-
-```js
-// Proves the class was added. Proves nothing about the page.
-expect(chip.className).toContain('is-2');
-
-// Proves the reader sees it.
-const painted = await chip.evaluate(el => getComputedStyle(el).color);
-expect(painted).not.toBe(plainTextColour);
-```
-
-Compare against a **resolved** value, not a literal: read the CSS custom
-property and let the browser resolve it, so the test follows the palette
-instead of pinning a hex.
-
-This is the same failure as asserting a mock was configured rather than that
-the request went through. The question is always "what would the user notice",
-and a class name is never the answer.
-
-## A passing assertion may be passing for the wrong reason
-
-The failure this project keeps producing is not a wrong assertion — it is a
-right one that stops being about anything. Two shapes cause nearly all of it.
-
-**An absence assertion survives the change that should break it.** v0.15's diff
-view renamed schema keys to words for the reviewer, and two assertions in
-`admin-structured-diff.spec.js` checked that a raw key was *not* present. They
-kept passing, because the key was now spelled differently — testing nothing at
-all. Assert the positive: `toContain('On Block')`, not `not.toContain('onBlock')`.
-Where an absence really is the claim, assert what is there instead — for XSS,
-that the tag survives **escaped**, not that a substring is missing.
-
-**`toBeVisible()` is not "the user can click it".** Twice in one session a
-button was visible and unreachable: confirmation modals rendered under the modal
-that opened them, and the reorder controls sat under an absolutely-positioned
-`✖`. Both were found by a click *timing out*, never by an assertion. What
-decides a click is which element is on top at that point:
-
-```js
-const onTop = await page.evaluate(() => {
-  const b = document.getElementById('editor-modal-confirm');
-  const r = b.getBoundingClientRect();
-  const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-  return b.contains(hit) || hit === b;
-});
-```
-
-A third variant: a fixture that makes its own assertion vacuous. A changed-tabs
-test set `currentPendingDescData` equal to live, so "these tabs changed" was
-trivially empty. **When a test passes first time, ask what would have to break
-for it to fail** — and if the answer is "nothing reachable", it is not a test.
-
-## A consistency check only finds drift in the direction it looks
-
-"Everything I offer resolves" and "everything real is offered" are different
-claims. v0.15's section-link picker satisfied the first completely while
-offering **no moves at all** — internally consistent and blind to a third of
-the site. The second direction found that, plus two more omissions, at once.
-
-Whenever two derivations of the same thing must agree — a picker against a
-renderer, an apply function against a diff view — compare them **both ways**.
-
-## Revert-confirm-restore, for every bug fix
-
-Before claiming a fix works: temporarily revert it, confirm the new spec
-**fails**, restore, confirm it passes. A regression test that never failed
-against the old code proves nothing.
-
-**A breakage the tests survive is a question, not yet a gap.** Check that it
-changed what the code does. On 2026-10-04 "put the reply box first" survived:
-the code appended the same box again further down, and appending a node twice
-moves it, so the page was unchanged. Breaking the order for real was caught.
-
-**COMMIT THE FIX FIRST.** Then the undo is `git restore <file>`, which is exact
-and safe. This is not a style preference — it is the only version of this
-procedure that cannot lose work.
-
-`git checkout -- <file>` restores from HEAD, so on an uncommitted file it
-discards **every** change to it, not just the probe. That has now happened
-three times here. The third was during v0.15's Techs tab: a one-line
-falsification edit was undone that way and took the whole uncommitted
-implementation of that file with it. It survived only because that particular
-probe happened to start with a manual backup.
-
-Taking backups is not the fix; committing first is. An extra commit on a
-feature branch costs nothing and turns a destructive command into a harmless
-one.
-
-### A mutation that did not apply looks exactly like a test that cannot fail
-
-v0.20: a one-line `node -e` mutation typed into the shell silently failed to
-apply, the spec stayed green, and it read as "this test cannot catch the
-guard". It could; the code under test was never changed. **Apply every mutation
-through something that checks its anchor was found exactly once** and says so
-when it was not. Replacing a string that is not there is a no-op, not an error.
-
-The same week a drag test passed with the guard it protects deleted, for a real
-reason this time: a drag that ends on a DIFFERENT element fires no `click` in
-Chromium, so the handler never ran. When a mutation survives, find out which of
-the two happened before rewriting the test or the code.
-
-### A mutation that breaks the file is not a catch either
-
-v1.0 batch 3: a mutation replaced one branch of an `if` and left its `else`
-dangling. The script stopped parsing, all 10 tests in the spec went red, and it
-read as "caught". Rewritten as valid code, it turned exactly its own test red.
-**`node --check` the mutated file, and distrust a catch that turns the whole
-spec red**: one guard broken should fail the tests about that guard.
-
-### A fake must behave like what it stands in for over time, not just answer
-
-v1.0 batch 2: the relay's fake database answered "when was the forum
-connected" with a fixed time. The real function stamps the moment on its first
-call, and the relay first called it only once a post had appeared, so the
-first Discord post was always skipped as older than the connection. No test
-could see it, because the fake's answer never depended on when it was asked.
-It took the live test on the owner's server to find it. **When the real thing
-has state (first call wins, a counter, a lease), the fake keeps the same
-state.**
-
-## Assert structure, not pixels
-
-Exact geometry is OS-dependent — Linux renders these fonts wider than Windows, so a `getBoundingClientRect()` comparison passes locally and fails in CI for reasons unrelated to the bug.
-
-Assert the structural consequence instead:
-
-```js
-// Brittle: fails in CI on font metrics alone
-expect(btn.getBoundingClientRect().right).toBeLessThanOrEqual(window.innerWidth);
-
-// Robust: the actual claim being made
-expect(buttonGroupTop).toBeGreaterThanOrEqual(titleBottom);  // it stacked
-```
-
-Same reason `visual.spec.js` is `testIgnore`d in CI (`playwright.config.js`) — its baselines are per-platform and can never match a Linux runner. It stays a local before/after tool for CSS work.
-
-## A failing test is a hypothesis, not a verdict
-
-Before changing code to satisfy a red test, confirm the test is asking the right question. Five times in this project a test accused correct code:
-
-| Symptom | Actual cause |
-|---|---|
-| "insert never fired" | Selector `button.btn-sys-green` matched a row's RESTORE button before the CREATE button |
-| "escaping is broken" | Route pattern lacked a trailing `*`; `fetchJson` appends a cache-buster, so the mock never matched and real data loaded |
-| "submit handler dead" | Mock session had no `email`; `getDisplayName` and `editor-core`'s fallback both call `session.user.email.split('@')`, so boot threw before the handler attached |
-| "the KLIPY lookup ignored its answer" | The test's `page.route` was registered **before** the `openThread` helper's route for the same URL. Playwright runs the **last-registered** handler first, so the helper's mock answered and the test's never ran. A helper that routes a URL takes the override as an option (`klipyMedia`), never a route added around it |
-| "the page never finished loading" | A route that holds its response on purpose (to watch a queue) means `waitUntil: 'networkidle'` never arrives, and `openThread` waits for `networkidle` by default. Pass `waitUntil: 'domcontentloaded'` when a test holds requests |
-
-When a test fails, reproduce the behaviour manually or add a debug spec that prints actual state before concluding the code is wrong.
-
-## "Cannot reproduce" is a claim about your probes, not about the bug
-
-v0.16 bug 1 — typing dragged the workspace upward — survived **twelve** probes
-that all reported clean. Different pages, block types, viewport widths, the
-pre-change renderer served over the live page, the virtualizer on and off. It was
-closed as not reproducible, and a screen recording reopened it the same day.
-
-Every one of the twelve had typed into a block with content **below** it. There
-the scroll range has slack, so the collapse that causes the bug costs nothing and
-nothing moves. The bug was fully present two hundred pixels down the same page.
-
-**The variable that mattered was never in the list**: where in the scroll range
-the contributor was standing. Twelve probes sharing one unexamined assumption are
-one piece of evidence, not twelve — and a rising count feels like rising
-confidence while proving nothing.
-
-So before writing "cannot reproduce", **write down what every probe held
-constant**. Scroll position, focus, viewport, whether the element is first or
-last, empty or full, at a boundary or in the middle. Then vary one of those,
-rather than adding a thirteenth scenario that varies what you already varied.
-
-Ask the reporter for a recording early. Reading the real screen cost minutes and
-answered it immediately; the frames can be decoded in-browser with a `<video>`
-and a canvas when no usable `ffmpeg` is around (Playwright's bundled one has no
-H.264 decoder).
-
-### `element.focus()` is not a click
-
-The single probe in that set that *did* reproduce something was lying.
-`element.focus()` scrolls its element into view; a mouse click does not, because
-the element is already under the pointer. It produced a clean, repeatable 426px
-jump for something no contributor can trigger, and it was the most convincing
-evidence in the whole investigation.
-
-**Drive focus the way a person does** — `page.mouse.click(x, y)` or
-`locator.click()` — and reserve `.focus()` for asserting what already has focus.
-A synthetic event that moves the viewport has invented the symptom you are
-hunting.
-
-### `goto(PAGE#id)` straight after `goto(PAGE)` is not an arrival
-
-Only the fragment changed, so it is a **same-document navigation**: no reload,
-no network, no init scripts, no load-time code. It runs the `hashchange` handler
-on a page that is already built. v0.20: the test named "a link arrived at by URL
-hash resolves after the content loads" had done exactly this since v0.15, so it
-never ran the arrival code and could not see the owner's bug in it. Anything
-that reads the page first and then arrives must leave in between:
-`page.goto('about:blank')`.
-
-The same investigation had a second probe that lied. A `scrollTo` wrapper that
-forwards `(opts, y)` calls `scrollTo(opts, undefined)`, which the browser reads
-as `scrollTo(x, y)` and sends to 0,0. Every scroll silently went nowhere, and
-the log read like a smooth scroll that had not started yet. **Wrap with
-`(...args)` and forward `...args`.**
-
-## A live page is not an empty page
-
-Specs here load real pages against real Supabase data, and the owner edits that
-data. Three v0.15 tests assumed the group or table they had just created was
-index 0, read the owner's own Boomcat content instead, and compared it against
-their own input.
-
-Record the handle the code gives you rather than counting from the front:
-
-```js
-// Reads whatever the owner happens to have written first.
-const group = window.currentEditorDescData.comboGroups[0];
-
-// Reads the one this test opened.
-const idx = parseInt(String(window.currentCombosSection).replace('group-', ''), 10);
-const group = window.currentEditorDescData.comboGroups[idx];
-```
-
-Same rule as never pinning a count to owner content, in the shape that is
-easier to miss: not a hardcoded number, but an assumption that a real page
-starts empty.
-
-## A test the owner can turn red is a production outage
-
-The regeneration job commits its artifacts **only after this suite passes**. So
-a test that a content edit can break does not just go red — it stops navigation,
-colours, portraits, the FAQ, collaborators and every page stub from reaching the
-site, and it keeps stopping them on every daily run until someone notices. It
-has happened twice: the Roulette page (three days, 2026-08-09) and the Hidden
-flag (2026-09-05).
-
-Both times the symptom reported was *"the site is stale"*, not *"a test
-failed"*. When a regeneration run fails, those are the same sentence.
-
-Three shapes cause it, and the third is the one that hides longest:
-
-- **A count of anything the owner controls** — pages, characters, categories,
-  colours. Covered above; still the most common.
-- **A frozen artifact compared against a regenerated one.** An applied migration
-  is immutable, so it can never gain the row the owner just added, while the
-  dictionary generated from `site_pages` grows every time. `character-colors`
-  asserted the two were the same size. That test could never pass again after
-  the 23rd character, and nothing about it looked like a count.
-- **A fixture that reconstructs generated data by hand.** `registry-roundtrip`
-  rebuilt registry rows from `navigation.json` and listed the flags manually, so
-  it silently dropped `is_hidden` — which `buildNavigation` had emitted for
-  eleven days. It stayed green the whole time because no page was hidden yet,
-  then failed the moment one was.
-
-The defence for the last one is to state the mapping **once** and have the test
-reverse it (`NAV_FLAGS` in `scripts/fetch-registry.js`), the same way the role
-ladder is stated once in `role_rank()`. A fixture that retypes what the
-generator emits is a second source of truth wearing a test's clothes.
-
-And before writing an assertion against real site data, ask the question
-directly: **what could the owner legitimately do tomorrow that makes this
-fail?** Adding a character, colouring one, hiding one, renaming a category and
-archiving a page are all normal Tuesday actions, not edge cases.
-
-## Derive the blast radius, do not guess it
-
-Running "the touched specs plus the neighbours" is the right instinct for a
-local change. **It is the wrong instinct for a change of DEFAULT behaviour**,
-because the neighbours of a default are every spec that ever relied on it, and
-that list does not look like the list of files you edited.
-
-v0.16 made editor blocks start collapsed. Seven hand-picked specs passed, CI
-came back with **ten failures in five files nobody would have called
-neighbours** — the colour picker, the preset swatches, in-page links, a dedupe
-spec, the tier editor. All of them typed into a field that is now inside a
-collapsed block.
-
-Pick the set with a command instead:
-
-```bash
-npx playwright test $(grep -rln "block-list\|block-card\|editor-textarea" tests/*.spec.js | tr '\n' ' ')
-```
-
-Grep for the **markup and globals the change touches**, not for the feature's
-name — those five files never mention collapsing, folders, or the workspace.
-Fourteen files matched; running them found every failure before pushing.
-
-### A UI-driving spec names none of your identifiers
-
-The same miss in its most ordinary form. PR #162 changed `js/owner.js` and the
-affected set was derived from the identifiers in the diff — four specs. CI came
-back red on `owner-pages.spec.js`, which drives the page through the browser and
-mentions not one of those names; it knows the page only as `owner.html` and
-`#pages-list`.
-
-**Derive the set from the SURFACE the change appears on, not the symbols it
-renames.** For anything a user clicks, that means the page and its DOM ids:
-
-```bash
-grep -rl "owner.html\|pages-list" tests/*.spec.js   # 33 files, not 4
-```
-
-### Grep for what you DELETED, not only what you added
-
-The set above still missed one, and CI caught it. Replacing hand-written markup
-with a generated loop deleted the literal `data-type="theorybox"` from
-`js/editor-blocks.js`, and `theorybox.spec.js` **greps the source file** for that
-exact string as its check that a new block type is wired everywhere. The runtime
-behaviour was correct throughout — the rendered menu still produced the button,
-and the test that drives the real menu passed.
-
-A grep for the identifiers you introduced cannot find a test that is looking for
-a string you removed. So when a change turns literals into generated output —
-markup into a loop, a hardcoded list into a map — **grep the tests for the
-literals in the diff's `-` lines too**:
-
-```bash
-git diff -U0 | grep '^-' | grep -o '[a-z-]*="[a-z_-]*"' | sort -u
-```
-
-Then update those tests to point at the new source of truth rather than
-loosening them. The scan that broke here got *stronger*: it now checks the
-declaration the markup is generated from, and gained a site, while the rendered
-output stays pinned by the runtime test that was already there.
-
-### Derived and run is not the same as READ
-
-v0.20 FT2 reverted v0.16's default, so blocks open expanded again. This time the
-derivation above was done correctly: `block-multiselect.spec.js` was in the set,
-and it was run before pushing. **It failed 18 of 19, and was reported green.**
-
-The output was read with `| tail -6`. Playwright's line reporter prints the
-failure count and the failed-test list ABOVE the passed count, so a short tail
-shows a column of test names followed by `27 passed`, and a column of names
-reads like progress. CI cancelled PR #203 at the 30-minute job cap: each of the
-18 tests waited out its 30-second timeout three times, and a job cancelled at the
-cap never prints its failure report. The only place the answer existed was the
-local run that had been misread.
-
-Read the counts the reporter states:
-
-```bash
-npx playwright test <files> --reporter=line > run.log 2>&1
-grep -E "^\s+[0-9]+ (passed|failed|flaky|skipped|did not run)" run.log
-```
-
-**Anything other than a single `N passed` line is not green.** And check the log
-has lines before trusting a zero taken from it: a `grep -c` over a CI log that
-had not finished writing reported 0 failures in the same investigation.
-
-The failure itself is worth knowing too. The spec clicked `.block-card-summary`,
-the label only a COLLAPSED block shows, so flipping the default made every click
-wait for an element that would never appear. **A selector that only exists in
-one state of the thing being tested encodes the default**, and changing the
-default turns it into a timeout rather than an assertion.
-
-## Anything that renders over a shared page on load changes every spec on it
-
-v0.18's first-visit editor notice opened on top of the page in **all 59 specs
-that load `edit.html`** and timed out their first click. Every Playwright test
-gets a fresh context with empty `localStorage`, so "first visit" is the state
-every test is permanently in.
-
-It surfaced as one unrelated-looking failure — a 30-second click timeout in a
-combo-card test — and two things identified it: it failed **identically in
-isolation**, so it was not load, and reverting the change made in the same
-session did not fix it.
-
-Nothing was wrong with the notice. A modal that blocks the page until dismissed
-was the requirement. What was wrong is that 59 files were implicitly asserting
-that nothing covers the editor on load, and not one of them is about that.
-
-**Seed the dismissal once in `playwright.config.js` (`use.storageState`), not in
-each spec.** Fifty-nine files would have to remember, and so would every editor
-spec written afterwards. The one spec that tests the notice overrides it back to
-empty with `test.use({ storageState: { cookies: [], origins: [] } })` — so the
-seeding cannot hide a broken notice, because the spec proving it fires is the
-one that runs without the seed.
-
-## Never run two full suites at once
-
-`playwright.config.js` starts one dev server on a fixed port and the workers
-share it. A second concurrent run does not just take longer — it reports a
-**different test count** and a scatter of failures that all pass in isolation.
-v0.15 burned several rounds on runs reporting 519, 951, 975 and 984 of the same
-980 tests.
-
-If a run reports failures, re-run **those specs alone** before believing them.
-A failure that passes in isolation is load, not a bug — but a *consistent*
-failure in isolation is real, and that is the only way to tell the two apart.
-
-This is routine rather than exceptional: v0.15's final Techs run reported 7
-failures and 5 of them — dashboards, editor-modes ×2, media-gc-guard, posts —
-passed untouched in isolation.
-
-**And never change the working tree while a suite is running.** Same hazard,
-worse symptom. Switching branches mid-run during v0.15 produced "15 failed" and
-"exit code 0" from the same run, and both numbers were meaningless — the workers
-were reading files swapped underneath them. A suite whose tree moved is not a
-failed suite, it is not a suite at all, and its output has to be thrown away
-rather than diagnosed. Commit, run, then leave it alone.
-
-## What this suite cannot reach
-
-**RLS policies, GRANTs and RPC guards are invisible here.** Every auth spec mocks the Supabase client and never touches real Postgres. Asserting a permission change without probing production is asserting nothing — see the `supabase-migration` skill.
-
-Also unreachable: GitHub Pages 404 routing (the local `python -m http.server` doesn't replicate the fallback), Discord/OG unfurling (assert the tags exist in the **served HTML**, not the DOM — a DOM check passes for JS-injected tags, which unfurlers never see), and GitHub Actions behaviour.
+A test proves something only if it can fail. Most rules below are ways a passing test stopped being about anything.
+
+- Choosing which specs to run, and reading a local run or a CI failure: [running.md](running.md)
+- When a test accuses the code, or a bug will not reproduce: [debugging.md](debugging.md)
+- Mocking Supabase, routes and `.single()`: [mocking.md](mocking.md)
+
+## Assert what the reader would notice
+
+- **Drive the real control**, then assert no `pageerror` and a visible consequence. `post-editor.html` passed a render-only test while every block operation threw.
+  ```js
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.click('#primary-action');
+  expect(errors).toEqual([]);
+  await expect(page.locator('#result')).toBeVisible();
+  ```
+- **Read back what the browser computed, not the class that should cause it.** v0.15's notation colouring had nine green tests asserting the class `is-2` while a later stylesheet won on `color` (the owner: *"thickened but not orange"*). Compare against a resolved custom property, not a literal hex.
+  ```js
+  const painted = await chip.evaluate(el => getComputedStyle(el).color);
+  expect(painted).not.toBe(plainTextColour);
+  ```
+- **Assert the positive.** An absence check (`not.toContain('onBlock')`) keeps passing once the key is spelled differently. For XSS, assert the tag survives escaped.
+- **`toBeVisible()` is not "the user can click it".** Modals under the modal that opened them, controls under an absolutely positioned `✖`: check what is on top.
+  ```js
+  const onTop = await page.evaluate(() => {
+    const b = document.getElementById('editor-modal-confirm');
+    const r = b.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return b.contains(hit) || hit === b;
+  });
+  ```
+- **A fixture can make its own assertion vacuous**: pending data set equal to live made "these tabs changed" trivially empty. When a test passes first time, ask what would have to break for it to fail.
+- **Compare two derivations both ways.** "Everything offered resolves" and "everything real is offered" are different claims; the v0.15 link picker passed the first while offering no moves at all.
+- **Structure, not pixels.** Linux renders these fonts wider than Windows, so assert the structural claim (`buttonGroupTop >= titleBottom`: it stacked), not a pixel edge.
+
+## Live data is the owner's
+
+Specs load real pages against real Supabase data, and the owner edits it. A test an owner edit can turn red stops the regeneration job (`CLAUDE.md`, Deploy model).
+
+- Never assert a count of anything the owner controls, and never compare a frozen artifact with a regenerated one.
+- **A fixture must not retype what a generator emits.** `registry-roundtrip` listed the flags by hand and silently dropped `is_hidden`. State the mapping once and reverse it (`NAV_FLAGS` in `scripts/fetch-registry.js`).
+- **Record the handle the code gives you; don't count from the front.** `comboGroups[0]` is the owner's Boomcat content. Read the index from `window.currentCombosSection`.
+- **A test that needs particular content serves a frozen fixture** from `tests/fixtures/` (as `input-slots.spec.js` does for Crow Charmer), never the live row.
+- Ask: **what could the owner do tomorrow that makes this fail?** Adding, colouring, hiding or renaming a character are normal Tuesday actions.
+
+## Falsify every fix
+
+1. **Commit the fix first.** The undo is then `git restore <file>` from a commit. `git checkout -- <file>` on an uncommitted file discards the whole implementation, not just the probe; it has happened three times.
+2. Break the fix, confirm the new test **fails**, restore, confirm it passes. A regression test that never failed proves nothing.
+3. **Check the mutation applied.** Apply it through something that confirms its anchor matched exactly once: replacing a string that is not there is a silent no-op, and v0.20 read one as "this test cannot catch it".
+4. **`node --check` the mutated file**, and distrust a catch that turns the whole spec red. One guard broken should fail only the tests about that guard.
+5. **A survived mutation is a question.** Either the code's behaviour did not change (appending a node twice just moves it) or the test cannot see it (a drag that ends on another element fires no `click` in Chromium). Find out which before rewriting either.
+6. **A fake keeps the real thing's state over time** (first call wins, counters, leases), or it hides bugs that depend on when it is asked.
+
+## Shared pages
+
+Anything that renders over a shared page on load changes every spec on it: v0.18's first-visit notice covered `edit.html` in 59 specs, because every test starts with empty `localStorage`. Seed the dismissal once in `playwright.config.js` (`use.storageState`). The one spec that tests the notice resets it with `test.use({ storageState: { cookies: [], origins: [] } })`.
+
+## Out of reach
+
+RLS, grants and RPC guards (probe them: the `supabase-migration` skill), GitHub Pages 404 routing, Discord and OG unfurling (assert the tags in the served HTML, not the DOM), GitHub Actions, and whether a real media link still resolves.
 
 ## Conventions
 
-- Specs live flat in `tests/*.spec.js`, one per feature or bug.
-- Lead with a comment explaining what bug or contract the file exists to protect. Future readers need to know why an assertion is there before they relax it.
-- Node-only tests (pure functions, generators) still use the Playwright runner — see `tests/generate-pages.spec.js`.
+- Specs live flat in `tests/*.spec.js`, one per feature or bug, led by a comment saying what bug or contract the file protects.
+- Node-only tests still use the Playwright runner (`tests/generate-pages.spec.js`).
 - Throwaway debug specs: prefix `_`, delete before committing.
-
-## Mocking Supabase
-
-For the `addInitScript` + `Object.defineProperty(window, 'supabase', …)` pattern used across the auth-dependent specs, including the query-builder chain shape and the session fields that must be present, read `mocking.md` in this skill's directory.
+- `visual.spec.js` is local-only (`testIgnore` in CI): a before/after tool for CSS work.

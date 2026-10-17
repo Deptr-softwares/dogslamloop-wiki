@@ -44,7 +44,7 @@ from `mergedAt`, not from memory.
 
 | What | Where |
 |---|---|
-| The engineering record of the current version | the owner's devlog: give them change notes (`ship-a-release`), never write in it |
+| The engineering record of the current version | the owner's devlog: give them change notes (`CLAUDE.md`), never write in it |
 | In-flight state, open decisions, next action | memory: `project_dogslamloop_session_state` |
 | A version shipping, or scope moving between versions | memory: `project_dogslamloop_v1_roadmap` |
 | A rule that should hold in *every* future session | `CLAUDE.md`, or the relevant skill — **not** memory |
@@ -86,7 +86,7 @@ The concrete next action.
 
 The devlog and the Update Log are the owner's to write (owner, 2026-10-18).
 If anything done since the last change notes has not reached them, give them
-change notes for it now, in the shape `ship-a-release` sets out.
+change notes for it now, in the shape `CLAUDE.md` sets out.
 
 ## Rules
 
