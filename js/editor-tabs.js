@@ -1705,6 +1705,42 @@ window.loadMatchupIntoEditor = function(idx) {
     }, 150);
 };
 
+// --- "1. STATS & FRAME DATA" CAN BE FOLDED (v1.1) ---
+//
+// On a long move this section is most of the workspace, and the strategy
+// blocks sit under it, so editing them meant scrolling past it again and again
+// (owner, 2026-10-18). Folded or not is remembered on this device, the way the
+// editor's other layout choices are, so it stays folded from move to move.
+const STATS_FOLDED_KEY = 'dsl_editor_stats_folded';
+
+function statsSectionFolded() {
+    try { return window.localStorage.getItem(STATS_FOLDED_KEY) === '1'; } catch (e) { return false; }
+}
+
+function statsSectionHTML(bannerText) {
+    const folded = statsSectionFolded();
+    return `
+        <div class="editor-section-banner editor-section-banner-spaced">
+            <span class="editor-section-banner-text">${bannerText}</span>
+            <button type="button" class="btn-sys btn-sys-regular editor-stats-fold"
+                    aria-controls="daw-editor-target" aria-expanded="${folded ? 'false' : 'true'}">${folded ? 'EXPAND' : 'COLLAPSE'}</button>
+        </div>
+        <div id="daw-editor-target" class="daw-editor-target-spacing"${folded ? ' hidden' : ''}></div>`;
+}
+
+function bindStatsSectionFold(root) {
+    const btn = root.querySelector('.editor-stats-fold');
+    const target = root.querySelector('#daw-editor-target');
+    if (!btn || !target) return;
+    btn.addEventListener('click', () => {
+        const fold = !target.hidden;
+        target.hidden = fold;
+        btn.textContent = fold ? 'EXPAND' : 'COLLAPSE';
+        btn.setAttribute('aria-expanded', fold ? 'false' : 'true');
+        try { window.localStorage.setItem(STATS_FOLDED_KEY, fold ? '1' : '0'); } catch (e) { /* not remembered, still works */ }
+    });
+}
+
 // --- SUB-NAVIGATION: MOVES ---
 window.loadMoveIntoEditor = async function(moveId) {
     const oldActiveBtn = document.querySelector('.daw-variant-tabs .daw-tab-btn.active');
@@ -1730,16 +1766,14 @@ window.loadMoveIntoEditor = async function(moveId) {
 
     const container = document.getElementById('move-editor-container');
     container.innerHTML = `
-        <div class="editor-section-banner editor-section-banner-spaced">
-            <span class="editor-section-banner-text">1. STATS & FRAME DATA: ${window.escapeHtml(moveStats?.name || moveId)}</span>
-        </div>
-        <div id="daw-editor-target" class="daw-editor-target-spacing"></div>
+        ${statsSectionHTML(`1. STATS & FRAME DATA: ${window.escapeHtml(moveStats?.name || moveId)}`)}
 
         <div class="editor-section-banner">
             <span class="editor-section-banner-text">2. MOVE STRATEGIES</span>
         </div>
         <div id="strategy-block-target"></div>
     `;
+    bindStatsSectionFold(container);
 
     initDawEditor('daw-editor-target', moveStats);
     initStrategyBlockBuilder('strategy-block-target', moveStrats || []);
@@ -1757,16 +1791,14 @@ window.loadMoveIntoEditor = async function(moveId) {
 function initPerMoveEditor(moveId, statsData, strategyData) {
     const builder = document.getElementById('interactive-builder');
     builder.innerHTML = `
-        <div class="editor-section-banner editor-section-banner-spaced">
-            <span class="editor-section-banner-text">1. STATS & FRAME DATA</span>
-        </div>
-        <div id="daw-editor-target" class="daw-editor-target-spacing"></div>
+        ${statsSectionHTML('1. STATS & FRAME DATA')}
 
         <div class="editor-section-banner">
             <span class="editor-section-banner-text">2. MOVE STRATEGIES</span>
         </div>
         <div id="strategy-block-target"></div>
     `;
+    bindStatsSectionFold(builder);
 
     initDawEditor('daw-editor-target', statsData);
     initStrategyBlockBuilder('strategy-block-target', strategyData || []);

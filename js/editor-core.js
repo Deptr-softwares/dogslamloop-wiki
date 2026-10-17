@@ -223,9 +223,39 @@ window.editorExitDestination = function(search = window.location.search) {
     const pageType = params.get('type') || 'character';
 
     // Staff go back to the queue they were working; everyone else to the page.
-    if (params.get('editTicket')) return 'admin.html';
+    // An author editing their OWN submission goes to My Submissions instead:
+    // admin.html turns a contributor away, and since v1.1 every new
+    // submission carries on as an edit of itself, with ?editTicket= set.
+    if (params.get('editTicket')) {
+        const own = window.interceptedTicketData && window.currentGlobalUserId
+            && window.interceptedTicketData.author_id === window.currentGlobalUserId;
+        return own ? 'submissions.html' : 'admin.html';
+    }
     if (pageId) return `${pageType === 'character' ? 'characters' : 'systems'}/${encodeURIComponent(pageId)}/`;
     return 'index.html';
+};
+
+// After a NEW submission succeeds, the editor carries on as an edit of it
+// (v1.1). Before this, the button still said Submit, so anyone who kept going
+// and pressed it again sent a second submission holding the first one's
+// content as well. It takes the same state an EDIT from My Submissions sets up:
+// the ticket id in the URL (so a reload continues it too), the row, and the
+// purple UPDATE button.
+window.adoptOwnSubmission = function(row) {
+    window.activeEditTicketId = row.id;
+    window.interceptedTicketData = row;
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('editTicket', row.id);
+    window.history.replaceState({}, '', url);
+
+    const btn = document.getElementById('submit-payload-btn');
+    if (btn) {
+        btn.classList.remove('btn-sys-blue');
+        btn.classList.add('btn-sys-purple');
+    }
+    const subtitle = document.getElementById('editor-subtitle');
+    if (subtitle) subtitle.textContent = 'Editing your submission. Sending again updates it instead of making a new one.';
 };
 
 /**
@@ -505,6 +535,49 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const forceLoadDraft = urlParams.get('loadDraft') === 'true';
             const specificDraftKey = urlParams.get('draftKey');
+
+            // --- AN OPEN SUBMISSION ON THIS PAGE (v1.1) ---
+            //
+            // The editor opened from a page always starts a NEW submission. An
+            // author who came back to change one they had already sent got a
+            // second submission in the queue carrying the first one's content
+            // again: a Star Rage submission on 2026-10-16 was revised that way
+            // 18 minutes after it was sent. Reviewers never meet this, because
+            // they edit from the queue. So the editor asks, and continuing goes
+            // through the same ?editTicket= route as EDIT on My Submissions.
+            //
+            // Silent on any failure, deliberately: this is an offer, and a
+            // query that fails must not stand between someone and the editor.
+            if (!editTicketId && !forceLoadDraft && !specificDraftKey && window.currentGlobalUserId) {
+                try {
+                    const { data: open } = await window.supabaseClient
+                        .from('pending_revisions')
+                        .select('id, author_id, created_at, status')
+                        .eq('page_id', pageId)
+                        .eq('author_id', window.currentGlobalUserId)
+                        .in('status', ['pending', 'ticket_open'])
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+                    const mine = (Array.isArray(open) ? open : []).find(r => r
+                        && r.id && r.author_id === window.currentGlobalUserId
+                        && ['pending', 'ticket_open'].includes(r.status));
+                    if (mine) {
+                        const when = new Date(mine.created_at).toLocaleString();
+                        const continueIt = await window.customConfirm(
+                            `You already have a submission waiting for review on this page (sent ${when}).\n\n`
+                            + 'Edit that one, so your changes stay in a single submission, or start a new one?',
+                            'EDIT MY SUBMISSION', false, 'START A NEW ONE');
+                        if (continueIt) {
+                            const next = new URL(window.location.href);
+                            next.searchParams.set('editTicket', mine.id);
+                            window.location.href = next.toString();
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[Editor] Could not check for an open submission:', e);
+                }
+            }
 
             // Scoped per-character, not per-tab/move - window.currentEditorDescData
             // is always the FULL character object regardless of which tab/move is
@@ -1032,7 +1105,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             //    gone. Before v0.17 they took this branch anyway, resolved to
             //    `undefined`, and were dropped out of the PATCH by
             //    JSON.stringify - the reviewer's edits vanished silently.
-            const interceptDelta = window.interceptedTicketData
+            //    Except an author updating their OWN submission (v1.1). They
+            //    may have edited a section the ticket did not touch, and
+            //    rebuilding only the ticket's scope dropped that edit without a
+            //    word. Their update is scanned like a new submission instead, so
+            //    it carries everything they changed against the live page.
+            const isSelfEdit = !!(window.interceptedTicketData && window.currentGlobalUserId
+                && window.currentGlobalUserId === window.interceptedTicketData.author_id);
+            const interceptDelta = window.interceptedTicketData && !isSelfEdit
                 ? window.buildInterceptDelta(window.interceptedTicketData)
                 : null;
 
@@ -1374,6 +1454,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
 
             let dbError = null;
+            const wasUpdate = !!window.interceptedTicketData;
+            let newTicket = null;
 
             // --- DATABASE ROUTING ---
             //
@@ -1392,7 +1474,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // (e.g. from submissions.html) isn't a staff takeover - only wrap
                 // the changelog with the "Staff Note" framing when someone other
                 // than the original author is the one editing it.
-                const isSelfEdit = window.currentGlobalUserId && window.currentGlobalUserId === window.interceptedTicketData.author_id;
                 if (isSelfEdit) {
                     payload.qa_metadata.changelog = qaResult.changelog;
                 } else {
@@ -1403,8 +1484,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 dbError = error;
             } else {
                 console.log(`Pushing ${finalPayloads.length} Master Ticket(s) to Revision Queue...`);
-                const { error } = await window.supabaseClient.from('pending_revisions').insert(finalPayloads);
+                // .select() returns the row it made, so this editor can carry on
+                // as an edit of it (adoptOwnSubmission, below).
+                const { data: inserted, error } = await window.supabaseClient
+                    .from('pending_revisions').insert(finalPayloads).select();
                 dbError = error;
+                if (!error && Array.isArray(inserted) && inserted.length === 1) newTicket = inserted[0];
             }
 
             submitBtn.disabled = false;
@@ -1421,20 +1506,26 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // alongside the draft-key-scoping fix in js/editor-drafts.js).
                 localStorage.removeItem(window.currentDraftKey || `wiki_draft_${pageId}`);
 
-                const fallbackText = window.activeEditTicketId ? "UPDATE SUBMISSION" : "Submit";
-                submitBtn.textContent = window.activeEditTicketId ? "UPDATED!" : "SUBMITTED!";
-                submitBtn.style.backgroundColor = "#22c55e"; 
+                submitBtn.textContent = wasUpdate ? "UPDATED!" : "SUBMITTED!";
+                submitBtn.style.backgroundColor = "#22c55e";
                 submitBtn.style.color = "#000";
-                
+
+                // From here on, this editor is editing the submission it just
+                // made, so pressing the button again updates it.
+                if (newTicket) window.adoptOwnSubmission(newTicket);
+                const fallbackText = window.activeEditTicketId ? "UPDATE SUBMISSION" : "Submit";
+
                 localStorage.setItem('wiki_last_submit_time', Date.now().toString());
-                
+
                 setTimeout(() => {
                     submitBtn.textContent = fallbackText;
                     submitBtn.style.backgroundColor = "";
                     submitBtn.style.color = "";
-                    
-                    if (window.activeEditTicketId) {
-                        window.editorAlert("Ticket successfully updated! You can now close this tab and return to the Admin Panel.");
+
+                    if (wasUpdate) {
+                        window.editorAlert(isSelfEdit
+                            ? "Your submission is updated."
+                            : "Ticket successfully updated! You can now close this tab and return to the Admin Panel.");
                     }
                 }, 3000);
             }
@@ -1443,12 +1534,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // --- CUSTOM MODAL ENGINE ---
-window.customConfirm = function(message, confirmText = "DELETE", isDanger = true) {
+// cancelText is optional: most confirms are "do it or don't", but a choice
+// between two real actions needs both buttons named. The markup's own label is
+// kept and put back when no cancelText is given.
+window.customConfirm = function(message, confirmText = "DELETE", isDanger = true, cancelText = null) {
     return new Promise((resolve) => {
         const modal = document.getElementById('editor-custom-modal');
         const textEl = document.getElementById('editor-modal-text');
         const btnCancel = document.getElementById('editor-modal-cancel');
         const btnConfirm = document.getElementById('editor-modal-confirm');
+
+        if (btnCancel.dataset.defaultLabel === undefined) btnCancel.dataset.defaultLabel = btnCancel.textContent;
+        btnCancel.textContent = cancelText || btnCancel.dataset.defaultLabel;
 
         textEl.textContent = message;
         btnConfirm.textContent = confirmText;

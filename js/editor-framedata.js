@@ -353,7 +353,7 @@ function initDawEditor(containerId, moveData) {
                             <button onclick="window.addDawTrack()" class="btn-sys btn-sys-blue">+ Add Track</button>
                         </div>
                     </div>
-                    <div class="daw-timeline-wrapper">
+                    <div class="daw-timeline-wrapper" data-timeline-path="${esc(JSON.stringify(activePath))}">
                         ${tracksHtml}
                     </div>
                     ${inspectorHtml}
@@ -392,8 +392,20 @@ function initDawEditor(containerId, moveData) {
             `;
         }
 
+        // Every click in the timeline (selecting a phase, adding one) rebuilds
+        // it, and a rebuilt scroll box starts at 0. On a long move that threw
+        // the editor back to frame 0 on every click. The position is kept when
+        // the same timeline is redrawn, and only then: a different variant is a
+        // different timeline and starts at its own beginning.
+        const oldTimeline = container.querySelector('.daw-timeline-wrapper');
+        const keptScroll = oldTimeline && oldTimeline.dataset.timelinePath === JSON.stringify(activePath)
+            ? oldTimeline.scrollLeft : 0;
+
         container.innerHTML = metaHtml + statsCard + variantTabsHtml + dawHtml;
         bindDawEvents(container, currentObj);
+
+        const newTimeline = container.querySelector('.daw-timeline-wrapper');
+        if (newTimeline && keptScroll) newTimeline.scrollLeft = keptScroll;
     }
 
     // Stale dimensions are worse than none - they would frame the box for the

@@ -319,11 +319,17 @@ function liftNoAuto(content, store) {
     });
 }
 
+// Put back inside a marker span, not bare. The move-name pass for Combos and
+// Techs (applyInputSlotColours) runs later, over the rendered text, where the
+// [noauto] tag no longer exists; the span is how it can still tell which words
+// the author protected.
 function restoreNoAuto(content, store) {
     if (!store.length) return content;
     return content.replace(
         new RegExp(`${NOAUTO_OPEN}(\\d+)${NOAUTO_CLOSE}`, 'g'),
-        (whole, index) => store[Number(index)] !== undefined ? store[Number(index)] : whole
+        (whole, index) => store[Number(index)] !== undefined
+            ? `<span class="sc-noauto">${store[Number(index)]}</span>`
+            : whole
     );
 }
 
@@ -524,17 +530,40 @@ window.applyInputSlotColours = function (root) {
     });
     if (!hosts.length) return;
 
+    // Text node by text node, rather than one replace over the block's HTML,
+    // so that words inside a [noauto] region (.sc-noauto) can be skipped. The
+    // whole-HTML replace could not see where the author's region began and
+    // ended, which is why [noauto] stopped every other kind of auto-colouring
+    // and not this one.
     hosts.forEach(host => {
         host.querySelectorAll('.is-styled:not(.is-slotted-prose)').forEach(block => {
             block.classList.add('is-slotted-prose');
-            const before = block.innerHTML;
-            terms.pattern.lastIndex = 0;
-            const after = before.replace(terms.pattern, (match) => {
-                const id = terms.lookup.get(window.normaliseMoveName(match));
-                const slot = id && window.getInputSlot(id);
-                return slot ? `<span class="sc-auto ${slot.cls}">${match}</span>` : match;
+            const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, {
+                acceptNode: (node) => node.parentElement && node.parentElement.closest('.sc-noauto')
+                    ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
             });
-            if (after !== before) block.innerHTML = after;
+            const textNodes = [];
+            while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+            textNodes.forEach(node => {
+                // Escaped the way innerHTML serialises text (&, < and > only),
+                // so a move name with an apostrophe matches as it did before.
+                const before = node.nodeValue
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                terms.pattern.lastIndex = 0;
+                let matched = false;
+                const after = before.replace(terms.pattern, (match) => {
+                    const id = terms.lookup.get(window.normaliseMoveName(match));
+                    const slot = id && window.getInputSlot(id);
+                    if (!slot) return match;
+                    matched = true;
+                    return `<span class="sc-auto ${slot.cls}">${match}</span>`;
+                });
+                if (!matched) return;
+                const tpl = document.createElement('template');
+                tpl.innerHTML = after;
+                node.replaceWith(tpl.content);
+            });
         });
     });
 };
@@ -628,6 +657,9 @@ function applyInternalStyling() {
             // they read as prose today. <kbd> is the element for it, so screen
             // readers and search engines get the meaning too.
             content = content.replace(/\[kbd\]((?:(?!\[kbd\])[\s\S])*?)\[\/kbd\]/gi, '<kbd class="sc-kbd">$1</kbd>');
+            // A white outline (v1.1), drawn the same way the site already
+            // outlines a dark character name on a dark page (style/Common.css).
+            content = content.replace(/\[outline\]((?:(?!\[outline\])[\s\S])*?)\[\/outline\]/gi, '<span class="sc-outline">$1</span>');
 
             // Colour: the value is contributor text going into a style
             // attribute. Refused rather than escaped, because a colour is a
