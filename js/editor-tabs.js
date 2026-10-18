@@ -114,7 +114,7 @@ window.addExtraTab = async function() {
 };
 
 window.removeExtraTab = async function(idx) {
-    if (await window.customConfirm("Delete this custom tab and all its contents?")) {
+    if (await window.confirmDelete("Delete this custom tab and all its contents?")) {
         await window.triggerManualSync();
         window.currentEditorDescData.extras.splice(idx, 1);
         if(typeof renderFullOverviewPreview === 'function') renderFullOverviewPreview();
@@ -459,7 +459,7 @@ window.addMove = async function() {
 };
 
 window.removeMove = async function(moveId) {
-    if (await window.customConfirm("Delete this entire move (stats, frame data, and strategy)?")) {
+    if (await window.confirmDelete("Delete this entire move (stats, frame data, and strategy)?")) {
         await window.triggerManualSync();
         const tabId = window.currentEditorTabId;
         const arr = window.currentEditorFrameData[tabId];
@@ -670,7 +670,7 @@ window.addMatchup = async function() {
 };
 
 window.removeMatchup = async function(idx) {
-    if (await window.customConfirm("Delete this entire matchup?")) {
+    if (await window.confirmDelete("Delete this entire matchup?")) {
         window.currentEditorDescData.matchups.splice(idx, 1);
         initFullTabEditor(window.currentEditorCharId, 'matchups', window.currentEditorDescData, window.currentEditorFrameData);
         if (window.currentEditorDescData.matchups.length > 0) window.loadMatchupIntoEditor(0);
@@ -718,7 +718,7 @@ window.addKeyedEntry = async function(tabId) {
 window.removeKeyedEntry = async function(tabId, idx) {
     const section = window.getKeyedSectionByTab(tabId);
     if (!section) return;
-    if (await window.customConfirm(`Delete this entire ${section.entryLabel.toLowerCase()}?`)) {
+    if (await window.confirmDelete(`Delete this entire ${section.entryLabel.toLowerCase()}?`)) {
         window.currentEditorDescData[section.field].splice(idx, 1);
         // The open entry may have been the one removed, or may have shifted
         // down. Either way the stored index no longer means what it did, and
@@ -910,7 +910,7 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
     });
     host.querySelectorAll('[data-remove-card]').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!(await window.customConfirm(`Delete this ${noun.toLowerCase()} card and its write-up?`))) return;
+            if (!(await window.confirmDelete(`Delete this ${noun.toLowerCase()} card and its write-up?`))) return;
             cards.splice(parseInt(btn.getAttribute('data-remove-card'), 10), 1);
             // The open card may have been the one removed, or shifted down.
             window.currentDocCardIndex = undefined;
@@ -1103,7 +1103,9 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
         });
     });
     container.querySelectorAll('[data-nstyle-add], [data-nstyle-remove]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
+            if (btn.hasAttribute('data-nstyle-remove')
+                && !(await window.confirmDelete('Delete this notation style?'))) return;
             flushDocumentCard(tabId, groupIdx);
             const focusAt = window.applyComboNotationClick(target, btn);
             renderDocumentCardBody(tabId, groupIdx, cards);
@@ -1156,7 +1158,8 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
 
     const removeSec = container.querySelector('[data-cardsec-remove]');
     if (removeSec) {
-        removeSec.addEventListener('click', () => {
+        removeSec.addEventListener('click', async () => {
+            if (!(await window.confirmDelete('Delete this section of the card and everything in it?'))) return;
             const at = parseInt(removeSec.getAttribute('data-cardsec-remove'), 10);
             if (Array.isArray(card.sections) && card.sections.length > 1) {
                 card.sections.splice(at, 1);
@@ -1254,7 +1257,7 @@ window.addDocumentGroup = async function (tabId) {
 window.removeDocumentGroup = async function (tabId, idx) {
     const doc = docSections(tabId);
     if (!doc || !doc.groups) return;
-    if (!(await window.customConfirm('Delete this group and everything in it?'))) return;
+    if (!(await window.confirmDelete('Delete this group and everything in it?'))) return;
     window.currentEditorDescData[doc.groups.field].splice(idx, 1);
     // The open section may have been the one removed, or shifted down.
     window.currentDocSection = 'intro';
@@ -1324,7 +1327,7 @@ window.renderDocumentListEditor = function (tabId) {
     });
     host.querySelectorAll('[data-remove-table]').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!(await window.customConfirm(`Delete this ${noun.toLowerCase()} and everything in it?`))) return;
+            if (!(await window.confirmDelete(`Delete this ${noun.toLowerCase()} and everything in it?`))) return;
             tables.splice(parseInt(btn.getAttribute('data-remove-table'), 10), 1);
             window.currentDocTableIndex = undefined;
             window.renderDocumentListEditor(tabId);
@@ -1436,7 +1439,7 @@ function renderDocumentListRows(tabId, section, tables) {
     });
     container.querySelectorAll('.combo-row-remove').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!(await window.customConfirm('Delete this row?'))) return;
+            if (!(await window.confirmDelete('Delete this row?'))) return;
             table.rows.splice(parseInt(btn.getAttribute('data-row'), 10), 1);
             renderDocumentListRows(tabId, section, tables);
             window.renderDocumentPreview(tabId);
@@ -1534,7 +1537,9 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
         });
     });
     fields.querySelectorAll('[data-nstyle-add], [data-nstyle-remove]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
+            if (btn.hasAttribute('data-nstyle-remove')
+                && !(await window.confirmDelete('Delete this notation style?'))) return;
             const focusAt = window.applyComboNotationClick(row, btn);
             window.openDocumentRowModal(tabId, tableIdx, rowIdx);
             window.renderDocumentPreview(tabId);
@@ -1555,7 +1560,7 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
     if (done) done.onclick = close;
     if (del) {
         del.onclick = async () => {
-            if (!(await window.customConfirm('Delete this row?'))) return;
+            if (!(await window.confirmDelete('Delete this row?'))) return;
             rows.splice(rowIdx, 1);
             close();
             window.renderDocumentPreview(tabId);
@@ -2006,8 +2011,9 @@ function initProfileEditor(containerId, profileData) {
             profileData.stats[e.target.dataset.idx].value = e.target.value; triggerSync();
         }));
 
-        container.querySelectorAll('.btn-del-stat').forEach(btn => btn.addEventListener('click', (e) => {
-            profileData.stats.splice(e.target.dataset.idx, 1); renderProfileForm(); triggerSync();
+        container.querySelectorAll('.btn-del-stat').forEach(btn => btn.addEventListener('click', async () => {
+            if (!(await window.confirmDelete('Delete this stat?'))) return;
+            profileData.stats.splice(btn.dataset.idx, 1); renderProfileForm(); triggerSync();
         }));
 
         container.querySelector('#btn-add-stat').addEventListener('click', () => {
@@ -2085,11 +2091,13 @@ function initPlaystyleEditor(containerId, playstyleData) {
             playstyleData.dislikes[e.target.dataset.idx] = e.target.value; triggerSync();
         }));
 
-        container.querySelectorAll('.btn-del-like').forEach(btn => btn.addEventListener('click', (e) => {
-            playstyleData.likes.splice(e.target.dataset.idx, 1); renderForm(); triggerSync();
+        container.querySelectorAll('.btn-del-like').forEach(btn => btn.addEventListener('click', async () => {
+            if (!(await window.confirmDelete('Delete this line?'))) return;
+            playstyleData.likes.splice(btn.dataset.idx, 1); renderForm(); triggerSync();
         }));
-        container.querySelectorAll('.btn-del-dislike').forEach(btn => btn.addEventListener('click', (e) => {
-            playstyleData.dislikes.splice(e.target.dataset.idx, 1); renderForm(); triggerSync();
+        container.querySelectorAll('.btn-del-dislike').forEach(btn => btn.addEventListener('click', async () => {
+            if (!(await window.confirmDelete('Delete this line?'))) return;
+            playstyleData.dislikes.splice(btn.dataset.idx, 1); renderForm(); triggerSync();
         }));
 
         container.querySelector('#btn-add-like').addEventListener('click', () => {

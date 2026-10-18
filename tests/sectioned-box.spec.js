@@ -263,7 +263,11 @@ test('sections are add and remove, and the box renders a tab for each', async ({
     await page.click('[data-sbox-add]');
     await expect(page.locator('[data-sbox-title]')).toHaveCount(3);
 
+    // Asks first (v1.1), through the browser's confirm: editor() replaces the
+    // page body and the modal with it.
+    page.on('dialog', d => d.accept());
     await page.click('[data-sbox-remove="0"]');
+    await expect(page.locator('[data-sbox-title]')).toHaveCount(2);
     const titles = await page.evaluate(() =>
         window.getActiveBlocks()[0].sections.map(s => s.title));
 

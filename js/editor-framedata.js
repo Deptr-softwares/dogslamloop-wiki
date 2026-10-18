@@ -463,8 +463,9 @@ function initDawEditor(containerId, moveData) {
         });
 
         container.querySelectorAll('.btn-del-stat').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                moveData.stats.splice(e.target.dataset.idx, 1);
+            btn.addEventListener('click', async () => {
+                if (!(await window.confirmDelete('Delete this stat?'))) return;
+                moveData.stats.splice(btn.dataset.idx, 1);
                 renderDaw();
             });
         });
@@ -649,7 +650,7 @@ function initDawEditor(containerId, moveData) {
         let parentNode = moveData;
         for(let i=0; i<activePath.length-1; i++) { parentNode = parentNode.variants[activePath[i]]; }
         let keyToDelete = activePath[activePath.length-1];
-        if(await window.customConfirm("Delete this variant completely?")) {
+        if(await window.confirmDelete("Delete this variant completely?")) {
             delete parentNode.variants[keyToDelete];
             activePath.pop();
             renderDaw();
@@ -664,7 +665,7 @@ function initDawEditor(containerId, moveData) {
     };
 
     window.deleteDawTrack = async function(bIdx) {
-        if(await window.customConfirm("Delete this entire track?")) {
+        if(await window.confirmDelete("Delete this entire track?")) {
             getCurrentDawNode().bars.splice(bIdx, 1);
             if(selectedBarIdx === parseInt(bIdx)) { selectedBarIdx = null; selectedPhaseIdx = null; }
             renderDaw();
@@ -681,8 +682,9 @@ function initDawEditor(containerId, moveData) {
         renderDaw();
     };
 
-    window.deleteDawPhase = function() {
+    window.deleteDawPhase = async function() {
         if(selectedBarIdx !== null && selectedPhaseIdx !== null) {
+            if (!(await window.confirmDelete('Delete this phase?'))) return;
             getCurrentDawNode().bars[selectedBarIdx].phases.splice(selectedPhaseIdx, 1);
             selectedPhaseIdx = null;
             renderDaw();

@@ -2683,3 +2683,82 @@ del.diff-del {
 .nstyle-row { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.6rem; }
 .nstyle-row-head { display: flex; gap: 0.4rem; align-items: center; }
 .nstyle-row-head .editor-input { flex: 1; min-width: 0; }
+
+/* --- THE CONFIG PANEL (v1.1) ---
+   Settings saved per device by js/editor-config.js, each one a class on
+   <body>. Every rule below the panel's own is keyed on its body.cfg-* class,
+   so with the panel untouched none of them applies and the editor is exactly
+   as it was. */
+.config-modal-box { max-width: 560px; }
+.config-body { display: flex; flex-direction: column; gap: 0.75rem; text-align: left; }
+.config-panel { display: flex; flex-direction: column; gap: 0.6rem; }
+.config-option { display: flex; gap: 0.6rem; align-items: flex-start; cursor: pointer; }
+.config-option input { margin: 0.15rem 0 0; flex-shrink: 0; accent-color: var(--accent-blue); }
+.config-option-text { display: flex; flex-direction: column; gap: 0.1rem; }
+.config-option-label { font-family: var(--text-mono); font-size: 0.8rem; font-weight: bold; color: #e5e7eb; }
+.config-option-hint { font-size: 0.72rem; line-height: 1.4; color: #9ca3af; }
+.config-group { display: flex; flex-direction: column; gap: 0.4rem; margin: 0; padding: 0.5rem 0.75rem; border: 1px solid #333; }
+.config-group legend { padding: 0 0.3rem; }
+.config-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.config-action-note:empty { display: none; }
+.config-footnote { margin: 0; font-size: 0.7rem; color: #6b7280; }
+
+/* Hide Block Type dropdown: the type as a badge instead. initializeMangaSelects
+   hides the real select and draws its dropdown as the NEXT sibling, not
+   around it, so that sibling is what goes. */
+.block-type-label { display: none; }
+body.cfg-hide-block-type .block-type-row .block-type-selector,
+body.cfg-hide-block-type .block-type-row .block-type-selector + .manga-select-wrapper { display: none; }
+body.cfg-hide-block-type .block-type-row .block-type-label { display: inline-block; }
+
+/* Hide Drag-and-drop area: the card's left edge becomes the handle. 12px from
+   the outer edge, which must match BLOCK_DRAG_EDGE_PX in js/editor-blocks.js:
+   the 3px border and the start of the padding, where no content sits. */
+body.cfg-hide-drag-handle .block-card .drag-handle { display: none; }
+body.cfg-hide-drag-handle .block-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -3px;
+    width: 12px;
+    cursor: grab;
+    touch-action: none;
+}
+
+/* Hide Block Folder dropdown. CREATE FOLDER and dropping onto a folder's
+   header still file blocks. */
+body.cfg-hide-folder-picker .block-type-row .block-folder-picker { display: none; }
+
+/* Formatting on top: the row that carries a Block's alignment moves above its
+   content. A column flexbox lays these fields out as before (they carry only
+   bottom margins, so nothing was collapsing), and `order` moves the row
+   without touching the markup or a single handler. */
+body.cfg-format-top .block-body:not(.minimized) { display: flex; flex-direction: column; }
+body.cfg-format-top .block-body > .editor-row:has(.align-group) { order: -1; margin-bottom: 0.25rem; }
+
+/* Disable Preview Panel. Beats the phone layout's own !important rules for the
+   preview and its SHOW PREVIEW button. */
+body.cfg-no-preview .editor-layout-split > .live-preview-pane,
+body.cfg-no-preview .editor-layout-split > .editor-splitter,
+body.cfg-no-preview #mobile-preview-toggle { display: none !important; }
+@media (min-width: 901px) {
+    body.cfg-no-preview .editor-layout-split > .editor-workspace { flex: 1 1 auto; border-right: none; }
+}
+
+/* Sticky top elements, once they differ from the defaults: the workspace
+   scrolls instead of #interactive-builder, and js/editor-config.js stacks each
+   bar that stays at a measured top. The footer toolbar's -1.5rem offset was
+   for the builder's padding, which is no longer the scroll edge. */
+body.cfg-workspace-scrolls .editor-layout-split > .editor-workspace { overflow-y: auto; }
+body.cfg-workspace-scrolls #interactive-builder { flex: none; overflow: visible; }
+body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
+.cfg-stuck { position: sticky; z-index: 45; }
+/* The bars that are transparent get the workspace's own colour, or the blocks
+   scrolling under them show through. The header has it already, and the tip
+   keeps its own. */
+.editor-mode-bar.cfg-stuck,
+.editor-mode-controls.cfg-stuck,
+.editor-tab-nav.cfg-stuck,
+.daw-editor-nav-row.cfg-stuck,
+.strategy-toolbar-row.cfg-stuck { background: #050505; }

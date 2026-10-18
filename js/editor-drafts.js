@@ -127,7 +127,7 @@ window.openDraftManager = function() {
 };
 
 window.deleteDraft = async function(key) {
-    if (await window.customConfirm("Permanently discard this local draft? This cannot be undone.", "DISCARD DRAFT", true)) {
+    if (await window.confirmDelete("Permanently discard this local draft? This cannot be undone.", "DISCARD DRAFT")) {
         localStorage.removeItem(key);
         window.openDraftManager();
     }

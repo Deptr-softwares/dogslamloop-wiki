@@ -135,7 +135,7 @@ window.addSystemTab = async function() {
 };
 
 window.removeSystemTab = async function(idx) {
-    if (await window.customConfirm("Delete this ENTIRE tab and all its sections?")) {
+    if (await window.confirmDelete("Delete this ENTIRE tab and all its sections?")) {
         window.currentEditorDescData.tabs.splice(idx, 1);
         window.currentSystemTabIdx = 0; window.currentSystemSecIdx = 0;
         window.renderSystemEditor(document.getElementById('interactive-builder'));
@@ -152,7 +152,7 @@ window.addSystemSection = async function() {
 };
 
 window.removeSystemSection = async function(idx) {
-    if (await window.customConfirm("Delete this section and all its blocks?")) {
+    if (await window.confirmDelete("Delete this section and all its blocks?")) {
         window.currentEditorDescData.tabs[window.currentSystemTabIdx].sections.splice(idx, 1);
         window.currentSystemSecIdx = 0;
         window.renderSystemEditor(document.getElementById('interactive-builder'));
