@@ -208,7 +208,7 @@ test('the toolbar offers every shortcode the engine renders', async ({ page }) =
     const tags = await page.locator('.format-btn[data-tag]').evaluateAll(
         nodes => nodes.map(n => n.dataset.tag));
 
-    expect(tags).toEqual(['b', 'i', 'u', 's', 'code', 'url', 'kbd', 'noauto']);
+    expect(tags).toEqual(['b', 'i', 'u', 's', 'code', 'url', 'kbd', 'noauto', 'outline']);
 });
 
 test('the kbd button wraps the selection', async ({ page }) => {
@@ -232,4 +232,15 @@ test('the noauto button wraps the selection', async ({ page }) => {
     await page.locator('.format-btn[data-tag="noauto"]').click();
 
     expect(await fieldValue(page)).toBe('[noauto]Register[/noauto] an account');
+});
+
+test('the outline button wraps the selection', async ({ page }) => {
+    await openEditor(page);
+
+    const ok = await typeAndSelect(page, 'Domain Expansion opens', 16);
+    test.skip(!ok, 'this page has no text block to format');
+
+    await page.locator('.format-btn[data-tag="outline"]').click();
+
+    expect(await fieldValue(page)).toBe('[outline]Domain Expansion[/outline] opens');
 });

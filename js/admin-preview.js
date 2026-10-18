@@ -998,7 +998,7 @@ async function switchVersionView(mode) {
 
                 diffContainer.innerHTML += `
                     <div class="diff-container">
-                        <h3 class="diff-section-title">${title.toUpperCase()}</h3>
+                        <h3 class="diff-section-title">${window.escapeHtml(title.toUpperCase())}</h3>
                         <div id="diff-inline-${safeId}" class="diff-inline-target"></div>
                     </div>
                 `;
@@ -1023,7 +1023,7 @@ async function switchVersionView(mode) {
                 // unprocessed.
                 diffContainer.innerHTML += `
                     <div class="diff-container">
-                        <h3 class="diff-section-title">${title.toUpperCase()}</h3>
+                        <h3 class="diff-section-title">${window.escapeHtml(title.toUpperCase())}</h3>
                         ${window.renderStructuredDiff(oldData, newData)}
                     </div>
                 `;

@@ -1375,8 +1375,12 @@ summary:focus-visible {
    Square corners and a shadow directly below, not the softened card look:
    that is the manga treatment the rest of the wiki uses (see .btn-manga), and
    it is what keeps this reading as our page rather than as Dustloop's. */
+/* flow-root, not block (v1.1): a plain block box does not move out of a
+   float's way, only its text does. Beside a right-aligned video the route
+   wrapped clear of it while the box itself, border and background, ran
+   underneath the video. flow-root makes the box keep clear of the float too. */
 .combo-block {
-    display: block; width: fit-content; max-width: 100%;
+    display: flow-root; width: fit-content; max-width: 100%;
     background: var(--bg-secondary); border: 2px solid var(--border-color);
     border-radius: 0; box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
     padding: 0.45rem 0.6rem; margin: 1.25rem 0 1.7rem;

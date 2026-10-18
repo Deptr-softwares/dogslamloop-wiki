@@ -1077,6 +1077,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                      as not existing for most contributors. -->
                 <button class="format-btn format-btn-kbd" data-tag="kbd" title="Key or input, e.g. M1">⌨</button>
                 <button class="format-btn format-btn-noauto" data-tag="noauto" title="Stop automatic colouring here — for when a character name is just a word">🚫</button>
+                <button class="format-btn format-btn-outline" data-tag="outline" title="White outline around the text"><span class="sc-outline">A</span></button>
 
                 <div class="format-color-wrapper">
                     <button class="format-btn format-btn-color-trigger" id="btn-format-color" title="Apply Color to Highlighted Text">
@@ -2750,6 +2751,76 @@ window.autoSizeEditorTextareasIn = function (root) {
     fields.forEach(window.autoSizeEditorTextarea);
     if (scroller && scroller.scrollTop !== keepTop) scroller.scrollTop = keepTop;
 };
+
+// --- LONG ONE-LINE FIELDS GROW OVER THEIR NEIGHBOURS (v1.1) ---
+//
+// A move name, a table cell or a combo's damage is one line, and text longer
+// than the box shows only a slice of itself. While such a field is being
+// edited and its text overflows, it widens to fit and is drawn on top of
+// whatever sits beside it: the owner's call, 2026-10-18, trading neatness for
+// being able to read what you are typing.
+//
+// It takes no layout space doing it. The negative margin gives back exactly the
+// width it adds, so nothing beside it moves, and it is the same element with
+// the same focus throughout, so every handler bound to it keeps working (a
+// floating copy would take focus and fire the blur handlers that commit and
+// redraw). It stays inside the nearest box that clips it, shifting left when
+// there is no room on the right, and goes back to its own size on blur.
+const GROW_FIELD = 'input.editor-input[type="text"]';
+
+function clipBoundsOf(el) {
+    let left = 0;
+    let right = document.documentElement.clientWidth;
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+        if (getComputedStyle(p).overflowX !== 'visible') {
+            const r = p.getBoundingClientRect();
+            left = Math.max(left, r.left);
+            right = Math.min(right, r.right);
+        }
+    }
+    return { left, right };
+}
+
+function shrinkEditorField(el) {
+    if (!el.classList.contains('editor-input-grown')) return;
+    el.classList.remove('editor-input-grown');
+    el.style.removeProperty('width');
+    el.style.removeProperty('margin-right');
+    el.style.removeProperty('left');
+}
+
+window.growEditorField = function (el) {
+    shrinkEditorField(el);
+    if (el.scrollWidth <= el.clientWidth + 1) return;
+
+    const rect = el.getBoundingClientRect();
+    const bounds = clipBoundsOf(el);
+    const room = bounds.right - bounds.left - 8;
+    // Borders and padding are outside clientWidth; the extra 16px keeps the
+    // caret off the edge while typing at the end.
+    const width = Math.min(el.scrollWidth + (rect.width - el.clientWidth) + 16, room);
+    if (width <= rect.width) return;
+
+    const pastRight = rect.left + width - (bounds.right - 4);
+    const shift = pastRight > 0 ? Math.min(pastRight, Math.max(0, rect.left - bounds.left - 4)) : 0;
+
+    el.classList.add('editor-input-grown');
+    el.style.width = `${width}px`;
+    el.style.marginRight = `${rect.width - width}px`;
+    el.style.left = `${-shift}px`;
+};
+
+document.addEventListener('focusin', (e) => {
+    if (e.target.matches && e.target.matches(GROW_FIELD)) window.growEditorField(e.target);
+});
+document.addEventListener('input', (e) => {
+    if (e.target === document.activeElement && e.target.matches && e.target.matches(GROW_FIELD)) {
+        window.growEditorField(e.target);
+    }
+});
+document.addEventListener('focusout', (e) => {
+    if (e.target.matches && e.target.matches(GROW_FIELD)) shrinkEditorField(e.target);
+});
 
 // A one-line label for a collapsed block.
 //

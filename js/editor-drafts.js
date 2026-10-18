@@ -6,6 +6,12 @@
 // --- LOCAL AUTO-SAVE ENGINE ---
 window.saveLocalDraft = function() {
     if (!window.currentEditorCharId) return;
+    // Not while editing a submission (v1.1). The draft key is the page's, and a
+    // submission's content saved under it came back later as "restore your
+    // local progress?" on the page's own editor, where restoring it and
+    // pressing Submit sent the whole submission a second time. A submission is
+    // already saved in the queue; a draft of it is never offered back anyway.
+    if (window.activeEditTicketId) return;
 
     const tabId = window.currentEditorTabId || 'overview';
     let moveId = '';

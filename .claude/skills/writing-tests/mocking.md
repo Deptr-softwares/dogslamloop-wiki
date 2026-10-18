@@ -107,6 +107,21 @@ update(payload) {
 
 Then `await page.evaluate(() => window.__writes)`. Assert the payload, not just that something happened — several bugs here were wrong values in a write that did occur.
 
+## Routes
+
+When a page reads PostgREST over HTTP rather than through a patched client, mock the request with `page.route`.
+
+- **End the pattern with `*`.** `fetchJson` appends a cache-buster, so `'**/data/navigation.json'` never matches.
+- **Playwright runs the last-registered handler first.** A test route added before a helper's route for the same URL never runs. A helper that routes a URL takes the override as an option (`openThread`'s `klipyMedia`), never a route added around it.
+- **`.single()` asks for one object, not an array.** It sends `Accept: application/vnd.pgrst.object+json`, so answer by header:
+  ```js
+  await page.route('**/rest/v1/page_data**', route => {
+    const one = (route.request().headers()['accept'] || '').includes('vnd.pgrst.object');
+    route.fulfill({ status: 200, contentType: 'application/json',
+                    body: JSON.stringify(one ? row : [row]) });
+  });
+  ```
+
 ## Match the real call signature
 
 A mock looser than the real call passes while the code is wrong. `.upsert(payload, { onConflict: 'page_id' })` is one call, not `.upsert(payload).onConflict(...)` — mocking the latter would pass against code that could never work.

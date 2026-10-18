@@ -213,12 +213,16 @@ body {
    reads as a glow, and a 1px shadow on small bold text eats the glyph. Same
    paint-order-with-text-shadow-fallback shape, so the two treatments cannot
    diverge in how they are drawn - only in colour. */
-.page-character-dark .sc-char.sc-char-dark {
+/* The [outline] shortcode (v1.1) shares the rule, so an outline a contributor
+   asks for is drawn exactly like the one the site adds. */
+.page-character-dark .sc-char.sc-char-dark,
+.sc-outline {
     text-shadow: -1px 0 0 #fff, 1px 0 0 #fff, 0 -1px 0 #fff, 0 1px 0 #fff;
 }
 
 @supports (paint-order: stroke) {
-    .page-character-dark .sc-char.sc-char-dark {
+    .page-character-dark .sc-char.sc-char-dark,
+    .sc-outline {
         text-shadow: none;
         paint-order: stroke fill;
         -webkit-text-stroke-width: 1px;

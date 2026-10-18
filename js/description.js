@@ -1996,8 +1996,8 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                         data.profile.stats.forEach(stat => {
                             statsHTML += `
                                 <div class="profile-stat-row">
-                                    <span class="profile-stat-label">${stat.label}</span>
-                                    <span class="profile-stat-val">${stat.value}</span>
+                                    <span class="profile-stat-label">${window.escapeHtmlKeepBreaks(stat.label)}</span>
+                                    <span class="profile-stat-val">${window.escapeHtmlKeepBreaks(stat.value)}</span>
                                 </div>`;
                         });
                     }

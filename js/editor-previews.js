@@ -44,13 +44,13 @@ function renderFullOverviewPreview() {
             descData.profile.stats.forEach(stat => {
                 statsHTML += `
                     <div class="profile-stat-row">
-                        <span class="profile-stat-label">${stat.label}</span>
-                        <span class="profile-stat-val">${stat.value}</span>
+                        <span class="profile-stat-label">${window.escapeHtmlKeepBreaks(stat.label)}</span>
+                        <span class="profile-stat-val">${window.escapeHtmlKeepBreaks(stat.value)}</span>
                     </div>`;
             });
         }
-        const imgHTML = descData.profile.image 
-            ? `<img src="${descData.profile.image}" class="profile-portrait" alt="Character Portrait">` 
+        const imgHTML = descData.profile.image
+            ? `<img src="${window.escapeHtml(descData.profile.image)}" class="profile-portrait" alt="Character Portrait">`
             : `<div class="profile-portrait-missing">[No Portrait]</div>`;
 
         profileHTML = `

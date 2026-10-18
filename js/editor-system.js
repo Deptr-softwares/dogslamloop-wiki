@@ -20,7 +20,7 @@ window.renderSystemEditor = function(container) {
     descData.tabs.forEach((tab, tIdx) => {
         let active = tIdx === window.currentSystemTabIdx ? 'active' : '';
         tabHTML += `<div class="daw-tab-item">`;
-        tabHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${active}" onclick="window.switchSystemTab(${tIdx})">${tab.tabLabel}</button>`;
+        tabHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${active}" onclick="window.switchSystemTab(${tIdx})">${window.escapeHtml(tab.tabLabel)}</button>`;
         tabHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemTab(${tIdx})" title="Delete Tab">✖</button>`;
         tabHTML += `</div>`;
     });
@@ -38,7 +38,7 @@ window.renderSystemEditor = function(container) {
     activeTab.sections.forEach((sec, sIdx) => {
         let active = sIdx === window.currentSystemSecIdx ? 'active' : '';
         secHTML += `<div class="daw-tab-item">`;
-        secHTML += `<button class="daw-tab-btn daw-tab-btn-removable system-section-tab-btn ${active}" onclick="window.switchSystemSection(${sIdx})">${sec.sectionTitle || 'Section ' + (sIdx+1)}</button>`;
+        secHTML += `<button class="daw-tab-btn daw-tab-btn-removable system-section-tab-btn ${active}" onclick="window.switchSystemSection(${sIdx})">${window.escapeHtml(sec.sectionTitle || 'Section ' + (sIdx+1))}</button>`;
         // Reordering here is exactly what item 6b's `order` delta carries, so a
         // move ships as an order change rather than as every section's content.
         secHTML += `<button class="daw-tab-remove-btn" onclick="window.removeSystemSection(${sIdx})" title="Delete Section">✖</button>`;
@@ -65,17 +65,17 @@ window.renderSystemEditor = function(container) {
                     <div class="editor-row">
                         <div>
                             <label class="block-field-label-sm">Tab Name (Navigation)</label>
-                            <input type="text" class="editor-input" value="${activeTab.tabLabel}" oninput="window.updateSystemMeta('tabLabel', this.value)">
+                            <input type="text" class="editor-input" value="${window.escapeHtml(activeTab.tabLabel)}" oninput="window.updateSystemMeta('tabLabel', this.value)">
                         </div>
                         <div>
                             <label class="block-field-label-sm">Section Title (Header)</label>
-                            <input type="text" class="editor-input" value="${activeSec.sectionTitle}" oninput="window.updateSystemMeta('sectionTitle', this.value)">
+                            <input type="text" class="editor-input" value="${window.escapeHtml(activeSec.sectionTitle)}" oninput="window.updateSystemMeta('sectionTitle', this.value)">
                         </div>
                     </div>
                     <div class="editor-row editor-row-divider">
                         <div>
                             <label class="block-field-label-sm">Width (%)</label>
-                            <input type="number" class="editor-input" min="10" max="100" step="5" value="${secWidth}" oninput="window.updateSystemMeta('width', this.value, false, true)">
+                            <input type="number" class="editor-input" min="10" max="100" step="5" value="${window.escapeHtml(secWidth)}" oninput="window.updateSystemMeta('width', this.value, false, true)">
                         </div>
                         <div>
                             <label class="block-field-label-sm">Alignment</label>

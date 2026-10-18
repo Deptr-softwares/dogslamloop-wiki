@@ -1217,6 +1217,20 @@ input[type="checkbox"]:checked {
 .editor-extra-title-row { display: flex; align-items: center; gap: 0.75rem; width: 100%; }
 .editor-extra-title-input { margin: 0; max-width: 300px; font-size: 0.85rem; font-family: var(--text-mono); border-radius: 0; padding: 0.4rem 0.6rem; text-transform: uppercase; }
 .daw-editor-target-spacing { padding-bottom: 1rem; }
+/* The fold button on "1. STATS & FRAME DATA" (js/editor-tabs.js), pushed to the
+   banner's right end. */
+.editor-stats-fold { margin-left: auto; }
+/* The [outline] button previews its own effect: a black letter with the white
+   outline, since a white letter would hide it. */
+.format-btn-outline .sc-outline { color: #000; font-weight: bold; }
+/* A one-line field being edited past its width (js/editor-blocks.js,
+   growEditorField). Its width, margin and offset are set inline from a
+   measurement; this lifts it above its neighbours and keeps a flex row from
+   shrinking it back. The shadow is the manga one, so it reads as raised. */
+.editor-input.editor-input-grown {
+    position: relative; z-index: 40; flex: none; max-width: none;
+    background: #0a0a0a; box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
+}
 .editor-field-label-sm { font-size: 0.65rem; color: #888; }
 .editor-input-spaced { margin-top: 0.25rem; }
 /* Compound selector: .block-editor-container's base rule sets margin-top: 1rem
