@@ -147,6 +147,16 @@ test('another page\'s words never colour this page', async ({ page }) => {
   expect(after).toEqual(['Domain']);
 });
 
+test('a word never lands inside an escaped character', async ({ page }) => {
+  // Text is matched in its escaped form, where "&" reads "&amp;". A word
+  // "amp" matching in there would split the entity and print "&amp;".
+  await openCrow(page, { words: [{ word: 'amp', colors: ['#123456'] }, DOMAIN], houseStyle: '' });
+  const out = await paint(page, 'Tom & Jerry, a Domain, and an amp.');
+
+  expect(out.text).toBe('Tom & Jerry, a Domain, and an amp.');
+  expect(out.words.map(w => w.text)).toEqual(['Domain', 'amp']);
+});
+
 test('a hand-written list is capped at fifty, and a bad colour is refused whole', async ({ page }) => {
   // The editor stops at fifty; the data can still be written by hand.
   const words = Array.from({ length: 60 }, (_, i) => ({ word: `Word${i}`, colors: ['#123456'] }));
