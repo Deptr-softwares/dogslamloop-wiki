@@ -296,7 +296,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
             window.currentEditorDescData.matchups.forEach((mu, idx) => {
                 let muName = mu.opponent || `Matchup ${idx + 1}`;
                 navHTML += `<div class="daw-tab-item">`;
-                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="matchup-nav-${idx}" onclick="window.loadMatchupIntoEditor(${idx})">vs. ${muName}</button>`;
+                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="matchup-nav-${idx}" onclick="window.loadMatchupIntoEditor(${idx})">vs. ${window.escapeHtml(muName)}</button>`;
                 navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeMatchup(${idx})" title="Remove Matchup">✖</button>`;
                 navHTML += `</div>`;
             });
@@ -629,7 +629,7 @@ window.loadOverviewSectionIntoEditor = function(sectionId) {
         titleHTML = `
             <div class="editor-extra-title-row">
                 <span class="editor-section-banner-text-inline">EDITING:</span>
-                <input type="text" class="editor-input editor-extra-title-input" value="${sectionTitle}" oninput="window.updateExtraTabTitle(${idx}, this.value)" placeholder="Custom Tab Name">
+                <input type="text" class="editor-input editor-extra-title-input" value="${window.escapeHtml(sectionTitle)}" oninput="window.updateExtraTabTitle(${idx}, this.value)" placeholder="Custom Tab Name">
             </div>
         `;
     }

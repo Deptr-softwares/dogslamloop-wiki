@@ -1706,7 +1706,7 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
     } else {
         container.innerHTML = `
             <div class="wiki-section-empty">
-                "${sectionTitle}" analysis has not been written yet.
+                "${escBlockText(sectionTitle)}" analysis has not been written yet.
             </div>
         `;
     }
