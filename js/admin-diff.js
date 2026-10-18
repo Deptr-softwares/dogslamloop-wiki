@@ -267,6 +267,10 @@ function calculateTabDiffs(rev, showPopup = true) {
                 // toggle instead (js/admin-modes.js).
                 if (!((isBase(modeId) && isBase(active)) || modeId === active)) return;
 
+                // The page's own settings (v1.1) belong to no tab, and marking
+                // Overview would point the reviewer at a tab that did not change.
+                if (scope === 'pageConfig') return;
+
                 let targetTab = 'overview';
                 if (['profile', 'playstyle', 'overview', 'strategy', 'extra'].includes(scope)) targetTab = 'overview';
                 else if (window.getKeyedSectionByScope(scope)) targetTab = window.getKeyedSectionByScope(scope).tab;

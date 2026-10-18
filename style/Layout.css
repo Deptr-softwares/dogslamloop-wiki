@@ -521,7 +521,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .profile-portrait {
     width: 100%; aspect-ratio: 1 / 1;
     object-fit: cover; object-position: var(--portrait-focus, 50% 50%);
-    border-radius: 4px; margin-bottom: 1rem; border: 1px solid var(--border-color);
+    margin-bottom: 1rem; border: 1px solid var(--border-color);
 }
 /* Had no rule at all before - an unstyled div rendering bare "[No Portrait]"
    text. Now that the portrait next to it is a fixed square, the placeholder
@@ -530,7 +530,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .profile-portrait-missing {
     aspect-ratio: 1 / 1; width: 100%; margin-bottom: 1rem;
     display: flex; align-items: center; justify-content: center;
-    border: 1px dashed var(--border-color); border-radius: 4px;
+    border: 1px dashed var(--border-color);
     color: var(--text-muted); font-family: var(--text-mono); font-size: 0.875rem;
 }
 
@@ -984,8 +984,9 @@ summary:focus-visible {
 .playstyle-item-text { line-height: 1.4; }
 
 /* Wiki content blocks: image/video, callout tooltip content, table, accordion
-   (js/description.js generateHTMLForBlocks) */
-.wiki-block-image { width: 100%; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow, #000); }
+   (js/description.js generateHTMLForBlocks). Media has sharp corners like
+   everything else on the site (owner, 2026-10-18), so none of these rounds. */
+.wiki-block-image { width: 100%; box-shadow: 4px 4px 0px var(--manga-shadow, #000); }
 
 /* Stands in for media a moderator has flagged (js/site_utils.js
    sweepBlockedMedia). Says what happened rather than leaving a gap, because
@@ -1026,8 +1027,8 @@ summary:focus-visible {
 }
 
 .wiki-figcaption { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; font-style: italic; }
-.wiki-video-embed { width: 100%; aspect-ratio: 16/9; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow); background: #050505; border: none; display: block; }
-.wiki-video-native { width: 100%; background: #050505; display: block; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow); }
+.wiki-video-embed { width: 100%; aspect-ratio: 16/9; box-shadow: 4px 4px 0px var(--manga-shadow); background: #050505; border: none; display: block; }
+.wiki-video-native { width: 100%; background: #050505; display: block; box-shadow: 4px 4px 0px var(--manga-shadow); }
 
 /* --- THE VIDEO PLAYER (v0.15 item 10) ---
    Native <video> with controls on. Everything here is painted with
@@ -1530,7 +1531,7 @@ summary:focus-visible {
    viewport) against getMediaAttributes' inline contributor-set width -
    without it, a pixel width authored while looking at a wide desktop
    preview can overflow any narrower column it's later viewed in. */
-.wiki-media { border-radius: 4px; border: 1px solid var(--border-color); max-width: 100%; }
+.wiki-media { border: 1px solid var(--border-color); max-width: 100%; }
 .wiki-media-left { float: left; margin: 0.5rem 1.5rem 1rem 0; }
 .wiki-media-right { float: right; margin: 0.5rem 0 1rem 1.5rem; }
 .wiki-media-center { display: block; margin: 1.5rem auto; }

@@ -2,13 +2,14 @@
  * THE CONFIG PANEL (v1.1)
  *
  * Owner, 2026-10-18: "Config lets editor choose setting for their editor and
- * perform mass action", in three parts, Editor, Actions and Page. Editor and
- * Actions are here. Page holds settings that belong to a page and travel with
- * it through review, so it lands separately.
+ * perform mass action", in three parts, Editor, Actions and Page.
  *
- * "Settings saved per device": one JSON object in localStorage, read once at
- * load. Most settings are a class on <body> and style/editor.css does the
- * rest. Sticky is the exception, because it needs measured offsets.
+ * Editor: "Settings saved per device", one JSON object in localStorage, read
+ * once at load. Most settings are a class on <body> and style/editor.css does
+ * the rest. Sticky is the exception, because it needs measured offsets.
+ *
+ * Page: settings that belong to the PAGE and travel with it through review
+ * (see PAGE SETTINGS below).
  *
  * Loaded by edit.html only. The delete confirmations it can switch off live in
  * js/editor-blocks.js (window.confirmDelete), which every editor page loads;
@@ -184,6 +185,322 @@
 
     window.setAllEditorBlocksOpen = setAllBlocksOpen;
 
+    // --- PAGE SETTINGS (v1.1) ---
+    //
+    // Owner, 2026-10-18: auto-colour words "JUST FOR THAT PAGE", and a "Page
+    // house style document" that "would also appear as a red-colored button
+    // next to MoS". Unlike everything above, these belong to the page: they
+    // live in desc_data.pageConfig and travel in a submission as their own
+    // scope, so anyone can change them and a reviewer sees the change first.
+    // Page-level on a character with states, like the list of states itself.
+    //
+    // Gallery and tier list pages have no prose for words to colour.
+    window.PAGE_CONFIG_PAGE_TYPES = ['character', 'system', 'tool'];
+
+    function pageDesc() {
+        return window.editorMasterDescData || null;
+    }
+
+    function pageSettingsHere() {
+        return window.PAGE_CONFIG_PAGE_TYPES.includes(window.currentEditorPageType || 'character') && !!pageDesc();
+    }
+
+    // A copy to edit, so typing never writes half a word list into the page.
+    function readPageConfig() {
+        const config = (pageDesc() || {}).pageConfig || {};
+        return {
+            words: (Array.isArray(config.words) ? config.words : []).map(w => ({
+                word: String((w && w.word) || ''),
+                colors: Array.isArray(w && w.colors) ? w.colors.slice() : [],
+            })),
+            houseStyle: typeof config.houseStyle === 'string' ? config.houseStyle : '',
+        };
+    }
+
+    // An empty config is removed rather than stored, so clearing everything
+    // leaves the page's data as it was and Submit finds nothing to send.
+    function writePageConfig(state) {
+        const desc = pageDesc();
+        if (!desc) return;
+        const words = state.words
+            .map(w => ({ word: w.word.trim().replace(/\s+/g, ' '), colors: w.colors }))
+            .filter(w => w.word && w.colors.length)
+            .slice(0, window.PAGE_WORD_LIMIT);
+        const houseStyle = state.houseStyle.trim() ? state.houseStyle : '';
+
+        if (!words.length && !houseStyle) delete desc.pageConfig;
+        else desc.pageConfig = { words, houseStyle };
+
+        if (typeof window.refreshPageWords === 'function') window.refreshPageWords();
+        refreshHouseStyleButton();
+        if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
+    }
+
+    function refreshHouseStyleButton() {
+        const btn = document.getElementById('btn-house-style');
+        if (!btn) return;
+        const has = pageSettingsHere() && window.houseStyleBlocks(readPageConfig().houseStyle).length > 0;
+        btn.classList.toggle('hidden', !has);
+    }
+    window.refreshHouseStyleButton = refreshHouseStyleButton;
+
+    window.openHouseStyle = function () {
+        if (document.getElementById('editor-house-style-modal')) return false;
+        const blocks = window.houseStyleBlocks(readPageConfig().houseStyle);
+        if (!blocks.length || typeof window.generateHTMLForBlocks !== 'function') return false;
+
+        const box = document.createElement('div');
+        box.className = 'editor-modal-overlay editor-notice-overlay';
+        box.id = 'editor-house-style-modal';
+        box.setAttribute('role', 'dialog');
+        box.setAttribute('aria-modal', 'true');
+        box.setAttribute('aria-label', 'House Style');
+
+        // The block renderer escapes the text, and the styling pass then turns
+        // its format tags into formatting, the same contract as a page.
+        box.innerHTML = `
+            <div class="editor-modal-box auth-modal-box mos-modal-box">
+                <div class="auth-header"><h3>HOUSE STYLE</h3></div>
+                <div class="auth-body mos-body">
+                    <div class="house-style-text">${window.generateHTMLForBlocks(blocks, '')}</div>
+                    <p class="mos-footnote">Written by this page's editors for the ones who come after them. Change it in Config &gt; Page.</p>
+                    <div class="modal-actions-centered mos-actions">
+                        <button type="button" class="btn-sys btn-sys-green" data-house-style-ok>OK</button>
+                    </div>
+                </div>
+            </div>`;
+
+        document.body.appendChild(box);
+        if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
+
+        const shut = () => {
+            if (box.parentNode) box.parentNode.removeChild(box);
+            document.removeEventListener('keydown', onKey);
+        };
+        function onKey(e) { if (e.key === 'Escape') shut(); }
+        box.addEventListener('click', (e) => { if (e.target.closest('[data-house-style-ok]')) shut(); });
+        document.addEventListener('keydown', onKey);
+
+        const ok = box.querySelector('[data-house-style-ok]');
+        if (ok) ok.focus();
+        return true;
+    };
+
+    function pagePanelHTML() {
+        return `
+            <div class="config-panel hidden" data-config-panel="page">
+                <p class="config-option-hint">These belong to this page, not your device. They go out with your next submission and are reviewed like any other edit.</p>
+                <fieldset class="config-group">
+                    <legend class="config-option-label">Auto-color words</legend>
+                    <span class="config-option-hint">Colored everywhere on this page. Whole words only, in the exact case typed ("Domain", not "domain"). [noauto] stops it, and built-in colors (character names, frame data, moves) win where they meet.</span>
+                    <div class="config-words" data-config-words></div>
+                    <div class="config-actions">
+                        <button type="button" class="btn-sys btn-sys-regular" data-word-add>+ ADD WORD</button>
+                        <span class="config-option-hint" data-word-count></span>
+                    </div>
+                </fieldset>
+                <fieldset class="config-group">
+                    <legend class="config-option-label">House style</legend>
+                    <span class="config-option-hint">How this page is written, for the editors who come after you. Format tags work here. It opens from the House Style button next to MoS.</span>
+                    <textarea class="editor-textarea config-house-style" data-house-style rows="6" spellcheck="true"></textarea>
+                </fieldset>
+            </div>`;
+    }
+
+    // One colour popup for the whole list, moved to whichever row opened it:
+    // fifty rows of ~45 swatches each is a lot of DOM for one open picker.
+    // The picker's markup is js/editor-blocks.js's, and its IDs repeat the
+    // toolbar's, which is safe because initColorPicker only looks inside the
+    // container it is handed (the tier editor does the same).
+    function wordColorPopup() {
+        const el = document.createElement('div');
+        el.className = 'config-word-popup hidden';
+        el.innerHTML = `
+            <div class="format-color-presets-scroll">${typeof colorPresetsHTML === 'function' ? colorPresetsHTML(gradientPresetsHTML()) : ''}</div>
+            <div class="cp-label">Custom</div>
+            <div class="cp-surface" id="cp-surface"><div class="cp-thumb" id="cp-surface-thumb"></div></div>
+            <div class="cp-hue" id="cp-hue" role="slider" tabindex="0"
+                 aria-label="Hue" aria-valuemin="0" aria-valuemax="359" aria-valuenow="0">
+                <div class="cp-thumb cp-hue-thumb" id="cp-hue-thumb"></div>
+            </div>
+            <div class="format-color-custom-row">
+                <span class="cp-preview" id="cp-preview"></span>
+                <input type="text" id="cp-hex" class="cp-hex" value="#ffffff"
+                       maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex color">
+                <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
+            </div>
+            <div class="cp-label">Custom gradient</div>
+            <div class="format-color-custom-row">
+                <input type="text" class="cp-hex config-word-gradient" data-word-gradient placeholder="#a855f7, #22d3ee"
+                       spellcheck="false" autocomplete="off" aria-label="Gradient colors, separated by commas">
+                <button type="button" class="btn-sys btn-sys-green cp-apply" data-word-gradient-apply>USE</button>
+            </div>
+            <p class="config-option-hint config-action-note" data-word-gradient-error aria-live="polite"></p>`;
+        return el;
+    }
+
+    function wirePagePanel(panel) {
+        const state = readPageConfig();
+        const list = panel.querySelector('[data-config-words]');
+        const count = panel.querySelector('[data-word-count]');
+        const addBtn = panel.querySelector('[data-word-add]');
+        const house = panel.querySelector('[data-house-style]');
+        const popup = wordColorPopup();
+        const gradientError = popup.querySelector('[data-word-gradient-error]');
+        let popupIndex = -1;
+
+        house.value = state.houseStyle;
+        house.addEventListener('input', () => {
+            state.houseStyle = house.value;
+            writePageConfig(state);
+        });
+
+        // Through the CSSOM, never a style attribute: an unparseable value is
+        // dropped by the browser rather than written into markup. Cleared
+        // first, because a dropped value would leave the previous colour.
+        function paintSwatch(swatch, colors) {
+            const safe = colors.filter(c => window.safeColor(c));
+            swatch.style.background = '';
+            swatch.style.background = safe.length > 1 ? `linear-gradient(90deg, ${safe.join(', ')})` : (safe[0] || '');
+        }
+
+        const tidy = (word) => word.trim().replace(/\s+/g, ' ');
+
+        function noteFor(i) {
+            const word = tidy(state.words[i].word);
+            if (!word) return '';
+            if (state.words.findIndex(w => tidy(w.word) === word) !== i) return 'Listed twice. The first one is used.';
+            const hit = typeof window.pageWordBuiltIn === 'function' ? window.pageWordBuiltIn(word) : null;
+            if (!hit) return '';
+            if (hit.kind === 'move') return `"${hit.term}" is a move, so it keeps its move color in the Combos and Techs tabs.`;
+            return `"${hit.term}" already has a built-in color, and built-in colors win.`;
+        }
+
+        function refreshNotes() {
+            list.querySelectorAll('.config-word-row').forEach((row, i) => {
+                row.querySelector('[data-word-note]').textContent = noteFor(i);
+            });
+        }
+
+        function closePopup() {
+            popup.classList.add('hidden');
+            popupIndex = -1;
+            list.querySelectorAll('[data-word-swatch]').forEach(s => s.setAttribute('aria-expanded', 'false'));
+        }
+
+        function renderRows() {
+            closePopup();
+            popup.remove();
+            list.innerHTML = state.words.map((w, i) => `
+                <div class="config-word-row" data-word-index="${i}">
+                    <div class="config-word-main">
+                        <button type="button" class="config-word-swatch" data-word-swatch aria-label="Color for this word" aria-expanded="false"></button>
+                        <input type="text" class="editor-input config-word-text" data-word-text value="${esc(w.word)}"
+                               placeholder="Word or phrase" aria-label="Word" spellcheck="false" autocomplete="off">
+                        <button type="button" class="btn-sys btn-sys-red config-word-remove" data-word-remove title="Delete this word">✖</button>
+                    </div>
+                    <span class="config-option-hint config-word-note" data-word-note></span>
+                </div>`).join('');
+            list.querySelectorAll('.config-word-row').forEach((row, i) => {
+                paintSwatch(row.querySelector('[data-word-swatch]'), state.words[i].colors);
+            });
+            refreshNotes();
+            addBtn.disabled = state.words.length >= window.PAGE_WORD_LIMIT;
+            count.textContent = `${state.words.length} of ${window.PAGE_WORD_LIMIT}`;
+        }
+
+        function setColors(colors) {
+            if (popupIndex < 0 || !state.words[popupIndex]) return;
+            state.words[popupIndex].colors = colors;
+            const row = list.querySelector(`[data-word-index="${popupIndex}"]`);
+            if (row) paintSwatch(row.querySelector('[data-word-swatch]'), colors);
+            writePageConfig(state);
+            closePopup();
+        }
+
+        addBtn.addEventListener('click', () => {
+            if (state.words.length >= window.PAGE_WORD_LIMIT) return;
+            // Starts with the first Basic swatch, so a new word does something
+            // the moment it is typed.
+            const groups = typeof colorPresetGroups === 'function' ? colorPresetGroups() : [];
+            const first = groups[0] && groups[0].swatches[0] ? groups[0].swatches[0].color : '#ffffff';
+            state.words.push({ word: '', colors: [first] });
+            renderRows();
+            const inputs = list.querySelectorAll('[data-word-text]');
+            if (inputs.length) inputs[inputs.length - 1].focus();
+        });
+
+        list.addEventListener('input', (e) => {
+            const input = e.target.closest('[data-word-text]');
+            if (!input) return;
+            const i = Number(input.closest('.config-word-row').getAttribute('data-word-index'));
+            state.words[i].word = input.value;
+            writePageConfig(state);
+            refreshNotes();
+        });
+
+        list.addEventListener('click', async (e) => {
+            const row = e.target.closest('.config-word-row');
+            if (!row || popup.contains(e.target)) return;
+            const i = Number(row.getAttribute('data-word-index'));
+
+            if (e.target.closest('[data-word-remove]')) {
+                if (tidy(state.words[i].word) && !(await window.confirmDelete('Delete this word?'))) return;
+                state.words.splice(i, 1);
+                writePageConfig(state);
+                renderRows();
+                return;
+            }
+
+            const swatch = e.target.closest('[data-word-swatch]');
+            if (swatch) {
+                const reopen = popupIndex !== i;
+                closePopup();
+                if (!reopen) return;
+                popupIndex = i;
+                row.appendChild(popup);
+                gradientError.textContent = '';
+                const gradientField = popup.querySelector('[data-word-gradient]');
+                const colors = state.words[i].colors;
+                gradientField.value = colors.length > 1 ? colors.join(', ') : '';
+                popup.classList.remove('hidden');
+                swatch.setAttribute('aria-expanded', 'true');
+            }
+        });
+
+        popup.addEventListener('click', (e) => {
+            const gradient = e.target.closest('.gradient-preset-btn');
+            if (gradient) { setColors(gradient.getAttribute('data-gradient').split(',')); return; }
+
+            const preset = e.target.closest('.color-preset-btn');
+            if (preset) { setColors([preset.getAttribute('data-color')]); return; }
+
+            if (e.target.closest('[data-word-gradient-apply]')) {
+                // The [multicolor] grammar: two or more colours, all valid.
+                // safeColor admits any short word as a colour name, so the
+                // browser is asked too, the same check the renderer's probe
+                // makes: "nope" passes the grammar and colours nothing.
+                const stops = popup.querySelector('[data-word-gradient]').value
+                    .split(',').map(s => s.trim()).filter(Boolean);
+                const isColor = (s) => window.safeColor(s) && CSS.supports('color', s);
+                if (stops.length < 2 || !stops.every(isColor)) {
+                    gradientError.textContent = 'Type two or more colors, separated by commas, like #a855f7, #22d3ee.';
+                    return;
+                }
+                setColors(stops);
+            }
+        });
+
+        if (typeof initColorPicker === 'function') initColorPicker(popup, (hex) => setColors([hex]));
+
+        // A click anywhere else in the panel puts the popup away.
+        panel.addEventListener('click', (e) => {
+            if (popupIndex >= 0 && !popup.contains(e.target) && !e.target.closest('[data-word-swatch]')) closePopup();
+        });
+
+        renderRows();
+    }
+
     // --- THE PANEL ---
 
     const esc = (s) => (typeof window.escapeHtml === 'function' ? window.escapeHtml(s) : String(s));
@@ -225,6 +542,8 @@
         box.setAttribute('aria-modal', 'true');
         box.setAttribute('aria-label', 'Config');
 
+        const withPage = pageSettingsHere();
+
         box.innerHTML = `
             <div class="editor-modal-box auth-modal-box config-modal-box">
                 <div class="auth-header"><h3>CONFIG</h3></div>
@@ -232,6 +551,7 @@
                     <div class="daw-variant-tabs config-tabs" role="tablist">
                         <button type="button" class="daw-tab-btn active" role="tab" aria-selected="true" data-config-tab="editor">Editor</button>
                         <button type="button" class="daw-tab-btn" role="tab" aria-selected="false" data-config-tab="actions">Actions</button>
+                        ${withPage ? '<button type="button" class="daw-tab-btn" role="tab" aria-selected="false" data-config-tab="page">Page</button>' : ''}
                     </div>
 
                     <div class="config-panel" data-config-panel="editor">
@@ -242,6 +562,7 @@
                             ${STICKY_OPTIONS.map(checkbox).join('')}
                         </fieldset>
                         ${EDITOR_OPTIONS.slice(4).map(checkbox).join('')}
+                        <p class="config-footnote">Saved on this device only.</p>
                     </div>
 
                     <div class="config-panel hidden" data-config-panel="actions">
@@ -253,7 +574,8 @@
                         <p class="config-option-hint config-action-note" data-config-note aria-live="polite"></p>
                     </div>
 
-                    <p class="config-footnote">Saved on this device only.</p>
+                    ${withPage ? pagePanelHTML() : ''}
+
                     <div class="modal-actions-centered">
                         <button type="button" class="btn-sys btn-sys-green" data-config-close>DONE</button>
                     </div>
@@ -261,6 +583,7 @@
             </div>`;
 
         document.body.appendChild(box);
+        if (withPage) wirePagePanel(box.querySelector('[data-config-panel="page"]'));
 
         const shut = () => {
             if (box.parentNode) box.parentNode.removeChild(box);

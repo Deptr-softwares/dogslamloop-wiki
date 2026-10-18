@@ -654,6 +654,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (typeof window.initEditorModes === 'function') {
             await window.initEditorModes(pageId, descData, frameData);
         }
+        // The House Style button, now the page's data (and any draft) is known.
+        if (typeof window.refreshHouseStyleButton === 'function') window.refreshHouseStyleButton();
 
         // --- INTERCEPT UI OVERRIDES ---
         if (window.interceptedTicketData) {
@@ -1071,8 +1073,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // deltas that have each already been wrapped, so wrapping it
                 // again would nest a batch inside a state.
                 // 'modes' is the page-level list of which states exist - it
-                // belongs to the character, not to any one of them.
-                const unwrappable = targetScope === 'multi' || targetScope === 'modes';
+                // belongs to the character, not to any one of them. So does
+                // 'pageConfig', the page's own settings (v1.1).
+                const unwrappable = targetScope === 'multi' || targetScope === 'modes' || targetScope === 'pageConfig';
                 const scoped = (unwrappable || typeof window.scopeEditorDelta !== 'function')
                     ? { scope: targetScope, key: targetKey }
                     : window.scopeEditorDelta(targetScope, targetKey);
@@ -1135,6 +1138,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const cloudModes = (window.originalCloudMasterFrame || {}).modes;
                     if (isDiff(localModes, cloudModes)) {
                         payloadsToInsert.push(buildPayload('modes', 'full', localModes || null));
+                    }
+                }
+
+                // --- The page's own settings (v1.1) ---
+                // Page-level for the same reason, so read from the masters:
+                // on a character with states, currentEditorDescData is one
+                // state's slice and has never held them.
+                if ((window.PAGE_CONFIG_PAGE_TYPES || []).includes(pageType)) {
+                    const localConfig = (window.editorMasterDescData || window.currentEditorDescData || {}).pageConfig;
+                    const cloudConfig = (window.originalCloudMasterDesc || window.originalCloudDescData || {}).pageConfig;
+                    if (isDiff(localConfig, cloudConfig)) {
+                        payloadsToInsert.push(buildPayload('pageConfig', 'full', localConfig || null));
                     }
                 }
 

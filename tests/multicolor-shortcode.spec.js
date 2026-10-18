@@ -90,6 +90,86 @@ test('an entity counts as one character, not five', async ({ page }) => {
     expect(html).toMatch(/<span class="sc-mc"[^>]*>&amp;<\/span>/);
 });
 
+// --- SHORTCODES THAT CONVERT AFTER IT (v1.1) --------------------------------
+//
+// [noauto] is lifted out after the whole conversion loop and [url] converts
+// after [multicolor] inside it. The split wrapped every letter of their tags
+// in a span, so neither could find its own tag again and the reader saw
+// "[noauto]Startup[/noauto]" printed in gradient colours. The other nesting
+// order always worked; both are asserted, so fixing one cannot break the other.
+
+test('[noauto] inside a gradient protects the word and leaves no tag behind', async ({ page }) => {
+    const out = await page.evaluate(() => {
+        const host = document.createElement('p');
+        host.className = 'strategy-paragraph';
+        host.textContent = '[multicolor=#ff0000,#0000ff][noauto]Startup[/noauto][/multicolor]';
+        document.querySelector('main').appendChild(host);
+        window.applyInternalStyling();
+        const guard = host.querySelector('.sc-noauto');
+        const firstLetter = host.querySelector('.sc-mc');
+        return {
+            text: host.textContent,
+            letters: host.querySelectorAll('.sc-mc').length,
+            inGuard: guard ? guard.querySelectorAll('.sc-mc').length : -1,
+            first: firstLetter ? firstLetter.style.color : '',
+            frameTinted: host.querySelectorAll('.sc-auto').length,
+        };
+    });
+
+    expect(out.text, 'the reader sees the word, not the tags').toBe('Startup');
+    expect(out.letters, 'one gradient span per letter of Startup').toBe(7);
+    expect(out.inGuard, 'the gradient sits inside the [noauto] guard').toBe(7);
+    expect(out.first).toBe('rgb(255, 0, 0)');
+    expect(out.frameTinted, 'Startup is a frame term, and [noauto] kept it plain').toBe(0);
+});
+
+test('[noauto] around a gradient still works', async ({ page }) => {
+    const html = await render(page, '[noauto][multicolor=#ff0000,#0000ff]Startup[/multicolor][/noauto]');
+    expect(html).not.toContain('[noauto]');
+    expect([...html.matchAll(/class="sc-mc"/g)]).toHaveLength(7);
+    expect(html).not.toContain('sc-auto');
+});
+
+test('a [url] inside a gradient is a link, with the gradient on its label', async ({ page }) => {
+    const out = await page.evaluate(() => {
+        const host = document.createElement('p');
+        host.className = 'strategy-paragraph';
+        host.textContent = '[multicolor=#ff0000,#0000ff]See [url=https://example.com/a]the guide[/url][/multicolor]';
+        document.querySelector('main').appendChild(host);
+        window.applyInternalStyling();
+        const link = host.querySelector('a.wiki-link');
+        return {
+            text: host.textContent,
+            href: link ? link.getAttribute('href') : null,
+            label: link ? link.textContent : null,
+            labelLetters: link ? link.querySelectorAll('.sc-mc').length : 0,
+            letters: host.querySelectorAll('.sc-mc').length,
+        };
+    });
+
+    expect(out.text).toBe('See the guide');
+    expect(out.href).toBe('https://example.com/a');
+    expect(out.label).toBe('the guide');
+    expect(out.labelLetters, 'the label carries the gradient').toBe('theguide'.length);
+    // The sweep counts only what the reader sees, so the URL's own letters
+    // are not part of it.
+    expect(out.letters).toBe('Seetheguide'.length);
+});
+
+test('a gradient inside a [url] still works', async ({ page }) => {
+    const html = await render(page, '[url=https://example.com/a][multicolor=#ff0000,#0000ff]Guide[/multicolor][/url]');
+    expect(html).toContain('href="https://example.com/a"');
+    expect(html).not.toContain('[url');
+    expect([...html.matchAll(/class="sc-mc"/g)]).toHaveLength(5);
+});
+
+test('a literal bracket in a gradient is still a character', async ({ page }) => {
+    // Only the tags of the two later shortcodes pass through whole. Anything
+    // else in brackets is text the writer typed, and takes its colour.
+    const html = await render(page, '[multicolor=#ff0000,#0000ff][x][/multicolor]');
+    expect([...html.matchAll(/class="sc-mc"/g)]).toHaveLength(3);
+});
+
 // --- REFUSAL, which is the security half -----------------------------------
 
 test('a stop outside the colour grammar refuses the whole shortcode', async ({ page }) => {

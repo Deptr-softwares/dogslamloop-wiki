@@ -302,7 +302,7 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                     </figure>
                 `;
             } else {
-                contentHTML += `<img src="${escBlockText(safeBlockUrl(block.src))}" alt="${escBlockText(block.alt || 'Wiki Image')}" ${getMediaAttributes(block.align, block.width, 'border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow, #000);')} loading="lazy">`;
+                contentHTML += `<img src="${escBlockText(safeBlockUrl(block.src))}" alt="${escBlockText(block.alt || 'Wiki Image')}" ${getMediaAttributes(block.align, block.width, 'box-shadow: 4px 4px 0px var(--manga-shadow, #000);')} loading="lazy">`;
             }
         }
         // --- DIVIDERS ---

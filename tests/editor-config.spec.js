@@ -106,7 +106,8 @@ test('Config opens from the Workspace Header, closes, and a setting survives a r
 
   await button.click();
   const modal = page.locator('#editor-config-modal');
-  await expect(modal.locator('[data-config-tab]')).toHaveText(['Editor', 'Actions']);
+  // Page is this page's own settings, tested in tests/page-settings.spec.js.
+  await expect(modal.locator('[data-config-tab]')).toHaveText(['Editor', 'Actions', 'Page']);
   await page.keyboard.press('Escape');
   await expect(modal).toHaveCount(0);
 

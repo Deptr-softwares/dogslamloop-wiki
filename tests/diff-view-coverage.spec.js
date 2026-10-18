@@ -94,6 +94,8 @@ const PAYLOADS = {
   intro: [{ type: 'paragraph', content: 'CHANGED intro' }],
   notes: [{ type: 'paragraph', content: 'CHANGED notes' }],
   tool_config: { url: 'https://changed.example.com' },
+  // v1.1: the page's own settings, words and house style together.
+  pageConfig: { words: [{ word: 'Domain', colors: ['#123456'] }], houseStyle: 'Bold the move names.' },
   system_section: { sectionTitle: 'Intro', layout: 'full', width: 100, alignment: 'left',
                     blocks: [{ type: 'paragraph', content: 'CHANGED system text' }] },
   system_tab: { tabId: 'basics', tabLabel: 'The Basics', order: ['intro'] },
