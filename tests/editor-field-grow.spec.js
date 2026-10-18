@@ -56,6 +56,10 @@ function mockEditor(page) {
   }, FRAME);
 }
 
+// Measures in viewport coordinates, so scroll the field into view BEFORE the
+// first measurement: a click scrolls a field that is off the bottom edge, and
+// that reads as the field moving. On CI's Linux fonts the row sits at 711px of
+// a 720px viewport (PR #234).
 const box = (loc) => loc.evaluate(el => { const r = el.getBoundingClientRect(); return { left: r.left, right: r.right, width: r.width, top: r.top }; });
 
 test('a long name grows over its neighbour while edited, and nothing else moves', async ({ page }) => {
@@ -65,6 +69,7 @@ test('a long name grows over its neighbour while edited, and nothing else moves'
   const name = page.locator('.meta-inp[data-field="name"]');
   const input = page.locator('.meta-inp[data-field="input"]');
   await expect(name).toBeVisible({ timeout: 45000 });
+  await name.scrollIntoViewIfNeeded();
 
   const nameBefore = await box(name);
   const inputBefore = await box(input);
@@ -102,6 +107,7 @@ test('a short value does not grow', async ({ page }) => {
 
   const field = page.locator('.meta-inp[data-field="input"]');
   await expect(field).toBeVisible({ timeout: 45000 });
+  await field.scrollIntoViewIfNeeded();
   const before = await box(field);
   await field.click();
   expect(await box(field)).toEqual(before);
