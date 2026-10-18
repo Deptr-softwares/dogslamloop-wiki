@@ -321,6 +321,28 @@ window.saveBlockHistory = function() {
     if (typeof window.updateHistoryButtons === 'function') window.updateHistoryButtons();
 };
 
+// --- CONFIRM BEFORE DELETING (v1.1) ---
+//
+// Every "delete this?" in the editors asks through here, so the Config
+// panel's switch turns all of them off in one place (owner, 2026-10-18:
+// "All destructive actions in the editor should have a double confirm modal",
+// with "the option to be entirely turns off"). A prompt that asks a real
+// question - restore a draft, someone else's edit was just approved, replace
+// all - calls customConfirm itself and is never switched off.
+//
+// owner.html and tier-editor.html load this file without editor-core.js, so
+// there is no customConfirm there and the browser's own confirm stands in.
+// CLEAR ALL threw on tier-editor.html until this existed.
+window.confirmDelete = function (message, confirmText) {
+    if (window.editorConfig && !window.editorConfig.get('confirmDeletes')) return Promise.resolve(true);
+    // One question at a time: the modal is shared, and a second confirm opened
+    // under the first (Delete pressed twice) would be answered by its click.
+    const modal = document.getElementById('editor-custom-modal');
+    if (modal && !modal.classList.contains('hidden')) return Promise.resolve(false);
+    if (typeof window.customConfirm === 'function' && modal) return window.customConfirm(message, confirmText || 'DELETE', true);
+    return Promise.resolve(window.confirm(message));
+};
+
 document.addEventListener('keydown', (e) => {
     if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
 
@@ -951,6 +973,13 @@ window.deleteSelectedBlocks = function () {
     return picked.length;
 };
 
+// One wording for the three ways to delete a selection: the bar, the Delete
+// key, and ✖ on a selected card.
+function selectionDeleteMessage() {
+    const n = window.getSelectedBlockIndices().length;
+    return n === 1 ? 'Delete the selected block?' : `Delete the ${n} selected blocks?`;
+}
+
 // `dir` is -1 or 1. Each selected block steps over an UNSELECTED neighbour;
 // one that would step onto another selected block, or off the end, stays put.
 // That is what moves a run as one piece, and what lets a gapped selection
@@ -1043,6 +1072,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 <button class="btn-sys btn-sys-regular" id="btn-undo" title="Undo (Ctrl+Z)" disabled>⮌ UNDO</button>
                 <button class="btn-sys btn-sys-regular" id="btn-redo" title="Redo (Ctrl+Y)" disabled>⮎ REDO</button>
                 <button class="btn-sys btn-sys-red" id="btn-clear-all" title="Clear All Blocks">✖ CLEAR ALL</button>
+                <!-- v1.1: the only way to make a first folder used to be a
+                     block's folder dropdown, which the Config panel can hide. -->
+                <button class="btn-sys btn-sys-regular" id="btn-create-folder" title="Create an empty folder at the end of the list">&#65291; CREATE FOLDER</button>
             </div>
         </div>
 
@@ -1200,12 +1232,23 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
     container.querySelector('#btn-clear-all').addEventListener('click', async () => {
         const activeBlocks = window.getActiveBlocks();
-        if (activeBlocks.length > 0 && await window.customConfirm("Delete all blocks in this section?")) {
+        if (activeBlocks.length > 0 && await window.confirmDelete("Delete all blocks in this section?")) {
             activeBlocks.length = 0;
             renderBlockList();
             updateLivePreview(); 
         }
     });
+
+    // An empty folder is session state until a block joins it (editor-folders.js),
+    // so this touches no block and leaves the preview alone.
+    const btnCreateFolder = container.querySelector('#btn-create-folder');
+    if (btnCreateFolder) {
+        btnCreateFolder.addEventListener('click', () => {
+            if (typeof window.addPendingBlockFolder !== 'function') return;
+            window.addPendingBlockFolder(window.getActiveBlocks(), null);
+            renderBlockList();
+        });
+    }
 
     // --- MEDIA LIBRARY BINDING ---
     const btnMediaLib = container.querySelector('#btn-media-library');
@@ -1263,7 +1306,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     // bar is outside every card by design, so it hit that line four times, once
     // per button, and nothing noticed: the bar's own work had already been done
     // in this listener and the exception surfaced in a different one.
-    blockList.addEventListener('click', (e) => {
+    blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-selection-action]');
         if (!btn) return;
         e.preventDefault();
@@ -1278,6 +1321,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 if (window.copySelectedBlocks()) flashSelectedCards();
                 break;
             case 'delete':
+                if (!(await window.confirmDelete(selectionDeleteMessage()))) break;
                 if (window.deleteSelectedBlocks()) {
                     renderBlockList();
                     updateLivePreview();
@@ -1306,7 +1350,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     //
     // Registered before the general button handler further down, which resolves
     // every button through the card's data-index and would also fire for these.
-    blockList.addEventListener('click', (e) => {
+    blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-sbox-intro], [data-sbox-edit], [data-sbox-remove], [data-sbox-add]');
         if (!btn) return;
 
@@ -1330,6 +1374,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             return;
         }
 
+        if (btn.hasAttribute('data-sbox-remove')
+            && !(await window.confirmDelete('Delete this section and every block in it?'))) return;
+
         window.saveBlockHistory();
         if (btn.hasAttribute('data-sbox-add')) {
             if (!Array.isArray(block.sections)) block.sections = [];
@@ -1347,7 +1394,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     // Same shape as the Section Box controls above, against the Combo Card's
     // own `sections`. Which one is on screen is session state in a WeakMap, not
     // a field - it must not be serialised into desc_data.
-    blockList.addEventListener('click', (e) => {
+    blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-cardsec], [data-cardsec-add], [data-cardsec-remove], [data-cardsec-edit]');
         if (!btn) return;
 
@@ -1371,6 +1418,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             renderBlockList();
             return;
         }
+
+        if (btn.hasAttribute('data-cardsec-remove')
+            && !(await window.confirmDelete('Delete this section of the card and everything in it?'))) return;
 
         window.saveBlockHistory();
         if (btn.hasAttribute('data-cardsec-add')) {
@@ -1422,13 +1472,16 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         return window.editorCardFieldTarget(block);
     };
 
-    blockList.addEventListener('click', (e) => {
+    blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-nstyle-add], [data-nstyle-remove]');
         if (!btn) return;
         const item = notationTarget(btn);
         if (!item) return;
         e.preventDefault();
         e.stopImmediatePropagation();
+
+        if (btn.hasAttribute('data-nstyle-remove')
+            && !(await window.confirmDelete('Delete this notation style?'))) return;
 
         window.saveBlockHistory();
         const index = btn.closest('.block-card').getAttribute('data-index');
@@ -1486,7 +1539,11 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             }
         });
     }, { 
-        root: document.getElementById('interactive-builder'), 
+        // Whatever scrolls the workspace. The Config panel's sticky settings
+        // move the scroll from #interactive-builder to the workspace itself,
+        // and a root that no longer scrolls counts every card as on screen.
+        root: (typeof window.editorScrollBox === 'function' && window.editorScrollBox())
+            || document.getElementById('interactive-builder'), 
         rootMargin: '800px 0px' 
     });
 
@@ -1668,8 +1725,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     //
     // Delete only, not Backspace: outside a text field Backspace still means
     // "go back" to enough people that binding it to a destructive action is a
-    // trap. No confirmation, matching the single-block ✖ beside it - the undo
-    // snapshot taken inside deleteSelectedBlocks is what makes that safe.
+    // trap. It asks first since v1.1, like the ✖ beside it; v0.19 left both
+    // unconfirmed because undo covers them, and the owner wants the question
+    // asked anyway, with the Config panel's switch for anyone who does not.
     if (window._blockSelectionKeyHandler) {
         document.removeEventListener('keydown', window._blockSelectionKeyHandler);
     }
@@ -1683,10 +1741,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (!window.getSelectedBlockIndices().length) return;
 
         e.preventDefault();
-        if (window.deleteSelectedBlocks()) {
-            renderBlockList();
-            updateLivePreview();
-        }
+        window.confirmDelete(selectionDeleteMessage()).then((ok) => {
+            if (ok && window.deleteSelectedBlocks()) {
+                renderBlockList();
+                updateLivePreview();
+            }
+        });
     };
 
     document.addEventListener('keydown', window._blockSelectionKeyHandler);
@@ -2101,6 +2161,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     // move buttons already cover touch without dragging at all - this only
     // fixes the drag gesture itself.
     const DRAG_THRESHOLD = 6; // px of movement before a press counts as a drag, not a tap
+    // The left-edge grab strip when the handle is hidden, from the card's outer
+    // edge. Must match the width of .block-card::before in style/editor.css.
+    const BLOCK_DRAG_EDGE_PX = 12;
 
     // Three kinds of destination, and the order of the tests is the design:
     // the nesting zone sits INSIDE a card, so it has to be checked before the
@@ -2385,12 +2448,21 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     // Delegated: .drag-handle only exists inside re-rendered .block-card
     // elements, so this listens on the persistent blockList container
     // instead of re-binding per card on every render.
+    //
+    // With the handle hidden from the Config panel, the card's own left edge
+    // is the handle (owner, 2026-10-18: "The editor can still move the Blocks
+    // around by grabbing its left edge"). A press there lands on the card
+    // itself, not on anything inside it: the strip is the card's border and
+    // padding, which nothing else occupies.
     blockList.addEventListener('pointerdown', (e) => {
         const handle = e.target.closest('.drag-handle');
-        if (!handle) return;
-        const card = handle.closest('.block-card');
+        const card = (handle || e.target).closest('.block-card');
         if (!card) return;
-        startBlockPointerDrag(e, handle, { fromIndex: parseInt(card.getAttribute('data-index')) }, 'Move block');
+        const onEdge = !handle && e.target === card
+            && window.editorConfig && window.editorConfig.get('hideDragHandle')
+            && e.clientX - card.getBoundingClientRect().left <= BLOCK_DRAG_EDGE_PX;
+        if (!handle && !onEdge) return;
+        startBlockPointerDrag(e, handle || card, { fromIndex: parseInt(card.getAttribute('data-index')) }, 'Move block');
     });
 
     // --- FOLDER PICKER ---
@@ -2500,7 +2572,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
     });
 
-    blockList.addEventListener('click', (e) => {
+    // Async for the delete confirmations only; every other branch finishes
+    // before the first await, so it runs exactly as it did.
+    blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('button');
         if (!btn) return;
         
@@ -2564,11 +2638,13 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             renderBlockList(); updateLivePreview();
         } else if (e.target.classList.contains('btn-table-del-row')) {
             const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            if (activeBlocks[index].rows.length > 1) activeBlocks[index].rows.pop();
+            if (activeBlocks[index].rows.length > 1
+                && await window.confirmDelete('Delete the bottom row of this table?')) activeBlocks[index].rows.pop();
             renderBlockList(); updateLivePreview();
         } else if (e.target.classList.contains('btn-table-del-col')) {
             const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            if (activeBlocks[index].headers.length > 1) {
+            if (activeBlocks[index].headers.length > 1
+                && await window.confirmDelete('Delete the right-hand column of this table?')) {
                 activeBlocks[index].headers.pop();
                 activeBlocks[index].rows.forEach(r => r.pop());
             }
@@ -2625,6 +2701,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
         if ((wantsUp || wantsDown || wantsDelete)
             && window.isEditorBlockSelected(activeBlocks[index])) {
+            if (wantsDelete && !(await window.confirmDelete(selectionDeleteMessage()))) return;
             const changed = wantsDelete
                 ? !!window.deleteSelectedBlocks()
                 : window.moveSelectedBlocks(wantsUp ? -1 : 1);
@@ -2646,6 +2723,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             [activeBlocks[index], activeBlocks[index + 1]] = [activeBlocks[index + 1], activeBlocks[index]];
             movedTo = index + 1;
         } else if (btn.classList.contains('btn-delete')) {
+            const label = window.blockTypeLabel(activeBlocks[index].type);
+            if (!(await window.confirmDelete(`Delete this ${label} block?`))) return;
             activeBlocks.splice(index, 1);
         } else {
             return;
@@ -3148,6 +3227,7 @@ function renderBlockList() {
                         <select class="editor-select block-type-selector">
                             ${typeOptions}
                         </select>
+                        <span class="block-type-badge block-type-label">${escField(window.blockTypeLabel(block.type))}</span>
                         ${folderPickerHTML(block)}
                     </div>
                 <span class="block-card-summary" title="${escField(blockSummary(block))}">${escField(blockSummary(block))}</span>

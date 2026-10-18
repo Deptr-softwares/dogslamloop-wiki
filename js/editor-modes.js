@@ -177,9 +177,9 @@
         const doomed = window.editorActiveMode;
         const label = (declaredModes().find(m => m.id === doomed) || {}).label || doomed;
 
-        const ok = await window.customConfirm(
+        const ok = await window.confirmDelete(
             `Delete the "${label}" state and everything written for it?\n\nIts moves, overview, matchups and counterplay all go with it. The base kit is untouched.`,
-            'DELETE STATE', true
+            'DELETE STATE'
         );
         if (!ok) return;
 

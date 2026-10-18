@@ -92,7 +92,7 @@ function renderGalleryBin() {
         remove.textContent = '✖';
         remove.title = 'Remove this item';
         remove.addEventListener('click', async () => {
-            if (!(await window.customConfirm(`Remove "${item.name || 'this item'}" from the gallery?`))) return;
+            if (!(await window.confirmDelete(`Remove "${item.name || 'this item'}" from the gallery?`))) return;
             galleryEditorItems.splice(idx, 1);
             renderGalleryBin();
             syncGalleryPreview();
@@ -441,7 +441,7 @@ function renderCharacterGalleryBin() {
         remove.textContent = '✖';
         remove.title = 'Remove this item';
         remove.addEventListener('click', async () => {
-            if (!(await window.customConfirm(`Remove "${item.name || 'this item'}" from this character's gallery?`))) return;
+            if (!(await window.confirmDelete(`Remove "${item.name || 'this item'}" from this character's gallery?`))) return;
             characterGalleryItems().splice(idx, 1);
             renderCharacterGalleryBin();
             syncCharacterGalleryPreview();

@@ -46,6 +46,10 @@ const EVIL_FRAME = {
 const EVIL_DESC = {
   overview: [],
   profile: { stats: [{ label: `Archetype ${TAG}`, value: `Rushdown<br>Zoner ${TAG}` }], image: '' },
+  // An EMPTY custom tab: its name goes into the "not written yet" notice,
+  // which is the one place on the page that printed it raw.
+  extras: [{ title: `Extra ${ATTR}`, content: [] }],
+  matchups: [{ opponent: `Rival ${TAG}`, content: [] }],
 };
 
 // The page's own Supabase client, with page_data answered from the fixture.
@@ -206,6 +210,45 @@ test('the frame data editor shows crafted values as text, and its tabs still wor
 
   const result = await nothingRan(page);
   expect(result.fired, 'no crafted value ran').toBe(0);
+  expect(result.images).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+// Found 2026-10-18, after the first sweep: a custom tab's name and a matchup's
+// opponent, in the three places the first fix did not reach.
+test('a crafted custom tab name is text in the reader page notice for an empty tab', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await mockReaderPage(page);
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+
+  // The reader page: the empty custom tab's notice names it, as text.
+  await expect(page.locator('#overview-extra-0 .wiki-section-empty')).toContainText(`Extra ${ATTR}`);
+  const result = await nothingRan(page);
+  expect(result.fired, 'nothing ran on the reader page').toBe(0);
+  expect(result.images).toBe(0);
+  expect(errors).toEqual([]);
+});
+
+test('the editor shows a crafted custom tab name and matchup opponent as text', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await mockEditor(page, { desc: EVIL_DESC, frame: null });
+  await page.goto('/edit.html?char=boomcat&type=character&tab=overview', { waitUntil: 'domcontentloaded' });
+
+  // The custom tab's own title field: the name went into value="...", and it
+  // has to come back whole rather than breaking out of the attribute.
+  const extraTab = page.locator('#overview-nav-extra-0');
+  await expect(extraTab).toBeVisible({ timeout: 45000 });
+  await extraTab.click();
+  await expect(page.locator('.editor-extra-title-input')).toHaveValue(`Extra ${ATTR}`);
+
+  // The matchup's tab in the Matchups section nav.
+  await page.locator('#edit-nav-matchups').click();
+  await expect(page.locator('#matchup-nav-0')).toContainText(`vs. Rival ${TAG}`);
+
+  const result = await nothingRan(page);
+  expect(result.fired, 'no crafted value ran in the editor or its preview').toBe(0);
   expect(result.images).toBe(0);
   expect(errors).toEqual([]);
 });
