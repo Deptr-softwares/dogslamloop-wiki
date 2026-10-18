@@ -120,6 +120,7 @@ Code an assistant wrote is a draft until something has checked it. Assistant cod
 - Read CI after every push. A local pass does not make a CI failure flaky.
 - On Windows, write the commit message to a file and use `git commit -F`.
 - Every PR body carries the change notes (below) and what needs the owner after merge.
+- A PR body is posted under the owner's GitHub account, so it is written in their voice with the `my-writing-style` skill (owner, 2026-10-19): the opening and any explanation in their register, the facts as plain lists, the attribution line kept.
 
 ## Devlogs and the Update Log
 
