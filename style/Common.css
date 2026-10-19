@@ -140,9 +140,7 @@ body {
 }
 
 /* --- GLOBAL TYPOGRAPHY --- */
-/* .profile-description-title looks like a section title without being one:
-   js/description.js says why it is kept out of the anchors and contents. */
-.section-title, .profile-description-title {
+.section-title {
     font-family: 'Finger-Paint', sans-serif;
     font-size: 1.5rem;
     color: var(--accent-blue);

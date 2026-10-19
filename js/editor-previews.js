@@ -56,6 +56,7 @@ function renderFullOverviewPreview() {
             <aside class="wiki-section profile-card">
                 ${imgHTML}
                 <div class="profile-stats-container">${statsHTML}</div>
+                ${typeof window.profileDescriptionHTML === 'function' ? window.profileDescriptionHTML(descData.profile) : ''}
             </aside>
         `;
     }
@@ -77,10 +78,7 @@ function renderFullOverviewPreview() {
     topSplit.innerHTML = profileHTML;
     topSplit.appendChild(rightColumn);
     overviewContainer.appendChild(topSplit);
-    if (typeof window.profileDescriptionHTML === 'function') {
-        overviewContainer.insertAdjacentHTML('beforeend', window.profileDescriptionHTML(descData.profile));
-        window.fillProfilePager(overviewContainer, window.currentEditorCharId);
-    }
+    if (typeof window.fillProfilePager === 'function') window.fillProfilePager(overviewContainer, window.currentEditorCharId);
 
     if (typeof window.populateTextSection === 'function') {
         window.populateTextSection('overview-text-subnode', 'Character Overview', descData.overview || []);

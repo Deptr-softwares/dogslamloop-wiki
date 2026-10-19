@@ -2033,8 +2033,8 @@ function initProfileEditor(containerId, profileData) {
                     <div id="profile-stats-container">${statsHtml}</div>
                 </div>
 
-                <!-- Profile Description (v1.1): its own section under the
-                     portrait and the overview text on the page. -->
+                <!-- Profile Description (v1.1): under the stats in the
+                     profile card on the page. -->
                 <div class="block-card">
                     <div class="block-header"><span class="block-type-badge">PROFILE DESCRIPTION</span></div>
                     <label class="editor-field-label" for="profile-quote-input">Quote</label>
