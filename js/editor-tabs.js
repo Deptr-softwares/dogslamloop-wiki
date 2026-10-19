@@ -1957,10 +1957,13 @@ function initProfileEditor(containerId, profileData) {
     if (!profileData.stats) profileData.stats = [];
 
     // Mutated in place rather than reassigned: the object identity is shared
-    // with currentEditorDescData.profile.
+    // with currentEditorDescData.profile. Every field, not a list of them:
+    // restoring only image and stats left the crop focus and the v1.1 quote
+    // and trivia where they were.
     const history = createFormHistory(profileData, (restored) => {
-        profileData.image = restored.image;
-        profileData.stats = restored.stats || [];
+        Object.keys(profileData).forEach(k => { delete profileData[k]; });
+        Object.assign(profileData, restored);
+        if (!profileData.stats) profileData.stats = [];
         window.currentEditorDescData.profile = profileData;
         renderProfileForm();
         updateLivePreview();
@@ -2029,6 +2032,18 @@ function initProfileEditor(containerId, profileData) {
                     </div>
                     <div id="profile-stats-container">${statsHtml}</div>
                 </div>
+
+                <!-- Profile Description (v1.1): its own section under the
+                     portrait and the overview text on the page. -->
+                <div class="block-card">
+                    <div class="block-header"><span class="block-type-badge">PROFILE DESCRIPTION</span></div>
+                    <label class="editor-field-label" for="profile-quote-input">Quote</label>
+                    <textarea class="editor-textarea" id="profile-quote-input" rows="2" placeholder="A line the character says. Format tags work here.">${window.escapeHtml(profileData.quote || '')}</textarea>
+                    <input type="text" class="editor-input" id="profile-quote-speaker-input" value="${window.escapeHtml(profileData.quoteSpeaker || '')}" placeholder="Who says it (optional)">
+                    <label class="editor-field-label" for="profile-trivia-input">Trivia</label>
+                    <textarea class="editor-textarea" id="profile-trivia-input" rows="3" placeholder="One fact per line. Format tags work here.">${window.escapeHtml((profileData.trivia || []).join('\n'))}</textarea>
+                    <p class="config-option-hint">Previous and Next are added for you, in the order of the Characters page.</p>
+                </div>
             </div>
         `;
 
@@ -2073,6 +2088,25 @@ function initProfileEditor(containerId, profileData) {
 
         container.querySelector('#btn-add-stat').addEventListener('click', () => {
             profileData.stats.push({ label: 'New Stat', value: 'Value' }); renderProfileForm(); triggerSync();
+        });
+
+        // An empty field is no field at all, so opening the form and leaving
+        // it blank is not a change to the page.
+        const setOrDrop = (key, value) => {
+            if (Array.isArray(value) ? value.length : value) profileData[key] = value;
+            else delete profileData[key];
+            triggerSync();
+        };
+        container.querySelector('#profile-quote-input').addEventListener('input', (e) => {
+            window.autoSizeEditorTextarea(e.target);
+            setOrDrop('quote', e.target.value.trim() ? e.target.value : '');
+        });
+        container.querySelector('#profile-quote-speaker-input').addEventListener('input', (e) => {
+            setOrDrop('quoteSpeaker', e.target.value.trim() ? e.target.value : '');
+        });
+        container.querySelector('#profile-trivia-input').addEventListener('input', (e) => {
+            window.autoSizeEditorTextarea(e.target);
+            setOrDrop('trivia', e.target.value.split('\n').filter(line => line.trim() !== ''));
         });
     };
 

@@ -509,6 +509,27 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .profile-stat-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); }
 .profile-stat-label { color: #8b949e; font-size: 0.9rem; }
 .profile-stat-val { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
+
+/* Profile Description (v1.1, js/description.js profileDescriptionHTML): the
+   quote, the trivia and Previous / Next, in their own section under the top. */
+.profile-description { margin-top: 1.5rem; }
+.profile-description[hidden], .profile-pager[hidden] { display: none; }
+.profile-quote { margin: 0 0 1.25rem; }
+.profile-quote blockquote { margin: 0; font-size: 1.1rem; font-style: italic; line-height: 1.6; color: var(--text-white); }
+.profile-quote blockquote p::before { content: '\201C'; }
+.profile-quote blockquote p::after { content: '\201D'; }
+.profile-quote figcaption { margin-top: 0.4rem; text-align: right; font-family: var(--text-mono); font-size: 0.8rem; color: var(--text-muted); }
+.profile-quote figcaption p::before { content: '- '; }
+.profile-description-subtitle { color: var(--text-white); font-weight: 600; margin: 0 0 0.5rem; }
+.profile-pager { display: flex; justify-content: space-between; gap: 1rem; }
+.profile-description-title ~ .profile-pager { margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+.profile-pager-link { display: flex; flex-direction: column; gap: 0.15rem; color: var(--text-white); text-decoration: none; min-width: 0; }
+.profile-pager-next { text-align: right; }
+.profile-pager-link:hover .profile-pager-name { text-decoration: underline; text-underline-offset: 3px; }
+.profile-pager-prev .profile-pager-dir::before { content: '\2039  '; }
+.profile-pager-next .profile-pager-dir::after { content: '  \203A'; }
+.profile-pager-dir { font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; white-space: pre; }
+.profile-pager-name { font-family: 'CC-Wild-Words', sans-serif; font-size: 0.95rem; overflow-wrap: anywhere; }
 /* Square, always. A roster of portraits at whatever shape each source happened
    to be is the single most visible inconsistency on the character pages, and
    unlike skill media a portrait has one obvious subject - so cropping to a

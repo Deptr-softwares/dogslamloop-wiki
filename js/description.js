@@ -1768,6 +1768,85 @@ function modeScopedTabIsDrawable(section, pageId, modeId) {
     return false;
 }
 
+// --- PROFILE DESCRIPTION (v1.1) ---
+//
+// Owner's list: "Add Profile Description (have: Quote, Trivia, Next, and
+// Previous) to a Character Page", as its own section under the portrait and
+// the overview text (owner, 2026-10-19). Quote and Trivia are the page's own
+// (desc_data.profile). Built here for the reader page and the editor's
+// preview alike, so the two cannot drift.
+//
+// The title is not a .section-title, so it is neither a link target nor a
+// contents entry: the section-link picker and the search index walk the page
+// in js/character_tabs.js, and a section that appears or not depending on the
+// Characters page has no place in that walk.
+window.profileDescriptionHTML = function (profile) {
+    const p = profile || {};
+    const esc = window.escapeHtmlKeepBreaks;
+    const quote = String(p.quote || '').trim();
+    const speaker = String(p.quoteSpeaker || '').trim();
+    const trivia = (Array.isArray(p.trivia) ? p.trivia : [])
+        .map(t => String(t == null ? '' : t).trim()).filter(Boolean);
+
+    let body = '';
+    if (quote) {
+        body += `<figure class="profile-quote"><blockquote><p>${esc(quote)}</p></blockquote>`
+            + `${speaker ? `<figcaption><p>${esc(speaker)}</p></figcaption>` : ''}</figure>`;
+    }
+    if (trivia.length) {
+        body += `<h3 class="profile-description-subtitle">Trivia</h3>`
+            + `<ul class="wiki-block-list profile-trivia">${trivia.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
+    }
+    // With nothing written, the section is only Previous and Next, and stays
+    // hidden until fillProfilePager has something to put in it.
+    return `<section class="wiki-section profile-description"${body ? '' : ' hidden'}>`
+        + `${body ? `<h2 class="profile-description-title">Profile</h2>${body}` : ''}`
+        + `<nav class="profile-pager" aria-label="Other characters" data-profile-pager hidden></nav></section>`;
+};
+
+// The Characters page's order, without the characters it does not show, and
+// with base-only characters moved to the end (owner, 2026-10-19). A hidden
+// character's own page is not in it, so it gets no Previous or Next.
+function profilePagerOrder(characters) {
+    const shown = (Array.isArray(characters) ? characters : [])
+        .filter(c => c && c.published !== false && !c.isHidden);
+    return shown.filter(c => !c.isBaseOnly).concat(shown.filter(c => c.isBaseOnly));
+}
+
+window.fillProfilePager = async function (root, pageId) {
+    const section = root && root.querySelector('.profile-description');
+    const nav = section && section.querySelector('[data-profile-pager]');
+    if (!nav || typeof window.fetchJson !== 'function') return;
+
+    const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../../';
+    let navData;
+    try {
+        navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
+    } catch (e) {
+        // Deliberately quiet on the page: Previous and Next are a convenience,
+        // and the rest of the profile has already rendered without them.
+        console.warn('[Profile] Could not load the character list for Previous and Next:', e);
+        return;
+    }
+
+    const order = profilePagerOrder(navData && navData.Characters);
+    const at = order.findIndex(c => String((c.cms_config || {}).pageId || '').toLowerCase() === String(pageId || '').toLowerCase());
+    if (at < 0) return;
+
+    const esc = window.escapeHtml;
+    const link = (c, dir, label) => c
+        ? `<a class="profile-pager-link profile-pager-${dir}" href="${esc(rootPath + c.url)}">`
+            + `<span class="profile-pager-dir">${label}</span><span class="profile-pager-name">${esc(c.name)}</span></a>`
+        : '<span></span>';
+    const prev = order[at - 1];
+    const next = order[at + 1];
+    if (!prev && !next) return;
+
+    nav.innerHTML = link(prev, 'prev', 'Previous') + link(next, 'next', 'Next');
+    nav.hidden = false;
+    section.hidden = false;
+};
+
 async function loadPageDescriptions(pageId, pageType = 'character', modeId = null) {
     try {
         let data = null;
@@ -2072,6 +2151,8 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 topSplit.innerHTML = profileHTML;
                 topSplit.appendChild(rightColumn);
                 overviewContainer.appendChild(topSplit);
+                overviewContainer.insertAdjacentHTML('beforeend', window.profileDescriptionHTML(data.profile));
+                window.fillProfilePager(overviewContainer, pageId);
 
                 populateTextSection('overview-text-subnode', 'Character Overview', data.overview);
                 if (data.strategy && data.strategy.length > 0) {
