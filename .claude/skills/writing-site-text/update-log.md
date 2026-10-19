@@ -1,6 +1,6 @@
 # The Update Log
 
-The owner writes every entry (2026-10-18). This file is for sorting change notes the way they would, for a grammar pass that never undoes their choices, for putting their entry into `data/updates.json`, and for the Discord post. It is not a licence to rewrite their entry.
+The owner writes every entry (2026-10-18), at the release, from the devlog. This file is for sorting what the devlog records into the three parts the way they would, for a grammar pass that never undoes their choices, for putting their entry into `data/updates.json`, and for the Discord post. It is not a licence to rewrite their entry.
 
 ## Contents
 - The shape in `data/updates.json`

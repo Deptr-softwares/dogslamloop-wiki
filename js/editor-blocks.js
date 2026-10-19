@@ -1047,6 +1047,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     window.editorBuilderMode = mode;
     currentStrategyBlocks = initialData ? JSON.parse(JSON.stringify(initialData)) : [];
 
+    // Config > Open sections minimized (v1.1, js/editor-config.js, which only
+    // edit.html loads). These are fresh copies, so nothing else is shut.
+    if (window.editorConfig && window.editorConfig.get('openMinimized')) {
+        currentStrategyBlocks.forEach(block => window.setEditorBlockExpanded(block, false));
+    }
+
     window.activeAccordionPath = [];
 
     // Which folders are open is per-section view state. Opening a different
@@ -1161,8 +1167,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 </div>
             </div>
 
+            <!-- Stacked, ADD BLOCK on top (owner, 2026-10-19). -->
             <div class="add-block-footer-actions">
-            <button class="btn-sys btn-sys-blue" id="btn-media-library" title="Open Media Manager">📁 MEDIA LIBRARY</button>
             <div class="add-block-menu-wrapper">
                 <div class="add-block-popup" id="add-block-popup">
                     ${ADD_BLOCK_GROUPS.map((group, gi) => `
@@ -1175,6 +1181,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                     <span class="add-block-icon">⨁</span> ADD BLOCK
                 </button>
             </div>
+            <button class="btn-sys btn-sys-blue" id="btn-media-library" title="Open Media Manager">📁 MEDIA LIBRARY</button>
             </div>
         </div>
     `;

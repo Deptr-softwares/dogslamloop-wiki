@@ -121,8 +121,10 @@ if (typeof window.setReorderRefresh === 'function') {
     });
 }
 
-window.switchSystemTab = function(idx) { window.currentSystemTabIdx = idx; window.currentSystemSecIdx = 0; window.renderSystemEditor(document.getElementById('interactive-builder')); updateLivePreview(); };
-window.switchSystemSection = function(idx) { window.currentSystemSecIdx = idx; window.renderSystemEditor(document.getElementById('interactive-builder')); updateLivePreview(); };
+// Switching draws the preview even under Preview only on Sync, the way a
+// character page's section switch does: the preview follows the Workspace.
+window.switchSystemTab = function(idx) { window.currentSystemTabIdx = idx; window.currentSystemSecIdx = 0; window.renderSystemEditor(document.getElementById('interactive-builder')); window.drawLivePreviewNow(); };
+window.switchSystemSection = function(idx) { window.currentSystemSecIdx = idx; window.renderSystemEditor(document.getElementById('interactive-builder')); window.drawLivePreviewNow(); };
 
 window.addSystemTab = async function() {
     await window.triggerManualSync();

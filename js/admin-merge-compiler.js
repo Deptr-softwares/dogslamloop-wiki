@@ -70,6 +70,15 @@ window.openMergeCompiler = async function(pageId) {
             tFullFrame = patched.newFrame;
         }
 
+        // The page's own settings (v1.1), one conflict on every page type.
+        // Scanned before the branch below, which returns early for a system
+        // page. Its sectionId is the field name, which is what the 'desc'
+        // branch of the compile step writes and ships as the scope.
+        if (isDiff(tFullDesc.pageConfig, liveDesc.pageConfig)) {
+            addConflict('pageConfig', 'Page Settings (auto-color words and house style)', 'desc', liveDesc.pageConfig)
+                .options.push({ ticket: t, data: tFullDesc.pageConfig });
+        }
+
         // A SYSTEM OR TIER LIST PAGE IS A DIFFERENT SHAPE ENTIRELY.
         //
         // Its content lives under tabs[].sections[], and the character scan

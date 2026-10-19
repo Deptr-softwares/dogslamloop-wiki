@@ -919,6 +919,13 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
     else if (scope === 'tool_config') {
         newDesc.tool = payload;
     }
+    // A page's own settings (v1.1): the words it colours and its house style.
+    // Page-level, so on a character with states it sits beside modeData and
+    // never inside it; the editor never wraps it in a state. null removes them.
+    else if (scope === 'pageConfig') {
+        if (payload === null || payload === undefined) delete newDesc.pageConfig;
+        else newDesc.pageConfig = payload;
+    }
     else if (scope === 'move') {
         const [cat, moveId] = key.split('::');
         if (payload === null) {
@@ -2053,6 +2060,22 @@ window.initializeMangaSelects = function() {
 // in flight keeps that saving without ever serving stale data after a save.
 const inFlightPageData = new Map();
 
+// The settings of the page being read (v1.1), for js/internalstyling.js's page
+// words. Kept per page id and looked up by the route, so a page that reads
+// another page's row can never pick up that page's words.
+window.readerPageConfigs = window.readerPageConfigs || {};
+window.rememberPageConfig = function(pageId, descData) {
+    if (!pageId) return;
+    window.readerPageConfigs[pageId] = (descData && descData.pageConfig) || null;
+};
+
+// A house style as blocks, one paragraph per line, for the two places that
+// show it: the editor's HOUSE STYLE window and the review diff.
+window.houseStyleBlocks = function(text) {
+    return String(text || '').split(/\n+/).map(line => line.trim()).filter(Boolean)
+        .map(line => ({ type: 'paragraph', content: line }));
+};
+
 window.fetchCloudCharacterData = async function(pageId) {
     if (inFlightPageData.has(pageId)) return inFlightPageData.get(pageId);
 
@@ -2086,6 +2109,7 @@ async function fetchCloudCharacterDataUncached(pageId) {
             return null;
         }
         
+        window.rememberPageConfig(pageId, data && data.desc_data);
         return data;
         
     } catch (err) {

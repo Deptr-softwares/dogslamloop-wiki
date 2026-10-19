@@ -106,7 +106,8 @@ test('Config opens from the Workspace Header, closes, and a setting survives a r
 
   await button.click();
   const modal = page.locator('#editor-config-modal');
-  await expect(modal.locator('[data-config-tab]')).toHaveText(['Editor', 'Actions']);
+  // Page is this page's own settings, tested in tests/page-settings.spec.js.
+  await expect(modal.locator('[data-config-tab]')).toHaveText(['Editor', 'Actions', 'Page']);
   await page.keyboard.press('Escape');
   await expect(modal).toHaveCount(0);
 
@@ -122,6 +123,26 @@ test('Config opens from the Workspace Header, closes, and a setting survives a r
 });
 
 // --- EDITOR ---
+
+// Owner, 2026-10-19: "The editor part of the Config should be splitted into 3
+// parts: Workspace, Block, and Preview Panel."
+test('the Editor tab is three sections, Workspace, Block and Preview Panel, each with its own settings', async ({ page }) => {
+  await boot(page);
+  await page.click('#btn-editor-config');
+  await expect(page.locator('#editor-config-modal .config-section-title')).toHaveText(['Workspace', 'Block', 'Preview Panel']);
+
+  const labels = (name) => page.locator(`[data-config-section="${name}"] .config-option-label`).allTextContents();
+  expect(await labels('workspace')).toEqual(['Sticky top elements', 'Workspace Header', 'Page navigation buttons',
+    'Sections navigation buttons', 'Workspace basic actions (Undo, Redo, Clear All, Create Folder)', 'Skip delete confirmations']);
+  expect(await labels('block')).toEqual(['Hide Block Type dropdown', 'Hide Drag-and-drop area', 'Hide Block Folder dropdown',
+    'Formatting on top', 'Compact Blocks', 'Open sections minimized']);
+  expect(await labels('preview')).toEqual(['Disable Preview Panel', 'Preview follows the Block', 'Preview only on Sync']);
+
+  // Every new one starts off.
+  for (const key of ['compactBlocks', 'openMinimized', 'previewFollows', 'previewOnSync']) {
+    await expect(page.locator(`[data-config-key="${key}"]`), key).not.toBeChecked();
+  }
+});
 
 test('Hide Block Type dropdown shows the type instead of the dropdown', async ({ page }) => {
   await boot(page);
@@ -178,11 +199,21 @@ test('Hide Block Folder dropdown: the dropdown goes, and CREATE FOLDER plus a dr
   await expect(folder).toHaveCount(1);
 
   // Onto the empty folder's header, by the handle. Minimized so the folder,
-  // drawn at the end of the list, is on screen.
+  // drawn at the end of the list, is on screen, and scrolled to the middle:
+  // at the end of a list the sticky Workspace Footer sits over it, and on
+  // CI's wider fonts it covered the drop point (2026-10-19, once ADD BLOCK
+  // and MEDIA LIBRARY were stacked and the footer grew a little).
   await page.evaluate(() => window.setAllEditorBlocksOpen(false));
+  await folder.locator('.block-folder-head').evaluate(el => el.scrollIntoView({ block: 'center' }));
   const handle = await box(cards(page).nth(1).locator('.drag-handle'));
   const head = await box(folder.locator('.block-folder-head'));
-  expect(head.bottom, 'the folder is on screen').toBeLessThan(page.viewportSize().height);
+  // On top where the mouse goes, not merely inside the window.
+  const onTop = (sel, x, y) => page.evaluate(({ sel, x, y }) => {
+    const hit = document.elementFromPoint(x, y);
+    return !!hit && !!hit.closest(sel);
+  }, { sel, x, y });
+  expect(await onTop('.drag-handle', handle.left + 3, handle.top + 3), 'the handle can be grabbed').toBe(true);
+  expect(await onTop('.block-folder-head', head.left + 80, head.top + head.height / 2), 'the folder can be dropped on').toBe(true);
   await page.mouse.move(handle.left + 3, handle.top + 3);
   await page.mouse.down();
   await page.mouse.move(handle.left + 30, handle.top + 30, { steps: 5 });
@@ -237,6 +268,153 @@ test('Disable Preview Panel takes SHOW PREVIEW away on a phone', async ({ page }
   await expect(page.locator('#mobile-preview-toggle')).toBeHidden();
 });
 
+test('Compact Blocks makes each Block shorter, and a Block still edits', async ({ page }) => {
+  await boot(page);
+  const heights = () => cards(page).evaluateAll(els => els.map(el => el.getBoundingClientRect().height));
+  const before = await heights();
+
+  await setOption(page, 'compactBlocks', true);
+  const after = await heights();
+  after.forEach((h, i) => expect(h, `Block ${i}`).toBeLessThan(before[i]));
+
+  await cards(page).first().locator('textarea.editor-textarea').fill('compact');
+  await expect.poll(() => page.evaluate(() => window.getActiveBlocks()[0].content)).toEqual(['compact']);
+});
+
+test('Open sections minimized shuts the Blocks of every section opened after it is ticked', async ({ page }) => {
+  const desc = { ...DESC, strategy: [para('s1'), para('s2')] };
+  await boot(page, { desc });
+  const open = page.locator('#block-list .block-body:visible');
+  await expect(open).toHaveCount(4);
+
+  // It is about opening: the section already on screen is left as it is.
+  await setOption(page, 'openMinimized', true);
+  await expect(open).toHaveCount(4);
+
+  await page.click('#overview-nav-strategy');
+  await expect(cards(page)).toHaveCount(2);
+  await expect(open).toHaveCount(0);
+
+  await page.click('#overview-nav-overview');
+  await expect(cards(page)).toHaveCount(4);
+  await expect(open).toHaveCount(0);
+
+  // A shut Block still opens with its own button.
+  await cards(page).first().locator('.btn-collapse').click();
+  await expect(open).toHaveCount(1);
+});
+
+// --- PREVIEW FOLLOWS THE BLOCK ---
+
+// Is this Block's text inside the part of the preview the reader can see?
+const previewShows = (page, scope, text) => page.evaluate(({ scope, text }) => {
+  const pane = document.querySelector('.live-preview-pane');
+  const el = Array.from(pane.querySelectorAll(`${scope} p`)).find(p => p.textContent.trim() === text);
+  if (!el) return 'missing';
+  const p = pane.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  return r.top >= p.top && r.bottom <= Math.min(p.bottom, window.innerHeight);
+}, { scope, text });
+
+// Far-off cards are virtualized until they scroll into the Workspace, so the
+// card comes in first and its textarea is clicked once it is drawn.
+async function clickInto(page, n) {
+  await cards(page).nth(n).scrollIntoViewIfNeeded();
+  const field = cards(page).nth(n).locator('textarea.editor-textarea');
+  await expect(field).toBeVisible();
+  await field.click();
+}
+
+test('Preview follows the Block scrolls the preview to the Block clicked into, and only when ticked', async ({ page }) => {
+  await boot(page, { desc: LONG, height: 700 });
+
+  // The control: unticked, the preview stays where it was.
+  await clickInto(page, 25);
+  await page.waitForTimeout(800);
+  expect(await previewShows(page, '#overview-text-subnode', 'p25')).toBe(false);
+
+  await setOption(page, 'previewFollows', true);
+  await clickInto(page, 27);
+  await expect.poll(() => previewShows(page, '#overview-text-subnode', 'p27')).toBe(true);
+
+  // And back up again.
+  await clickInto(page, 1);
+  await expect.poll(() => previewShows(page, '#overview-text-subnode', 'p1')).toBe(true);
+});
+
+// The Overview tab draws Overview, General Strategy and every custom tab in one
+// preview, so each has a Block 1. The one that follows is the one being edited.
+test('Preview follows the Block finds the Block of the section being edited, not the same place in another', async ({ page }) => {
+  const desc = { ...LONG, strategy: [para('s0'), para('s1')] };
+  await boot(page, { desc, height: 700, storage: { dsl_editor_config: JSON.stringify({ previewFollows: true }) } });
+  await page.click('#overview-nav-strategy');
+  await expect(cards(page)).toHaveCount(2);
+
+  // Back to the top first, so a jump to the right place is a jump.
+  await page.evaluate(() => { document.querySelector('.live-preview-pane').scrollTop = 0; });
+  await page.waitForTimeout(400);
+  await clickInto(page, 1);
+  await expect.poll(() => previewShows(page, '#overview-strategy-subnode', 's1')).toBe(true);
+  expect(await previewShows(page, '#overview-text-subnode', 'p1')).toBe(false);
+});
+
+// --- PREVIEW ONLY ON SYNC ---
+
+const SYNC = (page) => page.locator('.header-actions #btn-sync');
+
+test('at the default the preview redraws as a Block is typed into', async ({ page }) => {
+  await boot(page);
+  await cards(page).first().locator('textarea.editor-textarea').fill('drawn at once');
+  await expect(page.locator('.live-preview-pane #overview-text-subnode')).toContainText('drawn at once');
+});
+
+test('Preview only on Sync: an edit reaches the page at once, and the preview on SYNC', async ({ page }) => {
+  const errors = await boot(page, { storage: { dsl_editor_config: JSON.stringify({ previewOnSync: true }) } });
+  const preview = page.locator('.live-preview-pane #overview-text-subnode');
+
+  await cards(page).first().locator('textarea.editor-textarea').fill('held edit');
+  // In the page's data, which is what a draft and a submission read.
+  await expect.poll(() => page.evaluate(() => window.currentEditorDescData.overview[0].content)).toEqual(['held edit']);
+  await page.waitForTimeout(600);
+  await expect(preview).not.toContainText('held edit');
+
+  await SYNC(page).click();
+  await expect(preview).toContainText('held edit');
+  expect(errors).toEqual([]);
+});
+
+const SYSTEM_DESC = {
+  tabs: [{
+    tabId: 'basics', tabLabel: 'Basics',
+    sections: [
+      { sectionTitle: 'Intro', layout: 'full', blocks: [para('intro text')] },
+      { sectionTitle: 'Advanced', layout: 'full', blocks: [para('advanced text')] },
+    ],
+  }],
+};
+
+test('Preview only on Sync on a system page: SYNC draws, and so does switching section', async ({ page }) => {
+  const errors = await boot(page, {
+    desc: SYSTEM_DESC, url: '/edit.html?char=m1-trading&type=system',
+    storage: { dsl_editor_config: JSON.stringify({ previewOnSync: true }) },
+  });
+  const intro = page.locator('.live-preview-pane #system-basics-sec-0');
+  await expect(intro).toContainText('intro text');
+
+  await cards(page).first().locator('textarea.editor-textarea').fill('held system edit');
+  await page.waitForTimeout(800);
+  await expect(intro).not.toContainText('held system edit');
+  await SYNC(page).click();
+  await expect(intro).toContainText('held system edit');
+
+  await cards(page).first().locator('textarea.editor-textarea').fill('drawn by the switch');
+  await page.waitForTimeout(800);
+  await expect(intro).not.toContainText('drawn by the switch');
+  await page.locator('.system-section-tab-btn').nth(1).click();
+  await expect(intro).toContainText('drawn by the switch');
+  expect(errors).toEqual([]);
+});
+
 // --- STICKY TOP ELEMENTS ---
 
 const LONG = { ...DESC, overview: Array.from({ length: 30 }, (_, i) => para(`p${i}`)) };
@@ -281,6 +459,120 @@ test('the Workspace Header can scroll away while the page tabs stay, and the bas
   expect(Math.abs(later.tabsTop - first.tabsTop), 'and pinned').toBeLessThan(1);
   expect(Math.abs(first.actionsTop - first.tabsBottom), 'the basic actions sit right under them').toBeLessThan(2);
   expect(Math.abs(later.actionsTop - first.actionsTop), 'and stay').toBeLessThan(1);
+});
+
+// --- THE WORKSPACE FOOTER (v1.1) ---
+//
+// Owner, 2026-10-19: "The Workspace Footer is always stuck at the bottom of the
+// Workspace regardless if the Workspace itself is current shortened". The
+// reference is the layout the editor already had: where a long section's
+// footer rests at the end of its scroll. A short section's footer belongs
+// exactly there, not straight under its last Block.
+
+// How far the footer's bottom sits above the bottom of what scrolls, and how
+// far below the last Block its top is.
+const footerPlace = (page, scrollerSel) => page.evaluate((sel) => {
+  const scroller = document.querySelector(sel);
+  const footer = document.querySelector('#interactive-builder .add-block-toolbar');
+  const cards = document.querySelectorAll('#block-list .block-card');
+  const last = cards[cards.length - 1];
+  return {
+    fromEdge: scroller.getBoundingClientRect().bottom - footer.getBoundingClientRect().bottom,
+    belowLast: footer.getBoundingClientRect().top - last.getBoundingClientRect().bottom,
+  };
+}, scrollerSel);
+
+// Scrolled to the end until the end stops moving: cards drawn on the way in
+// change the section's height, which can leave one scroll short of the end.
+async function restingPlace(page, scrollerSel) {
+  let last = null;
+  for (let i = 0; i < 20; i++) {
+    const at = await page.evaluate((sel) => {
+      const s = document.querySelector(sel);
+      s.scrollTop = s.scrollHeight;
+      return s.scrollHeight - s.clientHeight - s.scrollTop;
+    }, scrollerSel);
+    await page.waitForTimeout(200);
+    const now = (await footerPlace(page, scrollerSel)).fromEdge;
+    if (at < 1 && last !== null && Math.abs(now - last) < 0.1) return now;
+    last = now;
+  }
+  throw new Error('the scroll never settled at the end');
+}
+
+const SHORT_AND_LONG = { ...LONG, strategy: [para('the only Block')] };
+
+// Tall enough that one Block leaves the Workspace mostly empty: at 900 the
+// Workspace is under 600px, which a section's own bars nearly fill.
+const TALL = 1300;
+
+test('on a short section the Workspace Footer rests at the bottom, where a long section\'s does', async ({ page }) => {
+  const errors = await boot(page, { desc: SHORT_AND_LONG, height: TALL });
+  const resting = await restingPlace(page, '#interactive-builder');
+
+  await page.click('#overview-nav-strategy');
+  await expect(cards(page)).toHaveCount(1);
+  await expect.poll(async () => Math.abs((await footerPlace(page, '#interactive-builder')).fromEdge - resting)).toBeLessThan(1.5);
+  expect((await footerPlace(page, '#interactive-builder')).belowLast, 'the empty space is above the footer').toBeGreaterThan(200);
+
+  // A Block that grows as it is typed into takes space from above the footer,
+  // and the footer stays put.
+  const before = (await footerPlace(page, '#interactive-builder')).belowLast;
+  await cards(page).first().locator('textarea.editor-textarea').fill('a\nb\nc\nd\ne\nf\ng\nh');
+  await expect.poll(async () => (await footerPlace(page, '#interactive-builder')).belowLast).toBeLessThan(before - 40);
+  expect(Math.abs((await footerPlace(page, '#interactive-builder')).fromEdge - resting)).toBeLessThan(1.5);
+
+  // Back on the long section it is the sticky footer it always was.
+  await page.click('#overview-nav-overview');
+  await expect(cards(page)).toHaveCount(30);
+  await expect.poll(() => page.evaluate(() => document.querySelector('#interactive-builder .add-block-toolbar').style.marginTop)).toBe('');
+  expect(errors).toEqual([]);
+});
+
+test('with the Workspace Header scrolling away, a short section\'s footer still rests at the bottom', async ({ page }) => {
+  await boot(page, { desc: SHORT_AND_LONG, height: TALL });
+  await setOption(page, 'stickHeader', false);
+  const resting = await restingPlace(page, '.editor-workspace');
+
+  await page.click('#overview-nav-strategy');
+  await expect(cards(page)).toHaveCount(1);
+  await expect.poll(async () => Math.abs((await footerPlace(page, '.editor-workspace')).fromEdge - resting)).toBeLessThan(1.5);
+  expect((await footerPlace(page, '.editor-workspace')).belowLast).toBeGreaterThan(200);
+});
+
+test('on a system page a short section\'s footer rests at the bottom too', async ({ page }) => {
+  const desc = { tabs: [{ tabId: 'basics', tabLabel: 'Basics', sections: [
+    { sectionTitle: 'Long', layout: 'full', blocks: Array.from({ length: 30 }, (_, i) => para(`p${i}`)) },
+    { sectionTitle: 'Short', layout: 'full', blocks: [para('the only Block')] },
+  ] }] };
+  await boot(page, { desc, url: '/edit.html?char=m1-trading&type=system', height: TALL });
+  const resting = await restingPlace(page, '#interactive-builder');
+
+  await page.locator('.system-section-tab-btn').nth(1).click();
+  await expect(cards(page)).toHaveCount(1);
+  await expect.poll(async () => Math.abs((await footerPlace(page, '#interactive-builder')).fromEdge - resting)).toBeLessThan(1.5);
+});
+
+// Owner, 2026-10-19: "Media Library and Add Block should be stacked on top of
+// each other with Add Block on top".
+test('ADD BLOCK sits above MEDIA LIBRARY at the same width, and still adds a Block', async ({ page }) => {
+  await boot(page);
+  const add = await box(page.locator('#btn-toggle-add-menu'));
+  const media = await box(page.locator('#btn-media-library'));
+  expect(add.bottom).toBeLessThanOrEqual(media.top);
+  expect(Math.abs(add.width - media.width)).toBeLessThan(1);
+
+  await page.click('#btn-toggle-add-menu');
+  const option = page.locator('#add-block-popup .add-block-btn[data-type="paragraph"]');
+  await expect(option).toBeVisible();
+  const reachable = await option.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return r.top >= 0 && (el === hit || el.contains(hit));
+  });
+  expect(reachable, 'the menu opens on screen and on top').toBe(true);
+  await option.click();
+  await expect(cards(page)).toHaveCount(5);
 });
 
 // --- ACTIONS ---
@@ -329,9 +621,14 @@ test('a Block\'s ✖ asks first, CANCEL keeps it, and DELETE removes it', async 
   await expect.poll(() => contents(page)).toEqual(['two', 'three', 'table']);
 });
 
-test('turning Ask before deleting off deletes on the first click', async ({ page }) => {
+// Renamed in v1.1 (owner, 2026-10-19), and turned around: the box now says
+// "skip", so ticking it is what turns the prompts off.
+test('Skip delete confirmations starts unticked, and ticked deletes on the first click', async ({ page }) => {
   await boot(page);
-  await setOption(page, 'confirmDeletes', false);
+  await page.click('#btn-editor-config');
+  await expect(page.locator('[data-config-key="confirmDeletes"]')).not.toBeChecked();
+  await page.keyboard.press('Escape');
+  await setOption(page, 'confirmDeletes', true);
 
   await cards(page).first().locator('.btn-delete').click();
   await expect.poll(() => contents(page)).toEqual(['two', 'three', 'table']);
@@ -356,6 +653,19 @@ test('deletes outside the block list ask too: a profile stat and a move stat', a
   await expect(page.locator('#editor-modal-text')).toHaveText('Delete this stat?');
   await page.click('#editor-modal-confirm');
   await expect.poll(() => page.evaluate(() => window.currentEditorFrameData.skills[0].stats.length)).toBe(0);
+});
+
+// The stored setting kept its name and meaning through the rename, so a
+// device that turned the prompts off under the old label still has them off.
+test('a device that switched the prompts off before the rename shows Skip ticked, and still skips', async ({ page }) => {
+  await boot(page, { storage: { dsl_editor_config: JSON.stringify({ confirmDeletes: false }) } });
+  await page.click('#btn-editor-config');
+  await expect(page.locator('[data-config-key="confirmDeletes"]')).toBeChecked();
+  await page.keyboard.press('Escape');
+
+  await cards(page).first().locator('.btn-delete').click();
+  await expect.poll(() => contents(page)).toEqual(['two', 'three', 'table']);
+  await expect(page.locator('#editor-custom-modal')).toBeHidden();
 });
 
 test('a prompt that is not a delete still asks with the switch off: restoring a draft', async ({ page }) => {

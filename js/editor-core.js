@@ -357,6 +357,352 @@ window.cancelEditor = function() {
 // triggerManualSync, updateLivePreview, toggleDiffMode, and renderDiffView all
 // moved to js/editor-sync.js; diffTextLCS to js/diff-markers.js.
 
+// A character-state edit is wrapped once, here, and unwrapped once in
+// applyDeltaToData. 'multi' is the envelope around deltas that have each
+// already been wrapped, so wrapping it again would nest a batch inside a state.
+// 'modes' is the page-level list of which states exist - it belongs to the
+// character, not to any one of them. So does 'pageConfig', the page's own
+// settings (v1.1).
+function scopeSubmissionDelta(scope, key) {
+    const unwrappable = scope === 'multi' || scope === 'modes' || scope === 'pageConfig';
+    return (unwrappable || typeof window.scopeEditorDelta !== 'function')
+        ? { scope, key }
+        : window.scopeEditorDelta(scope, key);
+}
+
+/**
+ * EVERY CHANGE ON SCREEN, AS SUBMIT WOULD SEND IT (v1.1)
+ *
+ * The Submit handler's change scan, lifted out of it unchanged so the Edit
+ * Conflict Check in Config > Actions (js/editor-config.js) reads the very list
+ * Submit sends, not a second scan that would drift from it. Returns
+ * [{ scope, key, payload }] against the page as the editor loaded it, each
+ * scope already wrapped for its character state.
+ *
+ * Async because a system, tier list or tool page flushes its block buffer
+ * first, as Submit always has.
+ */
+window.collectEditorDeltas = async function () {
+    const pageType = window.currentEditorPageType || 'character';
+    const isDiff = (a, b) => JSON.stringify(a || null) !== JSON.stringify(b || null);
+    const deltas = [];
+    // Wrapped as each one is found: the state scan below points the editor at
+    // each state in turn, and the wrap reads which one is open.
+    const add = (scope, key, payload) => {
+        const scoped = scopeSubmissionDelta(scope, key);
+        deltas.push({ scope: scoped.scope, key: scoped.key, payload });
+    };
+
+    // --- Which states exist ---
+    // Page-level, so it is scanned before the per-tab branches
+    // rather than under one of them. Without this a contributor
+    // could add an ultimate state, write a full kit into it, and
+    // have every content delta land in modeData while the
+    // declaration never shipped - leaving the work in the database
+    // with no toggle on the page to reach it.
+    if (!['system', 'tierlist', 'gallery', 'tool'].includes(pageType)) {
+        const localModes = (window.editorMasterFrameData || {}).modes;
+        const cloudModes = (window.originalCloudMasterFrame || {}).modes;
+        if (isDiff(localModes, cloudModes)) {
+            add('modes', 'full', localModes || null);
+        }
+    }
+
+    // --- The page's own settings (v1.1) ---
+    // Page-level for the same reason, so read from the masters:
+    // on a character with states, currentEditorDescData is one
+    // state's slice and has never held them.
+    if ((window.PAGE_CONFIG_PAGE_TYPES || []).includes(pageType)) {
+        const localConfig = (window.editorMasterDescData || window.currentEditorDescData || {}).pageConfig;
+        const cloudConfig = (window.originalCloudMasterDesc || window.originalCloudDescData || {}).pageConfig;
+        if (isDiff(localConfig, cloudConfig)) {
+            add('pageConfig', 'full', localConfig || null);
+        }
+    }
+
+    // --- Gallery Payload ---
+    // One delta per item, keyed by name, rather than one payload
+    // carrying the whole list. That is what makes a gallery safe
+    // with thirty contributors: two people adding different
+    // emotes touch different keys and can never collide, and a
+    // reviewer approving one does not drag the other's
+    // half-finished work along with it.
+    if (pageType === 'gallery') {
+        const localItems = (typeof window.getGalleryEditorItems === 'function'
+            ? window.getGalleryEditorItems() : []) || [];
+        const cloudItems = (window.originalCloudDescData && window.originalCloudDescData.items) || [];
+
+        window.buildGalleryDeltas(localItems, cloudItems).forEach(d => {
+            add(d.scope, d.key, d.payload);
+        });
+    }
+    // --- Tool Payload ---
+    // Config and prose ship as separate scopes: the config is the
+    // owner's and the prose is everyone's, so a contributor fixing
+    // the intro must not be able to carry a URL change with it.
+    else if (pageType === 'tool') {
+        await window.triggerManualSync();
+        window.buildToolDeltas(window.currentEditorDescData, window.originalCloudDescData)
+            .forEach(d => add(d.scope, d.key, d.payload));
+    }
+    // --- System Payload ---
+    // --- System Payload ---
+    // One delta per section, per tab's metadata, and per tier list
+    // table - not the whole document. Shipping the document meant
+    // approving two tickets for one page silently reverted the
+    // first, because each carried a snapshot of the page as its
+    // author found it. See buildSystemDeltas.
+    else if (pageType === 'system' || pageType === 'tierlist') {
+        await window.triggerManualSync();
+        window.buildSystemDeltas(window.currentEditorDescData, window.originalCloudDescData, pageType)
+            .forEach(d => add(d.scope, d.key, d.payload));
+    }
+    // --- CHARACTER PAYLOAD ENGINE ---
+    //
+    // Scans EVERY tab, not just the open one. This used to be a
+    // chain of `else if (tabId === ...)`, so a contributor who
+    // edited Overview, then Skills, then Matchups and pressed
+    // Submit once shipped only whatever tab happened to be open -
+    // the other two were silently dropped. The v0.12 "One tab per
+    // submission" notice was the stopgap; this retires it.
+    //
+    // Nothing had to be fetched to make this work: the editor
+    // already holds the whole desc_data/frame_data object and only
+    // switches which slice it renders, and switchEditorTab flushes
+    // the open block buffer before moving. So every tab's edits are
+    // already in memory by the time Submit is pressed - the scan
+    // just never looked at them.
+    //
+    // Still one delta per section, so the reviewer side is
+    // unchanged: several deltas from one submission become a
+    // `multi` ticket, which admin already compiles and renders.
+    else {
+        const scanMoveTab = (moveTab) => {
+            const localMoves = (window.currentEditorFrameData || {})[moveTab] || [];
+            const cloudMoves = (window.originalCloudFrameData || {})[moveTab] || [];
+
+            localMoves.forEach(m => {
+                const oldFrame = cloudMoves.find(old => old.id === m.id);
+                const oldDesc = window.originalCloudDescData.moveStrategies?.[m.id];
+                const newDesc = window.currentEditorDescData.moveStrategies?.[m.id];
+
+                if (isDiff(m, oldFrame) || isDiff(newDesc, oldDesc)) {
+                    add('move', `${moveTab}::${m.id}`, {
+                        frame_data: m,
+                        desc_data: newDesc || []
+                    });
+                }
+            });
+
+            cloudMoves.forEach(oldM => {
+                if (!localMoves.find(m => m.id === oldM.id)) {
+                    add('move', `${moveTab}::${oldM.id}`, null);
+                }
+            });
+        };
+
+        const scanOverview = () => {
+            ['profile', 'playstyle', 'overview', 'strategy'].forEach(sec => {
+                if (isDiff(window.currentEditorDescData[sec], window.originalCloudDescData[sec])) {
+                    add(sec, 'full', window.currentEditorDescData[sec]);
+                }
+            });
+
+            const localExtras = window.currentEditorDescData.extras || [];
+            const cloudExtras = window.originalCloudDescData.extras || [];
+
+            localExtras.forEach(ext => {
+                const oldExt = cloudExtras.find(o => o.title === ext.title);
+                if (isDiff(ext, oldExt)) add('extra', ext.title, ext);
+            });
+
+            cloudExtras.forEach(oldExt => {
+                if (!localExtras.find(e => e.title === oldExt.title)) {
+                    add('extra', oldExt.title, null);
+                }
+            });
+        };
+
+        // Every keyed section is the same shape, keyed by a
+        // different field. See js/character_tabs.js.
+        const scanKeyedList = (field, keyField, scope) => {
+            const local = window.currentEditorDescData[field] || [];
+            const cloud = window.originalCloudDescData[field] || [];
+
+            local.forEach(entry => {
+                const old = cloud.find(o => o[keyField] === entry[keyField]);
+                if (isDiff(entry, old)) add(scope, entry[keyField], entry);
+            });
+
+            cloud.forEach(old => {
+                if (!local.find(e => e[keyField] === old[keyField])) {
+                    add(scope, old[keyField], null);
+                }
+            });
+        };
+
+        // --- ORDER ---
+        //
+        // Every scan above pairs local against cloud by IDENTITY,
+        // which is what makes them stable - but it also means a
+        // list whose entries only moved produces nothing at all,
+        // and the contributor is told "no changes detected".
+        //
+        // One payload per list, naming the new sequence. Emitted
+        // only when the sequence actually differs, so an ordinary
+        // edit does not carry a redundant order delta on every
+        // list it did not touch.
+        //
+        // The key is the dotted path js/editor-reorder.js names its
+        // strips by, so the control that reorders and the delta
+        // that records it agree without a second registry.
+        const scanOrder = (spec, localList, cloudList, identity) => {
+            const local = (localList || []).map(identity);
+            const cloud = (cloudList || []).map(identity);
+
+            // BACKWARD COMPATIBILITY, FIRST LINE.
+            //
+            // This reads page_data written long before the scope
+            // existed, and an order delta is only meaningful when
+            // every entry has a UNIQUE identity to order by. An
+            // entry carrying none, or two sharing one - combo group
+            // titles are contributor text and js/description.js
+            // already notes two groups may share one - has no
+            // single correct answer, so nothing is emitted and the
+            // reorder simply is not recorded. Losing a reorder is
+            // visible and repeatable; shuffling somebody's page is
+            // neither. applyDeltaToData refuses the same two
+            // shapes, so this is the first of two lines rather than
+            // the only one.
+            const usable = (arr) => arr.length > 0
+                && arr.every(v => v !== null && v !== undefined && v !== '')
+                && new Set(arr.map(String)).size === arr.length;
+            if (!usable(local) || !usable(cloud)) return;
+
+            const l = local.map(String);
+            const c = cloud.map(String);
+
+            // Same members, different sequence. A list that gained
+            // or lost an entry is already covered by the entry
+            // scans, and comparing raw sequences there would emit
+            // an order delta for every ordinary add.
+            if (l.length !== c.length) return;
+            if (l.join(' ') === c.join(' ')) return;
+            if ([...l].sort().join(' ') !== [...c].sort().join(' ')) return;
+
+            add('order', spec, l);
+        };
+
+        const scanEveryOrder = () => {
+            const desc = window.currentEditorDescData || {};
+            const cloudDesc = window.originalCloudDescData || {};
+            const frame = window.currentEditorFrameData || {};
+            const cloudFrame = window.originalCloudFrameData || {};
+
+            (window.FRAME_MOVE_CATEGORIES || []).forEach(cat => {
+                scanOrder(`frame.${cat}`, frame[cat], cloudFrame[cat], m => (m ? m.id : null));
+            });
+
+            // Driven by the vocabulary, so a keyed section added
+            // later is reorderable without another edit here.
+            (window.getKeyedSections ? window.getKeyedSections() : []).forEach(s => {
+                scanOrder(`desc.${s.field}`, desc[s.field], cloudDesc[s.field],
+                    e => (e ? e[s.keyField] : null));
+            });
+
+            // The Overview tab's custom tabs, which are author-
+            // ordered and are not a keyed section.
+            scanOrder('desc.extras', desc.extras, cloudDesc.extras, e => (e ? e.title : null));
+        };
+
+        const scanEveryTab = () => {
+            (window.FRAME_MOVE_CATEGORIES || []).forEach(scanMoveTab);
+            scanOverview();
+            scanEveryOrder();
+            // Driven by the vocabulary, so a section added there is
+            // swept here without a second edit. Missing one is
+            // silent - the edits simply never become deltas.
+            (window.getKeyedSections ? window.getKeyedSections() : []).forEach(
+                s => scanKeyedList(s.field, s.keyField, s.scope));
+
+            // Fixed block sections (comboIntro): a plain [blocks]
+            // array under its own scope, same as overview/strategy.
+            (window.FIXED_BLOCK_SECTIONS || []).forEach(f => {
+                const local = window.currentEditorDescData[f.field];
+                const cloud = window.originalCloudDescData[f.field];
+                if (isDiff(local, cloud)) {
+                    add(f.scope, 'full', local || []);
+                }
+            });
+        };
+
+        // ...AND EVERY CHARACTER STATE, not just the open one.
+        //
+        // The tab scan above was v0.13's fix. It missed that every
+        // one of those scans reads currentEditorDescData /
+        // currentEditorFrameData, and applyEditorModeView points
+        // those at the ACTIVE STATE's slice - so it swept every tab
+        // inside one state. A contributor who edited the base kit
+        // and two ultimates and pressed Submit once shipped only
+        // whichever state was open; the rest stayed in
+        // editorMasterDescData, rode along in the desc_data
+        // fallback, and were never applied, because the reviewer
+        // applies the delta.
+        //
+        // Same bug as v0.13, one axis over, and the same fix: run
+        // the scan once per state with the views re-pointed for
+        // each pass. scopeEditorDelta already reads
+        // editorActiveMode, so each pass tags its own deltas and
+        // the nine scopes still never learn states exist.
+        //
+        // The states come from the DATA, not from the declared
+        // `modes` list. Dropping a contributor's work is the bug
+        // being fixed, so a state with a bucket but no declaration
+        // must still be scanned - and a declared state nobody ever
+        // opened has no bucket and therefore nothing to find.
+        // Reading modeData rather than declaring it also avoids
+        // writableView creating empty buckets as a side effect of
+        // scanning.
+        const collectStates = () => {
+            const base = typeof window.BASE_MODE_ID === 'string' ? window.BASE_MODE_ID : 'base';
+            const ids = [base];
+            const seen = new Set(ids);
+            [window.editorMasterDescData, window.editorMasterFrameData].forEach(master => {
+                Object.keys((master && master.modeData) || {}).forEach(id => {
+                    if (!seen.has(id)) { seen.add(id); ids.push(id); }
+                });
+            });
+            return ids;
+        };
+
+        const states = collectStates();
+
+        if (states.length <= 1 || typeof window.applyEditorModeView !== 'function') {
+            // Every page with no states, which is most of them.
+            scanEveryTab();
+        } else {
+            const savedMode = window.editorActiveMode;
+            try {
+                states.forEach(modeId => {
+                    window.editorActiveMode = modeId;
+                    window.applyEditorModeView();
+                    scanEveryTab();
+                });
+            } finally {
+                // Restored even if a scan throws. Leaving the
+                // editor pointed at the last state scanned would
+                // silently move the user somewhere they never
+                // navigated, mid-submit.
+                window.editorActiveMode = savedMode;
+                window.applyEditorModeView();
+            }
+        }
+    }
+
+    return deltas;
+};
+
+
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     
@@ -614,7 +960,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (forceLoadDraft) {
                         useDraft = true;
                     } else {
-                        const restore = await window.customConfirm(`An unsaved local draft was found for this character.\n\nDo you want to restore your local progress, or load the live cloud version?`, "RESTORE DRAFT", false);
+                        // A draft saved before this browser submitted the page
+                        // holds changes already in the queue (v1.1: Submit
+                        // keeps drafts and warns instead of clearing them).
+                        const submittedAt = typeof window.draftSubmittedAt === 'function'
+                            ? window.draftSubmittedAt(pageId, parsedDraft.timestamp) : 0;
+                        const restore = await window.customConfirm(submittedAt
+                            ? `A local draft was found for this character.\n\n${window.duplicateDraftWarning(submittedAt)}\n\nDo you want to restore it anyway, or load the live cloud version?`
+                            : `An unsaved local draft was found for this character.\n\nDo you want to restore your local progress, or load the live cloud version?`, "RESTORE DRAFT", false);
                         if (restore) useDraft = true;
                     }
 
@@ -654,6 +1007,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (typeof window.initEditorModes === 'function') {
             await window.initEditorModes(pageId, descData, frameData);
         }
+        // The House Style button, now the page's data (and any draft) is known.
+        if (typeof window.refreshHouseStyleButton === 'function') window.refreshHouseStyleButton();
 
         // --- INTERCEPT UI OVERRIDES ---
         if (window.interceptedTicketData) {
@@ -1059,40 +1414,31 @@ document.addEventListener('DOMContentLoaded', async () => {
             submitBtn.textContent = "UPLOADING...";
             submitBtn.disabled = true;
 
-            const tabId = window.currentEditorTabId;
             let payloadsToInsert = [];
-            
-            const isDiff = (a, b) => JSON.stringify(a || null) !== JSON.stringify(b || null);
 
-            // A helper to quickly spawn standardized payload objects
+            // A helper to quickly spawn standardized payload objects. rowFor
+            // takes a scope that is already wrapped for its character state,
+            // as collectEditorDeltas hands them over; buildPayload wraps it
+            // first (scopeSubmissionDelta).
+            const rowFor = (targetScope, targetKey, deltaPayload) => ({
+                page_id: pageId,
+                page_type: pageType,
+                // The legacy fallback is the whole page, not the slice of
+                // it currently being edited - anything reading this field
+                // instead of the delta expects a complete object.
+                desc_data: window.editorMasterDescData || window.currentEditorDescData,
+                frame_data: pageType === 'system' ? null : (window.editorMasterFrameData || window.currentEditorFrameData),
+                is_delta: true,
+                target_scope: targetScope,
+                target_key: targetKey,
+                delta_payload: deltaPayload,
+                author_id: session.user.id,
+                author_name: window.currentGlobalUsername || "Contributor",
+                qa_metadata: { changelog: qaResult.changelog, confidence: qaResult.confidence, evidence: qaResult.evidence }
+            });
             const buildPayload = (targetScope, targetKey, deltaPayload) => {
-                // A character-state edit is wrapped here, once, and unwrapped
-                // once in applyDeltaToData. 'multi' is the envelope around
-                // deltas that have each already been wrapped, so wrapping it
-                // again would nest a batch inside a state.
-                // 'modes' is the page-level list of which states exist - it
-                // belongs to the character, not to any one of them.
-                const unwrappable = targetScope === 'multi' || targetScope === 'modes';
-                const scoped = (unwrappable || typeof window.scopeEditorDelta !== 'function')
-                    ? { scope: targetScope, key: targetKey }
-                    : window.scopeEditorDelta(targetScope, targetKey);
-
-                return {
-                    page_id: pageId,
-                    page_type: pageType,
-                    // The legacy fallback is the whole page, not the slice of
-                    // it currently being edited - anything reading this field
-                    // instead of the delta expects a complete object.
-                    desc_data: window.editorMasterDescData || window.currentEditorDescData,
-                    frame_data: pageType === 'system' ? null : (window.editorMasterFrameData || window.currentEditorFrameData),
-                    is_delta: true,
-                    target_scope: scoped.scope,
-                    target_key: scoped.key,
-                    delta_payload: deltaPayload,
-                    author_id: session.user.id,
-                    author_name: window.currentGlobalUsername || "Contributor",
-                    qa_metadata: { changelog: qaResult.changelog, confidence: qaResult.confidence, evidence: qaResult.evidence }
-                };
+                const scoped = scopeSubmissionDelta(targetScope, targetKey);
+                return rowFor(scoped.scope, scoped.key, deltaPayload);
             };
 
             // 1. IF INTERCEPTING a ticket with ONE rebuildable scope: rebuild
@@ -1123,299 +1469,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             // 2. NORMAL SUBMISSION, and any intercept the branch above could
             //    not scope: Multi-Payload Diff Scanner
             else {
-                // --- Which states exist ---
-                // Page-level, so it is scanned before the per-tab branches
-                // rather than under one of them. Without this a contributor
-                // could add an ultimate state, write a full kit into it, and
-                // have every content delta land in modeData while the
-                // declaration never shipped - leaving the work in the database
-                // with no toggle on the page to reach it.
-                if (!['system', 'tierlist', 'gallery', 'tool'].includes(pageType)) {
-                    const localModes = (window.editorMasterFrameData || {}).modes;
-                    const cloudModes = (window.originalCloudMasterFrame || {}).modes;
-                    if (isDiff(localModes, cloudModes)) {
-                        payloadsToInsert.push(buildPayload('modes', 'full', localModes || null));
-                    }
-                }
-
-                // --- Gallery Payload ---
-                // One delta per item, keyed by name, rather than one payload
-                // carrying the whole list. That is what makes a gallery safe
-                // with thirty contributors: two people adding different
-                // emotes touch different keys and can never collide, and a
-                // reviewer approving one does not drag the other's
-                // half-finished work along with it.
-                if (pageType === 'gallery') {
-                    const localItems = (typeof window.getGalleryEditorItems === 'function'
-                        ? window.getGalleryEditorItems() : []) || [];
-                    const cloudItems = (window.originalCloudDescData && window.originalCloudDescData.items) || [];
-
-                    window.buildGalleryDeltas(localItems, cloudItems).forEach(d => {
-                        payloadsToInsert.push(buildPayload(d.scope, d.key, d.payload));
-                    });
-                }
-                // --- Tool Payload ---
-                // Config and prose ship as separate scopes: the config is the
-                // owner's and the prose is everyone's, so a contributor fixing
-                // the intro must not be able to carry a URL change with it.
-                else if (pageType === 'tool') {
-                    await window.triggerManualSync();
-                    window.buildToolDeltas(window.currentEditorDescData, window.originalCloudDescData)
-                        .forEach(d => payloadsToInsert.push(buildPayload(d.scope, d.key, d.payload)));
-                }
-                // --- System Payload ---
-                // --- System Payload ---
-                // One delta per section, per tab's metadata, and per tier list
-                // table - not the whole document. Shipping the document meant
-                // approving two tickets for one page silently reverted the
-                // first, because each carried a snapshot of the page as its
-                // author found it. See buildSystemDeltas.
-                else if (pageType === 'system' || pageType === 'tierlist') {
-                    await window.triggerManualSync();
-                    window.buildSystemDeltas(window.currentEditorDescData, window.originalCloudDescData, pageType)
-                        .forEach(d => payloadsToInsert.push(buildPayload(d.scope, d.key, d.payload)));
-                }
-                // --- CHARACTER PAYLOAD ENGINE ---
-                //
-                // Scans EVERY tab, not just the open one. This used to be a
-                // chain of `else if (tabId === ...)`, so a contributor who
-                // edited Overview, then Skills, then Matchups and pressed
-                // Submit once shipped only whatever tab happened to be open -
-                // the other two were silently dropped. The v0.12 "One tab per
-                // submission" notice was the stopgap; this retires it.
-                //
-                // Nothing had to be fetched to make this work: the editor
-                // already holds the whole desc_data/frame_data object and only
-                // switches which slice it renders, and switchEditorTab flushes
-                // the open block buffer before moving. So every tab's edits are
-                // already in memory by the time Submit is pressed - the scan
-                // just never looked at them.
-                //
-                // Still one delta per section, so the reviewer side is
-                // unchanged: several deltas from one submission become a
-                // `multi` ticket, which admin already compiles and renders.
-                else {
-                    const scanMoveTab = (moveTab) => {
-                        const localMoves = (window.currentEditorFrameData || {})[moveTab] || [];
-                        const cloudMoves = (window.originalCloudFrameData || {})[moveTab] || [];
-
-                        localMoves.forEach(m => {
-                            const oldFrame = cloudMoves.find(old => old.id === m.id);
-                            const oldDesc = window.originalCloudDescData.moveStrategies?.[m.id];
-                            const newDesc = window.currentEditorDescData.moveStrategies?.[m.id];
-
-                            if (isDiff(m, oldFrame) || isDiff(newDesc, oldDesc)) {
-                                payloadsToInsert.push(buildPayload('move', `${moveTab}::${m.id}`, {
-                                    frame_data: m,
-                                    desc_data: newDesc || []
-                                }));
-                            }
-                        });
-
-                        cloudMoves.forEach(oldM => {
-                            if (!localMoves.find(m => m.id === oldM.id)) {
-                                payloadsToInsert.push(buildPayload('move', `${moveTab}::${oldM.id}`, null));
-                            }
-                        });
-                    };
-
-                    const scanOverview = () => {
-                        ['profile', 'playstyle', 'overview', 'strategy'].forEach(sec => {
-                            if (isDiff(window.currentEditorDescData[sec], window.originalCloudDescData[sec])) {
-                                payloadsToInsert.push(buildPayload(sec, 'full', window.currentEditorDescData[sec]));
-                            }
-                        });
-
-                        const localExtras = window.currentEditorDescData.extras || [];
-                        const cloudExtras = window.originalCloudDescData.extras || [];
-
-                        localExtras.forEach(ext => {
-                            const oldExt = cloudExtras.find(o => o.title === ext.title);
-                            if (isDiff(ext, oldExt)) payloadsToInsert.push(buildPayload('extra', ext.title, ext));
-                        });
-
-                        cloudExtras.forEach(oldExt => {
-                            if (!localExtras.find(e => e.title === oldExt.title)) {
-                                payloadsToInsert.push(buildPayload('extra', oldExt.title, null));
-                            }
-                        });
-                    };
-
-                    // Every keyed section is the same shape, keyed by a
-                    // different field. See js/character_tabs.js.
-                    const scanKeyedList = (field, keyField, scope) => {
-                        const local = window.currentEditorDescData[field] || [];
-                        const cloud = window.originalCloudDescData[field] || [];
-
-                        local.forEach(entry => {
-                            const old = cloud.find(o => o[keyField] === entry[keyField]);
-                            if (isDiff(entry, old)) payloadsToInsert.push(buildPayload(scope, entry[keyField], entry));
-                        });
-
-                        cloud.forEach(old => {
-                            if (!local.find(e => e[keyField] === old[keyField])) {
-                                payloadsToInsert.push(buildPayload(scope, old[keyField], null));
-                            }
-                        });
-                    };
-
-                    // --- ORDER ---
-                    //
-                    // Every scan above pairs local against cloud by IDENTITY,
-                    // which is what makes them stable - but it also means a
-                    // list whose entries only moved produces nothing at all,
-                    // and the contributor is told "no changes detected".
-                    //
-                    // One payload per list, naming the new sequence. Emitted
-                    // only when the sequence actually differs, so an ordinary
-                    // edit does not carry a redundant order delta on every
-                    // list it did not touch.
-                    //
-                    // The key is the dotted path js/editor-reorder.js names its
-                    // strips by, so the control that reorders and the delta
-                    // that records it agree without a second registry.
-                    const scanOrder = (spec, localList, cloudList, identity) => {
-                        const local = (localList || []).map(identity);
-                        const cloud = (cloudList || []).map(identity);
-
-                        // BACKWARD COMPATIBILITY, FIRST LINE.
-                        //
-                        // This reads page_data written long before the scope
-                        // existed, and an order delta is only meaningful when
-                        // every entry has a UNIQUE identity to order by. An
-                        // entry carrying none, or two sharing one - combo group
-                        // titles are contributor text and js/description.js
-                        // already notes two groups may share one - has no
-                        // single correct answer, so nothing is emitted and the
-                        // reorder simply is not recorded. Losing a reorder is
-                        // visible and repeatable; shuffling somebody's page is
-                        // neither. applyDeltaToData refuses the same two
-                        // shapes, so this is the first of two lines rather than
-                        // the only one.
-                        const usable = (arr) => arr.length > 0
-                            && arr.every(v => v !== null && v !== undefined && v !== '')
-                            && new Set(arr.map(String)).size === arr.length;
-                        if (!usable(local) || !usable(cloud)) return;
-
-                        const l = local.map(String);
-                        const c = cloud.map(String);
-
-                        // Same members, different sequence. A list that gained
-                        // or lost an entry is already covered by the entry
-                        // scans, and comparing raw sequences there would emit
-                        // an order delta for every ordinary add.
-                        if (l.length !== c.length) return;
-                        if (l.join(' ') === c.join(' ')) return;
-                        if ([...l].sort().join(' ') !== [...c].sort().join(' ')) return;
-
-                        payloadsToInsert.push(buildPayload('order', spec, l));
-                    };
-
-                    const scanEveryOrder = () => {
-                        const desc = window.currentEditorDescData || {};
-                        const cloudDesc = window.originalCloudDescData || {};
-                        const frame = window.currentEditorFrameData || {};
-                        const cloudFrame = window.originalCloudFrameData || {};
-
-                        (window.FRAME_MOVE_CATEGORIES || []).forEach(cat => {
-                            scanOrder(`frame.${cat}`, frame[cat], cloudFrame[cat], m => (m ? m.id : null));
-                        });
-
-                        // Driven by the vocabulary, so a keyed section added
-                        // later is reorderable without another edit here.
-                        (window.getKeyedSections ? window.getKeyedSections() : []).forEach(s => {
-                            scanOrder(`desc.${s.field}`, desc[s.field], cloudDesc[s.field],
-                                e => (e ? e[s.keyField] : null));
-                        });
-
-                        // The Overview tab's custom tabs, which are author-
-                        // ordered and are not a keyed section.
-                        scanOrder('desc.extras', desc.extras, cloudDesc.extras, e => (e ? e.title : null));
-                    };
-
-                    const scanEveryTab = () => {
-                        (window.FRAME_MOVE_CATEGORIES || []).forEach(scanMoveTab);
-                        scanOverview();
-                        scanEveryOrder();
-                        // Driven by the vocabulary, so a section added there is
-                        // swept here without a second edit. Missing one is
-                        // silent - the edits simply never become deltas.
-                        (window.getKeyedSections ? window.getKeyedSections() : []).forEach(
-                            s => scanKeyedList(s.field, s.keyField, s.scope));
-
-                        // Fixed block sections (comboIntro): a plain [blocks]
-                        // array under its own scope, same as overview/strategy.
-                        (window.FIXED_BLOCK_SECTIONS || []).forEach(f => {
-                            const local = window.currentEditorDescData[f.field];
-                            const cloud = window.originalCloudDescData[f.field];
-                            if (isDiff(local, cloud)) {
-                                payloadsToInsert.push(buildPayload(f.scope, 'full', local || []));
-                            }
-                        });
-                    };
-
-                    // ...AND EVERY CHARACTER STATE, not just the open one.
-                    //
-                    // The tab scan above was v0.13's fix. It missed that every
-                    // one of those scans reads currentEditorDescData /
-                    // currentEditorFrameData, and applyEditorModeView points
-                    // those at the ACTIVE STATE's slice - so it swept every tab
-                    // inside one state. A contributor who edited the base kit
-                    // and two ultimates and pressed Submit once shipped only
-                    // whichever state was open; the rest stayed in
-                    // editorMasterDescData, rode along in the desc_data
-                    // fallback, and were never applied, because the reviewer
-                    // applies the delta.
-                    //
-                    // Same bug as v0.13, one axis over, and the same fix: run
-                    // the scan once per state with the views re-pointed for
-                    // each pass. scopeEditorDelta already reads
-                    // editorActiveMode, so each pass tags its own deltas and
-                    // the nine scopes still never learn states exist.
-                    //
-                    // The states come from the DATA, not from the declared
-                    // `modes` list. Dropping a contributor's work is the bug
-                    // being fixed, so a state with a bucket but no declaration
-                    // must still be scanned - and a declared state nobody ever
-                    // opened has no bucket and therefore nothing to find.
-                    // Reading modeData rather than declaring it also avoids
-                    // writableView creating empty buckets as a side effect of
-                    // scanning.
-                    const collectStates = () => {
-                        const base = typeof window.BASE_MODE_ID === 'string' ? window.BASE_MODE_ID : 'base';
-                        const ids = [base];
-                        const seen = new Set(ids);
-                        [window.editorMasterDescData, window.editorMasterFrameData].forEach(master => {
-                            Object.keys((master && master.modeData) || {}).forEach(id => {
-                                if (!seen.has(id)) { seen.add(id); ids.push(id); }
-                            });
-                        });
-                        return ids;
-                    };
-
-                    const states = collectStates();
-
-                    if (states.length <= 1 || typeof window.applyEditorModeView !== 'function') {
-                        // Every page with no states, which is most of them.
-                        scanEveryTab();
-                    } else {
-                        const savedMode = window.editorActiveMode;
-                        try {
-                            states.forEach(modeId => {
-                                window.editorActiveMode = modeId;
-                                window.applyEditorModeView();
-                                scanEveryTab();
-                            });
-                        } finally {
-                            // Restored even if a scan throws. Leaving the
-                            // editor pointed at the last state scanned would
-                            // silently move the user somewhere they never
-                            // navigated, mid-submit.
-                            window.editorActiveMode = savedMode;
-                            window.applyEditorModeView();
-                        }
-                    }
-                }
+                (await window.collectEditorDeltas())
+                    .forEach(d => payloadsToInsert.push(rowFor(d.scope, d.key, d.payload)));
 
                 // The intercept exclusion is gone (v0.17). A 'multi' or legacy
                 // intercept now reaches the scanner, so it can genuinely come
@@ -1499,12 +1554,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.editorAlert("Failed to save to database: " + dbError.message);
                 submitBtn.textContent = window.activeEditTicketId ? "UPDATE SUBMISSION" : "Submit";
             } else {
-                // Drafts are keyed per-character now (wiki_draft_{pageId}), so
-                // there's only ever one possible key to clean up - no need to
-                // reconstruct a tab/move-scoped key from DOM state as a fallback
-                // when window.currentDraftKey isn't set (simplified 2026-08-02,
-                // alongside the draft-key-scoping fix in js/editor-drafts.js).
-                localStorage.removeItem(window.currentDraftKey || `wiki_draft_${pageId}`);
+                // The page's drafts are kept, not cleared (owner, v1.1). What
+                // is recorded is when this browser sent the page, and a draft
+                // saved before then warns that sending it again duplicates the
+                // submission (js/editor-drafts.js).
+                window.markPageSubmitted(pageId);
 
                 submitBtn.textContent = wasUpdate ? "UPDATED!" : "SUBMITTED!";
                 submitBtn.style.backgroundColor = "#22c55e";

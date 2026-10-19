@@ -275,6 +275,7 @@ async function switchVersionView(mode) {
                 'notes': 'Notes',
                 'tool_config': 'Tool Setup',
                 'order': 'Order',
+                'pageConfig': 'Page Settings',
             });
             return map[scope] || scope;
         };
@@ -568,6 +569,24 @@ async function switchVersionView(mode) {
                 }
                 else if (scope === 'tool_config') {
                     renderDiffBlock('Tool Configuration', liveDesc.tool || {}, payload);
+                }
+                // The page's own settings (v1.1). The words as a list, which
+                // the styling pass then paints in the proposed colours, so the
+                // reviewer sees each colour rather than a hex code. The house
+                // style as prose, so a changed sentence diffs as one.
+                else if (scope === 'pageConfig') {
+                    const wordLines = (cfg) => ((cfg && Array.isArray(cfg.words)) ? cfg.words : [])
+                        .filter(w => w && w.word)
+                        // [noauto] so a hex like #f00 is not read as a frame count.
+                        .map(w => `${w.word}: [noauto]${(w.colors || []).join(' → ')}[/noauto]`);
+                    const asList = (cfg) => {
+                        const items = wordLines(cfg);
+                        return items.length ? [{ type: 'list', items }] : [];
+                    };
+                    renderDiffBlock('Auto-Color Words', asList(liveDesc.pageConfig), asList(payload));
+                    renderDiffBlock('House Style',
+                        window.houseStyleBlocks(liveDesc.pageConfig && liveDesc.pageConfig.houseStyle),
+                        window.houseStyleBlocks(payload && payload.houseStyle));
                 }
                 // One section of a system page. The prose diffs as prose; the
                 // layout fields diff as fields, so a reviewer can tell "the

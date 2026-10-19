@@ -2,13 +2,14 @@
  * THE CONFIG PANEL (v1.1)
  *
  * Owner, 2026-10-18: "Config lets editor choose setting for their editor and
- * perform mass action", in three parts, Editor, Actions and Page. Editor and
- * Actions are here. Page holds settings that belong to a page and travel with
- * it through review, so it lands separately.
+ * perform mass action", in three parts, Editor, Actions and Page.
  *
- * "Settings saved per device": one JSON object in localStorage, read once at
- * load. Most settings are a class on <body> and style/editor.css does the
- * rest. Sticky is the exception, because it needs measured offsets.
+ * Editor: "Settings saved per device", one JSON object in localStorage, read
+ * once at load. Most settings are a class on <body> and style/editor.css does
+ * the rest. Sticky is the exception, because it needs measured offsets.
+ *
+ * Page: settings that belong to the PAGE and travel with it through review
+ * (see PAGE SETTINGS below).
  *
  * Loaded by edit.html only. The delete confirmations it can switch off live in
  * js/editor-blocks.js (window.confirmDelete), which every editor page loads;
@@ -19,16 +20,24 @@
 
     // The owner's defaults. stickHeader and stickPageNav being on is how the
     // editor always behaved: those two sit above the area that scrolls.
+    //
+    // confirmDeletes keeps its stored name and meaning under its v1.1 label,
+    // "Skip delete confirmations": the box is ticked when it is false, so a
+    // device that already turned the prompts off still has them off.
     const DEFAULTS = Object.freeze({
         hideBlockType: false,
         hideDragHandle: false,
         hideFolderPicker: false,
         formattingOnTop: false,
+        compactBlocks: false,
+        openMinimized: false,
         stickHeader: true,
         stickPageNav: true,
         stickSectionNav: false,
         stickActions: false,
         disablePreview: false,
+        previewFollows: false,
+        previewOnSync: false,
         confirmDeletes: true,
     });
 
@@ -38,6 +47,7 @@
         hideDragHandle: 'cfg-hide-drag-handle',
         hideFolderPicker: 'cfg-hide-folder-picker',
         formattingOnTop: 'cfg-format-top',
+        compactBlocks: 'cfg-compact-blocks',
         disablePreview: 'cfg-no-preview',
     };
 
@@ -140,7 +150,75 @@
         requestAnimationFrame(() => {
             stickyQueued = false;
             if (customSticky() || document.body.classList.contains('cfg-workspace-scrolls')) layoutSticky();
+            pinFooter();
         });
+    }
+
+    // --- THE WORKSPACE FOOTER STAYS AT THE BOTTOM (v1.1) ---
+    //
+    // Owner, 2026-10-19: "The Workspace Footer is always stuck at the bottom of
+    // the Workspace regardless if the Workspace itself is current shortened".
+    // The footer is sticky, which only holds it down once the content is
+    // taller than the Workspace, so on a short section it sat right under the
+    // last Block. Now the empty space below goes above it instead, and it
+    // rests where a long section's footer rests at the end of its scroll.
+    //
+    // Measured, not laid out by CSS. A flex column with the footer at
+    // margin-top:auto did pin it, and moved fifty other elements on the skills
+    // and tool pages, because margins between siblings stop collapsing inside
+    // a flex container. This touches the footer's margin and nothing else.
+    const shown = (el) => !!el && el.getClientRects().length > 0 && !['absolute', 'fixed'].includes(getComputedStyle(el).position);
+
+    function lastShownChild(el) {
+        for (let child = el.lastElementChild; child; child = child.previousElementSibling) if (shown(child)) return child;
+        return null;
+    }
+
+    function prevShownSibling(el) {
+        for (let sib = el.previousElementSibling; sib; sib = sib.previousElementSibling) if (shown(sib)) return sib;
+        return null;
+    }
+
+    // Sized by whatever holds the footer, so a Block that grows as it is typed
+    // into moves it the frame after. A size it set itself is reported once
+    // and then settles, because the second pass sets the same margin.
+    let footerSizes = null;
+    let footerWatched = [];
+    function watchFooter(footer, scroller) {
+        if (typeof ResizeObserver !== 'function') return;
+        if (!footerSizes) footerSizes = new ResizeObserver(queueSticky);
+        const chain = [scroller];
+        for (let el = footer.parentElement; el && el !== scroller; el = el.parentElement) chain.push(el);
+        footerWatched.filter(el => !chain.includes(el)).forEach(el => footerSizes.unobserve(el));
+        chain.filter(el => !footerWatched.includes(el)).forEach(el => footerSizes.observe(el));
+        footerWatched = chain;
+    }
+
+    function pinFooter() {
+        const builder = document.getElementById('interactive-builder');
+        const footers = builder ? builder.querySelectorAll('.add-block-toolbar') : [];
+        if (footers.length !== 1) return;
+        const footer = footers[0];
+        footer.style.marginTop = '';
+
+        const scroller = document.body.classList.contains('cfg-workspace-scrolls') ? workspace() : builder;
+        if (!scroller || !shown(footer)) return;
+        watchFooter(footer, scroller);
+
+        const last = lastShownChild(scroller);
+        if (!last) return;
+        const inner = scroller.getBoundingClientRect().top + scroller.clientTop + scroller.clientHeight
+            - parseFloat(getComputedStyle(scroller).paddingBottom);
+        const end = last.getBoundingClientRect().bottom + parseFloat(getComputedStyle(last).marginBottom);
+        const slack = inner - end;
+        if (slack < 1) return;
+
+        // The block list above carries a bottom margin, and the two margins
+        // would collapse into the larger one: the footer gets the gap it has
+        // now plus the slack, so it moves by the slack and no less.
+        const prev = prevShownSibling(footer);
+        const gap = prev ? footer.getBoundingClientRect().top - prev.getBoundingClientRect().bottom : 0;
+        footer.style.marginTop = `${gap + slack}px`;
     }
 
     function watchSticky() {
@@ -148,6 +226,9 @@
             const sizes = new ResizeObserver(queueSticky);
             ['editor-header', 'editor-scope-tip', 'editor-mode-bar', 'editor-mode-controls', 'editor-tab-nav']
                 .forEach(id => { const el = document.getElementById(id); if (el) sizes.observe(el); });
+            // The Workspace itself, for the footer: the header folding, the
+            // window resizing, a scrolling mode changing what scrolls.
+            [document.getElementById('interactive-builder'), workspace()].forEach(el => { if (el) sizes.observe(el); });
         }
         const builder = document.getElementById('interactive-builder');
         if (builder) new MutationObserver(queueSticky).observe(builder, { childList: true, subtree: true });
@@ -157,8 +238,71 @@
     function apply() {
         if (!document.body) return;
         Object.keys(BODY_CLASSES).forEach(key => document.body.classList.toggle(BODY_CLASSES[key], get(key)));
+        if (get('previewFollows')) window.previewBlockAnchor = anchorBlock;
+        else delete window.previewBlockAnchor;
         layoutSticky();
+        // A setting can change how tall the section is (Compact Blocks) or
+        // what scrolls (Sticky), and with it where the footer belongs.
+        queueSticky();
     }
+
+    // --- PREVIEW FOLLOWS THE BLOCK ---
+    //
+    // The block renderer (js/description.js) hands each top-level Block's
+    // markup to window.previewBlockAnchor, which marks its first element with
+    // the Block's position and a fingerprint of its data. Position alone is
+    // not enough: the Overview tab draws Overview, General Strategy and every
+    // custom tab in one preview, and each has a Block 0. The fingerprint picks
+    // the one whose data is the Block being edited.
+    function blockSignature(block) {
+        const text = JSON.stringify(block) || '';
+        let hash = 0x811c9dc5;
+        for (let i = 0; i < text.length; i++) {
+            hash ^= text.charCodeAt(i);
+            hash = Math.imul(hash, 0x01000193);
+        }
+        return (hash >>> 0).toString(36);
+    }
+
+    function anchorBlock(html, index, block) {
+        return html.replace(/^(\s*<[a-zA-Z][\w-]*)/, `$1 data-preview-block="${Number(index)}" data-preview-sig="${blockSignature(block)}"`);
+    }
+
+    // Once per Block: moving between the fields of one Block, or typing in it,
+    // does not scroll the preview out from under the author again.
+    let followedBlock = null;
+    function followBlock(e) {
+        if (!get('previewFollows') || get('disablePreview')) return;
+        const card = e.target && e.target.closest && e.target.closest('#block-list .block-card[data-index]');
+        if (!card || typeof currentStrategyBlocks === 'undefined') return;
+
+        // Inside an accordion, the list on screen is nested, and the preview
+        // marks only the top level: follow the accordion that holds it.
+        const path = window.activeAccordionPath || [];
+        const step = path[0];
+        const index = path.length ? (typeof step === 'object' ? step.index : step) : Number(card.getAttribute('data-index'));
+        const block = currentStrategyBlocks[index];
+        if (!block || block === followedBlock) return;
+        followedBlock = block;
+
+        const pane = document.querySelector('.live-preview-pane');
+        if (!pane) return;
+        const shown = Array.from(pane.querySelectorAll(`[data-preview-block="${index}"]`)).filter(el => el.getClientRects().length);
+        const sig = blockSignature(block);
+        // A preview waiting for Sync was drawn from older data, so a lone
+        // Block at that position is taken when no fingerprint matches.
+        const target = shown.find(el => el.getAttribute('data-preview-sig') === sig) || (shown.length === 1 ? shown[0] : null);
+        if (!target) return;
+
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // The same flash a section switch gives its section.
+        target.style.outline = '2px solid var(--accent-blue)';
+        target.style.outlineOffset = '2px';
+        setTimeout(() => { target.style.outline = ''; target.style.outlineOffset = ''; }, 800);
+    }
+
+    document.addEventListener('focusin', followBlock);
+    document.addEventListener('click', followBlock);
 
     // --- MASS MINIMIZE / MAXIMIZE ---
     //
@@ -184,17 +328,468 @@
 
     window.setAllEditorBlocksOpen = setAllBlocksOpen;
 
+    // --- EDIT CONFLICT CHECK (v1.1) ---
+    //
+    // Owner, 2026-10-19: "run a quick check against the current submission
+    // queue and see if any edits on the same page will clash with the current
+    // edits detected right now". The edits are Submit's own list
+    // (collectEditorDeltas in js/editor-core.js). The queue side comes from
+    // get_open_submission_scopes, because an ordinary editor cannot read
+    // anyone else's submissions: it says where, who and when, never what.
+    //
+    // Two changes clash when they name the same part: the same scope and key,
+    // a character state's wrapping included, so an edit to the base kit does
+    // not clash with one to an ultimate. A whole-page upload from before the
+    // delta model clashes with everything.
+
+    // A part of the page in words, from the same vocabularies the editor's
+    // tabs are named by. The review queue has its own (js/admin-preview.js);
+    // this one only has to say where.
+    function describePart(scope, key) {
+        if (!scope) return 'the whole page';
+        const k = String(key == null ? '' : key);
+        if (scope === 'mode') {
+            const [mode, inner, ...rest] = k.split('::');
+            const modes = typeof window.getCharacterModes === 'function' ? window.getCharacterModes(window.editorMasterFrameData || {}) : [];
+            const state = (modes.find(m => m.id === mode) || {}).label || mode;
+            return `${describePart(inner, rest.join('::'))} (${state} state)`;
+        }
+        const tabLabels = typeof window.getCharacterTabLabels === 'function' ? window.getCharacterTabLabels() : {};
+        const named = {
+            profile: 'Profile Card', playstyle: 'Playstyle', overview: 'Character Overview', strategy: 'General Strategy',
+            modes: 'the list of states', pageConfig: 'Page settings', tool_config: 'Tool setup',
+            system_tab_order: 'the order of the tabs', intro: 'Introduction', notes: 'Notes',
+        };
+        if (named[scope]) return named[scope];
+        if (scope === 'extra') return `Custom tab "${k}"`;
+        if (scope === 'move') {
+            const [cat, id] = k.split('::');
+            const move = ((window.editorMasterFrameData || {})[cat] || []).find(m => m && m.id === id);
+            return `${tabLabels[cat] || cat}: ${(move && move.name) || id}`;
+        }
+        if (scope === 'order') return `the order of ${k}`;
+        if (scope === 'system_section') return `Section "${k.split('::').slice(1).join('::') || k}" in tab "${k.split('::')[0]}"`;
+        if (scope === 'system_tab') return `Tab "${k}"`;
+        if (scope === 'gallery_item') return `Gallery item "${k}"`;
+        const keyed = (typeof window.getKeyedSections === 'function' ? window.getKeyedSections() : []).find(s => s.scope === scope);
+        if (keyed) return `${keyed.entryLabel} "${k}"`;
+        const fixed = (window.FIXED_BLOCK_SECTIONS || []).find(s => s.scope === scope);
+        if (fixed) return fixed.label;
+        return k && k !== 'full' ? `${scope} "${k}"` : scope;
+    }
+
+    async function runConflictCheck(out, btn) {
+        const say = (text) => { out.innerHTML = `<p class="config-option-hint">${esc(text)}</p>`; };
+        const pageId = window.currentEditorCharId;
+        if (!pageId || !window.supabaseClient || typeof window.collectEditorDeltas !== 'function') {
+            say('The check is not available on this page.');
+            return;
+        }
+        if (!window.currentGlobalUserId) {
+            say('Sign in to check.');
+            return;
+        }
+
+        btn.disabled = true;
+        say('Checking...');
+        try {
+            // What is being typed right now counts, the way Submit flushes first.
+            if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
+            const mine = await window.collectEditorDeltas();
+            if (!mine.length) {
+                say('You have no unsent edits on this page, so nothing can clash with them.');
+                return;
+            }
+
+            const { data, error } = await window.supabaseClient.rpc('get_open_submission_scopes', { p_page_id: pageId });
+            if (error) {
+                say(`Could not check: ${error.message || 'the request failed'}.`);
+                return;
+            }
+
+            // Never the submission being edited right now, against itself.
+            const rows = (Array.isArray(data) ? data : []).filter(r => r && r.revision_id !== window.activeEditTicketId);
+            const subs = new Map();
+            rows.forEach(r => {
+                if (!subs.has(r.revision_id)) subs.set(r.revision_id, { who: r.author_name || 'Anonymous', when: r.created_at, mine: !!r.is_mine, parts: [] });
+                const clashes = r.scope == null || mine.some(d => d.scope === r.scope && d.key === r.key);
+                const part = describePart(r.scope, r.key);
+                if (clashes && !subs.get(r.revision_id).parts.includes(part)) subs.get(r.revision_id).parts.push(part);
+            });
+
+            const clashing = [...subs.values()].filter(s => s.parts.length);
+            if (!subs.size) {
+                say('No submissions are waiting for review on this page.');
+                return;
+            }
+            if (!clashing.length) {
+                say(`${subs.size} submission${subs.size === 1 ? ' is' : 's are'} waiting for review on this page, and none of them changes what you changed.`);
+                return;
+            }
+
+            const when = (t) => { const d = new Date(t); return isNaN(d) ? '' : d.toLocaleString(); };
+            out.innerHTML = `
+                <p class="config-option-hint">${clashing.length === 1 ? 'This submission changes' : `These ${clashing.length} submissions change`} the same part as your edits:</p>
+                <ul class="config-conflict-list">
+                    ${clashing.map(s => `
+                        <li data-conflict-item>
+                            <strong>${esc(s.who)}</strong>${s.mine ? ' (you)' : ''}, sent ${esc(when(s.when))}:
+                            ${esc(s.parts.join(', '))}
+                        </li>`).join('')}
+                </ul>`;
+        } catch (e) {
+            say(`Could not check: ${e.message || e}.`);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // --- PAGE SETTINGS (v1.1) ---
+    //
+    // Owner, 2026-10-18: auto-colour words "JUST FOR THAT PAGE", and a "Page
+    // house style document" that "would also appear as a red-colored button
+    // next to MoS". Unlike everything above, these belong to the page: they
+    // live in desc_data.pageConfig and travel in a submission as their own
+    // scope, so anyone can change them and a reviewer sees the change first.
+    // Page-level on a character with states, like the list of states itself.
+    //
+    // Gallery and tier list pages have no prose for words to colour.
+    window.PAGE_CONFIG_PAGE_TYPES = ['character', 'system', 'tool'];
+
+    function pageDesc() {
+        return window.editorMasterDescData || null;
+    }
+
+    function pageSettingsHere() {
+        return window.PAGE_CONFIG_PAGE_TYPES.includes(window.currentEditorPageType || 'character') && !!pageDesc();
+    }
+
+    // A copy to edit, so typing never writes half a word list into the page.
+    function readPageConfig() {
+        const config = (pageDesc() || {}).pageConfig || {};
+        return {
+            words: (Array.isArray(config.words) ? config.words : []).map(w => ({
+                word: String((w && w.word) || ''),
+                colors: Array.isArray(w && w.colors) ? w.colors.slice() : [],
+            })),
+            houseStyle: typeof config.houseStyle === 'string' ? config.houseStyle : '',
+        };
+    }
+
+    // An empty config is removed rather than stored, so clearing everything
+    // leaves the page's data as it was and Submit finds nothing to send.
+    function writePageConfig(state) {
+        const desc = pageDesc();
+        if (!desc) return;
+        const words = state.words
+            .map(w => ({ word: w.word.trim().replace(/\s+/g, ' '), colors: w.colors }))
+            .filter(w => w.word && w.colors.length)
+            .slice(0, window.PAGE_WORD_LIMIT);
+        const houseStyle = state.houseStyle.trim() ? state.houseStyle : '';
+
+        if (!words.length && !houseStyle) delete desc.pageConfig;
+        else desc.pageConfig = { words, houseStyle };
+
+        if (typeof window.refreshPageWords === 'function') window.refreshPageWords();
+        refreshHouseStyleButton();
+        if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
+    }
+
+    // On every page that has a Config > Page, written or not (owner,
+    // 2026-10-19: "always visible even if nothing is written yet").
+    function refreshHouseStyleButton() {
+        const btn = document.getElementById('btn-house-style');
+        if (!btn) return;
+        btn.classList.toggle('hidden', !pageSettingsHere());
+    }
+    window.refreshHouseStyleButton = refreshHouseStyleButton;
+
+    window.openHouseStyle = function () {
+        if (document.getElementById('editor-house-style-modal')) return false;
+        if (typeof window.generateHTMLForBlocks !== 'function') return false;
+        const blocks = window.houseStyleBlocks(readPageConfig().houseStyle);
+        const body = blocks.length
+            ? `<div class="house-style-text">${window.generateHTMLForBlocks(blocks, '')}</div>
+               <p class="mos-footnote">Written by this page's editors for the ones who come after them. Change it in Config &gt; Page.</p>`
+            : `<p class="house-style-empty">This page's house style hasn't been written yet.</p>
+               <p class="mos-footnote">Anyone can write it in Config &gt; Page.</p>`;
+
+        const box = document.createElement('div');
+        box.className = 'editor-modal-overlay editor-notice-overlay';
+        box.id = 'editor-house-style-modal';
+        box.setAttribute('role', 'dialog');
+        box.setAttribute('aria-modal', 'true');
+        box.setAttribute('aria-label', 'House Style');
+
+        // The block renderer escapes the text, and the styling pass then turns
+        // its format tags into formatting, the same contract as a page.
+        box.innerHTML = `
+            <div class="editor-modal-box auth-modal-box mos-modal-box">
+                <div class="auth-header"><h3>HOUSE STYLE</h3></div>
+                <div class="auth-body mos-body">
+                    ${body}
+                    <div class="modal-actions-centered mos-actions">
+                        <button type="button" class="btn-sys btn-sys-green" data-house-style-ok>OK</button>
+                    </div>
+                </div>
+            </div>`;
+
+        document.body.appendChild(box);
+        if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
+
+        const shut = () => {
+            if (box.parentNode) box.parentNode.removeChild(box);
+            document.removeEventListener('keydown', onKey);
+        };
+        function onKey(e) { if (e.key === 'Escape') shut(); }
+        box.addEventListener('click', (e) => { if (e.target.closest('[data-house-style-ok]')) shut(); });
+        document.addEventListener('keydown', onKey);
+
+        const ok = box.querySelector('[data-house-style-ok]');
+        if (ok) ok.focus();
+        return true;
+    };
+
+    function pagePanelHTML() {
+        return `
+            <div class="config-panel hidden" data-config-panel="page">
+                <p class="config-option-hint">These belong to this page, not your device. They go out with your next submission and are reviewed like any other edit.</p>
+                <fieldset class="config-group">
+                    <legend class="config-option-label">Auto-color words</legend>
+                    <span class="config-option-hint">These custom words will be colored everywhere on this page. Whole words only, in the exact case typed ("Domain", not "domain"). [noauto=all] can stop it, and built-in auto-colors (character names, frame data, moves) are prioritized over this.</span>
+                    <div class="config-words" data-config-words></div>
+                    <div class="config-actions">
+                        <button type="button" class="btn-sys btn-sys-regular" data-word-add>+ ADD WORD</button>
+                        <span class="config-option-hint" data-word-count></span>
+                    </div>
+                </fieldset>
+                <fieldset class="config-group">
+                    <legend class="config-option-label">House style</legend>
+                    <span class="config-option-hint">How this page is written, for the editors who come after you. Format tags work here. It opens from the House Style button next to MoS.</span>
+                    <textarea class="editor-textarea config-house-style" data-house-style rows="6" spellcheck="true"></textarea>
+                </fieldset>
+            </div>`;
+    }
+
+    // One colour popup for the whole list, moved to whichever row opened it:
+    // fifty rows of ~45 swatches each is a lot of DOM for one open picker.
+    // The picker's markup is js/editor-blocks.js's, and its IDs repeat the
+    // toolbar's, which is safe because initColorPicker only looks inside the
+    // container it is handed (the tier editor does the same).
+    function wordColorPopup() {
+        const el = document.createElement('div');
+        el.className = 'config-word-popup hidden';
+        el.innerHTML = `
+            <div class="format-color-presets-scroll">${typeof colorPresetsHTML === 'function' ? colorPresetsHTML(gradientPresetsHTML()) : ''}</div>
+            <div class="cp-label">Custom</div>
+            <div class="cp-surface" id="cp-surface"><div class="cp-thumb" id="cp-surface-thumb"></div></div>
+            <div class="cp-hue" id="cp-hue" role="slider" tabindex="0"
+                 aria-label="Hue" aria-valuemin="0" aria-valuemax="359" aria-valuenow="0">
+                <div class="cp-thumb cp-hue-thumb" id="cp-hue-thumb"></div>
+            </div>
+            <div class="format-color-custom-row">
+                <span class="cp-preview" id="cp-preview"></span>
+                <input type="text" id="cp-hex" class="cp-hex" value="#ffffff"
+                       maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex color">
+                <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
+            </div>
+            <div class="cp-label">Custom gradient</div>
+            <div class="format-color-custom-row">
+                <input type="text" class="cp-hex config-word-gradient" data-word-gradient placeholder="#a855f7, #22d3ee"
+                       spellcheck="false" autocomplete="off" aria-label="Gradient colors, separated by commas">
+                <button type="button" class="btn-sys btn-sys-green cp-apply" data-word-gradient-apply>USE</button>
+            </div>
+            <p class="config-option-hint config-action-note" data-word-gradient-error aria-live="polite"></p>`;
+        return el;
+    }
+
+    function wirePagePanel(panel) {
+        const state = readPageConfig();
+        const list = panel.querySelector('[data-config-words]');
+        const count = panel.querySelector('[data-word-count]');
+        const addBtn = panel.querySelector('[data-word-add]');
+        const house = panel.querySelector('[data-house-style]');
+        const popup = wordColorPopup();
+        const gradientError = popup.querySelector('[data-word-gradient-error]');
+        let popupIndex = -1;
+
+        house.value = state.houseStyle;
+        house.addEventListener('input', () => {
+            state.houseStyle = house.value;
+            writePageConfig(state);
+        });
+
+        // Through the CSSOM, never a style attribute: an unparseable value is
+        // dropped by the browser rather than written into markup. Cleared
+        // first, because a dropped value would leave the previous colour.
+        function paintSwatch(swatch, colors) {
+            const safe = colors.filter(c => window.safeColor(c));
+            swatch.style.background = '';
+            swatch.style.background = safe.length > 1 ? `linear-gradient(90deg, ${safe.join(', ')})` : (safe[0] || '');
+        }
+
+        const tidy = (word) => word.trim().replace(/\s+/g, ' ');
+
+        function noteFor(i) {
+            const word = tidy(state.words[i].word);
+            if (!word) return '';
+            if (state.words.findIndex(w => tidy(w.word) === word) !== i) return 'Listed twice. The first one is used.';
+            const hit = typeof window.pageWordBuiltIn === 'function' ? window.pageWordBuiltIn(word) : null;
+            if (!hit) return '';
+            if (hit.kind === 'move') return `"${hit.term}" is a move, so it keeps its move color in the Combos and Techs tabs.`;
+            return `"${hit.term}" already has a built-in color, and built-in colors win.`;
+        }
+
+        function refreshNotes() {
+            list.querySelectorAll('.config-word-row').forEach((row, i) => {
+                row.querySelector('[data-word-note]').textContent = noteFor(i);
+            });
+        }
+
+        function closePopup() {
+            popup.classList.add('hidden');
+            popupIndex = -1;
+            list.querySelectorAll('[data-word-swatch]').forEach(s => s.setAttribute('aria-expanded', 'false'));
+        }
+
+        function renderRows() {
+            closePopup();
+            popup.remove();
+            list.innerHTML = state.words.map((w, i) => `
+                <div class="config-word-row" data-word-index="${i}">
+                    <div class="config-word-main">
+                        <button type="button" class="config-word-swatch" data-word-swatch aria-label="Color for this word" aria-expanded="false"></button>
+                        <input type="text" class="editor-input config-word-text" data-word-text value="${esc(w.word)}"
+                               placeholder="Word or phrase" aria-label="Word" spellcheck="false" autocomplete="off">
+                        <button type="button" class="btn-sys btn-sys-red config-word-remove" data-word-remove title="Delete this word">✖</button>
+                    </div>
+                    <span class="config-option-hint config-word-note" data-word-note></span>
+                </div>`).join('');
+            list.querySelectorAll('.config-word-row').forEach((row, i) => {
+                paintSwatch(row.querySelector('[data-word-swatch]'), state.words[i].colors);
+            });
+            refreshNotes();
+            addBtn.disabled = state.words.length >= window.PAGE_WORD_LIMIT;
+            count.textContent = `${state.words.length} of ${window.PAGE_WORD_LIMIT}`;
+        }
+
+        function setColors(colors) {
+            if (popupIndex < 0 || !state.words[popupIndex]) return;
+            state.words[popupIndex].colors = colors;
+            const row = list.querySelector(`[data-word-index="${popupIndex}"]`);
+            if (row) paintSwatch(row.querySelector('[data-word-swatch]'), colors);
+            writePageConfig(state);
+            closePopup();
+        }
+
+        addBtn.addEventListener('click', () => {
+            if (state.words.length >= window.PAGE_WORD_LIMIT) return;
+            // Starts with the first Basic swatch, so a new word does something
+            // the moment it is typed.
+            const groups = typeof colorPresetGroups === 'function' ? colorPresetGroups() : [];
+            const first = groups[0] && groups[0].swatches[0] ? groups[0].swatches[0].color : '#ffffff';
+            state.words.push({ word: '', colors: [first] });
+            renderRows();
+            const inputs = list.querySelectorAll('[data-word-text]');
+            if (inputs.length) inputs[inputs.length - 1].focus();
+        });
+
+        list.addEventListener('input', (e) => {
+            const input = e.target.closest('[data-word-text]');
+            if (!input) return;
+            const i = Number(input.closest('.config-word-row').getAttribute('data-word-index'));
+            state.words[i].word = input.value;
+            writePageConfig(state);
+            refreshNotes();
+        });
+
+        list.addEventListener('click', async (e) => {
+            const row = e.target.closest('.config-word-row');
+            if (!row || popup.contains(e.target)) return;
+            const i = Number(row.getAttribute('data-word-index'));
+
+            if (e.target.closest('[data-word-remove]')) {
+                if (tidy(state.words[i].word) && !(await window.confirmDelete('Delete this word?'))) return;
+                state.words.splice(i, 1);
+                writePageConfig(state);
+                renderRows();
+                return;
+            }
+
+            const swatch = e.target.closest('[data-word-swatch]');
+            if (swatch) {
+                const reopen = popupIndex !== i;
+                closePopup();
+                if (!reopen) return;
+                popupIndex = i;
+                row.appendChild(popup);
+                gradientError.textContent = '';
+                const gradientField = popup.querySelector('[data-word-gradient]');
+                const colors = state.words[i].colors;
+                gradientField.value = colors.length > 1 ? colors.join(', ') : '';
+                popup.classList.remove('hidden');
+                swatch.setAttribute('aria-expanded', 'true');
+                popup.scrollIntoView({ block: 'nearest' });
+            }
+        });
+
+        popup.addEventListener('click', (e) => {
+            const gradient = e.target.closest('.gradient-preset-btn');
+            if (gradient) { setColors(gradient.getAttribute('data-gradient').split(',')); return; }
+
+            const preset = e.target.closest('.color-preset-btn');
+            if (preset) { setColors([preset.getAttribute('data-color')]); return; }
+
+            if (e.target.closest('[data-word-gradient-apply]')) {
+                // The [multicolor] grammar: two or more colours, all valid.
+                // safeColor admits any short word as a colour name, so the
+                // browser is asked too, the same check the renderer's probe
+                // makes: "nope" passes the grammar and colours nothing.
+                const stops = popup.querySelector('[data-word-gradient]').value
+                    .split(',').map(s => s.trim()).filter(Boolean);
+                const isColor = (s) => window.safeColor(s) && CSS.supports('color', s);
+                if (stops.length < 2 || !stops.every(isColor)) {
+                    gradientError.textContent = 'Type two or more colors, separated by commas, like #a855f7, #22d3ee.';
+                    return;
+                }
+                setColors(stops);
+            }
+        });
+
+        if (typeof initColorPicker === 'function') initColorPicker(popup, (hex) => setColors([hex]));
+
+        // A click anywhere else in the panel puts the popup away.
+        panel.addEventListener('click', (e) => {
+            if (popupIndex >= 0 && !popup.contains(e.target) && !e.target.closest('[data-word-swatch]')) closePopup();
+        });
+
+        renderRows();
+    }
+
     // --- THE PANEL ---
 
     const esc = (s) => (typeof window.escapeHtml === 'function' ? window.escapeHtml(s) : String(s));
 
-    const EDITOR_OPTIONS = [
-        { key: 'hideBlockType', label: 'Hide Block Type dropdown', hint: 'Each Block shows its type instead of a dropdown that changes it.' },
+    // The Editor tab's three sections (owner, 2026-10-19: "Workspace, Block,
+    // and Preview Panel"). `invert` ticks the box when the stored value is
+    // false (see DEFAULTS).
+    const WORKSPACE_OPTIONS = [
+        { key: 'confirmDeletes', invert: true, label: 'Skip delete confirmations', hint: 'Disable the delete confirmation prompt for most of the destructive actions. Only recommended for experienced editors.' },
+    ];
+
+    const BLOCK_OPTIONS = [
+        { key: 'hideBlockType', label: 'Hide Block Type dropdown', hint: 'Each Block now only shows its type instead of a dropdown.' },
         { key: 'hideDragHandle', label: 'Hide Drag-and-drop area', hint: 'Move a Block by grabbing its left edge instead.' },
-        { key: 'hideFolderPicker', label: 'Hide Block Folder dropdown', hint: 'Put a Block in a folder by dragging it onto the folder. CREATE FOLDER makes a new one.' },
+        { key: 'hideFolderPicker', label: 'Hide Block Folder dropdown', hint: 'Each Block no longer shows the folder dropdown menu. Put a Block in a folder by dragging it onto the folder.' },
         { key: 'formattingOnTop', label: 'Formatting on top', hint: 'Alignment, and the options beside it, sit above a Block\'s content.' },
+        { key: 'compactBlocks', label: 'Compact Blocks', hint: 'Less padding and smaller text on each Block, so more of them fit on screen.' },
+        { key: 'openMinimized', label: 'Open sections minimized', hint: 'Every section opens with its Blocks minimized, the same as MINIMIZE ALL in Actions.' },
+    ];
+
+    const PREVIEW_OPTIONS = [
         { key: 'disablePreview', label: 'Disable Preview Panel', hint: 'The Workspace takes the whole screen. Only for experienced editors who know what they are doing.' },
-        { key: 'confirmDeletes', label: 'Ask before deleting', hint: 'Every delete in the editor asks first. Turned off, deleting happens on the first click.' },
+        { key: 'previewFollows', label: 'Preview follows the Block', hint: 'Clicking into a Block scrolls the Preview Panel to where that Block is.' },
+        { key: 'previewOnSync', label: 'Preview only on Sync', hint: 'The Preview Panel waits for SYNC instead of redrawing on every edit. Switching section still redraws it.' },
     ];
 
     const STICKY_OPTIONS = [
@@ -205,9 +800,10 @@
     ];
 
     function checkbox(opt) {
+        const ticked = opt.invert ? !get(opt.key) : get(opt.key);
         return `
             <label class="config-option">
-                <input type="checkbox" data-config-key="${esc(opt.key)}" ${get(opt.key) ? 'checked' : ''}>
+                <input type="checkbox" data-config-key="${esc(opt.key)}" ${opt.invert ? 'data-config-invert' : ''} ${ticked ? 'checked' : ''}>
                 <span class="config-option-text">
                     <span class="config-option-label">${esc(opt.label)}</span>
                     ${opt.hint ? `<span class="config-option-hint">${esc(opt.hint)}</span>` : ''}
@@ -225,6 +821,8 @@
         box.setAttribute('aria-modal', 'true');
         box.setAttribute('aria-label', 'Config');
 
+        const withPage = pageSettingsHere();
+
         box.innerHTML = `
             <div class="editor-modal-box auth-modal-box config-modal-box">
                 <div class="auth-header"><h3>CONFIG</h3></div>
@@ -232,28 +830,52 @@
                     <div class="daw-variant-tabs config-tabs" role="tablist">
                         <button type="button" class="daw-tab-btn active" role="tab" aria-selected="true" data-config-tab="editor">Editor</button>
                         <button type="button" class="daw-tab-btn" role="tab" aria-selected="false" data-config-tab="actions">Actions</button>
+                        ${withPage ? '<button type="button" class="daw-tab-btn" role="tab" aria-selected="false" data-config-tab="page">Page</button>' : ''}
                     </div>
 
                     <div class="config-panel" data-config-panel="editor">
-                        ${EDITOR_OPTIONS.slice(0, 4).map(checkbox).join('')}
-                        <fieldset class="config-group">
-                            <legend class="config-option-label">Sticky top elements</legend>
-                            <span class="config-option-hint">Ticked ones stay on screen while the Workspace scrolls.</span>
-                            ${STICKY_OPTIONS.map(checkbox).join('')}
-                        </fieldset>
-                        ${EDITOR_OPTIONS.slice(4).map(checkbox).join('')}
+                        <section class="config-section" data-config-section="workspace">
+                            <h4 class="config-section-title">Workspace</h4>
+                            <fieldset class="config-group">
+                                <legend class="config-option-label">Sticky top elements</legend>
+                                <span class="config-option-hint">Ticked ones stay on screen while the Workspace scrolls down.</span>
+                                ${STICKY_OPTIONS.map(checkbox).join('')}
+                            </fieldset>
+                            ${WORKSPACE_OPTIONS.map(checkbox).join('')}
+                        </section>
+                        <section class="config-section" data-config-section="block">
+                            <h4 class="config-section-title">Block</h4>
+                            ${BLOCK_OPTIONS.map(checkbox).join('')}
+                        </section>
+                        <section class="config-section" data-config-section="preview">
+                            <h4 class="config-section-title">Preview Panel</h4>
+                            ${PREVIEW_OPTIONS.map(checkbox).join('')}
+                        </section>
+                        <p class="config-footnote">Saved on this device only.</p>
                     </div>
 
                     <div class="config-panel hidden" data-config-panel="actions">
-                        <p class="config-option-hint">For the Blocks in the section on screen.</p>
-                        <div class="config-actions">
-                            <button type="button" class="btn-sys btn-sys-regular" data-config-action="minimize">MINIMIZE ALL</button>
-                            <button type="button" class="btn-sys btn-sys-regular" data-config-action="maximize">MAXIMIZE ALL</button>
-                        </div>
-                        <p class="config-option-hint config-action-note" data-config-note aria-live="polite"></p>
+                        <fieldset class="config-group">
+                            <legend class="config-option-label">Blocks</legend>
+                            <span class="config-option-hint">For the Blocks in the section on screen.</span>
+                            <div class="config-actions">
+                                <button type="button" class="btn-sys btn-sys-regular" data-config-action="minimize">MINIMIZE ALL</button>
+                                <button type="button" class="btn-sys btn-sys-regular" data-config-action="maximize">MAXIMIZE ALL</button>
+                            </div>
+                            <p class="config-option-hint config-action-note" data-config-note aria-live="polite"></p>
+                        </fieldset>
+                        <fieldset class="config-group">
+                            <legend class="config-option-label">Edit Conflict Check</legend>
+                            <span class="config-option-hint">Compares your unsent edits with this page's submissions waiting for review, and lists the ones that change the same part. It shows who and when, never what they wrote.</span>
+                            <div class="config-actions">
+                                <button type="button" class="btn-sys btn-sys-regular" data-conflict-run>CHECK FOR CONFLICTS</button>
+                            </div>
+                            <div class="config-conflict-result" data-conflict-result aria-live="polite"></div>
+                        </fieldset>
                     </div>
 
-                    <p class="config-footnote">Saved on this device only.</p>
+                    ${withPage ? pagePanelHTML() : ''}
+
                     <div class="modal-actions-centered">
                         <button type="button" class="btn-sys btn-sys-green" data-config-close>DONE</button>
                     </div>
@@ -261,6 +883,7 @@
             </div>`;
 
         document.body.appendChild(box);
+        if (withPage) wirePagePanel(box.querySelector('[data-config-panel="page"]'));
 
         const shut = () => {
             if (box.parentNode) box.parentNode.removeChild(box);
@@ -270,7 +893,15 @@
 
         box.addEventListener('change', (e) => {
             const input = e.target.closest('[data-config-key]');
-            if (input) set(input.getAttribute('data-config-key'), input.checked);
+            if (!input) return;
+            const key = input.getAttribute('data-config-key');
+            set(key, input.hasAttribute('data-config-invert') ? !input.checked : input.checked);
+            // The preview on screen was drawn before the marks existed, or
+            // was held for a Sync that turning the hold off now stands in for.
+            // Gallery and tier list pages have no preview this draws.
+            if ((key === 'previewFollows' || key === 'previewOnSync') && window.currentEditorDescData
+                && ['character', 'system', 'tool'].includes(window.currentEditorPageType || 'character')
+                && typeof window.drawLivePreviewNow === 'function') window.drawLivePreviewNow(true);
         });
 
         box.addEventListener('click', (e) => {
@@ -286,6 +917,12 @@
                 });
                 box.querySelectorAll('[data-config-panel]').forEach(p =>
                     p.classList.toggle('hidden', p.getAttribute('data-config-panel') !== name));
+                return;
+            }
+
+            const check = e.target.closest('[data-conflict-run]');
+            if (check) {
+                runConflictCheck(box.querySelector('[data-conflict-result]'), check);
                 return;
             }
 

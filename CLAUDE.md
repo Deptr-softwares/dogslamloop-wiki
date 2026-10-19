@@ -119,14 +119,20 @@ Code an assistant wrote is a draft until something has checked it. Assistant cod
 - Conflicts on generated files (stubs, `supabase/migrations.lock.json`): regenerate (`npm run generate`, `npm run lock-migrations`), never hand-merge. On a hand-written conflict, read both sides: two branches appending to one file usually both keep their block.
 - Read CI after every push. A local pass does not make a CI failure flaky.
 - On Windows, write the commit message to a file and use `git commit -F`.
-- Every PR body carries the change notes (below), what was found broken along the way, decisions a reviewer would otherwise have to reverse-engineer, and what needs the owner after merge.
+- Every PR body carries the change notes (below) and what needs the owner after merge.
+- A PR body is posted under the owner's GitHub account, so it is written in their voice with the `my-writing-style` skill (owner, 2026-10-19): the opening and any explanation in their register, the facts as plain lists, the attribution line kept.
 
 ## Devlogs and the Update Log
 
-**The owner writes the devlogs and the Update Log** (2026-10-18). Do not write in either. Give them change notes instead, in the reply when a PR opens and again in the PR body. Per change, facts rather than drafted lines:
+**The owner writes the devlogs and the Update Log** (2026-10-18). Do not write in either. Give them change notes instead, in the reply when a PR opens and again in the PR body. One list in the devlog's shape, not split by audience: everything is documented in the devlog anyway (owner, 2026-10-18). Per change, facts rather than drafted lines:
 
-- **For the Update Log:** what a reader sees now and saw before, with exact names, numbers and the page it is on; and which part it fits (Features, Fine-tuning, Bug fixes, or under the hood).
-- **For the devlog:** what changed in code and data (files, tables, migrations); each decision, its reason and what was turned down; what broke along the way and how it was found; what was verified and what was not; what is still open, and whose it is.
+- what an editor or reader sees now and saw before, with exact names, numbers and the page it is on, or that nothing visible changed;
+- what changed in code and data (files, tables, migrations);
+- each decision, its reason and what was turned down;
+- what broke along the way and how it was found;
+- what was verified and what was not, and what is still open and whose it is.
+
+**The Update Log comes last**, at the release: read the devlog, pull out what a reader can see, and hand the owner that list sorted into Features, Fine-tuning and Bug fixes. They write the entry (the `ship-a-release` skill).
 
 On a draft the owner hands over: grammar and spelling only, keep their wording, list every edit, and flag (don't fix) a line that does not match what changed. Their rules for entries are in the `writing-site-text` skill.
 

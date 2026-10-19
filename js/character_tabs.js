@@ -715,7 +715,7 @@
     // js/pagebuilder.js on every page and is the one evaluated in Node.
     //
     // The tags are internalstyling.js's own, opening and closing alike.
-    const STYLE_SHORTCODES = /\[\/?(?:b|i|u|s|code|kbd|noauto|outline)\]|\[(?:color|multicolor|url)=[^\]]*\]|\[\/(?:color|multicolor|url)\]/gi;
+    const STYLE_SHORTCODES = /\[\/?(?:b|i|u|s|code|kbd|noauto|outline)\]|\[noauto=all\]|\[(?:color|multicolor|url)=[^\]]*\]|\[\/(?:color|multicolor|url)\]/gi;
     window.stripStyleShortcodes = function (text) {
         return String(text == null ? '' : text).replace(STYLE_SHORTCODES, '');
     };
