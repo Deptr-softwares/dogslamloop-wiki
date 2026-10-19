@@ -593,13 +593,7 @@
                        maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex color">
                 <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
             </div>
-            <div class="cp-label">Custom gradient</div>
-            <div class="format-color-custom-row">
-                <input type="text" class="cp-hex config-word-gradient" data-word-gradient placeholder="#a855f7, #22d3ee"
-                       spellcheck="false" autocomplete="off" aria-label="Gradient colors, separated by commas">
-                <button type="button" class="btn-sys btn-sys-green cp-apply" data-word-gradient-apply>USE</button>
-            </div>
-            <p class="config-option-hint config-action-note" data-word-gradient-error aria-live="polite"></p>`;
+            ${typeof gradientBuilderHTML === 'function' ? gradientBuilderHTML() : ''}`;
         return el;
     }
 
@@ -610,7 +604,6 @@
         const addBtn = panel.querySelector('[data-word-add]');
         const house = panel.querySelector('[data-house-style]');
         const popup = wordColorPopup();
-        const gradientError = popup.querySelector('[data-word-gradient-error]');
         let popupIndex = -1;
 
         house.value = state.houseStyle;
@@ -723,10 +716,9 @@
                 if (!reopen) return;
                 popupIndex = i;
                 row.appendChild(popup);
-                gradientError.textContent = '';
-                const gradientField = popup.querySelector('[data-word-gradient]');
+                // A word that already has a gradient opens on it.
                 const colors = state.words[i].colors;
-                gradientField.value = colors.length > 1 ? colors.join(', ') : '';
+                if (gradientBuilder) gradientBuilder.load(colors.length > 1 ? colors : null);
                 popup.classList.remove('hidden');
                 swatch.setAttribute('aria-expanded', 'true');
                 popup.scrollIntoView({ block: 'nearest' });
@@ -739,24 +731,14 @@
 
             const preset = e.target.closest('.color-preset-btn');
             if (preset) { setColors([preset.getAttribute('data-color')]); return; }
-
-            if (e.target.closest('[data-word-gradient-apply]')) {
-                // The [multicolor] grammar: two or more colours, all valid.
-                // safeColor admits any short word as a colour name, so the
-                // browser is asked too, the same check the renderer's probe
-                // makes: "nope" passes the grammar and colours nothing.
-                const stops = popup.querySelector('[data-word-gradient]').value
-                    .split(',').map(s => s.trim()).filter(Boolean);
-                const isColor = (s) => window.safeColor(s) && CSS.supports('color', s);
-                if (stops.length < 2 || !stops.every(isColor)) {
-                    gradientError.textContent = 'Type two or more colors, separated by commas, like #a855f7, #22d3ee.';
-                    return;
-                }
-                setColors(stops);
-            }
         });
 
-        if (typeof initColorPicker === 'function') initColorPicker(popup, (hex) => setColors([hex]));
+        // The custom gradient (js/editor-blocks.js) hands over two to six
+        // colours, each from the picker, so there is nothing left to check.
+        const gradientBuilder = typeof wireGradientBuilder === 'function' ? wireGradientBuilder(popup, setColors) : null;
+        if (typeof initColorPicker === 'function') {
+            initColorPicker(popup, (hex) => setColors([hex]), gradientBuilder ? gradientBuilder.pickerChanged : null);
+        }
 
         // A click anywhere else in the panel puts the popup away.
         panel.addEventListener('click', (e) => {

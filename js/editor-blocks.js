@@ -140,6 +140,129 @@ function gradientPresetsHTML() {
                         </div>`;
 }
 
+// --- A CUSTOM GRADIENT (v1.1, from an editor's feedback) ---
+//
+// "multicolor becomes an option instead of manually typing it out". The
+// presets above are quick picks; this builds any other gradient from two to
+// six colours, each set on the visual picker the popup already has: click a
+// colour chip, and moving the picker changes that colour. Six because that is
+// the most any gradient on the site used when this was built (2026-10-20: 28
+// of 31 use two, 2 use three, 1 uses six).
+//
+// The popup supplies the picker; wireGradientBuilder hands back the hook
+// initColorPicker calls as the picker moves.
+//
+// Shut until its heading is clicked. Open, it is about fifty pixels more on a
+// popup that opens upward inside the Workspace, and on a 720px screen that
+// pushed the preset swatches up under the tab buttons where nothing could
+// click them. Open on a window under about 800px it still does; shut, never.
+const GRADIENT_MAX_STOPS = 6;
+const GRADIENT_START = ['#a855f7', '#22d3ee'];
+
+function gradientBuilderHTML() {
+    return `
+                        <button type="button" class="cp-label cp-gradient-toggle" data-gradient-toggle aria-expanded="false">Custom gradient <span aria-hidden="true">▸</span></button>
+                        <div class="cp-gradient" data-gradient-builder hidden>
+                            <div class="cp-gradient-stops" data-gradient-stops></div>
+                            <div class="cp-gradient-strip" data-gradient-strip></div>
+                            <button type="button" class="btn-sys btn-sys-green cp-apply" data-gradient-use>USE GRADIENT</button>
+                        </div>`;
+}
+
+function wireGradientBuilder(container, onUse) {
+    const root = container.querySelector('[data-gradient-builder]');
+    const toggle = container.querySelector('[data-gradient-toggle]');
+    const hexField = container.querySelector('#cp-hex');
+    if (!root || !toggle || !hexField) return null;
+
+    function setOpen(open) {
+        root.hidden = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.querySelector('span').textContent = open ? '▾' : '▸';
+    }
+    toggle.addEventListener('click', () => setOpen(root.hidden));
+
+    const box = root.querySelector('[data-gradient-stops]');
+    const strip = root.querySelector('[data-gradient-strip]');
+    let stops = GRADIENT_START.slice();
+    let active = -1;
+
+    // Colours go on through the CSSOM, and only real ones: a stop can come
+    // from page data (Config > Page), and "red), url(...)" would otherwise
+    // be a second background layer.
+    const usable = (c) => !!window.safeColor(c) && CSS.supports('color', c);
+
+    function paintStrip() {
+        strip.style.background = '';
+        strip.style.background = `linear-gradient(90deg, ${stops.join(', ')})`;
+    }
+
+    function draw() {
+        box.innerHTML = stops.map((_, i) => `
+                <span class="cp-gradient-stop-wrap">
+                    <button type="button" class="cp-gradient-stop${i === active ? ' is-active' : ''}" data-stop="${i}"
+                            aria-label="Gradient color ${i + 1}" aria-pressed="${i === active}"></button>${stops.length > 2 ? `
+                    <button type="button" class="cp-gradient-stop-remove" data-stop-remove="${i}"
+                            aria-label="Remove gradient color ${i + 1}">✕</button>` : ''}
+                </span>`).join('')
+            + (stops.length < GRADIENT_MAX_STOPS
+                ? '<button type="button" class="cp-gradient-add" data-stop-add aria-label="Add a color" title="Add a color">＋</button>'
+                : '');
+        box.querySelectorAll('[data-stop]').forEach((chip, i) => { chip.style.background = stops[i]; });
+        paintStrip();
+    }
+
+    // The picker moves to the chip's colour, and from here on edits it.
+    function edit(i) {
+        active = i;
+        hexField.value = stops[i];
+        hexField.dispatchEvent(new Event('input'));
+        draw();
+    }
+
+    root.addEventListener('click', (e) => {
+        // Kept here. A click below redraws the chips, so by the time it
+        // reached the "clicked outside the popup?" listeners its target would
+        // be out of the page, and they would close the popup.
+        e.stopPropagation();
+        const chip = e.target.closest('[data-stop]');
+        if (chip) { edit(Number(chip.getAttribute('data-stop'))); return; }
+        const remove = e.target.closest('[data-stop-remove]');
+        if (remove) {
+            stops.splice(Number(remove.getAttribute('data-stop-remove')), 1);
+            active = -1;
+            draw();
+            return;
+        }
+        if (e.target.closest('[data-stop-add]')) {
+            stops.push(stops[stops.length - 1]);
+            edit(stops.length - 1);
+            return;
+        }
+        if (e.target.closest('[data-gradient-use]')) onUse(stops.slice());
+    });
+
+    draw();
+    return {
+        pickerChanged(hex) {
+            if (active < 0 || !usable(hex)) return;
+            stops[active] = hex;
+            const chip = box.querySelector(`[data-stop="${active}"]`);
+            if (chip) chip.style.background = hex;
+            paintStrip();
+        },
+        // Start from these colours (a word's own gradient, shown open), or
+        // the default, shut.
+        load(colors) {
+            const good = Array.isArray(colors) ? colors.filter(usable).slice(0, GRADIENT_MAX_STOPS) : [];
+            stops = good.length >= 2 ? good : GRADIENT_START.slice();
+            active = -1;
+            draw();
+            setOpen(good.length >= 2);
+        },
+    };
+}
+
 // --- THE VISUAL COLOUR PICKER (owner's fine-tuning item, 2026-08-13) ---
 //
 // Replaces <input type="color">, which opens the OPERATING SYSTEM's colour
@@ -185,7 +308,9 @@ function hexToHsv(hex) {
     return { h, s: max === 0 ? 0 : d / max, v: max };
 }
 
-function initColorPicker(container, onPick) {
+// onChange (optional) hears every colour the picker shows, as it moves: the
+// custom gradient uses it to recolour the chip being edited.
+function initColorPicker(container, onPick, onChange) {
     const surface = container.querySelector('#cp-surface');
     const surfaceThumb = container.querySelector('#cp-surface-thumb');
     const hue = container.querySelector('#cp-hue');
@@ -211,6 +336,7 @@ function initColorPicker(container, onPick) {
 
         preview.style.backgroundColor = hex;
         if (updateField) hexField.value = hex;
+        if (onChange) onChange(hex);
     }
 
     // Pointer events rather than mouse events, so a stylus and a finger work
@@ -1277,6 +1403,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                                    maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex colour">
                             <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
                         </div>
+                        ${gradientBuilderHTML()}
                     </div>
                 </div>
             </div>
@@ -2020,10 +2147,17 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             }
         });
 
+        // The popup, not the whole container: a Side bar or folder colour
+        // popup open in the list repeats the picker's ids.
+        const gradientBuilder = wireGradientBuilder(colorPopup, (stops) => {
+            applyFormat('multicolor', stops.join(','));
+            colorPopup.classList.add('hidden');
+        });
+
         initColorPicker(container, (hex) => {
             applyFormat('color', hex);
             colorPopup.classList.add('hidden');
-        });
+        }, gradientBuilder ? gradientBuilder.pickerChanged : null);
 
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#format-color-popup') && !e.target.closest('#btn-format-color')) {

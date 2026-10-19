@@ -950,6 +950,36 @@ input[type="checkbox"]:checked {
 
 .cp-apply { flex-shrink: 0; font-size: 0.6rem; padding: 0.25rem 0.45rem; }
 
+/* The custom gradient (v1.1, js/editor-blocks.js wireGradientBuilder): one
+   chip per colour, the chip being edited outlined, a ✕ on each once there
+   are more than two, and the result in a strip. */
+.cp-gradient-toggle { display: block; width: 100%; text-align: left; cursor: pointer; }
+.cp-gradient-toggle:hover, .cp-gradient-toggle[aria-expanded="true"] { color: var(--text-white, #fff); }
+.cp-gradient { display: flex; flex-direction: column; gap: 0.4rem; align-self: stretch; }
+.cp-gradient[hidden] { display: none; }
+.cp-gradient-stops { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+.cp-gradient-stop-wrap { position: relative; display: inline-flex; }
+.cp-gradient-stop {
+    width: 22px; height: 22px; padding: 0; cursor: pointer;
+    border: 1px solid #555; outline: 2px solid transparent; outline-offset: 1px;
+}
+.cp-gradient-stop.is-active { outline-color: var(--text-white, #fff); }
+.cp-gradient-stop:focus-visible { outline-color: var(--accent-blue); }
+.cp-gradient-stop-remove {
+    position: absolute; top: -6px; right: -6px;
+    width: 13px; height: 13px; padding: 0;
+    font-size: 8px; line-height: 11px; text-align: center;
+    background: #111; color: #aaa; border: 1px solid #444; cursor: pointer;
+}
+.cp-gradient-stop-remove:hover { color: #fff; border-color: #ef4444; }
+.cp-gradient-add {
+    width: 22px; height: 22px; padding: 0; cursor: pointer;
+    border: 1px dashed #555; color: #aaa; font-size: 0.8rem;
+}
+.cp-gradient-add:hover { color: #fff; border-color: #888; }
+.cp-gradient-strip { height: 12px; border: 1px solid #333; }
+.cp-gradient [data-gradient-use] { align-self: flex-start; }
+
 /* --- ADD BLOCK POPUP MENU --- */
 .add-block-menu-wrapper { position: relative; }
 .add-block-popup {
@@ -2747,7 +2777,6 @@ del.diff-del {
 }
 .swatch-popup .format-color-presets-scroll { max-height: 180px; align-self: stretch; }
 .swatch-popup .cp-surface, .swatch-popup .cp-hue { align-self: stretch; }
-.config-word-gradient { flex: 1; min-width: 0; }
 .config-house-style { width: 100%; box-sizing: border-box; resize: vertical; margin: 0; }
 .house-style-empty { margin: 0; color: #9ca3af; font-style: italic; }
 
