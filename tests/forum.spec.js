@@ -145,6 +145,28 @@ test('a category shows only its posts, and All shows them all again', async ({ p
     await expect(page.locator('.forum-row')).toHaveCount(2);
 });
 
+// The category buttons cast a hard shadow (3px, 4px while hovered) and the
+// list began right under them, so the shadow lay on top of the first post.
+test("the category buttons' shadow ends above the first post, hovered or not", async ({ page }) => {
+    await openForum(page, { threads: [thread()] });
+    await expect(page.locator('.forum-row')).toHaveCount(1);
+
+    // Room left between each button's shadow and the post; the shadow's
+    // offset is read from the page, so this follows the button's style.
+    const room = () => page.evaluate(() => {
+        const post = document.querySelector('.forum-row').getBoundingClientRect().top;
+        return Math.min(...[...document.querySelectorAll('.forum-filter')].map(b => {
+            const offset = getComputedStyle(b).boxShadow.match(/(-?[\d.]+)px\s+(-?[\d.]+)px/);
+            return post - (b.getBoundingClientRect().bottom + (offset ? parseFloat(offset[2]) : 0));
+        }));
+    });
+
+    expect(await room()).toBeGreaterThan(0);
+    await page.locator('.forum-filter').nth(1).hover();
+    await expect.poll(room).toBeGreaterThan(0);
+    expect(await page.locator('.forum-filter').nth(1).evaluate(b => getComputedStyle(b).boxShadow)).toMatch(/4px 0px/);
+});
+
 test('signed out, NEW POST asks to sign in; banned, it says the account cannot post', async ({ page }) => {
     await openForum(page);
     await page.locator('.forum-new-btn').click();
