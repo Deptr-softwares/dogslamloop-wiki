@@ -46,6 +46,75 @@ function editorDraftPayload() {
     };
 }
 
+// "Boomcat" from boomcat, "Black Death" from black_death.
+function draftPageName(charId) {
+    return String(charId).split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
+// --- WHAT THIS BROWSER HAS ALREADY SUBMITTED (v1.1) ---
+//
+// Owner, 2026-10-19: a successful Submit keeps every draft, and an editor who
+// opens one again is warned instead. Submit records when the page was sent
+// from this browser. A draft saved before that moment holds changes that are
+// in the queue already, so sending it again would duplicate the submission.
+const SUBMITTED_PREFIX = 'wiki_submitted_';
+
+window.markPageSubmitted = function (pageId) {
+    try {
+        localStorage.setItem(`${SUBMITTED_PREFIX}${pageId}`, String(Date.now()));
+    } catch (e) {
+        console.warn('[Drafts] Could not record the submission time, so its drafts will not warn:', e);
+    }
+};
+
+// When this browser submitted the page, if a draft saved at `timestamp` was
+// saved before then; 0 if it was not.
+window.draftSubmittedAt = function (pageId, timestamp) {
+    let at = 0;
+    try { at = Number(localStorage.getItem(`${SUBMITTED_PREFIX}${pageId}`)) || 0; } catch (e) { at = 0; }
+    return at && (Number(timestamp) || 0) <= at ? at : 0;
+};
+
+window.duplicateDraftWarning = function (at) {
+    return `This draft was saved before you submitted this page on ${new Date(at).toLocaleString()}. Submitting it again sends the same changes to the review queue a second time.`;
+};
+
+// --- FIVE AUTO-SAVES (v1.1) ---
+//
+// Owner, 2026-10-19, once Submit stopped clearing drafts: "a max limit of 5
+// auto-save slots for every editor". Room is made when a page gets its first
+// auto-save. One already submitted goes first, since its changes are in the
+// queue; unsent work goes only when all five are unsent, the oldest first, and
+// the editor is told which. SAVED versions are never dropped: the editor chose
+// to keep them.
+const AUTO_DRAFT_PREFIX = 'wiki_draft_';
+const AUTO_SAVE_LIMIT = 5;
+
+function makeRoomForAutoSave(draftKey) {
+    if (localStorage.getItem(draftKey) !== null) return;
+    const others = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith(AUTO_DRAFT_PREFIX) || key === draftKey) continue;
+        let data = null;
+        try { data = JSON.parse(localStorage.getItem(key)); } catch (e) { data = null; }
+        const pageId = String((data && data.charId) || key.slice(AUTO_DRAFT_PREFIX.length));
+        const timestamp = Number(data && data.timestamp) || 0;
+        others.push({ key, pageId, timestamp, submitted: !!window.draftSubmittedAt(pageId, timestamp) });
+    }
+    if (others.length < AUTO_SAVE_LIMIT) return;
+
+    others.sort((a, b) => (Number(b.submitted) - Number(a.submitted)) || (a.timestamp - b.timestamp));
+    const dropped = others.slice(0, others.length - (AUTO_SAVE_LIMIT - 1));
+    dropped.forEach(d => localStorage.removeItem(d.key));
+
+    const unsent = dropped.filter(d => !d.submitted);
+    if (unsent.length && typeof window.editorAlert === 'function') {
+        const which = unsent.map(d => `${draftPageName(d.pageId)} (auto-saved ${new Date(d.timestamp).toLocaleString()})`).join(', ');
+        window.editorAlert(`This browser keeps ${AUTO_SAVE_LIMIT} auto-saves, so the oldest unsent one was removed to make room: ${which}. Save keeps a version until you discard it.`);
+    }
+}
+
 // --- LOCAL AUTO-SAVE ENGINE ---
 window.saveLocalDraft = function() {
     if (!window.currentEditorCharId) return;
@@ -56,8 +125,9 @@ window.saveLocalDraft = function() {
     // already saved in the queue; a draft of it is never offered back anyway.
     if (window.activeEditTicketId) return;
 
-    const draftKey = `wiki_draft_${window.currentEditorCharId}`;
+    const draftKey = `${AUTO_DRAFT_PREFIX}${window.currentEditorCharId}`;
     try {
+        makeRoomForAutoSave(draftKey);
         localStorage.setItem(draftKey, JSON.stringify(editorDraftPayload()));
         window.currentDraftKey = draftKey;
     } catch (e) {
@@ -99,7 +169,7 @@ window.saveWorkspace = async function () {
 
 // --- LOCAL DRAFT MANAGER HUB ---
 const DRAFT_KINDS = [
-    { prefix: 'wiki_draft_', kind: 'auto', label: 'AUTO-SAVED', stamp: 'Last Auto-Saved' },
+    { prefix: AUTO_DRAFT_PREFIX, kind: 'auto', label: 'AUTO-SAVED', stamp: 'Last Auto-Saved' },
     { prefix: SAVED_DRAFT_PREFIX, kind: 'saved', label: 'SAVED', stamp: 'Saved' },
 ];
 // The rows on screen, for the RESUME and DISCARD listener.
@@ -134,7 +204,8 @@ window.openDraftManager = function() {
         let html = '';
         drafts.forEach(draft => {
             const dateStr = new Date(draft.timestamp).toLocaleString();
-            const charDisplay = draft.charId.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+            const charDisplay = draftPageName(draft.charId);
+            const submittedAt = window.draftSubmittedAt(draft.charId, draft.timestamp);
 
             let contextDisplay = draft.tabId.toUpperCase();
             if (draft.moveId) contextDisplay += ` / ${draft.moveId.toUpperCase()}`;
@@ -159,6 +230,7 @@ window.openDraftManager = function() {
                         <div class="draft-row-label">${draft.kind.label}</div>
                         <div class="draft-row-title">${esc(charDisplay)} <span class="draft-row-context">[ ${esc(contextDisplay)} ]</span></div>
                         <div class="draft-row-timestamp">${draft.kind.stamp}: ${esc(dateStr)}</div>
+                        ${submittedAt ? `<div class="draft-row-submitted">Page submitted after this was saved: ${esc(new Date(submittedAt).toLocaleString())}</div>` : ''}
                     </div>
                     <div class="draft-row-actions">
                         ${!isCurrent ?
@@ -191,9 +263,16 @@ async function onDraftListClick(e) {
     const draft = draftManagerRows.find(d => d.key === key);
     if (!draft) return;
 
+    // A draft of changes already in the queue warns first: opening it is
+    // allowed, sending it again duplicates the submission.
+    const submittedAt = window.draftSubmittedAt(draft.charId, draft.timestamp);
+    if (submittedAt) {
+        const ok = await window.customConfirm(`${window.duplicateDraftWarning(submittedAt)}\n\nOpen it anyway?`, 'OPEN ANYWAY', true);
+        if (!ok) return;
+    }
     // Reopening this page's own saved version replaces what is on screen. The
     // auto-save keeps it until the first edit to the saved version.
-    if (draft.kind.kind === 'saved' && draft.charId === window.currentEditorCharId) {
+    else if (draft.kind.kind === 'saved' && draft.charId === window.currentEditorCharId) {
         const ok = await window.customConfirm('Open the version you saved?\n\nWhat is on screen now stays in AUTO-SAVED until you edit the saved version.', 'OPEN SAVED', false);
         if (!ok) return;
     }

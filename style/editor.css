@@ -2212,6 +2212,7 @@ del.diff-del {
 .draft-row-title { color: #fff; font-family: var(--text-mono); font-size: 0.8rem; margin-bottom: 0.25rem; font-weight: bold; }
 .draft-row-context { color: #888; font-weight: normal; }
 .draft-row-timestamp { color: #666; font-family: var(--text-mono); font-size: 0.65rem; }
+.draft-row-submitted { color: #f59e0b; font-family: var(--text-mono); font-size: 0.65rem; margin-top: 0.15rem; }
 .draft-row-actions { display: flex; gap: 0.5rem; align-items: center; }
 /* Compound: .submit-btn's own base rule sets color/border-color at the same
    specificity (redundant, harmless either way) - kept compound for the

@@ -960,7 +960,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (forceLoadDraft) {
                         useDraft = true;
                     } else {
-                        const restore = await window.customConfirm(`An unsaved local draft was found for this character.\n\nDo you want to restore your local progress, or load the live cloud version?`, "RESTORE DRAFT", false);
+                        // A draft saved before this browser submitted the page
+                        // holds changes already in the queue (v1.1: Submit
+                        // keeps drafts and warns instead of clearing them).
+                        const submittedAt = typeof window.draftSubmittedAt === 'function'
+                            ? window.draftSubmittedAt(pageId, parsedDraft.timestamp) : 0;
+                        const restore = await window.customConfirm(submittedAt
+                            ? `A local draft was found for this character.\n\n${window.duplicateDraftWarning(submittedAt)}\n\nDo you want to restore it anyway, or load the live cloud version?`
+                            : `An unsaved local draft was found for this character.\n\nDo you want to restore your local progress, or load the live cloud version?`, "RESTORE DRAFT", false);
                         if (restore) useDraft = true;
                     }
 
@@ -1547,17 +1554,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 window.editorAlert("Failed to save to database: " + dbError.message);
                 submitBtn.textContent = window.activeEditTicketId ? "UPDATE SUBMISSION" : "Submit";
             } else {
-                // Drafts are keyed per-character now (wiki_draft_{pageId}), so
-                // there's only ever one possible key to clean up - no need to
-                // reconstruct a tab/move-scoped key from DOM state as a fallback
-                // when window.currentDraftKey isn't set (simplified 2026-08-02,
-                // alongside the draft-key-scoping fix in js/editor-drafts.js).
-                //
-                // And the page's Save slot (v1.1): what was just sent is in
-                // the queue now, and a draft of it offered back later is how a
-                // submission gets sent twice.
-                [window.currentDraftKey, `wiki_draft_${pageId}`, `wiki_save_${pageId}`]
-                    .forEach(key => { if (key) localStorage.removeItem(key); });
+                // The page's drafts are kept, not cleared (owner, v1.1). What
+                // is recorded is when this browser sent the page, and a draft
+                // saved before then warns that sending it again duplicates the
+                // submission (js/editor-drafts.js).
+                window.markPageSubmitted(pageId);
 
                 submitBtn.textContent = wasUpdate ? "UPDATED!" : "SUBMITTED!";
                 submitBtn.style.backgroundColor = "#22c55e";

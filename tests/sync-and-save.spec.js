@@ -79,6 +79,7 @@ async function boot(page, opts = {}) {
   await page.setViewportSize({ width: opts.width || 1400, height: 900 });
   await mockEditor(page, opts);
   await page.goto(opts.url || '/edit.html?char=boomcat&type=character&tab=overview', { waitUntil: 'domcontentloaded' });
+  if (opts.noWait) return errors;
   await expect(page.locator('#block-list .block-card').first()).toBeVisible({ timeout: 45000 });
   return errors;
 }
@@ -226,7 +227,9 @@ test('a draft name from storage is shown as text, never as markup', async ({ pag
 
 // --- SUBMIT ---
 
-test('a successful Submit clears both of the page\'s drafts', async ({ page }) => {
+// Owner, 2026-10-19: Submit keeps every draft ("a successful Submit won't
+// clear any saves at all"), and warns instead about sending one twice.
+test('a successful Submit keeps both of the page\'s drafts and records when it was sent', async ({ page }) => {
   await boot(page);
   await firstField(page).fill('submitted text');
   await page.click('#btn-save');
@@ -238,8 +241,95 @@ test('a successful Submit clears both of the page\'s drafts', async ({ page }) =
     window.openQAModal = async () => ({ changelog: 'test', confidence: 'high', evidence: '' });
     window.editorAlert = () => {};
   });
+  const before = Date.now();
   await page.click('#submit-payload-btn');
   await expect.poll(() => page.evaluate(() => window.__inserted.length)).toBeGreaterThan(0);
-  await expect.poll(() => stored(page, 'wiki_save_boomcat')).toBeNull();
-  expect(await stored(page, 'wiki_draft_boomcat')).toBeNull();
+  await expect.poll(() => stored(page, 'wiki_submitted_boomcat')).toBeGreaterThanOrEqual(before);
+  expect(firstText(await stored(page, 'wiki_save_boomcat'))).toBe('submitted text');
+  expect(firstText(await stored(page, 'wiki_draft_boomcat'))).toBe('submitted text');
+});
+
+// Another page's drafts, so reopening one is a plain navigation and the only
+// prompt is the one being tested.
+const otherDraft = (timestamp, extra = {}) => JSON.stringify({
+  timestamp, charId: 'vessel', tabId: 'overview', moveId: '', desc_data: DESC, frame_data: FRAME, mode: null, ...extra,
+});
+
+test('a draft saved before its page was submitted says so in Drafts, and RESUME warns about sending it twice', async ({ page }) => {
+  await boot(page, { storage: { wiki_save_vessel: otherDraft(1000), wiki_submitted_vessel: '2000' } });
+  await page.locator('.header-actions button', { hasText: 'Drafts' }).click();
+  const row = page.locator('.draft-row-saved', { hasText: 'Vessel' });
+  await expect(row.locator('.draft-row-submitted')).toContainText(new Date(2000).toLocaleString());
+
+  await row.locator('.draft-resume-btn').click();
+  await expect(page.locator('#editor-modal-text')).toContainText('Submitting it again sends the same changes to the review queue a second time.');
+  await page.click('#editor-modal-cancel');
+  expect(page.url()).not.toContain('draftKey');
+
+  await row.locator('.draft-resume-btn').click();
+  await page.click('#editor-modal-confirm');
+  await page.waitForURL(/draftKey=wiki_save_vessel/);
+});
+
+test('a draft saved after the page was submitted neither says so nor warns', async ({ page }) => {
+  await boot(page, { storage: { wiki_save_vessel: otherDraft(3000), wiki_submitted_vessel: '2000' } });
+  await page.locator('.header-actions button', { hasText: 'Drafts' }).click();
+  const row = page.locator('.draft-row-saved', { hasText: 'Vessel' });
+  await expect(row.locator('.draft-row-submitted')).toHaveCount(0);
+  await row.locator('.draft-resume-btn').click();
+  await page.waitForURL(/draftKey=wiki_save_vessel/);
+});
+
+test('opening a page whose auto-save was already submitted warns in the restore prompt', async ({ page }) => {
+  await boot(page, {
+    noWait: true,
+    storage: {
+      wiki_draft_boomcat: JSON.stringify({ timestamp: 1000, charId: 'boomcat', tabId: 'overview', desc_data: DESC, frame_data: FRAME }),
+      wiki_submitted_boomcat: '2000',
+    },
+  });
+  await expect(page.locator('#editor-custom-modal')).toBeVisible({ timeout: 45000 });
+  await expect(page.locator('#editor-modal-text')).toContainText('Submitting it again sends the same changes to the review queue a second time.');
+  await expect(page.locator('#editor-modal-confirm')).toHaveText('RESTORE DRAFT');
+});
+
+// --- FIVE AUTO-SAVES ---
+//
+// Owner, 2026-10-19: "a max limit of 5 auto-save slots for every editor", the
+// submitted ones going first.
+
+const autoSave = (id, timestamp) => JSON.stringify({ timestamp, charId: id, tabId: 'overview', desc_data: DESC, frame_data: FRAME });
+const autoSaveKeys = (page) => page.evaluate(() => Object.keys(localStorage).filter(k => k.startsWith('wiki_draft_')).sort());
+
+test('a sixth page\'s auto-save drops one already submitted, and never a SAVED version', async ({ page }) => {
+  await boot(page, {
+    storage: {
+      wiki_draft_p1: autoSave('p1', 1), wiki_draft_p2: autoSave('p2', 2), wiki_draft_p3: autoSave('p3', 3),
+      wiki_draft_p4: autoSave('p4', 4), wiki_draft_p5: autoSave('p5', 5),
+      wiki_submitted_p4: '10',
+      wiki_save_p1: autoSave('p1', 1),
+    },
+  });
+  await firstField(page).fill('the sixth page');
+  await expect.poll(() => autoSaveKeys(page)).toEqual(['wiki_draft_boomcat', 'wiki_draft_p1', 'wiki_draft_p2', 'wiki_draft_p3', 'wiki_draft_p5']);
+  expect(await stored(page, 'wiki_save_p1')).not.toBeNull();
+  await expect(page.locator('#editor-alert-modal')).toBeHidden();
+
+  // Room is made once: editing the same page again drops nothing more.
+  await firstField(page).fill('the sixth page, again');
+  await expect.poll(async () => firstText(await stored(page, 'wiki_draft_boomcat'))).toBe('the sixth page, again');
+  expect(await autoSaveKeys(page)).toHaveLength(5);
+});
+
+test('with all five unsent, the oldest goes and the editor is told which', async ({ page }) => {
+  await boot(page, {
+    storage: {
+      wiki_draft_p1: autoSave('p1', 1), wiki_draft_p2: autoSave('p2', 2), wiki_draft_p3: autoSave('p3', 3),
+      wiki_draft_p4: autoSave('p4', 4), wiki_draft_p5: autoSave('p5', 5),
+    },
+  });
+  await firstField(page).fill('the sixth page');
+  await expect.poll(() => autoSaveKeys(page)).toEqual(['wiki_draft_boomcat', 'wiki_draft_p2', 'wiki_draft_p3', 'wiki_draft_p4', 'wiki_draft_p5']);
+  await expect(page.locator('#editor-alert-modal')).toBeVisible();
+  await expect(page.locator('#editor-alert-msg')).toContainText('the oldest unsent one was removed to make room: P1');
 });
