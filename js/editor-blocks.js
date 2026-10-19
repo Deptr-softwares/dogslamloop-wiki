@@ -2289,7 +2289,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         folderHead: null, headEl: null, nestInto: null, nestEl: null,
     };
 
-    function computeDropTarget(clientX, clientY) {
+    // allowNest: false when what is being dragged cannot go inside a Block (a
+    // whole folder), so the nesting strip is just part of its card.
+    function computeDropTarget(clientX, clientY, allowNest = true) {
         const under = document.elementFromPoint(clientX, clientY);
         if (!under) return NO_DROP;
 
@@ -2297,7 +2299,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         // on a theorybox - both use this class, so both accept a drop without
         // either being named here. Dropping on it means "put this block INSIDE
         // that one", which is why it cannot be the card's own reorder target.
-        const nest = under.closest('.accordion-inner-block-wrapper');
+        const nest = allowNest && under.closest('.accordion-inner-block-wrapper');
         if (nest) {
             const host = nest.closest('.block-card');
             if (host) {
@@ -2335,15 +2337,65 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     // beyond the list re-rendering, and in a long section that means hunting
     // for the block you just moved. Applied after a frame so the class lands
     // on the freshly-rendered card rather than the one it replaced.
-    function flashMovedBlock(index) {
+    // wholeFolder: flash the folder the block at `index` sits in, since a
+    // shut folder shows no cards to flash.
+    function flashMovedBlock(index, wholeFolder = false) {
         requestAnimationFrame(() => {
-            const card = document.querySelector(`#block-list .block-card[data-index="${index}"]`);
+            const found = document.querySelector(`#block-list .block-card[data-index="${index}"]`);
+            const card = wholeFolder && found ? found.closest('.block-folder') : found;
             if (!card) return;
             card.classList.remove('block-just-moved');
             void card.offsetWidth; // restart the animation if the same card moves twice
             card.classList.add('block-just-moved');
             setTimeout(() => card.classList.remove('block-just-moved'), 1400);
         });
+    }
+
+    // --- DRAGGING A WHOLE FOLDER (v1.1, from an editor's feedback) ---
+    //
+    // Where a folder dropped under the pointer would land: the insert-before
+    // slot after snapping out of any other folder (folderDropSlot), and the
+    // thing to mark there - whatever starts at the slot gets a line on its top
+    // edge, and at the very end the last thing gets one on its bottom. Null
+    // over nothing, or where the folder already is.
+    function folderDropAt(clientX, clientY, ownRun) {
+        const target = computeDropTarget(clientX, clientY, false);
+        let raw = null;
+        if (target.card) raw = target.dropIndex;
+        else if (target.headEl) {
+            // A folder's header: just above that folder.
+            const first = target.headEl.closest('.block-folder').querySelector('.block-card[data-index]');
+            if (first) raw = parseInt(first.getAttribute('data-index'), 10);
+        }
+        if (raw === null) return null;
+
+        const blocks = window.getActiveBlocks();
+        const slot = window.folderDropSlot(blocks, raw);
+        if (ownRun && slot >= ownRun.start && slot <= ownRun.end + 1) return null;
+
+        const atEnd = slot >= blocks.length;
+        const card = blockList.querySelector(`.block-card[data-index="${atEnd ? blocks.length - 1 : slot}"]`);
+        if (!card) return null;
+        return {
+            slot,
+            mark: card.closest('.block-folder') || card,
+            edge: atEnd ? 'drag-over-bottom' : 'drag-over-top',
+        };
+    }
+
+    function finishFolderDrop(payload, slot) {
+        if (slot === null) return;
+        const activeBlocks = window.getActiveBlocks();
+        const run = window.blockFolderRunContaining(activeBlocks, payload.folderFrom);
+        if (!run || (slot >= run.start && slot <= run.end + 1)) return;
+        // History holds states: the one before the move (saved here, unless
+        // it is already the latest) and the one after (updateLivePreview), so
+        // UNDO steps back over exactly this move.
+        window.saveBlockHistory();
+        const landedAt = window.moveBlockFolder(activeBlocks, payload.folderFrom, slot);
+        renderBlockList();
+        updateLivePreview();
+        flashMovedBlock(landedAt, true);
     }
 
     // A drag moves an array element and says nothing about folder membership,
@@ -2479,6 +2531,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         let lastFolderHead = null;
         let currentNest = null;
         let lastNestInto = null;
+        // A whole folder (payload.folderFrom, any index inside it) has drops
+        // of its own: between Blocks and folders, never into either.
+        const movingFolder = payload.folderFrom !== undefined;
+        const ownRun = movingFolder ? window.blockFolderRunContaining(window.getActiveBlocks(), payload.folderFrom) : null;
+        let currentMark = null;
+        let lastSlot = null;
 
         el.setPointerCapture(e.pointerId);
 
@@ -2488,6 +2546,14 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
 
         function updateHighlight(ev) {
+            if (movingFolder) {
+                const drop = folderDropAt(ev.clientX, ev.clientY, ownRun);
+                if (currentMark) currentMark.classList.remove('drag-over-top', 'drag-over-bottom');
+                currentMark = drop ? drop.mark : null;
+                if (currentMark) currentMark.classList.add(drop.edge);
+                lastSlot = drop ? drop.slot : null;
+                return;
+            }
             const { card, dropIndex, isBottom, folderHead, headEl, nestInto, nestEl } = computeDropTarget(ev.clientX, ev.clientY);
             if (card !== currentCard) {
                 if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
@@ -2522,6 +2588,10 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             if (payload.fromIndex !== undefined) {
                 sourceCard = blockList.querySelector(`.block-card[data-index="${payload.fromIndex}"]`);
                 if (sourceCard) sourceCard.classList.add('block-card-dragging');
+            } else if (movingFolder) {
+                const member = blockList.querySelector(`.block-card[data-index="${payload.folderFrom}"]`);
+                sourceCard = member ? member.closest('.block-folder') : null;
+                if (sourceCard) sourceCard.classList.add('block-card-dragging');
             }
             ghost = document.createElement('div');
             ghost.className = 'block-drag-ghost';
@@ -2539,6 +2609,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
             if (currentHead) currentHead.classList.remove('drag-over-folder');
             if (currentNest) currentNest.classList.remove('drag-over-nest');
+            if (currentMark) currentMark.classList.remove('drag-over-top', 'drag-over-bottom');
         }
 
         function onMove(ev) {
@@ -2557,10 +2628,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             const dropIndex = lastDropIndex;
             const folderHead = lastFolderHead;
             const nestInto = lastNestInto;
+            const slot = lastSlot;
             cleanup();
             if (dragging) {
                 swallowClickAfterDrag(el);
-                finishBlockDrop(payload, dropIndex, folderHead, nestInto);
+                if (movingFolder) finishFolderDrop(payload, slot);
+                else finishBlockDrop(payload, dropIndex, folderHead, nestInto);
             }
         }
 
@@ -2590,6 +2663,21 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     // itself, not on anything inside it: the strip is the card's border and
     // padding, which nothing else occupies.
     blockList.addEventListener('pointerdown', (e) => {
+        // A whole folder: the ⠿ on its header, or with handles hidden the
+        // header's left edge, the same strip a card gives up.
+        const folderHead = e.target.closest('.block-folder-head');
+        if (folderHead) {
+            const shell = folderHead.closest('.block-folder');
+            const member = shell.querySelector('.block-card[data-index]');
+            const handle = e.target.closest('.block-folder-handle');
+            const onEdge = !handle && e.target === folderHead
+                && window.editorConfig && window.editorConfig.get('hideDragHandle')
+                && e.clientX - shell.getBoundingClientRect().left <= BLOCK_DRAG_EDGE_PX;
+            if (!member || (!handle && !onEdge)) return;
+            startBlockPointerDrag(e, handle || folderHead, { folderFrom: parseInt(member.getAttribute('data-index'), 10) }, 'Move folder');
+            return;
+        }
+
         const handle = e.target.closest('.drag-handle');
         const card = (handle || e.target).closest('.block-card');
         if (!card) return;
@@ -3270,8 +3358,13 @@ function folderShellHTML(run, isCollapsed, isEmpty, color) {
         ? `<div class="block-folder-empty">Drag a block onto this header, or choose this folder on any block.</div>`
         : '';
 
+    // Moves the whole folder (v1.1). An empty one is not in the data, so it
+    // has nothing to move; ＋ FOLDER already puts it where it is wanted.
+    const handle = isEmpty ? '' : `
+            <span class="drag-handle block-folder-handle" title="Drag to move this folder">⠿</span>`;
+
     return `
-        <div class="block-folder-head">
+        <div class="block-folder-head">${handle}
             <button class="btn-sys btn-sys-regular block-folder-toggle"
                     title="${isCollapsed ? 'Expand' : 'Collapse'} this folder"
                     aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#9656;' : '&#9662;'}</button>

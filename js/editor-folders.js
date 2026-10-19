@@ -317,6 +317,41 @@
         }
     };
 
+    // --- MOVING A WHOLE FOLDER (v1.1, from an editor's feedback) ---
+    //
+    // "let folders be arranged for faster organization in group batches
+    // instead of one at a time". A folder is a contiguous run, so moving it
+    // is cutting one slice of the array out and splicing it back in.
+    //
+    // `memberIndex` is any block in the folder (an index rather than a name,
+    // so two runs that happen to share a name stay two folders). `slot` is
+    // an insert-before position in the array as it stands, and must not fall
+    // strictly inside another folder, which would split that one in two:
+    // folderDropSlot snaps a drop to a folder's edge first. Returns the
+    // folder's new first index, or -1 when it would not move.
+    window.moveBlockFolder = function (blocks, memberIndex, slot) {
+        const run = Array.isArray(blocks) ? runContaining(blocks, memberIndex) : null;
+        if (!run || slot < 0 || slot > blocks.length) return -1;
+        if (slot >= run.start && slot <= run.end + 1) return -1;
+        const members = blocks.splice(run.start, run.count);
+        const at = slot > run.end ? slot - run.count : slot;
+        blocks.splice.apply(blocks, [at, 0].concat(members));
+        return at;
+    };
+
+    // Where a folder dropped at insert-before position `index` lands.
+    // Folders do not nest, so a position inside one moves to its nearer edge.
+    window.folderDropSlot = function (blocks, index) {
+        const runs = window.collectBlockFolders(blocks);
+        for (let i = 0; i < runs.length; i++) {
+            const run = runs[i];
+            if (index > run.start && index <= run.end) {
+                return index - run.start <= run.end + 1 - index ? run.start : run.end + 1;
+            }
+        }
+        return index;
+    };
+
     // False when the name is already taken - two runs sharing a name would
     // render as two folders called the same thing, and the author would have
     // no way to tell them apart.

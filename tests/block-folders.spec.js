@@ -1076,3 +1076,164 @@ test('Diff View names the folder colour in words', async ({ page }) => {
   expect(html).toContain('Editor Folder Color');
   expect(html).toContain('<ins class="diff-add">#222222</ins>');
 });
+
+// --- MOVING A WHOLE FOLDER (v1.1, from an editor's feedback) ---
+//
+// "let folders be arranged for faster organization in group batches instead
+// of one at a time (basically, folders are recognized as a collection of
+// blocks, and you can organize it and such by dragging above or below
+// blocks/other folders)". Scoped 2026-10-20: a ⠿ on the folder's header, open
+// or shut; it drops before or after Blocks and whole folders, never inside
+// another folder or an accordion; an empty folder has nothing to move.
+
+const order = page => page.evaluate(() => window.getActiveBlocks().map(b => (b.folder ? `${b.content}@${b.folder}` : b.content)));
+
+// Real mouse from the folder's handle to a point: (x, y) or the top or bottom
+// quarter of a target, which decides above or below it.
+async function dragFolder(page, from, to, { finish = true } = {}) {
+  await expect(from).toBeVisible();
+  const a = await from.boundingBox();
+  let x, y;
+  if (to.locator) {
+    const b = await to.locator.boundingBox();
+    x = b.x + b.width / 2;
+    y = to.half === 'bottom' ? b.y + b.height * 0.75 : b.y + b.height * 0.25;
+  } else ({ x, y } = to);
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2 + 20);
+  await page.mouse.move(x, y, { steps: 6 });
+  if (finish) await page.mouse.up();
+}
+
+const handleOf = (page, n = 0) => page.locator('#block-list .block-folder-handle').nth(n);
+const card = (page, i) => page.locator(`#block-list .block-card[data-index="${i}"]`);
+
+test('moveBlockFolder moves the whole run, and folderDropSlot keeps a drop out of other folders', async ({ page }) => {
+  await boot(page);
+  const out = await page.evaluate(() => {
+    const names = blocks => blocks.map(b => (b.folder ? `${b.content}@${b.folder}` : b.content));
+    const r = {};
+    let blocks = [mk('a', 'S'), mk('b', 'S'), mk('x'), mk('c', 'E'), mk('d', 'E'), mk('y')];
+    r.downAt = window.moveBlockFolder(blocks, 1, 6);
+    r.down = names(blocks);
+    r.upAt = window.moveBlockFolder(blocks, 2, 0);
+    r.up = names(blocks);
+    r.noop = [window.moveBlockFolder(blocks, 0, 0), window.moveBlockFolder(blocks, 0, 2)];
+    r.unchanged = names(blocks);
+
+    blocks = [mk('a', 'S'), mk('b', 'S'), mk('c', 'S'), mk('x')];
+    r.slots = [0, 1, 2, 3, 4].map(i => window.folderDropSlot(blocks, i));
+    return r;
+  });
+
+  expect(out.downAt).toBe(4);
+  expect(out.down).toEqual(['x', 'c@E', 'd@E', 'y', 'a@S', 'b@S']);
+  expect(out.upAt).toBe(0);
+  expect(out.up).toEqual(['c@E', 'd@E', 'x', 'y', 'a@S', 'b@S']);
+  expect(out.noop, 'its own place, either edge').toEqual([-1, -1]);
+  expect(out.unchanged).toEqual(out.up);
+  // Inside the folder [0..2], a slot goes to the nearer edge; its edges stay.
+  expect(out.slots).toEqual([0, 0, 3, 3, 4]);
+});
+
+test('a folder dragged by its handle moves with every block in it, and UNDO puts it back', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await boot(page);
+  await build(page, [P('a', 'S'), P('b', 'S'), P('x'), P('y')]);
+
+  await dragFolder(page, handleOf(page), { locator: card(page, 3), half: 'bottom' });
+  expect(await order(page)).toEqual(['x', 'y', 'a@S', 'b@S']);
+  expect(await page.locator('#block-list .block-folder').count(), 'still one folder').toBe(1);
+
+  await page.locator('#btn-undo').click();
+  expect(await order(page)).toEqual(['a@S', 'b@S', 'x', 'y']);
+  expect(errors).toEqual([]);
+});
+
+test('a folder dropped inside another lands at its nearer edge, and the line shows where first', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'S'), P('x'), P('c', 'E'), P('d', 'E'), P('e', 'E')]);
+
+  // Over the top of d, the middle of E: E's nearer edge is its top.
+  await dragFolder(page, handleOf(page), { locator: card(page, 3), half: 'top' }, { finish: false });
+  const marked = await page.evaluate(() => ({
+    shell: [...document.querySelectorAll('#block-list .block-folder')].map(f => [f.getAttribute('data-folder'), f.classList.contains('drag-over-top')]),
+    cards: document.querySelectorAll('#block-list .block-card.drag-over-top, #block-list .block-card.drag-over-bottom').length,
+  }));
+  expect(marked.shell, 'the line is on top of the whole of E').toEqual([['S', false], ['E', true]]);
+  expect(marked.cards, 'and on no card inside it').toBe(0);
+  await page.mouse.up();
+
+  expect(await order(page)).toEqual(['x', 'a@S', 'c@E', 'd@E', 'e@E']);
+  expect(await page.evaluate(() => window.collectBlockFolders(window.getActiveBlocks()).map(r => `${r.name}:${r.count}`)))
+    .toEqual(['S:1', 'E:3']);
+});
+
+test('a shut folder moves by its handle too', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'S'), P('b', 'S'), P('x')]);
+  await page.locator('#block-list .block-folder-toggle').click();
+  await expect(card(page, 0)).toBeHidden();
+
+  await dragFolder(page, handleOf(page), { locator: card(page, 2), half: 'bottom' });
+  expect(await order(page)).toEqual(['x', 'a@S', 'b@S']);
+});
+
+test('a folder dropped on an accordion goes beside it, never inside', async ({ page }) => {
+  await boot(page);
+  // The folder starts away from the accordion, so landing beside it, above
+  // or below, is a move either way.
+  await build(page, [{ type: 'accordion', title: 'Tech', content: [] }, P('z'), P('a', 'S')]);
+
+  await dragFolder(page, handleOf(page), { locator: page.locator('#block-list .accordion-inner-block-wrapper') }, { finish: false });
+  expect(await page.locator('.drag-over-nest').count(), 'the strip is not offered').toBe(0);
+  await page.mouse.up();
+
+  const out = await page.evaluate(() => {
+    const blocks = window.getActiveBlocks();
+    const acc = blocks.find(b => b.type === 'accordion');
+    return {
+      inner: acc.content.length,
+      order: blocks.map(b => (b.type === 'accordion' ? 'acc' : b.folder ? `${b.content}@${b.folder}` : b.content)),
+    };
+  });
+  expect(out.inner, 'nothing went inside').toBe(0);
+  expect([['a@S', 'acc', 'z'], ['acc', 'a@S', 'z']], 'beside the accordion, above or below').toContainEqual(out.order);
+});
+
+test('with drag handles hidden, the left edge of a folder header moves the folder', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'S'), P('x')]);
+  await page.evaluate(() => window.editorConfig.set('hideDragHandle', true));
+  await expect(handleOf(page)).toBeHidden();
+
+  // On the folder's own left rule, the outermost pixel of the edge.
+  const shell = await page.locator('#block-list .block-folder').boundingBox();
+  const head = await page.locator('#block-list .block-folder-head').boundingBox();
+  const x = await card(page, 1).boundingBox();
+  await page.mouse.move(shell.x + 1, head.y + head.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(shell.x + 1, head.y + head.height / 2 + 20);
+  await page.mouse.move(x.x + x.width / 2, x.y + x.height * 0.75, { steps: 6 });
+  await page.mouse.up();
+  expect(await order(page)).toEqual(['x', 'a@S']);
+
+  // The grab strip is the header's own height: one that ran down the list
+  // would pick the folder up from beside blocks far below it.
+  const strip = await page.locator('#block-list .block-folder-head').evaluate(h => ({
+    strip: parseFloat(getComputedStyle(h, '::before').height),
+    head: h.getBoundingClientRect().height,
+  }));
+  expect(Math.abs(strip.strip - strip.head)).toBeLessThan(1);
+});
+
+test('an empty folder has no handle: it is not in the data, so there is nothing to move', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'S')]);
+  await page.locator('#block-list .block-folder-add').click();
+  await expect(page.locator('#block-list .block-folder')).toHaveCount(2);
+  await expect(page.locator('#block-list .block-folder.is-empty .block-folder-handle')).toHaveCount(0);
+  await expect(page.locator('#block-list .block-folder:not(.is-empty) .block-folder-handle')).toHaveCount(1);
+});

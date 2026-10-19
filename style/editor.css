@@ -588,6 +588,17 @@ input[type="checkbox"]:checked {
     padding: 0.4rem 0.75rem; box-shadow: 4px 4px 0px var(--manga-shadow, #000); white-space: nowrap;
 }
 .block-card.block-card-dragging { opacity: 0.4; }
+
+/* A whole folder on the move (v1.1): faded while it is dragged, a line where
+   it will land, the same flash as a block once it has. */
+.block-folder.block-card-dragging { opacity: 0.4; }
+.block-folder.drag-over-top { box-shadow: 0 -3px 0 0 var(--accent-blue); }
+.block-folder.drag-over-bottom { box-shadow: 0 3px 0 0 var(--accent-blue); }
+.block-folder.block-just-moved { animation: block-moved-flash 1.4s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+    .block-folder.block-just-moved { animation: none; box-shadow: 0 0 0 2px var(--accent-blue); }
+}
+.block-folder-handle { font-size: 0.85rem; }
 .block-header:active {
     cursor: grabbing !important;
 }
@@ -2752,6 +2763,20 @@ body.cfg-hide-block-type .block-type-row .block-type-label { display: inline-blo
    the outer edge, which must match BLOCK_DRAG_EDGE_PX in js/editor-blocks.js:
    the 3px border and the start of the padding, where no content sits. */
 body.cfg-hide-drag-handle .block-card .drag-handle { display: none; }
+/* A folder's header gives up the same strip (js/editor-blocks.js, the
+   pointerdown listener). */
+body.cfg-hide-drag-handle .block-folder-handle { display: none; }
+body.cfg-hide-drag-handle .block-folder:not(.is-empty) > .block-folder-head { position: relative; }
+body.cfg-hide-drag-handle .block-folder:not(.is-empty) > .block-folder-head::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -3px;
+    width: 12px;
+    cursor: grab;
+    touch-action: none;
+}
 body.cfg-hide-drag-handle .block-card::before {
     content: '';
     position: absolute;
