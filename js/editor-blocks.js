@@ -2443,6 +2443,19 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         // same as the previous native-DnD drop handler.
     }
 
+    // A drag ends in a click on the element it started from: the pointer was
+    // captured there, so the browser sends the click to it wherever the button
+    // came up. On an Add Block menu button that click is the tap fallback
+    // above, which added a second block at the end of the list after every
+    // drag (found 2026-10-20; there since the drag moved to pointer events in
+    // v0.5). Swallowed for this one gesture only: the click comes in the same
+    // dispatch as the pointerup, so the listener is gone before the next task.
+    function swallowClickAfterDrag(el) {
+        const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+        el.addEventListener('click', swallow, { capture: true, once: true });
+        setTimeout(() => el.removeEventListener('click', swallow, { capture: true }), 0);
+    }
+
     // ghostLabel: text shown in the small pill that follows the pointer.
     // Runs the full drag lifecycle for one pointerdown. Takes the real,
     // trusted pointerdown event directly (rather than being an
@@ -2545,7 +2558,10 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             const folderHead = lastFolderHead;
             const nestInto = lastNestInto;
             cleanup();
-            if (dragging) finishBlockDrop(payload, dropIndex, folderHead, nestInto);
+            if (dragging) {
+                swallowClickAfterDrag(el);
+                finishBlockDrop(payload, dropIndex, folderHead, nestInto);
+            }
         }
 
         function onCancel() {
