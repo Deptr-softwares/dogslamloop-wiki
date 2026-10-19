@@ -328,6 +328,122 @@
 
     window.setAllEditorBlocksOpen = setAllBlocksOpen;
 
+    // --- EDIT CONFLICT CHECK (v1.1) ---
+    //
+    // Owner, 2026-10-19: "run a quick check against the current submission
+    // queue and see if any edits on the same page will clash with the current
+    // edits detected right now". The edits are Submit's own list
+    // (collectEditorDeltas in js/editor-core.js). The queue side comes from
+    // get_open_submission_scopes, because an ordinary editor cannot read
+    // anyone else's submissions: it says where, who and when, never what.
+    //
+    // Two changes clash when they name the same part: the same scope and key,
+    // a character state's wrapping included, so an edit to the base kit does
+    // not clash with one to an ultimate. A whole-page upload from before the
+    // delta model clashes with everything.
+
+    // A part of the page in words, from the same vocabularies the editor's
+    // tabs are named by. The review queue has its own (js/admin-preview.js);
+    // this one only has to say where.
+    function describePart(scope, key) {
+        if (!scope) return 'the whole page';
+        const k = String(key == null ? '' : key);
+        if (scope === 'mode') {
+            const [mode, inner, ...rest] = k.split('::');
+            const modes = typeof window.getCharacterModes === 'function' ? window.getCharacterModes(window.editorMasterFrameData || {}) : [];
+            const state = (modes.find(m => m.id === mode) || {}).label || mode;
+            return `${describePart(inner, rest.join('::'))} (${state} state)`;
+        }
+        const tabLabels = typeof window.getCharacterTabLabels === 'function' ? window.getCharacterTabLabels() : {};
+        const named = {
+            profile: 'Profile Card', playstyle: 'Playstyle', overview: 'Character Overview', strategy: 'General Strategy',
+            modes: 'the list of states', pageConfig: 'Page settings', tool_config: 'Tool setup',
+            system_tab_order: 'the order of the tabs', intro: 'Introduction', notes: 'Notes',
+        };
+        if (named[scope]) return named[scope];
+        if (scope === 'extra') return `Custom tab "${k}"`;
+        if (scope === 'move') {
+            const [cat, id] = k.split('::');
+            const move = ((window.editorMasterFrameData || {})[cat] || []).find(m => m && m.id === id);
+            return `${tabLabels[cat] || cat}: ${(move && move.name) || id}`;
+        }
+        if (scope === 'order') return `the order of ${k}`;
+        if (scope === 'system_section') return `Section "${k.split('::').slice(1).join('::') || k}" in tab "${k.split('::')[0]}"`;
+        if (scope === 'system_tab') return `Tab "${k}"`;
+        if (scope === 'gallery_item') return `Gallery item "${k}"`;
+        const keyed = (typeof window.getKeyedSections === 'function' ? window.getKeyedSections() : []).find(s => s.scope === scope);
+        if (keyed) return `${keyed.entryLabel} "${k}"`;
+        const fixed = (window.FIXED_BLOCK_SECTIONS || []).find(s => s.scope === scope);
+        if (fixed) return fixed.label;
+        return k && k !== 'full' ? `${scope} "${k}"` : scope;
+    }
+
+    async function runConflictCheck(out, btn) {
+        const say = (text) => { out.innerHTML = `<p class="config-option-hint">${esc(text)}</p>`; };
+        const pageId = window.currentEditorCharId;
+        if (!pageId || !window.supabaseClient || typeof window.collectEditorDeltas !== 'function') {
+            say('The check is not available on this page.');
+            return;
+        }
+        if (!window.currentGlobalUserId) {
+            say('Sign in to check.');
+            return;
+        }
+
+        btn.disabled = true;
+        say('Checking...');
+        try {
+            // What is being typed right now counts, the way Submit flushes first.
+            if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
+            const mine = await window.collectEditorDeltas();
+            if (!mine.length) {
+                say('You have no unsent edits on this page, so nothing can clash with them.');
+                return;
+            }
+
+            const { data, error } = await window.supabaseClient.rpc('get_open_submission_scopes', { p_page_id: pageId });
+            if (error) {
+                say(`Could not check: ${error.message || 'the request failed'}.`);
+                return;
+            }
+
+            // Never the submission being edited right now, against itself.
+            const rows = (Array.isArray(data) ? data : []).filter(r => r && r.revision_id !== window.activeEditTicketId);
+            const subs = new Map();
+            rows.forEach(r => {
+                if (!subs.has(r.revision_id)) subs.set(r.revision_id, { who: r.author_name || 'Anonymous', when: r.created_at, mine: !!r.is_mine, parts: [] });
+                const clashes = r.scope == null || mine.some(d => d.scope === r.scope && d.key === r.key);
+                const part = describePart(r.scope, r.key);
+                if (clashes && !subs.get(r.revision_id).parts.includes(part)) subs.get(r.revision_id).parts.push(part);
+            });
+
+            const clashing = [...subs.values()].filter(s => s.parts.length);
+            if (!subs.size) {
+                say('No submissions are waiting for review on this page.');
+                return;
+            }
+            if (!clashing.length) {
+                say(`${subs.size} submission${subs.size === 1 ? ' is' : 's are'} waiting for review on this page, and none of them changes what you changed.`);
+                return;
+            }
+
+            const when = (t) => { const d = new Date(t); return isNaN(d) ? '' : d.toLocaleString(); };
+            out.innerHTML = `
+                <p class="config-option-hint">${clashing.length === 1 ? 'This submission changes' : `These ${clashing.length} submissions change`} the same part as your edits:</p>
+                <ul class="config-conflict-list">
+                    ${clashing.map(s => `
+                        <li data-conflict-item>
+                            <strong>${esc(s.who)}</strong>${s.mine ? ' (you)' : ''}, sent ${esc(when(s.when))}:
+                            ${esc(s.parts.join(', '))}
+                        </li>`).join('')}
+                </ul>`;
+        } catch (e) {
+            say(`Could not check: ${e.message || e}.`);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
     // --- PAGE SETTINGS (v1.1) ---
     //
     // Owner, 2026-10-18: auto-colour words "JUST FOR THAT PAGE", and a "Page
@@ -739,12 +855,23 @@
                     </div>
 
                     <div class="config-panel hidden" data-config-panel="actions">
-                        <p class="config-option-hint">For the Blocks in the section on screen.</p>
-                        <div class="config-actions">
-                            <button type="button" class="btn-sys btn-sys-regular" data-config-action="minimize">MINIMIZE ALL</button>
-                            <button type="button" class="btn-sys btn-sys-regular" data-config-action="maximize">MAXIMIZE ALL</button>
-                        </div>
-                        <p class="config-option-hint config-action-note" data-config-note aria-live="polite"></p>
+                        <fieldset class="config-group">
+                            <legend class="config-option-label">Blocks</legend>
+                            <span class="config-option-hint">For the Blocks in the section on screen.</span>
+                            <div class="config-actions">
+                                <button type="button" class="btn-sys btn-sys-regular" data-config-action="minimize">MINIMIZE ALL</button>
+                                <button type="button" class="btn-sys btn-sys-regular" data-config-action="maximize">MAXIMIZE ALL</button>
+                            </div>
+                            <p class="config-option-hint config-action-note" data-config-note aria-live="polite"></p>
+                        </fieldset>
+                        <fieldset class="config-group">
+                            <legend class="config-option-label">Edit Conflict Check</legend>
+                            <span class="config-option-hint">Compares your unsent edits with this page's submissions waiting for review, and lists the ones that change the same part. It shows who and when, never what they wrote.</span>
+                            <div class="config-actions">
+                                <button type="button" class="btn-sys btn-sys-regular" data-conflict-run>CHECK FOR CONFLICTS</button>
+                            </div>
+                            <div class="config-conflict-result" data-conflict-result aria-live="polite"></div>
+                        </fieldset>
                     </div>
 
                     ${withPage ? pagePanelHTML() : ''}
@@ -790,6 +917,12 @@
                 });
                 box.querySelectorAll('[data-config-panel]').forEach(p =>
                     p.classList.toggle('hidden', p.getAttribute('data-config-panel') !== name));
+                return;
+            }
+
+            const check = e.target.closest('[data-conflict-run]');
+            if (check) {
+                runConflictCheck(box.querySelector('[data-conflict-result]'), check);
                 return;
             }
 

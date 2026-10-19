@@ -2709,6 +2709,9 @@ del.diff-del {
 .config-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .config-action-note:empty { display: none; }
 .config-footnote { margin: 0; font-size: 0.7rem; color: #6b7280; }
+.config-conflict-result:empty { display: none; }
+.config-conflict-result p { margin: 0 0 0.3rem; }
+.config-conflict-list { margin: 0; padding-left: 1.1rem; font-size: 0.75rem; line-height: 1.5; color: #e5e7eb; }
 .config-section { display: flex; flex-direction: column; gap: 0.6rem; }
 .config-section + .config-section { margin-top: 0.4rem; }
 .config-section-title {
