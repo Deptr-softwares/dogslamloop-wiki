@@ -199,11 +199,21 @@ test('Hide Block Folder dropdown: the dropdown goes, and CREATE FOLDER plus a dr
   await expect(folder).toHaveCount(1);
 
   // Onto the empty folder's header, by the handle. Minimized so the folder,
-  // drawn at the end of the list, is on screen.
+  // drawn at the end of the list, is on screen, and scrolled to the middle:
+  // at the end of a list the sticky Workspace Footer sits over it, and on
+  // CI's wider fonts it covered the drop point (2026-10-19, once ADD BLOCK
+  // and MEDIA LIBRARY were stacked and the footer grew a little).
   await page.evaluate(() => window.setAllEditorBlocksOpen(false));
+  await folder.locator('.block-folder-head').evaluate(el => el.scrollIntoView({ block: 'center' }));
   const handle = await box(cards(page).nth(1).locator('.drag-handle'));
   const head = await box(folder.locator('.block-folder-head'));
-  expect(head.bottom, 'the folder is on screen').toBeLessThan(page.viewportSize().height);
+  // On top where the mouse goes, not merely inside the window.
+  const onTop = (sel, x, y) => page.evaluate(({ sel, x, y }) => {
+    const hit = document.elementFromPoint(x, y);
+    return !!hit && !!hit.closest(sel);
+  }, { sel, x, y });
+  expect(await onTop('.drag-handle', handle.left + 3, handle.top + 3), 'the handle can be grabbed').toBe(true);
+  expect(await onTop('.block-folder-head', head.left + 80, head.top + head.height / 2), 'the folder can be dropped on').toBe(true);
   await page.mouse.move(handle.left + 3, handle.top + 3);
   await page.mouse.down();
   await page.mouse.move(handle.left + 30, handle.top + 30, { steps: 5 });
