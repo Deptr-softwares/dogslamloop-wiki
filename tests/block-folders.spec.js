@@ -373,6 +373,35 @@ test('collapsing a folder actually hides its blocks, and survives a re-render', 
   expect(stillHidden).toBe('none');
 });
 
+// v1.1 gave every .btn-sys a cut top-right corner made with clip-path, and a
+// browser sends a click outside a clip-path to whatever is behind it. The
+// toggle is a .btn-sys stripped down to a bare glyph, so the cut took a 9px
+// corner out of a 21px button. The two tests either side of this one click it
+// while it hangs off the left of the screen (see below), so Playwright clicked
+// the sliver still on screen, which was inside the cut: both timed out with
+// the folder header taking the click.
+test('the folder toggle takes a click anywhere on it, its top-right corner included', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'Setups')]);
+  // The list hangs 1.5rem into its container's padding (.block-editor-container),
+  // and build() leaves no padding, so give it the editor's own: this test
+  // measures the whole toggle, not the part of it on screen.
+  await page.evaluate(() => { document.getElementById('block-host').style.padding = '0 1.5rem'; });
+
+  const toggle = page.locator('#block-list .block-folder-toggle');
+  await toggle.scrollIntoViewIfNeeded();
+  const hits = await toggle.evaluate(t => {
+    const r = t.getBoundingClientRect();
+    const at = (x, y) => t.contains(document.elementFromPoint(x, y));
+    return {
+      centre: at(r.left + r.width / 2, r.top + r.height / 2),
+      topRight: at(r.right - 1, r.top + 1),
+      bottomLeft: at(r.left + 1, r.bottom - 1),
+    };
+  });
+  expect(hits).toEqual({ centre: true, topRight: true, bottomLeft: true });
+});
+
 test('a block can be dragged onto the header of a COLLAPSED folder', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));

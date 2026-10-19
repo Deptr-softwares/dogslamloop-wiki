@@ -1372,6 +1372,9 @@ input[type="checkbox"]:checked {
    Stripped of the btn-sys chrome it inherits: a bordered box around an emoji
    is most of the height this rule is trying to remove. */
 .block-folder-toggle {
+    /* No cut corner either: on a bare glyph it clips the icon and the clipped
+       corner stops taking clicks (it is a clip-path). */
+    --sys-cut: 0px;
     flex: 0 0 auto;
     background: none;
     border: none;

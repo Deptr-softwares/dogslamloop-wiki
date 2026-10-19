@@ -438,6 +438,8 @@
        rows - the individual borders/shadows/hover-lift would fight the panel's
        own framing. */
     .admin-secondary-actions .admin-hub-btn {
+        /* Rows have no cut corner: it would notch every line of the menu. */
+        --sys-cut: 0px;
         border: none;
         border-bottom: 1px dashed #222;
         box-shadow: none;
