@@ -181,6 +181,15 @@ test('Save on a submission being edited says the queue keeps it, and writes no s
 
 // --- THE RESUME LINK ---
 
+test('Save and the auto-save record the type of page they came from', async ({ page }) => {
+  const systemDesc = { tabs: [{ tabId: 'basics', tabLabel: 'Basics', sections: [{ sectionTitle: 'Intro', layout: 'full', blocks: [para('system text')] }] }] };
+  await boot(page, { desc: systemDesc, url: '/edit.html?char=m1-trading&type=system' });
+  await firstField(page).fill('edited system text');
+  await page.click('#btn-save');
+  await expect.poll(async () => (await stored(page, 'wiki_save_m1-trading') || {}).pageType).toBe('system');
+  await expect.poll(async () => (await stored(page, 'wiki_draft_m1-trading') || {}).pageType).toBe('system');
+});
+
 // It carried the page and the tab and never the type, and the editor reads no
 // type as a character page, so a system page's draft reopened as a character.
 test('a system page\'s saved version reopens as a system page', async ({ page }) => {
