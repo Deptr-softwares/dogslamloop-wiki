@@ -2736,6 +2736,7 @@ del.diff-del {
 .config-word-popup .format-color-presets-scroll { max-height: 180px; }
 .config-word-gradient { flex: 1; min-width: 0; }
 .config-house-style { width: 100%; box-sizing: border-box; resize: vertical; margin: 0; }
+.house-style-empty { margin: 0; color: #9ca3af; font-style: italic; }
 
 /* Hide Block Type dropdown: the type as a badge instead. initializeMangaSelects
    hides the real select and draws its dropdown as the NEXT sibling, not

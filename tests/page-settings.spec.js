@@ -415,29 +415,52 @@ test('ADD WORD stops at fifty', async ({ page }) => {
   await expect(page.locator('[data-word-add]')).toBeDisabled();
 });
 
-test('the House Style button shows only when the page has one, and opens it formatted', async ({ page }) => {
+// Owner, 2026-10-19: "The House Style button is always visible even if nothing
+// is written yet, it just says This page's house style hasn't been written yet."
+const EMPTY_HOUSE_STYLE = "This page's house style hasn't been written yet.";
+
+test('the House Style button is always there, says so when nothing is written, and opens it formatted', async ({ page }) => {
   await bootEditor(page);
   const button = page.locator('.header-actions #btn-house-style');
-  await expect(button).toBeHidden();
-
-  await openPageTab(page);
-  await page.locator('[data-house-style]').fill('Move names go in [b]bold[/b].\nMatchups name the opponent first.');
-  await page.click('#editor-config-modal [data-config-close]');
+  const modal = page.locator('#editor-house-style-modal');
   await expect(button).toBeVisible();
   await expect(button).toHaveText('House Style');
 
   await button.click();
-  const modal = page.locator('#editor-house-style-modal');
-  await expect(modal.locator('.house-style-text .strategy-paragraph')).toHaveCount(2);
-  await expect(modal.locator('strong.sc-b')).toHaveText('bold');
-  await expect(modal).not.toContainText('[b]');
+  await expect(modal).toContainText(EMPTY_HOUSE_STYLE);
   await modal.locator('[data-house-style-ok]').click();
   await expect(modal).toHaveCount(0);
 
-  // Emptied again, the button goes.
+  await openPageTab(page);
+  await page.locator('[data-house-style]').fill('Move names go in [b]bold[/b].\nMatchups name the opponent first.');
+  await page.click('#editor-config-modal [data-config-close]');
+
+  await button.click();
+  await expect(modal.locator('.house-style-text .strategy-paragraph')).toHaveCount(2);
+  await expect(modal.locator('strong.sc-b')).toHaveText('bold');
+  await expect(modal).not.toContainText('[b]');
+  await expect(modal).not.toContainText(EMPTY_HOUSE_STYLE);
+  await modal.locator('[data-house-style-ok]').click();
+
+  // Emptied again, the button stays and says so again.
   await openPageTab(page);
   await page.locator('[data-house-style]').fill('   ');
-  await expect(button).toBeHidden();
+  await page.click('#editor-config-modal [data-config-close]');
+  await expect(button).toBeVisible();
+  await button.click();
+  await expect(modal).toContainText(EMPTY_HOUSE_STYLE);
+});
+
+// Gallery and tier list pages have no Config > Page, so no house style.
+test('a gallery page has no House Style button and no Page tab', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await mockEditor(page, { items: [] });
+  await page.goto('/edit.html?page=emotes&type=gallery', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#btn-editor-config')).toBeVisible({ timeout: 45000 });
+  await page.waitForFunction(() => window.currentEditorPageType === 'gallery', null, { timeout: 45000 });
+  await expect(page.locator('#btn-house-style')).toBeHidden();
+  await page.click('#btn-editor-config');
+  await expect(page.locator('#editor-config-modal [data-config-tab]')).toHaveText(['Editor', 'Actions']);
 });
 
 test('a page that already has a house style shows the button as the editor opens', async ({ page }) => {
@@ -448,7 +471,6 @@ test('a page that already has a house style shows the button as the editor opens
 test('saved words colour the preview from the first paint', async ({ page }) => {
   await bootEditor(page, { ...DESC, pageConfig: { words: [DOMAIN], houseStyle: '' } });
   await expect(page.locator('.live-preview-pane .sc-page-word')).toHaveText('Domain');
-  await expect(page.locator('#btn-house-style'), 'no house style, no button').toBeHidden();
 });
 
 // --- WHAT SUBMIT SENDS ------------------------------------------------------------

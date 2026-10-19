@@ -305,18 +305,24 @@
         if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
     }
 
+    // On every page that has a Config > Page, written or not (owner,
+    // 2026-10-19: "always visible even if nothing is written yet").
     function refreshHouseStyleButton() {
         const btn = document.getElementById('btn-house-style');
         if (!btn) return;
-        const has = pageSettingsHere() && window.houseStyleBlocks(readPageConfig().houseStyle).length > 0;
-        btn.classList.toggle('hidden', !has);
+        btn.classList.toggle('hidden', !pageSettingsHere());
     }
     window.refreshHouseStyleButton = refreshHouseStyleButton;
 
     window.openHouseStyle = function () {
         if (document.getElementById('editor-house-style-modal')) return false;
+        if (typeof window.generateHTMLForBlocks !== 'function') return false;
         const blocks = window.houseStyleBlocks(readPageConfig().houseStyle);
-        if (!blocks.length || typeof window.generateHTMLForBlocks !== 'function') return false;
+        const body = blocks.length
+            ? `<div class="house-style-text">${window.generateHTMLForBlocks(blocks, '')}</div>
+               <p class="mos-footnote">Written by this page's editors for the ones who come after them. Change it in Config &gt; Page.</p>`
+            : `<p class="house-style-empty">This page's house style hasn't been written yet.</p>
+               <p class="mos-footnote">Anyone can write it in Config &gt; Page.</p>`;
 
         const box = document.createElement('div');
         box.className = 'editor-modal-overlay editor-notice-overlay';
@@ -331,8 +337,7 @@
             <div class="editor-modal-box auth-modal-box mos-modal-box">
                 <div class="auth-header"><h3>HOUSE STYLE</h3></div>
                 <div class="auth-body mos-body">
-                    <div class="house-style-text">${window.generateHTMLForBlocks(blocks, '')}</div>
-                    <p class="mos-footnote">Written by this page's editors for the ones who come after them. Change it in Config &gt; Page.</p>
+                    ${body}
                     <div class="modal-actions-centered mos-actions">
                         <button type="button" class="btn-sys btn-sys-green" data-house-style-ok>OK</button>
                     </div>
