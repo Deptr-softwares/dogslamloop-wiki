@@ -3071,6 +3071,10 @@ function folderShellHTML(run, isCollapsed, isEmpty) {
     // slim - and the block cards' own actions have always been glyphs, so the
     // vocabulary already exists. title AND aria-label, because a glyph with
     // neither is a button nobody can name.
+    //
+    // Except ＋ FOLDER (v1.1, from an editor's feedback): a bare ＋ beside
+    // the name was taken for the folder's dropdown, so it says what it makes,
+    // and the open/close button is a chevron rather than the folder icon.
     const removeBtn = isEmpty
         ? `<button class="btn-sys btn-sys-regular block-folder-discard"
                    title="Discard this empty folder"
@@ -3087,14 +3091,14 @@ function folderShellHTML(run, isCollapsed, isEmpty) {
         <div class="block-folder-head">
             <button class="btn-sys btn-sys-regular block-folder-toggle"
                     title="${isCollapsed ? 'Expand' : 'Collapse'} this folder"
-                    aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#128193;' : '&#128194;'}</button>
+                    aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#9656;' : '&#9662;'}</button>
             <input type="text" class="block-folder-name-input" value="${escField(run.name)}"
                    data-folder="${escField(run.name)}" maxlength="60"
                    aria-label="Folder name" title="Rename this folder">
             <span class="block-folder-count">${count}</span>
             <button class="btn-sys btn-sys-regular block-folder-add"
                     title="Create another folder after this one"
-                    aria-label="Create another folder after this one">&#65291;</button>
+                    aria-label="Create another folder after this one">&#65291; FOLDER</button>
             ${removeBtn}
         </div>
         <div class="block-folder-body">${body}</div>

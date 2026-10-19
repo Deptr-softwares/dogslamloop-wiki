@@ -1367,10 +1367,10 @@ input[type="checkbox"]:checked {
 
 .block-folder.is-collapsed .block-folder-body { display: none; }
 
-/* The folder icon IS the toggle - one element instead of a disclosure triangle
-   next to a decorative icon, which is what "a small folder icon" asked for.
-   Stripped of the btn-sys chrome it inherits: a bordered box around an emoji
-   is most of the height this rule is trying to remove. */
+/* A chevron, the sign for "this opens" (v1.1). It was the folder icon, which
+   an editor never read as the dropdown; the ＋ beside it is what they took
+   for one. Stripped of the btn-sys chrome it inherits: a bordered box around
+   one glyph is most of the height this rule is trying to remove. */
 .block-folder-toggle {
     /* No cut corner either: on a bare glyph it clips the icon and the clipped
        corner stops taking clicks (it is a clip-path). */
@@ -1379,9 +1379,10 @@ input[type="checkbox"]:checked {
     background: none;
     border: none;
     box-shadow: none;
-    padding: 0 0.1rem;
+    padding: 0 0.15rem;
     font-size: 0.8rem;
     line-height: 1;
+    color: #9ca3af;
 }
 .block-folder-toggle:hover { background: none; filter: brightness(1.4); }
 /* Transparent until touched, so the header reads as a title rather than a form
@@ -1420,9 +1421,25 @@ input[type="checkbox"]:checked {
     padding: 0.1rem 0.3rem;
     min-width: 0;
 }
-.block-folder-add:hover { background: #22c55e; color: #000; border-color: #22c55e; }
-.block-folder-ungroup:hover,
-.block-folder-discard:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
+/* Gray like any neutral button, sweep and all, and only once the sweep has
+   filled the button does it turn green (＋ FOLDER) or red (ungroup, discard)
+   (owner, 2026-10-20). The delay is the sweep's own 0.18s, and the colours
+   can fade because Buttons.css registers them. Leaving, it turns gray again
+   at once: the delay belongs to the hover rule only. */
+.block-folder-add:hover:not(:disabled),
+.block-folder-ungroup:hover:not(:disabled),
+.block-folder-discard:hover:not(:disabled) {
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background-size 0.18s ease-out, color 0.18s ease-out,
+        --sys-fill 0.15s ease-out 0.18s, --sys-edge 0.15s ease-out 0.18s;
+}
+.block-folder-add:hover:not(:disabled) { --sys-fill: #22c55e; --sys-edge: #22c55e; }
+.block-folder-ungroup:hover:not(:disabled),
+.block-folder-discard:hover:not(:disabled) { --sys-fill: #ef4444; --sys-edge: #ef4444; }
+@media (prefers-reduced-motion: reduce) {
+    .block-folder-add:hover:not(:disabled),
+    .block-folder-ungroup:hover:not(:disabled),
+    .block-folder-discard:hover:not(:disabled) { transition: none; }
+}
 
 /* An empty folder exists only for this editing session - it has no blocks, so
    there is no `folder` string anywhere for it to be saved in. Dashed to say
