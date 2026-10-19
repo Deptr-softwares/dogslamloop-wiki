@@ -236,6 +236,8 @@ async function openPageTab(page) {
   await expect(page.locator('[data-config-panel="page"]')).toBeVisible();
 }
 
+const box = (loc) => loc.evaluate(el => { const r = el.getBoundingClientRect(); return { top: r.top, bottom: r.bottom }; });
+
 // Resolved by the browser, so the test follows the palette rather than a hex.
 const resolved = (page, color) => page.evaluate((c) => {
   const probe = document.createElement('span');
@@ -325,6 +327,39 @@ test('a custom gradient needs two valid colours', async ({ page }) => {
   expect(await page.evaluate(() => window.editorMasterDescData.pageConfig.words[0].colors))
     .toEqual(['#ff0000', '#00ff00', '#0000ff']);
   await expect(page.locator('.live-preview-pane .sc-page-gradient')).toHaveText('Domain');
+});
+
+test('with the colour picker open, Config still fits the screen and every picker control can be reached', async ({ page }) => {
+  // The overlay centres the window and does not scroll, so a window taller
+  // than the screen lost its title off the top with no way back to it. And
+  // the picker opened inside a word list that scrolled on its own, so its
+  // custom controls sat below that list's fold.
+  await bootEditor(page);
+  await page.setViewportSize({ width: 1400, height: 700 });
+  await openPageTab(page);
+  await page.click('[data-word-add]');
+  await page.locator('[data-word-text]').fill('Domain');
+  await page.click('[data-word-swatch]');
+
+  const title = await box(page.locator('#editor-config-modal .auth-header'));
+  expect(title.top, 'the Config title is on screen').toBeGreaterThanOrEqual(0);
+  const modal = await box(page.locator('#editor-config-modal .config-modal-box'));
+  expect(modal.bottom).toBeLessThanOrEqual(700);
+
+  // The last control in the picker, scrolled to the way a person would, and
+  // then actually on top where it is drawn.
+  for (const sel of ['#cp-apply', '[data-word-gradient-apply]']) {
+    const control = page.locator(`.config-word-popup ${sel}`);
+    await control.scrollIntoViewIfNeeded();
+    const reachable = await control.evaluate(el => {
+      const r = el.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return el === hit || el.contains(hit);
+    });
+    expect(reachable, `${sel} is on top where it is drawn`).toBe(true);
+  }
+  const words = await page.locator('[data-config-words]').evaluate(el => el.scrollHeight - el.clientHeight);
+  expect(words, 'the word list has no scroll box of its own to trap the picker').toBe(0);
 });
 
 test('ADD WORD stops at fifty', async ({ page }) => {

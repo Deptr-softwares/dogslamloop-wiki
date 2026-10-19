@@ -2689,8 +2689,11 @@ del.diff-del {
    <body>. Every rule below the panel's own is keyed on its body.cfg-* class,
    so with the panel untouched none of them applies and the editor is exactly
    as it was. */
-.config-modal-box { max-width: 560px; }
-.config-body { display: flex; flex-direction: column; gap: 0.75rem; text-align: left; }
+/* Never taller than the screen: the overlay centres the box and does not
+   scroll, so a taller box lost its title off the top with no way back to it.
+   The body scrolls instead, under a header that stays put. */
+.config-modal-box { max-width: 560px; max-height: calc(100vh - 2rem); display: flex; flex-direction: column; }
+.config-body { display: flex; flex-direction: column; gap: 0.75rem; text-align: left; overflow-y: auto; min-height: 0; }
 .config-panel { display: flex; flex-direction: column; gap: 0.6rem; }
 .config-option { display: flex; gap: 0.6rem; align-items: flex-start; cursor: pointer; }
 .config-option input { margin: 0.15rem 0 0; flex-shrink: 0; accent-color: var(--accent-blue); }
@@ -2703,9 +2706,10 @@ del.diff-del {
 .config-action-note:empty { display: none; }
 .config-footnote { margin: 0; font-size: 0.7rem; color: #6b7280; }
 
-/* Config > Page (v1.1). The word list scrolls on its own so fifty words never
-   push the house style or DONE off the screen. */
-.config-words { display: flex; flex-direction: column; gap: 0.4rem; max-height: 40vh; overflow-y: auto; }
+/* Config > Page (v1.1). The word list does not scroll on its own: the colour
+   popup opens inside a row, and a scrolling list trapped its custom picker
+   below the list's own fold. The Config body scrolls instead. */
+.config-words { display: flex; flex-direction: column; gap: 0.4rem; }
 .config-words:empty { display: none; }
 .config-word-row { display: flex; flex-direction: column; gap: 0.2rem; }
 .config-word-main { display: flex; gap: 0.4rem; align-items: center; }

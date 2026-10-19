@@ -465,6 +465,7 @@
                 gradientField.value = colors.length > 1 ? colors.join(', ') : '';
                 popup.classList.remove('hidden');
                 swatch.setAttribute('aria-expanded', 'true');
+                popup.scrollIntoView({ block: 'nearest' });
             }
         });
 
