@@ -1349,14 +1349,27 @@ input[type="checkbox"]:checked {
     background: transparent;
     margin-bottom: 0.15rem;
 }
+/* A folder's own colour (v1.1) is that same left rule, a pixel wider so it
+   reads as chosen rather than as the default gray. */
+.block-folder.has-color { border-left: 3px solid var(--folder-color); }
 .block-folder-head {
     display: flex;
+    flex-wrap: wrap;   /* the colour popup opens on a line of its own */
     align-items: center;
     gap: 0.35rem;
     padding: 0.1rem 0.35rem;
     background: transparent;
     border-bottom: none;
 }
+.block-folder-color {
+    flex: 0 0 auto;
+    width: 14px; height: 14px; padding: 0;
+    border: 1px solid #555; outline: 1px solid transparent; outline-offset: 1px;
+    cursor: pointer;
+}
+.block-folder-color.is-none { border-style: dashed; background: transparent; }
+.block-folder-color:hover, .block-folder-color[aria-expanded="true"] { outline-color: var(--text-white, #fff); }
+.block-folder-color:focus-visible { outline-color: var(--accent-blue); }
 /* Only while it holds something open, so an expanded folder still reads as a
    container rather than a stack of loose blocks under a heading. */
 .block-folder:not(.is-collapsed) > .block-folder-body {
@@ -2715,13 +2728,14 @@ del.diff-del {
 }
 .heading-bar-swatch:hover, .heading-bar-swatch[aria-expanded="true"] { outline-color: var(--text-white, #fff); }
 .heading-bar-swatch:focus-visible { outline-color: var(--accent-blue); }
-.heading-bar-popup {
+/* Behind a colour swatch: the heading Side bar and a folder's colour. */
+.swatch-popup {
     flex-basis: 100%;
     display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem;
     padding: 0.6rem; background: #111; border: 1px solid #333;
 }
-.heading-bar-popup .format-color-presets-scroll { max-height: 180px; align-self: stretch; }
-.heading-bar-popup .cp-surface, .heading-bar-popup .cp-hue { align-self: stretch; }
+.swatch-popup .format-color-presets-scroll { max-height: 180px; align-self: stretch; }
+.swatch-popup .cp-surface, .swatch-popup .cp-hue { align-self: stretch; }
 .config-word-gradient { flex: 1; min-width: 0; }
 .config-house-style { width: 100%; box-sizing: border-box; resize: vertical; margin: 0; }
 .house-style-empty { margin: 0; color: #9ca3af; font-style: italic; }

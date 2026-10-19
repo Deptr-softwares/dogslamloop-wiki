@@ -122,6 +122,9 @@ test('a visitor sees nothing: the rendered page is identical with and without fo
     foldered[2].folder = 'Setups';
     foldered[3].folder = 'Enders';
     foldered[4].folder = 'Enders';
+    // A folder's colour (v1.1) is editor-only too.
+    foldered[3].folderColor = '#c026d3';
+    foldered[4].folderColor = '#c026d3';
 
     return {
       bare: window.generateHTMLForBlocks(bare, ''),
@@ -134,6 +137,7 @@ test('a visitor sees nothing: the rendered page is identical with and without fo
   expect(out.bare.length).toBeGreaterThan(100);
   expect(out.bare, 'the fixture really did render').toContain('Whiff punish');
   expect(out.foldered, 'the folder name never reaches the page').not.toContain('Setups');
+  expect(out.foldered, 'nor its colour').not.toContain('c026d3');
 });
 
 // --- THE MODEL ---
@@ -698,7 +702,7 @@ test('a block dragged onto an accordion goes inside it', async ({ page }) => {
   await boot(page);
   await build(page, [
     { type: 'accordion', title: 'Tech', content: [] },
-    P('moves inside', 'Setups'),
+    { ...P('moves inside', 'Setups'), folderColor: '#22c55e' },
   ]);
 
   await dragOnto(
@@ -714,6 +718,7 @@ test('a block dragged onto an accordion goes inside it', async ({ page }) => {
       count: blocks.length,
       inner: (blocks[0].content || []).map(b => b.content),
       innerFolder: (blocks[0].content || []).map(b => b.folder || null),
+      innerColor: (blocks[0].content || []).map(b => b.folderColor || null),
     };
   });
 
@@ -723,6 +728,7 @@ test('a block dragged onto an accordion goes inside it', async ({ page }) => {
   // Its folder described where it used to live. Carried along it would render
   // inside the accordion as a folder of one, named after somewhere invisible.
   expect(out.innerFolder).toEqual([null]);
+  expect(out.innerColor, 'and its colour goes with the folder').toEqual([null]);
 });
 
 test('a theorybox takes a nested drop the same way, without being named anywhere', async ({ page }) => {
@@ -887,4 +893,186 @@ test('Diff View names the folder field in words', async ({ page }) => {
   expect(html).toContain('Editor Folder');
   expect(html).toContain('<del class="diff-del">Setups</del>');
   expect(html).toContain('<ins class="diff-add">Enders</ins>');
+});
+
+// --- A FOLDER'S COLOUR (v1.1, from an editor's feedback) ---
+//
+// "add coloring to folders for visual sorting". Owner, 2026-10-20: picked per
+// folder from a swatch on its header (the heading Side bar's popup: presets,
+// custom, none), shown as a 3px bar down the left of the whole folder, saved
+// with the page and reviewed like any edit, never seen by a reader. Stored as
+// `folderColor` on every block in the folder, the way the name is.
+
+const C = '#22c55e';
+
+// What the browser makes of a colour, so a hex can be compared with a
+// computed rgb() without either side being spelled out by hand.
+const resolved = (page, colour) => page.evaluate(c => {
+  const probe = document.createElement('div');
+  probe.style.color = c;
+  document.body.appendChild(probe);
+  const out = getComputedStyle(probe).color;
+  probe.remove();
+  return out;
+}, colour);
+
+const leftBar = (page, n = 0) => page.evaluate(i => {
+  const cs = getComputedStyle(document.querySelectorAll('#block-list .block-folder')[i]);
+  return { width: cs.borderLeftWidth, color: cs.borderLeftColor };
+}, n);
+
+const storedColours = page => page.evaluate(() => window.getActiveBlocks().map(b => b.folderColor || null));
+
+test('a colour picked on the header paints the bar down the folder and goes on every block in it', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await boot(page);
+  await build(page, [P('a', 'Setups'), P('b', 'Setups'), P('c')]);
+  const plain = await leftBar(page);
+
+  await page.locator('#block-list [data-folder-color]').click();
+  const preset = page.locator('.swatch-popup .color-preset-btn').first();
+  const picked = await preset.getAttribute('data-color');
+  await preset.click();
+
+  await expect(page.locator('.swatch-popup')).toHaveCount(0);
+  expect(await leftBar(page)).toEqual({ width: '3px', color: await resolved(page, picked) });
+  expect(await storedColours(page), 'every member, and nobody else').toEqual([picked, picked, null]);
+  const swatch = await page.locator('#block-list [data-folder-color]').evaluate(s => getComputedStyle(s).backgroundColor);
+  expect(swatch, 'the swatch shows it too').toBe(await resolved(page, picked));
+
+  // NO COLOR puts the gray rule back and takes the colour off every block.
+  await page.locator('#block-list [data-folder-color]').click();
+  await page.locator('.swatch-popup [data-swatch-none]').click();
+  expect(await leftBar(page)).toEqual(plain);
+  expect(await page.evaluate(() => window.getActiveBlocks().some(b => 'folderColor' in b))).toBe(false);
+  expect(errors).toEqual([]);
+});
+
+test('a custom colour from the picker colours the folder the same way, and UNDO takes it back', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'Setups')]);
+
+  await page.locator('#block-list [data-folder-color]').click();
+  await page.locator('.swatch-popup #cp-hex').fill('#00ff88');
+  await page.locator('.swatch-popup #cp-apply').click();
+  expect((await leftBar(page)).color).toBe('rgb(0, 255, 136)');
+  expect(await storedColours(page)).toEqual(['#00ff88']);
+
+  await page.locator('#btn-undo').click();
+  expect(await storedColours(page)).toEqual([null]);
+});
+
+test('a block joining a coloured folder takes its colour, and a block leaving drops it', async ({ page }) => {
+  await boot(page);
+
+  const out = await page.evaluate(C => {
+    const tint = (b, c) => Object.assign(b, { folderColor: c });
+    const colours = blocks => blocks.map(b => b.folderColor || null);
+    const r = {};
+
+    // The block's folder picker: in, then out again.
+    let blocks = [tint(mk('a', 'Setups'), C), tint(mk('b', 'Setups'), C), mk('c')];
+    window.assignBlockToFolder(blocks, 2, 'Setups');
+    r.joined = colours(blocks);
+    window.assignBlockToFolder(blocks, 1, '');
+    r.left = blocks.map(b => `${b.content}:${b.folderColor || '-'}`);
+
+    // A drag from a red folder into the middle of a green one.
+    blocks = [tint(mk('a', 'Setups'), C), tint(mk('x', 'Other'), '#ff0000'), tint(mk('b', 'Setups'), C), tint(mk('y', 'Other'), '#ff0000')];
+    window.reconcileFolderAt(blocks, 1);
+    r.draggedIn = colours(blocks);
+
+    // A drag clear of its folder.
+    blocks = [tint(mk('a', 'Setups'), C), tint(mk('b', 'Setups'), C), mk('x'), tint(mk('c', 'Setups'), C)];
+    window.reconcileFolderAt(blocks, 3);
+    r.draggedOut = colours(blocks);
+
+    // Dropped on the header.
+    blocks = [mk('z'), tint(mk('a', 'Setups'), C)];
+    window.dropBlockIntoFolderHead(blocks, 0, 'Setups');
+    r.onHeader = colours(blocks);
+
+    // A folder of one, its block dropped on its own header: nothing joins.
+    blocks = [tint(mk('only', 'Solo'), C)];
+    window.dropBlockIntoFolderHead(blocks, 0, 'Solo');
+    r.solo = colours(blocks);
+
+    // Renaming keeps it; ungrouping takes it off.
+    blocks = [tint(mk('a', 'Setups'), C), tint(mk('b', 'Setups'), C)];
+    window.renameBlockFolder(blocks, 'Setups', 'Enders');
+    r.renamed = colours(blocks);
+    window.ungroupBlockFolder(blocks, 'Enders');
+    r.ungrouped = blocks.map(b => 'folderColor' in b);
+    return r;
+  }, C);
+
+  expect(out.joined).toEqual([C, C, C]);
+  expect(out.left, 'b stepped out and left its colour behind').toEqual([`a:${C}`, `c:${C}`, 'b:-']);
+  expect(out.draggedIn, 'x is green now; the other red block is untouched').toEqual([C, C, C, '#ff0000']);
+  expect(out.draggedOut).toEqual([C, C, null, null]);
+  expect(out.onHeader).toEqual([C, C]);
+  expect(out.solo).toEqual([C]);
+  expect(out.renamed).toEqual([C, C]);
+  expect(out.ungrouped).toEqual([false, false]);
+});
+
+test('a new block dragged from the Add Block menu onto a coloured folder takes its colour', async ({ page }) => {
+  await boot(page);
+  await build(page, [{ ...P('a', 'Setups'), folderColor: C }, P('b')]);
+
+  await page.locator('#btn-toggle-add-menu').click();
+  await dragOnto(page, page.locator('#add-block-popup .add-block-btn[data-type="paragraph"]'), page.locator('#block-list .block-folder-head'));
+
+  const blocks = await page.evaluate(() => window.getActiveBlocks().map(b => ({ content: b.content, folder: b.folder || null, color: b.folderColor || null })));
+  expect(blocks[0], 'the new block, at the top of the folder').toMatchObject({ folder: 'Setups', color: C });
+  expect(blocks[1]).toEqual({ content: 'a', folder: 'Setups', color: C });
+});
+
+test('a folder colour that is not a colour draws nothing and cannot leave the style', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await boot(page);
+  await build(page, [
+    { ...P('a', 'One'), folderColor: '"><img src=x onerror="window.__PWN=1">' },
+    { ...P('b', 'Two'), folderColor: 'red; background: url(https://example.com/x.png)' },
+  ]);
+  await page.waitForTimeout(200);
+
+  const out = await page.evaluate(() => ({
+    coloured: document.querySelectorAll('#block-list .block-folder.has-color').length,
+    plainSwatches: document.querySelectorAll('#block-list [data-folder-color].is-none').length,
+    imgs: document.querySelectorAll('#block-list img').length,
+    pwned: window.__PWN,
+  }));
+  expect(out).toEqual({ coloured: 0, plainSwatches: 2, imgs: 0, pwned: undefined });
+  expect((await leftBar(page, 1)).width, 'the plain gray rule').toBe('2px');
+  expect(errors).toEqual([]);
+});
+
+test('an empty folder offers no colour: it has no blocks to carry one', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'Setups')]);
+  await page.locator('#block-list .block-folder-add').click();
+  await expect(page.locator('#block-list .block-folder')).toHaveCount(2);
+  await expect(page.locator('#block-list .block-folder.is-empty [data-folder-color]')).toHaveCount(0);
+  await expect(page.locator('#block-list .block-folder:not(.is-empty) [data-folder-color]')).toHaveCount(1);
+});
+
+test('find and replace leaves a folder colour alone', async ({ page }) => {
+  await boot(page);
+  const paths = await page.evaluate(() => window.findEditorMatches({
+    overview: [{ type: 'paragraph', content: 'red text', folder: 'Reds', folderColor: 'red' }],
+  }, 'red', { wholeWord: true }).map(m => m.path.join('.')));
+  expect(paths).toEqual(['overview.0.content']);
+});
+
+test('Diff View names the folder colour in words', async ({ page }) => {
+  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  const html = await page.evaluate(() => window.renderStructuredDiff(
+    { type: 'paragraph', folder: 'Setups', folderColor: '#111111' },
+    { type: 'paragraph', folder: 'Setups', folderColor: '#222222' },
+  ));
+  expect(html).toContain('Editor Folder Color');
+  expect(html).toContain('<ins class="diff-add">#222222</ins>');
 });

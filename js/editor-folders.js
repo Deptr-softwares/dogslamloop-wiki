@@ -96,6 +96,54 @@
     window.blockFolderRunContaining = runContaining;
     window.blockFolderRunNamed = runNamed;
 
+    // --- COLOUR (v1.1, from an editor's feedback) ---
+    //
+    // "add coloring to folders for visual sorting", picked per folder by the
+    // editor, saved with the page and reviewed like any edit (owner,
+    // 2026-10-19). Stored the way the name is, as `folderColor` on every
+    // member, so it moves with the blocks and nothing outside them has to be
+    // kept in step. Every write in this file keeps a run's members agreeing,
+    // and a block in no folder carries none. Still editor-only: the page
+    // renderer reads named fields, and this is not one of them.
+    function colorOf(block) {
+        return block && typeof block.folderColor === 'string' ? block.folderColor : '';
+    }
+
+    function paint(block, color) {
+        if (color) block.folderColor = color;
+        else delete block.folderColor;
+    }
+
+    // The colour a block takes on joining folder `name`: whatever the folder's
+    // other members carry. Read before the block is counted as a member.
+    function joiningColor(blocks, block, name) {
+        // Already in it (dropped on its own folder's header): nothing to join.
+        if (nameOf(block) === name) return colorOf(block);
+        const run = runNamed(blocks, name);
+        if (!run) return '';
+        for (let i = run.start; i <= run.end; i++) {
+            if (blocks[i] !== block) return colorOf(blocks[i]);
+        }
+        return '';
+    }
+
+    window.blockFolderColor = function (blocks, name) {
+        const run = Array.isArray(blocks) ? runNamed(blocks, normalize(name)) : null;
+        return run ? colorOf(blocks[run.start]) : '';
+    };
+
+    // Empty `color` takes the colour off. The caller vets the value
+    // (window.safeColor): this only keeps the members in step.
+    window.setBlockFolderColor = function (blocks, name, color) {
+        const target = normalize(name);
+        if (!Array.isArray(blocks) || !target) return 0;
+        let n = 0;
+        blocks.forEach(function (b) {
+            if (nameOf(b) === target) { paint(b, color); n += 1; }
+        });
+        return n;
+    };
+
     // --- EMPTY FOLDERS ---
     //
     // Membership is a per-block string, so a folder holding no blocks does not
@@ -179,6 +227,7 @@
         if (!target) {
             const run = runContaining(blocks, index);
             delete block.folder;
+            delete block.folderColor;
             // A lone member leaves nothing behind to split, so it stays put.
             if (!run || run.count === 1) return index;
             blocks.splice(index, 1);
@@ -189,6 +238,7 @@
         // Read the run BEFORE the assignment, so `existing` describes where the
         // folder was rather than where this block is about to be counted.
         const existing = runNamed(blocks, target);
+        paint(block, joiningColor(blocks, block, target));
         block.folder = target;
 
         if (!existing) {
@@ -216,6 +266,7 @@
 
         const block = blocks[index];
         const existing = runNamed(blocks, target);
+        paint(block, joiningColor(blocks, block, target));
         block.folder = target;
         if (!existing) {
             const promoted = promotePending(blocks, index, target);
@@ -243,7 +294,10 @@
 
         // Landed between two members of one folder: it is inside it now.
         if (prevName && prevName === nextName) {
-            if (own !== prevName) block.folder = prevName;
+            if (own !== prevName) {
+                block.folder = prevName;
+                paint(block, colorOf(blocks[index - 1]));
+            }
             return;
         }
 
@@ -257,7 +311,10 @@
         const stillPopulated = blocks.some(function (b, i) {
             return i !== index && nameOf(b) === own;
         });
-        if (stillPopulated) delete block.folder;
+        if (stillPopulated) {
+            delete block.folder;
+            delete block.folderColor;
+        }
     };
 
     // False when the name is already taken - two runs sharing a name would
@@ -293,7 +350,7 @@
 
         let n = 0;
         blocks.forEach(function (b) {
-            if (nameOf(b) === target) { delete b.folder; n += 1; }
+            if (nameOf(b) === target) { delete b.folder; delete b.folderColor; n += 1; }
         });
         return n;
     };

@@ -145,7 +145,7 @@ test('Side bar on a Heading Block: pick a colour, see it in the preview, take it
   expect((await previewBar(page)).width, 'Counterplay no longer adds a bar of its own').toBe('0px');
 
   await swatch(page).click();
-  const preset = page.locator('.heading-bar-popup .color-preset-btn').first();
+  const preset = page.locator('.swatch-popup .color-preset-btn').first();
   await expect(preset).toBeVisible();
   const picked = await preset.getAttribute('data-color');
   const pickedPainted = await preset.evaluate(el => {
@@ -158,12 +158,12 @@ test('Side bar on a Heading Block: pick a colour, see it in the preview, take it
   });
   await preset.click();
 
-  await expect(page.locator('.heading-bar-popup')).toHaveCount(0);
+  await expect(page.locator('.swatch-popup')).toHaveCount(0);
   expect(await stored(page)).toBe(picked);
   await expect.poll(() => previewBar(page)).toEqual({ width: '3px', color: pickedPainted });
 
   await swatch(page).click();
-  await page.locator('.heading-bar-popup [data-heading-bar-none]').click();
+  await page.locator('.swatch-popup [data-swatch-none]').click();
   expect(await stored(page)).toBeUndefined();
   await expect(swatch(page)).toHaveText('None');
   await expect.poll(async () => (await previewBar(page)).width).toBe('0px');
@@ -174,8 +174,8 @@ test('Side bar takes a custom colour', async ({ page }) => {
   const errors = await bootCounterplay(page);
 
   await swatch(page).click();
-  await page.locator('.heading-bar-popup #cp-hex').fill('#00ff88');
-  await page.locator('.heading-bar-popup #cp-apply').click();
+  await page.locator('.swatch-popup #cp-hex').fill('#00ff88');
+  await page.locator('.swatch-popup #cp-apply').click();
 
   expect(String(await stored(page)).toLowerCase()).toBe('#00ff88');
   await expect.poll(() => previewBar(page)).toEqual({ width: '3px', color: 'rgb(0, 255, 136)' });
@@ -198,8 +198,8 @@ test('a click elsewhere puts the colour popup away without changing anything', a
   await bootCounterplay(page);
 
   await swatch(page).click();
-  await expect(page.locator('.heading-bar-popup')).toBeVisible();
+  await expect(page.locator('.swatch-popup')).toBeVisible();
   await page.locator('.live-preview-pane').click({ position: { x: 20, y: 20 } });
-  await expect(page.locator('.heading-bar-popup')).toHaveCount(0);
+  await expect(page.locator('.swatch-popup')).toHaveCount(0);
   expect(await stored(page)).toBeUndefined();
 });

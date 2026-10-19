@@ -318,39 +318,34 @@ function headingBarRowHTML(block) {
                 </div>`;
 }
 
+// The popup behind a colour swatch: a NONE button, the text colour presets and
+// the custom picker. A heading's Side bar and a folder's colour both use it.
+//
 // One popup for the whole list, made when it opens and removed when it closes:
 // its custom picker repeats the toolbar's ids, which initColorPicker tolerates
 // only because it looks inside the container it is handed.
-let headingBarPopup = null;
+let swatchPopup = null;   // { popup, swatch }
 
-function closeHeadingBarPopup() {
-    if (!headingBarPopup) return;
-    const swatch = headingBarPopup.parentElement && headingBarPopup.parentElement.querySelector('[data-heading-bar]');
-    if (swatch) swatch.setAttribute('aria-expanded', 'false');
-    headingBarPopup.remove();
-    headingBarPopup = null;
+function closeSwatchPopup() {
+    if (!swatchPopup) return;
+    swatchPopup.swatch.setAttribute('aria-expanded', 'false');
+    swatchPopup.popup.remove();
+    swatchPopup = null;
 }
 
-function setHeadingBar(index, color) {
-    const block = window.getActiveBlocks()[index];
-    closeHeadingBarPopup();
-    if (!block || block.type !== 'heading') return;
-    if (color) block.sideBar = color;
-    else delete block.sideBar;
-    renderBlockList();
-    updateLivePreview();
-}
-
-function openHeadingBarPopup(swatch) {
-    const index = parseInt(swatch.closest('.block-card').getAttribute('data-index'), 10);
-    const reopen = !headingBarPopup || headingBarPopup.parentElement !== swatch.parentElement;
-    closeHeadingBarPopup();
+// Opens below the swatch, in its parent row (which wraps it onto a line of its
+// own). The same swatch again closes it. `onPick` gets a colour, or null for
+// NONE.
+function openSwatchPopup(swatch, noneLabel, onPick) {
+    const reopen = !swatchPopup || swatchPopup.popup.parentElement !== swatch.parentElement;
+    closeSwatchPopup();
     if (!reopen) return;
 
+    const pick = (color) => { closeSwatchPopup(); onPick(color); };
     const popup = document.createElement('div');
-    popup.className = 'heading-bar-popup';
+    popup.className = 'swatch-popup';
     popup.innerHTML = `
-        <button type="button" class="btn-sys btn-sys-regular" data-heading-bar-none>NO BAR</button>
+        <button type="button" class="btn-sys btn-sys-regular" data-swatch-none>${window.escapeHtml(noneLabel)}</button>
         <div class="format-color-presets-scroll">${colorPresetsHTML()}</div>
         <div class="cp-label">Custom</div>
         <div class="cp-surface" id="cp-surface"><div class="cp-thumb" id="cp-surface-thumb"></div></div>
@@ -365,23 +360,52 @@ function openHeadingBarPopup(swatch) {
             <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
         </div>`;
     popup.addEventListener('click', (e) => {
-        if (e.target.closest('[data-heading-bar-none]')) { setHeadingBar(index, null); return; }
+        if (e.target.closest('[data-swatch-none]')) { pick(null); return; }
         const preset = e.target.closest('.color-preset-btn');
-        if (preset) setHeadingBar(index, preset.getAttribute('data-color'));
+        if (preset) pick(preset.getAttribute('data-color'));
     });
     swatch.parentElement.appendChild(popup);
-    initColorPicker(popup, (hex) => setHeadingBar(index, hex));
-    headingBarPopup = popup;
+    initColorPicker(popup, pick);
+    swatchPopup = { popup, swatch };
     swatch.setAttribute('aria-expanded', 'true');
     popup.scrollIntoView({ block: 'nearest' });
 }
 
 // A click anywhere else puts it away.
 document.addEventListener('click', (e) => {
-    if (headingBarPopup && !headingBarPopup.contains(e.target) && !e.target.closest('[data-heading-bar]')) {
-        closeHeadingBarPopup();
+    if (swatchPopup && !swatchPopup.popup.contains(e.target) && !e.target.closest('[data-heading-bar], [data-folder-color]')) {
+        closeSwatchPopup();
     }
 });
+
+function setHeadingBar(index, color) {
+    const block = window.getActiveBlocks()[index];
+    if (!block || block.type !== 'heading') return;
+    if (color) block.sideBar = color;
+    else delete block.sideBar;
+    renderBlockList();
+    updateLivePreview();
+}
+
+function openHeadingBarPopup(swatch) {
+    const index = parseInt(swatch.closest('.block-card').getAttribute('data-index'), 10);
+    openSwatchPopup(swatch, 'NO BAR', color => setHeadingBar(index, color));
+}
+
+// A folder's colour (see editor-folders.js). The preview is redrawn all the
+// same, though readers never see a folder: that call is what records the
+// change for UNDO and the autosave.
+function setFolderColor(name, color) {
+    const safe = color ? window.safeColor(color) : null;
+    if (color && !safe) return;
+    window.setBlockFolderColor(window.getActiveBlocks(), name, safe);
+    renderBlockList();
+    updateLivePreview();
+}
+
+function openFolderColorPopup(swatch, name) {
+    openSwatchPopup(swatch, 'NO COLOR', color => setFolderColor(name, color));
+}
 
 // --- BLOCK BUILDER STATE ---
 let currentStrategyBlocks = [];
@@ -2362,6 +2386,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                     : null;
                 landedAt = run ? run.start : activeBlocks.length;
                 newBlock.folder = folderHead;
+                const folderColor = typeof window.blockFolderColor === 'function'
+                    ? window.blockFolderColor(activeBlocks, folderHead) : '';
+                if (folderColor) newBlock.folderColor = folderColor;
                 activeBlocks.splice(landedAt, 0, newBlock);
             } else if (dropIndex === null) {
                 activeBlocks.push(newBlock);
@@ -2386,6 +2413,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             // Carried along it would show up inside the accordion as a folder
             // of one, named after somewhere the author cannot see.
             delete item.folder;
+            delete item.folderColor;
             const hostIndex = payload.fromIndex < nestInto ? nestInto - 1 : nestInto;
             activeBlocks[hostIndex].content.push(item);
             renderBlockList();
@@ -2692,8 +2720,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         const btn = e.target.closest('button');
         if (!btn) return;
 
-        // The side bar popup handles its own buttons (above).
-        if (btn.closest('.heading-bar-popup')) return;
+        // The swatch popup handles its own buttons (above).
+        if (btn.closest('.swatch-popup')) return;
         if (btn.matches('[data-heading-bar]')) { openHeadingBarPopup(btn); return; }
 
         const activeBlocks = window.getActiveBlocks();
@@ -2708,6 +2736,11 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         const folderShell = btn.closest('.block-folder');
         if (folderShell && !btn.closest('.block-card')) {
             const folderName = folderShell.getAttribute('data-folder');
+
+            if (btn.matches('[data-folder-color]')) {
+                openFolderColorPopup(btn, folderName);
+                return;
+            }
 
             if (btn.classList.contains('block-folder-toggle')) {
                 if (typeof window.toggleBlockFolderCollapsed === 'function') {
@@ -3187,9 +3220,15 @@ function keepTableButtonsInPlace(index, before) {
 // for this would make folder naming the only prompt on the site.
 //
 // Every interpolation here is contributor-authored and lands in an attribute,
-// so it goes through escField exactly like the block fields below it.
-function folderShellHTML(run, isCollapsed, isEmpty) {
+// so it goes through escField exactly like the block fields below it. `color`
+// arrives already through safeColor (renderBlockList).
+function folderShellHTML(run, isCollapsed, isEmpty, color) {
     const count = isEmpty ? 'empty' : `${run.count} block${run.count === 1 ? '' : 's'}`;
+
+    // An empty folder has no blocks to carry a colour, so it offers none.
+    const colorSwatch = isEmpty ? '' : `
+            <button type="button" class="block-folder-color${color ? '' : ' is-none'}" data-folder-color
+                    title="Folder color" aria-label="Folder color" aria-expanded="false"${color ? ` style="background: ${color};"` : ''}></button>`;
 
     // An empty folder is not in the data, so there is nothing to keep and
     // nothing to ungroup - removing it is a discard, and saying UNGROUP there
@@ -3222,7 +3261,7 @@ function folderShellHTML(run, isCollapsed, isEmpty) {
                     aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#9656;' : '&#9662;'}</button>
             <input type="text" class="block-folder-name-input" value="${escField(run.name)}"
                    data-folder="${escField(run.name)}" maxlength="60"
-                   aria-label="Folder name" title="Rename this folder">
+                   aria-label="Folder name" title="Rename this folder">${colorSwatch}
             <span class="block-folder-count">${count}</span>
             <button class="btn-sys btn-sys-regular block-folder-add"
                     title="Create another folder after this one"
@@ -3784,7 +3823,13 @@ function renderBlockList() {
             // setAttribute, not innerHTML: no escaping needed, and this is the
             // value every folder handler reads back.
             shell.setAttribute('data-folder', opening.name);
-            shell.innerHTML = folderShellHTML(opening, isCollapsed, false);
+            // The bar down the folder's left edge, in its colour.
+            const color = window.safeColor(activeBlocks[opening.start].folderColor);
+            if (color) {
+                shell.classList.add('has-color');
+                shell.style.setProperty('--folder-color', color);
+            }
+            shell.innerHTML = folderShellHTML(opening, isCollapsed, false, color);
             listContainer.appendChild(shell);
             appendTarget = shell.querySelector('.block-folder-body');
         }
