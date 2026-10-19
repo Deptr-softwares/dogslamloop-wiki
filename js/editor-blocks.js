@@ -1047,6 +1047,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     window.editorBuilderMode = mode;
     currentStrategyBlocks = initialData ? JSON.parse(JSON.stringify(initialData)) : [];
 
+    // Config > Open sections minimized (v1.1, js/editor-config.js, which only
+    // edit.html loads). These are fresh copies, so nothing else is shut.
+    if (window.editorConfig && window.editorConfig.get('openMinimized')) {
+        currentStrategyBlocks.forEach(block => window.setEditorBlockExpanded(block, false));
+    }
+
     window.activeAccordionPath = [];
 
     // Which folders are open is per-section view state. Opening a different

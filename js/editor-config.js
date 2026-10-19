@@ -20,16 +20,24 @@
 
     // The owner's defaults. stickHeader and stickPageNav being on is how the
     // editor always behaved: those two sit above the area that scrolls.
+    //
+    // confirmDeletes keeps its stored name and meaning under its v1.1 label,
+    // "Skip delete confirmations": the box is ticked when it is false, so a
+    // device that already turned the prompts off still has them off.
     const DEFAULTS = Object.freeze({
         hideBlockType: false,
         hideDragHandle: false,
         hideFolderPicker: false,
         formattingOnTop: false,
+        compactBlocks: false,
+        openMinimized: false,
         stickHeader: true,
         stickPageNav: true,
         stickSectionNav: false,
         stickActions: false,
         disablePreview: false,
+        previewFollows: false,
+        previewOnSync: false,
         confirmDeletes: true,
     });
 
@@ -39,6 +47,7 @@
         hideDragHandle: 'cfg-hide-drag-handle',
         hideFolderPicker: 'cfg-hide-folder-picker',
         formattingOnTop: 'cfg-format-top',
+        compactBlocks: 'cfg-compact-blocks',
         disablePreview: 'cfg-no-preview',
     };
 
@@ -158,8 +167,68 @@
     function apply() {
         if (!document.body) return;
         Object.keys(BODY_CLASSES).forEach(key => document.body.classList.toggle(BODY_CLASSES[key], get(key)));
+        if (get('previewFollows')) window.previewBlockAnchor = anchorBlock;
+        else delete window.previewBlockAnchor;
         layoutSticky();
     }
+
+    // --- PREVIEW FOLLOWS THE BLOCK ---
+    //
+    // The block renderer (js/description.js) hands each top-level Block's
+    // markup to window.previewBlockAnchor, which marks its first element with
+    // the Block's position and a fingerprint of its data. Position alone is
+    // not enough: the Overview tab draws Overview, General Strategy and every
+    // custom tab in one preview, and each has a Block 0. The fingerprint picks
+    // the one whose data is the Block being edited.
+    function blockSignature(block) {
+        const text = JSON.stringify(block) || '';
+        let hash = 0x811c9dc5;
+        for (let i = 0; i < text.length; i++) {
+            hash ^= text.charCodeAt(i);
+            hash = Math.imul(hash, 0x01000193);
+        }
+        return (hash >>> 0).toString(36);
+    }
+
+    function anchorBlock(html, index, block) {
+        return html.replace(/^(\s*<[a-zA-Z][\w-]*)/, `$1 data-preview-block="${Number(index)}" data-preview-sig="${blockSignature(block)}"`);
+    }
+
+    // Once per Block: moving between the fields of one Block, or typing in it,
+    // does not scroll the preview out from under the author again.
+    let followedBlock = null;
+    function followBlock(e) {
+        if (!get('previewFollows') || get('disablePreview')) return;
+        const card = e.target && e.target.closest && e.target.closest('#block-list .block-card[data-index]');
+        if (!card || typeof currentStrategyBlocks === 'undefined') return;
+
+        // Inside an accordion, the list on screen is nested, and the preview
+        // marks only the top level: follow the accordion that holds it.
+        const path = window.activeAccordionPath || [];
+        const step = path[0];
+        const index = path.length ? (typeof step === 'object' ? step.index : step) : Number(card.getAttribute('data-index'));
+        const block = currentStrategyBlocks[index];
+        if (!block || block === followedBlock) return;
+        followedBlock = block;
+
+        const pane = document.querySelector('.live-preview-pane');
+        if (!pane) return;
+        const shown = Array.from(pane.querySelectorAll(`[data-preview-block="${index}"]`)).filter(el => el.getClientRects().length);
+        const sig = blockSignature(block);
+        // A preview waiting for Sync was drawn from older data, so a lone
+        // Block at that position is taken when no fingerprint matches.
+        const target = shown.find(el => el.getAttribute('data-preview-sig') === sig) || (shown.length === 1 ? shown[0] : null);
+        if (!target) return;
+
+        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // The same flash a section switch gives its section.
+        target.style.outline = '2px solid var(--accent-blue)';
+        target.style.outlineOffset = '2px';
+        setTimeout(() => { target.style.outline = ''; target.style.outlineOffset = ''; }, 800);
+    }
+
+    document.addEventListener('focusin', followBlock);
+    document.addEventListener('click', followBlock);
 
     // --- MASS MINIMIZE / MAXIMIZE ---
     //
@@ -506,13 +575,26 @@
 
     const esc = (s) => (typeof window.escapeHtml === 'function' ? window.escapeHtml(s) : String(s));
 
-    const EDITOR_OPTIONS = [
-        { key: 'hideBlockType', label: 'Hide Block Type dropdown', hint: 'Each Block shows its type instead of a dropdown that changes it.' },
+    // The Editor tab's three sections (owner, 2026-10-19: "Workspace, Block,
+    // and Preview Panel"). `invert` ticks the box when the stored value is
+    // false (see DEFAULTS).
+    const WORKSPACE_OPTIONS = [
+        { key: 'confirmDeletes', invert: true, label: 'Skip delete confirmations', hint: 'Disable the delete confirmation prompt for most of the destructive actions. Only recommended for experienced editors.' },
+    ];
+
+    const BLOCK_OPTIONS = [
+        { key: 'hideBlockType', label: 'Hide Block Type dropdown', hint: 'Each Block now only shows its type instead of a dropdown.' },
         { key: 'hideDragHandle', label: 'Hide Drag-and-drop area', hint: 'Move a Block by grabbing its left edge instead.' },
-        { key: 'hideFolderPicker', label: 'Hide Block Folder dropdown', hint: 'Put a Block in a folder by dragging it onto the folder. CREATE FOLDER makes a new one.' },
+        { key: 'hideFolderPicker', label: 'Hide Block Folder dropdown', hint: 'Each Block no longer shows the folder dropdown menu. Put a Block in a folder by dragging it onto the folder.' },
         { key: 'formattingOnTop', label: 'Formatting on top', hint: 'Alignment, and the options beside it, sit above a Block\'s content.' },
+        { key: 'compactBlocks', label: 'Compact Blocks', hint: 'Less padding and smaller text on each Block, so more of them fit on screen.' },
+        { key: 'openMinimized', label: 'Open sections minimized', hint: 'Every section opens with its Blocks minimized, the same as MINIMIZE ALL in Actions.' },
+    ];
+
+    const PREVIEW_OPTIONS = [
         { key: 'disablePreview', label: 'Disable Preview Panel', hint: 'The Workspace takes the whole screen. Only for experienced editors who know what they are doing.' },
-        { key: 'confirmDeletes', label: 'Ask before deleting', hint: 'Every delete in the editor asks first. Turned off, deleting happens on the first click.' },
+        { key: 'previewFollows', label: 'Preview follows the Block', hint: 'Clicking into a Block scrolls the Preview Panel to where that Block is.' },
+        { key: 'previewOnSync', label: 'Preview only on Sync', hint: 'The Preview Panel waits for SYNC instead of redrawing on every edit. Switching section still redraws it.' },
     ];
 
     const STICKY_OPTIONS = [
@@ -523,9 +605,10 @@
     ];
 
     function checkbox(opt) {
+        const ticked = opt.invert ? !get(opt.key) : get(opt.key);
         return `
             <label class="config-option">
-                <input type="checkbox" data-config-key="${esc(opt.key)}" ${get(opt.key) ? 'checked' : ''}>
+                <input type="checkbox" data-config-key="${esc(opt.key)}" ${opt.invert ? 'data-config-invert' : ''} ${ticked ? 'checked' : ''}>
                 <span class="config-option-text">
                     <span class="config-option-label">${esc(opt.label)}</span>
                     ${opt.hint ? `<span class="config-option-hint">${esc(opt.hint)}</span>` : ''}
@@ -556,13 +639,23 @@
                     </div>
 
                     <div class="config-panel" data-config-panel="editor">
-                        ${EDITOR_OPTIONS.slice(0, 4).map(checkbox).join('')}
-                        <fieldset class="config-group">
-                            <legend class="config-option-label">Sticky top elements</legend>
-                            <span class="config-option-hint">Ticked ones stay on screen while the Workspace scrolls.</span>
-                            ${STICKY_OPTIONS.map(checkbox).join('')}
-                        </fieldset>
-                        ${EDITOR_OPTIONS.slice(4).map(checkbox).join('')}
+                        <section class="config-section" data-config-section="workspace">
+                            <h4 class="config-section-title">Workspace</h4>
+                            <fieldset class="config-group">
+                                <legend class="config-option-label">Sticky top elements</legend>
+                                <span class="config-option-hint">Ticked ones stay on screen while the Workspace scrolls down.</span>
+                                ${STICKY_OPTIONS.map(checkbox).join('')}
+                            </fieldset>
+                            ${WORKSPACE_OPTIONS.map(checkbox).join('')}
+                        </section>
+                        <section class="config-section" data-config-section="block">
+                            <h4 class="config-section-title">Block</h4>
+                            ${BLOCK_OPTIONS.map(checkbox).join('')}
+                        </section>
+                        <section class="config-section" data-config-section="preview">
+                            <h4 class="config-section-title">Preview Panel</h4>
+                            ${PREVIEW_OPTIONS.map(checkbox).join('')}
+                        </section>
                         <p class="config-footnote">Saved on this device only.</p>
                     </div>
 
@@ -594,7 +687,15 @@
 
         box.addEventListener('change', (e) => {
             const input = e.target.closest('[data-config-key]');
-            if (input) set(input.getAttribute('data-config-key'), input.checked);
+            if (!input) return;
+            const key = input.getAttribute('data-config-key');
+            set(key, input.hasAttribute('data-config-invert') ? !input.checked : input.checked);
+            // The preview on screen was drawn before the marks existed, or
+            // was held for a Sync that turning the hold off now stands in for.
+            // Gallery and tier list pages have no preview this draws.
+            if ((key === 'previewFollows' || key === 'previewOnSync') && window.currentEditorDescData
+                && ['character', 'system', 'tool'].includes(window.currentEditorPageType || 'character')
+                && typeof window.drawLivePreviewNow === 'function') window.drawLivePreviewNow(true);
         });
 
         box.addEventListener('click', (e) => {

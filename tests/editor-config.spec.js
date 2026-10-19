@@ -124,6 +124,26 @@ test('Config opens from the Workspace Header, closes, and a setting survives a r
 
 // --- EDITOR ---
 
+// Owner, 2026-10-19: "The editor part of the Config should be splitted into 3
+// parts: Workspace, Block, and Preview Panel."
+test('the Editor tab is three sections, Workspace, Block and Preview Panel, each with its own settings', async ({ page }) => {
+  await boot(page);
+  await page.click('#btn-editor-config');
+  await expect(page.locator('#editor-config-modal .config-section-title')).toHaveText(['Workspace', 'Block', 'Preview Panel']);
+
+  const labels = (name) => page.locator(`[data-config-section="${name}"] .config-option-label`).allTextContents();
+  expect(await labels('workspace')).toEqual(['Sticky top elements', 'Workspace Header', 'Page navigation buttons',
+    'Sections navigation buttons', 'Workspace basic actions (Undo, Redo, Clear All, Create Folder)', 'Skip delete confirmations']);
+  expect(await labels('block')).toEqual(['Hide Block Type dropdown', 'Hide Drag-and-drop area', 'Hide Block Folder dropdown',
+    'Formatting on top', 'Compact Blocks', 'Open sections minimized']);
+  expect(await labels('preview')).toEqual(['Disable Preview Panel', 'Preview follows the Block', 'Preview only on Sync']);
+
+  // Every new one starts off.
+  for (const key of ['compactBlocks', 'openMinimized', 'previewFollows', 'previewOnSync']) {
+    await expect(page.locator(`[data-config-key="${key}"]`), key).not.toBeChecked();
+  }
+});
+
 test('Hide Block Type dropdown shows the type instead of the dropdown', async ({ page }) => {
   await boot(page);
   const row = cards(page).first().locator('.block-type-row');
@@ -238,6 +258,153 @@ test('Disable Preview Panel takes SHOW PREVIEW away on a phone', async ({ page }
   await expect(page.locator('#mobile-preview-toggle')).toBeHidden();
 });
 
+test('Compact Blocks makes each Block shorter, and a Block still edits', async ({ page }) => {
+  await boot(page);
+  const heights = () => cards(page).evaluateAll(els => els.map(el => el.getBoundingClientRect().height));
+  const before = await heights();
+
+  await setOption(page, 'compactBlocks', true);
+  const after = await heights();
+  after.forEach((h, i) => expect(h, `Block ${i}`).toBeLessThan(before[i]));
+
+  await cards(page).first().locator('textarea.editor-textarea').fill('compact');
+  await expect.poll(() => page.evaluate(() => window.getActiveBlocks()[0].content)).toEqual(['compact']);
+});
+
+test('Open sections minimized shuts the Blocks of every section opened after it is ticked', async ({ page }) => {
+  const desc = { ...DESC, strategy: [para('s1'), para('s2')] };
+  await boot(page, { desc });
+  const open = page.locator('#block-list .block-body:visible');
+  await expect(open).toHaveCount(4);
+
+  // It is about opening: the section already on screen is left as it is.
+  await setOption(page, 'openMinimized', true);
+  await expect(open).toHaveCount(4);
+
+  await page.click('#overview-nav-strategy');
+  await expect(cards(page)).toHaveCount(2);
+  await expect(open).toHaveCount(0);
+
+  await page.click('#overview-nav-overview');
+  await expect(cards(page)).toHaveCount(4);
+  await expect(open).toHaveCount(0);
+
+  // A shut Block still opens with its own button.
+  await cards(page).first().locator('.btn-collapse').click();
+  await expect(open).toHaveCount(1);
+});
+
+// --- PREVIEW FOLLOWS THE BLOCK ---
+
+// Is this Block's text inside the part of the preview the reader can see?
+const previewShows = (page, scope, text) => page.evaluate(({ scope, text }) => {
+  const pane = document.querySelector('.live-preview-pane');
+  const el = Array.from(pane.querySelectorAll(`${scope} p`)).find(p => p.textContent.trim() === text);
+  if (!el) return 'missing';
+  const p = pane.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  return r.top >= p.top && r.bottom <= Math.min(p.bottom, window.innerHeight);
+}, { scope, text });
+
+// Far-off cards are virtualized until they scroll into the Workspace, so the
+// card comes in first and its textarea is clicked once it is drawn.
+async function clickInto(page, n) {
+  await cards(page).nth(n).scrollIntoViewIfNeeded();
+  const field = cards(page).nth(n).locator('textarea.editor-textarea');
+  await expect(field).toBeVisible();
+  await field.click();
+}
+
+test('Preview follows the Block scrolls the preview to the Block clicked into, and only when ticked', async ({ page }) => {
+  await boot(page, { desc: LONG, height: 700 });
+
+  // The control: unticked, the preview stays where it was.
+  await clickInto(page, 25);
+  await page.waitForTimeout(800);
+  expect(await previewShows(page, '#overview-text-subnode', 'p25')).toBe(false);
+
+  await setOption(page, 'previewFollows', true);
+  await clickInto(page, 27);
+  await expect.poll(() => previewShows(page, '#overview-text-subnode', 'p27')).toBe(true);
+
+  // And back up again.
+  await clickInto(page, 1);
+  await expect.poll(() => previewShows(page, '#overview-text-subnode', 'p1')).toBe(true);
+});
+
+// The Overview tab draws Overview, General Strategy and every custom tab in one
+// preview, so each has a Block 1. The one that follows is the one being edited.
+test('Preview follows the Block finds the Block of the section being edited, not the same place in another', async ({ page }) => {
+  const desc = { ...LONG, strategy: [para('s0'), para('s1')] };
+  await boot(page, { desc, height: 700, storage: { dsl_editor_config: JSON.stringify({ previewFollows: true }) } });
+  await page.click('#overview-nav-strategy');
+  await expect(cards(page)).toHaveCount(2);
+
+  // Back to the top first, so a jump to the right place is a jump.
+  await page.evaluate(() => { document.querySelector('.live-preview-pane').scrollTop = 0; });
+  await page.waitForTimeout(400);
+  await clickInto(page, 1);
+  await expect.poll(() => previewShows(page, '#overview-strategy-subnode', 's1')).toBe(true);
+  expect(await previewShows(page, '#overview-text-subnode', 'p1')).toBe(false);
+});
+
+// --- PREVIEW ONLY ON SYNC ---
+
+const SYNC = (page) => page.locator('.header-actions button', { hasText: 'Sync/Save' });
+
+test('at the default the preview redraws as a Block is typed into', async ({ page }) => {
+  await boot(page);
+  await cards(page).first().locator('textarea.editor-textarea').fill('drawn at once');
+  await expect(page.locator('.live-preview-pane #overview-text-subnode')).toContainText('drawn at once');
+});
+
+test('Preview only on Sync: an edit reaches the page at once, and the preview on SYNC', async ({ page }) => {
+  const errors = await boot(page, { storage: { dsl_editor_config: JSON.stringify({ previewOnSync: true }) } });
+  const preview = page.locator('.live-preview-pane #overview-text-subnode');
+
+  await cards(page).first().locator('textarea.editor-textarea').fill('held edit');
+  // In the page's data, which is what a draft and a submission read.
+  await expect.poll(() => page.evaluate(() => window.currentEditorDescData.overview[0].content)).toEqual(['held edit']);
+  await page.waitForTimeout(600);
+  await expect(preview).not.toContainText('held edit');
+
+  await SYNC(page).click();
+  await expect(preview).toContainText('held edit');
+  expect(errors).toEqual([]);
+});
+
+const SYSTEM_DESC = {
+  tabs: [{
+    tabId: 'basics', tabLabel: 'Basics',
+    sections: [
+      { sectionTitle: 'Intro', layout: 'full', blocks: [para('intro text')] },
+      { sectionTitle: 'Advanced', layout: 'full', blocks: [para('advanced text')] },
+    ],
+  }],
+};
+
+test('Preview only on Sync on a system page: SYNC draws, and so does switching section', async ({ page }) => {
+  const errors = await boot(page, {
+    desc: SYSTEM_DESC, url: '/edit.html?char=m1-trading&type=system',
+    storage: { dsl_editor_config: JSON.stringify({ previewOnSync: true }) },
+  });
+  const intro = page.locator('.live-preview-pane #system-basics-sec-0');
+  await expect(intro).toContainText('intro text');
+
+  await cards(page).first().locator('textarea.editor-textarea').fill('held system edit');
+  await page.waitForTimeout(800);
+  await expect(intro).not.toContainText('held system edit');
+  await SYNC(page).click();
+  await expect(intro).toContainText('held system edit');
+
+  await cards(page).first().locator('textarea.editor-textarea').fill('drawn by the switch');
+  await page.waitForTimeout(800);
+  await expect(intro).not.toContainText('drawn by the switch');
+  await page.locator('.system-section-tab-btn').nth(1).click();
+  await expect(intro).toContainText('drawn by the switch');
+  expect(errors).toEqual([]);
+});
+
 // --- STICKY TOP ELEMENTS ---
 
 const LONG = { ...DESC, overview: Array.from({ length: 30 }, (_, i) => para(`p${i}`)) };
@@ -330,9 +497,14 @@ test('a Block\'s ✖ asks first, CANCEL keeps it, and DELETE removes it', async 
   await expect.poll(() => contents(page)).toEqual(['two', 'three', 'table']);
 });
 
-test('turning Ask before deleting off deletes on the first click', async ({ page }) => {
+// Renamed in v1.1 (owner, 2026-10-19), and turned around: the box now says
+// "skip", so ticking it is what turns the prompts off.
+test('Skip delete confirmations starts unticked, and ticked deletes on the first click', async ({ page }) => {
   await boot(page);
-  await setOption(page, 'confirmDeletes', false);
+  await page.click('#btn-editor-config');
+  await expect(page.locator('[data-config-key="confirmDeletes"]')).not.toBeChecked();
+  await page.keyboard.press('Escape');
+  await setOption(page, 'confirmDeletes', true);
 
   await cards(page).first().locator('.btn-delete').click();
   await expect.poll(() => contents(page)).toEqual(['two', 'three', 'table']);
@@ -357,6 +529,19 @@ test('deletes outside the block list ask too: a profile stat and a move stat', a
   await expect(page.locator('#editor-modal-text')).toHaveText('Delete this stat?');
   await page.click('#editor-modal-confirm');
   await expect.poll(() => page.evaluate(() => window.currentEditorFrameData.skills[0].stats.length)).toBe(0);
+});
+
+// The stored setting kept its name and meaning through the rename, so a
+// device that turned the prompts off under the old label still has them off.
+test('a device that switched the prompts off before the rename shows Skip ticked, and still skips', async ({ page }) => {
+  await boot(page, { storage: { dsl_editor_config: JSON.stringify({ confirmDeletes: false }) } });
+  await page.click('#btn-editor-config');
+  await expect(page.locator('[data-config-key="confirmDeletes"]')).toBeChecked();
+  await page.keyboard.press('Escape');
+
+  await cards(page).first().locator('.btn-delete').click();
+  await expect.poll(() => contents(page)).toEqual(['two', 'three', 'table']);
+  await expect(page.locator('#editor-custom-modal')).toBeHidden();
 });
 
 test('a prompt that is not a delete still asks with the switch off: restoring a draft', async ({ page }) => {

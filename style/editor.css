@@ -2705,6 +2705,13 @@ del.diff-del {
 .config-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .config-action-note:empty { display: none; }
 .config-footnote { margin: 0; font-size: 0.7rem; color: #6b7280; }
+.config-section { display: flex; flex-direction: column; gap: 0.6rem; }
+.config-section + .config-section { margin-top: 0.4rem; }
+.config-section-title {
+    margin: 0; padding-bottom: 0.2rem; border-bottom: 1px solid #333;
+    font-family: var(--text-mono); font-size: 0.75rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent-blue);
+}
 
 /* Config > Page (v1.1). The word list does not scroll on its own: the colour
    popup opens inside a row, and a scrolling list trapped its custom picker
@@ -2763,6 +2770,18 @@ body.cfg-hide-folder-picker .block-type-row .block-folder-picker { display: none
    without touching the markup or a single handler. */
 body.cfg-format-top .block-body:not(.minimized) { display: flex; flex-direction: column; }
 body.cfg-format-top .block-body > .editor-row:has(.align-group) { order: -1; margin-bottom: 0.25rem; }
+
+/* Compact Blocks: less padding and smaller text, so more Blocks fit. The side
+   padding stays, because a card's content lines up with the toolbars above it
+   and the left edge is the drag edge when the handle is hidden. Scoped to the
+   block list: .block-card is drawn by other editors too. */
+body.cfg-compact-blocks #block-list .block-card { padding-top: 0.2rem; padding-bottom: 0.2rem; }
+body.cfg-compact-blocks #block-list .block-header { margin-bottom: 0.2rem; padding-bottom: 0.1rem; }
+body.cfg-compact-blocks #block-list .block-type-badge,
+body.cfg-compact-blocks #block-list .block-field-label-sm { font-size: 0.6rem; }
+body.cfg-compact-blocks #block-list .editor-input,
+body.cfg-compact-blocks #block-list .editor-textarea { padding: 0.15rem 0.3rem; margin-bottom: 0.15rem; font-size: 0.7rem; }
+body.cfg-compact-blocks #block-list .editor-textarea { min-height: 32px; }
 
 /* Disable Preview Panel. Beats the phone layout's own !important rules for the
    preview and its SHOW PREVIEW button. */

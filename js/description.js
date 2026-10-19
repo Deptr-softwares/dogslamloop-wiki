@@ -230,14 +230,32 @@ window.generatePlaystyleHTML = function(playstyle) {
 
 // --- THE RECURSIVE BLOCK ENGINE ---
 // This standalone function can render blocks infinitely deep!
-window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1: Added contextClass parameter
+//
+// The editor's Preview follows the Block setting (js/editor-config.js) marks
+// where each Block starts, through window.previewBlockAnchor. Only the
+// outermost list is marked: a Block's place in the Workspace is its place at
+// the top level, and the nested calls below come back through this wrapper.
+// Nothing defines the hook outside edit.html, so a reader page is unchanged.
+let blockRenderDepth = 0;
+window.generateHTMLForBlocks = function (blocks, contextClass = '') {
+    const anchor = blockRenderDepth === 0 && typeof window.previewBlockAnchor === 'function' ? window.previewBlockAnchor : null;
+    blockRenderDepth++;
+    try {
+        return renderBlocksHTML(blocks, contextClass, anchor);
+    } finally {
+        blockRenderDepth--;
+    }
+};
+
+function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1: Added contextClass parameter
     let contentHTML = '';
     let sectionAuthors = new Set(); // FIXED 2: Initialized the authors array here!
     
     if (!Array.isArray(blocks) || blocks.length === 0) return '';
 
-    blocks.forEach(block => {
+    blocks.forEach((block, blockIndex) => {
         if (!block) return;
+        const blockStart = contentHTML.length;
         
         // FIXED 3: Defined the alignment variable inside the loop so every block can use it!
         const alignAttr = getAlignStyle(block.align); 
@@ -683,6 +701,8 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             }
         }
         
+        if (anchor) contentHTML = contentHTML.slice(0, blockStart) + anchor(contentHTML.slice(blockStart), blockIndex, block);
+
         // --- AUTHOR AGGREGATION ---
         if (block.author && block.author.trim() !== '') {
             // Split by comma in case multiple authors collaborated on one block
@@ -717,7 +737,7 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
     contentHTML += `<div class="wiki-blocks-clearfix"></div>`;
 
     return contentHTML;
-};
+}
 
 // Helper to apply dynamic text alignment and prevent long-word overflow
 // --- THE COMBO TABLE (v0.15 item 3) ---

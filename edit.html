@@ -270,7 +270,7 @@
                 <div class="header-actions">
                     <button class="btn-sys btn-sys-regular" onclick="window.cancelEditor()">Cancel</button>
                     <button class="btn-sys btn-sys-blue" onclick="window.openDraftManager()">Drafts</button>
-                    <button class="btn-sys btn-sys-yellow" onclick="window.triggerManualSync()">Sync/Save</button>
+                    <button class="btn-sys btn-sys-yellow" onclick="window.syncWorkspace()">Sync/Save</button>
                     <button id="btn-find-replace" class="btn-sys btn-sys-regular" onclick="window.openFindReplace()">Find &amp; Replace</button>
                     <button id="btn-toggle-diff" class="btn-sys btn-sys-purple" onclick="window.toggleDiffMode()">Diff View</button>
                     <!-- v0.19 F3. Red, and the owner asked for red: the other
@@ -382,41 +382,41 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- First: the character tab vocabulary. site_utils.js derives
          FRAME_MOVE_CATEGORIES from it and editor-tabs.js its major strip. -->
-    <script src="js/character_tabs.js?v=90514b9a"></script>
-    <script src="js/input_slots.js?v=90514b9a"></script>
-    <script src="js/site_utils.js?v=90514b9a"></script>
-    <script src="js/site_meta.js?v=90514b9a"></script>
-    <script src="js/pagebuilder.js?v=90514b9a"></script>
-    <script src="js/search.js?v=90514b9a"></script>
-    <script src="js/framedata.js?v=90514b9a"></script>
-    <script src="js/description.js?v=90514b9a"></script>
-    <script src="js/internalstyling.js?v=90514b9a"></script>
-    <script src="js/editor-config.js?v=90514b9a"></script>
-    <script src="js/editor-modes.js?v=90514b9a"></script>
-    <script src="js/editor-core.js?v=90514b9a"></script>
-    <script src="js/editor-tabs.js?v=90514b9a"></script>
-    <script src="js/editor-framedata.js?v=90514b9a"></script>
-    <script src="js/editor-folders.js?v=90514b9a"></script>
-    <script src="js/editor-blocks.js?v=90514b9a"></script>
-    <script src="js/editor-previews.js?v=90514b9a"></script>
-    <script src="js/diff-markers.js?v=90514b9a"></script>
-    <script src="js/editor-sync.js?v=90514b9a"></script>
-    <script src="js/editor-drafts.js?v=90514b9a"></script>
-    <script src="js/editor-media.js?v=90514b9a"></script>
-    <script src="js/editor-system.js?v=90514b9a"></script>
-    <script src="js/tool_page.js?v=90514b9a"></script>
-    <script src="js/editor-tool.js?v=90514b9a"></script>
-    <script src="js/gallery.js?v=90514b9a"></script>
-    <script src="js/editor-gallery.js?v=90514b9a"></script>
-    <script src="js/tierlist.js?v=90514b9a"></script>
+    <script src="js/character_tabs.js?v=4ab74cbc"></script>
+    <script src="js/input_slots.js?v=4ab74cbc"></script>
+    <script src="js/site_utils.js?v=4ab74cbc"></script>
+    <script src="js/site_meta.js?v=4ab74cbc"></script>
+    <script src="js/pagebuilder.js?v=4ab74cbc"></script>
+    <script src="js/search.js?v=4ab74cbc"></script>
+    <script src="js/framedata.js?v=4ab74cbc"></script>
+    <script src="js/description.js?v=4ab74cbc"></script>
+    <script src="js/internalstyling.js?v=4ab74cbc"></script>
+    <script src="js/editor-config.js?v=4ab74cbc"></script>
+    <script src="js/editor-modes.js?v=4ab74cbc"></script>
+    <script src="js/editor-core.js?v=4ab74cbc"></script>
+    <script src="js/editor-tabs.js?v=4ab74cbc"></script>
+    <script src="js/editor-framedata.js?v=4ab74cbc"></script>
+    <script src="js/editor-folders.js?v=4ab74cbc"></script>
+    <script src="js/editor-blocks.js?v=4ab74cbc"></script>
+    <script src="js/editor-previews.js?v=4ab74cbc"></script>
+    <script src="js/diff-markers.js?v=4ab74cbc"></script>
+    <script src="js/editor-sync.js?v=4ab74cbc"></script>
+    <script src="js/editor-drafts.js?v=4ab74cbc"></script>
+    <script src="js/editor-media.js?v=4ab74cbc"></script>
+    <script src="js/editor-system.js?v=4ab74cbc"></script>
+    <script src="js/tool_page.js?v=4ab74cbc"></script>
+    <script src="js/editor-tool.js?v=4ab74cbc"></script>
+    <script src="js/gallery.js?v=4ab74cbc"></script>
+    <script src="js/editor-gallery.js?v=4ab74cbc"></script>
+    <script src="js/tierlist.js?v=4ab74cbc"></script>
     <!-- Before the strips that call reorderControls while rendering. -->
-    <script src="js/editor-reorder.js?v=90514b9a"></script>
+    <script src="js/editor-reorder.js?v=4ab74cbc"></script>
     <!-- Last: it walks whatever the other editors have put in desc_data, and
          reads the keyed-section registry to name where a match is. -->
-    <script src="js/editor-find-replace.js?v=90514b9a"></script>
+    <script src="js/editor-find-replace.js?v=4ab74cbc"></script>
     <!-- Order-independent: it binds its own DOMContentLoaded and a delegated
          click, and touches nothing another editor module owns. -->
-    <script src="js/editor-notices.js?v=90514b9a"></script>
-    <script src="js/editor-tutorial.js?v=90514b9a"></script>
+    <script src="js/editor-notices.js?v=4ab74cbc"></script>
+    <script src="js/editor-tutorial.js?v=4ab74cbc"></script>
 </body>
 </html>
