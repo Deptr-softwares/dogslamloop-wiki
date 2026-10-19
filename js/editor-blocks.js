@@ -1167,8 +1167,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 </div>
             </div>
 
+            <!-- Stacked, ADD BLOCK on top (owner, 2026-10-19). -->
             <div class="add-block-footer-actions">
-            <button class="btn-sys btn-sys-blue" id="btn-media-library" title="Open Media Manager">📁 MEDIA LIBRARY</button>
             <div class="add-block-menu-wrapper">
                 <div class="add-block-popup" id="add-block-popup">
                     ${ADD_BLOCK_GROUPS.map((group, gi) => `
@@ -1181,6 +1181,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                     <span class="add-block-icon">⨁</span> ADD BLOCK
                 </button>
             </div>
+            <button class="btn-sys btn-sys-blue" id="btn-media-library" title="Open Media Manager">📁 MEDIA LIBRARY</button>
             </div>
         </div>
     `;

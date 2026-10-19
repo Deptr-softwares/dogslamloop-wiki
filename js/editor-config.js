@@ -150,7 +150,75 @@
         requestAnimationFrame(() => {
             stickyQueued = false;
             if (customSticky() || document.body.classList.contains('cfg-workspace-scrolls')) layoutSticky();
+            pinFooter();
         });
+    }
+
+    // --- THE WORKSPACE FOOTER STAYS AT THE BOTTOM (v1.1) ---
+    //
+    // Owner, 2026-10-19: "The Workspace Footer is always stuck at the bottom of
+    // the Workspace regardless if the Workspace itself is current shortened".
+    // The footer is sticky, which only holds it down once the content is
+    // taller than the Workspace, so on a short section it sat right under the
+    // last Block. Now the empty space below goes above it instead, and it
+    // rests where a long section's footer rests at the end of its scroll.
+    //
+    // Measured, not laid out by CSS. A flex column with the footer at
+    // margin-top:auto did pin it, and moved fifty other elements on the skills
+    // and tool pages, because margins between siblings stop collapsing inside
+    // a flex container. This touches the footer's margin and nothing else.
+    const shown = (el) => !!el && el.getClientRects().length > 0 && !['absolute', 'fixed'].includes(getComputedStyle(el).position);
+
+    function lastShownChild(el) {
+        for (let child = el.lastElementChild; child; child = child.previousElementSibling) if (shown(child)) return child;
+        return null;
+    }
+
+    function prevShownSibling(el) {
+        for (let sib = el.previousElementSibling; sib; sib = sib.previousElementSibling) if (shown(sib)) return sib;
+        return null;
+    }
+
+    // Sized by whatever holds the footer, so a Block that grows as it is typed
+    // into moves it the frame after. A size it set itself is reported once
+    // and then settles, because the second pass sets the same margin.
+    let footerSizes = null;
+    let footerWatched = [];
+    function watchFooter(footer, scroller) {
+        if (typeof ResizeObserver !== 'function') return;
+        if (!footerSizes) footerSizes = new ResizeObserver(queueSticky);
+        const chain = [scroller];
+        for (let el = footer.parentElement; el && el !== scroller; el = el.parentElement) chain.push(el);
+        footerWatched.filter(el => !chain.includes(el)).forEach(el => footerSizes.unobserve(el));
+        chain.filter(el => !footerWatched.includes(el)).forEach(el => footerSizes.observe(el));
+        footerWatched = chain;
+    }
+
+    function pinFooter() {
+        const builder = document.getElementById('interactive-builder');
+        const footers = builder ? builder.querySelectorAll('.add-block-toolbar') : [];
+        if (footers.length !== 1) return;
+        const footer = footers[0];
+        footer.style.marginTop = '';
+
+        const scroller = document.body.classList.contains('cfg-workspace-scrolls') ? workspace() : builder;
+        if (!scroller || !shown(footer)) return;
+        watchFooter(footer, scroller);
+
+        const last = lastShownChild(scroller);
+        if (!last) return;
+        const inner = scroller.getBoundingClientRect().top + scroller.clientTop + scroller.clientHeight
+            - parseFloat(getComputedStyle(scroller).paddingBottom);
+        const end = last.getBoundingClientRect().bottom + parseFloat(getComputedStyle(last).marginBottom);
+        const slack = inner - end;
+        if (slack < 1) return;
+
+        // The block list above carries a bottom margin, and the two margins
+        // would collapse into the larger one: the footer gets the gap it has
+        // now plus the slack, so it moves by the slack and no less.
+        const prev = prevShownSibling(footer);
+        const gap = prev ? footer.getBoundingClientRect().top - prev.getBoundingClientRect().bottom : 0;
+        footer.style.marginTop = `${gap + slack}px`;
     }
 
     function watchSticky() {
@@ -158,6 +226,9 @@
             const sizes = new ResizeObserver(queueSticky);
             ['editor-header', 'editor-scope-tip', 'editor-mode-bar', 'editor-mode-controls', 'editor-tab-nav']
                 .forEach(id => { const el = document.getElementById(id); if (el) sizes.observe(el); });
+            // The Workspace itself, for the footer: the header folding, the
+            // window resizing, a scrolling mode changing what scrolls.
+            [document.getElementById('interactive-builder'), workspace()].forEach(el => { if (el) sizes.observe(el); });
         }
         const builder = document.getElementById('interactive-builder');
         if (builder) new MutationObserver(queueSticky).observe(builder, { childList: true, subtree: true });
@@ -170,6 +241,9 @@
         if (get('previewFollows')) window.previewBlockAnchor = anchorBlock;
         else delete window.previewBlockAnchor;
         layoutSticky();
+        // A setting can change how tall the section is (Compact Blocks) or
+        // what scrolls (Sticky), and with it where the footer belongs.
+        queueSticky();
     }
 
     // --- PREVIEW FOLLOWS THE BLOCK ---

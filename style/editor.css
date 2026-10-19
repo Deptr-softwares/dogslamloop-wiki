@@ -2051,14 +2051,18 @@ input[type="checkbox"]:checked {
 }
 
 /* MEDIA LIBRARY and ADD BLOCK, together at the end of the footer row
-   (v0.16 fine-tuning 7). flex-shrink:0 so the two-row format toolbar beside
-   them takes the squeeze instead - it wraps by design, and these do not. */
+   (v0.16 fine-tuning 7), stacked with ADD BLOCK on top since v1.1, one width.
+   flex-shrink:0 so the two-row format toolbar beside them takes the squeeze
+   instead - it wraps by design, and these do not. */
 .add-block-footer-actions {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     gap: 0.5rem;
     flex-shrink: 0;
 }
+.add-block-footer-actions > .btn-sys,
+.add-block-footer-actions > .add-block-menu-wrapper > .btn-sys { width: 100%; }
 
 /* --- STICKY FORMATTING TOOLBAR --- */
 .add-block-toolbar {

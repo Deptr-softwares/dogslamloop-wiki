@@ -451,6 +451,120 @@ test('the Workspace Header can scroll away while the page tabs stay, and the bas
   expect(Math.abs(later.actionsTop - first.actionsTop), 'and stay').toBeLessThan(1);
 });
 
+// --- THE WORKSPACE FOOTER (v1.1) ---
+//
+// Owner, 2026-10-19: "The Workspace Footer is always stuck at the bottom of the
+// Workspace regardless if the Workspace itself is current shortened". The
+// reference is the layout the editor already had: where a long section's
+// footer rests at the end of its scroll. A short section's footer belongs
+// exactly there, not straight under its last Block.
+
+// How far the footer's bottom sits above the bottom of what scrolls, and how
+// far below the last Block its top is.
+const footerPlace = (page, scrollerSel) => page.evaluate((sel) => {
+  const scroller = document.querySelector(sel);
+  const footer = document.querySelector('#interactive-builder .add-block-toolbar');
+  const cards = document.querySelectorAll('#block-list .block-card');
+  const last = cards[cards.length - 1];
+  return {
+    fromEdge: scroller.getBoundingClientRect().bottom - footer.getBoundingClientRect().bottom,
+    belowLast: footer.getBoundingClientRect().top - last.getBoundingClientRect().bottom,
+  };
+}, scrollerSel);
+
+// Scrolled to the end until the end stops moving: cards drawn on the way in
+// change the section's height, which can leave one scroll short of the end.
+async function restingPlace(page, scrollerSel) {
+  let last = null;
+  for (let i = 0; i < 20; i++) {
+    const at = await page.evaluate((sel) => {
+      const s = document.querySelector(sel);
+      s.scrollTop = s.scrollHeight;
+      return s.scrollHeight - s.clientHeight - s.scrollTop;
+    }, scrollerSel);
+    await page.waitForTimeout(200);
+    const now = (await footerPlace(page, scrollerSel)).fromEdge;
+    if (at < 1 && last !== null && Math.abs(now - last) < 0.1) return now;
+    last = now;
+  }
+  throw new Error('the scroll never settled at the end');
+}
+
+const SHORT_AND_LONG = { ...LONG, strategy: [para('the only Block')] };
+
+// Tall enough that one Block leaves the Workspace mostly empty: at 900 the
+// Workspace is under 600px, which a section's own bars nearly fill.
+const TALL = 1300;
+
+test('on a short section the Workspace Footer rests at the bottom, where a long section\'s does', async ({ page }) => {
+  const errors = await boot(page, { desc: SHORT_AND_LONG, height: TALL });
+  const resting = await restingPlace(page, '#interactive-builder');
+
+  await page.click('#overview-nav-strategy');
+  await expect(cards(page)).toHaveCount(1);
+  await expect.poll(async () => Math.abs((await footerPlace(page, '#interactive-builder')).fromEdge - resting)).toBeLessThan(1.5);
+  expect((await footerPlace(page, '#interactive-builder')).belowLast, 'the empty space is above the footer').toBeGreaterThan(200);
+
+  // A Block that grows as it is typed into takes space from above the footer,
+  // and the footer stays put.
+  const before = (await footerPlace(page, '#interactive-builder')).belowLast;
+  await cards(page).first().locator('textarea.editor-textarea').fill('a\nb\nc\nd\ne\nf\ng\nh');
+  await expect.poll(async () => (await footerPlace(page, '#interactive-builder')).belowLast).toBeLessThan(before - 40);
+  expect(Math.abs((await footerPlace(page, '#interactive-builder')).fromEdge - resting)).toBeLessThan(1.5);
+
+  // Back on the long section it is the sticky footer it always was.
+  await page.click('#overview-nav-overview');
+  await expect(cards(page)).toHaveCount(30);
+  await expect.poll(() => page.evaluate(() => document.querySelector('#interactive-builder .add-block-toolbar').style.marginTop)).toBe('');
+  expect(errors).toEqual([]);
+});
+
+test('with the Workspace Header scrolling away, a short section\'s footer still rests at the bottom', async ({ page }) => {
+  await boot(page, { desc: SHORT_AND_LONG, height: TALL });
+  await setOption(page, 'stickHeader', false);
+  const resting = await restingPlace(page, '.editor-workspace');
+
+  await page.click('#overview-nav-strategy');
+  await expect(cards(page)).toHaveCount(1);
+  await expect.poll(async () => Math.abs((await footerPlace(page, '.editor-workspace')).fromEdge - resting)).toBeLessThan(1.5);
+  expect((await footerPlace(page, '.editor-workspace')).belowLast).toBeGreaterThan(200);
+});
+
+test('on a system page a short section\'s footer rests at the bottom too', async ({ page }) => {
+  const desc = { tabs: [{ tabId: 'basics', tabLabel: 'Basics', sections: [
+    { sectionTitle: 'Long', layout: 'full', blocks: Array.from({ length: 30 }, (_, i) => para(`p${i}`)) },
+    { sectionTitle: 'Short', layout: 'full', blocks: [para('the only Block')] },
+  ] }] };
+  await boot(page, { desc, url: '/edit.html?char=m1-trading&type=system', height: TALL });
+  const resting = await restingPlace(page, '#interactive-builder');
+
+  await page.locator('.system-section-tab-btn').nth(1).click();
+  await expect(cards(page)).toHaveCount(1);
+  await expect.poll(async () => Math.abs((await footerPlace(page, '#interactive-builder')).fromEdge - resting)).toBeLessThan(1.5);
+});
+
+// Owner, 2026-10-19: "Media Library and Add Block should be stacked on top of
+// each other with Add Block on top".
+test('ADD BLOCK sits above MEDIA LIBRARY at the same width, and still adds a Block', async ({ page }) => {
+  await boot(page);
+  const add = await box(page.locator('#btn-toggle-add-menu'));
+  const media = await box(page.locator('#btn-media-library'));
+  expect(add.bottom).toBeLessThanOrEqual(media.top);
+  expect(Math.abs(add.width - media.width)).toBeLessThan(1);
+
+  await page.click('#btn-toggle-add-menu');
+  const option = page.locator('#add-block-popup .add-block-btn[data-type="paragraph"]');
+  await expect(option).toBeVisible();
+  const reachable = await option.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return r.top >= 0 && (el === hit || el.contains(hit));
+  });
+  expect(reachable, 'the menu opens on screen and on top').toBe(true);
+  await option.click();
+  await expect(cards(page)).toHaveCount(5);
+});
+
 // --- ACTIONS ---
 
 test('MINIMIZE ALL and MAXIMIZE ALL act on every Block in the section, folders included', async ({ page }) => {
