@@ -412,6 +412,12 @@ let currentStrategyBlocks = [];
 let blockHistory = [];
 let historyIndex = -1;
 
+// History holds STATES, and UNDO steps to the one before the latest. So a
+// change records the state it starts from (this, which skips a repeat of the
+// latest) and then the one it ends in (updateLivePreview()). Only UNDO and
+// REDO pass updateLivePreview(true): they move between states already saved.
+// Until 2026-10-20 drags, folder changes and +Row skipped the second half, and
+// UNDO after one also took back the edit before it.
 window.saveBlockHistory = function() {
     const newStateStr = JSON.stringify(currentStrategyBlocks);
     
@@ -2206,7 +2212,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             window.setBlockFolderCollapsed(from, true);
             window.setBlockFolderCollapsed(to, !wasOpen);
             renderBlockList();
-            updateLivePreview(true);
+            updateLivePreview();
             return;
         }
 
@@ -2451,7 +2457,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 settleFolderAt(activeBlocks, landedAt);
             }
             renderBlockList();
-            updateLivePreview(true); // Tell it to skip saving history again
+            updateLivePreview();
             flashMovedBlock(landedAt);
         } else if (nestHost(activeBlocks, nestInto) && payload.fromIndex !== nestInto) {
             // The same gesture as dropping into a folder, with a different
@@ -2469,14 +2475,14 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             const hostIndex = payload.fromIndex < nestInto ? nestInto - 1 : nestInto;
             activeBlocks[hostIndex].content.push(item);
             renderBlockList();
-            updateLivePreview(true);
+            updateLivePreview();
             flashMovedBlock(hostIndex);
         } else if (folderHead && typeof window.dropBlockIntoFolderHead === 'function') {
             window.saveBlockHistory();
             const landedAt = window.dropBlockIntoFolderHead(activeBlocks, payload.fromIndex, folderHead);
             if (landedAt < 0) return;
             renderBlockList();
-            updateLivePreview(true);
+            updateLivePreview();
             flashMovedBlock(landedAt);
         } else if (dropIndex !== null) {
             let target = dropIndex;
@@ -2487,7 +2493,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 activeBlocks.splice(target, 0, item);
                 settleFolderAt(activeBlocks, target);
                 renderBlockList();
-                updateLivePreview(true);
+                updateLivePreview();
                 flashMovedBlock(target);
             }
         }
@@ -2725,7 +2731,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         window.saveBlockHistory();
         const landedAt = window.assignBlockToFolder(activeBlocks, index, name);
         renderBlockList();
-        updateLivePreview(true);
+        updateLivePreview();
         if (landedAt >= 0) flashMovedBlock(landedAt);
     });
 
@@ -2858,7 +2864,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 && typeof window.ungroupBlockFolder === 'function') {
                 window.ungroupBlockFolder(activeBlocks, folderName);
                 renderBlockList();
-                updateLivePreview(true);
+                updateLivePreview();
                 return;
             }
 
@@ -2923,7 +2929,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             const before = tableButtonsTop(index);
             renderBlockList();
             keepTableButtonsInPlace(index, before);
-            updateLivePreview(tableAction === 'add-row');
+            updateLivePreview();
             return;
         }
 
