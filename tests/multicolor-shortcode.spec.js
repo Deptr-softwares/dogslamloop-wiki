@@ -123,6 +123,20 @@ test('[noauto] inside a gradient protects the word and leaves no tag behind', as
     expect(out.frameTinted, 'Startup is a frame term, and [noauto] kept it plain').toBe(0);
 });
 
+test('[noauto=all] inside a gradient leaves no tag behind either', async ({ page }) => {
+    const out = await page.evaluate(() => {
+        const host = document.createElement('p');
+        host.className = 'strategy-paragraph';
+        host.textContent = '[multicolor=#ff0000,#0000ff][noauto=all]Startup[/noauto][/multicolor]';
+        document.querySelector('main').appendChild(host);
+        window.applyInternalStyling();
+        const guard = host.querySelector('.sc-noauto-all');
+        return { text: host.textContent, inGuard: guard ? guard.querySelectorAll('.sc-mc').length : -1 };
+    });
+    expect(out.text).toBe('Startup');
+    expect(out.inGuard).toBe(7);
+});
+
 test('[noauto] around a gradient still works', async ({ page }) => {
     const html = await render(page, '[noauto][multicolor=#ff0000,#0000ff]Startup[/multicolor][/noauto]');
     expect(html).not.toContain('[noauto]');

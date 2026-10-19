@@ -361,7 +361,7 @@
                 <p class="config-option-hint">These belong to this page, not your device. They go out with your next submission and are reviewed like any other edit.</p>
                 <fieldset class="config-group">
                     <legend class="config-option-label">Auto-color words</legend>
-                    <span class="config-option-hint">Colored everywhere on this page. Whole words only, in the exact case typed ("Domain", not "domain"). [noauto] stops it, and built-in colors (character names, frame data, moves) win where they meet.</span>
+                    <span class="config-option-hint">These custom words will be colored everywhere on this page. Whole words only, in the exact case typed ("Domain", not "domain"). [noauto=all] can stop it, and built-in auto-colors (character names, frame data, moves) are prioritized over this.</span>
                     <div class="config-words" data-config-words></div>
                     <div class="config-actions">
                         <button type="button" class="btn-sys btn-sys-regular" data-word-add>+ ADD WORD</button>

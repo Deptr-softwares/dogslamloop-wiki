@@ -164,7 +164,7 @@ function splitGradient(html, stops) {
             continue;
         }
         if (ch === '[') {
-            const later = /^\[(?:\/?noauto|url=[^\]]+|\/url)\]/i.exec(html.slice(i));
+            const later = /^\[(?:\/?noauto|noauto=all|url=[^\]]+|\/url)\]/i.exec(html.slice(i));
             if (later) {
                 units.push({ raw: later[0], visible: false });
                 i += later[0].length;
@@ -323,12 +323,16 @@ function buildCharacterTerms() {
 // editor and survives a paste as something nobody can see. The worst case here
 // is not a security one either - content that literally contained the token
 // would get some of its own text relocated, which is a rendering bug.
+//
+// [noauto=all] (v1.1) also stops the page's own words (PAGE WORDS below).
+// Plain [noauto] stops the built-in colours only, because a page word is one
+// an editor of the page chose on purpose (owner, 2026-10-19).
 const NOAUTO_OPEN = '%%DSL_NOAUTO_';
 const NOAUTO_CLOSE = '%%';
 
 function liftNoAuto(content, store) {
-    return content.replace(/\[noauto\]([\s\S]*?)\[\/noauto\]/gi, (whole, inner) => {
-        store.push(inner);
+    return content.replace(/\[noauto(=all)?\]([\s\S]*?)\[\/noauto\]/gi, (whole, all, inner) => {
+        store.push({ inner, all: !!all });
         return `${NOAUTO_OPEN}${store.length - 1}${NOAUTO_CLOSE}`;
     });
 }
@@ -341,9 +345,11 @@ function restoreNoAuto(content, store) {
     if (!store.length) return content;
     return content.replace(
         new RegExp(`${NOAUTO_OPEN}(\\d+)${NOAUTO_CLOSE}`, 'g'),
-        (whole, index) => store[Number(index)] !== undefined
-            ? `<span class="sc-noauto">${store[Number(index)]}</span>`
-            : whole
+        (whole, index) => {
+            const region = store[Number(index)];
+            if (!region) return whole;
+            return `<span class="sc-noauto${region.all ? ' sc-noauto-all' : ''}">${region.inner}</span>`;
+        }
     );
 }
 
@@ -357,7 +363,9 @@ function restoreNoAuto(content, store) {
 // colours and the ordinary word "domain" stays plain. Built-in colours win
 // wherever the two meet: this paints only the text the built-in passes left
 // plain, and in the Combos and Techs tabs a page word that is a move name
-// gives way to the move's colour (applyInputSlotColours). [noauto] stops it.
+// gives way to the move's colour (applyInputSlotColours). [noauto=all] stops
+// it; plain [noauto] stops only the built-in colours, so a page word inside one
+// is painted.
 //
 // A pass over text nodes rather than one more replace over the HTML string,
 // because the string cannot tell text inside an auto-coloured span from text
@@ -426,8 +434,8 @@ function buildPageWords() {
     return value;
 }
 
-// Text inside these already has its colour, or was protected by [noauto].
-const PAGE_WORD_SKIP = '.sc-auto, .sc-timing, .sc-noauto';
+// Text inside these already has its colour, or was protected by [noauto=all].
+const PAGE_WORD_SKIP = '.sc-auto, .sc-timing, .sc-noauto-all';
 
 function paintPageWords(block, words) {
     if (!words) return;
@@ -701,9 +709,11 @@ window.applyInputSlotColours = function (root) {
             // A page word that is a move name gives way to the move's colour,
             // the way every built-in colour wins over a page's words (v1.1).
             // A gradient word is one span per letter, which the walk below
-            // could never match a name across.
+            // could never match a name across. Inside [noauto] the move
+            // colour is stopped, so the page word stays.
             let unwrapped = false;
             block.querySelectorAll('.sc-page-word').forEach(word => {
+                if (word.closest('.sc-noauto')) return;
                 if (!terms.lookup.get(window.normaliseMoveName(word.textContent))) return;
                 word.replaceWith(document.createTextNode(word.textContent));
                 unwrapped = true;

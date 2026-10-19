@@ -76,12 +76,54 @@ test('a gradient word sweeps its stops across the letters', async ({ page }) => 
   expect(out.words[0].letters.at(-1)).toBe('rgb(0, 0, 255)');
 });
 
-test('[noauto] stops a page word too', async ({ page }) => {
+// Owner, 2026-10-19: "[noauto] should be able to stop the built-in auto-colors
+// BUT if that word also have a custom color for the page, it will be applied",
+// with [noauto=all] to stop both.
+test('[noauto] stops the built-in colours and keeps the page words; [noauto=all] stops both', async ({ page }) => {
   await openCrow(page, { words: [DOMAIN], houseStyle: '' });
-  const out = await paint(page, '[noauto]Domain[/noauto] then Domain');
+  const out = await page.evaluate(() => {
+    const host = document.createElement('p');
+    host.className = 'strategy-paragraph';
+    host.textContent = '[noauto]Domain Vessel Startup[/noauto] [noauto=all]Domain Vessel Startup[/noauto] Domain Vessel Startup';
+    document.querySelector('main').appendChild(host);
+    window.applyInternalStyling();
+    const region = (el) => (el.closest('.sc-noauto-all') ? 'all' : el.closest('.sc-noauto') ? 'noauto' : 'open');
+    return {
+      text: host.textContent,
+      pageWords: [...host.querySelectorAll('.sc-page-word')].map(s => `${s.textContent} in ${region(s)}`),
+      builtIns: [...host.querySelectorAll('.sc-auto:not(.sc-page-word), .sc-timing')].map(s => `${s.textContent} in ${region(s)}`),
+    };
+  });
 
-  expect(out.text).toBe('Domain then Domain');
-  expect(out.words.map(w => w.text), 'only the unprotected one').toEqual(['Domain']);
+  expect(out.text, 'no tag is left showing').toBe('Domain Vessel Startup Domain Vessel Startup Domain Vessel Startup');
+  expect(out.pageWords).toEqual(['Domain in noauto', 'Domain in open']);
+  expect(out.builtIns).toEqual(['Vessel in open', 'Startup in open']);
+});
+
+test('in the Combos tab a page word that is a move keeps its page colour inside [noauto], and nothing inside [noauto=all]', async ({ page }) => {
+  await openCrow(page, { words: [{ word: 'Circling', colors: ['#ff0000', '#0000ff'] }], houseStyle: '' });
+  const out = await page.evaluate(() => {
+    window.renderCombosTab({
+      comboGroups: [{ title: 'T', content: [{ type: 'paragraph', content: 'Keep [noauto]Circling[/noauto], not [noauto=all]Circling[/noauto], then Circling.' }] }],
+    });
+    window.applyInternalStyling();
+    const para = [...document.querySelectorAll('#tab-combos .is-styled')].find(el => el.textContent.startsWith('Keep Circling'));
+    const region = (el) => (el.closest('.sc-noauto-all') ? 'all' : el.closest('.sc-noauto') ? 'noauto' : 'open');
+    return {
+      text: para.textContent,
+      pageWords: [...para.querySelectorAll('.sc-page-word')].map(s => region(s)),
+      moves: [...para.querySelectorAll('.is-2')].map(s => region(s)),
+    };
+  });
+  expect(out.text).toBe('Keep Circling, not Circling, then Circling.');
+  // The move colour is a built-in: [noauto] stops it, so the page word stays.
+  expect(out.pageWords).toEqual(['noauto']);
+  expect(out.moves).toEqual(['open']);
+});
+
+test('a heading\'s anchor drops [noauto=all] like every other format tag', async ({ page }) => {
+  await openCrow(page, null);
+  expect(await page.evaluate(() => window.stripStyleShortcodes('[noauto=all]Domain[/noauto] combos'))).toBe('Domain combos');
 });
 
 test('built-in colours win: a character name and a frame term keep their own', async ({ page }) => {
