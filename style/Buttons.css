@@ -29,42 +29,75 @@ button {
    suppressed the keyboard focus ring, and browsers gate that behind
    :focus-visible anyway, so mouse users see no change and keyboard users get
    the ring back on editor pages. */
+/* THE LOOK (v1.1, owner's pick from three mockups, 2026-10-20): option B's
+   cut top-right corner and its hover fill sweeping in from the left, option
+   A's hard shadow, option C's faint tint of the button's own colour, a 1px
+   lift on hover and a 1px nudge on a press.
+
+   The corner is a clip-path, and a clip-path cuts away everything outside it,
+   box-shadow included. So the clip runs 6px past the right and bottom edges,
+   where the shadow sits. The shadow's offset (3px, 3px) lies along the same
+   45 degree line as the cut, so the one diagonal cuts both the button and its
+   shadow. The cut's own border is the first background layer: a 1.5px line
+   on that diagonal, since border cannot draw one.
+
+   A colour tier sets --sys-edge (border, cut line, tint) and --sys-fill (the
+   hover fill and the shadow it darkens). Everything else is shared. */
 .btn-sys {
+    --sys-edge: #555;
+    --sys-fill: #888;
+    --sys-cut: 9px;
     display: inline-flex; align-items: center; justify-content: center;
     font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold;
     text-transform: uppercase; padding: 0.4rem 0.75rem;
-    transition: all 0.15s ease-in-out; box-sizing: border-box;
-    background: rgba(0, 0, 0, 0.6); border: 1px solid #555;
+    box-sizing: border-box;
+    border: 1px solid var(--sys-edge);
+    background:
+        linear-gradient(225deg, transparent calc(50% - 0.75px), var(--sys-edge) calc(50% - 0.75px),
+            var(--sys-edge) calc(50% + 0.75px), transparent calc(50% + 0.75px)) right top / var(--sys-cut) var(--sys-cut) no-repeat border-box,
+        linear-gradient(var(--sys-fill), var(--sys-fill)) left top / 0% 100% no-repeat border-box,
+        color-mix(in srgb, var(--sys-edge) 9%, var(--bg-main, #0d1117));
+    box-shadow: 3px 3px 0 var(--manga-shadow, #000);
+    clip-path: polygon(0 0, calc(100% - var(--sys-cut)) 0, calc(100% + 6px) calc(var(--sys-cut) + 6px),
+        calc(100% + 6px) calc(100% + 6px), 0 calc(100% + 6px));
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background-size 0.18s ease-out, color 0.18s ease-out;
     color: var(--text-primary); white-space: nowrap; text-decoration: none;
     cursor: pointer;
 }
-.btn-sys:hover:not(:disabled) { transform: translateY(-2px); }
-.btn-sys:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: none !important; }
+/* The shadow stays where it was on the ground: lifting the button 1px makes
+   it 1px taller, and a press shortens it by the 1px the button moved. */
+.btn-sys:hover:not(:disabled) {
+    transform: translateY(-1px);
+    background-size: var(--sys-cut) var(--sys-cut), 100% 100%, auto;
+    box-shadow: 3px 4px 0 color-mix(in srgb, var(--sys-fill) 40%, #000);
+    color: #000;
+}
+.btn-sys:active:not(:disabled) {
+    transform: translate(1px, 1px);
+    box-shadow: 2px 2px 0 color-mix(in srgb, var(--sys-fill) 40%, #000);
+}
 .btn-sys:disabled { opacity: 0.4; cursor: not-allowed; }
+@media (prefers-reduced-motion: reduce) {
+    .btn-sys { transition: none; }
+    .btn-sys:hover:not(:disabled), .btn-sys:active:not(:disabled) { transform: none; }
+}
 
-.btn-sys-regular { border-color: #555; color: #aaa; }
-.btn-sys-regular:hover:not(:disabled) { border-color: #888; background: #888; color: #000; box-shadow: 0px 0px 12px rgba(136, 136, 136, 0.5); }
+.btn-sys-regular { --sys-edge: #555; --sys-fill: #888; color: #aaa; }
+/* Blue is a fixed value, not var(--accent-blue): a character page's theme
+   (js/site_meta.js applyCharacterTheme) sets --accent-blue to the character's
+   own colour, which made the editor's blue Media Library button gray on
+   Boomcat (owner, 2026-10-20). The value is the site's default accent. */
+.btn-sys-blue    { --sys-edge: hsl(213, 94%, 68%); --sys-fill: hsl(213, 94%, 68%); color: hsl(213, 94%, 68%); }
+.btn-sys-green   { --sys-edge: #22c55e; --sys-fill: #22c55e; color: #22c55e; }
+.btn-sys-red     { --sys-edge: #ef4444; --sys-fill: #ef4444; color: #ef4444; }
+.btn-sys-yellow  { --sys-edge: #eab308; --sys-fill: #eab308; color: #eab308; }
+.btn-sys-purple  { --sys-edge: #a855f7; --sys-fill: #a855f7; color: #a855f7; }
 
-.btn-sys-blue { border-color: var(--accent-blue); color: var(--accent-blue); }
-.btn-sys-blue:hover:not(:disabled) { background: var(--accent-blue); color: #000; box-shadow: 0px 0px 12px rgba(59, 130, 246, 0.6); }
-
-.btn-sys-green { border-color: #22c55e; color: #22c55e; }
-.btn-sys-green:hover:not(:disabled) { background: #22c55e; color: #000; box-shadow: 0px 0px 12px rgba(34, 197, 94, 0.6); }
-
-.btn-sys-red { border-color: #ef4444; color: #ef4444; }
-.btn-sys-red:hover:not(:disabled) { background: #ef4444; color: #000; box-shadow: 0px 0px 12px rgba(239, 68, 68, 0.6); }
-
-.btn-sys-yellow { border-color: #eab308; color: #eab308; }
-.btn-sys-yellow:hover:not(:disabled) { background: #eab308; color: #000; box-shadow: 0px 0px 12px rgba(234, 179, 8, 0.6); }
-
-.btn-sys-purple { border-color: #a855f7; color: #a855f7; }
-.btn-sys-purple:hover:not(:disabled) { background: #a855f7; color: #000; box-shadow: 0px 0px 12px rgba(168, 85, 247, 0.6); }
-
-/* Filled Variants (For Modals) */
+/* Filled Variants (For Modals). Always worn with .btn-sys and its colour tier,
+   whose hover shadow they keep: the glow they used to add on hover is gone
+   with the rest of the glows (v1.1). */
 .btn-danger-fill { background: #ef4444 !important; color: #000 !important; border-color: #ef4444 !important; }
-.btn-danger-fill:hover:not(:disabled) { box-shadow: 0px 0px 15px rgba(239, 68, 68, 0.6) !important; }
 .btn-purple-fill { background: #a855f7 !important; color: #000 !important; border-color: #a855f7 !important; }
-.btn-purple-fill:hover:not(:disabled) { box-shadow: 0px 0px 15px rgba(168, 85, 247, 0.6) !important; }
 
 
 /* =========================================

@@ -64,15 +64,43 @@ test('.btn-sys has exactly one base definition, and it is in Buttons.css', () =>
     expect(layout, 'nor Layout.css').toEqual([]);
 });
 
-test('the editor keeps its legacy aliases, which Buttons.css does not know about', () => {
-    // The duplication was removed, not the aliases. Only editor modules emit
-    // these four, and they still need a base of their own - deleting them with
-    // the duplicate would have unstyled every submit and add-block button.
-    const editor = read('editor.css');
-    ['submit-btn', 'system-page-btn', 'add-block-btn', 'btn-action-delete']
-        .forEach(cls => {
-            expect(editor, `.${cls} still styled`).toContain(`.${cls}`);
-        });
+test('no button keeps a hand-copied look of its own: every legacy alias rides on .btn-sys', () => {
+    // v1.1. The four editor aliases (.submit-btn, .system-page-btn,
+    // .add-block-btn, .btn-action-delete) copied the old .btn-sys look by hand,
+    // so the restyle could not reach them, and on the add-block menu, where
+    // .add-block-btn sat beside .btn-sys and loaded later, the two looks mixed.
+    // Every element that names one must be a .btn-sys, and editor.css must not
+    // give one a base look again.
+    const ALIASES = ['submit-btn', 'system-page-btn', 'add-block-btn', 'btn-action-delete'];
+    const sources = [
+        ...fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js')).map(f => path.join('js', f)),
+        ...fs.readdirSync(ROOT).filter(f => f.endsWith('.html')),
+    ];
+    const offenders = [];
+    let seen = 0;
+    sources.forEach(f => {
+        const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+        const attr = /class(?:Name)?\s*=\s*["'`]([^"'`]*)["'`]/g;
+        let m;
+        while ((m = attr.exec(src)) !== null) {
+            const classes = m[1].split(/\s+/);
+            if (!classes.some(c => ALIASES.includes(c))) continue;
+            seen++;
+            if (!classes.includes('btn-sys')) offenders.push(`${f}: class="${m[1]}"`);
+        }
+    });
+    // Positive first: the add-block menu still uses its hook.
+    expect(seen, 'the add-block menu still marks its buttons').toBeGreaterThan(0);
+    expect(offenders).toEqual([]);
+
+    const editor = read('editor.css').replace(/\/\*[\s\S]*?\*\//g, '');
+    const re = /([^{}]+)\{([^{}]*)\}/g;
+    let m;
+    while ((m = re.exec(editor)) !== null) {
+        const bareAlias = m[1].split(',').some(s => ALIASES.includes(s.trim().replace(/^\./, '')));
+        expect(bareAlias && /background|border|display\s*:/.test(m[2]),
+            `editor.css gives a bare alias a look of its own: ${m[1].trim()}`).toBe(false);
+    }
 });
 
 test('every page that loads editor.css also loads Buttons.css', () => {

@@ -566,8 +566,8 @@ window.promptForMoveId = function() {
                     </div>
                 </div>
                 <div class="editor-modal-actions qa-modal-actions-divided">
-                    <button id="btn-move-cancel" class="system-page-btn">CANCEL</button>
-                    <button id="btn-move-confirm" class="submit-btn submit-btn-green-outline">INITIALIZE</button>
+                    <button id="btn-move-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
+                    <button id="btn-move-confirm" class="btn-sys btn-sys-green">INITIALIZE</button>
                 </div>
             </div>
         `;

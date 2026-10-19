@@ -234,10 +234,10 @@ window.openDraftManager = function() {
                     </div>
                     <div class="draft-row-actions">
                         ${!isCurrent ?
-                            `<button class="submit-btn draft-resume-btn" data-draft-resume="${esc(draft.key)}">RESUME</button>` :
+                            `<button class="btn-sys btn-sys-blue draft-resume-btn" data-draft-resume="${esc(draft.key)}">RESUME</button>` :
                             `<span class="draft-active-badge">CURRENTLY ACTIVE</span>`
                         }
-                        <button class="btn-action-delete draft-discard-btn" data-draft-discard="${esc(draft.key)}">DISCARD</button>
+                        <button class="btn-sys btn-sys-red draft-discard-btn" data-draft-discard="${esc(draft.key)}">DISCARD</button>
                     </div>
                 </div>
             `;
