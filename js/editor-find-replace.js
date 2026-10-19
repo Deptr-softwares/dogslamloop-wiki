@@ -29,6 +29,9 @@
         // Structure and enums.
         'type', 'align', 'size', 'style', 'intent', 'layout', 'width', 'alignment',
         'padding', 'controls', 'difficulty', 'status', 'tier', 'importance',
+        // A colour: renaming "Red" would turn a heading's bar into an invalid
+        // value, which draws no bar and says nothing.
+        'sideBar',
         // Links and media.
         'src', 'videoId', 'video', 'image', 'media', 'url', 'href', 'thumbnail',
         // Credit and identity.

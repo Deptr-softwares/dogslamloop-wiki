@@ -15,9 +15,8 @@
 // someone look at an empty topic, where the inner box has nothing in it to
 // distract from the extra border.
 //
-// Stripping the class rather than unwrapping the node: the element carries the
-// contextClass hook (.matchup-heading, .counterplay-heading) that styles the
-// headings inside it, so removing the node would take the heading rules with it.
+// Stripping the class rather than unwrapping the node, the same way the reader
+// page does (js/description.js), so the two keep the same structure.
 function unwrapInjectedSection(contentWrapper) {
     const injected = contentWrapper.querySelector('section.wiki-section');
     if (injected) injected.classList.remove('wiki-section');

@@ -80,6 +80,13 @@ test('it refuses to touch links, credit and enums', async ({ page }) => {
   expect(joined, 'an author credit').not.toContain('overview.7.author');
   // A typo'd difficulty sorts the row to the bottom silently.
   expect(joined, 'the difficulty enum').not.toContain('comboList.0.rows.0.difficulty');
+
+  // A heading's side bar colour (v1.1): renaming "red" would leave a value that
+  // is no colour, which draws no bar and says nothing.
+  const bar = await page.evaluate(() => window.findEditorMatches(
+    { overview: [{ type: 'heading', content: 'Red Mist', sideBar: 'red' }] }, 'red', { wholeWord: true })
+    .map(m => m.path.join('.')));
+  expect(bar).toEqual(['overview.0.content']);
 });
 
 test('a match says where it is, in words', async ({ page }) => {

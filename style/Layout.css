@@ -859,14 +859,11 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .wiki-block-heading[style*="center"] { clear: both; display: block; }
 .wiki-block-list { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
 .strategy-paragraph { margin-bottom: 0.75rem; line-height: 1.6; }
-.matchup-heading { border-left: 3px solid hsl(212, 12%, 21%); padding-left: 0.75rem; }
-.counterplay-heading { border-left: 3px solid hsl(0, 60%, 50%); padding-left: 0.75rem; }
-/* Same treatment as counterplay - both are keyed sections whose headings need
-   to read as sub-headings inside a card. Green rather than red: counterplay is
-   about beating a character, a starter guide is about learning one. The class
-   name comes from the tab id via generateHTMLForBlocks' contextClass, so a
-   keyed section added without a rule here silently loses its heading rule. */
-.starterGuide-heading { border-left: 3px solid hsl(140, 45%, 45%); padding-left: 0.75rem; }
+/* A Heading Block's side bar (v1.1), the block's own choice in any tab. The
+   Matchup, Counterplay and Starter Guide tabs used to draw one by themselves;
+   every heading now renders the same way everywhere (owner, 2026-10-19). The
+   colour arrives through --heading-bar, set by js/description.js. */
+.wiki-block-heading-bar { border-left: 3px solid var(--heading-bar); padding-left: 0.75rem; }
 .card-header-flex { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem; }
 .card-header-title { 
     font-family: 'Finger-Paint', sans-serif;

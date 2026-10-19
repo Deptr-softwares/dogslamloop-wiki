@@ -261,14 +261,20 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
         const alignAttr = getAlignStyle(block.align); 
         
         if (block.type === 'heading') {
-            let headingClass = 'wiki-block-heading';
-            if (contextClass) headingClass += ` ${contextClass}-heading`;
-            
+            // The same heading in every tab (owner, 2026-10-19). The coloured
+            // bar the Matchup, Counterplay and Starter Guide tabs used to add
+            // by themselves is now the block's own choice, in any tab.
+            // Whitelisted by safeColor, which admits no quote or semicolon, so
+            // the value cannot leave the style attribute.
+            const bar = typeof window.safeColor === 'function' ? window.safeColor(block.sideBar) : null;
+            const headingClass = bar ? 'wiki-block-heading wiki-block-heading-bar' : 'wiki-block-heading';
+
             // Allowlisted: block.size is contributor-set and lands in the tag
             // NAME, so an unchecked value writes an arbitrary element.
             const tag = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(block.size) ? block.size : 'h3';
+            const headingStyle = getAlignStyle(block.align, bar ? `--heading-bar: ${bar};` : '');
 
-            contentHTML += `<${tag} class="${headingClass}" ${alignAttr}>${escBlockText(block.content)}</${tag}>`;
+            contentHTML += `<${tag} class="${headingClass}" ${headingStyle}>${escBlockText(block.content)}</${tag}>`;
         }
         // --- PARAGRAPHS (With Inline Keybinds & URL Links) ---
         else if (block.type === 'paragraph') {
@@ -1581,12 +1587,15 @@ function sboxPanelHTML(i, inner) {
     return `<div class="sbox-panel${i === 0 ? ' is-active' : ''}" data-sbox-panel="${i}">${inner}</div>`;
 }
 
-function getAlignStyle(align) {
+// `extra` is CSS this file built from whitelisted values, never contributor
+// text as typed.
+function getAlignStyle(align, extra = '') {
     let styleStr = 'overflow-wrap: break-word; word-break: break-word;';
     // Allowlisted, not escaped - this is a CSS value, where escaping quotes
     // still leaves `left; background: url(...)` intact.
     const dir = safeBlockAlign(align);
     if (dir) styleStr += ` text-align: ${dir};`;
+    if (extra) styleStr += ` ${extra}`;
     return `style="${styleStr}"`;
 }
 

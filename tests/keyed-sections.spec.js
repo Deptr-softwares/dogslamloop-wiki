@@ -336,12 +336,17 @@ test('a topic card is drawn once, not nested inside a second one', async ({ page
     expect(nested, `${tab}: a card inside a card`).toBe(0);
   }
 
-  // The heading rule survives the strip. The class is removed rather than the
-  // node unwrapped precisely so the contextClass hook that styles headings
-  // inside the card stays put.
-  const headingHooks = await page.evaluate(() =>
-    document.querySelectorAll('#tab-counterplay .counterplay-heading, #tab-starterGuide .starterGuide-heading').length);
-  expect(headingHooks, 'stripping the wrapper must not take the heading styling with it').toBeGreaterThan(0);
+  // These tabs used to give their headings a coloured bar of their own. Since
+  // v1.1 every heading renders the same way and the bar is the block's choice
+  // (tests/heading-side-bar.spec.js), so a heading with none is plain here too.
+  const bars = await page.evaluate((tabs) => tabs.map(tab => {
+    const h = document.querySelector(`#tab-${tab} .wiki-block-heading`);
+    return { tab, found: !!h, width: h ? getComputedStyle(h).borderLeftWidth : null };
+  }), ['matchups', 'counterplay', 'starterGuide']);
+  for (const b of bars) {
+    expect(b.found, `${b.tab}: the heading rendered`).toBe(true);
+    expect(b.width, `${b.tab}: a heading with no side bar has none`).toBe('0px');
+  }
 });
 
 test('a topic name is never parsed as markup anywhere in the editor', async ({ page }) => {

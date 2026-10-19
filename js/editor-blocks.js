@@ -299,6 +299,90 @@ function colorPresetsHTML(afterFirst = '') {
                         </div>${i === 0 ? afterFirst : ''}`).join('');
 }
 
+// --- A HEADING'S SIDE BAR (v1.1) ---
+//
+// Owner, 2026-10-19: every Block renders the same way across the site, and the
+// coloured bar the Matchup, Counterplay and Starter Guide tabs gave their
+// headings becomes an optional style on the Heading Block, in any colour: the
+// text-colour presets plus a custom one. Stored as block.sideBar and drawn by
+// js/description.js.
+function headingBarRowHTML(block) {
+    const bar = typeof window.safeColor === 'function' ? window.safeColor(block.sideBar) : null;
+    // Whitelisted by safeColor, the same filter the renderer uses, so the
+    // value cannot leave the style attribute.
+    return `
+                <div class="heading-bar-row">
+                    <span class="editor-field-label-sm">Side bar</span>
+                    <button type="button" class="heading-bar-swatch${bar ? '' : ' is-none'}" data-heading-bar
+                            aria-label="Side bar color" aria-expanded="false"${bar ? ` style="background: ${bar};"` : ''}>${bar ? '' : 'None'}</button>
+                </div>`;
+}
+
+// One popup for the whole list, made when it opens and removed when it closes:
+// its custom picker repeats the toolbar's ids, which initColorPicker tolerates
+// only because it looks inside the container it is handed.
+let headingBarPopup = null;
+
+function closeHeadingBarPopup() {
+    if (!headingBarPopup) return;
+    const swatch = headingBarPopup.parentElement && headingBarPopup.parentElement.querySelector('[data-heading-bar]');
+    if (swatch) swatch.setAttribute('aria-expanded', 'false');
+    headingBarPopup.remove();
+    headingBarPopup = null;
+}
+
+function setHeadingBar(index, color) {
+    const block = window.getActiveBlocks()[index];
+    closeHeadingBarPopup();
+    if (!block || block.type !== 'heading') return;
+    if (color) block.sideBar = color;
+    else delete block.sideBar;
+    renderBlockList();
+    updateLivePreview();
+}
+
+function openHeadingBarPopup(swatch) {
+    const index = parseInt(swatch.closest('.block-card').getAttribute('data-index'), 10);
+    const reopen = !headingBarPopup || headingBarPopup.parentElement !== swatch.parentElement;
+    closeHeadingBarPopup();
+    if (!reopen) return;
+
+    const popup = document.createElement('div');
+    popup.className = 'heading-bar-popup';
+    popup.innerHTML = `
+        <button type="button" class="btn-sys btn-sys-regular" data-heading-bar-none>NO BAR</button>
+        <div class="format-color-presets-scroll">${colorPresetsHTML()}</div>
+        <div class="cp-label">Custom</div>
+        <div class="cp-surface" id="cp-surface"><div class="cp-thumb" id="cp-surface-thumb"></div></div>
+        <div class="cp-hue" id="cp-hue" role="slider" tabindex="0"
+             aria-label="Hue" aria-valuemin="0" aria-valuemax="359" aria-valuenow="0">
+            <div class="cp-thumb cp-hue-thumb" id="cp-hue-thumb"></div>
+        </div>
+        <div class="format-color-custom-row">
+            <span class="cp-preview" id="cp-preview"></span>
+            <input type="text" id="cp-hex" class="cp-hex" value="#ffffff"
+                   maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex color">
+            <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
+        </div>`;
+    popup.addEventListener('click', (e) => {
+        if (e.target.closest('[data-heading-bar-none]')) { setHeadingBar(index, null); return; }
+        const preset = e.target.closest('.color-preset-btn');
+        if (preset) setHeadingBar(index, preset.getAttribute('data-color'));
+    });
+    swatch.parentElement.appendChild(popup);
+    initColorPicker(popup, (hex) => setHeadingBar(index, hex));
+    headingBarPopup = popup;
+    swatch.setAttribute('aria-expanded', 'true');
+    popup.scrollIntoView({ block: 'nearest' });
+}
+
+// A click anywhere else puts it away.
+document.addEventListener('click', (e) => {
+    if (headingBarPopup && !headingBarPopup.contains(e.target) && !e.target.closest('[data-heading-bar]')) {
+        closeHeadingBarPopup();
+    }
+});
+
 // --- BLOCK BUILDER STATE ---
 let currentStrategyBlocks = [];
 let blockHistory = [];
@@ -2584,7 +2668,11 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('button');
         if (!btn) return;
-        
+
+        // The side bar popup handles its own buttons (above).
+        if (btn.closest('.heading-bar-popup')) return;
+        if (btn.matches('[data-heading-bar]')) { openHeadingBarPopup(btn); return; }
+
         const activeBlocks = window.getActiveBlocks();
         window.saveBlockHistory();
 
@@ -3262,6 +3350,7 @@ function renderBlockList() {
                     </div>
                     <div>${getAlignUI(block.align, 'left')}</div>
                 </div>
+                ${headingBarRowHTML(block)}
             `;
         }
         else if (block.type === 'paragraph') {
