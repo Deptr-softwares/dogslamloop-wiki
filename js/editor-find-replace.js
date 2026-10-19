@@ -344,17 +344,14 @@
     // only written back into desc_data on sync, so without this the text being
     // edited right now is not searchable - and worse, the re-render afterwards
     // would load the stale buffer back over a replacement that had just landed.
+    //
+    // The redraw afterwards goes through reopenEditorTab, not initFullTabEditor
+    // directly: the section loaders write the old buffer back on entry, which
+    // undid the replace in the section that was open (js/editor-tabs.js).
     async function withFlushedData(fn) {
         if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
         const result = fn();
-        if (typeof initFullTabEditor === 'function') {
-            initFullTabEditor(
-                window.currentEditorCharId,
-                window.currentEditorTabId,
-                window.currentEditorDescData,
-                window.currentEditorFrameData
-            );
-        }
+        if (typeof window.reopenEditorTab === 'function') window.reopenEditorTab();
         if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
         return result;
     }
@@ -426,14 +423,7 @@
                 undoSnapshot = null;
                 refreshUndoButton();
 
-                if (typeof initFullTabEditor === 'function') {
-                    initFullTabEditor(
-                        window.currentEditorCharId,
-                        window.currentEditorTabId,
-                        window.currentEditorDescData,
-                        window.currentEditorFrameData
-                    );
-                }
+                if (typeof window.reopenEditorTab === 'function') window.reopenEditorTab();
                 if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
                 renderResults();
             });

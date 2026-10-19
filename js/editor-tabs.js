@@ -56,20 +56,11 @@ window.renderEditorTabNav = function(activeTabId) {
     });
 };
 
-window.switchEditorTab = async function(tabId) {
-    if (tabId === window.currentEditorTabId) return;
-
-    // currentStrategyBlocks is a buffer that is only written back into
-    // desc_data on sync (js/editor-sync.js), so switching without flushing
-    // first silently drops whatever is being edited right now.
-    if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
-
-    // Clear the sub-selection state before crossing the boundary. All three
-    // sub-tab loaders below flush the *previous* selection's blocks into
-    // desc_data on entry - so arriving at Overview with a stale
-    // currentOverviewSection of 'strategy' would write the matchup blocks
-    // still sitting in the buffer into descData.strategy. The flush above
-    // has already saved the real content by this point.
+// Forgets which section of the tab is open. Every sub-tab loader below writes
+// the PREVIOUS selection's blocks into desc_data on entry, so this runs
+// whenever the buffer cannot be trusted to belong where the selection says:
+// crossing to another tab, or the data changing underneath it.
+function clearSubSelection() {
     window.currentOverviewSection = null;
     window.currentMatchupIndex = undefined;
     window.currentKeyedIndex = {};
@@ -82,6 +73,70 @@ window.switchEditorTab = async function(tabId) {
     window.currentDocSection = null;
     window.currentDocCardIndex = undefined;
     window.currentDocTableIndex = undefined;
+}
+
+// Redraws the open tab from desc_data after something changed the DATA rather
+// than the block buffer: Find & Replace and its UNDO. The loaders' write-back
+// on entry is right after typing and wrong here, because the buffer is now the
+// older copy. It put the replaced text straight back, in the open section only
+// (reported by an editor, 2026-10-19). So the selection is cleared first, then
+// the same section is opened again, so the editor sees the change where they
+// made it instead of landing on the tab's first section.
+window.reopenEditorTab = function () {
+    const tabId = window.currentEditorTabId;
+    const activeMove = () => document.querySelector('#interactive-builder [data-move-load].active');
+    const place = {
+        overview: window.currentOverviewSection,
+        matchup: window.currentMatchupIndex,
+        keyed: (window.currentKeyedIndex || {})[tabId],
+        doc: window.currentDocSection,
+        card: window.currentDocCardIndex,
+        move: activeMove() ? activeMove().getAttribute('data-move-load') : null,
+    };
+
+    clearSubSelection();
+    initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+
+    // Each loader below first writes back the section initFullTabEditor just
+    // opened, which is harmless now: that buffer was read from the data a
+    // moment ago.
+    const desc = window.currentEditorDescData || {};
+    if (tabId === 'overview') {
+        if (place.overview && place.overview !== 'overview') window.loadOverviewSectionIntoEditor(place.overview);
+    } else if (tabId === 'matchups') {
+        if (place.matchup > 0 && (desc.matchups || [])[place.matchup]) window.loadMatchupIntoEditor(place.matchup);
+    } else if (window.getDocumentSections && window.getDocumentSections(tabId)) {
+        if (place.doc && place.doc !== 'intro') window.loadDocumentSectionIntoEditor(tabId, place.doc);
+        // Opening a group closes its cards, so the open one is put back.
+        if (place.card !== undefined && String(place.doc).startsWith('group-')) {
+            window.currentDocCardIndex = place.card;
+            window.renderDocumentCardsPanel(tabId, parseInt(place.doc.replace('group-', ''), 10));
+        }
+    } else if (window.usesSharedKeyedUI && window.usesSharedKeyedUI(tabId)) {
+        const section = window.getKeyedSectionByTab(tabId);
+        if (place.keyed > 0 && (desc[section.field] || [])[place.keyed]) window.loadKeyedEntryIntoEditor(tabId, place.keyed);
+    } else if ((window.FRAME_MOVE_CATEGORIES || []).includes(tabId)) {
+        const now = activeMove();
+        if (place.move && (!now || now.getAttribute('data-move-load') !== place.move)
+            && document.querySelector(`#interactive-builder [data-move-load="${CSS.escape(place.move)}"]`)) {
+            loadMoveIntoEditor(place.move);
+        }
+    }
+};
+
+window.switchEditorTab = async function(tabId) {
+    if (tabId === window.currentEditorTabId) return;
+
+    // currentStrategyBlocks is a buffer that is only written back into
+    // desc_data on sync (js/editor-sync.js), so switching without flushing
+    // first silently drops whatever is being edited right now.
+    if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
+
+    // Arriving at Overview with a stale currentOverviewSection of 'strategy'
+    // would write the matchup blocks still sitting in the buffer into
+    // descData.strategy. The flush above has already saved the real content
+    // by this point.
+    clearSubSelection();
 
     // The preview pane keeps one visible tab; editor-core un-hides only the
     // booted one, so the switch has to move it.

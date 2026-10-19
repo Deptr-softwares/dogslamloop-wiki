@@ -400,3 +400,177 @@ test('the combo row modal can confirm a delete', async ({ page }) => {
   });
   expect(onTop, 'the delete confirmation is covered by the combo row modal').toBe(true);
 });
+
+// --- REPLACING IN THE SECTION THAT IS OPEN ---
+//
+// Reported by an editor, 2026-10-19: "find & replace isnt working". Replace All
+// said "Replaced 3 occurrence(s)" and the section on screen kept the old text.
+// After a replace the panel redraws the tab, and every section loader first
+// writes the PREVIOUS selection's block buffer back into the page. The buffer
+// still held the text from before the replace, so that write undid it - only
+// in the open section, which is the one an editor is looking at. The tests
+// above put their text in a tab that is not open, so none of them saw it.
+//
+// Each case types the text in (so it starts out in the buffer only, the way an
+// editor's own edit does), replaces it, and checks three things: the field on
+// screen, the page's data, and that the editor is still on the same section.
+
+const para = (text) => ({ type: 'paragraph', content: [text], align: 'left' });
+const OPEN_DESC = {
+  overview: [para('overview one')],
+  strategy: [para('strategy one'), para('strategy two')],
+  extras: [],
+  profile: { stats: [], image: '' },
+  matchups: [
+    { opponent: 'Vessel', content: [para('first matchup')] },
+    { opponent: 'Gojo', content: [para('second matchup')] },
+  ],
+  counterplay: [
+    { topic: 'First', content: [para('first topic')] },
+    { topic: 'Second', content: [para('second topic')] },
+  ],
+  comboGroups: [
+    { title: 'Group A', content: [{ type: 'theorybox', title: 'Card A', sequence: [], content: [para('card write-up')] }] },
+  ],
+  moveStrategies: { skill_2: [para('second skill write-up')] },
+};
+const OPEN_FRAME = {
+  m1s: [], specials: [],
+  skills: [{ id: 'skill_1', name: 'Skill One' }, { id: 'skill_2', name: 'Skill Two' }],
+};
+
+// A signed-in contributor with page_data answered from the fixture.
+function mockOpenPage(page) {
+  return page.addInitScript(({ desc, frame }) => {
+    try {
+      localStorage.setItem('dsl_editor_tutorial_seen', '1');
+      localStorage.setItem('dsl_notice_seen_editor', '1');
+    } catch (e) { /* ignore */ }
+    const rowsFor = (table) => {
+      if (table === 'page_data') return { data: { page_id: 'boomcat', desc_data: JSON.parse(JSON.stringify(desc)), frame_data: JSON.parse(JSON.stringify(frame)) }, error: null };
+      if (['user_roles', 'site_settings', 'page_permissions', 'pending_revisions'].includes(table)) return { data: null, error: null };
+      return { data: [], error: null };
+    };
+    const builder = (table) => {
+      const result = rowsFor(table);
+      const chain = {
+        select() { return chain; }, eq() { return chain; }, in() { return chain; }, neq() { return chain; },
+        order() { return chain; }, limit() { return chain; },
+        single: async () => result, maybeSingle: async () => result,
+        then: (res) => Promise.resolve(result).then(res),
+      };
+      return chain;
+    };
+    Object.defineProperty(window, 'supabase', {
+      configurable: true,
+      get() { return window.__lib; },
+      set(lib) {
+        window.__lib = lib;
+        if (lib && lib.createClient && !lib.__patched) {
+          lib.createClient = () => ({
+            auth: {
+              getSession: async () => ({ data: { session: { user: { id: 'c-1', email: 'c@b.c' }, access_token: 't' } } }),
+              onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+              signOut: async () => ({}),
+            },
+            from: builder,
+            rpc: async () => ({ data: null, error: null }),
+            storage: { from: () => ({ list: async () => ({ data: [], error: null }) }) },
+          });
+          lib.__patched = true;
+        }
+      },
+    });
+  }, { desc: OPEN_DESC, frame: OPEN_FRAME });
+}
+
+async function openSection(page, tab, clicks) {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await mockOpenPage(page);
+  await page.goto(`/edit.html?char=boomcat&type=character&tab=${tab}`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('#interactive-builder .daw-tab-btn').first()).toBeVisible({ timeout: 45000 });
+  for (const sel of clicks) {
+    await page.locator(sel).click();
+  }
+  await expect(page.locator('#block-list .block-card').first()).toBeVisible();
+  return errors;
+}
+
+const lastField = (page) => page.locator('#block-list .block-card textarea.editor-textarea').last();
+
+async function replaceAllFromPanel(page, find, replacement) {
+  await page.locator('#btn-find-replace').click();
+  await page.locator('#find-input').fill(find);
+  await page.locator('#replace-input').fill(replacement);
+  await page.locator('.find-replace-row').first().waitFor({ timeout: 5000 });
+  await page.locator('#find-replace-all').click();
+  await page.locator('#editor-modal-confirm').click();
+  await page.locator('#editor-alert-modal button').click();
+}
+
+// Each place: the tab, the clicks that open it, the button that says it is
+// open, and where its last block's text lives in the data.
+const PLACES = [
+  { name: 'the first section of a tab', tab: 'overview', clicks: [], active: '#overview-nav-overview',
+    read: (d) => d.overview[0].content[0] },
+  { name: 'a later Overview section', tab: 'overview', clicks: ['#overview-nav-strategy'], active: '#overview-nav-strategy',
+    read: (d) => d.strategy[1].content[0] },
+  { name: 'a later matchup', tab: 'matchups', clicks: ['#matchup-nav-1'], active: '#matchup-nav-1',
+    read: (d) => d.matchups[1].content[0].content[0] },
+  { name: 'a later Counterplay topic', tab: 'counterplay', clicks: ['#counterplay-nav-1'], active: '#counterplay-nav-1',
+    read: (d) => d.counterplay[1].content[0].content[0] },
+  { name: 'a combo card write-up', tab: 'combos', clicks: ['#combos-nav-group-0', '#combo-cards-panel [data-card="0"]'],
+    active: '#combo-cards-panel [data-card="0"]',
+    read: (d) => d.comboGroups[0].content[0].content[0].content[0] },
+  { name: 'a later move write-up', tab: 'skills', clicks: ['#move-nav-skill_2'], active: '#move-nav-skill_2',
+    read: (d) => d.moveStrategies.skill_2[0].content[0] },
+];
+
+for (const place of PLACES) {
+  test(`Replace All sticks in ${place.name}, and the editor stays there`, async ({ page }) => {
+    const errors = await openSection(page, place.tab, place.clicks);
+    await lastField(page).fill('typed Yuji Itadori here');
+
+    await replaceAllFromPanel(page, 'yuji itadori', 'Vessel');
+
+    await expect(page.locator(place.active)).toHaveClass(/\bactive\b/);
+    await expect(lastField(page)).toHaveValue('typed Vessel here');
+    const stored = await page.evaluate(`(${place.read.toString()})(window.editorMasterDescData)`);
+    expect(stored, 'the page data').toBe('typed Vessel here');
+    expect(errors).toEqual([]);
+  });
+}
+
+test('replacing one match in the open section sticks', async ({ page }) => {
+  const errors = await openSection(page, 'overview', ['#overview-nav-strategy']);
+  await lastField(page).fill('typed Yuji Itadori here');
+
+  await page.locator('#btn-find-replace').click();
+  await page.locator('#find-input').fill('yuji itadori');
+  await page.locator('#replace-input').fill('Vessel');
+  await page.locator('.find-replace-one').first().click();
+  await page.locator('#find-replace-close').click();
+
+  await expect(page.locator('#overview-nav-strategy')).toHaveClass(/\bactive\b/);
+  await expect(lastField(page)).toHaveValue('typed Vessel here');
+  expect(await page.evaluate(() => window.editorMasterDescData.strategy[1].content[0])).toBe('typed Vessel here');
+  expect(errors).toEqual([]);
+});
+
+test("the panel's UNDO puts back the open section's text too", async ({ page }) => {
+  const errors = await openSection(page, 'matchups', ['#matchup-nav-1']);
+  await lastField(page).fill('typed Yuji Itadori here');
+  await replaceAllFromPanel(page, 'yuji itadori', 'Vessel');
+  await expect(lastField(page)).toHaveValue('typed Vessel here');
+
+  await page.locator('#find-replace-undo').click();
+  await page.locator('#find-replace-close').click();
+
+  await expect(page.locator('#matchup-nav-1')).toHaveClass(/\bactive\b/);
+  await expect(lastField(page)).toHaveValue('typed Yuji Itadori here');
+  expect(await page.evaluate(() => window.editorMasterDescData.matchups[1].content[0].content[0]))
+    .toBe('typed Yuji Itadori here');
+  expect(errors).toEqual([]);
+});
