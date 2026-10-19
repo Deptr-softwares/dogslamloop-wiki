@@ -34,9 +34,14 @@ async function boot(page) {
 // renderBlockList always targets #block-list by id regardless of the container
 // it was given, so the page body is replaced rather than appended to - a second
 // #block-list would collide with edit.html's own.
+//
+// The host gets the Workspace's 1.5rem side padding, because the list is built
+// to hang into it (.block-editor-container's -1.5rem margins). Without it the
+// folder header's first 24px sit off the left of the screen, and once the
+// toggle became a narrow chevron (v1.1) none of it could be clicked.
 async function build(page, blocks) {
   await page.evaluate((b) => {
-    document.body.innerHTML = '<div id="block-host"></div>';
+    document.body.innerHTML = '<div id="block-host" style="padding: 0 1.5rem"></div>';
     window.initStrategyBlockBuilder('block-host', b);
 
     // OPEN EVERYTHING, because v0.16 fine-tuning 2 made collapsed the default
@@ -376,17 +381,13 @@ test('collapsing a folder actually hides its blocks, and survives a re-render', 
 // v1.1 gave every .btn-sys a cut top-right corner made with clip-path, and a
 // browser sends a click outside a clip-path to whatever is behind it. The
 // toggle is a .btn-sys stripped down to a bare glyph, so the cut took a 9px
-// corner out of a 21px button. The two tests either side of this one click it
-// while it hangs off the left of the screen (see below), so Playwright clicked
-// the sliver still on screen, which was inside the cut: both timed out with
-// the folder header taking the click.
+// corner out of a 21px button. The two tests either side of this one clicked
+// it while it hung off the left of the screen (build() had no padding then),
+// so Playwright clicked the sliver still on screen, which was inside the cut:
+// both timed out with the folder header taking the click.
 test('the folder toggle takes a click anywhere on it, its top-right corner included', async ({ page }) => {
   await boot(page);
   await build(page, [P('a', 'Setups')]);
-  // The list hangs 1.5rem into its container's padding (.block-editor-container),
-  // and build() leaves no padding, so give it the editor's own: this test
-  // measures the whole toggle, not the part of it on screen.
-  await page.evaluate(() => { document.getElementById('block-host').style.padding = '0 1.5rem'; });
 
   const toggle = page.locator('#block-list .block-folder-toggle');
   await toggle.scrollIntoViewIfNeeded();

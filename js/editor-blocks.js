@@ -2604,6 +2604,29 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
     });
 
+    // THE PICKED CELL: clicking (or tabbing) into a table cell picks it, and
+    // going into any other field lets it go. Buttons do neither, or pressing
+    // -Row would drop the very pick it is about to act on.
+    blockList.addEventListener('focusin', (e) => {
+        const cell = e.target.closest('.table-cell-input, .table-header-input');
+        if (!cell && !e.target.closest('input, textarea, select')) return;
+
+        const had = editorTablePick && editorTablePick.block;
+        if (cell) {
+            const card = cell.closest('.block-card');
+            const block = window.getActiveBlocks()[parseInt(card.getAttribute('data-index'), 10)];
+            const row = cell.classList.contains('table-header-input') ? null : parseInt(cell.getAttribute('data-row'), 10);
+            editorTablePick = { block, row, col: parseInt(cell.getAttribute('data-col'), 10) };
+            paintTablePick(card, block);
+        } else {
+            editorTablePick = null;
+        }
+        if (had && had !== (editorTablePick && editorTablePick.block)) {
+            const oldCard = cardForEditorBlock(had);
+            if (oldCard) paintTablePick(oldCard, had);
+        }
+    });
+
     let typingTimer;
 
     blockList.addEventListener('input', (e) => {
@@ -2721,29 +2744,50 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             return;
         }
 
-        if (e.target.classList.contains('btn-table-add-row')) {
-            const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            const cols = activeBlocks[index].headers.length;
-            activeBlocks[index].rows.push(new Array(cols).fill(''));
-            renderBlockList(); updateLivePreview(true);
-        } else if (e.target.classList.contains('btn-table-add-col')) {
-            const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            activeBlocks[index].headers.push('New');
-            activeBlocks[index].rows.forEach(r => r.push(''));
-            renderBlockList(); updateLivePreview();
-        } else if (e.target.classList.contains('btn-table-del-row')) {
-            const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            if (activeBlocks[index].rows.length > 1
-                && await window.confirmDelete('Delete the bottom row of this table?')) activeBlocks[index].rows.pop();
-            renderBlockList(); updateLivePreview();
-        } else if (e.target.classList.contains('btn-table-del-col')) {
-            const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            if (activeBlocks[index].headers.length > 1
-                && await window.confirmDelete('Delete the right-hand column of this table?')) {
-                activeBlocks[index].headers.pop();
-                activeBlocks[index].rows.forEach(r => r.pop());
+        // The four table buttons act at the picked cell, or at the end with
+        // nothing picked (see editorTablePick).
+        const tableAction = ['add-row', 'add-col', 'del-row', 'del-col']
+            .find(kind => btn.classList.contains(`btn-table-${kind}`));
+        if (tableAction) {
+            const index = parseInt(btn.closest('.block-card').getAttribute('data-index'), 10);
+            const table = activeBlocks[index];
+            const pick = tablePickFor(table);
+            const pickedRow = pick ? pick.row : null;
+            const pickedCol = pick ? pick.col : null;
+
+            if (tableAction === 'add-row') {
+                // Below the picked cell; a header cell's "below" is the first row.
+                const at = pick ? (pickedRow === null ? 0 : pickedRow + 1) : table.rows.length;
+                table.rows.splice(at, 0, new Array(table.headers.length).fill(''));
+                if (pick) editorTablePick = { block: table, row: at, col: pickedCol };
+            } else if (tableAction === 'add-col') {
+                const at = pickedCol !== null ? pickedCol + 1 : table.headers.length;
+                table.headers.splice(at, 0, 'New');
+                table.rows.forEach(r => r.splice(at, 0, ''));
+                if (pick) editorTablePick = { block: table, row: pickedRow, col: at };
+            } else if (tableAction === 'del-row') {
+                const at = pickedRow !== null ? pickedRow : table.rows.length - 1;
+                const message = pickedRow !== null ? `Delete row ${at + 1} of this table?` : 'Delete the bottom row of this table?';
+                if (table.rows.length > 1 && await window.confirmDelete(message)) {
+                    table.rows.splice(at, 1);
+                    // The pick stays on the same place, now the next row.
+                    if (pickedRow !== null) editorTablePick = { block: table, row: Math.min(at, table.rows.length - 1), col: pickedCol };
+                }
+            } else {
+                const at = pickedCol !== null ? pickedCol : table.headers.length - 1;
+                const message = pickedCol !== null ? `Delete column ${at + 1} of this table?` : 'Delete the right-hand column of this table?';
+                if (table.headers.length > 1 && await window.confirmDelete(message)) {
+                    table.headers.splice(at, 1);
+                    table.rows.forEach(r => r.splice(at, 1));
+                    if (pickedCol !== null) editorTablePick = { block: table, row: pickedRow, col: Math.min(at, table.headers.length - 1) };
+                }
             }
-            renderBlockList(); updateLivePreview();
+
+            const before = tableButtonsTop(index);
+            renderBlockList();
+            keepTableButtonsInPlace(index, before);
+            updateLivePreview(tableAction === 'add-row');
+            return;
         }
 
         if (btn.classList.contains('btn-collapse')) {
@@ -3049,6 +3093,90 @@ function blockSummary(block) {
         .trim();
 
     return text.length > 60 ? text.slice(0, 60) + '…' : text;
+}
+
+// --- TABLE BLOCK: THE PICKED CELL (v1.1, from an editor's feedback) ---
+//
+// -Row and -Col could only take the last row or column, so a mistake in the
+// middle of a table meant retyping everything below it. Clicking a cell now
+// picks its row and column: -Row and -Col remove those and say which
+// ("-Row 3"), +Row and +Col insert below and right of it, and with nothing
+// picked all four act at the end, as they always did.
+//
+// One pick in the whole Workspace, held beside the data rather than in it:
+// which cell an editor last clicked is not page content. It names the block
+// OBJECT, which outlives renderBlockList's markup, so a re-render keeps it;
+// an undo restores copies of the blocks, so it lets go.
+let editorTablePick = null;   // { block, row, col }; row is null for a header cell
+
+function tablePickFor(block) {
+    if (!editorTablePick || editorTablePick.block !== block) return null;
+    const { row, col } = editorTablePick;
+    // A row or column can be gone from under the pick.
+    const r = row !== null && row < block.rows.length ? row : null;
+    const c = col !== null && col < block.headers.length ? col : null;
+    return r === null && c === null ? null : { row: r, col: c };
+}
+
+// row is null for a header cell, which shares the picked column only.
+function tablePickedClass(pick, row, col) {
+    if (!pick) return '';
+    return (row !== null && pick.row === row) || pick.col === col ? 'table-picked' : '';
+}
+
+function tableDeleteButtons(pick) {
+    const row = pick && pick.row !== null ? pick.row + 1 : null;
+    const col = pick && pick.col !== null ? pick.col + 1 : null;
+    return {
+        row: row ? { label: `⊟ -Row ${row}`, title: `Delete row ${row}` } : { label: '⊟ -Row', title: 'Delete Bottom Row' },
+        col: col ? { label: `⊟ -Col ${col}`, title: `Delete column ${col}` } : { label: '⊟ -Col', title: 'Delete Right Column' },
+    };
+}
+
+function cardForEditorBlock(block) {
+    const blocks = window.getActiveBlocks();
+    return Array.from(document.querySelectorAll('#block-list .block-card[data-index]'))
+        .find(card => blocks[parseInt(card.getAttribute('data-index'), 10)] === block) || null;
+}
+
+// The pick drawn onto a table already on screen. Picking must not re-render
+// the list: that would take the focus, and the caret, out of the cell that
+// was just clicked into.
+function paintTablePick(card, block) {
+    const pick = tablePickFor(block);
+    card.querySelectorAll('.block-table td').forEach(td => {
+        const input = td.querySelector('input');
+        if (!input) return;
+        const row = input.classList.contains('table-header-input') ? null : parseInt(input.getAttribute('data-row'), 10);
+        td.classList.toggle('table-picked', !!tablePickedClass(pick, row, parseInt(input.getAttribute('data-col'), 10)));
+    });
+    const del = tableDeleteButtons(pick);
+    [['.btn-table-del-row', del.row], ['.btn-table-del-col', del.col]].forEach(([selector, look]) => {
+        const button = card.querySelector(selector);
+        if (!button) return;
+        button.textContent = look.label;
+        button.title = look.title;
+    });
+}
+
+// The buttons stay under the pointer. A table grows or shrinks above them,
+// so they used to move a row's height with every press, and adding five rows
+// meant chasing +Row down the screen five times (editor feedback,
+// 2026-10-19). Scrolling by however far they moved puts them back, in the
+// same task, so no frame shows them anywhere else. Measured on the row of
+// buttons, not the button: a hovered button is lifted 1px and the one just
+// drawn is not hovered yet, which would creep the table by a pixel a press.
+function tableButtonsTop(index) {
+    const row = document.querySelector(`#block-list .block-card[data-index="${index}"] .block-table-actions-row`);
+    return row ? row.getBoundingClientRect().top : null;
+}
+
+function keepTableButtonsInPlace(index, before) {
+    const after = tableButtonsTop(index);
+    if (before === null || after === null || after === before) return;
+    const scroller = scrollableAncestorOf(document.querySelector(`#block-list .block-card[data-index="${index}"]`));
+    if (scroller) scroller.scrollTop += after - before;
+    else window.scrollBy(0, after - before);
 }
 
 // The shell drawn around one folder run.
@@ -3436,17 +3564,19 @@ function renderBlockList() {
         }
         else if (block.type === 'table') {
             let tableHTML = `<div class="block-table-wrapper"><table class="block-table">`;
+            const pick = tablePickFor(block);
+            const del = tableDeleteButtons(pick);
 
             tableHTML += `<tr>`;
             block.headers.forEach((h, c) => {
-                tableHTML += `<td><input type="text" class="editor-input table-header-input" data-col="${c}" value="${escField(h)}" placeholder="Header"></td>`;
+                tableHTML += `<td class="${tablePickedClass(pick, null, c)}"><input type="text" class="editor-input table-header-input" data-col="${c}" value="${escField(h)}" placeholder="Header"></td>`;
             });
             tableHTML += `</tr>`;
 
             block.rows.forEach((r, rIdx) => {
                 tableHTML += `<tr>`;
                 r.forEach((cell, cIdx) => {
-                    tableHTML += `<td><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${escField(cell)}" placeholder="..."></td>`;
+                    tableHTML += `<td class="${tablePickedClass(pick, rIdx, cIdx)}"><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${escField(cell)}" placeholder="..."></td>`;
                 });
                 tableHTML += `</tr>`;
             });
@@ -3457,8 +3587,8 @@ function renderBlockList() {
                 <div class="block-table-actions-row">
                     <button class="btn-sys btn-sys-regular btn-table-add-row" title="Add Row Below">⊞ +Row</button>
                     <button class="btn-sys btn-sys-regular btn-table-add-col" title="Add Column Right">⊞ +Col</button>
-                    <button class="btn-sys btn-sys-red btn-table-del-row" title="Delete Bottom Row">⊟ -Row</button>
-                    <button class="btn-sys btn-sys-red btn-table-del-col" title="Delete Right Column">⊟ -Col</button>
+                    <button class="btn-sys btn-sys-red btn-table-del-row" title="${del.row.title}">${del.row.label}</button>
+                    <button class="btn-sys btn-sys-red btn-table-del-col" title="${del.col.title}">${del.col.label}</button>
                 </div>
                 <input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)">
             `;

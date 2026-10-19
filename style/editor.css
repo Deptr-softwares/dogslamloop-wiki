@@ -1572,6 +1572,9 @@ input[type="checkbox"]:checked {
 /* Compound: .editor-input's own base rule sets margin-bottom/border/background at the same specificity. */
 .editor-input.table-header-input { margin: 0; border-radius: 0; border: none; border-bottom: 2px solid #444; border-right: 1px solid #333; font-weight: bold; background: rgba(0,0,0,0.4); text-align: center; }
 .editor-input.table-cell-input { margin: 0; border-radius: 0; border: none; border-bottom: 1px solid #222; border-right: 1px solid #333; }
+/* The picked cell's row and column (js/editor-blocks.js, editorTablePick):
+   the cells' fields are see-through, so the tint shows under them. */
+.block-table td.table-picked { background: color-mix(in srgb, var(--accent-blue) 12%, transparent); }
 .block-table-actions-row { display: flex; gap: 0.25rem; margin-bottom: 0.5rem; border-radius: 0rem; }
 .btn-table-add-row, .btn-table-add-col, .btn-table-del-row, .btn-table-del-col { flex: 1; }
 .editor-row-spaced-md { margin-bottom: 0.5rem; }
