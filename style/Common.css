@@ -258,19 +258,13 @@ body {
 .sc-char-link { text-decoration: none; }
 .sc-char-link:hover { text-decoration: underline; text-underline-offset: 2px; }
 
-/* An IN-PAGE link, [url=#sec-tech]. Marked apart from an outbound one because
-   it does something different: it stays here. The arrow says "further down"
-   rather than "leaving the site", and the dotted underline distinguishes it at
-   a glance from the solid one every external link carries. */
+/* An IN-PAGE link, [url=#sec-tech]. A really faint underline and no arrow
+   (owner, 2026-10-19): these links sit inside coloured and gradient text, where
+   the dotted underline and the arrow fought the colour. Hovering one names the
+   section it goes to instead (js/pagebuilder.js). */
 .wiki-link-jump {
-    text-decoration-style: dotted;
+    text-decoration-color: color-mix(in srgb, var(--text-white) 22%, transparent);
     text-underline-offset: 3px;
-}
-.wiki-link-jump::after {
-    content: '\21B4'; /* downwards arrow with corner leftwards */
-    font-size: 0.85em;
-    margin-left: 0.15em;
-    opacity: 0.75;
 }
 
 /* Where the reader landed. A jump into a long tab otherwise drops you at a

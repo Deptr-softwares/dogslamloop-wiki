@@ -1069,6 +1069,24 @@ window.bindTooltip = function(element, titleHtml) {
     });
 };
 
+// The same tooltip for a delegated hover, where nothing is bound to one
+// element: in-page links (js/pagebuilder.js) are re-rendered with the text
+// around them, so a per-element binding would be lost on every repaint.
+window.showTooltipAt = function(html, x, y) {
+    window.initTooltip();
+    frameTooltip.innerHTML = html;
+    frameTooltip.style.display = 'block';
+    positionTooltip(x, y);
+};
+
+window.moveTooltipTo = function(x, y) {
+    if (frameTooltip && frameTooltip.style.display === 'block') positionTooltip(x, y);
+};
+
+window.hideTooltip = function() {
+    if (frameTooltip) frameTooltip.style.display = 'none';
+};
+
 // --- PAGE URL BUILDER ---
 // Returns a root-relative path (no '../' prefix - see markNotifRead, which
 // prepends getRootPath() at click time). Callers that need a navigable
