@@ -350,7 +350,7 @@ test('Preview follows the Block finds the Block of the section being edited, not
 
 // --- PREVIEW ONLY ON SYNC ---
 
-const SYNC = (page) => page.locator('.header-actions button', { hasText: 'Sync/Save' });
+const SYNC = (page) => page.locator('.header-actions #btn-sync');
 
 test('at the default the preview redraws as a Block is typed into', async ({ page }) => {
   await boot(page);

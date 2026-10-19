@@ -1519,7 +1519,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // reconstruct a tab/move-scoped key from DOM state as a fallback
                 // when window.currentDraftKey isn't set (simplified 2026-08-02,
                 // alongside the draft-key-scoping fix in js/editor-drafts.js).
-                localStorage.removeItem(window.currentDraftKey || `wiki_draft_${pageId}`);
+                //
+                // And the page's Save slot (v1.1): what was just sent is in
+                // the queue now, and a draft of it offered back later is how a
+                // submission gets sent twice.
+                [window.currentDraftKey, `wiki_draft_${pageId}`, `wiki_save_${pageId}`]
+                    .forEach(key => { if (key) localStorage.removeItem(key); });
 
                 submitBtn.textContent = wasUpdate ? "UPDATED!" : "SUBMITTED!";
                 submitBtn.style.backgroundColor = "#22c55e";
