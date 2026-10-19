@@ -173,15 +173,16 @@ test('the order: base-only last, hidden and unpublished left out, no wrap at the
     await window.fillProfilePager(host, pageId);
     const nav = host.querySelector('[data-profile-pager]');
     const name = (sel) => { const a = nav.querySelector(sel); return a ? a.textContent : null; };
-    const out = { shown: !nav.hidden, prev: name('.profile-pager-prev'), next: name('.profile-pager-next') };
+    const rows = [...nav.querySelectorAll('.profile-stat-label')].map(l => l.textContent);
+    const out = { shown: !nav.hidden, rows, prev: name('.profile-pager-prev'), next: name('.profile-pager-next') };
     host.remove();
     return out;
   }, pageId);
 
-  expect(await pagerFor('zzq_alpha'), 'the first has no Previous').toEqual({ shown: true, prev: null, next: 'Boomcat' });
-  expect(await pagerFor('zzq_charlie'), 'base-only comes after everyone else').toEqual({ shown: true, prev: 'Boomcat', next: 'Zzq Base' });
-  expect(await pagerFor('zzq_base'), 'the last has no Next, and nothing wraps').toEqual({ shown: true, prev: 'Zzq Charlie', next: null });
-  expect(await pagerFor('zzq_hidden'), 'a hidden page gets none').toEqual({ shown: false, prev: null, next: null });
+  expect(await pagerFor('zzq_alpha'), 'the first has no Previous').toEqual({ shown: true, rows: ['Next'], prev: null, next: 'Boomcat' });
+  expect(await pagerFor('zzq_charlie'), 'base-only comes after everyone else').toEqual({ shown: true, rows: ['Previous', 'Next'], prev: 'Boomcat', next: 'Zzq Base' });
+  expect(await pagerFor('zzq_base'), 'the last has no Next, and nothing wraps').toEqual({ shown: true, rows: ['Previous'], prev: 'Zzq Charlie', next: null });
+  expect(await pagerFor('zzq_hidden'), 'a hidden page gets none').toEqual({ shown: false, rows: [], prev: null, next: null });
 });
 
 test('with no quote or trivia only Character Navigation shows, and a hidden page shows none of it', async ({ page }) => {
