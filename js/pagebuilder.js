@@ -1222,6 +1222,13 @@ window.jumpToAnchor = function(rawId, options) {
         // Once the scroll has stopped (v1.1): the wipe lasts 0.7s, and started
         // with a smooth scroll it was over before the heading arrived.
         afterScrollSettles(() => {
+            // The wipe covers the words, wherever they sit in the heading
+            // (style/Common.css, .anchor-flash::before).
+            const words = document.createRange();
+            words.selectNodeContents(target);
+            const wordsBox = words.getBoundingClientRect();
+            target.style.setProperty('--flash-left', `${wordsBox.left - target.getBoundingClientRect().left}px`);
+            target.style.setProperty('--flash-width', `${wordsBox.width}px`);
             target.classList.remove('anchor-flash');
             void target.offsetWidth; // a second jump to the same heading plays it again
             target.classList.add('anchor-flash');

@@ -106,6 +106,24 @@ body {
     text-shadow: 3px 3px 0px var(--manga-shadow), -1px -1px 0 var(--border-color), 1px -1px 0 var(--border-color), -1px 1px 0 var(--border-color), 1px 1px 0 var(--border-color);
 }
 
+/* Halftone dots behind a character's name (v1.1, owner's pick 2026-10-20):
+   faint, in the page colour, and gone by the middle of the name, so a short
+   name gets a short patch. For that the title is only as wide as its words,
+   which a heading on its own line is not by default. Character pages only,
+   hence the h1: History, Search, Recent Changes and My Submissions also put a
+   .character-title in a .character-header, as an h2. */
+.character-header h1.character-title { position: relative; isolation: isolate; width: fit-content; max-width: 100%; }
+.character-header h1.character-title::before {
+    content: ''; position: absolute; z-index: -1; pointer-events: none;
+    left: -0.7rem; top: -0.45rem; width: calc(50% + 0.7rem); height: calc(100% + 0.9rem);
+    background: radial-gradient(circle, color-mix(in srgb, var(--accent-blue) 22%, transparent) 1.3px, transparent 1.9px) 0 0 / 7px 7px;
+    -webkit-mask-image: linear-gradient(100deg, #000 10%, transparent 100%);
+    mask-image: linear-gradient(100deg, #000 10%, transparent 100%);
+    transform: skewX(-12deg);
+    animation: title-dots-in 0.45s ease-out both;
+}
+@keyframes title-dots-in { from { opacity: 0; transform: skewX(-12deg) translateX(-14px); } }
+
 .site-subtitle {
     font-size: 0.75rem;
     color: hsl(215, 8%, 47%);
@@ -285,10 +303,14 @@ body {
    arrival, it is not a state.
    v1.1 (owner's pick, 2026-10-20): a slanted bar of the page colour wipes
    across the heading and off again, once, in place of a soft fade with
-   rounded corners. ::before, because .section-title's ::after is its bar. */
+   rounded corners. ::before, because .section-title's ::after is its bar.
+   Over the words only, not the whole line a heading spans (owner,
+   2026-10-20): js/pagebuilder.js measures where they start and how wide
+   they are into --flash-left and --flash-width. */
 .anchor-flash { position: relative; }
 .anchor-flash::before {
-    content: ''; position: absolute; inset: -0.15rem -0.5rem; pointer-events: none;
+    content: ''; position: absolute; top: -0.15rem; bottom: -0.15rem; pointer-events: none;
+    left: calc(var(--flash-left, 0px) - 0.5rem); width: calc(var(--flash-width, 100%) + 1rem);
     background: var(--accent-blue); transform: skewX(-20deg);
     clip-path: inset(0 100% 0 0);
     animation: anchor-wipe 0.7s cubic-bezier(0.6, 0, 0.3, 1);
