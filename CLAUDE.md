@@ -151,4 +151,4 @@ On a draft the owner hands over: grammar and spelling only, keep their wording, 
 
 ## Rules that load with their files
 
-`.claude/rules/` holds rules that load when a matching file is read: `combo-card.md` (the two Combo Card editors), `tier-rosters.md` (the three `loadRoster` copies), `discord-relay.md` (`supabase/functions/`) and `regeneration.md` (workflows, scripts and generated stubs).
+`.claude/rules/` holds rules that load when a matching file is read: `combo-card.md` (the two Combo Card editors), `tier-rosters.md` (the shared roster loader), `discord-relay.md` (`supabase/functions/`) and `regeneration.md` (workflows, scripts and generated stubs).

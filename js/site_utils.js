@@ -197,6 +197,55 @@ async function fetchNavigationData() {
     return fetchJson(`${getRootPath()}data/navigation.json?v=1.0`, { cache: true });
 }
 
+// --- CHARACTER ROSTER ---
+// page_id -> { name, url, image, hidden }, for every tier list on the site.
+//
+// One loader since v1.1. There were three copies (certified lists, Free
+// Submit, the tier editor), and two of them shipped reading `entry.image`,
+// which navigation.json carries on no character: so they drew a guessed
+// Supabase URL, old art, or a 404 for the five portraits named
+// "Portrait2.webp" or with no suffix. The portrait comes from
+// data/portraits.json, mirrored into the repo by scripts/fetch-portraits.js.
+//
+// Same-origin matters beyond correctness: a cross-origin image taints a
+// canvas, and toBlob() and the clipboard write both throw on one, which every
+// tier list image export depends on.
+//
+// A fresh Map each call, over cached requests, so a caller can keep it as its
+// own state. Empty when navigation.json cannot be read; the next call tries
+// again, because fetchJson drops a failed request from its cache.
+async function loadCharacterRoster() {
+    const roster = new Map();
+    try {
+        const nav = await fetchNavigationData();
+
+        let portraits = {};
+        try {
+            portraits = await fetchJson(`${getRootPath()}data/portraits.json`, { cache: true });
+        } catch (e) {
+            // Non-fatal: a character with no portrait shows its name on its
+            // colour, which every list draws for that case anyway.
+            console.warn('[Roster] Portrait manifest unavailable:', e);
+        }
+
+        (nav.Characters || []).forEach(entry => {
+            const pageId = entry.cms_config && entry.cms_config.pageId;
+            if (!pageId) return;
+            roster.set(pageId, {
+                name: entry.name,
+                url: entry.url,
+                image: portraits[pageId] || entry.image,
+                // Private server only. Kept, not dropped: a certified list may
+                // rank a hidden character, so each list decides.
+                hidden: !!entry.isHidden,
+            });
+        });
+    } catch (e) {
+        console.warn('[Roster] Could not read the roster:', e);
+    }
+    return roster;
+}
+
 // --- ARCHIVED PAGES ---
 // Lives next to fetchNavigationData because it answers the question that file
 // cannot: navigation.json contains only live pages, so anything reading it is
@@ -2732,3 +2781,4 @@ window.clearAllNotifications = async function() {
 window.getRootPath = getRootPath;
 window.fetchJson = fetchJson;
 window.fetchNavigationData = fetchNavigationData;
+window.loadCharacterRoster = loadCharacterRoster;
