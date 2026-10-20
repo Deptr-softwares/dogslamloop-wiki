@@ -554,6 +554,17 @@
         "pageId": "free_submit_tier_list",
         "editRole": "open"
       }
+    },
+    {
+      "id": "Create-Tier-List",
+      "name": "Create Tier List",
+      "url": "tools/create-tier-list/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "tool",
+        "pageId": "create_tier_list",
+        "editRole": "open"
+      }
     }
   ],
   "Creators": [
@@ -564,6 +575,17 @@
       "cms_config": {
         "pageType": "tool",
         "pageId": "skill_builder_id_reader",
+        "editRole": "open"
+      }
+    },
+    {
+      "id": "Editor-Playground",
+      "name": "Editor Playground",
+      "url": "tools/editor-playground/index.html",
+      "isWip": true,
+      "cms_config": {
+        "pageType": "tool",
+        "pageId": "editor_playground",
         "editRole": "open"
       }
     }
