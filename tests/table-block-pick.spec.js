@@ -163,6 +163,11 @@ test('+Row and -Row stay under the mouse, so pressing them again needs no aim', 
   const many = Array.from({ length: 8 }, (_, i) => para(i));
   const { card } = await openTable(page, [...many, TABLE, ...many]);
   await page.evaluate(() => window.editorConfig.set('confirmDeletes', false));
+  // Rows a fraction of a pixel tall, as Linux's fonts draw them. A scroll
+  // position is whole pixels, so every press's correction misses by that
+  // fraction, and on CI the misses added up to 1.2px by the third press
+  // (2026-10-20). Fixed here so Windows sees the same fractions.
+  await page.addStyleTag({ content: '.block-table tr { height: 37.4px; }' });
   // Blocks far off screen are drawn as empty placeholders until scrolled to.
   await card.scrollIntoViewIfNeeded();
   await cell(card, 1, 0).click();

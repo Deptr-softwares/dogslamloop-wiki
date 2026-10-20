@@ -3448,9 +3448,20 @@ function tableButtonsTop(index) {
     return row ? row.getBoundingClientRect().top : null;
 }
 
+// Where the last press put the buttons back to. A scroll position is whole
+// pixels and a row need not be (37.4px), so each correction can miss by a
+// fraction. Measuring each press from where the last one landed let those
+// misses add up: 1.2px by the third press with Linux's fonts (CI,
+// 2026-10-20). Aiming every press at the same spot keeps each one within
+// half a pixel. A scroll of a pixel or more in between starts a new aim.
+let tableButtonsAim = null;
+
 function keepTableButtonsInPlace(index, before) {
     const after = tableButtonsTop(index);
-    if (before === null || after === null || after === before) return;
+    if (before === null || after === null) return;
+    if (tableButtonsAim && tableButtonsAim.index === index && Math.abs(tableButtonsAim.top - before) < 1) before = tableButtonsAim.top;
+    tableButtonsAim = { index, top: before };
+    if (after === before) return;
     const scroller = scrollableAncestorOf(document.querySelector(`#block-list .block-card[data-index="${index}"]`));
     if (scroller) scroller.scrollTop += after - before;
     else window.scrollBy(0, after - before);
