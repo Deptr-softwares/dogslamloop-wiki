@@ -1165,6 +1165,26 @@ function revealAnchorTarget(target) {
 // not exist in the DOM at all and cannot be reached by unhiding anything.
 //
 // Returns true, not the element: tests and callers read it as a boolean.
+// Runs `run` once the window stops scrolling: on scrollend where the browser
+// has it, after 150ms without a scroll event where it does not, and after
+// those 150ms when nothing scrolled at all.
+function afterScrollSettles(run) {
+    let done = false;
+    let timer = null;
+    const finish = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('scrollend', finish);
+        run();
+    };
+    const onScroll = () => { clearTimeout(timer); timer = setTimeout(finish, 150); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scrollend', finish);
+    timer = setTimeout(finish, 150);
+}
+
 window.jumpToAnchor = function(rawId, options) {
     const opts = options || {};
     const id = anchorIdOf(rawId);
@@ -1199,8 +1219,14 @@ window.jumpToAnchor = function(rawId, options) {
         }
         // Briefly marks where the reader landed. Without it a jump into a long
         // tab drops you at a heading with no sense of which one was the target.
-        target.classList.add('anchor-flash');
-        setTimeout(() => target.classList.remove('anchor-flash'), 1600);
+        // Once the scroll has stopped (v1.1): the wipe lasts 0.7s, and started
+        // with a smooth scroll it was over before the heading arrived.
+        afterScrollSettles(() => {
+            target.classList.remove('anchor-flash');
+            void target.offsetWidth; // a second jump to the same heading plays it again
+            target.classList.add('anchor-flash');
+            setTimeout(() => target.classList.remove('anchor-flash'), 1600);
+        });
     };
 
     // The panel has to actually be visible before its position can be measured.

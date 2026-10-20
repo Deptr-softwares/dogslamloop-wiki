@@ -264,15 +264,24 @@ body {
 }
 
 /* Where the reader landed. A jump into a long tab otherwise drops you at a
-   heading with no indication of which one was the target. Two seconds and
-   gone - it marks an arrival, it is not a state. */
-.anchor-flash {
-    animation: anchor-flash-fade 1.6s ease-out;
-    border-radius: 3px;
+   heading with no indication of which one was the target. It marks an
+   arrival, it is not a state.
+   v1.1 (owner's pick, 2026-10-20): a slanted bar of the page colour wipes
+   across the heading and off again, once, in place of a soft fade with
+   rounded corners. ::before, because .section-title's ::after is its bar. */
+.anchor-flash { position: relative; }
+.anchor-flash::before {
+    content: ''; position: absolute; inset: -0.15rem -0.5rem; pointer-events: none;
+    background: var(--accent-blue); transform: skewX(-20deg);
+    clip-path: inset(0 100% 0 0);
+    animation: anchor-wipe 0.7s cubic-bezier(0.6, 0, 0.3, 1);
 }
-@keyframes anchor-flash-fade {
-    0%   { background-color: color-mix(in srgb, var(--accent-blue) 45%, transparent); }
-    100% { background-color: transparent; }
+@keyframes anchor-wipe {
+    0%   { clip-path: inset(0 100% 0 0); }
+    45%  { clip-path: inset(0 0 0 0); }
+    100% { clip-path: inset(0 0 0 100%); }
 }
-/* html.reduce-motion: the device's preference or Site settings (js/site_utils.js). */
-html.reduce-motion .anchor-flash { animation: none; outline: 2px solid var(--accent-blue); outline-offset: 3px; }
+/* html.reduce-motion: the device's preference or Site settings
+   (js/site_utils.js). An outline, held, instead of the wipe. */
+html.reduce-motion .anchor-flash::before { content: none; }
+html.reduce-motion .anchor-flash { outline: 2px solid var(--accent-blue); outline-offset: 3px; }

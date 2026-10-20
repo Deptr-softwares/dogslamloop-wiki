@@ -98,6 +98,74 @@ test('a loading message has the slanted bars and an error message does not', asy
   expect(plain).toBe('none');
 });
 
+// --------------------------------------------------------------------------
+// Landing on a section
+// --------------------------------------------------------------------------
+
+// A contents link to a heading pushed far down the page, so the jump is a
+// real smooth scroll whatever the page's own content happens to be.
+async function farHeading(page) {
+  await page.goto('/characters/Ten_shadows/index.html', { waitUntil: 'networkidle' });
+  const link = page.locator('#dynamic-toc a.toc-link-major').last();
+  await expect(link).toBeVisible();
+  const id = (await link.getAttribute('href')).slice(1);
+  await page.evaluate(id => {
+    const spacer = document.createElement('div');
+    spacer.style.height = '4000px';
+    const target = document.getElementById(id);
+    target.parentElement.insertBefore(spacer, target);
+    window.scrollTo(0, 0);
+  }, id);
+  return { link, target: page.locator(`[id="${id}"]`), id };
+}
+
+test('the heading a jump lands on is wiped once the scroll has stopped', async ({ page }) => {
+  const { link, target, id } = await farHeading(page);
+  // Where the page was when the mark went on, and where it ended up.
+  await page.evaluate(id => {
+    window.__markedAt = null;
+    const t = document.getElementById(id);
+    new MutationObserver(() => {
+      if (window.__markedAt === null && t.classList.contains('anchor-flash')) window.__markedAt = scrollY;
+    }).observe(t, { attributes: true, attributeFilter: ['class'] });
+  }, id);
+  await link.click();
+  await expect.poll(() => page.evaluate(() => window.__markedAt)).not.toBeNull();
+  await page.waitForTimeout(400);
+  const [markedAt, finalY] = await page.evaluate(() => [window.__markedAt, scrollY]);
+  expect(finalY).toBeGreaterThan(2000);
+  expect(Math.abs(markedAt - finalY)).toBeLessThan(2);
+});
+
+test('the wipe is a bar of the page colour across the heading, and an outline with less motion', async ({ page }) => {
+  const { target, id } = await farHeading(page);
+  await page.evaluate(id => window.jumpToAnchor(id, { behavior: 'auto' }), id);
+  await expect(target).toHaveClass(/\banchor-flash\b/);
+
+  // Held before it starts, then at the moment the bar covers the heading.
+  // Sampled inside the top-left corner, above the letters: a heading's own
+  // text can be in the page colour too.
+  const holdAt = ms => page.evaluate(ms => {
+    const wipe = document.getAnimations().find(a => a.animationName === 'anchor-wipe');
+    if (!wipe) return false;
+    wipe.pause();
+    wipe.currentTime = ms;
+    return true;
+  }, ms);
+  const box = await target.boundingBox();
+  const spot = [Math.round(box.x + 3), Math.round(box.y + 1)];
+  const accent = await rgbOf(page, '--accent-blue');
+  expect(await holdAt(0)).toBe(true);
+  expect(near(await pixel(page, ...spot), accent, 6)).toBe(false);
+  expect(await holdAt(315)).toBe(true);
+  expect(near(await pixel(page, ...spot), accent, 6)).toBe(true);
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.evaluate(id => window.jumpToAnchor(id, { behavior: 'auto' }), id);
+  await expect.poll(() => target.evaluate(el => el.classList.contains('anchor-flash') && getComputedStyle(el).outlineStyle)).toBe('solid');
+  expect(await target.evaluate(el => getComputedStyle(el, '::before').content)).toBe('none');
+});
+
 // Every "Loading..." in the source carries the class, so a new one written
 // without it fails here instead of quietly showing no bars.
 test('every loading, fetching, searching or saving message has the bars', () => {
