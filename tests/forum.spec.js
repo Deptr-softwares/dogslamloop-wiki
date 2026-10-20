@@ -162,9 +162,12 @@ test("the category buttons' shadow ends above the first post, hovered or not", a
     });
 
     expect(await room()).toBeGreaterThan(0);
-    await page.locator('.forum-filter').nth(1).hover();
-    await expect.poll(room).toBeGreaterThan(0);
-    expect(await page.locator('.forum-filter').nth(1).evaluate(b => getComputedStyle(b).boxShadow)).toMatch(/4px 0px/);
+    // Hovered: once the shadow has finished growing to 4px (it animates, and
+    // under load a read can land halfway), measure again.
+    const hovered = page.locator('.forum-filter').nth(1);
+    await hovered.hover();
+    await expect.poll(() => hovered.evaluate(b => getComputedStyle(b).boxShadow)).toMatch(/ 4px 0px/);
+    expect(await room()).toBeGreaterThan(0);
 });
 
 test('signed out, NEW POST asks to sign in; banned, it says the account cannot post', async ({ page }) => {
