@@ -38,10 +38,17 @@ const PAGES = collectHtml(ROOT);
 test('every module in js/ is stamped, and the list is discovered', async () => {
     // A hand-kept list is a list somebody forgets to add to, and the file they
     // forget is the next pagebuilder.js.
-    const onDisk = fs.readdirSync(path.join(ROOT, 'js'))
-        .filter(f => f.endsWith('.js')).sort();
+    //
+    // js/tools/ too (v1.1). A tool page's own script sat one folder down, so
+    // the list never saw it and every tool page loaded it bare from a20d29e4
+    // on: a fix to the Free Submit Tier List reached readers up to an hour
+    // late, against a fresh tool_page.js.
+    const scan = (dir, prefix) => fs.readdirSync(path.join(ROOT, dir))
+        .filter(f => f.endsWith('.js')).map(f => prefix + f);
+    const onDisk = [...scan('js', ''), ...scan('js/tools', 'tools/')].sort();
 
     expect(SHARED_MODULES).toEqual(onDisk);
+    expect(SHARED_MODULES.some(n => n.startsWith('tools/')), 'the tool scripts are on the list').toBe(true);
     expect(SHARED_MODULES.length, 'this site has many modules, not three')
         .toBeGreaterThan(20);
 
@@ -62,7 +69,7 @@ test('one version across all of them, not a hash per file', async () => {
     const stamps = new Set();
     for (const file of PAGES) {
         const html = fs.readFileSync(file, 'utf8');
-        for (const m of html.matchAll(/js\/[a-z_0-9-]+\.js\?v=([0-9a-f]+)/g)) stamps.add(m[1]);
+        for (const m of html.matchAll(/js\/[a-z_0-9/-]+\.js\?v=([0-9a-f]+)/g)) stamps.add(m[1]);
     }
     expect([...stamps], 'every page carries the same one version').toEqual([version]);
 });
@@ -72,12 +79,13 @@ test('one version across all of them, not a hash per file', async () => {
 test('no page loads a js/ module without a version', async () => {
     // The assertion that would have caught v0.16. Checked across every HTML in
     // the repo - hand-authored and generated - because the generator and the
-    // stamper own different files and only together cover the site.
+    // stamper own different files and only together cover the site. Any depth
+    // under js/: a pattern without the slash is how js/tools/ went unseen.
     const unstamped = [];
 
     for (const file of PAGES) {
         const html = fs.readFileSync(file, 'utf8');
-        for (const m of html.matchAll(/src="([^"]*js\/[a-z_0-9-]+\.js)(\?[^"]*)?"/g)) {
+        for (const m of html.matchAll(/src="([^"]*js\/[a-z_0-9/-]+\.js)(\?[^"]*)?"/g)) {
             if (!m[2] || !m[2].startsWith('?v=')) {
                 unstamped.push(`${path.relative(ROOT, file)} -> ${m[1]}`);
             }
@@ -133,7 +141,9 @@ test('the version changes when any module changes, including a new one', async (
 
     // Dropping any single module changes it - so no module is a no-op in the
     // hash, which is what "every module is covered" actually means.
-    for (const name of ['pagebuilder.js', 'site_utils.js', 'discussions.js']) {
+    const tools = SHARED_MODULES.filter(n => n.startsWith('tools/'));
+    expect(tools.length, 'a tool script to check').toBeGreaterThan(0);
+    for (const name of ['pagebuilder.js', 'site_utils.js', 'discussions.js', ...tools]) {
         const without = SHARED_MODULES.filter(n => n !== name);
         expect(hashOf(without), `${name} contributes to the version`).not.toBe(sharedAssetVersion());
     }
