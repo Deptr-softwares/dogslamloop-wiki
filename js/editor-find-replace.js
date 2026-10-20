@@ -40,6 +40,8 @@
         // renaming "Ryu" would silently regroup the block list as a side
         // effect of a content edit.
         'folder',
+        // Its colour (v1.1), a colour value and not text either.
+        'folderColor',
     ]);
 
     const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

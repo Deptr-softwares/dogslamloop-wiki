@@ -361,15 +361,49 @@ test('a folder does not look like a block', async ({ page }) => {
   expect(seen.folderBg, 'the folder wrapper is transparent').toBe('rgba(0, 0, 0, 0)');
   expect(seen.headBg, 'and so is its header').toBe('rgba(0, 0, 0, 0)');
 
-  // A folder icon, not a disclosure triangle.
-  expect(['\u{1F4C1}', '\u{1F4C2}']).toContain(seen.toggleGlyph);
-
-  // Small side buttons: a glyph, not "＋ FOLDER".
-  expect(seen.addLabel.toUpperCase(), 'the add button is a glyph, not a word')
-    .not.toContain('FOLDER');
-  expect(seen.addLabel.length).toBeLessThanOrEqual(2);
+  // A chevron (v1.1). Fine-tuning 3 made the folder icon the toggle, and an
+  // editor never read it as the dropdown: the bare ＋ beside it is what they
+  // took for one. So the toggle says "this opens" and the ＋ says what it makes.
+  expect(['▸', '▾']).toContain(seen.toggleGlyph);
+  expect(seen.addLabel, 'the add button names what it makes').toBe('＋ FOLDER');
 
   expect(seen.headHeight, 'the header is short').toBeLessThan(34);
+});
+
+// Gray like any neutral button while the fill sweeps in, then green
+// (＋ FOLDER) or red (ungroup) once it has (owner, 2026-10-20); back to gray
+// at once on leaving. Read off the transitions themselves, slowed down and
+// then paused at a moment, so nothing here races the clock.
+test('the folder buttons sweep in gray, then turn green or red, and go gray again at once', async ({ page }) => {
+  await openWorkspace(page, [
+    { type: 'paragraph', content: 'Inside a folder', align: 'left', folder: 'Neutral' },
+  ]);
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('Animation.enable');
+  await cdp.send('Animation.setPlaybackRate', { playbackRate: 0.02 });
+
+  const GRAY = 'rgb(136, 136, 136)';
+  for (const [selector, colour] of [['.block-folder-add', 'rgb(34, 197, 94)'], ['.block-folder-ungroup', 'rgb(239, 68, 68)']]) {
+    const btn = page.locator(selector).first();
+    await btn.hover();
+    // The hover fill is the second background layer, painted in --sys-fill.
+    const fillAt = ms => btn.evaluate((b, ms) => {
+      const fill = b.getAnimations().find(a => a.transitionProperty === '--sys-fill');
+      if (!fill) return 'no colour change';
+      fill.pause();
+      fill.currentTime = ms;
+      return getComputedStyle(b).backgroundImage.split('linear-gradient').slice(2).join('');
+    }, ms);
+    expect(await fillAt(100), `${selector} while the fill sweeps in`).toContain(GRAY);
+    expect(await fillAt(1000), `${selector} once it has`).toContain(colour);
+
+    await page.mouse.move(0, 0);
+    const left = await btn.evaluate(b => ({
+      fading: b.getAnimations().some(a => a.transitionProperty === '--sys-fill'),
+      fill: getComputedStyle(b).backgroundImage.split('linear-gradient').slice(2).join(''),
+    }));
+    expect(left, `${selector} on leaving`).toEqual({ fading: false, fill: expect.stringContaining(GRAY) });
+  }
 });
 
 test('a new folder opens so it can be named and filled', async ({ page }) => {

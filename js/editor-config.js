@@ -38,6 +38,7 @@
         disablePreview: false,
         previewFollows: false,
         previewOnSync: false,
+        previewJump: true,
         confirmDeletes: true,
     });
 
@@ -49,6 +50,7 @@
         formattingOnTop: 'cfg-format-top',
         compactBlocks: 'cfg-compact-blocks',
         disablePreview: 'cfg-no-preview',
+        previewJump: 'cfg-preview-jump',
     };
 
     function readStore() {
@@ -238,7 +240,8 @@
     function apply() {
         if (!document.body) return;
         Object.keys(BODY_CLASSES).forEach(key => document.body.classList.toggle(BODY_CLASSES[key], get(key)));
-        if (get('previewFollows')) window.previewBlockAnchor = anchorBlock;
+        // The marks on each Block serve both: following it, and jumping to it.
+        if (get('previewFollows') || get('previewJump')) window.previewBlockAnchor = anchorBlock;
         else delete window.previewBlockAnchor;
         layoutSticky();
         // A setting can change how tall the section is (Compact Blocks) or
@@ -303,6 +306,95 @@
 
     document.addEventListener('focusin', followBlock);
     document.addEventListener('click', followBlock);
+
+    // --- CLICK A BLOCK IN THE PREVIEW TO EDIT IT (v1.1) ---
+    //
+    // The first step towards editing in the Preview (an editor's feedback,
+    // 2026-10-19): click a Block there, and the Workspace opens it. Found by
+    // the marks above, by data: the section whose Block at that position has
+    // the same fingerprint. A Block inside an accordion is marked by its
+    // accordion, so the accordion is what opens. Whatever in the Preview
+    // already does something on a click keeps doing it, and so does
+    // selecting text.
+    //
+    // Sections other than the open one are found on the tabs below. On the
+    // rest (Combos, Techs, moves), only the open section's Blocks jump.
+    const PREVIEW_CONTROLS = 'a, button, summary, input, select, textarea, label, video, audio, iframe, '
+        + '[role="button"], [data-player-toggle], [data-sbox-tab]';
+
+    // The sections of the tab on screen that hold Blocks, and how each one
+    // opens: the loader its own section button calls.
+    function jumpSections() {
+        const d = window.currentEditorDescData || {};
+        const tab = window.currentEditorTabId;
+        const type = window.currentEditorPageType || 'character';
+        if (type === 'system') {
+            const shown = (d.tabs || [])[window.currentSystemTabIdx];
+            return ((shown && shown.sections) || []).map((s, i) => ({ blocks: s && s.blocks, open: () => window.switchSystemSection(i) }));
+        }
+        if (type !== 'character') return [];
+        if (tab === 'overview') {
+            const open = (id) => () => window.loadOverviewSectionIntoEditor(id);
+            return [{ blocks: d.overview, open: open('overview') }, { blocks: d.strategy, open: open('strategy') }]
+                .concat((d.extras || []).map((x, i) => ({ blocks: x && x.content, open: open(`extra-${i}`) })));
+        }
+        if (tab === 'matchups') {
+            return (d.matchups || []).map((m, i) => ({ blocks: m && m.content, open: () => window.loadMatchupIntoEditor(i) }));
+        }
+        if (window.usesSharedKeyedUI && window.usesSharedKeyedUI(tab)) {
+            const section = window.getKeyedSectionByTab(tab);
+            return (d[section.field] || []).map((e, i) => ({ blocks: e && e.content, open: () => window.loadKeyedEntryIntoEditor(tab, i) }));
+        }
+        return [];
+    }
+
+    // The Block's card, opened up: out of an accordion's inner list, its
+    // folder and itself expanded, scrolled to and flashed like a moved Block.
+    function showCard(index) {
+        if (Array.isArray(window.activeAccordionPath)) window.activeAccordionPath.length = 0;
+        const block = window.getActiveBlocks()[index];
+        if (!block) return;
+        const folder = typeof window.blockFolderName === 'function' ? window.blockFolderName(block) : '';
+        if (folder) window.setBlockFolderCollapsed(folder, false);
+        window.setEditorBlockExpanded(block, true);
+        window.renderBlockList();
+
+        const card = document.querySelector(`#block-list .block-card[data-index="${index}"]`);
+        if (!card) return;
+        card.scrollIntoView({ block: 'center' });
+        card.classList.remove('block-just-moved');
+        void card.offsetWidth;
+        card.classList.add('block-just-moved');
+        setTimeout(() => card.classList.remove('block-just-moved'), 1400);
+    }
+
+    function jumpToBlock(e) {
+        if (!get('previewJump') || get('disablePreview') || !e.target.closest) return;
+        const pane = document.querySelector('.live-preview-pane');
+        const mark = e.target.closest('[data-preview-block]');
+        if (!pane || !mark || !pane.contains(mark) || e.target.closest(PREVIEW_CONTROLS)) return;
+        const selection = window.getSelection();
+        if (selection && !selection.isCollapsed && pane.contains(selection.anchorNode)) return;
+        if (typeof currentStrategyBlocks === 'undefined') return;
+
+        const index = Number(mark.getAttribute('data-preview-block'));
+        const sig = mark.getAttribute('data-preview-sig');
+        const holds = (blocks) => Array.isArray(blocks) && !!blocks[index] && blockSignature(blocks[index]) === sig;
+
+        // The open section first, from the Workspace's own copy of it, which
+        // is newer than the page data until it syncs. Only while its list is
+        // on screen: Overview's Profile Card keeps no list.
+        if (holds(currentStrategyBlocks) && document.getElementById('block-list')) {
+            showCard(index);
+            return;
+        }
+        const section = jumpSections().find(s => holds(s.blocks));
+        if (!section) return;
+        section.open();
+        showCard(index);
+    }
+
+    document.addEventListener('click', jumpToBlock);
 
     // --- MASS MINIMIZE / MAXIMIZE ---
     //
@@ -593,13 +685,7 @@
                        maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex color">
                 <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
             </div>
-            <div class="cp-label">Custom gradient</div>
-            <div class="format-color-custom-row">
-                <input type="text" class="cp-hex config-word-gradient" data-word-gradient placeholder="#a855f7, #22d3ee"
-                       spellcheck="false" autocomplete="off" aria-label="Gradient colors, separated by commas">
-                <button type="button" class="btn-sys btn-sys-green cp-apply" data-word-gradient-apply>USE</button>
-            </div>
-            <p class="config-option-hint config-action-note" data-word-gradient-error aria-live="polite"></p>`;
+            ${typeof gradientBuilderHTML === 'function' ? gradientBuilderHTML() : ''}`;
         return el;
     }
 
@@ -610,7 +696,6 @@
         const addBtn = panel.querySelector('[data-word-add]');
         const house = panel.querySelector('[data-house-style]');
         const popup = wordColorPopup();
-        const gradientError = popup.querySelector('[data-word-gradient-error]');
         let popupIndex = -1;
 
         house.value = state.houseStyle;
@@ -723,10 +808,9 @@
                 if (!reopen) return;
                 popupIndex = i;
                 row.appendChild(popup);
-                gradientError.textContent = '';
-                const gradientField = popup.querySelector('[data-word-gradient]');
+                // A word that already has a gradient opens on it.
                 const colors = state.words[i].colors;
-                gradientField.value = colors.length > 1 ? colors.join(', ') : '';
+                if (gradientBuilder) gradientBuilder.load(colors.length > 1 ? colors : null);
                 popup.classList.remove('hidden');
                 swatch.setAttribute('aria-expanded', 'true');
                 popup.scrollIntoView({ block: 'nearest' });
@@ -739,24 +823,14 @@
 
             const preset = e.target.closest('.color-preset-btn');
             if (preset) { setColors([preset.getAttribute('data-color')]); return; }
-
-            if (e.target.closest('[data-word-gradient-apply]')) {
-                // The [multicolor] grammar: two or more colours, all valid.
-                // safeColor admits any short word as a colour name, so the
-                // browser is asked too, the same check the renderer's probe
-                // makes: "nope" passes the grammar and colours nothing.
-                const stops = popup.querySelector('[data-word-gradient]').value
-                    .split(',').map(s => s.trim()).filter(Boolean);
-                const isColor = (s) => window.safeColor(s) && CSS.supports('color', s);
-                if (stops.length < 2 || !stops.every(isColor)) {
-                    gradientError.textContent = 'Type two or more colors, separated by commas, like #a855f7, #22d3ee.';
-                    return;
-                }
-                setColors(stops);
-            }
         });
 
-        if (typeof initColorPicker === 'function') initColorPicker(popup, (hex) => setColors([hex]));
+        // The custom gradient (js/editor-blocks.js) hands over two to six
+        // colours, each from the picker, so there is nothing left to check.
+        const gradientBuilder = typeof wireGradientBuilder === 'function' ? wireGradientBuilder(popup, setColors) : null;
+        if (typeof initColorPicker === 'function') {
+            initColorPicker(popup, (hex) => setColors([hex]), gradientBuilder ? gradientBuilder.pickerChanged : null);
+        }
 
         // A click anywhere else in the panel puts the popup away.
         panel.addEventListener('click', (e) => {
@@ -790,6 +864,7 @@
         { key: 'disablePreview', label: 'Disable Preview Panel', hint: 'The Workspace takes the whole screen. Only for experienced editors who know what they are doing.' },
         { key: 'previewFollows', label: 'Preview follows the Block', hint: 'Clicking into a Block scrolls the Preview Panel to where that Block is.' },
         { key: 'previewOnSync', label: 'Preview only on Sync', hint: 'The Preview Panel waits for SYNC instead of redrawing on every edit. Switching section still redraws it.' },
+        { key: 'previewJump', label: 'Click a Block to edit it', hint: 'Clicking a Block in the Preview Panel opens it in the Workspace.' },
     ];
 
     const STICKY_OPTIONS = [
@@ -899,7 +974,7 @@
             // The preview on screen was drawn before the marks existed, or
             // was held for a Sync that turning the hold off now stands in for.
             // Gallery and tier list pages have no preview this draws.
-            if ((key === 'previewFollows' || key === 'previewOnSync') && window.currentEditorDescData
+            if ((key === 'previewFollows' || key === 'previewOnSync' || key === 'previewJump') && window.currentEditorDescData
                 && ['character', 'system', 'tool'].includes(window.currentEditorPageType || 'character')
                 && typeof window.drawLivePreviewNow === 'function') window.drawLivePreviewNow(true);
         });

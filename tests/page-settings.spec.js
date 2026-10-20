@@ -345,30 +345,61 @@ test('a word that a built-in colour covers says so', async ({ page }) => {
   await expect(page.locator('[data-word-note]').nth(1)).toHaveText('Listed twice. The first one is used.');
 });
 
-test('a custom gradient needs two valid colours', async ({ page }) => {
+// The typed "#a, #b" box became the toolbar's custom gradient (v1.1): each
+// colour set on the picker, so a gradient is always two to six real colours.
+test('a word takes a custom gradient built on the picker, and opens on it again', async ({ page }) => {
   await bootEditor(page);
   await openPageTab(page);
   await page.click('[data-word-add]');
   await page.locator('[data-word-text]').fill('Domain');
   await page.click('[data-word-swatch]');
 
-  const field = page.locator('[data-word-gradient]');
-  const use = page.locator('[data-word-gradient-apply]');
-  const error = page.locator('[data-word-gradient-error]');
+  const popup = page.locator('.config-word-popup');
+  await popup.locator('[data-gradient-toggle]').click();
+  await popup.locator('[data-stop]').nth(0).click();
+  await popup.locator('#cp-hex').fill('#ff0000');
+  await popup.locator('[data-stop]').nth(1).click();
+  await popup.locator('#cp-hex').fill('#00ff00');
+  await popup.locator('[data-stop-add]').click();
+  await popup.locator('#cp-hex').fill('#0000ff');
+  await popup.locator('[data-gradient-use]').click();
 
-  await field.fill('#ff0000');
-  await use.click();
-  await expect(error).toContainText('two or more colors');
-  await field.fill('#ff0000, nope');
-  await use.click();
-  await expect(error).toContainText('two or more colors');
-  expect(await page.evaluate(() => window.editorMasterDescData.pageConfig.words[0].colors)).toHaveLength(1);
-
-  await field.fill('#ff0000, #00ff00, #0000ff');
-  await use.click();
   expect(await page.evaluate(() => window.editorMasterDescData.pageConfig.words[0].colors))
     .toEqual(['#ff0000', '#00ff00', '#0000ff']);
   await expect(page.locator('.live-preview-pane .sc-page-gradient')).toHaveText('Domain');
+
+  await page.click('[data-word-swatch]');
+  expect(await popup.locator('[data-stop]').evaluateAll(cs => cs.map(c => getComputedStyle(c).backgroundColor)))
+    .toEqual(['rgb(255, 0, 0)', 'rgb(0, 255, 0)', 'rgb(0, 0, 255)']);
+});
+
+test("each word's colour popup opens on that word's own gradient, or shut on the default", async ({ page }) => {
+  await bootEditor(page, { ...DESC, pageConfig: { words: [
+    { word: 'Domain', colors: ['#ff0000', '#00ff00', '#0000ff'] },
+    { word: 'Vessel', colors: ['#123456'] },
+  ], houseStyle: '' } });
+  await openPageTab(page);
+  const popup = page.locator('.config-word-popup');
+  const chips = () => popup.locator('[data-stop]').evaluateAll(cs => cs.map(c => getComputedStyle(c).backgroundColor));
+
+  await page.locator('[data-word-swatch]').nth(0).click();
+  await expect(popup.locator('[data-gradient-toggle]')).toHaveAttribute('aria-expanded', 'true');
+  expect(await chips()).toEqual(['rgb(255, 0, 0)', 'rgb(0, 255, 0)', 'rgb(0, 0, 255)']);
+
+  await page.locator('[data-word-swatch]').nth(1).click();
+  await expect(popup.locator('[data-gradient-toggle]')).toHaveAttribute('aria-expanded', 'false');
+  expect(await chips()).toEqual(['rgb(168, 85, 247)', 'rgb(34, 211, 238)']);
+});
+
+test('a stored gradient that is not all colours opens on the default, and none of it reaches a style', async ({ page }) => {
+  await bootEditor(page, { ...DESC, pageConfig: { words: [{ word: 'Domain', colors: ['#ff0000', 'red), url(https://example.com/x.png)'] }], houseStyle: '' } });
+  await openPageTab(page);
+  await page.click('[data-word-swatch]');
+
+  const popup = page.locator('.config-word-popup');
+  await expect(popup.locator('[data-stop]')).toHaveCount(2);
+  const strip = await popup.locator('[data-gradient-strip]').evaluate(s => getComputedStyle(s).backgroundImage);
+  expect(strip).toBe('linear-gradient(90deg, rgb(168, 85, 247), rgb(34, 211, 238))');
 });
 
 test('with the colour picker open, Config still fits the screen and every picker control can be reached', async ({ page }) => {
@@ -389,8 +420,10 @@ test('with the colour picker open, Config still fits the screen and every picker
   expect(modal.bottom).toBeLessThanOrEqual(700);
 
   // The last control in the picker, scrolled to the way a person would, and
-  // then actually on top where it is drawn.
-  for (const sel of ['#cp-apply', '[data-word-gradient-apply]']) {
+  // then actually on top where it is drawn. The custom gradient opened, since
+  // its USE GRADIENT is the last control of all.
+  await page.locator('.config-word-popup [data-gradient-toggle]').click();
+  for (const sel of ['#cp-apply', '[data-gradient-use]']) {
     const control = page.locator(`.config-word-popup ${sel}`);
     await control.scrollIntoViewIfNeeded();
     const reachable = await control.evaluate(el => {

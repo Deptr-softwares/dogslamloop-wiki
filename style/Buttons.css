@@ -43,6 +43,11 @@ button {
 
    A colour tier sets --sys-edge (border, cut line, tint) and --sys-fill (the
    hover fill and the shadow it darkens). Everything else is shared. */
+/* Registered so a hover can change a button's colour gradually (the folder
+   header's buttons, style/editor.css): an unregistered custom property cannot
+   transition, it jumps. The initial values are .btn-sys's own. */
+@property --sys-edge { syntax: '<color>'; inherits: true; initial-value: #555; }
+@property --sys-fill { syntax: '<color>'; inherits: true; initial-value: #888; }
 .btn-sys {
     --sys-edge: #555;
     --sys-fill: #888;

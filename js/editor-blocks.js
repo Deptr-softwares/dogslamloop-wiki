@@ -140,6 +140,129 @@ function gradientPresetsHTML() {
                         </div>`;
 }
 
+// --- A CUSTOM GRADIENT (v1.1, from an editor's feedback) ---
+//
+// "multicolor becomes an option instead of manually typing it out". The
+// presets above are quick picks; this builds any other gradient from two to
+// six colours, each set on the visual picker the popup already has: click a
+// colour chip, and moving the picker changes that colour. Six because that is
+// the most any gradient on the site used when this was built (2026-10-20: 28
+// of 31 use two, 2 use three, 1 uses six).
+//
+// The popup supplies the picker; wireGradientBuilder hands back the hook
+// initColorPicker calls as the picker moves.
+//
+// Shut until its heading is clicked. Open, it is about fifty pixels more on a
+// popup that opens upward inside the Workspace, and on a 720px screen that
+// pushed the preset swatches up under the tab buttons where nothing could
+// click them. Open on a window under about 800px it still does; shut, never.
+const GRADIENT_MAX_STOPS = 6;
+const GRADIENT_START = ['#a855f7', '#22d3ee'];
+
+function gradientBuilderHTML() {
+    return `
+                        <button type="button" class="cp-label cp-gradient-toggle" data-gradient-toggle aria-expanded="false">Custom gradient <span aria-hidden="true">▸</span></button>
+                        <div class="cp-gradient" data-gradient-builder hidden>
+                            <div class="cp-gradient-stops" data-gradient-stops></div>
+                            <div class="cp-gradient-strip" data-gradient-strip></div>
+                            <button type="button" class="btn-sys btn-sys-green cp-apply" data-gradient-use>USE GRADIENT</button>
+                        </div>`;
+}
+
+function wireGradientBuilder(container, onUse) {
+    const root = container.querySelector('[data-gradient-builder]');
+    const toggle = container.querySelector('[data-gradient-toggle]');
+    const hexField = container.querySelector('#cp-hex');
+    if (!root || !toggle || !hexField) return null;
+
+    function setOpen(open) {
+        root.hidden = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.querySelector('span').textContent = open ? '▾' : '▸';
+    }
+    toggle.addEventListener('click', () => setOpen(root.hidden));
+
+    const box = root.querySelector('[data-gradient-stops]');
+    const strip = root.querySelector('[data-gradient-strip]');
+    let stops = GRADIENT_START.slice();
+    let active = -1;
+
+    // Colours go on through the CSSOM, and only real ones: a stop can come
+    // from page data (Config > Page), and "red), url(...)" would otherwise
+    // be a second background layer.
+    const usable = (c) => !!window.safeColor(c) && CSS.supports('color', c);
+
+    function paintStrip() {
+        strip.style.background = '';
+        strip.style.background = `linear-gradient(90deg, ${stops.join(', ')})`;
+    }
+
+    function draw() {
+        box.innerHTML = stops.map((_, i) => `
+                <span class="cp-gradient-stop-wrap">
+                    <button type="button" class="cp-gradient-stop${i === active ? ' is-active' : ''}" data-stop="${i}"
+                            aria-label="Gradient color ${i + 1}" aria-pressed="${i === active}"></button>${stops.length > 2 ? `
+                    <button type="button" class="cp-gradient-stop-remove" data-stop-remove="${i}"
+                            aria-label="Remove gradient color ${i + 1}">✕</button>` : ''}
+                </span>`).join('')
+            + (stops.length < GRADIENT_MAX_STOPS
+                ? '<button type="button" class="cp-gradient-add" data-stop-add aria-label="Add a color" title="Add a color">＋</button>'
+                : '');
+        box.querySelectorAll('[data-stop]').forEach((chip, i) => { chip.style.background = stops[i]; });
+        paintStrip();
+    }
+
+    // The picker moves to the chip's colour, and from here on edits it.
+    function edit(i) {
+        active = i;
+        hexField.value = stops[i];
+        hexField.dispatchEvent(new Event('input'));
+        draw();
+    }
+
+    root.addEventListener('click', (e) => {
+        // Kept here. A click below redraws the chips, so by the time it
+        // reached the "clicked outside the popup?" listeners its target would
+        // be out of the page, and they would close the popup.
+        e.stopPropagation();
+        const chip = e.target.closest('[data-stop]');
+        if (chip) { edit(Number(chip.getAttribute('data-stop'))); return; }
+        const remove = e.target.closest('[data-stop-remove]');
+        if (remove) {
+            stops.splice(Number(remove.getAttribute('data-stop-remove')), 1);
+            active = -1;
+            draw();
+            return;
+        }
+        if (e.target.closest('[data-stop-add]')) {
+            stops.push(stops[stops.length - 1]);
+            edit(stops.length - 1);
+            return;
+        }
+        if (e.target.closest('[data-gradient-use]')) onUse(stops.slice());
+    });
+
+    draw();
+    return {
+        pickerChanged(hex) {
+            if (active < 0 || !usable(hex)) return;
+            stops[active] = hex;
+            const chip = box.querySelector(`[data-stop="${active}"]`);
+            if (chip) chip.style.background = hex;
+            paintStrip();
+        },
+        // Start from these colours (a word's own gradient, shown open), or
+        // the default, shut.
+        load(colors) {
+            const good = Array.isArray(colors) ? colors.filter(usable).slice(0, GRADIENT_MAX_STOPS) : [];
+            stops = good.length >= 2 ? good : GRADIENT_START.slice();
+            active = -1;
+            draw();
+            setOpen(good.length >= 2);
+        },
+    };
+}
+
 // --- THE VISUAL COLOUR PICKER (owner's fine-tuning item, 2026-08-13) ---
 //
 // Replaces <input type="color">, which opens the OPERATING SYSTEM's colour
@@ -185,7 +308,9 @@ function hexToHsv(hex) {
     return { h, s: max === 0 ? 0 : d / max, v: max };
 }
 
-function initColorPicker(container, onPick) {
+// onChange (optional) hears every colour the picker shows, as it moves: the
+// custom gradient uses it to recolour the chip being edited.
+function initColorPicker(container, onPick, onChange) {
     const surface = container.querySelector('#cp-surface');
     const surfaceThumb = container.querySelector('#cp-surface-thumb');
     const hue = container.querySelector('#cp-hue');
@@ -211,6 +336,7 @@ function initColorPicker(container, onPick) {
 
         preview.style.backgroundColor = hex;
         if (updateField) hexField.value = hex;
+        if (onChange) onChange(hex);
     }
 
     // Pointer events rather than mouse events, so a stylus and a finger work
@@ -318,39 +444,34 @@ function headingBarRowHTML(block) {
                 </div>`;
 }
 
+// The popup behind a colour swatch: a NONE button, the text colour presets and
+// the custom picker. A heading's Side bar and a folder's colour both use it.
+//
 // One popup for the whole list, made when it opens and removed when it closes:
 // its custom picker repeats the toolbar's ids, which initColorPicker tolerates
 // only because it looks inside the container it is handed.
-let headingBarPopup = null;
+let swatchPopup = null;   // { popup, swatch }
 
-function closeHeadingBarPopup() {
-    if (!headingBarPopup) return;
-    const swatch = headingBarPopup.parentElement && headingBarPopup.parentElement.querySelector('[data-heading-bar]');
-    if (swatch) swatch.setAttribute('aria-expanded', 'false');
-    headingBarPopup.remove();
-    headingBarPopup = null;
+function closeSwatchPopup() {
+    if (!swatchPopup) return;
+    swatchPopup.swatch.setAttribute('aria-expanded', 'false');
+    swatchPopup.popup.remove();
+    swatchPopup = null;
 }
 
-function setHeadingBar(index, color) {
-    const block = window.getActiveBlocks()[index];
-    closeHeadingBarPopup();
-    if (!block || block.type !== 'heading') return;
-    if (color) block.sideBar = color;
-    else delete block.sideBar;
-    renderBlockList();
-    updateLivePreview();
-}
-
-function openHeadingBarPopup(swatch) {
-    const index = parseInt(swatch.closest('.block-card').getAttribute('data-index'), 10);
-    const reopen = !headingBarPopup || headingBarPopup.parentElement !== swatch.parentElement;
-    closeHeadingBarPopup();
+// Opens below the swatch, in its parent row (which wraps it onto a line of its
+// own). The same swatch again closes it. `onPick` gets a colour, or null for
+// NONE.
+function openSwatchPopup(swatch, noneLabel, onPick) {
+    const reopen = !swatchPopup || swatchPopup.popup.parentElement !== swatch.parentElement;
+    closeSwatchPopup();
     if (!reopen) return;
 
+    const pick = (color) => { closeSwatchPopup(); onPick(color); };
     const popup = document.createElement('div');
-    popup.className = 'heading-bar-popup';
+    popup.className = 'swatch-popup';
     popup.innerHTML = `
-        <button type="button" class="btn-sys btn-sys-regular" data-heading-bar-none>NO BAR</button>
+        <button type="button" class="btn-sys btn-sys-regular" data-swatch-none>${window.escapeHtml(noneLabel)}</button>
         <div class="format-color-presets-scroll">${colorPresetsHTML()}</div>
         <div class="cp-label">Custom</div>
         <div class="cp-surface" id="cp-surface"><div class="cp-thumb" id="cp-surface-thumb"></div></div>
@@ -365,29 +486,64 @@ function openHeadingBarPopup(swatch) {
             <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
         </div>`;
     popup.addEventListener('click', (e) => {
-        if (e.target.closest('[data-heading-bar-none]')) { setHeadingBar(index, null); return; }
+        if (e.target.closest('[data-swatch-none]')) { pick(null); return; }
         const preset = e.target.closest('.color-preset-btn');
-        if (preset) setHeadingBar(index, preset.getAttribute('data-color'));
+        if (preset) pick(preset.getAttribute('data-color'));
     });
     swatch.parentElement.appendChild(popup);
-    initColorPicker(popup, (hex) => setHeadingBar(index, hex));
-    headingBarPopup = popup;
+    initColorPicker(popup, pick);
+    swatchPopup = { popup, swatch };
     swatch.setAttribute('aria-expanded', 'true');
     popup.scrollIntoView({ block: 'nearest' });
 }
 
 // A click anywhere else puts it away.
 document.addEventListener('click', (e) => {
-    if (headingBarPopup && !headingBarPopup.contains(e.target) && !e.target.closest('[data-heading-bar]')) {
-        closeHeadingBarPopup();
+    if (swatchPopup && !swatchPopup.popup.contains(e.target) && !e.target.closest('[data-heading-bar], [data-folder-color]')) {
+        closeSwatchPopup();
     }
 });
+
+function setHeadingBar(index, color) {
+    const block = window.getActiveBlocks()[index];
+    if (!block || block.type !== 'heading') return;
+    if (color) block.sideBar = color;
+    else delete block.sideBar;
+    renderBlockList();
+    updateLivePreview();
+}
+
+function openHeadingBarPopup(swatch) {
+    const index = parseInt(swatch.closest('.block-card').getAttribute('data-index'), 10);
+    openSwatchPopup(swatch, 'NO BAR', color => setHeadingBar(index, color));
+}
+
+// A folder's colour (see editor-folders.js). The preview is redrawn all the
+// same, though readers never see a folder: that call is what records the
+// change for UNDO and the autosave.
+function setFolderColor(name, color) {
+    const safe = color ? window.safeColor(color) : null;
+    if (color && !safe) return;
+    window.setBlockFolderColor(window.getActiveBlocks(), name, safe);
+    renderBlockList();
+    updateLivePreview();
+}
+
+function openFolderColorPopup(swatch, name) {
+    openSwatchPopup(swatch, 'NO COLOR', color => setFolderColor(name, color));
+}
 
 // --- BLOCK BUILDER STATE ---
 let currentStrategyBlocks = [];
 let blockHistory = [];
 let historyIndex = -1;
 
+// History holds STATES, and UNDO steps to the one before the latest. So a
+// change records the state it starts from (this, which skips a repeat of the
+// latest) and then the one it ends in (updateLivePreview()). Only UNDO and
+// REDO pass updateLivePreview(true): they move between states already saved.
+// Until 2026-10-20 drags, folder changes and +Row skipped the second half, and
+// UNDO after one also took back the edit before it.
 window.saveBlockHistory = function() {
     const newStateStr = JSON.stringify(currentStrategyBlocks);
     
@@ -1247,6 +1403,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                                    maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex colour">
                             <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
                         </div>
+                        ${gradientBuilderHTML()}
                     </div>
                 </div>
             </div>
@@ -1990,10 +2147,17 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             }
         });
 
+        // The popup, not the whole container: a Side bar or folder colour
+        // popup open in the list repeats the picker's ids.
+        const gradientBuilder = wireGradientBuilder(colorPopup, (stops) => {
+            applyFormat('multicolor', stops.join(','));
+            colorPopup.classList.add('hidden');
+        });
+
         initColorPicker(container, (hex) => {
             applyFormat('color', hex);
             colorPopup.classList.add('hidden');
-        });
+        }, gradientBuilder ? gradientBuilder.pickerChanged : null);
 
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#format-color-popup') && !e.target.closest('#btn-format-color')) {
@@ -2182,7 +2346,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             window.setBlockFolderCollapsed(from, true);
             window.setBlockFolderCollapsed(to, !wasOpen);
             renderBlockList();
-            updateLivePreview(true);
+            updateLivePreview();
             return;
         }
 
@@ -2265,7 +2429,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         folderHead: null, headEl: null, nestInto: null, nestEl: null,
     };
 
-    function computeDropTarget(clientX, clientY) {
+    // allowNest: false when what is being dragged cannot go inside a Block (a
+    // whole folder), so the nesting strip is just part of its card.
+    function computeDropTarget(clientX, clientY, allowNest = true) {
         const under = document.elementFromPoint(clientX, clientY);
         if (!under) return NO_DROP;
 
@@ -2273,7 +2439,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         // on a theorybox - both use this class, so both accept a drop without
         // either being named here. Dropping on it means "put this block INSIDE
         // that one", which is why it cannot be the card's own reorder target.
-        const nest = under.closest('.accordion-inner-block-wrapper');
+        const nest = allowNest && under.closest('.accordion-inner-block-wrapper');
         if (nest) {
             const host = nest.closest('.block-card');
             if (host) {
@@ -2311,15 +2477,65 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     // beyond the list re-rendering, and in a long section that means hunting
     // for the block you just moved. Applied after a frame so the class lands
     // on the freshly-rendered card rather than the one it replaced.
-    function flashMovedBlock(index) {
+    // wholeFolder: flash the folder the block at `index` sits in, since a
+    // shut folder shows no cards to flash.
+    function flashMovedBlock(index, wholeFolder = false) {
         requestAnimationFrame(() => {
-            const card = document.querySelector(`#block-list .block-card[data-index="${index}"]`);
+            const found = document.querySelector(`#block-list .block-card[data-index="${index}"]`);
+            const card = wholeFolder && found ? found.closest('.block-folder') : found;
             if (!card) return;
             card.classList.remove('block-just-moved');
             void card.offsetWidth; // restart the animation if the same card moves twice
             card.classList.add('block-just-moved');
             setTimeout(() => card.classList.remove('block-just-moved'), 1400);
         });
+    }
+
+    // --- DRAGGING A WHOLE FOLDER (v1.1, from an editor's feedback) ---
+    //
+    // Where a folder dropped under the pointer would land: the insert-before
+    // slot after snapping out of any other folder (folderDropSlot), and the
+    // thing to mark there - whatever starts at the slot gets a line on its top
+    // edge, and at the very end the last thing gets one on its bottom. Null
+    // over nothing, or where the folder already is.
+    function folderDropAt(clientX, clientY, ownRun) {
+        const target = computeDropTarget(clientX, clientY, false);
+        let raw = null;
+        if (target.card) raw = target.dropIndex;
+        else if (target.headEl) {
+            // A folder's header: just above that folder.
+            const first = target.headEl.closest('.block-folder').querySelector('.block-card[data-index]');
+            if (first) raw = parseInt(first.getAttribute('data-index'), 10);
+        }
+        if (raw === null) return null;
+
+        const blocks = window.getActiveBlocks();
+        const slot = window.folderDropSlot(blocks, raw);
+        if (ownRun && slot >= ownRun.start && slot <= ownRun.end + 1) return null;
+
+        const atEnd = slot >= blocks.length;
+        const card = blockList.querySelector(`.block-card[data-index="${atEnd ? blocks.length - 1 : slot}"]`);
+        if (!card) return null;
+        return {
+            slot,
+            mark: card.closest('.block-folder') || card,
+            edge: atEnd ? 'drag-over-bottom' : 'drag-over-top',
+        };
+    }
+
+    function finishFolderDrop(payload, slot) {
+        if (slot === null) return;
+        const activeBlocks = window.getActiveBlocks();
+        const run = window.blockFolderRunContaining(activeBlocks, payload.folderFrom);
+        if (!run || (slot >= run.start && slot <= run.end + 1)) return;
+        // History holds states: the one before the move (saved here, unless
+        // it is already the latest) and the one after (updateLivePreview), so
+        // UNDO steps back over exactly this move.
+        window.saveBlockHistory();
+        const landedAt = window.moveBlockFolder(activeBlocks, payload.folderFrom, slot);
+        renderBlockList();
+        updateLivePreview();
+        flashMovedBlock(landedAt, true);
     }
 
     // A drag moves an array element and says nothing about folder membership,
@@ -2362,6 +2578,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                     : null;
                 landedAt = run ? run.start : activeBlocks.length;
                 newBlock.folder = folderHead;
+                const folderColor = typeof window.blockFolderColor === 'function'
+                    ? window.blockFolderColor(activeBlocks, folderHead) : '';
+                if (folderColor) newBlock.folderColor = folderColor;
                 activeBlocks.splice(landedAt, 0, newBlock);
             } else if (dropIndex === null) {
                 activeBlocks.push(newBlock);
@@ -2372,7 +2591,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 settleFolderAt(activeBlocks, landedAt);
             }
             renderBlockList();
-            updateLivePreview(true); // Tell it to skip saving history again
+            updateLivePreview();
             flashMovedBlock(landedAt);
         } else if (nestHost(activeBlocks, nestInto) && payload.fromIndex !== nestInto) {
             // The same gesture as dropping into a folder, with a different
@@ -2386,17 +2605,18 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             // Carried along it would show up inside the accordion as a folder
             // of one, named after somewhere the author cannot see.
             delete item.folder;
+            delete item.folderColor;
             const hostIndex = payload.fromIndex < nestInto ? nestInto - 1 : nestInto;
             activeBlocks[hostIndex].content.push(item);
             renderBlockList();
-            updateLivePreview(true);
+            updateLivePreview();
             flashMovedBlock(hostIndex);
         } else if (folderHead && typeof window.dropBlockIntoFolderHead === 'function') {
             window.saveBlockHistory();
             const landedAt = window.dropBlockIntoFolderHead(activeBlocks, payload.fromIndex, folderHead);
             if (landedAt < 0) return;
             renderBlockList();
-            updateLivePreview(true);
+            updateLivePreview();
             flashMovedBlock(landedAt);
         } else if (dropIndex !== null) {
             let target = dropIndex;
@@ -2407,12 +2627,25 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 activeBlocks.splice(target, 0, item);
                 settleFolderAt(activeBlocks, target);
                 renderBlockList();
-                updateLivePreview(true);
+                updateLivePreview();
                 flashMovedBlock(target);
             }
         }
         // Reordering onto empty space (no card under the pointer) is a no-op,
         // same as the previous native-DnD drop handler.
+    }
+
+    // A drag ends in a click on the element it started from: the pointer was
+    // captured there, so the browser sends the click to it wherever the button
+    // came up. On an Add Block menu button that click is the tap fallback
+    // above, which added a second block at the end of the list after every
+    // drag (found 2026-10-20; there since the drag moved to pointer events in
+    // v0.5). Swallowed for this one gesture only: the click comes in the same
+    // dispatch as the pointerup, so the listener is gone before the next task.
+    function swallowClickAfterDrag(el) {
+        const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+        el.addEventListener('click', swallow, { capture: true, once: true });
+        setTimeout(() => el.removeEventListener('click', swallow, { capture: true }), 0);
     }
 
     // ghostLabel: text shown in the small pill that follows the pointer.
@@ -2438,6 +2671,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         let lastFolderHead = null;
         let currentNest = null;
         let lastNestInto = null;
+        // A whole folder (payload.folderFrom, any index inside it) has drops
+        // of its own: between Blocks and folders, never into either.
+        const movingFolder = payload.folderFrom !== undefined;
+        const ownRun = movingFolder ? window.blockFolderRunContaining(window.getActiveBlocks(), payload.folderFrom) : null;
+        let currentMark = null;
+        let lastSlot = null;
 
         el.setPointerCapture(e.pointerId);
 
@@ -2447,6 +2686,14 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
 
         function updateHighlight(ev) {
+            if (movingFolder) {
+                const drop = folderDropAt(ev.clientX, ev.clientY, ownRun);
+                if (currentMark) currentMark.classList.remove('drag-over-top', 'drag-over-bottom');
+                currentMark = drop ? drop.mark : null;
+                if (currentMark) currentMark.classList.add(drop.edge);
+                lastSlot = drop ? drop.slot : null;
+                return;
+            }
             const { card, dropIndex, isBottom, folderHead, headEl, nestInto, nestEl } = computeDropTarget(ev.clientX, ev.clientY);
             if (card !== currentCard) {
                 if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
@@ -2481,6 +2728,10 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             if (payload.fromIndex !== undefined) {
                 sourceCard = blockList.querySelector(`.block-card[data-index="${payload.fromIndex}"]`);
                 if (sourceCard) sourceCard.classList.add('block-card-dragging');
+            } else if (movingFolder) {
+                const member = blockList.querySelector(`.block-card[data-index="${payload.folderFrom}"]`);
+                sourceCard = member ? member.closest('.block-folder') : null;
+                if (sourceCard) sourceCard.classList.add('block-card-dragging');
             }
             ghost = document.createElement('div');
             ghost.className = 'block-drag-ghost';
@@ -2498,6 +2749,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
             if (currentHead) currentHead.classList.remove('drag-over-folder');
             if (currentNest) currentNest.classList.remove('drag-over-nest');
+            if (currentMark) currentMark.classList.remove('drag-over-top', 'drag-over-bottom');
         }
 
         function onMove(ev) {
@@ -2516,8 +2768,13 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             const dropIndex = lastDropIndex;
             const folderHead = lastFolderHead;
             const nestInto = lastNestInto;
+            const slot = lastSlot;
             cleanup();
-            if (dragging) finishBlockDrop(payload, dropIndex, folderHead, nestInto);
+            if (dragging) {
+                swallowClickAfterDrag(el);
+                if (movingFolder) finishFolderDrop(payload, slot);
+                else finishBlockDrop(payload, dropIndex, folderHead, nestInto);
+            }
         }
 
         function onCancel() {
@@ -2546,6 +2803,21 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     // itself, not on anything inside it: the strip is the card's border and
     // padding, which nothing else occupies.
     blockList.addEventListener('pointerdown', (e) => {
+        // A whole folder: the ⠿ on its header, or with handles hidden the
+        // header's left edge, the same strip a card gives up.
+        const folderHead = e.target.closest('.block-folder-head');
+        if (folderHead) {
+            const shell = folderHead.closest('.block-folder');
+            const member = shell.querySelector('.block-card[data-index]');
+            const handle = e.target.closest('.block-folder-handle');
+            const onEdge = !handle && e.target === folderHead
+                && window.editorConfig && window.editorConfig.get('hideDragHandle')
+                && e.clientX - shell.getBoundingClientRect().left <= BLOCK_DRAG_EDGE_PX;
+            if (!member || (!handle && !onEdge)) return;
+            startBlockPointerDrag(e, handle || folderHead, { folderFrom: parseInt(member.getAttribute('data-index'), 10) }, 'Move folder');
+            return;
+        }
+
         const handle = e.target.closest('.drag-handle');
         const card = (handle || e.target).closest('.block-card');
         if (!card) return;
@@ -2593,7 +2865,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         window.saveBlockHistory();
         const landedAt = window.assignBlockToFolder(activeBlocks, index, name);
         renderBlockList();
-        updateLivePreview(true);
+        updateLivePreview();
         if (landedAt >= 0) flashMovedBlock(landedAt);
     });
 
@@ -2601,6 +2873,29 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (!e.target.closest('.block-folder-picker')) {
             document.querySelectorAll('.block-folder-picker.open')
                 .forEach(w => w.classList.remove('open'));
+        }
+    });
+
+    // THE PICKED CELL: clicking (or tabbing) into a table cell picks it, and
+    // going into any other field lets it go. Buttons do neither, or pressing
+    // -Row would drop the very pick it is about to act on.
+    blockList.addEventListener('focusin', (e) => {
+        const cell = e.target.closest('.table-cell-input, .table-header-input');
+        if (!cell && !e.target.closest('input, textarea, select')) return;
+
+        const had = editorTablePick && editorTablePick.block;
+        if (cell) {
+            const card = cell.closest('.block-card');
+            const block = window.getActiveBlocks()[parseInt(card.getAttribute('data-index'), 10)];
+            const row = cell.classList.contains('table-header-input') ? null : parseInt(cell.getAttribute('data-row'), 10);
+            editorTablePick = { block, row, col: parseInt(cell.getAttribute('data-col'), 10) };
+            paintTablePick(card, block);
+        } else {
+            editorTablePick = null;
+        }
+        if (had && had !== (editorTablePick && editorTablePick.block)) {
+            const oldCard = cardForEditorBlock(had);
+            if (oldCard) paintTablePick(oldCard, had);
         }
     });
 
@@ -2669,8 +2964,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         const btn = e.target.closest('button');
         if (!btn) return;
 
-        // The side bar popup handles its own buttons (above).
-        if (btn.closest('.heading-bar-popup')) return;
+        // The swatch popup handles its own buttons (above).
+        if (btn.closest('.swatch-popup')) return;
         if (btn.matches('[data-heading-bar]')) { openHeadingBarPopup(btn); return; }
 
         const activeBlocks = window.getActiveBlocks();
@@ -2686,6 +2981,11 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (folderShell && !btn.closest('.block-card')) {
             const folderName = folderShell.getAttribute('data-folder');
 
+            if (btn.matches('[data-folder-color]')) {
+                openFolderColorPopup(btn, folderName);
+                return;
+            }
+
             if (btn.classList.contains('block-folder-toggle')) {
                 if (typeof window.toggleBlockFolderCollapsed === 'function') {
                     window.toggleBlockFolderCollapsed(folderName);
@@ -2698,7 +2998,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 && typeof window.ungroupBlockFolder === 'function') {
                 window.ungroupBlockFolder(activeBlocks, folderName);
                 renderBlockList();
-                updateLivePreview(true);
+                updateLivePreview();
                 return;
             }
 
@@ -2721,29 +3021,50 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             return;
         }
 
-        if (e.target.classList.contains('btn-table-add-row')) {
-            const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            const cols = activeBlocks[index].headers.length;
-            activeBlocks[index].rows.push(new Array(cols).fill(''));
-            renderBlockList(); updateLivePreview(true);
-        } else if (e.target.classList.contains('btn-table-add-col')) {
-            const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            activeBlocks[index].headers.push('New');
-            activeBlocks[index].rows.forEach(r => r.push(''));
-            renderBlockList(); updateLivePreview();
-        } else if (e.target.classList.contains('btn-table-del-row')) {
-            const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            if (activeBlocks[index].rows.length > 1
-                && await window.confirmDelete('Delete the bottom row of this table?')) activeBlocks[index].rows.pop();
-            renderBlockList(); updateLivePreview();
-        } else if (e.target.classList.contains('btn-table-del-col')) {
-            const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            if (activeBlocks[index].headers.length > 1
-                && await window.confirmDelete('Delete the right-hand column of this table?')) {
-                activeBlocks[index].headers.pop();
-                activeBlocks[index].rows.forEach(r => r.pop());
+        // The four table buttons act at the picked cell, or at the end with
+        // nothing picked (see editorTablePick).
+        const tableAction = ['add-row', 'add-col', 'del-row', 'del-col']
+            .find(kind => btn.classList.contains(`btn-table-${kind}`));
+        if (tableAction) {
+            const index = parseInt(btn.closest('.block-card').getAttribute('data-index'), 10);
+            const table = activeBlocks[index];
+            const pick = tablePickFor(table);
+            const pickedRow = pick ? pick.row : null;
+            const pickedCol = pick ? pick.col : null;
+
+            if (tableAction === 'add-row') {
+                // Below the picked cell; a header cell's "below" is the first row.
+                const at = pick ? (pickedRow === null ? 0 : pickedRow + 1) : table.rows.length;
+                table.rows.splice(at, 0, new Array(table.headers.length).fill(''));
+                if (pick) editorTablePick = { block: table, row: at, col: pickedCol };
+            } else if (tableAction === 'add-col') {
+                const at = pickedCol !== null ? pickedCol + 1 : table.headers.length;
+                table.headers.splice(at, 0, 'New');
+                table.rows.forEach(r => r.splice(at, 0, ''));
+                if (pick) editorTablePick = { block: table, row: pickedRow, col: at };
+            } else if (tableAction === 'del-row') {
+                const at = pickedRow !== null ? pickedRow : table.rows.length - 1;
+                const message = pickedRow !== null ? `Delete row ${at + 1} of this table?` : 'Delete the bottom row of this table?';
+                if (table.rows.length > 1 && await window.confirmDelete(message)) {
+                    table.rows.splice(at, 1);
+                    // The pick stays on the same place, now the next row.
+                    if (pickedRow !== null) editorTablePick = { block: table, row: Math.min(at, table.rows.length - 1), col: pickedCol };
+                }
+            } else {
+                const at = pickedCol !== null ? pickedCol : table.headers.length - 1;
+                const message = pickedCol !== null ? `Delete column ${at + 1} of this table?` : 'Delete the right-hand column of this table?';
+                if (table.headers.length > 1 && await window.confirmDelete(message)) {
+                    table.headers.splice(at, 1);
+                    table.rows.forEach(r => r.splice(at, 1));
+                    if (pickedCol !== null) editorTablePick = { block: table, row: pickedRow, col: Math.min(at, table.headers.length - 1) };
+                }
             }
-            renderBlockList(); updateLivePreview();
+
+            const before = tableButtonsTop(index);
+            renderBlockList();
+            keepTableButtonsInPlace(index, before);
+            updateLivePreview();
+            return;
         }
 
         if (btn.classList.contains('btn-collapse')) {
@@ -3051,6 +3372,101 @@ function blockSummary(block) {
     return text.length > 60 ? text.slice(0, 60) + '…' : text;
 }
 
+// --- TABLE BLOCK: THE PICKED CELL (v1.1, from an editor's feedback) ---
+//
+// -Row and -Col could only take the last row or column, so a mistake in the
+// middle of a table meant retyping everything below it. Clicking a cell now
+// picks its row and column: -Row and -Col remove those and say which
+// ("-Row 3"), +Row and +Col insert below and right of it, and with nothing
+// picked all four act at the end, as they always did.
+//
+// One pick in the whole Workspace, held beside the data rather than in it:
+// which cell an editor last clicked is not page content. It names the block
+// OBJECT, which outlives renderBlockList's markup, so a re-render keeps it;
+// an undo restores copies of the blocks, so it lets go.
+let editorTablePick = null;   // { block, row, col }; row is null for a header cell
+
+function tablePickFor(block) {
+    if (!editorTablePick || editorTablePick.block !== block) return null;
+    const { row, col } = editorTablePick;
+    // A row or column can be gone from under the pick.
+    const r = row !== null && row < block.rows.length ? row : null;
+    const c = col !== null && col < block.headers.length ? col : null;
+    return r === null && c === null ? null : { row: r, col: c };
+}
+
+// row is null for a header cell, which shares the picked column only.
+function tablePickedClass(pick, row, col) {
+    if (!pick) return '';
+    return (row !== null && pick.row === row) || pick.col === col ? 'table-picked' : '';
+}
+
+function tableDeleteButtons(pick) {
+    const row = pick && pick.row !== null ? pick.row + 1 : null;
+    const col = pick && pick.col !== null ? pick.col + 1 : null;
+    return {
+        row: row ? { label: `⊟ -Row ${row}`, title: `Delete row ${row}` } : { label: '⊟ -Row', title: 'Delete Bottom Row' },
+        col: col ? { label: `⊟ -Col ${col}`, title: `Delete column ${col}` } : { label: '⊟ -Col', title: 'Delete Right Column' },
+    };
+}
+
+function cardForEditorBlock(block) {
+    const blocks = window.getActiveBlocks();
+    return Array.from(document.querySelectorAll('#block-list .block-card[data-index]'))
+        .find(card => blocks[parseInt(card.getAttribute('data-index'), 10)] === block) || null;
+}
+
+// The pick drawn onto a table already on screen. Picking must not re-render
+// the list: that would take the focus, and the caret, out of the cell that
+// was just clicked into.
+function paintTablePick(card, block) {
+    const pick = tablePickFor(block);
+    card.querySelectorAll('.block-table td').forEach(td => {
+        const input = td.querySelector('input');
+        if (!input) return;
+        const row = input.classList.contains('table-header-input') ? null : parseInt(input.getAttribute('data-row'), 10);
+        td.classList.toggle('table-picked', !!tablePickedClass(pick, row, parseInt(input.getAttribute('data-col'), 10)));
+    });
+    const del = tableDeleteButtons(pick);
+    [['.btn-table-del-row', del.row], ['.btn-table-del-col', del.col]].forEach(([selector, look]) => {
+        const button = card.querySelector(selector);
+        if (!button) return;
+        button.textContent = look.label;
+        button.title = look.title;
+    });
+}
+
+// The buttons stay under the pointer. A table grows or shrinks above them,
+// so they used to move a row's height with every press, and adding five rows
+// meant chasing +Row down the screen five times (editor feedback,
+// 2026-10-19). Scrolling by however far they moved puts them back, in the
+// same task, so no frame shows them anywhere else. Measured on the row of
+// buttons, not the button: a hovered button is lifted 1px and the one just
+// drawn is not hovered yet, which would creep the table by a pixel a press.
+function tableButtonsTop(index) {
+    const row = document.querySelector(`#block-list .block-card[data-index="${index}"] .block-table-actions-row`);
+    return row ? row.getBoundingClientRect().top : null;
+}
+
+// Where the last press put the buttons back to. A scroll position is whole
+// pixels and a row need not be (37.4px), so each correction can miss by a
+// fraction. Measuring each press from where the last one landed let those
+// misses add up: 1.2px by the third press with Linux's fonts (CI,
+// 2026-10-20). Aiming every press at the same spot keeps each one within
+// half a pixel. A scroll of a pixel or more in between starts a new aim.
+let tableButtonsAim = null;
+
+function keepTableButtonsInPlace(index, before) {
+    const after = tableButtonsTop(index);
+    if (before === null || after === null) return;
+    if (tableButtonsAim && tableButtonsAim.index === index && Math.abs(tableButtonsAim.top - before) < 1) before = tableButtonsAim.top;
+    tableButtonsAim = { index, top: before };
+    if (after === before) return;
+    const scroller = scrollableAncestorOf(document.querySelector(`#block-list .block-card[data-index="${index}"]`));
+    if (scroller) scroller.scrollTop += after - before;
+    else window.scrollBy(0, after - before);
+}
+
 // The shell drawn around one folder run.
 //
 // The name is an INPUT rather than a label plus a rename button. Renaming is
@@ -3059,9 +3475,15 @@ function blockSummary(block) {
 // for this would make folder naming the only prompt on the site.
 //
 // Every interpolation here is contributor-authored and lands in an attribute,
-// so it goes through escField exactly like the block fields below it.
-function folderShellHTML(run, isCollapsed, isEmpty) {
+// so it goes through escField exactly like the block fields below it. `color`
+// arrives already through safeColor (renderBlockList).
+function folderShellHTML(run, isCollapsed, isEmpty, color) {
     const count = isEmpty ? 'empty' : `${run.count} block${run.count === 1 ? '' : 's'}`;
+
+    // An empty folder has no blocks to carry a colour, so it offers none.
+    const colorSwatch = isEmpty ? '' : `
+            <button type="button" class="block-folder-color${color ? '' : ' is-none'}" data-folder-color
+                    title="Folder color" aria-label="Folder color" aria-expanded="false"${color ? ` style="background: ${color};"` : ''}></button>`;
 
     // An empty folder is not in the data, so there is nothing to keep and
     // nothing to ungroup - removing it is a discard, and saying UNGROUP there
@@ -3071,6 +3493,10 @@ function folderShellHTML(run, isCollapsed, isEmpty) {
     // slim - and the block cards' own actions have always been glyphs, so the
     // vocabulary already exists. title AND aria-label, because a glyph with
     // neither is a button nobody can name.
+    //
+    // Except ＋ FOLDER (v1.1, from an editor's feedback): a bare ＋ beside
+    // the name was taken for the folder's dropdown, so it says what it makes,
+    // and the open/close button is a chevron rather than the folder icon.
     const removeBtn = isEmpty
         ? `<button class="btn-sys btn-sys-regular block-folder-discard"
                    title="Discard this empty folder"
@@ -3083,18 +3509,23 @@ function folderShellHTML(run, isCollapsed, isEmpty) {
         ? `<div class="block-folder-empty">Drag a block onto this header, or choose this folder on any block.</div>`
         : '';
 
+    // Moves the whole folder (v1.1). An empty one is not in the data, so it
+    // has nothing to move; ＋ FOLDER already puts it where it is wanted.
+    const handle = isEmpty ? '' : `
+            <span class="drag-handle block-folder-handle" title="Drag to move this folder">⠿</span>`;
+
     return `
-        <div class="block-folder-head">
+        <div class="block-folder-head">${handle}
             <button class="btn-sys btn-sys-regular block-folder-toggle"
                     title="${isCollapsed ? 'Expand' : 'Collapse'} this folder"
-                    aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#128193;' : '&#128194;'}</button>
+                    aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#9656;' : '&#9662;'}</button>
             <input type="text" class="block-folder-name-input" value="${escField(run.name)}"
                    data-folder="${escField(run.name)}" maxlength="60"
-                   aria-label="Folder name" title="Rename this folder">
+                   aria-label="Folder name" title="Rename this folder">${colorSwatch}
             <span class="block-folder-count">${count}</span>
             <button class="btn-sys btn-sys-regular block-folder-add"
                     title="Create another folder after this one"
-                    aria-label="Create another folder after this one">&#65291;</button>
+                    aria-label="Create another folder after this one">&#65291; FOLDER</button>
             ${removeBtn}
         </div>
         <div class="block-folder-body">${body}</div>
@@ -3432,17 +3863,19 @@ function renderBlockList() {
         }
         else if (block.type === 'table') {
             let tableHTML = `<div class="block-table-wrapper"><table class="block-table">`;
+            const pick = tablePickFor(block);
+            const del = tableDeleteButtons(pick);
 
             tableHTML += `<tr>`;
             block.headers.forEach((h, c) => {
-                tableHTML += `<td><input type="text" class="editor-input table-header-input" data-col="${c}" value="${escField(h)}" placeholder="Header"></td>`;
+                tableHTML += `<td class="${tablePickedClass(pick, null, c)}"><input type="text" class="editor-input table-header-input" data-col="${c}" value="${escField(h)}" placeholder="Header"></td>`;
             });
             tableHTML += `</tr>`;
 
             block.rows.forEach((r, rIdx) => {
                 tableHTML += `<tr>`;
                 r.forEach((cell, cIdx) => {
-                    tableHTML += `<td><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${escField(cell)}" placeholder="..."></td>`;
+                    tableHTML += `<td class="${tablePickedClass(pick, rIdx, cIdx)}"><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${escField(cell)}" placeholder="..."></td>`;
                 });
                 tableHTML += `</tr>`;
             });
@@ -3453,8 +3886,8 @@ function renderBlockList() {
                 <div class="block-table-actions-row">
                     <button class="btn-sys btn-sys-regular btn-table-add-row" title="Add Row Below">⊞ +Row</button>
                     <button class="btn-sys btn-sys-regular btn-table-add-col" title="Add Column Right">⊞ +Col</button>
-                    <button class="btn-sys btn-sys-red btn-table-del-row" title="Delete Bottom Row">⊟ -Row</button>
-                    <button class="btn-sys btn-sys-red btn-table-del-col" title="Delete Right Column">⊟ -Col</button>
+                    <button class="btn-sys btn-sys-red btn-table-del-row" title="${del.row.title}">${del.row.label}</button>
+                    <button class="btn-sys btn-sys-red btn-table-del-col" title="${del.col.title}">${del.col.label}</button>
                 </div>
                 <input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)">
             `;
@@ -3650,7 +4083,13 @@ function renderBlockList() {
             // setAttribute, not innerHTML: no escaping needed, and this is the
             // value every folder handler reads back.
             shell.setAttribute('data-folder', opening.name);
-            shell.innerHTML = folderShellHTML(opening, isCollapsed, false);
+            // The bar down the folder's left edge, in its colour.
+            const color = window.safeColor(activeBlocks[opening.start].folderColor);
+            if (color) {
+                shell.classList.add('has-color');
+                shell.style.setProperty('--folder-color', color);
+            }
+            shell.innerHTML = folderShellHTML(opening, isCollapsed, false, color);
             listContainer.appendChild(shell);
             appendTarget = shell.querySelector('.block-folder-body');
         }

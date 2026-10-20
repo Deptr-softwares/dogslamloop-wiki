@@ -588,6 +588,17 @@ input[type="checkbox"]:checked {
     padding: 0.4rem 0.75rem; box-shadow: 4px 4px 0px var(--manga-shadow, #000); white-space: nowrap;
 }
 .block-card.block-card-dragging { opacity: 0.4; }
+
+/* A whole folder on the move (v1.1): faded while it is dragged, a line where
+   it will land, the same flash as a block once it has. */
+.block-folder.block-card-dragging { opacity: 0.4; }
+.block-folder.drag-over-top { box-shadow: 0 -3px 0 0 var(--accent-blue); }
+.block-folder.drag-over-bottom { box-shadow: 0 3px 0 0 var(--accent-blue); }
+.block-folder.block-just-moved { animation: block-moved-flash 1.4s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+    .block-folder.block-just-moved { animation: none; box-shadow: 0 0 0 2px var(--accent-blue); }
+}
+.block-folder-handle { font-size: 0.85rem; }
 .block-header:active {
     cursor: grabbing !important;
 }
@@ -938,6 +949,36 @@ input[type="checkbox"]:checked {
 }
 
 .cp-apply { flex-shrink: 0; font-size: 0.6rem; padding: 0.25rem 0.45rem; }
+
+/* The custom gradient (v1.1, js/editor-blocks.js wireGradientBuilder): one
+   chip per colour, the chip being edited outlined, a ✕ on each once there
+   are more than two, and the result in a strip. */
+.cp-gradient-toggle { display: block; width: 100%; text-align: left; cursor: pointer; }
+.cp-gradient-toggle:hover, .cp-gradient-toggle[aria-expanded="true"] { color: var(--text-white, #fff); }
+.cp-gradient { display: flex; flex-direction: column; gap: 0.4rem; align-self: stretch; }
+.cp-gradient[hidden] { display: none; }
+.cp-gradient-stops { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+.cp-gradient-stop-wrap { position: relative; display: inline-flex; }
+.cp-gradient-stop {
+    width: 22px; height: 22px; padding: 0; cursor: pointer;
+    border: 1px solid #555; outline: 2px solid transparent; outline-offset: 1px;
+}
+.cp-gradient-stop.is-active { outline-color: var(--text-white, #fff); }
+.cp-gradient-stop:focus-visible { outline-color: var(--accent-blue); }
+.cp-gradient-stop-remove {
+    position: absolute; top: -6px; right: -6px;
+    width: 13px; height: 13px; padding: 0;
+    font-size: 8px; line-height: 11px; text-align: center;
+    background: #111; color: #aaa; border: 1px solid #444; cursor: pointer;
+}
+.cp-gradient-stop-remove:hover { color: #fff; border-color: #ef4444; }
+.cp-gradient-add {
+    width: 22px; height: 22px; padding: 0; cursor: pointer;
+    border: 1px dashed #555; color: #aaa; font-size: 0.8rem;
+}
+.cp-gradient-add:hover { color: #fff; border-color: #888; }
+.cp-gradient-strip { height: 12px; border: 1px solid #333; }
+.cp-gradient [data-gradient-use] { align-self: flex-start; }
 
 /* --- ADD BLOCK POPUP MENU --- */
 .add-block-menu-wrapper { position: relative; }
@@ -1349,14 +1390,27 @@ input[type="checkbox"]:checked {
     background: transparent;
     margin-bottom: 0.15rem;
 }
+/* A folder's own colour (v1.1) is that same left rule, a pixel wider so it
+   reads as chosen rather than as the default gray. */
+.block-folder.has-color { border-left: 3px solid var(--folder-color); }
 .block-folder-head {
     display: flex;
+    flex-wrap: wrap;   /* the colour popup opens on a line of its own */
     align-items: center;
     gap: 0.35rem;
     padding: 0.1rem 0.35rem;
     background: transparent;
     border-bottom: none;
 }
+.block-folder-color {
+    flex: 0 0 auto;
+    width: 14px; height: 14px; padding: 0;
+    border: 1px solid #555; outline: 1px solid transparent; outline-offset: 1px;
+    cursor: pointer;
+}
+.block-folder-color.is-none { border-style: dashed; background: transparent; }
+.block-folder-color:hover, .block-folder-color[aria-expanded="true"] { outline-color: var(--text-white, #fff); }
+.block-folder-color:focus-visible { outline-color: var(--accent-blue); }
 /* Only while it holds something open, so an expanded folder still reads as a
    container rather than a stack of loose blocks under a heading. */
 .block-folder:not(.is-collapsed) > .block-folder-body {
@@ -1367,10 +1421,10 @@ input[type="checkbox"]:checked {
 
 .block-folder.is-collapsed .block-folder-body { display: none; }
 
-/* The folder icon IS the toggle - one element instead of a disclosure triangle
-   next to a decorative icon, which is what "a small folder icon" asked for.
-   Stripped of the btn-sys chrome it inherits: a bordered box around an emoji
-   is most of the height this rule is trying to remove. */
+/* A chevron, the sign for "this opens" (v1.1). It was the folder icon, which
+   an editor never read as the dropdown; the ＋ beside it is what they took
+   for one. Stripped of the btn-sys chrome it inherits: a bordered box around
+   one glyph is most of the height this rule is trying to remove. */
 .block-folder-toggle {
     /* No cut corner either: on a bare glyph it clips the icon and the clipped
        corner stops taking clicks (it is a clip-path). */
@@ -1379,9 +1433,10 @@ input[type="checkbox"]:checked {
     background: none;
     border: none;
     box-shadow: none;
-    padding: 0 0.1rem;
+    padding: 0 0.15rem;
     font-size: 0.8rem;
     line-height: 1;
+    color: #9ca3af;
 }
 .block-folder-toggle:hover { background: none; filter: brightness(1.4); }
 /* Transparent until touched, so the header reads as a title rather than a form
@@ -1420,9 +1475,25 @@ input[type="checkbox"]:checked {
     padding: 0.1rem 0.3rem;
     min-width: 0;
 }
-.block-folder-add:hover { background: #22c55e; color: #000; border-color: #22c55e; }
-.block-folder-ungroup:hover,
-.block-folder-discard:hover { background: #ef4444; color: #fff; border-color: #ef4444; }
+/* Gray like any neutral button, sweep and all, and only once the sweep has
+   filled the button does it turn green (＋ FOLDER) or red (ungroup, discard)
+   (owner, 2026-10-20). The delay is the sweep's own 0.18s, and the colours
+   can fade because Buttons.css registers them. Leaving, it turns gray again
+   at once: the delay belongs to the hover rule only. */
+.block-folder-add:hover:not(:disabled),
+.block-folder-ungroup:hover:not(:disabled),
+.block-folder-discard:hover:not(:disabled) {
+    transition: transform 0.1s ease, box-shadow 0.1s ease, background-size 0.18s ease-out, color 0.18s ease-out,
+        --sys-fill 0.15s ease-out 0.18s, --sys-edge 0.15s ease-out 0.18s;
+}
+.block-folder-add:hover:not(:disabled) { --sys-fill: #22c55e; --sys-edge: #22c55e; }
+.block-folder-ungroup:hover:not(:disabled),
+.block-folder-discard:hover:not(:disabled) { --sys-fill: #ef4444; --sys-edge: #ef4444; }
+@media (prefers-reduced-motion: reduce) {
+    .block-folder-add:hover:not(:disabled),
+    .block-folder-ungroup:hover:not(:disabled),
+    .block-folder-discard:hover:not(:disabled) { transition: none; }
+}
 
 /* An empty folder exists only for this editing session - it has no blocks, so
    there is no `folder` string anywhere for it to be saved in. Dashed to say
@@ -1555,6 +1626,9 @@ input[type="checkbox"]:checked {
 /* Compound: .editor-input's own base rule sets margin-bottom/border/background at the same specificity. */
 .editor-input.table-header-input { margin: 0; border-radius: 0; border: none; border-bottom: 2px solid #444; border-right: 1px solid #333; font-weight: bold; background: rgba(0,0,0,0.4); text-align: center; }
 .editor-input.table-cell-input { margin: 0; border-radius: 0; border: none; border-bottom: 1px solid #222; border-right: 1px solid #333; }
+/* The picked cell's row and column (js/editor-blocks.js, editorTablePick):
+   the cells' fields are see-through, so the tint shows under them. */
+.block-table td.table-picked { background: color-mix(in srgb, var(--accent-blue) 12%, transparent); }
 .block-table-actions-row { display: flex; gap: 0.25rem; margin-bottom: 0.5rem; border-radius: 0rem; }
 .btn-table-add-row, .btn-table-add-col, .btn-table-del-row, .btn-table-del-col { flex: 1; }
 .editor-row-spaced-md { margin-bottom: 0.5rem; }
@@ -2695,14 +2769,14 @@ del.diff-del {
 }
 .heading-bar-swatch:hover, .heading-bar-swatch[aria-expanded="true"] { outline-color: var(--text-white, #fff); }
 .heading-bar-swatch:focus-visible { outline-color: var(--accent-blue); }
-.heading-bar-popup {
+/* Behind a colour swatch: the heading Side bar and a folder's colour. */
+.swatch-popup {
     flex-basis: 100%;
     display: flex; flex-direction: column; align-items: flex-start; gap: 0.4rem;
     padding: 0.6rem; background: #111; border: 1px solid #333;
 }
-.heading-bar-popup .format-color-presets-scroll { max-height: 180px; align-self: stretch; }
-.heading-bar-popup .cp-surface, .heading-bar-popup .cp-hue { align-self: stretch; }
-.config-word-gradient { flex: 1; min-width: 0; }
+.swatch-popup .format-color-presets-scroll { max-height: 180px; align-self: stretch; }
+.swatch-popup .cp-surface, .swatch-popup .cp-hue { align-self: stretch; }
 .config-house-style { width: 100%; box-sizing: border-box; resize: vertical; margin: 0; }
 .house-style-empty { margin: 0; color: #9ca3af; font-style: italic; }
 
@@ -2718,6 +2792,20 @@ body.cfg-hide-block-type .block-type-row .block-type-label { display: inline-blo
    the outer edge, which must match BLOCK_DRAG_EDGE_PX in js/editor-blocks.js:
    the 3px border and the start of the padding, where no content sits. */
 body.cfg-hide-drag-handle .block-card .drag-handle { display: none; }
+/* A folder's header gives up the same strip (js/editor-blocks.js, the
+   pointerdown listener). */
+body.cfg-hide-drag-handle .block-folder-handle { display: none; }
+body.cfg-hide-drag-handle .block-folder:not(.is-empty) > .block-folder-head { position: relative; }
+body.cfg-hide-drag-handle .block-folder:not(.is-empty) > .block-folder-head::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -3px;
+    width: 12px;
+    cursor: grab;
+    touch-action: none;
+}
 body.cfg-hide-drag-handle .block-card::before {
     content: '';
     position: absolute;
@@ -2757,6 +2845,15 @@ body.cfg-compact-blocks #block-list .editor-textarea { min-height: 32px; }
 body.cfg-no-preview .editor-layout-split > .live-preview-pane,
 body.cfg-no-preview .editor-layout-split > .editor-splitter,
 body.cfg-no-preview #mobile-preview-toggle { display: none !important; }
+
+/* Click a Block to edit it (v1.1, js/editor-config.js jumpToBlock): the Block
+   under the pointer in the Preview is outlined, which is what says a click
+   will open it. */
+body.cfg-preview-jump .live-preview-pane [data-preview-block]:hover {
+    outline: 1px dashed var(--accent-blue);
+    outline-offset: 2px;
+    cursor: pointer;
+}
 @media (min-width: 901px) {
     body.cfg-no-preview .editor-layout-split > .editor-workspace { flex: 1 1 auto; border-right: none; }
 }

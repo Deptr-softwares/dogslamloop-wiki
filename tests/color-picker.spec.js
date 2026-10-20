@@ -244,3 +244,82 @@ test('the outline button wraps the selection', async ({ page }) => {
 
     expect(await fieldValue(page)).toBe('[outline]Domain Expansion[/outline] opens');
 });
+
+// --- A CUSTOM GRADIENT (v1.1, from an editor's feedback) ---------------------
+//
+// "multicolor becomes an option instead of manually typing it out". Scoped
+// 2026-10-20: two colours to start, ＋ up to six, each set on the visual
+// picker (click a chip, and the picker edits it), USE GRADIENT writes the tag.
+
+const inPopup = (page, sel) => page.locator(`#format-color-popup ${sel}`);
+const chipColours = page => inPopup(page, '[data-stop]').evaluateAll(cs => cs.map(c => getComputedStyle(c).backgroundColor));
+
+test('a custom gradient is built on the picker and wraps the text in [multicolor]', async ({ page }) => {
+    const errors = await openEditor(page);
+    const ok = await typeAndSelect(page, 'hello world', 5);
+    test.skip(!ok, 'this page has no text block to format');
+
+    await page.locator('#btn-format-color').click();
+    await inPopup(page, '[data-gradient-toggle]').click();
+    await expect(inPopup(page, '[data-stop]')).toHaveCount(2);
+
+    // A chip clicked loads into the picker, and the picker then edits it.
+    await inPopup(page, '[data-stop]').nth(0).click();
+    await inPopup(page, '#cp-hex').fill('#ff0000');
+    await inPopup(page, '[data-stop]').nth(1).click();
+    await expect(inPopup(page, '#cp-hex')).toHaveValue('#22d3ee');
+    await inPopup(page, '#cp-hex').fill('#0000ff');
+    await inPopup(page, '[data-stop-add]').click();
+    await inPopup(page, '#cp-hex').fill('#00ff00');
+
+    expect(await chipColours(page)).toEqual(['rgb(255, 0, 0)', 'rgb(0, 0, 255)', 'rgb(0, 255, 0)']);
+    expect(await inPopup(page, '[data-gradient-strip]').evaluate(s => getComputedStyle(s).backgroundImage), 'the strip shows it first')
+        .toBe('linear-gradient(90deg, rgb(255, 0, 0), rgb(0, 0, 255), rgb(0, 255, 0))');
+
+    await inPopup(page, '[data-gradient-use]').click();
+    expect(await fieldValue(page)).toBe('[multicolor=#ff0000,#0000ff,#00ff00]hello[/multicolor] world');
+    await expect(page.locator('#format-color-popup')).toBeHidden();
+    expect(errors).toEqual([]);
+});
+
+test('moving the picker recolours the chip being edited, and only that one', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('#btn-format-color').click();
+    await inPopup(page, '[data-gradient-toggle]').click();
+    const before = await chipColours(page);
+
+    await inPopup(page, '[data-stop]').nth(0).click();
+    // A real click on the surface, low and to the left: a dark colour.
+    const surface = await inPopup(page, '#cp-surface').boundingBox();
+    await page.mouse.click(surface.x + 3, surface.y + surface.height - 3);
+
+    const after = await chipColours(page);
+    const shown = await inPopup(page, '#cp-preview').evaluate(p => getComputedStyle(p).backgroundColor);
+    expect(after[0], 'the edited chip took the picked colour').toBe(shown);
+    expect(after[0]).not.toBe(before[0]);
+    expect(after[1], 'the other kept its own').toBe(before[1]);
+});
+
+test('two to six colours: a ✕ on each once there are three, and ＋ stops at six', async ({ page }) => {
+    await openEditor(page);
+    await page.locator('#btn-format-color').click();
+    await inPopup(page, '[data-gradient-toggle]').click();
+    await expect(inPopup(page, '[data-stop-remove]'), 'two is the least a gradient has').toHaveCount(0);
+
+    await inPopup(page, '[data-stop-add]').click();
+    await inPopup(page, '#cp-hex').fill('#ff0000');
+    await expect(inPopup(page, '[data-stop-remove]')).toHaveCount(3);
+    const three = await chipColours(page);
+
+    await inPopup(page, '[data-stop-remove]').nth(1).click();
+    expect(await chipColours(page), 'the middle one went').toEqual([three[0], three[2]]);
+
+    for (let i = 0; i < 4; i++) await inPopup(page, '[data-stop-add]').click();
+    await expect(inPopup(page, '[data-stop]')).toHaveCount(6);
+    await expect(inPopup(page, '[data-stop-add]')).toHaveCount(0);
+
+    // Pinned with the picker, outside the scrolling swatches: on screen.
+    const popup = await page.locator('#format-color-popup').boundingBox();
+    const use = await inPopup(page, '[data-gradient-use]').boundingBox();
+    expect(use.y + use.height).toBeLessThanOrEqual(popup.y + popup.height + 1);
+});
