@@ -941,7 +941,7 @@
                                 <button type="button" class="btn-sys btn-sys-regular" data-config-action="maximize">MAXIMIZE ALL</button>
                             </div>
                             <p class="config-option-hint config-action-note" data-config-note aria-live="polite"></p>
-                        </fieldset>
+                        </fieldset>${window.editorPlayground ? '' : `
                         <fieldset class="config-group">
                             <legend class="config-option-label">Edit Conflict Check</legend>
                             <span class="config-option-hint">Compares your unsent edits with this page's submissions waiting for review, and lists the ones that change the same part. It shows who and when, never what they wrote.</span>
@@ -949,7 +949,7 @@
                                 <button type="button" class="btn-sys btn-sys-regular" data-conflict-run>CHECK FOR CONFLICTS</button>
                             </div>
                             <div class="config-conflict-result" data-conflict-result aria-live="polite"></div>
-                        </fieldset>
+                        </fieldset>`}
                     </div>
 
                     ${withPage ? pagePanelHTML() : ''}

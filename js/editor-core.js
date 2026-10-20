@@ -222,6 +222,9 @@ window.editorExitDestination = function(search = window.location.search) {
     const pageId = params.get('page') || params.get('char');
     const pageType = params.get('type') || 'character';
 
+    // The Playground goes back to its own page, not to the page it copied.
+    if (params.has('playground')) return 'tools/editor-playground/';
+
     // Staff go back to the queue they were working; everyone else to the page.
     // An author editing their OWN submission goes to My Submissions instead:
     // admin.html turns a contributor away, and since v1.1 every new
@@ -796,13 +799,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             let cloudData = null;
             
             if (window.supabaseClient) {
-                const { data, error } = await window.supabaseClient
-                    .from('page_data')
-                    .select('*')
-                    .eq('page_id', pageId)
-                    .single();
-                    
-                if (!error && data) cloudData = data;
+                // The Playground's blank page is not a page: no row to fetch.
+                if (!(window.editorPlayground && window.editorPlayground.blankPage)) {
+                    const { data, error } = await window.supabaseClient
+                        .from('page_data')
+                        .select('*')
+                        .eq('page_id', pageId)
+                        .single();
+
+                    if (!error && data) cloudData = data;
+                }
 
                 // Which optional tabs this character has, before the tab strip
                 // or any editor is built. Without it the editor would offer
@@ -894,7 +900,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             //
             // Silent on any failure, deliberately: this is an offer, and a
             // query that fails must not stand between someone and the editor.
-            if (!editTicketId && !forceLoadDraft && !specificDraftKey && window.currentGlobalUserId) {
+            if (!window.editorPlayground && !editTicketId && !forceLoadDraft && !specificDraftKey && window.currentGlobalUserId) {
                 try {
                     const { data: open } = await window.supabaseClient
                         .from('pending_revisions')
@@ -937,7 +943,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             let useDraft = false;
 
             // --- THE HANDSHAKE ROUTING ---
-            if (window.interceptedTicketData) {
+            // The Playground keeps one draft of its own and never asks about
+            // the page's (js/editor-playground.js).
+            if (window.editorPlayground) {
+                const kept = window.editorPlayground.draft;
+                if (kept) {
+                    descData = kept.desc_data;
+                    frameData = kept.frame_data || baseCloudFrame;
+                    useDraft = true;
+                }
+            }
+            else if (window.interceptedTicketData) {
                 if (window.interceptedTicketData.is_delta) {
                     const { newDesc, newFrame } = window.applyDeltaToData(
                         baseCloudDesc, baseCloudFrame, 
@@ -1072,6 +1088,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             initFullTabEditor(pageId, tabId, editDesc, editFrame);
         }
 
+        if (window.editorPlayground && typeof window.playgroundBooted === 'function') await window.playgroundBooted();
+
     } catch (error) {
         console.error("Editor failed to initialize context:", error);
         titleEl.textContent = "System Error";
@@ -1200,7 +1218,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- SUBMIT PAYLOAD & UPLOAD PIPELINE ---
     const submitBtn = document.getElementById('submit-payload-btn');
-    if (submitBtn) {
+    // Never wired in the Playground, where the button is Pull: nothing there
+    // reaches the review queue (js/editor-playground.js).
+    if (submitBtn && !window.editorPlayground) {
         if (window.activeEditTicketId) {
             submitBtn.textContent = "UPDATE SUBMISSION";
             submitBtn.classList.remove('btn-sys-blue');

@@ -2898,3 +2898,51 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
 .editor-tab-nav.cfg-stuck,
 .daw-editor-nav-row.cfg-stuck,
 .strategy-toolbar-row.cfg-stuck { background: #050505; }
+
+/* --- THE EDITOR PLAYGROUND (v1.1) ---
+   edit.html?playground (js/editor-playground.js). The banner takes the scope
+   tip's place and is loud where the tip is quiet: it is the one thing on
+   screen saying this editor sends nothing. */
+.playground-banner {
+    margin: 0 0 0.75rem;
+    padding: 0.55rem 0.8rem;
+    background: var(--bg-secondary);
+    border: 2px solid var(--accent-yellow);
+    color: var(--text-white);
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    line-height: 1.5;
+}
+.playground-banner strong { color: var(--accent-yellow); }
+
+.editor-modal-box.playground-pull-box {
+    width: min(560px, calc(100vw - 2rem));
+    max-height: calc(100vh - 4rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    text-align: left;
+}
+.editor-modal-box.playground-pull-box h3 { margin: 0; }
+.playground-pull-hint {
+    margin: 0;
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+.playground-pull-list {
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+.playground-pull-group { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.playground-pull-category {
+    flex-basis: 100%;
+    margin: 0;
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.8rem;
+    color: var(--accent-blue);
+    text-transform: uppercase;
+}
