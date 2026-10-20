@@ -82,6 +82,24 @@ document.addEventListener('pointerenter', e => {
     });
 }, true);
 
+// A slanted tab punches when a click puts it in place (v1.1,
+// style/Buttons.css). Checked a frame later, after the page's own handler has
+// made it .active, and that handler may have drawn the row again, in which
+// case the tab is found by its id. A filter switched off is not .active, so
+// it stays still.
+document.addEventListener('click', e => {
+    const clicked = e.target instanceof Element ? e.target.closest('.btn-manga-slanted') : null;
+    if (!clicked) return;
+    requestAnimationFrame(() => {
+        const tab = clicked.isConnected ? clicked : (clicked.id && document.getElementById(clicked.id));
+        if (!tab || !tab.classList.contains('active')) return;
+        tab.classList.remove('tab-punch');
+        void tab.offsetWidth; // restart it on a second click
+        tab.classList.add('tab-punch');
+        tab.addEventListener('animationend', () => tab.classList.remove('tab-punch'), { once: true });
+    });
+});
+
 // The Site settings panel, opened from the button beside the account button
 // (js/pagebuilder.js initAuthDock). Built on first open; every value in it is
 // the site's own, so nothing is escaped.

@@ -135,6 +135,54 @@ test('a heading on a row\'s accent line gets no bar', async ({ page }) => {
 });
 
 // --------------------------------------------------------------------------
+// Tabs
+// --------------------------------------------------------------------------
+
+// The tab-punch animation running on an element, held at its start: how far
+// the tab is scaled out there. Then finished, so it ends as it would have.
+// null when there is none.
+const punchOn = locator => locator.evaluate(el => {
+  const punch = el.getAnimations().find(a => a.animationName === 'tab-punch');
+  if (!punch) return null;
+  punch.pause();
+  punch.currentTime = 0;
+  const m = new DOMMatrix(getComputedStyle(el).transform);
+  punch.finish();
+  return Math.hypot(m.a, m.b);
+});
+
+test('a clicked tab punches out and settles; the tab a page opens on does not', async ({ page }) => {
+  // Every punch from the first moment, since one at load is over in 0.2s.
+  await page.addInitScript(() => {
+    window.__punches = 0;
+    document.addEventListener('animationstart', e => { if (e.animationName === 'tab-punch') window.__punches++; }, true);
+  });
+  await page.goto('/characters/Ten_shadows/index.html', { waitUntil: 'networkidle' });
+  const tabs = page.locator('.character-nav .btn-manga-slanted:visible');
+  await expect(tabs.nth(1)).toBeVisible();
+  expect(await page.evaluate(() => window.__punches)).toBe(0);
+
+  await tabs.nth(1).click();
+  await expect(tabs.nth(1)).toHaveClass(/\bactive\b/);
+  await expect.poll(() => punchOn(tabs.nth(1))).toBeGreaterThan(1.05);
+});
+
+test('a filter punches when switched on and stays still when switched off', async ({ page }) => {
+  await page.goto('/index.html', { waitUntil: 'networkidle' });
+  const filter = page.locator('#filter-ea');
+  await expect(filter).toBeVisible();
+  await filter.click();
+  await expect(filter).toHaveClass(/\bactive\b/);
+  await expect.poll(() => punchOn(filter)).toBeGreaterThan(1.05);
+
+  await expect.poll(() => filter.evaluate(el => el.classList.contains('tab-punch'))).toBe(false);
+  await filter.click();
+  await expect(filter).not.toHaveClass(/\bactive\b/);
+  await page.waitForTimeout(100);
+  expect(await punchOn(filter)).toBeNull();
+});
+
+// --------------------------------------------------------------------------
 // Landing on a section
 // --------------------------------------------------------------------------
 
