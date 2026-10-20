@@ -593,7 +593,7 @@
             btn.type = 'button';
             btn.addEventListener('click', async () => {
                 await drawChangelogPage(box, listId, to);
-                box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                box.scrollIntoView({ behavior: window.scrollMotion(), block: 'start' });
             });
             pager.appendChild(btn);
         };

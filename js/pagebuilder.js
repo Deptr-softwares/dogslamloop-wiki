@@ -513,12 +513,21 @@ window.initAuthDock = async function() {
             </button>`;
     }
 
-    // 4. PROFILE / LOGIN
+    // 4. PROFILE / LOGIN, sharing its row with SITE SETTINGS (v1.1). A row of
+    // its own above it would push the account button further down, out of
+    // sight on a short screen, which is how Ko-fi ended up leaving this dock
+    // (owner, 2026-10-20). Sliders rather than a gear: OVERSEER is the gear.
+    const svgSliders = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>`;
     html += `
-        <button id="dock-btn-auth" class="btn-sys ${dynamicColorClass} dock-action-btn">
-            <span class="btn-manga-icon dock-action-icon">${loginIcon}</span>
-            <span class="btn-manga-text dock-action-text">${username.toUpperCase()}</span>
-        </button>`;
+        <div class="dock-auth-row">
+            <button id="dock-btn-auth" class="btn-sys ${dynamicColorClass} dock-action-btn">
+                <span class="btn-manga-icon dock-action-icon">${loginIcon}</span>
+                <span class="btn-manga-text dock-action-text">${username.toUpperCase()}</span>
+            </button>
+            <button type="button" id="dock-btn-settings" class="btn-sys btn-sys-regular dock-settings-btn" title="Site settings" aria-label="Site settings">
+                <span class="btn-manga-icon dock-action-icon">${svgSliders}</span>
+            </button>
+        </div>`;
 
     container.innerHTML = html;
 
@@ -541,6 +550,8 @@ window.initAuthDock = async function() {
     // Bind click events (unchanged logic)
     const btnAuth = document.getElementById('dock-btn-auth');
     if (btnAuth && typeof window.openAuthModal === 'function') btnAuth.onclick = window.openAuthModal;
+    const btnSettings = document.getElementById('dock-btn-settings');
+    if (btnSettings) btnSettings.onclick = () => window.openSiteSettings();
 
     // Opens the real inbox modal built by js/site_utils.js's initNotifications.
     // This used to build a second modal here, with the same literal
@@ -1181,7 +1192,7 @@ window.jumpToAnchor = function(rawId, options) {
 
     const scroll = () => {
         const top = target.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({ top: top - ANCHOR_SCROLL_OFFSET, behavior: opts.behavior || 'smooth' });
+        window.scrollTo({ top: top - ANCHOR_SCROLL_OFFSET, behavior: opts.behavior || window.scrollMotion() });
 
         if (opts.updateHash !== false) {
             history.pushState(null, null, `#${id}`);

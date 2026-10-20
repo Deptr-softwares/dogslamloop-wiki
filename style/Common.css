@@ -278,6 +278,5 @@ body {
     0%   { background-color: color-mix(in srgb, var(--accent-blue) 45%, transparent); }
     100% { background-color: transparent; }
 }
-@media (prefers-reduced-motion: reduce) {
-    .anchor-flash { animation: none; outline: 2px solid var(--accent-blue); outline-offset: 3px; }
-}
+/* html.reduce-motion: the device's preference or Site settings (js/site_utils.js). */
+html.reduce-motion .anchor-flash { animation: none; outline: 2px solid var(--accent-blue); outline-offset: 3px; }

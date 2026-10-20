@@ -88,7 +88,7 @@ function renderPagination(fetchedCount) {
 
 async function changePage(direction) {
     currentOffset = Math.max(0, currentOffset + direction * PAGE_SIZE);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: window.scrollMotion() });
     await loadRecentChanges();
 }
 

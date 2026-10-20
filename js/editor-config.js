@@ -297,7 +297,7 @@
         const target = shown.find(el => el.getAttribute('data-preview-sig') === sig) || (shown.length === 1 ? shown[0] : null);
         if (!target) return;
 
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
         // The same flash a section switch gives its section.
         target.style.outline = '2px solid var(--accent-blue)';
         target.style.outlineOffset = '2px';

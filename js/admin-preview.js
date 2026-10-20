@@ -153,9 +153,9 @@ async function previewRevision(revId) {
         const actionBtns = document.getElementById('preview-action-buttons');
         // If there's an open ticket chat, snap to it. Otherwise, snap to the review buttons.
         if (workspace && !workspace.classList.contains('hidden')) {
-            workspace.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            workspace.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
         } else if (actionBtns) {
-            actionBtns.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            actionBtns.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
         }
     }, 150);
 }

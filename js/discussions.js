@@ -1705,7 +1705,7 @@
         if (!target) return;
         document.querySelectorAll('.discussion-post-linked')
             .forEach(node => node.classList.remove('discussion-post-linked'));
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        target.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
         target.classList.add('discussion-post-linked');
     }
 
@@ -1799,7 +1799,7 @@
                 state.page = Math.max(0, Number(pageGo.dataset.pageGo) || 0);
                 await draw();
                 const list = root.querySelector('.discussion-list');
-                if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                if (list) list.scrollIntoView({ behavior: window.scrollMotion(), block: 'start' });
                 return;
             }
 
@@ -1873,7 +1873,7 @@
         btn.addEventListener('click', () => {
             const target = document.getElementById('discussion-section');
             if (!target) return;
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            target.scrollIntoView({ behavior: window.scrollMotion(), block: 'start' });
         });
     }
 

@@ -82,10 +82,9 @@ button {
     box-shadow: 2px 2px 0 color-mix(in srgb, var(--sys-fill) 40%, #000);
 }
 .btn-sys:disabled { opacity: 0.4; cursor: not-allowed; }
-@media (prefers-reduced-motion: reduce) {
-    .btn-sys { transition: none; }
-    .btn-sys:hover:not(:disabled), .btn-sys:active:not(:disabled) { transform: none; }
-}
+/* html.reduce-motion: the device's preference or Site settings (js/site_utils.js). */
+html.reduce-motion .btn-sys { transition: none; }
+html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:active:not(:disabled) { transform: none; }
 
 .btn-sys-regular { --sys-edge: #555; --sys-fill: #888; color: #aaa; }
 /* Blue is a fixed value, not var(--accent-blue): a character page's theme

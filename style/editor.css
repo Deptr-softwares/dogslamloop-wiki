@@ -570,11 +570,10 @@ input[type="checkbox"]:checked {
 
 /* The flash is decorative; anyone who asked for less motion just gets the
    outline, held briefly, with no animation. */
-@media (prefers-reduced-motion: reduce) {
-    .block-card.block-just-moved {
-        animation: none;
-        box-shadow: 0 0 0 2px var(--accent-blue);
-    }
+/* html.reduce-motion: the device's preference or Site settings (js/site_utils.js). */
+html.reduce-motion .block-card.block-just-moved {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--accent-blue);
 }
 /* Small pill that follows the pointer during a block-list drag (add-block-btn
    or drag-handle reorder), created/destroyed by startBlockPointerDrag in
@@ -595,9 +594,7 @@ input[type="checkbox"]:checked {
 .block-folder.drag-over-top { box-shadow: 0 -3px 0 0 var(--accent-blue); }
 .block-folder.drag-over-bottom { box-shadow: 0 3px 0 0 var(--accent-blue); }
 .block-folder.block-just-moved { animation: block-moved-flash 1.4s ease-out; }
-@media (prefers-reduced-motion: reduce) {
-    .block-folder.block-just-moved { animation: none; box-shadow: 0 0 0 2px var(--accent-blue); }
-}
+html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow: 0 0 0 2px var(--accent-blue); }
 .block-folder-handle { font-size: 0.85rem; }
 .block-header:active {
     cursor: grabbing !important;
@@ -1489,11 +1486,9 @@ input[type="checkbox"]:checked {
 .block-folder-add:hover:not(:disabled) { --sys-fill: #22c55e; --sys-edge: #22c55e; }
 .block-folder-ungroup:hover:not(:disabled),
 .block-folder-discard:hover:not(:disabled) { --sys-fill: #ef4444; --sys-edge: #ef4444; }
-@media (prefers-reduced-motion: reduce) {
-    .block-folder-add:hover:not(:disabled),
-    .block-folder-ungroup:hover:not(:disabled),
-    .block-folder-discard:hover:not(:disabled) { transition: none; }
-}
+html.reduce-motion .block-folder-add:hover:not(:disabled),
+html.reduce-motion .block-folder-ungroup:hover:not(:disabled),
+html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none; }
 
 /* An empty folder exists only for this editing session - it has no blocks, so
    there is no `folder` string anywhere for it to be saved in. Dashed to say

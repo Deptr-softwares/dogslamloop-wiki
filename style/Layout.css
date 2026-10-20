@@ -319,6 +319,23 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 }
 .dock-action-icon { display: flex; align-items: center; justify-content: center; }
 .dock-action-text { overflow: hidden; text-overflow: ellipsis; }
+/* The account button and SITE SETTINGS share one row (v1.1), so the settings
+   button adds no height above the account button. Collapsed, the sidebar is
+   too narrow for two, so the settings button goes under it instead. */
+.dock-auth-row { display: flex; gap: 0.5rem; align-items: stretch; }
+.dock-auth-row .dock-action-btn { flex: 1 1 0; width: auto; min-width: 0; }
+.dock-settings-btn { flex: 0 0 auto; padding-left: 0.6rem; padding-right: 0.6rem; }
+.global-sidebar-left.collapsed .dock-auth-row { flex-direction: column; }
+
+/* The Site settings panel (js/site_utils.js openSiteSettings). */
+.site-settings-body { display: flex; flex-direction: column; gap: 0.9rem; }
+.site-setting { display: flex; gap: 0.75rem; align-items: flex-start; cursor: pointer; }
+.site-setting input { margin: 0.2rem 0 0; width: 1rem; height: 1rem; flex: none; accent-color: var(--accent-blue); cursor: pointer; }
+.site-setting-text { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.site-setting-name { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
+.site-setting-hint { color: var(--text-muted); font-size: 0.8rem; line-height: 1.45; }
+.site-settings-note { margin: 0; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem; }
+.site-settings-error { margin: 0; color: #ef4444; font-size: 0.8rem; }
 .dock-btn-inbox { position: relative; }
 .inbox-message-card {
     padding: 0.75rem; border-radius: 4px;
@@ -964,14 +981,17 @@ summary:focus-visible {
 .mobile-site-title { display: block; }
 
 /* Respect a reduced-motion preference. The site's transitions are decorative
-   and several run on hover across a whole roster grid at once. */
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-    }
+   and several run on hover across a whole roster grid at once.
+   html.reduce-motion rather than the media query (v1.1): js/site_utils.js
+   sets it for the device's preference AND for Site settings > Turn off
+   animations, so every rule like this one is written once. */
+html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
 }
 
 /* Tab content panes (used across editor.js/admin.js/history.js/description.js) -
