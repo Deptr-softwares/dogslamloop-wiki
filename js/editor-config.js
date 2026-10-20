@@ -672,7 +672,7 @@
         const el = document.createElement('div');
         el.className = 'config-word-popup hidden';
         el.innerHTML = `
-            <div class="format-color-presets-scroll">${typeof colorPresetsHTML === 'function' ? colorPresetsHTML(gradientPresetsHTML()) : ''}</div>
+            <div class="format-color-presets-scroll"><div data-recent-slot></div>${typeof colorPresetsHTML === 'function' ? colorPresetsHTML(gradientPresetsHTML()) : ''}</div>
             <div class="cp-label">Custom</div>
             <div class="cp-surface" id="cp-surface"><div class="cp-thumb" id="cp-surface-thumb"></div></div>
             <div class="cp-hue" id="cp-hue" role="slider" tabindex="0"
@@ -760,6 +760,7 @@
 
         function setColors(colors) {
             if (popupIndex < 0 || !state.words[popupIndex]) return;
+            if (typeof rememberColors === 'function') rememberColors(colors);
             state.words[popupIndex].colors = colors;
             const row = list.querySelector(`[data-word-index="${popupIndex}"]`);
             if (row) paintSwatch(row.querySelector('[data-word-swatch]'), colors);
@@ -811,6 +812,8 @@
                 // A word that already has a gradient opens on it.
                 const colors = state.words[i].colors;
                 if (gradientBuilder) gradientBuilder.load(colors.length > 1 ? colors : null);
+                const recentSlot = popup.querySelector('[data-recent-slot]');
+                if (recentSlot && typeof recentColorsHTML === 'function') recentSlot.innerHTML = recentColorsHTML(true);
                 popup.classList.remove('hidden');
                 swatch.setAttribute('aria-expanded', 'true');
                 popup.scrollIntoView({ block: 'nearest' });

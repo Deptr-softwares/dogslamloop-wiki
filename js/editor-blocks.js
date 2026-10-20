@@ -425,6 +425,88 @@ function colorPresetsHTML(afterFirst = '') {
                         </div>${i === 0 ? afterFirst : ''}`).join('');
 }
 
+// --- RECENT COLOURS (v1.1) ---
+//
+// Owner, 2026-10-20: the last custom colours an editor used, gradients too,
+// "so the editor don't need to go to color everytime and redraw the custom
+// color to get it", leaving out any colour that already has a preset.
+//
+// Every colour a popup applies comes through rememberColors, presets included,
+// and the preset check drops those. That is also what moves a Recent swatch to
+// the front when it is used again. Exact matches only (the owner's pick over
+// near ones), compared once the browser has read both, because the presets
+// are written as hsl() and the picker gives a hex. Ten, newest first, saved
+// per device like Config. One list for the text colour popup, a heading's Side
+// bar, a folder's colour and Config > Page words; a gradient shows only where
+// a gradient can be used.
+const RECENT_COLORS_KEY = 'dsl_recent_colors';
+const RECENT_COLORS_MAX = 10;
+const STRICT_HEX = /^#[0-9a-f]{6}$/;
+let recentColorsMemory = null;   // the list, while storage refuses writes
+let colorReader = null;
+
+// The browser's own reading of a colour as #rrggbb. Null for one it cannot
+// parse, and for one with transparency, which no picker here makes.
+function resolveHex(color) {
+    const value = String(color || '').trim();
+    if (!SAFE_CSS_COLOR.test(value) || !CSS.supports('color', value)) return null;
+    if (!colorReader) colorReader = document.createElement('canvas').getContext('2d');
+    if (!colorReader) return null;
+    colorReader.fillStyle = value;
+    const hex = String(colorReader.fillStyle).toLowerCase();
+    return STRICT_HEX.test(hex) ? hex : null;
+}
+
+// Arrays of #rrggbb: one colour, or a gradient's stops. Anything else in
+// storage was not written here, and is dropped.
+function readRecentColors() {
+    let list = recentColorsMemory;
+    if (!list) {
+        try { list = JSON.parse(window.localStorage.getItem(RECENT_COLORS_KEY) || '[]'); }
+        catch (e) { list = []; /* blocked or unreadable: nothing recent yet */ }
+    }
+    if (!Array.isArray(list)) return [];
+    return list.filter(entry => Array.isArray(entry) && entry.length >= 1 && entry.length <= GRADIENT_MAX_STOPS
+        && entry.every(c => typeof c === 'string' && STRICT_HEX.test(c))).slice(0, RECENT_COLORS_MAX);
+}
+
+const sameStops = (a, b) => a.length === b.length && a.every((c, i) => c === b[i]);
+
+function hasPreset(stops) {
+    if (stops.length === 1) {
+        return colorPresetGroups().some(group => group.swatches.some(s => resolveHex(s.color) === stops[0]));
+    }
+    return GRADIENT_PRESETS.some(g => sameStops([resolveHex(g.from), resolveHex(g.to)], stops));
+}
+
+function rememberColors(colors) {
+    const stops = (Array.isArray(colors) ? colors : []).map(resolveHex);
+    if (!stops.length || stops.length > GRADIENT_MAX_STOPS || stops.includes(null) || hasPreset(stops)) return;
+    const list = [stops, ...readRecentColors().filter(entry => !sameStops(entry, stops))].slice(0, RECENT_COLORS_MAX);
+    try {
+        window.localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(list));
+        recentColorsMemory = null;
+    } catch (e) {
+        recentColorsMemory = list;   // remembered on this page only
+    }
+}
+
+// The Recent row, or nothing while nothing is recent. The swatches are the
+// presets' own buttons, so each popup's click handler already applies them.
+// Every value passed STRICT_HEX on its way out of storage, which is what makes
+// it safe in a style attribute.
+function recentColorsHTML(withGradients) {
+    const entries = readRecentColors().filter(entry => withGradients || entry.length === 1);
+    if (!entries.length) return '';
+    return `
+                        <div class="format-color-popup-label">Recent</div>
+                        <div class="format-color-presets-row" data-recent-colors>
+                            ${entries.map(entry => (entry.length === 1
+                                ? `<button type="button" class="color-preset-btn" data-color="${entry[0]}" style="background: ${entry[0]};" title="${entry[0]}"></button>`
+                                : `<button type="button" class="gradient-preset-btn" data-gradient="${entry.join(',')}" style="background: linear-gradient(90deg, ${entry.join(', ')});" title="Gradient ${entry.join(', ')}"></button>`)).join('')}
+                        </div>`;
+}
+
 // --- A HEADING'S SIDE BAR (v1.1) ---
 //
 // Owner, 2026-10-19: every Block renders the same way across the site, and the
@@ -467,12 +549,16 @@ function openSwatchPopup(swatch, noneLabel, onPick) {
     closeSwatchPopup();
     if (!reopen) return;
 
-    const pick = (color) => { closeSwatchPopup(); onPick(color); };
+    const pick = (color) => {
+        closeSwatchPopup();
+        if (color) rememberColors([color]);
+        onPick(color);
+    };
     const popup = document.createElement('div');
     popup.className = 'swatch-popup';
     popup.innerHTML = `
         <button type="button" class="btn-sys btn-sys-regular" data-swatch-none>${window.escapeHtml(noneLabel)}</button>
-        <div class="format-color-presets-scroll">${colorPresetsHTML()}</div>
+        <div class="format-color-presets-scroll">${recentColorsHTML(false)}${colorPresetsHTML()}</div>
         <div class="cp-label">Custom</div>
         <div class="cp-surface" id="cp-surface"><div class="cp-thumb" id="cp-surface-thumb"></div></div>
         <div class="cp-hue" id="cp-hue" role="slider" tabindex="0"
@@ -954,6 +1040,120 @@ window.focusComboNotationField = function (root, at) {
     const field = root.querySelector(`[data-nstyle-label="${at}"]`);
     if (field) field.focus();
 };
+
+// --- THE STYLE NAMES THIS PAGE USES (v1.1) ---
+//
+// Owner, 2026-10-20: the helper "was meant to detect the current style name
+// being used on the page itself, and suggest the editor to name the style like
+// that for sync purpose". A reader's choice follows the NAME
+// (window.comboNotationKey), so "Keyboard" on one combo and "KBM" on the next
+// are two styles, and switching one leaves the other behind. While a style name
+// field has focus, the names already on the page sit under it, most used
+// first, and a name no other combo uses says so.
+//
+// Counted from the page's data, every tab and every character state, by
+// looking for `notations` anywhere in it rather than listing the combo shapes:
+// four editors write them, and a fifth would be missed by a list. A Combo Card
+// in Multiple Sections renders its sections and never its own copy of the one
+// on screen, and with the switch off it renders the opposite, so each counts
+// only what renders.
+function pageNotationNames() {
+    const names = new Map();   // key -> { label, count }
+    const seen = new WeakSet();
+    const count = (list) => list.forEach(n => {
+        const label = String((n && n.label) || '').trim().replace(/\s+/g, ' ');
+        const key = window.comboNotationKey(label);
+        if (!key) return;
+        const entry = names.get(key) || { label, count: 0 };
+        entry.count++;
+        names.set(key, entry);
+    });
+    const walk = (node, depth) => {
+        if (!node || typeof node !== 'object' || seen.has(node) || depth > 40) return;
+        seen.add(node);
+        if (Array.isArray(node)) { node.forEach(child => walk(child, depth + 1)); return; }
+        const multi = !!node.multiSections && Array.isArray(node.sections) && node.sections.length > 0;
+        if (Array.isArray(node.notations) && !multi) count(node.notations);
+        Object.keys(node).forEach(key => {
+            if (key === 'notations') return;
+            if (key === 'sections' && node.type === 'theorybox' && !multi) return;
+            walk(node[key], depth + 1);
+        });
+    };
+    walk(window.editorMasterDescData || window.currentEditorDescData, 0);
+    return names;
+}
+
+function notationNameNote(names, typed) {
+    const key = window.comboNotationKey(typed);
+    if (!key || !names.length || names.some(n => window.comboNotationKey(n.label) === key)) return '';
+    return `No other combo on this page uses "${typed.trim()}". Readers who picked ${names[0].label} won't see it.`;
+}
+
+// The other styles' names, for `field`: its own name is in the data too, once.
+function showNotationNames(field) {
+    const row = field.closest('.nstyle-row');
+    // owner.html loads the block editor without description.js.
+    if (!row || typeof window.comboNotationKey !== 'function') return;
+    const counts = pageNotationNames();
+    const own = counts.get(window.comboNotationKey(field.value));
+    if (own && --own.count === 0) counts.delete(window.comboNotationKey(field.value));
+    const names = [...counts.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+
+    const old = row.querySelector('[data-nstyle-names]');
+    if (old) old.remove();
+    if (!names.length) return;
+
+    const box = document.createElement('div');
+    box.className = 'nstyle-names';
+    box.setAttribute('data-nstyle-names', '');
+    box.innerHTML = `<span class="nstyle-names-label">On this page:</span>${names.map((n, i) => `
+            <button type="button" class="nstyle-name-chip" data-nstyle-name="${i}">${window.escapeHtml(n.label)}<span class="nstyle-name-count">${n.count}</span></button>`).join('')}
+            <div class="nstyle-names-note" data-nstyle-note></div>`;
+    box.notationNames = names;
+    const head = row.querySelector('.nstyle-row-head');
+    (head || field).insertAdjacentElement('afterend', box);
+    box.querySelector('[data-nstyle-note]').textContent = notationNameNote(names, field.value);
+}
+
+document.addEventListener('focusin', (e) => {
+    if (e.target.matches && e.target.matches('[data-nstyle-label]')) showNotationNames(e.target);
+});
+
+// Capture, because the Workspace's own handler stops the event at the list.
+document.addEventListener('input', (e) => {
+    if (!e.target.matches || !e.target.matches('[data-nstyle-label]')) return;
+    const box = e.target.closest('.nstyle-row') && e.target.closest('.nstyle-row').querySelector('[data-nstyle-names]');
+    if (box) box.querySelector('[data-nstyle-note]').textContent = notationNameNote(box.notationNames, e.target.value);
+}, true);
+
+// Put away once focus leaves the name, its remove button and the chips.
+document.addEventListener('focusout', (e) => {
+    if (!e.target.matches || !e.target.closest('[data-nstyle-label], .nstyle-row-head, [data-nstyle-names]')) return;
+    const row = e.target.closest('.nstyle-row');
+    const next = e.relatedTarget;
+    if (!row || (next && row.contains(next) && next.closest('.nstyle-row-head, [data-nstyle-names]'))) return;
+    const box = row.querySelector('[data-nstyle-names]');
+    if (box) box.remove();
+});
+
+// A chip writes its name into the field through the field's own input
+// handler, so every surface stores it the way it stores typing. Pressing it
+// keeps the focus in the field.
+document.addEventListener('mousedown', (e) => {
+    if (e.target.closest && e.target.closest('.nstyle-name-chip')) e.preventDefault();
+});
+document.addEventListener('click', (e) => {
+    const chip = e.target.closest && e.target.closest('.nstyle-name-chip');
+    if (!chip) return;
+    const box = chip.closest('[data-nstyle-names]');
+    const field = box && box.closest('.nstyle-row').querySelector('[data-nstyle-label]');
+    const name = box && box.notationNames[Number(chip.getAttribute('data-nstyle-name'))];
+    if (!field || !name) return;
+    field.value = name.label;
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.focus();
+});
 // Stated rather than left to the fact that this file is not IIFE-wrapped: the
 // Combos/Techs card editor in editor-tabs.js calls it, because a Combo Card has
 // two editors and the switch has to behave identically in both.
@@ -1376,6 +1576,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                              row unclickable is fixed in keepColorPopupOnScreen
                              below, so any position would work. -->
                         <div class="format-color-presets-scroll">
+                        <div data-recent-slot></div>
                         ${colorPresetsHTML(gradientPresetsHTML())}
                         </div>
                         <!-- A saturation/brightness surface and a hue slider,
@@ -1748,7 +1949,18 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (e.target.classList.contains('editor-textarea')) window.autoSizeEditorTextarea(e.target);
         window.applyComboNotationInput(item, e.target);
         clearTimeout(notationTypingTimer);
-        notationTypingTimer = setTimeout(() => updateLivePreview(), 400);
+        notationTypingTimer = setTimeout(() => { notationTypingTimer = null; updateLivePreview(); }, 400);
+    });
+
+    // The names under a style name field are counted from the page's data,
+    // which this list only reaches when the wait above runs out: a name typed
+    // a moment ago, one field up, would be missing. Runs before the document's
+    // own focusin listener, which draws them.
+    blockList.addEventListener('focusin', (e) => {
+        if (!notationTypingTimer || !e.target.matches('[data-nstyle-label]')) return;
+        clearTimeout(notationTypingTimer);
+        notationTypingTimer = null;
+        updateLivePreview();
     });
 
     // A section's title. Deliberately does NOT call renderBlockList - rebuilding
@@ -2117,10 +2329,14 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     }
 
     if (colorBtn && colorPopup) {
+        // Filled as it opens, so it is measured with the Recent row in it.
+        const recentSlot = colorPopup.querySelector('[data-recent-slot]');
         colorBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             colorPopup.classList.toggle('hidden');
-            if (!colorPopup.classList.contains('hidden')) keepColorPopupOnScreen(colorPopup);
+            if (colorPopup.classList.contains('hidden')) return;
+            if (recentSlot) recentSlot.innerHTML = recentColorsHTML(true);
+            keepColorPopupOnScreen(colorPopup);
         });
 
         colorPopup.addEventListener('click', (e) => {
@@ -2135,13 +2351,16 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             // both of those, which is the trade CLAUDE.md already prefers.
             const gradient = e.target.closest('.gradient-preset-btn');
             if (gradient) {
-                applyFormat('multicolor', gradient.getAttribute('data-gradient'));
+                const value = gradient.getAttribute('data-gradient');
+                rememberColors(value.split(','));
+                applyFormat('multicolor', value);
                 colorPopup.classList.add('hidden');
                 return;
             }
 
             const preset = e.target.closest('.color-preset-btn');
             if (preset) {
+                rememberColors([preset.getAttribute('data-color')]);
                 applyFormat('color', preset.getAttribute('data-color'));
                 colorPopup.classList.add('hidden');
             }
@@ -2150,11 +2369,13 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         // The popup, not the whole container: a Side bar or folder colour
         // popup open in the list repeats the picker's ids.
         const gradientBuilder = wireGradientBuilder(colorPopup, (stops) => {
+            rememberColors(stops);
             applyFormat('multicolor', stops.join(','));
             colorPopup.classList.add('hidden');
         });
 
         initColorPicker(container, (hex) => {
+            rememberColors([hex]);
             applyFormat('color', hex);
             colorPopup.classList.add('hidden');
         }, gradientBuilder ? gradientBuilder.pickerChanged : null);

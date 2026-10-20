@@ -851,7 +851,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 }
 .format-color-popup-label { font-family: var(--text-mono); font-size: 0.6rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.08em; }
 /* Separates the groups without putting a gap above the first one. */
-.format-color-presets-row + .format-color-popup-label { margin-top: 0.6rem; }
+.format-color-presets-row + .format-color-popup-label,
+[data-recent-slot]:not(:empty) + .format-color-popup-label { margin-top: 0.6rem; }
 .format-color-presets-row { display: flex; gap: 4px; margin-bottom: 0.5rem; flex-wrap: wrap; }
 /* Square, to match the editor. The hover outline is the only affordance a
    swatch can carry - it has no label and no icon, so without one there is
@@ -2697,6 +2698,34 @@ del.diff-del {
 .nstyle-row { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.6rem; }
 .nstyle-row-head { display: flex; gap: 0.4rem; align-items: center; }
 .nstyle-row-head .editor-input { flex: 1; min-width: 0; }
+/* The names this page already uses, under a focused style name (v1.1). */
+.nstyle-names {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem;
+    font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted);
+}
+.nstyle-name-chip {
+    font: inherit; color: var(--text-primary); background: var(--bg-secondary);
+    border: 1px solid #333; border-radius: 0; padding: 0.1rem 0.4rem; cursor: pointer;
+}
+.nstyle-name-chip:hover, .nstyle-name-chip:focus-visible { border-color: var(--accent-blue); outline: none; }
+.nstyle-name-count { color: var(--text-muted); margin-left: 0.35rem; }
+.nstyle-names-note { flex-basis: 100%; color: var(--accent-yellow); }
+.nstyle-names-note:empty { display: none; }
+
+/* --- WRITING CHECKS (v1.1, js/editor-writing-checks.js) ---
+   A line under the field for each character name or broken tag, and the list
+   at Submit. */
+.writing-checks {
+    display: flex; flex-direction: column; gap: 0.25rem; margin: 0.3rem 0;
+    font-family: var(--text-mono); font-size: 0.68rem; line-height: 1.4; color: var(--accent-yellow);
+}
+.writing-check { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.writing-check-fix { padding: 0.1rem 0.5rem; font-size: 0.6rem; }
+.writing-checks-list {
+    max-height: 40vh; overflow-y: auto; margin: 0 0 1rem; padding-left: 1.1rem; text-align: left;
+    font-family: var(--text-mono); font-size: 0.72rem; line-height: 1.5;
+}
+.writing-checks-where { color: var(--text-muted); }
 
 /* --- THE CONFIG PANEL (v1.1) ---
    Settings saved per device by js/editor-config.js, each one a class on

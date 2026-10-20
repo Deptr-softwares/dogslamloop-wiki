@@ -73,6 +73,11 @@
         }
     }
 
+    // The writing checks (js/editor-writing-checks.js) read the same text this
+    // does, so the two cannot disagree about what a page says.
+    window.walkEditorStrings = walkStrings;
+    window.isEditorSkipField = (key) => SKIP_FIELDS.has(key);
+
     window.getAtPath = function (root, path) {
         return path.reduce((acc, k) => (acc === null || acc === undefined ? acc : acc[k]), root);
     };

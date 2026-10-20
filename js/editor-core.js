@@ -1401,6 +1401,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             } catch (e) { console.warn("Collision check failed, proceeding safely.", e); }
 
+            // Character names and broken format tags in what this submission
+            // adds or changes (v1.1, js/editor-writing-checks.js). Shown once
+            // more here, and the editor may still send.
+            if (typeof window.confirmWritingChecks === 'function' && !(await window.confirmWritingChecks())) {
+                submitBtn.textContent = window.activeEditTicketId ? "UPDATE SUBMISSION" : "Submit";
+                return;
+            }
+
             submitBtn.textContent = "WAITING ON QA...";
             
             // 🚨 TRIGGER THE DYNAMIC QA MODAL 🚨
