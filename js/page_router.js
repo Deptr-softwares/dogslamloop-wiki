@@ -128,7 +128,7 @@ window.buildPageSkeleton = function (route, rootPath) {
             <div class="sidebar-master-title">Navigation</div>
 
             <div id="global-sidebar-nav">
-                <p class="loading-msg loading-msg-sm">Loading menu...</p>
+                <p class="loading-msg loading-msg-sm loading-msg-busy">Loading menu...</p>
             </div>
 
             <div id="sidebar-dynamic-dock" class="sidebar-dynamic-dock"></div>
@@ -160,7 +160,7 @@ window.buildPageSkeleton = function (route, rootPath) {
             </div>
 ${withToc ? `
             <ul class="toc-list" id="dynamic-toc">
-                <li><p class="loading-msg">Loading contents...</p></li>
+                <li><p class="loading-msg loading-msg-busy">Loading contents...</p></li>
             </ul>` : ''}
         </aside>`;
     }

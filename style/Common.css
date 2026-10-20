@@ -113,31 +113,27 @@ body {
     margin: 0.25rem 0 0 0;
 }
 
-/* --- CUSTOM SCROLLBARS (Webkit: Chrome, Edge, Safari) --- */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+/* --- SCROLLBARS (v1.1) ---
+   Square like everything else on the site, in the page's border colour, and
+   the page colour when hovered or grabbed.
+
+   The standard properties sit under @supports for Firefox only. Chrome 121+
+   ignores every ::-webkit-scrollbar rule on an element that sets
+   scrollbar-width or scrollbar-color, so the old `* { scrollbar-width: thin }`
+   meant these rules never drew in Chrome at all: it drew its own thin bar in
+   the colour below. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: var(--bg-main); }
+::-webkit-scrollbar-thumb { background: var(--border-color); border: 2px solid var(--bg-main); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover, ::-webkit-scrollbar-thumb:active { background: var(--accent-blue); }
+
+@supports not selector(::-webkit-scrollbar) {
+    * { scrollbar-width: thin; scrollbar-color: var(--border-color) transparent; }
 }
 
-::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.5);
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #334155;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #475569;
-}
-
-/* --- Firefox Cross-Browser Support --- */
-* {
-    scrollbar-width: thin;
-    scrollbar-color: #334155 transparent;
-}
+/* Selected text in the page colour (v1.1), with the ink the site already
+   puts on that colour: black on a light page colour, white on a dark one. */
+::selection { background: var(--accent-blue); color: var(--character-ink); }
 
 /* --- GLOBAL TYPOGRAPHY --- */
 .section-title {

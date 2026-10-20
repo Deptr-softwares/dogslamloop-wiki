@@ -332,7 +332,7 @@
         renderPicker();
 
         ui.innerHTML = '';
-        ui.appendChild(el('p', 'loading-msg', 'Loading…'));
+        ui.appendChild(el('p', 'loading-msg loading-msg-busy', 'Loading…'));
 
         let row = state.loaded.get(slug);
         if (!row) {

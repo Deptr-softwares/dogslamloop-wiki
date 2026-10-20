@@ -57,7 +57,7 @@ async function togglePageHistoryView() {
 }
 
 async function loadPageHistoryList(pageId, container) {
-    container.innerHTML = `<p class="loading-msg">Loading page history...</p>`;
+    container.innerHTML = `<p class="loading-msg loading-msg-busy">Loading page history...</p>`;
 
     const { data: rows, error } = await window.supabaseClient
         .from('page_history')

@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadRecentChanges() {
     const listEl = document.getElementById('recent-changes-list');
-    listEl.innerHTML = `<p class="loading-msg">Loading...</p>`;
+    listEl.innerHTML = `<p class="loading-msg loading-msg-busy">Loading...</p>`;
 
     if (!window.supabaseClient) {
         listEl.innerHTML = `<div class="wiki-section"><p class="loading-msg">Database disconnected.</p></div>`;
