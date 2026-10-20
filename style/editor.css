@@ -851,7 +851,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 }
 .format-color-popup-label { font-family: var(--text-mono); font-size: 0.6rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.08em; }
 /* Separates the groups without putting a gap above the first one. */
-.format-color-presets-row + .format-color-popup-label { margin-top: 0.6rem; }
+.format-color-presets-row + .format-color-popup-label,
+[data-recent-slot]:not(:empty) + .format-color-popup-label { margin-top: 0.6rem; }
 .format-color-presets-row { display: flex; gap: 4px; margin-bottom: 0.5rem; flex-wrap: wrap; }
 /* Square, to match the editor. The hover outline is the only affordance a
    swatch can carry - it has no label and no icon, so without one there is

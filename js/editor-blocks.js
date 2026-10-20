@@ -425,6 +425,88 @@ function colorPresetsHTML(afterFirst = '') {
                         </div>${i === 0 ? afterFirst : ''}`).join('');
 }
 
+// --- RECENT COLOURS (v1.1) ---
+//
+// Owner, 2026-10-20: the last custom colours an editor used, gradients too,
+// "so the editor don't need to go to color everytime and redraw the custom
+// color to get it", leaving out any colour that already has a preset.
+//
+// Every colour a popup applies comes through rememberColors, presets included,
+// and the preset check drops those. That is also what moves a Recent swatch to
+// the front when it is used again. Exact matches only (the owner's pick over
+// near ones), compared once the browser has read both, because the presets
+// are written as hsl() and the picker gives a hex. Ten, newest first, saved
+// per device like Config. One list for the text colour popup, a heading's Side
+// bar, a folder's colour and Config > Page words; a gradient shows only where
+// a gradient can be used.
+const RECENT_COLORS_KEY = 'dsl_recent_colors';
+const RECENT_COLORS_MAX = 10;
+const STRICT_HEX = /^#[0-9a-f]{6}$/;
+let recentColorsMemory = null;   // the list, while storage refuses writes
+let colorReader = null;
+
+// The browser's own reading of a colour as #rrggbb. Null for one it cannot
+// parse, and for one with transparency, which no picker here makes.
+function resolveHex(color) {
+    const value = String(color || '').trim();
+    if (!SAFE_CSS_COLOR.test(value) || !CSS.supports('color', value)) return null;
+    if (!colorReader) colorReader = document.createElement('canvas').getContext('2d');
+    if (!colorReader) return null;
+    colorReader.fillStyle = value;
+    const hex = String(colorReader.fillStyle).toLowerCase();
+    return STRICT_HEX.test(hex) ? hex : null;
+}
+
+// Arrays of #rrggbb: one colour, or a gradient's stops. Anything else in
+// storage was not written here, and is dropped.
+function readRecentColors() {
+    let list = recentColorsMemory;
+    if (!list) {
+        try { list = JSON.parse(window.localStorage.getItem(RECENT_COLORS_KEY) || '[]'); }
+        catch (e) { list = []; /* blocked or unreadable: nothing recent yet */ }
+    }
+    if (!Array.isArray(list)) return [];
+    return list.filter(entry => Array.isArray(entry) && entry.length >= 1 && entry.length <= GRADIENT_MAX_STOPS
+        && entry.every(c => typeof c === 'string' && STRICT_HEX.test(c))).slice(0, RECENT_COLORS_MAX);
+}
+
+const sameStops = (a, b) => a.length === b.length && a.every((c, i) => c === b[i]);
+
+function hasPreset(stops) {
+    if (stops.length === 1) {
+        return colorPresetGroups().some(group => group.swatches.some(s => resolveHex(s.color) === stops[0]));
+    }
+    return GRADIENT_PRESETS.some(g => sameStops([resolveHex(g.from), resolveHex(g.to)], stops));
+}
+
+function rememberColors(colors) {
+    const stops = (Array.isArray(colors) ? colors : []).map(resolveHex);
+    if (!stops.length || stops.length > GRADIENT_MAX_STOPS || stops.includes(null) || hasPreset(stops)) return;
+    const list = [stops, ...readRecentColors().filter(entry => !sameStops(entry, stops))].slice(0, RECENT_COLORS_MAX);
+    try {
+        window.localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(list));
+        recentColorsMemory = null;
+    } catch (e) {
+        recentColorsMemory = list;   // remembered on this page only
+    }
+}
+
+// The Recent row, or nothing while nothing is recent. The swatches are the
+// presets' own buttons, so each popup's click handler already applies them.
+// Every value passed STRICT_HEX on its way out of storage, which is what makes
+// it safe in a style attribute.
+function recentColorsHTML(withGradients) {
+    const entries = readRecentColors().filter(entry => withGradients || entry.length === 1);
+    if (!entries.length) return '';
+    return `
+                        <div class="format-color-popup-label">Recent</div>
+                        <div class="format-color-presets-row" data-recent-colors>
+                            ${entries.map(entry => (entry.length === 1
+                                ? `<button type="button" class="color-preset-btn" data-color="${entry[0]}" style="background: ${entry[0]};" title="${entry[0]}"></button>`
+                                : `<button type="button" class="gradient-preset-btn" data-gradient="${entry.join(',')}" style="background: linear-gradient(90deg, ${entry.join(', ')});" title="Gradient ${entry.join(', ')}"></button>`)).join('')}
+                        </div>`;
+}
+
 // --- A HEADING'S SIDE BAR (v1.1) ---
 //
 // Owner, 2026-10-19: every Block renders the same way across the site, and the
@@ -467,12 +549,16 @@ function openSwatchPopup(swatch, noneLabel, onPick) {
     closeSwatchPopup();
     if (!reopen) return;
 
-    const pick = (color) => { closeSwatchPopup(); onPick(color); };
+    const pick = (color) => {
+        closeSwatchPopup();
+        if (color) rememberColors([color]);
+        onPick(color);
+    };
     const popup = document.createElement('div');
     popup.className = 'swatch-popup';
     popup.innerHTML = `
         <button type="button" class="btn-sys btn-sys-regular" data-swatch-none>${window.escapeHtml(noneLabel)}</button>
-        <div class="format-color-presets-scroll">${colorPresetsHTML()}</div>
+        <div class="format-color-presets-scroll">${recentColorsHTML(false)}${colorPresetsHTML()}</div>
         <div class="cp-label">Custom</div>
         <div class="cp-surface" id="cp-surface"><div class="cp-thumb" id="cp-surface-thumb"></div></div>
         <div class="cp-hue" id="cp-hue" role="slider" tabindex="0"
@@ -1376,6 +1462,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                              row unclickable is fixed in keepColorPopupOnScreen
                              below, so any position would work. -->
                         <div class="format-color-presets-scroll">
+                        <div data-recent-slot></div>
                         ${colorPresetsHTML(gradientPresetsHTML())}
                         </div>
                         <!-- A saturation/brightness surface and a hue slider,
@@ -2117,10 +2204,14 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     }
 
     if (colorBtn && colorPopup) {
+        // Filled as it opens, so it is measured with the Recent row in it.
+        const recentSlot = colorPopup.querySelector('[data-recent-slot]');
         colorBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             colorPopup.classList.toggle('hidden');
-            if (!colorPopup.classList.contains('hidden')) keepColorPopupOnScreen(colorPopup);
+            if (colorPopup.classList.contains('hidden')) return;
+            if (recentSlot) recentSlot.innerHTML = recentColorsHTML(true);
+            keepColorPopupOnScreen(colorPopup);
         });
 
         colorPopup.addEventListener('click', (e) => {
@@ -2135,13 +2226,16 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             // both of those, which is the trade CLAUDE.md already prefers.
             const gradient = e.target.closest('.gradient-preset-btn');
             if (gradient) {
-                applyFormat('multicolor', gradient.getAttribute('data-gradient'));
+                const value = gradient.getAttribute('data-gradient');
+                rememberColors(value.split(','));
+                applyFormat('multicolor', value);
                 colorPopup.classList.add('hidden');
                 return;
             }
 
             const preset = e.target.closest('.color-preset-btn');
             if (preset) {
+                rememberColors([preset.getAttribute('data-color')]);
                 applyFormat('color', preset.getAttribute('data-color'));
                 colorPopup.classList.add('hidden');
             }
@@ -2150,11 +2244,13 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         // The popup, not the whole container: a Side bar or folder colour
         // popup open in the list repeats the picker's ids.
         const gradientBuilder = wireGradientBuilder(colorPopup, (stops) => {
+            rememberColors(stops);
             applyFormat('multicolor', stops.join(','));
             colorPopup.classList.add('hidden');
         });
 
         initColorPicker(container, (hex) => {
+            rememberColors([hex]);
             applyFormat('color', hex);
             colorPopup.classList.add('hidden');
         }, gradientBuilder ? gradientBuilder.pickerChanged : null);
