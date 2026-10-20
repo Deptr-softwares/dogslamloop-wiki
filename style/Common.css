@@ -148,6 +148,23 @@ body {
     line-height: 1.2;
 }
 
+/* A bar of the page colour on the start of a panel heading's underline
+   (v1.1). Hovering the panel stretches it to the end of the heading's words,
+   which js/site_utils.js measures into --title-words: on a heading as wide as
+   the panel, CSS cannot know where the words end. Only on headings with their
+   own underline. -clean and -flex sit on a row's accent line instead, where a
+   bar of the same colour would disappear. */
+.section-title:not(.section-title-clean):not(.section-title-flex) { position: relative; }
+.section-title:not(.section-title-clean):not(.section-title-flex)::after {
+    content: ''; position: absolute; left: 0; bottom: -2px; height: 4px; width: 2.6rem;
+    background: var(--accent-blue); clip-path: polygon(0 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+    transition: width 0.18s ease-out; pointer-events: none;
+}
+:is(.wiki-section, .wiki-card):hover .section-title:not(.section-title-clean):not(.section-title-flex)::after,
+.section-title:not(.section-title-clean):not(.section-title-flex):hover::after {
+    width: max(2.6rem, var(--title-words, 2.6rem));
+}
+
 /* --- GLOBAL UTILITIES --- */
 .p-0 { padding: 0 !important; }
 .m-0 { margin: 0 !important; }

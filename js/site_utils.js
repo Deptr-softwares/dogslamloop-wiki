@@ -67,6 +67,21 @@
     window.scrollMotion = () => (document.documentElement.classList.contains('reduce-motion') ? 'auto' : 'smooth');
 })();
 
+// How wide a panel heading's words are, for the bar on its underline
+// (style/Common.css, .section-title::after). Measured as the pointer enters a
+// panel, so a heading filled in after the page loaded (applyHubHeadings) is
+// measured as it reads now.
+document.addEventListener('pointerenter', e => {
+    const el = e.target;
+    if (!(el instanceof Element) || !el.matches('.wiki-section, .wiki-card, .section-title')) return;
+    const titles = el.matches('.section-title') ? [el] : el.querySelectorAll('.section-title');
+    titles.forEach(title => {
+        const words = document.createRange();
+        words.selectNodeContents(title);
+        title.style.setProperty('--title-words', `${Math.ceil(words.getBoundingClientRect().width)}px`);
+    });
+}, true);
+
 // The Site settings panel, opened from the button beside the account button
 // (js/pagebuilder.js initAuthDock). Built on first open; every value in it is
 // the site's own, so nothing is escaped.

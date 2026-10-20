@@ -99,6 +99,42 @@ test('a loading message has the slanted bars and an error message does not', asy
 });
 
 // --------------------------------------------------------------------------
+// Panel headings
+// --------------------------------------------------------------------------
+
+test('a panel heading\'s bar stretches to the end of its words when the panel is hovered', async ({ page }) => {
+  await page.setViewportSize({ width: 1400, height: 900 });
+  await page.goto('/index.html', { waitUntil: 'networkidle' });
+  const title = page.locator('.wiki-section .section-title[data-heading-key="about"]');
+  await expect(title).not.toHaveText(/^\s*$/);
+  const box = await title.boundingBox();
+  const words = await title.evaluate(el => { const r = document.createRange(); r.selectNodeContents(el); return r.getBoundingClientRect().width; });
+  expect(words).toBeGreaterThan(70);
+  const accent = await rgbOf(page, '--accent-blue');
+  // A pixel row wholly inside the 4px bar: the heading can end on a fraction.
+  const lineY = Math.floor(box.y + box.height - 3);
+  const start = [Math.round(box.x + 6), lineY];
+  const end = [Math.round(box.x + words - 8), lineY];
+
+  await page.mouse.move(5, 5);
+  expect(near(await pixel(page, ...start), accent, 6)).toBe(true);
+  expect(near(await pixel(page, ...end), accent, 6)).toBe(false);
+
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height + 40);
+  await expect.poll(async () => near(await pixel(page, ...end), accent, 6)).toBe(true);
+  // To the end of the words, not across the whole line.
+  expect(near(await pixel(page, Math.round(box.x + words + 30), lineY), accent, 6)).toBe(false);
+});
+
+test('a heading on a row\'s accent line gets no bar', async ({ page }) => {
+  await page.goto('/index.html', { waitUntil: 'networkidle' });
+  const contents = await page.locator('.section-title-clean, .section-title-flex').evaluateAll(els =>
+    els.map(el => getComputedStyle(el, '::after').content));
+  expect(contents.length).toBeGreaterThan(0);
+  contents.forEach(c => expect(c).toBe('none'));
+});
+
+// --------------------------------------------------------------------------
 // Landing on a section
 // --------------------------------------------------------------------------
 
