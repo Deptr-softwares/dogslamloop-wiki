@@ -2845,6 +2845,15 @@ body.cfg-compact-blocks #block-list .editor-textarea { min-height: 32px; }
 body.cfg-no-preview .editor-layout-split > .live-preview-pane,
 body.cfg-no-preview .editor-layout-split > .editor-splitter,
 body.cfg-no-preview #mobile-preview-toggle { display: none !important; }
+
+/* Click a Block to edit it (v1.1, js/editor-config.js jumpToBlock): the Block
+   under the pointer in the Preview is outlined, which is what says a click
+   will open it. */
+body.cfg-preview-jump .live-preview-pane [data-preview-block]:hover {
+    outline: 1px dashed var(--accent-blue);
+    outline-offset: 2px;
+    cursor: pointer;
+}
 @media (min-width: 901px) {
     body.cfg-no-preview .editor-layout-split > .editor-workspace { flex: 1 1 auto; border-right: none; }
 }

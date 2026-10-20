@@ -136,12 +136,14 @@ test('the Editor tab is three sections, Workspace, Block and Preview Panel, each
     'Sections navigation buttons', 'Workspace basic actions (Undo, Redo, Clear All, Create Folder)', 'Skip delete confirmations']);
   expect(await labels('block')).toEqual(['Hide Block Type dropdown', 'Hide Drag-and-drop area', 'Hide Block Folder dropdown',
     'Formatting on top', 'Compact Blocks', 'Open sections minimized']);
-  expect(await labels('preview')).toEqual(['Disable Preview Panel', 'Preview follows the Block', 'Preview only on Sync']);
+  expect(await labels('preview')).toEqual(['Disable Preview Panel', 'Preview follows the Block', 'Preview only on Sync', 'Click a Block to edit it']);
 
-  // Every new one starts off.
+  // Every new one starts off, but clicking a Block in the Preview, which was
+  // scoped as on with a switch to turn it off (2026-10-20).
   for (const key of ['compactBlocks', 'openMinimized', 'previewFollows', 'previewOnSync']) {
     await expect(page.locator(`[data-config-key="${key}"]`), key).not.toBeChecked();
   }
+  await expect(page.locator('[data-config-key="previewJump"]')).toBeChecked();
 });
 
 test('Hide Block Type dropdown shows the type instead of the dropdown', async ({ page }) => {
@@ -413,6 +415,145 @@ test('Preview only on Sync on a system page: SYNC draws, and so does switching s
   await page.locator('.system-section-tab-btn').nth(1).click();
   await expect(intro).toContainText('drawn by the switch');
   expect(errors).toEqual([]);
+});
+
+// --- CLICK A BLOCK IN THE PREVIEW TO EDIT IT (v1.1) ---
+//
+// From an editor's feedback, scoped 2026-10-20: hovering a Block in the
+// Preview outlines it, clicking it opens its section in the Workspace and
+// scrolls to its card; links, accordions, videos and selecting text keep
+// working; a Block inside an accordion goes to the accordion; Config >
+// Preview Panel can turn it off.
+
+// The Block in the Preview that starts with this text, as the reader sees it.
+const inPreview = (page, scope, text) => page.locator(`.live-preview-pane ${scope} [data-preview-block]`, { hasText: text }).first();
+
+// Card n is drawn, and inside the part of the Workspace on screen.
+const cardOnScreen = (page, n) => page.evaluate((n) => {
+  const card = document.querySelector(`#block-list .block-card[data-index="${n}"]`);
+  if (!card) return 'no card';
+  const view = document.getElementById('interactive-builder').getBoundingClientRect();
+  const r = card.getBoundingClientRect();
+  return r.height > 0 && r.top >= view.top - 1 && r.top < Math.min(view.bottom, window.innerHeight);
+}, n);
+
+test('clicking a Block in the Preview scrolls the Workspace to its card', async ({ page }) => {
+  const errors = await boot(page, { desc: LONG, height: 700 });
+  expect(await cardOnScreen(page, 25), 'far down the list to begin with').not.toBe(true);
+
+  await inPreview(page, '#overview-text-subnode', 'p25').click();
+  await expect.poll(() => cardOnScreen(page, 25)).toBe(true);
+  await expect(cards(page).nth(25)).toHaveClass(/block-just-moved/);
+  expect(errors).toEqual([]);
+});
+
+test('a Block in another section of the tab opens that section, and the open one keeps its edits', async ({ page }) => {
+  const desc = { ...DESC, strategy: [para('s0'), para('s1')], extras: [{ title: 'Tech', content: [para('x0'), para('x1'), para('x2')] }] };
+  await boot(page, { desc });
+  await cards(page).first().locator('textarea.editor-textarea').fill('typed before the jump');
+
+  await inPreview(page, '#overview-strategy-subnode', 's1').click();
+  await expect.poll(() => page.evaluate(() => window.currentOverviewSection)).toBe('strategy');
+  expect(await contents(page)).toEqual(['s0', 's1']);
+  await expect.poll(() => cardOnScreen(page, 1)).toBe(true);
+  expect(await page.evaluate(() => window.currentEditorDescData.overview[0].content), 'written back on the way out')
+    .toEqual(['typed before the jump']);
+
+  await inPreview(page, '#overview-extra-0', 'x2').click();
+  await expect.poll(() => page.evaluate(() => window.currentOverviewSection)).toBe('extra-0');
+  await expect.poll(() => cardOnScreen(page, 2)).toBe(true);
+});
+
+test('on the Matchups tab, a Block in another matchup opens that matchup', async ({ page }) => {
+  const desc = { ...DESC, matchups: [
+    { opponent: 'Vessel', tier: 'Even', content: [para('m0')] },
+    { opponent: 'Ten Shadows', tier: 'Even', content: [para('n0'), para('n1')] },
+  ] };
+  await boot(page, { desc, url: '/edit.html?char=boomcat&type=character&tab=matchups' });
+  await inPreview(page, '#tab-matchups', 'n1').click();
+  await expect.poll(() => page.evaluate(() => window.currentMatchupIndex)).toBe(1);
+  expect(await contents(page)).toEqual(['n0', 'n1']);
+  await expect.poll(() => cardOnScreen(page, 1)).toBe(true);
+});
+
+test('on a system page, a Block in another section opens that section', async ({ page }) => {
+  await boot(page, { desc: SYSTEM_DESC, url: '/edit.html?char=m1-trading&type=system' });
+  await inPreview(page, '#system-basics-sec-1', 'advanced text').click();
+  await expect.poll(() => page.evaluate(() => window.currentSystemSecIdx)).toBe(1);
+  expect(await contents(page)).toEqual(['advanced text']);
+});
+
+test('a Block in a shut folder opens the folder; one inside an accordion opens the accordion', async ({ page }) => {
+  const desc = { ...DESC, overview: [
+    para('loose'),
+    para('filed', { folder: 'Setups' }),
+    { type: 'accordion', title: 'Tech', content: [para('inner')] },
+  ] };
+  await boot(page, { desc });
+  await expect(cards(page).nth(1)).toBeHidden();   // folders open shut
+
+  await inPreview(page, '#overview-text-subnode', 'filed').click();
+  await expect(cards(page).nth(1)).toBeVisible();
+  await expect.poll(() => cardOnScreen(page, 1)).toBe(true);
+
+  // Open the accordion in the Preview, then click the Block inside it.
+  await page.locator('.live-preview-pane #overview-text-subnode summary', { hasText: 'Tech' }).click();
+  await page.locator('.live-preview-pane #overview-text-subnode details p', { hasText: 'inner' }).click();
+  await expect(cards(page).nth(2)).toHaveClass(/block-just-moved/);
+});
+
+test('links, accordion headers and selecting text in the Preview do not jump', async ({ page }) => {
+  const desc = { ...DESC,
+    overview: [para('anchor'), { type: 'accordion', title: 'Tech', content: [para('inner')] }],
+    strategy: [para('Select these words please'), para('[url=#overview]a link up[/url]')] };
+  await boot(page, { desc });
+  const section = () => page.evaluate(() => window.currentOverviewSection || 'overview');
+
+  // The accordion header opens the accordion and nothing else.
+  const summary = page.locator('.live-preview-pane #overview-text-subnode summary', { hasText: 'Tech' });
+  await summary.click();
+  await expect(page.locator('.live-preview-pane #overview-text-subnode details')).toHaveAttribute('open', '');
+  await expect(cards(page).nth(1)).not.toHaveClass(/block-just-moved/);
+
+  // A link in another section is followed, not jumped through.
+  await page.locator('.live-preview-pane #overview-strategy-subnode a', { hasText: 'a link up' }).click();
+  await page.waitForTimeout(300);
+  expect(await section()).toBe('overview');
+
+  // A drag across words selects them; it does not open the section.
+  const words = inPreview(page, '#overview-strategy-subnode', 'Select these words');
+  const b = await words.boundingBox();
+  await page.mouse.move(b.x + 4, b.y + b.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(b.x + Math.min(b.width - 4, 120), b.y + b.height / 2, { steps: 5 });
+  await page.mouse.up();
+  expect(await page.evaluate(() => String(window.getSelection())), 'the words are selected').not.toBe('');
+  await page.waitForTimeout(300);
+  expect(await section()).toBe('overview');
+});
+
+test('Click a Block to edit it can be turned off, and then nothing is outlined or opened', async ({ page }) => {
+  await boot(page, { desc: LONG, height: 700 });
+  const mark = inPreview(page, '#overview-text-subnode', 'p25');
+  await mark.hover();
+  expect(await mark.evaluate(el => getComputedStyle(el).outlineStyle), 'outlined under the pointer').toBe('dashed');
+
+  // Off, the Preview is drawn without the marks, so the Block is found by its
+  // text.
+  await setOption(page, 'previewJump', false);
+  const off = page.locator('.live-preview-pane #overview-text-subnode p', { hasText: 'p25' }).first();
+  await off.hover();
+  expect(await off.evaluate(el => getComputedStyle(el).outlineStyle)).toBe('none');
+  await off.click();
+  await page.waitForTimeout(500);
+  expect(await cardOnScreen(page, 25)).not.toBe(true);
+
+  // With Preview follows the Block on, the marks are drawn all the same, and
+  // the switch alone keeps a click from opening anything.
+  await setOption(page, 'previewFollows', true);
+  await inPreview(page, '#overview-text-subnode', 'p25').click();
+  await page.waitForTimeout(500);
+  expect(await cardOnScreen(page, 25)).not.toBe(true);
 });
 
 // --- STICKY TOP ELEMENTS ---
