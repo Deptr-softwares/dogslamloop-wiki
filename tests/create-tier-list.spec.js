@@ -68,14 +68,25 @@ function resolveColour(page, colour) {
 
 const background = (locator) => locator.evaluate(el => getComputedStyle(el).backgroundColor);
 
-async function drag(page, from, to, at) {
+// `at`: 'end' (the empty end of a row), 'left' or 'right' (a quarter in from
+// that side of a character), or the middle.
+const AT = { end: (b) => b.x + b.width - 20, left: (b) => b.x + b.width / 4, right: (b) => b.x + b.width * 3 / 4 };
+
+async function pickUp(page, from) {
     const a = await from.boundingBox();
-    const b = await to.boundingBox();
     await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
     await page.mouse.down();
     await page.mouse.move(a.x + a.width / 2 + 12, a.y + a.height / 2 + 12, { steps: 3 });
-    const x = at === 'end' ? b.x + b.width - 20 : b.x + b.width / 2;
-    await page.mouse.move(x, b.y + b.height / 2, { steps: 10 });
+}
+
+async function hover(page, to, at) {
+    const b = await to.boundingBox();
+    await page.mouse.move(AT[at] ? AT[at](b) : b.x + b.width / 2, b.y + b.height / 2, { steps: 10 });
+}
+
+async function drag(page, from, to, at) {
+    await pickUp(page, from);
+    await hover(page, to, at);
     await page.mouse.up();
 }
 
@@ -103,7 +114,7 @@ test('starts S to F in Free Submit\'s colours, with everyone visible waiting and
     expect(errors).toEqual([]);
 });
 
-test('a character dragged with the mouse lands in the tier, before the one it is dropped on, and back out', async ({ page }) => {
+test('a character dragged with the mouse lands in the tier, on the side of the character it is dropped on, and back out', async ({ page }) => {
     const errors = await boot(page);
     const bodyS = page.locator('.mk-body[data-zone="0"]');
 
@@ -114,8 +125,12 @@ test('a character dragged with the mouse lands in the tier, before the one it is
     await drag(page, entry(page, Y.id), bodyS, 'end');
     expect(await tier(page, 0)).toEqual([X.id, Y.id]);
 
-    // Dropped on a character: in front of it.
-    await drag(page, entry(page, Z.id), entry(page, X.id));
+    // The left half of a character is before it, the right half after it.
+    await drag(page, entry(page, Z.id), entry(page, X.id), 'left');
+    expect(await tier(page, 0)).toEqual([Z.id, X.id, Y.id]);
+    await drag(page, entry(page, Z.id), entry(page, X.id), 'right');
+    expect(await tier(page, 0)).toEqual([X.id, Z.id, Y.id]);
+    await drag(page, entry(page, Z.id), entry(page, X.id), 'left');
     expect(await tier(page, 0)).toEqual([Z.id, X.id, Y.id]);
 
     // Across tiers, onto the label.
@@ -128,18 +143,78 @@ test('a character dragged with the mouse lands in the tier, before the one it is
     expect(await tier(page, 2)).toEqual([]);
     expect((await pool(page)).indexOf(X.id)).toBe(0);
 
-    // A drag is not a tap: nothing is left picked up, even by a drag let go
-    // over the character it started on, where the click lands on it.
-    const box = await entry(page, Y.id).boundingBox();
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    // Let go over its own left half, the character stays put: it is not a
+    // place to drop itself. And a drag is not a tap, so nothing is left
+    // picked up although the click lands on it.
+    const box = await entry(page, Z.id).boundingBox();
+    await page.mouse.move(box.x + box.width / 4, box.y + box.height / 2);
     await page.mouse.down();
-    await page.mouse.move(box.x + box.width / 2 + 30, box.y + box.height / 2, { steps: 4 });
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
+    await page.mouse.move(box.x + box.width / 4 + 30, box.y + box.height / 2, { steps: 4 });
+    await page.mouse.move(box.x + box.width / 4, box.y + box.height / 2, { steps: 4 });
     await page.mouse.up();
     expect(await tier(page, 0)).toEqual([Z.id, Y.id]);
     await expect(page.locator('.mk-entry[aria-pressed="true"]')).toHaveCount(0);
     await expect(page.locator('.tier-portrait-ghost')).toHaveCount(0);
     expect(errors).toEqual([]);
+});
+
+// Owner, 2026-10-21: "a clear indicator inbetween the characters on the list
+// to show the current character you are dragging will ended up in between".
+test('while dragging, a bar shows the gap the character will land in', async ({ page }) => {
+    const errors = await boot(page);
+    await tapPlace(page, X.id, 0);
+    await tapPlace(page, Y.id, 0);
+    const marker = page.locator('.mk-drop-marker');
+    const centre = async () => {
+        const r = await marker.boundingBox();
+        return r.x + r.width / 2;
+    };
+
+    await expect(marker).toBeHidden();
+    await pickUp(page, entry(page, Z.id));
+    const x = await entry(page, X.id).boundingBox();
+    const y = await entry(page, Y.id).boundingBox();
+
+    await hover(page, entry(page, Y.id), 'left');
+    await expect(marker).toBeVisible();
+    // In the gap between the two, and as tall as a character.
+    expect(Math.abs(await centre() - (x.x + x.width + y.x) / 2)).toBeLessThanOrEqual(0.75);
+    expect(Math.abs((await marker.boundingBox()).height - y.height)).toBeLessThanOrEqual(1);
+
+    await hover(page, entry(page, Y.id), 'right');
+    expect(await centre()).toBeGreaterThan(y.x + y.width);
+    expect(await centre()).toBeLessThan(y.x + y.width + 6);
+
+    // An empty tier: at its start. The pool has no order, so no bar.
+    await hover(page, page.locator('.mk-body[data-zone="3"]'));
+    expect(Math.abs(await centre() - ((await page.locator('.mk-body[data-zone="3"]').boundingBox()).x + 3))).toBeLessThanOrEqual(3);
+    await hover(page, page.locator('[data-mk-pool]'), 'end');
+    await expect(marker).toBeHidden();
+
+    await hover(page, entry(page, Y.id), 'right');
+    await page.mouse.up();
+    await expect(marker).toBeHidden();
+    expect(await tier(page, 0)).toEqual([X.id, Y.id, Z.id]);
+    expect(errors, 'no pointer move failed on the way').toEqual([]);
+});
+
+// Owner, 2026-10-21: "Make the box of the character larger, so that the
+// distance between the each character in the tier list is somewhere 2px-3px".
+test('characters sit 2 to 3px apart, in bigger boxes', async ({ page }) => {
+    await boot(page);
+    await tapPlace(page, X.id, 0);
+    await tapPlace(page, Y.id, 0);
+    const [a, b] = await page.locator('.mk-body[data-zone="0"] .tier-portrait').evaluateAll(nodes =>
+        nodes.map(n => ({ rect: n.getBoundingClientRect(), width: parseFloat(getComputedStyle(n).width) }))
+            .map(({ rect, width }) => ({ left: rect.left, right: rect.right, width })));
+    expect(b.left - a.right).toBeGreaterThanOrEqual(2);
+    expect(b.left - a.right).toBeLessThanOrEqual(3);
+    // The CSS width, as the old 76px was: the box measures 4px more with
+    // its border.
+    expect(a.width, 'bigger than the 76px they started at').toBeGreaterThan(76);
+    // No shadow reaching into the gap.
+    expect(await page.locator('.mk-body[data-zone="0"] .tier-portrait').first()
+        .evaluate(n => getComputedStyle(n).boxShadow)).toBe('none');
 });
 
 test('tap a character, then a tier; tap a character to place before it; tap again to put it down', async ({ page }) => {
@@ -372,29 +447,37 @@ async function readClipboardImage(page) {
         canvas.height = bitmap.height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(bitmap, 0, 0);
-        const at = (x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data.slice(0, 3));
-        // The brightest pixel in a box: text is the only thing brighter than
-        // the ground there.
-        const brightest = (x0, y0, x1, y1) => {
-            const d = ctx.getImageData(x0, y0, x1 - x0, y1 - y0).data;
+        // Every probe is in Standard units, scaled to the quality picked.
+        const s = bitmap.width / 1200;
+        const box = (x0, y0, x1, y1) => ctx.getImageData(Math.round(x0 * s), Math.round(y0 * s),
+            Math.round((x1 - x0) * s), Math.round((y1 - y0) * s)).data;
+        const at = (x, y) => Array.from(box(x, y, x + 1, y + 1).slice(0, 3));
+        const most = (d, f) => {
             let best = 0;
-            for (let i = 0; i < d.length; i += 4) best = Math.max(best, d[i] + d[i + 1] + d[i + 2]);
+            for (let i = 0; i < d.length; i += 4) best = Math.max(best, f(d[i], d[i + 1], d[i + 2]));
             return best;
         };
+        // Text is the only thing brighter than the ground in these boxes,
+        // and the icon the only thing with colour in it.
+        const brightest = (...b) => most(box(...b), (r, g, bl) => r + g + bl);
+        const colourful = (...b) => most(box(...b), (r, g, bl) => Math.max(r, g, bl) - Math.min(r, g, bl));
         // A portrait has many colours; a flat fill with its border has two.
         const distinct = (x0, y0, size) => {
-            const d = ctx.getImageData(x0, y0, size, size).data;
+            const d = box(x0, y0, x0 + size, y0 + size);
             const seen = new Set();
             for (let i = 0; i < d.length; i += 4) seen.add(`${d[i]},${d[i + 1]},${d[i + 2]}`);
             return seen.size;
         };
-        const h = bitmap.height;
+        const h = bitmap.height / s;
         return {
-            type, width: bitmap.width, height: h,
+            type, width: bitmap.width, height: bitmap.height,
             titleLeft: at(20, 38), titleMiddle: brightest(400, 10, 800, 66),
-            labelS: at(20, 76 + 2 + 5), cellColours: distinct(150 + 10 + 8, 76 + 2 + 10 + 8, 80),
-            creditRight: brightest(1050, h - 30, 1195, h), creditLeft: brightest(5, h - 30, 400, h),
-            ground: at(5, h - 5),
+            labelS: at(20, 76 + 2 + 5), cellColours: distinct(150 + 3 + 8, 76 + 2 + 3 + 8, 100),
+            // The last tier: the credit in its bottom right corner, nothing
+            // at its bottom left, and the board's own edge below it.
+            creditText: brightest(1060, h - 28, 1195, h - 3), creditIcon: colourful(1000, h - 28, 1080, h - 3),
+            lastRowLeft: brightest(160, h - 28, 900, h - 3), lastRowGround: at(500, h - 10),
+            bottomEdge: at(600, h - 1),
         };
     });
 }
@@ -402,7 +485,17 @@ async function readClipboardImage(page) {
 const rgb = (s) => s.match(/\d+/g).slice(0, 3).map(Number);
 const near = (a, b) => a.every((v, i) => Math.abs(v - b[i]) <= 2);
 
-test('COPY IMAGE puts the list on the clipboard: the title on top, the tiers in their colours, the credit in the corner', async ({ page, context }) => {
+const token = (page, name) => page.evaluate((n) => {
+    const p = document.createElement('span');
+    p.style.color = getComputedStyle(document.documentElement).getPropertyValue(n);
+    document.body.appendChild(p);
+    const c = getComputedStyle(p).color;
+    p.remove();
+    return c;
+}, name);
+const copied = /^Copied \((\d+)x(\d+), \d+\.\d MB\)\. Paste it anywhere\.$/;
+
+test('COPY IMAGE puts the list on the clipboard: the title on top, the tiers in their colours, the credit in the last tier', async ({ page, context }) => {
     test.skip(!WITH_PORTRAIT, 'no character has a portrait to draw');
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     const errors = await boot(page);
@@ -410,43 +503,140 @@ test('COPY IMAGE puts the list on the clipboard: the title on top, the tiers in 
     await page.locator('[data-mk-title]').fill('My list');
 
     await page.locator('[data-mk-action="copy"]').click();
-    await expect(status(page)).toHaveText('Copied. Paste it anywhere.', { timeout: 15000 });
+    await expect(status(page)).toHaveText(copied, { timeout: 15000 });
     const img = await readClipboardImage(page);
 
     expect(img.type).toBe('image/png');
-    expect(img.width).toBe(1200);
-    const ground = rgb(await page.evaluate(() => {
-        const p = document.createElement('span');
-        p.style.color = getComputedStyle(document.documentElement).getPropertyValue('--bg-main');
-        document.body.appendChild(p);
-        const c = getComputedStyle(p).color;
-        p.remove();
-        return c;
-    }));
-    const sColour = rgb(await resolveColour(page, DEFAULT_COLOURS[0]));
+    expect(img.width, 'High is the default').toBe(2400);
+    // The status reports the image's own size.
+    const [, w, h] = (await status(page).textContent()).match(copied);
+    expect([Number(w), Number(h)]).toEqual([img.width, img.height]);
 
-    expect(near(img.ground, ground), `ground ${img.ground} vs ${ground}`).toBe(true);
+    const ground = rgb(await token(page, '--bg-main'));
+    const rowGround = rgb(await token(page, '--bg-secondary'));
+    const edge = rgb(await token(page, '--border-color'));
+    const sColour = rgb(await resolveColour(page, DEFAULT_COLOURS[0]));
+    const sum = (c) => c[0] + c[1] + c[2];
+
     expect(near(img.titleLeft, ground), 'the title row is above the board').toBe(true);
     expect(img.titleMiddle, 'and has the title written in it').toBeGreaterThan(600);
     expect(near(img.labelS, sColour), `S label ${img.labelS} vs ${sColour}`).toBe(true);
     expect(img.cellColours, 'the placed character\'s portrait is drawn').toBeGreaterThan(50);
-    expect(img.creditRight, 'dogslamloop.com in the bottom right').toBeGreaterThan(sum(ground) + 60);
-    expect(img.creditLeft, 'and nothing in the bottom left').toBeLessThanOrEqual(sum(ground) + 6);
+
+    // Owner, 2026-10-21: the icon with dogslamloop.com, inside the tier list.
+    expect(near(img.lastRowGround, rowGround), 'the last tier\'s own ground').toBe(true);
+    expect(img.creditText, 'dogslamloop.com in its bottom right').toBeGreaterThan(sum(rowGround) + 60);
+    expect(img.creditIcon, 'with the icon beside it').toBeGreaterThan(40);
+    expect(img.lastRowLeft, 'nothing at its bottom left').toBeLessThanOrEqual(sum(rowGround) + 6);
+    expect(near(img.bottomEdge, edge), 'no footer: the image ends at the board').toBe(true);
 
     // No title, no title row: the board starts at the top.
     await page.locator('[data-mk-title]').fill('');
     await page.locator('[data-mk-action="copy"]').click();
-    await expect(status(page)).toHaveText('Copied. Paste it anywhere.', { timeout: 15000 });
+    await expect(status(page)).toHaveText(copied, { timeout: 15000 });
     const plain = await page.evaluate(async () => {
         const items = await navigator.clipboard.read();
         const bitmap = await createImageBitmap(await items[0].getType('image/png'));
         return bitmap.height;
     });
-    expect(img.height - plain).toBe(76);
+    expect(img.height - plain).toBe(76 * 2);
     expect(errors).toEqual([]);
 });
 
-function sum(c) { return c[0] + c[1] + c[2]; }
+// A full line reaches the right edge, since the cells stretch to fill the row,
+// and a busy last tier makes room for the credit rather than running under it.
+test('a full line fills the image\'s width, and the last tier keeps room for the credit', async ({ page, context }) => {
+    test.skip(VISIBLE.length < 15, 'needs 15 characters on the roster');
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await boot(page);
+    await page.locator('[data-mk-quality]').selectOption('1');
+    for (const c of VISIBLE.slice(0, 8)) await tapPlace(page, c.id, 0);
+    for (const c of VISIBLE.slice(8, 15)) await tapPlace(page, c.id, 5);
+    await page.locator('[data-mk-action="copy"]').click();
+    await expect(status(page)).toHaveText(copied, { timeout: 15000 });
+
+    const rowGround = rgb(await token(page, '--bg-secondary'));
+    const probe = await page.evaluate(async () => {
+        const items = await navigator.clipboard.read();
+        const bitmap = await createImageBitmap(await items[0].getType('image/png'));
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmap, 0, 0);
+        const at = (x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data.slice(0, 3));
+        const h = bitmap.height;
+        // S's eighth character, near the right edge; and the last tier just
+        // left of the credit, at its bottom.
+        return { rightEdge: at(1185, 2 + 3 + 60), besideCredit: at(990, h - 10) };
+    });
+    expect(near(probe.rightEdge, rowGround), 'S\'s last cell reaches the edge').toBe(false);
+    expect(near(probe.besideCredit, rowGround), 'no portrait under the credit').toBe(true);
+});
+
+// The same 3px in the image. Measured with the portraits blocked, so every
+// cell is a flat fill and the only ground-coloured pixels along a line through
+// the cells are the gaps.
+test('in the image too, characters sit 2 to 3px apart', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.route('**/medias/portraits/**', route => route.fulfill({ status: 404, body: '' }));
+    await boot(page);
+    await page.locator('[data-mk-quality]').selectOption('1');
+    for (const c of VISIBLE.slice(0, 3)) await tapPlace(page, c.id, 0);
+    await page.locator('[data-mk-action="copy"]').click();
+    await expect(status(page)).toHaveText(copied, { timeout: 15000 });
+
+    const rowGround = rgb(await token(page, '--bg-secondary'));
+    const gaps = await page.evaluate(async (ground) => {
+        const items = await navigator.clipboard.read();
+        const bitmap = await createImageBitmap(await items[0].getType('image/png'));
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmap, 0, 0);
+        // A line near the top of the first row's cells, above any name.
+        const d = ctx.getImageData(0, 2 + 3 + 6, bitmap.width, 1).data;
+        const isGround = (x) => [0, 1, 2].every(k => Math.abs(d[x * 4 + k] - ground[k]) <= 2);
+        const runs = [];
+        let run = 0;
+        for (let x = 150; x < bitmap.width; x++) {
+            if (isGround(x)) run++;
+            else if (run) { runs.push(run); run = 0; }
+        }
+        return runs;
+    }, rowGround);
+    // The padding before the first cell, then the two gaps between three.
+    expect(gaps.slice(1, 3).every(g => g >= 2 && g <= 3), `gaps ${gaps.slice(0, 4)}`).toBe(true);
+});
+
+// Owner, 2026-10-21: "Give people the option to choose export/copy quality".
+test('the quality picked sets how sharp the image is, and is kept', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await boot(page);
+    await tapPlace(page, X.id, 0);
+    const quality = page.locator('[data-mk-quality]');
+    await expect(quality).toHaveValue('2');
+    const width = () => page.evaluate(async () => {
+        const items = await navigator.clipboard.read();
+        return (await createImageBitmap(await items[0].getType('image/png'))).width;
+    });
+
+    for (const [value, expected] of [['1', 1200], ['3', 3600]]) {
+        await quality.selectOption(value);
+        await page.locator('[data-mk-action="copy"]').click();
+        await expect(status(page)).toHaveText(copied, { timeout: 20000 });
+        expect(await width()).toBe(expected);
+        await status(page).evaluate(n => { n.textContent = ''; });
+    }
+
+    // Kept on the device, and through RESET: it is a preference, not the list.
+    await page.locator('[data-mk-action="reset"]').click();
+    await page.locator('#site-confirm-ok').click();
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.locator('.mk-entry').first()).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('[data-mk-quality]')).toHaveValue('3');
+});
 
 test('a browser that cannot copy images gets the PNG as a download', async ({ page }) => {
     await page.addInitScript(() => { delete window.ClipboardItem; });
@@ -458,7 +648,7 @@ test('a browser that cannot copy images gets the PNG as a download', async ({ pa
     await page.locator('[data-mk-action="copy"]').click();
     const file = await download;
     expect(file.suggestedFilename()).toBe('my-list-v2.png');
-    await expect(status(page)).toHaveText('This browser cannot copy images, so the image was downloaded instead.');
+    await expect(status(page)).toHaveText(/^This browser cannot copy images, so the image was downloaded instead \(2400x\d+, \d+\.\d MB\)\.$/);
     await expect(page.locator('[data-mk-action="copy"]')).toBeEnabled();
 });
 
@@ -471,5 +661,5 @@ test('a refused copy falls back to the download too', async ({ page }) => {
     const download = page.waitForEvent('download');
     await page.locator('[data-mk-action="copy"]').click();
     expect((await download).suggestedFilename()).toBe('tier-list.png');
-    await expect(status(page)).toHaveText('The browser would not copy the image, so it was downloaded instead.');
+    await expect(status(page)).toHaveText(/^The browser would not copy the image, so it was downloaded instead \(\d+x\d+, \d+\.\d MB\)\.$/);
 });

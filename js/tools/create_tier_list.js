@@ -51,18 +51,35 @@
         'hsl(340, 80%, 70%)', 'hsl(0, 0%, 75%)', 'hsl(0, 0%, 45%)',
     ];
 
-    // The image. Width is fixed so a list looks the same wherever it was made;
-    // height follows the rows.
-    const IMG = { width: 1200, label: 150, cell: 96, gap: 8, pad: 10, line: 2, title: 76, footer: 30 };
+    // The image, laid out at its Standard size. Width is fixed so a list
+    // looks the same wherever it was made; height follows the rows. The cells
+    // stretch to fill the row, 3px apart (owner, 2026-10-21: "the distance
+    // between the each character ... somewhere 2px-3px").
+    const IMG = { width: 1200, label: 150, cell: 120, gap: 3, pad: 3, line: 2, title: 76 };
+    // High and Max draw the same layout two and three times as sharp (owner,
+    // 2026-10-21: "the export quality is kinda low"). The portraits are 320 to
+    // 400px across, so Max is about as sharp as they get.
+    const QUALITIES = [
+        { scale: 1, label: 'Standard (1200px wide)' },
+        { scale: 2, label: 'High (2400px wide)' },
+        { scale: 3, label: 'Max (3600px wide)' },
+    ];
+    const DEFAULT_SCALE = 2;
+    // Inside the last tier's bottom right corner, with the site's icon (owner,
+    // 2026-10-21). The last tier keeps room for it, so it never covers a
+    // portrait.
+    const CREDIT = { text: 'dogslamloop.com', icon: 'medias/images/DogslamloopIcon.webp', iconPx: 18, width: 175 };
     const LABEL_FONT = '"CC-Wild-Words", sans-serif';
 
     const state = {
         roster: new Map(),   // page_id -> { name, url, image }, hidden left out
         title: '',
         tiers: [],           // [{ name, color, characters: [page_id] }]
+        scale: DEFAULT_SCALE, // the image quality; kept through RESET
         picked: null,        // tap-to-place: the character picked up
         press: null,         // a mouse press that may become a drag
         drag: null,
+        marker: null,        // the drop indicator, over the board
         suppressClick: false,
         root: null,
     };
@@ -122,12 +139,13 @@
         const list = sanitise(saved) || defaults();
         state.title = list.title;
         state.tiers = list.tiers;
+        state.scale = QUALITIES.some(q => q.scale === (saved && saved.scale)) ? saved.scale : DEFAULT_SCALE;
     }
 
     function save() {
         let saved = true;
         try {
-            localStorage.setItem(STORE_KEY, JSON.stringify({ v: 1, title: state.title, tiers: state.tiers }));
+            localStorage.setItem(STORE_KEY, JSON.stringify({ v: 1, title: state.title, tiers: state.tiers, scale: state.scale }));
         } catch (e) {
             saved = false;
         }
@@ -422,18 +440,55 @@
 
     // --- DRAG (mouse and pen; a finger taps, so the page still scrolls) ---
 
+    // Where a drop at (x, y) lands. Over a character, its left half means
+    // before it and its right half after it; past the end of a line, the
+    // start of the next. The pool keeps roster order, so it has no position.
     function targetAt(x, y) {
         const under = document.elementFromPoint(x, y);
         if (!under || !state.root.contains(under)) return null;
         const zone = under.closest('.mk-zone');
         if (!zone) return null;
-        const over = under.closest('.mk-entry');
-        return { zone: zone.dataset.zone, zoneEl: zone, before: over ? over.dataset.character : null };
+        if (zone.dataset.zone === 'pool') return { zone: 'pool', zoneEl: zone, body: null, before: null };
+
+        // A label places at the end of its row.
+        const body = zone.classList.contains('mk-body') ? zone : zone.parentNode.querySelector('.mk-body');
+        const others = Array.from(body.querySelectorAll('.mk-entry')).filter(n => !state.drag || n !== state.drag.node);
+        const beforeEl = zone !== body ? null : others.find(n => {
+            const r = n.getBoundingClientRect();
+            return y < r.top || (y <= r.bottom && x < r.left + r.width / 2);
+        }) || null;
+        return { zone: zone.dataset.zone, zoneEl: zone, body, others, beforeEl, before: beforeEl ? beforeEl.dataset.character : null };
     }
 
     function highlight(zoneEl) {
         state.root.querySelectorAll('.mk-zone-hot').forEach(z => { if (z !== zoneEl) z.classList.remove('mk-zone-hot'); });
         if (zoneEl) zoneEl.classList.add('mk-zone-hot');
+    }
+
+    // The bar in the gap the character will drop into (owner, 2026-10-21: "a
+    // clear indicator inbetween the characters"). Fixed over the board rather
+    // than inserted into it, so nothing moves under the pointer.
+    function showMarker(target) {
+        const marker = state.marker;
+        if (!target || !target.body) { marker.hidden = true; return; }
+        const gap = parseFloat(getComputedStyle(target.body).columnGap) || 0;
+        let top, height, x;
+        if (target.beforeEl || target.others.length) {
+            const r = (target.beforeEl || target.others[target.others.length - 1]).getBoundingClientRect();
+            x = target.beforeEl ? r.left - gap / 2 : r.right + gap / 2;
+            top = r.top;
+            height = r.height;
+        } else {
+            const b = target.body.getBoundingClientRect();
+            const pad = parseFloat(getComputedStyle(target.body).paddingLeft) || 0;
+            x = b.left + pad;
+            top = b.top + pad;
+            height = b.height - pad * 2;
+        }
+        marker.hidden = false;
+        marker.style.left = `${x - marker.offsetWidth / 2}px`;
+        marker.style.top = `${top}px`;
+        marker.style.height = `${height}px`;
     }
 
     function onPointerDown(e) {
@@ -458,26 +513,28 @@
         state.drag.ghost.style.top = `${e.clientY}px`;
         const target = targetAt(e.clientX, e.clientY);
         highlight(target ? target.zoneEl : null);
+        showMarker(target);
     }
 
     function endDrag(e, dropped) {
         state.press = null;
         if (!state.drag) return;
+        // Read while the drag is still on, so the character being moved is
+        // not a place to drop it.
+        const target = dropped ? targetAt(e.clientX, e.clientY) : null;
         const { id, node, ghost } = state.drag;
         state.drag = null;
         ghost.remove();
         node.classList.remove('tier-portrait-dragging');
         highlight(null);
+        showMarker(null);
 
         // The click that follows a drag is not a tap. Cleared on the next
         // turn, because a drop between two elements fires no click at all.
         state.suppressClick = true;
         setTimeout(() => { state.suppressClick = false; }, 0);
 
-        if (!dropped) return;
-        const target = targetAt(e.clientX, e.clientY);
-        if (!target || target.before === id) return;
-        place(id, target.zone, target.zone === 'pool' ? null : target.before, false);
+        if (target) place(id, target.zone, target.before, false);
     }
 
     // --- TAP (and the keyboard, since entries and labels are buttons) ---
@@ -596,7 +653,7 @@
         ctx.strokeRect(x + 1, y + 1, size - 2, size - 2);
     }
 
-    async function drawTierList() {
+    async function drawTierList(scale) {
         const css = getComputedStyle(document.documentElement);
         const token = (name, fallback) => (css.getPropertyValue(name) || '').trim() || fallback;
         const ground = token('--bg-main', '#111111');
@@ -617,21 +674,32 @@
             const meta = state.roster.get(id);
             images.set(id, meta.image ? await loadImage(rootPath + meta.image) : null);
         }));
+        const icon = await loadImage(rootPath + CREDIT.icon);
 
+        // As many cells as fit at IMG.cell, then stretched to fill the row.
         const bodyWidth = IMG.width - IMG.label - IMG.pad * 2;
         const perRow = Math.max(1, Math.floor((bodyWidth + IMG.gap) / (IMG.cell + IMG.gap)));
-        const heights = state.tiers.map(t => {
-            const lines = Math.max(1, Math.ceil(t.characters.length / perRow));
-            return lines * IMG.cell + (lines - 1) * IMG.gap + IMG.pad * 2;
+        const cell = Math.floor((bodyWidth - (perRow - 1) * IMG.gap) / perRow);
+        // The credit takes the last tier's final cells, as if it were a
+        // character there.
+        const creditCells = Math.ceil((CREDIT.width + IMG.gap) / (cell + IMG.gap));
+        const heights = state.tiers.map((t, i) => {
+            const taken = t.characters.length + (i === state.tiers.length - 1 ? creditCells : 0);
+            const lines = Math.max(1, Math.ceil(taken / perRow));
+            return lines * cell + (lines - 1) * IMG.gap + IMG.pad * 2;
         });
         const title = state.title.trim();
         const top = title ? IMG.title : 0;
-        const height = top + heights.reduce((a, b) => a + b, 0) + IMG.line * (heights.length + 1) + IMG.footer;
+        const height = top + heights.reduce((a, b) => a + b, 0) + IMG.line * (heights.length + 1);
 
+        // Drawn in Standard units and scaled, so every quality has the same
+        // layout and only the sharpness changes.
         const canvas = document.createElement('canvas');
-        canvas.width = IMG.width;
-        canvas.height = height;
+        canvas.width = IMG.width * scale;
+        canvas.height = height * scale;
         const ctx = canvas.getContext('2d');
+        ctx.scale(scale, scale);
+        ctx.imageSmoothingQuality = 'high';
 
         ctx.fillStyle = ground;
         ctx.fillRect(0, 0, IMG.width, height);
@@ -665,9 +733,9 @@
             }
 
             tier.characters.forEach((id, n) => {
-                const x = IMG.label + IMG.pad + (n % perRow) * (IMG.cell + IMG.gap);
-                const cy = y + IMG.pad + Math.floor(n / perRow) * (IMG.cell + IMG.gap);
-                drawEntry(ctx, id, images.get(id), x, cy, IMG.cell, line);
+                const x = IMG.label + IMG.pad + (n % perRow) * (cell + IMG.gap);
+                const cy = y + IMG.pad + Math.floor(n / perRow) * (cell + IMG.gap);
+                drawEntry(ctx, id, images.get(id), x, cy, cell, line);
             });
 
             y += h;
@@ -676,14 +744,20 @@
             y += IMG.line;
         });
 
-        // Small and faint, in the corner, under the board rather than over a
-        // portrait (owner, 2026-10-20).
-        ctx.globalAlpha = 0.45;
+        // Small and faint, in the last tier's bottom right corner, in the
+        // cells kept for it (owner, 2026-10-20 and 2026-10-21).
+        const creditY = height - IMG.line - IMG.pad - 12;
+        const creditRight = IMG.width - IMG.pad - 6;
+        ctx.globalAlpha = 0.6;
         ctx.fillStyle = ink;
         ctx.font = '14px monospace';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
-        ctx.fillText('dogslamloop.com', IMG.width - IMG.pad, height - IMG.footer / 2);
+        ctx.fillText(CREDIT.text, creditRight, creditY);
+        if (icon) {
+            const iconRight = creditRight - ctx.measureText(CREDIT.text).width - 6;
+            ctx.drawImage(icon, iconRight - CREDIT.iconPx, creditY - CREDIT.iconPx / 2, CREDIT.iconPx, CREDIT.iconPx);
+        }
         ctx.globalAlpha = 1;
 
         return canvas;
@@ -723,13 +797,19 @@
         // Started before the clipboard call and handed to it as a promise:
         // Safari only allows the write while the click is still the reason
         // for it, and drawing takes longer than that.
-        const png = drawTierList().then(toPng);
+        const drawn = drawTierList(state.scale);
+        const png = drawn.then(toPng);
+        // The size, because a big image is the one a chat app refuses.
+        const size = async () => {
+            const [canvas, blob] = await Promise.all([drawn, png]);
+            return `${canvas.width}x${canvas.height}, ${(blob.size / 1048576).toFixed(1)} MB`;
+        };
         try {
             let refused = false;
             if (canCopyImage()) {
                 try {
                     await navigator.clipboard.write([new window.ClipboardItem({ 'image/png': png })]);
-                    setStatus('Copied. Paste it anywhere.');
+                    setStatus(`Copied (${await size()}). Paste it anywhere.`);
                     return;
                 } catch (e) {
                     console.warn('[CreateTierList] The browser would not copy the image:', e);
@@ -738,8 +818,8 @@
             }
             download(await png);
             setStatus(refused
-                ? 'The browser would not copy the image, so it was downloaded instead.'
-                : 'This browser cannot copy images, so the image was downloaded instead.');
+                ? `The browser would not copy the image, so it was downloaded instead (${await size()}).`
+                : `This browser cannot copy images, so the image was downloaded instead (${await size()}).`);
         } catch (e) {
             console.error('[CreateTierList] The image could not be made:', e);
             setStatus('The image could not be made. Try again, and if it keeps happening, report it on Discord.', true);
@@ -773,6 +853,12 @@
                 <div class="mk-pool mk-zone" data-zone="pool" data-mk-pool></div>
             </section>
             <div class="mk-actions">
+                <label class="mk-quality">
+                    <span class="mk-quality-label">Quality</span>
+                    <select class="filter-select" data-mk-quality>
+                        ${QUALITIES.map(q => `<option value="${q.scale}">${q.label}</option>`).join('')}
+                    </select>
+                </label>
                 <button type="button" class="btn-sys btn-sys-green" data-mk-action="copy">COPY IMAGE</button>
                 <button type="button" class="btn-sys btn-sys-red" data-mk-action="reset">RESET</button>
                 <span class="mk-status" data-mk-status role="status"></span>
@@ -791,6 +877,16 @@
             state.title = e.target.value;
             save();
         });
+        const quality = root.querySelector('[data-mk-quality]');
+        quality.value = String(state.scale);
+        quality.addEventListener('change', () => {
+            state.scale = Number(quality.value);
+            save();
+        });
+
+        state.marker = el('div', 'mk-drop-marker');
+        state.marker.hidden = true;
+        document.body.appendChild(state.marker);
         root.addEventListener('click', onClick);
         root.addEventListener('pointerdown', onPointerDown);
         root.addEventListener('dragstart', (e) => e.preventDefault());

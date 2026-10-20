@@ -80,16 +80,18 @@
 .mk-label.mk-label-mid { font-size: 1rem; }
 .mk-label.mk-label-long { font-size: 0.72rem; }
 
+/* 3px apart, the same as the image (owner, 2026-10-21: "somewhere 2px-3px"):
+   the board is the image's preview. */
 .mk-body,
 .mk-pool {
     flex: 1;
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
-    padding: 0.5rem;
+    gap: 3px;
+    padding: 3px;
     align-items: flex-start;
     align-content: flex-start;
-    min-height: 92px;
+    min-height: 98px;
 }
 
 /* Not coloured like a tier: it is not one. */
@@ -108,25 +110,36 @@
     align-self: center;
 }
 
+/* No border or shadow of its own: the gap between two characters is the 3px
+   above and nothing else. Hover and pick-up recolour the portrait's border. */
 .mk-entry {
     padding: 0;
     background: none;
-    border: 2px solid transparent;
+    border: none;
     cursor: grab;
     font: inherit;
     color: inherit;
 }
 
-.mk-entry .tier-portrait { width: 76px; height: 76px; }
-.mk-entry .tier-portrait-name { font-size: 0.6rem; }
+.mk-entry .tier-portrait { width: 92px; height: 92px; box-shadow: none; }
+.mk-entry .tier-portrait-name { font-size: 0.66rem; }
 
-.mk-entry:hover,
-.mk-entry:focus-visible { border-color: var(--accent-blue); }
+.mk-entry:hover .tier-portrait,
+.mk-entry:focus-visible .tier-portrait { border-color: var(--accent-blue); }
+.mk-entry:focus-visible { outline: none; }
 
 /* Picked up, waiting for a tier. */
-.mk-entry[aria-pressed="true"] {
-    border-color: var(--accent-yellow);
-    background: rgba(255, 255, 255, 0.06);
+.mk-entry[aria-pressed="true"] .tier-portrait { border-color: var(--accent-yellow); }
+
+/* Where the dragged character will land (js/tools/create_tier_list.js
+   showMarker). Fixed, over the board, so nothing moves under the pointer. */
+.mk-drop-marker {
+    position: fixed;
+    z-index: 9998;
+    width: 4px;
+    background: var(--accent-yellow);
+    box-shadow: 0 0 0 1px #000;
+    pointer-events: none;
 }
 
 .mk-actions {
@@ -134,6 +147,14 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem;
+}
+
+.mk-quality { display: flex; align-items: center; gap: 0.4rem; }
+.mk-quality-label {
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
 }
 
 /* --- THE TIERS --- */
@@ -207,8 +228,8 @@
     .mk-label { width: 58px; font-size: 1.1rem; }
     .mk-label.mk-label-mid { font-size: 0.8rem; }
     .mk-label.mk-label-long { font-size: 0.6rem; }
-    .mk-body, .mk-pool { min-height: 72px; }
-    .mk-entry .tier-portrait { width: 58px; height: 58px; }
+    .mk-body, .mk-pool { min-height: 70px; }
+    .mk-entry .tier-portrait { width: 64px; height: 64px; }
     .mk-entry .tier-portrait-name { font-size: 0.5rem; }
     .mk-control-name.editor-input { flex: 1 1 100%; }
 }
