@@ -2712,6 +2712,21 @@ del.diff-del {
 .nstyle-names-note { flex-basis: 100%; color: var(--accent-yellow); }
 .nstyle-names-note:empty { display: none; }
 
+/* --- WRITING CHECKS (v1.1, js/editor-writing-checks.js) ---
+   A line under the field for each character name or broken tag, and the list
+   at Submit. */
+.writing-checks {
+    display: flex; flex-direction: column; gap: 0.25rem; margin: 0.3rem 0;
+    font-family: var(--text-mono); font-size: 0.68rem; line-height: 1.4; color: var(--accent-yellow);
+}
+.writing-check { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.writing-check-fix { padding: 0.1rem 0.5rem; font-size: 0.6rem; }
+.writing-checks-list {
+    max-height: 40vh; overflow-y: auto; margin: 0 0 1rem; padding-left: 1.1rem; text-align: left;
+    font-family: var(--text-mono); font-size: 0.72rem; line-height: 1.5;
+}
+.writing-checks-where { color: var(--text-muted); }
+
 /* --- THE CONFIG PANEL (v1.1) ---
    Settings saved per device by js/editor-config.js, each one a class on
    <body>. Every rule below the panel's own is keyed on its body.cfg-* class,
