@@ -284,7 +284,7 @@
                 <input type="text" id="editor-mode-name" value="${esc(label)}" maxlength="40">
             </label>
             <span class="editor-mode-id-hint">?mode=${esc(active)}</span>
-            <button type="button" id="editor-mode-delete" class="btn-action-delete">DELETE STATE</button>
+            <button type="button" id="editor-mode-delete" class="btn-sys btn-sys-red">DELETE STATE</button>
         `;
 
         document.getElementById('editor-mode-name').addEventListener('input', (e) => {

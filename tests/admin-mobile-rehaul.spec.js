@@ -190,6 +190,25 @@ test('the mobile header menu opens on click and closes when clicking outside', a
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
 });
 
+// In the open menu the links are full-width rows, not buttons. v1.1 gave
+// every .btn-sys a cut top-right corner (a clip-path plus a drawn line along
+// the cut), which on a row is a notch in every line of the menu, and the
+// notch does not take clicks.
+test('the mobile menu rows have no cut corner: their top-right corner takes a click', async ({ page }) => {
+  await gotoAdminMobile(page);
+  await page.locator('#admin-mobile-menu-toggle').click();
+  await expect(page.locator('#admin-secondary-actions')).toBeVisible();
+
+  const rows = await page.evaluate(() => [...document.querySelectorAll('#admin-secondary-actions .admin-hub-btn')]
+    .filter(a => a.getClientRects().length)
+    .map(a => {
+      const r = a.getBoundingClientRect();
+      return { text: a.textContent.trim(), corner: a.contains(document.elementFromPoint(r.right - 1, r.top + 1)) };
+    }));
+  expect(rows.length).toBeGreaterThan(0);
+  for (const row of rows) expect(row, row.text).toEqual({ text: row.text, corner: true });
+});
+
 test('desktop header is unchanged: no MENU button, nav links visible directly', async ({ page }) => {
   await mockStaffSession(page);
   await page.setViewportSize({ width: 1440, height: 900 });

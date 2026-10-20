@@ -1153,8 +1153,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                             </div>
                         </div>
                         <div class="editor-modal-actions qa-modal-actions-divided">
-                            <button id="btn-qa-cancel" class="system-page-btn">CANCEL</button>
-                            <button id="btn-qa-confirm" class="submit-btn">${isIntercept ? 'UPDATE SUBMISSION' : 'CONFIRM & UPLOAD'}</button>
+                            <button id="btn-qa-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
+                            <button id="btn-qa-confirm" class="btn-sys btn-sys-blue">${isIntercept ? 'UPDATE SUBMISSION' : 'CONFIRM & UPLOAD'}</button>
                         </div>
                     </div>
                 `;
@@ -1605,9 +1605,9 @@ window.customConfirm = function(message, confirmText = "DELETE", isDanger = true
         btnConfirm.textContent = confirmText;
 
         if (isDanger) {
-            btnConfirm.className = "submit-btn btn-danger-fill";
+            btnConfirm.className = "btn-sys btn-sys-red btn-danger-fill";
         } else {
-            btnConfirm.className = "submit-btn submit-btn-outline";
+            btnConfirm.className = "btn-sys btn-sys-blue";
         }
 
         modal.classList.remove('hidden');

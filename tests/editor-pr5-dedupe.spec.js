@@ -128,10 +128,15 @@ test('draft manager: renders drafts with no inline styles; real bug check that .
   const resumeBtn = page.locator('.draft-resume-btn').first();
   await expect(resumeBtn).toBeVisible();
   expect(await resumeBtn.evaluate(el => el.hasAttribute('style'))).toBe(false);
-  const restingShadow = await resumeBtn.evaluate(el => getComputedStyle(el).boxShadow);
+  // No glow on hover, the button's original promise. Since v1.1 every system
+  // button has a hard shadow that moves with the hover lift, so the claim is
+  // that the shadow stays hard (no blur), not that it never changes.
   await resumeBtn.hover();
+  await page.waitForTimeout(250);
   const hoverShadow = await resumeBtn.evaluate(el => getComputedStyle(el).boxShadow);
-  expect(hoverShadow).toBe(restingShadow); // no glow on hover, matching the original inline box-shadow: none
+  const blur = /(-?[\d.]+)px (-?[\d.]+)px ([\d.]+)px/.exec(hoverShadow);
+  expect(blur, `a shadow is drawn: ${hoverShadow}`).not.toBeNull();
+  expect(Number(blur[3]), 'no blur, so no glow').toBe(0);
 
   await page.evaluate(() => localStorage.removeItem('wiki_draft_testchar_overview'));
 });

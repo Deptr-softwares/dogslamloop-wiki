@@ -1484,7 +1484,44 @@ document.addEventListener('click', (e) => {
     const link = e.target.closest && e.target.closest('a.wiki-link-jump');
     if (!link) return;
     e.preventDefault();
+    if (typeof window.hideTooltip === 'function') window.hideTooltip();
     window.jumpToAnchor(link.getAttribute('href'));
+});
+
+// Where a jump link goes, shown on hover (owner, 2026-10-19: "Hover over will
+// tell which section it is heading to"). Read when hovered rather than when
+// the link is rendered: the ids are minted after the render, and a tab that
+// re-renders mints them again. The tab is named only when the section is on
+// another one.
+function jumpLinkDestination(link) {
+    const target = findAnchorTarget(anchorIdOf(link.getAttribute('href')));
+    if (!target) return '';
+    const section = anchorLabel(target);
+    const there = target.closest('[id^="tab-"]');
+    const tabBtn = there && there !== link.closest('[id^="tab-"]')
+        ? document.getElementById(`nav-${there.id.slice('tab-'.length)}`)
+        : null;
+    const tab = tabBtn ? tabBtn.textContent.trim() : '';
+    return tab ? `${tab} › ${section}` : section;
+}
+
+const jumpLinkAt = (node) => (node && node.closest ? node.closest('a.wiki-link-jump') : null);
+
+document.addEventListener('mouseover', (e) => {
+    const link = jumpLinkAt(e.target);
+    if (!link || link === jumpLinkAt(e.relatedTarget) || typeof window.showTooltipAt !== 'function') return;
+    const where = jumpLinkDestination(link);
+    if (where) window.showTooltipAt(window.escapeHtml(where), e.clientX, e.clientY);
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (jumpLinkAt(e.target) && typeof window.moveTooltipTo === 'function') window.moveTooltipTo(e.clientX, e.clientY);
+});
+
+document.addEventListener('mouseout', (e) => {
+    const link = jumpLinkAt(e.target);
+    if (!link || link === jumpLinkAt(e.relatedTarget) || typeof window.hideTooltip !== 'function') return;
+    window.hideTooltip();
 });
 
 // Restored: Wiki Alert Generator

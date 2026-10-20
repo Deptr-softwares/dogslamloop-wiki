@@ -102,7 +102,7 @@ function initDawEditor(containerId, moveData) {
                     <div><input type="text" class="editor-input stat-inp" data-idx="${idx}" data-field="value" value="${esc(stat.value)}" placeholder="Stat Value"></div>
                     <div class="daw-stat-actions">
                         <label class="editor-checkbox-label"><input type="checkbox" class="stat-highlight" data-idx="${idx}" ${stat.isHighlighted ? 'checked' : ''}> Highlight</label>
-                        <button class="add-block-btn btn-action-delete btn-del-stat daw-stat-del-btn" data-idx="${idx}" title="Remove Stat">✖</button>
+                        <button class="btn-sys btn-sys-red btn-del-stat daw-stat-del-btn" data-idx="${idx}" title="Remove Stat">✖</button>
                     </div>
                 </div>
             `;
@@ -112,7 +112,7 @@ function initDawEditor(containerId, moveData) {
                 <div class="block-card">
                     <div class="block-header">
                         <span class="block-type-badge">MOVE STATS</span>
-                        <button class="add-block-btn daw-add-stat-btn" id="btn-add-movestat">+ ADD STAT</button>
+                        <button class="btn-sys btn-sys-regular daw-add-stat-btn" id="btn-add-movestat">+ ADD STAT</button>
                     </div>
                     <div id="move-stats-container">${statsHtml}</div>
                 </div>
@@ -370,7 +370,7 @@ function initDawEditor(containerId, moveData) {
 
                     <p class="daw-branch-hint">Select a sub-variant from the tabs above to view or edit its timeline.</p>
                     <div class="daw-branch-actions-row">
-                        <button onclick="window.deleteDawVariant()" class="add-block-btn daw-delete-branch-btn">Delete Entire Branch</button>
+                        <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red daw-delete-branch-btn">Delete Entire Branch</button>
                     </div>
                 </div>
             `;

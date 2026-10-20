@@ -509,6 +509,39 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .profile-stat-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); }
 .profile-stat-label { color: #8b949e; font-size: 0.9rem; }
 .profile-stat-val { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
+
+/* Profile Description (v1.1, js/description.js profileDescriptionHTML): the
+   quote, a Trivia row and Character Navigation, under the stats in the
+   profile card. The rows reuse .profile-stat-row, so they read as more of the
+   same card rather than a new part. */
+.profile-desc[hidden], .profile-pager[hidden] { display: none; }
+.profile-quote { margin: 1rem 0 0.25rem; }
+.profile-quote blockquote { margin: 0; font-size: 0.9rem; font-style: italic; line-height: 1.55; color: var(--text-white); }
+.profile-quote blockquote p { margin: 0; }
+.profile-quote blockquote p::before { content: '\201C'; }
+.profile-quote blockquote p::after { content: '\201D'; }
+.profile-quote figcaption { margin-top: 0.3rem; text-align: right; font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); }
+.profile-quote figcaption p { margin: 0; }
+.profile-quote figcaption p::before { content: '- '; }
+/* Trivia, toned down to one row; the facts open over the card on hover, or on
+   a tap, which focuses the row. */
+.profile-trivia-row { position: relative; cursor: help; }
+.profile-trivia-row:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.profile-trivia-count { color: var(--text-muted); font-size: 0.8rem; text-decoration: underline dotted; text-underline-offset: 3px; }
+.profile-trivia-pop {
+    display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 20;
+    background: var(--bg-main); border: 2px solid var(--border-color); box-shadow: 4px 4px 0 var(--manga-shadow);
+    padding: 0.75rem 1rem; cursor: auto;
+}
+.profile-trivia-row:hover .profile-trivia-pop, .profile-trivia-row:focus-within .profile-trivia-pop { display: block; }
+.profile-trivia { margin: 0; font-size: 0.85rem; line-height: 1.5; }
+.profile-pager-title {
+    margin-top: 1rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--border-color);
+    font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted);
+}
+.profile-pager-link { text-decoration: none; overflow-wrap: anywhere; text-align: right; }
+.profile-pager-link:hover, .profile-pager-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
 /* Square, always. A roster of portraits at whatever shape each source happened
    to be is the single most visible inconsistency on the character pages, and
    unlike skill media a portrait has one obvious subject - so cropping to a
@@ -859,14 +892,11 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .wiki-block-heading[style*="center"] { clear: both; display: block; }
 .wiki-block-list { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
 .strategy-paragraph { margin-bottom: 0.75rem; line-height: 1.6; }
-.matchup-heading { border-left: 3px solid hsl(212, 12%, 21%); padding-left: 0.75rem; }
-.counterplay-heading { border-left: 3px solid hsl(0, 60%, 50%); padding-left: 0.75rem; }
-/* Same treatment as counterplay - both are keyed sections whose headings need
-   to read as sub-headings inside a card. Green rather than red: counterplay is
-   about beating a character, a starter guide is about learning one. The class
-   name comes from the tab id via generateHTMLForBlocks' contextClass, so a
-   keyed section added without a rule here silently loses its heading rule. */
-.starterGuide-heading { border-left: 3px solid hsl(140, 45%, 45%); padding-left: 0.75rem; }
+/* A Heading Block's side bar (v1.1), the block's own choice in any tab. The
+   Matchup, Counterplay and Starter Guide tabs used to draw one by themselves;
+   every heading now renders the same way everywhere (owner, 2026-10-19). The
+   colour arrives through --heading-bar, set by js/description.js. */
+.wiki-block-heading-bar { border-left: 3px solid var(--heading-bar); padding-left: 0.75rem; }
 .card-header-flex { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem; }
 .card-header-title { 
     font-family: 'Finger-Paint', sans-serif;
