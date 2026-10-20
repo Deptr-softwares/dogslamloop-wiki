@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadRecentChanges() {
     const listEl = document.getElementById('recent-changes-list');
-    listEl.innerHTML = `<p class="loading-msg">Loading...</p>`;
+    listEl.innerHTML = `<p class="loading-msg loading-msg-busy">Loading...</p>`;
 
     if (!window.supabaseClient) {
         listEl.innerHTML = `<div class="wiki-section"><p class="loading-msg">Database disconnected.</p></div>`;
@@ -88,7 +88,7 @@ function renderPagination(fetchedCount) {
 
 async function changePage(direction) {
     currentOffset = Math.max(0, currentOffset + direction * PAGE_SIZE);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: window.scrollMotion() });
     await loadRecentChanges();
 }
 

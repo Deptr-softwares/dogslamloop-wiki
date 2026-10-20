@@ -74,7 +74,7 @@ window.loadReportQueue = async function () {
 
     const status = (document.getElementById('report-queue-status') || {}).value || 'open';
 
-    container.innerHTML = '<p class="loading-msg admin-loading-msg">Loading reports...</p>';
+    container.innerHTML = '<p class="loading-msg admin-loading-msg loading-msg-busy">Loading reports...</p>';
 
     const { data, error } = await window.supabaseClient.rpc('list_content_reports', { p_status: status });
 

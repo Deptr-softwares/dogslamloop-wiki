@@ -82,10 +82,9 @@ button {
     box-shadow: 2px 2px 0 color-mix(in srgb, var(--sys-fill) 40%, #000);
 }
 .btn-sys:disabled { opacity: 0.4; cursor: not-allowed; }
-@media (prefers-reduced-motion: reduce) {
-    .btn-sys { transition: none; }
-    .btn-sys:hover:not(:disabled), .btn-sys:active:not(:disabled) { transform: none; }
-}
+/* html.reduce-motion: the device's preference or Site settings (js/site_utils.js). */
+html.reduce-motion .btn-sys { transition: none; }
+html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:active:not(:disabled) { transform: none; }
 
 .btn-sys-regular { --sys-edge: #555; --sys-fill: #888; color: #aaa; }
 /* Blue is a fixed value, not var(--accent-blue): a character page's theme
@@ -162,6 +161,14 @@ button {
 .btn-manga-slanted { transform: skewX(-10deg); }
 .btn-manga-slanted:hover { transform: skewX(-10deg) translate(-2px, -2px); }
 .btn-manga-slanted.active { transform: skewX(-10deg); }
+
+/* A clicked tab punches out a little and settles (v1.1), in 0.2s. Only ever
+   added by a click (js/site_utils.js), so a page opening on its first tab
+   stays still. */
+.btn-manga-slanted.tab-punch { animation: tab-punch 0.2s cubic-bezier(0.3, 1.6, 0.6, 1); }
+@keyframes tab-punch {
+    from { transform: skewX(-10deg) scale(1.1); box-shadow: 7px 7px 0 var(--manga-accent); }
+}
 
 .btn-manga-box { transform: none; border-radius: 0; }
 .btn-manga-box:hover { transform: translate(-2px, -2px); }

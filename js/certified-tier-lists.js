@@ -332,7 +332,7 @@
         renderPicker();
 
         ui.innerHTML = '';
-        ui.appendChild(el('p', 'loading-msg', 'Loading…'));
+        ui.appendChild(el('p', 'loading-msg loading-msg-busy', 'Loading…'));
 
         let row = state.loaded.get(slug);
         if (!row) {
@@ -593,7 +593,7 @@
             btn.type = 'button';
             btn.addEventListener('click', async () => {
                 await drawChangelogPage(box, listId, to);
-                box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                box.scrollIntoView({ behavior: window.scrollMotion(), block: 'start' });
             });
             pager.appendChild(btn);
         };

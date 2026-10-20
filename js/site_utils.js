@@ -2,6 +2,147 @@
  * Dogslamloop Wiki - Shared Site Utilities
  */
 
+// --- SITE SETTINGS (v1.1) ---
+//
+// A reader's own settings, kept per device in one JSON object, the same shape
+// as the editor's Config (js/editor-config.js), so a later setting is one more
+// key rather than one more store. Signed in or not makes no difference;
+// nothing here reaches the account or the database.
+//
+// html.reduce-motion is the ONE switch every "less motion" rule reads. It is
+// on when the device asks for reduced motion or the reader ticked "Turn off
+// animations", so the CSS states each rule once rather than once per source.
+// First in the file so the class is on before anything starts moving.
+(function () {
+    const STORE_KEY = 'dsl_site_settings';
+    const DEFAULTS = Object.freeze({ motionOff: false });
+
+    function readStore() {
+        try {
+            const parsed = JSON.parse(window.localStorage.getItem(STORE_KEY) || '{}');
+            return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch (e) {
+            // Storage blocked, or a value nobody here wrote: the defaults.
+            return {};
+        }
+    }
+
+    let stored = readStore();
+    const deviceReduce = typeof window.matchMedia === 'function'
+        ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+
+    function get(key) {
+        if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key)) return undefined;
+        const value = stored[key];
+        return typeof value === typeof DEFAULTS[key] ? value : DEFAULTS[key];
+    }
+
+    function apply() {
+        document.documentElement.classList.toggle('reduce-motion',
+            get('motionOff') || !!(deviceReduce && deviceReduce.matches));
+    }
+
+    // Returns whether the value was saved, so the panel can say when it was
+    // not. Applied either way: it still holds until the page is left.
+    function set(key, value) {
+        if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key) || typeof value !== typeof DEFAULTS[key]) return false;
+        stored = Object.assign({}, stored, { [key]: value });
+        apply();
+        try {
+            window.localStorage.setItem(STORE_KEY, JSON.stringify(stored));
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    if (deviceReduce && typeof deviceReduce.addEventListener === 'function') deviceReduce.addEventListener('change', apply);
+    apply();
+
+    window.siteSettings = { get, set, DEFAULTS };
+
+    // For a scroll a script starts. CSS's scroll-behavior does not reach
+    // scrollTo or scrollIntoView, so until this a device asking for less
+    // motion still got every scripted scroll smooth.
+    window.scrollMotion = () => (document.documentElement.classList.contains('reduce-motion') ? 'auto' : 'smooth');
+})();
+
+// How wide a panel heading's words are, for the bar on its underline
+// (style/Common.css, .section-title::after). Measured as the pointer enters a
+// panel, so a heading filled in after the page loaded (applyHubHeadings) is
+// measured as it reads now.
+document.addEventListener('pointerenter', e => {
+    const el = e.target;
+    if (!(el instanceof Element) || !el.matches('.wiki-section, .wiki-card, .section-title')) return;
+    const titles = el.matches('.section-title') ? [el] : el.querySelectorAll('.section-title');
+    titles.forEach(title => {
+        const words = document.createRange();
+        words.selectNodeContents(title);
+        title.style.setProperty('--title-words', `${Math.ceil(words.getBoundingClientRect().width)}px`);
+    });
+}, true);
+
+// A slanted tab punches when a click puts it in place (v1.1,
+// style/Buttons.css). Checked a frame later, after the page's own handler has
+// made it .active, and that handler may have drawn the row again, in which
+// case the tab is found by its id. A filter switched off is not .active, so
+// it stays still.
+document.addEventListener('click', e => {
+    const clicked = e.target instanceof Element ? e.target.closest('.btn-manga-slanted') : null;
+    if (!clicked) return;
+    requestAnimationFrame(() => {
+        const tab = clicked.isConnected ? clicked : (clicked.id && document.getElementById(clicked.id));
+        if (!tab || !tab.classList.contains('active')) return;
+        tab.classList.remove('tab-punch');
+        void tab.offsetWidth; // restart it on a second click
+        tab.classList.add('tab-punch');
+        tab.addEventListener('animationend', () => tab.classList.remove('tab-punch'), { once: true });
+    });
+});
+
+// The Site settings panel, opened from the button beside the account button
+// (js/pagebuilder.js initAuthDock). Built on first open; every value in it is
+// the site's own, so nothing is escaped.
+window.openSiteSettings = function () {
+    let overlay = document.getElementById('site-settings-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'site-settings-overlay';
+        overlay.className = 'modal-overlay hidden';
+        overlay.innerHTML = `
+            <div class="modal-box modal-sm accent-blue" role="dialog" aria-modal="true" aria-labelledby="site-settings-title">
+                <div class="modal-header"><h3 id="site-settings-title">SITE SETTINGS</h3></div>
+                <div class="modal-body site-settings-body">
+                    <label class="site-setting" for="site-setting-motion-off">
+                        <input type="checkbox" id="site-setting-motion-off">
+                        <span class="site-setting-text">
+                            <span class="site-setting-name">Turn off animations</span>
+                            <span class="site-setting-hint">Stops hover lifts, button sweeps, flashes and smooth scrolling. If your device is set to reduce motion, the site already follows it.</span>
+                        </span>
+                    </label>
+                    <p class="site-settings-note">Saved on this device only.</p>
+                    <p class="site-settings-error" hidden>This browser blocked saving, so the setting only lasts until you leave this page.</p>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn-sys btn-sys-regular" data-site-settings-close>CLOSE</button></div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        const close = () => overlay.classList.add('hidden');
+        overlay.addEventListener('click', e => {
+            // The backdrop itself, or CLOSE.
+            if (e.target === overlay || e.target.closest('[data-site-settings-close]')) close();
+        });
+        overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+        overlay.querySelector('#site-setting-motion-off').addEventListener('change', e => {
+            const saved = window.siteSettings.set('motionOff', e.target.checked);
+            overlay.querySelector('.site-settings-error').hidden = saved;
+        });
+    }
+    overlay.querySelector('#site-setting-motion-off').checked = window.siteSettings.get('motionOff');
+    overlay.classList.remove('hidden');
+    overlay.querySelector('#site-setting-motion-off').focus();
+};
+
 const fetchPromiseCache = {};
 
 // Counts directory depth rather than naming the directories. The old version

@@ -135,7 +135,7 @@ window.editPost = async function(id) {
     }
     if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
     setStatus(`Loaded "${data.title}".`);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: window.scrollMotion() });
 };
 
 async function savePost(status) {

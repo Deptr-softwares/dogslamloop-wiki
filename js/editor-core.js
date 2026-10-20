@@ -1066,7 +1066,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             initPerMoveEditor(moveId, moveStats, moveStrats);
             setTimeout(() => {
                 const previewCard = document.querySelector(`.live-preview-pane #strategy-${CSS.escape(String(moveId))}`);
-                if (previewCard) previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                if (previewCard) previewCard.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
             }, 300);
         } else {
             initFullTabEditor(pageId, tabId, editDesc, editFrame);

@@ -76,7 +76,7 @@ window.loadPostList = async function(containerId, { kind = 'blog', limit = windo
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    container.innerHTML = `<p class="loading-msg">Loading posts...</p>`;
+    container.innerHTML = `<p class="loading-msg loading-msg-busy">Loading posts...</p>`;
 
     const { data, error } = await fetchPosts({ kind, limit });
 
@@ -121,7 +121,7 @@ window.loadSinglePost = async function(containerId, slug) {
     const container = document.getElementById(containerId);
     if (!container) return false;
 
-    container.innerHTML = `<p class="loading-msg">Loading post...</p>`;
+    container.innerHTML = `<p class="loading-msg loading-msg-busy">Loading post...</p>`;
 
     const { data, error } = await fetchPosts({ slug, limit: 1 });
 

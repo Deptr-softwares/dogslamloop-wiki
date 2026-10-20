@@ -644,7 +644,7 @@ window.loadOverviewSectionIntoEditor = function(sectionId) {
         setTimeout(() => {
             const previewCard = document.querySelector('.live-preview-pane .profile-card');
             if (previewCard) {
-                previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                previewCard.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
                 previewCard.style.outline = '2px solid var(--accent-blue)';
                 previewCard.style.outlineOffset = '2px';
                 setTimeout(() => { previewCard.style.outline = 'none'; }, 800);
@@ -706,7 +706,7 @@ window.loadOverviewSectionIntoEditor = function(sectionId) {
 
         const previewCard = document.querySelector(`.live-preview-pane #${targetId}`);
         if (previewCard) {
-            previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            previewCard.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
             previewCard.style.outline = '2px solid var(--accent-blue)';
             previewCard.style.outlineOffset = '2px';
             setTimeout(() => { previewCard.style.outline = 'none'; }, 800);
@@ -1688,7 +1688,7 @@ window.loadKeyedEntryIntoEditor = function(tabId, idx) {
         const safeKey = String(entry[section.keyField] || 'Unknown').replace(/\s+/g, '-');
         const previewCard = document.querySelector(`.live-preview-pane #${section.tab}-content-${CSS.escape(String(safeKey))}`);
         if (previewCard) {
-            previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            previewCard.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
             previewCard.parentElement.style.outline = '2px solid var(--accent-blue)';
             previewCard.parentElement.style.outlineOffset = '2px';
             setTimeout(() => { previewCard.parentElement.style.outline = 'none'; }, 800);
@@ -1757,7 +1757,7 @@ window.loadMatchupIntoEditor = function(idx) {
     setTimeout(() => {
         const previewCard = document.querySelector(`.live-preview-pane #matchup-content-${CSS.escape((matchup.opponent||'').replace(/\s+/g, '-'))}`);
         if (previewCard) {
-            previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            previewCard.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
             previewCard.parentElement.style.outline = '2px solid var(--accent-blue)';
             previewCard.parentElement.style.outlineOffset = '2px';
             setTimeout(() => { previewCard.parentElement.style.outline = 'none'; }, 800);
@@ -1844,7 +1844,7 @@ window.loadMoveIntoEditor = async function(moveId) {
 
     setTimeout(() => {
         const previewCard = document.querySelector(`.live-preview-pane #strategy-${CSS.escape(String(moveId))}`);
-        if (previewCard) previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (previewCard) previewCard.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
     }, 150);
 };
 

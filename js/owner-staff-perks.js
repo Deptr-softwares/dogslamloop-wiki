@@ -42,7 +42,7 @@ async function saveStaffPerk(enabled) {
     const results = document.getElementById('staff-perks-results');
     if (!results) return;
 
-    results.innerHTML = `<p class="loading-msg">Saving...</p>`;
+    results.innerHTML = `<p class="loading-msg loading-msg-busy">Saving...</p>`;
 
     // Upsert on the singleton id rather than update, so a missing row is
     // created instead of silently matching nothing and reporting success.
