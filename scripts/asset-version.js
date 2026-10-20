@@ -49,8 +49,15 @@ const JS_DIR = path.join(__dirname, '..', 'js');
 // Discovered, then SORTED - readdirSync order is filesystem-dependent, and the
 // hash has to be identical on a developer's Windows machine and the Linux CI
 // runner or `npm run validate` fails against a tree that is correct.
-const SHARED_MODULES = fs.readdirSync(JS_DIR)
-    .filter(name => name.endsWith('.js'))
+//
+// js/tools/ as well: a tool page's own script (scripts/generate-pages.js adds
+// it to the stub) is a module like any other, and reading only the top level
+// left every one of them unstamped from a20d29e4 to v1.1. Named with a forward
+// slash on every OS, so the list, the hash and the src it matches agree.
+const listModules = (dir, prefix) => fs.existsSync(dir)
+    ? fs.readdirSync(dir).filter(name => name.endsWith('.js')).map(name => prefix + name)
+    : [];
+const SHARED_MODULES = [...listModules(JS_DIR, ''), ...listModules(path.join(JS_DIR, 'tools'), 'tools/')]
     .sort();
 
 const SHARED_MODULE_PATHS = SHARED_MODULES.map(name => path.join(JS_DIR, name));

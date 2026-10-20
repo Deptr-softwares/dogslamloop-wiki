@@ -95,6 +95,9 @@ window.measureMediaSource = function(source) {
 // have it by role; the owner can tick it for anyone else. Storage enforces it
 // (the "Auth Upload" policy); this file only says so before somebody tries.
 const MEDIA_UPLOAD_LOCKED_TEXT = 'Uploading needs the upload media permission. Trusted Editors and up have it, and the owner can give it to anyone else. Media already in the library can still be used.';
+// The Playground sends nothing anywhere, and an upload would be live in the
+// shared library at once (owner, 2026-10-20: uploads off inside).
+const MEDIA_PLAYGROUND_TEXT = 'Uploading is off in the Playground. Media already in the library can still be used.';
 
 // Asked every time the library opens rather than once per page, so a
 // permission the owner ticks mid-session takes effect on the next open.
@@ -150,6 +153,8 @@ window.mediaWeightNote = async function(file) {
 };
 
 window.uploadWikiMedia = async function(file, onStatus = () => {}, alsoKnown = []) {
+    // Here rather than only on the drop zone: the Gallery bin uploads too.
+    if (window.editorPlayground) return { error: MEDIA_PLAYGROUND_TEXT };
     if (!window.supabaseClient) return { error: 'Not connected to the database.' };
 
     const lastDotIndex = file.name.lastIndexOf('.');
@@ -720,10 +725,11 @@ window.initMediaLibrary = function() {
     let uploadLocked = false;
 
     async function applyUploadPermission() {
-        uploadLocked = !(await mediaUploadAllowed());
+        uploadLocked = !!window.editorPlayground || !(await mediaUploadAllowed());
         dropZone.classList.toggle('media-upload-zone-locked', uploadLocked);
         dropZone.setAttribute('aria-disabled', uploadLocked ? 'true' : 'false');
-        if (uploadTextNode) uploadTextNode.textContent = uploadLocked ? MEDIA_UPLOAD_LOCKED_TEXT : unlockedText;
+        const lockedText = window.editorPlayground ? MEDIA_PLAYGROUND_TEXT : MEDIA_UPLOAD_LOCKED_TEXT;
+        if (uploadTextNode) uploadTextNode.textContent = uploadLocked ? lockedText : unlockedText;
     }
 
     btnRefresh.addEventListener('click', window.loadMediaGallery);

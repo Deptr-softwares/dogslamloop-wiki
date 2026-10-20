@@ -12,6 +12,8 @@
 // mobile pair, so that sidebar is now the only place they live.
 
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
 
 const GALLERY = '/others/emotes/index.html';
 
@@ -77,16 +79,55 @@ test('a phone can reach the edit button too', async ({ page }) => {
     await expect(page.locator('.local-sidebar-right #btn-edit-current-tab')).toBeVisible();
 });
 
+// The real navigation, with each listed page's edit_role set for the test.
+// Whether a page is editable is the owner's setting (site_pages.edit_role), and
+// a test reading the live value goes red the day they change it, which stops
+// the nightly regeneration (v1.1: in-page tools are locked from now on).
+//
+// Served from the file rather than through route.fetch, which can dial ::1
+// while the test server listens on IPv4 only.
+function withEditRole(page, roles) {
+    return page.route('**/data/navigation.json*', route => {
+        const nav = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'navigation.json'), 'utf8'));
+        for (const entries of Object.values(nav)) {
+            for (const entry of entries) {
+                const role = roles[`/${entry.url}`];
+                if (role && entry.cms_config) entry.cms_config.editRole = role;
+            }
+        }
+        return route.fulfill({ json: nav });
+    });
+}
+
+const PAGE_PER_TYPE = [
+    '/characters/Boomcat/index.html',
+    '/systems/hud/index.html',
+    '/others/emotes/index.html',
+    '/tools/free-submit-tier-list/index.html',
+];
+
 // The general claim, so the next page type added cannot ship without a way in.
 test('every generated page type offers a way to edit it', async ({ page }) => {
-    for (const url of [
-        '/characters/Boomcat/index.html',
-        '/systems/hud/index.html',
-        '/others/emotes/index.html',
-        '/tools/free-submit-tier-list/index.html',
-    ]) {
+    await withEditRole(page, Object.fromEntries(PAGE_PER_TYPE.map(url => [url, 'open'])));
+    for (const url of PAGE_PER_TYPE) {
         await page.goto(url, { waitUntil: 'networkidle' });
         await expect(page.locator('#btn-edit-current-tab'), `${url} has no edit button`)
             .toBeVisible({ timeout: 15000 });
     }
+});
+
+// Owner, 2026-10-21: the tools whose code lives on the site are "an internal
+// tool of Dogslamloop", so a locked one offers neither button.
+test('a locked tool page has no Edit and no History', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await withEditRole(page, { '/tools/free-submit-tier-list/index.html': 'locked' });
+    await page.goto('/tools/free-submit-tier-list/index.html', { waitUntil: 'networkidle' });
+
+    // The menu is built from the same navigation answer, after the buttons
+    // were decided, so once it is up the decision has been made.
+    await expect(page.locator('#global-sidebar-nav a').first()).toBeAttached({ timeout: 15000 });
+    await expect(page.locator('#btn-edit-current-tab')).toBeHidden();
+    await expect(page.locator('#btn-history-current-tab')).toHaveCount(0);
+    expect(errors).toEqual([]);
 });

@@ -118,6 +118,17 @@ function makeRoomForAutoSave(draftKey) {
 // --- LOCAL AUTO-SAVE ENGINE ---
 window.saveLocalDraft = function() {
     if (!window.currentEditorCharId) return;
+    // The Playground's one draft, under its own key and outside the five
+    // auto-save slots: practising on a page must never touch its real draft
+    // (js/editor-playground.js).
+    if (window.editorPlayground) {
+        try {
+            localStorage.setItem(window.editorPlayground.draftKey, JSON.stringify(editorDraftPayload()));
+        } catch (e) {
+            console.warn('[Playground] Could not keep the Playground in this browser:', e);
+        }
+        return;
+    }
     // Not while editing a submission (v1.1). The draft key is the page's, and a
     // submission's content saved under it came back later as "restore your
     // local progress?" on the page's own editor, where restoring it and
@@ -145,7 +156,8 @@ window.saveLocalDraft = function() {
 const SAVED_DRAFT_PREFIX = 'wiki_save_';
 
 window.saveWorkspace = async function () {
-    if (!window.currentEditorCharId) return false;
+    // Its button is hidden there; the Playground keeps itself.
+    if (!window.currentEditorCharId || window.editorPlayground) return false;
     // The same rule as the auto-save above.
     if (window.activeEditTicketId) {
         window.editorAlert('This is a submission, and the review queue keeps it already. UPDATE SUBMISSION sends your changes to it.');

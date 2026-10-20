@@ -61,45 +61,11 @@
     // navigation display slugs and relied on a normalizer that lowercased and
     // stripped punctuation; three entries only matched because the display
     // slug happened to agree. The migration rewrote them to the canonical key,
-    // so this lookup is exact.
+    // so this lookup is exact. The roster itself is site_utils.js's
+    // loadCharacterRoster, shared with every other tier list.
     async function loadRoster() {
         if (state.roster.size) return;
-        try {
-            const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../../';
-            const nav = window.fetchJson
-                ? await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true })
-                : await (await fetch(`${rootPath}data/navigation.json`)).json();
-
-            // Portraits are mirrored into the repo by scripts/fetch-portraits.js.
-            // navigation.json carries no `image`, so without this every portrait
-            // falls through to the guessed Supabase URL below - which 404s for
-            // five characters whose filenames end "Portrait2.webp" or drop the
-            // suffix, and the img hides itself on error.
-            //
-            // Same-origin also matters beyond correctness: a cross-origin image
-            // taints a canvas, and both toBlob() and the clipboard write throw
-            // on a tainted one. The Create Tier List export depends on this.
-            let portraits = {};
-            try {
-                portraits = window.fetchJson
-                    ? await window.fetchJson(`${rootPath}data/portraits.json`, { cache: true })
-                    : await (await fetch(`${rootPath}data/portraits.json`)).json();
-            } catch (e) {
-                console.warn('[TierLists] Portrait manifest unavailable, falling back to guessed URLs:', e);
-            }
-
-            (nav.Characters || []).forEach(entry => {
-                const pageId = entry.cms_config && entry.cms_config.pageId;
-                if (!pageId) return;
-                state.roster.set(pageId, {
-                    name: entry.name,
-                    url: entry.url,
-                    image: portraits[pageId] || entry.image,
-                });
-            });
-        } catch (e) {
-            console.warn('[TierLists] Could not read the roster:', e);
-        }
+        state.roster = await window.loadCharacterRoster();
     }
 
     // v0.18 FT4. `style` is the list's own art_style - 'portrait' or 'icon'.

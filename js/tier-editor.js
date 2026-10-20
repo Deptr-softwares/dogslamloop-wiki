@@ -66,47 +66,12 @@
 
     // --- DATA ---
 
+    // site_utils.js's loadCharacterRoster, shared with every tier list. This
+    // was the third copy, and the second found broken (v0.18): it read
+    // `entry.image`, which navigation.json never carries, so the editor drew
+    // the old guessed art while the reader page showed the current portraits.
     async function loadRoster() {
-        try {
-            const nav = window.fetchJson
-                ? await window.fetchJson('data/navigation.json', { cache: true })
-                : await (await fetch('data/navigation.json')).json();
-
-            // THE THIRD COPY OF THIS, AND THE SECOND THAT WAS BROKEN.
-            //
-            // navigation.json carries no `image` field on any character, so
-            // reading entry.image left meta.image undefined and portrait() fell
-            // through to the guessed Supabase URL below - the OLD art, which is
-            // exactly what the owner reported seeing in this editor while the
-            // reader page showed the current portraits.
-            //
-            // js/certified-tier-lists.js has always read the manifest;
-            // js/tools/free_submit_tier_list.js was fixed for the same fault in
-            // FT3, one batch ago. Three near-identical loadRoster functions,
-            // two of them silently wrong. Worth stating plainly rather than
-            // fixing a third time in silence.
-            let portraits = {};
-            try {
-                portraits = window.fetchJson
-                    ? await window.fetchJson('data/portraits.json', { cache: true })
-                    : await (await fetch('data/portraits.json')).json();
-            } catch (e) {
-                console.warn('[TierEditor] Portrait manifest unavailable:', e);
-            }
-
-            (nav.Characters || []).forEach(entry => {
-                const pageId = entry.cms_config && entry.cms_config.pageId;
-                if (pageId) {
-                    state.roster.set(pageId, {
-                        name: entry.name,
-                        url: entry.url,
-                        image: portraits[pageId] || entry.image,
-                    });
-                }
-            });
-        } catch (e) {
-            console.warn('[TierEditor] Could not read the roster:', e);
-        }
+        state.roster = await window.loadCharacterRoster();
     }
 
     // Snapshot of where everyone started, which is the only thing that makes a
