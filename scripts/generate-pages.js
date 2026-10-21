@@ -198,6 +198,7 @@ ${social}
     <script src="../../js/framedata.js"></script>
     <script src="../../js/description.js"></script>
     <script src="../../js/character_modes.js"></script>
+    <script src="../../js/emoji.js"></script>
     <script src="../../js/discussions.js"></script>
     <script src="../../js/internalstyling.js"></script>
 

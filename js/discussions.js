@@ -154,6 +154,13 @@
         });
     }
 
+    // A post's words, with its emojis drawn (js/emoji.js, batch 8.5). Without
+    // that script, the same text as plain text.
+    function setPostText(node, text) {
+        if (window.DslEmoji) window.DslEmoji.renderText(node, text);
+        else setTextWithBreaks(node, text);
+    }
+
     function el(tag, className, text) {
         const node = document.createElement(tag);
         if (className) node.className = className;
@@ -1065,7 +1072,7 @@
     function itemRow(post) {
         const row = el('div', 'discussion-item-row');
         const body = el('div', 'discussion-body');
-        setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
+        setPostText(body, textWithoutGifs(post.body, klipyLinks(post.body)));
         row.appendChild(body);
         const mark = editedMark(post);
         if (mark) body.appendChild(mark);
@@ -1108,12 +1115,12 @@
             // wrap yet at this point, and insertBefore against a non-child
             // throws - taking the whole thread render down with it.
             wrap.appendChild(el('span', 'discussion-hidden-badge', 'HIDDEN FROM READERS'));
-            setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
+            setPostText(body, textWithoutGifs(post.body, klipyLinks(post.body)));
         } else if (removed) {
             body.classList.add('discussion-body-removed');
             body.textContent = removedText(post.status);
         } else {
-            setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
+            setPostText(body, textWithoutGifs(post.body, klipyLinks(post.body)));
         }
         wrap.appendChild(body);
         appendMedia(wrap, post);
@@ -1146,12 +1153,12 @@
         const body = el('div', 'discussion-body');
         if (reply.status === 'hidden') {
             wrap.appendChild(el('span', 'discussion-hidden-badge', 'HIDDEN FROM READERS'));
-            setTextWithBreaks(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
+            setPostText(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
         } else if (removed) {
             body.classList.add('discussion-body-removed');
             body.textContent = removedText(reply.status);
         } else {
-            setTextWithBreaks(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
+            setPostText(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
         }
         const quote = removed && reply.status !== 'hidden' ? null : replyQuote(reply, quoteParent);
         if (quote) wrap.appendChild(quote);
@@ -1239,6 +1246,9 @@
             row.appendChild(attach);
         }
 
+        const emoji = emojiButton();
+        if (emoji) row.appendChild(emoji);
+
         if (parentId) {
             const cancel = el('button', 'btn-sys btn-sys-regular discussion-cancel', 'CANCEL');
             cancel.type = 'button';
@@ -1260,6 +1270,18 @@
         form.appendChild(row);
 
         return form;
+    }
+
+    // Opens the picker under the box it sits in (js/emoji.js). No script, no
+    // button: a control that can only fail is worse than none.
+    function emojiButton() {
+        if (!window.DslEmoji) return null;
+        const btn = el('button', 'btn-sys btn-sys-regular discussion-emoji-btn', 'EMOJI');
+        btn.type = 'button';
+        btn.dataset.emojiToggle = 'true';
+        btn.setAttribute('aria-expanded', 'false');
+        btn.title = 'Add an emoji';
+        return btn;
     }
 
     function renderSignInPrompt() {
@@ -1615,6 +1637,8 @@
         cancel.type = 'button';
         cancel.dataset.cancelEdit = 'true';
         row.appendChild(save);
+        const emoji = emojiButton();
+        if (emoji) row.appendChild(emoji);
         row.appendChild(cancel);
         row.appendChild(el('span', 'discussion-composer-status'));
         form.appendChild(row);
@@ -1731,6 +1755,14 @@
                 const form = attach.closest('.discussion-composer');
                 const input = form && form.querySelector('.discussion-image-input');
                 if (input) input.click();
+                return;
+            }
+
+            const emojiToggle = e.target.closest('[data-emoji-toggle]');
+            if (emojiToggle) {
+                const form = emojiToggle.closest('form');
+                const area = form && form.querySelector('textarea');
+                if (area) window.DslEmoji.togglePicker(form, area, emojiToggle);
                 return;
             }
 

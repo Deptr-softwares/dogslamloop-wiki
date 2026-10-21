@@ -413,6 +413,114 @@
     cursor: pointer;
 }
 
+/* --- EMOJIS (js/emoji.js, v1.1 batch 8.5) --- */
+
+/* In a sentence, 22px at Discord's 16px text, so the same ratio here. */
+.discussion-body .emoji {
+    width: 1.375em;
+    height: 1.375em;
+    margin: 0 0.05em;
+    vertical-align: -0.3em;
+    object-fit: contain;
+}
+
+/* A post of nothing but emojis, Discord's jumbo size. */
+.discussion-body.emoji-jumbo .emoji {
+    width: 48px;
+    height: 48px;
+    vertical-align: middle;
+}
+
+.emoji-picker {
+    margin-top: 0.5rem;
+    max-width: 26rem;
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.emoji-search.editor-input {
+    display: block;
+    width: calc(100% - 1rem);
+    margin: 0.5rem;
+}
+
+.emoji-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 0.5rem 0.4rem;
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+}
+
+.emoji-tabs[hidden] { display: none; }
+
+.emoji-tab {
+    flex: none;
+    padding: 0.2rem;
+    background: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.emoji-tab:hover,
+.emoji-tab:focus-visible { border-color: var(--accent-blue); outline: none; }
+
+.emoji-tab .emoji { width: 20px; height: 20px; display: block; object-fit: contain; }
+
+/* Positioned, so a tab can scroll to a section by its offsetTop. */
+.emoji-scroll {
+    position: relative;
+    height: 15rem;
+    overflow-y: auto;
+    padding: 0 0.5rem 0.5rem;
+}
+
+.emoji-section-title {
+    margin: 0.5rem 0 0.25rem;
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(2.25rem, 1fr));
+    gap: 2px;
+}
+
+.emoji-grid[hidden] { display: none; }
+
+.emoji-results { padding-top: 0.5rem; }
+
+.emoji-cell {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem;
+    background: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+}
+
+.emoji-cell:hover,
+.emoji-cell:focus-visible { background: var(--bg-main); border-color: var(--accent-blue); outline: none; }
+
+.emoji-cell .emoji { width: 1.6rem; height: 1.6rem; object-fit: contain; }
+
+.emoji-note,
+.emoji-credit {
+    margin: 0;
+    padding: 0.3rem 0.5rem;
+    font-family: var(--text-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+}
+
+.emoji-credit { border-top: 1px solid var(--border-color); }
+.emoji-credit a { color: inherit; }
+
 .discussion-post-removed {
     opacity: 0.75;
 }
