@@ -221,6 +221,10 @@ test('EMOJI opens the picker: the cats first, then every group; a pick goes in a
     await results.first().click();
     await expect(area).toHaveValue('hello:HmmCat:😀 world');
 
+    // Names carry capitals ("flag: United States"); a search does not care.
+    await picker.locator('.emoji-search').fill('united states');
+    await expect(picker.locator('.emoji-results [aria-label="flag: United States"]')).toHaveCount(1);
+
     await picker.locator('.emoji-search').fill('zzzz');
     await expect(picker.locator('.emoji-note')).toHaveText('No emoji by that name.');
     await picker.locator('.emoji-search').fill('');
