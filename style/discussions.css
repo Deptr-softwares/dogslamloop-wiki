@@ -413,6 +413,80 @@
     cursor: pointer;
 }
 
+/* A picked GIF waiting for POST, marked so it reads apart from an image. */
+.discussion-attachment-gif::after {
+    content: 'GIF';
+    position: absolute;
+    left: 2px;
+    bottom: 2px;
+    padding: 0 3px;
+    background: rgba(0, 0, 0, 0.75);
+    color: var(--text-white);
+    font-family: var(--text-mono);
+    font-size: 0.55rem;
+}
+
+/* --- THE GIF PICKER (js/discussions.js, v1.1 batch 8.5) --- */
+
+.gif-picker {
+    margin-top: 0.5rem;
+    max-width: 30rem;
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+}
+
+.gif-search.editor-input {
+    display: block;
+    width: calc(100% - 1rem);
+    margin: 0.5rem;
+}
+
+.gif-scroll {
+    height: 18rem;
+    overflow-y: auto;
+    padding: 0 0.5rem 0.5rem;
+}
+
+/* KLIPY's order, row by row, so a grid rather than columns of uneven
+   height that would read out of order. */
+.gif-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 4px;
+}
+
+.gif-cell {
+    aspect-ratio: 1 / 1;
+    padding: 0;
+    border: 2px solid transparent;
+    background: var(--bg-main);
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.gif-cell:hover,
+.gif-cell:focus-visible { border-color: var(--accent-blue); outline: none; }
+
+.gif-cell img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.gif-end { height: 1px; }
+
+.gif-note,
+.gif-credit {
+    margin: 0;
+    padding: 0.3rem 0.5rem;
+    font-family: var(--text-mono);
+    font-size: 0.62rem;
+    color: var(--text-muted);
+}
+
+.gif-credit { border-top: 1px solid var(--border-color); }
+
 /* --- EMOJIS (js/emoji.js, v1.1 batch 8.5) --- */
 
 /* In a sentence, 22px at Discord's 16px text, so the same ratio here. */
