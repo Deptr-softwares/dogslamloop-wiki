@@ -36,8 +36,8 @@ const TONE = /[\u{1F3FB}-\u{1F3FF}]/u;
 // try. js/emoji.js names files the same way, in the same order.
 const hex = (text) => Array.from(text).map(c => c.codePointAt(0).toString(16)).join('-');
 function twemojiNames(text) {
-    const stripped = hex(text.replace(/️/g, ''));
-    return text.includes('‍') ? [hex(text), stripped] : [stripped];
+    const stripped = hex(text.replace(/\uFE0F/g, ''));
+    return text.includes('\u200D') ? [hex(text), stripped] : [stripped];
 }
 
 function parse(text) {
