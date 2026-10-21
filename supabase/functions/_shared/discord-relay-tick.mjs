@@ -197,22 +197,6 @@ async function copyImages(db, fetchImpl, parsed) {
     return paths;
 }
 
-async function resolveKlipy(fetchImpl, parsed) {
-    const media = new Map(parsed.klipyEmbeds);
-    for (const slug of parsed.klipySlugs) {
-        if (media.has(slug)) continue;
-        try {
-            const res = await fetchImpl(`${core.KLIPY_API}${encodeURIComponent(slug)}`);
-            if (!res.ok) continue;
-            const url = core.klipyPick(await res.json());
-            if (url) media.set(slug, url);
-        } catch (_) {
-            // Left as the link it was, as on the wiki.
-        }
-    }
-    return media;
-}
-
 // --- D3: A POST FOR EVERY CHARACTER ---
 
 async function openCharacterPosts(ctx, active) {
@@ -259,11 +243,13 @@ async function forumTags(ctx) {
 }
 
 // Words and copied pictures for one Discord message, ready for the database.
+// A KLIPY GIF comes from Discord's own preview (waitingForKlipyPreview).
 async function prepareMessage(ctx, msg, parsed) {
-    const media = await resolveKlipy(ctx.fetch, parsed);
     const images = await copyImages(ctx.db, ctx.fetch, parsed);
-    return { body: core.wikiBody(msg, media), images };
+    return { body: core.wikiBody(msg, parsed.klipyEmbeds), images };
 }
+
+const klipyWait = (ctx, msg, parsed) => core.waitingForKlipyPreview(parsed, ctx.now() - core.snowflakeTime(msg.id));
 
 // Posts started on Discord, copied in as Forum posts. Start fresh: only posts
 // begun after the forum was first connected.
@@ -290,6 +276,8 @@ async function importForumPosts(ctx, active) {
         const parsed = starter && core.fromDiscordMessage(starter);
         // The relay's own posts, and a starter already deleted, are not copied.
         if (!parsed || parsed.skip) continue;
+        // Still unlinked, so a later tick comes back to it.
+        if (klipyWait(ctx, starter, parsed)) continue;
 
         const { body, images } = await prepareMessage(ctx, starter, parsed);
         const id = await rpc(ctx.db, 'discord_relay_take_forum', {
@@ -397,9 +385,10 @@ async function readDiscord(ctx, active) {
             const parsed = core.fromDiscordMessage(msg);
             // Start fresh: nothing older than the moment the post was linked.
             if (!parsed.skip && core.snowflakeTime(msg.id) >= linkedAt) {
-                const media = await resolveKlipy(ctx.fetch, parsed);
-                const images = await copyImages(ctx.db, ctx.fetch, parsed);
-                const body = core.wikiBody(msg, media);
+                // Stop the thread here, as for a failed copy: this message
+                // and the ones after it are read again next tick, in order.
+                if (klipyWait(ctx, msg, parsed)) break;
+                const { body, images } = await prepareMessage(ctx, msg, parsed);
                 try {
                     const id = await rpc(ctx.db, 'discord_relay_take', {
                         p_discord_thread_id: thread.id,

@@ -8,7 +8,7 @@ Frame data, i-frames, matchup tiers and M1 trading are domain terms with real ga
 
 - Static HTML/CSS/JS. **No bundler, no build step.** Classic `<script src>` tags sharing one `window` global scope.
 - **Supabase** (Postgres + PostgREST + Auth + Storage), fetched client-side with the public anon key. That key ships in `js/site_utils.js` and is in every page's source: it is not a secret. **The service-role key must never appear in this repo or in CI.**
-- **KLIPY's API key ships in `js/discussions.js`**, visible like the anon key (the owner's choice, 2026-10-02; a test key, 100 lookups an hour). A KLIPY link is looked up once, when the post is made, and the post stores the GIF's own address. Never move the lookup to render time.
+- **KLIPY's API key ships in `js/discussions.js`**, visible like the anon key (the owner's choice, 2026-10-02; a test key, 100 lookups an hour, until the owner's production key). A KLIPY link is looked up once, when the post is made, and the post stores the GIF's own address. Never move the lookup to render time. **Only a reader's browser calls KLIPY** (the post box's lookup and its GIF picker): KLIPY's production rules forbid requests from a partner's server without their written approval, so the relay never calls it and waits for Discord's own preview instead (batch 8.5).
 - **The Discord relay** (`supabase/functions/discord-relay`) is the one Edge Function, live on production since 2026-10-07, so a merge to `main` that changes it changes the real Discord server. **Its bot token and webhook URLs live in Supabase secrets, set by the owner, and never appear in this repo, in CI or in a chat message.** The rest is in `.claude/rules/discord-relay.md`.
 - **GitHub Pages** from `main`, custom domain `dogslamloop.com`.
 

@@ -633,6 +633,64 @@ test('a reply opens with a quote of what it answers', async () => {
     expect(send.body.content).toBe('> **Mo**: Boomcat wins this\nagreed');
 });
 
+// --- KLIPY GIFS FROM DISCORD (batch 8.5) ---
+//
+// The relay no longer asks KLIPY: its production rules allow requests from a
+// reader's browser only. A message waits for Discord's own preview instead.
+
+const GIF_PAGE = 'https://klipy.com/gifs/funny-cat-1';
+const GIF_MEDIA = 'https://static.klipy.com/ii/0a1b2c/funny-cat-1/md.mp4';
+const preview = (msg) => { msg.embeds = [{ url: GIF_PAGE, video: { url: GIF_MEDIA } }]; };
+const askedKlipy = (w) => w.discord.calls.some(c => new URL(c.url).host.endsWith('klipy.com'));
+
+test('a Discord GIF with no preview yet waits for Discord\'s, the messages after it too, and KLIPY is never asked', async () => {
+    const w = world();
+    const thread = w.linkedThread();
+    const start = w.db.links.get('boomcat').last_message_id;
+    const gif = w.say(thread, { content: `lol ${GIF_PAGE}` });
+    w.say(thread, { content: 'after it' });
+
+    await w.tick();
+    expect(w.db.taken).toEqual([]);
+    expect(w.db.links.get('boomcat').last_message_id, 'the cursor stays before it').toBe(start);
+
+    // Discord makes its preview a few seconds later.
+    w.advance(10 * 1000);
+    preview(gif);
+    await w.tick();
+    expect(w.db.taken.map(t => t.p_body)).toEqual([`lol ${GIF_MEDIA}`, 'after it']);
+    expect(askedKlipy(w)).toBe(false);
+});
+
+test('after a minute with no preview, the message is copied with its link as it is', async () => {
+    const w = world();
+    const thread = w.linkedThread();
+    w.say(thread, { content: `lol ${GIF_PAGE}` });
+    await w.tick();
+    w.advance(59 * 1000);
+    await w.tick();
+    expect(w.db.taken).toEqual([]);
+
+    w.advance(2 * 1000);
+    await w.tick();
+    expect(w.db.taken.map(t => t.p_body)).toEqual([`lol ${GIF_PAGE}`]);
+    expect(askedKlipy(w)).toBe(false);
+});
+
+test('a forum post started on Discord with a GIF waits for the preview too', async () => {
+    const w = world();
+    w.discord.forumTags = TAGS;
+    const id = w.forumPost('Look at this', { content: `opening ${GIF_PAGE}` });
+    await w.tick(FORUM_ENV);
+    expect(w.db.forumTaken).toEqual([]);
+
+    w.advance(5 * 1000);
+    preview(w.discord.messages.get(id)[0]);
+    await w.tick(FORUM_ENV);
+    expect(w.db.forumTaken.map(t => t.p_body)).toEqual([`opening ${GIF_MEDIA}`]);
+    expect(askedKlipy(w)).toBe(false);
+});
+
 // --- THE WIKI'S OWN EMOJIS (batch 8.5) ---
 
 const HMM = '700000000000000001';

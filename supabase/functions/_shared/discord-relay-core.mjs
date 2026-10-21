@@ -26,13 +26,11 @@ export const IMAGE_TYPES = {
 };
 export const COPIED_IMAGE_PATH = /^discord\/[0-9]{5,20}-[0-3]\.(png|jpg|webp|gif)$/;
 
-// KLIPY, the same patterns and key as js/discussions.js. A test reads both
-// files and fails if they part.
+// KLIPY, the same patterns as js/discussions.js. A test reads both files and
+// fails if they part. No key: the relay never calls KLIPY (batch 8.5, below).
 export const KLIPY_MEDIA = /https:\/\/static2?\.klipy\.com\/ii\/[A-Za-z0-9/_-]+\.(gif|webp|mp4)(?![\w./-])/g;
 export const KLIPY_MEDIA_EXACT = new RegExp(`^${KLIPY_MEDIA.source}$`);
 export const KLIPY_PAGE = /https?:\/\/(?:www\.)?klipy\.com\/gifs\/([A-Za-z0-9-]{1,120})[^\s]*/g;
-export const KLIPY_API = 'https://api.klipy.com/api/v1/xdjct5ccuBWrbiAxgyaEgQdKcnFW5LIpjd1glWvPLALxPE6bNDPGsXXJaMPg9Xv7/gifs/';
-export const KLIPY_PICK = [['md', 'mp4'], ['hd', 'mp4'], ['sm', 'mp4'], ['md', 'webp'], ['sm', 'webp'], ['md', 'gif']];
 export const MAX_GIFS = 4;
 
 const SNOWFLAKE = /^[0-9]{5,20}$/;
@@ -331,16 +329,18 @@ export function applyKlipy(text, mediaBySlug) {
     return String(text || '').replace(KLIPY_PAGE, (whole, slug) => mediaBySlug.get(slug) || whole);
 }
 
-// What a KLIPY API answer offers, in the wiki's order of preference, and only
-// if it is a KLIPY media address.
-export function klipyPick(answer) {
-    const file = answer && answer.data && answer.data.file;
-    if (!file) return null;
-    for (const [size, format] of KLIPY_PICK) {
-        const url = file[size] && file[size][format] && file[size][format].url;
-        if (typeof url === 'string' && KLIPY_MEDIA_EXACT.test(url)) return url;
-    }
-    return null;
+// Whether to wait for Discord's preview of a KLIPY link before copying a
+// message (batch 8.5). The relay used to ask KLIPY's API itself when the
+// preview was missing; KLIPY's production rules allow requests from a
+// reader's own browser only, never a partner's server, without their written
+// approval (docs.klipy.com/integration-requirements, read 2026-10-21). The
+// owner picked waiting for Discord instead. Its preview carries the GIF's
+// address and comes within seconds, so a message holding a link without one
+// waits, a minute at most; after that it is copied with the link as it is.
+export const KLIPY_PREVIEW_WAIT_MS = 60 * 1000;
+
+export function waitingForKlipyPreview(parsed, ageMs) {
+    return ageMs < KLIPY_PREVIEW_WAIT_MS && parsed.klipySlugs.some(slug => !parsed.klipyEmbeds.has(slug));
 }
 
 // What the wiki copy says when part of a message stays on Discord (v1.0 Part

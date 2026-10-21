@@ -197,8 +197,31 @@ test.describe('Discord to wiki', () => {
         expect([...found]).toEqual([['ronaldo-smile-4', media]]);
         expect(core.wikiBody(msg, found)).toBe(`lol ${media}`);
         expect(core.klipySlugs('a https://klipy.com/gifs/x-1 b https://www.klipy.com/gifs/y-2?z')).toEqual(['x-1', 'y-2']);
-        expect(core.klipyPick({ data: { file: { md: { mp4: { url: media } } } } })).toBe(media);
-        expect(core.klipyPick({ data: { file: { md: { mp4: { url: 'https://evil.example/a.mp4' } } } } })).toBeNull();
+    });
+
+    // Batch 8.5: the relay never asks KLIPY itself; it waits for Discord.
+    test('a KLIPY link without Discord\'s preview waits for it, a minute at most', () => {
+        const page = 'https://klipy.com/gifs/ronaldo-smile-4';
+        const bare = core.fromDiscordMessage(message({ content: `lol ${page}` }));
+        expect(core.waitingForKlipyPreview(bare, 0)).toBe(true);
+        expect(core.waitingForKlipyPreview(bare, core.KLIPY_PREVIEW_WAIT_MS - 1)).toBe(true);
+        expect(core.waitingForKlipyPreview(bare, core.KLIPY_PREVIEW_WAIT_MS)).toBe(false);
+        expect(core.KLIPY_PREVIEW_WAIT_MS).toBe(60 * 1000);
+
+        const previewed = core.fromDiscordMessage(message({
+            content: `lol ${page}`, embeds: [{ url: page, video: { url: 'https://static.klipy.com/ii/abc/def/x.mp4' } }],
+        }));
+        expect(core.waitingForKlipyPreview(previewed, 0)).toBe(false);
+        // A preview pointing off KLIPY's media hosts is no preview.
+        const off = core.fromDiscordMessage(message({
+            content: `lol ${page}`, embeds: [{ url: page, video: { url: 'https://evil.example/x.mp4' } }],
+        }));
+        expect(core.waitingForKlipyPreview(off, 0)).toBe(true);
+        expect(core.waitingForKlipyPreview(core.fromDiscordMessage(message({ content: 'no gif here' })), 0)).toBe(false);
+        // And the relay holds no KLIPY key at all.
+        const relayFiles = ['discord-relay-core.mjs', 'discord-relay-tick.mjs']
+            .map(f => fs.readFileSync(path.join(ROOT, 'supabase', 'functions', '_shared', f), 'utf8')).join('\n');
+        expect(relayFiles).not.toContain('api.klipy.com');
     });
 
     test('a long Discord message is cut to the wiki\'s 4,000 characters, and says so', () => {
@@ -341,7 +364,7 @@ test.describe('agreement with the files the relay sits between', () => {
         expect(forumList[1].match(/'([^']+)'/g).map(s => s.slice(1, -1))).toEqual(core.FORUM_TAGS);
     });
 
-    test('KLIPY patterns, key and order match the thread page', () => {
+    test('KLIPY patterns match the thread page', () => {
         const page = fs.readFileSync(path.join(ROOT, 'js', 'discussions.js'), 'utf8');
         const grab = (name) => {
             const m = new RegExp(`const ${name} = (.+);\\n`).exec(page);
@@ -350,8 +373,6 @@ test.describe('agreement with the files the relay sits between', () => {
         };
         expect(grab('KLIPY_MEDIA')).toBe(`/${core.KLIPY_MEDIA.source}/g`);
         expect(grab('KLIPY_PAGE')).toBe(`/${core.KLIPY_PAGE.source}/g`);
-        expect(grab('KLIPY_API')).toBe(`'${core.KLIPY_API}'`);
-        expect(grab('KLIPY_PICK')).toBe(JSON.stringify(core.KLIPY_PICK).replace(/"/g, "'").replace(/,/g, ', '));
     });
 
     test('the wiki\'s own emojis are the ones the thread page draws, in its order', () => {
