@@ -552,7 +552,7 @@
       "cms_config": {
         "pageType": "tool",
         "pageId": "free_submit_tier_list",
-        "editRole": "open"
+        "editRole": "locked"
       }
     },
     {
@@ -563,7 +563,7 @@
       "cms_config": {
         "pageType": "tool",
         "pageId": "create_tier_list",
-        "editRole": "open"
+        "editRole": "locked"
       }
     }
   ],
@@ -586,7 +586,7 @@
       "cms_config": {
         "pageType": "tool",
         "pageId": "editor_playground",
-        "editRole": "open"
+        "editRole": "locked"
       }
     }
   ],

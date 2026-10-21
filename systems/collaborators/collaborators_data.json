@@ -70,7 +70,7 @@
       "role": "Media and Arts",
       "badgeType": "badge-site",
       "isLead": false,
-      "avatar": "",
+      "avatar": "/medias/images/ocelolAvatar.webp",
       "description": "Create and submit almost every single demonstration videos for the site",
       "links": []
     },
@@ -79,7 +79,7 @@
       "role": "Media and Arts",
       "badgeType": "badge-wip",
       "isLead": false,
-      "avatar": "",
+      "avatar": "/medias/images/Nuking3DAvatar.webp",
       "description": "Draw most of the icons the wiki use",
       "links": []
     }
