@@ -154,6 +154,10 @@ export function makeDiscord(fetchImpl, token) {
         async roles(guildId) {
             return (await json(await call('GET', `${API}/guilds/${guildId}/roles`))) || [];
         },
+        // The server's custom emojis (batch 8.5). Any member may list them.
+        async emojis(guildId) {
+            return (await json(await call('GET', `${API}/guilds/${guildId}/emojis`))) || [];
+        },
         async me() {
             return json(await call('GET', `${API}/users/@me`));
         },
@@ -334,6 +338,7 @@ async function openForumPosts(ctx) {
                 continue;
             }
 
+            const emoji = await emojiTags(ctx, w.body);
             await record('sending', null, null, null);
             const payload = core.forumPostOpening({
                 title: w.title,
@@ -342,6 +347,7 @@ async function openForumPosts(ctx) {
                 body: w.body,
                 imageUrls: (w.images || []).map(p => publicImageUrl(ctx, p)),
                 link: `${core.forumThreadUrl(w.thread_id)}#post-${w.opening_post_id}`,
+                emoji,
             });
             let msg;
             try {
@@ -438,6 +444,24 @@ async function blockedOnServer(ctx, discordId) {
     return blocked;
 }
 
+// The wiki's own emojis as the server's (batch 8.5): the server's list, read
+// once a tick and only when a message names one. A list that cannot be read
+// leaves the names as text, and the message still goes. Asked before a
+// message is claimed, so a slow-down here leaves it for the next tick.
+async function emojiTags(ctx, ...texts) {
+    if (!texts.some(core.namesCustomEmoji)) return null;
+    if (!ctx.emojiTags) {
+        try {
+            ctx.emojiTags = core.serverEmojiTags(await ctx.discord.emojis(ctx.cfg.guildId));
+        } catch (e) {
+            if (e instanceof RateLimited) throw e;
+            ctx.report.errors.push(`Could not read the server's emojis: ${e.message || e}`);
+            ctx.emojiTags = new Map();
+        }
+    }
+    return ctx.emojiTags;
+}
+
 function publicImageUrl(ctx, path) {
     return `${ctx.cfg.supabaseUrl}/storage/v1/object/public/discussion-media/${path}`;
 }
@@ -491,12 +515,14 @@ async function sendOne(ctx, w, webhook, record) {
         return;
     }
 
+    const emoji = await emojiTags(ctx, w.body, w.parent_body);
+
     // Claimed before the request: a tick that dies mid-send leaves `sending`,
     // and the post is never sent twice.
     await record('sending', null, null);
     let msg;
     try {
-        msg = await ctx.discord.webhookSend(webhook, w.discord_thread_id, core.toDiscordMessage(messageArgs(ctx, w)));
+        msg = await ctx.discord.webhookSend(webhook, w.discord_thread_id, core.toDiscordMessage({ ...messageArgs(ctx, w), emoji }));
         await record('sent', msg && msg.id, null);
         ctx.report.sent++;
     } catch (e) {
@@ -556,7 +582,7 @@ async function editOne(ctx, w, webhook) {
         return;
     }
 
-    const payload = core.toDiscordEdit(messageArgs(ctx, w));
+    const payload = core.toDiscordEdit({ ...messageArgs(ctx, w), emoji: await emojiTags(ctx, w.body, w.parent_body) });
     try {
         await unarchivedRetry(ctx, w.discord_thread_id,
             () => ctx.discord.webhookEdit(webhook, w.discord_thread_id, w.discord_message_id, payload));
@@ -799,6 +825,8 @@ export async function runTick({ env, db, fetch: fetchImpl, now = () => Date.now(
         fetch: fetchImpl,
         discord: makeDiscord(fetchImpl, cfg.token),
         blocked: new Map(),
+        // The server's emojis for the wiki's names, read on first need.
+        emojiTags: null,
         report: {
             relay: 'ran', sweep: Boolean(claim.sweep), forum: Boolean(cfg.channels.forum),
             opened: 0, linked: 0, taken: 0, sent: 0, deleted: 0, skipped: 0, gone: 0, edited: 0,

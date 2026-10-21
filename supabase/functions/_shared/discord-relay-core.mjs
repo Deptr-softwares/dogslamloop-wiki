@@ -157,8 +157,8 @@ export function tagFromApplied(appliedIds, availableTags, fallback = 'Discussion
 
 // A wiki forum post as the webhook payload that opens its Discord post: the
 // opening message, the title as the post's name, the category as its tag.
-export function forumPostOpening({ title, tagId, authorName, body, imageUrls = [], link }) {
-    const msg = toDiscordMessage({ authorName, body, imageUrls, link });
+export function forumPostOpening({ title, tagId, authorName, body, imageUrls = [], link, emoji = null }) {
+    const msg = toDiscordMessage({ authorName, body, imageUrls, link, emoji });
     const out = { ...msg, thread_name: forumPostName(title) };
     if (tagId) out.applied_tags = [tagId];
     return out;
@@ -169,19 +169,53 @@ export function forumPostName(title) {
     return oneLine(title, 100) || 'Untitled';
 }
 
+// --- THE WIKI'S OWN EMOJIS (v1.1 batch 8.5) ---
+//
+// Named exactly as on the Discord server (owner, 2026-10-21). js/emoji.js
+// draws the same names on the wiki, and a test checks the two lists agree.
+// Discord to wiki needs nothing here: discordText already turns the server's
+// <:HmmCat:id> into :HmmCat:.
+export const CUSTOM_EMOJI = Object.freeze(['HmmCat', 'darkCat', 'friedCat', 'lightCat', 'Boomcat']);
+const CUSTOM_TOKEN = new RegExp(`:(${CUSTOM_EMOJI.join('|')}):`, 'g');
+
+// Whether a text names one, so the server's list is read only when needed.
+export function namesCustomEmoji(text) {
+    return new RegExp(CUSTOM_TOKEN.source).test(String(text || ''));
+}
+
+// The server's own emoji for each of the wiki's names, as Discord's markup.
+// Only these names: any other server emoji typed as :name: on the wiki shows
+// as text there, so it stays text here too.
+export function serverEmojiTags(guildEmojis) {
+    const tags = new Map();
+    for (const e of guildEmojis || []) {
+        if (!e || !CUSTOM_EMOJI.includes(e.name) || !isSnowflake(e.id) || tags.has(e.name)) continue;
+        tags.set(e.name, `<${e.animated ? 'a' : ''}:${e.name}:${e.id}>`);
+    }
+    return tags;
+}
+
+export function withServerEmoji(text, tags) {
+    const s = String(text == null ? '' : text);
+    return tags && tags.size ? s.replace(CUSTOM_TOKEN, (whole, name) => tags.get(name) || whole) : s;
+}
+
 // One wiki post as a webhook payload. Rule 8: `allowed_mentions` is always
 // empty, so "@everyone" or a role mention typed on the wiki pings nobody.
 // Rule 10: over Discord's limit, the words are cut and the full post linked.
-export function toDiscordMessage({ authorName, body, imageUrls = [], parentAuthor = null, parentBody = '', isReply = false, link }) {
-    const head = isReply ? `${quoteLine(parentAuthor, parentBody)}\n` : '';
+// `emoji`: serverEmojiTags' map, or null to leave the names as text.
+export function toDiscordMessage({ authorName, body, imageUrls = [], parentAuthor = null, parentBody = '', isReply = false, link, emoji = null }) {
+    const head = isReply ? `${withServerEmoji(quoteLine(parentAuthor, parentBody), emoji)}\n` : '';
     const tail = imageUrls.length ? `\n${imageUrls.join('\n')}` : '';
-    let words = neutralize(String(body || '').trim());
+    let words = withServerEmoji(neutralize(String(body || '').trim()), emoji);
 
     const fits = (w) => head.length + w.length + tail.length <= DISCORD_MAX;
     if (!fits(words)) {
         const more = `… read the rest on the wiki: <${link}>`;
         const room = DISCORD_MAX - head.length - tail.length - more.length - 1;
-        words = `${words.slice(0, Math.max(0, room)).trimEnd()}\n${more}`;
+        // A cut never leaves half an emoji's markup behind.
+        const kept = words.slice(0, Math.max(0, room)).replace(/<a?:[A-Za-z0-9_]*(?::\d*)?$/, '');
+        words = `${kept.trimEnd()}\n${more}`;
     }
 
     return {

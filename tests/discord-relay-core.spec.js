@@ -354,6 +354,13 @@ test.describe('agreement with the files the relay sits between', () => {
         expect(grab('KLIPY_PICK')).toBe(JSON.stringify(core.KLIPY_PICK).replace(/"/g, "'").replace(/,/g, ', '));
     });
 
+    test('the wiki\'s own emojis are the ones the thread page draws, in its order', () => {
+        const page = fs.readFileSync(path.join(ROOT, 'js', 'emoji.js'), 'utf8');
+        const list = /const CUSTOM = \[([\s\S]*?)\];/.exec(page);
+        expect(list, 'no CUSTOM in js/emoji.js').not.toBeNull();
+        expect([...list[1].matchAll(/name: '([^']+)'/g)].map(m => m[1])).toEqual(core.CUSTOM_EMOJI);
+    });
+
     test('a copied image\'s path and types match the migration', () => {
         const dir = path.join(ROOT, 'supabase', 'migrations');
         const sql = fs.readdirSync(dir).filter(f => f.endsWith('.sql')).sort()
@@ -523,5 +530,54 @@ test.describe('roles', () => {
         delete noAdmin.admin;
         const out = core.roleChanges({ wanted: ['admin', 'moderate'], synced: [], taken: ['admin'], banned: false, current: null, ids: noAdmin });
         expect(out).toEqual({ add: ['M'], remove: [], synced: ['moderate'], taken: ['admin'] });
+    });
+});
+
+// Batch 8.5: :HmmCat: on the wiki is the server's own emoji on Discord.
+test.describe('the wiki\'s own emojis on Discord', () => {
+    const HMM = '700000000000000001';
+    const BOOM = '700000000000000002';
+    const SERVER = [
+        { id: HMM, name: 'HmmCat', animated: false },
+        { id: BOOM, name: 'Boomcat', animated: true },
+        { id: '700000000000000003', name: 'HmmCat', animated: false },   // a second of one name: the first wins
+        { id: '700000000000000004', name: 'serverOnly', animated: false },
+        { id: 'not-an-id', name: 'darkCat', animated: false },
+    ];
+
+    test('only the wiki\'s names are taken from the server\'s list, animated ones as <a:...>', () => {
+        const tags = core.serverEmojiTags(SERVER);
+        expect([...tags]).toEqual([['HmmCat', `<:HmmCat:${HMM}>`], ['Boomcat', `<a:Boomcat:${BOOM}>`]]);
+        expect(core.serverEmojiTags(null).size).toBe(0);
+    });
+
+    test('a message carries them in its words and its quote line; without the list the names stay text', () => {
+        const tags = core.serverEmojiTags(SERVER);
+        const msg = core.toDiscordMessage({
+            authorName: 'Kai', body: ':HmmCat::Boomcat: then :hmmcat: :serverOnly: :darkCat:', isReply: true,
+            parentAuthor: 'Mo', parentBody: 'look :HmmCat:', link: 'https://dogslamloop.com/x', emoji: tags,
+        });
+        expect(msg.content).toBe(`> **Mo**: look <:HmmCat:${HMM}>\n<:HmmCat:${HMM}><a:Boomcat:${BOOM}> then :hmmcat: :serverOnly: :darkCat:`);
+        expect(core.toDiscordMessage({ authorName: 'Kai', body: ':HmmCat:', link: 'x' }).content).toBe(':HmmCat:');
+        expect(core.namesCustomEmoji('a :Boomcat: b')).toBe(true);
+        expect(core.namesCustomEmoji('a :boomcat: b :serverOnly:')).toBe(false);
+    });
+
+    test('a message cut at Discord\'s limit never ends in half an emoji', () => {
+        const tags = core.serverEmojiTags(SERVER);
+        const link = 'https://dogslamloop.com/characters/Boomcat/index.html#post-1';
+        const room = core.DISCORD_MAX - `… read the rest on the wiki: <${link}>`.length - 1;
+        // Every cut point through the markup, from its first character to its last.
+        for (let at = room - 29; at <= room; at++) {
+            const body = `${'x'.repeat(at)} :HmmCat: ${'y'.repeat(3000)}`;
+            const { content } = core.toDiscordMessage({ authorName: 'Kai', body, link, emoji: tags });
+            expect(content.length).toBeLessThanOrEqual(core.DISCORD_MAX);
+            const cut = content.slice(0, content.lastIndexOf('\n'));
+            expect(cut, `cut at ${at}`).not.toMatch(/<a?:[A-Za-z0-9_]*(?::\d*)?$/);
+        }
+    });
+
+    test('a Discord message naming the server\'s emoji comes back as the wiki\'s name', () => {
+        expect(core.discordText({ content: `gg <:HmmCat:${HMM}> <a:Boomcat:${BOOM}>`, mentions: [] })).toBe('gg :HmmCat: :Boomcat:');
     });
 });
