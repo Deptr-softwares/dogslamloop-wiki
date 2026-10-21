@@ -4,8 +4,9 @@
 // The owner's calls this file holds the tool to: drag-and-drop, with tier
 // names and colours customisable (v0.15, 2026-08-15); the image goes to the
 // clipboard, not a download (2026-08-16), with a download only when the
-// browser cannot copy one; an optional title and a small faint
-// dogslamloop.com on the image (2026-10-20). Tap-to-place for phones, S to F in
+// browser cannot copy one; an optional title on the image (2026-10-20); the
+// branding at the top right of the first tier, characters wrapping around it,
+// on the board and the image (2026-10-21). Tap-to-place for phones, S to F in
 // Free Submit's colours and the list kept on the device were mine, written
 // back and kept.
 //
@@ -469,14 +470,20 @@ async function readClipboardImage(page) {
             return seen.size;
         };
         const h = bitmap.height / s;
+        // The first tier's first row of cells, under the title: 127px cells,
+        // 8 to a row, the last two kept for the branding (x 933 to 1190).
+        const row = 76 + 2 + 3;
         return {
             type, width: bitmap.width, height: bitmap.height,
             titleLeft: at(20, 38), titleMiddle: brightest(400, 10, 800, 66),
-            labelS: at(20, 76 + 2 + 5), cellColours: distinct(150 + 3 + 8, 76 + 2 + 3 + 8, 100),
-            // The last tier: the credit in its bottom right corner, nothing
-            // at its bottom left, and the board's own edge below it.
-            creditText: brightest(1060, h - 28, 1195, h - 3), creditIcon: colourful(1000, h - 28, 1080, h - 3),
-            lastRowLeft: brightest(160, h - 28, 900, h - 3), lastRowGround: at(500, h - 10),
+            labelS: at(20, 76 + 2 + 5), cellColours: distinct(150 + 3 + 8, row + 8, 100),
+            // The icon in the top half of the branding, the words under it,
+            // and nothing between the one character placed and the branding.
+            brandIcon: colourful(940, row + 4, 1185, row + 70), brandText: brightest(940, row + 80, 1185, row + 125),
+            firstRowMiddle: brightest(450, row + 4, 920, row + 123),
+            // The last tier keeps nothing in its corner now, and the board's
+            // own edge is below it.
+            lastRowRight: brightest(900, h - 28, 1195, h - 3), lastRowGround: at(500, h - 10),
             bottomEdge: at(600, h - 1),
         };
     });
@@ -495,7 +502,7 @@ const token = (page, name) => page.evaluate((n) => {
 }, name);
 const copied = /^Copied \((\d+)x(\d+), \d+\.\d MB\)\. Paste it anywhere\.$/;
 
-test('COPY IMAGE puts the list on the clipboard: the title on top, the tiers in their colours, the credit in the last tier', async ({ page, context }) => {
+test('COPY IMAGE puts the list on the clipboard: the title on top, the tiers in their colours, the branding in the first tier', async ({ page, context }) => {
     test.skip(!WITH_PORTRAIT, 'no character has a portrait to draw');
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     const errors = await boot(page);
@@ -523,11 +530,13 @@ test('COPY IMAGE puts the list on the clipboard: the title on top, the tiers in 
     expect(near(img.labelS, sColour), `S label ${img.labelS} vs ${sColour}`).toBe(true);
     expect(img.cellColours, 'the placed character\'s portrait is drawn').toBeGreaterThan(50);
 
-    // Owner, 2026-10-21: the icon with dogslamloop.com, inside the tier list.
+    // Owner, 2026-10-21: the icon with dogslamloop.com, at the top right of
+    // the first tier like TierMaker's, and not in the last tier any more.
+    expect(img.brandIcon, 'the icon at the first tier\'s top right').toBeGreaterThan(40);
+    expect(img.brandText, 'dogslamloop.com under it').toBeGreaterThan(sum(rowGround) + 60);
+    expect(img.firstRowMiddle, 'the branding sits in the corner, not after the character').toBeLessThanOrEqual(sum(rowGround) + 6);
     expect(near(img.lastRowGround, rowGround), 'the last tier\'s own ground').toBe(true);
-    expect(img.creditText, 'dogslamloop.com in its bottom right').toBeGreaterThan(sum(rowGround) + 60);
-    expect(img.creditIcon, 'with the icon beside it').toBeGreaterThan(40);
-    expect(img.lastRowLeft, 'nothing at its bottom left').toBeLessThanOrEqual(sum(rowGround) + 6);
+    expect(img.lastRowRight, 'nothing in the last tier\'s corner').toBeLessThanOrEqual(sum(rowGround) + 6);
     expect(near(img.bottomEdge, edge), 'no footer: the image ends at the board').toBe(true);
 
     // No title, no title row: the board starts at the top.
@@ -543,15 +552,19 @@ test('COPY IMAGE puts the list on the clipboard: the title on top, the tiers in 
     expect(errors).toEqual([]);
 });
 
-// A full line reaches the right edge, since the cells stretch to fill the row,
-// and a busy last tier makes room for the credit rather than running under it.
-test('a full line fills the image\'s width, and the last tier keeps room for the credit', async ({ page, context }) => {
-    test.skip(VISIBLE.length < 15, 'needs 15 characters on the roster');
+// Owner, 2026-10-21: "the branding is actually a fixed elements that the boxes
+// wrap and go around; but for tiers where the branding isn't situated at, it
+// will fill over". Measured with the portraits blocked, so every cell is a
+// flat fill, probed near its top left corner, clear of the name drawn in its
+// middle.
+test('in the image, the first tier wraps around the branding and the next tier fills its whole row', async ({ page, context }) => {
+    test.skip(VISIBLE.length < 16, 'needs 16 characters on the roster');
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.route('**/medias/portraits/**', route => route.fulfill({ status: 404, body: '' }));
     await boot(page);
     await page.locator('[data-mk-quality]').selectOption('1');
     for (const c of VISIBLE.slice(0, 8)) await tapPlace(page, c.id, 0);
-    for (const c of VISIBLE.slice(8, 15)) await tapPlace(page, c.id, 5);
+    for (const c of VISIBLE.slice(8, 16)) await tapPlace(page, c.id, 1);
     await page.locator('[data-mk-action="copy"]').click();
     await expect(status(page)).toHaveText(copied, { timeout: 15000 });
 
@@ -565,13 +578,80 @@ test('a full line fills the image\'s width, and the last tier keeps room for the
         const ctx = canvas.getContext('2d');
         ctx.drawImage(bitmap, 0, 0);
         const at = (x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data.slice(0, 3));
-        const h = bitmap.height;
-        // S's eighth character, near the right edge; and the last tier just
-        // left of the credit, at its bottom.
-        return { rightEdge: at(1185, 2 + 3 + 60), besideCredit: at(990, h - 10) };
+        let colour = 0;
+        const icon = ctx.getImageData(940, 5, 245, 70).data;
+        for (let i = 0; i < icon.length; i += 4) colour = Math.max(colour, Math.max(icon[i], icon[i + 1], icon[i + 2]) - Math.min(icon[i], icon[i + 1], icon[i + 2]));
+        // 127px cells 130px apart from x 153. S: rows at y 5 and 135, two
+        // lines tall, so A's row is at y 270.
+        const cellAt = (col, rowTop) => at(153 + col * 130 + 10, rowTop + 10);
+        return {
+            sSixth: cellAt(5, 5), sSeventhPlace: cellAt(6, 5), brandIcon: colour,
+            sSecondLineFirst: cellAt(0, 135), sSecondLineThird: cellAt(2, 135),
+            aEighth: cellAt(7, 270),
+        };
     });
-    expect(near(probe.rightEdge, rowGround), 'S\'s last cell reaches the edge').toBe(false);
-    expect(near(probe.besideCredit, rowGround), 'no portrait under the credit').toBe(true);
+    const ground = (c) => near(c, rowGround);
+    expect(ground(probe.sSixth), 'S\'s first line holds six').toBe(false);
+    expect(ground(probe.sSeventhPlace), 'the seventh place is the branding\'s, not a character\'s').toBe(true);
+    expect(probe.brandIcon, 'the branding is drawn there').toBeGreaterThan(40);
+    expect(ground(probe.sSecondLineFirst), 'the seventh character wraps to the next line').toBe(false);
+    expect(ground(probe.sSecondLineThird), 'and only two did').toBe(true);
+    expect(ground(probe.aEighth), 'A has no branding, so its eighth character reaches the edge').toBe(false);
+});
+
+test('on the board, the branding holds the first tier\'s top right corner and the characters wrap around it', async ({ page }) => {
+    const errors = await boot(page);
+    const body = (i) => page.locator(`.mk-body[data-zone="${i}"]`);
+    const brandEl = page.locator('.mk-brand');
+    const columns = await body(0).evaluate(n => getComputedStyle(n).gridTemplateColumns.split(' ').length);
+    test.skip(VISIBLE.length < columns + 1, 'needs a full row of characters and one more');
+
+    // A full row's worth in S, saved and reloaded rather than placed one tap
+    // at a time.
+    await page.evaluate(({ key, tiers }) => localStorage.setItem(key, JSON.stringify({ v: 1, title: '', tiers, scale: 2 })), {
+        key: 'dsl_create_tier_list',
+        tiers: ['S', 'A', 'B', 'C', 'D', 'F'].map((name, i) => ({
+            name, color: DEFAULT_COLOURS[i], characters: i === 0 ? VISIBLE.slice(0, columns).map(c => c.id) : [],
+        })),
+    });
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.locator('.mk-entry').first()).toBeVisible({ timeout: 20000 });
+
+    await expect(brandEl).toHaveCount(1);
+    await expect(body(0).locator('.mk-brand')).toBeVisible();
+    await expect(brandEl).toHaveText('dogslamloop.com');
+    expect(await brandEl.locator('img').evaluate(img => img.complete && img.naturalWidth > 0), 'the icon loads').toBe(true);
+
+    const rects = (i) => body(i).locator('.mk-entry').evaluateAll(nodes => nodes.map(n => {
+        const r = n.getBoundingClientRect();
+        return { top: r.top, left: r.left, right: r.right };
+    }));
+    const b = await brandEl.boundingBox();
+    const box = await body(0).boundingBox();
+    const s = await rects(0);
+    const firstLine = s.filter(r => Math.abs(r.top - s[0].top) < 1);
+    expect(Math.abs(b.y - s[0].top), 'on the first line').toBeLessThan(1);
+    expect(firstLine.length, 'two places on the first line are the branding\'s').toBe(columns - 2);
+    expect(Math.max(...firstLine.map(r => r.right)), 'the characters stop before it').toBeLessThan(b.x);
+    expect(box.x + box.width - (b.x + b.width), 'in the last columns').toBeLessThan(96 + 3 + 3 + 2);
+    const wrapped = s[columns - 2];
+    expect(wrapped.top, 'the next character wraps under it').toBeGreaterThan(b.y + b.height);
+    expect(Math.abs(wrapped.left - s[0].left), 'to the start of the line').toBeLessThan(1);
+
+    // Moved down, S fills its whole first line, and the branding stays with
+    // whichever tier is first.
+    await page.locator('[data-mk-action="down"][data-tier="0"]').click();
+    await expect(body(0).locator('.mk-brand')).toHaveCount(1);
+    await expect(body(1).locator('.mk-brand')).toHaveCount(0);
+    const moved = await rects(1);
+    expect(moved.every(r => Math.abs(r.top - moved[0].top) < 1), 'all of S on one line').toBe(true);
+
+    // The branding is not in the way of a drop: let go over it, the
+    // character goes to the end of that tier.
+    const extra = VISIBLE[columns];
+    await drag(page, entry(page, extra.id), brandEl);
+    expect(await tier(page, 0)).toEqual([extra.id]);
+    expect(errors).toEqual([]);
 });
 
 // The same 3px in the image. Measured with the portraits blocked, so every

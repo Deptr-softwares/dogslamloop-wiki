@@ -8,7 +8,8 @@
  *
  * The owner's calls: on the site, not an external tool (2026-10-18);
  * drag-and-drop, with tier names and colours customisable (v0.15); the image
- * carries an optional title and a small faint dogslamloop.com (2026-10-20); no
+ * carries an optional title (2026-10-20) and the site's branding at the top
+ * right of the first tier, on the board too, TierMaker's way (2026-10-21); no
  * Edit and no History, because the page is the tool (2026-10-21).
  *
  * The characters come from the shared roster (loadCharacterRoster in
@@ -65,10 +66,10 @@
         { scale: 3, label: 'Max (3600px wide)' },
     ];
     const DEFAULT_SCALE = 2;
-    // Inside the last tier's bottom right corner, with the site's icon (owner,
-    // 2026-10-21). The last tier keeps room for it, so it never covers a
-    // portrait.
-    const CREDIT = { text: 'dogslamloop.com', icon: 'medias/images/DogslamloopIcon.webp', iconPx: 18, width: 175 };
+    // A fixed block at the top right of the first tier, the last `cells`
+    // places of its first row, which that tier's characters wrap around; every
+    // other tier fills its whole row (owner, 2026-10-21, after TierMaker's).
+    const BRAND = { text: 'dogslamloop.com', icon: 'medias/images/DogslamloopIcon.webp', cells: 2 };
     const LABEL_FONT = '"CC-Wild-Words", sans-serif';
 
     const state = {
@@ -230,6 +231,20 @@
         return node;
     }
 
+    // Decorative: the copied image says the same in pixels. Its corner is held
+    // by grid placement (create_tier_list.css), so nothing here measures.
+    function brand() {
+        const node = el('div', 'mk-brand');
+        node.setAttribute('aria-hidden', 'true');
+        const icon = document.createElement('img');
+        icon.className = 'mk-brand-icon';
+        icon.alt = '';
+        icon.draggable = false;
+        icon.src = window.getRootPath() + BRAND.icon;
+        node.append(icon, el('span', 'mk-brand-text', BRAND.text));
+        return node;
+    }
+
     // One size per name length rather than measuring: a scale of labels
     // reads as one when the short ones agree, and a long name wraps inside.
     function setLabel(label, name) {
@@ -254,6 +269,7 @@
 
             const body = el('div', 'mk-body mk-zone');
             body.dataset.zone = String(index);
+            if (index === 0) body.appendChild(brand());
             tier.characters.forEach(id => body.appendChild(entry(id)));
             row.appendChild(body);
             board.appendChild(row);
@@ -592,6 +608,7 @@
             size -= 2;
             ctx.font = `${size}px ${family}`;
         }
+        return size;
     }
 
     function loadImage(src) {
@@ -674,17 +691,18 @@
             const meta = state.roster.get(id);
             images.set(id, meta.image ? await loadImage(rootPath + meta.image) : null);
         }));
-        const icon = await loadImage(rootPath + CREDIT.icon);
+        const icon = await loadImage(rootPath + BRAND.icon);
 
         // As many cells as fit at IMG.cell, then stretched to fill the row.
         const bodyWidth = IMG.width - IMG.label - IMG.pad * 2;
         const perRow = Math.max(1, Math.floor((bodyWidth + IMG.gap) / (IMG.cell + IMG.gap)));
         const cell = Math.floor((bodyWidth - (perRow - 1) * IMG.gap) / perRow);
-        // The credit takes the last tier's final cells, as if it were a
-        // character there.
-        const creditCells = Math.ceil((CREDIT.width + IMG.gap) / (cell + IMG.gap));
+        // The place character n takes in tier i: the first tier's first row
+        // stops where the branding starts, and the rest carry on below it.
+        const firstRow = perRow - BRAND.cells;
+        const slot = (i, n) => (i === 0 && n >= firstRow ? n + BRAND.cells : n);
         const heights = state.tiers.map((t, i) => {
-            const taken = t.characters.length + (i === state.tiers.length - 1 ? creditCells : 0);
+            const taken = t.characters.length + (i === 0 ? BRAND.cells : 0);
             const lines = Math.max(1, Math.ceil(taken / perRow));
             return lines * cell + (lines - 1) * IMG.gap + IMG.pad * 2;
         });
@@ -733,10 +751,16 @@
             }
 
             tier.characters.forEach((id, n) => {
-                const x = IMG.label + IMG.pad + (n % perRow) * (cell + IMG.gap);
-                const cy = y + IMG.pad + Math.floor(n / perRow) * (cell + IMG.gap);
+                const at = slot(i, n);
+                const x = IMG.label + IMG.pad + (at % perRow) * (cell + IMG.gap);
+                const cy = y + IMG.pad + Math.floor(at / perRow) * (cell + IMG.gap);
                 drawEntry(ctx, id, images.get(id), x, cy, cell, line);
             });
+
+            if (i === 0) {
+                const bx = IMG.label + IMG.pad + firstRow * (cell + IMG.gap);
+                drawBrand(ctx, icon, bx, y + IMG.pad, BRAND.cells * cell + (BRAND.cells - 1) * IMG.gap, cell, ink);
+            }
 
             y += h;
             ctx.fillStyle = line;
@@ -744,23 +768,22 @@
             y += IMG.line;
         });
 
-        // Small and faint, in the last tier's bottom right corner, in the
-        // cells kept for it (owner, 2026-10-20 and 2026-10-21).
-        const creditY = height - IMG.line - IMG.pad - 12;
-        const creditRight = IMG.width - IMG.pad - 6;
-        ctx.globalAlpha = 0.6;
-        ctx.fillStyle = ink;
-        ctx.font = '14px monospace';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(CREDIT.text, creditRight, creditY);
-        if (icon) {
-            const iconRight = creditRight - ctx.measureText(CREDIT.text).width - 6;
-            ctx.drawImage(icon, iconRight - CREDIT.iconPx, creditY - CREDIT.iconPx / 2, CREDIT.iconPx, CREDIT.iconPx);
-        }
-        ctx.globalAlpha = 1;
-
         return canvas;
+    }
+
+    // The icon over dogslamloop.com, centred in its block, at full strength
+    // like TierMaker's own.
+    function drawBrand(ctx, icon, x, y, w, h, ink) {
+        const iconH = icon ? Math.round(h * 0.46) : 0;
+        const iconW = icon ? iconH * icon.naturalWidth / icon.naturalHeight : 0;
+        const space = icon ? 8 : 0;
+        const size = fitFont(ctx, BRAND.text, w - 16, 26, 12, LABEL_FONT);
+        const top = y + (h - (iconH + space + size)) / 2;
+        if (icon) ctx.drawImage(icon, x + (w - iconW) / 2, top, iconW, iconH);
+        ctx.fillStyle = ink;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(BRAND.text, x + w / 2, top + iconH + space);
     }
 
     function toPng(canvas) {

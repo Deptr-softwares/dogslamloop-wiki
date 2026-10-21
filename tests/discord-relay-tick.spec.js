@@ -70,6 +70,10 @@ function world() {
         rateLimitRoles: false,
         refuseRoles: false,
         onRoleChange: null,
+        // Batch 8.5: the server's custom emojis ({ id, name, animated }), and
+        // a list that cannot be read.
+        emojis: [],
+        failEmojis: false,
         calls: [],
     };
     const db = {
@@ -214,6 +218,10 @@ function world() {
         }
         if (p === '/api/v10/users/@me') return json(200, { id: BOT, bot: true });
         if (p === `/api/v10/guilds/${GUILD}/roles`) return json(200, discord.roles);
+        if (p === `/api/v10/guilds/${GUILD}/emojis`) {
+            if (discord.rateLimitEmojis) return json(429, { retry_after: 1 });
+            return discord.failEmojis ? json(500, { message: 'Internal Server Error' }) : json(200, discord.emojis);
+        }
         m = /^\/api\/v10\/guilds\/\d+\/members\/(\d+)\/roles\/(\d+)$/.exec(p);
         if (m && (method === 'PUT' || method === 'DELETE')) {
             if (discord.rateLimitRoles) return json(429, { retry_after: 1 });
@@ -623,6 +631,148 @@ test('a reply opens with a quote of what it answers', async () => {
     await w.tick();
     const send = w.discord.calls.find(c => c.method === 'POST');
     expect(send.body.content).toBe('> **Mo**: Boomcat wins this\nagreed');
+});
+
+// --- KLIPY GIFS FROM DISCORD (batch 8.5) ---
+//
+// The relay no longer asks KLIPY: its production rules allow requests from a
+// reader's browser only. A message waits for Discord's own preview instead.
+
+const GIF_PAGE = 'https://klipy.com/gifs/funny-cat-1';
+const GIF_MEDIA = 'https://static.klipy.com/ii/0a1b2c/funny-cat-1/md.mp4';
+const preview = (msg) => { msg.embeds = [{ url: GIF_PAGE, video: { url: GIF_MEDIA } }]; };
+const askedKlipy = (w) => w.discord.calls.some(c => new URL(c.url).host.endsWith('klipy.com'));
+
+test('a Discord GIF with no preview yet waits for Discord\'s, the messages after it too, and KLIPY is never asked', async () => {
+    const w = world();
+    const thread = w.linkedThread();
+    const start = w.db.links.get('boomcat').last_message_id;
+    const gif = w.say(thread, { content: `lol ${GIF_PAGE}` });
+    w.say(thread, { content: 'after it' });
+
+    await w.tick();
+    expect(w.db.taken).toEqual([]);
+    expect(w.db.links.get('boomcat').last_message_id, 'the cursor stays before it').toBe(start);
+
+    // Discord makes its preview a few seconds later.
+    w.advance(10 * 1000);
+    preview(gif);
+    await w.tick();
+    expect(w.db.taken.map(t => t.p_body)).toEqual([`lol ${GIF_MEDIA}`, 'after it']);
+    expect(askedKlipy(w)).toBe(false);
+});
+
+test('after a minute with no preview, the message is copied with its link as it is', async () => {
+    const w = world();
+    const thread = w.linkedThread();
+    w.say(thread, { content: `lol ${GIF_PAGE}` });
+    await w.tick();
+    w.advance(59 * 1000);
+    await w.tick();
+    expect(w.db.taken).toEqual([]);
+
+    w.advance(2 * 1000);
+    await w.tick();
+    expect(w.db.taken.map(t => t.p_body)).toEqual([`lol ${GIF_PAGE}`]);
+    expect(askedKlipy(w)).toBe(false);
+});
+
+test('a forum post started on Discord with a GIF waits for the preview too', async () => {
+    const w = world();
+    w.discord.forumTags = TAGS;
+    const id = w.forumPost('Look at this', { content: `opening ${GIF_PAGE}` });
+    await w.tick(FORUM_ENV);
+    expect(w.db.forumTaken).toEqual([]);
+
+    w.advance(5 * 1000);
+    preview(w.discord.messages.get(id)[0]);
+    await w.tick(FORUM_ENV);
+    expect(w.db.forumTaken.map(t => t.p_body)).toEqual([`opening ${GIF_MEDIA}`]);
+    expect(askedKlipy(w)).toBe(false);
+});
+
+// --- THE WIKI'S OWN EMOJIS (batch 8.5) ---
+
+const HMM = '700000000000000001';
+const BOOM = '700000000000000002';
+const sendOf = (thread, over = {}) => ({
+    action: 'send', post_id: 'p1', page_id: 'boomcat', page_url: 'characters/Boomcat/', parent_id: null,
+    body: 'plain', images: [], author_name: 'Kai', author_discord_id: null,
+    parent_author_name: null, parent_body: null, channel: 'character', discord_thread_id: thread, attempts: 0, ...over,
+});
+const emojiReads = (w) => w.discord.calls.filter(c => c.url.endsWith(`/guilds/${GUILD}/emojis`)).length;
+
+test(':HmmCat: written on the wiki goes out as the server\'s own emoji; the list is read once a tick, and only when needed', async () => {
+    const w = world();
+    const thread = w.linkedThread();
+    w.discord.emojis = [
+        { id: HMM, name: 'HmmCat', animated: false },
+        { id: BOOM, name: 'Boomcat', animated: true },
+        { id: '700000000000000003', name: 'serverOnly', animated: false },
+    ];
+    w.db.outbox = [
+        sendOf(thread, { post_id: 'a', body: ':HmmCat: gg :serverOnly: :hmmcat: :darkCat:' }),
+        sendOf(thread, { post_id: 'b', body: 'no cats', parent_id: 'a', parent_author_name: 'Mo', parent_body: 'look :Boomcat:' }),
+    ];
+
+    const report = await w.tick();
+    expect(report).toMatchObject({ sent: 2, errors: [] });
+    const sends = w.discord.calls.filter(c => c.method === 'POST' && c.url.startsWith(WEBHOOK)).map(c => c.body.content);
+    // Only the wiki's names, exactly as written; one the server lacks stays text.
+    expect(sends[0]).toBe(`<:HmmCat:${HMM}> gg :serverOnly: :hmmcat: :darkCat:`);
+    // The quote line too, and an animated one keeps its <a:...>.
+    expect(sends[1]).toBe(`> **Mo**: look <a:Boomcat:${BOOM}>\nno cats`);
+    expect(emojiReads(w)).toBe(1);
+
+    // A tick with no cats in it never asks.
+    w.discord.calls.length = 0;
+    w.db.outbox = [sendOf(thread, { post_id: 'c', body: 'nothing to see' })];
+    await w.tick();
+    expect(emojiReads(w)).toBe(0);
+});
+
+test('a wiki edit and a forum post opening carry the server\'s emoji too', async () => {
+    const w = world();
+    w.discord.emojis = [{ id: HMM, name: 'HmmCat', animated: false }];
+    const thread = w.linkedThread();
+    const copy = w.say(thread, { webhook_id: WEBHOOK_ID, content: 'old words' });
+    w.db.links.get('boomcat').last_message_id = copy.id;
+    w.db.outbox = [editOf(thread, copy.id, { body: 'now :HmmCat:' })];
+    w.discord.forumTags = TAGS;
+    w.db.forumOutbox = [opening({ body: 'opening :HmmCat:' })];
+
+    const report = await w.tick(FORUM_ENV);
+    expect(report).toMatchObject({ editsSent: 1, forumOpened: 1, errors: [] });
+    expect(w.discord.calls.find(c => c.method === 'PATCH').body.content).toBe(`now <:HmmCat:${HMM}>`);
+    expect(w.discord.calls.find(c => c.method === 'POST' && c.url.startsWith(FORUM_WEBHOOK)).body.content).toBe(`opening <:HmmCat:${HMM}>`);
+    expect(emojiReads(w)).toBe(1);
+});
+
+test('when the server\'s emojis cannot be read, the post still goes, with the names as text', async () => {
+    const w = world();
+    const thread = w.linkedThread();
+    w.discord.failEmojis = true;
+    w.db.outbox = [sendOf(thread, { body: ':HmmCat: still here' })];
+
+    const report = await w.tick();
+    expect(report.sent).toBe(1);
+    expect(report.errors.join(' ')).toContain('Could not read the server\'s emojis');
+    expect(w.discord.calls.find(c => c.method === 'POST').body.content).toBe(':HmmCat: still here');
+    expect(w.db.records.map(r => r.p_state)).toEqual(['sending', 'sent']);
+});
+
+test('a slow-down on the emoji list leaves the post unclaimed, so the next tick sends it', async () => {
+    const w = world();
+    const thread = w.linkedThread();
+    w.discord.emojis = [{ id: HMM, name: 'HmmCat', animated: false }];
+    w.db.outbox = [sendOf(thread, { body: ':HmmCat:' })];
+    w.discord.rateLimitEmojis = true;
+
+    const report = await w.tick();
+    expect(report.rateLimited).toBe(true);
+    expect(w.db.records).toEqual([]);
+    expect(w.discord.calls.some(c => c.method === 'POST')).toBe(false);
+    expect(w.db.lease).toBe(false);
 });
 
 test('a wiki post taken down comes off Discord; a removed Discord message is deleted at its source', async () => {

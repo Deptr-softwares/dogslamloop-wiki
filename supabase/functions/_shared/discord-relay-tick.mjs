@@ -154,6 +154,10 @@ export function makeDiscord(fetchImpl, token) {
         async roles(guildId) {
             return (await json(await call('GET', `${API}/guilds/${guildId}/roles`))) || [];
         },
+        // The server's custom emojis (batch 8.5). Any member may list them.
+        async emojis(guildId) {
+            return (await json(await call('GET', `${API}/guilds/${guildId}/emojis`))) || [];
+        },
         async me() {
             return json(await call('GET', `${API}/users/@me`));
         },
@@ -191,22 +195,6 @@ async function copyImages(db, fetchImpl, parsed) {
         }
     }
     return paths;
-}
-
-async function resolveKlipy(fetchImpl, parsed) {
-    const media = new Map(parsed.klipyEmbeds);
-    for (const slug of parsed.klipySlugs) {
-        if (media.has(slug)) continue;
-        try {
-            const res = await fetchImpl(`${core.KLIPY_API}${encodeURIComponent(slug)}`);
-            if (!res.ok) continue;
-            const url = core.klipyPick(await res.json());
-            if (url) media.set(slug, url);
-        } catch (_) {
-            // Left as the link it was, as on the wiki.
-        }
-    }
-    return media;
 }
 
 // --- D3: A POST FOR EVERY CHARACTER ---
@@ -255,11 +243,13 @@ async function forumTags(ctx) {
 }
 
 // Words and copied pictures for one Discord message, ready for the database.
+// A KLIPY GIF comes from Discord's own preview (waitingForKlipyPreview).
 async function prepareMessage(ctx, msg, parsed) {
-    const media = await resolveKlipy(ctx.fetch, parsed);
     const images = await copyImages(ctx.db, ctx.fetch, parsed);
-    return { body: core.wikiBody(msg, media), images };
+    return { body: core.wikiBody(msg, parsed.klipyEmbeds), images };
 }
+
+const klipyWait = (ctx, msg, parsed) => core.waitingForKlipyPreview(parsed, ctx.now() - core.snowflakeTime(msg.id));
 
 // Posts started on Discord, copied in as Forum posts. Start fresh: only posts
 // begun after the forum was first connected.
@@ -286,6 +276,8 @@ async function importForumPosts(ctx, active) {
         const parsed = starter && core.fromDiscordMessage(starter);
         // The relay's own posts, and a starter already deleted, are not copied.
         if (!parsed || parsed.skip) continue;
+        // Still unlinked, so a later tick comes back to it.
+        if (klipyWait(ctx, starter, parsed)) continue;
 
         const { body, images } = await prepareMessage(ctx, starter, parsed);
         const id = await rpc(ctx.db, 'discord_relay_take_forum', {
@@ -334,6 +326,7 @@ async function openForumPosts(ctx) {
                 continue;
             }
 
+            const emoji = await emojiTags(ctx, w.body);
             await record('sending', null, null, null);
             const payload = core.forumPostOpening({
                 title: w.title,
@@ -342,6 +335,7 @@ async function openForumPosts(ctx) {
                 body: w.body,
                 imageUrls: (w.images || []).map(p => publicImageUrl(ctx, p)),
                 link: `${core.forumThreadUrl(w.thread_id)}#post-${w.opening_post_id}`,
+                emoji,
             });
             let msg;
             try {
@@ -391,9 +385,10 @@ async function readDiscord(ctx, active) {
             const parsed = core.fromDiscordMessage(msg);
             // Start fresh: nothing older than the moment the post was linked.
             if (!parsed.skip && core.snowflakeTime(msg.id) >= linkedAt) {
-                const media = await resolveKlipy(ctx.fetch, parsed);
-                const images = await copyImages(ctx.db, ctx.fetch, parsed);
-                const body = core.wikiBody(msg, media);
+                // Stop the thread here, as for a failed copy: this message
+                // and the ones after it are read again next tick, in order.
+                if (klipyWait(ctx, msg, parsed)) break;
+                const { body, images } = await prepareMessage(ctx, msg, parsed);
                 try {
                     const id = await rpc(ctx.db, 'discord_relay_take', {
                         p_discord_thread_id: thread.id,
@@ -436,6 +431,24 @@ async function blockedOnServer(ctx, discordId) {
     }
     ctx.blocked.set(discordId, blocked);
     return blocked;
+}
+
+// The wiki's own emojis as the server's (batch 8.5): the server's list, read
+// once a tick and only when a message names one. A list that cannot be read
+// leaves the names as text, and the message still goes. Asked before a
+// message is claimed, so a slow-down here leaves it for the next tick.
+async function emojiTags(ctx, ...texts) {
+    if (!texts.some(core.namesCustomEmoji)) return null;
+    if (!ctx.emojiTags) {
+        try {
+            ctx.emojiTags = core.serverEmojiTags(await ctx.discord.emojis(ctx.cfg.guildId));
+        } catch (e) {
+            if (e instanceof RateLimited) throw e;
+            ctx.report.errors.push(`Could not read the server's emojis: ${e.message || e}`);
+            ctx.emojiTags = new Map();
+        }
+    }
+    return ctx.emojiTags;
 }
 
 function publicImageUrl(ctx, path) {
@@ -491,12 +504,14 @@ async function sendOne(ctx, w, webhook, record) {
         return;
     }
 
+    const emoji = await emojiTags(ctx, w.body, w.parent_body);
+
     // Claimed before the request: a tick that dies mid-send leaves `sending`,
     // and the post is never sent twice.
     await record('sending', null, null);
     let msg;
     try {
-        msg = await ctx.discord.webhookSend(webhook, w.discord_thread_id, core.toDiscordMessage(messageArgs(ctx, w)));
+        msg = await ctx.discord.webhookSend(webhook, w.discord_thread_id, core.toDiscordMessage({ ...messageArgs(ctx, w), emoji }));
         await record('sent', msg && msg.id, null);
         ctx.report.sent++;
     } catch (e) {
@@ -556,7 +571,7 @@ async function editOne(ctx, w, webhook) {
         return;
     }
 
-    const payload = core.toDiscordEdit(messageArgs(ctx, w));
+    const payload = core.toDiscordEdit({ ...messageArgs(ctx, w), emoji: await emojiTags(ctx, w.body, w.parent_body) });
     try {
         await unarchivedRetry(ctx, w.discord_thread_id,
             () => ctx.discord.webhookEdit(webhook, w.discord_thread_id, w.discord_message_id, payload));
@@ -799,6 +814,8 @@ export async function runTick({ env, db, fetch: fetchImpl, now = () => Date.now(
         fetch: fetchImpl,
         discord: makeDiscord(fetchImpl, cfg.token),
         blocked: new Map(),
+        // The server's emojis for the wiki's names, read on first need.
+        emojiTags: null,
         report: {
             relay: 'ran', sweep: Boolean(claim.sweep), forum: Boolean(cfg.channels.forum),
             opened: 0, linked: 0, taken: 0, sent: 0, deleted: 0, skipped: 0, gone: 0, edited: 0,

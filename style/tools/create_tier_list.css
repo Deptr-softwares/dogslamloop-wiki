@@ -12,6 +12,9 @@
 /* .tool-frame lines its children up at the start, so the tool says it wants
    the whole width. */
 .mk-tool {
+    /* A character's box, set once: the board's grid columns are this plus the
+       portrait's 2px border on each side. */
+    --mk-box: 92px;
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -81,17 +84,54 @@
 .mk-label.mk-label-long { font-size: 0.72rem; }
 
 /* 3px apart, the same as the image (owner, 2026-10-21: "somewhere 2px-3px"):
-   the board is the image's preview. */
+   the board is the image's preview. One row of boxes tall when empty. */
 .mk-body,
 .mk-pool {
     flex: 1;
-    display: flex;
-    flex-wrap: wrap;
+    min-width: 0;
     gap: 3px;
     padding: 3px;
+    min-height: calc(var(--mk-box) + 10px);
+}
+
+/* A grid of box-wide columns rather than a wrapping row, so the branding can
+   hold the first tier's top right corner and the characters flow around it
+   (owner, 2026-10-21, after TierMaker). */
+.mk-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, calc(var(--mk-box) + 4px));
+    grid-auto-rows: calc(var(--mk-box) + 4px);
+    align-content: start;
+}
+
+.mk-pool {
+    display: flex;
+    flex-wrap: wrap;
     align-items: flex-start;
     align-content: flex-start;
-    min-height: 98px;
+}
+
+/* The last two columns of the first row (js/tools/create_tier_list.js
+   brand). Placed, so the characters placed around it skip those cells. */
+.mk-brand {
+    grid-row: 1;
+    grid-column: -3 / -1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+}
+
+.mk-brand-icon { height: calc(var(--mk-box) * 0.45); width: auto; }
+
+.mk-brand-text {
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.95rem;
+    color: var(--text-white);
+    white-space: nowrap;
 }
 
 /* Not coloured like a tier: it is not one. */
@@ -121,7 +161,7 @@
     color: inherit;
 }
 
-.mk-entry .tier-portrait { width: 92px; height: 92px; box-shadow: none; }
+.mk-entry .tier-portrait { width: var(--mk-box); height: var(--mk-box); box-shadow: none; }
 .mk-entry .tier-portrait-name { font-size: 0.66rem; }
 
 .mk-entry:hover .tier-portrait,
@@ -225,11 +265,11 @@
 .mk-hex.editor-input { flex: 1; min-width: 0; padding: 0.4rem 0.5rem; }
 
 @media (max-width: 700px) {
+    .mk-tool { --mk-box: 64px; }
     .mk-label { width: 58px; font-size: 1.1rem; }
     .mk-label.mk-label-mid { font-size: 0.8rem; }
     .mk-label.mk-label-long { font-size: 0.6rem; }
-    .mk-body, .mk-pool { min-height: 70px; }
-    .mk-entry .tier-portrait { width: 64px; height: 64px; }
+    .mk-brand-text { font-size: 0.62rem; }
     .mk-entry .tier-portrait-name { font-size: 0.5rem; }
     .mk-control-name.editor-input { flex: 1 1 100%; }
 }

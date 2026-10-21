@@ -77,7 +77,9 @@
     // The key is the owner's, and a browser calls the API, so it is visible to
     // anyone reading the site's traffic: the owner's choice, made 2026-10-02,
     // the same standing as the Supabase anon key. A test key allows 100
-    // lookups an hour.
+    // lookups an hour, the GIF picker's searches included; the owner is
+    // applying for a production key (2026-10-21), which goes here and only
+    // here.
     const KLIPY_PAGE = /https?:\/\/(?:www\.)?klipy\.com\/gifs\/([A-Za-z0-9-]{1,120})[^\s]*/g;
     const KLIPY_API = 'https://api.klipy.com/api/v1/xdjct5ccuBWrbiAxgyaEgQdKcnFW5LIpjd1glWvPLALxPE6bNDPGsXXJaMPg9Xv7/gifs/';
     // MP4 first: on 2026-10-02 one GIF's HD .gif was 22.6 MB and its MP4
@@ -122,6 +124,8 @@
     // Images picked in a composer and prepared, waiting for POST. Keyed by the
     // form, so a reply's attachments never leak into the top-level composer.
     const pendingImages = new WeakMap();
+    // GIFs picked from KLIPY (batch 8.5), the same way.
+    const pendingGifs = new WeakMap();
 
     const client = () => window.supabaseClient;
 
@@ -152,6 +156,13 @@
             if (i > 0) el.appendChild(document.createElement('br'));
             el.appendChild(document.createTextNode(line));
         });
+    }
+
+    // A post's words, with its emojis drawn (js/emoji.js, batch 8.5). Without
+    // that script, the same text as plain text.
+    function setPostText(node, text) {
+        if (window.DslEmoji) window.DslEmoji.renderText(node, text);
+        else setTextWithBreaks(node, text);
     }
 
     function el(tag, className, text) {
@@ -263,13 +274,18 @@
                 { referrerPolicy: 'no-referrer', credentials: 'omit' });
             if (!res.ok) return null;
             const json = await res.json();
-            const files = json && json.data && json.data.file;
-            if (!files) return null;
-            for (const [size, format] of KLIPY_PICK) {
-                const url = files[size] && files[size][format] && files[size][format].url;
-                if (typeof url === 'string' && KLIPY_MEDIA_EXACT.test(url)) return url;
-            }
+            return klipyFileFor(json && json.data && json.data.file, KLIPY_PICK);
         } catch (e) { /* the link stays a link */ }
+        return null;
+    }
+
+    // The first of `order`'s [size, format] pairs a KLIPY item has, and only
+    // an address on KLIPY's own media hosts.
+    function klipyFileFor(files, order) {
+        for (const [size, format] of order) {
+            const url = files && files[size] && files[size][format] && files[size][format].url;
+            if (typeof url === 'string' && KLIPY_MEDIA_EXACT.test(url)) return url;
+        }
         return null;
     }
 
@@ -460,6 +476,7 @@
         const strip = form.querySelector('.discussion-attachments');
         if (!strip) return;
         const list = pendingImages.get(form) || [];
+        const gifs = pendingGifs.get(form) || [];
         strip.textContent = '';
         list.forEach((item, i) => {
             const cell = el('div', 'discussion-attachment');
@@ -474,12 +491,27 @@
             cell.appendChild(x);
             strip.appendChild(cell);
         });
-        strip.hidden = list.length === 0;
+        gifs.forEach((gif, i) => {
+            const cell = el('div', 'discussion-attachment discussion-attachment-gif');
+            const img = document.createElement('img');
+            img.referrerPolicy = 'no-referrer';
+            img.src = gif.preview;
+            img.alt = `GIF ${i + 1} to attach: ${gif.title}`;
+            cell.appendChild(img);
+            const x = el('button', 'discussion-attachment-remove', '×');
+            x.type = 'button';
+            x.dataset.removeGif = String(i);
+            x.setAttribute('aria-label', `Remove GIF ${i + 1}`);
+            cell.appendChild(x);
+            strip.appendChild(cell);
+        });
+        strip.hidden = list.length + gifs.length === 0;
     }
 
     function clearAttachments(form) {
         (pendingImages.get(form) || []).forEach(item => URL.revokeObjectURL(item.previewUrl));
         pendingImages.delete(form);
+        pendingGifs.delete(form);
         renderAttachments(form);
     }
 
@@ -497,7 +529,7 @@
         for (const file of images.slice(0, room)) {
             try {
                 list.push(await prepareImage(file));
-                if (file.type === 'image/gif') note = 'A GIF is posted as a still image. For a moving one, paste a KLIPY link.';
+                if (file.type === 'image/gif') note = 'A GIF is posted as a still image. For a moving one, use the GIF button.';
             } catch (err) {
                 problem = err.message;
             }
@@ -505,6 +537,197 @@
         pendingImages.set(form, list);
         renderAttachments(form);
         setStatus(problem || note, !!problem);
+    }
+
+    // --- THE GIF PICKER (v1.1 batch 8.5) ---
+    //
+    // KLIPY's own search, built to its production rules (docs.klipy.com,
+    // read 2026-10-21): the box says "Search KLIPY", their one required
+    // credit; every request and picture goes straight from the reader's
+    // browser to KLIPY, never through a server; results show in KLIPY's order
+    // in a grid of their own, nothing added or taken out. Their strictest
+    // content filter, since a lot of the community are kids, and no user id is
+    // sent. Ads come only if the owner switches them on for the key, which
+    // this picker does not draw.
+    //
+    // A picked GIF is posted as its own address, exactly as a pasted KLIPY
+    // link is, so Discord and every older post read it unchanged.
+    const GIF_PAGE = 24;
+    const GIF_SEARCH_DELAY_MS = 350;
+    // Small and moving, for the grid and the attachment strip.
+    const GIF_PREVIEW = [['xs', 'webp'], ['xs', 'gif'], ['sm', 'webp'], ['sm', 'gif']];
+    const KLIPY_SLUG = /^[A-Za-z0-9-]{1,120}$/;
+
+    async function klipyList(query, page) {
+        const params = new URLSearchParams({ page: String(page), per_page: String(GIF_PAGE), content_filter: 'high' });
+        if (query) params.set('q', query);
+        const res = await fetch(`${KLIPY_API}${query ? 'search' : 'trending'}?${params}`,
+            { referrerPolicy: 'no-referrer', credentials: 'omit' });
+        if (!res.ok) throw new Error(`KLIPY answered ${res.status}`);
+        const json = await res.json();
+        const data = (json && json.data) || {};
+        return { items: Array.isArray(data.data) ? data.data : [], more: data.has_next === true };
+    }
+
+    // KLIPY counts a GIF as shared when it is posted, which is how its search
+    // learns what people use. With the words that found it, and nothing that
+    // says who. Deliberately quiet: a share KLIPY never hears of costs the
+    // poster nothing.
+    function reportShares(gifs) {
+        gifs.forEach(gif => {
+            fetch(`${KLIPY_API}share/${encodeURIComponent(gif.slug)}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ q: gif.query }),
+                referrerPolicy: 'no-referrer',
+                credentials: 'omit',
+                keepalive: true,
+            }).catch(() => {});
+        });
+    }
+
+    function closeGifPickers() {
+        document.querySelectorAll('.gif-picker').forEach(panel => {
+            if (panel.gifToggle) panel.gifToggle.setAttribute('aria-expanded', 'false');
+            if (panel.gifSeen) panel.gifSeen.disconnect();
+            panel.remove();
+        });
+    }
+
+    function buildGifPicker(form, toggle) {
+        const panel = el('div', 'gif-picker');
+        panel.setAttribute('role', 'dialog');
+        panel.setAttribute('aria-label', 'GIFs from KLIPY');
+        panel.gifToggle = toggle;
+
+        const search = document.createElement('input');
+        search.type = 'search';
+        search.className = 'editor-input gif-search';
+        search.placeholder = 'Search KLIPY';
+        search.setAttribute('aria-label', 'Search KLIPY');
+        search.autocomplete = 'off';
+
+        const scroll = el('div', 'gif-scroll');
+        const grid = el('div', 'gif-grid');
+        // Where the next page is asked for, once it nears the view.
+        const end = el('div', 'gif-end');
+        scroll.append(grid, end);
+        const note = el('p', 'gif-note');
+        note.hidden = true;
+        panel.append(search, scroll, note, el('p', 'gif-credit', 'Powered by KLIPY'));
+        const showNote = (text) => { note.textContent = text || ''; note.hidden = !text; };
+
+        // A picture's address is set as it scrolls into the picker's view:
+        // loading="lazy" does not hold inside a scrolling box (js/emoji.js).
+        const seen = new IntersectionObserver(entries => entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const target = entry.target;
+            if (target === end) { load(false); return; }
+            seen.unobserve(target);
+            target.src = target.dataset.src;
+            delete target.dataset.src;
+        }), { root: scroll, rootMargin: '160px 0px' });
+        panel.gifSeen = seen;
+
+        // One list at a time: an answer for an older search is dropped.
+        const list = { query: '', page: 0, more: true, loading: false, run: 0, gifs: [] };
+
+        function cell(item) {
+            const url = item && klipyFileFor(item.file, KLIPY_PICK);
+            const preview = item && klipyFileFor(item.file, GIF_PREVIEW);
+            // Nothing to draw: no address on KLIPY's media hosts.
+            if (!url || !preview || !KLIPY_SLUG.test(String(item.slug))) return null;
+            const title = (typeof item.title === 'string' && item.title.trim()) ? item.title.trim().slice(0, 100) : 'GIF';
+            const btn = el('button', 'gif-cell');
+            btn.type = 'button';
+            btn.dataset.gifIndex = String(list.gifs.length);
+            btn.title = title;
+            btn.setAttribute('aria-label', title);
+            const img = document.createElement('img');
+            img.alt = '';
+            img.decoding = 'async';
+            img.referrerPolicy = 'no-referrer';
+            img.dataset.src = preview;
+            btn.appendChild(img);
+            list.gifs.push({ url, preview, slug: item.slug, title, query: list.query });
+            seen.observe(img);
+            return btn;
+        }
+
+        async function load(fresh) {
+            if (fresh) {
+                list.run++;
+                Object.assign(list, { page: 0, more: true, loading: false, gifs: [] });
+                grid.textContent = '';
+                scroll.scrollTop = 0;
+                showNote('');
+            }
+            if (list.loading || !list.more) return;
+            list.loading = true;
+            const run = list.run;
+            let answer;
+            try {
+                answer = await klipyList(list.query, list.page + 1);
+            } catch (e) {
+                if (run !== list.run) return;
+                list.loading = false;
+                console.error('[Discussions] KLIPY could not be reached:', e);
+                showNote('KLIPY could not be reached. Try again in a moment.');
+                return;
+            }
+            if (run !== list.run) return;
+            list.loading = false;
+            list.page += 1;
+            list.more = answer.more;
+            answer.items.forEach(item => {
+                const node = cell(item);
+                if (node) grid.appendChild(node);
+            });
+            if (!list.gifs.length) showNote(list.query ? 'No GIFs for that.' : 'KLIPY has nothing to show right now.');
+        }
+
+        let typing = null;
+        search.addEventListener('input', () => {
+            clearTimeout(typing);
+            typing = setTimeout(() => {
+                list.query = search.value.trim();
+                load(true);
+            }, GIF_SEARCH_DELAY_MS);
+        });
+
+        panel.addEventListener('click', (e) => {
+            const pick = e.target.closest('[data-gif-index]');
+            if (!pick) return;
+            const chosen = pendingGifs.get(form) || [];
+            if (chosen.length >= MAX_GIFS) { showNote(`Up to ${MAX_GIFS} GIFs a post.`); return; }
+            chosen.push(list.gifs[Number(pick.dataset.gifIndex)]);
+            pendingGifs.set(form, chosen);
+            renderAttachments(form);
+            closeGifPickers();
+            toggle.focus();
+        });
+        panel.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            e.preventDefault();
+            closeGifPickers();
+            toggle.focus();
+        });
+
+        load(true);
+        seen.observe(end);
+        return { panel, search };
+    }
+
+    // Opens KLIPY's picker at the end of the post box, or closes it.
+    function toggleGifPicker(form, toggle) {
+        const open = form.querySelector(':scope > .gif-picker');
+        closeGifPickers();
+        if (open) return;
+        const { panel, search } = buildGifPicker(form, toggle);
+        form.appendChild(panel);
+        toggle.setAttribute('aria-expanded', 'true');
+        // Not on a touch screen, where the keyboard would cover the grid.
+        if (window.matchMedia && window.matchMedia('(pointer: fine)').matches) search.focus();
     }
 
     // --- THE RULES PAGE (v1.0 batch 4, D1) ---
@@ -1065,7 +1288,7 @@
     function itemRow(post) {
         const row = el('div', 'discussion-item-row');
         const body = el('div', 'discussion-body');
-        setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
+        setPostText(body, textWithoutGifs(post.body, klipyLinks(post.body)));
         row.appendChild(body);
         const mark = editedMark(post);
         if (mark) body.appendChild(mark);
@@ -1108,12 +1331,12 @@
             // wrap yet at this point, and insertBefore against a non-child
             // throws - taking the whole thread render down with it.
             wrap.appendChild(el('span', 'discussion-hidden-badge', 'HIDDEN FROM READERS'));
-            setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
+            setPostText(body, textWithoutGifs(post.body, klipyLinks(post.body)));
         } else if (removed) {
             body.classList.add('discussion-body-removed');
             body.textContent = removedText(post.status);
         } else {
-            setTextWithBreaks(body, textWithoutGifs(post.body, klipyLinks(post.body)));
+            setPostText(body, textWithoutGifs(post.body, klipyLinks(post.body)));
         }
         wrap.appendChild(body);
         appendMedia(wrap, post);
@@ -1146,12 +1369,12 @@
         const body = el('div', 'discussion-body');
         if (reply.status === 'hidden') {
             wrap.appendChild(el('span', 'discussion-hidden-badge', 'HIDDEN FROM READERS'));
-            setTextWithBreaks(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
+            setPostText(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
         } else if (removed) {
             body.classList.add('discussion-body-removed');
             body.textContent = removedText(reply.status);
         } else {
-            setTextWithBreaks(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
+            setPostText(body, textWithoutGifs(reply.body, klipyLinks(reply.body)));
         }
         const quote = removed && reply.status !== 'hidden' ? null : replyQuote(reply, quoteParent);
         if (quote) wrap.appendChild(quote);
@@ -1208,14 +1431,16 @@
         area.setAttribute('aria-label', parentId ? 'Reply' : 'New post');
         form.appendChild(area);
 
+        // What goes with the words: images and picked GIFs (batch 8.5), so
+        // the strip is there for anyone who can post.
+        const strip = el('div', 'discussion-attachments');
+        strip.hidden = true;
+        form.appendChild(strip);
+
         // Images, for whoever has the upload media permission. Nobody else sees
         // a button: offering one that the bucket then refuses would be a
         // control that only ever fails.
         if (state.canUploadMedia) {
-            const strip = el('div', 'discussion-attachments');
-            strip.hidden = true;
-            form.appendChild(strip);
-
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = 'image/*';
@@ -1239,6 +1464,16 @@
             row.appendChild(attach);
         }
 
+        const gif = el('button', 'btn-sys btn-sys-regular discussion-gif-btn', 'GIF');
+        gif.type = 'button';
+        gif.dataset.gifToggle = 'true';
+        gif.setAttribute('aria-expanded', 'false');
+        gif.title = `Add a GIF from KLIPY, up to ${MAX_GIFS} a post`;
+        row.appendChild(gif);
+
+        const emoji = emojiButton();
+        if (emoji) row.appendChild(emoji);
+
         if (parentId) {
             const cancel = el('button', 'btn-sys btn-sys-regular discussion-cancel', 'CANCEL');
             cancel.type = 'button';
@@ -1260,6 +1495,18 @@
         form.appendChild(row);
 
         return form;
+    }
+
+    // Opens the picker under the box it sits in (js/emoji.js). No script, no
+    // button: a control that can only fail is worse than none.
+    function emojiButton() {
+        if (!window.DslEmoji) return null;
+        const btn = el('button', 'btn-sys btn-sys-regular discussion-emoji-btn', 'EMOJI');
+        btn.type = 'button';
+        btn.dataset.emojiToggle = 'true';
+        btn.setAttribute('aria-expanded', 'false');
+        btn.title = 'Add an emoji';
+        return btn;
     }
 
     function renderSignInPrompt() {
@@ -1385,7 +1632,8 @@
 
         const body = area.value.trim();
         const attachments = pendingImages.get(form) || [];
-        if (!body && !attachments.length) { setStatus('Write something first.', true); return; }
+        const gifs = pendingGifs.get(form) || [];
+        if (!body && !attachments.length && !gifs.length) { setStatus('Write something first.', true); return; }
 
         const since = Date.now() - state.lastPostAt;
         if (state.lastPostAt && since < POST_COOLDOWN_MS) {
@@ -1402,6 +1650,23 @@
         if (body.search(KLIPY_PAGE) !== -1) {
             setStatus('Finding the GIF…');
             ({ body: postBody, unresolved: unresolvedGifs } = await resolveKlipyPages(body));
+        }
+
+        // Picked GIFs go on the end, one address a line, as if pasted. Checked
+        // before any upload, so a refusal here leaves nothing behind.
+        if (gifs.length) {
+            if (klipyLinks(postBody).length + gifs.length > MAX_GIFS) {
+                if (submit) submit.disabled = false;
+                setStatus(`Up to ${MAX_GIFS} GIFs a post.`, true);
+                return;
+            }
+            const withGifs = [postBody, ...gifs.map(g => g.url)].filter(Boolean).join('\n');
+            if (withGifs.length > MAX_BODY) {
+                if (submit) submit.disabled = false;
+                setStatus('The post is too long to add the GIFs to. Shorten it a little.', true);
+                return;
+            }
+            postBody = withGifs;
         }
 
         // Images go up FIRST, into the poster's own folder, and the post names
@@ -1460,6 +1725,7 @@
         }
 
         state.lastPostAt = Date.now();
+        reportShares(gifs);
         if (custom) {
             clearAttachments(form);
             area.value = '';
@@ -1615,6 +1881,8 @@
         cancel.type = 'button';
         cancel.dataset.cancelEdit = 'true';
         row.appendChild(save);
+        const emoji = emojiButton();
+        if (emoji) row.appendChild(emoji);
         row.appendChild(cancel);
         row.appendChild(el('span', 'discussion-composer-status'));
         form.appendChild(row);
@@ -1731,6 +1999,30 @@
                 const form = attach.closest('.discussion-composer');
                 const input = form && form.querySelector('.discussion-image-input');
                 if (input) input.click();
+                return;
+            }
+
+            const gifToggle = e.target.closest('[data-gif-toggle]');
+            if (gifToggle) {
+                const form = gifToggle.closest('.discussion-composer');
+                if (form) toggleGifPicker(form, gifToggle);
+                return;
+            }
+
+            const dropGif = e.target.closest('[data-remove-gif]');
+            if (dropGif) {
+                const form = dropGif.closest('.discussion-composer');
+                const list = (form && pendingGifs.get(form)) || [];
+                list.splice(Number(dropGif.dataset.removeGif), 1);
+                renderAttachments(form);
+                return;
+            }
+
+            const emojiToggle = e.target.closest('[data-emoji-toggle]');
+            if (emojiToggle) {
+                const form = emojiToggle.closest('form');
+                const area = form && form.querySelector('textarea');
+                if (area) window.DslEmoji.togglePicker(form, area, emojiToggle);
                 return;
             }
 
