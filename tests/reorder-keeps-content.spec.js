@@ -158,6 +158,45 @@ test('text typed just before a move goes with the matchup that was moved', async
   expect(errors).toEqual([]);
 });
 
+// Deleting changes the array under the selection too. Counterplay, groups,
+// cards and Combo Lists already forgot their selection on a delete; matchups
+// and custom Overview sections did not, so the open one's text was saved over
+// whichever entry slid into its slot.
+async function deleteEntry(page, removeBtn) {
+  await page.locator(removeBtn).click();
+  await page.waitForTimeout(300);
+  await page.locator('#editor-modal-confirm').click();
+  await page.waitForTimeout(600);
+}
+
+test('deleting a matchup before the open one leaves every other matchup its own text', async ({ page }) => {
+  const errors = await open(page, STRIPS[0]);
+  await page.locator('#matchup-nav-1').click();
+  await page.waitForTimeout(400);
+
+  await deleteEntry(page, '#matchup-nav-0 + .daw-tab-remove-btn');
+
+  expect(await textByName(page, STRIPS[0])).toEqual({ Beta: 'Beta text', Gamma: 'Gamma text' });
+  expect(errors).toEqual([]);
+});
+
+for (const [open_, removed, left] of [
+  [1, 0, { Beta: 'Beta text', Gamma: 'Gamma text' }],
+  // The open one, and the last: its slot is gone, so a stale write-back throws.
+  [2, 2, { Alpha: 'Alpha text', Beta: 'Beta text' }],
+]) {
+  test(`deleting custom section ${removed + 1} with section ${open_ + 1} open leaves the others their own text`, async ({ page }) => {
+    const errors = await open(page, STRIPS[2]);
+    await page.locator(`#overview-nav-extra-${open_}`).click();
+    await page.waitForTimeout(400);
+
+    await deleteEntry(page, `#overview-nav-extra-${removed} ~ .daw-tab-remove-btn`);
+
+    expect(await textByName(page, STRIPS[2])).toEqual(left);
+    expect(errors).toEqual([]);
+  });
+}
+
 test('inserting after the open matchup leaves every other matchup its own text', async ({ page }) => {
   const errors = await open(page, STRIPS[0]);
 

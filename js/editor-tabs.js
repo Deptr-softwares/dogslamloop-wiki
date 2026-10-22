@@ -188,6 +188,9 @@ window.removeExtraTab = async function(idx) {
     if (await window.confirmDelete("Delete this custom tab and all its contents?")) {
         await window.triggerManualSync();
         window.currentEditorDescData.extras.splice(idx, 1);
+        // Synced above. The open section's `extra-N` now names a neighbour, or
+        // nothing at all when it was the last one removed.
+        window.currentOverviewSection = null;
         if(typeof renderFullOverviewPreview === 'function') renderFullOverviewPreview();
         initFullTabEditor(window.currentEditorCharId, 'overview', window.currentEditorDescData, window.currentEditorFrameData);
         loadOverviewSectionIntoEditor('overview');
@@ -743,6 +746,9 @@ window.addMatchup = async function() {
 window.removeMatchup = async function(idx) {
     if (await window.confirmDelete("Delete this entire matchup?")) {
         window.currentEditorDescData.matchups.splice(idx, 1);
+        // The open matchup may have been the one removed, or may have shifted
+        // down; either way the redraw would save its text over a neighbour.
+        window.currentMatchupIndex = undefined;
         initFullTabEditor(window.currentEditorCharId, 'matchups', window.currentEditorDescData, window.currentEditorFrameData);
         if (window.currentEditorDescData.matchups.length > 0) window.loadMatchupIntoEditor(0);
         else renderMatchupsPreview();
