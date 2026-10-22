@@ -2057,7 +2057,9 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
 
             // --- 4. NATIVE PAGEBUILDER DELEGATION ---
             if (typeof window.setupTabs === 'function') {
-                window.setupTabs('nav', 'tab', tabIdsForPageBuilder, 'major');
+                // The address only on the reader's page: the editor renders
+                // this strip too, hidden, and its address is its own.
+                window.setupTabs('nav', 'tab', tabIdsForPageBuilder, 'major', { address: !isEditor });
             }
 
             if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
