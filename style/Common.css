@@ -1,7 +1,11 @@
 /* Common.css - Global Styles & Design Tokens */
+/* WOFF2 first (v1.1 batch 9): about half the bytes of the TTF on the wire,
+   same glyphs. A browser takes the first format it supports, so the TTF is
+   only ever fetched by one that has no WOFF2. */
 @font-face {
     font-family: 'Finger-Paint';
-    src: url('../fonts/FingerPaint-Regular.ttf') format('truetype');
+    src: url('../fonts/FingerPaint-Regular.woff2') format('woff2'),
+         url('../fonts/FingerPaint-Regular.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
     font-display: swap; 
@@ -9,7 +13,8 @@
 
 @font-face {
     font-family: 'CC-Wild-Words';
-    src: url('../fonts/CC\ Wild\ Words\ Roman.ttf') format('truetype');
+    src: url('../fonts/CC\ Wild\ Words\ Roman.woff2') format('woff2'),
+         url('../fonts/CC\ Wild\ Words\ Roman.ttf') format('truetype');
     font-weight: normal;
     font-style: normal;
     font-display: swap;
