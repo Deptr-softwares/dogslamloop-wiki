@@ -140,6 +140,12 @@ function resolveColorChannels(color) {
  *   ENTITIES  `&amp;` is ONE character to a reader and five to a string index.
  *   SPACES    left unwrapped. Colouring a space shows nothing, and skipping it
  *             keeps the output roughly a third smaller on ordinary prose.
+ *   LATER SHORTCODES  `[noauto]` and `[url=...]` (v1.1). [noauto] is lifted
+ *             out after the whole conversion loop, and [url] converts after
+ *             [multicolor] inside it, so a tag split into one span per letter
+ *             was no longer a tag to either of them: the reader saw
+ *             "[noauto]Startup[/noauto]" printed in gradient colours. Kept
+ *             whole and uncounted, so the gradient works with either nesting.
  *
  * Only the characters a reader actually sees are counted for position, so the
  * sweep is even regardless of how much markup is mixed in.
@@ -156,6 +162,14 @@ function splitGradient(html, stops) {
             units.push({ raw: html.slice(i, close + 1), visible: false });
             i = close + 1;
             continue;
+        }
+        if (ch === '[') {
+            const later = /^\[(?:\/?noauto|noauto=all|url=[^\]]+|\/url)\]/i.exec(html.slice(i));
+            if (later) {
+                units.push({ raw: later[0], visible: false });
+                i += later[0].length;
+                continue;
+            }
         }
         if (ch === '&') {
             const semi = html.indexOf(';', i);
@@ -309,23 +323,182 @@ function buildCharacterTerms() {
 // editor and survives a paste as something nobody can see. The worst case here
 // is not a security one either - content that literally contained the token
 // would get some of its own text relocated, which is a rendering bug.
+//
+// [noauto=all] (v1.1) also stops the page's own words (PAGE WORDS below).
+// Plain [noauto] stops the built-in colours only, because a page word is one
+// an editor of the page chose on purpose (owner, 2026-10-19).
 const NOAUTO_OPEN = '%%DSL_NOAUTO_';
 const NOAUTO_CLOSE = '%%';
 
 function liftNoAuto(content, store) {
-    return content.replace(/\[noauto\]([\s\S]*?)\[\/noauto\]/gi, (whole, inner) => {
-        store.push(inner);
+    return content.replace(/\[noauto(=all)?\]([\s\S]*?)\[\/noauto\]/gi, (whole, all, inner) => {
+        store.push({ inner, all: !!all });
         return `${NOAUTO_OPEN}${store.length - 1}${NOAUTO_CLOSE}`;
     });
 }
 
+// Put back inside a marker span, not bare. The move-name pass for Combos and
+// Techs (applyInputSlotColours) runs later, over the rendered text, where the
+// [noauto] tag no longer exists; the span is how it can still tell which words
+// the author protected.
 function restoreNoAuto(content, store) {
     if (!store.length) return content;
     return content.replace(
         new RegExp(`${NOAUTO_OPEN}(\\d+)${NOAUTO_CLOSE}`, 'g'),
-        (whole, index) => store[Number(index)] !== undefined ? store[Number(index)] : whole
+        (whole, index) => {
+            const region = store[Number(index)];
+            if (!region) return whole;
+            return `<span class="sc-noauto${region.all ? ' sc-noauto-all' : ''}">${region.inner}</span>`;
+        }
     );
 }
+
+// --- PAGE WORDS (v1.1) ---
+//
+// Owner, 2026-10-18: "auto-coloring custom words in a page ... JUST FOR THAT
+// PAGE". A page lists up to fifty words in desc_data.pageConfig.words, each
+// with one colour or a gradient, set in the editor's Config > Page.
+//
+// Whole words in their EXACT case, the rule character names use, so "Domain"
+// colours and the ordinary word "domain" stays plain. Built-in colours win
+// wherever the two meet: this paints only the text the built-in passes left
+// plain, and in the Combos and Techs tabs a page word that is a move name
+// gives way to the move's colour (applyInputSlotColours). [noauto=all] stops
+// it; plain [noauto] stops only the built-in colours, so a page word inside one
+// is painted.
+//
+// A pass over text nodes rather than one more replace over the HTML string,
+// because the string cannot tell text inside an auto-coloured span from text
+// outside one, and painting inside one would let the page beat the built-in.
+window.PAGE_WORD_LIMIT = 50;
+
+// Whose words: the page in the editor, the version a reviewer is looking at,
+// or the page being read. Never another page's.
+function currentPageConfig() {
+    // The whole page, not the character state being edited: the settings
+    // belong to the page.
+    if (window.editorMasterDescData) return window.editorMasterDescData.pageConfig || null;
+    // admin.html. Diff View is the proposed version, so it takes those words.
+    if (window.activePreviewRevId) {
+        const desc = window.activePreviewViewMode === 'live'
+            ? window.currentLiveDescData : window.currentPendingDescData;
+        return (desc && desc.pageConfig) || null;
+    }
+    const pageId = window.PAGE_ROUTE && window.PAGE_ROUTE.pageId;
+    return (pageId && (window.readerPageConfigs || {})[pageId]) || null;
+}
+
+// How innerHTML serialises text, so a word matches the text it will sit in.
+function escPageText(text) {
+    return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// Rebuilt only when the list changes: a gradient's stops are resolved through
+// the colour probe, which costs a style recalculation per stop, and this runs
+// on every DOM change the editor's preview makes.
+let pageWordsCache = { key: null, value: null };
+
+function buildPageWords() {
+    const config = currentPageConfig();
+    const list = config && Array.isArray(config.words) ? config.words.slice(0, window.PAGE_WORD_LIMIT) : [];
+    const key = JSON.stringify(list);
+    if (key === pageWordsCache.key) return pageWordsCache.value;
+
+    const byText = new Map();
+    list.forEach(entry => {
+        const word = escPageText(String((entry && entry.word) || '').trim().replace(/\s+/g, ' '));
+        // The first listing wins, so a word listed twice has one answer.
+        if (!word || byText.has(word)) return;
+        // Refused whole on any bad colour, the [multicolor] rule above.
+        const colors = Array.isArray(entry.colors) ? entry.colors.map(safeColor) : [];
+        if (!colors.length || colors.includes(null)) return;
+        if (colors.length === 1) {
+            byText.set(word, { color: colors[0] });
+            return;
+        }
+        const stops = colors.map(resolveColorChannels);
+        if (!stops.includes(null)) byText.set(word, { stops });
+    });
+
+    let value = null;
+    if (byText.size) {
+        // Longest first, because alternation is first-match. Never straight
+        // after an "&", so a word like "amp" cannot split an escaped "&amp;".
+        const source = Array.from(byText.keys())
+            .sort((a, b) => b.length - a.length)
+            .map(w => w.split(' ').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+'))
+            .join('|');
+        value = { lookup: byText, pattern: new RegExp(`(?<![\\w&])(${source})(?!\\w)`, 'g') };
+    }
+    pageWordsCache = { key, value };
+    return value;
+}
+
+// Text inside these already has its colour, or was protected by [noauto=all].
+const PAGE_WORD_SKIP = '.sc-auto, .sc-timing, .sc-noauto-all';
+
+function paintPageWords(block, words) {
+    if (!words) return;
+    const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, {
+        acceptNode: (node) => {
+            const owner = node.parentElement && node.parentElement.closest(PAGE_WORD_SKIP);
+            return owner && block.contains(owner) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+        },
+    });
+    const textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+    textNodes.forEach(node => {
+        const before = escPageText(node.nodeValue);
+        words.pattern.lastIndex = 0;
+        let matched = false;
+        const after = before.replace(words.pattern, (match) => {
+            const entry = words.lookup.get(match.replace(/\s+/g, ' '));
+            if (!entry) return match;
+            matched = true;
+            return entry.stops
+                ? `<span class="sc-auto sc-page-word sc-page-gradient">${splitGradient(match, entry.stops)}</span>`
+                : `<span class="sc-auto sc-page-word" style="color: ${escAttr(entry.color)};">${match}</span>`;
+        });
+        if (!matched) return;
+        const tpl = document.createElement('template');
+        tpl.innerHTML = after;
+        node.replaceWith(tpl.content);
+    });
+}
+
+// Config > Page changes the list while the preview is already painted, and a
+// block is only ever styled once, so a change repaints in place. A solid
+// word's children are kept rather than flattened: in the Combos tab a move's
+// colour may sit inside it.
+window.refreshPageWords = function () {
+    document.querySelectorAll('.sc-page-word').forEach(span => {
+        const parent = span.parentNode;
+        if (span.classList.contains('sc-page-gradient')) span.replaceWith(document.createTextNode(span.textContent));
+        else span.replaceWith(...span.childNodes);
+        if (parent) parent.normalize();
+    });
+    const words = buildPageWords();
+    if (!words) return;
+    document.querySelectorAll('.is-styled').forEach(block => paintPageWords(block, words));
+};
+
+// For Config > Page: the built-in colour a word runs into, so the editor is
+// told it will not colour there instead of finding out on the page.
+window.pageWordBuiltIn = function (word) {
+    const text = String(word || '').trim();
+    if (!text) return null;
+    const first = (terms) => {
+        if (!terms) return null;
+        terms.pattern.lastIndex = 0;
+        const hit = terms.pattern.exec(text);
+        return hit ? hit[0] : null;
+    };
+    const builtIn = first(buildCharacterTerms()) || first(buildHighlightTerms());
+    if (builtIn) return { kind: 'builtin', term: builtIn };
+    const move = first(currentPageMoveSlots());
+    return move ? { kind: 'move', term: move } : null;
+};
 
 // --- MOVE NAMES, COLOURED BY INPUT SLOT (v0.15) ---
 //
@@ -524,17 +697,55 @@ window.applyInputSlotColours = function (root) {
     });
     if (!hosts.length) return;
 
+    // Text node by text node, rather than one replace over the block's HTML,
+    // so that words inside a [noauto] region (.sc-noauto) can be skipped. The
+    // whole-HTML replace could not see where the author's region began and
+    // ended, which is why [noauto] stopped every other kind of auto-colouring
+    // and not this one.
     hosts.forEach(host => {
         host.querySelectorAll('.is-styled:not(.is-slotted-prose)').forEach(block => {
             block.classList.add('is-slotted-prose');
-            const before = block.innerHTML;
-            terms.pattern.lastIndex = 0;
-            const after = before.replace(terms.pattern, (match) => {
-                const id = terms.lookup.get(window.normaliseMoveName(match));
-                const slot = id && window.getInputSlot(id);
-                return slot ? `<span class="sc-auto ${slot.cls}">${match}</span>` : match;
+
+            // A page word that is a move name gives way to the move's colour,
+            // the way every built-in colour wins over a page's words (v1.1).
+            // A gradient word is one span per letter, which the walk below
+            // could never match a name across. Inside [noauto] the move
+            // colour is stopped, so the page word stays.
+            let unwrapped = false;
+            block.querySelectorAll('.sc-page-word').forEach(word => {
+                if (word.closest('.sc-noauto')) return;
+                if (!terms.lookup.get(window.normaliseMoveName(word.textContent))) return;
+                word.replaceWith(document.createTextNode(word.textContent));
+                unwrapped = true;
             });
-            if (after !== before) block.innerHTML = after;
+            if (unwrapped) block.normalize();
+
+            const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT, {
+                acceptNode: (node) => node.parentElement && node.parentElement.closest('.sc-noauto')
+                    ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT,
+            });
+            const textNodes = [];
+            while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+            textNodes.forEach(node => {
+                // Escaped the way innerHTML serialises text (&, < and > only),
+                // so a move name with an apostrophe matches as it did before.
+                const before = node.nodeValue
+                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                terms.pattern.lastIndex = 0;
+                let matched = false;
+                const after = before.replace(terms.pattern, (match) => {
+                    const id = terms.lookup.get(window.normaliseMoveName(match));
+                    const slot = id && window.getInputSlot(id);
+                    if (!slot) return match;
+                    matched = true;
+                    return `<span class="sc-auto ${slot.cls}">${match}</span>`;
+                });
+                if (!matched) return;
+                const tpl = document.createElement('template');
+                tpl.innerHTML = after;
+                node.replaceWith(tpl.content);
+            });
         });
     });
 };
@@ -598,6 +809,9 @@ function applyInternalStyling() {
     // highlighted the day it lands.
     const highlightTerms = buildHighlightTerms();
 
+    // 4. This page's own words, painted after the three passes above.
+    const pageWords = textBlocks.length ? buildPageWords() : null;
+
     // Detect current character header title context
     const pageTitleEl = document.querySelector('.character-title');
     let currentCharColor = 'var(--text-white)'; // Fallback
@@ -628,6 +842,9 @@ function applyInternalStyling() {
             // they read as prose today. <kbd> is the element for it, so screen
             // readers and search engines get the meaning too.
             content = content.replace(/\[kbd\]((?:(?!\[kbd\])[\s\S])*?)\[\/kbd\]/gi, '<kbd class="sc-kbd">$1</kbd>');
+            // A white outline (v1.1), drawn the same way the site already
+            // outlines a dark character name on a dark page (style/Common.css).
+            content = content.replace(/\[outline\]((?:(?!\[outline\])[\s\S])*?)\[\/outline\]/gi, '<span class="sc-outline">$1</span>');
 
             // Colour: the value is contributor text going into a style
             // attribute. Refused rather than escaped, because a colour is a
@@ -778,6 +995,7 @@ function applyInternalStyling() {
 
         // Apply changes back to DOM
         block.innerHTML = content;
+        paintPageWords(block, pageWords);
     });
 }
 

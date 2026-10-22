@@ -121,8 +121,10 @@ if (typeof window.setReorderRefresh === 'function') {
     });
 }
 
-window.switchSystemTab = function(idx) { window.currentSystemTabIdx = idx; window.currentSystemSecIdx = 0; window.renderSystemEditor(document.getElementById('interactive-builder')); updateLivePreview(); };
-window.switchSystemSection = function(idx) { window.currentSystemSecIdx = idx; window.renderSystemEditor(document.getElementById('interactive-builder')); updateLivePreview(); };
+// Switching draws the preview even under Preview only on Sync, the way a
+// character page's section switch does: the preview follows the Workspace.
+window.switchSystemTab = function(idx) { window.currentSystemTabIdx = idx; window.currentSystemSecIdx = 0; window.renderSystemEditor(document.getElementById('interactive-builder')); window.drawLivePreviewNow(); };
+window.switchSystemSection = function(idx) { window.currentSystemSecIdx = idx; window.renderSystemEditor(document.getElementById('interactive-builder')); window.drawLivePreviewNow(); };
 
 window.addSystemTab = async function() {
     await window.triggerManualSync();
@@ -135,7 +137,7 @@ window.addSystemTab = async function() {
 };
 
 window.removeSystemTab = async function(idx) {
-    if (await window.customConfirm("Delete this ENTIRE tab and all its sections?")) {
+    if (await window.confirmDelete("Delete this ENTIRE tab and all its sections?")) {
         window.currentEditorDescData.tabs.splice(idx, 1);
         window.currentSystemTabIdx = 0; window.currentSystemSecIdx = 0;
         window.renderSystemEditor(document.getElementById('interactive-builder'));
@@ -152,7 +154,7 @@ window.addSystemSection = async function() {
 };
 
 window.removeSystemSection = async function(idx) {
-    if (await window.customConfirm("Delete this section and all its blocks?")) {
+    if (await window.confirmDelete("Delete this section and all its blocks?")) {
         window.currentEditorDescData.tabs[window.currentSystemTabIdx].sections.splice(idx, 1);
         window.currentSystemSecIdx = 0;
         window.renderSystemEditor(document.getElementById('interactive-builder'));

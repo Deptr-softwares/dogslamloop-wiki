@@ -42,6 +42,8 @@ const DIFF_FIELD_LABELS = {
     // shown rather than hidden because joining a folder MOVES the block, and a
     // reordering with no stated reason is worse than one line of metadata.
     folder: 'Editor Folder',
+    // Its colour (v1.1): editor-only as well, so named the same way.
+    folderColor: 'Editor Folder Color',
     // v0.20: a combo's extra routes. The general rule would read "Notations",
     // which is not what anyone calls them on the page.
     notations: 'Notation Styles',
@@ -266,6 +268,10 @@ function calculateTabDiffs(rev, showPopup = true) {
                 // the state on screen. The states themselves are marked on the
                 // toggle instead (js/admin-modes.js).
                 if (!((isBase(modeId) && isBase(active)) || modeId === active)) return;
+
+                // The page's own settings (v1.1) belong to no tab, and marking
+                // Overview would point the reviewer at a tab that did not change.
+                if (scope === 'pageConfig') return;
 
                 let targetTab = 'overview';
                 if (['profile', 'playstyle', 'overview', 'strategy', 'extra'].includes(scope)) targetTab = 'overview';

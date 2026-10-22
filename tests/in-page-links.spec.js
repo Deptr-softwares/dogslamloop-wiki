@@ -703,3 +703,91 @@ test('the ToC uses the same ids the links do', async ({ page }) => {
   expect(agree.broken).toEqual([]);
   expect(agree.positional, 'the ToC should no longer mint positional ids').toBe(0);
 });
+
+// --- HOW A JUMP LINK LOOKS (v1.1) ---
+//
+// Owner, 2026-10-19, after a contributor who colours these pages asked: "Really
+// faint underline, No arrow. Hover over will tell which section it is heading
+// to." The dotted underline and the arrow fought the colour of the text.
+
+// The alpha of a computed colour, in either syntax the browser reports.
+function alphaOf(css) {
+  const slash = /\/\s*([\d.]+)\s*\)$/.exec(css);
+  if (slash) return parseFloat(slash[1]);
+  const rgba = /^rgba\([^,]+,[^,]+,[^,]+,\s*([\d.]+)\)$/.exec(css);
+  return rgba ? parseFloat(rgba[1]) : 1;
+}
+
+test('a jump link has a really faint underline and no arrow', async ({ page }) => {
+  await page.goto(PAGE, { waitUntil: 'networkidle' });
+
+  const look = await page.evaluate(() => {
+    const p = document.createElement('p');
+    p.className = 'wiki-text';
+    p.textContent = '[url=#sec-anything]Jump link[/url] and [url=https://example.com]Outbound link[/url]';
+    document.querySelector('.main-content-area').appendChild(p);
+    window.applyInternalStyling();
+    const jump = p.querySelector('a.wiki-link-jump');
+    const out = p.querySelector('a.wiki-link:not(.wiki-link-jump)');
+    return {
+      arrow: getComputedStyle(jump, '::after').content,
+      line: getComputedStyle(jump).textDecorationLine,
+      color: getComputedStyle(jump).textDecorationColor,
+      outColor: getComputedStyle(out).textDecorationColor,
+    };
+  });
+
+  expect(['none', 'normal'], 'no arrow after the link').toContain(look.arrow);
+  expect(look.line, 'still underlined').toContain('underline');
+  expect(alphaOf(look.color), 'the underline is there').toBeGreaterThan(0);
+  expect(alphaOf(look.color), 'and really faint').toBeLessThan(0.4);
+  // An outbound link is unchanged: the full underline is what says it leaves.
+  expect(alphaOf(look.outColor)).toBe(1);
+});
+
+test('hovering a jump link names its section, and the tab when that is another one', async ({ page }) => {
+  await page.goto(PAGE, { waitUntil: 'networkidle' });
+
+  const setup = await page.evaluate(([far, near, marked]) => {
+    const panels = [...document.querySelectorAll('[id^="tab-"]')];
+    const open = panels.find(p => !p.classList.contains('hidden'));
+    const shut = panels.find(p => p.classList.contains('hidden') && document.getElementById(`nav-${p.id.slice(4)}`));
+    if (!open || !shut) return { skipped: true };
+
+    const heading = (panel, title) => {
+      const h = document.createElement('h2');
+      h.className = 'section-title';
+      h.textContent = title;
+      panel.appendChild(h);
+      return h;
+    };
+    const farH = heading(shut, far);
+    const nearH = heading(open, near);
+    const markedH = heading(open, marked);
+    window.assignSectionAnchors();
+
+    const p = document.createElement('p');
+    p.className = 'wiki-text';
+    p.textContent = `[url=#${farH.id}]Far link[/url] [url=#${nearH.id}]Near link[/url] [url=#${markedH.id}]Marked link[/url]`;
+    open.insertBefore(p, open.firstChild);
+    window.applyInternalStyling();
+    return { skipped: false, tab: document.getElementById(`nav-${shut.id.slice(4)}`).textContent.trim() };
+  }, [A, B, 'Zzq <i>Tag</i> Section']);
+  expect(setup.skipped, 'the page should have more than one tab').toBe(false);
+
+  const tip = page.locator('#wiki-frame-tooltip');
+  await page.locator('a.wiki-link-jump', { hasText: 'Far link' }).hover();
+  await expect(tip).toBeVisible();
+  await expect(tip).toHaveText(`${setup.tab} › ${A}`);
+
+  await page.locator('a.wiki-link-jump', { hasText: 'Near link' }).hover();
+  await expect(tip, 'the same tab is not named').toHaveText(B);
+
+  // A section name is contributor text, so it shows as text.
+  await page.locator('a.wiki-link-jump', { hasText: 'Marked link' }).hover();
+  await expect(tip).toHaveText('Zzq <i>Tag</i> Section');
+  await expect(tip.locator('i')).toHaveCount(0);
+
+  await page.mouse.move(5, 5);
+  await expect(tip).toBeHidden();
+});

@@ -183,7 +183,7 @@
         hole.style.width = `${r.width + pad * 2}px`;
         hole.style.height = `${r.height + pad * 2}px`;
 
-        target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        target.scrollIntoView({ block: 'nearest', behavior: window.scrollMotion() });
     }
 
     function render() {

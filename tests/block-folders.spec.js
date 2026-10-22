@@ -34,9 +34,14 @@ async function boot(page) {
 // renderBlockList always targets #block-list by id regardless of the container
 // it was given, so the page body is replaced rather than appended to - a second
 // #block-list would collide with edit.html's own.
+//
+// The host gets the Workspace's 1.5rem side padding, because the list is built
+// to hang into it (.block-editor-container's -1.5rem margins). Without it the
+// folder header's first 24px sit off the left of the screen, and once the
+// toggle became a narrow chevron (v1.1) none of it could be clicked.
 async function build(page, blocks) {
   await page.evaluate((b) => {
-    document.body.innerHTML = '<div id="block-host"></div>';
+    document.body.innerHTML = '<div id="block-host" style="padding: 0 1.5rem"></div>';
     window.initStrategyBlockBuilder('block-host', b);
 
     // OPEN EVERYTHING, because v0.16 fine-tuning 2 made collapsed the default
@@ -101,6 +106,11 @@ test('a visitor sees nothing: the rendered page is identical with and without fo
   await boot(page);
 
   const out = await page.evaluate(() => {
+    // Rendered the way a reader page renders it. This page is the editor,
+    // whose Preview marks each Block with a fingerprint of its data
+    // (window.previewBlockAnchor, js/editor-config.js), and a folder is part
+    // of that data. No reader page defines the hook.
+    delete window.previewBlockAnchor;
     // One of every block type that carries content, so this is not a claim
     // about paragraphs only.
     const bare = [
@@ -117,6 +127,9 @@ test('a visitor sees nothing: the rendered page is identical with and without fo
     foldered[2].folder = 'Setups';
     foldered[3].folder = 'Enders';
     foldered[4].folder = 'Enders';
+    // A folder's colour (v1.1) is editor-only too.
+    foldered[3].folderColor = '#c026d3';
+    foldered[4].folderColor = '#c026d3';
 
     return {
       bare: window.generateHTMLForBlocks(bare, ''),
@@ -129,6 +142,7 @@ test('a visitor sees nothing: the rendered page is identical with and without fo
   expect(out.bare.length).toBeGreaterThan(100);
   expect(out.bare, 'the fixture really did render').toContain('Whiff punish');
   expect(out.foldered, 'the folder name never reaches the page').not.toContain('Setups');
+  expect(out.foldered, 'nor its colour').not.toContain('c026d3');
 });
 
 // --- THE MODEL ---
@@ -371,6 +385,31 @@ test('collapsing a folder actually hides its blocks, and survives a re-render', 
   const stillHidden = await page.evaluate(() =>
     getComputedStyle(document.querySelector('#block-list .block-folder-body')).display);
   expect(stillHidden).toBe('none');
+});
+
+// v1.1 gave every .btn-sys a cut top-right corner made with clip-path, and a
+// browser sends a click outside a clip-path to whatever is behind it. The
+// toggle is a .btn-sys stripped down to a bare glyph, so the cut took a 9px
+// corner out of a 21px button. The two tests either side of this one clicked
+// it while it hung off the left of the screen (build() had no padding then),
+// so Playwright clicked the sliver still on screen, which was inside the cut:
+// both timed out with the folder header taking the click.
+test('the folder toggle takes a click anywhere on it, its top-right corner included', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'Setups')]);
+
+  const toggle = page.locator('#block-list .block-folder-toggle');
+  await toggle.scrollIntoViewIfNeeded();
+  const hits = await toggle.evaluate(t => {
+    const r = t.getBoundingClientRect();
+    const at = (x, y) => t.contains(document.elementFromPoint(x, y));
+    return {
+      centre: at(r.left + r.width / 2, r.top + r.height / 2),
+      topRight: at(r.right - 1, r.top + 1),
+      bottomLeft: at(r.left + 1, r.bottom - 1),
+    };
+  });
+  expect(hits).toEqual({ centre: true, topRight: true, bottomLeft: true });
 });
 
 test('a block can be dragged onto the header of a COLLAPSED folder', async ({ page }) => {
@@ -668,7 +707,7 @@ test('a block dragged onto an accordion goes inside it', async ({ page }) => {
   await boot(page);
   await build(page, [
     { type: 'accordion', title: 'Tech', content: [] },
-    P('moves inside', 'Setups'),
+    { ...P('moves inside', 'Setups'), folderColor: '#22c55e' },
   ]);
 
   await dragOnto(
@@ -684,6 +723,7 @@ test('a block dragged onto an accordion goes inside it', async ({ page }) => {
       count: blocks.length,
       inner: (blocks[0].content || []).map(b => b.content),
       innerFolder: (blocks[0].content || []).map(b => b.folder || null),
+      innerColor: (blocks[0].content || []).map(b => b.folderColor || null),
     };
   });
 
@@ -693,6 +733,7 @@ test('a block dragged onto an accordion goes inside it', async ({ page }) => {
   // Its folder described where it used to live. Carried along it would render
   // inside the accordion as a folder of one, named after somewhere invisible.
   expect(out.innerFolder).toEqual([null]);
+  expect(out.innerColor, 'and its colour goes with the folder').toEqual([null]);
 });
 
 test('a theorybox takes a nested drop the same way, without being named anywhere', async ({ page }) => {
@@ -857,4 +898,347 @@ test('Diff View names the folder field in words', async ({ page }) => {
   expect(html).toContain('Editor Folder');
   expect(html).toContain('<del class="diff-del">Setups</del>');
   expect(html).toContain('<ins class="diff-add">Enders</ins>');
+});
+
+// --- A FOLDER'S COLOUR (v1.1, from an editor's feedback) ---
+//
+// "add coloring to folders for visual sorting". Owner, 2026-10-20: picked per
+// folder from a swatch on its header (the heading Side bar's popup: presets,
+// custom, none), shown as a 3px bar down the left of the whole folder, saved
+// with the page and reviewed like any edit, never seen by a reader. Stored as
+// `folderColor` on every block in the folder, the way the name is.
+
+const C = '#22c55e';
+
+// What the browser makes of a colour, so a hex can be compared with a
+// computed rgb() without either side being spelled out by hand.
+const resolved = (page, colour) => page.evaluate(c => {
+  const probe = document.createElement('div');
+  probe.style.color = c;
+  document.body.appendChild(probe);
+  const out = getComputedStyle(probe).color;
+  probe.remove();
+  return out;
+}, colour);
+
+const leftBar = (page, n = 0) => page.evaluate(i => {
+  const cs = getComputedStyle(document.querySelectorAll('#block-list .block-folder')[i]);
+  return { width: cs.borderLeftWidth, color: cs.borderLeftColor };
+}, n);
+
+const storedColours = page => page.evaluate(() => window.getActiveBlocks().map(b => b.folderColor || null));
+
+test('a colour picked on the header paints the bar down the folder and goes on every block in it', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await boot(page);
+  await build(page, [P('a', 'Setups'), P('b', 'Setups'), P('c')]);
+  const plain = await leftBar(page);
+
+  await page.locator('#block-list [data-folder-color]').click();
+  const preset = page.locator('.swatch-popup .color-preset-btn').first();
+  const picked = await preset.getAttribute('data-color');
+  await preset.click();
+
+  await expect(page.locator('.swatch-popup')).toHaveCount(0);
+  expect(await leftBar(page)).toEqual({ width: '3px', color: await resolved(page, picked) });
+  expect(await storedColours(page), 'every member, and nobody else').toEqual([picked, picked, null]);
+  const swatch = await page.locator('#block-list [data-folder-color]').evaluate(s => getComputedStyle(s).backgroundColor);
+  expect(swatch, 'the swatch shows it too').toBe(await resolved(page, picked));
+
+  // NO COLOR puts the gray rule back and takes the colour off every block.
+  await page.locator('#block-list [data-folder-color]').click();
+  await page.locator('.swatch-popup [data-swatch-none]').click();
+  expect(await leftBar(page)).toEqual(plain);
+  expect(await page.evaluate(() => window.getActiveBlocks().some(b => 'folderColor' in b))).toBe(false);
+  expect(errors).toEqual([]);
+});
+
+test('a custom colour from the picker colours the folder the same way, and UNDO takes it back', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'Setups')]);
+
+  await page.locator('#block-list [data-folder-color]').click();
+  await page.locator('.swatch-popup #cp-hex').fill('#00ff88');
+  await page.locator('.swatch-popup #cp-apply').click();
+  expect((await leftBar(page)).color).toBe('rgb(0, 255, 136)');
+  expect(await storedColours(page)).toEqual(['#00ff88']);
+
+  await page.locator('#btn-undo').click();
+  expect(await storedColours(page)).toEqual([null]);
+});
+
+test('a block joining a coloured folder takes its colour, and a block leaving drops it', async ({ page }) => {
+  await boot(page);
+
+  const out = await page.evaluate(C => {
+    const tint = (b, c) => Object.assign(b, { folderColor: c });
+    const colours = blocks => blocks.map(b => b.folderColor || null);
+    const r = {};
+
+    // The block's folder picker: in, then out again.
+    let blocks = [tint(mk('a', 'Setups'), C), tint(mk('b', 'Setups'), C), mk('c')];
+    window.assignBlockToFolder(blocks, 2, 'Setups');
+    r.joined = colours(blocks);
+    window.assignBlockToFolder(blocks, 1, '');
+    r.left = blocks.map(b => `${b.content}:${b.folderColor || '-'}`);
+
+    // A drag from a red folder into the middle of a green one.
+    blocks = [tint(mk('a', 'Setups'), C), tint(mk('x', 'Other'), '#ff0000'), tint(mk('b', 'Setups'), C), tint(mk('y', 'Other'), '#ff0000')];
+    window.reconcileFolderAt(blocks, 1);
+    r.draggedIn = colours(blocks);
+
+    // A drag clear of its folder.
+    blocks = [tint(mk('a', 'Setups'), C), tint(mk('b', 'Setups'), C), mk('x'), tint(mk('c', 'Setups'), C)];
+    window.reconcileFolderAt(blocks, 3);
+    r.draggedOut = colours(blocks);
+
+    // Dropped on the header.
+    blocks = [mk('z'), tint(mk('a', 'Setups'), C)];
+    window.dropBlockIntoFolderHead(blocks, 0, 'Setups');
+    r.onHeader = colours(blocks);
+
+    // A folder of one, its block dropped on its own header: nothing joins.
+    blocks = [tint(mk('only', 'Solo'), C)];
+    window.dropBlockIntoFolderHead(blocks, 0, 'Solo');
+    r.solo = colours(blocks);
+
+    // Renaming keeps it; ungrouping takes it off.
+    blocks = [tint(mk('a', 'Setups'), C), tint(mk('b', 'Setups'), C)];
+    window.renameBlockFolder(blocks, 'Setups', 'Enders');
+    r.renamed = colours(blocks);
+    window.ungroupBlockFolder(blocks, 'Enders');
+    r.ungrouped = blocks.map(b => 'folderColor' in b);
+    return r;
+  }, C);
+
+  expect(out.joined).toEqual([C, C, C]);
+  expect(out.left, 'b stepped out and left its colour behind').toEqual([`a:${C}`, `c:${C}`, 'b:-']);
+  expect(out.draggedIn, 'x is green now; the other red block is untouched').toEqual([C, C, C, '#ff0000']);
+  expect(out.draggedOut).toEqual([C, C, null, null]);
+  expect(out.onHeader).toEqual([C, C]);
+  expect(out.solo).toEqual([C]);
+  expect(out.renamed).toEqual([C, C]);
+  expect(out.ungrouped).toEqual([false, false]);
+});
+
+test('a new block dragged from the Add Block menu onto a coloured folder takes its colour', async ({ page }) => {
+  await boot(page);
+  await build(page, [{ ...P('a', 'Setups'), folderColor: C }, P('b')]);
+
+  await page.locator('#btn-toggle-add-menu').click();
+  await dragOnto(page, page.locator('#add-block-popup .add-block-btn[data-type="paragraph"]'), page.locator('#block-list .block-folder-head'));
+
+  const blocks = await page.evaluate(() => window.getActiveBlocks().map(b => ({ content: b.content, folder: b.folder || null, color: b.folderColor || null })));
+  expect(blocks[0], 'the new block, at the top of the folder').toMatchObject({ folder: 'Setups', color: C });
+  expect(blocks[1]).toEqual({ content: 'a', folder: 'Setups', color: C });
+});
+
+test('a folder colour that is not a colour draws nothing and cannot leave the style', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await boot(page);
+  await build(page, [
+    { ...P('a', 'One'), folderColor: '"><img src=x onerror="window.__PWN=1">' },
+    { ...P('b', 'Two'), folderColor: 'red; background: url(https://example.com/x.png)' },
+  ]);
+  await page.waitForTimeout(200);
+
+  const out = await page.evaluate(() => ({
+    coloured: document.querySelectorAll('#block-list .block-folder.has-color').length,
+    plainSwatches: document.querySelectorAll('#block-list [data-folder-color].is-none').length,
+    imgs: document.querySelectorAll('#block-list img').length,
+    pwned: window.__PWN,
+  }));
+  expect(out).toEqual({ coloured: 0, plainSwatches: 2, imgs: 0, pwned: undefined });
+  expect((await leftBar(page, 1)).width, 'the plain gray rule').toBe('2px');
+  expect(errors).toEqual([]);
+});
+
+test('an empty folder offers no colour: it has no blocks to carry one', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'Setups')]);
+  await page.locator('#block-list .block-folder-add').click();
+  await expect(page.locator('#block-list .block-folder')).toHaveCount(2);
+  await expect(page.locator('#block-list .block-folder.is-empty [data-folder-color]')).toHaveCount(0);
+  await expect(page.locator('#block-list .block-folder:not(.is-empty) [data-folder-color]')).toHaveCount(1);
+});
+
+test('find and replace leaves a folder colour alone', async ({ page }) => {
+  await boot(page);
+  const paths = await page.evaluate(() => window.findEditorMatches({
+    overview: [{ type: 'paragraph', content: 'red text', folder: 'Reds', folderColor: 'red' }],
+  }, 'red', { wholeWord: true }).map(m => m.path.join('.')));
+  expect(paths).toEqual(['overview.0.content']);
+});
+
+test('Diff View names the folder colour in words', async ({ page }) => {
+  await page.goto('/admin.html', { waitUntil: 'networkidle' });
+  const html = await page.evaluate(() => window.renderStructuredDiff(
+    { type: 'paragraph', folder: 'Setups', folderColor: '#111111' },
+    { type: 'paragraph', folder: 'Setups', folderColor: '#222222' },
+  ));
+  expect(html).toContain('Editor Folder Color');
+  expect(html).toContain('<ins class="diff-add">#222222</ins>');
+});
+
+// --- MOVING A WHOLE FOLDER (v1.1, from an editor's feedback) ---
+//
+// "let folders be arranged for faster organization in group batches instead
+// of one at a time (basically, folders are recognized as a collection of
+// blocks, and you can organize it and such by dragging above or below
+// blocks/other folders)". Scoped 2026-10-20: a ⠿ on the folder's header, open
+// or shut; it drops before or after Blocks and whole folders, never inside
+// another folder or an accordion; an empty folder has nothing to move.
+
+const order = page => page.evaluate(() => window.getActiveBlocks().map(b => (b.folder ? `${b.content}@${b.folder}` : b.content)));
+
+// Real mouse from the folder's handle to a point: (x, y) or the top or bottom
+// quarter of a target, which decides above or below it.
+async function dragFolder(page, from, to, { finish = true } = {}) {
+  await expect(from).toBeVisible();
+  const a = await from.boundingBox();
+  let x, y;
+  if (to.locator) {
+    const b = await to.locator.boundingBox();
+    x = b.x + b.width / 2;
+    y = to.half === 'bottom' ? b.y + b.height * 0.75 : b.y + b.height * 0.25;
+  } else ({ x, y } = to);
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2 + 20);
+  await page.mouse.move(x, y, { steps: 6 });
+  if (finish) await page.mouse.up();
+}
+
+const handleOf = (page, n = 0) => page.locator('#block-list .block-folder-handle').nth(n);
+const card = (page, i) => page.locator(`#block-list .block-card[data-index="${i}"]`);
+
+test('moveBlockFolder moves the whole run, and folderDropSlot keeps a drop out of other folders', async ({ page }) => {
+  await boot(page);
+  const out = await page.evaluate(() => {
+    const names = blocks => blocks.map(b => (b.folder ? `${b.content}@${b.folder}` : b.content));
+    const r = {};
+    let blocks = [mk('a', 'S'), mk('b', 'S'), mk('x'), mk('c', 'E'), mk('d', 'E'), mk('y')];
+    r.downAt = window.moveBlockFolder(blocks, 1, 6);
+    r.down = names(blocks);
+    r.upAt = window.moveBlockFolder(blocks, 2, 0);
+    r.up = names(blocks);
+    r.noop = [window.moveBlockFolder(blocks, 0, 0), window.moveBlockFolder(blocks, 0, 2)];
+    r.unchanged = names(blocks);
+
+    blocks = [mk('a', 'S'), mk('b', 'S'), mk('c', 'S'), mk('x')];
+    r.slots = [0, 1, 2, 3, 4].map(i => window.folderDropSlot(blocks, i));
+    return r;
+  });
+
+  expect(out.downAt).toBe(4);
+  expect(out.down).toEqual(['x', 'c@E', 'd@E', 'y', 'a@S', 'b@S']);
+  expect(out.upAt).toBe(0);
+  expect(out.up).toEqual(['c@E', 'd@E', 'x', 'y', 'a@S', 'b@S']);
+  expect(out.noop, 'its own place, either edge').toEqual([-1, -1]);
+  expect(out.unchanged).toEqual(out.up);
+  // Inside the folder [0..2], a slot goes to the nearer edge; its edges stay.
+  expect(out.slots).toEqual([0, 0, 3, 3, 4]);
+});
+
+test('a folder dragged by its handle moves with every block in it, and UNDO puts it back', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  await boot(page);
+  await build(page, [P('a', 'S'), P('b', 'S'), P('x'), P('y')]);
+
+  await dragFolder(page, handleOf(page), { locator: card(page, 3), half: 'bottom' });
+  expect(await order(page)).toEqual(['x', 'y', 'a@S', 'b@S']);
+  expect(await page.locator('#block-list .block-folder').count(), 'still one folder').toBe(1);
+
+  await page.locator('#btn-undo').click();
+  expect(await order(page)).toEqual(['a@S', 'b@S', 'x', 'y']);
+  expect(errors).toEqual([]);
+});
+
+test('a folder dropped inside another lands at its nearer edge, and the line shows where first', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'S'), P('x'), P('c', 'E'), P('d', 'E'), P('e', 'E')]);
+
+  // Over the top of d, the middle of E: E's nearer edge is its top.
+  await dragFolder(page, handleOf(page), { locator: card(page, 3), half: 'top' }, { finish: false });
+  const marked = await page.evaluate(() => ({
+    shell: [...document.querySelectorAll('#block-list .block-folder')].map(f => [f.getAttribute('data-folder'), f.classList.contains('drag-over-top')]),
+    cards: document.querySelectorAll('#block-list .block-card.drag-over-top, #block-list .block-card.drag-over-bottom').length,
+  }));
+  expect(marked.shell, 'the line is on top of the whole of E').toEqual([['S', false], ['E', true]]);
+  expect(marked.cards, 'and on no card inside it').toBe(0);
+  await page.mouse.up();
+
+  expect(await order(page)).toEqual(['x', 'a@S', 'c@E', 'd@E', 'e@E']);
+  expect(await page.evaluate(() => window.collectBlockFolders(window.getActiveBlocks()).map(r => `${r.name}:${r.count}`)))
+    .toEqual(['S:1', 'E:3']);
+});
+
+test('a shut folder moves by its handle too', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'S'), P('b', 'S'), P('x')]);
+  await page.locator('#block-list .block-folder-toggle').click();
+  await expect(card(page, 0)).toBeHidden();
+
+  await dragFolder(page, handleOf(page), { locator: card(page, 2), half: 'bottom' });
+  expect(await order(page)).toEqual(['x', 'a@S', 'b@S']);
+});
+
+test('a folder dropped on an accordion goes beside it, never inside', async ({ page }) => {
+  await boot(page);
+  // The folder starts away from the accordion, so landing beside it, above
+  // or below, is a move either way.
+  await build(page, [{ type: 'accordion', title: 'Tech', content: [] }, P('z'), P('a', 'S')]);
+
+  await dragFolder(page, handleOf(page), { locator: page.locator('#block-list .accordion-inner-block-wrapper') }, { finish: false });
+  expect(await page.locator('.drag-over-nest').count(), 'the strip is not offered').toBe(0);
+  await page.mouse.up();
+
+  const out = await page.evaluate(() => {
+    const blocks = window.getActiveBlocks();
+    const acc = blocks.find(b => b.type === 'accordion');
+    return {
+      inner: acc.content.length,
+      order: blocks.map(b => (b.type === 'accordion' ? 'acc' : b.folder ? `${b.content}@${b.folder}` : b.content)),
+    };
+  });
+  expect(out.inner, 'nothing went inside').toBe(0);
+  expect([['a@S', 'acc', 'z'], ['acc', 'a@S', 'z']], 'beside the accordion, above or below').toContainEqual(out.order);
+});
+
+test('with drag handles hidden, the left edge of a folder header moves the folder', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'S'), P('x')]);
+  await page.evaluate(() => window.editorConfig.set('hideDragHandle', true));
+  await expect(handleOf(page)).toBeHidden();
+
+  // On the folder's own left rule, the outermost pixel of the edge.
+  const shell = await page.locator('#block-list .block-folder').boundingBox();
+  const head = await page.locator('#block-list .block-folder-head').boundingBox();
+  const x = await card(page, 1).boundingBox();
+  await page.mouse.move(shell.x + 1, head.y + head.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(shell.x + 1, head.y + head.height / 2 + 20);
+  await page.mouse.move(x.x + x.width / 2, x.y + x.height * 0.75, { steps: 6 });
+  await page.mouse.up();
+  expect(await order(page)).toEqual(['x', 'a@S']);
+
+  // The grab strip is the header's own height: one that ran down the list
+  // would pick the folder up from beside blocks far below it.
+  const strip = await page.locator('#block-list .block-folder-head').evaluate(h => ({
+    strip: parseFloat(getComputedStyle(h, '::before').height),
+    head: h.getBoundingClientRect().height,
+  }));
+  expect(Math.abs(strip.strip - strip.head)).toBeLessThan(1);
+});
+
+test('an empty folder has no handle: it is not in the data, so there is nothing to move', async ({ page }) => {
+  await boot(page);
+  await build(page, [P('a', 'S')]);
+  await page.locator('#block-list .block-folder-add').click();
+  await expect(page.locator('#block-list .block-folder')).toHaveCount(2);
+  await expect(page.locator('#block-list .block-folder.is-empty .block-folder-handle')).toHaveCount(0);
+  await expect(page.locator('#block-list .block-folder:not(.is-empty) .block-folder-handle')).toHaveCount(1);
 });

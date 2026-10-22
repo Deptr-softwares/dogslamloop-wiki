@@ -230,27 +230,51 @@ window.generatePlaystyleHTML = function(playstyle) {
 
 // --- THE RECURSIVE BLOCK ENGINE ---
 // This standalone function can render blocks infinitely deep!
-window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1: Added contextClass parameter
+//
+// The editor's Preview follows the Block setting (js/editor-config.js) marks
+// where each Block starts, through window.previewBlockAnchor. Only the
+// outermost list is marked: a Block's place in the Workspace is its place at
+// the top level, and the nested calls below come back through this wrapper.
+// Nothing defines the hook outside edit.html, so a reader page is unchanged.
+let blockRenderDepth = 0;
+window.generateHTMLForBlocks = function (blocks, contextClass = '') {
+    const anchor = blockRenderDepth === 0 && typeof window.previewBlockAnchor === 'function' ? window.previewBlockAnchor : null;
+    blockRenderDepth++;
+    try {
+        return renderBlocksHTML(blocks, contextClass, anchor);
+    } finally {
+        blockRenderDepth--;
+    }
+};
+
+function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1: Added contextClass parameter
     let contentHTML = '';
     let sectionAuthors = new Set(); // FIXED 2: Initialized the authors array here!
     
     if (!Array.isArray(blocks) || blocks.length === 0) return '';
 
-    blocks.forEach(block => {
+    blocks.forEach((block, blockIndex) => {
         if (!block) return;
+        const blockStart = contentHTML.length;
         
         // FIXED 3: Defined the alignment variable inside the loop so every block can use it!
         const alignAttr = getAlignStyle(block.align); 
         
         if (block.type === 'heading') {
-            let headingClass = 'wiki-block-heading';
-            if (contextClass) headingClass += ` ${contextClass}-heading`;
-            
+            // The same heading in every tab (owner, 2026-10-19). The coloured
+            // bar the Matchup, Counterplay and Starter Guide tabs used to add
+            // by themselves is now the block's own choice, in any tab.
+            // Whitelisted by safeColor, which admits no quote or semicolon, so
+            // the value cannot leave the style attribute.
+            const bar = typeof window.safeColor === 'function' ? window.safeColor(block.sideBar) : null;
+            const headingClass = bar ? 'wiki-block-heading wiki-block-heading-bar' : 'wiki-block-heading';
+
             // Allowlisted: block.size is contributor-set and lands in the tag
             // NAME, so an unchecked value writes an arbitrary element.
             const tag = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(block.size) ? block.size : 'h3';
+            const headingStyle = getAlignStyle(block.align, bar ? `--heading-bar: ${bar};` : '');
 
-            contentHTML += `<${tag} class="${headingClass}" ${alignAttr}>${escBlockText(block.content)}</${tag}>`;
+            contentHTML += `<${tag} class="${headingClass}" ${headingStyle}>${escBlockText(block.content)}</${tag}>`;
         }
         // --- PARAGRAPHS (With Inline Keybinds & URL Links) ---
         else if (block.type === 'paragraph') {
@@ -302,7 +326,7 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
                     </figure>
                 `;
             } else {
-                contentHTML += `<img src="${escBlockText(safeBlockUrl(block.src))}" alt="${escBlockText(block.alt || 'Wiki Image')}" ${getMediaAttributes(block.align, block.width, 'border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow, #000);')} loading="lazy">`;
+                contentHTML += `<img src="${escBlockText(safeBlockUrl(block.src))}" alt="${escBlockText(block.alt || 'Wiki Image')}" ${getMediaAttributes(block.align, block.width, 'box-shadow: 4px 4px 0px var(--manga-shadow, #000);')} loading="lazy">`;
             }
         }
         // --- DIVIDERS ---
@@ -683,6 +707,8 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
             }
         }
         
+        if (anchor) contentHTML = contentHTML.slice(0, blockStart) + anchor(contentHTML.slice(blockStart), blockIndex, block);
+
         // --- AUTHOR AGGREGATION ---
         if (block.author && block.author.trim() !== '') {
             // Split by comma in case multiple authors collaborated on one block
@@ -717,7 +743,7 @@ window.generateHTMLForBlocks = function(blocks, contextClass = '') { // FIXED 1:
     contentHTML += `<div class="wiki-blocks-clearfix"></div>`;
 
     return contentHTML;
-};
+}
 
 // Helper to apply dynamic text alignment and prevent long-word overflow
 // --- THE COMBO TABLE (v0.15 item 3) ---
@@ -1561,12 +1587,15 @@ function sboxPanelHTML(i, inner) {
     return `<div class="sbox-panel${i === 0 ? ' is-active' : ''}" data-sbox-panel="${i}">${inner}</div>`;
 }
 
-function getAlignStyle(align) {
+// `extra` is CSS this file built from whitelisted values, never contributor
+// text as typed.
+function getAlignStyle(align, extra = '') {
     let styleStr = 'overflow-wrap: break-word; word-break: break-word;';
     // Allowlisted, not escaped - this is a CSS value, where escaping quotes
     // still leaves `left; background: url(...)` intact.
     const dir = safeBlockAlign(align);
     if (dir) styleStr += ` text-align: ${dir};`;
+    if (extra) styleStr += ` ${extra}`;
     return `style="${styleStr}"`;
 }
 
@@ -1738,6 +1767,88 @@ function modeScopedTabIsDrawable(section, pageId, modeId) {
     }
     return false;
 }
+
+// --- PROFILE DESCRIPTION (v1.1) ---
+//
+// Owner's list: "Add Profile Description (have: Quote, Trivia, Next, and
+// Previous) to a Character Page". It fills the profile card under the stats,
+// the way a wiki infobox ends in its Character Navigation rows (owner,
+// 2026-10-20, after a first version spanned the page under the overview and
+// "looks really awkward"). Trivia is one quiet row whose facts open on hover,
+// or on a tap, which focuses it. Quote and Trivia are the page's own
+// (desc_data.profile). Built here for the reader page and the editor's
+// preview alike, so the two cannot drift.
+window.profileDescriptionHTML = function (profile) {
+    const p = profile || {};
+    const esc = window.escapeHtmlKeepBreaks;
+    const quote = String(p.quote || '').trim();
+    const speaker = String(p.quoteSpeaker || '').trim();
+    const trivia = (Array.isArray(p.trivia) ? p.trivia : [])
+        .map(t => String(t == null ? '' : t).trim()).filter(Boolean);
+
+    let body = '';
+    if (quote) {
+        body += `<figure class="profile-quote"><blockquote><p>${esc(quote)}</p></blockquote>`
+            + `${speaker ? `<figcaption><p>${esc(speaker)}</p></figcaption>` : ''}</figure>`;
+    }
+    if (trivia.length) {
+        body += `<div class="profile-stat-row profile-trivia-row" tabindex="0">`
+            + `<span class="profile-stat-label">Trivia</span>`
+            + `<span class="profile-trivia-count">${trivia.length} ${trivia.length === 1 ? 'fact' : 'facts'}</span>`
+            + `<div class="profile-trivia-pop"><ul class="wiki-block-list profile-trivia">${trivia.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>`
+            + `</div>`;
+    }
+    // With nothing written, this is only Character Navigation, and stays
+    // hidden until fillProfilePager has something to put in it.
+    return `<div class="profile-desc"${body ? '' : ' hidden'}>${body}`
+        + `<nav class="profile-pager" aria-label="Character navigation" data-profile-pager hidden></nav></div>`;
+};
+
+// The Characters page's order, without the characters it does not show, and
+// with base-only characters moved to the end (owner, 2026-10-19). A hidden
+// character's own page is not in it, so it gets no Previous or Next.
+function profilePagerOrder(characters) {
+    const shown = (Array.isArray(characters) ? characters : [])
+        .filter(c => c && c.published !== false && !c.isHidden);
+    return shown.filter(c => !c.isBaseOnly).concat(shown.filter(c => c.isBaseOnly));
+}
+
+window.fillProfilePager = async function (root, pageId) {
+    const box = root && root.querySelector('.profile-desc');
+    const nav = box && box.querySelector('[data-profile-pager]');
+    if (!nav || typeof window.fetchJson !== 'function') return;
+
+    const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../../';
+    let navData;
+    try {
+        navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
+    } catch (e) {
+        // Deliberately quiet on the page: Previous and Next are a convenience,
+        // and the rest of the profile has already rendered without them.
+        console.warn('[Profile] Could not load the character list for Previous and Next:', e);
+        return;
+    }
+
+    const order = profilePagerOrder(navData && navData.Characters);
+    const at = order.findIndex(c => String((c.cms_config || {}).pageId || '').toLowerCase() === String(pageId || '').toLowerCase());
+    if (at < 0) return;
+
+    const esc = window.escapeHtml;
+    // A row only for a side that has someone: the first character has no
+    // Previous row and the last has no Next.
+    const row = (c, dir, label) => c
+        ? `<div class="profile-stat-row"><span class="profile-stat-label">${label}</span>`
+            + `<a class="profile-stat-val profile-pager-link profile-pager-${dir}" href="${esc(rootPath + c.url)}">${esc(c.name)}</a></div>`
+        : '';
+    const prev = order[at - 1];
+    const next = order[at + 1];
+    if (!prev && !next) return;
+
+    nav.innerHTML = `<div class="profile-pager-title">Character Navigation</div>`
+        + row(prev, 'prev', 'Previous') + row(next, 'next', 'Next');
+    nav.hidden = false;
+    box.hidden = false;
+};
 
 async function loadPageDescriptions(pageId, pageType = 'character', modeId = null) {
     try {
@@ -1946,21 +2057,15 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
 
             // --- 4. NATIVE PAGEBUILDER DELEGATION ---
             if (typeof window.setupTabs === 'function') {
-                window.setupTabs('nav', 'tab', tabIdsForPageBuilder, 'major');
+                // The address only on the reader's page: the editor renders
+                // this strip too, hidden, and its address is its own.
+                window.setupTabs('nav', 'tab', tabIdsForPageBuilder, 'major', { address: !isEditor });
             }
 
             if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
-            
-            if (window.renderMathInElement) {
-                renderMathInElement(document.body, {
-                    delimiters: [
-                        {left: '$$', right: '$$', display: true},
-                        {left: '$', right: '$', display: false}
-                    ],
-                    throwOnError: false
-                });
-            }
-            
+
+            window.renderMathIfAny(document.body);
+
             if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
             return; // EXIT EARLY to guarantee Character logic never runs
         }
@@ -2022,6 +2127,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                         <aside class="wiki-section profile-card">
                             ${imgHTML}
                             <div class="profile-stats-container">${statsHTML}</div>
+                            ${window.profileDescriptionHTML(data.profile)}
                         </aside>
                     `;
                 }
@@ -2043,6 +2149,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 topSplit.innerHTML = profileHTML;
                 topSplit.appendChild(rightColumn);
                 overviewContainer.appendChild(topSplit);
+                window.fillProfilePager(overviewContainer, pageId);
 
                 populateTextSection('overview-text-subnode', 'Character Overview', data.overview);
                 if (data.strategy && data.strategy.length > 0) {
@@ -2255,16 +2362,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
             }
         } // End of else block (Character Engine)
 
-        // --- Trigger KaTeX to render LaTeX automatically ---
-        if (window.renderMathInElement) {
-            renderMathInElement(document.body, {
-                delimiters: [
-                    {left: '$$', right: '$$', display: true},
-                    {left: '$', right: '$', display: false}
-                ],
-                throwOnError: false
-            });
-        }
+        window.renderMathIfAny(document.body);
         
         // --- Auto-Refresh ToC when rendering finishes ---
         if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);

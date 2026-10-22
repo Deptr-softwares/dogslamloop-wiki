@@ -30,10 +30,6 @@
 let galleryItems = [];
 let galleryPageId = null;
 
-function galleryEsc(str) {
-    return window.escapeHtml(str);
-}
-
 // Matches the detection js/framedata.js uses: read the extension off the path,
 // not the whole URL, so a query string or fragment does not make a video look
 // like an image.

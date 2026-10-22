@@ -1,31 +1,27 @@
 # dogslamloop-wiki
 
-A technical wiki for **Jujutsu Shenanigans**, a competitive Roblox fighting game. Modelled on dustloop.com but for a 3D fighter whose mechanics differ substantially from 2D ones — don't assume dustloop conventions map across.
+A technical wiki for **Jujutsu Shenanigans**, a competitive Roblox fighting game. Modelled on dustloop.com but for a 3D fighter whose mechanics differ substantially from 2D ones: don't assume dustloop conventions map across.
 
 Frame data, i-frames, matchup tiers and M1 trading are domain terms with real gameplay meaning to the community that maintains them. When touching frame-data rendering, tier logic, matchup content or colour coding, sanity-check against fighting-game conventions (startup/active/recovery, block/hit advantage) rather than treating it as generic data.
 
 ## Stack
 
 - Static HTML/CSS/JS. **No bundler, no build step.** Classic `<script src>` tags sharing one `window` global scope.
-- **Supabase** (Postgres + PostgREST + Auth + Storage), fetched client-side with the public anon key. That key ships in `js/site_utils.js` and is in every page's source — it is not a secret. The service-role key must never appear in this repo or in CI.
-- **KLIPY's API key ships in `js/discussions.js`** and is visible in page source, like the anon key: the owner's explicit choice, 2026-10-02. It is a test key, 100 lookups an hour. A KLIPY link is looked up once, when the post is made, and the post stores the GIF's own address, so readers never spend a lookup. Never move the lookup to render time.
-- **The Discord relay** (`supabase/functions/discord-relay`, v1.0) is the one Edge Function. It deploys on merge to `main` because `supabase/config.toml` declares it, and Supabase Cron calls it every 10 seconds. **Its bot token and webhook URLs live in Supabase secrets, set by the owner, and never appear in this repo, in CI or in a chat message**, the same as the service-role key. Without them it does nothing, which is what every preview branch gets. Its rules are plain JS in `supabase/functions/_shared/`, tested in Node. **Live on production since 2026-10-07** (v1.0 Part 1, #223): production has its secrets, so a merge to `main` that changes the relay changes what happens on the real Discord server. Try relay changes on a preview against the owner's test server first.
+- **Supabase** (Postgres + PostgREST + Auth + Storage), fetched client-side with the public anon key. That key ships in `js/site_utils.js` and is in every page's source: it is not a secret. **The service-role key must never appear in this repo or in CI.**
+- **KLIPY's API key ships in `js/discussions.js`**, visible like the anon key (the owner's choice, 2026-10-02; a test key, 100 lookups an hour, until the owner's production key). A KLIPY link is looked up once, when the post is made, and the post stores the GIF's own address. Never move the lookup to render time. **Only a reader's browser calls KLIPY** (the post box's lookup and its GIF picker): KLIPY's production rules forbid requests from a partner's server without their written approval, so the relay never calls it and waits for Discord's own preview instead (batch 8.5).
+- **The Discord relay** (`supabase/functions/discord-relay`) is the one Edge Function, live on production since 2026-10-07, so a merge to `main` that changes it changes the real Discord server. **Its bot token and webhook URLs live in Supabase secrets, set by the owner, and never appear in this repo, in CI or in a chat message.** The rest is in `.claude/rules/discord-relay.md`.
 - **GitHub Pages** from `main`, custom domain `dogslamloop.com`.
 
 ## Deploy model
 
-- **`next-update` is the integration branch; `main` is production.** Pages serves `main`, so every merge there is a live deploy. Item PRs target `next-update`; a release is one PR from `next-update` to `main` carrying the changelog and version bump. Readers see one change per release rather than one per item.
-- **CI triggers on `main` and `next-update` only.** A PR targeting anything else runs no tests, and reports green because nothing ran.
-- **Push to `main` deploys immediately.** No staging environment.
-- **Both branches carry a ruleset requiring `test` and `Supabase Preview`** (`main: require CI` since 2026-08-08, `next-update: require CI` since 2026-08-14; `Supabase Preview` added to both on 2026-08-15 after a release merged over a red one). **Direct pushes to either are rejected** — a push carries no check run, so it can never satisfy the rule. Everything lands through a PR. `Supabase Preview` reports `SKIPPED` rather than nothing on a PR that touches no SQL, which is why requiring it does not deadlock CSS-only work.
-- **Except the regeneration job**, which must push its generated artifacts. It checks out over SSH with a deploy key (`secrets.REGEN_DEPLOY_KEY`), and that deploy key is in the ruleset's bypass list. The default `GITHUB_TOKEN` identity cannot be used for this: `github-actions[bot]` is not a user, team or installed app, so no bypass list can name it. The job runs the full suite before committing, so the bypass skips a check the job performs on itself.
-- **Content reaches readers through the regeneration job, not through a release.** `workflow_dispatch` carries a `publish_to_main` checkbox, default off: ticked, the job regenerates `main` as well as `next-update` and the content is live immediately. The nightly cron never sets it, so a scheduled run cannot deploy — that keeps the one property the release PR was really providing, which is that nothing reaches readers unless somebody decided it should. Before this, a new character page needed a `next-update → main` release to be reachable at all, which dragged every unreleased change along with it. **Each branch regenerates from Supabase with its own code**, never by copying files across: stubs embed an asset stamp derived from `js/`, so two branches with different unreleased JS legitimately produce different stubs, and copying either way stamps every page wrongly. This job moves data; the release PR still moves code. Consequence: `main` and `next-update` each carry their own `chore: regenerate` commits, so the divergence check has to exclude them and release PRs conflict on stubs — regenerate, never hand-merge.
-- **That ordering makes the test suite a gate on content, not just on code.** The regeneration job commits *after* the suite passes, so any red test stops every generated artifact — navigation, colours, portraits, FAQ, collaborators, stubs — from reaching the site, and keeps stopping them on every daily run until it is fixed. Two outages so far: the Roulette page (2026-08-09 to 08-12, three days) and the Hidden flag (2026-09-05). **A test that can be turned red by an owner edit is therefore a production outage, not a failing test.** Never assert a count of pages, characters, categories or colours; never compare a frozen artifact (an applied migration, a committed fixture) against anything regenerated from `site_pages`, because the frozen half can never catch up. When the regeneration run fails, read it as "the site is stale" first and "a test is wrong" second — the two are usually the same sentence.
-- **Migrations apply on merge to `main`, so at release time the whole accumulated batch applies at once.** Between writing a migration and the release, anything database-backed looks broken — a missing table or `PGRST202 / schema cache` error is the expected state, not a bug.
-- **Supabase branching verifies migrations before they reach production.** Automatic branching is on, scoped by *Supabase changes only*, so a PR touching `supabase/` gets a preview database and the migrations run against it; a PR touching only CSS or JS gets none. The release PR touches `supabase/` too, so it runs the entire accumulated set together — the only check that catches two independently-valid migrations conflicting in sequence. Branching compute sits outside the org spend cap, and a preview branch lives as long as its PR stays open.
-- **Branching decides once, on a branch's FIRST push, and never re-evaluates.** A branch whose first push touches only CSS or JS gets no preview database, and adding a migration in a *later* push to that same branch does not create one — the check reports `SKIPPED` and the migration reaches `next-update` verified by nothing. Observed on PR #165. So when a migration is going to be part of a branch, it must be in that branch's first push; otherwise branch fresh for it.
-- **A green preview does not mean the migration is correct.** It records each migration by version and never re-runs it, so *editing a migration you already pushed is verified by nothing* — `supabase/migrations.lock.json` exists to catch that. And a preview has production's schema plus **only the rows the migrations insert** — never any *content*, so a code path guarded by owner- or contributor-authored data is never executed there. Both of these shipped broken migrations in v0.14. The `supabase-migration` skill has the detail.
-- **`supabase/seed.sql` runs on branch creation and on local `db reset`, never on `db push`.** It gives a preview branch five accounts with known passwords (owner, admin, one deliberately roleless, a Trusted Editor and a banned viewer; the table is in the `supabase-migration` skill) so RLS, grants and RPC guards can be probed for real. It runs *after* migrations, so it cannot help a migration that reads data at migration time.
+- **`next-update` is the integration branch; `main` is production.** Pages serves `main`, so every merge there is a live deploy, with no staging. Item PRs target `next-update`; a release is one PR from `next-update` to `main` carrying the changelog and version bump.
+- **CI triggers on `main` and `next-update` only.** A PR targeting anything else runs no tests and reports green because nothing ran.
+- **Both branches require `test` and `Supabase Preview` and reject direct pushes**, so everything lands through a PR. `Supabase Preview` reports `SKIPPED` on a PR that touches no SQL. The one bypass is the regeneration job's deploy key (`.claude/rules/regeneration.md`).
+- **Content reaches readers through the regeneration job, not a release.** The nightly run regenerates `next-update`; `workflow_dispatch` with `publish_to_main` ticked (default off) also regenerates `main`. The job moves data; the release PR moves code.
+- **The test suite gates content, not just code.** The regeneration job commits only after the full suite passes, so one red test stops navigation, colours, portraits, FAQ, collaborators and stubs reaching the site, every day, until it is fixed (the Roulette page 2026-08-09 to 08-12; the Hidden flag 2026-09-05). **A test an owner edit can turn red is a production outage.** Never assert a count of pages, characters, categories or colours. Never compare a frozen artifact (an applied migration, a committed fixture) against anything regenerated from `site_pages`. A failed regeneration run reads as "the site is stale" first.
+- **Migrations apply on merge to `main`**, so a release applies the whole accumulated batch at once. Until then a missing table or a `PGRST202 / schema cache` error is expected, not a bug.
+- **A PR touching `supabase/` gets a preview database, decided once on the branch's FIRST push.** A migration added in a later push gets no preview and reports `SKIPPED` (PR #165). Put a migration in its branch's first push, or branch fresh for it. A green preview still does not prove a migration correct: the `supabase-migration` skill says why and how to probe.
+- **`supabase/seed.sql` runs on branch creation and local `db reset`, never on `db push`.** It gives a preview five accounts with known passwords for probing RLS, grants and RPC guards.
 
 ## Commands
 
@@ -40,11 +36,11 @@ npm run refresh-registry  # rewrite navigation.json from site_pages
 npm run refresh-content   # rewrite faq.json + collaborators_data.json + site_meta.json
 ```
 
-`visual.spec.js` is excluded from CI (`testIgnore` in `playwright.config.js`): screenshot baselines are OS-specific, so committed Windows baselines can never match a Linux runner. It stays a local-only tool for CSS work.
+`visual.spec.js` is excluded from CI (`testIgnore` in `playwright.config.js`): screenshot baselines are OS-specific. It stays a local-only tool for CSS work.
 
-## Generated files — never hand-edit
+## Generated files: never hand-edit
 
-Edit the source and regenerate; hand-edits are overwritten by the `regenerate.yml` workflow.
+Edit the source and regenerate; `regenerate.yml` overwrites hand-edits.
 
 | File | Source |
 |---|---|
@@ -52,72 +48,108 @@ Edit the source and regenerate; hand-edits are overwritten by the `regenerate.ym
 | `data/page-previews.json` | `page_data.desc_data.profile.image` |
 | `data/portraits.json` + `medias/portraits/*` | mirrored from the URLs in `page-previews.json` |
 | `data/faq.json` | `site_faq` table |
-| `data/site_meta.json` | `site_meta` table — **the version string lives here**, so a release bump is an owner-tools edit plus `npm run refresh-content`, never a hand-edit |
+| `data/site_meta.json` | `site_meta` table. **The version string lives here**, so a release bump is an owner-tools edit plus `npm run refresh-content` |
 | `systems/collaborators/collaborators_data.json` | `site_collaborators` table |
-| `data/search-index.json` + `data/search-fulltext.json` | `page_data`, via `scripts/fetch-search-index.js`. Built by calling `collectSectionTargets` (`js/character_tabs.js`), never by a second walk of `desc_data` — the anchors have to match the ones `assignSectionAnchors` mints in the DOM. **Deliberately absent from `npm run validate`**: unlike every other row here they are fetched from Supabase, so a `--check` would turn an owner content edit into a red required check |
-| `js/site_meta.js` — **only** the region between `GENERATED REGION: CHARACTER_COLORS` and `END GENERATED REGION` | `site_pages.color`, keyed by `name`. The rest of the file (`CHARACTER_ALIASES`, `applyCharacterTheme`) is hand-authored and must stay outside the markers. `fetch-content.js` refuses to write if they are missing rather than guessing the boundary |
+| `data/search-index.json` + `data/search-fulltext.json` | `page_data`, via `scripts/fetch-search-index.js`, built by calling `collectSectionTargets` (`js/character_tabs.js`) so the anchors match the ones `assignSectionAnchors` mints in the DOM. **Deliberately absent from `npm run validate`**: they are fetched from Supabase, so a `--check` would turn an owner content edit into a red required check |
+| `js/site_meta.js`, **only** between `GENERATED REGION: CHARACTER_COLORS` and `END GENERATED REGION` | `site_pages.color`, keyed by `name`. The rest of the file (`CHARACTER_ALIASES`, `applyCharacterTheme`) is hand-authored. `fetch-content.js` refuses to write if the markers are missing |
 | `characters/*/index.html`, `systems/*/index.html` | `navigation.json` + `page-previews.json` |
+| `data/emoji.json` | Unicode's `emoji-test.txt` cut to what Twemoji has art for, via `scripts/build-emoji-data.js`. **Not regenerated nightly**: both sources are pinned, so it changes only when the Twemoji version in that script and `js/emoji.js` moves (a test checks the two agree) |
 
-Generated page stubs carry a `<!-- GENERATED by scripts/generate-pages.js -->` marker. The generator refuses to overwrite any file lacking it.
+Generated stubs carry `<!-- GENERATED by scripts/generate-pages.js -->`, and the generator refuses to overwrite a file without it. **Hand-authored, never generated** (`NEVER_TOUCH` in `scripts/generate-pages.js`): `characters/Template`, `systems/collaborators`, `systems/tierlist`, `systems/updatelog`, `systems/color-codes`, and both hub pages (`characters/index.html`, `systems/index.html`).
 
-**Hand-authored, never generated** (protected by `NEVER_TOUCH` in `scripts/generate-pages.js`): `characters/Template`, `systems/collaborators`, `systems/tierlist`, `systems/updatelog`, `systems/color-codes`, and both hub pages (`characters/index.html`, `systems/index.html`).
-
-Page rendering itself lives in `js/page_router.js` (DOM skeleton) and `js/page_boot.js` (per-type boot sequence). The two boot branches differ genuinely — character pages fire fetches concurrently with a 500ms TOC delay, system pages await in order with 150ms — don't flatten them.
+Page rendering lives in `js/page_router.js` (DOM skeleton) and `js/page_boot.js` (per-type boot). The two boot branches differ on purpose (character pages fetch concurrently with a 500ms TOC delay; system pages await in order with 150ms): don't flatten them.
 
 ## `tool` pages: editable or not
 
-A `tool` page is one or the other, and which one follows from where the tool actually lives (owner, 2026-08-15):
-
-- **Editable** — the page *wraps an external tool*. It is description, link and context, so it is content, and content gets edited. The Skill Builder ID Reader is this.
-- **Not editable** — the *logic lives in the page*. Free Submit Tier List, Create Tier List. There is nothing to submit, so no edit button and no History.
-
-Restricting an editable tool page to one person is configuration, not code: `site_pages.edit_role = 'elevated'` shows the button and gates at submit, and a `page_permissions` row with `required_role = 'admin'` decides who passes. `edit_role` is `open | elevated | locked`; `locked` hides the button entirely (see `js/pagebuilder.js:237`).
+Decided by where the tool lives (owner, 2026-08-15). A page that **wraps an external tool** is content and is editable (the Skill Builder ID Reader). A page whose **logic lives in the page** has no edit button and no History (Free Submit Tier List, Create Tier List). Restricting an editable page to one person is configuration: `site_pages.edit_role` is `open | elevated | locked`. `elevated` gates at submit, with a `page_permissions` row deciding who passes; `locked` hides the button (the `editRole === 'locked'` check in `js/pagebuilder.js`).
 
 ## Roles
 
-**One role per user**, enforced by `UNIQUE(user_id)` on `user_roles`. Multi-role used to be possible and broke `get_my_role()` with "more than one row returned by a subquery", which broke that user's access everywhere.
+**One role per user**, enforced by `UNIQUE(user_id)` on `user_roles` (multi-role once broke `get_my_role()` with "more than one row returned by a subquery").
 
 | Rank | Role | Can |
 |---|---|---|
-| 5 | `owner` | Everything, and **the owner tools are theirs alone** — personnel, capabilities, page registry, FAQ, collaborators, site meta and settings, the blog, tier-list assignment |
-| 4 | `admin` | Everything on `admin.html`, including **media deletion**. What is theirs and not a reviewer's: **force approve/reject and self-approve** — bypassing the support/oppose vote. **No owner-tool access** |
+| 5 | `owner` | Everything, and **the owner tools are theirs alone**: personnel, capabilities, page registry, FAQ, collaborators, site meta and settings, the blog, tier-list assignment |
+| 4 | `admin` | Everything on `admin.html`, including **media deletion**, plus **force approve/reject and self-approve** (bypassing the vote). **No owner-tool access** |
 | 3 | `reviewer` | The queue: approve once supported, reject once opposed, open tickets, request changes, intercept. Moderation, and direct writes to live page data |
 | 2 | `trusted_editor` | Submit to pages restricted to `trusted_editor` |
-| — | *(signed in, no role)* | Submit to unrestricted pages |
-| 1 | `viewer` | Soft ban — signed in, can read, **cannot submit** |
+| (none) | *(signed in, no role)* | Submit to unrestricted pages |
+| 1 | `viewer` | Soft ban: signed in, can read, **cannot submit** |
 | 0 | *(anonymous)* | Read only |
 
-**`owner` and `admin` were one role until v0.17**, when a second staff member joined. Anything written before then that says "admin" probably means the owner — including older migration comments and devlogs.
+- **`owner` and `admin` were one role until v0.17.** Older migration comments and devlogs that say "admin" usually mean the owner.
+- **Which page a tool lives on decides who owns it** (owner, 2026-08-27): `owner.html` is the owner's, `admin.html` the review team's. Media deletion is an admin power because it sits in the media queue on `admin.html`.
+- **Never test a role by name.** The ladder is stated once, in `role_rank()` (SQL) and `window.ROLE_RANK` (JS), with `is_staff()` / `is_owner()` and `roleMeets()` / `rolesMeet()` on top. A literal like `= 'admin'` or `roles.includes('admin')` caused v0.16 bug 6 and made the v0.17 rename touch 30 sites. When sweeping, **grep for equality as well as `ARRAY[...]`** (v0.17 pass 1 missed fifteen policies that failed open).
+- `viewer` is a ban, so it is tested by name: `IS DISTINCT FROM 'viewer'`.
+- `get_my_role()` returns NULL for a signed-in user with no role: compare with `IS DISTINCT FROM`, never `<>`. `role_rank(NULL)` is 0.
+- **A function granted to `anon` may only call functions `anon` can execute**, unless it is `SECURITY DEFINER` (this broke the tier list for logged-out readers once).
 
-**Which page a tool lives on decides who owns it**, not how much damage it can do (owner, 2026-08-27). `owner.html` is the owner's; `admin.html` is the review team's. Media deletion is irreversible and still an admin power, because it is in the media queue on `admin.html`.
+## Writing code here
 
-**Never test a role by name.** The ladder is stated once, in `role_rank()` (SQL) and `window.ROLE_RANK` (JS), with `is_staff()` / `is_owner()` and `roleMeets()` / `rolesMeet()` on top. A literal like `= 'admin'` or `roles.includes('admin')` is how v0.16 bug 6 happened, and it is what made the v0.17 rename a 30-site change instead of a one-line one. When sweeping for these, **grep for equality as well as `ARRAY[...]`** — v0.17 pass 1 checked only the second and missed fifteen policies that failed open.
+Code an assistant wrote is a draft until something has checked it. Assistant code fails security checks in nearly half of tasks (Veracode, 2025), people using an assistant write less secure code while trusting it more (Perry et al., CCS 2023), and assistants copy where they should reuse (GitClear, 2025). Each of those has happened in this repo.
 
-`viewer` is the exception and is genuinely a name, not a rank: it is a ban, so it is tested with `IS DISTINCT FROM 'viewer'` rather than by position on the ladder.
+**Before writing**
+- Read the code being changed and the code that calls it. Search for an existing helper by what it does, not only by its name, and reuse it.
+- The current devlog is the spec. If it does not settle a data shape or a behaviour, ask; never invent one.
+- Never use a function, column, table, flag, API or package you have not seen exist, in this repo or in the library's official docs. A plausible-looking name that does not exist is the commonest assistant error. A new dependency (a CDN `<script>`, an npm package) is the owner's call.
 
-`get_my_role()` returns NULL for a signed-in user with no role — compare with `IS DISTINCT FROM`, never `<>`, and note `role_rank(NULL)` is 0 so rank comparisons are safe.
+**While writing**
+- The smallest change that solves the stated problem. No abstraction, option or layer for a case that does not exist yet, and no refactor in passing.
+- Every value from a user, contributor, Discord, the URL or the database is hostile. Escape at **every** `innerHTML` interpolation, or use `textContent`. Never put a user-influenced value in an inline `onclick`: use `data-` attributes and a delegated listener.
+- Authorization lives in Postgres: RLS, table grants and the RPC's own caller check. A page's RBAC gate only decides what to show, because anyone can call the REST endpoint directly.
+- Fail visibly. No empty `catch`, no error swallowed into a half-built page: show the reader an error state and keep the message. A deliberate silent failure says so in a comment (`window.loadHotfixPosts` is one).
+- Walk the edges: empty, NULL, one, many, signed out, roleless, banned, slow network, a second click. NULL made the worst hole here (`is_owner()`, closed 2026-09-28).
+- State a rule once and derive the rest (`role_rank()`, `NAV_FLAGS` in `scripts/fetch-registry.js`). Small per-file duplication is still preferred over new cross-file coupling (`owner.js` reimplements `kickUser` rather than importing `admin-core.js`), but two copies of one rule that must agree will drift: the rules in `.claude/rules/` name the known pairs.
+- Comments say why, not what.
 
-**A function granted to `anon` must only call functions `anon` can also execute**, unless it is `SECURITY DEFINER`. Granting the entry point is not enough — that broke the tier list for logged-out readers once already.
+**Before saying it is done**
+- Prove it with a check that can fail: a test that drives the real control and was seen failing with the fix reverted (the `writing-tests` skill). Show the command and what it printed. "Should work" is not a result.
+- Read the whole diff as a reviewer would: every line understood, nothing unrelated, no debug code left, no em-dash.
+- Say what was verified and against what (mocks, a preview database, production), and what was not.
+- A fix that has failed twice means the cause is not understood yet. Stop patching and find it.
+
+## Git and PRs
+
+- **A branch carries a version only when the roadmap (in memory) has that version.** Anything else is `fix/`, `chore/` or `hotfix/`, with no version in the branch name or commit subject. Never invent a number.
+- Batch 3 to 4 finished items per PR, and keep one PR open at a time. Once it is open, branch for the next batch (from `next-update`, or from the open PR's branch only when the work builds on it), commit, and don't push. When the owner says it merged: confirm `mergedAt`, delete the branch, rebase the next batch onto `next-update`, re-run its specs, push, open the next PR.
+- **A merged PR's branch is closed to new work.** Before committing to a branch that has a PR, `gh pr view <N> --json state`. Before deleting a branch, confirm `mergedAt` is non-null; deleting an unmerged PR's branch closes the PR. `git branch -d` printing `not yet merged` means the branch holds commits the target lacks: recover them (`git cherry-pick <sha>`) before carrying on.
+- Before saying a fix is in a PR: `git status --short` shows none of it unstaged, and `git diff <base>...<head> --stat` lists it.
+- Quote a PR URL only from the output of `gh pr create`, never from the push hint.
+- Stage explicit paths. Never `git add -A` when the tree holds the owner's work.
+- Commit before any revert or mutation probe, so the restore comes from a commit. Never `git checkout -- <file>` or blanket-restore a dirty tree.
+- Conflicts on generated files (stubs, `supabase/migrations.lock.json`): regenerate (`npm run generate`, `npm run lock-migrations`), never hand-merge. On a hand-written conflict, read both sides: two branches appending to one file usually both keep their block.
+- Read CI after every push. A local pass does not make a CI failure flaky.
+- On Windows, write the commit message to a file and use `git commit -F`.
+- Every PR body carries the change notes (below) and what needs the owner after merge.
+- A PR body is posted under the owner's GitHub account, so it is written in their voice with the `my-writing-style` skill (owner, 2026-10-19): the opening and any explanation in their register, the facts as plain lists, the attribution line kept.
+
+## Devlogs and the Update Log
+
+**The owner writes the devlogs and the Update Log** (2026-10-18). Do not write in either. Give them change notes instead, in the reply when a PR opens and again in the PR body. One list in the devlog's shape, not split by audience: everything is documented in the devlog anyway (owner, 2026-10-18). Per change, facts rather than drafted lines:
+
+- what an editor or reader sees now and saw before, with exact names, numbers and the page it is on, or that nothing visible changed;
+- what changed in code and data (files, tables, migrations);
+- each decision, its reason and what was turned down;
+- what broke along the way and how it was found;
+- what was verified and what was not, and what is still open and whose it is.
+
+**The Update Log comes last**, at the release: read the devlog, pull out what a reader can see, and hand the owner that list sorted into Features, Fine-tuning and Bug fixes. They write the entry (the `ship-a-release` skill).
+
+On a draft the owner hands over: grammar and spelling only, keep their wording, list every edit, and flag (don't fix) a line that does not match what changed. Their rules for entries are in the `writing-site-text` skill.
+
+**The current version's devlog is its SPEC.** Design decisions recorded there come before building: read the whole section first (v0.15's Combos tab was built to an invented shape while the real one sat in the same file). The current one is at the root (`V<x.y>-DEVLOG.md`) until its release, then moves to `devlogs/`. The devlogs Claude wrote (up to and including v1.0), the silent releases and the old transition plan are in `.claude/archived-devlogs/` (owner, 2026-10-22).
+
+**The current devlog stays untracked until the release** (owner, 2026-10-18). Read it from disk. Never stage it in an item PR, and never run anything that deletes untracked files (`git clean`, `git stash -u`). It is committed, exactly as the owner wrote it, in the last PR into `next-update` before the release PR (the `ship-a-release` skill). If it ever cannot be read from disk, commit it in every PR instead.
 
 ## Conventions
 
-- **NEVER use an em-dash (`—`).** The owner banned it outright, 2026-09-21, in their words *"I strictly ban the usage of the Em-dash"*. This holds in every file and every message: site pages, devlogs, commit messages, PR bodies, code comments and replies. A colon, a full stop, a comma or brackets always cover it. En-dashes stay allowed in numeric ranges only (`#190–#199`). Anything written before that date still carries them; do not sweep those in unrelated work, but never add another.
-- **In a policy, licence or reference document, state the rule and stop.** No clause explaining why the rule exists, no "and here is why it has to be there". Owner, 2026-09-21: *"you don't need to include reasoning next to a statement... No, just no."* A privacy policy still says what data is **for**, because that is the content of the policy rather than a justification of it. The reasoning belongs in the devlog, where it is useful to the next person building.
-- **Site-facing prose is written in the owner's voice, and the voice is read off their own pages**: the Writing Guide (`page_data`, `page_id = 'writing_guide'`) and Terminologies (`page_id = 'terminologies'`). The traits, with quotes, are in the `ship-a-release` skill under *"The owner's voice"*. The one that is easy to get backwards: **"never write 'you'" is a changelog rule, not a site rule.** In a changelog the only "you" available is the owner. On a guide or a policy page "you" is the reader standing in front of it, and their own guide says those pages *"can mention or refer to the reader"*.
-- Escape at **every** `innerHTML` interpolation. Contributor-submitted names, chat, QA notes and error messages are all attacker-reachable. Never build user-influenced values into an inline `onclick` — use `data-` attributes with a delegated listener.
-- Shared CSS classes are used across contexts that don't reference each other. A change to `.btn-sys`, `.btn-manga` or similar needs checking against every consumer, not just the page under investigation.
-- **The `hidden` attribute loses to any `display` a stylesheet sets**, because the browser's own `[hidden]` rule sits below every author rule. `.btn-sys` is `inline-flex`, and a form or row styled `flex` or `grid` is the same: hiding it with `hidden` leaves it on screen. Restate it (`.thing[hidden] { display: none; }`) for every class that sets `display`, and test that it is hidden (`toBeHidden`), not that the attribute is set. Eight classes already carry the rule for this reason (four in `admin.css`, the rest in `editor.css`, `Layout.css` and `discussions.css`), and v1.0 needed it twice more (the Forum's moderation form, its EDIT button).
-- Small per-file duplication is preferred over new cross-file coupling (see `owner.js` reimplementing `kickUser`/`adminConfirm` rather than importing from `admin-core.js`).
-- **Three files carry a near-identical `loadRoster`, and two of them have already drifted the same way.** `js/certified-tier-lists.js`, `js/tools/free_submit_tier_list.js` and `js/tier-editor.js` each read `navigation.json` and then merge `data/portraits.json` onto it. `navigation.json` has **no `image` field on any character**, so a copy that forgets the manifest silently falls through to a guessed Supabase URL — stale art, and a 404 for the five characters whose files end `Portrait2.webp` or drop the suffix. Free Submit shipped that way until v0.18 FT3; the tier editor until batch 3.5, one batch later. **Change all three together, and check the other two whenever you touch one.** Unifying them is the owner's call, not a refactor to make in passing.
-- **The Combo Card has TWO editors, and they have now drifted twice.** The `theorybox` block form in `js/editor-blocks.js`, and `renderDocumentCardBody` in `js/editor-tabs.js` for a card inside a Combos/Techs group. They edit the same data through different markup and different handlers, so a field added to one is invisible in the other: the author-credit field went in the block form alone (fixed in v0.18), and the v0.19 Multiple Sections switch did the same until the owner found it missing. **Add a Combo Card field to both, and reach for shared helpers rather than a second copy of the rules** — `window.editorCardSectionIndex`, `window.seedCardSections` and `window.editorCardFieldTarget` exist because three rules would otherwise drift independently across the two files. A rendering test of either surface cannot notice that the other was forgotten, so the test for this is derived from the source.
-- **Media the wiki shows lives in Supabase Storage, never on Discord's CDN.** Discord attachment links expire: all four on Sky Assassin were already dead when every media link on the site was checked on 2026-09-28. A Discord-connected feature (the planned forum) copies attachments into Storage rather than linking them. A link that returns nothing is invisible to every test here, because tests never fetch real media.
+- **NEVER use an em-dash (`—`).** The owner banned it outright, 2026-09-21: *"I strictly ban the usage of the Em-dash"*. Every file and every message: site pages, commit messages, PR bodies, code comments, replies. A colon, full stop, comma or brackets always cover it. En-dashes only in numeric ranges (`#190–#199`). Older text still has them; don't sweep it in unrelated work.
+- **In a policy, licence or reference document, state the rule and stop.** No clause explaining why (owner, 2026-09-21: *"you don't need to include reasoning next to a statement... No, just no."*). A privacy policy still says what data is **for**: that is content, not justification.
+- **Text readers see is written in the owner's voice**, read off their own pages: the `writing-site-text` skill. "Never write 'you'" is a changelog rule, not a site rule.
+- **Shared CSS classes** (`.btn-sys`, `.btn-manga` and the like) are used in contexts that don't reference each other. Check every consumer, not just the page at hand.
+- **The `hidden` attribute loses to any `display` a stylesheet sets**, because the browser's `[hidden]` rule sits below every author rule. Restate it (`.thing[hidden] { display: none; }`) for every class that sets `display`, and test with `toBeHidden`, not the attribute. Eight classes carry it already (four in `admin.css`, the rest in `editor.css`, `Layout.css` and `discussions.css`), and v1.0 needed two more.
+- **Media the wiki shows lives in Supabase Storage, never on Discord's CDN.** Discord attachment links expire (all four on Sky Assassin were dead by 2026-09-28), and tests never fetch real media, so a dead link is invisible to them.
 
-## History
+## Rules that load with their files
 
-**The current version's devlog is its SPEC, not a diary.** Design decisions are
-recorded there before they are built, with the data shapes and delta scopes
-worked out. Read the whole section before building from it — v0.15's Combos tab
-was built to an invented shape while the real one sat in the same file, and two
-questions were then asked that it had already answered.
-
-`devlogs/` holds a per-version engineering record. The current in-progress version has its devlog at the repo root.
+`.claude/rules/` holds rules that load when a matching file is read: `combo-card.md` (the two Combo Card editors), `tier-rosters.md` (the shared roster loader), `discord-relay.md` (`supabase/functions/`) and `regeneration.md` (workflows, scripts and generated stubs).

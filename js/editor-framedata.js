@@ -102,7 +102,7 @@ function initDawEditor(containerId, moveData) {
                     <div><input type="text" class="editor-input stat-inp" data-idx="${idx}" data-field="value" value="${esc(stat.value)}" placeholder="Stat Value"></div>
                     <div class="daw-stat-actions">
                         <label class="editor-checkbox-label"><input type="checkbox" class="stat-highlight" data-idx="${idx}" ${stat.isHighlighted ? 'checked' : ''}> Highlight</label>
-                        <button class="add-block-btn btn-action-delete btn-del-stat daw-stat-del-btn" data-idx="${idx}" title="Remove Stat">✖</button>
+                        <button class="btn-sys btn-sys-red btn-del-stat daw-stat-del-btn" data-idx="${idx}" title="Remove Stat">✖</button>
                     </div>
                 </div>
             `;
@@ -112,7 +112,7 @@ function initDawEditor(containerId, moveData) {
                 <div class="block-card">
                     <div class="block-header">
                         <span class="block-type-badge">MOVE STATS</span>
-                        <button class="add-block-btn daw-add-stat-btn" id="btn-add-movestat">+ ADD STAT</button>
+                        <button class="btn-sys btn-sys-regular daw-add-stat-btn" id="btn-add-movestat">+ ADD STAT</button>
                     </div>
                     <div id="move-stats-container">${statsHtml}</div>
                 </div>
@@ -353,7 +353,7 @@ function initDawEditor(containerId, moveData) {
                             <button onclick="window.addDawTrack()" class="btn-sys btn-sys-blue">+ Add Track</button>
                         </div>
                     </div>
-                    <div class="daw-timeline-wrapper">
+                    <div class="daw-timeline-wrapper" data-timeline-path="${esc(JSON.stringify(activePath))}">
                         ${tracksHtml}
                     </div>
                     ${inspectorHtml}
@@ -370,7 +370,7 @@ function initDawEditor(containerId, moveData) {
 
                     <p class="daw-branch-hint">Select a sub-variant from the tabs above to view or edit its timeline.</p>
                     <div class="daw-branch-actions-row">
-                        <button onclick="window.deleteDawVariant()" class="add-block-btn daw-delete-branch-btn">Delete Entire Branch</button>
+                        <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red daw-delete-branch-btn">Delete Entire Branch</button>
                     </div>
                 </div>
             `;
@@ -392,8 +392,20 @@ function initDawEditor(containerId, moveData) {
             `;
         }
 
+        // Every click in the timeline (selecting a phase, adding one) rebuilds
+        // it, and a rebuilt scroll box starts at 0. On a long move that threw
+        // the editor back to frame 0 on every click. The position is kept when
+        // the same timeline is redrawn, and only then: a different variant is a
+        // different timeline and starts at its own beginning.
+        const oldTimeline = container.querySelector('.daw-timeline-wrapper');
+        const keptScroll = oldTimeline && oldTimeline.dataset.timelinePath === JSON.stringify(activePath)
+            ? oldTimeline.scrollLeft : 0;
+
         container.innerHTML = metaHtml + statsCard + variantTabsHtml + dawHtml;
         bindDawEvents(container, currentObj);
+
+        const newTimeline = container.querySelector('.daw-timeline-wrapper');
+        if (newTimeline && keptScroll) newTimeline.scrollLeft = keptScroll;
     }
 
     // Stale dimensions are worse than none - they would frame the box for the
@@ -451,8 +463,9 @@ function initDawEditor(containerId, moveData) {
         });
 
         container.querySelectorAll('.btn-del-stat').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                moveData.stats.splice(e.target.dataset.idx, 1);
+            btn.addEventListener('click', async () => {
+                if (!(await window.confirmDelete('Delete this stat?'))) return;
+                moveData.stats.splice(btn.dataset.idx, 1);
                 renderDaw();
             });
         });
@@ -637,7 +650,7 @@ function initDawEditor(containerId, moveData) {
         let parentNode = moveData;
         for(let i=0; i<activePath.length-1; i++) { parentNode = parentNode.variants[activePath[i]]; }
         let keyToDelete = activePath[activePath.length-1];
-        if(await window.customConfirm("Delete this variant completely?")) {
+        if(await window.confirmDelete("Delete this variant completely?")) {
             delete parentNode.variants[keyToDelete];
             activePath.pop();
             renderDaw();
@@ -652,7 +665,7 @@ function initDawEditor(containerId, moveData) {
     };
 
     window.deleteDawTrack = async function(bIdx) {
-        if(await window.customConfirm("Delete this entire track?")) {
+        if(await window.confirmDelete("Delete this entire track?")) {
             getCurrentDawNode().bars.splice(bIdx, 1);
             if(selectedBarIdx === parseInt(bIdx)) { selectedBarIdx = null; selectedPhaseIdx = null; }
             renderDaw();
@@ -669,8 +682,9 @@ function initDawEditor(containerId, moveData) {
         renderDaw();
     };
 
-    window.deleteDawPhase = function() {
+    window.deleteDawPhase = async function() {
         if(selectedBarIdx !== null && selectedPhaseIdx !== null) {
+            if (!(await window.confirmDelete('Delete this phase?'))) return;
             getCurrentDawNode().bars[selectedBarIdx].phases.splice(selectedPhaseIdx, 1);
             selectedPhaseIdx = null;
             renderDaw();

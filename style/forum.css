@@ -37,6 +37,9 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem;
+    /* The buttons' hard shadow hangs below them; without room it lay on the
+       first post. The same gap the posts keep between themselves. */
+    margin-bottom: 0.6rem;
 }
 
 .forum-filter[aria-pressed="true"] {

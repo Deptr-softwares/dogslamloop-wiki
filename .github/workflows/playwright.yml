@@ -22,9 +22,20 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  test:
+  # The suite in three parts, each on its own runner at the same time. On one
+  # runner it reached 26.7 of its 30 minutes (2,497 tests, 2026-10-22).
+  # Playwright does the split: every part reads the same list of tests and
+  # runs its own third (--shard), so the parts never need to talk.
+  shard:
+    name: shard ${{ matrix.shard }}/3
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      # A red part must not stop the other two: their failures are what the
+      # next push needs to know about too.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       # fetch-depth: 0 so the docs-only check below can diff against the base.
       - uses: actions/checkout@v4
@@ -106,11 +117,28 @@ jobs:
       # screenshot baselines are OS-specific, so the committed Windows set
       # can never match a Linux runner. It stays a local-only CSS tool.
       - if: steps.changed.outputs.docs_only != 'true'
-        run: npx playwright test
+        run: npx playwright test --shard=${{ matrix.shard }}/3
 
       - if: ${{ !cancelled() && steps.changed.outputs.docs_only != 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: playwright-report/
           retention-days: 14
+
+  # The check both branch rulesets require, by the name they require it as,
+  # so the rulesets need no change. Green only when all three parts are.
+  #
+  # always(), not !cancelled(): a job skipped by its condition reports
+  # SUCCESS to a required check, so a run cancelled on a PR's latest commit
+  # would otherwise leave it mergeable with nothing tested. A cancelled part
+  # (one that hit its 30 minutes) reads as cancelled here and fails this.
+  test:
+    needs: shard
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: |
+          echo "The three parts: ${{ needs.shard.result }}"
+          [ "${{ needs.shard.result }}" = "success" ]

@@ -22,7 +22,6 @@
     <link rel="stylesheet" href="style/Layout.css">
 
     <!-- 4. DEPENDENCIES & EDITOR-SPECIFIC OVERRIDES -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <link rel="stylesheet" href="style/editor.css">
 </head>
 <body>
@@ -227,7 +226,7 @@
                 <h3 style="color: var(--accent-blue); font-size: 1rem;">LOCAL DRAFTS MANAGER</h3>
             </div>
             <div class="auth-body" style="padding: 1.5rem; text-align: left; max-height: 50vh; overflow-y: auto;">
-                <p style="font-family: var(--text-mono); font-size: 0.75rem; color: #888; margin-top: 0; margin-bottom: 1rem;">These edits are saved to your browser's local storage and are safe from page refreshes. Submitting a page to the cloud will automatically clear its local draft.</p>
+                <p style="font-family: var(--text-mono); font-size: 0.75rem; color: #888; margin-top: 0; margin-bottom: 1rem;">These edits are saved to your browser's local storage and are safe from page refreshes. AUTO-SAVED is a page's latest edit, and SAVED is the version you kept with the Save button. This browser keeps your 5 latest auto-saves and every SAVED version until you discard it.</p>
                 <div id="draft-list-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
                     </div>
             </div>
@@ -269,8 +268,12 @@
                 </div>
                 <div class="header-actions">
                     <button class="btn-sys btn-sys-regular" onclick="window.cancelEditor()">Cancel</button>
-                    <button class="btn-sys btn-sys-blue" onclick="window.openDraftManager()">Drafts</button>
-                    <button class="btn-sys btn-sys-yellow" onclick="window.triggerManualSync()">Sync/Save</button>
+                    <button id="btn-drafts" class="btn-sys btn-sys-blue" onclick="window.openDraftManager()">Drafts</button>
+                    <!-- v1.1: two buttons where Sync/Save was (owner, 2026-10-19).
+                         Sync writes the Workspace into the page and redraws the
+                         preview; Save keeps this version in Drafts. -->
+                    <button id="btn-sync" class="btn-sys btn-sys-yellow" title="Write the Workspace into the page and redraw the preview" onclick="window.syncWorkspace()">Sync</button>
+                    <button id="btn-save" class="btn-sys btn-sys-yellow" title="Keep this version of the page in Drafts" onclick="window.saveWorkspace()">Save</button>
                     <button id="btn-find-replace" class="btn-sys btn-sys-regular" onclick="window.openFindReplace()">Find &amp; Replace</button>
                     <button id="btn-toggle-diff" class="btn-sys btn-sys-purple" onclick="window.toggleDiffMode()">Diff View</button>
                     <!-- v0.19 F3. Red, and the owner asked for red: the other
@@ -279,6 +282,16 @@
                          nothing else in this row uses. -->
                     <button id="btn-style-manual" class="btn-sys btn-sys-red"
                             title="Manual of Style" onclick="window.openStyleManual()">MoS</button>
+                    <!-- v1.1: this page's own house style, written in Config >
+                         Page. Red beside MoS, as the owner asked, and shown on
+                         every page that has a Config > Page, written or not
+                         (js/editor-config.js). -->
+                    <button id="btn-house-style" class="btn-sys btn-sys-red hidden"
+                            title="This page's house style" onclick="window.openHouseStyle()">House Style</button>
+                    <!-- v1.1 Config panel: the editor's own settings, per device
+                         (js/editor-config.js). Gray, as the owner asked. -->
+                    <button id="btn-editor-config" class="btn-sys btn-sys-regular"
+                            title="Editor settings" onclick="window.openEditorConfig()">Config</button>
                     <button id="submit-payload-btn" class="btn-sys btn-sys-green">Submit</button>
                 </div>
             </div>
@@ -370,43 +383,47 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <!-- First: the character tab vocabulary. site_utils.js derives
          FRAME_MOVE_CATEGORIES from it and editor-tabs.js its major strip. -->
-    <script src="js/character_tabs.js?v=501090ec"></script>
-    <script src="js/input_slots.js?v=501090ec"></script>
-    <script src="js/site_utils.js?v=501090ec"></script>
-    <script src="js/site_meta.js?v=501090ec"></script>
-    <script src="js/pagebuilder.js?v=501090ec"></script>
-    <script src="js/search.js?v=501090ec"></script>
-    <script src="js/framedata.js?v=501090ec"></script>
-    <script src="js/description.js?v=501090ec"></script>
-    <script src="js/internalstyling.js?v=501090ec"></script>
-    <script src="js/editor-modes.js?v=501090ec"></script>
-    <script src="js/editor-core.js?v=501090ec"></script>
-    <script src="js/editor-tabs.js?v=501090ec"></script>
-    <script src="js/editor-framedata.js?v=501090ec"></script>
-    <script src="js/editor-folders.js?v=501090ec"></script>
-    <script src="js/editor-blocks.js?v=501090ec"></script>
-    <script src="js/editor-previews.js?v=501090ec"></script>
-    <script src="js/diff-markers.js?v=501090ec"></script>
-    <script src="js/editor-sync.js?v=501090ec"></script>
-    <script src="js/editor-drafts.js?v=501090ec"></script>
-    <script src="js/editor-media.js?v=501090ec"></script>
-    <script src="js/editor-system.js?v=501090ec"></script>
-    <script src="js/tool_page.js?v=501090ec"></script>
-    <script src="js/editor-tool.js?v=501090ec"></script>
-    <script src="js/gallery.js?v=501090ec"></script>
-    <script src="js/editor-gallery.js?v=501090ec"></script>
-    <script src="js/tierlist.js?v=501090ec"></script>
+    <script src="js/character_tabs.js?v=bf192918"></script>
+    <script src="js/input_slots.js?v=bf192918"></script>
+    <script src="js/site_utils.js?v=bf192918"></script>
+    <script src="js/site_meta.js?v=bf192918"></script>
+    <script src="js/pagebuilder.js?v=bf192918"></script>
+    <script src="js/search.js?v=bf192918"></script>
+    <script src="js/framedata.js?v=bf192918"></script>
+    <script src="js/description.js?v=bf192918"></script>
+    <script src="js/internalstyling.js?v=bf192918"></script>
+    <!-- Before every editor module: ?playground decides which page opens. -->
+    <script src="js/editor-playground.js?v=bf192918"></script>
+    <script src="js/editor-config.js?v=bf192918"></script>
+    <script src="js/editor-modes.js?v=bf192918"></script>
+    <script src="js/editor-core.js?v=bf192918"></script>
+    <script src="js/editor-tabs.js?v=bf192918"></script>
+    <script src="js/editor-framedata.js?v=bf192918"></script>
+    <script src="js/editor-folders.js?v=bf192918"></script>
+    <script src="js/editor-blocks.js?v=bf192918"></script>
+    <script src="js/editor-previews.js?v=bf192918"></script>
+    <script src="js/diff-markers.js?v=bf192918"></script>
+    <script src="js/editor-sync.js?v=bf192918"></script>
+    <script src="js/editor-drafts.js?v=bf192918"></script>
+    <script src="js/editor-media.js?v=bf192918"></script>
+    <script src="js/editor-system.js?v=bf192918"></script>
+    <script src="js/tool_page.js?v=bf192918"></script>
+    <script src="js/editor-tool.js?v=bf192918"></script>
+    <script src="js/gallery.js?v=bf192918"></script>
+    <script src="js/editor-gallery.js?v=bf192918"></script>
+    <script src="js/tierlist.js?v=bf192918"></script>
     <!-- Before the strips that call reorderControls while rendering. -->
-    <script src="js/editor-reorder.js?v=501090ec"></script>
+    <script src="js/editor-reorder.js?v=bf192918"></script>
     <!-- Last: it walks whatever the other editors have put in desc_data, and
          reads the keyed-section registry to name where a match is. -->
-    <script src="js/editor-find-replace.js?v=501090ec"></script>
+    <script src="js/editor-find-replace.js?v=bf192918"></script>
+    <script src="js/editor-writing-checks.js?v=bf192918"></script>
     <!-- Order-independent: it binds its own DOMContentLoaded and a delegated
          click, and touches nothing another editor module owns. -->
-    <script src="js/editor-notices.js?v=501090ec"></script>
-    <script src="js/editor-tutorial.js?v=501090ec"></script>
+    <script src="js/editor-notices.js?v=bf192918"></script>
+    <script src="js/editor-tutorial.js?v=bf192918"></script>
 </body>
 </html>

@@ -166,20 +166,6 @@ window.renderHubSlot = async function(pageId, slotId, containerId) {
     return true;
 };
 
-/**
- * Convenience for a page rendering several slots at once.
- *
- * Concurrent rather than sequential: they share one cached fetch, so awaiting
- * them in order would only add latency.
- */
-window.renderHubSlots = async function(pageId, slots) {
-    return Promise.all(
-        Object.entries(slots).map(([slotId, containerId]) =>
-            window.renderHubSlot(pageId, slotId, containerId)
-        )
-    );
-};
-
 // --- SECTION HEADINGS -------------------------------------------------
 //
 // Rendered at runtime, not through the marked region that handles <title> and

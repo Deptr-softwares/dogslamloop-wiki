@@ -51,19 +51,6 @@ window.currentHistoryIndex = 0;
 
 // applyDeltaToData is defined once, in site_utils.js (loaded before this file).
 
-// Duplicated from js/admin-core.js rather than shared, matching this
-// codebase's existing precedent (see js/owner.js's kickUser, js/submissions.js,
-// js/recent-changes.js) of small per-file duplication over new cross-file
-// coupling - admin-core.js isn't loaded on this page.
-function escapeHtml(str) {
-    return String(str === null || str === undefined ? '' : str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
 // --- RELATIVE PATH CLEANER ---
 // Converts "../../medias/..." to "medias/..." so images load correctly from the root directory!
 const cleanPaths = (obj) => {
@@ -226,10 +213,10 @@ window.renderRevision = async function(index) {
         // instead of building elsewhere and re-parenting.
         mainArea.innerHTML = `
             <nav id="tier-tabs-container" class="character-nav" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--accent-blue); align-items: center;">
-                <p class="loading-msg" style="margin:0;">Loading tabs...</p>
+                <p class="loading-msg loading-msg-busy" style="margin:0;">Loading tabs...</p>
             </nav>
             <div class="tier-list-container" id="tier-list-ui">
-                <p class="loading-msg">Loading tier list data...</p>
+                <p class="loading-msg loading-msg-busy">Loading tier list data...</p>
             </div>
             <h2 class="section-title mb-4" style="text-transform: uppercase; margin-top: 2rem;">Reasoning & Changelogs</h2>
             <div id="changelog-container" style="display: flex; flex-direction: column; gap: 1rem;"></div>

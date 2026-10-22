@@ -140,6 +140,129 @@ function gradientPresetsHTML() {
                         </div>`;
 }
 
+// --- A CUSTOM GRADIENT (v1.1, from an editor's feedback) ---
+//
+// "multicolor becomes an option instead of manually typing it out". The
+// presets above are quick picks; this builds any other gradient from two to
+// six colours, each set on the visual picker the popup already has: click a
+// colour chip, and moving the picker changes that colour. Six because that is
+// the most any gradient on the site used when this was built (2026-10-20: 28
+// of 31 use two, 2 use three, 1 uses six).
+//
+// The popup supplies the picker; wireGradientBuilder hands back the hook
+// initColorPicker calls as the picker moves.
+//
+// Shut until its heading is clicked. Open, it is about fifty pixels more on a
+// popup that opens upward inside the Workspace, and on a 720px screen that
+// pushed the preset swatches up under the tab buttons where nothing could
+// click them. Open on a window under about 800px it still does; shut, never.
+const GRADIENT_MAX_STOPS = 6;
+const GRADIENT_START = ['#a855f7', '#22d3ee'];
+
+function gradientBuilderHTML() {
+    return `
+                        <button type="button" class="cp-label cp-gradient-toggle" data-gradient-toggle aria-expanded="false">Custom gradient <span aria-hidden="true">▸</span></button>
+                        <div class="cp-gradient" data-gradient-builder hidden>
+                            <div class="cp-gradient-stops" data-gradient-stops></div>
+                            <div class="cp-gradient-strip" data-gradient-strip></div>
+                            <button type="button" class="btn-sys btn-sys-green cp-apply" data-gradient-use>USE GRADIENT</button>
+                        </div>`;
+}
+
+function wireGradientBuilder(container, onUse) {
+    const root = container.querySelector('[data-gradient-builder]');
+    const toggle = container.querySelector('[data-gradient-toggle]');
+    const hexField = container.querySelector('#cp-hex');
+    if (!root || !toggle || !hexField) return null;
+
+    function setOpen(open) {
+        root.hidden = !open;
+        toggle.setAttribute('aria-expanded', String(open));
+        toggle.querySelector('span').textContent = open ? '▾' : '▸';
+    }
+    toggle.addEventListener('click', () => setOpen(root.hidden));
+
+    const box = root.querySelector('[data-gradient-stops]');
+    const strip = root.querySelector('[data-gradient-strip]');
+    let stops = GRADIENT_START.slice();
+    let active = -1;
+
+    // Colours go on through the CSSOM, and only real ones: a stop can come
+    // from page data (Config > Page), and "red), url(...)" would otherwise
+    // be a second background layer.
+    const usable = (c) => !!window.safeColor(c) && CSS.supports('color', c);
+
+    function paintStrip() {
+        strip.style.background = '';
+        strip.style.background = `linear-gradient(90deg, ${stops.join(', ')})`;
+    }
+
+    function draw() {
+        box.innerHTML = stops.map((_, i) => `
+                <span class="cp-gradient-stop-wrap">
+                    <button type="button" class="cp-gradient-stop${i === active ? ' is-active' : ''}" data-stop="${i}"
+                            aria-label="Gradient color ${i + 1}" aria-pressed="${i === active}"></button>${stops.length > 2 ? `
+                    <button type="button" class="cp-gradient-stop-remove" data-stop-remove="${i}"
+                            aria-label="Remove gradient color ${i + 1}">✕</button>` : ''}
+                </span>`).join('')
+            + (stops.length < GRADIENT_MAX_STOPS
+                ? '<button type="button" class="cp-gradient-add" data-stop-add aria-label="Add a color" title="Add a color">＋</button>'
+                : '');
+        box.querySelectorAll('[data-stop]').forEach((chip, i) => { chip.style.background = stops[i]; });
+        paintStrip();
+    }
+
+    // The picker moves to the chip's colour, and from here on edits it.
+    function edit(i) {
+        active = i;
+        hexField.value = stops[i];
+        hexField.dispatchEvent(new Event('input'));
+        draw();
+    }
+
+    root.addEventListener('click', (e) => {
+        // Kept here. A click below redraws the chips, so by the time it
+        // reached the "clicked outside the popup?" listeners its target would
+        // be out of the page, and they would close the popup.
+        e.stopPropagation();
+        const chip = e.target.closest('[data-stop]');
+        if (chip) { edit(Number(chip.getAttribute('data-stop'))); return; }
+        const remove = e.target.closest('[data-stop-remove]');
+        if (remove) {
+            stops.splice(Number(remove.getAttribute('data-stop-remove')), 1);
+            active = -1;
+            draw();
+            return;
+        }
+        if (e.target.closest('[data-stop-add]')) {
+            stops.push(stops[stops.length - 1]);
+            edit(stops.length - 1);
+            return;
+        }
+        if (e.target.closest('[data-gradient-use]')) onUse(stops.slice());
+    });
+
+    draw();
+    return {
+        pickerChanged(hex) {
+            if (active < 0 || !usable(hex)) return;
+            stops[active] = hex;
+            const chip = box.querySelector(`[data-stop="${active}"]`);
+            if (chip) chip.style.background = hex;
+            paintStrip();
+        },
+        // Start from these colours (a word's own gradient, shown open), or
+        // the default, shut.
+        load(colors) {
+            const good = Array.isArray(colors) ? colors.filter(usable).slice(0, GRADIENT_MAX_STOPS) : [];
+            stops = good.length >= 2 ? good : GRADIENT_START.slice();
+            active = -1;
+            draw();
+            setOpen(good.length >= 2);
+        },
+    };
+}
+
 // --- THE VISUAL COLOUR PICKER (owner's fine-tuning item, 2026-08-13) ---
 //
 // Replaces <input type="color">, which opens the OPERATING SYSTEM's colour
@@ -185,7 +308,9 @@ function hexToHsv(hex) {
     return { h, s: max === 0 ? 0 : d / max, v: max };
 }
 
-function initColorPicker(container, onPick) {
+// onChange (optional) hears every colour the picker shows, as it moves: the
+// custom gradient uses it to recolour the chip being edited.
+function initColorPicker(container, onPick, onChange) {
     const surface = container.querySelector('#cp-surface');
     const surfaceThumb = container.querySelector('#cp-surface-thumb');
     const hue = container.querySelector('#cp-hue');
@@ -211,6 +336,7 @@ function initColorPicker(container, onPick) {
 
         preview.style.backgroundColor = hex;
         if (updateField) hexField.value = hex;
+        if (onChange) onChange(hex);
     }
 
     // Pointer events rather than mouse events, so a stylus and a finger work
@@ -299,11 +425,211 @@ function colorPresetsHTML(afterFirst = '') {
                         </div>${i === 0 ? afterFirst : ''}`).join('');
 }
 
+// --- RECENT COLOURS (v1.1) ---
+//
+// Owner, 2026-10-20: the last custom colours an editor used, gradients too,
+// "so the editor don't need to go to color everytime and redraw the custom
+// color to get it", leaving out any colour that already has a preset.
+//
+// Every colour a popup applies comes through rememberColors, presets included,
+// and the preset check drops those. That is also what moves a Recent swatch to
+// the front when it is used again. Exact matches only (the owner's pick over
+// near ones), compared once the browser has read both, because the presets
+// are written as hsl() and the picker gives a hex. Ten, newest first, saved
+// per device like Config. One list for the text colour popup, a heading's Side
+// bar, a folder's colour and Config > Page words; a gradient shows only where
+// a gradient can be used.
+const RECENT_COLORS_KEY = 'dsl_recent_colors';
+const RECENT_COLORS_MAX = 10;
+const STRICT_HEX = /^#[0-9a-f]{6}$/;
+let recentColorsMemory = null;   // the list, while storage refuses writes
+let colorReader = null;
+
+// The browser's own reading of a colour as #rrggbb. Null for one it cannot
+// parse, and for one with transparency, which no picker here makes.
+function resolveHex(color) {
+    const value = String(color || '').trim();
+    if (!SAFE_CSS_COLOR.test(value) || !CSS.supports('color', value)) return null;
+    if (!colorReader) colorReader = document.createElement('canvas').getContext('2d');
+    if (!colorReader) return null;
+    colorReader.fillStyle = value;
+    const hex = String(colorReader.fillStyle).toLowerCase();
+    return STRICT_HEX.test(hex) ? hex : null;
+}
+
+// Arrays of #rrggbb: one colour, or a gradient's stops. Anything else in
+// storage was not written here, and is dropped.
+function readRecentColors() {
+    let list = recentColorsMemory;
+    if (!list) {
+        try { list = JSON.parse(window.localStorage.getItem(RECENT_COLORS_KEY) || '[]'); }
+        catch (e) { list = []; /* blocked or unreadable: nothing recent yet */ }
+    }
+    if (!Array.isArray(list)) return [];
+    return list.filter(entry => Array.isArray(entry) && entry.length >= 1 && entry.length <= GRADIENT_MAX_STOPS
+        && entry.every(c => typeof c === 'string' && STRICT_HEX.test(c))).slice(0, RECENT_COLORS_MAX);
+}
+
+const sameStops = (a, b) => a.length === b.length && a.every((c, i) => c === b[i]);
+
+function hasPreset(stops) {
+    if (stops.length === 1) {
+        return colorPresetGroups().some(group => group.swatches.some(s => resolveHex(s.color) === stops[0]));
+    }
+    return GRADIENT_PRESETS.some(g => sameStops([resolveHex(g.from), resolveHex(g.to)], stops));
+}
+
+function rememberColors(colors) {
+    const stops = (Array.isArray(colors) ? colors : []).map(resolveHex);
+    if (!stops.length || stops.length > GRADIENT_MAX_STOPS || stops.includes(null) || hasPreset(stops)) return;
+    const list = [stops, ...readRecentColors().filter(entry => !sameStops(entry, stops))].slice(0, RECENT_COLORS_MAX);
+    try {
+        window.localStorage.setItem(RECENT_COLORS_KEY, JSON.stringify(list));
+        recentColorsMemory = null;
+    } catch (e) {
+        recentColorsMemory = list;   // remembered on this page only
+    }
+}
+
+// The Recent row, or nothing while nothing is recent. The swatches are the
+// presets' own buttons, so each popup's click handler already applies them.
+// Every value passed STRICT_HEX on its way out of storage, which is what makes
+// it safe in a style attribute.
+function recentColorsHTML(withGradients) {
+    const entries = readRecentColors().filter(entry => withGradients || entry.length === 1);
+    if (!entries.length) return '';
+    return `
+                        <div class="format-color-popup-label">Recent</div>
+                        <div class="format-color-presets-row" data-recent-colors>
+                            ${entries.map(entry => (entry.length === 1
+                                ? `<button type="button" class="color-preset-btn" data-color="${entry[0]}" style="background: ${entry[0]};" title="${entry[0]}"></button>`
+                                : `<button type="button" class="gradient-preset-btn" data-gradient="${entry.join(',')}" style="background: linear-gradient(90deg, ${entry.join(', ')});" title="Gradient ${entry.join(', ')}"></button>`)).join('')}
+                        </div>`;
+}
+
+// --- A HEADING'S SIDE BAR (v1.1) ---
+//
+// Owner, 2026-10-19: every Block renders the same way across the site, and the
+// coloured bar the Matchup, Counterplay and Starter Guide tabs gave their
+// headings becomes an optional style on the Heading Block, in any colour: the
+// text-colour presets plus a custom one. Stored as block.sideBar and drawn by
+// js/description.js.
+function headingBarRowHTML(block) {
+    const bar = typeof window.safeColor === 'function' ? window.safeColor(block.sideBar) : null;
+    // Whitelisted by safeColor, the same filter the renderer uses, so the
+    // value cannot leave the style attribute.
+    return `
+                <div class="heading-bar-row">
+                    <span class="editor-field-label-sm">Side bar</span>
+                    <button type="button" class="heading-bar-swatch${bar ? '' : ' is-none'}" data-heading-bar
+                            aria-label="Side bar color" aria-expanded="false"${bar ? ` style="background: ${bar};"` : ''}>${bar ? '' : 'None'}</button>
+                </div>`;
+}
+
+// The popup behind a colour swatch: a NONE button, the text colour presets and
+// the custom picker. A heading's Side bar and a folder's colour both use it.
+//
+// One popup for the whole list, made when it opens and removed when it closes:
+// its custom picker repeats the toolbar's ids, which initColorPicker tolerates
+// only because it looks inside the container it is handed.
+let swatchPopup = null;   // { popup, swatch }
+
+function closeSwatchPopup() {
+    if (!swatchPopup) return;
+    swatchPopup.swatch.setAttribute('aria-expanded', 'false');
+    swatchPopup.popup.remove();
+    swatchPopup = null;
+}
+
+// Opens below the swatch, in its parent row (which wraps it onto a line of its
+// own). The same swatch again closes it. `onPick` gets a colour, or null for
+// NONE.
+function openSwatchPopup(swatch, noneLabel, onPick) {
+    const reopen = !swatchPopup || swatchPopup.popup.parentElement !== swatch.parentElement;
+    closeSwatchPopup();
+    if (!reopen) return;
+
+    const pick = (color) => {
+        closeSwatchPopup();
+        if (color) rememberColors([color]);
+        onPick(color);
+    };
+    const popup = document.createElement('div');
+    popup.className = 'swatch-popup';
+    popup.innerHTML = `
+        <button type="button" class="btn-sys btn-sys-regular" data-swatch-none>${window.escapeHtml(noneLabel)}</button>
+        <div class="format-color-presets-scroll">${recentColorsHTML(false)}${colorPresetsHTML()}</div>
+        <div class="cp-label">Custom</div>
+        <div class="cp-surface" id="cp-surface"><div class="cp-thumb" id="cp-surface-thumb"></div></div>
+        <div class="cp-hue" id="cp-hue" role="slider" tabindex="0"
+             aria-label="Hue" aria-valuemin="0" aria-valuemax="359" aria-valuenow="0">
+            <div class="cp-thumb cp-hue-thumb" id="cp-hue-thumb"></div>
+        </div>
+        <div class="format-color-custom-row">
+            <span class="cp-preview" id="cp-preview"></span>
+            <input type="text" id="cp-hex" class="cp-hex" value="#ffffff"
+                   maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex color">
+            <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
+        </div>`;
+    popup.addEventListener('click', (e) => {
+        if (e.target.closest('[data-swatch-none]')) { pick(null); return; }
+        const preset = e.target.closest('.color-preset-btn');
+        if (preset) pick(preset.getAttribute('data-color'));
+    });
+    swatch.parentElement.appendChild(popup);
+    initColorPicker(popup, pick);
+    swatchPopup = { popup, swatch };
+    swatch.setAttribute('aria-expanded', 'true');
+    popup.scrollIntoView({ block: 'nearest' });
+}
+
+// A click anywhere else puts it away.
+document.addEventListener('click', (e) => {
+    if (swatchPopup && !swatchPopup.popup.contains(e.target) && !e.target.closest('[data-heading-bar], [data-folder-color]')) {
+        closeSwatchPopup();
+    }
+});
+
+function setHeadingBar(index, color) {
+    const block = window.getActiveBlocks()[index];
+    if (!block || block.type !== 'heading') return;
+    if (color) block.sideBar = color;
+    else delete block.sideBar;
+    renderBlockList();
+    updateLivePreview();
+}
+
+function openHeadingBarPopup(swatch) {
+    const index = parseInt(swatch.closest('.block-card').getAttribute('data-index'), 10);
+    openSwatchPopup(swatch, 'NO BAR', color => setHeadingBar(index, color));
+}
+
+// A folder's colour (see editor-folders.js). The preview is redrawn all the
+// same, though readers never see a folder: that call is what records the
+// change for UNDO and the autosave.
+function setFolderColor(name, color) {
+    const safe = color ? window.safeColor(color) : null;
+    if (color && !safe) return;
+    window.setBlockFolderColor(window.getActiveBlocks(), name, safe);
+    renderBlockList();
+    updateLivePreview();
+}
+
+function openFolderColorPopup(swatch, name) {
+    openSwatchPopup(swatch, 'NO COLOR', color => setFolderColor(name, color));
+}
+
 // --- BLOCK BUILDER STATE ---
 let currentStrategyBlocks = [];
 let blockHistory = [];
 let historyIndex = -1;
 
+// History holds STATES, and UNDO steps to the one before the latest. So a
+// change records the state it starts from (this, which skips a repeat of the
+// latest) and then the one it ends in (updateLivePreview()). Only UNDO and
+// REDO pass updateLivePreview(true): they move between states already saved.
+// Until 2026-10-20 drags, folder changes and +Row skipped the second half, and
+// UNDO after one also took back the edit before it.
 window.saveBlockHistory = function() {
     const newStateStr = JSON.stringify(currentStrategyBlocks);
     
@@ -319,6 +645,28 @@ window.saveBlockHistory = function() {
     else historyIndex++;
     
     if (typeof window.updateHistoryButtons === 'function') window.updateHistoryButtons();
+};
+
+// --- CONFIRM BEFORE DELETING (v1.1) ---
+//
+// Every "delete this?" in the editors asks through here, so the Config
+// panel's switch turns all of them off in one place (owner, 2026-10-18:
+// "All destructive actions in the editor should have a double confirm modal",
+// with "the option to be entirely turns off"). A prompt that asks a real
+// question - restore a draft, someone else's edit was just approved, replace
+// all - calls customConfirm itself and is never switched off.
+//
+// owner.html and tier-editor.html load this file without editor-core.js, so
+// there is no customConfirm there and the browser's own confirm stands in.
+// CLEAR ALL threw on tier-editor.html until this existed.
+window.confirmDelete = function (message, confirmText) {
+    if (window.editorConfig && !window.editorConfig.get('confirmDeletes')) return Promise.resolve(true);
+    // One question at a time: the modal is shared, and a second confirm opened
+    // under the first (Delete pressed twice) would be answered by its click.
+    const modal = document.getElementById('editor-custom-modal');
+    if (modal && !modal.classList.contains('hidden')) return Promise.resolve(false);
+    if (typeof window.customConfirm === 'function' && modal) return window.customConfirm(message, confirmText || 'DELETE', true);
+    return Promise.resolve(window.confirm(message));
 };
 
 document.addEventListener('keydown', (e) => {
@@ -692,6 +1040,120 @@ window.focusComboNotationField = function (root, at) {
     const field = root.querySelector(`[data-nstyle-label="${at}"]`);
     if (field) field.focus();
 };
+
+// --- THE STYLE NAMES THIS PAGE USES (v1.1) ---
+//
+// Owner, 2026-10-20: the helper "was meant to detect the current style name
+// being used on the page itself, and suggest the editor to name the style like
+// that for sync purpose". A reader's choice follows the NAME
+// (window.comboNotationKey), so "Keyboard" on one combo and "KBM" on the next
+// are two styles, and switching one leaves the other behind. While a style name
+// field has focus, the names already on the page sit under it, most used
+// first, and a name no other combo uses says so.
+//
+// Counted from the page's data, every tab and every character state, by
+// looking for `notations` anywhere in it rather than listing the combo shapes:
+// four editors write them, and a fifth would be missed by a list. A Combo Card
+// in Multiple Sections renders its sections and never its own copy of the one
+// on screen, and with the switch off it renders the opposite, so each counts
+// only what renders.
+function pageNotationNames() {
+    const names = new Map();   // key -> { label, count }
+    const seen = new WeakSet();
+    const count = (list) => list.forEach(n => {
+        const label = String((n && n.label) || '').trim().replace(/\s+/g, ' ');
+        const key = window.comboNotationKey(label);
+        if (!key) return;
+        const entry = names.get(key) || { label, count: 0 };
+        entry.count++;
+        names.set(key, entry);
+    });
+    const walk = (node, depth) => {
+        if (!node || typeof node !== 'object' || seen.has(node) || depth > 40) return;
+        seen.add(node);
+        if (Array.isArray(node)) { node.forEach(child => walk(child, depth + 1)); return; }
+        const multi = !!node.multiSections && Array.isArray(node.sections) && node.sections.length > 0;
+        if (Array.isArray(node.notations) && !multi) count(node.notations);
+        Object.keys(node).forEach(key => {
+            if (key === 'notations') return;
+            if (key === 'sections' && node.type === 'theorybox' && !multi) return;
+            walk(node[key], depth + 1);
+        });
+    };
+    walk(window.editorMasterDescData || window.currentEditorDescData, 0);
+    return names;
+}
+
+function notationNameNote(names, typed) {
+    const key = window.comboNotationKey(typed);
+    if (!key || !names.length || names.some(n => window.comboNotationKey(n.label) === key)) return '';
+    return `No other combo on this page uses "${typed.trim()}". Readers who picked ${names[0].label} won't see it.`;
+}
+
+// The other styles' names, for `field`: its own name is in the data too, once.
+function showNotationNames(field) {
+    const row = field.closest('.nstyle-row');
+    // owner.html loads the block editor without description.js.
+    if (!row || typeof window.comboNotationKey !== 'function') return;
+    const counts = pageNotationNames();
+    const own = counts.get(window.comboNotationKey(field.value));
+    if (own && --own.count === 0) counts.delete(window.comboNotationKey(field.value));
+    const names = [...counts.values()].sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+
+    const old = row.querySelector('[data-nstyle-names]');
+    if (old) old.remove();
+    if (!names.length) return;
+
+    const box = document.createElement('div');
+    box.className = 'nstyle-names';
+    box.setAttribute('data-nstyle-names', '');
+    box.innerHTML = `<span class="nstyle-names-label">On this page:</span>${names.map((n, i) => `
+            <button type="button" class="nstyle-name-chip" data-nstyle-name="${i}">${window.escapeHtml(n.label)}<span class="nstyle-name-count">${n.count}</span></button>`).join('')}
+            <div class="nstyle-names-note" data-nstyle-note></div>`;
+    box.notationNames = names;
+    const head = row.querySelector('.nstyle-row-head');
+    (head || field).insertAdjacentElement('afterend', box);
+    box.querySelector('[data-nstyle-note]').textContent = notationNameNote(names, field.value);
+}
+
+document.addEventListener('focusin', (e) => {
+    if (e.target.matches && e.target.matches('[data-nstyle-label]')) showNotationNames(e.target);
+});
+
+// Capture, because the Workspace's own handler stops the event at the list.
+document.addEventListener('input', (e) => {
+    if (!e.target.matches || !e.target.matches('[data-nstyle-label]')) return;
+    const box = e.target.closest('.nstyle-row') && e.target.closest('.nstyle-row').querySelector('[data-nstyle-names]');
+    if (box) box.querySelector('[data-nstyle-note]').textContent = notationNameNote(box.notationNames, e.target.value);
+}, true);
+
+// Put away once focus leaves the name, its remove button and the chips.
+document.addEventListener('focusout', (e) => {
+    if (!e.target.matches || !e.target.closest('[data-nstyle-label], .nstyle-row-head, [data-nstyle-names]')) return;
+    const row = e.target.closest('.nstyle-row');
+    const next = e.relatedTarget;
+    if (!row || (next && row.contains(next) && next.closest('.nstyle-row-head, [data-nstyle-names]'))) return;
+    const box = row.querySelector('[data-nstyle-names]');
+    if (box) box.remove();
+});
+
+// A chip writes its name into the field through the field's own input
+// handler, so every surface stores it the way it stores typing. Pressing it
+// keeps the focus in the field.
+document.addEventListener('mousedown', (e) => {
+    if (e.target.closest && e.target.closest('.nstyle-name-chip')) e.preventDefault();
+});
+document.addEventListener('click', (e) => {
+    const chip = e.target.closest && e.target.closest('.nstyle-name-chip');
+    if (!chip) return;
+    const box = chip.closest('[data-nstyle-names]');
+    const field = box && box.closest('.nstyle-row').querySelector('[data-nstyle-label]');
+    const name = box && box.notationNames[Number(chip.getAttribute('data-nstyle-name'))];
+    if (!field || !name) return;
+    field.value = name.label;
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.focus();
+});
 // Stated rather than left to the fact that this file is not IIFE-wrapped: the
 // Combos/Techs card editor in editor-tabs.js calls it, because a Combo Card has
 // two editors and the switch has to behave identically in both.
@@ -951,6 +1413,13 @@ window.deleteSelectedBlocks = function () {
     return picked.length;
 };
 
+// One wording for the three ways to delete a selection: the bar, the Delete
+// key, and ✖ on a selected card.
+function selectionDeleteMessage() {
+    const n = window.getSelectedBlockIndices().length;
+    return n === 1 ? 'Delete the selected block?' : `Delete the ${n} selected blocks?`;
+}
+
 // `dir` is -1 or 1. Each selected block steps over an UNSELECTED neighbour;
 // one that would step onto another selected block, or off the end, stays put.
 // That is what moves a run as one piece, and what lets a gapped selection
@@ -1018,6 +1487,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     window.editorBuilderMode = mode;
     currentStrategyBlocks = initialData ? JSON.parse(JSON.stringify(initialData)) : [];
 
+    // Config > Open sections minimized (v1.1, js/editor-config.js, which only
+    // edit.html loads). These are fresh copies, so nothing else is shut.
+    if (window.editorConfig && window.editorConfig.get('openMinimized')) {
+        currentStrategyBlocks.forEach(block => window.setEditorBlockExpanded(block, false));
+    }
+
     window.activeAccordionPath = [];
 
     // Which folders are open is per-section view state. Opening a different
@@ -1043,6 +1518,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 <button class="btn-sys btn-sys-regular" id="btn-undo" title="Undo (Ctrl+Z)" disabled>⮌ UNDO</button>
                 <button class="btn-sys btn-sys-regular" id="btn-redo" title="Redo (Ctrl+Y)" disabled>⮎ REDO</button>
                 <button class="btn-sys btn-sys-red" id="btn-clear-all" title="Clear All Blocks">✖ CLEAR ALL</button>
+                <!-- v1.1: the only way to make a first folder used to be a
+                     block's folder dropdown, which the Config panel can hide. -->
+                <button class="btn-sys btn-sys-regular" id="btn-create-folder" title="Create an empty folder at the end of the list">&#65291; CREATE FOLDER</button>
             </div>
         </div>
 
@@ -1077,6 +1555,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                      as not existing for most contributors. -->
                 <button class="format-btn format-btn-kbd" data-tag="kbd" title="Key or input, e.g. M1">⌨</button>
                 <button class="format-btn format-btn-noauto" data-tag="noauto" title="Stop automatic colouring here — for when a character name is just a word">🚫</button>
+                <button class="format-btn format-btn-outline" data-tag="outline" title="White outline around the text"><span class="sc-outline">A</span></button>
 
                 <div class="format-color-wrapper">
                     <button class="format-btn format-btn-color-trigger" id="btn-format-color" title="Apply Color to Highlighted Text">
@@ -1097,6 +1576,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                              row unclickable is fixed in keepColorPopupOnScreen
                              below, so any position would work. -->
                         <div class="format-color-presets-scroll">
+                        <div data-recent-slot></div>
                         ${colorPresetsHTML(gradientPresetsHTML())}
                         </div>
                         <!-- A saturation/brightness surface and a hue slider,
@@ -1124,12 +1604,13 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                                    maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex colour">
                             <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
                         </div>
+                        ${gradientBuilderHTML()}
                     </div>
                 </div>
             </div>
 
+            <!-- Stacked, ADD BLOCK on top (owner, 2026-10-19). -->
             <div class="add-block-footer-actions">
-            <button class="btn-sys btn-sys-blue" id="btn-media-library" title="Open Media Manager">📁 MEDIA LIBRARY</button>
             <div class="add-block-menu-wrapper">
                 <div class="add-block-popup" id="add-block-popup">
                     ${ADD_BLOCK_GROUPS.map((group, gi) => `
@@ -1142,6 +1623,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                     <span class="add-block-icon">⨁</span> ADD BLOCK
                 </button>
             </div>
+            <button class="btn-sys btn-sys-blue" id="btn-media-library" title="Open Media Manager">📁 MEDIA LIBRARY</button>
             </div>
         </div>
     `;
@@ -1199,12 +1681,23 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
     container.querySelector('#btn-clear-all').addEventListener('click', async () => {
         const activeBlocks = window.getActiveBlocks();
-        if (activeBlocks.length > 0 && await window.customConfirm("Delete all blocks in this section?")) {
+        if (activeBlocks.length > 0 && await window.confirmDelete("Delete all blocks in this section?")) {
             activeBlocks.length = 0;
             renderBlockList();
             updateLivePreview(); 
         }
     });
+
+    // An empty folder is session state until a block joins it (editor-folders.js),
+    // so this touches no block and leaves the preview alone.
+    const btnCreateFolder = container.querySelector('#btn-create-folder');
+    if (btnCreateFolder) {
+        btnCreateFolder.addEventListener('click', () => {
+            if (typeof window.addPendingBlockFolder !== 'function') return;
+            window.addPendingBlockFolder(window.getActiveBlocks(), null);
+            renderBlockList();
+        });
+    }
 
     // --- MEDIA LIBRARY BINDING ---
     const btnMediaLib = container.querySelector('#btn-media-library');
@@ -1262,7 +1755,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     // bar is outside every card by design, so it hit that line four times, once
     // per button, and nothing noticed: the bar's own work had already been done
     // in this listener and the exception surfaced in a different one.
-    blockList.addEventListener('click', (e) => {
+    blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-selection-action]');
         if (!btn) return;
         e.preventDefault();
@@ -1277,6 +1770,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 if (window.copySelectedBlocks()) flashSelectedCards();
                 break;
             case 'delete':
+                if (!(await window.confirmDelete(selectionDeleteMessage()))) break;
                 if (window.deleteSelectedBlocks()) {
                     renderBlockList();
                     updateLivePreview();
@@ -1305,7 +1799,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     //
     // Registered before the general button handler further down, which resolves
     // every button through the card's data-index and would also fire for these.
-    blockList.addEventListener('click', (e) => {
+    blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-sbox-intro], [data-sbox-edit], [data-sbox-remove], [data-sbox-add]');
         if (!btn) return;
 
@@ -1329,6 +1823,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             return;
         }
 
+        if (btn.hasAttribute('data-sbox-remove')
+            && !(await window.confirmDelete('Delete this section and every block in it?'))) return;
+
         window.saveBlockHistory();
         if (btn.hasAttribute('data-sbox-add')) {
             if (!Array.isArray(block.sections)) block.sections = [];
@@ -1346,7 +1843,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     // Same shape as the Section Box controls above, against the Combo Card's
     // own `sections`. Which one is on screen is session state in a WeakMap, not
     // a field - it must not be serialised into desc_data.
-    blockList.addEventListener('click', (e) => {
+    blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-cardsec], [data-cardsec-add], [data-cardsec-remove], [data-cardsec-edit]');
         if (!btn) return;
 
@@ -1370,6 +1867,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             renderBlockList();
             return;
         }
+
+        if (btn.hasAttribute('data-cardsec-remove')
+            && !(await window.confirmDelete('Delete this section of the card and everything in it?'))) return;
 
         window.saveBlockHistory();
         if (btn.hasAttribute('data-cardsec-add')) {
@@ -1421,13 +1921,16 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         return window.editorCardFieldTarget(block);
     };
 
-    blockList.addEventListener('click', (e) => {
+    blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-nstyle-add], [data-nstyle-remove]');
         if (!btn) return;
         const item = notationTarget(btn);
         if (!item) return;
         e.preventDefault();
         e.stopImmediatePropagation();
+
+        if (btn.hasAttribute('data-nstyle-remove')
+            && !(await window.confirmDelete('Delete this notation style?'))) return;
 
         window.saveBlockHistory();
         const index = btn.closest('.block-card').getAttribute('data-index');
@@ -1446,7 +1949,18 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (e.target.classList.contains('editor-textarea')) window.autoSizeEditorTextarea(e.target);
         window.applyComboNotationInput(item, e.target);
         clearTimeout(notationTypingTimer);
-        notationTypingTimer = setTimeout(() => updateLivePreview(), 400);
+        notationTypingTimer = setTimeout(() => { notationTypingTimer = null; updateLivePreview(); }, 400);
+    });
+
+    // The names under a style name field are counted from the page's data,
+    // which this list only reaches when the wait above runs out: a name typed
+    // a moment ago, one field up, would be missing. Runs before the document's
+    // own focusin listener, which draws them.
+    blockList.addEventListener('focusin', (e) => {
+        if (!notationTypingTimer || !e.target.matches('[data-nstyle-label]')) return;
+        clearTimeout(notationTypingTimer);
+        notationTypingTimer = null;
+        updateLivePreview();
     });
 
     // A section's title. Deliberately does NOT call renderBlockList - rebuilding
@@ -1485,7 +1999,11 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             }
         });
     }, { 
-        root: document.getElementById('interactive-builder'), 
+        // Whatever scrolls the workspace. The Config panel's sticky settings
+        // move the scroll from #interactive-builder to the workspace itself,
+        // and a root that no longer scrolls counts every card as on screen.
+        root: (typeof window.editorScrollBox === 'function' && window.editorScrollBox())
+            || document.getElementById('interactive-builder'), 
         rootMargin: '800px 0px' 
     });
 
@@ -1667,8 +2185,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     //
     // Delete only, not Backspace: outside a text field Backspace still means
     // "go back" to enough people that binding it to a destructive action is a
-    // trap. No confirmation, matching the single-block ✖ beside it - the undo
-    // snapshot taken inside deleteSelectedBlocks is what makes that safe.
+    // trap. It asks first since v1.1, like the ✖ beside it; v0.19 left both
+    // unconfirmed because undo covers them, and the owner wants the question
+    // asked anyway, with the Config panel's switch for anyone who does not.
     if (window._blockSelectionKeyHandler) {
         document.removeEventListener('keydown', window._blockSelectionKeyHandler);
     }
@@ -1682,10 +2201,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (!window.getSelectedBlockIndices().length) return;
 
         e.preventDefault();
-        if (window.deleteSelectedBlocks()) {
-            renderBlockList();
-            updateLivePreview();
-        }
+        window.confirmDelete(selectionDeleteMessage()).then((ok) => {
+            if (ok && window.deleteSelectedBlocks()) {
+                renderBlockList();
+                updateLivePreview();
+            }
+        });
     };
 
     document.addEventListener('keydown', window._blockSelectionKeyHandler);
@@ -1808,10 +2329,14 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     }
 
     if (colorBtn && colorPopup) {
+        // Filled as it opens, so it is measured with the Recent row in it.
+        const recentSlot = colorPopup.querySelector('[data-recent-slot]');
         colorBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             colorPopup.classList.toggle('hidden');
-            if (!colorPopup.classList.contains('hidden')) keepColorPopupOnScreen(colorPopup);
+            if (colorPopup.classList.contains('hidden')) return;
+            if (recentSlot) recentSlot.innerHTML = recentColorsHTML(true);
+            keepColorPopupOnScreen(colorPopup);
         });
 
         colorPopup.addEventListener('click', (e) => {
@@ -1826,22 +2351,34 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             // both of those, which is the trade CLAUDE.md already prefers.
             const gradient = e.target.closest('.gradient-preset-btn');
             if (gradient) {
-                applyFormat('multicolor', gradient.getAttribute('data-gradient'));
+                const value = gradient.getAttribute('data-gradient');
+                rememberColors(value.split(','));
+                applyFormat('multicolor', value);
                 colorPopup.classList.add('hidden');
                 return;
             }
 
             const preset = e.target.closest('.color-preset-btn');
             if (preset) {
+                rememberColors([preset.getAttribute('data-color')]);
                 applyFormat('color', preset.getAttribute('data-color'));
                 colorPopup.classList.add('hidden');
             }
         });
 
-        initColorPicker(container, (hex) => {
-            applyFormat('color', hex);
+        // The popup, not the whole container: a Side bar or folder colour
+        // popup open in the list repeats the picker's ids.
+        const gradientBuilder = wireGradientBuilder(colorPopup, (stops) => {
+            rememberColors(stops);
+            applyFormat('multicolor', stops.join(','));
             colorPopup.classList.add('hidden');
         });
+
+        initColorPicker(container, (hex) => {
+            rememberColors([hex]);
+            applyFormat('color', hex);
+            colorPopup.classList.add('hidden');
+        }, gradientBuilder ? gradientBuilder.pickerChanged : null);
 
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#format-color-popup') && !e.target.closest('#btn-format-color')) {
@@ -2030,7 +2567,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             window.setBlockFolderCollapsed(from, true);
             window.setBlockFolderCollapsed(to, !wasOpen);
             renderBlockList();
-            updateLivePreview(true);
+            updateLivePreview();
             return;
         }
 
@@ -2100,6 +2637,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     // move buttons already cover touch without dragging at all - this only
     // fixes the drag gesture itself.
     const DRAG_THRESHOLD = 6; // px of movement before a press counts as a drag, not a tap
+    // The left-edge grab strip when the handle is hidden, from the card's outer
+    // edge. Must match the width of .block-card::before in style/editor.css.
+    const BLOCK_DRAG_EDGE_PX = 12;
 
     // Three kinds of destination, and the order of the tests is the design:
     // the nesting zone sits INSIDE a card, so it has to be checked before the
@@ -2110,7 +2650,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         folderHead: null, headEl: null, nestInto: null, nestEl: null,
     };
 
-    function computeDropTarget(clientX, clientY) {
+    // allowNest: false when what is being dragged cannot go inside a Block (a
+    // whole folder), so the nesting strip is just part of its card.
+    function computeDropTarget(clientX, clientY, allowNest = true) {
         const under = document.elementFromPoint(clientX, clientY);
         if (!under) return NO_DROP;
 
@@ -2118,7 +2660,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         // on a theorybox - both use this class, so both accept a drop without
         // either being named here. Dropping on it means "put this block INSIDE
         // that one", which is why it cannot be the card's own reorder target.
-        const nest = under.closest('.accordion-inner-block-wrapper');
+        const nest = allowNest && under.closest('.accordion-inner-block-wrapper');
         if (nest) {
             const host = nest.closest('.block-card');
             if (host) {
@@ -2156,15 +2698,65 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     // beyond the list re-rendering, and in a long section that means hunting
     // for the block you just moved. Applied after a frame so the class lands
     // on the freshly-rendered card rather than the one it replaced.
-    function flashMovedBlock(index) {
+    // wholeFolder: flash the folder the block at `index` sits in, since a
+    // shut folder shows no cards to flash.
+    function flashMovedBlock(index, wholeFolder = false) {
         requestAnimationFrame(() => {
-            const card = document.querySelector(`#block-list .block-card[data-index="${index}"]`);
+            const found = document.querySelector(`#block-list .block-card[data-index="${index}"]`);
+            const card = wholeFolder && found ? found.closest('.block-folder') : found;
             if (!card) return;
             card.classList.remove('block-just-moved');
             void card.offsetWidth; // restart the animation if the same card moves twice
             card.classList.add('block-just-moved');
             setTimeout(() => card.classList.remove('block-just-moved'), 1400);
         });
+    }
+
+    // --- DRAGGING A WHOLE FOLDER (v1.1, from an editor's feedback) ---
+    //
+    // Where a folder dropped under the pointer would land: the insert-before
+    // slot after snapping out of any other folder (folderDropSlot), and the
+    // thing to mark there - whatever starts at the slot gets a line on its top
+    // edge, and at the very end the last thing gets one on its bottom. Null
+    // over nothing, or where the folder already is.
+    function folderDropAt(clientX, clientY, ownRun) {
+        const target = computeDropTarget(clientX, clientY, false);
+        let raw = null;
+        if (target.card) raw = target.dropIndex;
+        else if (target.headEl) {
+            // A folder's header: just above that folder.
+            const first = target.headEl.closest('.block-folder').querySelector('.block-card[data-index]');
+            if (first) raw = parseInt(first.getAttribute('data-index'), 10);
+        }
+        if (raw === null) return null;
+
+        const blocks = window.getActiveBlocks();
+        const slot = window.folderDropSlot(blocks, raw);
+        if (ownRun && slot >= ownRun.start && slot <= ownRun.end + 1) return null;
+
+        const atEnd = slot >= blocks.length;
+        const card = blockList.querySelector(`.block-card[data-index="${atEnd ? blocks.length - 1 : slot}"]`);
+        if (!card) return null;
+        return {
+            slot,
+            mark: card.closest('.block-folder') || card,
+            edge: atEnd ? 'drag-over-bottom' : 'drag-over-top',
+        };
+    }
+
+    function finishFolderDrop(payload, slot) {
+        if (slot === null) return;
+        const activeBlocks = window.getActiveBlocks();
+        const run = window.blockFolderRunContaining(activeBlocks, payload.folderFrom);
+        if (!run || (slot >= run.start && slot <= run.end + 1)) return;
+        // History holds states: the one before the move (saved here, unless
+        // it is already the latest) and the one after (updateLivePreview), so
+        // UNDO steps back over exactly this move.
+        window.saveBlockHistory();
+        const landedAt = window.moveBlockFolder(activeBlocks, payload.folderFrom, slot);
+        renderBlockList();
+        updateLivePreview();
+        flashMovedBlock(landedAt, true);
     }
 
     // A drag moves an array element and says nothing about folder membership,
@@ -2207,6 +2799,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                     : null;
                 landedAt = run ? run.start : activeBlocks.length;
                 newBlock.folder = folderHead;
+                const folderColor = typeof window.blockFolderColor === 'function'
+                    ? window.blockFolderColor(activeBlocks, folderHead) : '';
+                if (folderColor) newBlock.folderColor = folderColor;
                 activeBlocks.splice(landedAt, 0, newBlock);
             } else if (dropIndex === null) {
                 activeBlocks.push(newBlock);
@@ -2217,7 +2812,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 settleFolderAt(activeBlocks, landedAt);
             }
             renderBlockList();
-            updateLivePreview(true); // Tell it to skip saving history again
+            updateLivePreview();
             flashMovedBlock(landedAt);
         } else if (nestHost(activeBlocks, nestInto) && payload.fromIndex !== nestInto) {
             // The same gesture as dropping into a folder, with a different
@@ -2231,17 +2826,18 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             // Carried along it would show up inside the accordion as a folder
             // of one, named after somewhere the author cannot see.
             delete item.folder;
+            delete item.folderColor;
             const hostIndex = payload.fromIndex < nestInto ? nestInto - 1 : nestInto;
             activeBlocks[hostIndex].content.push(item);
             renderBlockList();
-            updateLivePreview(true);
+            updateLivePreview();
             flashMovedBlock(hostIndex);
         } else if (folderHead && typeof window.dropBlockIntoFolderHead === 'function') {
             window.saveBlockHistory();
             const landedAt = window.dropBlockIntoFolderHead(activeBlocks, payload.fromIndex, folderHead);
             if (landedAt < 0) return;
             renderBlockList();
-            updateLivePreview(true);
+            updateLivePreview();
             flashMovedBlock(landedAt);
         } else if (dropIndex !== null) {
             let target = dropIndex;
@@ -2252,12 +2848,25 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 activeBlocks.splice(target, 0, item);
                 settleFolderAt(activeBlocks, target);
                 renderBlockList();
-                updateLivePreview(true);
+                updateLivePreview();
                 flashMovedBlock(target);
             }
         }
         // Reordering onto empty space (no card under the pointer) is a no-op,
         // same as the previous native-DnD drop handler.
+    }
+
+    // A drag ends in a click on the element it started from: the pointer was
+    // captured there, so the browser sends the click to it wherever the button
+    // came up. On an Add Block menu button that click is the tap fallback
+    // above, which added a second block at the end of the list after every
+    // drag (found 2026-10-20; there since the drag moved to pointer events in
+    // v0.5). Swallowed for this one gesture only: the click comes in the same
+    // dispatch as the pointerup, so the listener is gone before the next task.
+    function swallowClickAfterDrag(el) {
+        const swallow = (ev) => { ev.stopPropagation(); ev.preventDefault(); };
+        el.addEventListener('click', swallow, { capture: true, once: true });
+        setTimeout(() => el.removeEventListener('click', swallow, { capture: true }), 0);
     }
 
     // ghostLabel: text shown in the small pill that follows the pointer.
@@ -2283,6 +2892,12 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         let lastFolderHead = null;
         let currentNest = null;
         let lastNestInto = null;
+        // A whole folder (payload.folderFrom, any index inside it) has drops
+        // of its own: between Blocks and folders, never into either.
+        const movingFolder = payload.folderFrom !== undefined;
+        const ownRun = movingFolder ? window.blockFolderRunContaining(window.getActiveBlocks(), payload.folderFrom) : null;
+        let currentMark = null;
+        let lastSlot = null;
 
         el.setPointerCapture(e.pointerId);
 
@@ -2292,6 +2907,14 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
 
         function updateHighlight(ev) {
+            if (movingFolder) {
+                const drop = folderDropAt(ev.clientX, ev.clientY, ownRun);
+                if (currentMark) currentMark.classList.remove('drag-over-top', 'drag-over-bottom');
+                currentMark = drop ? drop.mark : null;
+                if (currentMark) currentMark.classList.add(drop.edge);
+                lastSlot = drop ? drop.slot : null;
+                return;
+            }
             const { card, dropIndex, isBottom, folderHead, headEl, nestInto, nestEl } = computeDropTarget(ev.clientX, ev.clientY);
             if (card !== currentCard) {
                 if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
@@ -2326,6 +2949,10 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             if (payload.fromIndex !== undefined) {
                 sourceCard = blockList.querySelector(`.block-card[data-index="${payload.fromIndex}"]`);
                 if (sourceCard) sourceCard.classList.add('block-card-dragging');
+            } else if (movingFolder) {
+                const member = blockList.querySelector(`.block-card[data-index="${payload.folderFrom}"]`);
+                sourceCard = member ? member.closest('.block-folder') : null;
+                if (sourceCard) sourceCard.classList.add('block-card-dragging');
             }
             ghost = document.createElement('div');
             ghost.className = 'block-drag-ghost';
@@ -2343,6 +2970,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             if (currentCard) currentCard.classList.remove('drag-over-top', 'drag-over-bottom');
             if (currentHead) currentHead.classList.remove('drag-over-folder');
             if (currentNest) currentNest.classList.remove('drag-over-nest');
+            if (currentMark) currentMark.classList.remove('drag-over-top', 'drag-over-bottom');
         }
 
         function onMove(ev) {
@@ -2361,8 +2989,13 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             const dropIndex = lastDropIndex;
             const folderHead = lastFolderHead;
             const nestInto = lastNestInto;
+            const slot = lastSlot;
             cleanup();
-            if (dragging) finishBlockDrop(payload, dropIndex, folderHead, nestInto);
+            if (dragging) {
+                swallowClickAfterDrag(el);
+                if (movingFolder) finishFolderDrop(payload, slot);
+                else finishBlockDrop(payload, dropIndex, folderHead, nestInto);
+            }
         }
 
         function onCancel() {
@@ -2384,12 +3017,36 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     // Delegated: .drag-handle only exists inside re-rendered .block-card
     // elements, so this listens on the persistent blockList container
     // instead of re-binding per card on every render.
+    //
+    // With the handle hidden from the Config panel, the card's own left edge
+    // is the handle (owner, 2026-10-18: "The editor can still move the Blocks
+    // around by grabbing its left edge"). A press there lands on the card
+    // itself, not on anything inside it: the strip is the card's border and
+    // padding, which nothing else occupies.
     blockList.addEventListener('pointerdown', (e) => {
+        // A whole folder: the ⠿ on its header, or with handles hidden the
+        // header's left edge, the same strip a card gives up.
+        const folderHead = e.target.closest('.block-folder-head');
+        if (folderHead) {
+            const shell = folderHead.closest('.block-folder');
+            const member = shell.querySelector('.block-card[data-index]');
+            const handle = e.target.closest('.block-folder-handle');
+            const onEdge = !handle && e.target === folderHead
+                && window.editorConfig && window.editorConfig.get('hideDragHandle')
+                && e.clientX - shell.getBoundingClientRect().left <= BLOCK_DRAG_EDGE_PX;
+            if (!member || (!handle && !onEdge)) return;
+            startBlockPointerDrag(e, handle || folderHead, { folderFrom: parseInt(member.getAttribute('data-index'), 10) }, 'Move folder');
+            return;
+        }
+
         const handle = e.target.closest('.drag-handle');
-        if (!handle) return;
-        const card = handle.closest('.block-card');
+        const card = (handle || e.target).closest('.block-card');
         if (!card) return;
-        startBlockPointerDrag(e, handle, { fromIndex: parseInt(card.getAttribute('data-index')) }, 'Move block');
+        const onEdge = !handle && e.target === card
+            && window.editorConfig && window.editorConfig.get('hideDragHandle')
+            && e.clientX - card.getBoundingClientRect().left <= BLOCK_DRAG_EDGE_PX;
+        if (!handle && !onEdge) return;
+        startBlockPointerDrag(e, handle || card, { fromIndex: parseInt(card.getAttribute('data-index')) }, 'Move block');
     });
 
     // --- FOLDER PICKER ---
@@ -2429,7 +3086,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         window.saveBlockHistory();
         const landedAt = window.assignBlockToFolder(activeBlocks, index, name);
         renderBlockList();
-        updateLivePreview(true);
+        updateLivePreview();
         if (landedAt >= 0) flashMovedBlock(landedAt);
     });
 
@@ -2437,6 +3094,29 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (!e.target.closest('.block-folder-picker')) {
             document.querySelectorAll('.block-folder-picker.open')
                 .forEach(w => w.classList.remove('open'));
+        }
+    });
+
+    // THE PICKED CELL: clicking (or tabbing) into a table cell picks it, and
+    // going into any other field lets it go. Buttons do neither, or pressing
+    // -Row would drop the very pick it is about to act on.
+    blockList.addEventListener('focusin', (e) => {
+        const cell = e.target.closest('.table-cell-input, .table-header-input');
+        if (!cell && !e.target.closest('input, textarea, select')) return;
+
+        const had = editorTablePick && editorTablePick.block;
+        if (cell) {
+            const card = cell.closest('.block-card');
+            const block = window.getActiveBlocks()[parseInt(card.getAttribute('data-index'), 10)];
+            const row = cell.classList.contains('table-header-input') ? null : parseInt(cell.getAttribute('data-row'), 10);
+            editorTablePick = { block, row, col: parseInt(cell.getAttribute('data-col'), 10) };
+            paintTablePick(card, block);
+        } else {
+            editorTablePick = null;
+        }
+        if (had && had !== (editorTablePick && editorTablePick.block)) {
+            const oldCard = cardForEditorBlock(had);
+            if (oldCard) paintTablePick(oldCard, had);
         }
     });
 
@@ -2499,10 +3179,16 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         }
     });
 
-    blockList.addEventListener('click', (e) => {
+    // Async for the delete confirmations only; every other branch finishes
+    // before the first await, so it runs exactly as it did.
+    blockList.addEventListener('click', async (e) => {
         const btn = e.target.closest('button');
         if (!btn) return;
-        
+
+        // The swatch popup handles its own buttons (above).
+        if (btn.closest('.swatch-popup')) return;
+        if (btn.matches('[data-heading-bar]')) { openHeadingBarPopup(btn); return; }
+
         const activeBlocks = window.getActiveBlocks();
         window.saveBlockHistory();
 
@@ -2516,6 +3202,11 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         if (folderShell && !btn.closest('.block-card')) {
             const folderName = folderShell.getAttribute('data-folder');
 
+            if (btn.matches('[data-folder-color]')) {
+                openFolderColorPopup(btn, folderName);
+                return;
+            }
+
             if (btn.classList.contains('block-folder-toggle')) {
                 if (typeof window.toggleBlockFolderCollapsed === 'function') {
                     window.toggleBlockFolderCollapsed(folderName);
@@ -2528,7 +3219,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 && typeof window.ungroupBlockFolder === 'function') {
                 window.ungroupBlockFolder(activeBlocks, folderName);
                 renderBlockList();
-                updateLivePreview(true);
+                updateLivePreview();
                 return;
             }
 
@@ -2551,27 +3242,50 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             return;
         }
 
-        if (e.target.classList.contains('btn-table-add-row')) {
-            const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            const cols = activeBlocks[index].headers.length;
-            activeBlocks[index].rows.push(new Array(cols).fill(''));
-            renderBlockList(); updateLivePreview(true);
-        } else if (e.target.classList.contains('btn-table-add-col')) {
-            const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            activeBlocks[index].headers.push('New');
-            activeBlocks[index].rows.forEach(r => r.push(''));
-            renderBlockList(); updateLivePreview();
-        } else if (e.target.classList.contains('btn-table-del-row')) {
-            const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            if (activeBlocks[index].rows.length > 1) activeBlocks[index].rows.pop();
-            renderBlockList(); updateLivePreview();
-        } else if (e.target.classList.contains('btn-table-del-col')) {
-            const index = parseInt(e.target.closest('.block-card').getAttribute('data-index'));
-            if (activeBlocks[index].headers.length > 1) {
-                activeBlocks[index].headers.pop();
-                activeBlocks[index].rows.forEach(r => r.pop());
+        // The four table buttons act at the picked cell, or at the end with
+        // nothing picked (see editorTablePick).
+        const tableAction = ['add-row', 'add-col', 'del-row', 'del-col']
+            .find(kind => btn.classList.contains(`btn-table-${kind}`));
+        if (tableAction) {
+            const index = parseInt(btn.closest('.block-card').getAttribute('data-index'), 10);
+            const table = activeBlocks[index];
+            const pick = tablePickFor(table);
+            const pickedRow = pick ? pick.row : null;
+            const pickedCol = pick ? pick.col : null;
+
+            if (tableAction === 'add-row') {
+                // Below the picked cell; a header cell's "below" is the first row.
+                const at = pick ? (pickedRow === null ? 0 : pickedRow + 1) : table.rows.length;
+                table.rows.splice(at, 0, new Array(table.headers.length).fill(''));
+                if (pick) editorTablePick = { block: table, row: at, col: pickedCol };
+            } else if (tableAction === 'add-col') {
+                const at = pickedCol !== null ? pickedCol + 1 : table.headers.length;
+                table.headers.splice(at, 0, 'New');
+                table.rows.forEach(r => r.splice(at, 0, ''));
+                if (pick) editorTablePick = { block: table, row: pickedRow, col: at };
+            } else if (tableAction === 'del-row') {
+                const at = pickedRow !== null ? pickedRow : table.rows.length - 1;
+                const message = pickedRow !== null ? `Delete row ${at + 1} of this table?` : 'Delete the bottom row of this table?';
+                if (table.rows.length > 1 && await window.confirmDelete(message)) {
+                    table.rows.splice(at, 1);
+                    // The pick stays on the same place, now the next row.
+                    if (pickedRow !== null) editorTablePick = { block: table, row: Math.min(at, table.rows.length - 1), col: pickedCol };
+                }
+            } else {
+                const at = pickedCol !== null ? pickedCol : table.headers.length - 1;
+                const message = pickedCol !== null ? `Delete column ${at + 1} of this table?` : 'Delete the right-hand column of this table?';
+                if (table.headers.length > 1 && await window.confirmDelete(message)) {
+                    table.headers.splice(at, 1);
+                    table.rows.forEach(r => r.splice(at, 1));
+                    if (pickedCol !== null) editorTablePick = { block: table, row: pickedRow, col: Math.min(at, table.headers.length - 1) };
+                }
             }
-            renderBlockList(); updateLivePreview();
+
+            const before = tableButtonsTop(index);
+            renderBlockList();
+            keepTableButtonsInPlace(index, before);
+            updateLivePreview();
+            return;
         }
 
         if (btn.classList.contains('btn-collapse')) {
@@ -2624,6 +3338,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
 
         if ((wantsUp || wantsDown || wantsDelete)
             && window.isEditorBlockSelected(activeBlocks[index])) {
+            if (wantsDelete && !(await window.confirmDelete(selectionDeleteMessage()))) return;
             const changed = wantsDelete
                 ? !!window.deleteSelectedBlocks()
                 : window.moveSelectedBlocks(wantsUp ? -1 : 1);
@@ -2645,6 +3360,8 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             [activeBlocks[index], activeBlocks[index + 1]] = [activeBlocks[index + 1], activeBlocks[index]];
             movedTo = index + 1;
         } else if (btn.classList.contains('btn-delete')) {
+            const label = window.blockTypeLabel(activeBlocks[index].type);
+            if (!(await window.confirmDelete(`Delete this ${label} block?`))) return;
             activeBlocks.splice(index, 1);
         } else {
             return;
@@ -2751,6 +3468,76 @@ window.autoSizeEditorTextareasIn = function (root) {
     if (scroller && scroller.scrollTop !== keepTop) scroller.scrollTop = keepTop;
 };
 
+// --- LONG ONE-LINE FIELDS GROW OVER THEIR NEIGHBOURS (v1.1) ---
+//
+// A move name, a table cell or a combo's damage is one line, and text longer
+// than the box shows only a slice of itself. While such a field is being
+// edited and its text overflows, it widens to fit and is drawn on top of
+// whatever sits beside it: the owner's call, 2026-10-18, trading neatness for
+// being able to read what you are typing.
+//
+// It takes no layout space doing it. The negative margin gives back exactly the
+// width it adds, so nothing beside it moves, and it is the same element with
+// the same focus throughout, so every handler bound to it keeps working (a
+// floating copy would take focus and fire the blur handlers that commit and
+// redraw). It stays inside the nearest box that clips it, shifting left when
+// there is no room on the right, and goes back to its own size on blur.
+const GROW_FIELD = 'input.editor-input[type="text"]';
+
+function clipBoundsOf(el) {
+    let left = 0;
+    let right = document.documentElement.clientWidth;
+    for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+        if (getComputedStyle(p).overflowX !== 'visible') {
+            const r = p.getBoundingClientRect();
+            left = Math.max(left, r.left);
+            right = Math.min(right, r.right);
+        }
+    }
+    return { left, right };
+}
+
+function shrinkEditorField(el) {
+    if (!el.classList.contains('editor-input-grown')) return;
+    el.classList.remove('editor-input-grown');
+    el.style.removeProperty('width');
+    el.style.removeProperty('margin-right');
+    el.style.removeProperty('left');
+}
+
+window.growEditorField = function (el) {
+    shrinkEditorField(el);
+    if (el.scrollWidth <= el.clientWidth + 1) return;
+
+    const rect = el.getBoundingClientRect();
+    const bounds = clipBoundsOf(el);
+    const room = bounds.right - bounds.left - 8;
+    // Borders and padding are outside clientWidth; the extra 16px keeps the
+    // caret off the edge while typing at the end.
+    const width = Math.min(el.scrollWidth + (rect.width - el.clientWidth) + 16, room);
+    if (width <= rect.width) return;
+
+    const pastRight = rect.left + width - (bounds.right - 4);
+    const shift = pastRight > 0 ? Math.min(pastRight, Math.max(0, rect.left - bounds.left - 4)) : 0;
+
+    el.classList.add('editor-input-grown');
+    el.style.width = `${width}px`;
+    el.style.marginRight = `${rect.width - width}px`;
+    el.style.left = `${-shift}px`;
+};
+
+document.addEventListener('focusin', (e) => {
+    if (e.target.matches && e.target.matches(GROW_FIELD)) window.growEditorField(e.target);
+});
+document.addEventListener('input', (e) => {
+    if (e.target === document.activeElement && e.target.matches && e.target.matches(GROW_FIELD)) {
+        window.growEditorField(e.target);
+    }
+});
+document.addEventListener('focusout', (e) => {
+    if (e.target.matches && e.target.matches(GROW_FIELD)) shrinkEditorField(e.target);
+});
+
 // A one-line label for a collapsed block.
 //
 // NOT optional decoration. Everything starts collapsed as of v0.16, and a list
@@ -2806,6 +3593,101 @@ function blockSummary(block) {
     return text.length > 60 ? text.slice(0, 60) + '…' : text;
 }
 
+// --- TABLE BLOCK: THE PICKED CELL (v1.1, from an editor's feedback) ---
+//
+// -Row and -Col could only take the last row or column, so a mistake in the
+// middle of a table meant retyping everything below it. Clicking a cell now
+// picks its row and column: -Row and -Col remove those and say which
+// ("-Row 3"), +Row and +Col insert below and right of it, and with nothing
+// picked all four act at the end, as they always did.
+//
+// One pick in the whole Workspace, held beside the data rather than in it:
+// which cell an editor last clicked is not page content. It names the block
+// OBJECT, which outlives renderBlockList's markup, so a re-render keeps it;
+// an undo restores copies of the blocks, so it lets go.
+let editorTablePick = null;   // { block, row, col }; row is null for a header cell
+
+function tablePickFor(block) {
+    if (!editorTablePick || editorTablePick.block !== block) return null;
+    const { row, col } = editorTablePick;
+    // A row or column can be gone from under the pick.
+    const r = row !== null && row < block.rows.length ? row : null;
+    const c = col !== null && col < block.headers.length ? col : null;
+    return r === null && c === null ? null : { row: r, col: c };
+}
+
+// row is null for a header cell, which shares the picked column only.
+function tablePickedClass(pick, row, col) {
+    if (!pick) return '';
+    return (row !== null && pick.row === row) || pick.col === col ? 'table-picked' : '';
+}
+
+function tableDeleteButtons(pick) {
+    const row = pick && pick.row !== null ? pick.row + 1 : null;
+    const col = pick && pick.col !== null ? pick.col + 1 : null;
+    return {
+        row: row ? { label: `⊟ -Row ${row}`, title: `Delete row ${row}` } : { label: '⊟ -Row', title: 'Delete Bottom Row' },
+        col: col ? { label: `⊟ -Col ${col}`, title: `Delete column ${col}` } : { label: '⊟ -Col', title: 'Delete Right Column' },
+    };
+}
+
+function cardForEditorBlock(block) {
+    const blocks = window.getActiveBlocks();
+    return Array.from(document.querySelectorAll('#block-list .block-card[data-index]'))
+        .find(card => blocks[parseInt(card.getAttribute('data-index'), 10)] === block) || null;
+}
+
+// The pick drawn onto a table already on screen. Picking must not re-render
+// the list: that would take the focus, and the caret, out of the cell that
+// was just clicked into.
+function paintTablePick(card, block) {
+    const pick = tablePickFor(block);
+    card.querySelectorAll('.block-table td').forEach(td => {
+        const input = td.querySelector('input');
+        if (!input) return;
+        const row = input.classList.contains('table-header-input') ? null : parseInt(input.getAttribute('data-row'), 10);
+        td.classList.toggle('table-picked', !!tablePickedClass(pick, row, parseInt(input.getAttribute('data-col'), 10)));
+    });
+    const del = tableDeleteButtons(pick);
+    [['.btn-table-del-row', del.row], ['.btn-table-del-col', del.col]].forEach(([selector, look]) => {
+        const button = card.querySelector(selector);
+        if (!button) return;
+        button.textContent = look.label;
+        button.title = look.title;
+    });
+}
+
+// The buttons stay under the pointer. A table grows or shrinks above them,
+// so they used to move a row's height with every press, and adding five rows
+// meant chasing +Row down the screen five times (editor feedback,
+// 2026-10-19). Scrolling by however far they moved puts them back, in the
+// same task, so no frame shows them anywhere else. Measured on the row of
+// buttons, not the button: a hovered button is lifted 1px and the one just
+// drawn is not hovered yet, which would creep the table by a pixel a press.
+function tableButtonsTop(index) {
+    const row = document.querySelector(`#block-list .block-card[data-index="${index}"] .block-table-actions-row`);
+    return row ? row.getBoundingClientRect().top : null;
+}
+
+// Where the last press put the buttons back to. A scroll position is whole
+// pixels and a row need not be (37.4px), so each correction can miss by a
+// fraction. Measuring each press from where the last one landed let those
+// misses add up: 1.2px by the third press with Linux's fonts (CI,
+// 2026-10-20). Aiming every press at the same spot keeps each one within
+// half a pixel. A scroll of a pixel or more in between starts a new aim.
+let tableButtonsAim = null;
+
+function keepTableButtonsInPlace(index, before) {
+    const after = tableButtonsTop(index);
+    if (before === null || after === null) return;
+    if (tableButtonsAim && tableButtonsAim.index === index && Math.abs(tableButtonsAim.top - before) < 1) before = tableButtonsAim.top;
+    tableButtonsAim = { index, top: before };
+    if (after === before) return;
+    const scroller = scrollableAncestorOf(document.querySelector(`#block-list .block-card[data-index="${index}"]`));
+    if (scroller) scroller.scrollTop += after - before;
+    else window.scrollBy(0, after - before);
+}
+
 // The shell drawn around one folder run.
 //
 // The name is an INPUT rather than a label plus a rename button. Renaming is
@@ -2814,9 +3696,15 @@ function blockSummary(block) {
 // for this would make folder naming the only prompt on the site.
 //
 // Every interpolation here is contributor-authored and lands in an attribute,
-// so it goes through escField exactly like the block fields below it.
-function folderShellHTML(run, isCollapsed, isEmpty) {
+// so it goes through escField exactly like the block fields below it. `color`
+// arrives already through safeColor (renderBlockList).
+function folderShellHTML(run, isCollapsed, isEmpty, color) {
     const count = isEmpty ? 'empty' : `${run.count} block${run.count === 1 ? '' : 's'}`;
+
+    // An empty folder has no blocks to carry a colour, so it offers none.
+    const colorSwatch = isEmpty ? '' : `
+            <button type="button" class="block-folder-color${color ? '' : ' is-none'}" data-folder-color
+                    title="Folder color" aria-label="Folder color" aria-expanded="false"${color ? ` style="background: ${color};"` : ''}></button>`;
 
     // An empty folder is not in the data, so there is nothing to keep and
     // nothing to ungroup - removing it is a discard, and saying UNGROUP there
@@ -2826,6 +3714,10 @@ function folderShellHTML(run, isCollapsed, isEmpty) {
     // slim - and the block cards' own actions have always been glyphs, so the
     // vocabulary already exists. title AND aria-label, because a glyph with
     // neither is a button nobody can name.
+    //
+    // Except ＋ FOLDER (v1.1, from an editor's feedback): a bare ＋ beside
+    // the name was taken for the folder's dropdown, so it says what it makes,
+    // and the open/close button is a chevron rather than the folder icon.
     const removeBtn = isEmpty
         ? `<button class="btn-sys btn-sys-regular block-folder-discard"
                    title="Discard this empty folder"
@@ -2838,18 +3730,23 @@ function folderShellHTML(run, isCollapsed, isEmpty) {
         ? `<div class="block-folder-empty">Drag a block onto this header, or choose this folder on any block.</div>`
         : '';
 
+    // Moves the whole folder (v1.1). An empty one is not in the data, so it
+    // has nothing to move; ＋ FOLDER already puts it where it is wanted.
+    const handle = isEmpty ? '' : `
+            <span class="drag-handle block-folder-handle" title="Drag to move this folder">⠿</span>`;
+
     return `
-        <div class="block-folder-head">
+        <div class="block-folder-head">${handle}
             <button class="btn-sys btn-sys-regular block-folder-toggle"
                     title="${isCollapsed ? 'Expand' : 'Collapse'} this folder"
-                    aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#128193;' : '&#128194;'}</button>
+                    aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#9656;' : '&#9662;'}</button>
             <input type="text" class="block-folder-name-input" value="${escField(run.name)}"
                    data-folder="${escField(run.name)}" maxlength="60"
-                   aria-label="Folder name" title="Rename this folder">
+                   aria-label="Folder name" title="Rename this folder">${colorSwatch}
             <span class="block-folder-count">${count}</span>
             <button class="btn-sys btn-sys-regular block-folder-add"
                     title="Create another folder after this one"
-                    aria-label="Create another folder after this one">&#65291;</button>
+                    aria-label="Create another folder after this one">&#65291; FOLDER</button>
             ${removeBtn}
         </div>
         <div class="block-folder-body">${body}</div>
@@ -3077,6 +3974,7 @@ function renderBlockList() {
                         <select class="editor-select block-type-selector">
                             ${typeOptions}
                         </select>
+                        <span class="block-type-badge block-type-label">${escField(window.blockTypeLabel(block.type))}</span>
                         ${folderPickerHTML(block)}
                     </div>
                 <span class="block-card-summary" title="${escField(blockSummary(block))}">${escField(blockSummary(block))}</span>
@@ -3104,6 +4002,7 @@ function renderBlockList() {
                     </div>
                     <div>${getAlignUI(block.align, 'left')}</div>
                 </div>
+                ${headingBarRowHTML(block)}
             `;
         }
         else if (block.type === 'paragraph') {
@@ -3185,17 +4084,19 @@ function renderBlockList() {
         }
         else if (block.type === 'table') {
             let tableHTML = `<div class="block-table-wrapper"><table class="block-table">`;
+            const pick = tablePickFor(block);
+            const del = tableDeleteButtons(pick);
 
             tableHTML += `<tr>`;
             block.headers.forEach((h, c) => {
-                tableHTML += `<td><input type="text" class="editor-input table-header-input" data-col="${c}" value="${escField(h)}" placeholder="Header"></td>`;
+                tableHTML += `<td class="${tablePickedClass(pick, null, c)}"><input type="text" class="editor-input table-header-input" data-col="${c}" value="${escField(h)}" placeholder="Header"></td>`;
             });
             tableHTML += `</tr>`;
 
             block.rows.forEach((r, rIdx) => {
                 tableHTML += `<tr>`;
                 r.forEach((cell, cIdx) => {
-                    tableHTML += `<td><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${escField(cell)}" placeholder="..."></td>`;
+                    tableHTML += `<td class="${tablePickedClass(pick, rIdx, cIdx)}"><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${escField(cell)}" placeholder="..."></td>`;
                 });
                 tableHTML += `</tr>`;
             });
@@ -3206,8 +4107,8 @@ function renderBlockList() {
                 <div class="block-table-actions-row">
                     <button class="btn-sys btn-sys-regular btn-table-add-row" title="Add Row Below">⊞ +Row</button>
                     <button class="btn-sys btn-sys-regular btn-table-add-col" title="Add Column Right">⊞ +Col</button>
-                    <button class="btn-sys btn-sys-red btn-table-del-row" title="Delete Bottom Row">⊟ -Row</button>
-                    <button class="btn-sys btn-sys-red btn-table-del-col" title="Delete Right Column">⊟ -Col</button>
+                    <button class="btn-sys btn-sys-red btn-table-del-row" title="${del.row.title}">${del.row.label}</button>
+                    <button class="btn-sys btn-sys-red btn-table-del-col" title="${del.col.title}">${del.col.label}</button>
                 </div>
                 <input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)">
             `;
@@ -3403,7 +4304,13 @@ function renderBlockList() {
             // setAttribute, not innerHTML: no escaping needed, and this is the
             // value every folder handler reads back.
             shell.setAttribute('data-folder', opening.name);
-            shell.innerHTML = folderShellHTML(opening, isCollapsed, false);
+            // The bar down the folder's left edge, in its colour.
+            const color = window.safeColor(activeBlocks[opening.start].folderColor);
+            if (color) {
+                shell.classList.add('has-color');
+                shell.style.setProperty('--folder-color', color);
+            }
+            shell.innerHTML = folderShellHTML(opening, isCollapsed, false, color);
             listContainer.appendChild(shell);
             appendTarget = shell.querySelector('.block-folder-body');
         }

@@ -107,7 +107,7 @@ window.loadMediaQueue = async function() {
     const container = document.getElementById('media-queue-container');
     if (!container) return;
 
-    container.innerHTML = `<p class="loading-msg admin-loading-msg">Loading media...</p>`;
+    container.innerHTML = `<p class="loading-msg admin-loading-msg loading-msg-busy">Loading media...</p>`;
 
     try {
         const [files, moderation, usage] = await Promise.all([

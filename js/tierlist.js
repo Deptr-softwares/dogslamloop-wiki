@@ -69,10 +69,6 @@ async function fetchTierRoster() {
     }
 }
 
-window.getTierEditorContainer = function() {
-    return document.getElementById('interactive-builder'); 
-};
-
 // --- PORTRAIT ENGINE ---
 // Generates a standardized Character Portrait icon
 function getCharPortraitHTML(charId, isDraggable = false) {
@@ -611,7 +607,7 @@ window.addEditorTierTab = async function() {
 };
 
 window.removeEditorTierTab = async function(idx) {
-    if (confirm("Delete this entire Tier List tab?")) {
+    if (await window.confirmDelete("Delete this entire Tier List tab?")) {
         window.currentEditorDescData.tabs.splice(idx, 1);
         window.currentSystemTabIdx = 0;
         if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
@@ -644,7 +640,7 @@ window.addTier = async function() {
 };
 
 window.removeTier = async function(idx) {
-    if (confirm("Delete this tier? Characters inside will be returned to the Unassigned Pool.")) {
+    if (await window.confirmDelete("Delete this tier? Characters inside will be returned to the Unassigned Pool.")) {
         const activeTab = window.currentEditorDescData.tabs[window.currentSystemTabIdx];
         activeTab.tiers.splice(idx, 1);
         if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
@@ -695,7 +691,7 @@ window.addTierChangelog = async function() {
 };
 
 window.removeTierChangelog = async function(idx) {
-    if (confirm("Delete this changelog entry?")) {
+    if (await window.confirmDelete("Delete this changelog entry?")) {
         const activeTab = window.currentEditorDescData.tabs[window.currentSystemTabIdx];
         activeTab.changelog.splice(idx, 1);
         if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();

@@ -394,7 +394,13 @@ test('Combo Block: adding a style asks for its name first, then writes both fiel
     // target[data-field]. Stopped before it, so no junk key is stored.
     expect(Object.keys(block)).not.toContain('null');
 
+    // Asks first (v1.1). editor() replaces the page body, so the question is
+    // the browser's own confirm.
+    const asked = [];
+    page.on('dialog', d => { asked.push(d.message()); d.accept(); });
     await page.click('[data-nstyle-remove="0"]');
+    await expect.poll(() => page.evaluate(() => 'notations' in window.getActiveBlocks()[0])).toBe(false);
+    expect(asked).toEqual(['Delete this notation style?']);
     const after = await page.evaluate(() => window.getActiveBlocks()[0]);
     expect(Object.keys(after), 'removing the last style leaves the block as it was').not.toContain('notations');
     expect(errors).toEqual([]);

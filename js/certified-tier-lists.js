@@ -61,45 +61,11 @@
     // navigation display slugs and relied on a normalizer that lowercased and
     // stripped punctuation; three entries only matched because the display
     // slug happened to agree. The migration rewrote them to the canonical key,
-    // so this lookup is exact.
+    // so this lookup is exact. The roster itself is site_utils.js's
+    // loadCharacterRoster, shared with every other tier list.
     async function loadRoster() {
         if (state.roster.size) return;
-        try {
-            const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../../';
-            const nav = window.fetchJson
-                ? await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true })
-                : await (await fetch(`${rootPath}data/navigation.json`)).json();
-
-            // Portraits are mirrored into the repo by scripts/fetch-portraits.js.
-            // navigation.json carries no `image`, so without this every portrait
-            // falls through to the guessed Supabase URL below - which 404s for
-            // five characters whose filenames end "Portrait2.webp" or drop the
-            // suffix, and the img hides itself on error.
-            //
-            // Same-origin also matters beyond correctness: a cross-origin image
-            // taints a canvas, and both toBlob() and the clipboard write throw
-            // on a tainted one. The Create Tier List export depends on this.
-            let portraits = {};
-            try {
-                portraits = window.fetchJson
-                    ? await window.fetchJson(`${rootPath}data/portraits.json`, { cache: true })
-                    : await (await fetch(`${rootPath}data/portraits.json`)).json();
-            } catch (e) {
-                console.warn('[TierLists] Portrait manifest unavailable, falling back to guessed URLs:', e);
-            }
-
-            (nav.Characters || []).forEach(entry => {
-                const pageId = entry.cms_config && entry.cms_config.pageId;
-                if (!pageId) return;
-                state.roster.set(pageId, {
-                    name: entry.name,
-                    url: entry.url,
-                    image: portraits[pageId] || entry.image,
-                });
-            });
-        } catch (e) {
-            console.warn('[TierLists] Could not read the roster:', e);
-        }
+        state.roster = await window.loadCharacterRoster();
     }
 
     // v0.18 FT4. `style` is the list's own art_style - 'portrait' or 'icon'.
@@ -160,6 +126,10 @@
         const iconPath = useIcon && typeof window.rosterIconPath === 'function'
             ? window.rosterIconPath(pageId)
             : null;
+        // Hides the name, which showed through the icon's clear parts
+        // (style/Layout.css). Only once it has loaded, so a missing icon still
+        // shows the name.
+        if (iconPath) img.addEventListener('load', () => wrap.classList.add('is-icon-loaded'));
 
         img.src = iconPath
             ? rootPath + iconPath
@@ -241,6 +211,13 @@
         if (section) section.classList.toggle('hidden', !visible);
     }
 
+    // The sidebar's contents, after every change to what is showing: the
+    // page's introduction, or one person's list and its changelog. Nothing
+    // called this before v1.1 batch 10, so it said "Loading contents...".
+    function refreshContents() {
+        if (typeof window.refreshTOC === 'function') window.refreshTOC();
+    }
+
     // tier_page_settings is the only copy (v1.0 Part 3). The page used to ship
     // the seeded introduction as a fallback; the owner rewrote theirs and had
     // the old one removed, so the page ships "Loading..." and this always
@@ -263,6 +240,8 @@
             if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
         } catch (e) {
             failed();
+        } finally {
+            refreshContents();
         }
     }
 
@@ -321,6 +300,7 @@
 
         const section = document.getElementById('changelog-section');
         if (section) section.classList.add('hidden');
+        refreshContents();
     }
 
     // --- ONE LIST ---
@@ -332,7 +312,7 @@
         renderPicker();
 
         ui.innerHTML = '';
-        ui.appendChild(el('p', 'loading-msg', 'Loading…'));
+        ui.appendChild(el('p', 'loading-msg loading-msg-busy', 'Loading…'));
 
         let row = state.loaded.get(slug);
         if (!row) {
@@ -413,6 +393,7 @@
         fitTierLabels();
 
         await renderChangelogAndReasoning(row);
+        refreshContents();
     }
 
     // --- TIER NAMES THAT ARE NOT ONE LETTER ---
@@ -593,7 +574,7 @@
             btn.type = 'button';
             btn.addEventListener('click', async () => {
                 await drawChangelogPage(box, listId, to);
-                box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                box.scrollIntoView({ behavior: window.scrollMotion(), block: 'start' });
             });
             pager.appendChild(btn);
         };

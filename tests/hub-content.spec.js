@@ -154,11 +154,17 @@ for (const hub of HUBS) {
         // The Supabase client retries for about 8 seconds before it reports
         // the failure (measured 2026-10-08).
         await expect(page.locator('#about-body')).toContainText(COULD_NOT_LOAD, { timeout: 20000 });
+        // The intro reports first. On the Systems hub the two lists are drawn
+        // about 70ms after it, behind the alerts and the directory, which wait
+        // on the same unreachable database (measured 2026-10-22); read before
+        // that, they still said "Loading..." and this failed now and then.
+        const regions = ['about-body', 'game-info-fields', 'start-here-list', 'contribute-list'];
+        await expect(page.locator(regions.map(id => `#${id} .loading-msg-busy`).join(', '))).toHaveCount(0, { timeout: 20000 });
 
         const seen = await page.evaluate((ids) => Object.fromEntries(ids
             .filter(id => document.getElementById(id))
             .map(id => [id, document.getElementById(id).textContent.replace(/\s+/g, ' ').trim()])),
-        ['about-body', 'game-info-fields', 'start-here-list', 'contribute-list']);
+        regions);
         // Positive first: the intro is on the page and says why it is empty.
         expect(seen['about-body']).toMatch(COULD_NOT_LOAD);
         for (const [id, text] of Object.entries(seen)) {

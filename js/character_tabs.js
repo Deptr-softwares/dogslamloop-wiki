@@ -627,19 +627,6 @@
             .map(t => t.id);
     };
 
-    /**
-     * The keyed sections that use the SHARED renderer and editor.
-     *
-     * Matchups and Combos declare `customRenderer` because their screens are
-     * genuinely different - a matchup card links to the opponent's page, a
-     * combo group draws a sortable table - rather than the shared one with
-     * different words. This was written as `tab !== 'matchups'` at five sites;
-     * the third such section is where that becomes a list to maintain.
-     */
-    window.getSharedKeyedSections = function () {
-        return window.getKeyedSections().filter(s => !s.customRenderer);
-    };
-
     /** Whether a tab uses the shared renderer/editor. */
     window.usesSharedKeyedUI = function (tabId) {
         const section = window.getKeyedSectionByTab(tabId);
@@ -715,7 +702,7 @@
     // js/pagebuilder.js on every page and is the one evaluated in Node.
     //
     // The tags are internalstyling.js's own, opening and closing alike.
-    const STYLE_SHORTCODES = /\[\/?(?:b|i|u|s|code|kbd|noauto)\]|\[(?:color|multicolor|url)=[^\]]*\]|\[\/(?:color|multicolor|url)\]/gi;
+    const STYLE_SHORTCODES = /\[\/?(?:b|i|u|s|code|kbd|noauto|outline)\]|\[noauto=all\]|\[(?:color|multicolor|url)=[^\]]*\]|\[\/(?:color|multicolor|url)\]/gi;
     window.stripStyleShortcodes = function (text) {
         return String(text == null ? '' : text).replace(STYLE_SHORTCODES, '');
     };

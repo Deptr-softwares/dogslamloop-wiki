@@ -11,18 +11,6 @@
 const PAGE_SIZE = 20;
 let currentOffset = 0;
 
-// Duplicated from js/admin-core.js rather than shared, matching this
-// codebase's existing precedent (see js/owner.js's kickUser, js/submissions.js)
-// of small per-file duplication over new cross-file coupling.
-function escapeHtml(str) {
-    return String(str === null || str === undefined ? '' : str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
     if (window.initSidebarToggle) window.initSidebarToggle();
     if (window.initMobileNav) window.initMobileNav();
@@ -34,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function loadRecentChanges() {
     const listEl = document.getElementById('recent-changes-list');
-    listEl.innerHTML = `<p class="loading-msg">Loading...</p>`;
+    listEl.innerHTML = `<p class="loading-msg loading-msg-busy">Loading...</p>`;
 
     if (!window.supabaseClient) {
         listEl.innerHTML = `<div class="wiki-section"><p class="loading-msg">Database disconnected.</p></div>`;
@@ -88,7 +76,7 @@ function renderPagination(fetchedCount) {
 
 async function changePage(direction) {
     currentOffset = Math.max(0, currentOffset + direction * PAGE_SIZE);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: window.scrollMotion() });
     await loadRecentChanges();
 }
 

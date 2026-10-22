@@ -970,4 +970,29 @@ test('the editor board mirrors the icon treatment the reader will get', async ({
     expect(box.inlineBg).toBe('');
     expect(box.borderWidth).toBe('3px');
     expect(box.hatching).toContain('repeating-linear-gradient');
+    // And the reader's hidden name behind a loaded icon (v1.1 batch 10).
+    await expect(page.locator('.tier-portrait').first().locator('.tier-portrait-name')).toBeHidden();
+});
+
+// This page loads the block builder WITHOUT js/editor-core.js, so there is no
+// window.customConfirm here, and CLEAR ALL threw "window.customConfirm is not
+// a function" and cleared nothing (found 2026-10-18). Every delete now asks
+// through window.confirmDelete, which falls back to the browser's own confirm
+// on a page with no confirm modal.
+test('CLEAR ALL asks, then clears, on a page with no confirm modal', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await openEditor(page);
+    await page.evaluate(() => {
+        window.getActiveBlocks().push({ type: 'paragraph', content: ['x'] });
+        window.renderBlockList();
+    });
+
+    const asked = [];
+    page.on('dialog', d => { asked.push(d.message()); d.accept(); });
+    await page.locator('#btn-clear-all').click();
+
+    await expect.poll(() => page.evaluate(() => window.getActiveBlocks().length)).toBe(0);
+    expect(asked).toEqual(['Delete all blocks in this section?']);
+    expect(errors).toEqual([]);
 });

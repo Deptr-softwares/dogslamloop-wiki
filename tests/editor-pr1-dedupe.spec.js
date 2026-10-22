@@ -14,14 +14,17 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/edit.html?page=boomcat&type=character&tab=overview', { waitUntil: 'networkidle' });
 });
 
-test('customConfirm: non-danger button uses submit-btn-outline class, no inline color/border/background', async ({ page }) => {
+// v1.1: the confirm button is a .btn-sys like every other system button. It
+// wore the legacy .submit-btn alias, which copied the old look by hand and so
+// could not take the restyle.
+test('customConfirm: non-danger button is a blue .btn-sys, no inline color/border/background', async ({ page }) => {
   page.evaluate(() => { window.customConfirm('Test message', 'OK', false); });
   const btn = page.locator('#editor-modal-confirm');
   await expect(btn).toBeVisible();
-  expect(await btn.getAttribute('class')).toBe('submit-btn submit-btn-outline');
+  expect(await btn.getAttribute('class')).toBe('btn-sys btn-sys-blue');
   expect(await btn.evaluate(el => el.hasAttribute('style'))).toBe(false);
-  const cs = await btn.evaluate(el => ({ color: getComputedStyle(el).color, bg: getComputedStyle(el).backgroundColor }));
-  expect(cs.bg).toBe('rgba(0, 0, 0, 0)'); // transparent
+  // Painted by the shared button: the cut corner, not a plain box.
+  expect(await btn.evaluate(el => getComputedStyle(el).clipPath)).toContain('polygon');
 });
 
 test('customConfirm: danger button still uses btn-danger-fill, no leftover inline styles from a prior non-danger call', async ({ page }) => {
@@ -29,7 +32,7 @@ test('customConfirm: danger button still uses btn-danger-fill, no leftover inlin
   page.evaluate(() => { window.customConfirm('Second', 'DELETE', true); });
   const btn = page.locator('#editor-modal-confirm');
   await expect(btn).toBeVisible();
-  expect(await btn.getAttribute('class')).toBe('submit-btn btn-danger-fill');
+  expect(await btn.getAttribute('class')).toBe('btn-sys btn-sys-red btn-danger-fill');
   expect(await btn.evaluate(el => el.hasAttribute('style'))).toBe(false);
 });
 

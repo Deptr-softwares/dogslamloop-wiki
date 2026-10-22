@@ -229,7 +229,7 @@ async function openTicketCurrentPreview() {
     setTimeout(() => {
         const workspace = document.getElementById('ticket-workspace');
         if (workspace && !workspace.classList.contains('hidden')) {
-            workspace.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            workspace.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
 
             // Flash the borders so the user's eyes are drawn to the newly opened workspace
             workspace.style.transition = 'box-shadow 0.3s ease';
@@ -276,7 +276,7 @@ async function requestChanges() {
     setTimeout(() => {
         const workspace = document.getElementById('ticket-workspace');
         if (workspace && !workspace.classList.contains('hidden')) {
-            workspace.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            workspace.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
             workspace.style.transition = 'box-shadow 0.3s ease';
             workspace.style.boxShadow = '0 0 20px var(--accent-yellow)';
             setTimeout(() => { workspace.style.boxShadow = '0 4px 6px hsla(0, 0%, 0%, 0.3)'; }, 800);

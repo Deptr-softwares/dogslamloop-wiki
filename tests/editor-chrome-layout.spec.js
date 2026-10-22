@@ -107,7 +107,9 @@ test('SHOW PREVIEW is off on desktop and on below the mobile breakpoint', async 
 
 // --- FINE-TUNING 7: THE FOOTER ---
 
-test('Media Library sits in the footer next to Add Block', async ({ page }) => {
+// Stacked under Add Block since v1.1 (owner, 2026-10-19: "Media Library and
+// Add Block should be stacked on top of each other with Add Block on top").
+test('Media Library sits in the footer, directly under Add Block', async ({ page }) => {
   const errors = await openEditor(page);
 
   const seen = await page.evaluate(() => {
@@ -118,8 +120,8 @@ test('Media Library sits in the footer next to Add Block', async ({ page }) => {
     return {
       inFooter: !!media.closest('.add-block-toolbar'),
       // Not merely "in the same container" - actually adjacent.
-      gap: Math.round(ar.left - mr.right),
-      sameRow: Math.abs((mr.top + mr.height / 2) - (ar.top + ar.height / 2)) < 12,
+      gap: Math.round(mr.top - ar.bottom),
+      sameColumn: Math.abs(mr.left - ar.left) < 1,
       // And gone from the row it used to live in.
       stillInTopRow: !!document.querySelector('.strategy-toolbar-row #btn-media-library'),
     };
@@ -127,8 +129,8 @@ test('Media Library sits in the footer next to Add Block', async ({ page }) => {
 
   expect(seen.inFooter, 'it moved into the footer toolbar').toBe(true);
   expect(seen.stillInTopRow, 'and left the top row').toBe(false);
-  expect(seen.sameRow, 'it is on the same line as Add Block').toBe(true);
-  expect(seen.gap, `next to Add Block, not merely near it (gap ${seen.gap}px)`).toBeLessThan(40);
+  expect(seen.sameColumn, 'it is in the same column as Add Block').toBe(true);
+  expect(seen.gap, `right under Add Block, not merely near it (gap ${seen.gap}px)`).toBeLessThan(40);
   expect(seen.gap).toBeGreaterThanOrEqual(0);
 
   expect(errors).toEqual([]);

@@ -513,12 +513,21 @@ window.initAuthDock = async function() {
             </button>`;
     }
 
-    // 4. PROFILE / LOGIN
+    // 4. PROFILE / LOGIN, sharing its row with SITE SETTINGS (v1.1). A row of
+    // its own above it would push the account button further down, out of
+    // sight on a short screen, which is how Ko-fi ended up leaving this dock
+    // (owner, 2026-10-20). Sliders rather than a gear: OVERSEER is the gear.
+    const svgSliders = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>`;
     html += `
-        <button id="dock-btn-auth" class="btn-sys ${dynamicColorClass} dock-action-btn">
-            <span class="btn-manga-icon dock-action-icon">${loginIcon}</span>
-            <span class="btn-manga-text dock-action-text">${username.toUpperCase()}</span>
-        </button>`;
+        <div class="dock-auth-row">
+            <button id="dock-btn-auth" class="btn-sys ${dynamicColorClass} dock-action-btn">
+                <span class="btn-manga-icon dock-action-icon">${loginIcon}</span>
+                <span class="btn-manga-text dock-action-text">${username.toUpperCase()}</span>
+            </button>
+            <button type="button" id="dock-btn-settings" class="btn-sys btn-sys-regular dock-settings-btn" title="Site settings" aria-label="Site settings">
+                <span class="btn-manga-icon dock-action-icon">${svgSliders}</span>
+            </button>
+        </div>`;
 
     container.innerHTML = html;
 
@@ -541,6 +550,8 @@ window.initAuthDock = async function() {
     // Bind click events (unchanged logic)
     const btnAuth = document.getElementById('dock-btn-auth');
     if (btnAuth && typeof window.openAuthModal === 'function') btnAuth.onclick = window.openAuthModal;
+    const btnSettings = document.getElementById('dock-btn-settings');
+    if (btnSettings) btnSettings.onclick = () => window.openSiteSettings();
 
     // Opens the real inbox modal built by js/site_utils.js's initNotifications.
     // This used to build a second modal here, with the same literal
@@ -956,7 +967,56 @@ window.buildSystemsDirectory = async function(containerId, options) {
 // fresh listeners on its fresh nodes instead of being wrongly skipped.
 const tabGroupRegistry = new Map();
 
-window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = 'minor') {
+// THE TAB IN THE ADDRESS (v1.1 batch 9). Owner: "I can't click go back on my
+// browser and conveniently go back to the last tab I clicked on". A reader
+// page's main strip writes ?tab=<id> on every switch, so Back, a refresh and a
+// shared link all reopen it. Replaced, never pushed: Back leaves the page
+// rather than stepping through every tab the reader opened, which is what the
+// owner picked. The first tab writes nothing, so a bare address is still it.
+//
+// Opt-in through setupTabs' `address`, because the editor and admin.html wire
+// their own strips through the same function and their addresses are theirs.
+const TAB_PARAM = 'tab';
+const TAB_FIND_POLL_MS = 100;
+const TAB_FIND_MS = 15000;
+
+function writeTabToAddress(group, tabId, byReader) {
+    const url = new URL(window.location.href);
+    if (tabId === group.ids[0]) url.searchParams.delete(TAB_PARAM);
+    else url.searchParams.set(TAB_PARAM, tabId);
+    // A reader's own click leaves the section they had jumped to, so a refresh
+    // must not send them back to it. A section link's jump clicks the button
+    // itself (jumpToAnchor), and the hash it is landing on stays.
+    if (byReader) url.hash = '';
+    if (url.href !== window.location.href) history.replaceState(history.state, '', url.href);
+}
+
+// Polled, like an arriving #sec- link, because a tab can arrive late: Techs is
+// un-hidden once the page row says so, and the Ultimate tab is added after the
+// modes load. The reader's own click first ends the wait. A tab that never
+// shows leaves the page on its first tab.
+function openTabFromAddress(group, buttonGroupType) {
+    if (group.addressSettled) return;
+    group.addressSettled = true;
+    const wanted = new URLSearchParams(window.location.search).get(TAB_PARAM);
+    if (!wanted || wanted === group.ids[0]) return;
+
+    const started = Date.now();
+    const tryOpen = () => {
+        if (group.readerChoseTab || Date.now() - started > TAB_FIND_MS) {
+            clearInterval(timer);
+            return;
+        }
+        const btn = document.getElementById(`${buttonGroupType}-${wanted}`);
+        if (!group.ids.includes(wanted) || !btn || btn.classList.contains('hidden') || !btn.getClientRects().length) return;
+        clearInterval(timer);
+        btn.click();
+    };
+    const timer = setInterval(tryOpen, TAB_FIND_POLL_MS);
+    tryOpen();
+}
+
+window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = 'minor', opts = {}) {
     const groupKey = `${buttonGroupType}|${contentPrefix}`;
 
     let group = tabGroupRegistry.get(groupKey);
@@ -965,6 +1025,9 @@ window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = '
         tabGroupRegistry.set(groupKey, group);
     }
     tabIds.forEach(id => { if (!group.ids.includes(id)) group.ids.push(id); });
+    // Kept on the group: the Ultimate tab's later registration
+    // (js/character_modes.js) does not pass it again.
+    if (opts.address) group.address = true;
 
     group.ids.forEach(tabId => {
         const button = document.getElementById(`${buttonGroupType}-${tabId}`);
@@ -972,7 +1035,9 @@ window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = '
         if (button.dataset.tabBound === groupKey) return;
         button.dataset.tabBound = groupKey;
 
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (event) => {
+            if (event.isTrusted) group.readerChoseTab = true;
+            if (group.address) writeTabToAddress(group, tabId, event.isTrusted);
             // Hide all tabs. Read from the group, not the tabIds this call was
             // given - a later registration may have added more.
             group.ids.forEach(id => {
@@ -996,6 +1061,8 @@ window.setupTabs = function(buttonGroupType, contentPrefix, tabIds, tabLevel = '
             }
         });
     });
+
+    if (group.address) openTabFromAddress(group, buttonGroupType);
 };
 
 // --- SECTION ANCHORS ---
@@ -1154,6 +1221,26 @@ function revealAnchorTarget(target) {
 // not exist in the DOM at all and cannot be reached by unhiding anything.
 //
 // Returns true, not the element: tests and callers read it as a boolean.
+// Runs `run` once the window stops scrolling: on scrollend where the browser
+// has it, after 150ms without a scroll event where it does not, and after
+// those 150ms when nothing scrolled at all.
+function afterScrollSettles(run) {
+    let done = false;
+    let timer = null;
+    const finish = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        window.removeEventListener('scroll', onScroll);
+        window.removeEventListener('scrollend', finish);
+        run();
+    };
+    const onScroll = () => { clearTimeout(timer); timer = setTimeout(finish, 150); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scrollend', finish);
+    timer = setTimeout(finish, 150);
+}
+
 window.jumpToAnchor = function(rawId, options) {
     const opts = options || {};
     const id = anchorIdOf(rawId);
@@ -1181,15 +1268,28 @@ window.jumpToAnchor = function(rawId, options) {
 
     const scroll = () => {
         const top = target.getBoundingClientRect().top + window.scrollY;
-        window.scrollTo({ top: top - ANCHOR_SCROLL_OFFSET, behavior: opts.behavior || 'smooth' });
+        window.scrollTo({ top: top - ANCHOR_SCROLL_OFFSET, behavior: opts.behavior || window.scrollMotion() });
 
         if (opts.updateHash !== false) {
             history.pushState(null, null, `#${id}`);
         }
         // Briefly marks where the reader landed. Without it a jump into a long
         // tab drops you at a heading with no sense of which one was the target.
-        target.classList.add('anchor-flash');
-        setTimeout(() => target.classList.remove('anchor-flash'), 1600);
+        // Once the scroll has stopped (v1.1): the wipe lasts 0.7s, and started
+        // with a smooth scroll it was over before the heading arrived.
+        afterScrollSettles(() => {
+            // The wipe covers the words, wherever they sit in the heading
+            // (style/Common.css, .anchor-flash::before).
+            const words = document.createRange();
+            words.selectNodeContents(target);
+            const wordsBox = words.getBoundingClientRect();
+            target.style.setProperty('--flash-left', `${wordsBox.left - target.getBoundingClientRect().left}px`);
+            target.style.setProperty('--flash-width', `${wordsBox.width}px`);
+            target.classList.remove('anchor-flash');
+            void target.offsetWidth; // a second jump to the same heading plays it again
+            target.classList.add('anchor-flash');
+            setTimeout(() => target.classList.remove('anchor-flash'), 1600);
+        });
     };
 
     // The panel has to actually be visible before its position can be measured.
@@ -1257,6 +1357,12 @@ window.refreshTOC = function() {
     headers.forEach((header) => {
         if (header.textContent.trim() === 'Move Overview and Strategy') return;
         if (!header.id) return;
+        // A section the page itself has hidden (the Tier List's changelog
+        // while nobody is picked) is not there for the reader, and a link to
+        // it scrolls nowhere. Only the .hidden class: a closed accordion or a
+        // box's other tab is opened by the jump (revealAnchorTarget) and stays.
+        const hiddenBy = header.closest('.hidden');
+        if (hiddenBy && targetArea.contains(hiddenBy)) return;
 
         const isMinor = ANCHOR_MINOR_CLASSES.some(c => header.classList.contains(c));
         const itemData = { id: header.id, text: anchorLabel(header) };
@@ -1484,7 +1590,44 @@ document.addEventListener('click', (e) => {
     const link = e.target.closest && e.target.closest('a.wiki-link-jump');
     if (!link) return;
     e.preventDefault();
+    if (typeof window.hideTooltip === 'function') window.hideTooltip();
     window.jumpToAnchor(link.getAttribute('href'));
+});
+
+// Where a jump link goes, shown on hover (owner, 2026-10-19: "Hover over will
+// tell which section it is heading to"). Read when hovered rather than when
+// the link is rendered: the ids are minted after the render, and a tab that
+// re-renders mints them again. The tab is named only when the section is on
+// another one.
+function jumpLinkDestination(link) {
+    const target = findAnchorTarget(anchorIdOf(link.getAttribute('href')));
+    if (!target) return '';
+    const section = anchorLabel(target);
+    const there = target.closest('[id^="tab-"]');
+    const tabBtn = there && there !== link.closest('[id^="tab-"]')
+        ? document.getElementById(`nav-${there.id.slice('tab-'.length)}`)
+        : null;
+    const tab = tabBtn ? tabBtn.textContent.trim() : '';
+    return tab ? `${tab} › ${section}` : section;
+}
+
+const jumpLinkAt = (node) => (node && node.closest ? node.closest('a.wiki-link-jump') : null);
+
+document.addEventListener('mouseover', (e) => {
+    const link = jumpLinkAt(e.target);
+    if (!link || link === jumpLinkAt(e.relatedTarget) || typeof window.showTooltipAt !== 'function') return;
+    const where = jumpLinkDestination(link);
+    if (where) window.showTooltipAt(window.escapeHtml(where), e.clientX, e.clientY);
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (jumpLinkAt(e.target) && typeof window.moveTooltipTo === 'function') window.moveTooltipTo(e.clientX, e.clientY);
+});
+
+document.addEventListener('mouseout', (e) => {
+    const link = jumpLinkAt(e.target);
+    if (!link || link === jumpLinkAt(e.relatedTarget) || typeof window.hideTooltip !== 'function') return;
+    window.hideTooltip();
 });
 
 // Restored: Wiki Alert Generator

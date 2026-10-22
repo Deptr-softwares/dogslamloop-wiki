@@ -30,7 +30,7 @@ async function loadPageExperts() {
     const container = document.getElementById('page-experts-roster');
     if (!container) return;
 
-    container.innerHTML = `<p class="loading-msg">Loading experts...</p>`;
+    container.innerHTML = `<p class="loading-msg loading-msg-busy">Loading experts...</p>`;
 
     await loadExpertPageOptions();
 
@@ -109,7 +109,7 @@ async function grantPageExpert() {
     if (!email) { results.innerHTML = `<p class="admin-error-text">Enter an email address.</p>`; return; }
     if (!pageId) { results.innerHTML = `<p class="admin-error-text">Pick a page.</p>`; return; }
 
-    results.innerHTML = `<p class="loading-msg">Granting...</p>`;
+    results.innerHTML = `<p class="loading-msg loading-msg-busy">Granting...</p>`;
 
     const { data, error } = await window.supabaseClient
         .rpc('assign_page_expert', { target_email: email, target_page_id: pageId });
@@ -141,7 +141,7 @@ async function revokePageExpert(email, pageId) {
     const ok = await adminConfirm(`Remove ${email} as an expert of ${pageId.replace(/_/g, ' ')}?`);
     if (!ok) return;
 
-    results.innerHTML = `<p class="loading-msg">Revoking...</p>`;
+    results.innerHTML = `<p class="loading-msg loading-msg-busy">Revoking...</p>`;
 
     const { data, error } = await window.supabaseClient
         .rpc('revoke_page_expert', { target_email: email, target_page_id: pageId });

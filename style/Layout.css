@@ -319,6 +319,23 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 }
 .dock-action-icon { display: flex; align-items: center; justify-content: center; }
 .dock-action-text { overflow: hidden; text-overflow: ellipsis; }
+/* The account button and SITE SETTINGS share one row (v1.1), so the settings
+   button adds no height above the account button. Collapsed, the sidebar is
+   too narrow for two, so the settings button goes under it instead. */
+.dock-auth-row { display: flex; gap: 0.5rem; align-items: stretch; }
+.dock-auth-row .dock-action-btn { flex: 1 1 0; width: auto; min-width: 0; }
+.dock-settings-btn { flex: 0 0 auto; padding-left: 0.6rem; padding-right: 0.6rem; }
+.global-sidebar-left.collapsed .dock-auth-row { flex-direction: column; }
+
+/* The Site settings panel (js/site_utils.js openSiteSettings). */
+.site-settings-body { display: flex; flex-direction: column; gap: 0.9rem; }
+.site-setting { display: flex; gap: 0.75rem; align-items: flex-start; cursor: pointer; }
+.site-setting input { margin: 0.2rem 0 0; width: 1rem; height: 1rem; flex: none; accent-color: var(--accent-blue); cursor: pointer; }
+.site-setting-text { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.site-setting-name { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
+.site-setting-hint { color: var(--text-muted); font-size: 0.8rem; line-height: 1.45; }
+.site-settings-note { margin: 0; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem; }
+.site-settings-error { margin: 0; color: #ef4444; font-size: 0.8rem; }
 .dock-btn-inbox { position: relative; }
 .inbox-message-card {
     padding: 0.75rem; border-radius: 4px;
@@ -465,9 +482,6 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .faq-scroll-box { 
     max-height: 380px; overflow-y: auto; padding: 0.25rem 0.5rem 0.5rem 0.25rem;
 }
-.faq-scroll-box::-webkit-scrollbar, #site-updates-dashboard::-webkit-scrollbar { width: 6px; }
-.faq-scroll-box::-webkit-scrollbar-track, #site-updates-dashboard::-webkit-scrollbar-track { background: var(--bg-main); }
-.faq-scroll-box::-webkit-scrollbar-thumb, #site-updates-dashboard::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 0; }
 
 #site-updates-dashboard { max-height: 410px !important; overflow-y: auto; overflow-x: hidden; }
 
@@ -509,6 +523,39 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .profile-stat-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); }
 .profile-stat-label { color: #8b949e; font-size: 0.9rem; }
 .profile-stat-val { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
+
+/* Profile Description (v1.1, js/description.js profileDescriptionHTML): the
+   quote, a Trivia row and Character Navigation, under the stats in the
+   profile card. The rows reuse .profile-stat-row, so they read as more of the
+   same card rather than a new part. */
+.profile-desc[hidden], .profile-pager[hidden] { display: none; }
+.profile-quote { margin: 1rem 0 0.25rem; }
+.profile-quote blockquote { margin: 0; font-size: 0.9rem; font-style: italic; line-height: 1.55; color: var(--text-white); }
+.profile-quote blockquote p { margin: 0; }
+.profile-quote blockquote p::before { content: '\201C'; }
+.profile-quote blockquote p::after { content: '\201D'; }
+.profile-quote figcaption { margin-top: 0.3rem; text-align: right; font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); }
+.profile-quote figcaption p { margin: 0; }
+.profile-quote figcaption p::before { content: '- '; }
+/* Trivia, toned down to one row; the facts open over the card on hover, or on
+   a tap, which focuses the row. */
+.profile-trivia-row { position: relative; cursor: help; }
+.profile-trivia-row:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.profile-trivia-count { color: var(--text-muted); font-size: 0.8rem; text-decoration: underline dotted; text-underline-offset: 3px; }
+.profile-trivia-pop {
+    display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 20;
+    background: var(--bg-main); border: 2px solid var(--border-color); box-shadow: 4px 4px 0 var(--manga-shadow);
+    padding: 0.75rem 1rem; cursor: auto;
+}
+.profile-trivia-row:hover .profile-trivia-pop, .profile-trivia-row:focus-within .profile-trivia-pop { display: block; }
+.profile-trivia { margin: 0; font-size: 0.85rem; line-height: 1.5; }
+.profile-pager-title {
+    margin-top: 1rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--border-color);
+    font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--text-muted);
+}
+.profile-pager-link { text-decoration: none; overflow-wrap: anywhere; text-align: right; }
+.profile-pager-link:hover, .profile-pager-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
 /* Square, always. A roster of portraits at whatever shape each source happened
    to be is the single most visible inconsistency on the character pages, and
    unlike skill media a portrait has one obvious subject - so cropping to a
@@ -521,7 +568,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .profile-portrait {
     width: 100%; aspect-ratio: 1 / 1;
     object-fit: cover; object-position: var(--portrait-focus, 50% 50%);
-    border-radius: 4px; margin-bottom: 1rem; border: 1px solid var(--border-color);
+    margin-bottom: 1rem; border: 1px solid var(--border-color);
 }
 /* Had no rule at all before - an unstyled div rendering bare "[No Portrait]"
    text. Now that the portrait next to it is a fixed square, the placeholder
@@ -530,7 +577,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .profile-portrait-missing {
     aspect-ratio: 1 / 1; width: 100%; margin-bottom: 1rem;
     display: flex; align-items: center; justify-content: center;
-    border: 1px dashed var(--border-color); border-radius: 4px;
+    border: 1px dashed var(--border-color);
     color: var(--text-muted); font-family: var(--text-mono); font-size: 0.875rem;
 }
 
@@ -612,6 +659,13 @@ a.reading-step-title:hover { color: var(--accent-blue); }
         transparent 8px
     );
 }
+
+/* v1.1 batch 10. The name behind the picture is the fallback for one that
+   fails to load, and an icon is fitted, not cropped: most have see-through
+   parts, and the name showed through them. Hidden once the icon has loaded,
+   which each renderer marks with .is-icon-loaded, so a missing icon still
+   names the character. */
+.tier-portrait-icon.is-icon-loaded .tier-portrait-name { visibility: hidden; }
 
 /* v0.18 batch 3.5 - the editor's draggable boxes. Owner: "as big as possible".
    96px because the drop zone is ALREADY 96px tall (.tier-editor-row .ctl-chars
@@ -855,18 +909,37 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 
 /* General Typography & Utility */
 .loading-msg { color: var(--text-muted); font-style: italic; margin: 0; }
+/* Something is on its way (v1.1): three slanted bars light up in turn in
+   front of the words. Only on .loading-msg-busy, because .loading-msg is also
+   the muted text for an empty list or an error, which wait for nothing. With
+   less motion they hold still, the first one lit. */
+@property --loading-bar-1 { syntax: '<color>'; inherits: false; initial-value: transparent; }
+@property --loading-bar-2 { syntax: '<color>'; inherits: false; initial-value: transparent; }
+@property --loading-bar-3 { syntax: '<color>'; inherits: false; initial-value: transparent; }
+.loading-msg-busy::before {
+    content: ''; display: inline-block; width: 20px; height: 0.72em;
+    margin-right: 0.55rem; vertical-align: -0.04em; transform: skewX(-20deg);
+    --loading-bar-1: var(--accent-blue); --loading-bar-2: var(--border-color); --loading-bar-3: var(--border-color);
+    background:
+        linear-gradient(var(--loading-bar-1), var(--loading-bar-1)) 0 0 / 4px 100% no-repeat,
+        linear-gradient(var(--loading-bar-2), var(--loading-bar-2)) 8px 0 / 4px 100% no-repeat,
+        linear-gradient(var(--loading-bar-3), var(--loading-bar-3)) 16px 0 / 4px 100% no-repeat;
+    animation: loading-bars 0.9s steps(1, end) infinite;
+}
+@keyframes loading-bars {
+    0%  { --loading-bar-1: var(--accent-blue); --loading-bar-2: var(--border-color); --loading-bar-3: var(--border-color); }
+    33% { --loading-bar-1: var(--border-color); --loading-bar-2: var(--accent-blue); --loading-bar-3: var(--border-color); }
+    66% { --loading-bar-1: var(--border-color); --loading-bar-2: var(--border-color); --loading-bar-3: var(--accent-blue); }
+}
 .wiki-block-heading { color: var(--text-white); font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.5rem; }
 .wiki-block-heading[style*="center"] { clear: both; display: block; }
 .wiki-block-list { list-style-type: disc; padding-left: 1.25rem; margin-bottom: 0.75rem; }
 .strategy-paragraph { margin-bottom: 0.75rem; line-height: 1.6; }
-.matchup-heading { border-left: 3px solid hsl(212, 12%, 21%); padding-left: 0.75rem; }
-.counterplay-heading { border-left: 3px solid hsl(0, 60%, 50%); padding-left: 0.75rem; }
-/* Same treatment as counterplay - both are keyed sections whose headings need
-   to read as sub-headings inside a card. Green rather than red: counterplay is
-   about beating a character, a starter guide is about learning one. The class
-   name comes from the tab id via generateHTMLForBlocks' contextClass, so a
-   keyed section added without a rule here silently loses its heading rule. */
-.starterGuide-heading { border-left: 3px solid hsl(140, 45%, 45%); padding-left: 0.75rem; }
+/* A Heading Block's side bar (v1.1), the block's own choice in any tab. The
+   Matchup, Counterplay and Starter Guide tabs used to draw one by themselves;
+   every heading now renders the same way everywhere (owner, 2026-10-19). The
+   colour arrives through --heading-bar, set by js/description.js. */
+.wiki-block-heading-bar { border-left: 3px solid var(--heading-bar); padding-left: 0.75rem; }
 .card-header-flex { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem; }
 .card-header-title { 
     font-family: 'Finger-Paint', sans-serif;
@@ -934,14 +1007,17 @@ summary:focus-visible {
 .mobile-site-title { display: block; }
 
 /* Respect a reduced-motion preference. The site's transitions are decorative
-   and several run on hover across a whole roster grid at once. */
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-        scroll-behavior: auto !important;
-    }
+   and several run on hover across a whole roster grid at once.
+   html.reduce-motion rather than the media query (v1.1): js/site_utils.js
+   sets it for the device's preference AND for Site settings > Turn off
+   animations, so every rule like this one is written once. */
+html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
 }
 
 /* Tab content panes (used across editor.js/admin.js/history.js/description.js) -
@@ -984,8 +1060,9 @@ summary:focus-visible {
 .playstyle-item-text { line-height: 1.4; }
 
 /* Wiki content blocks: image/video, callout tooltip content, table, accordion
-   (js/description.js generateHTMLForBlocks) */
-.wiki-block-image { width: 100%; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow, #000); }
+   (js/description.js generateHTMLForBlocks). Media has sharp corners like
+   everything else on the site (owner, 2026-10-18), so none of these rounds. */
+.wiki-block-image { width: 100%; box-shadow: 4px 4px 0px var(--manga-shadow, #000); }
 
 /* Stands in for media a moderator has flagged (js/site_utils.js
    sweepBlockedMedia). Says what happened rather than leaving a gap, because
@@ -1026,8 +1103,8 @@ summary:focus-visible {
 }
 
 .wiki-figcaption { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); margin-top: 0.5rem; font-style: italic; }
-.wiki-video-embed { width: 100%; aspect-ratio: 16/9; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow); background: #050505; border: none; display: block; }
-.wiki-video-native { width: 100%; background: #050505; display: block; border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow); }
+.wiki-video-embed { width: 100%; aspect-ratio: 16/9; box-shadow: 4px 4px 0px var(--manga-shadow); background: #050505; border: none; display: block; }
+.wiki-video-native { width: 100%; background: #050505; display: block; box-shadow: 4px 4px 0px var(--manga-shadow); }
 
 /* --- THE VIDEO PLAYER (v0.15 item 10) ---
    Native <video> with controls on. Everything here is painted with
@@ -1375,8 +1452,12 @@ summary:focus-visible {
    Square corners and a shadow directly below, not the softened card look:
    that is the manga treatment the rest of the wiki uses (see .btn-manga), and
    it is what keeps this reading as our page rather than as Dustloop's. */
+/* flow-root, not block (v1.1): a plain block box does not move out of a
+   float's way, only its text does. Beside a right-aligned video the route
+   wrapped clear of it while the box itself, border and background, ran
+   underneath the video. flow-root makes the box keep clear of the float too. */
 .combo-block {
-    display: block; width: fit-content; max-width: 100%;
+    display: flow-root; width: fit-content; max-width: 100%;
     background: var(--bg-secondary); border: 2px solid var(--border-color);
     border-radius: 0; box-shadow: 0 4px 0 0 var(--manga-shadow, #000);
     padding: 0.45rem 0.6rem; margin: 1.25rem 0 1.7rem;
@@ -1526,7 +1607,7 @@ summary:focus-visible {
    viewport) against getMediaAttributes' inline contributor-set width -
    without it, a pixel width authored while looking at a wide desktop
    preview can overflow any narrower column it's later viewed in. */
-.wiki-media { border-radius: 4px; border: 1px solid var(--border-color); max-width: 100%; }
+.wiki-media { border: 1px solid var(--border-color); max-width: 100%; }
 .wiki-media-left { float: left; margin: 0.5rem 1.5rem 1rem 0; }
 .wiki-media-right { float: right; margin: 0.5rem 0 1rem 1.5rem; }
 .wiki-media-center { display: block; margin: 1.5rem auto; }

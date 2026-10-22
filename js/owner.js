@@ -241,7 +241,7 @@ async function loadPersonnel() {
     const container = document.getElementById('personnel-roster');
     if (!container) return;
 
-    container.innerHTML = `<p class="loading-msg">Loading roster...</p>`;
+    container.innerHTML = `<p class="loading-msg loading-msg-busy">Loading roster...</p>`;
 
     const { data, error } = await window.supabaseClient.rpc('list_personnel');
 
@@ -432,7 +432,7 @@ async function searchAccounts() {
         return;
     }
 
-    container.innerHTML = `<p class="loading-msg">Searching...</p>`;
+    container.innerHTML = `<p class="loading-msg loading-msg-busy">Searching...</p>`;
 
     const { data, error } = await window.supabaseClient.rpc('search_users', { search_query: query });
 

@@ -6,7 +6,8 @@
 // like Setup and Controls, appears only once a combo in the tab has a value, so
 // no table grows a column of dashes.
 //
-// A Combo Card has TWO editors and they have drifted three times (CLAUDE.md),
+// A Combo Card has TWO editors and they have drifted three times
+// (.claude/rules/combo-card.md),
 // so both are driven here. The reviewer diff and the draft sync cannot be
 // rendered in a test, so those two are read from the source.
 const { test, expect } = require('@playwright/test');

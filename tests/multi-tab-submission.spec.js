@@ -49,9 +49,10 @@ async function openEditor(page) {
                         client.from = (table) => {
                             if (table === 'pending_revisions') {
                                 return {
-                                    insert: async (rows) => {
+                                    // The real call is .insert(rows).select().
+                                    insert: (rows) => {
                                         window.__inserted.push(...(Array.isArray(rows) ? rows : [rows]));
-                                        return { data: null, error: null };
+                                        return { select: async () => ({ data: [].concat(rows).map((r, i) => ({ id: `new-${i}`, ...r })), error: null }) };
                                     },
                                     select() { return this; }, eq() { return this; },
                                     order: async () => ({ data: [], error: null }),

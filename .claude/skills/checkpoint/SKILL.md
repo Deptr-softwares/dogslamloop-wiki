@@ -1,6 +1,6 @@
 ---
 name: checkpoint
-description: Use before the user compacts or ends a session, at a version or phase boundary, or when they ask to checkpoint, save state, or hand off. Writes what a compact actually loses - why decisions went the way they did, what was verified against real state versus assumed, what is in flight, and the next concrete action - into the devlog and memory in a fixed shape.
+description: Use before the user compacts or ends a session, at a version or phase boundary, or when they ask to checkpoint, save state, or hand off. Writes what a compact actually loses - why decisions went the way they did, what was verified against real state versus assumed, what is in flight, and the next concrete action - into memory in a fixed shape, and gives the owner change notes for their devlog.
 ---
 
 # Checkpointing a session
@@ -9,8 +9,9 @@ A compact keeps **facts** and loses **why**. The summary will carry what was
 built; it will not reliably carry that an approach was tried and rejected, that
 a claim was assumed rather than checked, or that a PR is green but unmerged.
 
-This works when the devlog and memory are already current at the moment of the
-compact. That is the whole job here.
+This works when memory is already current at the moment of the compact, and
+the owner already has the change notes for their devlog. That is the whole job
+here.
 
 ## Read the real state first. Do not checkpoint from recollection.
 
@@ -43,7 +44,7 @@ from `mergedAt`, not from memory.
 
 | What | Where |
 |---|---|
-| The engineering record of the current version | `V0.N-DEVLOG.md` at the repo root |
+| The engineering record of the current version | the owner's devlog: give them change notes (`CLAUDE.md`), never write in it |
 | In-flight state, open decisions, next action | memory: `project_dogslamloop_session_state` |
 | A version shipping, or scope moving between versions | memory: `project_dogslamloop_v1_roadmap` |
 | A rule that should hold in *every* future session | `CLAUDE.md`, or the relevant skill — **not** memory |
@@ -83,9 +84,9 @@ Each with an owner. Mark clearly if it is the owner's call, not mine.
 The concrete next action.
 ```
 
-Update the devlog in the version's own voice — a short player-facing line
-first, then the technical detail. That file is the source material for the
-changelog later, so writing it as a diff summary makes the release harder.
+The devlog and the Update Log are the owner's to write (owner, 2026-10-18).
+If anything done since the last change notes has not reached them, give them
+change notes for it now, in the shape `CLAUDE.md` sets out.
 
 ## Rules
 

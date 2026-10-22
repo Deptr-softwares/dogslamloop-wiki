@@ -231,7 +231,8 @@ async function bootWithCapture(page, desc) {
                 return {
                   select() { return this; }, eq() { return this; },
                   single: async () => ({ data: null, error: { code: 'PGRST116' } }),
-                  insert: async (rows) => { window.__inserted.push(...[].concat(rows)); return { error: null }; },
+                  // The real call is .insert(rows).select(), answered with the rows made.
+                  insert: (rows) => { window.__inserted.push(...[].concat(rows)); return { select: async () => ({ data: [].concat(rows).map((r, i) => ({ id: `new-${i}`, ...r })), error: null }) }; },
                 };
               }
               return {

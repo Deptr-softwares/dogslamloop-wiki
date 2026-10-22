@@ -56,20 +56,11 @@ window.renderEditorTabNav = function(activeTabId) {
     });
 };
 
-window.switchEditorTab = async function(tabId) {
-    if (tabId === window.currentEditorTabId) return;
-
-    // currentStrategyBlocks is a buffer that is only written back into
-    // desc_data on sync (js/editor-sync.js), so switching without flushing
-    // first silently drops whatever is being edited right now.
-    if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
-
-    // Clear the sub-selection state before crossing the boundary. All three
-    // sub-tab loaders below flush the *previous* selection's blocks into
-    // desc_data on entry - so arriving at Overview with a stale
-    // currentOverviewSection of 'strategy' would write the matchup blocks
-    // still sitting in the buffer into descData.strategy. The flush above
-    // has already saved the real content by this point.
+// Forgets which section of the tab is open. Every sub-tab loader below writes
+// the PREVIOUS selection's blocks into desc_data on entry, so this runs
+// whenever the buffer cannot be trusted to belong where the selection says:
+// crossing to another tab, or the data changing underneath it.
+function clearSubSelection() {
     window.currentOverviewSection = null;
     window.currentMatchupIndex = undefined;
     window.currentKeyedIndex = {};
@@ -82,6 +73,70 @@ window.switchEditorTab = async function(tabId) {
     window.currentDocSection = null;
     window.currentDocCardIndex = undefined;
     window.currentDocTableIndex = undefined;
+}
+
+// Redraws the open tab from desc_data after something changed the DATA rather
+// than the block buffer: Find & Replace and its UNDO. The loaders' write-back
+// on entry is right after typing and wrong here, because the buffer is now the
+// older copy. It put the replaced text straight back, in the open section only
+// (reported by an editor, 2026-10-19). So the selection is cleared first, then
+// the same section is opened again, so the editor sees the change where they
+// made it instead of landing on the tab's first section.
+window.reopenEditorTab = function () {
+    const tabId = window.currentEditorTabId;
+    const activeMove = () => document.querySelector('#interactive-builder [data-move-load].active');
+    const place = {
+        overview: window.currentOverviewSection,
+        matchup: window.currentMatchupIndex,
+        keyed: (window.currentKeyedIndex || {})[tabId],
+        doc: window.currentDocSection,
+        card: window.currentDocCardIndex,
+        move: activeMove() ? activeMove().getAttribute('data-move-load') : null,
+    };
+
+    clearSubSelection();
+    initFullTabEditor(window.currentEditorCharId, tabId, window.currentEditorDescData, window.currentEditorFrameData);
+
+    // Each loader below first writes back the section initFullTabEditor just
+    // opened, which is harmless now: that buffer was read from the data a
+    // moment ago.
+    const desc = window.currentEditorDescData || {};
+    if (tabId === 'overview') {
+        if (place.overview && place.overview !== 'overview') window.loadOverviewSectionIntoEditor(place.overview);
+    } else if (tabId === 'matchups') {
+        if (place.matchup > 0 && (desc.matchups || [])[place.matchup]) window.loadMatchupIntoEditor(place.matchup);
+    } else if (window.getDocumentSections && window.getDocumentSections(tabId)) {
+        if (place.doc && place.doc !== 'intro') window.loadDocumentSectionIntoEditor(tabId, place.doc);
+        // Opening a group closes its cards, so the open one is put back.
+        if (place.card !== undefined && String(place.doc).startsWith('group-')) {
+            window.currentDocCardIndex = place.card;
+            window.renderDocumentCardsPanel(tabId, parseInt(place.doc.replace('group-', ''), 10));
+        }
+    } else if (window.usesSharedKeyedUI && window.usesSharedKeyedUI(tabId)) {
+        const section = window.getKeyedSectionByTab(tabId);
+        if (place.keyed > 0 && (desc[section.field] || [])[place.keyed]) window.loadKeyedEntryIntoEditor(tabId, place.keyed);
+    } else if ((window.FRAME_MOVE_CATEGORIES || []).includes(tabId)) {
+        const now = activeMove();
+        if (place.move && (!now || now.getAttribute('data-move-load') !== place.move)
+            && document.querySelector(`#interactive-builder [data-move-load="${CSS.escape(place.move)}"]`)) {
+            loadMoveIntoEditor(place.move);
+        }
+    }
+};
+
+window.switchEditorTab = async function(tabId) {
+    if (tabId === window.currentEditorTabId) return;
+
+    // currentStrategyBlocks is a buffer that is only written back into
+    // desc_data on sync (js/editor-sync.js), so switching without flushing
+    // first silently drops whatever is being edited right now.
+    if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
+
+    // Arriving at Overview with a stale currentOverviewSection of 'strategy'
+    // would write the matchup blocks still sitting in the buffer into
+    // descData.strategy. The flush above has already saved the real content
+    // by this point.
+    clearSubSelection();
 
     // The preview pane keeps one visible tab; editor-core un-hides only the
     // booted one, so the switch has to move it.
@@ -114,7 +169,7 @@ window.addExtraTab = async function() {
 };
 
 window.removeExtraTab = async function(idx) {
-    if (await window.customConfirm("Delete this custom tab and all its contents?")) {
+    if (await window.confirmDelete("Delete this custom tab and all its contents?")) {
         await window.triggerManualSync();
         window.currentEditorDescData.extras.splice(idx, 1);
         if(typeof renderFullOverviewPreview === 'function') renderFullOverviewPreview();
@@ -459,7 +514,7 @@ window.addMove = async function() {
 };
 
 window.removeMove = async function(moveId) {
-    if (await window.customConfirm("Delete this entire move (stats, frame data, and strategy)?")) {
+    if (await window.confirmDelete("Delete this entire move (stats, frame data, and strategy)?")) {
         await window.triggerManualSync();
         const tabId = window.currentEditorTabId;
         const arr = window.currentEditorFrameData[tabId];
@@ -511,8 +566,8 @@ window.promptForMoveId = function() {
                     </div>
                 </div>
                 <div class="editor-modal-actions qa-modal-actions-divided">
-                    <button id="btn-move-cancel" class="system-page-btn">CANCEL</button>
-                    <button id="btn-move-confirm" class="submit-btn submit-btn-green-outline">INITIALIZE</button>
+                    <button id="btn-move-cancel" class="btn-sys btn-sys-regular">CANCEL</button>
+                    <button id="btn-move-confirm" class="btn-sys btn-sys-green">INITIALIZE</button>
                 </div>
             </div>
         `;
@@ -589,7 +644,7 @@ window.loadOverviewSectionIntoEditor = function(sectionId) {
         setTimeout(() => {
             const previewCard = document.querySelector('.live-preview-pane .profile-card');
             if (previewCard) {
-                previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                previewCard.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
                 previewCard.style.outline = '2px solid var(--accent-blue)';
                 previewCard.style.outlineOffset = '2px';
                 setTimeout(() => { previewCard.style.outline = 'none'; }, 800);
@@ -651,7 +706,7 @@ window.loadOverviewSectionIntoEditor = function(sectionId) {
 
         const previewCard = document.querySelector(`.live-preview-pane #${targetId}`);
         if (previewCard) {
-            previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            previewCard.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
             previewCard.style.outline = '2px solid var(--accent-blue)';
             previewCard.style.outlineOffset = '2px';
             setTimeout(() => { previewCard.style.outline = 'none'; }, 800);
@@ -670,7 +725,7 @@ window.addMatchup = async function() {
 };
 
 window.removeMatchup = async function(idx) {
-    if (await window.customConfirm("Delete this entire matchup?")) {
+    if (await window.confirmDelete("Delete this entire matchup?")) {
         window.currentEditorDescData.matchups.splice(idx, 1);
         initFullTabEditor(window.currentEditorCharId, 'matchups', window.currentEditorDescData, window.currentEditorFrameData);
         if (window.currentEditorDescData.matchups.length > 0) window.loadMatchupIntoEditor(0);
@@ -718,7 +773,7 @@ window.addKeyedEntry = async function(tabId) {
 window.removeKeyedEntry = async function(tabId, idx) {
     const section = window.getKeyedSectionByTab(tabId);
     if (!section) return;
-    if (await window.customConfirm(`Delete this entire ${section.entryLabel.toLowerCase()}?`)) {
+    if (await window.confirmDelete(`Delete this entire ${section.entryLabel.toLowerCase()}?`)) {
         window.currentEditorDescData[section.field].splice(idx, 1);
         // The open entry may have been the one removed, or may have shifted
         // down. Either way the stored index no longer means what it did, and
@@ -910,7 +965,7 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
     });
     host.querySelectorAll('[data-remove-card]').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!(await window.customConfirm(`Delete this ${noun.toLowerCase()} card and its write-up?`))) return;
+            if (!(await window.confirmDelete(`Delete this ${noun.toLowerCase()} card and its write-up?`))) return;
             cards.splice(parseInt(btn.getAttribute('data-remove-card'), 10), 1);
             // The open card may have been the one removed, or shifted down.
             window.currentDocCardIndex = undefined;
@@ -1103,7 +1158,9 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
         });
     });
     container.querySelectorAll('[data-nstyle-add], [data-nstyle-remove]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
+            if (btn.hasAttribute('data-nstyle-remove')
+                && !(await window.confirmDelete('Delete this notation style?'))) return;
             flushDocumentCard(tabId, groupIdx);
             const focusAt = window.applyComboNotationClick(target, btn);
             renderDocumentCardBody(tabId, groupIdx, cards);
@@ -1156,7 +1213,8 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
 
     const removeSec = container.querySelector('[data-cardsec-remove]');
     if (removeSec) {
-        removeSec.addEventListener('click', () => {
+        removeSec.addEventListener('click', async () => {
+            if (!(await window.confirmDelete('Delete this section of the card and everything in it?'))) return;
             const at = parseInt(removeSec.getAttribute('data-cardsec-remove'), 10);
             if (Array.isArray(card.sections) && card.sections.length > 1) {
                 card.sections.splice(at, 1);
@@ -1254,7 +1312,7 @@ window.addDocumentGroup = async function (tabId) {
 window.removeDocumentGroup = async function (tabId, idx) {
     const doc = docSections(tabId);
     if (!doc || !doc.groups) return;
-    if (!(await window.customConfirm('Delete this group and everything in it?'))) return;
+    if (!(await window.confirmDelete('Delete this group and everything in it?'))) return;
     window.currentEditorDescData[doc.groups.field].splice(idx, 1);
     // The open section may have been the one removed, or shifted down.
     window.currentDocSection = 'intro';
@@ -1324,7 +1382,7 @@ window.renderDocumentListEditor = function (tabId) {
     });
     host.querySelectorAll('[data-remove-table]').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!(await window.customConfirm(`Delete this ${noun.toLowerCase()} and everything in it?`))) return;
+            if (!(await window.confirmDelete(`Delete this ${noun.toLowerCase()} and everything in it?`))) return;
             tables.splice(parseInt(btn.getAttribute('data-remove-table'), 10), 1);
             window.currentDocTableIndex = undefined;
             window.renderDocumentListEditor(tabId);
@@ -1436,7 +1494,7 @@ function renderDocumentListRows(tabId, section, tables) {
     });
     container.querySelectorAll('.combo-row-remove').forEach(btn => {
         btn.addEventListener('click', async () => {
-            if (!(await window.customConfirm('Delete this row?'))) return;
+            if (!(await window.confirmDelete('Delete this row?'))) return;
             table.rows.splice(parseInt(btn.getAttribute('data-row'), 10), 1);
             renderDocumentListRows(tabId, section, tables);
             window.renderDocumentPreview(tabId);
@@ -1534,7 +1592,9 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
         });
     });
     fields.querySelectorAll('[data-nstyle-add], [data-nstyle-remove]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', async () => {
+            if (btn.hasAttribute('data-nstyle-remove')
+                && !(await window.confirmDelete('Delete this notation style?'))) return;
             const focusAt = window.applyComboNotationClick(row, btn);
             window.openDocumentRowModal(tabId, tableIdx, rowIdx);
             window.renderDocumentPreview(tabId);
@@ -1555,7 +1615,7 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
     if (done) done.onclick = close;
     if (del) {
         del.onclick = async () => {
-            if (!(await window.customConfirm('Delete this row?'))) return;
+            if (!(await window.confirmDelete('Delete this row?'))) return;
             rows.splice(rowIdx, 1);
             close();
             window.renderDocumentPreview(tabId);
@@ -1628,7 +1688,7 @@ window.loadKeyedEntryIntoEditor = function(tabId, idx) {
         const safeKey = String(entry[section.keyField] || 'Unknown').replace(/\s+/g, '-');
         const previewCard = document.querySelector(`.live-preview-pane #${section.tab}-content-${CSS.escape(String(safeKey))}`);
         if (previewCard) {
-            previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            previewCard.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
             previewCard.parentElement.style.outline = '2px solid var(--accent-blue)';
             previewCard.parentElement.style.outlineOffset = '2px';
             setTimeout(() => { previewCard.parentElement.style.outline = 'none'; }, 800);
@@ -1697,13 +1757,49 @@ window.loadMatchupIntoEditor = function(idx) {
     setTimeout(() => {
         const previewCard = document.querySelector(`.live-preview-pane #matchup-content-${CSS.escape((matchup.opponent||'').replace(/\s+/g, '-'))}`);
         if (previewCard) {
-            previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            previewCard.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
             previewCard.parentElement.style.outline = '2px solid var(--accent-blue)';
             previewCard.parentElement.style.outlineOffset = '2px';
             setTimeout(() => { previewCard.parentElement.style.outline = 'none'; }, 800);
         }
     }, 150);
 };
+
+// --- "1. STATS & FRAME DATA" CAN BE FOLDED (v1.1) ---
+//
+// On a long move this section is most of the workspace, and the strategy
+// blocks sit under it, so editing them meant scrolling past it again and again
+// (owner, 2026-10-18). Folded or not is remembered on this device, the way the
+// editor's other layout choices are, so it stays folded from move to move.
+const STATS_FOLDED_KEY = 'dsl_editor_stats_folded';
+
+function statsSectionFolded() {
+    try { return window.localStorage.getItem(STATS_FOLDED_KEY) === '1'; } catch (e) { return false; }
+}
+
+function statsSectionHTML(bannerText) {
+    const folded = statsSectionFolded();
+    return `
+        <div class="editor-section-banner editor-section-banner-spaced">
+            <span class="editor-section-banner-text">${bannerText}</span>
+            <button type="button" class="btn-sys btn-sys-regular editor-stats-fold"
+                    aria-controls="daw-editor-target" aria-expanded="${folded ? 'false' : 'true'}">${folded ? 'EXPAND' : 'COLLAPSE'}</button>
+        </div>
+        <div id="daw-editor-target" class="daw-editor-target-spacing"${folded ? ' hidden' : ''}></div>`;
+}
+
+function bindStatsSectionFold(root) {
+    const btn = root.querySelector('.editor-stats-fold');
+    const target = root.querySelector('#daw-editor-target');
+    if (!btn || !target) return;
+    btn.addEventListener('click', () => {
+        const fold = !target.hidden;
+        target.hidden = fold;
+        btn.textContent = fold ? 'EXPAND' : 'COLLAPSE';
+        btn.setAttribute('aria-expanded', fold ? 'false' : 'true');
+        try { window.localStorage.setItem(STATS_FOLDED_KEY, fold ? '1' : '0'); } catch (e) { /* not remembered, still works */ }
+    });
+}
 
 // --- SUB-NAVIGATION: MOVES ---
 window.loadMoveIntoEditor = async function(moveId) {
@@ -1730,16 +1826,14 @@ window.loadMoveIntoEditor = async function(moveId) {
 
     const container = document.getElementById('move-editor-container');
     container.innerHTML = `
-        <div class="editor-section-banner editor-section-banner-spaced">
-            <span class="editor-section-banner-text">1. STATS & FRAME DATA: ${window.escapeHtml(moveStats?.name || moveId)}</span>
-        </div>
-        <div id="daw-editor-target" class="daw-editor-target-spacing"></div>
+        ${statsSectionHTML(`1. STATS & FRAME DATA: ${window.escapeHtml(moveStats?.name || moveId)}`)}
 
         <div class="editor-section-banner">
             <span class="editor-section-banner-text">2. MOVE STRATEGIES</span>
         </div>
         <div id="strategy-block-target"></div>
     `;
+    bindStatsSectionFold(container);
 
     initDawEditor('daw-editor-target', moveStats);
     initStrategyBlockBuilder('strategy-block-target', moveStrats || []);
@@ -1750,23 +1844,21 @@ window.loadMoveIntoEditor = async function(moveId) {
 
     setTimeout(() => {
         const previewCard = document.querySelector(`.live-preview-pane #strategy-${CSS.escape(String(moveId))}`);
-        if (previewCard) previewCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (previewCard) previewCard.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
     }, 150);
 };
 
 function initPerMoveEditor(moveId, statsData, strategyData) {
     const builder = document.getElementById('interactive-builder');
     builder.innerHTML = `
-        <div class="editor-section-banner editor-section-banner-spaced">
-            <span class="editor-section-banner-text">1. STATS & FRAME DATA</span>
-        </div>
-        <div id="daw-editor-target" class="daw-editor-target-spacing"></div>
+        ${statsSectionHTML('1. STATS & FRAME DATA')}
 
         <div class="editor-section-banner">
             <span class="editor-section-banner-text">2. MOVE STRATEGIES</span>
         </div>
         <div id="strategy-block-target"></div>
     `;
+    bindStatsSectionFold(builder);
 
     initDawEditor('daw-editor-target', statsData);
     initStrategyBlockBuilder('strategy-block-target', strategyData || []);
@@ -1865,10 +1957,13 @@ function initProfileEditor(containerId, profileData) {
     if (!profileData.stats) profileData.stats = [];
 
     // Mutated in place rather than reassigned: the object identity is shared
-    // with currentEditorDescData.profile.
+    // with currentEditorDescData.profile. Every field, not a list of them:
+    // restoring only image and stats left the crop focus and the v1.1 quote
+    // and trivia where they were.
     const history = createFormHistory(profileData, (restored) => {
-        profileData.image = restored.image;
-        profileData.stats = restored.stats || [];
+        Object.keys(profileData).forEach(k => { delete profileData[k]; });
+        Object.assign(profileData, restored);
+        if (!profileData.stats) profileData.stats = [];
         window.currentEditorDescData.profile = profileData;
         renderProfileForm();
         updateLivePreview();
@@ -1937,6 +2032,18 @@ function initProfileEditor(containerId, profileData) {
                     </div>
                     <div id="profile-stats-container">${statsHtml}</div>
                 </div>
+
+                <!-- Profile Description (v1.1): under the stats in the
+                     profile card on the page. -->
+                <div class="block-card">
+                    <div class="block-header"><span class="block-type-badge">PROFILE DESCRIPTION</span></div>
+                    <label class="editor-field-label" for="profile-quote-input">Quote</label>
+                    <textarea class="editor-textarea" id="profile-quote-input" rows="2" placeholder="A line the character says. Format tags work here.">${window.escapeHtml(profileData.quote || '')}</textarea>
+                    <input type="text" class="editor-input" id="profile-quote-speaker-input" value="${window.escapeHtml(profileData.quoteSpeaker || '')}" placeholder="Who says it (optional)">
+                    <label class="editor-field-label" for="profile-trivia-input">Trivia</label>
+                    <textarea class="editor-textarea" id="profile-trivia-input" rows="3" placeholder="One fact per line. Format tags work here.">${window.escapeHtml((profileData.trivia || []).join('\n'))}</textarea>
+                    <p class="config-option-hint">Previous and Next are added for you, in the order of the Characters page.</p>
+                </div>
             </div>
         `;
 
@@ -1974,12 +2081,32 @@ function initProfileEditor(containerId, profileData) {
             profileData.stats[e.target.dataset.idx].value = e.target.value; triggerSync();
         }));
 
-        container.querySelectorAll('.btn-del-stat').forEach(btn => btn.addEventListener('click', (e) => {
-            profileData.stats.splice(e.target.dataset.idx, 1); renderProfileForm(); triggerSync();
+        container.querySelectorAll('.btn-del-stat').forEach(btn => btn.addEventListener('click', async () => {
+            if (!(await window.confirmDelete('Delete this stat?'))) return;
+            profileData.stats.splice(btn.dataset.idx, 1); renderProfileForm(); triggerSync();
         }));
 
         container.querySelector('#btn-add-stat').addEventListener('click', () => {
             profileData.stats.push({ label: 'New Stat', value: 'Value' }); renderProfileForm(); triggerSync();
+        });
+
+        // An empty field is no field at all, so opening the form and leaving
+        // it blank is not a change to the page.
+        const setOrDrop = (key, value) => {
+            if (Array.isArray(value) ? value.length : value) profileData[key] = value;
+            else delete profileData[key];
+            triggerSync();
+        };
+        container.querySelector('#profile-quote-input').addEventListener('input', (e) => {
+            window.autoSizeEditorTextarea(e.target);
+            setOrDrop('quote', e.target.value.trim() ? e.target.value : '');
+        });
+        container.querySelector('#profile-quote-speaker-input').addEventListener('input', (e) => {
+            setOrDrop('quoteSpeaker', e.target.value.trim() ? e.target.value : '');
+        });
+        container.querySelector('#profile-trivia-input').addEventListener('input', (e) => {
+            window.autoSizeEditorTextarea(e.target);
+            setOrDrop('trivia', e.target.value.split('\n').filter(line => line.trim() !== ''));
         });
     };
 
@@ -2053,11 +2180,13 @@ function initPlaystyleEditor(containerId, playstyleData) {
             playstyleData.dislikes[e.target.dataset.idx] = e.target.value; triggerSync();
         }));
 
-        container.querySelectorAll('.btn-del-like').forEach(btn => btn.addEventListener('click', (e) => {
-            playstyleData.likes.splice(e.target.dataset.idx, 1); renderForm(); triggerSync();
+        container.querySelectorAll('.btn-del-like').forEach(btn => btn.addEventListener('click', async () => {
+            if (!(await window.confirmDelete('Delete this line?'))) return;
+            playstyleData.likes.splice(btn.dataset.idx, 1); renderForm(); triggerSync();
         }));
-        container.querySelectorAll('.btn-del-dislike').forEach(btn => btn.addEventListener('click', (e) => {
-            playstyleData.dislikes.splice(e.target.dataset.idx, 1); renderForm(); triggerSync();
+        container.querySelectorAll('.btn-del-dislike').forEach(btn => btn.addEventListener('click', async () => {
+            if (!(await window.confirmDelete('Delete this line?'))) return;
+            playstyleData.dislikes.splice(btn.dataset.idx, 1); renderForm(); triggerSync();
         }));
 
         container.querySelector('#btn-add-like').addEventListener('click', () => {

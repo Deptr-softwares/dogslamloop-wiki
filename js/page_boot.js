@@ -15,6 +15,28 @@
  * how every page loads.
  */
 
+// A tool page lists its headings like a system page. Until v1.1 batch 10
+// nothing asked it to, so every tool's sidebar said "Loading contents..." for
+// good. Most tools have no headings at all (the tier list makers, the
+// Playground), and then "On this page" is hidden rather than titling an empty
+// list (owner, 2026-10-22), along with its header row when no edit button
+// shares it. The gallery branch never calls this: its sidebar has no list.
+function showToolContents() {
+    if (typeof window.refreshTOC !== 'function') return;
+    window.refreshTOC();
+
+    const toc = document.getElementById('dynamic-toc');
+    if (!toc || toc.querySelector('a')) return;
+
+    toc.classList.add('hidden');
+    const header = document.querySelector('.local-sidebar-right .sidebar-tab-header');
+    if (!header) return;
+    const title = header.querySelector('.sidebar-master-title');
+    if (title) title.classList.add('hidden');
+    const edit = document.getElementById('btn-edit-current-tab');
+    if (!(edit && edit.classList.contains('is-active'))) header.classList.add('hidden');
+}
+
 /**
  * The boot sequence, as a function.
  *
@@ -59,7 +81,7 @@ window.runPageBoot = async function (route) {
             const tabIds = route.tabs
                 ? route.tabs.map(t => t.id)
                 : window.getCharacterTabIds({ includeOptional: true });
-            window.setupTabs('nav', 'tab', tabIds, 'major');
+            window.setupTabs('nav', 'tab', tabIds, 'major', { address: true });
         }
 
         // 3. Fire the data fetchers concurrently - no blocking await, matching
@@ -117,7 +139,13 @@ window.runPageBoot = async function (route) {
         if (typeof render === 'function') await render(pageId);
 
         if (typeof window.loadPageAlerts === 'function') await window.loadPageAlerts(pageId);
-        if (typeof window.initTabEditorButtons === 'function') window.initTabEditorButtons(pageId, pageType);
+        if (typeof window.initTabEditorButtons === 'function') {
+            // Awaited on a tool page only: showToolContents reads whether the
+            // edit button is showing.
+            if (pageType === 'tool') await window.initTabEditorButtons(pageId, pageType);
+            else window.initTabEditorButtons(pageId, pageType);
+        }
+        if (pageType === 'tool') showToolContents();
 
         if (typeof window.buildGlobalSidebarMenu === 'function') await window.buildGlobalSidebarMenu('global-sidebar-nav');
         if (typeof window.initAuthDock === 'function') await window.initAuthDock();

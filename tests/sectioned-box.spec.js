@@ -1,7 +1,7 @@
 // The Section Box (SectionedBox) - v0.19 C3.
 //
 // The owner's own item, carried from v0.16 through v0.17 and v0.18. Their
-// wording, from devlogs/V0.16-DEVLOG.md: a box with a title, a row of
+// wording, from .claude/archived-devlogs/V0.16-DEVLOG.md: a box with a title, a row of
 // switchable tabs and the current tab's content, holding an Introduction,
 // Sections, and Contents in Sections - the Introduction and each section's
 // contents using "the Accordion recursive logic to hold other Blocks". Inside a
@@ -263,7 +263,11 @@ test('sections are add and remove, and the box renders a tab for each', async ({
     await page.click('[data-sbox-add]');
     await expect(page.locator('[data-sbox-title]')).toHaveCount(3);
 
+    // Asks first (v1.1), through the browser's confirm: editor() replaces the
+    // page body and the modal with it.
+    page.on('dialog', d => d.accept());
     await page.click('[data-sbox-remove="0"]');
+    await expect(page.locator('[data-sbox-title]')).toHaveCount(2);
     const titles = await page.evaluate(() =>
         window.getActiveBlocks()[0].sections.map(s => s.title));
 

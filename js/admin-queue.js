@@ -39,7 +39,7 @@ function updateAdminTOC() {
 
         a.onclick = (e) => {
             e.preventDefault();
-            h.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            h.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
             h.style.transition = 'color 0.3s ease';
             h.style.color = 'var(--accent-blue)';
             setTimeout(() => h.style.color = '', 800);

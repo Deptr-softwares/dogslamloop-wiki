@@ -26,13 +26,11 @@ export const IMAGE_TYPES = {
 };
 export const COPIED_IMAGE_PATH = /^discord\/[0-9]{5,20}-[0-3]\.(png|jpg|webp|gif)$/;
 
-// KLIPY, the same patterns and key as js/discussions.js. A test reads both
-// files and fails if they part.
+// KLIPY, the same patterns as js/discussions.js. A test reads both files and
+// fails if they part. No key: the relay never calls KLIPY (batch 8.5, below).
 export const KLIPY_MEDIA = /https:\/\/static2?\.klipy\.com\/ii\/[A-Za-z0-9/_-]+\.(gif|webp|mp4)(?![\w./-])/g;
 export const KLIPY_MEDIA_EXACT = new RegExp(`^${KLIPY_MEDIA.source}$`);
 export const KLIPY_PAGE = /https?:\/\/(?:www\.)?klipy\.com\/gifs\/([A-Za-z0-9-]{1,120})[^\s]*/g;
-export const KLIPY_API = 'https://api.klipy.com/api/v1/xdjct5ccuBWrbiAxgyaEgQdKcnFW5LIpjd1glWvPLALxPE6bNDPGsXXJaMPg9Xv7/gifs/';
-export const KLIPY_PICK = [['md', 'mp4'], ['hd', 'mp4'], ['sm', 'mp4'], ['md', 'webp'], ['sm', 'webp'], ['md', 'gif']];
 export const MAX_GIFS = 4;
 
 const SNOWFLAKE = /^[0-9]{5,20}$/;
@@ -157,8 +155,8 @@ export function tagFromApplied(appliedIds, availableTags, fallback = 'Discussion
 
 // A wiki forum post as the webhook payload that opens its Discord post: the
 // opening message, the title as the post's name, the category as its tag.
-export function forumPostOpening({ title, tagId, authorName, body, imageUrls = [], link }) {
-    const msg = toDiscordMessage({ authorName, body, imageUrls, link });
+export function forumPostOpening({ title, tagId, authorName, body, imageUrls = [], link, emoji = null }) {
+    const msg = toDiscordMessage({ authorName, body, imageUrls, link, emoji });
     const out = { ...msg, thread_name: forumPostName(title) };
     if (tagId) out.applied_tags = [tagId];
     return out;
@@ -169,19 +167,53 @@ export function forumPostName(title) {
     return oneLine(title, 100) || 'Untitled';
 }
 
+// --- THE WIKI'S OWN EMOJIS (v1.1 batch 8.5) ---
+//
+// Named exactly as on the Discord server (owner, 2026-10-21). js/emoji.js
+// draws the same names on the wiki, and a test checks the two lists agree.
+// Discord to wiki needs nothing here: discordText already turns the server's
+// <:HmmCat:id> into :HmmCat:.
+export const CUSTOM_EMOJI = Object.freeze(['HmmCat', 'darkCat', 'friedCat', 'lightCat', 'Boomcat']);
+const CUSTOM_TOKEN = new RegExp(`:(${CUSTOM_EMOJI.join('|')}):`, 'g');
+
+// Whether a text names one, so the server's list is read only when needed.
+export function namesCustomEmoji(text) {
+    return new RegExp(CUSTOM_TOKEN.source).test(String(text || ''));
+}
+
+// The server's own emoji for each of the wiki's names, as Discord's markup.
+// Only these names: any other server emoji typed as :name: on the wiki shows
+// as text there, so it stays text here too.
+export function serverEmojiTags(guildEmojis) {
+    const tags = new Map();
+    for (const e of guildEmojis || []) {
+        if (!e || !CUSTOM_EMOJI.includes(e.name) || !isSnowflake(e.id) || tags.has(e.name)) continue;
+        tags.set(e.name, `<${e.animated ? 'a' : ''}:${e.name}:${e.id}>`);
+    }
+    return tags;
+}
+
+export function withServerEmoji(text, tags) {
+    const s = String(text == null ? '' : text);
+    return tags && tags.size ? s.replace(CUSTOM_TOKEN, (whole, name) => tags.get(name) || whole) : s;
+}
+
 // One wiki post as a webhook payload. Rule 8: `allowed_mentions` is always
 // empty, so "@everyone" or a role mention typed on the wiki pings nobody.
 // Rule 10: over Discord's limit, the words are cut and the full post linked.
-export function toDiscordMessage({ authorName, body, imageUrls = [], parentAuthor = null, parentBody = '', isReply = false, link }) {
-    const head = isReply ? `${quoteLine(parentAuthor, parentBody)}\n` : '';
+// `emoji`: serverEmojiTags' map, or null to leave the names as text.
+export function toDiscordMessage({ authorName, body, imageUrls = [], parentAuthor = null, parentBody = '', isReply = false, link, emoji = null }) {
+    const head = isReply ? `${withServerEmoji(quoteLine(parentAuthor, parentBody), emoji)}\n` : '';
     const tail = imageUrls.length ? `\n${imageUrls.join('\n')}` : '';
-    let words = neutralize(String(body || '').trim());
+    let words = withServerEmoji(neutralize(String(body || '').trim()), emoji);
 
     const fits = (w) => head.length + w.length + tail.length <= DISCORD_MAX;
     if (!fits(words)) {
         const more = `… read the rest on the wiki: <${link}>`;
         const room = DISCORD_MAX - head.length - tail.length - more.length - 1;
-        words = `${words.slice(0, Math.max(0, room)).trimEnd()}\n${more}`;
+        // A cut never leaves half an emoji's markup behind.
+        const kept = words.slice(0, Math.max(0, room)).replace(/<a?:[A-Za-z0-9_]*(?::\d*)?$/, '');
+        words = `${kept.trimEnd()}\n${more}`;
     }
 
     return {
@@ -297,16 +329,18 @@ export function applyKlipy(text, mediaBySlug) {
     return String(text || '').replace(KLIPY_PAGE, (whole, slug) => mediaBySlug.get(slug) || whole);
 }
 
-// What a KLIPY API answer offers, in the wiki's order of preference, and only
-// if it is a KLIPY media address.
-export function klipyPick(answer) {
-    const file = answer && answer.data && answer.data.file;
-    if (!file) return null;
-    for (const [size, format] of KLIPY_PICK) {
-        const url = file[size] && file[size][format] && file[size][format].url;
-        if (typeof url === 'string' && KLIPY_MEDIA_EXACT.test(url)) return url;
-    }
-    return null;
+// Whether to wait for Discord's preview of a KLIPY link before copying a
+// message (batch 8.5). The relay used to ask KLIPY's API itself when the
+// preview was missing; KLIPY's production rules allow requests from a
+// reader's own browser only, never a partner's server, without their written
+// approval (docs.klipy.com/integration-requirements, read 2026-10-21). The
+// owner picked waiting for Discord instead. Its preview carries the GIF's
+// address and comes within seconds, so a message holding a link without one
+// waits, a minute at most; after that it is copied with the link as it is.
+export const KLIPY_PREVIEW_WAIT_MS = 60 * 1000;
+
+export function waitingForKlipyPreview(parsed, ageMs) {
+    return ageMs < KLIPY_PREVIEW_WAIT_MS && parsed.klipySlugs.some(slug => !parsed.klipyEmbeds.has(slug));
 }
 
 // What the wiki copy says when part of a message stays on Discord (v1.0 Part

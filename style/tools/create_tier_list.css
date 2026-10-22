@@ -1,0 +1,300 @@
+/* --- CREATE TIER LIST (v1.1) ---
+
+   Anyone's own tier list, copied as an image. Its own stylesheet under
+   style/tools/, picked up by the generator the same way js/tools/<page id>.js
+   is.
+
+   Namespaced mk- ("make"). The certified lists use ctl- and Free Submit fs-,
+   and three features sharing a prefix is how a fix to one reaches the others.
+   .tier-portrait is the one deliberate reuse: the same character icon, with
+   its size scoped to .mk-entry, as the other lists scope theirs. */
+
+/* .tool-frame lines its children up at the start, so the tool says it wants
+   the whole width. */
+.mk-tool {
+    /* A character's box, set once: the board's grid columns are this plus the
+       portrait's 2px border on each side. */
+    --mk-box: 92px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    width: 100%;
+}
+
+.mk-section-title {
+    display: block;
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 1rem;
+    color: var(--accent-blue);
+    text-transform: uppercase;
+    margin: 0 0 0.6rem 0;
+}
+
+.mk-title-field { display: block; }
+.mk-title-input { max-width: 32rem; }
+
+.mk-hint,
+.mk-status,
+.mk-storage-note {
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.mk-status-error { color: var(--accent-red); }
+
+/* --- THE BOARD --- */
+
+.mk-board,
+.mk-pool { user-select: none; }
+
+.mk-row {
+    display: flex;
+    align-items: stretch;
+    border: 2px solid var(--border-color);
+    border-bottom: none;
+    background: var(--bg-secondary);
+}
+
+.mk-board .mk-row:last-child { border-bottom: 2px solid var(--border-color); }
+
+/* A button, because it is a place to put the character picked up. */
+.mk-label {
+    width: 92px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+    border: none;
+    border-right: 2px solid var(--bg-secondary);
+    box-shadow: inset -4px 0px 8px rgba(0, 0, 0, 0.2);
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 1.5rem;
+    line-height: 1.1;
+    color: #000;
+    text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5);
+    text-align: center;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+}
+
+.mk-label.mk-label-mid { font-size: 1rem; }
+.mk-label.mk-label-long { font-size: 0.72rem; }
+
+/* 3px apart, the same as the image (owner, 2026-10-21: "somewhere 2px-3px"):
+   the board is the image's preview. One row of boxes tall when empty. */
+.mk-body,
+.mk-pool {
+    flex: 1;
+    min-width: 0;
+    gap: 3px;
+    padding: 3px;
+    min-height: calc(var(--mk-box) + 10px);
+}
+
+/* A grid of box-wide columns rather than a wrapping row, so the branding can
+   hold the first tier's top right corner and the characters flow around it
+   (owner, 2026-10-21, after TierMaker). */
+.mk-body {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, calc(var(--mk-box) + 4px));
+    grid-auto-rows: calc(var(--mk-box) + 4px);
+    align-content: start;
+}
+
+.mk-pool {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+}
+
+/* The last two columns of the first row (js/tools/create_tier_list.js
+   brand). Placed, so the characters placed around it skip those cells. */
+.mk-brand {
+    grid-row: 1;
+    grid-column: -3 / -1;
+    min-width: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+}
+
+.mk-brand-icon { height: calc(var(--mk-box) * 0.45); width: auto; }
+
+.mk-brand-text {
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.95rem;
+    color: var(--text-white);
+    white-space: nowrap;
+}
+
+/* Small (owner, 2026-10-22): one box at the bottom right of the last tier, at
+   about half strength. It is the last thing in its tier, so with only its
+   column set the grid puts it after the last character: on that line when
+   there is room, on a line of its own when there is not. */
+.mk-brand.mk-brand-small {
+    grid-row: auto;
+    grid-column: -2 / -1;
+    gap: 0.2rem;
+    opacity: 0.5;
+}
+
+.mk-brand-small .mk-brand-icon { height: calc(var(--mk-box) * 0.4); }
+.mk-brand-small .mk-brand-text { font-size: 0.55rem; }
+
+/* Not coloured like a tier: it is not one. */
+.mk-pool {
+    border: 2px dashed var(--border-color);
+    background: var(--bg-main);
+}
+
+.mk-zone-hot { outline: 2px dashed var(--accent-blue); outline-offset: -4px; }
+
+.mk-empty {
+    font-family: var(--text-mono);
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-style: italic;
+    align-self: center;
+}
+
+/* No border or shadow of its own: the gap between two characters is the 3px
+   above and nothing else. Hover and pick-up recolour the portrait's border. */
+.mk-entry {
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: grab;
+    font: inherit;
+    color: inherit;
+}
+
+.mk-entry .tier-portrait { width: var(--mk-box); height: var(--mk-box); box-shadow: none; }
+.mk-entry .tier-portrait-name { font-size: 0.66rem; }
+
+.mk-entry:hover .tier-portrait,
+.mk-entry:focus-visible .tier-portrait { border-color: var(--accent-blue); }
+.mk-entry:focus-visible { outline: none; }
+
+/* Picked up, waiting for a tier. */
+.mk-entry[aria-pressed="true"] .tier-portrait { border-color: var(--accent-yellow); }
+
+/* Where the dragged character will land (js/tools/create_tier_list.js
+   showMarker). Fixed, over the board, so nothing moves under the pointer. */
+.mk-drop-marker {
+    position: fixed;
+    z-index: 9998;
+    width: 4px;
+    background: var(--accent-yellow);
+    box-shadow: 0 0 0 1px #000;
+    pointer-events: none;
+}
+
+.mk-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+/* The three choices on a line of their own, the buttons under them: side by
+   side they no longer fit the column and RESET wrapped alone. */
+.mk-options {
+    flex-basis: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.mk-option { display: flex; align-items: center; gap: 0.4rem; }
+.mk-option-label {
+    font-family: var(--text-mono);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+/* --- THE TIERS --- */
+
+.mk-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+}
+
+.mk-control-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.mk-control-name.editor-input { width: 14rem; flex: 0 1 14rem; }
+
+.mk-control-btn { min-width: 2.2rem; }
+
+.mk-color-wrap { position: relative; }
+
+.mk-color-swatch {
+    width: 2.2rem;
+    height: 2.2rem;
+    padding: 0;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+}
+
+.mk-color-popup {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 13.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    box-shadow: 4px 4px 0px var(--manga-shadow, #000);
+}
+
+/* display: flex above beats the browser's own [hidden] rule. */
+.mk-color-popup[hidden] { display: none; }
+
+.mk-palette {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.3rem;
+}
+
+.mk-palette-swatch {
+    aspect-ratio: 1 / 1;
+    padding: 0;
+    border: 2px solid var(--border-color);
+    cursor: pointer;
+}
+
+.mk-palette-swatch:hover,
+.mk-palette-swatch:focus-visible { border-color: var(--text-white); }
+
+.mk-hex-row { display: flex; gap: 0.3rem; }
+.mk-hex.editor-input { flex: 1; min-width: 0; padding: 0.4rem 0.5rem; }
+
+@media (max-width: 700px) {
+    .mk-tool { --mk-box: 64px; }
+    .mk-label { width: 58px; font-size: 1.1rem; }
+    .mk-label.mk-label-mid { font-size: 0.8rem; }
+    .mk-label.mk-label-long { font-size: 0.6rem; }
+    .mk-brand-text { font-size: 0.62rem; }
+    .mk-brand-small .mk-brand-text { font-size: 0.4rem; }
+    .mk-entry .tier-portrait-name { font-size: 0.5rem; }
+    .mk-control-name.editor-input { flex: 1 1 100%; }
+}

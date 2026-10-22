@@ -37,8 +37,48 @@ function flushKeyedSection(id, blocks) {
 // v0.20; it returned real <ins>/<del> tags, which the block renderer escapes,
 // so a contributor's diff mode showed the tags as text.
 
+// --- PREVIEW ONLY ON SYNC (v1.1, js/editor-config.js) ---
+//
+// An edit still reaches the page's data, the undo history and the draft; only
+// the redraw waits. Anything that goes through triggerManualSync draws, which
+// is Sync itself and every section switch, so the preview never shows a
+// different place from the Workspace.
+let previewSyncDepth = 0;
+// A held edit leaves the preview behind the data, and only for the section it
+// was in, so the next draw is a whole one: a system page's single-section
+// repaint would otherwise skip the section the edit was made in.
+let previewMissedDraw = false;
+function previewHeld() {
+    return previewSyncDepth === 0 && !!window.editorConfig && window.editorConfig.get('previewOnSync') === true;
+}
+
+window.drawLivePreviewNow = function (skipHistory = false) {
+    previewSyncDepth++;
+    try {
+        updateLivePreview(skipHistory);
+    } finally {
+        previewSyncDepth--;
+    }
+};
+
+// The Sync button. A system page's triggerManualSync only flushes (typing has
+// always redrawn that preview), so the redraw is asked for here.
+window.syncWorkspace = async function () {
+    await window.triggerManualSync();
+    if (window.currentEditorPageType === 'system') window.drawLivePreviewNow(true);
+};
+
 // --- MASTER MANUAL SYNC ---
-window.triggerManualSync = async function() {
+window.triggerManualSync = async function () {
+    previewSyncDepth++;
+    try {
+        await syncEditorBuffer();
+    } finally {
+        previewSyncDepth--;
+    }
+};
+
+async function syncEditorBuffer() {
     // Safely sync the system blocks ---
     if (window.currentEditorPageType === 'system') {
         if (window.currentEditorDescData && window.currentEditorDescData.tabs) {
@@ -117,7 +157,7 @@ window.triggerManualSync = async function() {
     }
     
     if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
-};
+}
 
 /**
  * Does the rendered preview still match this tab's DATA, structurally?
@@ -171,13 +211,15 @@ window.systemPreviewMatchesData = function (tab) {
 
 // --- LIVE SYNC & STATE MANAGEMENT ---
 function updateLivePreview(skipHistory = false) {
+    const draw = !previewHeld();
+    if (!draw) previewMissedDraw = true;
     if (!skipHistory && typeof window.saveBlockHistory === 'function') {
         window.saveBlockHistory();
     }
 
     if (window.currentEditorPageType === 'tool') {
         if (typeof window.flushToolBlocks === 'function') window.flushToolBlocks();
-        if (typeof window.renderToolPage === 'function' && window.currentEditorCharId) {
+        if (draw && typeof window.renderToolPage === 'function' && window.currentEditorCharId) {
             window.renderToolPage(window.currentEditorCharId);
         }
         if (!skipHistory && typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
@@ -196,6 +238,11 @@ function updateLivePreview(skipHistory = false) {
                 }
             }
 
+            if (!draw) {
+                if (!skipHistory && typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
+                return;
+            }
+
             // --- FT6: repaint ONLY the section being edited ---
             //
             // Every keystroke used to call loadPageDescriptions, which rebuilds
@@ -210,7 +257,7 @@ function updateLivePreview(skipHistory = false) {
             // anything structural - adding, deleting, renaming, resizing,
             // switching tab - fails the check and takes the original rebuild.
             // A missed case costs a redraw, never a stale preview.
-            if (syncedTab && window.systemPreviewMatchesData(syncedTab)
+            if (syncedTab && !previewMissedDraw && window.systemPreviewMatchesData(syncedTab)
                 && typeof window.populateTextSection === 'function') {
                 window.populateTextSection(
                     `system-${syncedTab.tabId}-sec-${window.currentSystemSecIdx}`,
@@ -221,6 +268,7 @@ function updateLivePreview(skipHistory = false) {
                 return;
             }
 
+            previewMissedDraw = false;
             if (typeof window.loadPageDescriptions === 'function') window.loadPageDescriptions(window.currentEditorCharId, 'system');
             setTimeout(() => {
                 if (window.currentEditorDescData && window.currentEditorDescData.tabs) {
@@ -286,7 +334,7 @@ function updateLivePreview(skipHistory = false) {
             window.currentEditorDescData.moveStrategies[activeMoveId] = JSON.parse(JSON.stringify(currentStrategyBlocks));
         }
 
-        if (activeMoveId && typeof window.populateTextSection === 'function') {
+        if (draw && activeMoveId && typeof window.populateTextSection === 'function') {
             const targetId = `strategy-${activeMoveId}`;
             let previewTarget = document.getElementById(targetId);
             
@@ -313,26 +361,27 @@ function updateLivePreview(skipHistory = false) {
             if (window.currentEditorDescData) window.currentEditorDescData.extras[idx].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
         }
 
-        renderFullOverviewPreview();
+        if (draw) renderFullOverviewPreview();
 
     } else if (tabId === 'matchups') {
         if (window.currentEditorDescData && window.currentMatchupIndex !== undefined && window.currentEditorDescData.matchups[window.currentMatchupIndex]) {
             window.currentEditorDescData.matchups[window.currentMatchupIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
         }
-        if (typeof renderMatchupsPreview === 'function') renderMatchupsPreview();
+        if (draw && typeof renderMatchupsPreview === 'function') renderMatchupsPreview();
 
     } else if (window.getDocumentSections && window.getDocumentSections(tabId)) {
         // See the matching branch in triggerManualSync above. This is the call
         // path that runs on every keystroke in a block, so it is the one that
         // was destroying the Combos preview as it was typed into.
         if (typeof window.flushDocumentSection === 'function') window.flushDocumentSection();
-        if (typeof window.renderDocumentPreview === 'function') window.renderDocumentPreview(tabId);
+        if (draw && typeof window.renderDocumentPreview === 'function') window.renderDocumentPreview(tabId);
 
     } else if (window.usesSharedKeyedUI && window.usesSharedKeyedUI(tabId)) {
         flushKeyedSection(tabId, currentStrategyBlocks);
-        if (typeof window.renderKeyedSectionPreview === 'function') window.renderKeyedSectionPreview(tabId);
+        if (draw && typeof window.renderKeyedSectionPreview === 'function') window.renderKeyedSectionPreview(tabId);
 
-    } else {
+    } else if (draw) {
+        // The buffer straight into the preview, with no data to write it into.
         if (typeof window.populateTextSection === 'function') {
             const targetId = `tab-${tabId}`;
             let previewTarget = document.getElementById(targetId);
@@ -353,6 +402,7 @@ function updateLivePreview(skipHistory = false) {
     if (!skipHistory && typeof window.saveLocalDraft === 'function') {
         window.saveLocalDraft();
     }
+    if (!draw) return;
 
     if (previewPane) {
         setTimeout(() => {
@@ -367,18 +417,8 @@ function updateLivePreview(skipHistory = false) {
     // --- REFRESH EXTERNAL UI HOOKS ---
     if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
     
-    // Trigger KaTeX to render LaTeX automatically in the live preview
-    if (window.renderMathInElement) {
-        setTimeout(() => {
-            renderMathInElement(document.querySelector('.live-preview-pane'), {
-                delimiters: [
-                    {left: '$$', right: '$$', display: true},
-                    {left: '$', right: '$', display: false}
-                ],
-                throwOnError: false
-            });
-        }, 150);
-    }
+    // Math in the live preview, fetched the first time there is some.
+    setTimeout(() => window.renderMathIfAny(document.querySelector('.live-preview-pane')), 150);
 }
 
 // --- VISUAL DIFF COMPARISON ENGINE ---

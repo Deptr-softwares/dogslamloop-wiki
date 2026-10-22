@@ -106,6 +106,7 @@ window.renderToolPage = async function(pageId) {
         const { data: row } = await window.supabaseClient
             .from('page_data').select('desc_data').eq('page_id', pageId).maybeSingle();
         data = row ? row.desc_data : null;
+        if (typeof window.rememberPageConfig === 'function') window.rememberPageConfig(pageId, data);
     }
 
     // intro and notes are ordinary authored blocks, so a tool page can still

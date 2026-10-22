@@ -2,6 +2,147 @@
  * Dogslamloop Wiki - Shared Site Utilities
  */
 
+// --- SITE SETTINGS (v1.1) ---
+//
+// A reader's own settings, kept per device in one JSON object, the same shape
+// as the editor's Config (js/editor-config.js), so a later setting is one more
+// key rather than one more store. Signed in or not makes no difference;
+// nothing here reaches the account or the database.
+//
+// html.reduce-motion is the ONE switch every "less motion" rule reads. It is
+// on when the device asks for reduced motion or the reader ticked "Turn off
+// animations", so the CSS states each rule once rather than once per source.
+// First in the file so the class is on before anything starts moving.
+(function () {
+    const STORE_KEY = 'dsl_site_settings';
+    const DEFAULTS = Object.freeze({ motionOff: false });
+
+    function readStore() {
+        try {
+            const parsed = JSON.parse(window.localStorage.getItem(STORE_KEY) || '{}');
+            return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch (e) {
+            // Storage blocked, or a value nobody here wrote: the defaults.
+            return {};
+        }
+    }
+
+    let stored = readStore();
+    const deviceReduce = typeof window.matchMedia === 'function'
+        ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+
+    function get(key) {
+        if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key)) return undefined;
+        const value = stored[key];
+        return typeof value === typeof DEFAULTS[key] ? value : DEFAULTS[key];
+    }
+
+    function apply() {
+        document.documentElement.classList.toggle('reduce-motion',
+            get('motionOff') || !!(deviceReduce && deviceReduce.matches));
+    }
+
+    // Returns whether the value was saved, so the panel can say when it was
+    // not. Applied either way: it still holds until the page is left.
+    function set(key, value) {
+        if (!Object.prototype.hasOwnProperty.call(DEFAULTS, key) || typeof value !== typeof DEFAULTS[key]) return false;
+        stored = Object.assign({}, stored, { [key]: value });
+        apply();
+        try {
+            window.localStorage.setItem(STORE_KEY, JSON.stringify(stored));
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    if (deviceReduce && typeof deviceReduce.addEventListener === 'function') deviceReduce.addEventListener('change', apply);
+    apply();
+
+    window.siteSettings = { get, set, DEFAULTS };
+
+    // For a scroll a script starts. CSS's scroll-behavior does not reach
+    // scrollTo or scrollIntoView, so until this a device asking for less
+    // motion still got every scripted scroll smooth.
+    window.scrollMotion = () => (document.documentElement.classList.contains('reduce-motion') ? 'auto' : 'smooth');
+})();
+
+// How wide a panel heading's words are, for the bar on its underline
+// (style/Common.css, .section-title::after). Measured as the pointer enters a
+// panel, so a heading filled in after the page loaded (applyHubHeadings) is
+// measured as it reads now.
+document.addEventListener('pointerenter', e => {
+    const el = e.target;
+    if (!(el instanceof Element) || !el.matches('.wiki-section, .wiki-card, .section-title')) return;
+    const titles = el.matches('.section-title') ? [el] : el.querySelectorAll('.section-title');
+    titles.forEach(title => {
+        const words = document.createRange();
+        words.selectNodeContents(title);
+        title.style.setProperty('--title-words', `${Math.ceil(words.getBoundingClientRect().width)}px`);
+    });
+}, true);
+
+// A slanted tab punches when a click puts it in place (v1.1,
+// style/Buttons.css). Checked a frame later, after the page's own handler has
+// made it .active, and that handler may have drawn the row again, in which
+// case the tab is found by its id. A filter switched off is not .active, so
+// it stays still.
+document.addEventListener('click', e => {
+    const clicked = e.target instanceof Element ? e.target.closest('.btn-manga-slanted') : null;
+    if (!clicked) return;
+    requestAnimationFrame(() => {
+        const tab = clicked.isConnected ? clicked : (clicked.id && document.getElementById(clicked.id));
+        if (!tab || !tab.classList.contains('active')) return;
+        tab.classList.remove('tab-punch');
+        void tab.offsetWidth; // restart it on a second click
+        tab.classList.add('tab-punch');
+        tab.addEventListener('animationend', () => tab.classList.remove('tab-punch'), { once: true });
+    });
+});
+
+// The Site settings panel, opened from the button beside the account button
+// (js/pagebuilder.js initAuthDock). Built on first open; every value in it is
+// the site's own, so nothing is escaped.
+window.openSiteSettings = function () {
+    let overlay = document.getElementById('site-settings-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'site-settings-overlay';
+        overlay.className = 'modal-overlay hidden';
+        overlay.innerHTML = `
+            <div class="modal-box modal-sm accent-blue" role="dialog" aria-modal="true" aria-labelledby="site-settings-title">
+                <div class="modal-header"><h3 id="site-settings-title">SITE SETTINGS</h3></div>
+                <div class="modal-body site-settings-body">
+                    <label class="site-setting" for="site-setting-motion-off">
+                        <input type="checkbox" id="site-setting-motion-off">
+                        <span class="site-setting-text">
+                            <span class="site-setting-name">Turn off animations</span>
+                            <span class="site-setting-hint">Stops hover lifts, button sweeps, flashes and smooth scrolling. If your device is set to reduce motion, the site already follows it.</span>
+                        </span>
+                    </label>
+                    <p class="site-settings-note">Saved on this device only.</p>
+                    <p class="site-settings-error" hidden>This browser blocked saving, so the setting only lasts until you leave this page.</p>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn-sys btn-sys-regular" data-site-settings-close>CLOSE</button></div>
+            </div>`;
+        document.body.appendChild(overlay);
+
+        const close = () => overlay.classList.add('hidden');
+        overlay.addEventListener('click', e => {
+            // The backdrop itself, or CLOSE.
+            if (e.target === overlay || e.target.closest('[data-site-settings-close]')) close();
+        });
+        overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+        overlay.querySelector('#site-setting-motion-off').addEventListener('change', e => {
+            const saved = window.siteSettings.set('motionOff', e.target.checked);
+            overlay.querySelector('.site-settings-error').hidden = saved;
+        });
+    }
+    overlay.querySelector('#site-setting-motion-off').checked = window.siteSettings.get('motionOff');
+    overlay.classList.remove('hidden');
+    overlay.querySelector('#site-setting-motion-off').focus();
+};
+
 const fetchPromiseCache = {};
 
 // Counts directory depth rather than naming the directories. The old version
@@ -54,6 +195,55 @@ async function fetchJson(url, options = {}) {
 
 async function fetchNavigationData() {
     return fetchJson(`${getRootPath()}data/navigation.json?v=1.0`, { cache: true });
+}
+
+// --- CHARACTER ROSTER ---
+// page_id -> { name, url, image, hidden }, for every tier list on the site.
+//
+// One loader since v1.1. There were three copies (certified lists, Free
+// Submit, the tier editor), and two of them shipped reading `entry.image`,
+// which navigation.json carries on no character: so they drew a guessed
+// Supabase URL, old art, or a 404 for the five portraits named
+// "Portrait2.webp" or with no suffix. The portrait comes from
+// data/portraits.json, mirrored into the repo by scripts/fetch-portraits.js.
+//
+// Same-origin matters beyond correctness: a cross-origin image taints a
+// canvas, and toBlob() and the clipboard write both throw on one, which every
+// tier list image export depends on.
+//
+// A fresh Map each call, over cached requests, so a caller can keep it as its
+// own state. Empty when navigation.json cannot be read; the next call tries
+// again, because fetchJson drops a failed request from its cache.
+async function loadCharacterRoster() {
+    const roster = new Map();
+    try {
+        const nav = await fetchNavigationData();
+
+        let portraits = {};
+        try {
+            portraits = await fetchJson(`${getRootPath()}data/portraits.json`, { cache: true });
+        } catch (e) {
+            // Non-fatal: a character with no portrait shows its name on its
+            // colour, which every list draws for that case anyway.
+            console.warn('[Roster] Portrait manifest unavailable:', e);
+        }
+
+        (nav.Characters || []).forEach(entry => {
+            const pageId = entry.cms_config && entry.cms_config.pageId;
+            if (!pageId) return;
+            roster.set(pageId, {
+                name: entry.name,
+                url: entry.url,
+                image: portraits[pageId] || entry.image,
+                // Private server only. Kept, not dropped: a certified list may
+                // rank a hidden character, so each list decides.
+                hidden: !!entry.isHidden,
+            });
+        });
+    } catch (e) {
+        console.warn('[Roster] Could not read the roster:', e);
+    }
+    return roster;
 }
 
 // --- ARCHIVED PAGES ---
@@ -919,6 +1109,13 @@ window.applyDeltaToData = function(baseDesc, baseFrame, scope, key, payload) {
     else if (scope === 'tool_config') {
         newDesc.tool = payload;
     }
+    // A page's own settings (v1.1): the words it colours and its house style.
+    // Page-level, so on a character with states it sits beside modeData and
+    // never inside it; the editor never wraps it in a state. null removes them.
+    else if (scope === 'pageConfig') {
+        if (payload === null || payload === undefined) delete newDesc.pageConfig;
+        else newDesc.pageConfig = payload;
+    }
     else if (scope === 'move') {
         const [cat, moveId] = key.split('::');
         if (payload === null) {
@@ -1060,6 +1257,24 @@ window.bindTooltip = function(element, titleHtml) {
         const touch = e.changedTouches[0];
         positionTooltip(touch.clientX, touch.clientY);
     });
+};
+
+// The same tooltip for a delegated hover, where nothing is bound to one
+// element: in-page links (js/pagebuilder.js) are re-rendered with the text
+// around them, so a per-element binding would be lost on every repaint.
+window.showTooltipAt = function(html, x, y) {
+    window.initTooltip();
+    frameTooltip.innerHTML = html;
+    frameTooltip.style.display = 'block';
+    positionTooltip(x, y);
+};
+
+window.moveTooltipTo = function(x, y) {
+    if (frameTooltip && frameTooltip.style.display === 'block') positionTooltip(x, y);
+};
+
+window.hideTooltip = function() {
+    if (frameTooltip) frameTooltip.style.display = 'none';
 };
 
 // --- PAGE URL BUILDER ---
@@ -2053,6 +2268,22 @@ window.initializeMangaSelects = function() {
 // in flight keeps that saving without ever serving stale data after a save.
 const inFlightPageData = new Map();
 
+// The settings of the page being read (v1.1), for js/internalstyling.js's page
+// words. Kept per page id and looked up by the route, so a page that reads
+// another page's row can never pick up that page's words.
+window.readerPageConfigs = window.readerPageConfigs || {};
+window.rememberPageConfig = function(pageId, descData) {
+    if (!pageId) return;
+    window.readerPageConfigs[pageId] = (descData && descData.pageConfig) || null;
+};
+
+// A house style as blocks, one paragraph per line, for the two places that
+// show it: the editor's HOUSE STYLE window and the review diff.
+window.houseStyleBlocks = function(text) {
+    return String(text || '').split(/\n+/).map(line => line.trim()).filter(Boolean)
+        .map(line => ({ type: 'paragraph', content: line }));
+};
+
 window.fetchCloudCharacterData = async function(pageId) {
     if (inFlightPageData.has(pageId)) return inFlightPageData.get(pageId);
 
@@ -2086,6 +2317,7 @@ async function fetchCloudCharacterDataUncached(pageId) {
             return null;
         }
         
+        window.rememberPageConfig(pageId, data && data.desc_data);
         return data;
         
     } catch (err) {
@@ -2138,13 +2370,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Notification text is staff-authored free text (the approve/reject "Staff
-// Note" typed into admin.html's prompt, see js/admin-actions.js) and the link
-// is a stored string - neither is safe to drop straight into innerHTML. This
-// mattered the moment the modal below became reachable; before that it was a
-// dormant gap. Duplicated locally rather than imported: this file loads on
-// every page and has no dependency on admin-core.js, which owns the other
-// copy (same reasoning as js/history.js's own local copy).
+// The one escaper. This file loads on every page, so admin-core.js,
+// history.js, recent-changes.js and submissions.js use it rather than their
+// own copies, which they carried until v1.1 batch 9. First written here for
+// notification text: staff-authored free text (the approve/reject "Staff
+// Note" typed into admin.html's prompt, see js/admin-actions.js) and a stored
+// link, neither safe to drop straight into innerHTML.
 window.escapeHtml = function(str) {
     return String(str === null || str === undefined ? '' : str)
         .replace(/&/g, '&amp;')
@@ -2161,6 +2392,65 @@ window.escapeHtml = function(str) {
 // so a value can still break a line and can no longer add an element.
 window.escapeHtmlKeepBreaks = function(str) {
     return window.escapeHtml(str).replace(/&lt;\s*\/?\s*br\s*\/?\s*&gt;/gi, '<br>');
+};
+
+// KATEX, ONLY WHERE THERE IS MATH (v1.1 batch 9). It shipped in 28 pages' heads
+// since the first upload and no page used it (2026-10-22: one `$` in all the
+// indexed text), so every character page paid 81 KB and a walk of the whole
+// page per render. Now it is fetched the first time a text node holds a
+// $...$ pair, which is the only text auto-render can turn into math anyway:
+// it reads one text node at a time.
+const KATEX_DIST = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/';
+const MATH_DELIMITERS = [
+    { left: '$$', right: '$$', display: true },
+    { left: '$', right: '$', display: false },
+];
+const MATH_PAIR = /\$[^$]+\$/;
+const NOT_PROSE = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'NOSCRIPT']);
+let katexLoading = null;
+
+function hasMath(root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (MATH_PAIR.test(node.nodeValue) && !NOT_PROSE.has(node.parentNode.nodeName)) return true;
+    }
+    return false;
+}
+
+function loadKatex() {
+    if (!katexLoading) {
+        const add = src => new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error(`Could not load ${src}`));
+            document.head.appendChild(script);
+        });
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = `${KATEX_DIST}katex.min.css`;
+        document.head.appendChild(css);
+        katexLoading = add(`${KATEX_DIST}katex.min.js`)
+            .then(() => add(`${KATEX_DIST}contrib/auto-render.min.js`))
+            .catch(e => {
+                // The math stays as its $...$ text; the next render tries again.
+                katexLoading = null;
+                throw e;
+            });
+    }
+    return katexLoading;
+}
+
+window.renderMathIfAny = async function(root) {
+    if (!root || !hasMath(root)) return false;
+    try {
+        await loadKatex();
+    } catch (e) {
+        console.error('Math could not be drawn:', e.message);
+        return false;
+    }
+    window.renderMathInElement(root, { delimiters: MATH_DELIMITERS, throwOnError: false });
+    return true;
 };
 
 window.initNotifications = async function() {
@@ -2549,3 +2839,4 @@ window.clearAllNotifications = async function() {
 window.getRootPath = getRootPath;
 window.fetchJson = fetchJson;
 window.fetchNavigationData = fetchNavigationData;
+window.loadCharacterRoster = loadCharacterRoster;
