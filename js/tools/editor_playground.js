@@ -12,9 +12,9 @@
         const about = document.createElement('div');
         about.className = 'playground-about';
         about.innerHTML = `
-            <p>The wiki's editor, for practice. Nothing you do here is sent anywhere, and nobody else sees it.</p>
+            <p>This is a playground to use the wiki's editor. You can go wild here and such, so don't worry about breaking anything.</p>
             <ul>
-                <li>It starts as a blank character page.</li>
+                <li>The playground will start as a blank character page.</li>
                 <li><strong>PULL</strong> copies any page as it is live now, so you can try things on the real content without touching it.</li>
                 <li>Your work stays in this browser until you press <strong>NEW</strong>.</li>
                 <li>Uploading media is off. Media already in the library can still be used.</li>
