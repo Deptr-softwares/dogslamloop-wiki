@@ -2063,7 +2063,7 @@ function initProfileEditor(containerId, profileData) {
                     <textarea class="editor-textarea" id="profile-quote-input" rows="2" placeholder="A line the character says. Format tags work here.">${window.escapeHtml(profileData.quote || '')}</textarea>
                     <input type="text" class="editor-input" id="profile-quote-speaker-input" value="${window.escapeHtml(profileData.quoteSpeaker || '')}" placeholder="Who says it (optional)">
                     <label class="editor-field-label" for="profile-trivia-input">Trivia</label>
-                    <textarea class="editor-textarea" id="profile-trivia-input" rows="3" placeholder="One fact per line. Format tags work here.">${window.escapeHtml((profileData.trivia || []).join('\n'))}</textarea>
+                    <textarea class="editor-textarea" id="profile-trivia-input" rows="3" placeholder="One fact per line. Label | details shows just the label, with the details on hover. Format tags work here.">${window.escapeHtml((profileData.trivia || []).join('\n'))}</textarea>
                     <p class="config-option-hint">Previous and Next are added for you, in the order of the Characters page.</p>
                 </div>
             </div>

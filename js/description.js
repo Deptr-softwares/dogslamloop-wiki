@@ -1774,10 +1774,24 @@ function modeScopedTabIsDrawable(section, pageId, modeId) {
 // Previous) to a Character Page". It fills the profile card under the stats,
 // the way a wiki infobox ends in its Character Navigation rows (owner,
 // 2026-10-20, after a first version spanned the page under the overview and
-// "looks really awkward"). Trivia is one quiet row whose facts open on hover,
-// or on a tap, which focuses it. Quote and Trivia are the page's own
+// "looks really awkward"). Quote and Trivia are the page's own
 // (desc_data.profile). Built here for the reader page and the editor's
 // preview alike, so the two cannot drift.
+//
+// Trivia is listed in the card, one fact a line (owner, 2026-10-23, replacing
+// the one "2 facts" row whose facts opened on hover). "Label | text" shows the
+// label underlined, with the text on hover, or on a tap, which focuses it.
+// Only the first "|" splits, so the text can hold more; a line with nothing on
+// one side of it is shown as written.
+function triviaItemHTML(line, esc) {
+    const at = line.indexOf('|');
+    const label = at < 0 ? '' : line.slice(0, at).trim();
+    const tip = at < 0 ? '' : line.slice(at + 1).trim();
+    if (!label || !tip) return `<li>${esc(line)}</li>`;
+    return `<li><span class="profile-trivia-term" tabindex="0">${esc(label)}`
+        + `<span class="profile-trivia-tip" role="tooltip">${esc(tip)}</span></span></li>`;
+}
+
 window.profileDescriptionHTML = function (profile) {
     const p = profile || {};
     const esc = window.escapeHtmlKeepBreaks;
@@ -1792,11 +1806,8 @@ window.profileDescriptionHTML = function (profile) {
             + `${speaker ? `<figcaption><p>${esc(speaker)}</p></figcaption>` : ''}</figure>`;
     }
     if (trivia.length) {
-        body += `<div class="profile-stat-row profile-trivia-row" tabindex="0">`
-            + `<span class="profile-stat-label">Trivia</span>`
-            + `<span class="profile-trivia-count">${trivia.length} ${trivia.length === 1 ? 'fact' : 'facts'}</span>`
-            + `<div class="profile-trivia-pop"><ul class="wiki-block-list profile-trivia">${trivia.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>`
-            + `</div>`;
+        body += `<div class="profile-trivia-title">Trivia</div>`
+            + `<ul class="wiki-block-list profile-trivia">${trivia.map(t => triviaItemHTML(t, esc)).join('')}</ul>`;
     }
     // With nothing written, this is only Character Navigation, and stays
     // hidden until fillProfilePager has something to put in it.
