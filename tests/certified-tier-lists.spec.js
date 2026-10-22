@@ -602,6 +602,24 @@ test('a list set to icons draws the roster icon, derived from the page id', asyn
     expect(srcs.every(s => !s.includes('medias/portraits/'))).toBe(true);
 });
 
+// v1.1 batch 10: icons have see-through parts, and the name behind them
+// showed through.
+test('behind a loaded icon the name is hidden, and a missing icon still shows it', async ({ page }) => {
+    await page.route(/\/medias\/images\/CrowCharmerIcon\.webp/, r => r.fulfill({ status: 404, body: '' }));
+    await mockLists(page, {
+        lists: [list({
+            art_style: 'icon',
+            tiers: [{ name: 'S', color: '#f00', characters: ['ten_shadows', 'crow_charmer'] }],
+        })],
+    });
+    await open(page);
+    await page.click('[data-list-slug="owner"]');
+
+    const name = (id) => page.locator(`[data-ctl-char="${id}"] .tier-portrait-name`);
+    await expect(name('ten_shadows')).toBeHidden();
+    await expect(name('crow_charmer')).toBeVisible();
+});
+
 test('a list left on portraits is untouched by the feature', async ({ page }) => {
     // The default, and the state every existing list is in. A migration that
     // changed what published lists look like would be a silent edit to other

@@ -249,7 +249,7 @@
 
         // The portrait's look: the character's colour fills the box.
         const asPortrait = () => {
-            face.classList.remove('tier-portrait-icon', 'mk-icon-loaded');
+            face.classList.remove('tier-portrait-icon', 'is-icon-loaded');
             face.style.removeProperty('--char-color');
             if (color) face.style.backgroundColor = color;
             if (meta.image) img.src = rootPath + meta.image;
@@ -267,8 +267,9 @@
             // colour moves to the border and the icon is fitted, not cropped.
             face.classList.add('tier-portrait-icon');
             if (color) face.style.setProperty('--char-color', color);
+            // Hides the name behind it (style/Layout.css, .is-icon-loaded).
             img.addEventListener('load', () => {
-                if (face.classList.contains('tier-portrait-icon')) face.classList.add('mk-icon-loaded');
+                if (face.classList.contains('tier-portrait-icon')) face.classList.add('is-icon-loaded');
             });
             img.src = rootPath + icon;
         } else {

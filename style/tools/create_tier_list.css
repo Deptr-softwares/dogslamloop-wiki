@@ -178,11 +178,6 @@
 .mk-entry .tier-portrait { width: var(--mk-box); height: var(--mk-box); box-shadow: none; }
 .mk-entry .tier-portrait-name { font-size: 0.66rem; }
 
-/* An icon is fitted, not cropped, and most have see-through parts, so the
-   name behind it showed through. Hidden once the icon has loaded
-   (js/tools/create_tier_list.js portrait), so a missing one still says who. */
-.mk-entry .tier-portrait.mk-icon-loaded .tier-portrait-name { visibility: hidden; }
-
 .mk-entry:hover .tier-portrait,
 .mk-entry:focus-visible .tier-portrait { border-color: var(--accent-blue); }
 .mk-entry:focus-visible { outline: none; }

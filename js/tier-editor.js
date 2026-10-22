@@ -162,6 +162,9 @@
         const iconPath = useIcon && typeof window.rosterIconPath === 'function'
             ? window.rosterIconPath(pageId)
             : null;
+        // The reader's rule, so the board previews it (style/Layout.css,
+        // .is-icon-loaded).
+        if (iconPath) img.addEventListener('load', () => node.classList.add('is-icon-loaded'));
 
         img.src = iconPath || (meta.image
             ? meta.image

@@ -660,6 +660,13 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     );
 }
 
+/* v1.1 batch 10. The name behind the picture is the fallback for one that
+   fails to load, and an icon is fitted, not cropped: most have see-through
+   parts, and the name showed through them. Hidden once the icon has loaded,
+   which each renderer marks with .is-icon-loaded, so a missing icon still
+   names the character. */
+.tier-portrait-icon.is-icon-loaded .tier-portrait-name { visibility: hidden; }
+
 /* v0.18 batch 3.5 - the editor's draggable boxes. Owner: "as big as possible".
    96px because the drop zone is ALREADY 96px tall (.tier-editor-row .ctl-chars
    and .tier-editor-tray both set min-height: 96px in style/tier-editor.css), so

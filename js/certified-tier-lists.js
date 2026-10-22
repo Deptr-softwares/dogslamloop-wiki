@@ -126,6 +126,10 @@
         const iconPath = useIcon && typeof window.rosterIconPath === 'function'
             ? window.rosterIconPath(pageId)
             : null;
+        // Hides the name, which showed through the icon's clear parts
+        // (style/Layout.css). Only once it has loaded, so a missing icon still
+        // shows the name.
+        if (iconPath) img.addEventListener('load', () => wrap.classList.add('is-icon-loaded'));
 
         img.src = iconPath
             ? rootPath + iconPath

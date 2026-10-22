@@ -970,6 +970,8 @@ test('the editor board mirrors the icon treatment the reader will get', async ({
     expect(box.inlineBg).toBe('');
     expect(box.borderWidth).toBe('3px');
     expect(box.hatching).toContain('repeating-linear-gradient');
+    // And the reader's hidden name behind a loaded icon (v1.1 batch 10).
+    await expect(page.locator('.tier-portrait').first().locator('.tier-portrait-name')).toBeHidden();
 });
 
 // This page loads the block builder WITHOUT js/editor-core.js, so there is no
