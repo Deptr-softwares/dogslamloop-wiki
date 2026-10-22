@@ -20,6 +20,10 @@ test.use({ launchOptions: { args: ['--disable-back-forward-cache'] } });
 
 const BOOMCAT = '/characters/Boomcat/index.html';
 
+// The page's own address. page.url() follows it a moment late after a
+// replaceState, which read as a missing ?tab once in 30 runs.
+const href = page => page.evaluate(() => location.href);
+
 function collectErrors(page) {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
@@ -80,12 +84,12 @@ test('a click names the tab in the address without adding a Back step', async ({
     const before = await page.evaluate(() => history.length);
 
     await page.locator('#nav-combos').click();
-    expect(new URL(page.url()).searchParams.get('tab')).toBe('combos');
+    expect(new URL(await href(page)).searchParams.get('tab')).toBe('combos');
     expect(await page.evaluate(() => history.length)).toBe(before);
 
     // The first tab writes nothing, so a bare address still means Overview.
     await page.locator('#nav-overview').click();
-    expect(new URL(page.url()).searchParams.has('tab')).toBe(false);
+    expect(new URL(await href(page)).searchParams.has('tab')).toBe(false);
     expect(errors).toEqual([]);
 });
 
@@ -104,16 +108,19 @@ test('a refresh reopens the tab the reader was on', async ({ page }) => {
 test('Back from another page reopens the tab', async ({ page }) => {
     await page.goto(BOOMCAT, { waitUntil: 'networkidle' });
     await page.locator('#nav-counterplay').click();
+    expect(new URL(await href(page)).searchParams.get('tab')).toBe('counterplay');
     await page.goto('/characters/Vessel/index.html', { waitUntil: 'networkidle' });
 
     await page.goBack({ waitUntil: 'networkidle' });
-    expect(new URL(page.url()).pathname).toContain('/characters/Boomcat/');
+    const back = new URL(await href(page));
+    expect(back.pathname).toContain('/characters/Boomcat/');
+    expect(back.searchParams.get('tab')).toBe('counterplay');
     await expect(page.locator('#tab-counterplay')).toBeVisible();
     await expect(page.locator('#tab-overview')).toBeHidden();
 
     // And one more Back leaves Boomcat: the tab clicks added no steps.
     await page.goBack({ waitUntil: 'networkidle' }).catch(() => {});
-    expect(new URL(page.url()).pathname).not.toContain('/characters/Boomcat/');
+    expect(new URL(await href(page)).pathname).not.toContain('/characters/Boomcat/');
 });
 
 test('a shared link opens its tab', async ({ page }) => {
@@ -142,6 +149,31 @@ test('a tab that is shown late still opens, and one never shown leaves the first
     expect([...errors, ...otherErrors]).toEqual([]);
 });
 
+test("a reader's click while a late tab is pending wins", async ({ page }) => {
+    await mockPageRow(page, { page_id: 'boomcat', desc_data: {}, frame_data: {}, tab_settings: { techs: true } });
+    await page.goto(`${BOOMCAT}?tab=techs`, { waitUntil: 'domcontentloaded' });
+    // Before the row (and so the Techs button) arrives.
+    await page.locator('#nav-m1s').click();
+    await page.waitForTimeout(2000);
+    await expect(page.locator('#nav-techs')).toBeVisible();
+    expect(await showing(page)).toEqual(['m1s']);
+    expect(new URL(await href(page)).searchParams.get('tab')).toBe('m1s');
+});
+
+test('arriving by a section link keeps the link, and the address names its tab', async ({ page }) => {
+    const errors = collectErrors(page);
+    const desc = { comboList: [{ starter: 'Zzq Arrival Starters', rows: [{ sequence: ['M1'], damage: '1' }] }] };
+    await mockPageRow(page, { page_id: 'boomcat', desc_data: desc, frame_data: {} });
+    // The id assignSectionAnchors gives the fixture's table title.
+    const id = 'sec-zzq-arrival-starters';
+
+    await page.goto(`${BOOMCAT}#${id}`, { waitUntil: 'networkidle' });
+    await expect(page.locator('#tab-combos')).toBeVisible();
+    await expect.poll(() => href(page)).toContain('?tab=combos');
+    expect(new URL(await href(page)).hash).toBe(`#${id}`);
+    expect(errors).toEqual([]);
+});
+
 test('an unknown tab in the address opens the first tab', async ({ page }) => {
     const errors = collectErrors(page);
     await page.goto(`${BOOMCAT}?tab=%3Cimg%20src%3Dx%3E`, { waitUntil: 'networkidle' });
@@ -168,10 +200,10 @@ test('a section link into another tab names that tab, and a later click leaves t
     // What an in-page link does when a reader clicks it.
     await page.evaluate(id => window.jumpToAnchor(`#${id}`), id);
     await expect(page.locator('#tab-combos')).toBeVisible();
-    await expect.poll(() => page.url()).toContain(`?tab=combos#${id}`);
+    await expect.poll(() => href(page)).toContain(`?tab=combos#${id}`);
 
     await page.locator('#nav-m1s').click();
-    const url = new URL(page.url());
+    const url = new URL(await href(page));
     expect(url.searchParams.get('tab')).toBe('m1s');
     expect(url.hash).toBe('');
 });
@@ -188,7 +220,7 @@ test('a system page keeps its tab in the address too', async ({ page }) => {
     await mockPageRow(page, { page_id: 'm1_trading', desc_data: SYSTEM_DESC, frame_data: {} });
     await page.goto('/systems/m1-trading/index.html', { waitUntil: 'networkidle' });
     await page.locator('#nav-advanced').click();
-    expect(new URL(page.url()).searchParams.get('tab')).toBe('advanced');
+    expect(new URL(await href(page)).searchParams.get('tab')).toBe('advanced');
 
     await page.reload({ waitUntil: 'networkidle' });
     await expect(page.locator('#tab-advanced')).toBeVisible();
