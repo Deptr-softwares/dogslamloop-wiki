@@ -273,10 +273,17 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 
 .toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.25rem; }
 
-/* Table of Contents links (js/pagebuilder.js refreshTOC) */
-.toc-link-minor { padding-left: 1.5rem; font-size: 0.7rem; color: var(--text-muted); opacity: 0.7; }
-.toc-link-major { font-size: 0.75rem; color: var(--text-white); }
-.toc-link-major-toggle { font-size: 0.75rem; color: var(--text-white); padding-right: 2rem; }
+/* Table of Contents links (js/pagebuilder.js refreshTOC). Compound with
+   .btn-nav, which sets colour, padding and size in Buttons.css at one class
+   too: a page loading Layout.css first (the generated system pages,
+   forum.html) let .btn-nav win, so its contents were gray and its
+   sub-headings not indented (owner, 2026-10-23). A sub-heading's colour is
+   .btn-nav's own, so hover and active still reach it. */
+.btn-nav.toc-link-minor { padding-left: 1.5rem; font-size: 0.7rem; opacity: 0.7; }
+.btn-nav.toc-link-major { font-size: 0.75rem; color: var(--text-white); }
+.btn-nav.toc-link-major-toggle { font-size: 0.75rem; color: var(--text-white); padding-right: 2rem; }
+/* The Sitewide links sit straight in the sidebar; the contents are in a list. */
+.local-sidebar-right > .btn-nav { color: var(--text-white); }
 .toc-link-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .toc-group-row { display: flex; position: relative; }
 .toc-toggle-btn {
