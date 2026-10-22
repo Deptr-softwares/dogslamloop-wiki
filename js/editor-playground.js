@@ -104,7 +104,7 @@
 
     async function startNew() {
         const ok = await window.customConfirm(
-            'Clear the Playground and start again from a blank character page?\n\nWhat is in it now is gone for good.',
+            'Clear the Playground and start again from a blank character page?\n\nWhat is in the playground now is gone for good.',
             'START NEW', true);
         if (!ok) return;
         try {
@@ -213,7 +213,7 @@
 
     async function pullPage(pageId, pageType, name) {
         const ok = await window.customConfirm(
-            `Replace what is in the Playground with ${name}?\n\nWhat is in it now is gone for good.`,
+            `Replace what is in the Playground with ${name}?\n\nWhat is in the playground now is gone for good.`,
             'PULL', true);
         if (!ok) return;
         const query = new URLSearchParams({ page: pageId, type: pageType, tab: 'overview', pull: '1' });

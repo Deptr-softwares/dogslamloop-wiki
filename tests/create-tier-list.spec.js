@@ -463,10 +463,15 @@ async function readClipboardImage(page) {
         const brightest = (...b) => most(box(...b), (r, g, bl) => r + g + bl);
         const colourful = (...b) => most(box(...b), (r, g, bl) => Math.max(r, g, bl) - Math.min(r, g, bl));
         // A portrait has many colours; a flat fill with its border has two.
+        // Counted above and below the middle, where a box with no picture
+        // writes the name: its smoothed edges alone came to more than 50, so
+        // with the portrait never drawn this still passed (v1.1 batch 10).
         const distinct = (x0, y0, size) => {
-            const d = box(x0, y0, x0 + size, y0 + size);
             const seen = new Set();
-            for (let i = 0; i < d.length; i += 4) seen.add(`${d[i]},${d[i + 1]},${d[i + 2]}`);
+            for (const [top, bottom] of [[y0, y0 + 30], [y0 + size - 25, y0 + size]]) {
+                const d = box(x0, top, x0 + size, bottom);
+                for (let i = 0; i < d.length; i += 4) seen.add(`${d[i]},${d[i + 1]},${d[i + 2]}`);
+            }
             return seen.size;
         };
         const h = bitmap.height / s;
@@ -742,4 +747,214 @@ test('a refused copy falls back to the download too', async ({ page }) => {
     await page.locator('[data-mk-action="copy"]').click();
     expect((await download).suggestedFilename()).toBe('tier-list.png');
     await expect(status(page)).toHaveText(/^The browser would not copy the image, so it was downloaded instead \(\d+x\d+, \d+\.\d MB\)\.$/);
+});
+
+// --- PICTURES AND BRANDING (owner, 2026-10-22) ---
+//
+// "make it an option to use either the Icons or the Portraits", and "either
+// the big branding at the top right corner, or the small subtle 1-box size
+// branding at the bottom right corner". Which characters have art is owner
+// content, so the two used here are read from the manifest, and the icon's
+// address from the page's own rosterIconPath.
+const WITH_ART = VISIBLE.filter(c => PORTRAITS[c.id]);
+const [P1, P2] = WITH_ART;
+const iconOf = (page, id) => page.evaluate((i) => window.rosterIconPath(i), id);
+// rosterIconPath's rule, for a route set before the page has loaded.
+const iconFile = (id) => id.split('_').filter(Boolean).map(p => p[0].toUpperCase() + p.slice(1)).join('') + 'Icon.webp';
+const blockFile = (page, name) => page.route(new RegExp(`/${name.replace('.', '\\.')}(\\?|$)`), r => r.fulfill({ status: 404, body: '' }));
+const colourOf = (page, name) => page.evaluate((n) => window.CHARACTER_COLORS && window.CHARACTER_COLORS[n], name);
+
+test('Icons swaps the portraits for the roster icons, coloured on the border, and a character with no icon keeps its portrait', async ({ page }) => {
+    test.skip(!P2, 'needs two characters with a portrait');
+    await blockFile(page, iconFile(P2.id));
+    const errors = await boot(page);
+    const colour = await colourOf(page, P1.name);
+    test.skip(!colour, 'the character has no colour');
+    await tapPlace(page, P1.id, 0);
+    await tapPlace(page, P2.id, 0);
+    const face = (id) => entry(page, id).locator('.tier-portrait');
+    const src = (id) => entry(page, id).locator('img').getAttribute('src');
+
+    await expect(page.locator('[data-mk-pictures]')).toHaveValue('portrait');
+    await page.locator('[data-mk-pictures]').selectOption('icon');
+
+    expect(await src(P1.id)).toContain(await iconOf(page, P1.id));
+    await expect(face(P1.id)).toHaveClass(/tier-portrait-icon/);
+    // The roster's icon look: the colour on the border, not the fill.
+    expect(await face(P1.id).evaluate(n => getComputedStyle(n).borderTopColor)).toBe(await resolveColour(page, colour));
+    expect(await background(face(P1.id))).not.toBe(await resolveColour(page, colour));
+    // The name behind a loaded icon would show through its clear parts.
+    await expect(face(P1.id).locator('.tier-portrait-name')).toBeHidden();
+    // Waiting characters switch too.
+    const waiting = VISIBLE.find(c => c.id !== P1.id && c.id !== P2.id);
+    expect(await src(waiting.id)).toContain(await iconOf(page, waiting.id));
+
+    // No icon: the portrait, filled with the colour as before.
+    await expect.poll(() => src(P2.id)).toContain('medias/portraits/');
+    await expect(face(P2.id)).not.toHaveClass(/tier-portrait-icon/);
+
+    await page.locator('[data-mk-pictures]').selectOption('portrait');
+    expect(await src(P1.id)).toContain('medias/portraits/');
+    expect(await background(face(P1.id))).toBe(await resolveColour(page, colour));
+    expect(errors).toEqual([]);
+});
+
+// Measured with P1's portrait blocked and P2's icon blocked, so drawing the
+// wrong one for either leaves a flat fill where the art should be.
+test('in the image, Icons draws each icon fitted with the colour on its border, or the portrait when there is no icon', async ({ page, context }) => {
+    test.skip(!P2, 'needs two characters with a portrait');
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await blockFile(page, PORTRAITS[P1.id].split('/').pop());
+    await blockFile(page, iconFile(P2.id));
+    await boot(page);
+    const colour = await colourOf(page, P1.name);
+    test.skip(!colour, 'the character has no colour');
+    await page.locator('[data-mk-quality]').selectOption('1');
+    await page.locator('[data-mk-pictures]').selectOption('icon');
+    await tapPlace(page, P1.id, 0);
+    await tapPlace(page, P2.id, 0);
+    await page.locator('[data-mk-action="copy"]').click();
+    await expect(status(page)).toHaveText(copied, { timeout: 15000 });
+
+    const probe = await page.evaluate(async () => {
+        const items = await navigator.clipboard.read();
+        const bitmap = await createImageBitmap(await items[0].getType('image/png'));
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmap, 0, 0);
+        const at = (x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data.slice(0, 3));
+        // 127px cells 130px apart from x 153, the first row at y 5. Counted
+        // above and below the middle, where a box with no picture writes the
+        // name: its smoothed edges alone came to more than 50 colours.
+        const distinct = (x) => {
+            const seen = new Set();
+            for (const [y, h] of [[11, 40], [88, 38]]) {
+                const d = ctx.getImageData(x + 6, y, 115, h).data;
+                for (let i = 0; i < d.length; i += 4) seen.add(`${d[i]},${d[i + 1]},${d[i + 2]}`);
+            }
+            return seen.size;
+        };
+        return { iconArt: distinct(153), iconEdge: at(154, 68), faceArt: distinct(283), faceEdge: at(283, 68) };
+    });
+    const edge = rgb(await token(page, '--border-color'));
+    expect(probe.iconArt, 'P1\'s icon is drawn, though its portrait is blocked').toBeGreaterThan(50);
+    expect(near(probe.iconEdge, rgb(await resolveColour(page, colour))), `P1's border ${probe.iconEdge}`).toBe(true);
+    expect(probe.faceArt, 'P2 has no icon, so its portrait is drawn').toBeGreaterThan(50);
+    expect(near(probe.faceEdge, edge), `P2 keeps the portrait's border ${probe.faceEdge}`).toBe(true);
+});
+
+test('on the board, Small branding is one faint box at the bottom right of the last tier', async ({ page }) => {
+    const errors = await boot(page);
+    const body = (i) => page.locator(`.mk-body[data-zone="${i}"]`);
+    const brandEl = page.locator('.mk-brand');
+    const columns = await body(0).evaluate(n => getComputedStyle(n).gridTemplateColumns.split(' ').length);
+    test.skip(VISIBLE.length < columns, 'needs a full row of characters');
+    const last = (await page.locator('.mk-body').count()) - 1;
+
+    await tapPlace(page, X.id, last);
+    await expect(page.locator('[data-mk-branding]')).toHaveValue('big');
+    await page.locator('[data-mk-branding]').selectOption('small');
+
+    await expect(brandEl).toHaveCount(1);
+    await expect(body(last).locator('.mk-brand')).toBeVisible();
+    await expect(body(0).locator('.mk-brand')).toHaveCount(0);
+    expect(await brandEl.evaluate(n => getComputedStyle(n).opacity)).toBe('0.5');
+
+    const b = await brandEl.boundingBox();
+    const one = await entry(page, X.id).boundingBox();
+    const box = await body(last).boundingBox();
+    expect(Math.abs(b.width - one.width), 'one box wide').toBeLessThan(1);
+    expect(Math.abs(b.y - one.y), 'on the line of the last character').toBeLessThan(1);
+    expect(b.x, 'to its right').toBeGreaterThan(one.x + one.width);
+    expect(box.x + box.width - (b.x + b.width), 'in the last column').toBeLessThan(96 + 3 + 3 + 2);
+
+    // A full line: the branding goes under it, still at the right.
+    await page.evaluate(({ key, ids, last }) => {
+        const saved = JSON.parse(localStorage.getItem(key));
+        saved.tiers.forEach((t, i) => { t.characters = i === last ? ids : []; });
+        localStorage.setItem(key, JSON.stringify(saved));
+    }, { key: 'dsl_create_tier_list', ids: VISIBLE.slice(0, columns).map(c => c.id), last });
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.locator('.mk-entry').first()).toBeVisible({ timeout: 20000 });
+    const s = await body(last).locator('.mk-entry').evaluateAll(nodes => nodes.map(n => n.getBoundingClientRect().toJSON()));
+    const full = await brandEl.boundingBox();
+    expect(full.y, 'below the full line').toBeGreaterThan(s[columns - 1].bottom);
+    expect(Math.abs(full.x - s[columns - 1].left), 'under its last character').toBeLessThan(1);
+
+    // A tier added at the end takes it.
+    await page.locator('[data-mk-action="add"]').click();
+    await expect(body(last + 1).locator('.mk-brand')).toHaveCount(1);
+    await expect(body(last).locator('.mk-brand')).toHaveCount(0);
+    expect(errors).toEqual([]);
+});
+
+// Measured with the portraits blocked, so every character is a flat fill and
+// the branding is the only art in the image.
+test('in the image, Small branding sits after the last tier\'s characters at half strength, and the first tier\'s corner is free', async ({ page, context }) => {
+    test.skip(VISIBLE.length < 8, 'needs 8 characters on the roster');
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.route('**/medias/portraits/**', route => route.fulfill({ status: 404, body: '' }));
+    await boot(page);
+    await page.locator('[data-mk-quality]').selectOption('1');
+    await page.locator('[data-mk-branding]').selectOption('small');
+    const last = (await page.locator('.mk-body').count()) - 1;
+    for (const c of VISIBLE.slice(0, 8)) await tapPlace(page, c.id, last);
+    await page.locator('[data-mk-action="copy"]').click();
+    await expect(status(page)).toHaveText(copied, { timeout: 15000 });
+
+    const rowGround = rgb(await token(page, '--bg-secondary'));
+    const probe = await page.evaluate(async () => {
+        const items = await navigator.clipboard.read();
+        const bitmap = await createImageBitmap(await items[0].getType('image/png'));
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(bitmap, 0, 0);
+        const box = (x, y, w, h) => ctx.getImageData(x, y, w, h).data;
+        const most = (d, f) => {
+            let best = 0;
+            for (let i = 0; i < d.length; i += 4) best = Math.max(best, f(d[i], d[i + 1], d[i + 2]));
+            return best;
+        };
+        const at = (x, y) => Array.from(box(x, y, 1, 1).slice(0, 3));
+        // 127px cells 130px apart from x 153. The last tier holds 8, a full
+        // line, so it is two lines tall and ends 5px above the image's foot.
+        const h = bitmap.height;
+        const second = h - 132;
+        const first = second - 130;
+        const cell = (col) => 153 + col * 130;
+        return {
+            firstEighth: at(cell(7) + 10, first + 10), secondFirst: at(cell(0) + 10, second + 10),
+            brandColour: most(box(cell(7), second, 127, 127), (r, g, b) => Math.max(r, g, b) - Math.min(r, g, b)),
+            brandBright: most(box(cell(7), second, 127, 127), (r, g, b) => r + g + b),
+            bigCorner: most(box(933, 5, 257, 127), (r, g, b) => r + g + b),
+        };
+    });
+    const ground = (c) => near(c, rowGround);
+    const sum = rowGround[0] + rowGround[1] + rowGround[2];
+    expect(ground(probe.firstEighth), 'the last tier\'s first line is all characters').toBe(false);
+    expect(ground(probe.secondFirst), 'the second line starts empty').toBe(true);
+    expect(probe.brandColour, 'the icon at the second line\'s right').toBeGreaterThan(15);
+    expect(probe.brandBright, 'and the words').toBeGreaterThan(sum + 60);
+    expect(probe.brandBright, 'at about half strength, never full white').toBeLessThan(600);
+    expect(probe.bigCorner, 'nothing in the first tier\'s corner').toBeLessThanOrEqual(sum + 6);
+});
+
+test('Pictures and Branding are kept on the device, and through RESET', async ({ page }) => {
+    await boot(page);
+    await page.locator('[data-mk-pictures]').selectOption('icon');
+    await page.locator('[data-mk-branding]').selectOption('small');
+
+    await page.locator('[data-mk-action="reset"]').click();
+    await page.locator('#site-confirm-ok').click();
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.locator('.mk-entry').first()).toBeVisible({ timeout: 20000 });
+
+    await expect(page.locator('[data-mk-pictures]')).toHaveValue('icon');
+    await expect(page.locator('[data-mk-branding]')).toHaveValue('small');
+    expect(await entry(page, X.id).locator('img').getAttribute('src')).toContain(await iconOf(page, X.id));
+    await expect(page.locator('.mk-brand.mk-brand-small')).toHaveCount(1);
 });

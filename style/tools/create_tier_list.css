@@ -134,6 +134,20 @@
     white-space: nowrap;
 }
 
+/* Small (owner, 2026-10-22): one box at the bottom right of the last tier, at
+   about half strength. It is the last thing in its tier, so with only its
+   column set the grid puts it after the last character: on that line when
+   there is room, on a line of its own when there is not. */
+.mk-brand.mk-brand-small {
+    grid-row: auto;
+    grid-column: -2 / -1;
+    gap: 0.2rem;
+    opacity: 0.5;
+}
+
+.mk-brand-small .mk-brand-icon { height: calc(var(--mk-box) * 0.4); }
+.mk-brand-small .mk-brand-text { font-size: 0.55rem; }
+
 /* Not coloured like a tier: it is not one. */
 .mk-pool {
     border: 2px dashed var(--border-color);
@@ -189,8 +203,18 @@
     gap: 0.75rem;
 }
 
-.mk-quality { display: flex; align-items: center; gap: 0.4rem; }
-.mk-quality-label {
+/* The three choices on a line of their own, the buttons under them: side by
+   side they no longer fit the column and RESET wrapped alone. */
+.mk-options {
+    flex-basis: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.mk-option { display: flex; align-items: center; gap: 0.4rem; }
+.mk-option-label {
     font-family: var(--text-mono);
     font-size: 0.72rem;
     color: var(--text-muted);
@@ -270,6 +294,7 @@
     .mk-label.mk-label-mid { font-size: 0.8rem; }
     .mk-label.mk-label-long { font-size: 0.6rem; }
     .mk-brand-text { font-size: 0.62rem; }
+    .mk-brand-small .mk-brand-text { font-size: 0.4rem; }
     .mk-entry .tier-portrait-name { font-size: 0.5rem; }
     .mk-control-name.editor-input { flex: 1 1 100%; }
 }

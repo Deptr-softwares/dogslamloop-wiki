@@ -161,6 +161,9 @@ test('Pull lists the pages, asks first, then copies the live page in and keeps i
     await picker.locator(`[data-pull-page="${CHAR.cms_config.pageId}"]`).click();
     await expect(confirmModal(page)).toBeVisible();
     await expect(page.locator('#editor-modal-text')).toContainText(`Replace what is in the Playground with ${CHAR.name}?`);
+    // Owner, 2026-10-22: "What is in it now" read like the pulled page's own
+    // content was being deleted.
+    await expect(page.locator('#editor-modal-text')).toContainText('What is in the playground now is gone for good.');
     await page.locator('#editor-modal-cancel').click();
     expect(param(page, 'page'), 'cancel keeps the blank page').toBe('playground');
 
@@ -261,6 +264,7 @@ test('NEW asks, then wipes the Playground back to a blank page', async ({ page }
 
     await page.locator('#btn-playground-new').click();
     await expect(page.locator('#editor-modal-text')).toContainText('Clear the Playground and start again from a blank character page?');
+    await expect(page.locator('#editor-modal-text')).toContainText('What is in the playground now is gone for good.');
     await page.locator('#editor-modal-cancel').click();
     await expect(page.locator('#block-list textarea').first()).toHaveValue('OLD WORK');
 
@@ -313,7 +317,11 @@ test('the real editor is left alone: Submit, Drafts and Save, no banner', async 
 test('the Playground\'s page says what it is and opens it', async ({ page }) => {
     await mockEditor(page, { signedIn: false });
     await page.goto('/tools/editor-playground/index.html', { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('.playground-about')).toContainText('Nothing you do here is sent anywhere', { timeout: 20000 });
+    // The owner's own lines (2026-10-22).
+    await expect(page.locator('.playground-about p')).toHaveText(
+        'This is a playground to use the wiki\'s editor. You can go wild here and such, so don\'t worry about breaking anything.',
+        { timeout: 20000 });
+    await expect(page.locator('.playground-about li').first()).toHaveText('The playground will start as a blank character page.');
     const link = page.locator('#tool-mount a.tool-launch-btn');
     await expect(link).toHaveText('OPEN THE PLAYGROUND');
     await link.click();

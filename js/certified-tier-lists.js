@@ -126,6 +126,10 @@
         const iconPath = useIcon && typeof window.rosterIconPath === 'function'
             ? window.rosterIconPath(pageId)
             : null;
+        // Hides the name, which showed through the icon's clear parts
+        // (style/Layout.css). Only once it has loaded, so a missing icon still
+        // shows the name.
+        if (iconPath) img.addEventListener('load', () => wrap.classList.add('is-icon-loaded'));
 
         img.src = iconPath
             ? rootPath + iconPath
@@ -207,6 +211,13 @@
         if (section) section.classList.toggle('hidden', !visible);
     }
 
+    // The sidebar's contents, after every change to what is showing: the
+    // page's introduction, or one person's list and its changelog. Nothing
+    // called this before v1.1 batch 10, so it said "Loading contents...".
+    function refreshContents() {
+        if (typeof window.refreshTOC === 'function') window.refreshTOC();
+    }
+
     // tier_page_settings is the only copy (v1.0 Part 3). The page used to ship
     // the seeded introduction as a fallback; the owner rewrote theirs and had
     // the old one removed, so the page ships "Loading..." and this always
@@ -229,6 +240,8 @@
             if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
         } catch (e) {
             failed();
+        } finally {
+            refreshContents();
         }
     }
 
@@ -287,6 +300,7 @@
 
         const section = document.getElementById('changelog-section');
         if (section) section.classList.add('hidden');
+        refreshContents();
     }
 
     // --- ONE LIST ---
@@ -379,6 +393,7 @@
         fitTierLabels();
 
         await renderChangelogAndReasoning(row);
+        refreshContents();
     }
 
     // --- TIER NAMES THAT ARE NOT ONE LETTER ---
