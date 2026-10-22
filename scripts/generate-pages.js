@@ -175,10 +175,6 @@ ${social}
 
     <link rel="stylesheet" href="../../style/Layout.css">
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-
     <script>window.PAGE_ROUTE = { pageId: "${pageId}", pageType: "character", title: "${title}" };</script>
 </head>
 <body class="site-body p-0">

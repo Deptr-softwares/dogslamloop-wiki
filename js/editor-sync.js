@@ -417,18 +417,8 @@ function updateLivePreview(skipHistory = false) {
     // --- REFRESH EXTERNAL UI HOOKS ---
     if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
     
-    // Trigger KaTeX to render LaTeX automatically in the live preview
-    if (window.renderMathInElement) {
-        setTimeout(() => {
-            renderMathInElement(document.querySelector('.live-preview-pane'), {
-                delimiters: [
-                    {left: '$$', right: '$$', display: true},
-                    {left: '$', right: '$', display: false}
-                ],
-                throwOnError: false
-            });
-        }, 150);
-    }
+    // Math in the live preview, fetched the first time there is some.
+    setTimeout(() => window.renderMathIfAny(document.querySelector('.live-preview-pane')), 150);
 }
 
 // --- VISUAL DIFF COMPARISON ENGINE ---

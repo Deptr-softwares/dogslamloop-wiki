@@ -117,11 +117,13 @@ test('character and system stubs load the script sets their page type needs', ()
     expect(html).toContain('js/description.js');
   }
 
-  // framedata.js and the KaTeX bundle only matter to character pages; loading
-  // them everywhere would be dead weight on every system page.
+  // framedata.js only matters to character pages; loading it everywhere would
+  // be dead weight on every system page.
   expect(char.html).toContain('js/framedata.js');
-  expect(char.html).toContain('katex');
   expect(sys.html).not.toContain('js/framedata.js');
+  // KaTeX is fetched by renderMathIfAny (js/site_utils.js) when a page has
+  // math in it, never up front (v1.1 batch 9): tests/katex-on-demand.spec.js.
+  expect(char.html).not.toContain('katex');
   expect(sys.html).not.toContain('katex');
 });
 

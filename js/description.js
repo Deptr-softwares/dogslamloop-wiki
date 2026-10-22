@@ -2063,17 +2063,9 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
             }
 
             if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
-            
-            if (window.renderMathInElement) {
-                renderMathInElement(document.body, {
-                    delimiters: [
-                        {left: '$$', right: '$$', display: true},
-                        {left: '$', right: '$', display: false}
-                    ],
-                    throwOnError: false
-                });
-            }
-            
+
+            window.renderMathIfAny(document.body);
+
             if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
             return; // EXIT EARLY to guarantee Character logic never runs
         }
@@ -2370,16 +2362,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
             }
         } // End of else block (Character Engine)
 
-        // --- Trigger KaTeX to render LaTeX automatically ---
-        if (window.renderMathInElement) {
-            renderMathInElement(document.body, {
-                delimiters: [
-                    {left: '$$', right: '$$', display: true},
-                    {left: '$', right: '$', display: false}
-                ],
-                throwOnError: false
-            });
-        }
+        window.renderMathIfAny(document.body);
         
         // --- Auto-Refresh ToC when rendering finishes ---
         if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
