@@ -2370,13 +2370,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Notification text is staff-authored free text (the approve/reject "Staff
-// Note" typed into admin.html's prompt, see js/admin-actions.js) and the link
-// is a stored string - neither is safe to drop straight into innerHTML. This
-// mattered the moment the modal below became reachable; before that it was a
-// dormant gap. Duplicated locally rather than imported: this file loads on
-// every page and has no dependency on admin-core.js, which owns the other
-// copy (same reasoning as js/history.js's own local copy).
+// The one escaper. This file loads on every page, so admin-core.js,
+// history.js, recent-changes.js and submissions.js use it rather than their
+// own copies, which they carried until v1.1 batch 9. First written here for
+// notification text: staff-authored free text (the approve/reject "Staff
+// Note" typed into admin.html's prompt, see js/admin-actions.js) and a stored
+// link, neither safe to drop straight into innerHTML.
 window.escapeHtml = function(str) {
     return String(str === null || str === undefined ? '' : str)
         .replace(/&/g, '&amp;')

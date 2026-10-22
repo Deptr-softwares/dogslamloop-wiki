@@ -51,19 +51,6 @@ window.currentHistoryIndex = 0;
 
 // applyDeltaToData is defined once, in site_utils.js (loaded before this file).
 
-// Duplicated from js/admin-core.js rather than shared, matching this
-// codebase's existing precedent (see js/owner.js's kickUser, js/submissions.js,
-// js/recent-changes.js) of small per-file duplication over new cross-file
-// coupling - admin-core.js isn't loaded on this page.
-function escapeHtml(str) {
-    return String(str === null || str === undefined ? '' : str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
 // --- RELATIVE PATH CLEANER ---
 // Converts "../../medias/..." to "medias/..." so images load correctly from the root directory!
 const cleanPaths = (obj) => {

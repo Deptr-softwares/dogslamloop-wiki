@@ -63,14 +63,7 @@ window.changedTabs = [];
 // build directly into innerHTML. Escape at every such interpolation point
 // rather than trusting the data (a malicious revision or chat message
 // shouldn't be able to run script in a reviewer's authenticated session).
-window.escapeHtml = function(str) {
-    return String(str === null || str === undefined ? '' : str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-};
+// The escaper is window.escapeHtml, from js/site_utils.js (loaded first).
 
 // admin.html doesn't load editor.js (which is where edit.html's version of
 // this lives) - reimplemented here rather than pulling in the whole file
