@@ -10,7 +10,8 @@
  * drag-and-drop, with tier names and colours customisable (v0.15); the image
  * carries an optional title (2026-10-20) and the site's branding at the top
  * right of the first tier, on the board too, TierMaker's way (2026-10-21); no
- * Edit and no History, because the page is the tool (2026-10-21).
+ * Edit and no History, because the page is the tool (2026-10-21); a choice of
+ * portraits or icons, and of big or small branding (2026-10-22).
  *
  * The characters come from the shared roster (loadCharacterRoster in
  * js/site_utils.js), which serves every portrait from this site's own
@@ -72,11 +73,31 @@
     const BRAND = { text: 'dogslamloop.com', icon: 'medias/images/DogslamloopIcon.webp', cells: 2 };
     const LABEL_FONT = '"CC-Wild-Words", sans-serif';
 
+    // Owner, 2026-10-22: "make it an option to use either the Icons or the
+    // Portraits", and "either the big branding at the top right corner, or the
+    // small subtle 1-box size branding at the bottom right corner". Both are
+    // preferences like the quality: kept on the device and through RESET.
+    // An icon is the roster's (rosterIconPath, js/pagebuilder.js), drawn the
+    // way the certified lists draw one; a character with no icon keeps its
+    // portrait.
+    const PICTURES = [
+        { value: 'portrait', label: 'Portraits' },
+        { value: 'icon', label: 'Icons' },
+    ];
+    const BRANDINGS = [
+        { value: 'big', label: 'Big (top right)' },
+        { value: 'small', label: 'Small (bottom right)' },
+    ];
+    // The small one sits at about half strength, on the board and the image.
+    const SMALL_BRAND_ALPHA = 0.5;
+
     const state = {
         roster: new Map(),   // page_id -> { name, url, image }, hidden left out
         title: '',
         tiers: [],           // [{ name, color, characters: [page_id] }]
         scale: DEFAULT_SCALE, // the image quality; kept through RESET
+        pictures: 'portrait', // 'portrait' | 'icon'; kept through RESET
+        branding: 'big',      // 'big' | 'small'; kept through RESET
         picked: null,        // tap-to-place: the character picked up
         press: null,         // a mouse press that may become a drag
         drag: null,
@@ -141,12 +162,17 @@
         state.title = list.title;
         state.tiers = list.tiers;
         state.scale = QUALITIES.some(q => q.scale === (saved && saved.scale)) ? saved.scale : DEFAULT_SCALE;
+        state.pictures = PICTURES.some(p => p.value === (saved && saved.pictures)) ? saved.pictures : 'portrait';
+        state.branding = BRANDINGS.some(b => b.value === (saved && saved.branding)) ? saved.branding : 'big';
     }
 
     function save() {
         let saved = true;
         try {
-            localStorage.setItem(STORE_KEY, JSON.stringify({ v: 1, title: state.title, tiers: state.tiers, scale: state.scale }));
+            localStorage.setItem(STORE_KEY, JSON.stringify({
+                v: 1, title: state.title, tiers: state.tiers,
+                scale: state.scale, pictures: state.pictures, branding: state.branding,
+            }));
         } catch (e) {
             saved = false;
         }
@@ -200,14 +226,18 @@
 
     // --- THE BOARD ---
 
+    // The icon for a character when Icons is picked, or null.
+    function iconPath(id) {
+        return state.pictures === 'icon' && typeof window.rosterIconPath === 'function'
+            ? window.rosterIconPath(id) : null;
+    }
+
     function portrait(id) {
         const rootPath = window.getRootPath();
         const meta = state.roster.get(id);
+        const color = window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name];
 
         const face = el('span', 'tier-portrait');
-        if (window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name]) {
-            face.style.backgroundColor = window.CHARACTER_COLORS[meta.name];
-        }
         // Under the image, so a portrait that fails to load still says who.
         face.appendChild(el('span', 'tier-portrait-name', meta.name));
 
@@ -216,8 +246,34 @@
         img.alt = '';
         // Or the browser starts its own image drag and cancels ours.
         img.draggable = false;
-        img.addEventListener('error', () => { img.style.display = 'none'; });
-        if (meta.image) img.src = rootPath + meta.image;
+
+        // The portrait's look: the character's colour fills the box.
+        const asPortrait = () => {
+            face.classList.remove('tier-portrait-icon', 'mk-icon-loaded');
+            face.style.removeProperty('--char-color');
+            if (color) face.style.backgroundColor = color;
+            if (meta.image) img.src = rootPath + meta.image;
+            else img.style.display = 'none';
+        };
+        // No icon yet: the portrait instead. No portrait either: the name.
+        img.addEventListener('error', () => {
+            if (face.classList.contains('tier-portrait-icon')) asPortrait();
+            else img.style.display = 'none';
+        });
+
+        const icon = iconPath(id);
+        if (icon) {
+            // The icon's look (style/Layout.css, .tier-portrait-icon): the
+            // colour moves to the border and the icon is fitted, not cropped.
+            face.classList.add('tier-portrait-icon');
+            if (color) face.style.setProperty('--char-color', color);
+            img.addEventListener('load', () => {
+                if (face.classList.contains('tier-portrait-icon')) face.classList.add('mk-icon-loaded');
+            });
+            img.src = rootPath + icon;
+        } else {
+            asPortrait();
+        }
         face.appendChild(img);
         return face;
     }
@@ -234,7 +290,7 @@
     // Decorative: the copied image says the same in pixels. Its corner is held
     // by grid placement (create_tier_list.css), so nothing here measures.
     function brand() {
-        const node = el('div', 'mk-brand');
+        const node = el('div', state.branding === 'small' ? 'mk-brand mk-brand-small' : 'mk-brand');
         node.setAttribute('aria-hidden', 'true');
         const icon = document.createElement('img');
         icon.className = 'mk-brand-icon';
@@ -258,6 +314,7 @@
         const board = state.root.querySelector('[data-mk-board]');
         const pool = state.root.querySelector('[data-mk-pool]');
         board.textContent = '';
+        const last = state.tiers.length - 1;
 
         state.tiers.forEach((tier, index) => {
             const row = el('div', 'mk-row');
@@ -269,8 +326,11 @@
 
             const body = el('div', 'mk-body mk-zone');
             body.dataset.zone = String(index);
-            if (index === 0) body.appendChild(brand());
+            if (index === 0 && state.branding === 'big') body.appendChild(brand());
             tier.characters.forEach(id => body.appendChild(entry(id)));
+            // After the characters, so the grid puts it after the last one,
+            // in the last column (create_tier_list.css).
+            if (index === last && state.branding === 'small') body.appendChild(brand());
             row.appendChild(body);
             board.appendChild(row);
         });
@@ -638,9 +698,48 @@
         return lines;
     }
 
-    function drawEntry(ctx, id, img, x, y, size, border) {
+    // An icon as the board draws one (style/Layout.css, .tier-portrait-icon):
+    // the dark ground with its faint hatching, the icon fitted whole, and the
+    // character's colour on a 3px border.
+    function drawIconEntry(ctx, img, x, y, size, color, ground) {
+        ctx.fillStyle = ground;
+        ctx.fillRect(x, y, size, size);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, y, size, size);
+        ctx.clip();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+        ctx.lineWidth = 2;
+        // -45deg stripes, 8px apart across them.
+        const step = 8 * Math.SQRT2;
+        for (let c = 0; c <= size * 2; c += step) {
+            ctx.beginPath();
+            ctx.moveTo(x + c, y);
+            ctx.lineTo(x + c - size, y + size);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        const fit = Math.min(size / img.naturalWidth, size / img.naturalHeight);
+        const w = img.naturalWidth * fit;
+        const h = img.naturalHeight * fit;
+        ctx.drawImage(img, x + (size - w) / 2, y + (size - h) / 2, w, h);
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = color;
+        ctx.strokeRect(x + 1.5, y + 1.5, size - 3, size - 3);
+    }
+
+    function drawEntry(ctx, id, picture, x, y, size, border, ground) {
         const meta = state.roster.get(id);
-        ctx.fillStyle = (window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name]) || '#333333';
+        const color = (window.CHARACTER_COLORS && window.CHARACTER_COLORS[meta.name]) || '#333333';
+        const img = picture.img;
+        if (picture.icon) {
+            drawIconEntry(ctx, img, x, y, size, color, ground);
+            return;
+        }
+
+        ctx.fillStyle = color;
         ctx.fillRect(x, y, size, size);
 
         if (img && img.naturalWidth && img.naturalHeight) {
@@ -686,10 +785,15 @@
         }
 
         const rootPath = window.getRootPath();
+        // Each character's picture, and whether it is an icon. An icon that
+        // will not load falls back to the portrait, as on the board.
         const images = new Map();
         await Promise.all(state.tiers.flatMap(t => t.characters).map(async id => {
             const meta = state.roster.get(id);
-            images.set(id, meta.image ? await loadImage(rootPath + meta.image) : null);
+            const iconFile = iconPath(id);
+            const art = iconFile ? await loadImage(rootPath + iconFile) : null;
+            const face = !art && meta.image ? await loadImage(rootPath + meta.image) : null;
+            images.set(id, { img: art || face, icon: !!art });
         }));
         const icon = await loadImage(rootPath + BRAND.icon);
 
@@ -697,12 +801,19 @@
         const bodyWidth = IMG.width - IMG.label - IMG.pad * 2;
         const perRow = Math.max(1, Math.floor((bodyWidth + IMG.gap) / (IMG.cell + IMG.gap)));
         const cell = Math.floor((bodyWidth - (perRow - 1) * IMG.gap) / perRow);
-        // The place character n takes in tier i: the first tier's first row
-        // stops where the branding starts, and the rest carry on below it.
+        const small = state.branding === 'small';
+        const brandTier = small ? state.tiers.length - 1 : 0;
+        // Big: the place character n takes in the first tier stops where the
+        // branding starts on the first row, and the rest carry on below it.
         const firstRow = perRow - BRAND.cells;
-        const slot = (i, n) => (i === 0 && n >= firstRow ? n + BRAND.cells : n);
+        const slot = (i, n) => (!small && i === 0 && n >= firstRow ? n + BRAND.cells : n);
+        // Small: the last column of the line after the last tier's last
+        // character, or of a new line when that one is full. The same place
+        // the board's grid gives it.
+        const smallSlot = (count) => Math.floor(count / perRow) * perRow + perRow - 1;
         const heights = state.tiers.map((t, i) => {
-            const taken = t.characters.length + (i === 0 ? BRAND.cells : 0);
+            let taken = t.characters.length;
+            if (i === brandTier) taken = small ? smallSlot(taken) + 1 : taken + BRAND.cells;
             const lines = Math.max(1, Math.ceil(taken / perRow));
             return lines * cell + (lines - 1) * IMG.gap + IMG.pad * 2;
         });
@@ -754,12 +865,17 @@
                 const at = slot(i, n);
                 const x = IMG.label + IMG.pad + (at % perRow) * (cell + IMG.gap);
                 const cy = y + IMG.pad + Math.floor(at / perRow) * (cell + IMG.gap);
-                drawEntry(ctx, id, images.get(id), x, cy, cell, line);
+                drawEntry(ctx, id, images.get(id), x, cy, cell, line, ground);
             });
 
-            if (i === 0) {
+            if (i === brandTier && small) {
+                const at = smallSlot(tier.characters.length);
+                const bx = IMG.label + IMG.pad + (at % perRow) * (cell + IMG.gap);
+                const by = y + IMG.pad + Math.floor(at / perRow) * (cell + IMG.gap);
+                drawBrand(ctx, icon, bx, by, cell, cell, ink, true);
+            } else if (i === brandTier) {
                 const bx = IMG.label + IMG.pad + firstRow * (cell + IMG.gap);
-                drawBrand(ctx, icon, bx, y + IMG.pad, BRAND.cells * cell + (BRAND.cells - 1) * IMG.gap, cell, ink);
+                drawBrand(ctx, icon, bx, y + IMG.pad, BRAND.cells * cell + (BRAND.cells - 1) * IMG.gap, cell, ink, false);
             }
 
             y += h;
@@ -771,19 +887,24 @@
         return canvas;
     }
 
-    // The icon over dogslamloop.com, centred in its block, at full strength
-    // like TierMaker's own.
-    function drawBrand(ctx, icon, x, y, w, h, ink) {
-        const iconH = icon ? Math.round(h * 0.46) : 0;
+    // The icon over dogslamloop.com, centred in its block: big at full
+    // strength like TierMaker's own, small in one box at about half.
+    function drawBrand(ctx, icon, x, y, w, h, ink, small) {
+        ctx.save();
+        if (small) ctx.globalAlpha = SMALL_BRAND_ALPHA;
+        const iconH = icon ? Math.round(h * (small ? 0.4 : 0.46)) : 0;
         const iconW = icon ? iconH * icon.naturalWidth / icon.naturalHeight : 0;
-        const space = icon ? 8 : 0;
-        const size = fitFont(ctx, BRAND.text, w - 16, 26, 12, LABEL_FONT);
+        const space = icon ? (small ? 5 : 8) : 0;
+        const size = small
+            ? fitFont(ctx, BRAND.text, w - 10, 14, 8, LABEL_FONT)
+            : fitFont(ctx, BRAND.text, w - 16, 26, 12, LABEL_FONT);
         const top = y + (h - (iconH + space + size)) / 2;
         if (icon) ctx.drawImage(icon, x + (w - iconW) / 2, top, iconW, iconH);
         ctx.fillStyle = ink;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillText(BRAND.text, x + w / 2, top + iconH + space);
+        ctx.restore();
     }
 
     function toPng(canvas) {
@@ -876,12 +997,26 @@
                 <div class="mk-pool mk-zone" data-zone="pool" data-mk-pool></div>
             </section>
             <div class="mk-actions">
-                <label class="mk-quality">
-                    <span class="mk-quality-label">Quality</span>
-                    <select class="filter-select" data-mk-quality>
-                        ${QUALITIES.map(q => `<option value="${q.scale}">${q.label}</option>`).join('')}
-                    </select>
-                </label>
+                <div class="mk-options">
+                    <label class="mk-option">
+                        <span class="mk-option-label">Pictures</span>
+                        <select class="filter-select" data-mk-pictures>
+                            ${PICTURES.map(p => `<option value="${p.value}">${p.label}</option>`).join('')}
+                        </select>
+                    </label>
+                    <label class="mk-option">
+                        <span class="mk-option-label">Branding</span>
+                        <select class="filter-select" data-mk-branding>
+                            ${BRANDINGS.map(b => `<option value="${b.value}">${b.label}</option>`).join('')}
+                        </select>
+                    </label>
+                    <label class="mk-option">
+                        <span class="mk-option-label">Quality</span>
+                        <select class="filter-select" data-mk-quality>
+                            ${QUALITIES.map(q => `<option value="${q.scale}">${q.label}</option>`).join('')}
+                        </select>
+                    </label>
+                </div>
                 <button type="button" class="btn-sys btn-sys-green" data-mk-action="copy">COPY IMAGE</button>
                 <button type="button" class="btn-sys btn-sys-red" data-mk-action="reset">RESET</button>
                 <span class="mk-status" data-mk-status role="status"></span>
@@ -905,6 +1040,20 @@
         quality.addEventListener('change', () => {
             state.scale = Number(quality.value);
             save();
+        });
+        const pictures = root.querySelector('[data-mk-pictures]');
+        pictures.value = state.pictures;
+        pictures.addEventListener('change', () => {
+            state.pictures = pictures.value;
+            save();
+            renderBoard();
+        });
+        const branding = root.querySelector('[data-mk-branding]');
+        branding.value = state.branding;
+        branding.addEventListener('change', () => {
+            state.branding = branding.value;
+            save();
+            renderBoard();
         });
 
         state.marker = el('div', 'mk-drop-marker');
