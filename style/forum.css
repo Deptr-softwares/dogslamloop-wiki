@@ -42,9 +42,28 @@
     margin-bottom: 0.6rem;
 }
 
+/* Each category's colour (owner, 2026-10-23), worn by its filter button and
+   by every post's tag. Blue is a fixed value, as .btn-sys-blue's is. */
+.forum-cat-question    { --cat: hsl(213, 94%, 68%); }
+.forum-cat-guide       { --cat: #22c55e; }
+.forum-cat-discussion  { --cat: #eab308; }
+.forum-cat-art         { --cat: #f472b6; }
+.forum-cat-game-update { --cat: #f97316; }
+.forum-cat-promotion   { --cat: #a855f7; }
+
+/* A filter button is .btn-sys, whose colour tier is these three. Two classes,
+   so it beats .btn-sys-regular whichever file loads last. All has no
+   category and stays regular. */
+.forum-filter[class*="forum-cat-"] {
+    --sys-edge: var(--cat);
+    --sys-fill: var(--cat);
+    color: var(--cat);
+}
+
+/* The category on show is filled with its colour, as a hovered button is. */
 .forum-filter[aria-pressed="true"] {
-    border-color: var(--accent-blue);
-    color: var(--text-white);
+    background-size: var(--sys-cut) var(--sys-cut), 100% 100%, auto;
+    color: #000;
 }
 
 .forum-list {
@@ -109,16 +128,16 @@
     color: var(--text-muted);
 }
 
-/* One look for every category; the name is the information. */
+/* In its category's colour, on a faint tint of it. */
 .forum-tag {
     font-family: var(--text-mono);
     font-size: 0.6rem;
     font-weight: bold;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--text-white);
-    background: var(--bg-main);
-    border: 1px solid var(--border-color);
+    color: var(--cat, var(--text-white));
+    background: color-mix(in srgb, var(--cat, transparent) 12%, var(--bg-main));
+    border: 1px solid var(--cat, var(--border-color));
     padding: 0.1rem 0.35rem;
     white-space: nowrap;
 }
