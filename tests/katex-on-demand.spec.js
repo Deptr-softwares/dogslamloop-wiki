@@ -98,6 +98,76 @@ test('math in a script is not math', async ({ page }) => {
     expect(seen).toEqual([]);
 });
 
+test('a system page draws its math too', async ({ page }) => {
+    // The system branch of description.js has its own call. Before this batch
+    // no system page loaded KaTeX at all, so math there never drew.
+    await mockPageRow(page, {
+        page_id: 'm1_trading', frame_data: {},
+        desc_data: { tabs: [{ tabId: 'basics', tabLabel: 'Basics', sections: [{ sectionTitle: 'Zzq Maths', layout: 'full', width: 100, alignment: 'left', blocks: [{ type: 'paragraph', content: 'Frames are $\\frac{1}{60}$ s.' }] }] }] },
+    });
+    await page.goto('/systems/m1-trading/index.html', { waitUntil: 'networkidle' });
+    await expect(page.locator('#tab-basics .katex')).toHaveCount(1);
+});
+
+// The editor's own page row and session, as in heading-side-bar.spec.js.
+function mockEditor(page, desc) {
+    return page.addInitScript(({ desc }) => {
+        try {
+            localStorage.setItem('dsl_editor_tutorial_seen', '1');
+            localStorage.setItem('dsl_notice_seen_editor', '1');
+        } catch (e) { /* ignore */ }
+        const rowsFor = (table) => {
+            if (table === 'page_data') return { data: { page_id: 'boomcat', desc_data: JSON.parse(JSON.stringify(desc)), frame_data: { m1s: [], specials: [], skills: [] } }, error: null };
+            if (['user_roles', 'site_settings', 'page_permissions', 'pending_revisions'].includes(table)) return { data: null, error: null };
+            return { data: [], error: null };
+        };
+        const builder = (table) => {
+            const result = rowsFor(table);
+            const chain = {
+                select() { return chain; }, eq() { return chain; }, in() { return chain; }, neq() { return chain; },
+                order() { return chain; }, limit() { return chain; },
+                single: async () => result, maybeSingle: async () => result,
+                then: (res) => Promise.resolve(result).then(res),
+            };
+            return chain;
+        };
+        Object.defineProperty(window, 'supabase', {
+            configurable: true,
+            get() { return window.__lib; },
+            set(lib) {
+                window.__lib = lib;
+                if (lib && lib.createClient && !lib.__patched) {
+                    lib.createClient = () => ({
+                        auth: {
+                            getSession: async () => ({ data: { session: { user: { id: 'c-1', email: 'c@b.c' }, access_token: 't' } } }),
+                            onAuthStateChange: () => ({ data: { subscription: { unsubscribe() {} } } }),
+                            signOut: async () => ({}),
+                        },
+                        from: builder,
+                        rpc: async () => ({ data: null, error: null }),
+                        storage: { from: () => ({ list: async () => ({ data: [], error: null }) }) },
+                    });
+                    lib.__patched = true;
+                }
+            },
+        });
+    }, { desc });
+}
+
+test("the editor's live preview draws math, which it never did before", async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.setViewportSize({ width: 1400, height: 900 });
+    await mockEditor(page, {
+        overview: [], strategy: [], extras: [], profile: { stats: [], image: '' },
+        counterplay: [{ topic: 'Spacing', content: [{ type: 'paragraph', content: ['Hold $x^2$ frames.'], align: 'left' }] }],
+    });
+    await page.goto('/edit.html?char=boomcat&type=character&tab=counterplay', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#block-list .block-card').first()).toBeVisible({ timeout: 45000 });
+    await expect(page.locator('.live-preview-pane .katex')).toHaveCount(1);
+    expect(errors).toEqual([]);
+});
+
 test('KaTeX that cannot be reached leaves the text and the page working', async ({ page }) => {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
