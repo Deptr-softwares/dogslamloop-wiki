@@ -463,10 +463,15 @@ async function readClipboardImage(page) {
         const brightest = (...b) => most(box(...b), (r, g, bl) => r + g + bl);
         const colourful = (...b) => most(box(...b), (r, g, bl) => Math.max(r, g, bl) - Math.min(r, g, bl));
         // A portrait has many colours; a flat fill with its border has two.
+        // Counted above and below the middle, where a box with no picture
+        // writes the name: its smoothed edges alone came to more than 50, so
+        // with the portrait never drawn this still passed (v1.1 batch 10).
         const distinct = (x0, y0, size) => {
-            const d = box(x0, y0, x0 + size, y0 + size);
             const seen = new Set();
-            for (let i = 0; i < d.length; i += 4) seen.add(`${d[i]},${d[i + 1]},${d[i + 2]}`);
+            for (const [top, bottom] of [[y0, y0 + 30], [y0 + size - 25, y0 + size]]) {
+                const d = box(x0, top, x0 + size, bottom);
+                for (let i = 0; i < d.length; i += 4) seen.add(`${d[i]},${d[i + 1]},${d[i + 2]}`);
+            }
             return seen.size;
         };
         const h = bitmap.height / s;
