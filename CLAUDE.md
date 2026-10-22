@@ -137,7 +137,7 @@ Code an assistant wrote is a draft until something has checked it. Assistant cod
 
 On a draft the owner hands over: grammar and spelling only, keep their wording, list every edit, and flag (don't fix) a line that does not match what changed. Their rules for entries are in the `writing-site-text` skill.
 
-**The current version's devlog is its SPEC.** Design decisions recorded there come before building: read the whole section first (v0.15's Combos tab was built to an invented shape while the real one sat in the same file). `devlogs/` holds past versions; the current one is at the root (`V<x.y>-DEVLOG.md`).
+**The current version's devlog is its SPEC.** Design decisions recorded there come before building: read the whole section first (v0.15's Combos tab was built to an invented shape while the real one sat in the same file). The current one is at the root (`V<x.y>-DEVLOG.md`) until its release, then moves to `devlogs/`. The devlogs Claude wrote (up to and including v1.0), the silent releases and the old transition plan are in `.claude/archived-devlogs/` (owner, 2026-10-22).
 
 **The current devlog stays untracked until the release** (owner, 2026-10-18). Read it from disk. Never stage it in an item PR, and never run anything that deletes untracked files (`git clean`, `git stash -u`). It is committed, exactly as the owner wrote it, in the last PR into `next-update` before the release PR (the `ship-a-release` skill). If it ever cannot be read from disk, commit it in every PR instead.
 

@@ -1,7 +1,7 @@
 // The Section Box (SectionedBox) - v0.19 C3.
 //
 // The owner's own item, carried from v0.16 through v0.17 and v0.18. Their
-// wording, from devlogs/V0.16-DEVLOG.md: a box with a title, a row of
+// wording, from .claude/archived-devlogs/V0.16-DEVLOG.md: a box with a title, a row of
 // switchable tabs and the current tab's content, holding an Introduction,
 // Sections, and Contents in Sections - the Introduction and each section's
 // contents using "the Accordion recursive logic to hold other Blocks". Inside a
