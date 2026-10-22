@@ -156,7 +156,6 @@ function characterStub({ pageId, title, docTitle, social }) {
     ${MARKER}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preconnect" href="https://gtqswjspxymjdopljmfi.supabase.co" crossorigin>
     <title>${docTitle}</title>
     <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
 
@@ -212,7 +211,6 @@ function systemStub({ pageId, title, docTitle, social }) {
     ${MARKER}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preconnect" href="https://gtqswjspxymjdopljmfi.supabase.co" crossorigin>
     <title>${docTitle}</title>
     <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
 
@@ -277,7 +275,6 @@ function mediaStub({ pageId, title, docTitle, social, pageType, script, extraScr
     ${MARKER}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preconnect" href="https://gtqswjspxymjdopljmfi.supabase.co" crossorigin>
     <title>${docTitle}</title>
     <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
 
