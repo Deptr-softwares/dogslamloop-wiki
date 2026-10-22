@@ -165,6 +165,14 @@ test("the editor's live preview draws math, which it never did before", async ({
     await page.goto('/edit.html?char=boomcat&type=character&tab=counterplay', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#block-list .block-card').first()).toBeVisible({ timeout: 45000 });
     await expect(page.locator('.live-preview-pane .katex')).toHaveCount(1);
+
+    // Math typed while editing: the preview's own redraw (editor-sync.js),
+    // which is not the page render that drew the first one.
+    const field = page.locator('#block-list .block-card').first().locator('textarea.editor-textarea');
+    await field.click();
+    await field.press('End');
+    await page.keyboard.type(' Then $y^3$.');
+    await expect(page.locator('.live-preview-pane .katex')).toHaveCount(2);
     expect(errors).toEqual([]);
 });
 
