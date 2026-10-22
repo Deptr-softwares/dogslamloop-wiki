@@ -1357,6 +1357,12 @@ window.refreshTOC = function() {
     headers.forEach((header) => {
         if (header.textContent.trim() === 'Move Overview and Strategy') return;
         if (!header.id) return;
+        // A section the page itself has hidden (the Tier List's changelog
+        // while nobody is picked) is not there for the reader, and a link to
+        // it scrolls nowhere. Only the .hidden class: a closed accordion or a
+        // box's other tab is opened by the jump (revealAnchorTarget) and stays.
+        const hiddenBy = header.closest('.hidden');
+        if (hiddenBy && targetArea.contains(hiddenBy)) return;
 
         const isMinor = ANCHOR_MINOR_CLASSES.some(c => header.classList.contains(c));
         const itemData = { id: header.id, text: anchorLabel(header) };

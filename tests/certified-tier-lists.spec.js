@@ -31,8 +31,8 @@ const list = (over = {}) => ({
     ...over,
 });
 
-async function mockLists(page, { lists = [], changes = [], listError = null, intro = null, introError = null } = {}) {
-    await page.addInitScript(({ lists, changes, listError, intro, introError }) => {
+async function mockLists(page, { lists = [], changes = [], listError = null, intro = null, introError = null, introDelay = 0 } = {}) {
+    await page.addInitScript(({ lists, changes, listError, intro, introError, introDelay }) => {
         Object.defineProperty(window, 'supabase', {
             configurable: true,
             get() { return window.__lib; },
@@ -67,9 +67,12 @@ async function mockLists(page, { lists = [], changes = [], listError = null, int
                         if (table === 'tier_page_settings') {
                             const chain = {
                                 select() { return chain; },
-                                maybeSingle: async () => (introError
-                                    ? { data: null, error: introError }
-                                    : { data: intro ? { intro } : null, error: null }),
+                                maybeSingle: async () => {
+                                    if (introDelay) await new Promise(r => setTimeout(r, introDelay));
+                                    return introError
+                                        ? { data: null, error: introError }
+                                        : { data: intro ? { intro } : null, error: null };
+                                },
                             };
                             return chain;
                         }
@@ -109,7 +112,7 @@ async function mockLists(page, { lists = [], changes = [], listError = null, int
                 };
             },
         });
-    }, { lists, changes, listError, intro, introError });
+    }, { lists, changes, listError, intro, introError, introDelay });
 }
 
 async function open(page, url = PAGE) {
@@ -403,6 +406,49 @@ test('going back to nobody brings the page introduction back', async ({ page }) 
     // Reloading without the parameter is how a reader gets back to the picker.
     await page.goto(PAGE, { waitUntil: 'networkidle' });
     await expect(page.locator('#tier-page-intro')).toBeVisible();
+});
+
+// The sidebar's "On this page" (v1.1 batch 10). Nothing on this page asked for
+// it before, so it said "Loading contents..." for good. It follows what is
+// showing: a heading in a section the page has hidden is not listed.
+const tocLinks = (page) => page.locator('#dynamic-toc a');
+
+test('the contents list the page introduction while nobody is picked', async ({ page }) => {
+    await mockLists(page, {
+        lists: [list()],
+        intro: [{ type: 'heading', content: 'How These Lists Work', size: 'h2' }],
+    });
+    await open(page);
+
+    await expect(page.locator('#dynamic-toc')).not.toContainText('Loading contents');
+    await expect(tocLinks(page)).toHaveText(['How These Lists Work']);
+});
+
+test('an introduction that arrives after the lists still reaches the contents', async ({ page }) => {
+    await mockLists(page, {
+        lists: [list()],
+        intro: [{ type: 'heading', content: 'How These Lists Work', size: 'h2' }],
+        introDelay: 2500,
+    });
+    await open(page);
+    await expect(page.locator('.ctl-nobody')).toBeVisible();
+
+    await expect(tocLinks(page)).toHaveText(['How These Lists Work'], { timeout: 10000 });
+});
+
+test('picking a person swaps the contents to their list', async ({ page }) => {
+    await mockLists(page, {
+        lists: [list({ reasoning: [{ type: 'heading', content: 'Why Zoners Win', size: 'h3' }] })],
+        intro: [{ type: 'heading', content: 'How These Lists Work', size: 'h2' }],
+    });
+    await open(page);
+    await expect(tocLinks(page)).toHaveText(['How These Lists Work']);
+
+    await page.click('[data-list-slug="owner"]');
+
+    await expect(tocLinks(page)).toHaveText(['Reasoning & Changelogs', 'Why Zoners Win']);
+    await tocLinks(page).filter({ hasText: 'Why Zoners Win' }).click();
+    await expect.poll(() => page.evaluate(() => location.hash)).toBe('#sec-why-zoners-win');
 });
 
 test('a list with no introduction simply has none', async ({ page }) => {
