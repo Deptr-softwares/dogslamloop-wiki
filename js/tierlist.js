@@ -69,10 +69,6 @@ async function fetchTierRoster() {
     }
 }
 
-window.getTierEditorContainer = function() {
-    return document.getElementById('interactive-builder'); 
-};
-
 // --- PORTRAIT ENGINE ---
 // Generates a standardized Character Portrait icon
 function getCharPortraitHTML(charId, isDraggable = false) {

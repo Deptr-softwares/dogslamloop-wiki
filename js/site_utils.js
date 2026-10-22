@@ -2370,13 +2370,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Notification text is staff-authored free text (the approve/reject "Staff
-// Note" typed into admin.html's prompt, see js/admin-actions.js) and the link
-// is a stored string - neither is safe to drop straight into innerHTML. This
-// mattered the moment the modal below became reachable; before that it was a
-// dormant gap. Duplicated locally rather than imported: this file loads on
-// every page and has no dependency on admin-core.js, which owns the other
-// copy (same reasoning as js/history.js's own local copy).
+// The one escaper. This file loads on every page, so admin-core.js,
+// history.js, recent-changes.js and submissions.js use it rather than their
+// own copies, which they carried until v1.1 batch 9. First written here for
+// notification text: staff-authored free text (the approve/reject "Staff
+// Note" typed into admin.html's prompt, see js/admin-actions.js) and a stored
+// link, neither safe to drop straight into innerHTML.
 window.escapeHtml = function(str) {
     return String(str === null || str === undefined ? '' : str)
         .replace(/&/g, '&amp;')
@@ -2393,6 +2392,65 @@ window.escapeHtml = function(str) {
 // so a value can still break a line and can no longer add an element.
 window.escapeHtmlKeepBreaks = function(str) {
     return window.escapeHtml(str).replace(/&lt;\s*\/?\s*br\s*\/?\s*&gt;/gi, '<br>');
+};
+
+// KATEX, ONLY WHERE THERE IS MATH (v1.1 batch 9). It shipped in 28 pages' heads
+// since the first upload and no page used it (2026-10-22: one `$` in all the
+// indexed text), so every character page paid 81 KB and a walk of the whole
+// page per render. Now it is fetched the first time a text node holds a
+// $...$ pair, which is the only text auto-render can turn into math anyway:
+// it reads one text node at a time.
+const KATEX_DIST = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/';
+const MATH_DELIMITERS = [
+    { left: '$$', right: '$$', display: true },
+    { left: '$', right: '$', display: false },
+];
+const MATH_PAIR = /\$[^$]+\$/;
+const NOT_PROSE = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'NOSCRIPT']);
+let katexLoading = null;
+
+function hasMath(root) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (MATH_PAIR.test(node.nodeValue) && !NOT_PROSE.has(node.parentNode.nodeName)) return true;
+    }
+    return false;
+}
+
+function loadKatex() {
+    if (!katexLoading) {
+        const add = src => new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = src;
+            script.onload = resolve;
+            script.onerror = () => reject(new Error(`Could not load ${src}`));
+            document.head.appendChild(script);
+        });
+        const css = document.createElement('link');
+        css.rel = 'stylesheet';
+        css.href = `${KATEX_DIST}katex.min.css`;
+        document.head.appendChild(css);
+        katexLoading = add(`${KATEX_DIST}katex.min.js`)
+            .then(() => add(`${KATEX_DIST}contrib/auto-render.min.js`))
+            .catch(e => {
+                // The math stays as its $...$ text; the next render tries again.
+                katexLoading = null;
+                throw e;
+            });
+    }
+    return katexLoading;
+}
+
+window.renderMathIfAny = async function(root) {
+    if (!root || !hasMath(root)) return false;
+    try {
+        await loadKatex();
+    } catch (e) {
+        console.error('Math could not be drawn:', e.message);
+        return false;
+    }
+    window.renderMathInElement(root, { delimiters: MATH_DELIMITERS, throwOnError: false });
+    return true;
 };
 
 window.initNotifications = async function() {

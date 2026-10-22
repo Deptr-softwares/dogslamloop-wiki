@@ -9,18 +9,6 @@
  * item 4, "reviewer workflow/UI redesign", Phase 1).
  */
 
-// Duplicated from js/admin-core.js rather than shared, matching this
-// codebase's existing precedent (see js/owner.js's kickUser) of small
-// per-file duplication over new cross-file coupling.
-function escapeHtml(str) {
-    return String(str === null || str === undefined ? '' : str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
 // --- LIGHTWEIGHT DSL MODAL HELPERS (dynamic, no static markup needed) ---
 function showConfirm(message, confirmText = 'CONFIRM', isDanger = false) {
     return new Promise((resolve) => {

@@ -51,9 +51,14 @@ test('recent-changes.html: escapes author/changelog content (no raw HTML injecti
   await page.waitForTimeout(300);
 
   expect(dialogs).toEqual([]);
-  const html = await page.locator('#recent-changes-list').innerHTML();
-  expect(html).not.toContain('<img src=x');
-  expect(html).not.toContain('<script>alert(2)</script>');
+  // Positive, and on elements. The old check was that the HTML lacked
+  // '<img src=x', which still held with '<' unescaped: the browser built the
+  // <img> and serialised it back as <img src="x" ...> (v1.1 batch 9, found by
+  // a mutation probe once this page began using site_utils.js's escaper).
+  const list = page.locator('#recent-changes-list');
+  await expect(list).toContainText('<img src=x onerror=alert(1)>');
+  await expect(list).toContainText('<script>alert(2)</script>');
+  expect(await list.locator('img, script').count()).toBe(0);
 });
 
 test('recent-changes.html: pagination - OLDER fetches the next page, NEWER is disabled at the start', async ({ page }) => {

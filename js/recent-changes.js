@@ -11,18 +11,6 @@
 const PAGE_SIZE = 20;
 let currentOffset = 0;
 
-// Duplicated from js/admin-core.js rather than shared, matching this
-// codebase's existing precedent (see js/owner.js's kickUser, js/submissions.js)
-// of small per-file duplication over new cross-file coupling.
-function escapeHtml(str) {
-    return String(str === null || str === undefined ? '' : str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
     if (window.initSidebarToggle) window.initSidebarToggle();
     if (window.initMobileNav) window.initMobileNav();

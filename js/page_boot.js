@@ -59,7 +59,7 @@ window.runPageBoot = async function (route) {
             const tabIds = route.tabs
                 ? route.tabs.map(t => t.id)
                 : window.getCharacterTabIds({ includeOptional: true });
-            window.setupTabs('nav', 'tab', tabIds, 'major');
+            window.setupTabs('nav', 'tab', tabIds, 'major', { address: true });
         }
 
         // 3. Fire the data fetchers concurrently - no blocking await, matching
