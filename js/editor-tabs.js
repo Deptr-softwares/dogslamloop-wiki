@@ -75,6 +75,22 @@ function clearSubSelection() {
     window.currentDocTableIndex = undefined;
 }
 
+// For the reorder bar (js/editor-reorder.js), which changes the order under the
+// selection. Only the selections that name the open entry BY POSITION are
+// forgotten, because those are the ones a move makes point at a neighbour. The
+// fixed sections and the Combo List stay open: the List holds no block buffer,
+// and dropping it would close the strip whose entry was just moved.
+window.clearPositionalSelection = function () {
+    window.currentMatchupIndex = undefined;
+    window.currentKeyedIndex = {};
+    if (String(window.currentOverviewSection || '').startsWith('extra-')) window.currentOverviewSection = null;
+    // The open card's write-up is flushed into the open group by position too.
+    if (String(window.currentDocSection || '').startsWith('group-')) {
+        window.currentDocSection = null;
+        window.currentDocCardIndex = undefined;
+    }
+};
+
 // Redraws the open tab from desc_data after something changed the DATA rather
 // than the block buffer: Find & Replace and its UNDO. The loaders' write-back
 // on entry is right after typing and wrong here, because the buffer is now the
