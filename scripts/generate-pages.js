@@ -156,6 +156,7 @@ function characterStub({ pageId, title, docTitle, social }) {
     ${MARKER}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://gtqswjspxymjdopljmfi.supabase.co" crossorigin>
     <title>${docTitle}</title>
     <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
 
@@ -185,7 +186,7 @@ ${social}
     <script src="../../js/input_slots.js"></script>
     <script src="../../js/page_router.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
 
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
@@ -211,6 +212,7 @@ function systemStub({ pageId, title, docTitle, social }) {
     ${MARKER}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://gtqswjspxymjdopljmfi.supabase.co" crossorigin>
     <title>${docTitle}</title>
     <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
 
@@ -242,7 +244,7 @@ ${social}
     <script src="../../js/input_slots.js"></script>
     <script src="../../js/page_router.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
@@ -275,6 +277,7 @@ function mediaStub({ pageId, title, docTitle, social, pageType, script, extraScr
     ${MARKER}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://gtqswjspxymjdopljmfi.supabase.co" crossorigin>
     <title>${docTitle}</title>
     <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
 
@@ -300,7 +303,7 @@ ${social}
     <script src="../../js/input_slots.js"></script>
     <script src="../../js/page_router.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
