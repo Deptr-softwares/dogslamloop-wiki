@@ -21,10 +21,6 @@
 // leaves nothing behind.
 let galleryEditorItems = [];
 
-function galleryEditorEsc(str) {
-    return window.escapeHtml(str);
-}
-
 function renderGalleryBin() {
     const list = document.getElementById('gallery-bin-list');
     const count = document.getElementById('gallery-bin-count');
