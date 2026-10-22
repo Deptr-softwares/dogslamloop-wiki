@@ -34,24 +34,29 @@
          inputs. See tests/modal-stylesheets.spec.js. -->
     <link rel="stylesheet" href="../../style/Forms.css">
 
+    <!-- The Halloween event (js/halloween.js): in <head>, so a reader who has
+         played gets the look on the first paint. -->
+    <link rel="stylesheet" href="../../style/halloween.css">
+    <script src="../../js/halloween.js?v=88fb8465"></script>
+
     <script>window.PAGE_ROUTE = { pageId: "custom_servers", pageType: "system", title: "Custom Servers" };</script>
 </head>
 <body class="site-body p-0">
 
     <!-- Must precede page_router.js: it builds the tab strip from this
          vocabulary, synchronously, before site_utils.js has loaded. -->
-    <script src="../../js/character_tabs.js?v=f4664318"></script>
-    <script src="../../js/input_slots.js?v=f4664318"></script>
-    <script src="../../js/page_router.js?v=f4664318"></script>
+    <script src="../../js/character_tabs.js?v=88fb8465"></script>
+    <script src="../../js/input_slots.js?v=88fb8465"></script>
+    <script src="../../js/page_router.js?v=88fb8465"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
-    <script src="../../js/site_utils.js?v=f4664318"></script>
-    <script src="../../js/site_meta.js?v=f4664318"></script>
-    <script src="../../js/pagebuilder.js?v=f4664318"></script>
-    <script src="../../js/search.js?v=f4664318"></script>
-    <script src="../../js/description.js?v=f4664318"></script>
-    <script src="../../js/internalstyling.js?v=f4664318"></script>
+    <script src="../../js/site_utils.js?v=88fb8465"></script>
+    <script src="../../js/site_meta.js?v=88fb8465"></script>
+    <script src="../../js/pagebuilder.js?v=88fb8465"></script>
+    <script src="../../js/search.js?v=88fb8465"></script>
+    <script src="../../js/description.js?v=88fb8465"></script>
+    <script src="../../js/internalstyling.js?v=88fb8465"></script>
 
-    <script src="../../js/page_boot.js?v=f4664318"></script>
+    <script src="../../js/page_boot.js?v=88fb8465"></script>
 </body>
 </html>

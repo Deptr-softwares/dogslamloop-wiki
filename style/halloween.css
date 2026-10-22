@@ -1,0 +1,39 @@
+/* The Halloween event (js/halloween.js): "Pumpkin Night", the owner's pick
+   from mockups, 2026-10-23. Everything here is under html.halloween, which
+   only a reader who has been through the minigame gets, and only until
+   November 1.
+
+   Orange where the blue accent was, a warm border, and the links left blue.
+   A character page writes its own --accent-blue, --border-color and
+   --text-muted onto <html> inline (applyCharacterTheme), and inline beats
+   this, so character pages keep their colours. */
+html.halloween {
+    --accent-blue: #ff8c2e;
+    --border-color: #3a3430;
+    --text-muted: #9aa3ad;
+}
+/* The hover shade is not one a character page sets, so it changes only where
+   the accent did. */
+html.halloween:not(:has(.character-title)) {
+    --accent-blue-hover: #ffa95c;
+}
+html.halloween .wiki-link { color: hsl(213, 94%, 68%); }
+
+/* Cobwebs in the screen's top-right and bottom-left corners, and a spider on
+   a thread. Fixed to the screen rather than to a column, so they sit in the
+   same place on every kind of page, and never in the way of a click. */
+.hw-webs { position: fixed; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; }
+.hw-web { position: absolute; width: 150px; height: 150px; opacity: 0.4; }
+.hw-web svg, .hw-spider svg { display: block; width: 100%; height: 100%; stroke: #d6dbe2; stroke-width: 1; }
+.hw-web-top { top: 0; right: 0; transform: scaleX(-1); }
+.hw-web-bottom { bottom: 0; left: 0; transform: scaleY(-1); }
+.hw-spider { position: absolute; top: 0; right: 9rem; width: 26px; height: 78px; transform-origin: top center; animation: hw-spider-bob 6s ease-in-out infinite; }
+.hw-spider .hw-thread { opacity: 0.55; }
+.hw-spider .hw-spider-body { fill: #05070d; }
+@keyframes hw-spider-bob { 50% { transform: translateY(14px); } }
+html.reduce-motion .hw-spider { animation: none; }
+
+@media (max-width: 1023px) {
+    .hw-web { width: 90px; height: 90px; }
+    .hw-spider { right: 4.5rem; width: 20px; height: 60px; }
+}
