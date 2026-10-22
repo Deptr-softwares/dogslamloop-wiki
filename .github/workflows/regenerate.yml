@@ -77,7 +77,13 @@ jobs:
   regenerate:
     needs: targets
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # Per branch. The full suite runs here on one runner, and it reached 26.7
+    # minutes in playwright.yml (2026-10-22), where it is now split three ways.
+    # Not split here: the commit below needs the whole tree tested in one
+    # place, and nobody is waiting on a nightly run. A run cut off by this
+    # limit commits nothing, so the site's content goes stale until it is
+    # raised.
+    timeout-minutes: 60
     strategy:
       # One leg at a time, next-update first. Two legs pushing concurrently
       # would race, and they write the same generated files.
