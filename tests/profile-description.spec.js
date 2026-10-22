@@ -149,10 +149,69 @@ test('the profile card ends in the quote, Trivia and Character Navigation', asyn
   await expect(section(page).locator('.profile-pager-title')).toHaveText('Character Navigation');
   const prev = section(page).locator('.profile-pager-prev');
   const next = section(page).locator('.profile-pager-next');
-  await expect(prev).toHaveText('Zzq Alpha');
-  await expect(next).toHaveText('Zzq Charlie');
+  await expect(prev.locator('.profile-pager-name')).toHaveText('Zzq Alpha');
+  await expect(next.locator('.profile-pager-name')).toHaveText('Zzq Charlie');
   await expect(prev).toHaveAttribute('href', /characters\/Zzq_alpha\/index\.html$/);
   await expect(next).toHaveAttribute('href', /characters\/Zzq_charlie\/index\.html$/);
+  expect(errors).toEqual([]);
+});
+
+// Owner's list for the Halloween update: "use the character icons next to the
+// character name, make it more lively instead of boring white text (might as
+// well color code them accordingly)". Picked from mockups (2026-10-23): two
+// tiles, Previous on the left and Next on the right, each a framed icon and the
+// name in the character's colour.
+test('Character Navigation is two tiles, each with the icon and the name in the character\'s colour', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  // The fixture characters' icons: one that loads, and one that does not exist.
+  const icon = fs.readFileSync(path.join(__dirname, '..', 'medias', 'images', 'VesselIcon.webp'));
+  await page.route(/ZzqAlphaIcon\.webp/, route => route.fulfill({ contentType: 'image/webp', body: icon }));
+  await page.route(/ZzqCharlieIcon\.webp/, route => route.fulfill({ status: 404, body: '' }));
+  await mockSite(page);
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+  await expect(section(page)).toBeVisible({ timeout: 20000 });
+
+  // This test's own colours, one light and one dark, so nothing here depends
+  // on the owner's palette.
+  const LIGHT = 'hsl(0, 100%, 80%)';
+  const DARK = 'hsl(233, 39%, 23%)';
+  const out = await page.evaluate(async ({ LIGHT, DARK }) => {
+    window.CHARACTER_COLORS['Zzq Alpha'] = LIGHT;
+    window.CHARACTER_COLORS['Zzq Charlie'] = DARK;
+    const host = document.createElement('div');
+    host.className = 'profile-card';
+    host.innerHTML = window.profileDescriptionHTML({ quote: 'q' });
+    document.body.appendChild(host);
+    await window.fillProfilePager(host, 'boomcat');
+    await new Promise(r => setTimeout(r, 800));
+
+    const resolve = (c) => { const s = document.createElement('span'); s.style.color = c; host.appendChild(s); return getComputedStyle(s).color; };
+    const tile = (sel) => {
+      const a = host.querySelector(sel);
+      const name = a.querySelector('.profile-pager-name');
+      const img = a.querySelector('img.profile-pager-icon');
+      const r = a.getBoundingClientRect();
+      return {
+        dir: a.querySelector('.profile-pager-dir').textContent,
+        name: name.textContent,
+        color: getComputedStyle(name).color,
+        outlined: name.classList.contains('sc-outline'),
+        icon: img ? { loaded: img.complete && img.naturalWidth > 0, frame: getComputedStyle(img).borderTopColor } : null,
+        left: r.left, top: r.top,
+      };
+    };
+    return { light: resolve(LIGHT), dark: resolve(DARK), prev: tile('.profile-pager-prev'), next: tile('.profile-pager-next') };
+  }, { LIGHT, DARK });
+
+  expect(out.prev).toMatchObject({ dir: '‹ Previous', name: 'Zzq Alpha', color: out.light, outlined: false });
+  expect(out.prev.icon, 'an icon that loads is shown, framed in the colour').toEqual({ loaded: true, frame: out.light });
+  expect(out.next).toMatchObject({ dir: 'Next ›', name: 'Zzq Charlie', color: out.dark });
+  expect(out.next.outlined, 'a dark name gets the site\'s white outline').toBe(true);
+  expect(out.next.icon, 'a missing icon leaves the name alone, not a broken image').toBeNull();
+  // Side by side: Previous on the left, Next on the right.
+  expect(out.prev.top).toBe(out.next.top);
+  expect(out.prev.left).toBeLessThan(out.next.left);
   expect(errors).toEqual([]);
 });
 
@@ -227,8 +286,9 @@ test('the order: base-only last, hidden and unpublished left out, no wrap at the
     document.body.appendChild(host);
     await window.fillProfilePager(host, pageId);
     const nav = host.querySelector('[data-profile-pager]');
-    const name = (sel) => { const a = nav.querySelector(sel); return a ? a.textContent : null; };
-    const rows = [...nav.querySelectorAll('.profile-stat-label')].map(l => l.textContent);
+    const name = (sel) => { const a = nav.querySelector(`${sel} .profile-pager-name`); return a ? a.textContent : null; };
+    const rows = [...nav.querySelectorAll('.profile-pager-link')]
+      .map(a => (a.classList.contains('profile-pager-prev') ? 'Previous' : 'Next'));
     const out = { shown: !nav.hidden, rows, prev: name('.profile-pager-prev'), next: name('.profile-pager-next') };
     host.remove();
     return out;

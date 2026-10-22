@@ -1845,18 +1845,35 @@ window.fillProfilePager = async function (root, pageId) {
     if (at < 0) return;
 
     const esc = window.escapeHtml;
-    // A row only for a side that has someone: the first character has no
-    // Previous row and the last has no Next.
-    const row = (c, dir, label) => c
-        ? `<div class="profile-stat-row"><span class="profile-stat-label">${label}</span>`
-            + `<a class="profile-stat-val profile-pager-link profile-pager-${dir}" href="${esc(rootPath + c.url)}">${esc(c.name)}</a></div>`
-        : '';
+    // Two tiles, each the character's icon framed in their colour and their
+    // name in it (owner's pick from mockups, 2026-10-23). A dark colour gets
+    // the white outline the [outline] tag draws, since the card behind it is
+    // dark on every page. A tile only for a side that has someone: the first
+    // character has no Previous and the last has no Next.
+    const tile = (c, dir, label) => {
+        if (!c) return '';
+        const color = (window.CHARACTER_COLORS || {})[c.name];
+        const dark = color && typeof window.isDarkCharacterColor === 'function' && window.isDarkCharacterColor(color);
+        const iconPath = typeof window.rosterIconPath === 'function' ? window.rosterIconPath((c.cms_config || {}).pageId) : null;
+        const icon = iconPath ? `<img class="profile-pager-icon" src="${esc(rootPath + iconPath)}" alt="">` : '';
+        const name = `<span class="profile-pager-name${dark ? ' sc-outline' : ''}">${esc(c.name)}</span>`;
+        return `<a class="profile-pager-link profile-pager-${dir}" href="${esc(rootPath + c.url)}"${color ? ` style="--pager-color: ${esc(color)};"` : ''}>`
+            + `<span class="profile-pager-dir">${label}</span>`
+            + `<span class="profile-pager-who">${icon}${name}</span></a>`;
+    };
     const prev = order[at - 1];
     const next = order[at + 1];
     if (!prev && !next) return;
 
     nav.innerHTML = `<div class="profile-pager-title">Character Navigation</div>`
-        + row(prev, 'prev', 'Previous') + row(next, 'next', 'Next');
+        + `<div class="profile-pager-tiles">${tile(prev, 'prev', '&#8249; Previous')}${tile(next, 'next', 'Next &#8250;')}</div>`;
+    // A character without an icon yet keeps just the name. Listeners rather
+    // than inline handlers, as markLoadedRosterIcons (js/pagebuilder.js) does;
+    // a cached broken image has already failed before they attach.
+    nav.querySelectorAll('img.profile-pager-icon').forEach(img => {
+        if (img.complete && img.naturalWidth === 0) { img.remove(); return; }
+        img.addEventListener('error', () => img.remove(), { once: true });
+    });
     nav.hidden = false;
     box.hidden = false;
 };

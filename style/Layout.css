@@ -565,8 +565,33 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; letter-spacing: 0.06em;
     text-transform: uppercase; color: var(--text-muted);
 }
-.profile-pager-link { text-decoration: none; overflow-wrap: anywhere; text-align: right; }
-.profile-pager-link:hover, .profile-pager-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+/* Two tiles: Previous in the left column and Next in the right, also when it
+   is the only one. --pager-color is the character's, set inline. */
+.profile-pager-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
+.profile-pager-link {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; min-width: 0;
+    padding: 0.5rem; border: 1px solid #333; background: rgba(255, 255, 255, 0.02);
+    text-decoration: none; transition: border-color 0.2s ease;
+}
+.profile-pager-next { grid-column: 2; align-items: flex-end; text-align: right; }
+.profile-pager-link:hover, .profile-pager-link:focus-visible { border-color: var(--pager-color, var(--accent-blue)); }
+.profile-pager-dir { font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); }
+/* A name too long to sit beside its icon drops under it whole, rather than
+   breaking mid-word (the desktop card is about 250px wide). Next mirrors
+   Previous, so its icon is on the outside edge too. */
+.profile-pager-who { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem; min-width: 0; }
+.profile-pager-next .profile-pager-who { flex-direction: row-reverse; }
+.profile-pager-icon {
+    width: 2.25rem; height: 2.25rem; flex-shrink: 0; object-fit: cover;
+    border: 2px solid var(--pager-color, var(--border-color)); background: var(--bg-main);
+}
+.profile-pager-name {
+    font-size: 0.85rem; font-weight: bold; overflow-wrap: break-word; min-width: 0;
+    color: var(--pager-color, var(--text-white));
+}
+.profile-pager-link:hover .profile-pager-name, .profile-pager-link:focus-visible .profile-pager-name {
+    text-decoration: underline; text-underline-offset: 3px;
+}
 /* Square, always. A roster of portraits at whatever shape each source happened
    to be is the single most visible inconsistency on the character pages, and
    unlike skill media a portrait has one obvious subject - so cropping to a
