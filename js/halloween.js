@@ -17,6 +17,9 @@
 
     const ENDS = new Date(2026, 10, 1).getTime();
     const DONE_KEY = 'dsl_halloween_done';
+    // A reader who asked for less motion is spared the surprise without having
+    // played, so their first game, from Site settings, is still a first try.
+    const SPARED = 'spared';
     const root = document.documentElement;
 
     if (!(Date.now() < ENDS)) return;
@@ -24,20 +27,34 @@
     // true or false, or null when the browser blocks storage.
     function readDone() {
         try {
-            return window.localStorage.getItem(DONE_KEY) === '1';
+            return window.localStorage.getItem(DONE_KEY) !== null;
         } catch (e) {
             return null;
         }
     }
 
-    function markDone() {
+    function markDone(how = '1') {
         try {
-            window.localStorage.setItem(DONE_KEY, '1');
+            window.localStorage.setItem(DONE_KEY, how);
         } catch (e) {
             // Deliberately quiet: storage is blocked, so the look still turns
             // on for this page and the game cannot be remembered anyway.
         }
     }
+
+    // Winning a first try earns the Gold Ver badge. Clearing DONE_KEY makes
+    // the next game a first try again, which the owner is fine with: "It is
+    // just fun". Blocked storage cannot tell, so it counts.
+    function firstTry() {
+        try {
+            const done = window.localStorage.getItem(DONE_KEY);
+            return done === null || done === SPARED;
+        } catch (e) {
+            return true;
+        }
+    }
+    const BADGE_FIRST_TRY = 'halloween-2026-gold';
+    const BADGE_LATER = 'halloween-2026';
 
     // One corner's web, drawn from its corner outwards: five spokes and four
     // sagging rings. A second corner is the same drawing mirrored in CSS.
@@ -216,6 +233,9 @@
     function play() {
         if (playing || !document.body) return;
         playing = true;
+        // Read before anything marks this game played.
+        const badge = firstTry() ? BADGE_FIRST_TRY : BADGE_LATER;
+        let earned = null;
 
         const overlay = document.createElement('div');
         overlay.className = 'hw-game';
@@ -379,6 +399,8 @@
             stopGame();
             // Played, whatever happens next: a tab closed mid-scare still counts.
             markDone();
+            // Won is won, even if the whisper is skipped.
+            if (won) earned = badge;
             // The music and the game fade out, then the scene.
             fadeOut(music, RESOLVE_MS);
             overlay.classList.add('is-resolving');
@@ -462,6 +484,8 @@
                 root.style.overflow = scrollWas;
                 if (before && typeof before.focus === 'function') before.focus();
                 playing = false;
+                // Once the game is gone, so its toast is not hidden under it.
+                if (earned && typeof window.earnBadge === 'function') window.earnBadge(earned);
             }, 1000);
         }
     }
@@ -491,7 +515,7 @@
         // A reader who asked for less motion is spared the scare and gets the
         // look straight away. Site settings still lets them play it.
         if (root.classList.contains('reduce-motion')) {
-            markDone();
+            markDone(SPARED);
             lookOn();
             return;
         }

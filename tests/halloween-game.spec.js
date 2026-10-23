@@ -436,8 +436,9 @@ test('an automated browser never gets it, so no other test on the site meets it'
 test('a reader who asked for less motion gets the look straight away, without the game', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await arm(page);
-  // At once, before a game could have popped up and run its course.
-  expect(await looks(page)).toMatchObject({ on: true, done: '1', webs: 2 });
+  // At once, before a game could have popped up and run its course. Spared,
+  // not played: their first game is still a first try (tests/user-badges.spec.js).
+  expect(await looks(page)).toMatchObject({ on: true, done: 'spared', webs: 2 });
   for (let i = 0; i < 5; i++) await heading(page).click();
   await expect(game(page)).toHaveCount(0);
 });
