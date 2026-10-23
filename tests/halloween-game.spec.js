@@ -92,7 +92,10 @@ test('a click wakes it: the screen goes to black, the music starts, and nothing 
   await heading(page).click();
   await expect(game(page)).toHaveCount(1);
   await expect(page.locator('.hw-tip')).toHaveText('HIT THE FINAL BLACK FLASH CHAIN OR GET JUMPSCARED');
-  expect(await played(page, MUSIC)).toHaveLength(1);
+  const music = await played(page, MUSIC);
+  expect(music).toHaveLength(1);
+  // Turned down to 70% of where it started (owner: "kinda loud").
+  expect(music[0].volume).toBeCloseTo(0.35);
   // A press during the fade does nothing.
   await page.keyboard.press('Space');
   await expect(page.locator('.hw-callout')).toHaveText('');
