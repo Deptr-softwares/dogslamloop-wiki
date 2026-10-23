@@ -243,6 +243,16 @@ window.buildSystemDeltas = function(local, cloud, pageType) {
     };
 
     // --- Tabs: metadata, section order, additions and removals ---
+    //
+    // WHERE A DELTA SITS IN THE LIST MATTERS (2026-10-24). Approval applies them
+    // in order, and a tab's metadata places its sections by key, so it can only
+    // place sections that exist by then. Listed before the sections, it left a
+    // new section, or one moved in from another tab, at the bottom of its tab
+    // whatever the author saw. So a NEW tab is listed first (its sections need
+    // somewhere to land), the sections next, an existing tab's metadata after
+    // them, and the tab order last.
+    const newTabDeltas = [];
+    const changedTabDeltas = [];
     localTabs.forEach(({ tabKey, tab }) => {
         const before = cloudTabs.find(t => t.tabKey === tabKey);
         const localOrder = localSecs.filter(s => s.tabKey === tabKey).map(s => s.secKey);
@@ -252,36 +262,16 @@ window.buildSystemDeltas = function(local, cloud, pageType) {
         const cloudMeta = before ? tabMeta(before.tab, cloudOrder) : null;
 
         if (differs(localMeta, cloudMeta)) {
-            deltas.push({ scope: 'system_tab', key: tabKey, payload: localMeta });
+            (before ? changedTabDeltas : newTabDeltas).push({ scope: 'system_tab', key: tabKey, payload: localMeta });
         }
     });
+    deltas.push(...newTabDeltas);
 
     cloudTabs.forEach(({ tabKey }) => {
         if (!localTabs.some(t => t.tabKey === tabKey)) {
             deltas.push({ scope: 'system_tab', key: tabKey, payload: null });
         }
     });
-
-    // --- The order of the tabs themselves (v0.18 B2) ---
-    //
-    // Every scan above is keyed by tabKey and pairs local against cloud by it,
-    // so a tab that only MOVED has a byte-identical partner and produces
-    // nothing at all. The strip has offered ◀ ▶ since v0.15 item 8 and the move
-    // was discarded in silence - the same fault item 8 fixed for character
-    // pages, in the one place it was never wired up.
-    //
-    // Three tests, matching scanOrder in js/editor-core.js rather than
-    // inventing a second rule: same length, different sequence, same members.
-    // A tab added or removed is already covered by the two loops above, and
-    // comparing raw sequences without the membership test would emit an order
-    // delta on every ordinary add.
-    const localTabKeys = localTabs.map(t => t.tabKey);
-    const cloudTabKeys = cloudTabs.map(t => t.tabKey);
-    if (localTabKeys.length === cloudTabKeys.length
-        && localTabKeys.join(' ') !== cloudTabKeys.join(' ')
-        && [...localTabKeys].sort().join(' ') === [...cloudTabKeys].sort().join(' ')) {
-        deltas.push({ scope: 'system_tab_order', key: 'full', payload: localTabKeys });
-    }
 
     // --- Sections ---
     // Tier list tabs hold tiers and a changelog rather than sections, so this
@@ -298,6 +288,32 @@ window.buildSystemDeltas = function(local, cloud, pageType) {
             deltas.push({ scope: 'system_section', key, payload: null });
         }
     });
+
+    // An existing tab's metadata, with its section order: after the sections,
+    // so every section it names is there to be placed.
+    deltas.push(...changedTabDeltas);
+
+    // --- The order of the tabs themselves (v0.18 B2) ---
+    //
+    // Every scan above is keyed by tabKey and pairs local against cloud by it,
+    // so a tab that only MOVED has a byte-identical partner and produces
+    // nothing at all. The strip has offered ◀ ▶ since v0.15 item 8 and the move
+    // was discarded in silence - the same fault item 8 fixed for character
+    // pages, in the one place it was never wired up.
+    //
+    // Compared with where approval leaves the tabs WITHOUT an order delta: the
+    // cloud's surviving tabs in their order, then the new ones appended. Only
+    // when the author's order differs from that does the order travel, so an
+    // ordinary add at the end still sends none. Until 2026-10-24 it travelled
+    // only when no tab was added or removed, and a new tab moved left landed at
+    // the end.
+    const localTabKeys = localTabs.map(t => t.tabKey);
+    const isCloudTab = (key) => cloudTabs.some(t => t.tabKey === key);
+    const withoutOrder = cloudTabs.map(t => t.tabKey).filter(k => localTabKeys.includes(k))
+        .concat(localTabKeys.filter(k => !isCloudTab(k)));
+    if (localTabKeys.join(' ') !== withoutOrder.join(' ')) {
+        deltas.push({ scope: 'system_tab_order', key: 'full', payload: localTabKeys });
+    }
 
     // --- Tier lists ---
     // Not split per tier: moving a character from A to S changes two tiers at
