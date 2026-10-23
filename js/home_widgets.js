@@ -70,6 +70,22 @@ function buildUpdateChangesHTML(changes) {
     return html;
 }
 
+// The Halloween update's entry carries "revealedBy": "halloween", and stays
+// hidden until the reader has been through the minigame (owner, 2026-10-23).
+// js/halloween.js sets window.halloween only until November 1, so from then
+// on the entry shows like any other.
+window.isUpdateRevealed = function (log) {
+    if (!log || log.revealedBy !== 'halloween') return true;
+    return !window.halloween || document.documentElement.classList.contains('halloween');
+};
+
+// A list that held one back draws itself again when the minigame ends.
+window.redrawOnReveal = function (logs, redraw) {
+    if (logs.some(log => !window.isUpdateRevealed(log))) {
+        document.addEventListener('halloween:look', redraw, { once: true });
+    }
+};
+
 async function loadUpdateLogs(containerId, limit = null, filterType = null) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -84,7 +100,9 @@ async function loadUpdateLogs(containerId, limit = null, filterType = null) {
         }
 
         container.innerHTML = '';
-        let filteredLogs = filterType ? cachedUpdates.filter(log => log.type === filterType) : cachedUpdates;
+        window.redrawOnReveal(cachedUpdates, () => loadUpdateLogs(containerId, limit, filterType));
+        let filteredLogs = (filterType ? cachedUpdates.filter(log => log.type === filterType) : cachedUpdates)
+            .filter(window.isUpdateRevealed);
         const targetedLogs = limit ? filteredLogs.slice(0, limit) : filteredLogs;
 
         if (targetedLogs.length === 0) {
