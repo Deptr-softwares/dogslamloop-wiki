@@ -2,6 +2,35 @@
   "changelogs": [
     {
       "version": "Release v1.1",
+      "date": "10/24/2026",
+      "type": "site",
+      "title": "The 'Halloween' Update",
+      "description": "Ooooooooohhh scary Black Flash chain",
+      "revealedBy": "halloween",
+      "changes": [
+        {
+          "heading": "Features"
+        },
+        "Added colors to the category buttons in the Forum",
+        "Added an early version of user badges with just two badges for now",
+        "Gave the site a new spooky look",
+        "Added toasts to the site",
+        "Added something scary to the site (also available in Site Settings)",
+        {
+          "heading": "Fine-tuning"
+        },
+        "Some buttons on the right sidebar are no longer gray",
+        "Made character navigation cooler",
+        "Slightly reworked Trivia and added a new syntax to it",
+        {
+          "heading": "Bug fixes"
+        },
+        "Fixed a bug where reordering matchup descriptions copied one character's text into every box it passed over",
+        "Fixed a bug where saving a profile that hides a badge would have failed every time"
+      ]
+    },
+    {
+      "version": "Release v1.1",
       "date": "10/23/2026",
       "type": "site",
       "title": "The \"Spooky\" Update",
