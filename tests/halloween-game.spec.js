@@ -98,8 +98,9 @@ test('a click wakes it: the screen goes to black, the music starts, and nothing 
   await expect(page.locator('.hw-callout')).toHaveText('');
   await page.clock.runFor(1600);
   await expect(game(page)).toHaveClass(/is-live/);
-  // Fully black, not see-through (owner). The fade is CSS, on the real clock.
-  await expect.poll(() => game(page).evaluate(g => getComputedStyle(g).backgroundColor)).toBe('rgb(0, 0, 0)');
+  // Fully black, not see-through (owner). The fade is CSS on the real clock,
+  // which a loaded machine can starve, so this reads where it ends.
+  expect(await game(page).evaluate(g => { g.style.transition = 'none'; return getComputedStyle(g).backgroundColor; })).toBe('rgb(0, 0, 0)');
   await expect(page.locator('.hw-count')).toHaveText('1/4');
   await expect(page.locator('.hw-help')).toHaveText('Space, 3, click, or tap!!!');
   await expect(page.locator('.hw-skip')).toHaveText('press x to skip');
@@ -303,16 +304,16 @@ test('three Black Flashes and a miss on the fourth loses: the growing avatar, th
   expect(await scene.locator('.hw-figure').evaluate(f => getComputedStyle(f).transitionDuration)).toBe('2s');
   await expect(page.locator('.hw-beg')).toBeHidden();
   expect((await looks(page)).done, 'played, even if the tab closes mid-scare').toBe('1');
-  // The owner's long line from the start, the two short ones not yet.
-  expect(await played(page, BEG)).toHaveLength(1);
+  // No voice while the avatar grows (owner: from the start was "a bit too awkward").
+  expect(await played(page, BEG)).toEqual([]);
   expect(await played(page, BEG_LAYERS)).toEqual([]);
 
   await page.clock.runFor(2300);
   await expect(scene).toHaveClass(/is-close/);
   await expect(page.locator('.hw-beg')).toBeVisible();
-  // ...and layered on top of it with the face.
+  // With the face: the long line, and the two short ones layered on top of it.
+  expect(await played(page, BEG)).toHaveLength(1);
   expect((await played(page, BEG_LAYERS)).map(p => p.src.split('/').pop()).sort()).toEqual(['LoseAudio2.mp3', 'LoseAudio3.mp3']);
-  expect(await played(page, BEG), 'the long line is not started again').toHaveLength(1);
   // The face, drawn small and stretched over the whole screen without smoothing.
   await expect(page.locator('.hw-face')).toHaveCount(1);
   const face = await page.locator('.hw-face').evaluate(c => {
@@ -373,16 +374,19 @@ test('x skips the scare too, and nothing of it comes after', async ({ page }) =>
   for (let i = 0; i < 4; i++) await fist(page, 100);
   await page.clock.runFor(RESOLVE);
   await expect(page.locator('.hw-lost')).toHaveCount(1);
+  await page.clock.runFor(2300);
+  expect(await played(page, BEG)).toHaveLength(1);
   await page.keyboard.press('X');
-  // The begging stops with it.
-  expect((await sounds(page)).paused.filter(p => BEG.test(p.src))).toHaveLength(1);
+  // The begging stops with it, every layer of it.
+  const paused = (await sounds(page)).paused;
+  expect(paused.filter(p => BEG.test(p.src))).toHaveLength(1);
+  expect(paused.filter(p => BEG_LAYERS.test(p.src))).toHaveLength(2);
   await page.clock.runFor(1000);
   await expect(game(page)).toHaveCount(0);
   expect((await looks(page)).on).toBe(true);
-  // The scare's own timers were stopped with it: no scream or layered voices later.
+  // The scare's own timers were stopped with it: no scream later.
   await page.clock.runFor(8000);
   expect(await played(page, SCREAM)).toEqual([]);
-  expect(await played(page, BEG_LAYERS)).toEqual([]);
 });
 
 test('x during the win stops the whisper too', async ({ page }) => {

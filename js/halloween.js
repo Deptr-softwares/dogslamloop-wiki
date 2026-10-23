@@ -409,9 +409,10 @@
         // screen, begging; then the Ko-fi button takes the screen with a
         // scream, and about two seconds later it all fades away.
         //
-        // The owner's long line (3.8s) starts with the scene, so it runs up to
-        // the Ko-fi button; the two short ones are layered on top of it with
-        // the face, for about two seconds.
+        // The owner's voice starts with the face (owner: from the start of the
+        // scene was "a bit too awkward"): the long line (3.8s), with the two
+        // short ones layered on top of it for about two seconds, running on
+        // under the scream.
         function lost() {
             overlay.classList.add('is-scene');
             arena.innerHTML = `<div class="hw-scene hw-lost">${figure()}<p class="hw-beg">PLEASE DONATE...</p></div>`;
@@ -420,10 +421,9 @@
             // grow from and jumps.
             void scene.offsetWidth;
             scene.classList.add('is-growing');
-            start(beg);
             later(() => {
                 scene.classList.add('is-close');
-                begLayers.forEach(start);
+                [beg, ...begLayers].forEach(start);
                 // On a slow line the picture may still be coming: drawn when it does.
                 const draw = () => {
                     const face = pixelFace(avatar);
