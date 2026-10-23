@@ -37,3 +37,78 @@ html.reduce-motion .hw-spider { animation: none; }
     .hw-web { width: 90px; height: 90px; }
     .hw-spider { right: 4.5rem; width: 20px; height: 60px; }
 }
+
+/* --- THE MINIGAME (js/halloween.js play) ---
+   Not under html.halloween: it runs before the look is on. The screen turns
+   dark and the prompt fades in, then a target whose ring closes on the core
+   at the beat (0.3s), the timing a Black Flash wants. */
+.hw-game {
+    position: fixed; inset: 0; z-index: 100000; box-sizing: border-box;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2rem;
+    padding: 1.5rem; text-align: center; color: #fff; outline: none;
+    background: rgba(0, 0, 0, 0); transition: background-color 1.6s ease, opacity 1s ease;
+    touch-action: manipulation; user-select: none; -webkit-user-select: none;
+}
+.hw-game.is-dark { background: rgba(0, 0, 0, 0.9); }
+.hw-game.is-leaving { opacity: 0; }
+.hw-tip {
+    margin: 0; max-width: 40rem; opacity: 0; transition: opacity 1.2s ease 0.4s;
+    font-family: 'CC-Wild-Words', sans-serif; font-size: clamp(1.1rem, 4vw, 2rem); letter-spacing: 0.04em;
+    color: #ff8c2e; text-shadow: 3px 3px 0 #000;
+}
+.hw-game.is-dark .hw-tip { opacity: 1; }
+.hw-game.is-scene .hw-tip { display: none; }
+.hw-arena { display: flex; flex-direction: column; align-items: center; gap: 1rem; opacity: 0; transition: opacity 0.4s ease; }
+.hw-game.is-live .hw-arena, .hw-game.is-scene .hw-arena { opacity: 1; }
+.hw-count, .hw-help { margin: 0; font-family: var(--text-mono); font-size: 0.8rem; color: #c9d1d9; }
+.hw-help { max-width: 26rem; color: #8b949e; }
+.hw-target { position: relative; width: 9rem; height: 9rem; display: flex; align-items: center; justify-content: center; }
+.hw-core { width: 3.5rem; height: 3.5rem; border-radius: 50%; background: #111; border: 3px solid #ff2a2a; box-shadow: 0 0 0 4px #000; }
+.hw-ring { position: absolute; width: 3.5rem; height: 3.5rem; border-radius: 50%; border: 3px solid #fff; box-sizing: border-box; opacity: 0; }
+.hw-ring.is-closing { animation: hw-ring 0.5s linear forwards; }
+/* On the core at 60% of 0.5s: the beat. */
+@keyframes hw-ring {
+    0% { transform: scale(2.6); opacity: 1; }
+    60% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(0.7); opacity: 0; }
+}
+.hw-callout { margin: 0; min-height: 2.5rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 1.6rem; letter-spacing: 0.06em; }
+.hw-callout.is-flash { color: #ff2a2a; text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000; }
+.hw-callout.is-miss { color: #8b949e; }
+.hw-arena.is-flash .hw-core { background: #000; box-shadow: 0 0 0 6px #ff2a2a, 0 0 32px 14px rgba(255, 42, 42, 0.55); }
+
+/* The scenes after it. The avatar holds the Ko-fi button like a sword, its
+   right end in the fist over the knife (18% across, 81% down the image). Its
+   size follows the figure's, through the container units. */
+.hw-scene { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; overflow: hidden; }
+.hw-figure { position: relative; aspect-ratio: 1200 / 1336; height: 5vh; container-type: size; }
+.hw-figure img { display: block; width: 100%; height: 100%; }
+.btn-sys.hw-sword {
+    position: absolute; right: 82%; top: 80.7%; width: 62%; box-sizing: border-box;
+    transform: translateY(-50%) rotate(-8deg); transform-origin: right center;
+    gap: 0.4em; padding: 0.35em 0.5em; font-size: 4.2cqh; pointer-events: none;
+}
+.hw-sword svg { width: 1em; height: 1em; flex-shrink: 0; }
+
+/* Lost: growing slowly to about a sixth of the screen, then filling it all
+   at once, begging, then the Ko-fi button over everything. */
+.hw-lost .hw-figure { transition: height 3.5s linear; }
+.hw-lost.is-growing .hw-figure { height: 17vh; }
+.hw-lost.is-close .hw-figure { height: 100vh; transition: none; }
+.hw-beg { display: none; }
+.hw-lost.is-close .hw-beg {
+    display: block; position: absolute; bottom: 5vh; left: 0; right: 0; margin: 0;
+    font-family: 'CC-Wild-Words', sans-serif; font-size: clamp(2rem, 9vw, 6rem);
+    color: #ff8c2e; text-shadow: 4px 4px 0 #000;
+}
+.hw-kofi {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; gap: 0.3em;
+    background: #eab308; color: #000; font-size: clamp(1.6rem, 8vw, 7.5rem); white-space: nowrap;
+    animation: hw-slam 0.12s ease-out;
+}
+.hw-kofi svg { width: 1em; height: 1em; flex-shrink: 0; }
+@keyframes hw-slam { from { transform: scale(3); } }
+
+/* Won: only seen from far away, quietly asking. */
+.hw-won .hw-figure { height: 4vh; }
+.hw-ask { margin: 0; font-family: var(--text-mono); font-size: 0.7rem; color: #8b949e; }
