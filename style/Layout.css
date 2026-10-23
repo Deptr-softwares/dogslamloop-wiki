@@ -273,10 +273,17 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 
 .toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.25rem; }
 
-/* Table of Contents links (js/pagebuilder.js refreshTOC) */
-.toc-link-minor { padding-left: 1.5rem; font-size: 0.7rem; color: var(--text-muted); opacity: 0.7; }
-.toc-link-major { font-size: 0.75rem; color: var(--text-white); }
-.toc-link-major-toggle { font-size: 0.75rem; color: var(--text-white); padding-right: 2rem; }
+/* Table of Contents links (js/pagebuilder.js refreshTOC). Compound with
+   .btn-nav, which sets colour, padding and size in Buttons.css at one class
+   too: a page loading Layout.css first (the generated system pages,
+   forum.html) let .btn-nav win, so its contents were gray and its
+   sub-headings not indented (owner, 2026-10-23). A sub-heading's colour is
+   .btn-nav's own, so hover and active still reach it. */
+.btn-nav.toc-link-minor { padding-left: 1.5rem; font-size: 0.7rem; opacity: 0.7; }
+.btn-nav.toc-link-major { font-size: 0.75rem; color: var(--text-white); }
+.btn-nav.toc-link-major-toggle { font-size: 0.75rem; color: var(--text-white); padding-right: 2rem; }
+/* The Sitewide links sit straight in the sidebar; the contents are in a list. */
+.local-sidebar-right > .btn-nav { color: var(--text-white); }
 .toc-link-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
 .toc-group-row { display: flex; position: relative; }
 .toc-toggle-btn {
@@ -525,9 +532,8 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .profile-stat-val { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
 
 /* Profile Description (v1.1, js/description.js profileDescriptionHTML): the
-   quote, a Trivia row and Character Navigation, under the stats in the
-   profile card. The rows reuse .profile-stat-row, so they read as more of the
-   same card rather than a new part. */
+   quote, Trivia and Character Navigation, under the stats in the profile
+   card. */
 .profile-desc[hidden], .profile-pager[hidden] { display: none; }
 .profile-quote { margin: 1rem 0 0.25rem; }
 .profile-quote blockquote { margin: 0; font-size: 0.9rem; font-style: italic; line-height: 1.55; color: var(--text-white); }
@@ -537,25 +543,55 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .profile-quote figcaption { margin-top: 0.3rem; text-align: right; font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); }
 .profile-quote figcaption p { margin: 0; }
 .profile-quote figcaption p::before { content: '- '; }
-/* Trivia, toned down to one row; the facts open over the card on hover, or on
-   a tap, which focuses the row. */
-.profile-trivia-row { position: relative; cursor: help; }
-.profile-trivia-row:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
-.profile-trivia-count { color: var(--text-muted); font-size: 0.8rem; text-decoration: underline dotted; text-underline-offset: 3px; }
-.profile-trivia-pop {
-    display: none; position: absolute; left: 0; right: 0; top: 100%; z-index: 20;
-    background: var(--bg-main); border: 2px solid var(--border-color); box-shadow: 4px 4px 0 var(--manga-shadow);
-    padding: 0.75rem 1rem; cursor: auto;
+/* Trivia, one fact a line. A "Label | text" fact shows its label underlined
+   and the text over the card on hover, or on a tap, which focuses it. The tip
+   is positioned, so the label's underline does not carry into it. */
+.profile-trivia { margin: 0.5rem 0 0; font-size: 0.85rem; line-height: 1.5; }
+.profile-trivia-term {
+    position: relative; color: var(--text-white); cursor: help;
+    text-decoration: underline dotted; text-underline-offset: 3px;
 }
-.profile-trivia-row:hover .profile-trivia-pop, .profile-trivia-row:focus-within .profile-trivia-pop { display: block; }
-.profile-trivia { margin: 0; font-size: 0.85rem; line-height: 1.5; }
+.profile-trivia-term:focus-visible { outline: 2px solid var(--accent-blue); outline-offset: 2px; }
+.profile-trivia-tip {
+    display: none; position: absolute; left: 0; top: calc(100% + 4px); z-index: 20;
+    width: max-content; max-width: min(16rem, 70vw);
+    background: var(--bg-main); border: 2px solid var(--border-color); box-shadow: 4px 4px 0 var(--manga-shadow);
+    padding: 0.5rem 0.75rem; font-size: 0.8rem; color: var(--text-primary); cursor: auto;
+}
+.profile-trivia-term:hover .profile-trivia-tip, .profile-trivia-term:focus .profile-trivia-tip { display: block; }
+.profile-trivia-title,
 .profile-pager-title {
     margin-top: 1rem; padding-bottom: 0.35rem; border-bottom: 1px solid var(--border-color);
     font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; letter-spacing: 0.06em;
     text-transform: uppercase; color: var(--text-muted);
 }
-.profile-pager-link { text-decoration: none; overflow-wrap: anywhere; text-align: right; }
-.profile-pager-link:hover, .profile-pager-link:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+/* Two tiles: Previous in the left column and Next in the right, also when it
+   is the only one. --pager-color is the character's, set inline. */
+.profile-pager-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin-top: 0.5rem; }
+.profile-pager-link {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; min-width: 0;
+    padding: 0.5rem; border: 1px solid #333; background: rgba(255, 255, 255, 0.02);
+    text-decoration: none; transition: border-color 0.2s ease;
+}
+.profile-pager-next { grid-column: 2; align-items: flex-end; text-align: right; }
+.profile-pager-link:hover, .profile-pager-link:focus-visible { border-color: var(--pager-color, var(--accent-blue)); }
+.profile-pager-dir { font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); }
+/* A name too long to sit beside its icon drops under it whole, rather than
+   breaking mid-word (the desktop card is about 250px wide). Next mirrors
+   Previous, so its icon is on the outside edge too. */
+.profile-pager-who { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.5rem; min-width: 0; }
+.profile-pager-next .profile-pager-who { flex-direction: row-reverse; }
+.profile-pager-icon {
+    width: 2.25rem; height: 2.25rem; flex-shrink: 0; object-fit: cover;
+    border: 2px solid var(--pager-color, var(--border-color)); background: var(--bg-main);
+}
+.profile-pager-name {
+    font-size: 0.85rem; font-weight: bold; overflow-wrap: break-word; min-width: 0;
+    color: var(--pager-color, var(--text-white));
+}
+.profile-pager-link:hover .profile-pager-name, .profile-pager-link:focus-visible .profile-pager-name {
+    text-decoration: underline; text-underline-offset: 3px;
+}
 /* Square, always. A roster of portraits at whatever shape each source happened
    to be is the single most visible inconsistency on the character pages, and
    unlike skill media a portrait has one obvious subject - so cropping to a

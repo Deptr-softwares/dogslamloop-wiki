@@ -75,6 +75,22 @@ function clearSubSelection() {
     window.currentDocTableIndex = undefined;
 }
 
+// For the reorder bar (js/editor-reorder.js), which changes the order under the
+// selection. Only the selections that name the open entry BY POSITION are
+// forgotten, because those are the ones a move makes point at a neighbour. The
+// fixed sections and the Combo List stay open: the List holds no block buffer,
+// and dropping it would close the strip whose entry was just moved.
+window.clearPositionalSelection = function () {
+    window.currentMatchupIndex = undefined;
+    window.currentKeyedIndex = {};
+    if (String(window.currentOverviewSection || '').startsWith('extra-')) window.currentOverviewSection = null;
+    // The open card's write-up is flushed into the open group by position too.
+    if (String(window.currentDocSection || '').startsWith('group-')) {
+        window.currentDocSection = null;
+        window.currentDocCardIndex = undefined;
+    }
+};
+
 // Redraws the open tab from desc_data after something changed the DATA rather
 // than the block buffer: Find & Replace and its UNDO. The loaders' write-back
 // on entry is right after typing and wrong here, because the buffer is now the
@@ -172,6 +188,9 @@ window.removeExtraTab = async function(idx) {
     if (await window.confirmDelete("Delete this custom tab and all its contents?")) {
         await window.triggerManualSync();
         window.currentEditorDescData.extras.splice(idx, 1);
+        // Synced above. The open section's `extra-N` now names a neighbour, or
+        // nothing at all when it was the last one removed.
+        window.currentOverviewSection = null;
         if(typeof renderFullOverviewPreview === 'function') renderFullOverviewPreview();
         initFullTabEditor(window.currentEditorCharId, 'overview', window.currentEditorDescData, window.currentEditorFrameData);
         loadOverviewSectionIntoEditor('overview');
@@ -727,6 +746,9 @@ window.addMatchup = async function() {
 window.removeMatchup = async function(idx) {
     if (await window.confirmDelete("Delete this entire matchup?")) {
         window.currentEditorDescData.matchups.splice(idx, 1);
+        // The open matchup may have been the one removed, or may have shifted
+        // down; either way the redraw would save its text over a neighbour.
+        window.currentMatchupIndex = undefined;
         initFullTabEditor(window.currentEditorCharId, 'matchups', window.currentEditorDescData, window.currentEditorFrameData);
         if (window.currentEditorDescData.matchups.length > 0) window.loadMatchupIntoEditor(0);
         else renderMatchupsPreview();
@@ -2041,7 +2063,7 @@ function initProfileEditor(containerId, profileData) {
                     <textarea class="editor-textarea" id="profile-quote-input" rows="2" placeholder="A line the character says. Format tags work here.">${window.escapeHtml(profileData.quote || '')}</textarea>
                     <input type="text" class="editor-input" id="profile-quote-speaker-input" value="${window.escapeHtml(profileData.quoteSpeaker || '')}" placeholder="Who says it (optional)">
                     <label class="editor-field-label" for="profile-trivia-input">Trivia</label>
-                    <textarea class="editor-textarea" id="profile-trivia-input" rows="3" placeholder="One fact per line. Format tags work here.">${window.escapeHtml((profileData.trivia || []).join('\n'))}</textarea>
+                    <textarea class="editor-textarea" id="profile-trivia-input" rows="3" placeholder="One fact per line. Label | details shows just the label, with the details on hover. Format tags work here.">${window.escapeHtml((profileData.trivia || []).join('\n'))}</textarea>
                     <p class="config-option-hint">Previous and Next are added for you, in the order of the Characters page.</p>
                 </div>
             </div>

@@ -1774,10 +1774,24 @@ function modeScopedTabIsDrawable(section, pageId, modeId) {
 // Previous) to a Character Page". It fills the profile card under the stats,
 // the way a wiki infobox ends in its Character Navigation rows (owner,
 // 2026-10-20, after a first version spanned the page under the overview and
-// "looks really awkward"). Trivia is one quiet row whose facts open on hover,
-// or on a tap, which focuses it. Quote and Trivia are the page's own
+// "looks really awkward"). Quote and Trivia are the page's own
 // (desc_data.profile). Built here for the reader page and the editor's
 // preview alike, so the two cannot drift.
+//
+// Trivia is listed in the card, one fact a line (owner, 2026-10-23, replacing
+// the one "2 facts" row whose facts opened on hover). "Label | text" shows the
+// label underlined, with the text on hover, or on a tap, which focuses it.
+// Only the first "|" splits, so the text can hold more; a line with nothing on
+// one side of it is shown as written.
+function triviaItemHTML(line, esc) {
+    const at = line.indexOf('|');
+    const label = at < 0 ? '' : line.slice(0, at).trim();
+    const tip = at < 0 ? '' : line.slice(at + 1).trim();
+    if (!label || !tip) return `<li>${esc(line)}</li>`;
+    return `<li><span class="profile-trivia-term" tabindex="0">${esc(label)}`
+        + `<span class="profile-trivia-tip" role="tooltip">${esc(tip)}</span></span></li>`;
+}
+
 window.profileDescriptionHTML = function (profile) {
     const p = profile || {};
     const esc = window.escapeHtmlKeepBreaks;
@@ -1792,11 +1806,8 @@ window.profileDescriptionHTML = function (profile) {
             + `${speaker ? `<figcaption><p>${esc(speaker)}</p></figcaption>` : ''}</figure>`;
     }
     if (trivia.length) {
-        body += `<div class="profile-stat-row profile-trivia-row" tabindex="0">`
-            + `<span class="profile-stat-label">Trivia</span>`
-            + `<span class="profile-trivia-count">${trivia.length} ${trivia.length === 1 ? 'fact' : 'facts'}</span>`
-            + `<div class="profile-trivia-pop"><ul class="wiki-block-list profile-trivia">${trivia.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>`
-            + `</div>`;
+        body += `<div class="profile-trivia-title">Trivia</div>`
+            + `<ul class="wiki-block-list profile-trivia">${trivia.map(t => triviaItemHTML(t, esc)).join('')}</ul>`;
     }
     // With nothing written, this is only Character Navigation, and stays
     // hidden until fillProfilePager has something to put in it.
@@ -1834,18 +1845,35 @@ window.fillProfilePager = async function (root, pageId) {
     if (at < 0) return;
 
     const esc = window.escapeHtml;
-    // A row only for a side that has someone: the first character has no
-    // Previous row and the last has no Next.
-    const row = (c, dir, label) => c
-        ? `<div class="profile-stat-row"><span class="profile-stat-label">${label}</span>`
-            + `<a class="profile-stat-val profile-pager-link profile-pager-${dir}" href="${esc(rootPath + c.url)}">${esc(c.name)}</a></div>`
-        : '';
+    // Two tiles, each the character's icon framed in their colour and their
+    // name in it (owner's pick from mockups, 2026-10-23). A dark colour gets
+    // the white outline the [outline] tag draws, since the card behind it is
+    // dark on every page. A tile only for a side that has someone: the first
+    // character has no Previous and the last has no Next.
+    const tile = (c, dir, label) => {
+        if (!c) return '';
+        const color = (window.CHARACTER_COLORS || {})[c.name];
+        const dark = color && typeof window.isDarkCharacterColor === 'function' && window.isDarkCharacterColor(color);
+        const iconPath = typeof window.rosterIconPath === 'function' ? window.rosterIconPath((c.cms_config || {}).pageId) : null;
+        const icon = iconPath ? `<img class="profile-pager-icon" src="${esc(rootPath + iconPath)}" alt="">` : '';
+        const name = `<span class="profile-pager-name${dark ? ' sc-outline' : ''}">${esc(c.name)}</span>`;
+        return `<a class="profile-pager-link profile-pager-${dir}" href="${esc(rootPath + c.url)}"${color ? ` style="--pager-color: ${esc(color)};"` : ''}>`
+            + `<span class="profile-pager-dir">${label}</span>`
+            + `<span class="profile-pager-who">${icon}${name}</span></a>`;
+    };
     const prev = order[at - 1];
     const next = order[at + 1];
     if (!prev && !next) return;
 
     nav.innerHTML = `<div class="profile-pager-title">Character Navigation</div>`
-        + row(prev, 'prev', 'Previous') + row(next, 'next', 'Next');
+        + `<div class="profile-pager-tiles">${tile(prev, 'prev', '&#8249; Previous')}${tile(next, 'next', 'Next &#8250;')}</div>`;
+    // A character without an icon yet keeps just the name. Listeners rather
+    // than inline handlers, as markLoadedRosterIcons (js/pagebuilder.js) does;
+    // a cached broken image has already failed before they attach.
+    nav.querySelectorAll('img.profile-pager-icon').forEach(img => {
+        if (img.complete && img.naturalWidth === 0) { img.remove(); return; }
+        img.addEventListener('error', () => img.remove(), { once: true });
+    });
     nav.hidden = false;
     box.hidden = false;
 };

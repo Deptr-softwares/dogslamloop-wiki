@@ -43,7 +43,10 @@
         return new Date(then).toLocaleDateString();
     }
 
-    const tagClass = (tag) => `forum-tag forum-tag-${String(tag || '').toLowerCase().replace(/[^a-z]+/g, '-')}`;
+    // A category's colour lives in style/forum.css under this class, worn by
+    // its filter button and every post's tag (owner, 2026-10-23).
+    const catClass = (tag) => `forum-cat-${String(tag || '').toLowerCase().replace(/[^a-z]+/g, '-')}`;
+    const tagClass = (tag) => `forum-tag ${catClass(tag)}`;
 
     // Who started a post: the name, then the DISCORD chip and handle when it
     // was started on Discord, as a thread draws a Discord message.
@@ -130,7 +133,7 @@
         bar.setAttribute('role', 'group');
         bar.setAttribute('aria-label', 'Filter by category');
         [null, ...FORUM_TAGS].forEach(tag => {
-            const b = el('button', 'btn-sys btn-sys-regular forum-filter', tag || 'All');
+            const b = el('button', `btn-sys btn-sys-regular forum-filter${tag ? ` ${catClass(tag)}` : ''}`, tag || 'All');
             b.type = 'button';
             b.dataset.tag = tag || '';
             b.setAttribute('aria-pressed', String(tag === state.tag));

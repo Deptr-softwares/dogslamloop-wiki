@@ -145,6 +145,50 @@ test('a category shows only its posts, and All shows them all again', async ({ p
     await expect(page.locator('.forum-row')).toHaveCount(2);
 });
 
+// Owner's list for the Halloween update: "Color code the Forum category
+// buttons". Each category has its own colour, worn by its filter button and by
+// every post's tag (picked from mockups, 2026-10-23); the one on show is filled
+// with it. Compared with each other rather than against hex values, so the
+// palette can change without this file.
+test('each category has its own colour, on its filter button and on its posts\' tags', async ({ page }) => {
+    const TAGS = ['Question', 'Guide', 'Discussion', 'Art', 'Game Update', 'Promotion'];
+    await openForum(page, { threads: TAGS.map((tag, i) => thread({
+        id: `${String(i + 1).repeat(8)}-aaaa-4aaa-8aaa-aaaaaaaaaaaa`, title: `Zzq ${tag}`, tag,
+        last_post_at: `2026-10-0${i + 1}T10:00:00Z`,
+    })) });
+    await expect(page.locator('.forum-row')).toHaveCount(TAGS.length);
+
+    const read = () => page.evaluate(() => {
+        const buttons = Object.fromEntries([...document.querySelectorAll('.forum-filter')].map(b => {
+            const s = getComputedStyle(b);
+            return [b.textContent, { text: s.color, edge: s.borderTopColor, filled: s.backgroundSize.includes('100% 100%') }];
+        }));
+        const tags = Object.fromEntries([...document.querySelectorAll('.forum-row .forum-tag')].map(t => {
+            const s = getComputedStyle(t);
+            return [t.textContent, { text: s.color, edge: s.borderTopColor }];
+        }));
+        return { buttons, tags };
+    });
+
+    const { buttons, tags } = await read();
+    const edges = TAGS.map(t => buttons[t].edge);
+    expect(new Set(edges).size, 'six categories, six colours').toBe(TAGS.length);
+    expect(edges, 'none of them the plain gray of All').not.toContain(buttons.All.edge);
+    for (const t of TAGS) {
+        expect(buttons[t].text, `${t}: the button's text is its colour`).toBe(buttons[t].edge);
+        expect(tags[t], `${t}: a post's tag wears the button's colour`).toEqual({ text: buttons[t].edge, edge: buttons[t].edge });
+    }
+    expect(buttons.All.filled, 'All is on show, so All is filled').toBe(true);
+    expect(buttons.Art.filled).toBe(false);
+
+    await page.locator('.forum-filter', { hasText: 'Art' }).click();
+    await page.mouse.move(0, 0);
+    await expect.poll(async () => (await read()).buttons.Art.filled).toBe(true);
+    const after = (await read()).buttons;
+    expect(after.All.filled).toBe(false);
+    expect(after.Art.text, 'dark text on the filled button').toBe('rgb(0, 0, 0)');
+});
+
 // The category buttons cast a hard shadow (3px, 4px while hovered) and the
 // list began right under them, so the shadow lay on top of the first post.
 test("the category buttons' shadow ends above the first post, hovered or not", async ({ page }) => {

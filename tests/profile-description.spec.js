@@ -2,10 +2,12 @@
 // Description (have: Quote, Trivia, Next, and Previous) to a Character Page".
 // Scoped 2026-10-19 and moved 2026-10-20 into the profile card under the
 // stats, like a wiki infobox ("this really empty space directly under the
-// Profile portrait"): a quote with an optional speaker, Trivia toned down to
-// one row whose facts show on hover, both taking format tags, and Character
-// Navigation rows in the Characters page order with base-only characters last
-// and hidden ones left out, no wrap at the ends.
+// Profile portrait"): a quote with an optional speaker, Trivia, both taking
+// format tags, and Character Navigation rows in the Characters page order with
+// base-only characters last and hidden ones left out, no wrap at the ends.
+// Trivia was one "2 facts" row whose facts showed on hover until 2026-10-23,
+// when the owner had it listed in the card, with "Label | text" showing the
+// label and the text on hover.
 //
 // The page data AND the character list are fixtures, so nothing here reads
 // what the owner has written or which characters exist.
@@ -38,7 +40,7 @@ const DESC = {
   profile: {
     stats: [{ label: 'Archetype', value: 'Zoner' }], image: '',
     quote: 'I [b]never[/b] miss.', quoteSpeaker: 'Zzq Speaker',
-    trivia: ['First [b]fact[/b]', 'Second fact'],
+    trivia: ['First [b]fact[/b]', 'Crazy fact | Second [b]detail[/b]'],
   },
 };
 const FRAME = { m1s: [], specials: [], skills: [] };
@@ -100,7 +102,7 @@ test.beforeAll(() => {
 
 // --- THE READER PAGE ---
 
-test('the profile card ends in the quote, a Trivia row and Character Navigation', async ({ page }) => {
+test('the profile card ends in the quote, Trivia and Character Navigation', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await mockSite(page);
@@ -123,42 +125,154 @@ test('the profile card ends in the quote, a Trivia row and Character Navigation'
   await expect(section(page).locator('.profile-quote figcaption')).toContainText('Zzq Speaker');
   await expect(section(page).locator('.profile-quote strong.sc-b'), 'format tags in the quote').toHaveText('never');
 
-  // Trivia is one quiet row until it is hovered.
-  const row = section(page).locator('.profile-trivia-row');
-  const pop = row.locator('.profile-trivia-pop');
-  await expect(row).toContainText('2 facts');
-  await expect(pop).toBeHidden();
-  await row.hover();
-  await expect(pop).toBeVisible();
-  await expect(pop.locator('li')).toHaveCount(2);
-  await expect(pop.locator('strong.sc-b'), 'format tags in the trivia').toHaveText('fact');
+  // Every fact is in the card. A plain one shows in full; "Label | text" shows
+  // the label, and the text only on hover.
+  await expect(section(page).locator('.profile-trivia-title')).toHaveText('Trivia');
+  const facts = section(page).locator('.profile-trivia li');
+  await expect(facts).toHaveCount(2);
+  await expect(facts.nth(0)).toBeVisible();
+  await expect(facts.nth(0)).toHaveText('First fact');
+  await expect(facts.nth(0).locator('strong.sc-b'), 'format tags in a fact').toHaveText('fact');
+  const term = facts.nth(1).locator('.profile-trivia-term');
+  const tip = term.locator('.profile-trivia-tip');
+  await expect(term).toBeVisible();
+  await expect(tip).toBeHidden();
+  expect(await term.evaluate(t => t.firstChild.textContent)).toBe('Crazy fact');
+  const underline = await term.evaluate(t => getComputedStyle(t).textDecorationLine);
+  expect(underline, 'the label is marked as having more').toContain('underline');
+  await term.hover();
+  await expect(tip).toBeVisible();
+  await expect(tip).toHaveText('Second detail');
+  await expect(tip.locator('strong.sc-b'), 'format tags in the tooltip').toHaveText('detail');
 
   // Character Navigation skips the hidden and unpublished pages around Boomcat.
   await expect(section(page).locator('.profile-pager-title')).toHaveText('Character Navigation');
   const prev = section(page).locator('.profile-pager-prev');
   const next = section(page).locator('.profile-pager-next');
-  await expect(prev).toHaveText('Zzq Alpha');
-  await expect(next).toHaveText('Zzq Charlie');
+  await expect(prev.locator('.profile-pager-name')).toHaveText('Zzq Alpha');
+  await expect(next.locator('.profile-pager-name')).toHaveText('Zzq Charlie');
   await expect(prev).toHaveAttribute('href', /characters\/Zzq_alpha\/index\.html$/);
   await expect(next).toHaveAttribute('href', /characters\/Zzq_charlie\/index\.html$/);
   expect(errors).toEqual([]);
 });
 
-test('a tap opens the trivia too, since a phone has no hover', async ({ page }) => {
+// Owner's list for the Halloween update: "use the character icons next to the
+// character name, make it more lively instead of boring white text (might as
+// well color code them accordingly)". Picked from mockups (2026-10-23): two
+// tiles, Previous on the left and Next on the right, each a framed icon and the
+// name in the character's colour.
+test('Character Navigation is two tiles, each with the icon and the name in the character\'s colour', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  // The fixture characters' icons: one that loads, and one that does not exist.
+  const icon = fs.readFileSync(path.join(__dirname, '..', 'medias', 'images', 'VesselIcon.webp'));
+  await page.route(/ZzqAlphaIcon\.webp/, route => route.fulfill({ contentType: 'image/webp', body: icon }));
+  await page.route(/ZzqCharlieIcon\.webp/, route => route.fulfill({ status: 404, body: '' }));
   await mockSite(page);
-  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
   await expect(section(page)).toBeVisible({ timeout: 20000 });
 
-  const row = section(page).locator('.profile-trivia-row');
-  const pop = row.locator('.profile-trivia-pop');
-  await expect(pop).toBeHidden();
-  await row.focus();
-  await expect(pop).toBeVisible();
-  // Nothing past the screen's edge.
-  const box = await pop.boundingBox();
-  expect(box.x).toBeGreaterThanOrEqual(0);
-  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  // This test's own colours, one light and one dark, so nothing here depends
+  // on the owner's palette.
+  const LIGHT = 'hsl(0, 100%, 80%)';
+  const DARK = 'hsl(233, 39%, 23%)';
+  const out = await page.evaluate(async ({ LIGHT, DARK }) => {
+    window.CHARACTER_COLORS['Zzq Alpha'] = LIGHT;
+    window.CHARACTER_COLORS['Zzq Charlie'] = DARK;
+    const host = document.createElement('div');
+    host.className = 'profile-card';
+    host.innerHTML = window.profileDescriptionHTML({ quote: 'q' });
+    document.body.appendChild(host);
+    await window.fillProfilePager(host, 'boomcat');
+    await new Promise(r => setTimeout(r, 800));
+
+    const resolve = (c) => { const s = document.createElement('span'); s.style.color = c; host.appendChild(s); return getComputedStyle(s).color; };
+    const tile = (sel) => {
+      const a = host.querySelector(sel);
+      const name = a.querySelector('.profile-pager-name');
+      const img = a.querySelector('img.profile-pager-icon');
+      const r = a.getBoundingClientRect();
+      return {
+        dir: a.querySelector('.profile-pager-dir').textContent,
+        name: name.textContent,
+        color: getComputedStyle(name).color,
+        outlined: name.classList.contains('sc-outline'),
+        icon: img ? { loaded: img.complete && img.naturalWidth > 0, frame: getComputedStyle(img).borderTopColor } : null,
+        left: r.left, top: r.top,
+      };
+    };
+    return { light: resolve(LIGHT), dark: resolve(DARK), prev: tile('.profile-pager-prev'), next: tile('.profile-pager-next') };
+  }, { LIGHT, DARK });
+
+  expect(out.prev).toMatchObject({ dir: '‹ Previous', name: 'Zzq Alpha', color: out.light, outlined: false });
+  expect(out.prev.icon, 'an icon that loads is shown, framed in the colour').toEqual({ loaded: true, frame: out.light });
+  expect(out.next).toMatchObject({ dir: 'Next ›', name: 'Zzq Charlie', color: out.dark });
+  expect(out.next.outlined, 'a dark name gets the site\'s white outline').toBe(true);
+  expect(out.next.icon, 'a missing icon leaves the name alone, not a broken image').toBeNull();
+  // Side by side: Previous on the left, Next on the right.
+  expect(out.prev.top).toBe(out.next.top);
+  expect(out.prev.left).toBeLessThan(out.next.left);
+  expect(errors).toEqual([]);
+});
+
+test.describe('on a touch screen', () => {
+  test.use({ hasTouch: true });
+
+  test('a tap opens the trivia too, since a phone has no hover', async ({ page }) => {
+    // Long enough to reach the screen's edge if nothing held it back.
+    const long = JSON.parse(JSON.stringify(DESC));
+    long.profile.trivia = [`Crazy fact | ${'Locust Guy never used his other 2 arms at all. '.repeat(4)}`];
+    await mockSite(page, long);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+    await expect(section(page)).toBeVisible({ timeout: 20000 });
+
+    const term = section(page).locator('.profile-trivia-term');
+    const tip = term.locator('.profile-trivia-tip');
+    await expect(tip).toBeHidden();
+    await term.tap();
+    await expect(tip).toBeVisible();
+    // Nothing past the screen's edge.
+    const box = await tip.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(390);
+  });
+});
+
+test('the keyboard reaches a trivia tooltip as well', async ({ page }) => {
+  await mockSite(page);
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+  await expect(section(page)).toBeVisible({ timeout: 20000 });
+
+  const term = section(page).locator('.profile-trivia-term');
+  const tip = term.locator('.profile-trivia-tip');
+  // The pointer is nowhere near it, so only focus can open it.
+  await page.mouse.move(0, 0);
+  await term.focus();
+  await expect(tip).toBeVisible();
+});
+
+test('only the first "|" splits a fact, and a fact with nothing on one side of it shows as written', async ({ page }) => {
+  await mockSite(page);
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+  await expect(section(page)).toBeVisible({ timeout: 20000 });
+
+  const items = await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.innerHTML = window.profileDescriptionHTML({ trivia: ['A | b | c', '| no label', 'no text |', 'plain'] });
+    return [...host.querySelectorAll('.profile-trivia li')].map(li => {
+      const term = li.querySelector('.profile-trivia-term');
+      return term
+        ? { label: term.firstChild.textContent, tip: term.querySelector('.profile-trivia-tip').textContent }
+        : { line: li.textContent };
+    });
+  });
+  expect(items).toEqual([
+    { label: 'A', tip: 'b | c' },
+    { line: '| no label' },
+    { line: 'no text |' },
+    { line: 'plain' },
+  ]);
 });
 
 test('the order: base-only last, hidden and unpublished left out, no wrap at the ends', async ({ page }) => {
@@ -172,8 +286,9 @@ test('the order: base-only last, hidden and unpublished left out, no wrap at the
     document.body.appendChild(host);
     await window.fillProfilePager(host, pageId);
     const nav = host.querySelector('[data-profile-pager]');
-    const name = (sel) => { const a = nav.querySelector(sel); return a ? a.textContent : null; };
-    const rows = [...nav.querySelectorAll('.profile-stat-label')].map(l => l.textContent);
+    const name = (sel) => { const a = nav.querySelector(`${sel} .profile-pager-name`); return a ? a.textContent : null; };
+    const rows = [...nav.querySelectorAll('.profile-pager-link')]
+      .map(a => (a.classList.contains('profile-pager-prev') ? 'Previous' : 'Next'));
     const out = { shown: !nav.hidden, rows, prev: name('.profile-pager-prev'), next: name('.profile-pager-next') };
     host.remove();
     return out;
@@ -199,7 +314,7 @@ test('with no quote or trivia only Character Navigation shows, and a hidden page
       const s = host.querySelector('.profile-desc');
       const r = {
         visible: getComputedStyle(s).display !== 'none',
-        extras: s.querySelectorAll('.profile-quote, .profile-trivia-row').length,
+        extras: s.querySelectorAll('.profile-quote, .profile-trivia').length,
         links: s.querySelectorAll('.profile-pager-link').length,
       };
       host.remove();
@@ -216,14 +331,18 @@ test('quote, speaker and trivia are shown as text, never as markup', async ({ pa
   const hostile = JSON.parse(JSON.stringify(DESC));
   hostile.profile.quote = '<img src=x onerror="window.__PWN=1">quote';
   hostile.profile.quoteSpeaker = '<b>who</b>';
-  hostile.profile.trivia = ['<script>window.__PWN=1</script>fact'];
+  hostile.profile.trivia = ['<script>window.__PWN=1</script>fact', '<b>term</b> | <img src=x onerror="window.__PWN=1">tip'];
   await mockSite(page, hostile);
   await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
   await expect(section(page)).toBeVisible({ timeout: 20000 });
 
   await expect(section(page).locator('.profile-quote blockquote')).toContainText('<img src=x');
   await expect(section(page).locator('.profile-quote figcaption')).toContainText('<b>who</b>');
-  await expect(section(page).locator('.profile-trivia li')).toContainText('<script>');
+  await expect(section(page).locator('.profile-trivia li').first()).toContainText('<script>');
+  // Both halves of a split fact.
+  const term = section(page).locator('.profile-trivia-term');
+  expect(await term.evaluate(t => t.firstChild.textContent)).toBe('<b>term</b>');
+  expect(await term.locator('.profile-trivia-tip').evaluate(t => t.textContent)).toBe('<img src=x onerror="window.__PWN=1">tip');
   expect(await section(page).locator('img, b, script').count()).toBe(0);
   expect(await page.evaluate(() => window.__PWN)).toBeUndefined();
 });
