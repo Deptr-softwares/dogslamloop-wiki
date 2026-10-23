@@ -8,7 +8,7 @@
 // with its sound. Four fists, and only the fourth decides; then the music and
 // the game fade out. Losing is the owner's avatar holding a stretched Ko-fi
 // button like a sword, growing for about two seconds, then its face filling
-// the screen begging, then the Ko-fi button stretched over everything with a
+// the screen begging for three, then the Ko-fi button stretched over everything with a
 // pitched-up scream, with the owner's own voice begging all the way to it;
 // winning is the avatar far away, whispering for a donation. "press x
 // to skip" in the corner the whole way through. Either way the site turns
@@ -324,7 +324,11 @@ test('three Black Flashes and a miss on the fourth loses: the growing avatar, th
   expect(face).toMatchObject({ rendering: 'pixelated', covers: true });
   expect(await played(page, SCREAM)).toEqual([]);
 
-  await page.clock.runFor(1800);
+  // The face stays up for at least three seconds (owner).
+  await page.clock.runFor(2950);
+  await expect(page.locator('.hw-kofi')).toHaveCount(0);
+  expect(await played(page, SCREAM)).toEqual([]);
+  await page.clock.runFor(50);
   const kofi = page.locator('.hw-kofi');
   await expect(kofi).toHaveAttribute('src', /medias\/images\/KoFiButton\.png$/);
   const stretched = await kofi.evaluate(k => {

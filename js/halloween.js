@@ -126,8 +126,9 @@
     // Lost, in ms from the scene: the avatar grows for about two seconds,
     // then its face fills the screen, then the Ko-fi button does.
     const FACE_AT = 2300;
-    const KOFI_AT = 4100;
-    const LOST_FADES_AT = 6100;
+    // The face stays up for at least three seconds (owner).
+    const KOFI_AT = FACE_AT + 3000;
+    const LOST_FADES_AT = KOFI_AT + 2000;
     const WON_FADES_AT = 2600;
 
     // Paths from this script's own address, so they hold on a page at any depth.
