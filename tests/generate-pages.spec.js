@@ -20,8 +20,8 @@ test('generates a stub for every routable character and system page', () => {
   expect(problems).toEqual([]);
 
   // Every stub traces back to a navigation entry - the generator must not
-  // invent pages. Template and the bespoke system pages are excluded by
-  // NEVER_TOUCH; the hubs are not two-level page paths.
+  // invent pages. The bespoke system pages are excluded by NEVER_TOUCH; the
+  // hubs are not two-level page paths.
   const navUrls = Object.values(nav).flat().map(entry => String(entry.url || '').replace(/\\/g, '/'));
   for (const page of pages) {
     expect(navUrls, `${page.relPath} was generated but no navigation entry asks for it`)
@@ -68,9 +68,32 @@ test('never generates a hand-authored page', () => {
   }
   // Named explicitly as well as via the set, so that shrinking NEVER_TOUCH by
   // accident fails here rather than silently widening what gets overwritten.
-  expect(generated).not.toContain('characters/Template/index.html');
+  // (characters/Template left the set on purpose, 2026-10-24.)
   expect(generated).not.toContain('systems/tierlist/index.html');
   expect(generated).not.toContain('systems/collaborators/index.html');
+});
+
+test('a character page outside the Characters category is not described as a character', () => {
+  // The Template & Guide is a character page filed under Site Info, generated
+  // since 2026-10-24. Its search result and Discord preview must not read
+  // "Frame data, matchups, and strategy for Template & Guide". A made-up nav,
+  // so an owner edit to the real one cannot turn this red.
+  const entry = (name, slug) => ({
+    id: slug, name, url: `characters/${slug}/index.html`,
+    cms_config: { pageType: 'character', pageId: slug.toLowerCase() },
+  });
+  const { pages, problems } = buildPages({
+    Characters: [entry('Alpha', 'Alpha')],
+    'Site Info': [entry('Example Page', 'Example')],
+  });
+  const describedAs = id => /<meta name="description" content="([^"]*)"/.exec(pages.find(p => p.pageId === id).html)[1];
+
+  expect(problems).toEqual([]);
+  expect(describedAs('alpha')).toBe('Frame data, matchups, and strategy for Alpha in Jujutsu Shenanigans.');
+  expect(describedAs('example')).not.toContain('Frame data');
+  expect(describedAs('example')).toContain('Example Page');
+  // Still a character page underneath: same tabs, same scripts.
+  expect(pages.find(p => p.pageId === 'example').html).toContain('pageType: "character"');
 });
 
 test('every generated stub carries the marker that protects hand-authored files', () => {
