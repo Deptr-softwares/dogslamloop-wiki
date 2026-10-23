@@ -115,8 +115,15 @@
     // catches them off guard". A click is also what lets a browser play sound.
     const CHANCE = 0.5;
 
-    // Lost, in ms from the fourth fist: the avatar grows for about two
-    // seconds, then its face fills the screen, then the Ko-fi button does.
+    // Doing nothing makes it worse (owner): the red at the sides and the
+    // swaying grow at these idle times, to a violent jiggle before the loss.
+    const HEAT_AFTER = [3000, 6000, 8000];
+
+    // Once the fourth fist lands, the music and the game fade out over this
+    // long before the scene (owner).
+    const RESOLVE_MS = 700;
+    // Lost, in ms from the scene: the avatar grows for about two seconds,
+    // then its face fills the screen, then the Ko-fi button does.
     const FACE_AT = 2300;
     const KOFI_AT = 4100;
     const LOST_FADES_AT = 6100;
@@ -129,9 +136,14 @@
     // The owner's screenshots: the Ko-fi button, and the game's own skill box.
     const KOFI = asset('medias/images/KoFiButton.png');
     const SKILL = asset('medias/images/InGameDivergentFistUI.png');
-    // The owner's picks, free to use from Pixabay.
+    // The owner's picks, free to use from Pixabay. The scream is pitched up,
+    // towards Foxy's (owner), by playing it faster without keeping its pitch.
     const SCREAM = asset('medias/audios/HalloweenJumpscare.mp3');
+    const SCREAM_PITCH = 1.35;
     const MUSIC = asset('medias/audios/tunetank-dark-tense-cinematic-chase-music-414691.mp3');
+    // A Black Flash chain sound from the Roblox Creator Store, kept by the
+    // owner's call (2026-10-23) after its off-Roblox licence was raised.
+    const HIT = asset('medias/audios/8f73237e2303c812712cfba944ed5bf7.mp3');
     // The avatar's head in DeptrAvatar.webp, as fractions of it, and the width
     // it is drawn at before being stretched over the screen: few enough pixels
     // that they show (owner: "make it so large, my avatar appears pixelated
@@ -162,6 +174,21 @@
     function stop(a) {
         if (a) a.pause();
     }
+    // Down to silence over `ms`, then stopped.
+    function fadeOut(a, ms) {
+        if (!a) return;
+        const steps = 10;
+        const from = a.volume;
+        let step = 0;
+        const t = setInterval(() => {
+            step += 1;
+            a.volume = Math.max(0, from * (1 - step / steps));
+            if (step >= steps) {
+                clearInterval(t);
+                a.pause();
+            }
+        }, ms / steps);
+    }
 
     // The face, drawn small and stretched over the screen without smoothing.
     function pixelFace(img) {
@@ -190,9 +217,9 @@
             <p class="hw-tip" id="hw-tip">HIT A FULL BLACK FLASH CHAIN OR GET JUMPSCARED</p>
             <div class="hw-arena">
                 <p class="hw-count" aria-live="polite">FIST 1 / ${FISTS}</p>
-                <div class="hw-target"><div class="hw-ring"></div><img class="hw-skill" src="${SKILL}" alt="Divergent Fist, key 3"></div>
+                <div class="hw-target"><img class="hw-skill" src="${SKILL}" alt="Divergent Fist, key 3"><div class="hw-dot"></div><div class="hw-ring"></div></div>
                 <p class="hw-callout" aria-live="assertive"></p>
-                <p class="hw-help">Space, 3, click or tap throws a Divergent Fist. Press again on the beat for a Black Flash.</p>
+                <p class="hw-help">Space, 3, click, or tap!!!</p>
             </div>
             <button type="button" class="hw-skip">press x to skip</button>`;
         document.body.appendChild(overlay);
@@ -203,9 +230,19 @@
 
         const music = sound(MUSIC, { loop: true, volume: 0.5 });
         const scream = sound(SCREAM);
+        if (scream) {
+            scream.preservesPitch = false;
+            scream.webkitPreservesPitch = false;
+            scream.playbackRate = SCREAM_PITCH;
+        }
+        const hit = sound(HIT);
         start(music);
+        // Loading from the start, so the face is ready by the time it is due.
+        const avatar = new Image();
+        avatar.src = AVATAR;
 
         const count = overlay.querySelector('.hw-count');
+        const target = overlay.querySelector('.hw-target');
         const ring = overlay.querySelector('.hw-ring');
         const callout = overlay.querySelector('.hw-callout');
         const arena = overlay.querySelector('.hw-arena');
@@ -214,6 +251,8 @@
         let thrownAt = 0;
         let fistTimer = null;
         let idleTimer = null;
+        let lastPress = 0;
+        let heatTimer = null;
         const sceneTimers = [];
         const later = (fn, ms) => sceneTimers.push(setTimeout(fn, ms));
         const results = [];
@@ -223,7 +262,22 @@
             idleTimer = setTimeout(() => finish(false), IDLE_LOSES);
         };
 
+        // How long since the last press, as a level the CSS turns into redder
+        // sides and harder swaying.
+        const heat = () => {
+            const quiet = performance.now() - lastPress;
+            overlay.dataset.heat = String(HEAT_AFTER.filter(at => quiet >= at).length);
+        };
+
         function act() {
+            if (phase === 'ready' || phase === 'thrown') {
+                lastPress = performance.now();
+                heat();
+                // The skill box dips under the press, like the key going down.
+                target.classList.remove('is-pressed');
+                void target.offsetWidth;
+                target.classList.add('is-pressed');
+            }
             if (phase === 'ready') {
                 phase = 'thrown';
                 thrownAt = performance.now();
@@ -249,6 +303,10 @@
             callout.textContent = blackFlash ? 'BLACK FLASH!' : 'MISS';
             callout.className = `hw-callout ${blackFlash ? 'is-flash' : 'is-miss'}`;
             arena.classList.add(blackFlash ? 'is-flash' : 'is-miss');
+            if (blackFlash && hit) {
+                hit.currentTime = 0;
+                start(hit);
+            }
             setTimeout(() => {
                 if (phase !== 'landed') return;
                 if (results.length === FISTS) {
@@ -287,12 +345,16 @@
             if (phase !== 'intro') return;
             phase = 'ready';
             overlay.classList.add('is-live');
+            lastPress = performance.now();
+            heat();
+            heatTimer = setInterval(heat, 250);
             idle();
         }, 1600);
 
         function stopGame() {
             clearTimeout(fistTimer);
             clearTimeout(idleTimer);
+            clearInterval(heatTimer);
             overlay.removeEventListener('pointerdown', onPointer);
         }
 
@@ -302,7 +364,13 @@
             stopGame();
             // Played, whatever happens next: a tab closed mid-scare still counts.
             markDone();
-            if (won) won_(); else lost();
+            // The music and the game fade out, then the scene.
+            fadeOut(music, RESOLVE_MS);
+            overlay.classList.add('is-resolving');
+            later(() => {
+                overlay.classList.remove('is-resolving');
+                if (won) won_(); else lost();
+            }, RESOLVE_MS);
         }
 
         // Skipping goes straight to the new look, from the game or a scene.
@@ -323,8 +391,7 @@
 
         // Lost: far off, growing for about two seconds; then the face fills the
         // screen, begging; then the Ko-fi button takes the screen with a
-        // scream, and about two seconds later it all fades away. The music
-        // runs until the scream.
+        // scream, and about two seconds later it all fades away.
         function lost() {
             overlay.classList.add('is-scene');
             arena.innerHTML = `<div class="hw-scene hw-lost">${figure()}<p class="hw-beg">PLEASE DONATE...</p></div>`;
@@ -334,13 +401,17 @@
             void scene.offsetWidth;
             scene.classList.add('is-growing');
             later(() => {
-                const face = pixelFace(scene.querySelector('.hw-avatar'));
-                if (face) scene.prepend(face);
                 scene.classList.add('is-close');
+                // On a slow line the picture may still be coming: drawn when it does.
+                const draw = () => {
+                    const face = pixelFace(avatar);
+                    if (face && scene.isConnected) scene.prepend(face);
+                };
+                if (avatar.complete && avatar.naturalWidth) draw();
+                else avatar.addEventListener('load', draw, { once: true });
             }, FACE_AT);
             later(() => {
                 scene.insertAdjacentHTML('beforeend', `<img class="hw-kofi" src="${KOFI}" alt="Support Ko-fi">`);
-                stop(music);
                 start(scream);
             }, KOFI_AT);
             later(fadeAway, LOST_FADES_AT);
@@ -348,7 +419,6 @@
 
         // Won: only seen from far away, quietly asking.
         function won_() {
-            stop(music);
             overlay.classList.add('is-scene');
             arena.innerHTML = `<div class="hw-scene hw-won">${figure()}<p class="hw-ask">(psst... donate?)</p></div>`;
             later(fadeAway, WON_FADES_AT);

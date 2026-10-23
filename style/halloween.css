@@ -71,20 +71,76 @@ html.reduce-motion .hw-tip { animation: none; }
 .hw-game.is-live .hw-arena, .hw-game.is-scene .hw-arena { opacity: 1; }
 .hw-count, .hw-help { margin: 0; font-family: var(--text-mono); font-size: 0.8rem; color: #c9d1d9; }
 .hw-help { max-width: 26rem; color: #8b949e; }
+/* The skill box behind, and a dot in its middle that the ring closes on, as
+   if pressing the skill (owner). The box dips under each press. */
 .hw-target { position: relative; width: 12rem; height: 12rem; display: flex; align-items: center; justify-content: center; }
-.hw-skill { width: 105px; height: 114px; image-rendering: pixelated; }
-.hw-ring { position: absolute; width: 9.5rem; height: 9.5rem; border-radius: 50%; border: 3px solid #fff; box-sizing: border-box; opacity: 0; }
+.hw-skill { width: 105px; height: 114px; image-rendering: pixelated; transition: transform 0.08s ease, filter 0.08s ease; }
+.hw-target.is-pressed .hw-skill { animation: hw-press 0.16s ease-out; }
+@keyframes hw-press { 40% { transform: scale(0.9); filter: brightness(1.35); } }
+.hw-dot, .hw-ring { position: absolute; left: 50%; top: 50%; width: 1.6rem; height: 1.6rem; margin: -0.8rem 0 0 -0.8rem; border-radius: 50%; box-sizing: border-box; }
+.hw-dot { background: #ff2a2a; border: 3px solid #000; }
+.hw-ring { border: 3px solid #fff; opacity: 0; }
 .hw-ring.is-closing { animation: hw-ring 0.5s linear forwards; }
-/* On the box at 60% of 0.5s: the beat. */
+/* On the dot at 60% of 0.5s: the beat. */
 @keyframes hw-ring {
-    0% { transform: scale(2.2); opacity: 1; }
+    0% { transform: scale(5); opacity: 1; }
     60% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(0.6); opacity: 0; }
 }
 .hw-callout { margin: 0; min-height: 2.5rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 1.6rem; letter-spacing: 0.06em; }
 .hw-callout.is-flash { color: #ff2a2a; text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000; }
 .hw-callout.is-miss { color: #8b949e; }
 .hw-arena.is-flash .hw-skill { filter: drop-shadow(0 0 3px #000) drop-shadow(0 0 14px #ff2a2a); }
+.hw-arena.is-flash .hw-dot { background: #000; border-color: #ff2a2a; box-shadow: 0 0 18px 8px rgba(255, 42, 42, 0.6); }
+
+/* While it is live: red blinking at the sides, and every part swaying on its
+   own. data-heat (js/halloween.js) climbs while nothing is pressed: redder
+   and faster, then a violent jiggle before the idle loss (owner). */
+.hw-game::before {
+    content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0;
+    background: radial-gradient(ellipse at center, transparent 45%, rgba(255, 0, 0, 0.55) 100%);
+}
+.hw-game.is-live:not(.is-scene):not(.is-resolving)::before { animation: hw-blink 1s ease-in-out infinite alternate; }
+.hw-game.is-live[data-heat="1"]:not(.is-scene)::before { animation-duration: 0.6s; }
+.hw-game.is-live[data-heat="2"]:not(.is-scene)::before { animation-duration: 0.35s; background: radial-gradient(ellipse at center, transparent 30%, rgba(255, 0, 0, 0.8) 100%); }
+.hw-game.is-live[data-heat="3"]:not(.is-scene)::before { animation-duration: 0.18s; background: radial-gradient(ellipse at center, rgba(255, 0, 0, 0.15) 15%, rgba(255, 0, 0, 0.95) 100%); }
+@keyframes hw-blink { from { opacity: 0.25; } to { opacity: 1; } }
+
+.hw-game.is-live:not(.is-scene) .hw-count,
+.hw-game.is-live:not(.is-scene) .hw-target,
+.hw-game.is-live:not(.is-scene) .hw-callout,
+.hw-game.is-live:not(.is-scene) .hw-help { animation: hw-sway 2.6s ease-in-out infinite; }
+.hw-game.is-live:not(.is-scene) .hw-target { animation-delay: -0.7s; animation-duration: 3.1s; }
+.hw-game.is-live:not(.is-scene) .hw-callout { animation-delay: -1.3s; }
+.hw-game.is-live:not(.is-scene) .hw-help { animation-delay: -1.9s; animation-duration: 2.2s; }
+.hw-game.is-live[data-heat="1"]:not(.is-scene) :is(.hw-count, .hw-target, .hw-callout, .hw-help) { animation-duration: 1.4s; }
+.hw-game.is-live[data-heat="2"]:not(.is-scene) :is(.hw-count, .hw-target, .hw-callout, .hw-help) { animation-name: hw-sway-hard; animation-duration: 0.9s; }
+.hw-game.is-live[data-heat="3"]:not(.is-scene) :is(.hw-tip, .hw-count, .hw-target, .hw-callout, .hw-help) { animation: hw-jiggle 0.12s linear infinite; }
+@keyframes hw-sway {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(-6px, 3px) rotate(-2deg); }
+    50% { transform: translate(4px, -4px) rotate(1.5deg); }
+    75% { transform: translate(6px, 2px) rotate(2deg); }
+}
+@keyframes hw-sway-hard {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(-16px, 8px) rotate(-5deg); }
+    50% { transform: translate(11px, -10px) rotate(4deg); }
+    75% { transform: translate(15px, 5px) rotate(5deg); }
+}
+@keyframes hw-jiggle {
+    0%, 100% { transform: translate(-9px, 5px) rotate(-6deg); }
+    25% { transform: translate(10px, -7px) rotate(5deg); }
+    50% { transform: translate(-7px, -5px) rotate(-4deg); }
+    75% { transform: translate(8px, 7px) rotate(6deg); }
+}
+/* A reader who asked for less motion and chose to play: still red, still. */
+html.reduce-motion .hw-game::before { animation: none !important; }
+html.reduce-motion .hw-game.is-live:not(.is-scene)::before { opacity: 0.6; }
+html.reduce-motion .hw-game :is(.hw-tip, .hw-count, .hw-target, .hw-callout, .hw-help) { animation: none !important; }
+
+/* Once the fourth fist lands, the game fades out before the scene (owner). */
+.hw-game.is-resolving :is(.hw-tip, .hw-arena) { opacity: 0; transition: opacity 0.6s ease; }
 
 /* Small and quiet in the corner, all the way through (owner). A button so a
    phone can tap it. */
@@ -120,11 +176,11 @@ html.reduce-motion .hw-tip { animation: none; }
     font-family: 'CC-Wild-Words', sans-serif; font-size: clamp(2rem, 9vw, 6rem);
     color: #ff8c2e; text-shadow: 4px 4px 0 #000;
 }
+/* All at once, no zoom (owner). */
 .hw-kofi {
     position: fixed; inset: 0; width: 100%; height: 100%; object-fit: fill;
-    image-rendering: pixelated; animation: hw-slam 0.12s ease-out;
+    image-rendering: pixelated;
 }
-@keyframes hw-slam { from { transform: scale(3); } }
 
 /* Won: only seen from far away, quietly asking. */
 .hw-won .hw-figure { height: 4vh; }
