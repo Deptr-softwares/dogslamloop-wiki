@@ -1,15 +1,16 @@
 // The Halloween minigame (owner's design, 2026-10-23, after two rounds of the
 // owner trying it). Any click has a 50% chance to wake it: the screen fades to
-// black under a wobbling "HIT A FULL BLACK FLASH CHAIN OR GET JUMPSCARED",
-// music starts, the sides blink red and everything sways, worse the longer
-// nothing is pressed. The game's own Divergent Fist skill box sits in the
+// black under a wobbling "HIT THE FINAL BLACK FLASH CHAIN OR GET JUMPSCARED",
+// music starts, the sides blink red and everything sways, then jitters harder
+// the longer nothing is pressed. The game's own Divergent Fist skill box sits in the
 // middle with a dot on it. Space, a click, a tap or the 3 key throws a
 // Divergent Fist, and pressing again about 0.3s later lands a Black Flash,
 // with its sound. Four fists, and only the fourth decides; then the music and
 // the game fade out. Losing is the owner's avatar holding a stretched Ko-fi
 // button like a sword, growing for about two seconds, then its face filling
 // the screen begging, then the Ko-fi button stretched over everything with a
-// pitched-up scream; winning is the avatar far away, quietly asking. "press x
+// pitched-up scream, with the owner's own voice begging all the way to it;
+// winning is the avatar far away, whispering for a donation. "press x
 // to skip" in the corner the whole way through. Either way the site turns
 // Pumpkin Night after. Once per reader, again from Site settings, and gone
 // on November 1.
@@ -35,7 +36,7 @@ async function arm(page, { at = DURING, random = 0.01, automated = false, played
     window.__played = [];
     window.__paused = [];
     HTMLMediaElement.prototype.play = function () {
-      window.__played.push({ src: this.src, rate: this.playbackRate, keepsPitch: this.preservesPitch });
+      window.__played.push({ src: this.src, rate: this.playbackRate, keepsPitch: this.preservesPitch, volume: this.volume });
       return Promise.resolve();
     };
     HTMLMediaElement.prototype.pause = function () { window.__paused.push({ src: this.src, volume: this.volume }); };
@@ -80,13 +81,16 @@ const played = async (page, re) => (await sounds(page)).played.filter(p => re.te
 const MUSIC = /medias\/audios\/tunetank-dark-tense-cinematic-chase-music-414691\.mp3$/;
 const SCREAM = /medias\/audios\/HalloweenJumpscare\.mp3$/;
 const HIT = /medias\/audios\/8f73237e2303c812712cfba944ed5bf7\.mp3$/;
+const BEG = /medias\/audios\/LoseAudio\.mp3$/;
+const BEG_LAYERS = /medias\/audios\/LoseAudio[23]\.mp3$/;
+const WHISPER = /medias\/audios\/WinAudio\.mp3$/;
 
 test('a click wakes it: the screen goes to black, the music starts, and nothing counts until the warning is up', async ({ page }) => {
   await arm(page);
   await expect(game(page)).toHaveCount(0);
   await heading(page).click();
   await expect(game(page)).toHaveCount(1);
-  await expect(page.locator('.hw-tip')).toHaveText('HIT A FULL BLACK FLASH CHAIN OR GET JUMPSCARED');
+  await expect(page.locator('.hw-tip')).toHaveText('HIT THE FINAL BLACK FLASH CHAIN OR GET JUMPSCARED');
   expect(await played(page, MUSIC)).toHaveLength(1);
   // A press during the fade does nothing.
   await page.keyboard.press('Space');
@@ -95,7 +99,7 @@ test('a click wakes it: the screen goes to black, the music starts, and nothing 
   await expect(game(page)).toHaveClass(/is-live/);
   // Fully black, not see-through (owner). The fade is CSS, on the real clock.
   await expect.poll(() => game(page).evaluate(g => getComputedStyle(g).backgroundColor)).toBe('rgb(0, 0, 0)');
-  await expect(page.locator('.hw-count')).toHaveText('FIST 1 / 4');
+  await expect(page.locator('.hw-count')).toHaveText('1/4');
   await expect(page.locator('.hw-help')).toHaveText('Space, 3, click, or tap!!!');
   await expect(page.locator('.hw-skip')).toHaveText('press x to skip');
   // The warning wobbles.
@@ -126,31 +130,58 @@ test('the dot sits on the middle of the skill box, in front of it, and the ring 
   await expect(page.locator('.hw-target')).toHaveClass(/is-pressed/);
 });
 
-test('the sides blink red and everything sways, worse the longer nothing is pressed, calm again on a press', async ({ page }) => {
+// How far an animation's keyframes move an element, in px, read off the
+// stylesheet the page loaded.
+const reach = (page, name) => page.evaluate((name) => {
+  for (const sheet of document.styleSheets) {
+    let rules;
+    try { rules = sheet.cssRules; } catch (e) { continue; }
+    for (const r of rules) {
+      if (r.type !== CSSRule.KEYFRAMES_RULE || r.name !== name) continue;
+      let most = 0;
+      for (const k of r.cssRules) {
+        const m = k.style.transform.match(/translate\((-?[\d.]+)px,\s*(-?[\d.]+)px\)/);
+        if (m) most = Math.max(most, Math.abs(+m[1]), Math.abs(+m[2]));
+      }
+      return most;
+    }
+  }
+  return null;
+}, name);
+
+test('the sides blink red and everything sways, then jitters harder the longer nothing is pressed, calm again on a press', async ({ page }) => {
   await arm(page);
   await wakeAndWait(page);
   const state = () => page.evaluate(() => ({
     heat: document.querySelector('.hw-game').dataset.heat,
     blink: getComputedStyle(document.querySelector('.hw-game'), '::before').animationName,
     blinkEvery: getComputedStyle(document.querySelector('.hw-game'), '::before').animationDuration,
-    sway: ['.hw-count', '.hw-target', '.hw-callout', '.hw-help'].map(s => getComputedStyle(document.querySelector(s)).animationName),
+    moves: ['.hw-count', '.hw-target', '.hw-callout', '.hw-help'].map(s => getComputedStyle(document.querySelector(s)).animationName),
   }));
 
   const calm = await state();
   expect(calm).toMatchObject({ heat: '0', blink: 'hw-blink', blinkEvery: '1s' });
-  expect(calm.sway).toEqual(['hw-sway', 'hw-sway', 'hw-sway', 'hw-sway']);
+  expect(calm.moves).toEqual(['hw-sway', 'hw-sway', 'hw-sway', 'hw-sway']);
 
+  // No faster or harder sway: a jitter instead, growing (owner).
   await page.clock.runFor(3250);
-  expect((await state()).heat).toBe('1');
+  const jitter = await state();
+  expect(jitter.heat).toBe('1');
+  expect(jitter.moves).toEqual(['hw-jitter', 'hw-jitter', 'hw-jitter', 'hw-jitter']);
   await page.clock.runFor(3000);
   const harder = await state();
   expect(harder.heat).toBe('2');
-  expect(harder.sway[0]).toBe('hw-sway-hard');
+  expect(harder.moves).toEqual(['hw-jitter-hard', 'hw-jitter-hard', 'hw-jitter-hard', 'hw-jitter-hard']);
   await page.clock.runFor(2000);
   const violent = await state();
   expect(violent.heat).toBe('3');
-  expect(violent.sway).toEqual(['hw-jiggle', 'hw-jiggle', 'hw-jiggle', 'hw-jiggle']);
+  expect(violent.moves).toEqual(['hw-jiggle', 'hw-jiggle', 'hw-jiggle', 'hw-jiggle']);
   expect(parseFloat(violent.blinkEvery)).toBeLessThan(parseFloat(calm.blinkEvery));
+
+  const [small, medium, large] = [await reach(page, 'hw-jitter'), await reach(page, 'hw-jitter-hard'), await reach(page, 'hw-jiggle')];
+  expect(small).toBeGreaterThan(0);
+  expect(medium).toBeGreaterThan(small);
+  expect(large).toBeGreaterThan(medium);
 
   await page.keyboard.press('Space');
   expect((await state()).heat).toBe('0');
@@ -180,7 +211,7 @@ test('on the beat is a Black Flash, with its sound; too early, too late or no se
   await wakeAndWait(page);
   expect(await fist(page, 300)).toBe('BLACK FLASH!');
   expect(await played(page, HIT)).toHaveLength(1);
-  await expect(page.locator('.hw-count')).toHaveText('FIST 2 / 4');
+  await expect(page.locator('.hw-count')).toHaveText('2/4');
   expect(await fist(page, 150)).toBe('MISS');
   expect(await fist(page, 420)).toBe('MISS');
   expect(await fist(page, null), 'the fist lands on its own without a second press').toBe('MISS');
@@ -239,12 +270,19 @@ test('only the fourth fist decides: three misses and then a Black Flash wins', a
   await expect(page.locator('.hw-won .hw-avatar')).toHaveAttribute('src', /medias\/images\/DeptrAvatar\.webp$/);
   await expect(page.locator('.hw-ask')).toBeVisible();
   await expect(page.locator('.hw-lost')).toHaveCount(0);
+  // The owner's whisper, turned down below every other sound in the game.
+  const [whisper] = await played(page, WHISPER);
+  const quietestOther = Math.min(...(await sounds(page)).played.filter(p => !WHISPER.test(p.src)).map(p => p.volume));
+  expect(whisper.volume).toBeLessThan(quietestOther);
   await page.clock.runFor(2600);
   expect(await looks(page)).toMatchObject({ on: true, done: '1' });
   await page.clock.runFor(1000);
   await expect(game(page)).toHaveCount(0);
   expect((await looks(page)).webs).toBe(2);
+  // Left to finish on its own, not cut off by the fade.
+  expect((await sounds(page)).paused.filter(p => WHISPER.test(p.src))).toEqual([]);
   expect(await played(page, SCREAM)).toEqual([]);
+  expect(await played(page, BEG)).toEqual([]);
 });
 
 test('three Black Flashes and a miss on the fourth loses: the growing avatar, the pixelated face, the Ko-fi button and the scream', async ({ page }) => {
@@ -262,10 +300,16 @@ test('three Black Flashes and a miss on the fourth loses: the growing avatar, th
   expect(await scene.locator('.hw-figure').evaluate(f => getComputedStyle(f).transitionDuration)).toBe('2s');
   await expect(page.locator('.hw-beg')).toBeHidden();
   expect((await looks(page)).done, 'played, even if the tab closes mid-scare').toBe('1');
+  // The owner's long line from the start, the two short ones not yet.
+  expect(await played(page, BEG)).toHaveLength(1);
+  expect(await played(page, BEG_LAYERS)).toEqual([]);
 
   await page.clock.runFor(2300);
   await expect(scene).toHaveClass(/is-close/);
   await expect(page.locator('.hw-beg')).toBeVisible();
+  // ...and layered on top of it with the face.
+  expect((await played(page, BEG_LAYERS)).map(p => p.src.split('/').pop()).sort()).toEqual(['LoseAudio2.mp3', 'LoseAudio3.mp3']);
+  expect(await played(page, BEG), 'the long line is not started again').toHaveLength(1);
   // The face, drawn small and stretched over the whole screen without smoothing.
   await expect(page.locator('.hw-face')).toHaveCount(1);
   const face = await page.locator('.hw-face').evaluate(c => {
@@ -293,6 +337,7 @@ test('three Black Flashes and a miss on the fourth loses: the growing avatar, th
   expect((await looks(page)).on).toBe(true);
   await page.clock.runFor(1000);
   await expect(game(page)).toHaveCount(0);
+  expect(await played(page, WHISPER)).toEqual([]);
 });
 
 test('on a slow line the face is drawn when the picture arrives, not left out', async ({ page }) => {
@@ -326,12 +371,25 @@ test('x skips the scare too, and nothing of it comes after', async ({ page }) =>
   await page.clock.runFor(RESOLVE);
   await expect(page.locator('.hw-lost')).toHaveCount(1);
   await page.keyboard.press('X');
+  // The begging stops with it.
+  expect((await sounds(page)).paused.filter(p => BEG.test(p.src))).toHaveLength(1);
   await page.clock.runFor(1000);
   await expect(game(page)).toHaveCount(0);
   expect((await looks(page)).on).toBe(true);
-  // The scare's own timers were stopped with it: no scream later.
+  // The scare's own timers were stopped with it: no scream or layered voices later.
   await page.clock.runFor(8000);
   expect(await played(page, SCREAM)).toEqual([]);
+  expect(await played(page, BEG_LAYERS)).toEqual([]);
+});
+
+test('x during the win stops the whisper too', async ({ page }) => {
+  await arm(page);
+  await wakeAndWait(page);
+  for (let i = 0; i < 4; i++) await fist(page, 300);
+  await page.clock.runFor(RESOLVE);
+  expect(await played(page, WHISPER)).toHaveLength(1);
+  await page.keyboard.press('x');
+  expect((await sounds(page)).paused.filter(p => WHISPER.test(p.src))).toHaveLength(1);
 });
 
 test('the skip text can be tapped too, and doing so throws no fist', async ({ page }) => {

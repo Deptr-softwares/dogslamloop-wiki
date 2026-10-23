@@ -115,8 +115,9 @@
     // catches them off guard". A click is also what lets a browser play sound.
     const CHANCE = 0.5;
 
-    // Doing nothing makes it worse (owner): the red at the sides and the
-    // swaying grow at these idle times, to a violent jiggle before the loss.
+    // Doing nothing makes it worse (owner): the red at the sides grows at these
+    // idle times, and the swaying turns into a jitter that grows to a violent
+    // jiggle before the loss.
     const HEAT_AFTER = [3000, 6000, 8000];
 
     // Once the fourth fist lands, the music and the game fade out over this
@@ -144,6 +145,12 @@
     // A Black Flash chain sound from the Roblox Creator Store, kept by the
     // owner's call (2026-10-23) after its off-Roblox licence was raised.
     const HIT = asset('medias/audios/8f73237e2303c812712cfba944ed5bf7.mp3');
+    // The owner's own recordings: begging when the reader loses, whispering
+    // when they win. The whisper is turned down, to go with the far-away avatar.
+    const BEG = asset('medias/audios/LoseAudio.mp3');
+    const BEG_LAYERS = [asset('medias/audios/LoseAudio2.mp3'), asset('medias/audios/LoseAudio3.mp3')];
+    const WHISPER = asset('medias/audios/WinAudio.mp3');
+    const WHISPER_VOLUME = 0.3;
     // The avatar's head in DeptrAvatar.webp, as fractions of it, and the width
     // it is drawn at before being stretched over the screen: few enough pixels
     // that they show (owner: "make it so large, my avatar appears pixelated
@@ -214,9 +221,9 @@
         overlay.setAttribute('aria-labelledby', 'hw-tip');
         overlay.tabIndex = -1;
         overlay.innerHTML = `
-            <p class="hw-tip" id="hw-tip">HIT A FULL BLACK FLASH CHAIN OR GET JUMPSCARED</p>
+            <p class="hw-tip" id="hw-tip">HIT THE FINAL BLACK FLASH CHAIN OR GET JUMPSCARED</p>
             <div class="hw-arena">
-                <p class="hw-count" aria-live="polite">FIST 1 / ${FISTS}</p>
+                <p class="hw-count" aria-live="polite">1/${FISTS}</p>
                 <div class="hw-target"><img class="hw-skill" src="${SKILL}" alt="Divergent Fist, key 3"><div class="hw-dot"></div><div class="hw-ring"></div></div>
                 <p class="hw-callout" aria-live="assertive"></p>
                 <p class="hw-help">Space, 3, click, or tap!!!</p>
@@ -236,6 +243,9 @@
             scream.playbackRate = SCREAM_PITCH;
         }
         const hit = sound(HIT);
+        const beg = sound(BEG);
+        const begLayers = BEG_LAYERS.map(src => sound(src));
+        const whisper = sound(WHISPER, { volume: WHISPER_VOLUME });
         start(music);
         // Loading from the start, so the face is ready by the time it is due.
         const avatar = new Image();
@@ -263,7 +273,7 @@
         };
 
         // How long since the last press, as a level the CSS turns into redder
-        // sides and harder swaying.
+        // sides and a harder jitter.
         const heat = () => {
             const quiet = performance.now() - lastPress;
             overlay.dataset.heat = String(HEAT_AFTER.filter(at => quiet >= at).length);
@@ -313,7 +323,7 @@
                     finish(results[FISTS - 1]);
                     return;
                 }
-                count.textContent = `FIST ${results.length + 1} / ${FISTS}`;
+                count.textContent = `${results.length + 1}/${FISTS}`;
                 phase = 'ready';
             }, 650);
         }
@@ -373,11 +383,13 @@
             }, RESOLVE_MS);
         }
 
-        // Skipping goes straight to the new look, from the game or a scene.
+        // Skipping goes straight to the new look, from the game or a scene,
+        // and nothing of the scene is heard after.
         function skip() {
             if (phase === 'leaving') return;
             stopGame();
             sceneTimers.forEach(clearTimeout);
+            [beg, ...begLayers, whisper].forEach(stop);
             markDone();
             fadeAway();
         }
@@ -392,6 +404,10 @@
         // Lost: far off, growing for about two seconds; then the face fills the
         // screen, begging; then the Ko-fi button takes the screen with a
         // scream, and about two seconds later it all fades away.
+        //
+        // The owner's long line (3.8s) starts with the scene, so it runs up to
+        // the Ko-fi button; the two short ones are layered on top of it with
+        // the face, for about two seconds.
         function lost() {
             overlay.classList.add('is-scene');
             arena.innerHTML = `<div class="hw-scene hw-lost">${figure()}<p class="hw-beg">PLEASE DONATE...</p></div>`;
@@ -400,8 +416,10 @@
             // grow from and jumps.
             void scene.offsetWidth;
             scene.classList.add('is-growing');
+            start(beg);
             later(() => {
                 scene.classList.add('is-close');
+                begLayers.forEach(start);
                 // On a slow line the picture may still be coming: drawn when it does.
                 const draw = () => {
                     const face = pixelFace(avatar);
@@ -417,10 +435,12 @@
             later(fadeAway, LOST_FADES_AT);
         }
 
-        // Won: only seen from far away, quietly asking.
+        // Won: only seen from far away, quietly asking. The whisper (3.7s)
+        // runs on into the fade and ends as the game is gone.
         function won_() {
             overlay.classList.add('is-scene');
             arena.innerHTML = `<div class="hw-scene hw-won">${figure()}<p class="hw-ask">(psst... donate?)</p></div>`;
+            start(whisper);
             later(fadeAway, WON_FADES_AT);
         }
 

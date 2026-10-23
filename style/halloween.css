@@ -94,8 +94,9 @@ html.reduce-motion .hw-tip { animation: none; }
 .hw-arena.is-flash .hw-dot { background: #000; border-color: #ff2a2a; box-shadow: 0 0 18px 8px rgba(255, 42, 42, 0.6); }
 
 /* While it is live: red blinking at the sides, and every part swaying on its
-   own. data-heat (js/halloween.js) climbs while nothing is pressed: redder
-   and faster, then a violent jiggle before the idle loss (owner). */
+   own. data-heat (js/halloween.js) climbs while nothing is pressed: the red
+   gets redder and faster, and the sway gives way to a jitter that grows into
+   a violent jiggle before the idle loss (owner). */
 .hw-game::before {
     content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0;
     background: radial-gradient(ellipse at center, transparent 45%, rgba(255, 0, 0, 0.55) 100%);
@@ -113,8 +114,8 @@ html.reduce-motion .hw-tip { animation: none; }
 .hw-game.is-live:not(.is-scene) .hw-target { animation-delay: -0.7s; animation-duration: 3.1s; }
 .hw-game.is-live:not(.is-scene) .hw-callout { animation-delay: -1.3s; }
 .hw-game.is-live:not(.is-scene) .hw-help { animation-delay: -1.9s; animation-duration: 2.2s; }
-.hw-game.is-live[data-heat="1"]:not(.is-scene) :is(.hw-count, .hw-target, .hw-callout, .hw-help) { animation-duration: 1.4s; }
-.hw-game.is-live[data-heat="2"]:not(.is-scene) :is(.hw-count, .hw-target, .hw-callout, .hw-help) { animation-name: hw-sway-hard; animation-duration: 0.9s; }
+.hw-game.is-live[data-heat="1"]:not(.is-scene) :is(.hw-count, .hw-target, .hw-callout, .hw-help) { animation: hw-jitter 0.14s linear infinite; }
+.hw-game.is-live[data-heat="2"]:not(.is-scene) :is(.hw-count, .hw-target, .hw-callout, .hw-help) { animation: hw-jitter-hard 0.12s linear infinite; }
 .hw-game.is-live[data-heat="3"]:not(.is-scene) :is(.hw-tip, .hw-count, .hw-target, .hw-callout, .hw-help) { animation: hw-jiggle 0.12s linear infinite; }
 @keyframes hw-sway {
     0%, 100% { transform: translate(0, 0) rotate(0deg); }
@@ -122,11 +123,17 @@ html.reduce-motion .hw-tip { animation: none; }
     50% { transform: translate(4px, -4px) rotate(1.5deg); }
     75% { transform: translate(6px, 2px) rotate(2deg); }
 }
-@keyframes hw-sway-hard {
-    0%, 100% { transform: translate(0, 0) rotate(0deg); }
-    25% { transform: translate(-16px, 8px) rotate(-5deg); }
-    50% { transform: translate(11px, -10px) rotate(4deg); }
-    75% { transform: translate(15px, 5px) rotate(5deg); }
+@keyframes hw-jitter {
+    0%, 100% { transform: translate(-2px, 1px) rotate(-0.5deg); }
+    25% { transform: translate(2px, -2px) rotate(0.5deg); }
+    50% { transform: translate(-1px, -1px) rotate(-0.5deg); }
+    75% { transform: translate(2px, 2px) rotate(0.5deg); }
+}
+@keyframes hw-jitter-hard {
+    0%, 100% { transform: translate(-5px, 3px) rotate(-2deg); }
+    25% { transform: translate(5px, -4px) rotate(2deg); }
+    50% { transform: translate(-4px, -3px) rotate(-1.5deg); }
+    75% { transform: translate(4px, 4px) rotate(2deg); }
 }
 @keyframes hw-jiggle {
     0%, 100% { transform: translate(-9px, 5px) rotate(-6deg); }
