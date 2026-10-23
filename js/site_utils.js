@@ -109,6 +109,16 @@ window.openSiteSettings = function () {
         overlay = document.createElement('div');
         overlay.id = 'site-settings-overlay';
         overlay.className = 'modal-overlay hidden';
+        // The Halloween minigame plays once on its own; this plays it again
+        // (owner, 2026-10-23). window.halloween exists only until November 1.
+        const halloweenRow = window.halloween && typeof window.halloween.play === 'function' ? `
+                    <div class="site-setting site-setting-action">
+                        <span class="site-setting-text">
+                            <span class="site-setting-name">Halloween minigame</span>
+                            <span class="site-setting-hint">Play the Black Flash chain again.</span>
+                        </span>
+                        <button type="button" class="btn-sys btn-sys-yellow" data-halloween-replay>PLAY</button>
+                    </div>` : '';
         overlay.innerHTML = `
             <div class="modal-box modal-sm accent-blue" role="dialog" aria-modal="true" aria-labelledby="site-settings-title">
                 <div class="modal-header"><h3 id="site-settings-title">SITE SETTINGS</h3></div>
@@ -119,7 +129,7 @@ window.openSiteSettings = function () {
                             <span class="site-setting-name">Turn off animations</span>
                             <span class="site-setting-hint">Stops hover lifts, button sweeps, flashes and smooth scrolling. If your device is set to reduce motion, the site already follows it.</span>
                         </span>
-                    </label>
+                    </label>${halloweenRow}
                     <p class="site-settings-note">Saved on this device only.</p>
                     <p class="site-settings-error" hidden>This browser blocked saving, so the setting only lasts until you leave this page.</p>
                 </div>
@@ -133,6 +143,8 @@ window.openSiteSettings = function () {
             if (e.target === overlay || e.target.closest('[data-site-settings-close]')) close();
         });
         overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+        const replay = overlay.querySelector('[data-halloween-replay]');
+        if (replay) replay.addEventListener('click', () => { close(); window.halloween.play(); });
         overlay.querySelector('#site-setting-motion-off').addEventListener('change', e => {
             const saved = window.siteSettings.set('motionOff', e.target.checked);
             overlay.querySelector('.site-settings-error').hidden = saved;
@@ -1587,6 +1599,11 @@ window.injectAuthModal = function() {
                     <p class="profile-hint">Shown beside your name wherever you post.</p>
                 </div>
 
+                <div class="profile-field hidden" id="profile-badges-field" role="group" aria-labelledby="profile-badges-title">
+                    <span class="profile-field-title" id="profile-badges-title">BADGES</span>
+                    <div id="profile-badges-list" class="profile-badges"></div>
+                </div>
+
                 <div class="profile-field">
                     <label for="profile-bio">ABOUT YOU <span id="profile-bio-count" class="profile-count"></span></label>
                     <textarea id="profile-bio" class="editor-input profile-bio" maxlength="500" rows="4" placeholder="Describe yourself here and such"></textarea>
@@ -1662,6 +1679,10 @@ window.injectAuthModal = function() {
                     </div>
                 </div>
                 <p id="pubprofile-flair" class="pubprofile-flair hidden"></p>
+                <div id="pubprofile-badges" class="pubprofile-badges hidden">
+                    <span class="pubprofile-badges-label" id="pubprofile-badges-title">Badges</span>
+                    <ul id="pubprofile-badges-list" class="pubprofile-badges-list" aria-labelledby="pubprofile-badges-title"></ul>
+                </div>
                 <div id="pubprofile-expertise" class="pubprofile-expertise hidden">
                     <span class="pubprofile-expertise-label">Expert of</span>
                     <span id="pubprofile-expertise-pages"></span>
@@ -1813,16 +1834,37 @@ window.injectAuthModal = function() {
 
             const { data: { session } } = await window.supabaseClient.auth.getSession();
             if (session) {
+                const profileRow = {
+                    user_id: session.user.id,
+                    bio: bio || null,
+                    flair: flair || null,
+                    is_private: isPrivate
+                };
+                // Which badges to hide, only once the loaded row is known to
+                // have the column: before the release it does not exist, and
+                // sending it would fail the whole save.
+                const badgesField = document.getElementById('profile-badges-field');
+                const withBadges = !!badgesField && badgesField.dataset.ready === 'true';
+                if (withBadges) {
+                    let keep = [];
+                    try { keep = JSON.parse(badgesField.dataset.keepHidden || '[]'); } catch (e) { keep = []; }
+                    profileRow.hidden_badges = keep.concat(
+                        [...badgesField.querySelectorAll('input[data-badge-id]')]
+                            .filter(box => !box.checked).map(box => box.dataset.badgeId));
+                }
+
                 // upsert, because the row is created on first save rather than
                 // at signup - there is deliberately no trigger on auth.users.
-                const { error } = await window.supabaseClient
-                    .from('user_profiles')
-                    .upsert({
-                        user_id: session.user.id,
-                        bio: bio || null,
-                        flair: flair || null,
-                        is_private: isPrivate
-                    }, { onConflict: 'user_id' });
+                // A row with badges already exists, and is UPDATEd: an upsert
+                // cannot carry hidden_badges (20261023000000 says why).
+                const { error } = withBadges
+                    ? await window.supabaseClient
+                        .from('user_profiles')
+                        .update(profileRow)
+                        .eq('user_id', session.user.id)
+                    : await window.supabaseClient
+                        .from('user_profiles')
+                        .upsert(profileRow, { onConflict: 'user_id' });
 
                 if (error) {
                     // 42501 is the RLS WITH CHECK refusing the row, and for this
@@ -1967,6 +2009,39 @@ window.hydrateProfileModal = async function (session) {
     // Repaint the counters against what was just loaded.
     [bioEl, flairEl].forEach(el => el && el.dispatchEvent(new Event('input')));
 
+    // --- BADGES ---
+    // Every badge they have, each with SHOW (owner: "they should be toggleable
+    // by users"). Hidden when they have none.
+    const badgesField = document.getElementById('profile-badges-field');
+    const badgesList = document.getElementById('profile-badges-list');
+    if (badgesField && badgesList) {
+        badgesList.textContent = '';
+        // Before the release the columns do not exist: the field stays hidden,
+        // and the save sends nothing about badges.
+        const ready = !!row && Array.isArray(row.badges);
+        const held = ready ? window.knownBadges(row.badges) : [];
+        const hidden = ready && Array.isArray(row.hidden_badges) ? row.hidden_badges : [];
+        badgesField.dataset.ready = String(ready);
+        // A hidden badge this page cannot draw (a newer one) stays hidden.
+        badgesField.dataset.keepHidden = JSON.stringify(hidden.filter(id => !held.includes(id)));
+        badgesField.classList.toggle('hidden', !held.length);
+        held.forEach(id => {
+            const rowEl = document.createElement('label');
+            rowEl.className = 'profile-badge-row';
+            rowEl.appendChild(window.badgeSlot(id, { size: 'medium' }));
+            rowEl.appendChild(window.badgeWords(id));
+            const show = document.createElement('span');
+            show.className = 'profile-badge-show';
+            const box = document.createElement('input');
+            box.type = 'checkbox';
+            box.dataset.badgeId = id;
+            box.checked = !hidden.includes(id);
+            show.append(box, 'SHOW');
+            rowEl.appendChild(show);
+            badgesList.appendChild(rowEl);
+        });
+    }
+
     // --- PASSWORD, ONLY FOR ACCOUNTS THAT HAVE ONE ---
     // Discord and Google sign-in are both live, and those accounts have no
     // password on this site - offering to change one would fail in a way that
@@ -2040,6 +2115,8 @@ window.openPublicProfile = async function (userId) {
     const standingEl = document.getElementById('pubprofile-standing');
     const iconEl = document.getElementById('pubprofile-icon');
     const flairEl = document.getElementById('pubprofile-flair');
+    const badgesEl = document.getElementById('pubprofile-badges');
+    const badgesList = document.getElementById('pubprofile-badges-list');
     const bioEl = document.getElementById('pubprofile-bio');
     const joinedEl = document.getElementById('pubprofile-joined');
 
@@ -2050,6 +2127,8 @@ window.openPublicProfile = async function (userId) {
     iconEl.innerHTML = '';
     iconEl.className = 'profile-standing-icon';
     flairEl.classList.add('hidden');
+    badgesEl.classList.add('hidden');
+    badgesList.textContent = '';
     bioEl.textContent = '';
     joinedEl.textContent = '';
     overlay.classList.remove('hidden');
@@ -2080,6 +2159,17 @@ window.openPublicProfile = async function (userId) {
         flairEl.textContent = p.flair;
         flairEl.classList.remove('hidden');
     }
+
+    // The badges they show, named, and how each was earned. Hidden ones never
+    // left the database.
+    const shown = window.knownBadges(p.badges);
+    shown.forEach(id => {
+        const item = document.createElement('li');
+        item.className = 'pubprofile-badge';
+        item.append(window.badgeSlot(id, { size: 'medium' }), window.badgeWords(id));
+        badgesList.appendChild(item);
+    });
+    badgesEl.classList.toggle('hidden', !shown.length);
 
     // Say that a private description exists rather than showing a blank space.
     // The bio itself never left the database - get_public_profiles nulls it.
@@ -2118,6 +2208,182 @@ window.openPublicProfile = async function (userId) {
         // Leaves the line hidden, which is the same as somebody who is not an
         // expert of anything.
     }
+};
+
+// --- BADGES (the Halloween update, 2026-10-23: an early version) ---
+//
+// What each badge id means. Which ids can be claimed, and until when, is
+// claim_badge() in supabase/migrations/20261023000000_user_badges.sql: the two
+// lists must agree. A badge is drawn as a skill slot from the game with its
+// picture in it (owner's pick); the pumpkins are from icons8.
+window.SITE_BADGES = {
+    'halloween-2026-gold': {
+        name: 'DSL Halloween 2026 - Gold Ver',
+        how: 'Hit the final Black Flash on the first try',
+        icon: 'medias/images/GoldenPumpkin2026.png',
+        tier: 'gold',
+        keepBy: 'November 7',
+    },
+    'halloween-2026': {
+        name: 'DSL Halloween 2026',
+        how: 'Hit the final Black Flash on a later try',
+        icon: 'medias/images/Pumpkin2026.png',
+        tier: 'plain',
+        keepBy: 'November 7',
+    },
+};
+
+// Only the ids this page can draw, in their order: one from a newer badge, or
+// anything else the database hands back, is left out rather than drawn broken.
+window.knownBadges = function (ids) {
+    return (Array.isArray(ids) ? ids : [])
+        .filter(id => Object.prototype.hasOwnProperty.call(window.SITE_BADGES, id));
+};
+
+// One badge as a skill slot, with the game's "3" key on the larger sizes.
+// `named`: the slot is all there is of it (beside a name), so it carries the
+// name itself, for hover and for screen readers.
+window.badgeSlot = function (id, { size = 'small', named = false } = {}) {
+    const def = window.SITE_BADGES[id];
+    const slot = document.createElement('span');
+    slot.className = `user-badge user-badge-${size} user-badge-${def.tier}`;
+    if (size !== 'small') {
+        const key = document.createElement('span');
+        key.className = 'user-badge-key';
+        key.setAttribute('aria-hidden', 'true');
+        key.textContent = '3';
+        slot.appendChild(key);
+    }
+    const img = document.createElement('img');
+    img.src = getRootPath() + def.icon;
+    img.alt = named ? def.name : '';
+    slot.appendChild(img);
+    if (named) slot.title = def.name;
+    return slot;
+};
+
+// Its name, and how it is earned.
+window.badgeWords = function (id) {
+    const def = window.SITE_BADGES[id];
+    const words = document.createElement('span');
+    words.className = 'badge-words';
+    const name = document.createElement('strong');
+    name.textContent = def.name;
+    const how = document.createElement('span');
+    how.textContent = def.how;
+    words.append(name, how);
+    return words;
+};
+
+// A badge won signed out waits on the device until its winner signs in.
+const BADGES_PENDING_KEY = 'dsl_badges_pending';
+function readPendingBadges() {
+    try {
+        return window.knownBadges(JSON.parse(window.localStorage.getItem(BADGES_PENDING_KEY) || '[]'));
+    } catch (e) {
+        return [];
+    }
+}
+function writePendingBadges(ids) {
+    try {
+        if (ids.length) window.localStorage.setItem(BADGES_PENDING_KEY, JSON.stringify(ids));
+        else window.localStorage.removeItem(BADGES_PENDING_KEY);
+    } catch (e) {
+        // Deliberately quiet: storage is blocked, so a badge won signed out
+        // cannot wait. One won signed in is still claimed straight away.
+    }
+}
+
+// "BADGE EARNED" in the corner: kept, or how to keep it.
+function showBadgeToast(id, kept) {
+    const def = window.SITE_BADGES[id];
+    if (!def || !document.body) return;
+    document.querySelectorAll('.badge-toast').forEach(t => t.remove());
+
+    const toast = document.createElement('div');
+    toast.className = `badge-toast badge-toast-${def.tier}`;
+    toast.setAttribute('role', 'status');
+    toast.appendChild(window.badgeSlot(id, { size: 'medium' }));
+
+    const text = document.createElement('div');
+    text.className = 'badge-toast-text';
+    const head = document.createElement('span');
+    head.className = 'badge-toast-head';
+    head.textContent = 'BADGE EARNED';
+    const name = document.createElement('strong');
+    name.textContent = def.name;
+    const note = document.createElement('span');
+    note.className = 'badge-toast-note';
+    note.textContent = kept ? 'On your profile now.' : `Sign in by ${def.keepBy} to keep it.`;
+    text.append(head, name, note);
+    toast.appendChild(text);
+
+    if (!kept) {
+        const login = document.createElement('button');
+        login.type = 'button';
+        login.className = 'btn-sys btn-sys-regular badge-toast-login';
+        login.textContent = 'LOGIN';
+        login.addEventListener('click', () => {
+            toast.remove();
+            window.openAuthModal();
+        });
+        toast.appendChild(login);
+    }
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'badge-toast-close';
+    close.setAttribute('aria-label', 'Close');
+    close.textContent = '✖';
+    close.addEventListener('click', () => toast.remove());
+    toast.appendChild(close);
+
+    document.body.appendChild(toast);
+    // Longer when there is something to do about it.
+    setTimeout(() => toast.remove(), kept ? 8000 : 20000);
+}
+
+// Saves every badge waiting on this device to the signed-in account, with a
+// toast for each. Runs on every page load (initAuthDock, which a sign-in runs
+// too) and on a win. One at a time, so two callers never claim twice.
+let badgeClaims = Promise.resolve();
+window.claimPendingBadges = function (extra = []) {
+    const run = badgeClaims.then(() => claimBadgesNow(extra));
+    badgeClaims = run.catch(() => {});
+    return run;
+};
+async function claimBadgesNow(extra) {
+    const ids = [...new Set([...readPendingBadges(), ...window.knownBadges(extra)])];
+    if (!ids.length || !window.supabaseClient) return { signedIn: false, claimed: [] };
+    const { data: { session } } = await window.supabaseClient.auth.getSession();
+    if (!session) return { signedIn: false, claimed: [] };
+
+    const claimed = [];
+    const waiting = [];
+    for (const id of ids) {
+        const { error } = await window.supabaseClient.rpc('claim_badge', { badge_id: id });
+        if (!error) {
+            claimed.push(id);
+        } else if (error.code === '42501' || error.code === '22023') {
+            // Refused by the database (claims closed, a soft-banned account):
+            // it never will be kept, so it stops waiting.
+            console.warn(`Badge ${id} not kept: ${error.message}`);
+        } else {
+            // Offline, or a site newer than its database: try again next page.
+            waiting.push(id);
+        }
+    }
+    writePendingBadges(waiting);
+    claimed.forEach(id => showBadgeToast(id, true));
+    return { signedIn: true, claimed };
+}
+
+// The minigame calls this once it has closed on a win.
+window.earnBadge = async function (id) {
+    if (!window.knownBadges([id]).length) return;
+    writePendingBadges([...new Set([...readPendingBadges(), id])]);
+    const { signedIn } = await window.claimPendingBadges([id]);
+    if (!signedIn) showBadgeToast(id, false);
 };
 
 window.openAuthModal = async function() {

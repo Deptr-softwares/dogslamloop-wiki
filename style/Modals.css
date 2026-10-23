@@ -243,7 +243,8 @@
     margin-bottom: 1.25rem;
 }
 
-.profile-field > label {
+.profile-field > label,
+.profile-field-title {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
@@ -380,3 +381,136 @@
     text-transform: uppercase;
     color: var(--text-muted);
 }
+
+/* --- 9. BADGES (the Halloween update, 2026-10-23) ---
+   A skill slot from the game with the badge's picture in it (owner's pick
+   from mockups), the "3" key on the larger sizes. Gold Ver has a gold frame.
+   Here rather than in discussions.css because the profile modals, the toast
+   and the threads all draw them, and every page carries the modals. */
+.user-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    vertical-align: middle;
+    background: #0b0d10;
+    border: 2px solid #6e7681;
+}
+.user-badge-gold { border-color: #f2c94c; }
+.user-badge img { display: block; width: 80%; height: 80%; object-fit: contain; }
+.user-badge-small { width: 18px; height: 18px; align-self: center; }
+.user-badge-medium {
+    width: 38px;
+    height: 38px;
+    border-width: 3px;
+    box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px #30363d, 2px 2px 0 var(--manga-shadow);
+}
+.user-badge-medium.user-badge-gold { box-shadow: inset 0 0 0 2px #000, inset 0 0 0 4px #4a3d14, 2px 2px 0 var(--manga-shadow); }
+.user-badge-key {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-family: var(--text-mono);
+    font-size: 0.5rem;
+    font-weight: bold;
+    line-height: 1;
+    color: #c9d1d9;
+}
+.user-badge-gold .user-badge-key { color: #f2c94c; }
+
+.badge-words {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    font-family: var(--text-mono);
+}
+.badge-words strong { font-size: 0.75rem; color: var(--text-white); overflow-wrap: anywhere; }
+.badge-words span { font-size: 0.65rem; line-height: 1.4; color: var(--text-muted); }
+
+/* Your own profile: each badge with SHOW. */
+.profile-badges { display: flex; flex-direction: column; gap: 0.5rem; }
+.profile-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+}
+.profile-badge-row .badge-words { flex: 1 1 auto; }
+.profile-badge-show {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    font-weight: bold;
+    color: var(--text-white);
+}
+.profile-badge-show input[type="checkbox"] {
+    width: 1.05rem;
+    height: 1.05rem;
+    margin: 0;
+    accent-color: #a855f7;
+    cursor: pointer;
+}
+
+/* Somebody else's profile: the badges they show. */
+.pubprofile-badges {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin: 0 0 1rem 0;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+}
+.pubprofile-badges-label {
+    font-family: var(--text-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.pubprofile-badges-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.pubprofile-badge { display: flex; align-items: center; gap: 0.6rem; }
+
+/* "BADGE EARNED", in the corner after a win. */
+.badge-toast {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-sizing: border-box;
+    max-width: calc(100vw - 2rem);
+    padding: 0.75rem 0.9rem;
+    background: var(--bg-secondary);
+    border: 2px solid #ff8c2e;
+    box-shadow: 4px 4px 0 var(--manga-shadow);
+    font-family: var(--text-mono);
+}
+.badge-toast-gold { border-color: #f2c94c; }
+.badge-toast-text { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.badge-toast-head { font-size: 0.6rem; font-weight: bold; letter-spacing: 0.08em; color: #ff8c2e; }
+.badge-toast-gold .badge-toast-head { color: #f2c94c; }
+.badge-toast-text strong { font-size: 0.75rem; color: var(--text-white); overflow-wrap: anywhere; }
+.badge-toast-note { font-size: 0.65rem; color: var(--text-muted); }
+.badge-toast-login { flex: 0 0 auto; }
+.badge-toast-close {
+    align-self: flex-start;
+    flex: 0 0 auto;
+    padding: 0 0.2rem;
+    background: none;
+    border: none;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.badge-toast-close:hover, .badge-toast-close:focus-visible { color: var(--text-white); }

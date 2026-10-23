@@ -402,6 +402,10 @@ window.initAuthDock = async function() {
             // Fetch the FULL session so we can pass it to our universal name extractor
             const { data: { session } } = await window.supabaseClient.auth.getSession();
             if (session && session.user) {
+                // A badge won signed out is kept the moment its winner is
+                // signed in. Not awaited: the dock does not wait on it.
+                if (typeof window.claimPendingBadges === 'function') window.claimPendingBadges();
+
                 // Uses the unified Site Utils function to grab your exact Profile Name
                 username = typeof window.getDisplayName === 'function' ? window.getDisplayName(session) : session.user.email.split('@')[0];
                 

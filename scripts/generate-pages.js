@@ -175,6 +175,11 @@ ${social}
 
     <link rel="stylesheet" href="../../style/Layout.css">
 
+    <!-- The Halloween event (js/halloween.js): in <head>, so a reader who has
+         played gets the look on the first paint. -->
+    <link rel="stylesheet" href="../../style/halloween.css">
+    <script src="../../js/halloween.js"></script>
+
     <script>window.PAGE_ROUTE = { pageId: "${pageId}", pageType: "character", title: "${title}" };</script>
 </head>
 <body class="site-body p-0">
@@ -231,6 +236,11 @@ ${social}
          system and others/ stubs rendered the login form as bare browser
          inputs. See tests/modal-stylesheets.spec.js. -->
     <link rel="stylesheet" href="../../style/Forms.css">
+
+    <!-- The Halloween event (js/halloween.js): in <head>, so a reader who has
+         played gets the look on the first paint. -->
+    <link rel="stylesheet" href="../../style/halloween.css">
+    <script src="../../js/halloween.js"></script>
 
     <script>window.PAGE_ROUTE = { pageId: "${pageId}", pageType: "system", title: "${title}" };</script>
 </head>
@@ -289,6 +299,11 @@ ${social}
     <link rel="stylesheet" href="../../style/Alerts.css">
     <link rel="stylesheet" href="../../style/Modals.css">
     <link rel="stylesheet" href="../../style/Forms.css">${extraStyles}
+
+    <!-- The Halloween event (js/halloween.js): in <head>, so a reader who has
+         played gets the look on the first paint. -->
+    <link rel="stylesheet" href="../../style/halloween.css">
+    <script src="../../js/halloween.js"></script>
 
     <script>window.PAGE_ROUTE = { pageId: "${pageId}", pageType: "${pageType}", title: "${title}" };</script>
 </head>

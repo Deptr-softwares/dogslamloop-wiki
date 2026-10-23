@@ -185,10 +185,22 @@
         if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
     }
 
+    // The open entry's blocks sit in a buffer, and every loader writes that
+    // buffer back to the entry the selection names before opening another. A
+    // move or insert changes the array under the selection, so that write-back
+    // would land on whichever entry slid into the old slot: moving a matchup
+    // copied its text over every matchup it passed (editor QA note,
+    // 2026-10-23). So the selection is forgotten once the array has changed,
+    // the way reopenEditorTab does after Find & Replace, and reselect() opens
+    // the moved entry again from the data.
+    function forgetSelection() {
+        if (typeof window.clearPositionalSelection === 'function') window.clearPositionalSelection();
+    }
+
     // Delegated on the document, because every strip rebuilds its own markup
     // and a listener bound to the buttons would be lost on the next render -
     // the failure the tab strip registry in js/pagebuilder.js already documents.
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', async (e) => {
         const moveBtn = e.target.closest && e.target.closest('.daw-tab-move-btn');
         if (moveBtn && !moveBtn.disabled) {
             e.preventDefault();
@@ -196,13 +208,20 @@
             const spec = moveBtn.getAttribute('data-reorder-list');
             const dir = parseInt(moveBtn.getAttribute('data-reorder-dir'), 10);
             const index = activeIndexIn(rowFor(moveBtn));
+            if (index < 0 || !resolveList(spec)) return;
+
+            // The buffer goes into its own entry first: forgetting the
+            // selection below drops it, and typing is only synced on its own
+            // after a pause.
+            if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
             const list = resolveList(spec);
 
             // Nothing selected, or already at the end. Silent rather than an
             // error: the buttons are always there, and a strip can legitimately
             // have a non-movable section open (Overview's fixed four).
-            if (index < 0 || !list || !window.moveListItem(list, index, dir)) return;
+            if (!list || !window.moveListItem(list, index, dir)) return;
 
+            forgetSelection();
             afterChange();
             reselect(spec, index + dir);
             return;
@@ -217,6 +236,10 @@
             const index = activeIndexIn(rowFor(insertBtn));
             window.insertListItemAfter(spec, index).then(inserted => {
                 if (!inserted) return;
+                // Every add flow that opens a buffer syncs before it appends,
+                // and the buffer now holds the new entry, which has nothing to
+                // keep yet.
+                forgetSelection();
                 afterChange();
                 const list = resolveList(spec);
                 reselect(spec, index < 0 ? (list ? list.length - 1 : 0) : index + 1);

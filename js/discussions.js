@@ -241,11 +241,19 @@
             }
 
             const p = profiles.get(userId);
-            if (!p || !p.flair) return;
-            if (slot.querySelector('.discussion-flair')) return;
-            // textContent, via el(): the flair is contributor-written and this
-            // renders on every thread on the site.
-            slot.appendChild(el('span', 'discussion-flair', p.flair));
+            if (!p) return;
+            if (p.flair && !slot.querySelector('.discussion-flair')) {
+                // textContent, via el(): the flair is contributor-written and
+                // this renders on every thread on the site.
+                slot.appendChild(el('span', 'discussion-flair', p.flair));
+            }
+
+            // The badges they show, after the flair: the flair is what they
+            // wrote, a badge is what they did. Hover names one; a tap opens
+            // the profile, which names them all.
+            if (typeof window.knownBadges === 'function' && !slot.querySelector('.user-badge')) {
+                window.knownBadges(p.badges).forEach(id => slot.appendChild(window.badgeSlot(id, { named: true })));
+            }
         });
     }
 
