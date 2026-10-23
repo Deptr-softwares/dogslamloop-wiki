@@ -86,6 +86,38 @@ test('the cobwebs never take a click', async ({ page }) => {
   expect(hits).toEqual([false, false, false]);
 });
 
+// Owner, 2026-10-23: "next to the sidebars (stay in the middle main area),
+// instead of being inside the sidebars", and the spider still.
+test('the cobwebs and the spider sit in the middle area, against the sidebars, and follow a collapsed one', async ({ page }) => {
+  await page.setViewportSize({ width: 1300, height: 800 });
+  await visit(page, '/', { played: true });
+  const place = () => page.evaluate(() => {
+    const box = (el) => el.getBoundingClientRect();
+    const left = box(document.querySelector('.global-sidebar-left'));
+    const right = box(document.querySelector('.local-sidebar-right'));
+    const bits = [...document.querySelectorAll('.hw-web, .hw-spider')].map(box);
+    return {
+      leftEdge: Math.round(left.right),
+      rightEdge: Math.round(right.left),
+      inside: bits.every(b => b.left >= left.right - 1 && b.right <= right.left + 1),
+      bottomWebLeft: Math.round(box(document.querySelector('.hw-web-bottom')).left),
+      topWebRight: Math.round(box(document.querySelector('.hw-web-top')).right),
+      spiderMoves: getComputedStyle(document.querySelector('.hw-spider')).animationName,
+    };
+  });
+
+  const open = await place();
+  expect(open.inside, 'in the middle area, not over a sidebar').toBe(true);
+  expect(open.bottomWebLeft).toBe(open.leftEdge);
+  expect(open.topWebRight).toBe(open.rightEdge);
+  expect(open.spiderMoves).toBe('none');
+
+  await page.locator('.global-sidebar-left .sidebar-toggle-btn').click();
+  await expect.poll(async () => (await place()).leftEdge).toBeLessThan(open.leftEdge);
+  const collapsed = await place();
+  expect(collapsed.bottomWebLeft, 'the web follows the narrower sidebar').toBe(collapsed.leftEdge);
+});
+
 test('a character page keeps its own colours, cobwebs and all', async ({ browser }) => {
   const usual = await browser.newPage();
   await visit(usual, '/characters/Boomcat/');

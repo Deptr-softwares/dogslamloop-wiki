@@ -19,29 +19,30 @@ html.halloween:not(:has(.character-title)) {
 }
 html.halloween .wiki-link { color: hsl(213, 94%, 68%); }
 
-/* Cobwebs in the screen's top-right and bottom-left corners, and a spider on
-   a thread. Fixed to the screen rather than to a column, so they sit in the
-   same place on every kind of page, and never in the way of a click. */
+/* Cobwebs at the top right and bottom left of the middle area, against the
+   sidebars rather than inside them, and a spider on a thread (owner,
+   2026-10-23). --hw-left and --hw-right are where the sidebars end, measured
+   by js/halloween.js; 0 where there is none. Fixed, so they stay put on every
+   kind of page, and never in the way of a click. */
 .hw-webs { position: fixed; inset: 0; z-index: 5; pointer-events: none; overflow: hidden; }
 .hw-web { position: absolute; width: 150px; height: 150px; opacity: 0.4; }
 .hw-web svg, .hw-spider svg { display: block; width: 100%; height: 100%; stroke: #d6dbe2; stroke-width: 1; }
-.hw-web-top { top: 0; right: 0; transform: scaleX(-1); }
-.hw-web-bottom { bottom: 0; left: 0; transform: scaleY(-1); }
-.hw-spider { position: absolute; top: 0; right: 9rem; width: 26px; height: 78px; transform-origin: top center; animation: hw-spider-bob 6s ease-in-out infinite; }
+.hw-web-top { top: 0; right: var(--hw-right, 0px); transform: scaleX(-1); }
+.hw-web-bottom { bottom: 0; left: var(--hw-left, 0px); transform: scaleY(-1); }
+.hw-spider { position: absolute; top: 0; right: calc(var(--hw-right, 0px) + 9.5rem); width: 26px; height: 78px; }
 .hw-spider .hw-thread { opacity: 0.55; }
 .hw-spider .hw-spider-body { fill: #05070d; }
-@keyframes hw-spider-bob { 50% { transform: translateY(14px); } }
-html.reduce-motion .hw-spider { animation: none; }
 
 @media (max-width: 1023px) {
     .hw-web { width: 90px; height: 90px; }
-    .hw-spider { right: 4.5rem; width: 20px; height: 60px; }
+    .hw-spider { right: calc(var(--hw-right, 0px) + 5.5rem); width: 20px; height: 60px; }
 }
 
 /* --- THE MINIGAME (js/halloween.js play) ---
-   Not under html.halloween: it runs before the look is on. The screen turns
-   dark and the prompt fades in, then a target whose ring closes on the core
-   at the beat (0.3s), the timing a Black Flash wants. */
+   Not under html.halloween: it runs before the look is on. The screen fades
+   to black and the warning in, then the game's own Divergent Fist skill box
+   with a ring that closes on it at the beat (0.3s), the timing a Black Flash
+   wants. The owner's screenshots are stretched with their pixels showing. */
 .hw-game {
     position: fixed; inset: 0; z-index: 100000; box-sizing: border-box;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2rem;
@@ -49,52 +50,70 @@ html.reduce-motion .hw-spider { animation: none; }
     background: rgba(0, 0, 0, 0); transition: background-color 1.6s ease, opacity 1s ease;
     touch-action: manipulation; user-select: none; -webkit-user-select: none;
 }
-.hw-game.is-dark { background: rgba(0, 0, 0, 0.9); }
+.hw-game.is-dark { background: #000; }
 .hw-game.is-leaving { opacity: 0; }
 .hw-tip {
     margin: 0; max-width: 40rem; opacity: 0; transition: opacity 1.2s ease 0.4s;
     font-family: 'CC-Wild-Words', sans-serif; font-size: clamp(1.1rem, 4vw, 2rem); letter-spacing: 0.04em;
     color: #ff8c2e; text-shadow: 3px 3px 0 #000;
+    animation: hw-wobble 3.2s ease-in-out infinite;
 }
+@keyframes hw-wobble {
+    0%, 100% { transform: rotate(-2deg) translateY(0); }
+    25% { transform: rotate(1deg) translateY(-3px); }
+    50% { transform: rotate(2deg) translateY(1px); }
+    75% { transform: rotate(-1deg) translateY(-2px); }
+}
+html.reduce-motion .hw-tip { animation: none; }
 .hw-game.is-dark .hw-tip { opacity: 1; }
 .hw-game.is-scene .hw-tip { display: none; }
 .hw-arena { display: flex; flex-direction: column; align-items: center; gap: 1rem; opacity: 0; transition: opacity 0.4s ease; }
 .hw-game.is-live .hw-arena, .hw-game.is-scene .hw-arena { opacity: 1; }
 .hw-count, .hw-help { margin: 0; font-family: var(--text-mono); font-size: 0.8rem; color: #c9d1d9; }
 .hw-help { max-width: 26rem; color: #8b949e; }
-.hw-target { position: relative; width: 9rem; height: 9rem; display: flex; align-items: center; justify-content: center; }
-.hw-core { width: 3.5rem; height: 3.5rem; border-radius: 50%; background: #111; border: 3px solid #ff2a2a; box-shadow: 0 0 0 4px #000; }
-.hw-ring { position: absolute; width: 3.5rem; height: 3.5rem; border-radius: 50%; border: 3px solid #fff; box-sizing: border-box; opacity: 0; }
+.hw-target { position: relative; width: 12rem; height: 12rem; display: flex; align-items: center; justify-content: center; }
+.hw-skill { width: 105px; height: 114px; image-rendering: pixelated; }
+.hw-ring { position: absolute; width: 9.5rem; height: 9.5rem; border-radius: 50%; border: 3px solid #fff; box-sizing: border-box; opacity: 0; }
 .hw-ring.is-closing { animation: hw-ring 0.5s linear forwards; }
-/* On the core at 60% of 0.5s: the beat. */
+/* On the box at 60% of 0.5s: the beat. */
 @keyframes hw-ring {
-    0% { transform: scale(2.6); opacity: 1; }
+    0% { transform: scale(2.2); opacity: 1; }
     60% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(0.7); opacity: 0; }
+    100% { transform: scale(0.8); opacity: 0; }
 }
 .hw-callout { margin: 0; min-height: 2.5rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 1.6rem; letter-spacing: 0.06em; }
 .hw-callout.is-flash { color: #ff2a2a; text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000; }
 .hw-callout.is-miss { color: #8b949e; }
-.hw-arena.is-flash .hw-core { background: #000; box-shadow: 0 0 0 6px #ff2a2a, 0 0 32px 14px rgba(255, 42, 42, 0.55); }
+.hw-arena.is-flash .hw-skill { filter: drop-shadow(0 0 3px #000) drop-shadow(0 0 14px #ff2a2a); }
+
+/* Small and quiet in the corner, all the way through (owner). A button so a
+   phone can tap it. */
+.hw-skip {
+    position: fixed; right: 1rem; bottom: 0.75rem; z-index: 2;
+    padding: 0.25rem 0.4rem; background: none; border: none; cursor: pointer;
+    font-family: var(--text-mono); font-size: 0.7rem; color: #6e7681;
+}
+.hw-skip:hover, .hw-skip:focus-visible { color: #c9d1d9; }
 
 /* The scenes after it. The avatar holds the Ko-fi button like a sword, its
-   right end in the fist over the knife (18% across, 81% down the image). Its
-   size follows the figure's, through the container units. */
+   right end in the fist over the knife (18% across, 81% down the image),
+   stretched longer than it is. */
 .hw-scene { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; overflow: hidden; }
-.hw-figure { position: relative; aspect-ratio: 1200 / 1336; height: 5vh; container-type: size; }
-.hw-figure img { display: block; width: 100%; height: 100%; }
-.btn-sys.hw-sword {
-    position: absolute; right: 82%; top: 80.7%; width: 62%; box-sizing: border-box;
+.hw-figure { position: relative; aspect-ratio: 1200 / 1336; height: 5vh; }
+.hw-avatar { display: block; width: 100%; height: 100%; }
+.hw-sword {
+    position: absolute; right: 82%; top: 80.7%; width: 70%; height: 9%;
     transform: translateY(-50%) rotate(-8deg); transform-origin: right center;
-    gap: 0.4em; padding: 0.35em 0.5em; font-size: 4.2cqh; pointer-events: none;
+    image-rendering: pixelated;
 }
-.hw-sword svg { width: 1em; height: 1em; flex-shrink: 0; }
 
-/* Lost: growing slowly to about a sixth of the screen, then filling it all
-   at once, begging, then the Ko-fi button over everything. */
-.hw-lost .hw-figure { transition: height 3.5s linear; }
-.hw-lost.is-growing .hw-figure { height: 17vh; }
-.hw-lost.is-close .hw-figure { height: 100vh; transition: none; }
+/* Lost: growing for about two seconds to about a tenth of the screen, then
+   the face over all of it, then the Ko-fi button over everything. Both are
+   drawn small and stretched, so their pixels show. */
+.hw-lost .hw-figure { transition: height 2s linear; }
+.hw-lost.is-growing .hw-figure { height: 11vh; }
+.hw-lost.is-close .hw-figure { visibility: hidden; }
+.hw-face { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
 .hw-beg { display: none; }
 .hw-lost.is-close .hw-beg {
     display: block; position: absolute; bottom: 5vh; left: 0; right: 0; margin: 0;
@@ -102,11 +121,9 @@ html.reduce-motion .hw-spider { animation: none; }
     color: #ff8c2e; text-shadow: 4px 4px 0 #000;
 }
 .hw-kofi {
-    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; gap: 0.3em;
-    background: #eab308; color: #000; font-size: clamp(1.6rem, 8vw, 7.5rem); white-space: nowrap;
-    animation: hw-slam 0.12s ease-out;
+    position: fixed; inset: 0; width: 100%; height: 100%; object-fit: fill;
+    image-rendering: pixelated; animation: hw-slam 0.12s ease-out;
 }
-.hw-kofi svg { width: 1em; height: 1em; flex-shrink: 0; }
 @keyframes hw-slam { from { transform: scale(3); } }
 
 /* Won: only seen from far away, quietly asking. */

@@ -3,7 +3,7 @@
  *
  * Once a reader has been through the Black Flash minigame, the site turns
  * "Pumpkin Night" for them (owner's pick from mockups): orange where the blue
- * accent was, and cobwebs in the screen's corners. It stays that way on their
+ * accent was, and cobwebs at the edges of the page. It stays that way on their
  * device, and all of it ends by itself at the start of November 1, the
  * reader's own time.
  *
@@ -54,6 +54,27 @@
         + '<circle class="hw-spider-body" cx="20" cy="90" r="4.5"/><circle class="hw-spider-body" cx="20" cy="101" r="8"/>'
         + '</svg>';
 
+    // The webs sit in the middle area, against the sidebars rather than inside
+    // them (owner, 2026-10-23). The sidebars are measured rather than their
+    // widths copied here, so a collapsed sidebar, or none on a phone, moves the
+    // webs with it.
+    function hugSidebars(webs) {
+        const left = document.querySelector('.global-sidebar-left');
+        const right = document.querySelector('.local-sidebar-right');
+        const place = () => {
+            const l = left ? left.getBoundingClientRect() : null;
+            const r = right ? right.getBoundingClientRect() : null;
+            webs.style.setProperty('--hw-left', `${l && l.width ? Math.max(0, l.right) : 0}px`);
+            webs.style.setProperty('--hw-right', `${r && r.width ? Math.max(0, root.clientWidth - r.left) : 0}px`);
+        };
+        place();
+        if (typeof ResizeObserver === 'function') {
+            const watch = new ResizeObserver(place);
+            [left, right].forEach(el => { if (el) watch.observe(el); });
+        }
+        window.addEventListener('resize', place);
+    }
+
     function decorate() {
         if (!document.body || document.querySelector('.hw-webs')) return;
         const webs = document.createElement('div');
@@ -63,6 +84,7 @@
             + `<div class="hw-web hw-web-bottom">${WEB}</div>`
             + `<div class="hw-spider">${SPIDER}</div>`;
         document.body.appendChild(webs);
+        hugSidebars(webs);
     }
 
     // The Update Log listens for this, to show the Halloween entry once the
@@ -88,20 +110,71 @@
     const FISTS = 4;
     const FIST_LANDS = 800;           // no second press by then: the fist lands without one
     const IDLE_LOSES = 10000;         // nothing pressed for this long loses
-    const CHANCE = 0.05;              // owner: "5% chance every 1 second"
+    // Owner: "50% chance of happening upon any clicking action ... to make
+    // sure people are actually paying attention in the site, so nothing
+    // catches them off guard". A click is also what lets a browser play sound.
+    const CHANCE = 0.5;
+
+    // Lost, in ms from the fourth fist: the avatar grows for about two
+    // seconds, then its face fills the screen, then the Ko-fi button does.
+    const FACE_AT = 2300;
+    const KOFI_AT = 4100;
+    const LOST_FADES_AT = 6100;
+    const WON_FADES_AT = 2600;
 
     // Paths from this script's own address, so they hold on a page at any depth.
     const here = document.currentScript && document.currentScript.src;
     const asset = (p) => (here ? new URL(`../${p}`, here).href : p);
     const AVATAR = asset('medias/images/DeptrAvatar.webp');
-    // The owner's pick, a free-to-use sound effect.
+    // The owner's screenshots: the Ko-fi button, and the game's own skill box.
+    const KOFI = asset('medias/images/KoFiButton.png');
+    const SKILL = asset('medias/images/InGameDivergentFistUI.png');
+    // The owner's picks, free to use from Pixabay.
     const SCREAM = asset('medias/audios/HalloweenJumpscare.mp3');
-
-    const CUP = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" focusable="false" aria-hidden="true">'
-        + '<path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>'
-        + '<line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>';
+    const MUSIC = asset('medias/audios/tunetank-dark-tense-cinematic-chase-music-414691.mp3');
+    // The avatar's head in DeptrAvatar.webp, as fractions of it, and the width
+    // it is drawn at before being stretched over the screen: few enough pixels
+    // that they show (owner: "make it so large, my avatar appears pixelated
+    // naturally").
+    const HEAD = { x: 0.183, y: 0.007, w: 0.679, h: 0.483 };
+    const HEAD_PIXELS = 160;
 
     let playing = false;
+
+    // A sound that fails to load or play is deliberately quiet: the game goes
+    // on without it.
+    function sound(src, { loop = false, volume = 0.7 } = {}) {
+        try {
+            const a = new Audio(src);
+            a.preload = 'auto';
+            a.loop = loop;
+            a.volume = volume;
+            return a;
+        } catch (e) {
+            return null;
+        }
+    }
+    function start(a) {
+        if (!a) return;
+        const p = a.play();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+    }
+    function stop(a) {
+        if (a) a.pause();
+    }
+
+    // The face, drawn small and stretched over the screen without smoothing.
+    function pixelFace(img) {
+        if (!img || !img.complete || !img.naturalWidth) return null;
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        const face = document.createElement('canvas');
+        face.className = 'hw-face';
+        face.width = HEAD_PIXELS;
+        face.height = Math.round(HEAD_PIXELS * (HEAD.h * h) / (HEAD.w * w));
+        face.getContext('2d').drawImage(img, HEAD.x * w, HEAD.y * h, HEAD.w * w, HEAD.h * h, 0, 0, face.width, face.height);
+        return face;
+    }
 
     function play() {
         if (playing || !document.body) return;
@@ -117,26 +190,20 @@
             <p class="hw-tip" id="hw-tip">HIT A FULL BLACK FLASH CHAIN OR GET JUMPSCARED</p>
             <div class="hw-arena">
                 <p class="hw-count" aria-live="polite">FIST 1 / ${FISTS}</p>
-                <div class="hw-target"><div class="hw-ring"></div><div class="hw-core"></div></div>
+                <div class="hw-target"><div class="hw-ring"></div><img class="hw-skill" src="${SKILL}" alt="Divergent Fist, key 3"></div>
                 <p class="hw-callout" aria-live="assertive"></p>
                 <p class="hw-help">Space, 3, click or tap throws a Divergent Fist. Press again on the beat for a Black Flash.</p>
-            </div>`;
+            </div>
+            <button type="button" class="hw-skip">press x to skip</button>`;
         document.body.appendChild(overlay);
         const before = document.activeElement;
         const scrollWas = root.style.overflow;
         root.style.overflow = 'hidden';
         overlay.focus();
 
-        // Loaded now, played at the jumpscare. A browser plays it only after
-        // the reader has pressed something, which the game asks for.
-        let scream = null;
-        try {
-            scream = new Audio(SCREAM);
-            scream.preload = 'auto';
-            scream.volume = 0.7;
-        } catch (e) {
-            scream = null;
-        }
+        const music = sound(MUSIC, { loop: true, volume: 0.5 });
+        const scream = sound(SCREAM);
+        start(music);
 
         const count = overlay.querySelector('.hw-count');
         const ring = overlay.querySelector('.hw-ring');
@@ -147,6 +214,8 @@
         let thrownAt = 0;
         let fistTimer = null;
         let idleTimer = null;
+        const sceneTimers = [];
+        const later = (fn, ms) => sceneTimers.push(setTimeout(fn, ms));
         const results = [];
 
         const idle = () => {
@@ -162,7 +231,7 @@
                 callout.textContent = 'DIVERGENT FIST';
                 callout.className = 'hw-callout';
                 arena.classList.remove('is-flash', 'is-miss');
-                // Restarted on every throw: the ring closes on the core at the beat.
+                // Restarted on every throw: the ring closes on the box at the beat.
                 ring.classList.remove('is-closing');
                 void ring.offsetWidth;
                 ring.classList.add('is-closing');
@@ -181,6 +250,7 @@
             callout.className = `hw-callout ${blackFlash ? 'is-flash' : 'is-miss'}`;
             arena.classList.add(blackFlash ? 'is-flash' : 'is-miss');
             setTimeout(() => {
+                if (phase !== 'landed') return;
                 if (results.length === FISTS) {
                     finish(results[FISTS - 1]);
                     return;
@@ -192,20 +262,26 @@
 
         const onKey = (e) => {
             if (e.repeat) return;
-            if (e.code === 'Space' || e.key === ' ' || e.key === '3') {
+            if (e.key === 'x' || e.key === 'X') {
+                e.preventDefault();
+                e.stopPropagation();
+                skip();
+            } else if (e.code === 'Space' || e.key === ' ' || e.key === '3') {
                 e.preventDefault();
                 e.stopPropagation();
                 act();
             }
         };
         const onPointer = (e) => {
+            if (e.target.closest('.hw-skip')) return;
             e.preventDefault();
             act();
         };
         window.addEventListener('keydown', onKey, true);
         overlay.addEventListener('pointerdown', onPointer);
+        overlay.querySelector('.hw-skip').addEventListener('click', skip);
 
-        // The screen turns dark and the prompt fades in before anything counts.
+        // The screen fades to black and the prompt in before anything counts.
         requestAnimationFrame(() => overlay.classList.add('is-dark'));
         setTimeout(() => {
             if (phase !== 'intro') return;
@@ -214,61 +290,79 @@
             idle();
         }, 1600);
 
-        function finish(won) {
-            if (phase === 'over') return;
-            phase = 'over';
+        function stopGame() {
             clearTimeout(fistTimer);
             clearTimeout(idleTimer);
-            window.removeEventListener('keydown', onKey, true);
             overlay.removeEventListener('pointerdown', onPointer);
+        }
+
+        function finish(won) {
+            if (phase === 'over' || phase === 'leaving') return;
+            phase = 'over';
+            stopGame();
             // Played, whatever happens next: a tab closed mid-scare still counts.
             markDone();
             if (won) won_(); else lost();
         }
 
-        // Scenes. The avatar holds the Ko-fi button like a sword, over the
-        // knife in its hand (its grip is 18% across and 81% down the image).
-        const figure = (extra) => `<div class="hw-figure ${extra}">`
-            + `<img src="${AVATAR}" alt="">`
-            + `<span class="hw-sword btn-sys btn-sys-yellow">${CUP}<span class="kofi-text">SUPPORT KO-FI</span></span>`
+        // Skipping goes straight to the new look, from the game or a scene.
+        function skip() {
+            if (phase === 'leaving') return;
+            stopGame();
+            sceneTimers.forEach(clearTimeout);
+            markDone();
+            fadeAway();
+        }
+
+        // The avatar holds the Ko-fi button like a sword, over the knife in
+        // its hand (its grip is 18% across and 81% down the image).
+        const figure = () => '<div class="hw-figure">'
+            + `<img class="hw-avatar" src="${AVATAR}" alt="">`
+            + `<img class="hw-sword" src="${KOFI}" alt="">`
             + '</div>';
 
-        // Lost: far off, growing slowly to about a sixth of the screen; then
-        // all at once filling it, begging; then the Ko-fi button takes the
-        // screen with a scream; about two seconds later it all fades away.
+        // Lost: far off, growing for about two seconds; then the face fills the
+        // screen, begging; then the Ko-fi button takes the screen with a
+        // scream, and about two seconds later it all fades away. The music
+        // runs until the scream.
         function lost() {
             overlay.classList.add('is-scene');
-            arena.innerHTML = `<div class="hw-scene hw-lost">${figure('is-far')}<p class="hw-beg">PLEASE DONATE...</p></div>`;
+            arena.innerHTML = `<div class="hw-scene hw-lost">${figure()}<p class="hw-beg">PLEASE DONATE...</p></div>`;
             const scene = arena.querySelector('.hw-scene');
             // Laid out at its far size first, or the growth has nothing to
             // grow from and jumps.
             void scene.offsetWidth;
             scene.classList.add('is-growing');
-            setTimeout(() => scene.classList.add('is-close'), 3800);
-            setTimeout(() => {
-                scene.insertAdjacentHTML('beforeend', `<div class="hw-kofi">${CUP}<span class="kofi-text">SUPPORT KO-FI</span></div>`);
-                if (scream) {
-                    // Deliberately quiet on failure: a browser that has not seen a
-                    // press yet refuses to play sound, and the scare goes on silent.
-                    const p = scream.play();
-                    if (p && typeof p.catch === 'function') p.catch(() => {});
-                }
-            }, 5600);
-            setTimeout(fadeAway, 7600);
+            later(() => {
+                const face = pixelFace(scene.querySelector('.hw-avatar'));
+                if (face) scene.prepend(face);
+                scene.classList.add('is-close');
+            }, FACE_AT);
+            later(() => {
+                scene.insertAdjacentHTML('beforeend', `<img class="hw-kofi" src="${KOFI}" alt="Support Ko-fi">`);
+                stop(music);
+                start(scream);
+            }, KOFI_AT);
+            later(fadeAway, LOST_FADES_AT);
         }
 
         // Won: only seen from far away, quietly asking.
         function won_() {
+            stop(music);
             overlay.classList.add('is-scene');
-            arena.innerHTML = `<div class="hw-scene hw-won">${figure('is-tiny')}<p class="hw-ask">(psst... donate?)</p></div>`;
-            setTimeout(fadeAway, 2600);
+            arena.innerHTML = `<div class="hw-scene hw-won">${figure()}<p class="hw-ask">(psst... donate?)</p></div>`;
+            later(fadeAway, WON_FADES_AT);
         }
 
         // Into the new look, underneath, as the game fades off it.
         function fadeAway() {
+            phase = 'leaving';
+            window.removeEventListener('keydown', onKey, true);
+            stop(music);
             lookOn();
             overlay.classList.add('is-leaving');
             setTimeout(() => {
+                stop(scream);
                 overlay.remove();
                 root.style.overflow = scrollWas;
                 if (before && typeof before.focus === 'function') before.focus();
@@ -277,14 +371,18 @@
         }
     }
 
-    // Not while the reader is typing or a dialog is open, and not in a tab
-    // nobody is looking at.
-    function busy() {
-        if (document.hidden) return true;
-        const el = document.activeElement;
-        if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return true;
-        return [...document.querySelectorAll('.modal-overlay, #auth-modal')]
-            .some(m => getComputedStyle(m).display !== 'none');
+    // A click anywhere wakes it half the time: not one into a text box or a
+    // dialog. The click that does is spent on it, so a link does not lead
+    // away mid-scare.
+    function onClick(e) {
+        if (playing || e.button !== 0) return;
+        const t = e.target;
+        if (t && t.closest && t.closest('input, textarea, select, [contenteditable], .modal-overlay, #auth-modal')) return;
+        if (Math.random() >= CHANCE) return;
+        e.preventDefault();
+        e.stopPropagation();
+        window.removeEventListener('click', onClick, true);
+        play();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -302,13 +400,7 @@
             lookOn();
             return;
         }
-        const timer = setInterval(() => {
-            if (playing || busy()) return;
-            if (Math.random() < CHANCE) {
-                clearInterval(timer);
-                play();
-            }
-        }, 1000);
+        window.addEventListener('click', onClick, true);
     });
 
     window.halloween = { lookOn, markDone, readDone, play };
