@@ -81,6 +81,7 @@ const played = async (page, re) => (await sounds(page)).played.filter(p => re.te
 const MUSIC = /medias\/audios\/tunetank-dark-tense-cinematic-chase-music-414691\.mp3$/;
 const SCREAM = /medias\/audios\/HalloweenJumpscare\.mp3$/;
 const HIT = /medias\/audios\/8f73237e2303c812712cfba944ed5bf7\.mp3$/;
+const MISS = /medias\/audios\/miss_2G4oN9I\.mp3$/;
 const BEG = /medias\/audios\/LoseAudio\.mp3$/;
 const BEG_LAYERS = /medias\/audios\/LoseAudio[23]\.mp3$/;
 const WHISPER = /medias\/audios\/WinAudio\.mp3$/;
@@ -206,16 +207,18 @@ test('the click that wakes it is spent on it: a link does not lead away', async 
   expect(page.url()).toBe(before);
 });
 
-test('on the beat is a Black Flash, with its sound; too early, too late or no second press is a miss', async ({ page }) => {
+test('on the beat is a Black Flash, with its sound; too early, too late or no second press is a miss, with the "Miss!" sound', async ({ page }) => {
   await arm(page);
   await wakeAndWait(page);
   expect(await fist(page, 300)).toBe('BLACK FLASH!');
   expect(await played(page, HIT)).toHaveLength(1);
+  expect(await played(page, MISS), 'a Black Flash is not a miss').toEqual([]);
   await expect(page.locator('.hw-count')).toHaveText('2/4');
   expect(await fist(page, 150)).toBe('MISS');
   expect(await fist(page, 420)).toBe('MISS');
   expect(await fist(page, null), 'the fist lands on its own without a second press').toBe('MISS');
   expect(await played(page, HIT), 'a miss makes no Black Flash sound').toHaveLength(1);
+  expect(await played(page, MISS), 'every miss, the one with no second press too').toHaveLength(3);
 });
 
 test('the edges of the beat: 220ms and 380ms count, 219ms and 381ms do not', async ({ page }) => {

@@ -145,6 +145,8 @@
     // A Black Flash chain sound from the Roblox Creator Store, kept by the
     // owner's call (2026-10-23) after its off-Roblox licence was raised.
     const HIT = asset('medias/audios/8f73237e2303c812712cfba944ed5bf7.mp3');
+    // The "Miss!" meme, the owner's pick, for every fist that is not one.
+    const MISS = asset('medias/audios/miss_2G4oN9I.mp3');
     // The owner's own recordings: begging when the reader loses, whispering
     // when they win. The whisper is turned down, to go with the far-away avatar.
     const BEG = asset('medias/audios/LoseAudio.mp3');
@@ -243,6 +245,7 @@
             scream.playbackRate = SCREAM_PITCH;
         }
         const hit = sound(HIT);
+        const miss = sound(MISS);
         const beg = sound(BEG);
         const begLayers = BEG_LAYERS.map(src => sound(src));
         const whisper = sound(WHISPER, { volume: WHISPER_VOLUME });
@@ -313,9 +316,10 @@
             callout.textContent = blackFlash ? 'BLACK FLASH!' : 'MISS';
             callout.className = `hw-callout ${blackFlash ? 'is-flash' : 'is-miss'}`;
             arena.classList.add(blackFlash ? 'is-flash' : 'is-miss');
-            if (blackFlash && hit) {
-                hit.currentTime = 0;
-                start(hit);
+            const said = blackFlash ? hit : miss;
+            if (said) {
+                said.currentTime = 0;
+                start(said);
             }
             setTimeout(() => {
                 if (phase !== 'landed') return;
