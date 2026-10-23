@@ -42,7 +42,7 @@ async function arm(page, { at = DURING, random = 0.01, automated = false, played
     HTMLMediaElement.prototype.pause = function () { window.__paused.push({ src: this.src, volume: this.volume }); };
     try {
       localStorage.setItem('dsl_editor_tutorial_seen', '1');
-      if (played) localStorage.setItem('dsl_halloween_done', '1');
+      if (played) localStorage.setItem('dsl_halloween_done', played === true ? '1' : played);
     } catch (e) { /* ignore */ }
   }, { random, automated, played });
   // The game is the same on every reader page; this one loads the least.
@@ -441,6 +441,13 @@ test('a reader who asked for less motion gets the look straight away, without th
   expect(await looks(page)).toMatchObject({ on: true, done: 'spared', webs: 2 });
   for (let i = 0; i < 5; i++) await heading(page).click();
   await expect(game(page)).toHaveCount(0);
+});
+
+test('a reader once spared is not surprised later either, after turning reduced motion off', async ({ page }) => {
+  await arm(page, { played: 'spared' });
+  for (let i = 0; i < 5; i++) await heading(page).click();
+  await expect(game(page)).toHaveCount(0);
+  expect(await looks(page)).toMatchObject({ on: true, done: 'spared', webs: 2 });
 });
 
 test('Site settings plays it again', async ({ page }) => {
