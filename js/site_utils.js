@@ -1602,7 +1602,6 @@ window.injectAuthModal = function() {
                 <div class="profile-field hidden" id="profile-badges-field" role="group" aria-labelledby="profile-badges-title">
                     <span class="profile-field-title" id="profile-badges-title">BADGES</span>
                     <div id="profile-badges-list" class="profile-badges"></div>
-                    <p class="profile-hint">A hidden badge stays yours. It just stops showing beside your name and on your profile.</p>
                 </div>
 
                 <div class="profile-field">

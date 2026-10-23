@@ -259,7 +259,8 @@
         root.style.overflow = 'hidden';
         overlay.focus();
 
-        const music = sound(MUSIC, { loop: true, volume: 0.5 });
+        // 70% of the 0.5 it started at (owner: "kinda loud").
+        const music = sound(MUSIC, { loop: true, volume: 0.35 });
         const scream = sound(SCREAM);
         if (scream) {
             scream.preservesPitch = false;
