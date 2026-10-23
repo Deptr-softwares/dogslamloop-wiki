@@ -14,7 +14,7 @@
  * THE SCRIPT IS NOT IN THIS FILE, AND THAT IS THE POINT
  *
  * Every word comes from the Writing Guide - page_data for `writing_guide`,
- * tab `basics`, section "How to use the editor?" - which is the same text a
+ * section "How to use the editor?" in whichever tab holds it - which is the same text a
  * contributor is told to read and which the owner edits through the site. A
  * copy in here would be a second source that goes stale silently, and the
  * Writing Guide is the one that decides whether an edit gets accepted.
@@ -128,25 +128,30 @@
     }
 
     // One fetch for both features, cached for the life of the page. The tour
-    // and the Manual of Style read two different sections of the same tab, and
+    // and the Manual of Style read two different sections of the same row, and
     // fetching it twice would be two round trips for one row.
-    let guideTab = null;
+    let guideTabs = null;
 
     async function loadGuideSection(pattern) {
-        if (!guideTab) {
+        if (!guideTabs) {
             if (!window.supabaseClient) throw new Error('not connected');
             const { data, error } = await window.supabaseClient
                 .from('page_data').select('desc_data').eq('page_id', 'writing_guide').maybeSingle();
             if (error) throw error;
 
             const tabs = ((data || {}).desc_data || {}).tabs || [];
-            guideTab = tabs.find(t => t && t.tabId === 'basics') || null;
-            if (!guideTab) throw new Error('the Writing Guide has no Basics tab');
+            if (!tabs.length) throw new Error('the Writing Guide has no tabs');
+            guideTabs = tabs;
         }
 
-        const section = (guideTab.sections || []).find(s => s && pattern.test(s.sectionTitle || ''));
-        if (!section) throw new Error('the Writing Guide is missing that section');
-        return section;
+        // Any tab, not only Basics: the owner reorganises the guide through the
+        // site (2026-10-24, the editor section moved to a tab of its own), and a
+        // section is found by its title wherever it is.
+        for (const tab of guideTabs) {
+            const section = ((tab && tab.sections) || []).find(s => s && pattern.test(s.sectionTitle || ''));
+            if (section) return section;
+        }
+        throw new Error('the Writing Guide is missing that section');
     }
 
     async function loadSteps() {
