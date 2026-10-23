@@ -86,8 +86,8 @@ test('adding a tab does not also look like a reorder', async ({ page }) => {
     return window.buildSystemDeltas(changed, live, 'system');
   }, THREE_TABS);
 
-  // Without the membership test, every add would carry a redundant order delta
-  // because the sequence trivially differs by one entry.
+  // A tab added at the end is where approval puts it anyway, so no order
+  // delta: comparing raw sequences would send one with every add.
   expect(deltas.filter(d => d.scope === 'system_tab_order')).toEqual([]);
   expect(deltas.some(d => d.scope === 'system_tab' && d.key === 'extra'),
     'the add itself still ships').toBe(true);
