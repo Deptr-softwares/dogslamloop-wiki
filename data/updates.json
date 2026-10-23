@@ -26,7 +26,7 @@
           "heading": "Bug fixes"
         },
         "Fixed a bug where reordering matchup descriptions copied one character's text into every box it passed over",
-        "Fixed a bug where saving a profile that hides a badge would have failed every time"
+        "Changed a few things under the hood"
       ]
     },
     {
