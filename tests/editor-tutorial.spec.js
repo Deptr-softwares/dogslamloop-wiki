@@ -150,6 +150,32 @@ test('each element is mapped to something real in the editor', async ({ page }) 
     expect(missing.filter(m => !m.includes('add-block-toolbar'))).toEqual([]);
 });
 
+// --- WHERE THE SECTIONS LIVE ------------------------------------------------
+//
+// The owner is reorganising the Writing Guide (2026-10-24): the editor section
+// gets its own tab after Start Here. Both readers follow a section to any tab,
+// and this guide has no `basics` tab at all, which is where both used to look.
+
+const REORGANISED = { tabs: [
+    { tabId: 'start-here', sections: [{ sectionTitle: 'Introduction', blocks: [] }] },
+    { tabId: 'using-the-editor', sections: [EDITOR_SECTION] },
+    { tabId: 'rules', sections: [UNIVERSAL_RULES] },
+] };
+
+test('the tour finds the editor section in any tab', async ({ page }) => {
+    await openEditor(page, { descData: REORGANISED });
+
+    expect(await page.evaluate(() => window.startEditorTutorial({ force: true }))).toBe(true);
+    await expect(page.locator('#editor-tutorial .tutorial-progress')).toContainText('Step 1 of 3');
+});
+
+test('the MoS finds Universal Rules in any tab', async ({ page }) => {
+    await openEditor(page, { descData: REORGANISED });
+    await page.evaluate(() => window.openStyleManual());
+
+    await expect(page.locator('#editor-mos-modal .mos-body')).toContainText('avoid personal and casual language');
+});
+
 // --- THE TOUR ---------------------------------------------------------------
 
 test('the tour opens, steps forward, and spotlights the element it names', async ({ page }) => {

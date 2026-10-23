@@ -15,9 +15,10 @@
 // would be flaky and would fail for reasons unrelated to the router.
 const { test, expect } = require('@playwright/test');
 
-// 22 of the 23 character directories. Template is excluded on purpose - it is
-// a documentation page wearing a character page's clothes (its own shorter tab
-// strip, extra prose) and must never be routed.
+// The character directories as of v0.9. Template has been routed too since
+// 2026-10-24 (a worked example of a character page), but it is left out of
+// this list: the owner can retire that page, and a list pinned to it would
+// turn the regeneration job red the day they do.
 const CHARACTER_PAGES = [
   'Aspiring_mangaka', 'Black_death', 'Blood_manipulator', 'Boomcat', 'Crow_charmer',
   'Cursed_partners', 'Defense_attorney', 'Disaster_plants', 'Head_hei', 'Honored_one',
@@ -38,7 +39,6 @@ const SYSTEM_PAGES = [
 // Every page the router must NOT touch. A generator bug that swallowed one of
 // these would be silent and destructive, so it gets an explicit guard.
 const NEVER_ROUTED = [
-  '/characters/Template/index.html',
   '/systems/collaborators/index.html',
   '/systems/tierlist/index.html',
   '/systems/updatelog/index.html',

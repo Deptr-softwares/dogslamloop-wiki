@@ -93,16 +93,20 @@ function attr(value) {
 // This becomes the meta description and the OG description, so it is what a
 // search result and a Discord unfurl actually say. "A guide to Emotes" would
 // be wrong for a gallery and wrong for a tool.
-function describe(name, pageType) {
-    if (pageType === 'character') return `Frame data, matchups, and strategy for ${name} in Jujutsu Shenanigans.`;
+//
+// A character page outside the Characters category is not a character: the
+// Template & Guide is filed under Site Info. Same test the sidebar and the
+// Discord relay use for "is a character".
+function describe(name, pageType, category) {
+    if (pageType === 'character' && category === 'Characters') return `Frame data, matchups, and strategy for ${name} in Jujutsu Shenanigans.`;
     if (pageType === 'gallery') return `Every ${name} in Jujutsu Shenanigans, searchable, on the Dogslamloop wiki.`;
     if (pageType === 'tool') return `${name}, a Jujutsu Shenanigans tool on the Dogslamloop wiki.`;
     return `A Jujutsu Shenanigans guide to ${name}, on the Dogslamloop wiki.`;
 }
 
-function socialTags({ name, relPath, pageType, image }) {
+function socialTags({ name, relPath, pageType, category, image }) {
     const url = `${SITE_ORIGIN}/${relPath}`;
-    const description = describe(name, pageType);
+    const description = describe(name, pageType, category);
 
     // A character's own portrait makes a far more useful Discord preview than
     // the site logo repeated 22 times. Portraits come from
@@ -134,13 +138,14 @@ function socialTags({ name, relPath, pageType, image }) {
 
 // Pages that live under characters/ or systems/ but are hand-authored and
 // must never be produced (or clobbered) by this script.
-//   Template     - documentation page in a character page's clothes, 5 tabs
 //   collaborators- own fetch engine and containers
 //   tierlist     - own pageType, loads tierlist.js
 //   updatelog    - driven by home_widgets.js
 //   color-codes  - hand-authored swatch markup
+// Template was here until 2026-10-24: hand-built with 5 tabs while a character
+// page grew to 11. The owner made it a worked example of a character page, so
+// it is generated like one and always has the same tabs.
 const NEVER_TOUCH = new Set([
-    'characters/Template/index.html',
     'systems/collaborators/index.html',
     'systems/tierlist/index.html',
     'systems/updatelog/index.html',
@@ -457,6 +462,7 @@ function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set(), 
                 name: entry.name,
                 relPath,
                 pageType: cms.pageType,
+                category,
                 image: previews[cms.pageId],
             });
             const stubArgs = {
