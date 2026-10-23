@@ -118,6 +118,32 @@ test('the cobwebs and the spider sit in the middle area, against the sidebars, a
   expect(collapsed.bottomWebLeft, 'the web follows the narrower sidebar').toBe(collapsed.leftEdge);
 });
 
+// Owner, 2026-10-23: the bottom web "weirdly clip over the footer ... it would
+// be better if cobweb is hidden under the footer".
+test('at the end of a page the footer covers the bottom web', async ({ page }) => {
+  await page.setViewportSize({ width: 1300, height: 800 });
+  await visit(page, '/', { played: true });
+  await page.locator('#site-footer').scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const onTop = await page.evaluate(() => {
+    // The webs never take a click, so to ask which is painted on top they are
+    // made hittable here for a moment.
+    const webs = document.querySelector('.hw-webs');
+    webs.style.pointerEvents = 'auto';
+    webs.querySelectorAll('*').forEach(el => { el.style.pointerEvents = 'auto'; });
+    const web = document.querySelector('.hw-web-bottom').getBoundingClientRect();
+    const foot = document.getElementById('site-footer').getBoundingClientRect();
+    const top = Math.max(web.top, foot.top);
+    const bottom = Math.min(web.bottom, foot.bottom);
+    if (bottom <= top) return 'no overlap';
+    // Anywhere in the overlap: a hittable .hw-web box is hit across all of it,
+    // not only on its strands.
+    const hit = document.elementFromPoint(web.left + web.width / 2, (top + bottom) / 2);
+    return hit && hit.closest('#site-footer') ? 'footer' : (hit && hit.closest('.hw-webs') ? 'web' : String(hit && hit.tagName));
+  });
+  expect(onTop).toBe('footer');
+});
+
 test('a character page keeps its own colours, cobwebs and all', async ({ browser }) => {
   const usual = await browser.newPage();
   await visit(usual, '/characters/Boomcat/');

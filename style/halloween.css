@@ -33,6 +33,11 @@ html.halloween .wiki-link { color: hsl(213, 94%, 68%); }
 .hw-spider .hw-thread { opacity: 0.55; }
 .hw-spider .hw-spider-body { fill: #05070d; }
 
+/* The bottom web is fixed to the screen, so at the end of a page it lay over
+   the footer. The footer covers it instead (owner, 2026-10-23): it has its own
+   background, and is the webs' sibling in <body>, so a higher z-index does it. */
+html.halloween .site-footer { position: relative; z-index: 6; }
+
 @media (max-width: 1023px) {
     .hw-web { width: 90px; height: 90px; }
     .hw-spider { right: calc(var(--hw-right, 0px) + 5.5rem); width: 20px; height: 60px; }

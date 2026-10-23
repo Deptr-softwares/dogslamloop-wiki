@@ -170,7 +170,8 @@
     const BEG = asset('medias/audios/LoseAudio.mp3');
     const BEG_LAYERS = [asset('medias/audios/LoseAudio2.mp3'), asset('medias/audios/LoseAudio3.mp3')];
     const WHISPER = asset('medias/audios/WinAudio.mp3');
-    const WHISPER_VOLUME = 0.3;
+    // "like really small" (owner): half of the 0.3 it started at.
+    const WHISPER_VOLUME = 0.15;
     // The avatar's head in DeptrAvatar.webp, as fractions of it, and the width
     // it is drawn at before being stretched over the screen: few enough pixels
     // that they show (owner: "make it so large, my avatar appears pixelated
