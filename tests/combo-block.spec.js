@@ -34,11 +34,13 @@ const lightnessOf = (hsl) => parseFloat(/hsl\(\s*[\d.]+\s*,\s*[\d.]+%\s*,\s*([\d
 const DARKEST = Object.entries(CHARACTER_COLORS).sort((a, b) => lightnessOf(a[1]) - lightnessOf(b[1]))[0];
 const LIGHTEST = Object.entries(CHARACTER_COLORS).sort((a, b) => lightnessOf(b[1]) - lightnessOf(a[1]))[0];
 
-const SLUG = {
-  'Crow Charmer': 'Crow_charmer', 'Black Death': 'Black_death', 'Ten Shadows': 'Ten_shadows',
-  'Register': 'Register', 'Aspiring Mangaka': 'Aspiring_mangaka', 'Vessel': 'Vessel',
-  'Blood Manipulator': 'Blood_manipulator', 'Defense Attorney': 'Defense_attorney',
-};
+// Each character's page, from the roster the sidebar reads. This was a typed
+// list of eight slugs, and it went stale the night a new character became the
+// darkest (Hired Killer, 2026-10-24): every regeneration failed on it.
+const PAGE_URL = (() => {
+  const nav = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'navigation.json'), 'utf8'));
+  return new Map((nav.Characters || []).map(c => [c.name, c.url]));
+})();
 
 const TWO_COMBOS = [
   { type: 'combo', sequence: ['MURMURATE', 'R↑', 'AIR UPDRAFT'], damage: '36' },
@@ -154,10 +156,10 @@ test('the highlight text flips so it stays readable on any character', async ({ 
   // The rule: white on a character below 50% lightness, black at 50% and up.
   // Driven on the real extremes of the real roster.
   for (const [name, colour] of [DARKEST, LIGHTEST]) {
-    const slug = SLUG[name];
-    expect(slug, `no page slug known for ${name} - add it to SLUG`).toBeTruthy();
+    const url = PAGE_URL.get(name);
+    expect(url, `${name} has a colour but is not on the roster in data/navigation.json`).toBeTruthy();
 
-    await page.goto(`/characters/${slug}/index.html`, { waitUntil: 'networkidle' });
+    await page.goto(`/${url}`, { waitUntil: 'networkidle' });
     await renderCombos(page);
 
     const step = page.locator('#combo-host .combo-block').first().locator('.combo-node').nth(1);
