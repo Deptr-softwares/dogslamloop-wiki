@@ -201,13 +201,25 @@
       "name": "Register",
       "url": "characters/Register/index.html",
       "isWip": true,
-      "isEA": true,
       "isMissingMedia": true,
       "archetype": "Balance",
-      "releaseDate": "TBD",
+      "releaseDate": "V1.84",
       "cms_config": {
         "pageType": "character",
         "pageId": "register",
+        "editRole": "open"
+      }
+    },
+    {
+      "id": "Hired-Killer",
+      "name": "Hired Killer",
+      "url": "characters/Hired_killer/index.html",
+      "isWip": true,
+      "isEA": true,
+      "isMissingMedia": true,
+      "cms_config": {
+        "pageType": "character",
+        "pageId": "hired_killer",
         "editRole": "open"
       }
     },

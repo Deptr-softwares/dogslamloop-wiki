@@ -38,6 +38,7 @@ window.CHARACTER_COLORS = {
     "Disaster Plants": "hsl(106, 28%, 72%)",
     "True Cannon": "hsl(180, 100%, 83%)",
     "Register": "hsl(0, 0%, 100%)",
+    "Hired Killer": "hsl(0, 0%, 20%)",
     "Locust Guy": "hsl(100, 100%, 75%)",
     "Star Rage": "hsl(240, 100%, 83%)",
     "Aspiring Mangaka": "hsl(0, 100%, 96%)",
