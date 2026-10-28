@@ -249,7 +249,16 @@ test('every row becomes a card on a phone, and empty fields drop out', async ({ 
       damageLabel: damage.getAttribute('data-label'),
       damageIsFlex: getComputedStyle(damage).display,
       emptyHidden: empty ? getComputedStyle(empty).display : 'none',
-      pageScrollsSideways: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      // Measured on this tab, not the document. The page around the fixture is
+      // live, and a reader's post that was one long link widened it on
+      // 2026-10-25: this test failed every regeneration run for it while the
+      // tab under test was fine (that post has its own test now, in
+      // discussion-stacks.spec.js).
+      tabScrollsSideways: (() => {
+        const width = document.documentElement.clientWidth;
+        return [...document.querySelectorAll('#tab-combos *')]
+          .some(el => el.getBoundingClientRect().right > width + 0.5);
+      })(),
     };
   });
 
@@ -260,7 +269,7 @@ test('every row becomes a card on a phone, and empty fields drop out', async ({ 
   // silently un-flexed the label and ran it into its value.
   expect(mobile.damageIsFlex, 'the label must stay a flex item').toBe('flex');
   expect(mobile.emptyHidden, 'an empty field is not a labelled row saying "-"').toBe('none');
-  expect(mobile.pageScrollsSideways, 'the page itself must never scroll sideways').toBe(false);
+  expect(mobile.tabScrollsSideways, 'nothing in the Combos tab may stick out past the screen').toBe(false);
 });
 
 test('nothing a contributor writes is parsed as markup', async ({ page }) => {

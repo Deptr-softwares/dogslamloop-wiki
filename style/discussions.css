@@ -318,11 +318,15 @@
     color: var(--text-muted);
 }
 
+/* anywhere, not break-word: on a phone a stacked post's row is a column sized
+   to its words, and only `anywhere` lets an unbroken link lower that size. A
+   post that was one long Discord link grew to 626px on a 420px screen and
+   scrolled the whole page sideways (2026-10-25). */
 .discussion-body {
     font-size: 0.88rem;
     line-height: 1.55;
     color: var(--text-white);
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
 }
 
 .discussion-body-removed {
