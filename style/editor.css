@@ -492,6 +492,12 @@ input[type="checkbox"]:checked {
     padding-bottom: 0px; 
     flex-shrink: 0;
 }
+/* The frame data editor's variant tabs wrap (owner's pick, 2026-10-29). As one
+   row, the fourth new variant on a 1280px screen pushed + ADD VARIANT out of
+   the workspace and scrolled the whole workspace sideways. Scoped to the
+   variant wrapper: .daw-variant-tabs is also the move row, the system section
+   row, the Config tabs and the tier editor's tabs, which scroll instead. */
+.daw-variant-wrapper > .daw-variant-tabs { flex-wrap: wrap; }
 .daw-tab-btn { background: transparent; color: #666; border: 1px solid transparent; border-bottom: 2px solid transparent; padding: 0.3rem 0.6rem; border-radius: 0; cursor: pointer; font-family: var(--text-mono); font-weight: bold; font-size: 0.7rem; text-transform: uppercase; transition: all 0.1s; margin-bottom: -1px; }
 .daw-tab-btn.active { background: var(--accent-blue); color: #000; border-bottom-color: var(--accent-blue); }
 .daw-tab-btn:hover:not(.active) { background: #111; color: #fff; border-bottom-color: #555; }
@@ -1305,7 +1311,9 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .daw-branch-label-row { display: flex; justify-content: center; margin-bottom: 1.5rem; }
 .editor-input.daw-branch-label-inp { max-width: 250px; text-align: center; font-size: 0.9rem; }
 .daw-branch-hint { color: var(--text-muted); font-family: var(--text-mono); margin-bottom: 1.5rem; }
-.daw-branch-actions-row { display: flex; gap: 1rem; justify-content: center; }
+/* Wraps for the same reason: an empty variant's three buttons are wider than
+   the workspace on a 1280px screen. */
+.daw-branch-actions-row { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
 .btn-sys.daw-narrow-btn { max-width: 200px; }
 /* Compound selectors: .editor-select option (style/editor.css:150) sets its
    own color: #d1d5db at higher specificity (0,1,1) than a bare class

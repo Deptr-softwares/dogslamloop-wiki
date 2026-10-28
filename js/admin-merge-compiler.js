@@ -11,7 +11,7 @@ window.openMergeCompiler = async function(pageId) {
     const confirmBtn = document.getElementById('btn-compiler-confirm');
 
     titleSpan.textContent = pageId.toUpperCase();
-    titleSpan.parentElement.innerHTML = `MERGE COMPILER: <span id="compiler-char-name" class="compiler-title-highlight">${pageId.toUpperCase()}</span>`;
+    titleSpan.parentElement.innerHTML = `MERGE COMPILER: <span id="compiler-char-name" class="compiler-title-highlight">${window.escapeHtml(pageId.toUpperCase())}</span>`;
 
     body.innerHTML = `<p class="compiler-status-text">Analyzing revisions and fetching live database...</p>`;
     modal.classList.remove('hidden');

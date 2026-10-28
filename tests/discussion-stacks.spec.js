@@ -227,6 +227,38 @@ test('on a phone, a stacked post\'s buttons go under its words', async ({ page }
     expect(geo.actions).toBeGreaterThanOrEqual(geo.body);
 });
 
+// A post that is one long link, the way the relay brings in a GIF someone sent
+// on Discord (four on 2026-10-25). On a phone a stacked post's row is a column
+// sized to its words, and `break-word` does not let an unbroken link shrink
+// that size, so the post grew to 626px and the whole page scrolled sideways.
+// That also failed every regeneration run from 10-26.
+test('on a phone, a post that is one long link wraps instead of widening the page', async ({ page }) => {
+    const link = 'https://cdn.discordapp.com/attachments/1021063411058098257/1465386879577882666/36002CAF-9206-42B9-85BF-915750E47F32.gif';
+    const yuta = { author_id: 'u-yuta', author_name: 'Yuta', body: link };
+    await openThread(page, { rows: [
+        msg(0, { author_id: 'u-toji', author_name: 'Toji', body: link }),   // a post of its own
+        msg(10, yuta), msg(11, yuta),                                       // a stack
+        msg(12, { body: link, parent_id: 'm000' }),                         // a reply
+    ], viewport: { width: 400, height: 900 } });
+
+    const geo = await page.evaluate(() => {
+        const width = document.documentElement.clientWidth;
+        return {
+            width,
+            scrollsSideways: document.documentElement.scrollWidth > width,
+            bodies: ['m000', 'm010', 'm011', 'm012'].map(id => {
+                const body = document.querySelector(`#post-${id} .discussion-body`);
+                return { id, right: Math.round(body.getBoundingClientRect().right), text: body.textContent };
+            }),
+        };
+    });
+    for (const body of geo.bodies) {
+        expect(body.text, `${body.id} still shows the whole link`).toContain(link);
+        expect(body.right, `${body.id} fits the screen`).toBeLessThanOrEqual(geo.width);
+    }
+    expect(geo.scrollsSideways).toBe(false);
+});
+
 // --- LETTERS ---
 
 test('every card and reply has its person\'s letter, one colour per person, two people two colours', async ({ page }) => {

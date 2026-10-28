@@ -21,7 +21,7 @@ async function previewRevision(revId) {
     window.activePreviewRevId = rev.id;
     window.activePreviewCharId = rev.page_id;
     window.activePreviewPageType = rev.page_type || 'character';
-    document.getElementById('preview-status-text').innerHTML = `REVIEWING: <strong class="admin-preview-status-highlight">${rev.page_id.toUpperCase()}</strong> (By ${window.escapeHtml(rev.author_name)})`;
+    document.getElementById('preview-status-text').innerHTML = `REVIEWING: <strong class="admin-preview-status-highlight">${window.escapeHtml(rev.page_id.toUpperCase())}</strong> (By ${window.escapeHtml(rev.author_name)})`;
 
     updateActionButtons(rev);
     document.getElementById('preview-nav-sidebar').classList.remove('hidden');

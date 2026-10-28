@@ -160,8 +160,9 @@ jobs:
         run: node scripts/fetch-previews.js --write
 
       # Must run AFTER fetch-previews, which is where the URLs it mirrors come
-      # from. It refuses to write a partial mirror, so a Storage outage fails
-      # this step rather than committing a manifest with portraits missing.
+      # from. A portrait it cannot mirror keeps its last good copy (or none,
+      # for a character that never had one) and is reported as a warning on
+      # the run, so one bad upload no longer stops every page publishing.
       - name: Mirror portraits into the repo
         run: node scripts/fetch-portraits.js --write
 
