@@ -145,15 +145,19 @@ function renderQueue() {
         // filtered list would promise to merge two and then merge three.
         const totalForPage = all.filter(r => r.page_id === pageId).length;
 
-        let mergeBtnHtml = '';
-        if (totalForPage > 1) {
-            mergeBtnHtml = `<button onclick="window.openMergeCompiler('${pageId}')" class="btn-sys btn-sys-purple admin-merge-btn">✦ MERGE TICKETS (${totalForPage})</button>`;
-        }
-
+        // page_id is whatever the submitter sent, so it is escaped here and the
+        // merge button gets a listener rather than an inline onclick, where an
+        // escaped quote would still close the string (2026-10-29).
         header.innerHTML = `
-            <h3 class="admin-queue-group-title">${pageId.replace(/_/g, ' ')}</h3>
-            ${mergeBtnHtml}
+            <h3 class="admin-queue-group-title">${window.escapeHtml(pageId.replace(/_/g, ' '))}</h3>
         `;
+        if (totalForPage > 1) {
+            const mergeBtn = document.createElement('button');
+            mergeBtn.className = 'btn-sys btn-sys-purple admin-merge-btn';
+            mergeBtn.textContent = `✦ MERGE TICKETS (${totalForPage})`;
+            mergeBtn.addEventListener('click', () => window.openMergeCompiler(pageId));
+            header.appendChild(mergeBtn);
+        }
         container.appendChild(header);
 
         tickets.forEach(rev => {
@@ -212,7 +216,7 @@ function renderQueue() {
                     <div class="admin-queue-card-info">
                         <div class="admin-queue-badges-row">
                             ${statusBadge}
-                            <span class="update-badge badge-page-id">${rev.page_id.toUpperCase()}</span>
+                            <span class="update-badge badge-page-id">${window.escapeHtml(rev.page_id.toUpperCase())}</span>
                             ${deltaBadge}
                             ${sizeBadge}
                             ${confidenceBadge(rev)}
