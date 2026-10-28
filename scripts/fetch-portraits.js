@@ -91,11 +91,15 @@ if (check) {
     const problems = [];
 
     for (const [pageId] of entries) {
-        const rel = manifest[pageId];
-        if (!rel) {
+        if (!(pageId in manifest)) {
             problems.push(`${pageId}: in page-previews.json but not mirrored`);
             continue;
         }
+        const rel = manifest[pageId];
+        // null is --write saying "could not mirror this one, and there was no
+        // earlier copy to keep". It warned about it then, and does on every
+        // run until the portrait is fixed.
+        if (rel === null) continue;
         if (!fs.existsSync(path.join(ROOT, rel))) {
             problems.push(`${pageId}: manifest points at ${rel}, which does not exist`);
         }
@@ -126,6 +130,7 @@ if (check) {
     const entries = readPreviews();
     fs.mkdirSync(PORTRAIT_DIR, { recursive: true });
 
+    const previous = fs.existsSync(MANIFEST_PATH) ? JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8')) : {};
     const manifest = {};
     const failures = [];
     let changed = 0;
@@ -133,22 +138,32 @@ if (check) {
 
     for (const [pageId, url] of entries) {
         const ext = extensionFor(url);
+        let body = null;
+        let failure = null;
         if (!ext) {
-            failures.push(`${pageId}: unsupported extension in ${url}`);
-            continue;
+            failure = `unsupported extension in ${url}`;
+        } else {
+            try {
+                const res = await fetch(url);
+                if (!res.ok) failure = `HTTP ${res.status} for ${url}`;
+                else body = Buffer.from(await res.arrayBuffer());
+            } catch (err) {
+                failure = err.message;
+            }
+            if (body && body.length === 0) failure = 'empty response';
         }
 
-        let body;
-        try {
-            const res = await fetch(url);
-            if (!res.ok) { failures.push(`${pageId}: HTTP ${res.status} for ${url}`); continue; }
-            body = Buffer.from(await res.arrayBuffer());
-        } catch (err) {
-            failures.push(`${pageId}: ${err.message}`);
+        // One portrait that cannot be mirrored no longer stops the run (owner,
+        // 2026-10-29): a .webm on Hired Killer stopped every page publishing
+        // on 2026-10-25. It keeps its last good copy, so a Storage outage
+        // still removes nothing from the site; a character that never had one
+        // is recorded as null, which reads as "no portrait" everywhere.
+        if (failure) {
+            const kept = previous[pageId] && fs.existsSync(path.join(ROOT, previous[pageId])) ? previous[pageId] : null;
+            manifest[pageId] = kept;
+            failures.push({ pageId, failure, kept });
             continue;
         }
-
-        if (body.length === 0) { failures.push(`${pageId}: empty response`); continue; }
 
         const filename = `${pageId}${ext}`;
         const abs = path.join(PORTRAIT_DIR, filename);
@@ -165,18 +180,16 @@ if (check) {
         changed++;
     }
 
-    // Refuse a partial mirror. Writing a manifest that silently omits whatever
-    // failed would turn a Storage outage into missing portraits on the site,
-    // committed and looking deliberate.
-    if (failures.length) {
-        console.error(`fetch-portraits FAILED - ${failures.length} portrait(s) could not be fetched:`);
-        for (const f of failures) console.error(`  - ${f}`);
-        console.error('\nNothing written. The existing mirror is left as it was.');
-        process.exit(1);
+    // A GitHub Actions annotation, so the run shows a yellow warning naming
+    // each one rather than passing in silence. Written to stdout, where the
+    // runner reads workflow commands.
+    for (const { pageId, failure, kept } of failures) {
+        const outcome = kept ? `kept the last good copy (${kept})` : 'no portrait until it is fixed';
+        console.log(`::warning title=Portrait not mirrored::${pageId}: ${failure}. ${outcome}.`);
     }
 
     // Files that no longer correspond to any portrait in the map.
-    const keep = new Set(Object.values(manifest).map(rel => path.basename(rel)));
+    const keep = new Set(Object.values(manifest).filter(Boolean).map(rel => path.basename(rel)));
     let removed = 0;
     for (const f of fs.readdirSync(PORTRAIT_DIR)) {
         if (!keep.has(f)) { fs.unlinkSync(path.join(PORTRAIT_DIR, f)); removed++; }
@@ -186,6 +199,7 @@ if (check) {
     for (const k of Object.keys(manifest).sort()) sorted[k] = manifest[k];
     fs.writeFileSync(MANIFEST_PATH, JSON.stringify(sorted, null, 2) + '\n');
 
-    console.log(`fetch-portraits: ${entries.length} portraits mirrored `
-        + `(${changed} changed, ${unchanged} unchanged, ${removed} removed).`);
+    console.log(`fetch-portraits: ${entries.length - failures.length} portraits mirrored `
+        + `(${changed} changed, ${unchanged} unchanged, ${removed} removed)`
+        + (failures.length ? `, ${failures.length} not mirrored (warned above).` : '.'));
 })();
