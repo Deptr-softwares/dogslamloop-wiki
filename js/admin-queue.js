@@ -94,6 +94,19 @@ function populateQueuePageFilter(rows) {
     // Keep a reviewer where they were across a refresh, unless the page they
     // were filtered to has emptied.
     if (previous && pages.includes(previous)) select.value = previous;
+
+    // The site's dropdown copies a <select>'s options once, when it builds
+    // itself 100ms after load, which is before the queue arrives. Rebuilt here,
+    // or the list a reviewer opens only ever says "All pages" (owner's report,
+    // 2026-10-29). The old list's change listener stays on the <select>, but it
+    // only ever updates the element removed here. Not built yet means the first
+    // build is still to come, and it will copy these options.
+    const built = select.nextElementSibling;
+    if (built && built.classList.contains('manga-select-wrapper')) {
+        built.remove();
+        select.classList.remove('manga-initialized');
+        window.initializeMangaSelects();
+    }
 }
 
 function renderQueue() {

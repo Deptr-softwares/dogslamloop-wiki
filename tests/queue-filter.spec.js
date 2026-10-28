@@ -242,3 +242,95 @@ test('admin.html carries both filters and they are bound', async ({ page }) => {
     expect(values).toEqual(['all', 'pending', 'ticket_open']);
     expect(js).toMatch(/\.in\('status', \['pending', 'ticket_open'\]\)/);
 });
+
+// Through the dropdown a reviewer actually clicks (owner's report, 2026-10-29:
+// "The filter is simply not working at all"). initializeMangaSelects hides each
+// <select> behind a custom list it copies ONCE, 100ms after the page loads,
+// while the page options are only added when the queue arrives. So the list a
+// reviewer opened only ever said "All pages". Every test above sets the bare
+// <select>'s value, which is how this passed from v0.17 until then.
+test.describe('on the real admin.html', () => {
+    const ROWS = [
+        rev({ id: '00000000-0000-4000-8000-000000000001', page_id: 'boomcat' }),
+        rev({ id: '00000000-0000-4000-8000-000000000002', page_id: 'honored_one', created_at: '2026-09-01T11:00:00Z' }),
+        rev({ id: '00000000-0000-4000-8000-000000000003', page_id: 'honored_one', status: 'ticket_open', created_at: '2026-09-01T12:00:00Z' }),
+    ];
+
+    async function openQueue(page) {
+        await page.addInitScript((rows) => {
+            window.__queueReads = 0;
+            Object.defineProperty(window, 'supabase', {
+                configurable: true,
+                get() { return window.__lib; },
+                set(lib) {
+                    window.__lib = lib;
+                    if (!lib || !lib.createClient || lib.__patched) return;
+                    lib.__patched = true;
+                    const orig = lib.createClient.bind(lib);
+                    lib.createClient = (...args) => {
+                        const client = orig(...args);
+                        client.auth.getSession = async () => ({ data: { session: { user: { id: 'u-staff', email: 'staff@example.com' }, access_token: 'tok' } } });
+                        const thenable = (result) => {
+                            const chain = {
+                                select() { return chain; }, eq() { return chain; }, in() { return chain; }, order() { return chain; },
+                                single: async () => result, maybeSingle: async () => result,
+                                then(resolve, reject) { return Promise.resolve(result).then(resolve, reject); },
+                            };
+                            return chain;
+                        };
+                        client.from = (table) => {
+                            if (table === 'user_roles') return thenable({ data: [{ role: 'reviewer' }], error: null });
+                            if (table === 'pending_revisions') { window.__queueReads++; return thenable({ data: rows.map(r => ({ ...r })), error: null }); }
+                            return thenable({ data: [], error: null });
+                        };
+                        return client;
+                    };
+                },
+            });
+        }, ROWS);
+        await page.goto('/admin.html', { waitUntil: 'networkidle' });
+        await expect(page.locator('#queue-container .update-log-item')).toHaveCount(3, { timeout: 15000 });
+    }
+
+    const dropdown = (page, id) => page.locator(`#${id} + .manga-select-wrapper`);
+    const pick = async (page, id, label) => {
+        await dropdown(page, id).locator('.manga-select-trigger').click();
+        await dropdown(page, id).locator('.manga-option', { hasText: label }).click();
+    };
+    const shownPages = (page) => page.locator('#queue-container .admin-queue-group-title').allTextContents();
+
+    test('the page list offers the pages in the queue, and picking one shows only that page', async ({ page }) => {
+        await openQueue(page);
+
+        await dropdown(page, 'queue-filter-page').locator('.manga-select-trigger').click();
+        await expect(dropdown(page, 'queue-filter-page').locator('.manga-option'))
+            .toHaveText(['All pages', 'boomcat', 'honored one']);
+        await dropdown(page, 'queue-filter-page').locator('.manga-option', { hasText: 'honored one' }).click();
+
+        expect(await shownPages(page)).toEqual(['honored one']);
+        await expect(page.locator('#queue-container .update-log-item')).toHaveCount(2);
+        await expect(page.locator('.queue-summary')).toHaveText('2 of 3 waiting');
+        await expect(dropdown(page, 'queue-filter-page').locator('.manga-select-trigger')).toHaveText('honored one');
+
+        await pick(page, 'queue-filter-status', 'Open tickets only');
+        await expect(page.locator('#queue-container .update-log-item')).toHaveCount(1);
+        await expect(page.locator('.queue-summary')).toHaveText('1 of 3 waiting');
+    });
+
+    test('a refresh keeps the page picked, in the list and in what it shows', async ({ page }) => {
+        await openQueue(page);
+        await pick(page, 'queue-filter-page', 'boomcat');
+        expect(await shownPages(page)).toEqual(['boomcat']);
+
+        const reads = await page.evaluate(() => window.__queueReads);
+        await page.locator('.admin-refresh-btn').first().click();
+        await expect.poll(() => page.evaluate(() => window.__queueReads)).toBeGreaterThan(reads);
+
+        expect(await shownPages(page)).toEqual(['boomcat']);
+        await expect(dropdown(page, 'queue-filter-page').locator('.manga-select-trigger')).toHaveText('boomcat');
+        // One list per filter, not a second page list stacked beside the first.
+        await expect(page.locator('.queue-filters .manga-select-wrapper')).toHaveCount(2);
+        await dropdown(page, 'queue-filter-page').locator('.manga-select-trigger').click();
+        await expect(dropdown(page, 'queue-filter-page').locator('.manga-option.selected')).toHaveText('boomcat');
+    });
+});
