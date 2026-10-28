@@ -245,7 +245,8 @@ test.describe('the board', () => {
         // Derived from the manifest, not pinned: whichever character happens to
         // be first in it is the subject, so this survives the owner adding,
         // removing or renaming one.
-        const withPortrait = Object.keys(PORTRAITS)[0];
+        // A null entry is a portrait the mirror could not fetch, so not a subject.
+        const withPortrait = Object.keys(PORTRAITS).find(id => PORTRAITS[id]);
         test.skip(!withPortrait, 'no portraits in the manifest to test against');
 
         const img = page.locator(`.fs-entry[data-character="${withPortrait}"] .tier-portrait-img`);

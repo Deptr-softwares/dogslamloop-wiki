@@ -59,9 +59,14 @@ test.describe('on a phone', () => {
         // On screen, not merely class-toggled: the drawer slides in from the
         // right edge and a wrong transform would leave it parked off-screen
         // with every assertion above still passing.
-        const box = await toc.boundingBox();
-        expect(box.x).toBeLessThan(390);
-        expect(box.x + box.width).toBeGreaterThan(0);
+        //
+        // Polled until it comes to rest. The slide is a 0.3s transition, and
+        // a read in the same frame as the class change sees it still parked at
+        // x=390: that is how this failed twice under CI load on 2026-10-26.
+        await expect.poll(async () => {
+            const box = await toc.boundingBox();
+            return box.x >= 0 && box.x + box.width <= 390;
+        }, { message: 'the drawer comes to rest fully on screen' }).toBe(true);
     });
 
     test('one drawer at a time, and the backdrop puts it away', async ({ page }) => {

@@ -19,20 +19,28 @@ const fs = require('fs');
 const path = require('path');
 
 // Read from js/site_meta.js so the expectations follow the roster rather than
-// a copy of it. Same technique as the tab vocabulary spec.
-const CHARACTER_COLORS = (() => {
+// a copy of it. Same technique as the tab vocabulary spec. The stubs are for
+// what the file does at load (the frame colours read CSS variables).
+const site = (() => {
   const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'site_meta.js'), 'utf8');
-  const start = src.indexOf('window.CHARACTER_COLORS');
-  const body = src.slice(src.indexOf('{', start), src.indexOf('};', start) + 1);
-  return JSON.parse(body.replace(/,(\s*})/, '$1'));
+  const w = {};
+  new Function('window', 'document', 'getComputedStyle', src)(
+    w, { addEventListener() {}, documentElement: {} }, () => ({ getPropertyValue: () => '' }));
+  return w;
 })();
 
-const lightnessOf = (hsl) => parseFloat(/hsl\(\s*[\d.]+\s*,\s*[\d.]+%\s*,\s*([\d.]+)%/.exec(hsl)[1]);
+// Through the site's own parser. This was an hsl()-only regex that threw on
+// anything else at load, so one hex colour from owner tools would have failed
+// the whole suite, and with it every regeneration run.
+const lightnessOf = (colour) => site.parseCharacterColor(colour).l;
 
 // One from each side of the 50% line, chosen from the real dictionary rather
-// than named here, so a colour change picks new subjects automatically.
-const DARKEST = Object.entries(CHARACTER_COLORS).sort((a, b) => lightnessOf(a[1]) - lightnessOf(b[1]))[0];
-const LIGHTEST = Object.entries(CHARACTER_COLORS).sort((a, b) => lightnessOf(b[1]) - lightnessOf(a[1]))[0];
+// than named here, so a colour change picks new subjects automatically. A
+// colour the site cannot read is left out: it themes nothing, so it has no
+// side of the line (character-colors.spec.js checks the dictionary itself).
+const RATED = Object.entries(site.CHARACTER_COLORS).filter(([, colour]) => site.parseCharacterColor(colour));
+const DARKEST = [...RATED].sort((a, b) => lightnessOf(a[1]) - lightnessOf(b[1]))[0];
+const LIGHTEST = [...RATED].sort((a, b) => lightnessOf(b[1]) - lightnessOf(a[1]))[0];
 
 // Each character's page, from the roster the sidebar reads. This was a typed
 // list of eight slugs, and it went stale the night a new character became the

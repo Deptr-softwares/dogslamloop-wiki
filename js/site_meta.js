@@ -168,6 +168,37 @@ async function loadSiteMetadata() {
 }
 
 /**
+ * A CHARACTER COLOUR AS HUE, SATURATION AND LIGHTNESS
+ *
+ * Owner tools take a page colour as hsl() or hex (owner.html's COLOUR field),
+ * so both are read here, once, for everything that needs the parts. Until
+ * 2026-10-29 only hsl() was read: a hex page got no tint and the wrong ink.
+ *
+ * Returns { h, s, l } with s and l in percent, or null for anything else.
+ */
+window.parseCharacterColor = function(color) {
+    const text = String(color == null ? '' : color).trim();
+    const hslMatch = text.match(/hsl\((\d+),\s*([\d.]+)%,\s*([\d.]+)%\)/);
+    if (hslMatch) return { h: Number(hslMatch[1]), s: parseFloat(hslMatch[2]), l: parseFloat(hslMatch[3]) };
+
+    const hexMatch = text.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (!hexMatch) return null;
+    const digits = hexMatch[1].length === 3 ? hexMatch[1].replace(/./g, d => d + d) : hexMatch[1];
+    const [r, g, b] = [0, 2, 4].map(i => parseInt(digits.slice(i, i + 2), 16) / 255);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    const chroma = max - min;
+    if (chroma === 0) return { h: 0, s: 0, l: l * 100 };
+
+    const s = chroma / (1 - Math.abs(2 * l - 1));
+    const sector = max === r ? ((g - b) / chroma + 6) % 6
+        : max === g ? (b - r) / chroma + 2
+        : (r - g) / chroma + 4;
+    return { h: Math.round(sector * 60) % 360, s: s * 100, l: l * 100 };
+};
+
+/**
  * IS THIS CHARACTER COLOUR A DARK ONE?
  *
  * The <50% lightness test was written out three times before this existed -
@@ -180,8 +211,8 @@ async function loadSiteMetadata() {
  * outline rather than an outline applied on a guess.
  */
 window.isDarkCharacterColor = function(color) {
-    const hslMatch = String(color == null ? '' : color).match(/hsl\((\d+),\s*([\d.]+)%,\s*([\d.]+)%\)/);
-    return hslMatch ? parseFloat(hslMatch[3]) < 50 : false;
+    const parts = window.parseCharacterColor(color);
+    return parts ? parts.l < 50 : false;
 };
 
 /**
@@ -199,12 +230,11 @@ window.applyCharacterTheme = function() {
         document.documentElement.style.setProperty('--accent-blue', charColor);
         
         // 2. The Universal Tint Engine
-        const hslMatch = charColor.match(/hsl\((\d+),\s*([\d.]+)%,\s*([\d.]+)%\)/);
-        if (hslMatch) {
-            const h = hslMatch[1];
-            const s = parseFloat(hslMatch[2]);
-            const l = parseFloat(hslMatch[3]); 
-            
+        const parts = window.parseCharacterColor(charColor);
+        if (parts) {
+            const h = parts.h;
+            const s = parts.s;
+
             const themeSat = s > 0 ? 25 : 0; 
             const bgSat = s > 0 ? 15 : 0;
 
