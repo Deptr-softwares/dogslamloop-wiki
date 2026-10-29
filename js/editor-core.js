@@ -752,7 +752,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const pageId = pageIdRaw.toLowerCase();
-    
+
+    // Told on the way in as well as at Submit (owner, 2026-10-29): someone
+    // below the page's required role used to find out only after writing the
+    // whole edit. Signed out, they are asked to sign in at Submit instead, and
+    // the Playground submits nothing.
+    if (window.currentGlobalUserId && !urlParams.has('playground')) {
+        if (!(await window.warnIfBelowPageRole(pageId))) {
+            window.cancelEditor();
+            return;
+        }
+    }
+
     if (pageType === 'system' || pageType === 'tierlist') {
         document.getElementById('tab-m1s')?.remove();
         document.getElementById('tab-skills')?.remove();
@@ -1652,6 +1663,28 @@ window.customConfirm = function(message, confirmText = "DELETE", isDanger = true
         btnCancel.addEventListener('click', onCancel);
         btnConfirm.addEventListener('click', onConfirm);
     });
+};
+
+// True to carry on into the editor. The two reads and roleMeets are the submit
+// guard's own, so the warning and the refusal agree. A failed read carries on
+// without a warning on purpose: the submit guard reads again and says why.
+window.warnIfBelowPageRole = async function(pageId) {
+    const [{ data: permissionRow }, { data: roleData }] = await Promise.all([
+        window.supabaseClient.from('page_permissions').select('required_role').eq('page_id', pageId).maybeSingle(),
+        window.supabaseClient.from('user_roles').select('role').eq('user_id', window.currentGlobalUserId).maybeSingle(),
+    ]);
+    if (!permissionRow) return true;
+
+    const requiredRole = (permissionRow.required_role || 'trusted_editor').trim().toLowerCase();
+    if (window.roleMeets(roleData?.role, requiredRole)) return true;
+
+    const ROLE_NAMES = { trusted_editor: 'Trusted Editor', reviewer: 'Reviewer', admin: 'Administrator' };
+    const restriction = requiredRole === 'owner'
+        ? 'This page is restricted to the site owner.'
+        : `This page is restricted to the ${ROLE_NAMES[requiredRole] || requiredRole} role and above.`;
+    return window.customConfirm(
+        `You do not have high enough clearance to submit an edit for this page. ${restriction} Do you still wish to edit the page?`,
+        'EDIT ANYWAY', false, 'GO BACK');
 };
 
 // --- CUSTOM TAB MANAGEMENT + MOVE ID GATEKEEPER + SUB-NAVIGATION (overview/matchups/counterplay/moves) + PROFILE/PLAYSTYLE: moved to js/editor-tabs.js ---
