@@ -38,6 +38,69 @@ function showToolContents() {
 }
 
 /**
+ * A character page's content: its tab strip, moves, states and descriptions.
+ *
+ * Its own function so history.html draws a past version of a page with the
+ * same steps the live page uses (js/history.js), rather than a copy of them
+ * that would drift. The live page fires these without waiting, as it always
+ * did; the promise is for a caller that needs to know when they are done.
+ */
+window.bootCharacterContent = function (route) {
+    const { pageId } = route;
+    const pending = [];
+
+    // 2. Inner tab navigation
+    if (window.setupTabs) {
+        // From the vocabulary (js/character_tabs.js), which is also what
+        // page_router.js built the buttons from - so every button it drew
+        // is registered here and none is left inert.
+        //
+        // This was a hardcoded list, and it is how the Combos and Starter
+        // Guide tabs shipped unclickable: the buttons and panels existed,
+        // setupTabs never heard about them, so clicking did nothing at all.
+        // It was written as [{id:'overview'}, …] rather than ['overview', …],
+        // which is why the guard scanning for restated tab lists walked
+        // straight past it.
+        //
+        // includeOptional: every button page_router.js DREW gets bound,
+        // including the optional ones it drew hidden. Binding only the
+        // enabled ones would be binding against a flag that has not been
+        // fetched yet - so a Techs button un-hidden a moment later by
+        // applyOptionalTabVisibility would sit there doing nothing when
+        // clicked, which is exactly how the Combos and Starter Guide tabs
+        // shipped inert. setupTabs is idempotent and additive, so binding a
+        // button that stays hidden costs nothing.
+        const tabIds = route.tabs
+            ? route.tabs.map(t => t.id)
+            : window.getCharacterTabIds({ includeOptional: true });
+        window.setupTabs('nav', 'tab', tabIds, 'major', { address: true });
+    }
+
+    // 3. Fire the data fetchers concurrently - no blocking await, matching
+    //    the original character-page behaviour.
+    if (typeof window.loadMoveSection === 'function') {
+        pending.push(window.loadMoveSection(pageId, 'skills'));
+        pending.push(window.loadMoveSection(pageId, 'm1s'));
+        pending.push(window.loadMoveSection(pageId, 'specials'));
+    }
+
+    // Alongside them, not before: it decides whether this character has a
+    // mode toggle or an Ultimate tab, and both are additions to a page
+    // that renders perfectly well without them. Blocking the moveset on
+    // that question would make every character page wait for an answer
+    // that is "no" for all 22 of them today.
+    if (typeof window.initCharacterModes === 'function') {
+        pending.push(window.initCharacterModes(pageId));
+    }
+
+    if (typeof window.loadPageDescriptions === 'function') {
+        pending.push(window.loadPageDescriptions(pageId, 'character'));
+    }
+
+    return Promise.all(pending);
+};
+
+/**
  * The boot sequence, as a function.
  *
  * Callable rather than only DOMContentLoaded-driven because js/page_rescue.js
@@ -57,53 +120,7 @@ window.runPageBoot = async function (route) {
         if (window.initAuthDock) window.initAuthDock();
         if (window.initTabEditorButtons) window.initTabEditorButtons(pageId, 'character');
 
-        // 2. Inner tab navigation
-        if (window.setupTabs) {
-            // From the vocabulary (js/character_tabs.js), which is also what
-            // page_router.js built the buttons from - so every button it drew
-            // is registered here and none is left inert.
-            //
-            // This was a hardcoded list, and it is how the Combos and Starter
-            // Guide tabs shipped unclickable: the buttons and panels existed,
-            // setupTabs never heard about them, so clicking did nothing at all.
-            // It was written as [{id:'overview'}, …] rather than ['overview', …],
-            // which is why the guard scanning for restated tab lists walked
-            // straight past it.
-            //
-            // includeOptional: every button page_router.js DREW gets bound,
-            // including the optional ones it drew hidden. Binding only the
-            // enabled ones would be binding against a flag that has not been
-            // fetched yet - so a Techs button un-hidden a moment later by
-            // applyOptionalTabVisibility would sit there doing nothing when
-            // clicked, which is exactly how the Combos and Starter Guide tabs
-            // shipped inert. setupTabs is idempotent and additive, so binding a
-            // button that stays hidden costs nothing.
-            const tabIds = route.tabs
-                ? route.tabs.map(t => t.id)
-                : window.getCharacterTabIds({ includeOptional: true });
-            window.setupTabs('nav', 'tab', tabIds, 'major', { address: true });
-        }
-
-        // 3. Fire the data fetchers concurrently - no blocking await, matching
-        //    the original character-page behaviour.
-        if (typeof window.loadMoveSection === 'function') {
-            window.loadMoveSection(pageId, 'skills');
-            window.loadMoveSection(pageId, 'm1s');
-            window.loadMoveSection(pageId, 'specials');
-        }
-
-        // Alongside them, not before: it decides whether this character has a
-        // mode toggle or an Ultimate tab, and both are additions to a page
-        // that renders perfectly well without them. Blocking the moveset on
-        // that question would make every character page wait for an answer
-        // that is "no" for all 22 of them today.
-        if (typeof window.initCharacterModes === 'function') {
-            window.initCharacterModes(pageId);
-        }
-
-        if (typeof window.loadPageDescriptions === 'function') {
-            window.loadPageDescriptions(pageId, 'character');
-        }
+        window.bootCharacterContent(route);
 
         if (typeof window.loadPageAlerts === 'function') {
             window.loadPageAlerts(pageId);

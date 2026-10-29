@@ -136,6 +136,7 @@ const ANON_BY_DESIGN = {
     get_public_profile: 'public profile read; privacy is applied to the content, not the caller',
     get_public_profiles: 'the batched form of the same public read',
     get_user_expert_pages: 'public expertise list on a profile',
+    get_page_after_revision: 'history.html is public; it returns page content that was live, only for an approved revision, and NULL otherwise',
 };
 
 test('the parser resolves this schema at all', () => {
