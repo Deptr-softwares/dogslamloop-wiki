@@ -136,20 +136,22 @@ test('a revision target_key cannot break out of the history tab handler', async 
     await page.goto('/history.html?page=boomcat', { waitUntil: 'networkidle' });
     await page.waitForTimeout(1000);
 
-    // CLICKING IS THE TEST. The first version of this asserted only that
-    // nothing had fired after load, and passed - while the button had been
-    // rendered carrying
+    // Since 2026-10-29 History draws the live page's own tab strip
+    // (page_router.js), from the vocabulary alone, so the crafted key makes no
+    // tab at all. The first version of this test asserted only that nothing
+    // fired after load, and passed while the button carried
     //   onclick="window.switchHistoryTab('');window.__xssFired=true;//')"
-    // The injection had fully succeeded; the payload was simply waiting for
-    // the click that any reader opening that tab would give it. A handler that
-    // has not run yet is not a handler that is safe.
-    const tab = page.locator('nav button[id^="nav-"]').first();
-    await expect(tab, 'the crafted tab rendered, so there is something to click').toHaveCount(1);
-
-    const inlineHandler = await tab.getAttribute('onclick');
-    expect(inlineHandler, 'the tab must not carry an inline handler at all').toBeNull();
-
-    await tab.click();
+    // waiting for a click. So it checks every button the page drew: each is a
+    // vocabulary tab, none has an inline handler, and clicking them runs nothing.
+    const drawn = await page.locator('nav button[id^="nav-"]').evaluateAll(buttons =>
+        buttons.map(b => ({ id: b.id.slice(4), inline: b.getAttribute('onclick') })));
+    const vocabulary = await page.evaluate(() => window.getCharacterTabIds({ includeOptional: true }).concat('ultimateAtk'));
+    expect(drawn.length, 'the page drew its tab strip').toBeGreaterThan(0);
+    for (const button of drawn) {
+        expect(vocabulary, `${button.id} is a real tab, not the target_key`).toContain(button.id);
+        expect(button.inline, `${button.id} carries no inline handler`).toBeNull();
+    }
+    for (const button of await page.locator('nav button[id^="nav-"]:visible').all()) await button.click();
     await page.waitForTimeout(400);
 
     expect(await fired(page), 'the target_key must not become executable').toBe(false);
