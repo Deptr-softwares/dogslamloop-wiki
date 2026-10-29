@@ -75,6 +75,7 @@
         "20261019000000_open_submission_scopes.sql": "340cc482670d582d81b407c1499bb9668e49fbfbb310b9dbc1f97b3a3ff6494e",
         "20261023000000_user_badges.sql": "7de1e68a5fc5d94eb7a5b03b6066322f1569332b2a1fa0d4aedc8a08a309a2c2",
         "20261029000000_pending_revision_page_id_format.sql": "92467382a034e44111c9e7aa56f017ae906e869bde8b996603070c313dee44a7",
+        "20261029000001_history_whole_page.sql": "758dd761654fc27b104e8c1d7d53d7a2bfd54735cd605fc5f2ee620322f1576c",
         "20261029000002_revision_insert_must_be_pending.sql": "d38233acb3f840d4ab56e62792d4fe9b708f1bf74802d94f21167a08135791a2"
     }
 }
