@@ -18,7 +18,7 @@ const FAKE_REVISIONS = Array.from({ length: 20 }, (_, i) => ({
 }));
 
 test('recent-changes.html: renders approved revisions across multiple pages for an anonymous visitor', async ({ page }) => {
-  await page.route('**/rest/v1/pending_revisions**', route => {
+  await page.route('**/rest/v1/approved_revisions**', route => {
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FAKE_REVISIONS) });
   });
 
@@ -32,7 +32,7 @@ test('recent-changes.html: renders approved revisions across multiple pages for 
 });
 
 test('recent-changes.html: escapes author/changelog content (no raw HTML injection from submitted data)', async ({ page }) => {
-  await page.route('**/rest/v1/pending_revisions**', route => {
+  await page.route('**/rest/v1/approved_revisions**', route => {
     route.fulfill({
       status: 200, contentType: 'application/json',
       body: JSON.stringify([{
@@ -63,7 +63,7 @@ test('recent-changes.html: escapes author/changelog content (no raw HTML injecti
 
 test('recent-changes.html: pagination - OLDER fetches the next page, NEWER is disabled at the start', async ({ page }) => {
   let lastRangeHeader = null;
-  await page.route('**/rest/v1/pending_revisions**', route => {
+  await page.route('**/rest/v1/approved_revisions**', route => {
     lastRangeHeader = route.request().headers()['range'] || null;
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(FAKE_REVISIONS) });
   });

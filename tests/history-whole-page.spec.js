@@ -66,7 +66,7 @@ async function openHistory(page, { revisions, snapshot = null, query = '' }) {
             return chain;
           };
           client.from = (table) => {
-            if (table === 'pending_revisions') return thenable({ data: revisions.map(r => ({ ...r })), error: null });
+            if (table === 'approved_revisions') return thenable({ data: revisions.map(r => ({ ...r })), error: null });
             if (table === 'page_data') return thenable({ data: JSON.parse(JSON.stringify(live)), error: null });
             return thenable({ data: [], error: null });
           };
