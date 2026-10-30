@@ -120,7 +120,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         .eq('page_id', pageId)
         .order('created_at', { ascending: false });
 
-    if (error || !revs || revs.length === 0) {
+    // A refused read is not an empty history. Reading it as one hid History
+    // failing for every logged-out reader in 2026-08 (20260803000000).
+    if (error) {
+        document.getElementById('history-meta-card').innerHTML = `<div class="empty-tab-msg">Failed to load this page's history: ${escapeHtml(error.message)}</div>`;
+        return;
+    }
+
+    if (!revs || revs.length === 0) {
         document.getElementById('history-meta-card').innerHTML = `<div class="empty-tab-msg" style="border: 1px dashed #333; padding: 3rem;">No history recorded for this page yet.</div>`;
         return;
     }

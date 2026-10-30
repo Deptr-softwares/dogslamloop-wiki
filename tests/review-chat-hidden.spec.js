@@ -50,6 +50,20 @@ test('History reads approved submissions from the view', async ({ page }) => {
   await expect(page.locator('#history-meta-card')).toContainText('ViewReviewer');
 });
 
+// A refused read used to read as an empty history. That hid History failing
+// for every logged-out reader in 2026-08 (20260803000000), and it would hide
+// this change failing too, so the failure is shown with its message.
+test('History says when it could not read the history', async ({ page }) => {
+  await page.route('**/rest/v1/approved_revisions**', route => route.fulfill({
+    status: 401, contentType: 'application/json',
+    body: JSON.stringify({ code: '42501', details: null, hint: null, message: 'permission denied for view approved_revisions' }),
+  }));
+  await page.goto('/history.html?page=boomcat', { waitUntil: 'domcontentloaded' });
+  const card = page.locator('#history-meta-card');
+  await expect(card).toContainText('permission denied for view approved_revisions', { timeout: 30000 });
+  await expect(card).not.toContainText('No history recorded');
+});
+
 test('Recent Changes reads approved submissions from the view', async ({ page }) => {
   await tableClosedViewOpen(page);
   await page.goto('/recent-changes.html', { waitUntil: 'domcontentloaded' });
