@@ -36,7 +36,7 @@ const FAKE_REVISION = {
 };
 
 test('history.html renders a tier-list revision natively, not the character fallback', async ({ page }) => {
-  await page.route('**/rest/v1/pending_revisions**', route => {
+  await page.route('**/rest/v1/approved_revisions**', route => {
     route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([FAKE_REVISION]) });
   });
 

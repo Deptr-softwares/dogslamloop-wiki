@@ -62,7 +62,7 @@ const revisionWith = (tierName, note) => ({
 });
 
 async function renderTierList(page, revision) {
-    await page.route('**/rest/v1/pending_revisions**', route =>
+    await page.route('**/rest/v1/approved_revisions**', route =>
         route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([revision]) }));
     await page.goto('/history.html?page=tierlist', { waitUntil: 'networkidle' });
     await page.waitForTimeout(800);
@@ -111,7 +111,7 @@ test('a revision target_key cannot break out of the history tab handler', async 
     // inside an attribute.
     const errors = watch(page);
 
-    await page.route('**/rest/v1/pending_revisions**', route => route.fulfill({
+    await page.route('**/rest/v1/approved_revisions**', route => route.fulfill({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify([{

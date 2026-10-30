@@ -169,9 +169,8 @@ window.buildRecentCharacterEdits = async function(containerId, limit = 6) {
             liveCharacters(),
             window.fetchArchivedPages ? window.fetchArchivedPages() : {},
             window.supabaseClient
-                .from('pending_revisions')
+                .from('approved_revisions')
                 .select('page_id, author_name, created_at')
-                .eq('status', 'approved')
                 .eq('page_type', 'character')
                 .order('created_at', { ascending: false })
                 .limit(40),
@@ -277,7 +276,7 @@ window.buildWikiStats = async function(containerId) {
             window.supabaseClient.from('site_pages').select('page_id', { count: 'exact', head: true }).eq('status', 'live'),
             // Names rather than a count: the same query answers "how many
             // edits" and "how many people", and head:true cannot do the second.
-            window.supabaseClient.from('pending_revisions').select('author_name').eq('status', 'approved'),
+            window.supabaseClient.from('approved_revisions').select('author_name'),
         ]);
 
         if (pages.error) throw pages.error;

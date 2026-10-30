@@ -11,8 +11,9 @@
  * WHAT IT IS, AND WHAT IT IS NOT
  *
  * This is a READER of the same data admin.html reviews, on a page any visitor
- * can open. It queries pending_revisions filtered to status='approved', so RLS
- * is what keeps unapproved work out of it - not this file.
+ * can open. It reads approved_revisions, a view of approved submissions without
+ * their review chat or votes (20261030000000), so the database is what keeps
+ * unapproved work and the review discussion out of it, not this file.
  *
  * HOW IT REACHES THE REST OF THE SITE
  *
@@ -114,10 +115,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 2. FETCH ARRAY OF METADATA (Fast network request)
     const { data: revs, error } = await window.supabaseClient
-        .from('pending_revisions')
+        .from('approved_revisions')
         .select('*')
         .eq('page_id', pageId)
-        .eq('status', 'approved')
         .order('created_at', { ascending: false });
 
     if (error || !revs || revs.length === 0) {
