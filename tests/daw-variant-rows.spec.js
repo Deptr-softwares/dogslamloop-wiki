@@ -8,7 +8,8 @@
 // then scrolled sideways: its left edge was cut off ("ONG MOVE"), the tabs
 // squashed onto two lines each, and + ADD VARIANT sat off to the right. The
 // owner picked wrapping over scrolling inside the row, so every variant and
-// + ADD VARIANT stay in view.
+// + ADD VARIANT stay in view. (Micro Variants since 2026-10-29: the longer
+// names are a harder case for the same rows.)
 //
 // Scoped to these rows: .daw-variant-tabs is also the move row, the system
 // section row, the Config tabs and the tier editor's tabs, which scroll.
@@ -94,7 +95,7 @@ test('new variants wrap onto new lines, and the workspace never scrolls sideways
   for (let i = 0; i < 6; i++) {
     await page.locator('[data-daw-add-variant]').first().click();
   }
-  await expect(page.locator('.daw-variant-wrapper .daw-tab-btn', { hasText: 'New Variant' })).toHaveCount(6);
+  await expect(page.locator('.daw-variant-wrapper .daw-tab-btn', { hasText: 'New Micro Variant' })).toHaveCount(6);
   await expect(page.locator('.daw-branch-actions-row button')).toHaveCount(3);
 
   const g = await geometry(page);
@@ -108,7 +109,7 @@ test('new variants wrap onto new lines, and the workspace never scrolls sideways
   const tabTops = new Set(g.buttons.filter(b => /variant/i.test(b.text) && !/delete|create/i.test(b.text)).map(b => b.top));
   expect(tabTops.size, 'the variant tabs wrapped').toBeGreaterThan(1);
 
-  // And + ADD VARIANT is still a button you can press.
+  // And + ADD MICRO VARIANT is still a button you can press.
   await page.locator('[data-daw-add-variant]').first().click();
-  await expect(page.locator('.daw-variant-wrapper .daw-tab-btn', { hasText: 'New Variant' })).toHaveCount(7);
+  await expect(page.locator('.daw-variant-wrapper .daw-tab-btn', { hasText: 'New Micro Variant' })).toHaveCount(7);
 });
