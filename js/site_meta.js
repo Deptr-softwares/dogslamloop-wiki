@@ -87,7 +87,11 @@ window.CHARACTER_ALIASES = {
     "Aspiring Mangaka":  ["Charles Bernard", "Tatsuki Fujimoto", "Mangaka", "Charles"],
     "Lucky Coward":      ["Haruta Shigemo", "Shigemo Haruta", "Haruta", "Kind Scholar"],
     "Crow Charmer":      ["Mei Mei"],
-    "Black Death":       ["Kurourushi", "Kuro", "I love the taste of iron"]
+    "Black Death":       ["Kurourushi", "Kuro", "I love the taste of iron"],
+    // The names the game used until 2026-10-31, kept so older posts and
+    // Discord messages that say them still link (owner's call).
+    "Hired Hunter":      ["Hired Killer"],
+    "Sky Bender":        ["Sky Assassin"]
     // Boomcat has none on purpose - it is the owner's joke character.
 };
 
