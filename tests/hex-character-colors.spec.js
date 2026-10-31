@@ -4,7 +4,7 @@
 // hsl(0, 100%, 75%)"), but until 2026-10-29 only hsl() was ever READ: a hex
 // colour gave its page no tint and the wrong ink, and crashed
 // combo-block.spec.js at load, which would have stopped every regeneration run.
-// Hired Killer was first saved as #323232 (2026-10-24), and the owner changed
+// Hired Hunter was first saved as #323232 (2026-10-24), and the owner changed
 // it to hsl by hand to get the site publishing again.
 //
 // CAN: that the parser reads both forms the field offers and nothing else, and

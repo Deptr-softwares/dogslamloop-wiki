@@ -18,6 +18,9 @@
  * an archived page is invisible to this script's primary input by design. That
  * gap is what let an archived page keep serving its full original content.
  *
+ * Since 2026-10-31 it also reads the stubs it wrote before (scanMovedStubs):
+ * a page whose address changed in the registry gets a forward at the old one.
+ *
  * Usage:
  *   node scripts/generate-pages.js            # report only (same as --check)
  *   node scripts/generate-pages.js --check    # exit 1 if any file is stale
@@ -396,6 +399,67 @@ function tombstoneStub({ name, hubPath, hubLabel }) {
 `;
 }
 
+/**
+ * The stub a page serves at an address it has moved away from.
+ *
+ * The registry can move a page's folder (Sky Assassin became Sky Bender,
+ * 2026-10-31), and links to the old address already exist in Discord messages,
+ * in search results and on other pages. Left alone, the old stub went on
+ * serving the page under its old title, and nothing restamped it, so the next
+ * change to js/ failed asset-stamping.spec and stopped the regeneration.
+ *
+ * It names the page it belongs to (dsl-moved-page), the way the old stub's
+ * PAGE_ROUTE did, so a second move points every older address at the newest.
+ *
+ * location.replace keeps the link's #section and leaves the old address out of
+ * the back button. The meta refresh is for a reader without JavaScript, and
+ * drops the #section.
+ */
+function movedStub({ pageId, name, docTitle, target }) {
+    const href = `../../${target}`;
+    // The path passed PAGE_PATH_RE, so it holds no "/" a closing </script>
+    // would need; escaping "<" as well costs nothing.
+    const script = JSON.stringify(href).replace(/</g, '\\u003c');
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    ${MARKER}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${attr(docTitle)}</title>
+    <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
+
+    <meta name="robots" content="noindex, follow">
+    <meta name="dsl-moved-page" content="${attr(pageId)}">
+    <link rel="canonical" href="${attr(`${SITE_ORIGIN}/${target}`)}">
+    <script>location.replace(${script} + location.search + location.hash);</script>
+    <meta http-equiv="refresh" content="0; url=${attr(href)}">
+
+    <link rel="stylesheet" href="../../style/Common.css">
+    <link rel="stylesheet" href="../../style/ColorCoding.css">
+    <link rel="stylesheet" href="../../style/Buttons.css">
+    <link rel="stylesheet" href="../../style/Layout.css">
+</head>
+<body class="site-body p-0">
+
+    <main class="main-content-area space-y-6">
+        <header class="home-main-header">
+            <h1 class="home-main-title">Page moved</h1>
+        </header>
+
+        <section class="wiki-section">
+            <p class="strategy-paragraph m-0" style="color: var(--text-primary);">
+                <strong>${attr(name)}</strong> has a new address:
+                <a href="${attr(href)}">${attr(`${SITE_ORIGIN}/${target}`)}</a>
+            </p>
+        </section>
+    </main>
+
+</body>
+</html>
+`;
+}
+
 // A page's <title> suffix differs by type, matching what the hand-authored
 // files used: characters said "| Dogslamloop", system pages said
 // "| Dogslamloop Wiki". Preserved rather than unified, so this script's output
@@ -434,10 +498,38 @@ function scanToolAssets(root = ROOT) {
     };
 }
 
-function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set(), toolStyles = new Set()) {
+// The other disk half: every stub this script wrote, by the page it names.
+// Read from the stubs themselves rather than a list somebody keeps, because the
+// old stub of a moved page is the one record of where the page used to live.
+// A forward names its page in dsl-moved-page, so it is found again; a tombstone
+// names none, and a file without the marker was never this script's.
+function scanMovedStubs(root = ROOT) {
+    const found = {};
+    for (const dir of PAGE_DIRECTORIES) {
+        const base = path.join(root, dir);
+        if (!fs.existsSync(base)) continue;
+        for (const entry of fs.readdirSync(base, { withFileTypes: true })) {
+            if (!entry.isDirectory()) continue;
+            const file = path.join(base, entry.name, 'index.html');
+            if (!fs.existsSync(file)) continue;
+            const html = fs.readFileSync(file, 'utf8');
+            if (!html.includes(MARKER)) continue;
+            const named = /<meta name="dsl-moved-page" content="([^"]+)">/.exec(html)
+                || /window\.PAGE_ROUTE = \{ pageId: "([^"]+)"/.exec(html);
+            if (named) found[`${dir}/${entry.name}/index.html`] = named[1];
+        }
+    }
+    return found;
+}
+
+// moved: relPath -> pageId, from scanMovedStubs. Any of those paths that no
+// live or archived page claims, whose page is live somewhere else, gets a
+// forward there.
+function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set(), toolStyles = new Set(), moved = {}) {
     const pages = [];
     const problems = [];
     const livePaths = new Set();
+    const liveById = new Map();
 
     for (const [category, entries] of Object.entries(nav)) {
         if (!Array.isArray(entries)) continue;
@@ -503,6 +595,7 @@ function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set(), 
 
             pages.push({ relPath, html, pageId: cms.pageId, pageType: cms.pageType });
             livePaths.add(relPath);
+            liveById.set(cms.pageId, { relPath, name: entry.name, pageType: cms.pageType });
         }
     }
 
@@ -544,6 +637,22 @@ function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set(), 
         });
     }
 
+    const claimed = new Set(pages.map(p => p.relPath));
+    for (const [relPath, pageId] of Object.entries(moved)) {
+        if (claimed.has(relPath) || NEVER_TOUCH.has(relPath) || !PAGE_PATH_RE.test(relPath)) continue;
+        // A page deleted outright, or archived, has nowhere to forward to. Its
+        // old stub is left as it is, which is what happened before this.
+        const live = liveById.get(pageId);
+        if (!live) continue;
+        pages.push({
+            relPath,
+            html: movedStub({ pageId, name: live.name, docTitle: docTitleFor(live.name, live.pageType), target: live.relPath }),
+            pageId,
+            pageType: live.pageType,
+            moved: true,
+        });
+    }
+
     return { pages, problems };
 }
 
@@ -573,7 +682,7 @@ function main() {
 
     const { toolScripts, toolStyles } = scanToolAssets();
 
-    const { pages, problems } = buildPages(nav, previews, archived, toolScripts, toolStyles);
+    const { pages, problems } = buildPages(nav, previews, archived, toolScripts, toolStyles, scanMovedStubs());
 
     if (problems.length > 0) {
         console.error('generate-pages FAILED - refusing to write:\n');
@@ -639,4 +748,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { buildPages, scanToolAssets, tombstoneStub, MARKER, NEVER_TOUCH, PAGE_DIRECTORIES };
+module.exports = { buildPages, scanToolAssets, scanMovedStubs, tombstoneStub, MARKER, NEVER_TOUCH, PAGE_DIRECTORIES };

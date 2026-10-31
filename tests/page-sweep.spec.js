@@ -46,7 +46,7 @@ const SITE_ASSET = /\.(js|css|json|woff2?|ico)(\?|$)/i;
 // Treating it as a fault made this spec something the owner could turn red by
 // adding a character, which is a production outage rather than a failing test:
 // the regeneration job commits only after this suite passes. It happened on
-// 2026-09-05, hours after this file was written, when "Sky Assassin" was
+// 2026-09-05, hours after this file was written, when "Sky Bender" was
 // created without its icon - and it took smoke.spec.js and roster-icon.spec.js
 // down with it.
 //

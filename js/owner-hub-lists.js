@@ -40,6 +40,8 @@ async function loadHubLists() {
     const { data, error } = await window.supabaseClient
         .from('site_meta').select('hubs').limit(1).maybeSingle();
 
+    // Gone if owner.js sent the visitor to ACCESS DENIED during the read.
+    if (!results.isConnected) return;
     if (error) { results.innerHTML = contentNotDeployedMessage(error, 'Dashboard steps'); return; }
 
     hubListWorking = (data && data.hubs) || {};
