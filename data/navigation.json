@@ -211,8 +211,8 @@
       }
     },
     {
-      "id": "Hired-Killer",
-      "name": "Hired Killer",
+      "id": "Hired-Hunter",
+      "name": "Hired Hunter",
       "url": "characters/Hired_killer/index.html",
       "isWip": true,
       "isEA": true,
@@ -314,8 +314,8 @@
       }
     },
     {
-      "id": "Sky-Assassin",
-      "name": "Sky Assassin",
+      "id": "Sky-Bender",
+      "name": "Sky Bender",
       "url": "characters/Sky_assassin/index.html",
       "isWip": true,
       "isBaseOnly": true,
