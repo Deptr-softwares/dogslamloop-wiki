@@ -32,6 +32,9 @@ async function loadSiteMeta() {
     const { data, error } = await window.supabaseClient
         .from('site_meta').select('*').limit(1).maybeSingle();
 
+    // owner.js may have replaced the page with ACCESS DENIED while this was
+    // reading. The fields are gone then, and there is nothing to fill.
+    if (!results.isConnected) return;
     if (error) { results.innerHTML = contentNotDeployedMessage(error, 'Site metadata'); return; }
     if (!data) { results.innerHTML = '<p class="admin-error-text">No site_meta row exists yet.</p>'; return; }
 
