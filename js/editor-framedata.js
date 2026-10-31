@@ -138,7 +138,7 @@ function initDawEditor(containerId, moveData) {
             });
 
             let parentPathStr = JSON.stringify(activePath.slice(0, depth));
-            variantTabsHtml += `<button class="daw-tab-btn daw-tab-btn-add-variant" data-daw-add-variant="${esc(parentPathStr)}">+ ADD VARIANT</button></div>`;
+            variantTabsHtml += `<button class="daw-tab-btn daw-tab-btn-add-variant" data-daw-add-variant="${esc(parentPathStr)}">+ ADD MICRO VARIANT</button></div>`;
 
             if (activeKey && walkNode.variants[activeKey]) {
                 walkNode = walkNode.variants[activeKey];
@@ -345,11 +345,11 @@ function initDawEditor(containerId, moveData) {
                 <div class="daw-container">
                     <div class="daw-container-header-row">
                         <div class="editor-row daw-container-header-meta">
-                            <input type="text" class="editor-input daw-variant-label-inp" placeholder="Variant Label" id="daw-variant-label" value="${esc(currentObj.label || '')}">
+                            <input type="text" class="editor-input daw-variant-label-inp" placeholder="Micro Variant Label" id="daw-variant-label" value="${esc(currentObj.label || '')}">
                             <input type="number" class="editor-input daw-variant-scale-inp" placeholder="Scale" id="daw-variant-scale" value="${esc(totalScale)}">
                         </div>
                         <div class="daw-container-header-actions">
-                            <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red" title="Delete this Variant completely">✖ DELETE</button>
+                            <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red" title="Delete this Micro Variant completely">✖ DELETE</button>
                             <button onclick="window.addDawTrack()" class="btn-sys btn-sys-blue">+ Add Track</button>
                         </div>
                     </div>
@@ -362,13 +362,13 @@ function initDawEditor(containerId, moveData) {
         } else if (hasVariants) {
             dawHtml = `
                 <div class="daw-container daw-branch-empty-notice">
-                    <p class="daw-branch-title">Variant Branch</p>
+                    <p class="daw-branch-title">Micro Variant Branch</p>
 
                     <div class="daw-branch-label-row">
                         <input type="text" class="editor-input daw-branch-label-inp" placeholder="Branch Name" id="daw-variant-label" value="${esc(currentObj.label || '')}">
                     </div>
 
-                    <p class="daw-branch-hint">Select a sub-variant from the tabs above to view or edit its timeline.</p>
+                    <p class="daw-branch-hint">Select a Sub-Micro Variant from the tabs above to view or edit its timeline.</p>
                     <div class="daw-branch-actions-row">
                         <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red daw-delete-branch-btn">Delete Entire Branch</button>
                     </div>
@@ -379,14 +379,14 @@ function initDawEditor(containerId, moveData) {
                 <div class="daw-container daw-branch-empty-notice">
 
                     <div class="daw-branch-label-row">
-                        <input type="text" class="editor-input daw-branch-label-inp" placeholder="Variant Name" id="daw-variant-label" value="${esc(currentObj.label || '')}">
+                        <input type="text" class="editor-input daw-branch-label-inp" placeholder="Micro Variant Name" id="daw-variant-label" value="${esc(currentObj.label || '')}">
                     </div>
 
-                    <p class="daw-branch-hint">This variant is currently empty.</p>
+                    <p class="daw-branch-hint">This Micro Variant is currently empty.</p>
                     <div class="daw-branch-actions-row">
                         <button onclick="window.initDawLeaf()" class="btn-sys btn-sys-blue daw-narrow-btn">Initialize Timeline</button>
-                        <button onclick="window.initDawBranch()" class="btn-sys btn-sys-regular daw-narrow-btn">Create Sub-Variants</button>
-                        <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red">Delete Variant</button>
+                        <button onclick="window.initDawBranch()" class="btn-sys btn-sys-regular daw-narrow-btn">Create Sub-Micro Variants</button>
+                        <button onclick="window.deleteDawVariant()" class="btn-sys btn-sys-red">Delete Micro Variant</button>
                     </div>
                 </div>
             `;
@@ -628,7 +628,7 @@ function initDawEditor(containerId, moveData) {
         parentPathArr.forEach(k => { parentNode = parentNode.variants[k]; });
         if (!parentNode.variants) parentNode.variants = {};
         let newKey = 'var_' + Date.now();
-        parentNode.variants[newKey] = { label: "New Variant" };
+        parentNode.variants[newKey] = { label: "New Micro Variant" };
         window.setDawPath([...parentPathArr, newKey]);
     };
 
@@ -650,7 +650,7 @@ function initDawEditor(containerId, moveData) {
         let parentNode = moveData;
         for(let i=0; i<activePath.length-1; i++) { parentNode = parentNode.variants[activePath[i]]; }
         let keyToDelete = activePath[activePath.length-1];
-        if(await window.confirmDelete("Delete this variant completely?")) {
+        if(await window.confirmDelete("Delete this Micro Variant completely?")) {
             delete parentNode.variants[keyToDelete];
             activePath.pop();
             renderDaw();

@@ -44,7 +44,7 @@ const LIGHTEST = [...RATED].sort((a, b) => lightnessOf(b[1]) - lightnessOf(a[1])
 
 // Each character's page, from the roster the sidebar reads. This was a typed
 // list of eight slugs, and it went stale the night a new character became the
-// darkest (Hired Killer, 2026-10-24): every regeneration failed on it.
+// darkest (Hired Hunter, 2026-10-24): every regeneration failed on it.
 const PAGE_URL = (() => {
   const nav = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'navigation.json'), 'utf8'));
   return new Map((nav.Characters || []).map(c => [c.name, c.url]));

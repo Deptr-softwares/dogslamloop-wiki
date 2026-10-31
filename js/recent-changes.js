@@ -30,9 +30,8 @@ async function loadRecentChanges() {
     }
 
     const { data: revisions, error } = await window.supabaseClient
-        .from('pending_revisions')
+        .from('approved_revisions')
         .select('*')
-        .eq('status', 'approved')
         .order('created_at', { ascending: false })
         .range(currentOffset, currentOffset + PAGE_SIZE - 1);
 

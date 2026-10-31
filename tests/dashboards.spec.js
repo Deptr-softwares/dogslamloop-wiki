@@ -71,7 +71,7 @@ async function mockDashboards(page, { completeness = COMPLETENESS, revisions = R
                                 };
                                 return chain;
                             }
-                            if (table === 'pending_revisions') {
+                            if (table === 'approved_revisions') {
                                 const chain = {
                                     select() { return chain; },
                                     eq() { return chain; },

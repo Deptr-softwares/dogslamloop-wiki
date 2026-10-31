@@ -61,7 +61,7 @@ test('every rendered card is in one of the two designed states', async ({ page }
   // avoided the obvious trap - it counted nothing and named nobody - and
   // walked into a subtler one.
   //
-  // The owner created "Sky Assassin" on 2026-09-05 and had not dropped the
+  // The owner created "Sky Bender" on 2026-09-05 and had not dropped the
   // file in yet. That is an ordinary action, the site handles it by design
   // (the fallback test below), and it still took the regeneration job down,
   // because that job commits only after this suite passes. A missing icon is a

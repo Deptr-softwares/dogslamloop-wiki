@@ -148,7 +148,7 @@ On a draft the owner hands over: grammar and spelling only, keep their wording, 
 - **Text readers see is written in the owner's voice**, read off their own pages: the `writing-site-text` skill. "Never write 'you'" is a changelog rule, not a site rule.
 - **Shared CSS classes** (`.btn-sys`, `.btn-manga` and the like) are used in contexts that don't reference each other. Check every consumer, not just the page at hand.
 - **The `hidden` attribute loses to any `display` a stylesheet sets**, because the browser's `[hidden]` rule sits below every author rule. Restate it (`.thing[hidden] { display: none; }`) for every class that sets `display`, and test with `toBeHidden`, not the attribute. Eight classes carry it already (four in `admin.css`, the rest in `editor.css`, `Layout.css` and `discussions.css`), and v1.0 needed two more.
-- **Media the wiki shows lives in Supabase Storage, never on Discord's CDN.** Discord attachment links expire (all four on Sky Assassin were dead by 2026-09-28), and tests never fetch real media, so a dead link is invisible to them.
+- **Media the wiki shows lives in Supabase Storage, never on Discord's CDN.** Discord attachment links expire (all four on Sky Bender were dead by 2026-09-28), and tests never fetch real media, so a dead link is invisible to them.
 
 ## Rules that load with their files
 

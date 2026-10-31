@@ -154,7 +154,7 @@ if (check) {
         }
 
         // One portrait that cannot be mirrored no longer stops the run (owner,
-        // 2026-10-29): a .webm on Hired Killer stopped every page publishing
+        // 2026-10-29): a .webm on Hired Hunter stopped every page publishing
         // on 2026-10-25. It keeps its last good copy, so a Storage outage
         // still removes nothing from the site; a character that never had one
         // is recorded as null, which reads as "no portrait" everywhere.

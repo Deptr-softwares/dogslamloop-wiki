@@ -27,6 +27,9 @@ async function openLibrary(page, config = {}) {
         const inertChain = () => new Proxy({}, {
             get(_t, prop) {
                 if (prop === 'then') return (resolve) => resolve({ data: [], error: null });
+                // A single-row read answers no row, as the real API does: an empty list
+                // reads as a row, and the editor would take it for a page restriction.
+                if (prop === 'maybeSingle') return async () => ({ data: null, error: null });
                 return () => inertChain();
             },
         });

@@ -11,7 +11,7 @@ const { test, expect } = require('@playwright/test');
 const path = require('path');
 const fs = require('fs');
 
-const { buildPages, scanToolAssets, MARKER, NEVER_TOUCH } = require('../scripts/generate-pages.js');
+const { buildPages, scanToolAssets, scanMovedStubs, MARKER, NEVER_TOUCH } = require('../scripts/generate-pages.js');
 const nav = require('../data/navigation.json');
 
 test('generates a stub for every routable character and system page', () => {
@@ -157,9 +157,11 @@ test('the committed stubs on disk match what the generator produces', () => {
   // them here compares portrait-less output against portrait-bearing stubs.
   // Same trap, second instance: a tool page carries its own script and
   // stylesheet, so the scan has to be the CLI's rather than an empty default.
+  // A third instance: a moved page's forward is only produced from the scan of
+  // the stubs already on disk.
   const previews = require('../data/page-previews.json');
   const { toolScripts, toolStyles } = scanToolAssets();
-  const { pages } = buildPages(nav, previews, {}, toolScripts, toolStyles);
+  const { pages } = buildPages(nav, previews, {}, toolScripts, toolStyles, scanMovedStubs());
   const stale = pages.filter(page => {
     const abs = path.join(__dirname, '..', page.relPath);
     return !fs.existsSync(abs) || fs.readFileSync(abs, 'utf8') !== page.html;
