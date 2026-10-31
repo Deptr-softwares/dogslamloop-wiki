@@ -121,7 +121,7 @@ test('the live tier list renders same-origin portraits, not guessed Supabase URL
 });
 
 // One portrait that cannot be mirrored no longer stops the run (owner,
-// 2026-10-29). On 2026-10-25 Hired Killer's portrait was set to a .webm, the
+// 2026-10-29). On 2026-10-25 Hired Hunter's portrait was set to a .webm, the
 // mirror refused it, wrote nothing and exited 1, and the regeneration job
 // published nothing for any page that night.
 //
