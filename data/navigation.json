@@ -213,7 +213,7 @@
     {
       "id": "Hired-Hunter",
       "name": "Hired Hunter",
-      "url": "characters/Hired_killer/index.html",
+      "url": "characters/Hired_hunter/index.html",
       "isWip": true,
       "isEA": true,
       "isMissingMedia": true,
@@ -316,7 +316,7 @@
     {
       "id": "Sky-Bender",
       "name": "Sky Bender",
-      "url": "characters/Sky_assassin/index.html",
+      "url": "characters/Sky_bender/index.html",
       "isWip": true,
       "isBaseOnly": true,
       "isMissingMedia": true,
