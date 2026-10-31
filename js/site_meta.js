@@ -38,14 +38,14 @@ window.CHARACTER_COLORS = {
     "Disaster Plants": "hsl(106, 28%, 72%)",
     "True Cannon": "hsl(180, 100%, 83%)",
     "Register": "hsl(0, 0%, 100%)",
-    "Hired Killer": "hsl(0, 0%, 20%)",
+    "Hired Hunter": "hsl(0, 0%, 20%)",
     "Locust Guy": "hsl(100, 100%, 75%)",
     "Star Rage": "hsl(240, 100%, 83%)",
     "Aspiring Mangaka": "hsl(0, 100%, 96%)",
     "Lucky Coward": "hsl(272, 43%, 64%)",
     "Crow Charmer": "hsl(233, 39%, 23%)",
     "Black Death": "hsl(352, 49%, 27%)",
-    "Sky Assassin": "hsl(275, 17%, 60%)",
+    "Sky Bender": "hsl(275, 17%, 60%)",
     "Boomcat": "hsl(0, 1%, 75%)",
     "Strongest of History": "hsl(0, 100%, 25%)"
 };
