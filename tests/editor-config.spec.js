@@ -681,6 +681,108 @@ test('with the Workspace Header scrolling away, a short section\'s footer still 
   expect((await footerPlace(page, '.editor-workspace')).belowLast).toBeGreaterThan(200);
 });
 
+// Reported from macOS, 2026-11-01: the footer jumped between under the last
+// Block and the bottom of the Workspace many times a second. Every pass used
+// to clear the footer's margin, measure, and set it again, so anything that
+// reacts to the Workspace changing could keep it moving. Neither test below
+// is a Mac; each drives the mechanism a Mac's layout fed.
+
+// Watches the footer's margin every frame for `ms`: how many times it changed,
+// and how many times anything wrote to its style at all.
+const footerActivity = (page, ms) => page.evaluate((ms) => new Promise(resolve => {
+  const footer = document.querySelector('#interactive-builder .add-block-toolbar');
+  let writes = 0;
+  const watch = new MutationObserver(records => { writes += records.length; });
+  watch.observe(footer, { attributes: true, attributeFilter: ['style'] });
+  let last = footer.style.marginTop, moves = 0;
+  const t0 = performance.now();
+  const tick = () => {
+    if (footer.style.marginTop !== last) { moves++; last = footer.style.marginTop; }
+    if (performance.now() - t0 < ms) requestAnimationFrame(tick);
+    else { watch.disconnect(); resolve({ moves, writes, margin: footer.style.marginTop }); }
+  };
+  requestAnimationFrame(tick);
+}), ms);
+
+test('a resting footer is left alone while the Workspace keeps changing around it', async ({ page }) => {
+  await boot(page, { desc: SHORT_AND_LONG, height: TALL });
+  await page.click('#overview-nav-strategy');
+  await expect(cards(page)).toHaveCount(1);
+  await expect.poll(() => page.evaluate(() => document.querySelector('#interactive-builder .add-block-toolbar').style.marginTop)).not.toBe('');
+  await page.waitForTimeout(300);
+
+  // Something keeps touching the Workspace, as an extension or a page
+  // translation does: each touch asks for the footer to be placed again.
+  await page.evaluate(() => {
+    const builder = document.getElementById('interactive-builder');
+    let n = 0;
+    window.__poke = setInterval(() => {
+      const el = document.createElement('span');
+      el.hidden = true;
+      el.dataset.poke = String(n++);
+      builder.appendChild(el);
+      el.remove();
+    }, 30);
+  });
+  const activity = await footerActivity(page, 1500);
+  await page.evaluate(() => clearInterval(window.__poke));
+
+  expect(activity.writes, 'nothing rewrites a footer that is already where it belongs').toBe(0);
+  expect(activity.moves).toBe(0);
+  expect(activity.margin).not.toBe('');
+});
+
+test('a footer that something keeps pushing back stops moving instead of jittering', async ({ page }) => {
+  await boot(page, { desc: SHORT_AND_LONG, height: TALL });
+  // A Workspace whose layout answers the footer: while the footer is pinned,
+  // the section it sits in grows by more than the room it was given.
+  await page.addStyleTag({ content: '#interactive-builder.__pushback #strategy-block-target::after { content: ""; display: block; height: 900px; }' });
+  await page.evaluate(() => {
+    const builder = document.getElementById('interactive-builder');
+    new MutationObserver(() => {
+      const footer = builder.querySelector('.add-block-toolbar');
+      builder.classList.toggle('__pushback', !!footer && footer.style.marginTop !== '');
+    }).observe(builder, { attributes: true, subtree: true, attributeFilter: ['style'] });
+  });
+  await page.click('#overview-nav-strategy');
+  await expect(cards(page)).toHaveCount(1);
+
+  await page.waitForTimeout(500);
+  // Still asked to place it again and again, for longer than the two
+  // seconds it remembers bounces for.
+  await page.evaluate(() => {
+    const builder = document.getElementById('interactive-builder');
+    window.__poke = setInterval(() => { const el = document.createElement('span'); el.hidden = true; builder.appendChild(el); el.remove(); }, 30);
+  });
+  const activity = await footerActivity(page, 3000);
+  await page.evaluate(() => clearInterval(window.__poke));
+  expect(activity.moves, 'it settles: the footer is not still flipping seconds later').toBe(0);
+});
+
+test('typing a Block line by line keeps a short section\'s footer at the bottom', async ({ page }) => {
+  // The other side of the stop above: a Block growing as it is typed into
+  // moves the footer's margin on every line, always the same way, and that
+  // must never read as jitter.
+  await boot(page, { desc: SHORT_AND_LONG, height: TALL });
+  const resting = await restingPlace(page, '#interactive-builder');
+  await page.click('#overview-nav-strategy');
+  await expect(cards(page)).toHaveCount(1);
+  await expect.poll(async () => Math.abs((await footerPlace(page, '#interactive-builder')).fromEdge - resting)).toBeLessThan(1.5);
+
+  const box = cards(page).first().locator('textarea.editor-textarea');
+  await box.click();
+  await page.keyboard.press('End');
+  const before = (await footerPlace(page, '#interactive-builder')).belowLast;
+  for (let i = 0; i < 6; i++) {
+    await page.keyboard.press('Enter');
+    await page.keyboard.type(`line ${i}`);
+    await page.waitForTimeout(60);
+  }
+  await expect.poll(async () => (await footerPlace(page, '#interactive-builder')).belowLast).toBeLessThan(before - 40);
+  await page.waitForTimeout(300);
+  expect(Math.abs((await footerPlace(page, '#interactive-builder')).fromEdge - resting), 'still at the bottom').toBeLessThan(1.5);
+});
+
 test('on a system page a short section\'s footer rests at the bottom too', async ({ page }) => {
   const desc = { tabs: [{ tabId: 'basics', tabLabel: 'Basics', sections: [
     { sectionTitle: 'Long', layout: 'full', blocks: Array.from({ length: 30 }, (_, i) => para(`p${i}`)) },
