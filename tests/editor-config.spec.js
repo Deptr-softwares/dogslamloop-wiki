@@ -748,8 +748,39 @@ test('a footer that something keeps pushing back stops moving instead of jitteri
   await expect(cards(page)).toHaveCount(1);
 
   await page.waitForTimeout(500);
-  const activity = await footerActivity(page, 2000);
-  expect(activity.moves, 'it settles: the footer is not still flipping two seconds later').toBe(0);
+  // Still asked to place it again and again, for longer than the two
+  // seconds it remembers bounces for.
+  await page.evaluate(() => {
+    const builder = document.getElementById('interactive-builder');
+    window.__poke = setInterval(() => { const el = document.createElement('span'); el.hidden = true; builder.appendChild(el); el.remove(); }, 30);
+  });
+  const activity = await footerActivity(page, 3000);
+  await page.evaluate(() => clearInterval(window.__poke));
+  expect(activity.moves, 'it settles: the footer is not still flipping seconds later').toBe(0);
+});
+
+test('typing a Block line by line keeps a short section\'s footer at the bottom', async ({ page }) => {
+  // The other side of the stop above: a Block growing as it is typed into
+  // moves the footer's margin on every line, always the same way, and that
+  // must never read as jitter.
+  await boot(page, { desc: SHORT_AND_LONG, height: TALL });
+  const resting = await restingPlace(page, '#interactive-builder');
+  await page.click('#overview-nav-strategy');
+  await expect(cards(page)).toHaveCount(1);
+  await expect.poll(async () => Math.abs((await footerPlace(page, '#interactive-builder')).fromEdge - resting)).toBeLessThan(1.5);
+
+  const box = cards(page).first().locator('textarea.editor-textarea');
+  await box.click();
+  await page.keyboard.press('End');
+  const before = (await footerPlace(page, '#interactive-builder')).belowLast;
+  for (let i = 0; i < 6; i++) {
+    await page.keyboard.press('Enter');
+    await page.keyboard.type(`line ${i}`);
+    await page.waitForTimeout(60);
+  }
+  await expect.poll(async () => (await footerPlace(page, '#interactive-builder')).belowLast).toBeLessThan(before - 40);
+  await page.waitForTimeout(300);
+  expect(Math.abs((await footerPlace(page, '#interactive-builder')).fromEdge - resting), 'still at the bottom').toBeLessThan(1.5);
 });
 
 test('on a system page a short section\'s footer rests at the bottom too', async ({ page }) => {

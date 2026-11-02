@@ -228,17 +228,15 @@
             - parseFloat(getComputedStyle(scroller).paddingBottom);
         const end = last.getBoundingClientRect().bottom + parseFloat(getComputedStyle(last).marginBottom);
 
-        // The block list above carries a bottom margin, and the two margins
-        // collapse into the larger one. Unpinned, the gap above the footer is
-        // that margin; pinned, it is the gap it has now. Moving the footer
-        // moves the end by the same distance, so the slack it would have
-        // unpinned is the slack now plus how far it has been moved.
+        // The margin that puts the footer's bottom on the Workspace's: the gap
+        // above it now plus the room still below it. The block list above
+        // carries a bottom margin and the two collapse into the larger, so a
+        // margin no bigger than the list's own leaves the footer where it
+        // sits unpinned, and a section too tall for the Workspace gets none.
         const prev = prevShownSibling(footer);
         const gap = prev ? footer.getBoundingClientRect().top - prev.getBoundingClientRect().bottom : 0;
-        const natural = prev ? Math.max(parseFloat(getComputedStyle(prev).marginBottom) || 0, 0) : 0;
-        const slack = inner - end + (gap - natural);
-
-        const target = slack < 1 ? 0 : natural + slack;
+        const room = gap + inner - end;
+        const target = room < 1 ? 0 : room;
         const have = footer.style.marginTop === '' ? 0 : parseFloat(footer.style.marginTop) || 0;
         if (Math.abs(target - have) < 1) return;
 
