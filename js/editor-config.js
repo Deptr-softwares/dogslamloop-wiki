@@ -183,7 +183,8 @@
 
     // Sized by whatever holds the footer, so a Block that grows as it is typed
     // into moves it the frame after. A size it set itself is reported once
-    // and then settles, because the second pass sets the same margin.
+    // and then settles, because the second pass finds it in place and writes
+    // nothing.
     let footerSizes = null;
     let footerWatched = [];
     function watchFooter(footer, scroller) {
@@ -196,12 +197,26 @@
         footerWatched = chain;
     }
 
+    // Measured where the footer is, and written only when that moves it. Every
+    // pass used to clear the margin, measure and set it again, so anything that
+    // answers a change in the Workspace could keep the footer flipping between
+    // its two places many times a second (reported from macOS, 2026-11-01).
+    //
+    // A footer still being sent back to where it just was, a few times in two
+    // seconds, stays where it sits unpinned for the rest of that section: a
+    // short section looking as it did before v1.1 beats a jittering one. A
+    // Block typed into only ever moves it one way, so typing never trips this.
+    const PIN_BOUNCES = 3;
+    const PIN_WINDOW_MS = 2000;
+    const pinHistory = new WeakMap();
+    const pinAbandoned = new WeakSet();
+
     function pinFooter() {
         const builder = document.getElementById('interactive-builder');
         const footers = builder ? builder.querySelectorAll('.add-block-toolbar') : [];
         if (footers.length !== 1) return;
         const footer = footers[0];
-        footer.style.marginTop = '';
+        if (pinAbandoned.has(footer)) return;
 
         const scroller = document.body.classList.contains('cfg-workspace-scrolls') ? workspace() : builder;
         if (!scroller || !shown(footer)) return;
@@ -212,15 +227,34 @@
         const inner = scroller.getBoundingClientRect().top + scroller.clientTop + scroller.clientHeight
             - parseFloat(getComputedStyle(scroller).paddingBottom);
         const end = last.getBoundingClientRect().bottom + parseFloat(getComputedStyle(last).marginBottom);
-        const slack = inner - end;
-        if (slack < 1) return;
 
         // The block list above carries a bottom margin, and the two margins
-        // would collapse into the larger one: the footer gets the gap it has
-        // now plus the slack, so it moves by the slack and no less.
+        // collapse into the larger one. Unpinned, the gap above the footer is
+        // that margin; pinned, it is the gap it has now. Moving the footer
+        // moves the end by the same distance, so the slack it would have
+        // unpinned is the slack now plus how far it has been moved.
         const prev = prevShownSibling(footer);
         const gap = prev ? footer.getBoundingClientRect().top - prev.getBoundingClientRect().bottom : 0;
-        footer.style.marginTop = `${gap + slack}px`;
+        const natural = prev ? Math.max(parseFloat(getComputedStyle(prev).marginBottom) || 0, 0) : 0;
+        const slack = inner - end + (gap - natural);
+
+        const target = slack < 1 ? 0 : natural + slack;
+        const have = footer.style.marginTop === '' ? 0 : parseFloat(footer.style.marginTop) || 0;
+        if (Math.abs(target - have) < 1) return;
+
+        const now = performance.now();
+        const seen = pinHistory.get(footer) || { margins: [have], bounces: [] };
+        const before = seen.margins[seen.margins.length - 2];
+        if (before !== undefined && Math.abs(before - target) < 1) seen.bounces.push(now);
+        seen.bounces = seen.bounces.filter(t => now - t < PIN_WINDOW_MS);
+        if (seen.bounces.length >= PIN_BOUNCES) {
+            pinAbandoned.add(footer);
+            footer.style.marginTop = '';
+            return;
+        }
+        seen.margins = seen.margins.concat(target).slice(-2);
+        pinHistory.set(footer, seen);
+        footer.style.marginTop = target ? `${target}px` : '';
     }
 
     function watchSticky() {
