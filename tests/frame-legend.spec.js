@@ -34,6 +34,12 @@ test('the legend describes Block Endlag as the blocker\'s stun', async ({ page }
     expect(items.find(i => i.name === 'Recovery').desc).toBe('aka Whiff endlag');
 });
 
+test('the Misc line reads as a sentence', async ({ page }) => {
+    const misc = (await legendItems(page)).find(i => i.name === 'Misc');
+
+    expect(misc.desc).toBe('Variable frame data aka no hard number so it always comes with a note');
+});
+
 test('an old revision that still names Reverse Hitcancel draws only the overlays that remain', async ({ page }) => {
     // History renders old revisions, and the overlay was retired, not
     // migrated out of the data. It must vanish quietly, not break the track.

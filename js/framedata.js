@@ -7,7 +7,7 @@ const frameDataLegendHTML = `
         <h3 class="legend-title">Frame Data Color Legend</h3>
         <div class="legend-grid">
             <div class="legend-item"><span class="legend-swatch bg-tick-start"></span><div><span class="legend-name">Startup</span></div></div>
-            <div class="legend-item"><span class="legend-swatch bg-tick-misc"></span><div><span class="legend-name">Misc</span>Variable frame data aka no hard number so it always come with a note</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-misc"></span><div><span class="legend-name">Misc</span>Variable frame data aka no hard number so it always comes with a note</div></div>
             <div class="legend-item"><span class="legend-swatch bg-tick-active"></span><div><span class="legend-name">Active</span>Hitbox view ...</div></div>
             <div class="legend-item"><span class="legend-swatch bg-tick-recov"></span><div><span class="legend-name">Recovery</span>aka Whiff endlag</div></div>
             <div class="legend-item"><span class="legend-swatch bg-tick-selfstun"></span><div><span class="legend-name">Self Stun</span>for Grab moves mostly</div></div>
