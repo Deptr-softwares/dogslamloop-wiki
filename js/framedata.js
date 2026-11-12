@@ -13,7 +13,7 @@ const frameDataLegendHTML = `
             <div class="legend-item"><span class="legend-swatch bg-tick-selfstun"></span><div><span class="legend-name">Self Stun</span>for Grab moves mostly</div></div>
             <div class="legend-item"><span class="legend-swatch bg-tick-inskillstun"></span><div><span class="legend-name">InSkill Stun</span>A weird version of Self Stun, but you can move around</div></div>
             <div class="legend-item"><span class="legend-swatch bg-tick-targetstun"></span><div><span class="legend-name">Target Stun</span>on Hit</div></div>
-            <div class="legend-item"><span class="legend-swatch bg-tick-blockendlag"></span><div><span class="legend-name">Block Endlag</span>aka Extended Recovery</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-blockendlag"></span><div><span class="legend-name">Block Endlag</span>aka Block Stun</div></div>
             <div class="legend-item"><span class="legend-swatch bg-tick-inactive"></span><div><span class="legend-name">Inactive</span>Frames between Active frames</div></div>
             <div class="legend-item"><span class="legend-swatch span-iframe-complete"></span><div><span class="legend-name">Complete I-Frames</span>aka Domain I-Frames</div></div>
             <div class="legend-item"><span class="legend-swatch span-iframe-swarm"></span><div><span class="legend-name">Swarm I-Frames</span></div></div>

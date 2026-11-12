@@ -23,6 +23,17 @@ test('the legend under a Frame Track no longer offers Reverse Hitcancel', async 
     expect(names).not.toContain('Reverse Hitcancel');
 });
 
+test('the legend describes Block Endlag as the blocker\'s stun', async ({ page }) => {
+    // Round 2 (2026-11-12): Block Endlag is the stun of the player who
+    // blocked, "Otherwise known as Block Stun". It used to say "aka Extended
+    // Recovery", the attacker's endlag on block, which is Recovery now.
+    const items = await legendItems(page);
+    const blockEndlag = items.find(i => i.name === 'Block Endlag');
+
+    expect(blockEndlag.desc).toBe('aka Block Stun');
+    expect(items.find(i => i.name === 'Recovery').desc).toBe('aka Whiff endlag');
+});
+
 test('an old revision that still names Reverse Hitcancel draws only the overlays that remain', async ({ page }) => {
     // History renders old revisions, and the overlay was retired, not
     // migrated out of the data. It must vanish quietly, not break the track.

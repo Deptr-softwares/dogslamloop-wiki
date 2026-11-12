@@ -215,9 +215,13 @@ function splitGradient(html, stops) {
 // Spellings the community uses that are not the legend's own wording. Kept
 // small and explicit: an alias is a claim that two phrases mean the same
 // thing, which is a domain judgement rather than a formatting one.
+//
+// Block Endlag changed meaning 2026-11-12 (Terminologies, Round 2): it is the
+// stun of the player who blocked, and the attacker's endlag on block
+// ("Extended Recovery") is Recovery.
 const TERM_ALIASES = {
-    'bg-tick-recov': ['Whiff Endlag'],
-    'bg-tick-blockendlag': ['Extended Recovery'],
+    'bg-tick-recov': ['Whiff Endlag', 'Extended Recovery'],
+    'bg-tick-blockendlag': ['Block Stun'],
 };
 
 // A literal term becomes a tolerant pattern: spaces match runs of whitespace
