@@ -236,8 +236,7 @@ function initDawEditor(containerId, moveData) {
                     { id: 'iframe-melee', label: 'Melee I-Frames' },
                     { id: 'iframe-bullet', label: 'Bullet I-Frames' },
                     { id: 'iframe-explosion', label: 'Explosion I-Frames' },
-                    { id: 'iframe-swarm', label: 'Swarm I-Frames' },
-                    { id: 'reverse-hitcancel', label: 'Reverse Hitcancel' }
+                    { id: 'iframe-swarm', label: 'Swarm I-Frames' }
                 ];
 
                 let overlaysHtml = overlayOptions.map(opt => `

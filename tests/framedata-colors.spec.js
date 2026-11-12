@@ -1,6 +1,6 @@
 // Coverage for Workstream B Tier 2: frame-data color de-duplication.
 // ColorCoding.css's :root custom properties are now the single source for
-// the 9 frame-timing colors + 6 window/i-frame colors, consumed by
+// the 9 frame-timing colors + 5 i-frame window colors, consumed by
 // .bg-tick-*/.span-* rules, the legend swatches (js/framedata.js), and the
 // runtime dictionaries window.FRAME_COLORS/WINDOW_COLORS (js/site_meta.js,
 // read via getComputedStyle). These tests prove the legend and the actual
@@ -31,15 +31,15 @@ test('legend swatch and an actual frame-tick resolve to the same background-colo
   expect(swatchColor).toBe(tickColor);
 });
 
-test('legend swatch and an actual window-overlay resolve to the same border-color (span-rhc)', async ({ page }) => {
+test('legend swatch and an actual window-overlay resolve to the same border-color (span-iframe-melee)', async ({ page }) => {
   await page.goto('/index.html', { waitUntil: 'networkidle' });
   const [swatchBorder, overlayBorder] = await page.evaluate(() => {
     const swatch = document.createElement('span');
-    swatch.className = 'legend-swatch span-rhc';
+    swatch.className = 'legend-swatch span-iframe-melee';
     document.body.appendChild(swatch);
 
     const overlay = document.createElement('div');
-    overlay.className = 'window-overlay span-rhc';
+    overlay.className = 'window-overlay span-iframe-melee';
     document.body.appendChild(overlay);
 
     const result = [getComputedStyle(swatch).borderColor, getComputedStyle(overlay).borderColor];

@@ -117,7 +117,6 @@ window.CHARACTER_ALIASES = {
     };
 
     window.WINDOW_COLORS = {
-        'reverse-hitcancel': readVar('--window-color-rhc'),
         'iframe-melee': readVar('--window-color-iframe-melee'),
         'iframe-bullet': readVar('--window-color-iframe-bullet'),
         'iframe-explosion': readVar('--window-color-iframe-explosion'),
@@ -140,7 +139,6 @@ window.CHARACTER_ALIASES = {
         'bg-tick-misc': 'Misc',
         'bg-tick-blockendlag': 'Block Endlag',
         'bg-tick-inactive': 'Inactive',
-        'reverse-hitcancel': 'Reverse Hitcancel',
         'iframe-melee': 'Melee I-Frames',
         'iframe-bullet': 'Bullet I-Frames',
         'iframe-explosion': 'Explosion I-Frames',
