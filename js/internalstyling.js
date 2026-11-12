@@ -218,7 +218,6 @@ function splitGradient(html, stops) {
 const TERM_ALIASES = {
     'bg-tick-recov': ['Whiff Endlag'],
     'bg-tick-blockendlag': ['Extended Recovery'],
-    'reverse-hitcancel': ['RHC'],
 };
 
 // A literal term becomes a tolerant pattern: spaces match runs of whitespace

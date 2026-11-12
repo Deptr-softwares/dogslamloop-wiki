@@ -190,13 +190,22 @@ async function highlighted(page, text) {
 
 test('every overlay window term is highlighted, not just the frame ticks', async ({ page }) => {
     const found = await highlighted(page,
-        'Reverse Hitcancel, Melee I-Frames, Bullet I-Frames, Explosion I-Frames, '
+        'Melee I-Frames, Bullet I-Frames, Explosion I-Frames, '
         + 'Swarm I-Frames, Complete I-Frames');
 
     expect(found).toEqual([
-        'Reverse Hitcancel', 'Melee I-Frames', 'Bullet I-Frames',
+        'Melee I-Frames', 'Bullet I-Frames',
         'Explosion I-Frames', 'Swarm I-Frames', 'Complete I-Frames',
     ]);
+});
+
+test('a retired overlay term is plain text again', async ({ page }) => {
+    // Reverse Hitcancel was retired 2026-11-12. A colour left behind would
+    // keep painting the name, and its "RHC" alias, as if it still meant
+    // something on a Frame Track.
+    const found = await highlighted(page, 'Reverse Hitcancel or RHC, then Melee I-Frames');
+
+    expect(found).toEqual(['Melee I-Frames']);
 });
 
 test('the term list is derived from site_meta, not written out here', async ({ page }) => {

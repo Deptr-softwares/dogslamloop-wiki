@@ -20,7 +20,6 @@ const frameDataLegendHTML = `
             <div class="legend-item"><span class="legend-swatch span-iframe-explosion"></span><div><span class="legend-name">Explosion I-Frames</span></div></div>
             <div class="legend-item"><span class="legend-swatch span-iframe-bullet"></span><div><span class="legend-name">Bullet I-Frames</span></div></div>
             <div class="legend-item"><span class="legend-swatch span-iframe-melee"></span><div><span class="legend-name">Melee I-Frames</span></div></div>
-            <div class="legend-item"><span class="legend-swatch span-rhc"></span><div><span class="legend-name">Reverse Hitcancel</span></div></div>
         </div>
 
         <!-- The one thing on this page that is a convention rather than a
@@ -36,8 +35,9 @@ const frameDataLegendHTML = `
 `;
 
 // Dictionary for standardized game windows (Overlays)
+// Reverse Hitcancel was one until 2026-11-12, retired by the owner: no Frame
+// Track ever used it, and an old revision that names it just draws nothing.
 const windowTypes = {
-    'reverse-hitcancel': { class: 'span-rhc', label: 'Reverse Hitcancel' },
     'iframe-melee': { class: 'span-iframe-melee', label: 'Melee I-Frames' },
     'iframe-bullet': { class: 'span-iframe-bullet', label: 'Bullet I-Frames' },
     'iframe-explosion': { class: 'span-iframe-explosion', label: 'Explosion I-Frames' },
@@ -142,7 +142,7 @@ function createPhase(phaseObj, totalScale) {
     if (phaseObj.overlays) activeOverlays.push(...phaseObj.overlays);
     if (phaseObj.overlay) activeOverlays.push(phaseObj.overlay);
 
-    const hierarchy = ['iframe-melee', 'iframe-bullet', 'iframe-explosion', 'iframe-swarm', 'iframe-complete', 'reverse-hitcancel'];
+    const hierarchy = ['iframe-melee', 'iframe-bullet', 'iframe-explosion', 'iframe-swarm', 'iframe-complete'];
     activeOverlays.sort((a, b) => hierarchy.indexOf(a) - hierarchy.indexOf(b));
 
     activeOverlays.forEach(overlayKey => {
