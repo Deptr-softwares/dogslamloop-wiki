@@ -661,7 +661,11 @@ test('on a short section the Workspace Footer rests at the bottom, where a long 
   const before = (await footerPlace(page, '#interactive-builder')).belowLast;
   await cards(page).first().locator('textarea.editor-textarea').fill('a\nb\nc\nd\ne\nf\ng\nh');
   await expect.poll(async () => (await footerPlace(page, '#interactive-builder')).belowLast).toBeLessThan(before - 40);
-  expect(Math.abs((await footerPlace(page, '#interactive-builder')).fromEdge - resting)).toBeLessThan(1.5);
+  // The footer takes its place again on the next frame after the Block grows,
+  // so the check waits for it like the others here. Read at once, it caught the
+  // frame in between: 24.7px off, on some machines every time and on the
+  // nightly regeneration three times in a week.
+  await expect.poll(async () => Math.abs((await footerPlace(page, '#interactive-builder')).fromEdge - resting)).toBeLessThan(1.5);
 
   // Back on the long section it is the sticky footer it always was.
   await page.click('#overview-nav-overview');

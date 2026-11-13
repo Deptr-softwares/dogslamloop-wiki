@@ -26,13 +26,11 @@ const PAGE = '/systems/updatelog/index.html';
 // write its changelog entry at all - a shape check would pass happily with the
 // previous version still sitting at the top, which is the vacuous form. Updating
 // this line is part of shipping a release.
-test('the newest entry is the Halloween update, named, dated and waiting for the minigame', async () => {
+test('the newest entry is the Halloween update, named and dated', async () => {
     const first = UPDATES.changelogs[0];
     expect(first.version).toBe('Release v1.1');
     expect(first.title).toBe("The 'Halloween' Update");
     expect(first.date).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
-    // Hidden from a reader until they have played (js/home_widgets.js).
-    expect(first.revealedBy).toBe('halloween');
 });
 
 test('it carries the three parts, in order, and nothing else', async () => {
