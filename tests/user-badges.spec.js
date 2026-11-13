@@ -12,6 +12,10 @@
 // A win signed in is saved at once; signed out it waits on the device until
 // the winner signs in, and a toast says which.
 //
+// The minigame itself was removed on 2026-11-13 (owner: "Don't remove the
+// badges though"), and claim_badge() stopped taking Halloween claims on
+// 2026-11-08, so its tests went with it. Everything else here still stands.
+//
 // RLS and grants are invisible to Playwright: the migration half here is
 // static, and the local database and the preview branch probe the SQL.
 const { test, expect } = require('@playwright/test');
@@ -304,125 +308,6 @@ test('before the release, with no badges column, the field stays away and the sa
   await expect.poll(() => page.evaluate(() => window.__upserts.length)).toBe(1);
   const [saved] = await page.evaluate(() => window.__upserts);
   expect(Object.keys(saved).sort()).toEqual(['bio', 'flair', 'is_private', 'user_id']);
-});
-
-// --- EARNING ONE: THE MINIGAME ---
-
-test.describe('winning the minigame', () => {
-  test.use({ timezoneId: 'UTC' });
-  const DURING = new Date('2026-10-25T12:00:00Z');
-
-  async function arm(page, { session = null, done = null, claimError = null, reducedMotion = false } = {}) {
-    if (reducedMotion) await page.emulateMedia({ reducedMotion: 'reduce' });
-    await mockSupabase(page, { session, claimError });
-    await page.clock.install({ time: DURING });
-    await page.clock.pauseAt(new Date(DURING.getTime() + 1000));
-    await page.addInitScript(({ done }) => {
-      Object.defineProperty(Navigator.prototype, 'webdriver', { configurable: true, get: () => false });
-      Math.random = () => 0.01;
-      HTMLMediaElement.prototype.play = () => Promise.resolve();
-      HTMLMediaElement.prototype.pause = () => {};
-      // Once, not on every load: a reload must see what the game wrote.
-      if (!sessionStorage.getItem('armed')) {
-        sessionStorage.setItem('armed', '1');
-        localStorage.setItem('dsl_editor_tutorial_seen', '1');
-        if (done) localStorage.setItem('dsl_halloween_done', done);
-      }
-    }, { done });
-    await page.goto('/404.html', { waitUntil: 'domcontentloaded' });
-  }
-  const game = (page) => page.locator('.hw-game');
-  async function fist(page, gap) {
-    await page.keyboard.press('Space');
-    await page.clock.runFor(gap);
-    await page.keyboard.press('Space');
-    await page.clock.runFor(650);
-  }
-  // Wakes it (a click, or Site settings), plays four fists, and lets it close.
-  async function playThrough(page, { win = true, via = 'click' } = {}) {
-    if (via === 'click') {
-      await page.locator('h1').first().click();
-    } else {
-      await page.locator('#dock-btn-settings').click();
-      await page.locator('[data-halloween-replay]').click();
-    }
-    await expect(game(page)).toHaveCount(1);
-    await page.clock.runFor(1600);
-    for (let i = 0; i < 4; i++) await fist(page, win ? 300 : 100);
-    await page.clock.runFor(700 + (win ? 2600 : 7300) + 1000);
-    await expect(game(page)).toHaveCount(0);
-  }
-  const toast = (page) => page.locator('.badge-toast');
-  const pending = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('dsl_badges_pending') || '[]'));
-  const claims = (page) => page.evaluate(() => window.__claims);
-
-  test('a first-try win signed out earns Gold Ver, kept on the device until they sign in', async ({ page }) => {
-    await arm(page);
-    await playThrough(page);
-    await expect(toast(page)).toBeVisible();
-    await expect(toast(page)).toContainText('BADGE EARNED');
-    await expect(toast(page)).toContainText('DSL Halloween 2026 - Gold Ver');
-    await expect(toast(page)).toContainText('Sign in by November 7 to keep it.');
-    expect(await pending(page)).toEqual([GOLD]);
-    expect(await claims(page), 'nothing to claim with').toEqual([]);
-    // LOGIN goes to signing in.
-    await toast(page).getByRole('button', { name: 'LOGIN' }).click();
-    await expect(page.locator('#auth-modal-overlay')).not.toHaveClass(/hidden/);
-    await expect(toast(page)).toHaveCount(0);
-  });
-
-  test('a later win signed in earns the other one, saved straight away', async ({ page }) => {
-    await arm(page, { session: SESSION, done: '1' });
-    await playThrough(page, { via: 'settings' });
-    await expect(toast(page)).toContainText('DSL Halloween 2026');
-    await expect(toast(page)).not.toContainText('Gold Ver');
-    await expect(toast(page)).toContainText('On your profile now.');
-    await expect(toast(page).getByRole('button', { name: 'LOGIN' })).toHaveCount(0);
-    expect(await claims(page)).toEqual([PLAIN]);
-    expect(await pending(page)).toEqual([]);
-  });
-
-  test('clearing dsl_halloween_done makes the next game a first try again (the owner\'s cheese)', async ({ page }) => {
-    await arm(page, { session: SESSION, done: '1' });
-    await page.evaluate(() => localStorage.removeItem('dsl_halloween_done'));
-    await playThrough(page, { via: 'settings' });
-    expect(await claims(page)).toEqual([GOLD]);
-  });
-
-  test('a reader spared the surprise still gets a first try', async ({ page }) => {
-    await arm(page, { session: SESSION, reducedMotion: true });
-    expect(await page.evaluate(() => localStorage.getItem('dsl_halloween_done')), 'the look is on without a game played').toBe('spared');
-    await playThrough(page, { via: 'settings' });
-    expect(await claims(page)).toEqual([GOLD]);
-  });
-
-  test('losing earns nothing', async ({ page }) => {
-    await arm(page, { session: SESSION });
-    await playThrough(page, { win: false });
-    expect(await claims(page)).toEqual([]);
-    await expect(toast(page)).toHaveCount(0);
-  });
-
-  test('skipping the game earns nothing, skipping the whisper after a win still earns it', async ({ page }) => {
-    await arm(page, { session: SESSION });
-    await page.locator('h1').first().click();
-    await page.clock.runFor(1600);
-    await page.keyboard.press('x');
-    await page.clock.runFor(1000);
-    await expect(game(page)).toHaveCount(0);
-    expect(await claims(page)).toEqual([]);
-
-    // A replay, won, then x during the whisper. Not a first try any more.
-    await page.locator('#dock-btn-settings').click();
-    await page.locator('[data-halloween-replay]').click();
-    await page.clock.runFor(1600);
-    for (let i = 0; i < 4; i++) await fist(page, 300);
-    await page.clock.runFor(700);
-    await expect(page.locator('.hw-won')).toHaveCount(1);
-    await page.keyboard.press('x');
-    await page.clock.runFor(1000);
-    await expect.poll(() => claims(page)).toEqual([PLAIN]);
-  });
 });
 
 // --- EARNED SIGNED OUT, KEPT ON SIGNING IN ---

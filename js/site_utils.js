@@ -109,16 +109,6 @@ window.openSiteSettings = function () {
         overlay = document.createElement('div');
         overlay.id = 'site-settings-overlay';
         overlay.className = 'modal-overlay hidden';
-        // The Halloween minigame plays once on its own; this plays it again
-        // (owner, 2026-10-23). window.halloween exists only until November 1.
-        const halloweenRow = window.halloween && typeof window.halloween.play === 'function' ? `
-                    <div class="site-setting site-setting-action">
-                        <span class="site-setting-text">
-                            <span class="site-setting-name">Halloween minigame</span>
-                            <span class="site-setting-hint">Play the Black Flash chain again.</span>
-                        </span>
-                        <button type="button" class="btn-sys btn-sys-yellow" data-halloween-replay>PLAY</button>
-                    </div>` : '';
         overlay.innerHTML = `
             <div class="modal-box modal-sm accent-blue" role="dialog" aria-modal="true" aria-labelledby="site-settings-title">
                 <div class="modal-header"><h3 id="site-settings-title">SITE SETTINGS</h3></div>
@@ -129,7 +119,7 @@ window.openSiteSettings = function () {
                             <span class="site-setting-name">Turn off animations</span>
                             <span class="site-setting-hint">Stops hover lifts, button sweeps, flashes and smooth scrolling. If your device is set to reduce motion, the site already follows it.</span>
                         </span>
-                    </label>${halloweenRow}
+                    </label>
                     <p class="site-settings-note">Saved on this device only.</p>
                     <p class="site-settings-error" hidden>This browser blocked saving, so the setting only lasts until you leave this page.</p>
                 </div>
@@ -143,8 +133,6 @@ window.openSiteSettings = function () {
             if (e.target === overlay || e.target.closest('[data-site-settings-close]')) close();
         });
         overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
-        const replay = overlay.querySelector('[data-halloween-replay]');
-        if (replay) replay.addEventListener('click', () => { close(); window.halloween.play(); });
         overlay.querySelector('#site-setting-motion-off').addEventListener('change', e => {
             const saved = window.siteSettings.set('motionOff', e.target.checked);
             overlay.querySelector('.site-settings-error').hidden = saved;
@@ -2378,7 +2366,8 @@ async function claimBadgesNow(extra) {
     return { signedIn: true, claimed };
 }
 
-// The minigame calls this once it has closed on a win.
+// What awards a badge. The Halloween minigame called it on a win until the
+// event was removed (2026-11-13); the badges stay, and so does this.
 window.earnBadge = async function (id) {
     if (!window.knownBadges([id]).length) return;
     writePendingBadges([...new Set([...readPendingBadges(), id])]);
