@@ -287,11 +287,13 @@ test('a desktop has no bottom bar, and its page makes no room for one', async ({
   await context.close();
 });
 
-test('the editor has no bottom bar', async ({ browser }) => {
+// "not counting the editor and review queue": the card is about readers.
+test('the editor has no bottom bar and keeps its own text size', async ({ browser }) => {
   const context = await browser.newContext(PHONE);
   const page = await context.newPage();
   await page.goto('/edit.html?char=boomcat&type=character', { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(1500);
   await expect(bar(page)).toHaveCount(0);
+  expect(await page.evaluate(() => getComputedStyle(document.body).fontSize)).toBe('16px');
   await context.close();
 });

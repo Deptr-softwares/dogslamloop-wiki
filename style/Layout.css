@@ -1837,8 +1837,9 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
        pick, 2026-11-16: body 14px and titles two steps down, so section
        titles 18px, a character's name 24px, a Skill Card title 20px. Reading
        text inherits the body's size; the titles are set one by one because
-       each has its own size in rem. */
-    body { font-size: 0.875rem; }
+       each has its own size in rem. Reader pages only (.site-body): the card
+       leaves the editor and the review queue out. */
+    body.site-body { font-size: 0.875rem; }
     .section-title { font-size: 1.125rem; margin-bottom: 1rem; }
     .character-title { font-size: 1.5rem; }
     .skill-title { font-size: 1.25rem; }
