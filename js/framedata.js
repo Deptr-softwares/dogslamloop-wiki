@@ -205,6 +205,56 @@ function createPhase(phaseObj, totalScale) {
 
 window.cachedMasterFrameData = window.cachedMasterFrameData || {}; 
 
+// What goes in a Skill Card's media box: the move's media, or the media of the
+// Micro Variant on show (owner, 2026-11-16), or the Missing Media notice.
+function skillMediaHTML(media) {
+    let mediaContent = `<div class="skill-media-missing">[ Missing Media ]</div>`;
+    if (media?.src) {
+        // Extension is read off the path, not the whole URL. A raw
+        // endsWith missed anything carrying a query string or
+        // fragment - "clip.mp4?t=123" is ordinary for storage URLs -
+        // and only knew mp4/webm, while the media library accepts
+        // anything video/*. Those all fell through to the <img>
+        // branch, which cannot play a video: that is why mp4 looked
+        // unsupported in skill cards.
+        const path = media.src.split(/[?#]/)[0].toLowerCase();
+        const isVideo = ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => path.endsWith(ext));
+        // .gif stays an image on purpose - it animates on its own.
+        const filename = path.split('/').pop();
+        const esc = window.escapeHtml;
+        const altText = media.alt || '';
+
+        if (isVideo) {
+            // Injecting lazy-loading to prevent memory nukes!
+            //
+            // aria-label, not alt: <video> has no alt attribute, so
+            // alt text entered against a video-media move used to go
+            // nowhere at all - which is how "alt text does not
+            // persist" was reported. It persisted fine in the data;
+            // it just had nothing to render into. Plenty of skill
+            // media is .mp4/.webm, so this was the common case.
+            //
+            // The shared clip (js/description.js wikiClipHTML), which
+            // carries the corner button that opens the player.
+            mediaContent = window.wikiClipHTML(media.src, {
+                className: 'skill-media-img', label: altText,
+            }) + `
+                <span class="skill-media-filename">${esc(filename)}</span>`;
+        } else {
+            // Native loading="lazy" with a real src, matching how
+            // description.js renders wiki images. This carried
+            // data-lazy-src before, but initLazyMedia only ever
+            // promoted video[data-lazy-src] and iframe[data-lazy-src]
+            // - never img - so every static image in a skill card
+            // rendered with no source at all.
+            mediaContent = `
+                <img src="${esc(media.src)}" alt="${esc(altText)}" class="skill-media-img" loading="lazy">
+                <span class="skill-media-filename">${esc(filename)}</span>`;
+        }
+    }
+    return mediaContent;
+}
+
 async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageType = 'character', modeId = null) {
     if (pageType === 'system') return;
 
@@ -311,50 +361,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             }
 
             // --- 2. MEDIA & VIDEO FALLBACK ---
-            let mediaContent = `<div class="skill-media-missing">[ Missing Media ]</div>`;
-            if (move.media?.src) {
-                // Extension is read off the path, not the whole URL. A raw
-                // endsWith missed anything carrying a query string or
-                // fragment - "clip.mp4?t=123" is ordinary for storage URLs -
-                // and only knew mp4/webm, while the media library accepts
-                // anything video/*. Those all fell through to the <img>
-                // branch, which cannot play a video: that is why mp4 looked
-                // unsupported in skill cards.
-                const path = move.media.src.split(/[?#]/)[0].toLowerCase();
-                const isVideo = ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => path.endsWith(ext));
-                // .gif stays an image on purpose - it animates on its own.
-                const filename = path.split('/').pop();
-                const esc = window.escapeHtml;
-                const altText = move.media.alt || '';
-
-                if (isVideo) {
-                    // Injecting lazy-loading to prevent memory nukes!
-                    //
-                    // aria-label, not alt: <video> has no alt attribute, so
-                    // alt text entered against a video-media move used to go
-                    // nowhere at all - which is how "alt text does not
-                    // persist" was reported. It persisted fine in the data;
-                    // it just had nothing to render into. Plenty of skill
-                    // media is .mp4/.webm, so this was the common case.
-                    //
-                    // The shared clip (js/description.js wikiClipHTML), which
-                    // carries the corner button that opens the player.
-                    mediaContent = window.wikiClipHTML(move.media.src, {
-                        className: 'skill-media-img', label: altText,
-                    }) + `
-                        <span class="skill-media-filename">${esc(filename)}</span>`;
-                } else {
-                    // Native loading="lazy" with a real src, matching how
-                    // description.js renders wiki images. This carried
-                    // data-lazy-src before, but initLazyMedia only ever
-                    // promoted video[data-lazy-src] and iframe[data-lazy-src]
-                    // - never img - so every static image in a skill card
-                    // rendered with no source at all.
-                    mediaContent = `
-                        <img src="${esc(move.media.src)}" alt="${esc(altText)}" class="skill-media-img" loading="lazy">
-                        <span class="skill-media-filename">${esc(filename)}</span>`;
-                }
-            }
+            const mediaContent = skillMediaHTML(move.media);
 
             card.innerHTML = `
                 <div class="skill-entry-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
@@ -413,11 +420,42 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             const rightCol = document.getElementById(`right-col-${move.id}`);
             const pendingTabs = [];
 
+            // --- MEDIA PER MICRO VARIANT (owner, 2026-11-16) ---
+            // Each timeline (a leaf of the tree, however deep) can carry its
+            // own media, and the box on the left follows the one on show. A
+            // timeline without any shows the move's own media.
+            const leafViews = new Map();
+            const mediaWrapper = card.querySelector('.skill-media-wrapper');
+            let shownSrc = move.media?.src || '';
+            function syncMediaToVariant() {
+                let leaf = null;
+                for (const [view, node] of leafViews) {
+                    // On show: neither it nor a tab above it is hidden.
+                    if (!view.closest('.view-section.hidden')) { leaf = node; break; }
+                }
+                const own = leaf && leaf.media && leaf.media.src ? leaf.media : null;
+                // The move's "Media box shape" is one setting for the whole card.
+                const media = own ? { ...own, framing: move.media?.framing } : move.media;
+                const src = media?.src || '';
+                // Same file as before: left alone, so a video is not restarted.
+                if (src === shownSrc) return;
+                shownSrc = src;
+
+                mediaWrapper.innerHTML = skillMediaHTML(media);
+                mediaWrapper.classList.toggle('skill-media-wrapper-empty', !src);
+                mediaWrapper.classList.remove('is-square', 'is-tall');
+                if (typeof window.applyMediaFraming === 'function') {
+                    window.applyMediaFraming(mediaWrapper.querySelector('.skill-media-img'), mediaWrapper, media);
+                }
+                if (typeof window.initLazyMedia === 'function') window.initLazyMedia(mediaWrapper);
+            }
+
             // --- 3. RECURSIVE FRAME DATA ENGINE ---
             function buildNestedTabs(dataNode, prefixId, wrapperElement) {
 
                 // LEAF NODE: Render actual frame data
                 if (dataNode.bars) {
+                    leafViews.set(wrapperElement, dataNode);
                     let autoLegendItems = [];
                     let seenPhases = new Set();
 
@@ -607,6 +645,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                             Array.from(viewsWrapper.children).forEach(v => v.classList.add('hidden'));
                             btn.classList.add('active');
                             viewSection.classList.remove('hidden');
+                            syncMediaToVariant();
                         });
 
                         buildNestedTabs(childNode, childId, viewSection);
@@ -623,6 +662,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             } else if (move.variants && Object.keys(move.variants).length > 0) {
                 // Generates the entire recursive tree at once
                 buildNestedTabs({ variants: move.variants }, move.id, rightCol);
+                syncMediaToVariant();
             } else {
                 rightCol.innerHTML = `
                     <div class="empty-tab-msg empty-frame-data-msg">

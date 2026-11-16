@@ -370,6 +370,13 @@ function initDawEditor(containerId, moveData) {
                             <button onclick="window.addDawTrack()" class="btn-sys btn-sys-blue">+ Add Track</button>
                         </div>
                     </div>
+                    <!-- This timeline's own media (owner, 2026-11-16): the
+                         Skill Card shows it while this Micro Variant is the one
+                         on show. Left empty, the card keeps the move's media. -->
+                    <div class="editor-row daw-variant-media-row">
+                        <div><input type="text" class="editor-input daw-variant-media-inp" data-field="src" value="${esc(currentObj.media?.src || '')}" placeholder="Micro Variant Media Src (empty: the move's media)"></div>
+                        <div><input type="text" class="editor-input daw-variant-media-inp" data-field="alt" value="${esc(currentObj.media?.alt || '')}" placeholder="Micro Variant Media Alt Text"></div>
+                    </div>
                     <div class="daw-timeline-wrapper" data-timeline-path="${esc(JSON.stringify(activePath))}">
                         ${tracksHtml}
                     </div>
@@ -430,21 +437,24 @@ function initDawEditor(containerId, moveData) {
     // rewritten once the new source actually measures. A src typed one
     // character at a time therefore spends most of its life with no dimensions
     // rather than the wrong ones.
-    let dimensionTimer = null;
-    function captureMediaDimensions(moveData, src) {
-        moveData.media.width = null;
-        moveData.media.height = null;
+    //
+    // `media` is the move's media object or a Micro Variant's, each with its
+    // own timer so typing in one does not cancel the other's measurement.
+    const dimensionTimers = new WeakMap();
+    function captureMediaDimensions(media, src) {
+        media.width = null;
+        media.height = null;
 
-        clearTimeout(dimensionTimer);
+        clearTimeout(dimensionTimers.get(media));
         if (!src || typeof window.measureMediaSource !== 'function') return;
 
-        dimensionTimer = setTimeout(async () => {
+        dimensionTimers.set(media, setTimeout(async () => {
             const size = await window.measureMediaSource(src).catch(() => null);
             // The field may have moved on while the network was busy.
-            if (!size || moveData.media.src !== src) return;
-            moveData.media.width = size.width;
-            moveData.media.height = size.height;
-        }, 600);
+            if (!size || media.src !== src) return;
+            media.width = size.width;
+            media.height = size.height;
+        }, 600));
     }
 
     function bindDawEvents(container, currentObj) {
@@ -467,7 +477,7 @@ function initDawEditor(containerId, moveData) {
                 // copy rather than inserting files, so the upload path never
                 // sees this move. Debounced, because this fires per keystroke
                 // and each attempt is a network request.
-                if (field === 'media.src') captureMediaDimensions(moveData, e.target.value);
+                if (field === 'media.src') captureMediaDimensions(moveData.media, e.target.value);
             });
         });
 
@@ -500,6 +510,17 @@ function initDawEditor(containerId, moveData) {
             currentObj.label = e.target.value;
             const activeBtns = container.querySelectorAll('.daw-variant-tabs .active');
             if(activeBtns.length > 0) activeBtns[activeBtns.length - 1].textContent = e.target.value;
+        });
+
+        // Stored on the timeline only while it has something in it, so a
+        // Micro Variant nobody gave media to keeps its shape.
+        container.querySelectorAll('.daw-variant-media-inp').forEach(inp => {
+            inp.addEventListener('input', (e) => {
+                const media = currentObj.media || (currentObj.media = { src: '', alt: '' });
+                media[e.target.dataset.field] = e.target.value;
+                if (e.target.dataset.field === 'src') captureMediaDimensions(media, e.target.value);
+                if (!media.src && !media.alt) delete currentObj.media;
+            });
         });
 
         const varScale = container.querySelector('#daw-variant-scale');
