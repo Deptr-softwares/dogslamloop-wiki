@@ -63,6 +63,22 @@ test('the media box follows the Micro Variant on show, down to the deepest one',
   await expect(shown(card)).toHaveCount(1);
 });
 
+test('a timeline inside a tab that is not on show does not count', async ({ page }) => {
+  // The branch comes first here, so its first timeline is never hidden itself:
+  // only the tab above it is.
+  const card = await drawMove(page, {
+    id: 'slash', name: 'Slash', stats: [], media: { src: MOVE_MEDIA, alt: 'Slash' },
+    variants: {
+      charged: { label: 'Charged', variants: { front: leaf('Front Hit', DEEP_MEDIA), back: leaf('Back Hit') } },
+      hit: leaf('On Hit', HIT_MEDIA),
+    },
+  });
+  await expect(shown(card)).toHaveAttribute('src', DEEP_MEDIA);
+
+  await tab(card, 'On Hit').click();
+  await expect(shown(card)).toHaveAttribute('src', HIT_MEDIA);
+});
+
 test('switching between Micro Variants that share the media leaves it alone', async ({ page }) => {
   const card = await drawMove(page, {
     id: 'slash', name: 'Slash', stats: [], media: { src: MOVE_MEDIA, alt: 'Slash' },
