@@ -276,7 +276,9 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             container.innerHTML = `<div class="empty-tab-msg">Nothing has been recorded here yet.</div>`;
         }
 
-        const hasFrameData = movesArray.some(move => move.variants);
+        // A move an editor marked "No frame data" (a passive, a dash variant)
+        // has nothing the legend explains, whatever old tracks it still stores.
+        const hasFrameData = movesArray.some(move => move.variants && move.noFrameData !== true);
         if (hasFrameData) {
             container.innerHTML = frameDataLegendHTML;
         }
@@ -284,6 +286,11 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
         movesArray.forEach(move => {
             const card = document.createElement('section');
             card.className = 'skill-entry-card';
+            // "No frame data" (owner, 2026-11-16): the move's description takes
+            // the space the Frame Track would, and nothing says frame data is
+            // missing. Stored tracks are kept, so unticking brings them back.
+            const noFrameData = move.noFrameData === true;
+            if (noFrameData) card.classList.add('skill-entry-card-no-frames');
 
             // --- 1. STATS FALLBACK ---
             let statsHTML = '';
@@ -611,7 +618,9 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                 }
             }
 
-            if (move.variants && Object.keys(move.variants).length > 0) {
+            if (noFrameData) {
+                // Left empty here: the description is put in below.
+            } else if (move.variants && Object.keys(move.variants).length > 0) {
                 // Generates the entire recursive tree at once
                 buildNestedTabs({ variants: move.variants }, move.id, rightCol);
             } else {
@@ -625,7 +634,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             // --- 4. STRATEGY INJECTION TARGET ---
             const strategyTarget = document.createElement('div');
             strategyTarget.id = `strategy-${move.id}`;
-            card.appendChild(strategyTarget);
+            (noFrameData ? rightCol : card).appendChild(strategyTarget);
         });
 
 

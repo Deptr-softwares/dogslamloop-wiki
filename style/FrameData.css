@@ -30,6 +30,13 @@
 .skill-right-col { padding: 1.5rem; box-sizing: border-box; }
 @media (min-width: 1280px) { .skill-right-col { width: 66.666667%; } }
 
+/* A move marked "No frame data": its description sits in this column, and the
+   description brings its own padding. Its top line is the card's row line on a
+   wide screen and the left column's bottom line on a narrow one. */
+.skill-entry-card-no-frames .skill-right-col { padding: 0; }
+.skill-entry-card-no-frames .skill-right-col .skill-strategy-section { border-top: none; }
+.skill-entry-card-no-frames .skill-right-col .wiki-section-empty { border-top: none; }
+
 /* Media Box
    The box matches the source rather than the source being cropped to match
    the box (js/site_utils.js applyMediaFraming). 16:9 stays the bare default

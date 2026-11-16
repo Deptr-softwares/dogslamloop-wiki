@@ -1276,6 +1276,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .editor-row-spaced-sm { margin-bottom: 0.25rem; }
 .daw-stat-actions { display: flex; align-items: center; gap: 0.5rem; width: auto; flex: 0 0 auto; }
 .editor-checkbox-label { color: var(--text-muted); font-size: 0.75rem; }
+.daw-no-frames-hint { margin: 0.25rem 0 0; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem; line-height: 1.5; }
 /* Compound selectors: .btn-sys's own base rule sets padding at the same
    single-class specificity. */
 .btn-sys.daw-stat-del-btn { padding: 0.3rem 0.5rem; }

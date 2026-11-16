@@ -90,6 +90,15 @@ function initDawEditor(containerId, moveData) {
                             </select>
                         </div>
                     </div>
+                    <!-- For a passive or anything else with nothing to measure
+                         (owner, 2026-11-16). The tracks are kept, only not
+                         drawn, so a tick by mistake costs nothing. -->
+                    <div class="editor-row mt-2">
+                        <div>
+                            <label class="editor-checkbox-label"><input type="checkbox" id="move-no-frame-data" ${moveData.noFrameData === true ? 'checked' : ''}> No frame data</label>
+                            <p class="daw-no-frames-hint">For a move with nothing to measure, like a passive. Its Skill Card shows the description where the Frame Track would be.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
@@ -152,7 +161,16 @@ function initDawEditor(containerId, moveData) {
         let currentObj = getCurrentDawNode();
         let hasVariants = currentObj && currentObj.variants && Object.keys(currentObj.variants).length > 0;
 
-        if (currentObj && currentObj.bars) {
+        if (moveData.noFrameData === true) {
+            // The Micro Variant tabs go with the timeline: there is nothing to
+            // pick while the Frame Track is off.
+            variantTabsHtml = '';
+            dawHtml = `
+                <div class="daw-container daw-branch-empty-notice daw-no-frames-notice">
+                    <p class="daw-branch-hint">Frame data is turned off for this move. Nothing is deleted: untick "No frame data" to bring the Frame Track back.</p>
+                </div>
+            `;
+        } else if (currentObj && currentObj.bars) {
             let totalScale = currentObj.totalScale || 100;
             let tracksHtml = '';
 
@@ -529,6 +547,15 @@ function initDawEditor(containerId, moveData) {
         // Bound on `change`, not with the .meta-inp `input` handlers above:
         // initializeMangaSelects hides the native <select> behind a custom
         // dropdown that only ever dispatches `change`.
+        // Stored only when ticked, so a move nobody touched keeps its shape and
+        // a submission shows no change.
+        const noFrames = container.querySelector('#move-no-frame-data');
+        if (noFrames) noFrames.addEventListener('change', (e) => {
+            if (e.target.checked) moveData.noFrameData = true;
+            else delete moveData.noFrameData;
+            renderDaw();
+        });
+
         const framingSel = container.querySelector('#move-media-framing');
         if (framingSel) framingSel.addEventListener('change', (e) => {
             moveData.media.framing = e.target.value;
