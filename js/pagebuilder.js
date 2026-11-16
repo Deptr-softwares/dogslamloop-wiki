@@ -147,6 +147,83 @@ window.initMobileNav = function() {
             if (event.target.closest('a')) setOpen(null, false);
         });
     }
+
+    const navPanel = panels.find(p => p.el === left);
+    buildMobileBottomBar(navPanel ? () => setOpen(navPanel, true) : null);
+};
+
+// THE BOTTOM BAR (owner's mobile card, v1.2).
+//
+// On a phone, search, the account, Site Settings and Ko-fi all sat inside a
+// drawer: "No quick way to start searching the wiki on mobile (need to press
+// on the burger first in order to search)", and the same for the other three.
+// The owner's pick (2026-11-16) was one bar fixed to the bottom of the screen
+// with all four, on every page that has the phone top bar. The editor and the
+// review queue have no top bar, so they get no bottom bar either.
+//
+// Nothing here is a second copy of a feature. Search opens the navigation
+// drawer with its search box focused, Settings and Account call what the dock
+// buttons call, and Ko-fi takes its address from the page's own Ko-fi link.
+function buildMobileBottomBar(openNavDrawer) {
+    if (document.getElementById('mobile-bottom-bar')) return;
+    if (!document.querySelector('.mobile-top-bar')) return;
+
+    const svg = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" aria-hidden="true">${inner}</svg>`;
+    const ICONS = {
+        search: svg('<circle cx="10.5" cy="10.5" r="6.5"></circle><line x1="15.5" y1="15.5" x2="21" y2="21"></line>'),
+        kofi: svg('<path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line>'),
+        settings: svg('<line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line>'),
+    };
+    const kofiLink = document.querySelector('a[href*="ko-fi.com" i]');
+
+    const bar = document.createElement('nav');
+    bar.id = 'mobile-bottom-bar';
+    bar.className = 'mobile-bottom-bar';
+    bar.setAttribute('aria-label', 'Quick access');
+    bar.innerHTML = `
+        <button type="button" class="mobile-bottom-btn" data-bottom="search">${ICONS.search}<span>Search</span></button>
+        ${kofiLink ? `<a class="mobile-bottom-btn mobile-bottom-kofi" data-bottom="kofi" target="_blank" rel="noopener">${ICONS.kofi}<span>Ko-fi</span></a>` : ''}
+        <button type="button" class="mobile-bottom-btn" data-bottom="settings">${ICONS.settings}<span>Settings</span></button>
+        <button type="button" class="mobile-bottom-btn" data-bottom="account"><span class="mobile-bottom-icon"></span><span class="mobile-bottom-label">Account</span></button>`;
+    if (kofiLink) bar.querySelector('[data-bottom="kofi"]').href = kofiLink.href;
+    document.body.appendChild(bar);
+    document.body.classList.add('has-mobile-bottom-bar');
+
+    bar.querySelector('[data-bottom="search"]').addEventListener('click', () => {
+        // Looked up at the tap: the search box is built after this bar on
+        // some pages. Focused inside the tap itself, which is what lets a
+        // phone bring its keyboard up.
+        const input = document.getElementById('site-search-input');
+        if (!input || !openNavDrawer) {
+            const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : './';
+            window.location.href = `${rootPath}search.html`;
+            return;
+        }
+        openNavDrawer();
+        input.focus({ preventScroll: true });
+    });
+    bar.querySelector('[data-bottom="settings"]').addEventListener('click', () => {
+        if (typeof window.openSiteSettings === 'function') window.openSiteSettings();
+    });
+    bar.querySelector('[data-bottom="account"]').addEventListener('click', () => {
+        if (typeof window.openAuthModal === 'function') window.openAuthModal();
+    });
+
+    window.syncMobileBottomAccount();
+}
+
+// The account button shows who is signed in the way the dock does: the role's
+// icon, and LOGIN for a guest. The dock learns that from a request, and may
+// finish before or after the bar is built, so both ends call this.
+let mobileBottomAccount = { icon: null, signedIn: false };
+window.syncMobileBottomAccount = function(state) {
+    if (state) mobileBottomAccount = state;
+    const btn = document.querySelector('#mobile-bottom-bar [data-bottom="account"]');
+    if (!btn) return;
+    const icon = mobileBottomAccount.icon
+        || (typeof window.roleIconSvg === 'function' ? window.roleIconSvg('guest') : '');
+    btn.querySelector('.mobile-bottom-icon').innerHTML = icon;
+    btn.querySelector('.mobile-bottom-label').textContent = mobileBottomAccount.signedIn ? 'Account' : 'Login';
 };
 
 window.buildGlobalSidebarMenu = async function(containerId) {
@@ -556,6 +633,7 @@ window.initAuthDock = async function() {
     if (btnAuth && typeof window.openAuthModal === 'function') btnAuth.onclick = window.openAuthModal;
     const btnSettings = document.getElementById('dock-btn-settings');
     if (btnSettings) btnSettings.onclick = () => window.openSiteSettings();
+    window.syncMobileBottomAccount({ icon: loginIcon, signedIn: username !== 'LOGIN' });
 
     // Opens the real inbox modal built by js/site_utils.js's initNotifications.
     // This used to build a second modal here, with the same literal

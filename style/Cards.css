@@ -12,11 +12,16 @@
     box-sizing: border-box;
 }
 
-/* Default Hover Physics (Pops up and left, shadow deepens) */
-.wiki-card:hover, .update-log-item:hover, .faq-details:hover {
-    border-color: var(--accent-blue);
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px var(--accent-blue); 
+/* Default Hover Physics (Pops up and left, shadow deepens).
+   Only where there is a pointer to hover with (owner's mobile card, v1.2): a
+   phone keeps :hover on whatever was touched last, so a tap anywhere in a
+   panel made the whole panel jump and stay jumped. */
+@media (hover: hover) {
+    .wiki-card:hover, .update-log-item:hover, .faq-details:hover {
+        border-color: var(--accent-blue);
+        transform: translate(-2px, -2px);
+        box-shadow: 6px 6px 0px var(--accent-blue);
+    }
 }
 
 
@@ -28,10 +33,12 @@
 }
 
 /* Subtle hover for massive sections (prevents the whole page from flashing blue) */
-.wiki-section:hover, .skill-entry-card:hover {
-    border-color: hsl(212, 12%, 30%); 
-    transform: translate(-2px, -2px);
-    box-shadow: 8px 8px 0px var(--manga-shadow);
+@media (hover: hover) {
+    .wiki-section:hover, .skill-entry-card:hover {
+        border-color: hsl(212, 12%, 30%);
+        transform: translate(-2px, -2px);
+        box-shadow: 8px 8px 0px var(--manga-shadow);
+    }
 }
 
 .skill-entry-card { margin-bottom: 2rem; }
