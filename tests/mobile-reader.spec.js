@@ -123,7 +123,10 @@ const TABLE = `
     box: wrap.clientWidth, table: Math.round(table.getBoundingClientRect().width), height: Math.round(table.getBoundingClientRect().height),
     scrollsInBox: wrap.scrollWidth > wrap.clientWidth + 1,
     widestColumn: Math.max(...[...table.rows[table.rows.length - 1].cells].map(c => c.getBoundingClientRect().width)) / rem,
-    pageOverflow: document.documentElement.scrollWidth - window.innerWidth,
+    // Against the layout width, not window.innerWidth: an emulated phone zooms
+    // out to fit wide content, and innerWidth grows with the very overflow
+    // this is looking for.
+    pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
   };`;
 
 test('on a phone a table of sentences scrolls sideways in its own box', async ({ browser }) => {
@@ -188,7 +191,7 @@ test('a phone has a bottom bar with Search, Ko-fi, Settings and the account', as
   const place = await page.evaluate(() => {
     const r = document.getElementById('mobile-bottom-bar').getBoundingClientRect();
     return { bottomGap: window.innerHeight - r.bottom, width: r.width, height: r.height,
-             room: parseFloat(getComputedStyle(document.body).paddingBottom), screen: window.innerWidth };
+             room: parseFloat(getComputedStyle(document.body).paddingBottom), screen: document.documentElement.clientWidth };
   });
   expect(Math.abs(place.bottomGap)).toBeLessThan(1);
   expect(place.width).toBe(place.screen);
