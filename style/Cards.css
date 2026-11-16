@@ -250,7 +250,7 @@
     color: var(--accent-blue);
     margin: 1.25rem 0 0.25rem 0;
     padding-bottom: 0.3rem;
-    border-bottom: 1px dashed var(--border-color);
+    border-bottom: 1px solid var(--border-color);
 }
 
 /* The first heading sits directly under the description, which already has its

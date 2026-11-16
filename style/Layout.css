@@ -472,7 +472,9 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .system-button-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.65rem 0.9rem; }
 
 /* Systems directory grid (js/pagebuilder.js buildSystemsDirectory) */
-.system-category-block .sidebar-master-title { margin-top: 0; margin-bottom: 1.25rem; border-bottom: 2px dashed var(--border-color); }
+/* One line under every title (owner, 2026-11-16): solid, as .section-title has
+   it. Dashed is left for the lines between rows of a list. */
+.system-category-block .sidebar-master-title { margin-top: 0; margin-bottom: 1.25rem; }
 .system-directory-btn { width: 100%; padding: 0.6rem 1rem; }
 .system-directory-btn .btn-manga-content { justify-content: center; }
 .system-directory-btn .btn-manga-text { font-size: 0.85rem; letter-spacing: 1px; }
@@ -882,7 +884,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
    contents on the right (owner, 2026-08-18). */
 .aggregated-contributors-footer { box-sizing: border-box; display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2.5rem; margin-bottom: 0.5rem; padding: 1rem 1.25rem; background: var(--bg-main); border: 2px solid var(--border-color); clear: both; box-shadow: 6px 6px 0px var(--manga-shadow); position: relative; }
 .aggregated-contributors-footer::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background-color: var(--accent-blue); }
-.contributors-header { display: flex; align-items: center; gap: 0.5rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.85rem; color: var(--text-white); text-transform: uppercase; border-bottom: 2px dashed var(--border-color); padding-bottom: 0.5rem; }
+.contributors-header { display: flex; align-items: center; gap: 0.5rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.85rem; color: var(--text-white); text-transform: uppercase; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
 .contributors-list { display: flex; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.25rem; }
 /* One footer per tab (consolidateTabContributors in js/description.js), not
    one per section. It is the last thing in the tab now, so it takes the full
@@ -1391,7 +1393,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 .wiki-media-placeholder-icon { width: 64px; height: auto; opacity: 0.55; display: block; }
 
-.callout-tooltip-title { font-family: 'CC-Wild-Words', sans-serif; text-transform: uppercase; font-size: 0.9rem; display: block; margin-bottom: 0.5rem; padding-bottom: 0.25rem; color: var(--tooltip-accent); border-bottom: 1px dashed var(--tooltip-accent); }
+.callout-tooltip-title { font-family: 'CC-Wild-Words', sans-serif; text-transform: uppercase; font-size: 0.9rem; display: block; margin-bottom: 0.5rem; padding-bottom: 0.25rem; color: var(--tooltip-accent); border-bottom: 1px solid var(--tooltip-accent); }
 .callout-tooltip-desc { font-family: var(--text-mono); font-size: 0.75rem; color: #e5e7eb; line-height: 1.5; display: block; }
 
 /* .update-table's own base rule belongs to js/home_widgets.js's homepage
@@ -1901,7 +1903,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
    from .systems-grid-container's gap instead. */
 .column-subgroup-title {
     margin: 2rem 0 1.25rem;
-    border-bottom: 2px dashed var(--border-color);
 }
 /* The first group sits directly under the section header, which already has
    its own spacing. */
