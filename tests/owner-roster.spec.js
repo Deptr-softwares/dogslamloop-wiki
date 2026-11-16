@@ -132,11 +132,14 @@ test('revoke is offered to somebody with something to lose, and not otherwise', 
 
 test('a capability that comes with the role says so in text, not only a tooltip', async ({ page }) => {
     // Owner-reported: "The button to grant 'moderate discussions' doesn't work
-    // (clicking on it and nothing happen)." It was correct - moderation comes
-    // with reviewer - but the only explanation was a title attribute, which is
+    // (clicking on it and nothing happen)." It was correct - moderation came
+    // with the role - but the only explanation was a title attribute, which is
     // invisible to somebody who has already clicked.
+    //
+    // Moderation comes with admin and above since 20261116000000, so the row
+    // that shows this is the owner's.
     await openOwner(page);
-    const label = rowFor(page, 'reviewer@site.test')
+    const label = rowFor(page, 'owner@site.test')
         .locator('.personnel-capability')
         .filter({ hasText: 'Moderate discussions' });
 
@@ -144,6 +147,19 @@ test('a capability that comes with the role says so in text, not only a tooltip'
     // The claim is that a READER can see the reason - so assert the rendered
     // text, not the title attribute that failed this person.
     await expect(label).toContainText('comes with the role');
+});
+
+test("a reviewer's Moderate discussions box is live: the role no longer brings it", async ({ page }) => {
+    // The owner's card (v1.2): "Remove Reviewer default permission to moderate
+    // discussion". The tick is how a reviewer moderates now, so it has to be
+    // one the owner can press.
+    await openOwner(page);
+    const label = rowFor(page, 'reviewer@site.test')
+        .locator('.personnel-capability')
+        .filter({ hasText: 'Moderate discussions' });
+
+    await expect(label.locator('.personnel-capability-box')).toBeEnabled();
+    await expect(label).not.toContainText('comes with the role');
 });
 
 test('a capability that does not come with the role stays live and unexplained', async ({ page }) => {
