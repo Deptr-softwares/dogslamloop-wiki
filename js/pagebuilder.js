@@ -158,15 +158,14 @@ window.initMobileNav = function() {
 // drawer: "No quick way to start searching the wiki on mobile (need to press
 // on the burger first in order to search)", and the same for the other three.
 // The owner's pick (2026-11-16) was one bar fixed to the bottom of the screen
-// with all four, on every page that has the phone top bar. The editor and the
-// review queue have no top bar, so they get no bottom bar either.
+// with all four, on every page that starts the phone navigation. The editor
+// and the review queue never do, so they get no bottom bar.
 //
 // Nothing here is a second copy of a feature. Search opens the navigation
 // drawer with its search box focused, Settings and Account call what the dock
 // buttons call, and Ko-fi takes its address from the page's own Ko-fi link.
 function buildMobileBottomBar(openNavDrawer) {
     if (document.getElementById('mobile-bottom-bar')) return;
-    if (!document.querySelector('.mobile-top-bar')) return;
 
     const svg = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" aria-hidden="true">${inner}</svg>`;
     const ICONS = {
