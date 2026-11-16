@@ -164,6 +164,70 @@ test('on a desktop a table stays inside its box', async ({ browser }) => {
   await context.close();
 });
 
+// --- "Sometimes the sections would overflow to the right" --------------------
+//
+// A sweep of every page at 390px (2026-11-16) found two things that made the
+// whole page scroll sideways: a Skill Card's Micro Variant tabs, which never
+// wrapped, and a tech box's Practicality line, which never broke.
+
+const variantTab = (label) => `<button class="btn-manga btn-manga-slanted btn-manga-gray"><div class="btn-manga-content"><span class="btn-manga-text">${label}</span></div></button>`;
+const VARIANT_TABS = `
+  <section class="skill-entry-card"><div class="skill-entry-body"><div class="skill-right-col">
+    <div class="skill-tab-bar">${['On Hit', 'On Whiff', 'On Block (Front)', 'On Perfect Block', 'Air Variant, On Hit'].map(variantTab).join('')}</div>
+  </div></div></section>`;
+const TAB_ROWS = `
+  const bar = host.querySelector('.skill-tab-bar'), box = bar.getBoundingClientRect();
+  const tabs = [...bar.children].map(b => b.getBoundingClientRect());
+  return {
+    rows: new Set(tabs.map(t => Math.round(t.top))).size,
+    widestPastTheBar: Math.max(...tabs.map(t => t.right - box.right)),
+    pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  };`;
+
+test('on a phone the Micro Variant tabs wrap, and the page does not scroll sideways', async ({ browser }) => {
+  const { context, page } = await open(browser, PHONE);
+  const seen = await withMarkup(page, VARIANT_TABS, TAB_ROWS);
+
+  expect(seen.rows, 'more than one row of tabs').toBeGreaterThan(1);
+  // The slant leans each tab a few pixels past its box.
+  expect(seen.widestPastTheBar).toBeLessThanOrEqual(6);
+  expect(seen.pageOverflow).toBeLessThanOrEqual(0);
+  await context.close();
+});
+
+test('a Micro Variant name longer than the card is cut short, not spilled', async ({ browser }) => {
+  const { context, page } = await open(browser, PHONE);
+  const long = variantTab('A Micro Variant with a name far too long to fit across any phone screen at all');
+  const seen = await withMarkup(page, VARIANT_TABS.replace(/<div class="skill-tab-bar">.*<\/div>\s*<\/div><\/div><\/section>/s, `<div class="skill-tab-bar">${long}</div></div></div></section>`), TAB_ROWS);
+
+  expect(seen.widestPastTheBar).toBeLessThanOrEqual(6);
+  expect(seen.pageOverflow).toBeLessThanOrEqual(0);
+  await context.close();
+});
+
+const TECH_BOX = `
+  <section class="theorybox"><div class="theorybox-head">
+    <h4 class="theorybox-title">Tech</h4>
+    <span class="theorybox-difficulty">Difficulty: Hard</span>
+    <span class="theorybox-practicality">Practicality: only worth it in a ranked match when the opponent has no evasive left and is cornered</span>
+  </div></section>`;
+const TECH_FIT = `
+  const box = host.querySelector('.theorybox').getBoundingClientRect();
+  const line = host.querySelector('.theorybox-practicality').getBoundingClientRect();
+  const lineHeight = parseFloat(getComputedStyle(host.querySelector('.theorybox-practicality')).fontSize) * 1.2;
+  return { past: line.right - box.right, lines: Math.round(line.height / lineHeight),
+           pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };`;
+
+test('on a phone a long Practicality line breaks inside its tech box', async ({ browser }) => {
+  const { context, page } = await open(browser, PHONE);
+  const seen = await withMarkup(page, TECH_BOX, TECH_FIT);
+
+  expect(seen.past, 'the line ends inside the box').toBeLessThanOrEqual(0);
+  expect(seen.lines).toBeGreaterThan(1);
+  expect(seen.pageOverflow).toBeLessThanOrEqual(0);
+  await context.close();
+});
+
 // --- "No quick way to start searching", the account, Site Settings, Ko-fi ----
 
 const bar = (page) => page.locator('#mobile-bottom-bar');
