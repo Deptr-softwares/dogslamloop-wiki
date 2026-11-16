@@ -165,6 +165,10 @@ test('on a desktop a table stays inside its box', async ({ browser }) => {
 
 const bar = (page) => page.locator('#mobile-bottom-bar');
 
+// These load a real character page, sign-in dock and all, and a busy machine
+// took most of the default 30 seconds doing only that.
+test.beforeEach(async ({}, testInfo) => { testInfo.setTimeout(90000); });
+
 async function openBoomcat(browser, device, init) {
   const context = await browser.newContext(device);
   const page = await context.newPage();
