@@ -300,7 +300,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.currentUserId = session.user.id;
     window.currentUserRoles = roles;
-    window.currentUserCanModerate = canModerate || isReviewStaff;
+    // Mirrors public.can_moderate() (20261116000000): admin and above, or the
+    // owner's tick. A reviewer is review staff and still not a moderator
+    // unless ticked.
+    const moderates = canModerate || window.rolesMeet(roles, 'admin');
+    window.currentUserCanModerate = moderates;
     window.currentUserExpertPages = expertPages.map(p => p.page_id);
     // Moderator-only: in the building, but not on the review team.
     window.currentUserIsModeratorOnly = !isReviewStaff && canModerate && !isExpert;
@@ -318,7 +322,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // theirs.
     const seesRevisions = isReviewStaff || isExpert;
     const seesMedia     = isReviewStaff;
-    const seesReports   = isReviewStaff || canModerate;
+    const seesReports   = moderates;
     window.currentUserSeesRevisions = seesRevisions;
     window.currentUserSeesMedia = seesMedia;
     window.currentUserSeesReports = seesReports;

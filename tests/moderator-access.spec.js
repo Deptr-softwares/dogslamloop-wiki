@@ -70,7 +70,11 @@ async function mockRole(page, roleRow, expertPages = []) {
 }
 
 const MODERATOR = { role: 'trusted_editor', can_moderate: true };
+// A reviewer reviews revisions. Moderating is the owner's tick, for them as
+// for anyone below admin (20261116000000, the owner's card "Remove Reviewer
+// default permission to moderate discussion").
 const REVIEWER = { role: 'reviewer', can_moderate: false };
+const REVIEWER_WHO_MODERATES = { role: 'reviewer', can_moderate: true };
 const ADMIN = { role: 'admin', can_moderate: false };
 const NOBODY = { role: 'trusted_editor', can_moderate: false };
 
@@ -141,7 +145,19 @@ test('the queues are hidden, not removed, so nothing else null-dereferences', as
     expect(present).toEqual({ queue: true, media: true, preview: true });
 });
 
-for (const [name, row] of [['reviewer', REVIEWER], ['admin', ADMIN]]) {
+test('a reviewer without the tick sees the revision and media queues, and no Reports', async ({ page }) => {
+    await openAdmin(page, REVIEWER);
+
+    await expect(page.locator('#queue-container')).toBeVisible();
+    await expect(page.locator('#media-queue-container')).toBeVisible();
+    await expect(page.locator('#report-queue-container')).toBeHidden();
+    await expect(page.getByRole('heading', { name: 'Reports' })).toBeHidden();
+    // Still review staff: the page is not narrowed to the moderation view.
+    await expect(page.locator('body')).not.toHaveClass(/admin-moderator-only/);
+    expect(await page.evaluate(() => window.currentUserCanModerate)).toBe(false);
+});
+
+for (const [name, row] of [['reviewer the owner ticked', REVIEWER_WHO_MODERATES], ['admin', ADMIN]]) {
     test(`a ${name} still sees every queue`, async ({ page }) => {
         await openAdmin(page, row);
 

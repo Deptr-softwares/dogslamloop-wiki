@@ -483,11 +483,38 @@ test('the capability grants moderation without granting a role', async ({ page }
     await expect(page.locator('#post-p1 [data-mod-action="remove"]')).toHaveCount(1);
 });
 
+test("a reviewer does not moderate by role, only by the owner's tick", async ({ page }) => {
+    // The owner's card (v1.2): "Remove Reviewer default permission to moderate
+    // discussion". Reviewing revisions and moderating people are handed out
+    // separately, so an unticked reviewer reads a thread as any member does.
+    await mockThread(page, {
+        rows: [post({ id: 'p1', author_id: 'u-other' })],
+        session: SESSION, role: 'reviewer',
+        roleRow: { role: 'reviewer', can_moderate: false },
+    });
+    await open(page);
+
+    await expect(page.locator('#post-p1 [data-moderate]')).toHaveCount(0);
+    await expect(page.locator('#post-p1 [data-report-post]'), 'they report, like everyone else').toHaveCount(1);
+});
+
+test('an admin moderates by role, with no tick', async ({ page }) => {
+    await mockThread(page, {
+        rows: [post({ id: 'p1', author_id: 'u-other' })],
+        session: SESSION, role: 'admin',
+        roleRow: { role: 'admin', can_moderate: false },
+    });
+    await open(page);
+
+    await expect(page.locator('#post-p1 [data-mod-action="hide"]')).toHaveCount(1);
+    await expect(page.locator('#post-p1 [data-report-post]')).toHaveCount(0);
+});
+
 test('moderating requires a reason, which is what makes the log an audit', async ({ page }) => {
     await mockThread(page, {
         rows: [post({ id: 'p1' })],
         session: SESSION, role: 'reviewer',
-        roleRow: { role: 'reviewer', can_moderate: false },
+        roleRow: { role: 'reviewer', can_moderate: true },
     });
     await open(page);
 
@@ -532,7 +559,7 @@ test('a hidden post shows a moderator its text under an unmistakable marker', as
     await mockThread(page, {
         rows: [post({ id: 'p1', status: 'hidden', body: 'borderline take' })],
         session: SESSION, role: 'reviewer',
-        roleRow: { role: 'reviewer', can_moderate: false },
+        roleRow: { role: 'reviewer', can_moderate: true },
     });
     await open(page);
 
@@ -628,7 +655,7 @@ test('a moderator gets moderation controls instead of a report button', async ({
     await mockThread(page, {
         rows: [post({ id: 'p1', author_id: 'u-other' })],
         session: SESSION, role: 'reviewer',
-        roleRow: { role: 'reviewer', can_moderate: false },
+        roleRow: { role: 'reviewer', can_moderate: true },
     });
     await open(page);
 

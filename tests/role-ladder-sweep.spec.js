@@ -209,7 +209,12 @@ test('can_moderate keeps the per-user flag that is its reason to exist', async (
   // is not staff at all. A rewrite that kept only the role half would look
   // correct and quietly revoke every hand-granted moderator.
   const fn = liveFunctions().get('can_moderate');
-  expect(fn.text, 'built on the ladder now').toMatch(/"is_staff"\(\)/);
+  // Admin and above by role since 20261116000000 (the owner's card: "Remove
+  // Reviewer default permission to moderate discussion"). is_staff() would
+  // let every reviewer back in.
+  expect(fn.text, 'built on the ladder, at admin')
+    .toContain(`"role_rank"("public"."get_my_role"()) >= "public"."role_rank"('admin')`);
+  expect(fn.text, 'and not the staff bar, which starts at reviewer').not.toMatch(/is_staff/);
   expect(fn.text, 'and still reads the capability column').toMatch(/ur\.can_moderate/);
   expect(fn.text, 'still SECURITY DEFINER, because it reads user_roles')
     .toMatch(/SECURITY DEFINER/);

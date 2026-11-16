@@ -213,7 +213,10 @@ function roleOptionsHTML(currentRole) {
 // tooltip, and a tooltip is invisible to somebody who has already clicked.
 // Nothing about the logic changed here; the reason just became legible.
 function capabilityState(person, capability) {
-    if (capability === 'can_moderate' && window.roleMeets(person.role, 'reviewer')) {
+    // Admin and above since 20261116000000: a reviewer moderates only by this
+    // tick (the owner's card, "Remove Reviewer default permission to moderate
+    // discussion"), so their box is live.
+    if (capability === 'can_moderate' && window.roleMeets(person.role, 'admin')) {
         return { disabled: true, note: 'comes with the role' };
     }
     if (capability === 'can_delete_media' && window.roleMeets(person.role, 'admin')) {
@@ -316,12 +319,12 @@ function personnelRowHTML(person) {
             </label>
             <!--
                 The second capability, following the pattern the first one set.
-                Admins and reviewers can already moderate by virtue of their
-                role, so this box is what grants it to everybody else - which
-                is the point: moderating threads should not require handing
-                somebody the whole revision queue.
+                Admins can already moderate by virtue of their role, so this
+                box is what grants it to everybody else, reviewers included
+                (20261116000000): moderating threads and reviewing revisions
+                are handed out separately, in both directions.
             -->
-            <label class="personnel-capability" title="Lets this person hide or remove discussion posts. Admins and reviewers can already do this.">
+            <label class="personnel-capability" title="Lets this person hide or remove discussion posts and handle reports. Admins can already do this.">
                 <input type="checkbox" class="personnel-capability-box"
                        data-email="${ownerEscape(person.email)}"
                        data-capability="can_moderate"
