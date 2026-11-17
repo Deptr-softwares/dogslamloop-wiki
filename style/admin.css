@@ -697,6 +697,22 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 .ticket-header-title { margin: 0 0 0.75rem 0; font-size: 0.85rem; font-family: 'CC-Wild-Words', sans-serif; }
 .ticket-header-title.status { color: #eab308; }
 .ticket-header-title.log { color: var(--accent-blue); }
+.ticket-header-title.qa { color: #3b82f6; }
+
+/* --- QA REPORT (owner's Overseer card, v1.2): above the ticket, on every submission --- */
+.qa-report-panel {
+    background: hsl(0, 0%, 2%);
+    border: 1px solid hsl(0, 0%, 20%);
+    border-top: 2px solid #3b82f6;
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+.qa-report { font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); overflow-wrap: anywhere; }
+/* A changelog with a staff note, and a merged ticket's evidence, are several lines. */
+.qa-report-value { white-space: pre-wrap; }
 .ticket-status-text { font-size: 0.75rem; margin: 0 0 0.25rem 0; font-family: var(--text-mono); }
 .ticket-status-text.support { color: #22c55e; }
 .ticket-status-text.oppose { color: #ef4444; margin-bottom: 1.5rem; }

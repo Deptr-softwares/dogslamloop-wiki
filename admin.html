@@ -182,17 +182,21 @@
                 <div id="preview-action-buttons"></div>
             </div>
 
+            <!-- QA REPORT (owner's Overseer card, v1.2). What the contributor
+                 said about the open submission. Was inside the ticket below,
+                 so a submission with no ticket never showed it. Filled by
+                 renderQaReport in js/admin-preview.js. -->
+            <section id="qa-report-panel" class="qa-report-panel hidden" aria-labelledby="qa-report-title">
+                <h4 id="qa-report-title" class="ticket-header-title qa">QA REPORT</h4>
+                <div id="qa-report" class="qa-report"></div>
+            </section>
+
             <!-- TICKET COMMUNICATION HUB -->
             <div id="ticket-workspace" class="ticket-workspace hidden">
                 <div class="ticket-left-col">
                     <h4 class="ticket-header-title status">TICKET STATUS</h4>
                     <p id="ticket-support-text" class="ticket-status-text support"></p>
                     <p id="ticket-oppose-text" class="ticket-status-text oppose"></p>
-                    
-                    <h4 class="ticket-header-title" style="color: #3b82f6; margin-top: 1.5rem;">QA REPORT</h4>
-                    <div id="ticket-qa-report" style="background: rgba(0,0,0,0.3); border: 1px dashed #333; padding: 0.75rem; border-radius: 4px; font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); margin-bottom: 1rem; overflow-wrap: break-word;">
-                        Select a ticket to view QA data.
-                    </div>
 
                     <div id="ticket-support-actions"></div>
                 </div>

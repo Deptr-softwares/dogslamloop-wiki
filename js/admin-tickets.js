@@ -50,21 +50,8 @@ function renderTicketWorkspace(rev, isOwnSubmission, hasSupported, hasOpposed) {
         supportActions.innerHTML = `<div class="ticket-vote-actions-row">${supBtn}${oppBtn}</div>`;
     }
 
-    const qa = rev.qa_metadata || {};
-    // changelog/confidence/evidence are all typed by whoever submitted the
-    // revision - not staff - so they're escaped like the chat log below.
-    // evidence additionally only renders as a clickable link for http(s)
-    // URLs (rejects e.g. a javascript: URI slipped into the field).
-    const isSafeEvidenceUrl = qa.evidence && /^https?:\/\//i.test(qa.evidence);
-    const evidenceHtml = isSafeEvidenceUrl
-        ? `<a href="${window.escapeHtml(qa.evidence)}" target="_blank" rel="noopener noreferrer" class="ticket-qa-link">[View Attached Link]</a>`
-        : (qa.evidence ? 'Evidence link is not a valid http(s) URL.' : 'No evidence linked.');
-    const qaHtml = `
-        <div class="ticket-qa-field"><strong class="ticket-qa-label">Changelog:</strong><br>${qa.changelog ? window.escapeHtml(qa.changelog) : 'No changelog provided.'}</div>
-        <div class="ticket-qa-field"><strong class="ticket-qa-label">Confidence:</strong><br>${qa.confidence ? window.escapeHtml(qa.confidence) : 'Unrated'}</div>
-        <div><strong class="ticket-qa-label">Evidence:</strong><br>${evidenceHtml}</div>
-    `;
-    document.getElementById('ticket-qa-report').innerHTML = qaHtml;
+    // The QA report was drawn here until v1.2. It is the review pane's own
+    // panel now, for every submission: renderQaReport in js/admin-preview.js.
 
     chatLog.innerHTML = '';
     if (rev.ticket_chat.length === 0) {

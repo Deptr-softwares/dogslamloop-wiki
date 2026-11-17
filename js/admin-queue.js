@@ -396,6 +396,8 @@ function resetPreviewState() {
     document.getElementById('preview-action-buttons').classList.add('hidden');
     document.getElementById('preview-nav-sidebar').classList.add('hidden');
     document.getElementById('ticket-workspace').classList.add('hidden');
+    const qaReport = document.getElementById('qa-report-panel');
+    if (qaReport) qaReport.classList.add('hidden');
 
     const toggleBar = document.getElementById('version-toggle-bar');
     if (toggleBar) toggleBar.classList.add('hidden');
