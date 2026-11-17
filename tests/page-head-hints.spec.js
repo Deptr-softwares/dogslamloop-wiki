@@ -84,3 +84,51 @@ test('a page makes its client from the copy on the site and asks no CDN for it',
     expect(await page.evaluate(() => typeof window.supabase.createClient)).toBe('function');
     expect(cdn).toEqual([]);
 });
+
+// v1.2 (owner, 2026-11-17, the performance card): the home page's scripts sit
+// above its Content-Security-Policy meta tag, deferred. Chrome stops fetching
+// ahead when it meets that tag, so with the scripts at the end of the body they
+// were fetched one at a time, each a whole trip after the last: the page was
+// ready for its data at about 1.6s instead of 0.35s.
+test('the home page asks for all its scripts before the first one arrives, and still boots', async ({ page, context }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+
+    // A trip's worth of delay on every request, so one-at-a-time would show.
+    const cdp = await context.newCDPSession(page);
+    await cdp.send('Network.enable');
+    await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 150, downloadThroughput: -1, uploadThroughput: -1 });
+
+    const asked = [];
+    let firstArrived = Infinity;
+    const own = (r) => r.resourceType() === 'script' && /\/js\//.test(r.url());
+    page.on('request', r => { if (own(r)) asked.push(Date.now()); });
+    page.on('requestfinished', r => { if (own(r)) firstArrived = Math.min(firstArrived, Date.now()); });
+
+    await page.goto('/index.html', { waitUntil: 'load' });
+
+    expect(asked.length, 'the home page loads its scripts').toBeGreaterThan(5);
+    expect(Math.max(...asked), 'every script was asked for before the first one arrived').toBeLessThan(firstArrived);
+
+    // Still boots: the scripts ran, then the boot script after them.
+    await expect(page.locator('#global-sidebar-nav a').first()).toBeAttached({ timeout: 15000 });
+    await expect(page.locator('#faq-dynamic-container')).not.toBeEmpty();
+    expect(errors).toEqual([]);
+});
+
+test('on the home page every script is above the policy and deferred, and the boot script runs after them', () => {
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const policy = html.indexOf('http-equiv="Content-Security-Policy"');
+    expect(policy).toBeGreaterThan(-1);
+
+    const tags = [...html.matchAll(/<script\b[^>]*\bsrc="[^"]*"[^>]*>/g)];
+    expect(tags.length).toBeGreaterThan(5);
+    for (const t of tags) {
+        expect(t.index, `${t[0]} is above the policy`).toBeLessThan(policy);
+        expect(t[0], 'and deferred, so it runs once the page is read, in order').toMatch(/\bdefer\b/);
+    }
+    // A plain inline script would run during parsing, before the deferred
+    // ones, and add its DOMContentLoaded listener ahead of theirs.
+    const inline = [...html.matchAll(/<script\b(?![^>]*\bsrc=)[^>]*>/g)].map(m => m[0]);
+    expect(inline).toEqual(['<script type="module">']);
+});
