@@ -208,6 +208,7 @@ ${social}
     <script src="../../js/internalstyling.js"></script>
 
     <script src="../../js/page_boot.js"></script>
+    <script async src="../../js/analytics.js"></script>
 </body>
 </html>
 `;
@@ -261,6 +262,7 @@ ${social}
     <script src="../../js/internalstyling.js"></script>
 
     <script src="../../js/page_boot.js"></script>
+    <script async src="../../js/analytics.js"></script>
 </body>
 </html>
 `;
@@ -322,6 +324,7 @@ ${social}
     <script src="../../js/${extraScript}"></script>` : ''}
 
     <script src="../../js/page_boot.js"></script>
+    <script async src="../../js/analytics.js"></script>
 </body>
 </html>
 `;

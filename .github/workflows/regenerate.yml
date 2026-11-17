@@ -171,6 +171,16 @@ jobs:
       - name: Mirror portraits into the repo
         run: node scripts/fetch-portraits.js --write
 
+      # The first frame and size of every video the pages show (v1.2), drawn
+      # in the browser installed above. Only a video that is new, or whose file
+      # changed, is fetched, and only its first 512 KB unless that cannot be
+      # decoded. A video it cannot fetch or decode keeps its last still (or has
+      # none) and is reported as a warning on the run, like a portrait, and a
+      # run that cannot read the pages changes nothing: this step never stops
+      # the content.
+      - name: Make video stills
+        run: node scripts/fetch-video-stills.js --write
+
       # navigation.json is generated too as of v0.10. buildNavigation is
       # round-trip tested against the committed file, and this script refuses
       # to write if the result fails validation - it drives every menu on the

@@ -9,6 +9,7 @@ Frame data, i-frames, matchup tiers and M1 trading are domain terms with real ga
 - Static HTML/CSS/JS. **No bundler, no build step.** Classic `<script src>` tags sharing one `window` global scope.
 - **Supabase** (Postgres + PostgREST + Auth + Storage), fetched client-side with the public anon key. That key ships in `js/site_utils.js` and is in every page's source: it is not a secret. **The service-role key must never appear in this repo or in CI.**
 - **The Supabase client library is a file in the repo**, `js/vendor/supabase-js-2.118.0.js`: npm's published file byte for byte, with its MIT licence beside it, loaded before `site_utils.js` on every page (owner, 2026-11-17: one CDN, not two). A new version is a new file with the version in its name, every page's tag changed (the generator's templates included), and the hash in `tests/page-head-hints.spec.js` updated.
+- **Visitors are counted by Umami Cloud** (owner, 2026-11-17: KLIPY asks for monthly active users; "the least intrusive and minimal things"), through `js/analytics.js` on reader pages only, never staff or editor pages. Page views only, on `dogslamloop.com` only, without the `?query` or `#hash`, Do Not Track respected, no speed or error data. Cloudflare's Web Analytics is off. The privacy policy says what is collected; a change to what is collected changes the policy too.
 - **KLIPY's API key ships in `js/discussions.js`**, visible like the anon key (the owner's choice, 2026-10-02; a test key, 100 lookups an hour, until the owner's production key). A KLIPY link is looked up once, when the post is made, and the post stores the GIF's own address. Never move the lookup to render time. **Only a reader's browser calls KLIPY** (the post box's lookup and its GIF picker): KLIPY's production rules forbid requests from a partner's server without their written approval, so the relay never calls it and waits for Discord's own preview instead (batch 8.5).
 - **The Discord relay** (`supabase/functions/discord-relay`) is the one Edge Function, live on production since 2026-10-07, so a merge to `main` that changes it changes the real Discord server. **Its bot token and webhook URLs live in Supabase secrets, set by the owner, and never appear in this repo, in CI or in a chat message.** The rest is in `.claude/rules/discord-relay.md`.
 - **GitHub Pages** from `main`, custom domain `dogslamloop.com`.
@@ -34,6 +35,7 @@ npm run lock-migrations   # re-record migration checksums (only when re-locking 
 npm run generate          # rewrite page stubs from navigation.json
 npm run refresh-previews  # pull portrait URLs from Supabase
 npm run refresh-portraits # mirror those portraits into medias/portraits/
+npm run refresh-stills    # first frame + size of every video the pages show, into medias/stills/
 npm run refresh-registry  # rewrite navigation.json from site_pages
 npm run refresh-content   # rewrite faq.json + collaborators_data.json + site_meta.json
 ```
@@ -49,6 +51,7 @@ Edit the source and regenerate; `regenerate.yml` overwrites hand-edits.
 | `data/navigation.json` | `site_pages` table |
 | `data/page-previews.json` | `page_data.desc_data.profile.image` |
 | `data/portraits.json` + `medias/portraits/*` | mirrored from the URLs in `page-previews.json`; a portrait that is not really a WebP, or is over 200 KB, is shrunk to a WebP at most 512px (the original in Storage is untouched) |
+| `data/video-stills.json` + `medias/stills/*` | the first frame (a WebP at most 640px) and the size of every wiki-media video `page_data` links to, via `scripts/fetch-video-stills.js`. Only a new or changed video is fetched, and only its first 512 KB unless that cannot be decoded. Pages show the still until the video plays (`js/description.js`) |
 | `data/faq.json` | `site_faq` table |
 | `data/site_meta.json` | `site_meta` table. **The version string lives here**, so a release bump is an owner-tools edit plus `npm run refresh-content` |
 | `systems/collaborators/collaborators_data.json` | `site_collaborators` table |
