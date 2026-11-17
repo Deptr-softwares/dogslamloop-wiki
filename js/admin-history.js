@@ -55,11 +55,14 @@ function revealPageHistoryContainer() {
         document.querySelector('.main-content-area').appendChild(container);
     }
 
-    // Same "hide every other pane" sweep switchVersionView's diff mode
-    // uses - character-type revisions reuse admin.html's static #tab-*
-    // divs (carry .tab-content), system-type ones are dynamically built
-    // (carry .wiki-tab-content) - both need to be caught.
+    // Same "hide every other pane" sweep switchVersionView's diff mode uses.
+    // System-type pages build their tabs (.wiki-tab-content); character-type
+    // ones reuse admin.html's static #tab-* divs, which carry neither class.
+    // This used to say they carry .tab-content and swept only the classes, so
+    // on a whole-page submission (which opens on PENDING, not DIFF) the page
+    // stayed on screen with the list of versions underneath it.
     document.querySelectorAll('.tab-content, .wiki-tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('#preview-content-area > div[id^="tab-"]').forEach(el => el.classList.add('hidden'));
     const diffContainer = document.getElementById('admin-diff-container');
     if (diffContainer) diffContainer.classList.add('hidden');
 

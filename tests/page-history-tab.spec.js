@@ -197,3 +197,27 @@ test('when the live page cannot be read, it says so rather than comparing agains
     await expect(list(page)).toContainText('upstream timeout');
     await expect(list(page).locator('.page-history-card')).toHaveCount(0);
 });
+
+test('PAGE HISTORY on a whole-page submission takes the page off the screen, and gives it back', async ({ page }) => {
+    // A bug in the button this tab grew out of. A whole-page submission opens
+    // on PENDING, where the page is drawn in admin.html's own #tab-* boxes, and
+    // the button only hid boxes by a class those do not carry: the list of
+    // versions sat underneath the whole page.
+    const wholePage = {
+        ...pendingRev, status: 'pending', is_delta: false,
+        desc_data: { overview: [{ type: 'paragraph', content: 'PENDING OVERVIEW TEXT' }] }, frame_data: {},
+    };
+    await openOverseer(page, { rows: [wholePage] });
+    await page.locator('#queue-container .admin-review-btn').click();
+    await expect(page.locator('#tab-overview')).toContainText('PENDING OVERVIEW TEXT');
+    await expect(page.locator('#tab-overview')).toBeVisible();
+
+    await page.locator('#btn-view-history').click();
+    await expect(list(page)).toBeVisible();
+    await expect(page.locator('#tab-overview')).toBeHidden();
+
+    await page.locator('#btn-view-history').click();
+    await expect(list(page)).toBeHidden();
+    await expect(page.locator('#tab-overview')).toBeVisible();
+    await expect(page.locator('#tab-overview')).toContainText('PENDING OVERVIEW TEXT');
+});
