@@ -241,8 +241,9 @@
                 window.renderHubList('systems-hub', 'startHere', 'start-here-list');
                 window.renderHubList('systems-hub', 'contribute', 'contribute-list');
             }
-            // Awaited: each un-hides its own section, and the ToC below must
-            // not be built before the page knows which sections exist.
+            // Awaited, so the ToC below is built after both have drawn. (It
+            // lists these two sections even while they are hidden: refreshTOC
+            // skips only the .hidden class, and these use the attribute.)
             // Together rather than one after the other (v1.2, the owner's
             // performance card): they read different rows, and in turn the
             // chart waited a whole trip to the database for the peek.

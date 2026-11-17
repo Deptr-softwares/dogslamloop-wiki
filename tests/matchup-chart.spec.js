@@ -104,7 +104,7 @@ const GLOSSARY = { tabs: [{ sections: [{ blocks: [
     { type: 'paragraph', content: 'The part of a round where neither player has the advantage.' },
 ] }] }] };
 
-test('the chart is asked for while the glossary peek is still loading, and the contents list waits for both', async ({ page }) => {
+test('the chart is asked for while the glossary peek is still loading', async ({ page }) => {
     // v1.2, the owner's performance card. The chart's query used to go out
     // only after the peek's answer came back: one whole trip to the database
     // (Frankfurt) more, about 0.4 to 0.7s.
@@ -118,16 +118,9 @@ test('the chart is asked for while the glossary peek is still loading, and the c
     expect(t.matchupAsked, 'the chart was asked for').toBeGreaterThan(0);
     expect(t.matchupAsked, 'before the peek had its answer').toBeLessThan(t.peekAnswered);
 
-    // Still built after both: a contents list made before the slow peek
-    // un-hid its section would have no entry for it.
-    const sections = await page.locator('#dynamic-toc a').evaluateAll(links => links.map(a => {
-        const id = decodeURIComponent((a.getAttribute('href') || '').replace(/^.*#/, ''));
-        const target = id && document.getElementById(id);
-        const section = target && target.closest('section');
-        return section ? section.id : null;
-    }));
-    expect(sections).toContain('glossary-section');
-    expect(sections).toContain('matchup-section');
+    // Not asserted: that the contents list is built after both. It lists both
+    // sections whether or not they are showing (refreshTOC skips only the
+    // .hidden class), so the order cannot be seen from the page.
 });
 
 test('the chart renders a cell per pairing, coloured by tier', async ({ page }) => {
