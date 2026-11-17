@@ -366,3 +366,10 @@ test('the Reports tab counts the open reports, and a list of handled ones does n
     await expect(page.locator('#report-queue-container')).toContainText('Nothing reported');
     await expect(count).toHaveText('2');
 });
+
+test('an empty Reports queue leaves its tab without a number', async ({ page }) => {
+    // A "0" on a tab is noise: no number means nothing is waiting.
+    await openQueue(page, { rows: [] });
+    await expect(page.locator('#report-queue-container')).toContainText('Nothing reported');
+    await expect(page.locator('[data-queue-count="reports"]')).toHaveText('');
+});
