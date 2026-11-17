@@ -24,6 +24,7 @@ async function previewRevision(revId) {
     document.getElementById('preview-status-text').innerHTML = `REVIEWING: <strong class="admin-preview-status-highlight">${window.escapeHtml(rev.page_id.toUpperCase())}</strong> (By ${window.escapeHtml(rev.author_name)})`;
 
     updateActionButtons(rev);
+    renderQaReport(rev);
     document.getElementById('preview-nav-sidebar').classList.remove('hidden');
     document.getElementById('preview-tab-nav').classList.remove('hidden');
 
@@ -158,6 +159,42 @@ async function previewRevision(revId) {
             actionBtns.scrollIntoView({ behavior: window.scrollMotion(), block: 'center' });
         }
     }, 150);
+}
+
+// --- THE QA REPORT (owner's Overseer card, v1.2) ---
+//
+// "There is no way to view the full QA, unless you need to open a ticket." It
+// was drawn inside the ticket workspace, so a submission nobody had opened a
+// ticket on never showed it. It is the pane's own panel now, for whichever
+// submission is open, ticket or not.
+//
+// All of it is contributor text on a staff page, so all of it is escaped. The
+// evidence is a link only when it is one whole http(s) address (a javascript:
+// URI typed into the field stays text), and the address is the link's text, so
+// a reviewer sees where it goes before pressing it. Anything else is shown as
+// written: a merged ticket's evidence is one block per contributor
+// (js/admin-merge-compiler.js), and a sentence is evidence too. Both used to
+// read "Evidence link is not a valid http(s) URL." with the text hidden.
+function renderQaReport(rev) {
+    const panel = document.getElementById('qa-report-panel');
+    const report = document.getElementById('qa-report');
+    if (!panel || !report) return;
+
+    const qa = (rev && rev.qa_metadata) || {};
+    const evidence = typeof qa.evidence === 'string' ? qa.evidence.trim() : '';
+    let evidenceHtml = 'No evidence linked.';
+    if (/^https?:\/\/\S+$/i.test(evidence)) {
+        evidenceHtml = `<a href="${window.escapeHtml(evidence)}" target="_blank" rel="noopener noreferrer" class="ticket-qa-link qa-report-evidence">${window.escapeHtml(evidence)}</a>`;
+    } else if (evidence) {
+        evidenceHtml = `<span class="qa-report-value qa-report-evidence">${window.escapeHtml(evidence)}</span>`;
+    }
+
+    report.innerHTML = `
+        <div class="ticket-qa-field"><strong class="ticket-qa-label">Changelog:</strong><br><span class="qa-report-value">${qa.changelog ? window.escapeHtml(qa.changelog) : 'No changelog provided.'}</span></div>
+        <div class="ticket-qa-field"><strong class="ticket-qa-label">Confidence:</strong><br>${qa.confidence ? window.escapeHtml(qa.confidence) : 'Unrated'}</div>
+        <div><strong class="ticket-qa-label">Evidence:</strong><br>${evidenceHtml}</div>
+    `;
+    panel.classList.remove('hidden');
 }
 
 // --- VERSION COMPARISON ENGINE ---
@@ -1132,11 +1169,9 @@ async function switchVersionView(mode) {
         } else {
             console.warn("tierlist.js is not loaded in Admin.html");
         }
-        setTimeout(window.showChangedTabsPopup, 200);
     } else {
         if (typeof loadPageDescriptions === 'function') {
             await loadPageDescriptions(window.activePreviewCharId, window.activePreviewPageType);
-            setTimeout(window.showChangedTabsPopup, 200);
         }
 
         if (window.activePreviewPageType !== 'system' && typeof loadMoveSection === 'function') {

@@ -147,6 +147,9 @@ window.renderMediaQueue = function() {
 
     const statusFilter = document.getElementById('media-queue-status')?.value || 'unchecked';
     const usageFilter = document.getElementById('media-queue-usage')?.value || 'all';
+    if (typeof window.setQueueCount === 'function') {
+        window.setQueueCount('media', mediaQueueRows.filter(row => row.status === 'unchecked').length);
+    }
 
     const visible = mediaQueueRows.filter(row => {
         if (statusFilter !== 'all' && row.status !== statusFilter) return false;

@@ -60,6 +60,23 @@
                     </div>
                 </div>
 
+                <!--
+                    One queue at a time (owner's Overseer card, v1.2). The
+                    three used to sit stacked in this column: "When I need to
+                    approve media, I will have to scroll through dozens of
+                    submission just to get to it. And when I want to see
+                    Reports, I have to scroll through hundreds of media cards."
+                    js/admin-core.js shows the tabs a person is here for and
+                    opens the first of them.
+                -->
+                <div id="admin-queue-tabs" class="admin-queue-tabs" role="tablist" aria-label="Queues">
+                    <button type="button" role="tab" class="admin-queue-tab active" data-queue-tab="revisions" aria-selected="true">Pending Queue<span class="admin-queue-count" data-queue-count="revisions"></span></button>
+                    <button type="button" role="tab" class="admin-queue-tab" data-queue-tab="media" aria-selected="false">Media Queue<span class="admin-queue-count" data-queue-count="media"></span></button>
+                    <button type="button" role="tab" class="admin-queue-tab" data-queue-tab="reports" aria-selected="false">Reports<span class="admin-queue-count" data-queue-count="reports"></span></button>
+                    <button type="button" role="tab" class="admin-queue-tab" data-queue-tab="history" aria-selected="false">Page History</button>
+                </div>
+
+                <section class="admin-queue-panel" data-queue-panel="revisions">
                 <div class="dashboard-header-split admin-split-header">
                     <h3 class="section-title section-title-clean m-0 admin-section-title">Pending Queue</h3>
                     <button onclick="loadQueue()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
@@ -88,14 +105,16 @@
                 <div id="queue-container" class="space-y-4">
                     <p class="loading-msg admin-loading-msg">Authenticating RBAC...</p>
                 </div>
+                </section>
 
                 <!--
-                    Media moderation (v0.13 item 1). Sits below the revision
-                    queue rather than beside it: both are "things waiting for a
-                    reviewer", and splitting them across screens would mean
-                    remembering to go and look at the second one.
+                    Media moderation (v0.13 item 1). A tab beside the revision
+                    queue rather than its own screen: both are "things waiting
+                    for a reviewer", and splitting them across screens would
+                    mean remembering to go and look at the second one.
                 -->
-                <div class="dashboard-header-split admin-split-header media-queue-header">
+                <section class="admin-queue-panel hidden" data-queue-panel="media">
+                <div class="dashboard-header-split admin-split-header">
                     <h3 class="section-title section-title-clean m-0 admin-section-title">Media Queue</h3>
                     <button onclick="loadMediaQueue()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Load</button>
                 </div>
@@ -118,14 +137,16 @@
                 <div id="media-queue-container" class="space-y-4">
                     <p class="admin-queue-empty-msg">Press Load to fetch the media list.</p>
                 </div>
+                </section>
 
                 <!--
-                    Reports (v0.14 item 6). Third queue in the same column, for
+                    Reports (v0.14 item 6). Third tab in the same column, for
                     the same reason the media queue joined the revision queue:
                     they are all "things waiting for a reviewer", and splitting
                     them across screens means forgetting to check one.
                 -->
-                <div class="dashboard-header-split admin-split-header media-queue-header">
+                <section class="admin-queue-panel hidden" data-queue-panel="reports">
+                <div class="dashboard-header-split admin-split-header">
                     <h3 class="section-title section-title-clean m-0 admin-section-title">Reports</h3>
                     <button onclick="loadReportQueue()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Load</button>
                 </div>
@@ -142,6 +163,28 @@
                 <div id="report-queue-container" class="space-y-4">
                     <p class="admin-queue-empty-msg">Press Load to fetch reports.</p>
                 </div>
+                </section>
+
+                <!--
+                    Page History (owner's Overseer card, v1.2). Not a queue:
+                    every past live version of any page, with COMPARE TO LIVE
+                    and RESTORE, in the review pane. Rolling a page back used to
+                    need a submission on that page to be open first. Review
+                    staff only. js/admin-history.js fills the picker.
+                -->
+                <section class="admin-queue-panel hidden" data-queue-panel="history">
+                <div class="dashboard-header-split admin-split-header">
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Page History</h3>
+                </div>
+
+                <div class="media-queue-filters">
+                    <select id="history-page-picker" class="editor-select media-queue-filter" aria-label="Page">
+                        <option value="">Pick a page...</option>
+                    </select>
+                </div>
+
+                <p id="history-picker-note" class="admin-queue-empty-msg">Pick a page to see its past live versions. Each one can be compared to the live page or restored.</p>
+                </section>
 
             </div>
         </aside>
@@ -161,17 +204,21 @@
                 <div id="preview-action-buttons"></div>
             </div>
 
+            <!-- QA REPORT (owner's Overseer card, v1.2). What the contributor
+                 said about the open submission. Was inside the ticket below,
+                 so a submission with no ticket never showed it. Filled by
+                 renderQaReport in js/admin-preview.js. -->
+            <section id="qa-report-panel" class="qa-report-panel hidden" aria-labelledby="qa-report-title">
+                <h4 id="qa-report-title" class="ticket-header-title qa">QA REPORT</h4>
+                <div id="qa-report" class="qa-report"></div>
+            </section>
+
             <!-- TICKET COMMUNICATION HUB -->
             <div id="ticket-workspace" class="ticket-workspace hidden">
                 <div class="ticket-left-col">
                     <h4 class="ticket-header-title status">TICKET STATUS</h4>
                     <p id="ticket-support-text" class="ticket-status-text support"></p>
                     <p id="ticket-oppose-text" class="ticket-status-text oppose"></p>
-                    
-                    <h4 class="ticket-header-title" style="color: #3b82f6; margin-top: 1.5rem;">QA REPORT</h4>
-                    <div id="ticket-qa-report" style="background: rgba(0,0,0,0.3); border: 1px dashed #333; padding: 0.75rem; border-radius: 4px; font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); margin-bottom: 1rem; overflow-wrap: break-word;">
-                        Select a ticket to view QA data.
-                    </div>
 
                     <div id="ticket-support-actions"></div>
                 </div>
@@ -329,28 +376,28 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
     <!-- First: the character tab vocabulary. site_utils.js derives
          FRAME_MOVE_CATEGORIES from it and admin-*.js their tab strips. -->
-    <script src="js/character_tabs.js?v=3e54ffd5"></script>
-    <script src="js/input_slots.js?v=3e54ffd5"></script>
-    <script src="js/site_utils.js?v=3e54ffd5"></script>
-    <script src="js/site_meta.js?v=3e54ffd5"></script>
-    <script src="js/pagebuilder.js?v=3e54ffd5"></script>
-    <script src="js/search.js?v=3e54ffd5"></script>
-    <script src="js/framedata.js?v=3e54ffd5"></script>
-    <script src="js/description.js?v=3e54ffd5"></script>
-    <script src="js/internalstyling.js?v=3e54ffd5"></script>
-    <script src="js/tierlist.js?v=3e54ffd5"></script>
+    <script src="js/character_tabs.js?v=2370a539"></script>
+    <script src="js/input_slots.js?v=2370a539"></script>
+    <script src="js/site_utils.js?v=2370a539"></script>
+    <script src="js/site_meta.js?v=2370a539"></script>
+    <script src="js/pagebuilder.js?v=2370a539"></script>
+    <script src="js/search.js?v=2370a539"></script>
+    <script src="js/framedata.js?v=2370a539"></script>
+    <script src="js/description.js?v=2370a539"></script>
+    <script src="js/internalstyling.js?v=2370a539"></script>
+    <script src="js/tierlist.js?v=2370a539"></script>
     
-    <script src="js/admin-core.js?v=3e54ffd5"></script>
-    <script src="js/admin-queue.js?v=3e54ffd5"></script>
-    <script src="js/diff-markers.js?v=3e54ffd5"></script>
-    <script src="js/admin-diff.js?v=3e54ffd5"></script>
-    <script src="js/admin-modes.js?v=3e54ffd5"></script>
-    <script src="js/admin-preview.js?v=3e54ffd5"></script>
-    <script src="js/admin-tickets.js?v=3e54ffd5"></script>
-    <script src="js/admin-actions.js?v=3e54ffd5"></script>
-    <script src="js/admin-merge-compiler.js?v=3e54ffd5"></script>
-    <script src="js/admin-history.js?v=3e54ffd5"></script>
-    <script src="js/admin-media-queue.js?v=3e54ffd5"></script>
-    <script src="js/admin-reports.js?v=3e54ffd5"></script>
+    <script src="js/admin-core.js?v=2370a539"></script>
+    <script src="js/admin-queue.js?v=2370a539"></script>
+    <script src="js/diff-markers.js?v=2370a539"></script>
+    <script src="js/admin-diff.js?v=2370a539"></script>
+    <script src="js/admin-modes.js?v=2370a539"></script>
+    <script src="js/admin-preview.js?v=2370a539"></script>
+    <script src="js/admin-tickets.js?v=2370a539"></script>
+    <script src="js/admin-actions.js?v=2370a539"></script>
+    <script src="js/admin-merge-compiler.js?v=2370a539"></script>
+    <script src="js/admin-history.js?v=2370a539"></script>
+    <script src="js/admin-media-queue.js?v=2370a539"></script>
+    <script src="js/admin-reports.js?v=2370a539"></script>
 </body>
 </html>

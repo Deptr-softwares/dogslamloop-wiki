@@ -114,6 +114,7 @@ function renderQueue() {
     if (!container) return;
 
     const all = window.currentQueueData || [];
+    if (typeof window.setQueueCount === 'function') window.setQueueCount('revisions', all.length);
     const pageFilter = document.getElementById('queue-filter-page')?.value || 'all';
     const statusFilter = document.getElementById('queue-filter-status')?.value || 'all';
 
@@ -395,15 +396,17 @@ function resetPreviewState() {
     document.getElementById('preview-action-buttons').classList.add('hidden');
     document.getElementById('preview-nav-sidebar').classList.add('hidden');
     document.getElementById('ticket-workspace').classList.add('hidden');
+    const qaReport = document.getElementById('qa-report-panel');
+    if (qaReport) qaReport.classList.add('hidden');
+    // The list of past versions belongs to what was open, like the rest.
+    const pageHistory = document.getElementById('page-history-container');
+    if (pageHistory) pageHistory.classList.add('hidden');
 
     const toggleBar = document.getElementById('version-toggle-bar');
     if (toggleBar) toggleBar.classList.add('hidden');
 
     const contentArea = document.getElementById('preview-content-area');
     contentArea.classList.remove('active');
-
-    const changedTabsPopup = document.getElementById('changed-tabs-popup');
-    if (changedTabsPopup) changedTabsPopup.remove();
 
     const tabNav = document.getElementById('preview-tab-nav');
     if (tabNav) tabNav.classList.add('hidden');

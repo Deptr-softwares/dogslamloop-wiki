@@ -128,7 +128,8 @@ test('a state edit is announced when the base kit it leaves alone is what render
         changedModes: window.changedModes,
         activeMode: window.activePreviewMode,
         changedTabs: window.changedTabs,
-        popupText: (document.getElementById('changed-tabs-popup') || {}).textContent || '',
+        markedStates: [...document.querySelectorAll('#preview-mode-bar .character-mode-chip.tab-changed')].map(c => c.textContent.trim()),
+        yellowBox: document.querySelectorAll('#changed-tabs-popup').length,
     }));
 
     // Both states changed, so there is no single one to open on - base stays.
@@ -139,9 +140,12 @@ test('a state edit is announced when the base kit it leaves alone is what render
     // Skills really is unchanged in the base kit.
     expect(state.changedTabs).toEqual(['overview']);
 
-    // ...and the thing that stops the reviewer concluding that is all of it.
-    expect(state.popupText).toContain('Malevolent Shrine');
-    expect(state.popupText.toLowerCase()).toContain('another state');
+    // ...and the thing that stops the reviewer concluding that is all of it:
+    // the other state's toggle carries the same marker a changed tab does.
+    // It was a line in a yellow "Modifications Detected" box until v1.2, when
+    // the owner had the box removed (it came back on every tab).
+    expect(state.markedStates).toContain('Malevolent Shrine');
+    expect(state.yellowBox).toBe(0);
 });
 
 test('a revision that only touches one state opens on that state', async ({ page }) => {
@@ -332,7 +336,7 @@ test('a revision with no ultimate gets no Ultimate tab', async ({ page }) => {
     await expect(page.locator('#tab-ultimateAtk')).toHaveCount(0);
 });
 
-test('a state label cannot inject markup into the toggle or the popup', async ({ page }) => {
+test('a state label cannot inject markup into the toggle', async ({ page }) => {
     // State ids and labels are contributor-authored and both reach innerHTML.
     await openPreviewShell(page);
 
@@ -348,14 +352,10 @@ test('a state label cannot inject markup into the toggle or the popup', async ({
     const result = await page.evaluate(() => ({
         pwned: !!window.__pwned,
         barImages: document.querySelectorAll('#preview-mode-bar img').length,
-        popupImages: document.querySelectorAll('#changed-tabs-popup img').length,
         chipText: document.querySelector('#preview-mode-bar [data-mode-id="shrine"]').textContent,
-        popupText: (document.getElementById('changed-tabs-popup') || {}).textContent || '',
     }));
 
     expect(result.pwned).toBe(false);
     expect(result.barImages).toBe(0);
-    expect(result.popupImages).toBe(0);
     expect(result.chipText, 'rendered as text, not parsed').toContain('<img');
-    expect(result.popupText).toContain('<img');
 });

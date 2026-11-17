@@ -100,12 +100,14 @@ async function openQueue(page, { rows = [], rpcError = null, modError = null, re
             return window.__promptReply ?? 'a reason';
         };
     });
-    await page.evaluate(() => window.loadReportQueue());
+    // Reports is a tab since v1.2, and opening it is what loads it.
+    await page.locator('[data-queue-tab="reports"]').click();
 }
 
-test('the queue sits alongside the other two, not on its own screen', async ({ page, request }) => {
+test('the queue sits in the same column as the other two, not on its own screen', async ({ page, request }) => {
     // Three queues in one column on purpose: they are all "things waiting for
     // a reviewer", and splitting them across screens means forgetting one.
+    // Each is a tab in that column since v1.2 (the owner's Overseer card).
     const html = await (await request.get('/admin.html')).text();
     await page.goto('about:blank');
 
@@ -116,7 +118,8 @@ test('the queue sits alongside the other two, not on its own screen', async ({ p
         const reports = doc.getElementById('report-queue-container');
         return {
             allPresent: !!(queue && media && reports),
-            sameColumn: !!(queue && reports && queue.parentElement === reports.parentElement),
+            sameColumn: !!(queue && reports && queue.closest('.admin-sidebar-content') === reports.closest('.admin-sidebar-content')),
+            tabs: [...doc.querySelectorAll('#admin-queue-tabs [data-queue-tab]')].map(t => t.dataset.queueTab),
             reportsLast: !!(media && reports &&
                 (media.compareDocumentPosition(reports) & Node.DOCUMENT_POSITION_FOLLOWING)),
             hasFilter: !!doc.getElementById('report-queue-status'),
@@ -126,6 +129,9 @@ test('the queue sits alongside the other two, not on its own screen', async ({ p
     expect(layout.allPresent).toBe(true);
     expect(layout.sameColumn).toBe(true);
     expect(layout.reportsLast).toBe(true);
+    // The three queues, in this order. Page History comes after them: it is a
+    // tab in the same strip, and not something waiting for a reviewer.
+    expect(layout.tabs.slice(0, 3)).toEqual(['revisions', 'media', 'reports']);
     expect(layout.hasFilter).toBe(true);
 });
 
@@ -341,4 +347,31 @@ test('an edited post shows what it said before, flagged when the edit came after
 
     await expect(page.locator('#report-r2 .report-edits')).toHaveCount(0);
     await expect(page.locator('#report-r3 .report-edits-summary')).toHaveText('EDITED: 1 earlier version');
+});
+
+test('the Reports tab counts the open reports, and a list of handled ones does not change it', async ({ page }) => {
+    // The tabs are v1.2 (the owner's Overseer card). Only an open report is
+    // waiting: the Actioned and Dismissed lists are a record.
+    await openQueue(page, { rows: [report({ id: 'r1' }), report({ id: 'r2', target_id: 'post-2' })] });
+    const count = page.locator('[data-queue-count="reports"]');
+    await expect(count).toHaveText('2');
+
+    await page.evaluate(() => {
+        const rpc = window.supabaseClient.rpc;
+        window.supabaseClient.rpc = async (name, params) => (name === 'list_content_reports' && params.p_status !== 'open')
+            ? { data: [], error: null }
+            : rpc(name, params);
+        const filter = document.getElementById('report-queue-status');
+        filter.value = 'actioned';
+        filter.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await expect(page.locator('#report-queue-container')).toContainText('Nothing reported');
+    await expect(count).toHaveText('2');
+});
+
+test('an empty Reports queue leaves its tab without a number', async ({ page }) => {
+    // A "0" on a tab is noise: no number means nothing is waiting.
+    await openQueue(page, { rows: [] });
+    await expect(page.locator('#report-queue-container')).toContainText('Nothing reported');
+    await expect(page.locator('[data-queue-count="reports"]')).toHaveText('');
 });
