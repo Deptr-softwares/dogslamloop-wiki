@@ -70,7 +70,11 @@ function buildSummary({ status, branch, report, porcelain, diffs = {} }) {
     const changes = readChanges(porcelain);
     const out = [];
 
-    out.push(`## Regeneration of \`${branch}\`: ${failedRun ? 'FAILED, nothing was published' : (changes.length ? 'published' : 'nothing to publish')}`);
+    // Written before the commit-and-push step (it lists what is uncommitted),
+    // so a good run says what it is publishing, not that it has: the push can
+    // still be refused, for one when a PR merges into the branch mid-run. That
+    // run turns red at the push, and the step that failed says so.
+    out.push(`## Regeneration of \`${branch}\`: ${failedRun ? 'FAILED, nothing was published' : (changes.length ? 'checks passed, publishing' : 'nothing to publish')}`);
     out.push('');
 
     if (failedRun) {
@@ -102,7 +106,7 @@ function buildSummary({ status, branch, report, porcelain, diffs = {} }) {
     }
 
     if (changes.length) {
-        out.push(failedRun ? '### What this run fetched (and did not publish)' : '### What this run published');
+        out.push(failedRun ? '### What this run fetched (and did not publish)' : '### What this run is publishing');
         out.push('');
         changes.slice(0, MAX_FILES).forEach(c => out.push(`- \`${c.path}\` (${c.what})`));
         if (changes.length > MAX_FILES) out.push(`- and ${changes.length - MAX_FILES} more`);

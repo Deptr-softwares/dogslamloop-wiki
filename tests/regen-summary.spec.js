@@ -58,10 +58,13 @@ test.describe('the run summary', () => {
         expect(out).toContain('Nothing had changed in the content');
     });
 
-    test('a good run lists what it published, or says there was nothing', () => {
+    test('a good run lists what it is publishing, or says there is nothing', () => {
+        // Not "published": the summary is written before the push, and a push
+        // can still be refused.
         const published = buildSummary({ status: 'success', branch: 'main', report: report([spec('fine', 'expected')]), porcelain: ' M data/site_meta.json\n' });
-        expect(published).toContain('`main`: published');
-        expect(published).toContain('What this run published');
+        expect(published).toContain('`main`: checks passed, publishing');
+        expect(published).toContain('What this run is publishing');
+        expect(published).not.toMatch(/\bpublished\b/);
         expect(published).not.toContain('FAILED');
 
         const nothing = buildSummary({ status: 'success', branch: 'main', report: null, porcelain: '' });
