@@ -127,7 +127,9 @@ test('on the home page every script is deferred and covered by the policy, and t
     const tags = [...html.matchAll(/<script\b[^>]*\bsrc="[^"]*"[^>]*>/g)];
     expect(tags.length).toBeGreaterThan(5);
     for (const t of tags) {
-        expect(t[0], 'deferred, so it never stops the parser, and runs in order once the page is read').toMatch(/\bdefer\b/);
+        // Deferred (runs in order once the page is read) or async (the visitor
+        // counter, js/analytics.js, which nothing waits for): neither stops the parser.
+        expect(t[0], 'deferred or async, so it never stops the parser').toMatch(/\b(defer|async)\b/);
         expect(t.index, `${t[0]} comes after the policy, which then covers it`).toBeGreaterThan(policy);
     }
     // A plain inline script would run during parsing, before the deferred
