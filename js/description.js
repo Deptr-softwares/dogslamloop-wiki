@@ -2570,22 +2570,21 @@ function stillFor(video) {
 
 function showStill(video) {
     const entry = stillFor(video);
-    if (entry && !video.getAttribute('poster')) video.poster = window.getRootPath() + entry.still;
+    if (entry) video.poster = window.getRootPath() + entry.still;
 }
 
 function applyStills(root) {
     if (!videoStills) return;
     root.querySelectorAll('video').forEach((video) => {
-        if (video.dataset.stillApplied) return;
         const entry = stillFor(video);
         if (!entry) return;
-        video.dataset.stillApplied = 'true';
         // The shape before a byte of the video arrives: this ratio until the
-        // video has its own ("auto"). A ratio, not width and height
-        // attributes: those become a height in pixels, and a video block sets
-        // only its width. A skill card or a gallery tile sets its clip's
-        // height in CSS, which a ratio does not change.
-        if (!video.style.aspectRatio) video.style.aspectRatio = `auto ${entry.w} / ${entry.h}`;
+        // video has its own ("auto"), so a list a night out of date corrects
+        // itself. A ratio, not width and height attributes: those become a
+        // height in pixels, and a video block sets only its width. A skill
+        // card or a gallery tile sets its clip's height in CSS, which a ratio
+        // does not change.
+        video.style.aspectRatio = `auto ${entry.w} / ${entry.h}`;
         if (stillObserver) stillObserver.observe(video);
         else showStill(video);
     });

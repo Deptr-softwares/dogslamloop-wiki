@@ -267,18 +267,29 @@ test('a video it cannot fetch or decode keeps the still it had, or gets none, an
     }
 });
 
-test('the offline check catches a missing still, a stray file and a still under the wrong name', () => {
+test('the offline check catches a missing still, a still under the wrong name, no size, and a stray file', () => {
     const s = stage();
     try {
+        // The naming rule: a hash of the file name, never the name itself.
+        const named = (file) => `medias/stills/${require('crypto').createHash('sha1').update(file).digest('hex').slice(0, 16)}.webp`;
         fs.mkdirSync(s.at('medias', 'stills'), { recursive: true });
         fs.writeFileSync(s.at('data', 'video-stills.json'), JSON.stringify({
-            'a.webm': { still: 'medias/stills/0000000000000000.webp', w: 10, h: 10, etag: '"a"' },
+            'gone.webm': { still: named('gone.webm'), w: 10, h: 10, etag: '"a"' },
+            'renamed.webm': { still: 'medias/stills/0000000000000000.webp', w: 10, h: 10, etag: '"b"' },
+            'sizeless.webm': { still: named('sizeless.webm'), w: 0, h: 10, etag: '"c"' },
+            'fine.webm': { still: named('fine.webm'), w: 10, h: 10, etag: '"d"' },
         }));
+        fs.writeFileSync(s.at(named('sizeless.webm')), 'a still');
+        fs.writeFileSync(s.at(named('fine.webm')), 'a still');
         fs.writeFileSync(s.at('medias', 'stills', 'ffffffffffffffff.webp'), 'stray');
+
         const out = s.run('--check');
         expect(out.status).toBe(1);
-        expect(out.stderr).toContain('a.webm: its still should be');
+        expect(out.stderr).toContain(`gone.webm: ${named('gone.webm')} does not exist`);
+        expect(out.stderr).toContain('renamed.webm: its still should be');
+        expect(out.stderr).toContain('sizeless.webm: no size');
         expect(out.stderr).toContain('ffffffffffffffff.webp: in the folder but not in the list');
+        expect(out.stderr).not.toContain('fine.webm');
     } finally {
         s.cleanup();
     }

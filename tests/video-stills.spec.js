@@ -11,8 +11,25 @@
 // picture a reader could be seeing. The list and the stills are this test's
 // own, and the database is refused, so the page renders no videos of its own.
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
 
 const PAGE = '/characters/Template/';
+// A real clip, for the one test that lets a video arrive. Range-aware, for
+// the reason clip-corner-and-queue.spec.js gives.
+const CLIP = fs.readFileSync(path.join(__dirname, '..', 'medias', 'videos', 'example-video5.webm'));
+function serveClip(route) {
+    const range = route.request().headers()['range'];
+    if (!range) return route.fulfill({ status: 200, headers: { 'Content-Type': 'video/webm', 'Accept-Ranges': 'bytes' }, body: CLIP });
+    const [, from, to] = /bytes=(\d*)-(\d*)/.exec(range) || [];
+    const start = from ? parseInt(from, 10) : 0;
+    const end = to ? parseInt(to, 10) : CLIP.length - 1;
+    return route.fulfill({
+        status: 206,
+        headers: { 'Content-Type': 'video/webm', 'Content-Range': `bytes ${start}-${end}/${CLIP.length}`, 'Accept-Ranges': 'bytes' },
+        body: CLIP.subarray(start, end + 1),
+    });
+}
 const STORE = 'https://example.supabase.co/storage/v1/object/public/wiki-media/';
 const still = (c) => `medias/stills/${c.repeat(16)}.webp`;
 
@@ -31,7 +48,7 @@ async function stillBytes(page) {
     return Buffer.from(b64, 'base64');
 }
 
-async function boot(page, { list = {}, listStatus = 200, holdList = false } = {}) {
+async function boot(page, { list = {}, listStatus = 200, holdList = false, arrives = [] } = {}) {
     const body = await stillBytes(page);
     const net = { stills: [], errors: [] };
     page.on('pageerror', (e) => net.errors.push(e.message));
@@ -41,7 +58,10 @@ async function boot(page, { list = {}, listStatus = 200, holdList = false } = {}
     net.releaseList = () => releaseList();
 
     await page.route('**/rest/v1/**', (route) => route.abort());
-    await page.route(`${STORE}**`, () => { /* held: the video never arrives */ });
+    // Held, so the video never arrives, unless the test names it in `arrives`.
+    await page.route(`${STORE}**`, (route) => {
+        if (arrives.includes(decodeURIComponent(route.request().url().split('/').pop()))) return serveClip(route);
+    });
     await page.route('**/medias/stills/*.webp', (route) => {
         net.stills.push(new URL(route.request().url()).pathname.split('/').pop());
         return route.fulfill({ status: 200, contentType: 'image/webp', body });
@@ -165,6 +185,19 @@ test('a skill card\'s clip keeps its card\'s shape, with the still inside it', a
     await expect(clip).toHaveAttribute('poster', new RegExp(`${still('d')}$`));
     const box = await clip.boundingBox();
     expect(Math.abs(box.height - box.width * 9 / 16), `the card's 16:9, not the clip's 1:1 (${box.width}x${box.height})`).toBeLessThan(2);
+});
+
+test('once a video arrives, its own shape wins over a list that is out of date', async ({ page }) => {
+    // The list is a night old at worst: a file replaced today keeps
+    // yesterday's size in it until the next run. Here it says square.
+    await boot(page, { list: { 'Real.webm': { still: still('f'), w: 1000, h: 1000, etag: '"1"' } }, arrives: ['Real.webm'] });
+    await place(page, [{ name: 'real', url: `${STORE}Real.webm`, at: 0.1 }]);
+
+    const real = video(page, 'real');
+    await expect.poll(() => real.evaluate((v) => v.readyState), { timeout: 15000 }).toBeGreaterThan(0);
+    const own = await real.evaluate((v) => v.videoHeight / v.videoWidth);
+    expect(Math.abs(own - 1), 'the clip itself is not square').toBeGreaterThan(0.1);
+    await expect.poll(() => shapeOf(real)).toBeCloseTo(own, 2);
 });
 
 test('an entry that names anything but a still of ours, or has no size, is ignored', async ({ page }) => {
