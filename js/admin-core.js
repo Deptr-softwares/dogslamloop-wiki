@@ -420,15 +420,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 // --- THE QUEUE TABS (owner's Overseer card, v1.2) ---
 // One queue on screen at a time. A queue that loads on demand (media,
 // reports) loads the first time its tab is opened, so opening it is the only
-// press it takes. `load: false` is for the page's own first paint, where the
-// queue that opens has its own loader already running.
+// press it takes.
 const QUEUE_LOADERS = {
     media: () => (typeof loadMediaQueue === 'function' ? loadMediaQueue() : null),
     reports: () => (typeof window.loadReportQueue === 'function' ? window.loadReportQueue() : null),
 };
 const queuePanelsOpened = new Set();
 
-window.showQueuePanel = function(name, { load = true } = {}) {
+window.showQueuePanel = function(name) {
     const tab = document.querySelector(`[data-queue-tab="${name}"]`);
     const panel = document.querySelector(`[data-queue-panel="${name}"]`);
     if (!tab || !panel || tab.hidden) return;
@@ -440,7 +439,6 @@ window.showQueuePanel = function(name, { load = true } = {}) {
     });
     document.querySelectorAll('[data-queue-panel]').forEach(p => p.classList.toggle('hidden', p !== panel));
 
-    if (!load) return;
     if (!queuePanelsOpened.has(name) && QUEUE_LOADERS[name]) QUEUE_LOADERS[name]();
     queuePanelsOpened.add(name);
 };
@@ -481,7 +479,7 @@ function applyScope({ seesRevisions, seesMedia, seesReports }) {
     if (!seesRevisions) document.body.classList.add('admin-moderator-only');
 
     // Each queue is a tab and its panel (admin.html #admin-queue-tabs). One a
-    // person is not here for loses both, and the first that is left opens.
+    // person is not here for loses both.
     const seen = { revisions: seesRevisions, media: seesMedia, reports: seesReports };
     Object.entries(seen).forEach(([name, shown]) => {
         if (shown) return;
@@ -490,11 +488,12 @@ function applyScope({ seesRevisions, seesMedia, seesReports }) {
         if (tab) tab.hidden = true;
         if (panel) panel.classList.add('hidden');
     });
-    // Unless they have already picked one: the tabs are on screen before this
-    // runs, and a pick must not be taken back.
+    // If that took away the tab that was open, the first one left opens, and
+    // loads. For a moderator that is Reports, the entire page, and making them
+    // press Load first would be asking them to open the thing they came for.
+    const stillOpen = document.querySelector('.admin-queue-tab.active:not([hidden])');
     const first = Object.keys(seen).find(name => seen[name]);
-    const picked = document.querySelector('.admin-queue-tab.active:not([hidden])');
-    if (first && !picked) window.showQueuePanel(first, { load: false });
+    if (!stillOpen && first) window.showQueuePanel(first);
 
     // The preview pane exists to review revisions. Left in place - see the
     // note above on why nothing is deleted - but told what it is for, rather
@@ -504,11 +503,6 @@ function applyScope({ seesRevisions, seesMedia, seesReports }) {
         const status = document.getElementById('preview-status-text');
         if (status) status.textContent = 'Moderation view — reports are handled from the queue on the left.';
     }
-
-    // Load the reports immediately. For a moderator with no revision queue this
-    // is the entire page, and making them press Load first would be asking them
-    // to open the thing they came for.
-    if (seesReports && !seesRevisions) window.showQueuePanel('reports');
 }
 
 function updateTypingText() {

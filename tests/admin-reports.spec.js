@@ -346,3 +346,23 @@ test('an edited post shows what it said before, flagged when the edit came after
     await expect(page.locator('#report-r2 .report-edits')).toHaveCount(0);
     await expect(page.locator('#report-r3 .report-edits-summary')).toHaveText('EDITED: 1 earlier version');
 });
+
+test('the Reports tab counts the open reports, and a list of handled ones does not change it', async ({ page }) => {
+    // The tabs are v1.2 (the owner's Overseer card). Only an open report is
+    // waiting: the Actioned and Dismissed lists are a record.
+    await openQueue(page, { rows: [report({ id: 'r1' }), report({ id: 'r2', target_id: 'post-2' })] });
+    const count = page.locator('[data-queue-count="reports"]');
+    await expect(count).toHaveText('2');
+
+    await page.evaluate(() => {
+        const rpc = window.supabaseClient.rpc;
+        window.supabaseClient.rpc = async (name, params) => (name === 'list_content_reports' && params.p_status !== 'open')
+            ? { data: [], error: null }
+            : rpc(name, params);
+        const filter = document.getElementById('report-queue-status');
+        filter.value = 'actioned';
+        filter.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await expect(page.locator('#report-queue-container')).toContainText('Nothing reported');
+    await expect(count).toHaveText('2');
+});
