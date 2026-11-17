@@ -26,9 +26,10 @@
  * module, which DOMContentLoaded waits for).
  */
 (function () {
-    // The Website ID from Umami Cloud. Not a secret: it is in the page source
-    // of every site that uses Umami. Empty means nothing is counted.
-    const WEBSITE_ID = '';
+    // The owner's Website ID from Umami Cloud (2026-11-17). Not a secret: it is
+    // in the page source of every site that uses Umami. Emptying it turns the
+    // counting off.
+    const WEBSITE_ID = 'd53106ba-6b61-4ad7-8ae1-24ce62d4c32d';
     const SITE = 'dogslamloop.com';
 
     if (!WEBSITE_ID || window.location.hostname !== SITE) return;

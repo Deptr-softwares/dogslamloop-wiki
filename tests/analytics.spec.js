@@ -47,18 +47,36 @@ test('every reader page loads the counter, without holding the page up, and no s
 const TYPES = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json',
     '.webp': 'image/webp', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.ico': 'image/x-icon' };
 
-// The site under its real address, from this checkout. `websiteId` stands in
-// for the owner's ID in js/analytics.js, which is empty until they send it.
-async function serveSite(page, { websiteId = null } = {}) {
+const COUNTER = path.join(ROOT, 'js', 'analytics.js');
+const ID_LINE = /const WEBSITE_ID = '([^']*)';/;
+
+// js/analytics.js with another Website ID in it, so a test never depends on
+// the owner's: the tests' own, or '' (the off switch).
+function counterWithId(websiteId) {
+    const source = fs.readFileSync(COUNTER, 'utf8');
+    if (!ID_LINE.test(source)) throw new Error('js/analytics.js no longer has its WEBSITE_ID line');
+    return source.replace(ID_LINE, `const WEBSITE_ID = '${websiteId}';`);
+}
+
+test('the Website ID is one Umami Cloud could have given, or empty to count nothing', () => {
+    // Tests never reach Umami, so a mangled ID (a lost character, a space)
+    // would count nothing and nothing else here would notice. Umami's IDs
+    // are UUIDs.
+    const id = fs.readFileSync(COUNTER, 'utf8').match(ID_LINE);
+    expect(id, 'js/analytics.js has its WEBSITE_ID line').not.toBeNull();
+    expect(id[1]).toMatch(/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?$/);
+});
+
+// The site under its real address, from this checkout. `websiteId` replaces
+// the one in js/analytics.js; left out, the file is served as committed.
+async function serveSite(page, { websiteId } = {}) {
     await page.route(`${SITE}/**`, route => {
         const url = new URL(route.request().url());
         let rel = decodeURIComponent(url.pathname).replace(/^\//, '') || 'index.html';
         const file = path.join(ROOT, rel);
         if (!file.startsWith(ROOT) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) return route.fulfill({ status: 404, body: '' });
         let body = fs.readFileSync(file);
-        if (rel === 'js/analytics.js' && websiteId) {
-            body = Buffer.from(body.toString('utf8').replace("const WEBSITE_ID = '';", `const WEBSITE_ID = '${websiteId}';`));
-        }
+        if (rel === 'js/analytics.js' && websiteId !== undefined) body = Buffer.from(counterWithId(websiteId));
         route.fulfill({ status: 200, contentType: TYPES[path.extname(rel)] || 'application/octet-stream', body });
     });
 
@@ -114,10 +132,10 @@ test('the home page\'s own policy lets Umami load and send', async ({ page }) =>
     expect(await page.evaluate(() => window.__umami.blocked || null)).toBe(null);
 });
 
-test('until the owner\'s Website ID is in, nothing is loaded, even on dogslamloop.com', async ({ page }) => {
-    // As committed: the ID is empty, and an empty ID counts nothing.
+test('with the Website ID emptied, nothing is loaded, even on dogslamloop.com', async ({ page }) => {
+    // Emptying the ID is how the counting is turned off.
     const asked = umamiRequests(page);
-    await serveSite(page);
+    await serveSite(page, { websiteId: '' });
     await page.goto(`${SITE}/terms.html`, { waitUntil: 'load' });
     await page.waitForTimeout(500);
     expect(asked).toEqual([]);
@@ -126,12 +144,10 @@ test('until the owner\'s Website ID is in, nothing is loaded, even on dogslamloo
 
 test('anywhere but dogslamloop.com nothing is loaded or sent: local runs, previews and tests never count', async ({ page }) => {
     const asked = umamiRequests(page);
-    // The ID filled in, so only the address can be what stops it.
-    await page.route('**/js/analytics.js*', async route => {
-        const body = fs.readFileSync(path.join(ROOT, 'js', 'analytics.js'), 'utf8')
-            .replace("const WEBSITE_ID = '';", "const WEBSITE_ID = 'test-website-id';");
-        route.fulfill({ status: 200, contentType: 'application/javascript', body });
-    });
+    // An ID filled in, so only the address can be what stops it.
+    await page.route('**/js/analytics.js*', route => route.fulfill({
+        status: 200, contentType: 'application/javascript', body: counterWithId('test-website-id'),
+    }));
     await page.goto('/terms.html', { waitUntil: 'load' });
     await page.waitForTimeout(500);
     expect(asked).toEqual([]);
