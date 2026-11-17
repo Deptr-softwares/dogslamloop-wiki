@@ -696,7 +696,7 @@ test('the review diff paints a proposed word in its proposed colour and diffs th
     window.currentPendingDescData = window.applyDeltaToData(live, {}, 'pageConfig', 'full', payload).newDesc;
     window.currentPendingFrameData = {};
 
-    await switchVersionView('diff');
+    await switchVersionView('list');
     await new Promise(r => setTimeout(r, 400));
 
     window.changedTabs = [];

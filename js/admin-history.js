@@ -137,6 +137,8 @@ window.openPageHistoryFor = async function(pageId) {
     // its buttons are not left acting on a page that is no longer on screen.
     if (typeof window.closeMediaPreview === 'function') window.closeMediaPreview();
     resetPreviewState();
+    // Its versions open in the pane, which gets the whole width (js/admin-queue.js).
+    if (typeof window.setQueueOpen === 'function') window.setQueueOpen(false);
 
     document.getElementById('preview-status-text').innerHTML = `PAGE HISTORY: <strong class="admin-preview-status-highlight">${window.escapeHtml(pageId.toUpperCase())}</strong>`;
     document.getElementById('preview-content-area').classList.add('active');

@@ -29,7 +29,7 @@
     <div class="editor-layout">
         
         <!-- LEFT SIDEBAR: QUEUE & TOOLS -->
-        <aside class="editor-workspace admin-sidebar">
+        <aside id="admin-sidebar" class="editor-workspace admin-sidebar">
             
             <div class="editor-header admin-header">
                 <div class="admin-header-flex">
@@ -198,6 +198,9 @@
 
             <div class="editor-live-header admin-live-header">
                 <div class="admin-status-container">
+                    <!-- The queue column pops in and out (owner's Overseer
+                         card, v1.2). js/admin-queue.js. -->
+                    <button type="button" id="queue-toggle" class="btn-sys btn-sys-blue queue-toggle" aria-controls="admin-sidebar" aria-expanded="true">☰ QUEUE</button>
                     <div class="status-dot online"></div>
                     <span id="preview-status-text" class="admin-status-text">Select a revision...</span>
                 </div>
@@ -390,6 +393,7 @@
     <script src="js/admin-core.js?v=1a134cd6"></script>
     <script src="js/admin-queue.js?v=1a134cd6"></script>
     <script src="js/diff-markers.js?v=1a134cd6"></script>
+    <script src="js/side-by-side.js?v=1a134cd6"></script>
     <script src="js/admin-diff.js?v=1a134cd6"></script>
     <script src="js/admin-modes.js?v=1a134cd6"></script>
     <script src="js/admin-preview.js?v=1a134cd6"></script>

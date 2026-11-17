@@ -73,10 +73,16 @@ async function openQueue(page, rows) {
 }
 
 // By the page it is for: the queue groups and sorts its cards, so an index is
-// not a stable way to name one.
-const review = (page, pageId = 'boomcat') => page.locator('#queue-container .admin-queue-card-header')
-    .filter({ has: page.locator('.badge-page-id', { hasText: new RegExp('^' + pageId + '$', 'i') }) })
-    .locator('.admin-review-btn').click();
+// not a stable way to name one. The queue column is put away while a
+// submission is open (v1.2), so ☰ QUEUE brings it back first, as a reviewer
+// would.
+const review = async (page, pageId = 'boomcat') => {
+    const toggle = page.locator('#queue-toggle');
+    if (await toggle.getAttribute('aria-expanded') === 'false') await toggle.click();
+    await page.locator('#queue-container .admin-queue-card-header')
+        .filter({ has: page.locator('.badge-page-id', { hasText: new RegExp('^' + pageId + '$', 'i') }) })
+        .locator('.admin-review-btn').click();
+};
 const report = (page) => page.locator('#qa-report-panel');
 
 test('a submission with no ticket shows its whole QA report when it is opened', async ({ page }) => {

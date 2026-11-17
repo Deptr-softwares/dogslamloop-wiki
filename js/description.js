@@ -2177,7 +2177,9 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 topSplit.innerHTML = profileHTML;
                 topSplit.appendChild(rightColumn);
                 overviewContainer.appendChild(topSplit);
-                window.fillProfilePager(overviewContainer, pageId);
+                // Kept for the Overseer's side-by-side, which waits for the
+                // Previous / Next tiles before it compares two drawings.
+                window.profilePagerFilled = window.fillProfilePager(overviewContainer, pageId);
 
                 populateTextSection('overview-text-subnode', 'Character Overview', data.overview);
                 if (data.strategy && data.strategy.length > 0) {
@@ -2374,19 +2376,26 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
 
             // --- 4. MOVE STRATEGIES (M1s, Skills, Specials) ---
             if (data.moveStrategies) {
-                setTimeout(() => {
-                    for (const [moveId, blocks] of Object.entries(data.moveStrategies)) {
-                        populateTextSection(`strategy-${moveId}`, 'Move Overview and Strategy', blocks, 'move-strategy');
+                // Kept as a promise for the Overseer's side-by-side
+                // (js/admin-preview.js), which draws a page twice and has to
+                // know this one is in before it moves the first drawing aside.
+                window.moveStrategiesDrawn = new Promise(resolve => setTimeout(() => {
+                    try {
+                        for (const [moveId, blocks] of Object.entries(data.moveStrategies)) {
+                            populateTextSection(`strategy-${moveId}`, 'Move Overview and Strategy', blocks, 'move-strategy');
+                        }
+                        // Deferred behind the same 300ms wait as the sections
+                        // themselves, since the move cards these render into are
+                        // built by js/framedata.js on its own schedule.
+                        window.FRAME_MOVE_CATEGORIES.forEach(tab => {
+                            window.consolidateTabContributors(document.getElementById(`tab-${tab}`));
+                        });
+                        if (typeof applyInternalStyling === 'function') applyInternalStyling();
+                        if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
+                    } finally {
+                        resolve();
                     }
-                    // Deferred behind the same 300ms wait as the sections
-                    // themselves, since the move cards these render into are
-                    // built by js/framedata.js on its own schedule.
-                    window.FRAME_MOVE_CATEGORIES.forEach(tab => {
-                        window.consolidateTabContributors(document.getElementById(`tab-${tab}`));
-                    });
-                    if (typeof applyInternalStyling === 'function') applyInternalStyling();
-                    if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
-                }, 300); 
+                }, 300));
             }
         } // End of else block (Character Engine)
 

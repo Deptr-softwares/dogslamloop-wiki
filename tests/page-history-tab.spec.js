@@ -167,10 +167,14 @@ test('RESTORE puts that version live on the picked page', async ({ page }) => {
 });
 
 test('picking a page puts away the submission that was open, and reviewing one puts the history away', async ({ page }) => {
+    // Opening either one puts the queue column away (v1.2), so ☰ QUEUE brings
+    // it back before the next pick, as a reviewer would.
+    const showQueue = () => page.locator('#queue-toggle').click();
     await openOverseer(page, { rows: [pendingRev] });
     await page.locator('#queue-container .admin-review-btn').click();
     await expect(page.locator('#ticket-workspace')).toBeVisible();
 
+    await showQueue();
     await historyTab(page).click();
     await pick(page, 'boomcat');
     await expect(list(page)).toBeVisible();
@@ -180,6 +184,7 @@ test('picking a page puts away the submission that was open, and reviewing one p
     await expect(page.locator('#preview-status-text')).not.toContainText('VESSEL');
     expect(await page.evaluate(() => window.activePreviewRevId)).toBe(null);
 
+    await showQueue();
     await page.locator('[data-queue-tab="revisions"]').click();
     await page.locator('#queue-container .admin-review-btn').click();
     await expect(page.locator('#preview-status-text')).toContainText('VESSEL');
