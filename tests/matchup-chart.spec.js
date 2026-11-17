@@ -223,6 +223,25 @@ test('the section stays hidden when nothing is rated at all', async ({ page }) =
     await expect(page.locator('#matchup-section')).toBeHidden();
 });
 
+test('a section that stays hidden is left out of the table of contents', async ({ page }) => {
+    // Found in v1.2 (the performance card): refreshTOC skipped only the
+    // .hidden class, and these two sections hide with the attribute, so the
+    // contents listed Terminology and Matchup Chart while the page hid them:
+    // two links that scrolled nowhere. Nothing rated and no glossary here, so
+    // both stay hidden.
+    await mockHub(page, { matchups: [{ page_id: 'boomcat', matchups: [] }] });
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+    await expect(page.locator('#matchup-section')).toBeHidden();
+    await expect(page.locator('#glossary-section')).toBeHidden();
+
+    // The real contents builder, run on the page as it settled.
+    await page.evaluate(() => window.refreshTOC());
+    const toc = page.locator('#dynamic-toc');
+    await expect(toc.locator('a').first(), 'the rest of the hub is still listed').toBeAttached();
+    await expect(toc).not.toContainText('Matchup Chart');
+    await expect(toc).not.toContainText('Terminology');
+});
+
 test('a failure explains itself rather than rendering an empty box', async ({ page }) => {
     // Rule 2 in js/dashboards.js's header. Deliberately UNLIKE the terminology
     // peek, which hides on failure: that is a sample of something one click
