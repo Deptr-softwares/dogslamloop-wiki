@@ -43,10 +43,13 @@ const MATCHUPS = [
     { page_id: 'honored_one', matchups: [] },
 ];
 
-async function mockHub(page, { roster = ROSTER, matchups = MATCHUPS, fail = false } = {}) {
+async function mockHub(page, { roster = ROSTER, matchups = MATCHUPS, fail = false, peek = null, peekDelay = 0 } = {}) {
     await page.route('**/data/navigation.json*', route => route.fulfill({ json: roster }));
 
-    await page.addInitScript(({ matchups, fail }) => {
+    await page.addInitScript(({ matchups, fail, peek, peekDelay }) => {
+        // When each widget's query went out and came back, for the test that
+        // checks they run together.
+        window.__hubTimes = {};
         Object.defineProperty(window, 'supabase', {
             configurable: true,
             get() { return window.__lib; },
@@ -64,13 +67,21 @@ async function mockHub(page, { roster = ROSTER, matchups = MATCHUPS, fail = fals
                                 ? { data: null, error: { message: 'the database said no' } }
                                 : { data: matchups, error: null };
                             const chain = {
-                                select() { return chain; },
+                                select(columns) {
+                                    if (/matchups/.test(columns)) window.__hubTimes.matchupAsked = performance.now();
+                                    return chain;
+                                },
                                 eq() { return chain; },
                                 // buildMatchupTable awaits the chain straight
                                 // after .select(); the terminology peek beside
                                 // it calls .maybeSingle(). Both are supported so
                                 // this mock does not break the other widget.
-                                maybeSingle: async () => ({ data: null, error: null }),
+                                maybeSingle: async () => {
+                                    window.__hubTimes.peekAsked = performance.now();
+                                    if (peekDelay) await new Promise(r => setTimeout(r, peekDelay));
+                                    window.__hubTimes.peekAnswered = performance.now();
+                                    return { data: peek ? { desc_data: peek } : null, error: null };
+                                },
                                 then(resolve, reject) { return Promise.resolve(result).then(resolve, reject); },
                             };
                             return chain;
@@ -81,10 +92,36 @@ async function mockHub(page, { roster = ROSTER, matchups = MATCHUPS, fail = fals
                 }
             },
         });
-    }, { matchups, fail });
+    }, { matchups, fail, peek, peekDelay });
 }
 
 const grid = page => page.locator('#matchup-grid .matchup-grid');
+
+// The Terminologies page in the shape the peek reads: a heading, then the
+// paragraph that defines it.
+const GLOSSARY = { tabs: [{ sections: [{ blocks: [
+    { type: 'heading', content: 'Neutral' },
+    { type: 'paragraph', content: 'The part of a round where neither player has the advantage.' },
+] }] }] };
+
+test('the chart is asked for while the glossary peek is still loading', async ({ page }) => {
+    // v1.2, the owner's performance card. The chart's query used to go out
+    // only after the peek's answer came back: one whole trip to the database
+    // (Frankfurt) more, about 0.4 to 0.7s.
+    await mockHub(page, { peek: GLOSSARY, peekDelay: 1500 });
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    await expect(page.locator('#glossary-section')).toBeVisible();
+    await expect(grid(page)).toBeVisible();
+
+    const t = await page.evaluate(() => window.__hubTimes);
+    expect(t.matchupAsked, 'the chart was asked for').toBeGreaterThan(0);
+    expect(t.matchupAsked, 'before the peek had its answer').toBeLessThan(t.peekAnswered);
+
+    // Not asserted: that the contents list is built after both. It lists both
+    // sections whether or not they are showing (refreshTOC skips only the
+    // .hidden class), so the order cannot be seen from the page.
+});
 
 test('the chart renders a cell per pairing, coloured by tier', async ({ page }) => {
     const errors = [];

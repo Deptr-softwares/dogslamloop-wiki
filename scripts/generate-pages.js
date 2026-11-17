@@ -194,7 +194,7 @@ ${social}
     <script src="../../js/input_slots.js"></script>
     <script src="../../js/page_router.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+    <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
 
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
@@ -252,7 +252,7 @@ ${social}
     <script src="../../js/input_slots.js"></script>
     <script src="../../js/page_router.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+    <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
@@ -311,7 +311,7 @@ ${social}
     <script src="../../js/input_slots.js"></script>
     <script src="../../js/page_router.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+    <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>

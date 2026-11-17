@@ -201,7 +201,7 @@
     </div>
 
     <!-- V0.4 SYSTEM SCRIPTS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+    <script src="../js/vendor/supabase-js-2.118.0.js"></script>
     <script src="../js/character_tabs.js?v=504499e6"></script>
     <script src="../js/input_slots.js?v=504499e6"></script>
     <script src="../js/site_utils.js?v=504499e6"></script>
@@ -241,17 +241,18 @@
                 window.renderHubList('systems-hub', 'startHere', 'start-here-list');
                 window.renderHubList('systems-hub', 'contribute', 'contribute-list');
             }
-            // Awaited: it un-hides its section, and the ToC below must not be
-            // built before the page knows which sections exist.
-            if (window.buildTerminologyPeek) {
-                await window.buildTerminologyPeek('glossary-section', 'glossary-peek');
-            }
-            // Awaited for the same reason as the peek above: it un-hides its
-            // own section, and the ToC below is built from the sections that
-            // are visible by then.
-            if (window.buildMatchupTable) {
-                await window.buildMatchupTable('matchup-section', 'matchup-grid');
-            }
+            // Awaited, so the ToC below is built after both have drawn. (It
+            // lists these two sections even while they are hidden: refreshTOC
+            // skips only the .hidden class, and these use the attribute.)
+            // Together rather than one after the other (v1.2, the owner's
+            // performance card): they read different rows, and in turn the
+            // chart waited a whole trip to the database for the peek.
+            // allSettled, so one that throws still lets the rest of the page
+            // boot; each shows its own error state.
+            await Promise.allSettled([
+                window.buildTerminologyPeek ? window.buildTerminologyPeek('glossary-section', 'glossary-peek') : null,
+                window.buildMatchupTable ? window.buildMatchupTable('matchup-section', 'matchup-grid') : null,
+            ]);
             
             // 3. BOOT THE TABLE OF CONTENTS
             if (typeof window.applyHubHeadings === 'function') {
