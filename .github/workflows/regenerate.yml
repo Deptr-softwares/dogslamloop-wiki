@@ -230,8 +230,23 @@ jobs:
       # The full suite runs after, on the pushed commit, and a red run there
       # is a code test that new content broke. It is reported, and it does
       # not take the content back.
+      #
+      # The JSON report is for the summary step below. playwright-report/ is
+      # gitignored, so the commit step's `git add -A` does not pick it up.
       - name: Check the regenerated content
-        run: npm run test:content
+        run: npm run test:content -- --reporter=list,json
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: playwright-report/content-gate.json
+
+      # What this run fetched, and on a failure which check stopped it and its
+      # error, on the run's own page (owner's card: finding out why meant
+      # opening the log and scrolling). Before the commit, while the fetched
+      # files are still uncommitted changes it can list. `always()` so a run
+      # that failed in any step above still gets one; the script cannot fail
+      # the job.
+      - name: Summarise the run
+        if: ${{ always() }}
+        run: node scripts/regen-summary.js --status "${{ job.status }}" --branch "${{ matrix.branch }}" --report playwright-report/content-gate.json >> "$GITHUB_STEP_SUMMARY"
 
       - name: Commit if anything changed
         run: |

@@ -15,3 +15,4 @@ paths:
 - `workflow_dispatch` carries `publish_to_main`, default off; ticked, it regenerates `main` as well as `next-update`. The nightly cron never sets it, so a scheduled run cannot deploy.
 - **Each branch regenerates from Supabase with its own code. Never copy generated files across.** Stubs embed an asset stamp derived from `js/`, so two branches with different unreleased JS produce different stubs, and copying either way stamps every page wrongly. So `main` and `next-update` each carry their own `chore: regenerate` commits (the back-merge check excludes them), and release PRs conflict on stubs: regenerate, never hand-merge.
 - The job's write set must cover its check set: anything `npm run validate` checks, the job must also rewrite.
+- Every run writes a summary to its own page (`scripts/regen-summary.js`, appended to `$GITHUB_STEP_SUMMARY`): what it fetched, and on a failure which content check stopped it and its error. The script never fails the job.
