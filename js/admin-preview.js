@@ -1132,11 +1132,9 @@ async function switchVersionView(mode) {
         } else {
             console.warn("tierlist.js is not loaded in Admin.html");
         }
-        setTimeout(window.showChangedTabsPopup, 200);
     } else {
         if (typeof loadPageDescriptions === 'function') {
             await loadPageDescriptions(window.activePreviewCharId, window.activePreviewPageType);
-            setTimeout(window.showChangedTabsPopup, 200);
         }
 
         if (window.activePreviewPageType !== 'system' && typeof loadMoveSection === 'function') {

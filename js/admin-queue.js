@@ -402,9 +402,6 @@ function resetPreviewState() {
     const contentArea = document.getElementById('preview-content-area');
     contentArea.classList.remove('active');
 
-    const changedTabsPopup = document.getElementById('changed-tabs-popup');
-    if (changedTabsPopup) changedTabsPopup.remove();
-
     const tabNav = document.getElementById('preview-tab-nav');
     if (tabNav) tabNav.classList.add('hidden');
 

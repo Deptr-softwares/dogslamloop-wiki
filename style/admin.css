@@ -112,49 +112,6 @@
     background: hsla(217, 91%, 60%, 0.05);
 }
 
-/* --- CHANGED TABS POPUP --- */
-/* Single dismissable notification (js/admin-diff.js showChangedTabsPopup),
-   replacing what used to be a pulsing dot glued onto each individual nav
-   button - those live in the sidebar, invisible while actually viewing the
-   preview on mobile. Sits in normal document flow directly below
-   .admin-live-header (not absolutely positioned over it) - an earlier
-   version floated over the pane's top-right corner and directly covered
-   the real INTERCEPT & EDIT / FORCE APPROVE / FORCE REJECT buttons that
-   live in that same corner, on every screen size. */
-#changed-tabs-popup {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.75rem;
-    max-width: 420px;
-    margin: 0 0 1.5rem 0;
-    background: var(--bg-main, #050505);
-    border: 2px solid #eab308;
-    box-shadow: 4px 4px 0px var(--manga-shadow, #000);
-    padding: 0.75rem 1rem;
-    font-family: var(--text-mono);
-}
-.changed-tabs-popup-close {
-    background: none;
-    border: none;
-    color: #eab308;
-    cursor: pointer;
-    font-size: 0.65rem;
-    padding: 0.2rem;
-    flex-shrink: 0;
-}
-.changed-tabs-popup-title { color: #eab308; font-size: 0.65rem; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 0.35rem; }
-.changed-tabs-popup-body { color: #fff; font-size: 0.75rem; line-height: 1.4; }
-
-/* The one line a reviewer has to read when the tabs in front of them are
-   genuinely unchanged because the edit is in another character state.
-   Yellow to match the state toggle it points at, rather than the white of
-   the tab list above it. */
-.changed-tabs-popup-states { color: #eab308; margin-top: 0.4rem; }
-
-@media (max-width: 900px) {
-    #changed-tabs-popup { max-width: none; }
-}
 
 /* --- LAYOUT OVERRIDES --- */
 .admin-body { margin: 0; overflow: hidden; background-color: #050505; }

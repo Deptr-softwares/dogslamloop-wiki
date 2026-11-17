@@ -169,76 +169,17 @@ function getTabData(tab, mode) {
     return dataObj[tab] || null;
 }
 
-// A single dismissable corner popup listing every changed tab, rather than a
-// pulsing dot scattered onto each individual nav button - those buttons live
-// in the sidebar, which is exactly the pane that's hidden while actually
-// looking at the preview on mobile (see window.toggleMobilePreview in
-// admin-core.js), so the old indicators were invisible right when they
-// mattered most.
-const CHANGED_TAB_LABELS = window.getCharacterTabLabels();
-
-window.showChangedTabsPopup = function() {
-    const existing = document.getElementById('changed-tabs-popup');
-    if (existing) existing.remove();
-
-    const tabs = window.changedTabs || [];
-
-    // States this revision changed other than the one on screen. This is the
-    // line that stops the whole class of bug: an edit inside an ultimate state
-    // leaves every tab of the base kit identical, so without it the reviewer
-    // is shown a page that is genuinely unchanged and told nothing about why.
-    const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === 'base'));
-    const active = window.activePreviewMode || null;
-    const otherStates = (window.changedModes || [])
-        .filter(id => !((isBase(id) && isBase(active)) || id === active));
-
-    if (tabs.length === 0 && otherStates.length === 0) return;
-
-    const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s === null || s === undefined ? '' : s));
-    const labels = tabs.map(t => esc(CHANGED_TAB_LABELS[t] || t)).join(', ');
-
-    // Contributor-authored state labels reach this markup.
-    const stateNames = otherStates
-        .map(id => esc(typeof window.previewStateLabel === 'function' ? window.previewStateLabel(id) : id))
-        .join(', ');
-
-    let body = '';
-    if (tabs.length) body += `<div class="changed-tabs-popup-body">${labels}</div>`;
-    if (otherStates.length) {
-        body += `<div class="changed-tabs-popup-body changed-tabs-popup-states">`
-            + `Also changed in another state: ${stateNames}. Use the state toggle above the tabs.`
-            + `</div>`;
-    }
-
-    const popup = document.createElement('div');
-    popup.id = 'changed-tabs-popup';
-    popup.innerHTML = `
-        <div>
-            <div class="changed-tabs-popup-title">Modifications Detected</div>
-            ${body}
-        </div>
-        <button class="changed-tabs-popup-close" title="Dismiss" onclick="this.parentElement.remove()">✖</button>
-    `;
-
-    // Inserted in normal document flow right after the live-header (which
-    // holds REVIEWING:/INTERCEPT & EDIT/FORCE APPROVE/FORCE REJECT), not
-    // absolutely positioned over it - a floating top-right overlay collided
-    // directly with those buttons regardless of screen size, silently
-    // covering the actual review actions.
-    const header = document.querySelector('.admin-live-header');
-    if (header && header.parentElement) {
-        header.insertAdjacentElement('afterend', popup);
-    } else {
-        const pane = document.querySelector('.admin-main-pane');
-        if (pane) pane.appendChild(popup);
-    }
-};
-
-// showPopup is false when this is re-run after a character-state switch
-// (js/admin-modes.js): the markers have to be recomputed for the state now on
-// screen, but re-announcing the same revision every time the reviewer looks at
-// another state would be noise.
-function calculateTabDiffs(rev, showPopup = true) {
+// Works out which tabs the revision changed in the state on screen, and marks
+// them in the strip. Re-run after a character-state switch (js/admin-modes.js).
+//
+// It used to announce them in a yellow "Modifications Detected" box as well,
+// which came back on every tab load. Removed on the owner's word (v1.2,
+// Overseer card): "the submission preview itself can already detects and
+// points out where things changed". The tabs carry their marker, and a state
+// the revision changed carries the same one on its toggle
+// (js/admin-modes.js renderPreviewModeBar), which is what the box's second
+// line used to say.
+function calculateTabDiffs(rev) {
     window.changedTabs = [];
 
     if (window.activePreviewPageType === 'system' || window.activePreviewPageType === 'tierlist') {
@@ -330,7 +271,6 @@ function calculateTabDiffs(rev, showPopup = true) {
         }
     }
 
-    if (showPopup) window.showChangedTabsPopup();
     if (typeof window.markChangedRevisionTabs === 'function') window.markChangedRevisionTabs();
 }
 
@@ -354,11 +294,9 @@ window.setActiveRevisionTab = function(tabId) {
     if (content) content.classList.remove('hidden');
 };
 
-// Marks which tabs the revision actually changed. This information already
-// existed as window.changedTabs but was only surfaced as a dismissible
-// popup listing tab names in prose, which the reviewer had to memorise
-// before navigating. It matters most on a merged ticket, which touches
-// several tabs at once and so has no single target to route to.
+// Marks which tabs the revision actually changed. It matters most on a merged
+// ticket, which touches several tabs at once and so has no single target to
+// route to.
 //
 // A per-button marker was tried before and removed because the buttons then
 // lived in the sidebar, invisible while reading the preview on mobile. They
