@@ -38,9 +38,9 @@ const pendingRev = {
     supporters: [], opposers: [], ticket_chat: [],
 };
 
-async function openOverseer(page, { rows = [], liveError = null } = {}) {
+async function openOverseer(page, { rows = [], liveError = null, slowPage = null } = {}) {
     await page.route('**/data/navigation.json*', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(NAV) }));
-    await page.addInitScript(({ rows, live, history, liveError }) => {
+    await page.addInitScript(({ rows, live, history, liveError, slowPage }) => {
         window.__reads = [];
         window.__upserts = [];
         Object.defineProperty(window, 'supabase', {
@@ -73,7 +73,12 @@ async function openOverseer(page, { rows = [], liveError = null } = {}) {
                         const chain = {
                             select() { return chain; }, in() { return chain; }, order() { return chain; },
                             eq(col, val) { q.eq[col] = val; return chain; },
-                            single: async () => result(), maybeSingle: async () => result(),
+                            single: async () => result(),
+                            maybeSingle: async () => {
+                                // One page whose live read is slow, for the test of a second pick.
+                                if (table === 'page_data' && q.eq.page_id === slowPage) await new Promise(r => setTimeout(r, 600));
+                                return result();
+                            },
                             upsert: async (payload) => { window.__upserts.push({ table, payload }); return { data: null, error: null }; },
                             then(resolve, reject) { return Promise.resolve(result()).then(resolve, reject); },
                         };
@@ -86,7 +91,7 @@ async function openOverseer(page, { rows = [], liveError = null } = {}) {
                 };
             },
         });
-    }, { rows, live: LIVE, history: HISTORY, liveError });
+    }, { rows, live: LIVE, history: HISTORY, liveError, slowPage });
     await page.goto('/admin.html', { waitUntil: 'networkidle' });
     await expect(page.locator('[data-queue-tab="revisions"]')).toBeVisible({ timeout: 15000 });
     await page.evaluate(() => {
@@ -220,4 +225,29 @@ test('PAGE HISTORY on a whole-page submission takes the page off the screen, and
     await expect(list(page)).toBeHidden();
     await expect(page.locator('#tab-overview')).toBeVisible();
     await expect(page.locator('#tab-overview')).toContainText('PENDING OVERVIEW TEXT');
+});
+
+test('Escape puts the list away with the submission it was opened from', async ({ page }) => {
+    await openOverseer(page, { rows: [pendingRev] });
+    await page.locator('#queue-container .admin-review-btn').click();
+    await page.locator('#btn-view-history').click();
+    await expect(list(page)).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(list(page)).toBeHidden();
+    await expect(page.locator('#version-toggle-bar')).toBeHidden();
+});
+
+test('a second pick is not overwritten when the first one answers late', async ({ page }) => {
+    await openOverseer(page, { slowPage: 'boomcat' });
+    await historyTab(page).click();
+    await pick(page, 'boomcat');
+    await pick(page, 'vessel');
+
+    await expect(list(page)).toContainText('No past live versions recorded for this page yet');
+    // Long enough for the slow read of the first pick to have come back.
+    await page.waitForTimeout(900);
+    await expect(list(page).locator('.page-history-card')).toHaveCount(0);
+    await expect(page.locator('#preview-status-text')).toContainText('VESSEL');
+    expect(await page.evaluate(() => window.__reads.filter(r => r.table === 'page_history').map(r => r.page_id))).toEqual(['vessel']);
 });

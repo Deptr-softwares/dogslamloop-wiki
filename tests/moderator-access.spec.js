@@ -217,6 +217,8 @@ test('a page expert sees the revision queue, and neither of the other two', asyn
 
     await expect(page.getByRole('heading', { name: 'Pending Queue' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Media Queue' })).toBeHidden();
+    // Nor Page History (v1.2): restoring a live page is the review team's.
+    expect(await offeredQueues(page)).toEqual(['revisions']);
 });
 
 test('a page expert keeps the preview pane, unlike a moderator', async ({ page }) => {
