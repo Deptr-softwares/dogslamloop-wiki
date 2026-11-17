@@ -1672,6 +1672,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 /* --- 6. MOBILE SUPPORT --- */
 .mobile-top-bar { display: none; }
 .mobile-backdrop { display: none; }
+.mobile-bottom-bar { display: none; }
 
 /* .tab-editor-btn-mobile and #mobile-btn-group were removed on 2026-08-14
    along with the buttons they styled. They existed because the sidebar
@@ -1787,6 +1788,31 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
         z-index: 900; box-shadow: 4px 4px 0px var(--manga-shadow); transform: skewX(-10deg);
     }
     .mobile-edit-fab svg { transform: skewX(10deg); }
+
+    /* The bottom bar (js/pagebuilder.js buildMobileBottomBar): Search, Ko-fi,
+       Settings and the account, one tap away. Under the drawers and their
+       backdrop, which cover it while one is open. The page and the edit
+       button make room for it, and for a phone's home indicator below it. */
+    .mobile-bottom-bar {
+        display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+        background: var(--bg-main); border-top: 2px solid var(--border-color);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .mobile-bottom-btn {
+        flex: 1 1 0; min-width: 0; height: 3rem; box-sizing: border-box;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2rem;
+        margin: 0; padding: 0; background: none; border: none; border-right: 1px solid var(--border-color);
+        color: var(--text-muted); font-family: var(--text-mono); font-size: 0.6rem; line-height: 1;
+        text-transform: uppercase; text-decoration: none; cursor: pointer;
+    }
+    .mobile-bottom-btn:last-child { border-right: none; }
+    .mobile-bottom-btn svg { width: 1.15rem; height: 1.15rem; display: block; }
+    .mobile-bottom-icon { display: block; height: 1.15rem; }
+    .mobile-bottom-btn:active { color: var(--text-white); background: var(--bg-secondary); }
+    .mobile-bottom-kofi { color: var(--accent-yellow); }
+    /* !important only to get past .p-0, which every page puts on its body. */
+    body.has-mobile-bottom-bar { padding-bottom: calc(3rem + 2px + env(safe-area-inset-bottom, 0px)) !important; }
+    body.has-mobile-bottom-bar .mobile-edit-fab { bottom: calc(4.5rem + 2px + env(safe-area-inset-bottom, 0px)); }
     /* Mobile Sidebar Dock Collapsing */
     .global-sidebar-left.collapsed .btn-manga-text { display: none; }
     .global-sidebar-left.collapsed .btn-manga-slanted { padding: 0.6rem; justify-content: center; }
@@ -1806,8 +1832,31 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 @media (max-width: 640px) {
     .main-content-area { padding: 1rem; }
     .wiki-section, .changelog-box { padding: 1rem; }
-    .character-title { font-size: 1.9rem; }
-    .home-main-title { font-size: 1.5rem; }
+
+    /* Phone text (owner's mobile card, v1.2: "Texts are too large"). Their
+       pick, 2026-11-16: body 14px and titles two steps down, so section
+       titles 18px, a character's name 24px, a Skill Card title 20px. Reading
+       text inherits the body's size; the titles are set one by one because
+       each has its own size in rem. Reader pages only (.site-body): the card
+       leaves the editor and the review queue out. */
+    body.site-body { font-size: 0.875rem; }
+    .section-title { font-size: 1.125rem; margin-bottom: 1rem; }
+    .character-title { font-size: 1.5rem; }
+    .skill-title { font-size: 1.25rem; }
+    .home-main-title { font-size: 1.25rem; }
+    .sidebar-master-title, .column-subgroup-title { font-size: 1rem; }
+    /* Heading Blocks size themselves off the text around them (h2 is 1.5em),
+       which would leave one bigger than the section title above it. */
+    h2.wiki-block-heading { font-size: 1.2em; }
+    h3.wiki-block-heading { font-size: 1.1em; }
+
+    /* A table keeps columns wide enough to read and scrolls sideways inside
+       its own box (same card: "Avoid big table having extremely stretched
+       vertical length"). Squeezed to the screen, a three-column table of
+       sentences ran to 3,400px tall. Columns take the width of what is in
+       them, up to 16rem, and never less than the box. */
+    .wiki-table-wrapper > table { width: max-content; min-width: 100%; max-width: none; }
+    .wiki-table-wrapper > table th, .wiki-table-wrapper > table td { max-width: 16rem; }
 
     /* description.js block-level media (image/video/youtube/embed): the
        max-width safety net above stops true overflow, but a contributor-set
@@ -2043,8 +2092,11 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     color: var(--text-white); flex: 1 1 auto;
 }
 .theorybox-difficulty { font-family: var(--text-mono); font-size: 0.75rem; }
-/* Plain: Practicality is free text, so it has no scale to colour. */
-.theorybox-practicality { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+/* Plain: Practicality is free text, so it has no scale to colour. Free text
+   can be a sentence, so it wraps: kept on one line, Vessel's Techs tab was
+   170px wider than a phone (v1.2 mobile pass). The head still gives it a row
+   of its own before it has to break. */
+.theorybox-practicality { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); min-width: 0; overflow-wrap: anywhere; }
 /* Not var(--accent-blue): on a character page that is the character's colour,
    and the dark ones render an unreadable link. Same reason as .combo-video-link. */
 .theorybox-video { color: var(--text-white); text-decoration: underline; text-underline-offset: 2px; font-family: var(--text-mono); font-size: 0.75rem; }

@@ -86,7 +86,12 @@
 
 
 /* --- 3. INTERNAL TAB BAR --- */
-.skill-tab-bar { display: flex; gap: 1rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.75rem; }
+/* The Micro Variant tabs wrap (v1.2 mobile pass). One row that never wrapped
+   made the whole page scroll sideways on a phone: Hired Hunter's M1s tab was
+   261px wider than a 390px screen. A single name longer than the card is cut
+   with an ellipsis, which .btn-manga-text already knows how to do. */
+.skill-tab-bar { display: flex; flex-wrap: wrap; gap: 0.75rem 1rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.75rem; }
+.skill-tab-bar > .btn-manga { max-width: 100%; min-width: 0; }
 .skill-tab-bar-nested { margin-top: 1rem; padding-bottom: 0.5rem; }
 .skill-tab-btn { 
     font-family: 'Finger-Paint', sans-serif;

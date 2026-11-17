@@ -265,7 +265,10 @@ test('a phone taps, and the board fits the screen', async ({ browser }) => {
     await label(page, 0).tap();
     expect(await tier(page, 0)).toEqual([X.id]);
 
-    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    // Against the layout width: an emulated phone zooms out to fit a page that
+    // is too wide, and window.innerWidth grows with it, so that read 0 here
+    // whatever the board did.
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, 'no sideways scroll').toBeLessThanOrEqual(0);
     await context.close();
 });
