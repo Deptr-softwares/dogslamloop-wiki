@@ -417,6 +417,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (window.currentUserSeesRevisions) loadQueue();
 });
 
+// --- THE QUEUE TABS (owner's Overseer card, v1.2) ---
+// One queue on screen at a time. A queue that loads on demand (media,
+// reports) loads the first time its tab is opened, so opening it is the only
+// press it takes. `load: false` is for the page's own first paint, where the
+// queue that opens has its own loader already running.
+const QUEUE_LOADERS = {
+    media: () => (typeof loadMediaQueue === 'function' ? loadMediaQueue() : null),
+    reports: () => (typeof window.loadReportQueue === 'function' ? window.loadReportQueue() : null),
+};
+const queuePanelsOpened = new Set();
+
+window.showQueuePanel = function(name, { load = true } = {}) {
+    const tab = document.querySelector(`[data-queue-tab="${name}"]`);
+    const panel = document.querySelector(`[data-queue-panel="${name}"]`);
+    if (!tab || !panel || tab.hidden) return;
+
+    document.querySelectorAll('[data-queue-tab]').forEach(t => {
+        const on = t === tab;
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-selected', String(on));
+    });
+    document.querySelectorAll('[data-queue-panel]').forEach(p => p.classList.toggle('hidden', p !== panel));
+
+    if (!load) return;
+    if (!queuePanelsOpened.has(name) && QUEUE_LOADERS[name]) QUEUE_LOADERS[name]();
+    queuePanelsOpened.add(name);
+};
+
+// How many are waiting, shown on the tab once that queue has loaded. Nothing
+// is fetched to fill it: a count costs the same request as the queue.
+window.setQueueCount = function(name, count) {
+    const el = document.querySelector(`[data-queue-count="${name}"]`);
+    if (el) el.textContent = Number.isFinite(count) && count > 0 ? String(count) : '';
+};
+
+document.addEventListener('click', (event) => {
+    const tab = event.target.closest('[data-queue-tab]');
+    if (tab) window.showQueuePanel(tab.dataset.queueTab);
+});
+
 function kickUser() {
     document.body.innerHTML = `<div class="access-denied-screen"><h1 class="access-denied-title">ACCESS DENIED</h1></div>`;
 }
@@ -440,27 +480,21 @@ function applyScope({ seesRevisions, seesMedia, seesReports }) {
     // but not reviewing revisions.
     if (!seesRevisions) document.body.classList.add('admin-moderator-only');
 
-    // Each header is the element immediately before its container, so both are
-    // found from the container rather than by adding ids to markup that has none.
-    const hidden = [
-        [!seesRevisions, 'queue-container'],
-        [!seesMedia, 'media-queue-container'],
-        [!seesReports, 'report-queue-container'],
-    ];
-
-    hidden.forEach(([hide, id]) => {
-        if (!hide) return;
-        const container = document.getElementById(id);
-        if (!container) return;
-        container.classList.add('hidden');
-
-        let node = container.previousElementSibling;
-        while (node && !node.classList.contains('admin-split-header')) {
-            node.classList.add('hidden');
-            node = node.previousElementSibling;
-        }
-        if (node) node.classList.add('hidden');
+    // Each queue is a tab and its panel (admin.html #admin-queue-tabs). One a
+    // person is not here for loses both, and the first that is left opens.
+    const seen = { revisions: seesRevisions, media: seesMedia, reports: seesReports };
+    Object.entries(seen).forEach(([name, shown]) => {
+        if (shown) return;
+        const tab = document.querySelector(`[data-queue-tab="${name}"]`);
+        const panel = document.querySelector(`[data-queue-panel="${name}"]`);
+        if (tab) tab.hidden = true;
+        if (panel) panel.classList.add('hidden');
     });
+    // Unless they have already picked one: the tabs are on screen before this
+    // runs, and a pick must not be taken back.
+    const first = Object.keys(seen).find(name => seen[name]);
+    const picked = document.querySelector('.admin-queue-tab.active:not([hidden])');
+    if (first && !picked) window.showQueuePanel(first, { load: false });
 
     // The preview pane exists to review revisions. Left in place - see the
     // note above on why nothing is deleted - but told what it is for, rather
@@ -474,9 +508,7 @@ function applyScope({ seesRevisions, seesMedia, seesReports }) {
     // Load the reports immediately. For a moderator with no revision queue this
     // is the entire page, and making them press Load first would be asking them
     // to open the thing they came for.
-    if (seesReports && !seesRevisions && typeof window.loadReportQueue === 'function') {
-        window.loadReportQueue();
-    }
+    if (seesReports && !seesRevisions) window.showQueuePanel('reports');
 }
 
 function updateTypingText() {

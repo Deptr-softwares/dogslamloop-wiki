@@ -100,12 +100,14 @@ async function openQueue(page, { rows = [], rpcError = null, modError = null, re
             return window.__promptReply ?? 'a reason';
         };
     });
-    await page.evaluate(() => window.loadReportQueue());
+    // Reports is a tab since v1.2, and opening it is what loads it.
+    await page.locator('[data-queue-tab="reports"]').click();
 }
 
-test('the queue sits alongside the other two, not on its own screen', async ({ page, request }) => {
+test('the queue sits in the same column as the other two, not on its own screen', async ({ page, request }) => {
     // Three queues in one column on purpose: they are all "things waiting for
     // a reviewer", and splitting them across screens means forgetting one.
+    // Each is a tab in that column since v1.2 (the owner's Overseer card).
     const html = await (await request.get('/admin.html')).text();
     await page.goto('about:blank');
 
@@ -116,7 +118,8 @@ test('the queue sits alongside the other two, not on its own screen', async ({ p
         const reports = doc.getElementById('report-queue-container');
         return {
             allPresent: !!(queue && media && reports),
-            sameColumn: !!(queue && reports && queue.parentElement === reports.parentElement),
+            sameColumn: !!(queue && reports && queue.closest('.admin-sidebar-content') === reports.closest('.admin-sidebar-content')),
+            tabs: [...doc.querySelectorAll('#admin-queue-tabs [data-queue-tab]')].map(t => t.dataset.queueTab),
             reportsLast: !!(media && reports &&
                 (media.compareDocumentPosition(reports) & Node.DOCUMENT_POSITION_FOLLOWING)),
             hasFilter: !!doc.getElementById('report-queue-status'),
@@ -126,6 +129,7 @@ test('the queue sits alongside the other two, not on its own screen', async ({ p
     expect(layout.allPresent).toBe(true);
     expect(layout.sameColumn).toBe(true);
     expect(layout.reportsLast).toBe(true);
+    expect(layout.tabs).toEqual(['revisions', 'media', 'reports']);
     expect(layout.hasFilter).toBe(true);
 });
 

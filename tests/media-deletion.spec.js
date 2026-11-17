@@ -107,7 +107,8 @@ async function openQueue(page, {
 
     await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => typeof window.loadMediaQueue === 'function');
-    await page.evaluate(() => window.loadMediaQueue());
+    // The Media Queue is a tab since v1.2, and opening it is what loads it.
+    await page.locator('[data-queue-tab="media"]').click();
     await page.waitForSelector('.media-queue-row');
 }
 

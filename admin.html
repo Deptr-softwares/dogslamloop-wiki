@@ -60,6 +60,22 @@
                     </div>
                 </div>
 
+                <!--
+                    One queue at a time (owner's Overseer card, v1.2). The
+                    three used to sit stacked in this column: "When I need to
+                    approve media, I will have to scroll through dozens of
+                    submission just to get to it. And when I want to see
+                    Reports, I have to scroll through hundreds of media cards."
+                    js/admin-core.js shows the tabs a person is here for and
+                    opens the first of them.
+                -->
+                <div id="admin-queue-tabs" class="admin-queue-tabs" role="tablist" aria-label="Queues">
+                    <button type="button" role="tab" class="admin-queue-tab active" data-queue-tab="revisions" aria-selected="true">Pending Queue<span class="admin-queue-count" data-queue-count="revisions"></span></button>
+                    <button type="button" role="tab" class="admin-queue-tab" data-queue-tab="media" aria-selected="false">Media Queue<span class="admin-queue-count" data-queue-count="media"></span></button>
+                    <button type="button" role="tab" class="admin-queue-tab" data-queue-tab="reports" aria-selected="false">Reports<span class="admin-queue-count" data-queue-count="reports"></span></button>
+                </div>
+
+                <section class="admin-queue-panel" data-queue-panel="revisions">
                 <div class="dashboard-header-split admin-split-header">
                     <h3 class="section-title section-title-clean m-0 admin-section-title">Pending Queue</h3>
                     <button onclick="loadQueue()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Refresh</button>
@@ -88,6 +104,7 @@
                 <div id="queue-container" class="space-y-4">
                     <p class="loading-msg admin-loading-msg">Authenticating RBAC...</p>
                 </div>
+                </section>
 
                 <!--
                     Media moderation (v0.13 item 1). Sits below the revision
@@ -95,7 +112,8 @@
                     reviewer", and splitting them across screens would mean
                     remembering to go and look at the second one.
                 -->
-                <div class="dashboard-header-split admin-split-header media-queue-header">
+                <section class="admin-queue-panel hidden" data-queue-panel="media">
+                <div class="dashboard-header-split admin-split-header">
                     <h3 class="section-title section-title-clean m-0 admin-section-title">Media Queue</h3>
                     <button onclick="loadMediaQueue()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Load</button>
                 </div>
@@ -118,6 +136,7 @@
                 <div id="media-queue-container" class="space-y-4">
                     <p class="admin-queue-empty-msg">Press Load to fetch the media list.</p>
                 </div>
+                </section>
 
                 <!--
                     Reports (v0.14 item 6). Third queue in the same column, for
@@ -125,7 +144,8 @@
                     they are all "things waiting for a reviewer", and splitting
                     them across screens means forgetting to check one.
                 -->
-                <div class="dashboard-header-split admin-split-header media-queue-header">
+                <section class="admin-queue-panel hidden" data-queue-panel="reports">
+                <div class="dashboard-header-split admin-split-header">
                     <h3 class="section-title section-title-clean m-0 admin-section-title">Reports</h3>
                     <button onclick="loadReportQueue()" class="btn-sys btn-sys-regular admin-refresh-btn">↻ Load</button>
                 </div>
@@ -142,6 +162,7 @@
                 <div id="report-queue-container" class="space-y-4">
                     <p class="admin-queue-empty-msg">Press Load to fetch reports.</p>
                 </div>
+                </section>
 
             </div>
         </aside>

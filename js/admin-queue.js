@@ -114,6 +114,7 @@ function renderQueue() {
     if (!container) return;
 
     const all = window.currentQueueData || [];
+    if (typeof window.setQueueCount === 'function') window.setQueueCount('revisions', all.length);
     const pageFilter = document.getElementById('queue-filter-page')?.value || 'all';
     const statusFilter = document.getElementById('queue-filter-status')?.value || 'all';
 

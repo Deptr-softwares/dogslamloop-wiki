@@ -555,7 +555,21 @@
    without any thumbnail at all - a queue of newly recorded skill clips is the
    heaviest content in the bucket and rendering twenty to choose one is the
    wrong default. */
-.media-queue-header { margin-top: 2rem; }
+/* The queue tabs (admin.html #admin-queue-tabs): one queue on screen at a
+   time. They wrap rather than scroll, so every queue's name stays in view in
+   a column this narrow. */
+.admin-queue-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+.admin-queue-tab {
+    flex: 1 1 auto; padding: 0.45rem 0.6rem; cursor: pointer;
+    background: var(--bg-main, #050505); border: 1px solid var(--border-color, #333);
+    color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+}
+.admin-queue-tab:hover { color: var(--text-white); border-color: var(--accent-blue); }
+.admin-queue-tab.active { color: var(--text-white); border-color: var(--accent-blue); background: hsla(217, 91%, 60%, 0.12); }
+.admin-queue-tab[hidden] { display: none; }
+/* How many are waiting, once that queue has been loaded. */
+.admin-queue-count:not(:empty) { margin-left: 0.4rem; color: var(--accent-blue); font-weight: bold; }
 .media-queue-filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .media-queue-filter { flex: 1; font-size: 0.7rem; padding: 0.35rem; min-width: 0; }
 .media-queue-summary { font-family: var(--text-mono); font-size: 0.7rem; color: #888; margin: 0 0 0.75rem 0; }

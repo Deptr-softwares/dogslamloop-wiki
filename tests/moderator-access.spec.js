@@ -90,6 +90,11 @@ async function openAdmin(page, roleRow, expertPages = []) {
 
 const denied = (page) => page.locator('.access-denied-screen');
 
+// The queues are tabs since v1.2 (the owner's Overseer card): one on screen at
+// a time, and a person only has the tabs they are here for.
+const queueTab = (page, name) => page.locator(`[data-queue-tab="${name}"]`);
+const offeredQueues = (page) => page.locator('[data-queue-tab]:visible').evaluateAll(tabs => tabs.map(t => t.dataset.queueTab));
+
 test('a moderator gets into the Overseer', async ({ page }) => {
     await openAdmin(page, MODERATOR);
     await expect(page.locator('#report-queue-container')).toBeVisible();
@@ -149,6 +154,8 @@ test('a reviewer without the tick sees the revision and media queues, and no Rep
     await openAdmin(page, REVIEWER);
 
     await expect(page.locator('#queue-container')).toBeVisible();
+    expect(await offeredQueues(page)).toEqual(['revisions', 'media']);
+    await queueTab(page, 'media').click();
     await expect(page.locator('#media-queue-container')).toBeVisible();
     await expect(page.locator('#report-queue-container')).toBeHidden();
     await expect(page.getByRole('heading', { name: 'Reports' })).toBeHidden();
@@ -161,9 +168,19 @@ for (const [name, row] of [['reviewer the owner ticked', REVIEWER_WHO_MODERATES]
     test(`a ${name} still sees every queue`, async ({ page }) => {
         await openAdmin(page, row);
 
+        // The Pending Queue is the one that opens, and the other two are a
+        // press away: one on screen at a time.
         await expect(page.locator('#queue-container')).toBeVisible();
+        expect(await offeredQueues(page)).toEqual(['revisions', 'media', 'reports']);
+
+        await queueTab(page, 'media').click();
         await expect(page.locator('#media-queue-container')).toBeVisible();
+        await expect(page.locator('#queue-container')).toBeHidden();
+
+        await queueTab(page, 'reports').click();
         await expect(page.locator('#report-queue-container')).toBeVisible();
+        await expect(page.locator('#media-queue-container')).toBeHidden();
+        await expect(queueTab(page, 'reports')).toHaveAttribute('aria-selected', 'true');
         await expect(page.locator('body')).not.toHaveClass(/admin-moderator-only/);
     });
 }
@@ -228,6 +245,8 @@ test('an expert who also moderates gets both queues, not one', async ({ page }) 
     await openAdmin(page, { role: 'trusted_editor', can_moderate: true }, EXPERT_PAGES);
 
     await expect(page.locator('#queue-container')).toBeVisible();
+    expect(await offeredQueues(page)).toEqual(['revisions', 'reports']);
+    await queueTab(page, 'reports').click();
     await expect(page.locator('#report-queue-container')).toBeVisible();
     await expect(page.locator('#media-queue-container')).toBeHidden();
 });
@@ -277,4 +296,36 @@ test('the OVERSEER button and the gate agree about who may enter', async ({ page
             { message: `${label}: admin.html admits them` }
         ).toBe(expected);
     }
+});
+
+// --- THE QUEUE TABS (owner's Overseer card, v1.2) ---
+//
+// "When I need to approve media, I will have to scroll through dozens of
+// submission just to get to it. And when I want to see Reports, I have to
+// scroll through hundreds of media cards."
+
+test('a queue loads the first time its tab is opened, and not again', async ({ page }) => {
+    await openAdmin(page, ADMIN);
+    const reportLoads = () => page.evaluate(() => (window.__rpcCalls || []).filter(n => n === 'list_content_reports').length);
+
+    // Nothing asked for it yet: the Pending Queue is what opened.
+    await expect(queueTab(page, 'revisions')).toHaveAttribute('aria-selected', 'true');
+    expect(await reportLoads()).toBe(0);
+
+    await queueTab(page, 'reports').click();
+    await expect.poll(reportLoads).toBe(1);
+
+    await queueTab(page, 'revisions').click();
+    await expect(page.locator('#queue-container')).toBeVisible();
+    await expect(page.locator('#report-queue-container')).toBeHidden();
+
+    await queueTab(page, 'reports').click();
+    await expect(page.locator('#report-queue-container')).toBeVisible();
+    expect(await reportLoads(), 'coming back to a tab does not fetch it again').toBe(1);
+});
+
+test('a moderator has one tab, and it is the one that is open', async ({ page }) => {
+    await openAdmin(page, MODERATOR);
+    expect(await offeredQueues(page)).toEqual(['reports']);
+    await expect(queueTab(page, 'reports')).toHaveAttribute('aria-selected', 'true');
 });
