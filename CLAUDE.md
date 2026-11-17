@@ -48,7 +48,7 @@ Edit the source and regenerate; `regenerate.yml` overwrites hand-edits.
 |---|---|
 | `data/navigation.json` | `site_pages` table |
 | `data/page-previews.json` | `page_data.desc_data.profile.image` |
-| `data/portraits.json` + `medias/portraits/*` | mirrored from the URLs in `page-previews.json` |
+| `data/portraits.json` + `medias/portraits/*` | mirrored from the URLs in `page-previews.json`; a portrait that is not really a WebP, or is over 200 KB, is shrunk to a WebP at most 512px (the original in Storage is untouched) |
 | `data/faq.json` | `site_faq` table |
 | `data/site_meta.json` | `site_meta` table. **The version string lives here**, so a release bump is an owner-tools edit plus `npm run refresh-content` |
 | `systems/collaborators/collaborators_data.json` | `site_collaborators` table |

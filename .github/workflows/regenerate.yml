@@ -154,6 +154,10 @@ jobs:
 
       - run: npm ci
 
+      # Before the portrait mirror, which shrinks an oversized portrait in this
+      # browser (v1.2), as well as before the content checks that need it.
+      - run: npx playwright install --with-deps chromium
+
       # Refuses on an empty result set and reports any portrait that no longer
       # resolves, so a transient outage cannot silently blank every preview
       # image on the site.
@@ -217,8 +221,6 @@ jobs:
 
       - name: Validate
         run: npm run validate
-
-      - run: npx playwright install --with-deps chromium
 
       # THE CONTENT GATE (owner, 2026-11-17): the specs whose result depends on
       # what was just fetched, listed in playwright.content.config.js. Not the

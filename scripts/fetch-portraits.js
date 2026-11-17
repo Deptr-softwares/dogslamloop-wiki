@@ -27,10 +27,17 @@
  *    onerror="this.style.display='none'", so those five have simply been
  *    rendering no portrait rather than reporting anything.
  *
- * NO RESIZING, DELIBERATELY. All 23 portraits total ~437KB, the largest 47KB.
- * They are already downloaded by every visitor today; mirroring changes the
- * host, not the byte count. Resizing would mean an image-processing dependency
- * in a repo that has no build step, to save a fraction of a megabyte.
+ * OVERSIZED PORTRAITS ARE SHRUNK (owner, 2026-11-17; the performance card).
+ * This used to copy bytes only: in 2026-08 all 23 portraits came to ~437KB,
+ * and resizing meant an image tool for a fraction of a megabyte. By 2026-11
+ * two uploads were full-size PNGs named .webp, 1.5MB and 1MB, and the tier
+ * tools, which load every portrait, downloaded 3.5MB. So a portrait that is
+ * not really a WebP, or is over MAX_BYTES, is re-encoded as a WebP no larger
+ * than MAX_SIDE on its longest side. The tool is the Chromium that Playwright
+ * already installs for the tests and the regeneration job, so nothing new is
+ * added. The original in Storage is untouched; only the mirror is smaller.
+ * A shrink that fails keeps the portrait as downloaded and warns: a portrait
+ * that is too big beats one that is missing.
  *
  * Run: node scripts/fetch-portraits.js --write   # npm run refresh-portraits
  *      node scripts/fetch-portraits.js --check   # offline; verifies the mirror
@@ -51,6 +58,53 @@ const REPO_REL_DIR = 'medias/portraits';
 // Anything not on this list is refused rather than written. The filename comes
 // from a URL in the database, so it is not trusted to name a path.
 const ALLOWED_EXT = new Set(['.webp', '.png', '.jpg', '.jpeg', '.gif']);
+
+// See the header: a portrait that is not a WebP, or is bigger than this, is
+// re-encoded as a WebP no larger than MAX_SIDE. Every real WebP the site had on
+// 2026-11-17 was under 120KB, so this touches only the ones that need it.
+const MAX_BYTES = 200 * 1024;
+const MAX_SIDE = 512;
+
+// RIFF....WEBP: the bytes, not the name. Both oversized uploads were PNGs
+// called .webp.
+function isWebp(buf) {
+    return buf.length >= 12 && buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP';
+}
+
+function needsShrinking(buf) {
+    return !isWebp(buf) || buf.length > MAX_BYTES;
+}
+
+// One browser for the run, started the first time a portrait needs it, so a
+// night with nothing to shrink never starts one.
+let browser = null;
+async function shrinkToWebp(buf) {
+    if (!browser) browser = await require('playwright').chromium.launch();
+    const page = await browser.newPage();
+    try {
+        const out = await page.evaluate(async ({ data, maxSide }) => {
+            const bytes = Uint8Array.from(atob(data), c => c.charCodeAt(0));
+            const bitmap = await createImageBitmap(new Blob([bytes]));
+            const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+            const width = Math.max(1, Math.round(bitmap.width * scale));
+            const height = Math.max(1, Math.round(bitmap.height * scale));
+            const canvas = new OffscreenCanvas(width, height);
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(bitmap, 0, 0, width, height);
+            const blob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.9 });
+            // A browser that cannot write WebP hands back a PNG instead.
+            if (blob.type !== 'image/webp') throw new Error(`the browser wrote ${blob.type}, not image/webp`);
+            const view = new Uint8Array(await blob.arrayBuffer());
+            let binary = '';
+            for (let i = 0; i < view.length; i += 0x8000) binary += String.fromCharCode(...view.subarray(i, i + 0x8000));
+            return btoa(binary);
+        }, { data: buf.toString('base64'), maxSide: MAX_SIDE });
+        return Buffer.from(out, 'base64');
+    } finally {
+        await page.close();
+    }
+}
 
 const write = process.argv.includes('--write');
 const check = process.argv.includes('--check');
@@ -133,7 +187,9 @@ if (check) {
     const previous = fs.existsSync(MANIFEST_PATH) ? JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf8')) : {};
     const manifest = {};
     const failures = [];
+    const unshrunk = [];
     let changed = 0;
+    let shrunk = 0;
     let unchanged = 0;
 
     for (const [pageId, url] of entries) {
@@ -165,7 +221,20 @@ if (check) {
             continue;
         }
 
-        const filename = `${pageId}${ext}`;
+        // Shrunk in the mirror only; Storage keeps what was uploaded. A
+        // shrunk portrait is a WebP whatever its URL said, so it is named one.
+        let savedExt = ext;
+        if (needsShrinking(body)) {
+            try {
+                body = await shrinkToWebp(body);
+                savedExt = '.webp';
+                shrunk++;
+            } catch (err) {
+                unshrunk.push({ pageId, failure: err.message.split('\n')[0], kb: Math.round(body.length / 1024) });
+            }
+        }
+
+        const filename = `${pageId}${savedExt}`;
         const abs = path.join(PORTRAIT_DIR, filename);
         manifest[pageId] = `${REPO_REL_DIR}/${filename}`;
 
@@ -187,6 +256,10 @@ if (check) {
         const outcome = kept ? `kept the last good copy (${kept})` : 'no portrait until it is fixed';
         console.log(`::warning title=Portrait not mirrored::${pageId}: ${failure}. ${outcome}.`);
     }
+    for (const { pageId, failure, kb } of unshrunk) {
+        console.log(`::warning title=Portrait not shrunk::${pageId}: ${failure}. Kept as downloaded (${kb} KB).`);
+    }
+    if (browser) await browser.close();
 
     // Files that no longer correspond to any portrait in the map.
     const keep = new Set(Object.values(manifest).filter(Boolean).map(rel => path.basename(rel)));
@@ -200,6 +273,6 @@ if (check) {
     fs.writeFileSync(MANIFEST_PATH, JSON.stringify(sorted, null, 2) + '\n');
 
     console.log(`fetch-portraits: ${entries.length - failures.length} portraits mirrored `
-        + `(${changed} changed, ${unchanged} unchanged, ${removed} removed)`
+        + `(${changed} changed, ${unchanged} unchanged, ${removed} removed, ${shrunk} shrunk)`
         + (failures.length ? `, ${failures.length} not mirrored (warned above).` : '.'));
 })();
