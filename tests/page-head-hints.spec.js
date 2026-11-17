@@ -85,11 +85,14 @@ test('a page makes its client from the copy on the site and asks no CDN for it',
     expect(cdn).toEqual([]);
 });
 
-// v1.2 (owner, 2026-11-17, the performance card): the home page's scripts sit
-// above its Content-Security-Policy meta tag, deferred. Chrome stops fetching
-// ahead when it meets that tag, so with the scripts at the end of the body they
-// were fetched one at a time, each a whole trip after the last: the page was
-// ready for its data at about 1.6s instead of 0.35s.
+// v1.2 (owner, 2026-11-17, the performance card): the home page's scripts are
+// deferred. It is the one page with a Content-Security-Policy meta tag, and
+// Chrome stops fetching ahead when it meets one, so its blocking scripts were
+// fetched one at a time, each a whole trip after the last: the page was ready
+// for its data at about 1.6s instead of 0.35s. A deferred script never stops
+// the parser, so all of them are asked for at once. (Moving them above the tag
+// was the plan; a mutation probe showed the position does not matter and
+// `defer` does, so they stay below it, where the policy covers them.)
 test('the home page asks for all its scripts before the first one arrives, and still boots', async ({ page, context }) => {
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
@@ -116,7 +119,7 @@ test('the home page asks for all its scripts before the first one arrives, and s
     expect(errors).toEqual([]);
 });
 
-test('on the home page every script is above the policy and deferred, and the boot script runs after them', () => {
+test('on the home page every script is deferred and covered by the policy, and the boot script runs after them', () => {
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     const policy = html.indexOf('http-equiv="Content-Security-Policy"');
     expect(policy).toBeGreaterThan(-1);
@@ -124,8 +127,8 @@ test('on the home page every script is above the policy and deferred, and the bo
     const tags = [...html.matchAll(/<script\b[^>]*\bsrc="[^"]*"[^>]*>/g)];
     expect(tags.length).toBeGreaterThan(5);
     for (const t of tags) {
-        expect(t.index, `${t[0]} is above the policy`).toBeLessThan(policy);
-        expect(t[0], 'and deferred, so it runs once the page is read, in order').toMatch(/\bdefer\b/);
+        expect(t[0], 'deferred, so it never stops the parser, and runs in order once the page is read').toMatch(/\bdefer\b/);
+        expect(t.index, `${t[0]} comes after the policy, which then covers it`).toBeGreaterThan(policy);
     }
     // A plain inline script would run during parsing, before the deferred
     // ones, and add its DOMContentLoaded listener ahead of theirs.
