@@ -315,15 +315,74 @@ test('clearing the colour is allowed and stores NULL', async ({ page }) => {
     )).toEqual([null]);
 });
 
-test('a named CSS colour is accepted, which a hex-only regex would have refused', async ({ page }) => {
+// --- STORED IN A FORM THE SITE READS (owner's card, v1.2) ---
+//
+// The box takes any colour the browser understands; the site reads hex and
+// hsl(n, n%, n%) and nothing else (parseCharacterColor). A named colour used
+// to be written as typed, themed nothing, and failed the regeneration job's
+// colour check that night. Owner, 2026-11-17: "Convert it to hsl() on save".
+
+const savedColors = (page) => page.evaluate(() =>
+    (window.__writes || []).filter(w => w.table === 'site_pages').map(w => w.payload.color));
+
+test('a named colour is accepted, and stored as the hsl() the site reads', async ({ page }) => {
     await openPageMeta(page);
     await page.fill('#page-meta-color', 'rebeccapurple');
     await page.click('#btn-save-page-meta');
 
-    await expect.poll(async () => await page.evaluate(() =>
-        (window.__writes || []).filter(w => w.table === 'site_pages').map(w => w.payload.color)
-    )).toEqual(['rebeccapurple']);
+    // rebeccapurple is #663399.
+    await expect.poll(() => savedColors(page)).toEqual(['hsl(270, 50%, 40%)']);
+    // The box shows what was stored, and the message says what happened to
+    // what was typed.
+    await expect(page.locator('#page-meta-color')).toHaveValue('hsl(270, 50%, 40%)');
+    await expect(page.locator('#page-meta-results')).toContainText('rebeccapurple is stored as hsl(270, 50%, 40%)');
 });
+
+for (const [typed, stored] of [
+    ['rgb(255, 0, 0)', 'hsl(0, 100%, 50%)'],
+    ['hsl(120 100% 25%)', 'hsl(120, 100%, 25%)'],
+    ['hsl(200deg, 50%, 50%)', 'hsl(200, 50%, 50%)'],
+    ['white', 'hsl(0, 0%, 100%)'],
+]) {
+    test(`${typed} is stored as ${stored}, which the site can read`, async ({ page }) => {
+        await openPageMeta(page);
+        await page.fill('#page-meta-color', typed);
+        await page.click('#btn-save-page-meta');
+
+        await expect.poll(() => savedColors(page)).toEqual([stored]);
+        // The consequence, not the string: the site's own parser reads it, and
+        // could not read what was typed.
+        const read = await page.evaluate(([typed, stored]) => ({
+            typed: window.parseCharacterColor(typed),
+            stored: window.parseCharacterColor(stored),
+        }), [typed, stored]);
+        expect(read.typed, 'the form that was typed is one the site cannot read').toBe(null);
+        expect(read.stored).not.toBe(null);
+    });
+}
+
+for (const typed of ['#abc', '#ABCDEF', 'hsl(0, 100%, 80%)', 'hsl(12, 34.5%, 56%)']) {
+    test(`${typed} is already a form the site reads, and is stored exactly as typed`, async ({ page }) => {
+        await openPageMeta(page);
+        await page.fill('#page-meta-color', typed);
+        await page.click('#btn-save-page-meta');
+
+        await expect.poll(() => savedColors(page)).toEqual([typed]);
+        await expect(page.locator('#page-meta-results')).not.toContainText('is stored as');
+    });
+}
+
+for (const typed of ['rgba(255, 0, 0, 0.5)', 'transparent', '#ff000080']) {
+    test(`${typed} is see-through, and is refused rather than stored without its transparency`, async ({ page }) => {
+        await openPageMeta(page);
+        await page.fill('#page-meta-color', typed);
+        await page.click('#btn-save-page-meta');
+
+        await expect(page.locator('#page-meta-results')).toContainText('see-through');
+        expect(await page.evaluate(() => (window.__writes || []).length)).toBe(0);
+        await expect(page.locator('#page-meta-color'), 'what was typed is left in the box to fix').toHaveValue(typed);
+    });
+}
 
 // --- THE MIGRATION ---
 
