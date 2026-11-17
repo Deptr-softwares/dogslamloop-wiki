@@ -33,24 +33,27 @@ function serveClip(route) {
 const STORE = 'https://example.supabase.co/storage/v1/object/public/wiki-media/';
 const still = (c) => `medias/stills/${c.repeat(16)}.webp`;
 
-async function stillBytes(page) {
+// A still the shape its list entry says, as the job makes them. A poster that
+// has loaded gives a video its shape too, so a still of the wrong shape would
+// hide whether the list did.
+async function stillBytes(page, [width, height]) {
     await page.setContent('<!doctype html><html><body></body></html>');
-    const b64 = await page.evaluate(async () => {
-        const canvas = new OffscreenCanvas(64, 36);
+    const b64 = await page.evaluate(async ({ width, height }) => {
+        const canvas = new OffscreenCanvas(width, height);
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = '#c03030';
-        ctx.fillRect(0, 0, 64, 36);
+        ctx.fillRect(0, 0, width, height);
         const view = new Uint8Array(await (await canvas.convertToBlob({ type: 'image/webp' })).arrayBuffer());
         let s = '';
         for (const b of view) s += String.fromCharCode(b);
         return btoa(s);
-    });
+    }, { width, height });
     return Buffer.from(b64, 'base64');
 }
 
-async function boot(page, { list = {}, listStatus = 200, holdList = false, arrives = [] } = {}) {
-    const body = await stillBytes(page);
-    const net = { stills: [], errors: [] };
+async function boot(page, { list = {}, listStatus = 200, holdList = false, arrives = [], stillShape = [64, 36], holdStills = false } = {}) {
+    const body = await stillBytes(page, stillShape);
+    const net = { stills: [], errors: [], listAsked: 0 };
     page.on('pageerror', (e) => net.errors.push(e.message));
 
     let releaseList = () => {};
@@ -64,9 +67,11 @@ async function boot(page, { list = {}, listStatus = 200, holdList = false, arriv
     });
     await page.route('**/medias/stills/*.webp', (route) => {
         net.stills.push(new URL(route.request().url()).pathname.split('/').pop());
+        if (holdStills) return; // asked for, never answered
         return route.fulfill({ status: 200, contentType: 'image/webp', body });
     });
     await page.route('**/data/video-stills.json*', async (route) => {
+        net.listAsked++;
         await listReady;
         if (listStatus !== 200) return route.fulfill({ status: listStatus, body: '' });
         return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(list) });
@@ -125,7 +130,9 @@ const settle = (page) => page.evaluate(() => new Promise((resolve) =>
     requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 150)))));
 
 test('a video in the list has its real shape before any of it arrives, and its still stands in for it', async ({ page }) => {
-    const net = await boot(page, { list: { 'Wide Clip.webm': { still: still('a'), w: 1920, h: 1080, etag: '"1"' } } });
+    // The still is asked for and held back too: a poster that has loaded
+    // gives a video its shape, so here only the list can.
+    const net = await boot(page, { list: { 'Wide Clip.webm': { still: still('a'), w: 1920, h: 1080, etag: '"1"' } }, holdStills: true });
     await place(page, [
         { name: 'listed', url: `${STORE}Wide%20Clip.webm`, at: 0.1 },
         { name: 'unlisted', url: `${STORE}Not%20Listed.webm`, at: 0.1, left: 380 },
@@ -148,7 +155,7 @@ test('a video in the list has its real shape before any of it arrives, and its s
 });
 
 test('a video far down the page gets its shape at once, and its still only when the reader comes within three screens', async ({ page }) => {
-    const net = await boot(page, { list: { 'Far.webm': { still: still('b'), w: 640, h: 480, etag: '"1"' } } });
+    const net = await boot(page, { list: { 'Far.webm': { still: still('b'), w: 640, h: 480, etag: '"1"' } }, stillShape: [64, 48] });
     await place(page, [{ name: 'far', url: `${STORE}Far.webm`, at: 6 }]);
 
     const far = video(page, 'far');
@@ -178,7 +185,7 @@ test('a list that arrives after the page has drawn still gives each video its sh
 test('a skill card\'s clip keeps its card\'s shape, with the still inside it', async ({ page }) => {
     // The card's box is set in CSS (16:9 here), which wins over the video's
     // own size: a square clip must not stretch the card.
-    await boot(page, { list: { 'Square.webm': { still: still('d'), w: 1000, h: 1000, etag: '"1"' } } });
+    await boot(page, { list: { 'Square.webm': { still: still('d'), w: 1000, h: 1000, etag: '"1"' } }, stillShape: [36, 36] });
     await place(page, [{ name: 'card', url: `${STORE}Square.webm`, at: 0.1, skill: true }]);
 
     const clip = video(page, 'card');
@@ -189,8 +196,9 @@ test('a skill card\'s clip keeps its card\'s shape, with the still inside it', a
 
 test('once a video arrives, its own shape wins over a list that is out of date', async ({ page }) => {
     // The list is a night old at worst: a file replaced today keeps
-    // yesterday's size in it until the next run. Here it says square.
-    await boot(page, { list: { 'Real.webm': { still: still('f'), w: 1000, h: 1000, etag: '"1"' } }, arrives: ['Real.webm'] });
+    // yesterday's size in it until the next run. Here it says square, and so
+    // does its still, so only the video itself can make the box any other shape.
+    await boot(page, { list: { 'Real.webm': { still: still('f'), w: 1000, h: 1000, etag: '"1"' } }, arrives: ['Real.webm'], stillShape: [36, 36] });
     await place(page, [{ name: 'real', url: `${STORE}Real.webm`, at: 0.1 }]);
 
     const real = video(page, 'real');
@@ -216,6 +224,20 @@ test('an entry that names anything but a still of ours, or has no size, is ignor
         expect(await video(page, name).getAttribute('poster'), name).toBeNull();
         expect(await heightOf(video(page, name)), name).toBe(DEFAULT_HEIGHT);
     }
+});
+
+test('a page with none of the wiki\'s own videos never asks for the list', async ({ page }) => {
+    // The home page draws its posts through initLazyMedia too, and has a
+    // speed target of its own.
+    const net = await boot(page, { list: { 'Ours.webm': { still: still('a'), w: 640, h: 360, etag: '"1"' } } });
+    await page.route('**/__elsewhere__/**', () => { /* held */ });
+    await place(page, [{ name: 'other', url: '/__elsewhere__/clip.webm', at: 0.1 }]);
+    await settle(page);
+    expect(net.listAsked, 'no video of ours on the page yet').toBe(0);
+
+    await place(page, [{ name: 'ours', url: `${STORE}Ours.webm`, at: 0.1, left: 380 }]);
+    await expect.poll(() => net.listAsked).toBe(1);
+    await expect.poll(() => shapeOf(video(page, 'ours'))).toBeCloseTo(360 / 640, 2);
 });
 
 test('without the list, every video draws as it did before', async ({ page }) => {

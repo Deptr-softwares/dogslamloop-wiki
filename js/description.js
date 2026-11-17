@@ -2590,6 +2590,14 @@ function applyStills(root) {
     });
 }
 
+// Only a page showing one of the wiki's own videos asks for the list: the
+// home page draws its posts through initLazyMedia too, and has a speed target
+// of its own.
+function hasWikiVideo(root) {
+    return Array.from(root.querySelectorAll('video'))
+        .some((video) => wikiMediaFileOf(video.getAttribute('data-lazy-src') || video.getAttribute('src')));
+}
+
 function askForVideoStills() {
     // Both from site_utils.js, which a cache-skewed load can be missing.
     if (videoStillsAsked || typeof window.fetchJson !== 'function' || typeof window.getRootPath !== 'function') return;
@@ -2616,7 +2624,7 @@ window.initLazyMedia = function(rootElement = document) {
             });
         }, { rootMargin: STILL_AHEAD_MARGIN });
     }
-    askForVideoStills();
+    if (hasWikiVideo(rootElement)) askForVideoStills();
     applyStills(rootElement);
 
     if (!('IntersectionObserver' in window)) {
