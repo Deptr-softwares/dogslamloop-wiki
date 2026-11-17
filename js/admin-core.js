@@ -323,6 +323,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     const seesRevisions = isReviewStaff || isExpert;
     const seesMedia     = isReviewStaff;
     const seesReports   = moderates;
+    // Page History restores a live page, which is the review team's power and
+    // nobody else's (page_data and page_history say the same in their RLS).
+    const seesHistory   = isReviewStaff;
     window.currentUserSeesRevisions = seesRevisions;
     window.currentUserSeesMedia = seesMedia;
     window.currentUserSeesReports = seesReports;
@@ -335,8 +338,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // tables have their own RLS, and a narrowed account cannot read them
     // whatever this does - hiding them is about not showing somebody a job
     // that is not theirs, not about preventing access.
-    if (!seesRevisions || !seesMedia || !seesReports) {
-        applyScope({ seesRevisions, seesMedia, seesReports });
+    if (!seesRevisions || !seesMedia || !seesReports || !seesHistory) {
+        applyScope({ seesRevisions, seesMedia, seesReports, seesHistory });
     }
 
     // Personnel Management / Media GC moved to owner.html (admin-only) -
@@ -424,6 +427,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 const QUEUE_LOADERS = {
     media: () => (typeof loadMediaQueue === 'function' ? loadMediaQueue() : null),
     reports: () => (typeof window.loadReportQueue === 'function' ? window.loadReportQueue() : null),
+    // Not a queue, and nothing is waiting in it: its page list (js/admin-history.js).
+    history: () => (typeof loadHistoryPagePicker === 'function' ? loadHistoryPagePicker() : null),
 };
 const queuePanelsOpened = new Set();
 
@@ -472,7 +477,7 @@ function kickUser() {
 // preview engine all still find their elements and write into them harmlessly.
 // Deleting them would turn every unguarded getElementById in five files into a
 // null dereference for one class of user.
-function applyScope({ seesRevisions, seesMedia, seesReports }) {
+function applyScope({ seesRevisions, seesMedia, seesReports, seesHistory }) {
     // Kept as the moderator's own class name: style/admin.css hangs a rule off
     // it, and this is still exactly the case it described - in the building,
     // but not reviewing revisions.
@@ -480,7 +485,7 @@ function applyScope({ seesRevisions, seesMedia, seesReports }) {
 
     // Each queue is a tab and its panel (admin.html #admin-queue-tabs). One a
     // person is not here for loses both.
-    const seen = { revisions: seesRevisions, media: seesMedia, reports: seesReports };
+    const seen = { revisions: seesRevisions, media: seesMedia, reports: seesReports, history: seesHistory };
     Object.entries(seen).forEach(([name, shown]) => {
         if (shown) return;
         const tab = document.querySelector(`[data-queue-tab="${name}"]`);

@@ -154,7 +154,7 @@ test('a reviewer without the tick sees the revision and media queues, and no Rep
     await openAdmin(page, REVIEWER);
 
     await expect(page.locator('#queue-container')).toBeVisible();
-    expect(await offeredQueues(page)).toEqual(['revisions', 'media']);
+    expect(await offeredQueues(page)).toEqual(['revisions', 'media', 'history']);
     await queueTab(page, 'media').click();
     await expect(page.locator('#media-queue-container')).toBeVisible();
     await expect(page.locator('#report-queue-container')).toBeHidden();
@@ -171,7 +171,7 @@ for (const [name, row] of [['reviewer the owner ticked', REVIEWER_WHO_MODERATES]
         // The Pending Queue is the one that opens, and the other two are a
         // press away: one on screen at a time.
         await expect(page.locator('#queue-container')).toBeVisible();
-        expect(await offeredQueues(page)).toEqual(['revisions', 'media', 'reports']);
+        expect(await offeredQueues(page)).toEqual(['revisions', 'media', 'reports', 'history']);
 
         await queueTab(page, 'media').click();
         await expect(page.locator('#media-queue-container')).toBeVisible();

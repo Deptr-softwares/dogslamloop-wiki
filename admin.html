@@ -73,6 +73,7 @@
                     <button type="button" role="tab" class="admin-queue-tab active" data-queue-tab="revisions" aria-selected="true">Pending Queue<span class="admin-queue-count" data-queue-count="revisions"></span></button>
                     <button type="button" role="tab" class="admin-queue-tab" data-queue-tab="media" aria-selected="false">Media Queue<span class="admin-queue-count" data-queue-count="media"></span></button>
                     <button type="button" role="tab" class="admin-queue-tab" data-queue-tab="reports" aria-selected="false">Reports<span class="admin-queue-count" data-queue-count="reports"></span></button>
+                    <button type="button" role="tab" class="admin-queue-tab" data-queue-tab="history" aria-selected="false">Page History</button>
                 </div>
 
                 <section class="admin-queue-panel" data-queue-panel="revisions">
@@ -162,6 +163,27 @@
                 <div id="report-queue-container" class="space-y-4">
                     <p class="admin-queue-empty-msg">Press Load to fetch reports.</p>
                 </div>
+                </section>
+
+                <!--
+                    Page History (owner's Overseer card, v1.2). Not a queue:
+                    every past live version of any page, with COMPARE TO LIVE
+                    and RESTORE, in the review pane. Rolling a page back used to
+                    need a submission on that page to be open first. Review
+                    staff only. js/admin-history.js fills the picker.
+                -->
+                <section class="admin-queue-panel hidden" data-queue-panel="history">
+                <div class="dashboard-header-split admin-split-header">
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Page History</h3>
+                </div>
+
+                <div class="media-queue-filters">
+                    <select id="history-page-picker" class="editor-select media-queue-filter" aria-label="Page">
+                        <option value="">Pick a page...</option>
+                    </select>
+                </div>
+
+                <p id="history-picker-note" class="admin-queue-empty-msg">Pick a page to see its past live versions. Each one can be compared to the live page or restored.</p>
                 </section>
 
             </div>

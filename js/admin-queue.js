@@ -398,6 +398,9 @@ function resetPreviewState() {
     document.getElementById('ticket-workspace').classList.add('hidden');
     const qaReport = document.getElementById('qa-report-panel');
     if (qaReport) qaReport.classList.add('hidden');
+    // The list of past versions belongs to what was open, like the rest.
+    const pageHistory = document.getElementById('page-history-container');
+    if (pageHistory) pageHistory.classList.add('hidden');
 
     const toggleBar = document.getElementById('version-toggle-bar');
     if (toggleBar) toggleBar.classList.add('hidden');

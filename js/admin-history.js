@@ -33,6 +33,21 @@ async function togglePageHistoryView() {
         return;
     }
 
+    await showPageHistory(pageId);
+}
+
+// The list itself, for a page named by the caller: the PAGE HISTORY button
+// above (the page of the open submission) and the Page History tab below (any
+// page, with nothing open).
+async function showPageHistory(pageId) {
+    await loadPageHistoryList(pageId, revealPageHistoryContainer());
+}
+
+// Brings the history pane to the front of the review pane, making it the first
+// time it is asked for.
+function revealPageHistoryContainer() {
+    let container = document.getElementById('page-history-container');
+
     if (!container) {
         container = document.createElement('div');
         container.id = 'page-history-container';
@@ -53,8 +68,106 @@ async function togglePageHistoryView() {
     const historyBtn = document.getElementById('btn-view-history');
     if (historyBtn) historyBtn.className = 'btn-sys btn-sys-yellow version-toggle-btn';
 
-    await loadPageHistoryList(pageId, container);
+    return container;
 }
+
+// --- THE PAGE HISTORY TAB (owner's Overseer card, v1.2) ---
+//
+// The list above hung off a button that only exists while a submission is
+// open, so rolling a page back needed a submission on that page to be sitting
+// in the queue. The owner picked "a page picker in the Overseer": a tab that
+// opens the same list, with the same COMPARE TO LIVE and RESTORE, for any page.
+//
+// Review staff only (js/admin-core.js hides the tab from everyone else), which
+// is who the database lets read page_history and write page_data.
+
+// Every live page, by name. From navigation.json, which the page already has:
+// an archived page is not in it, and is not offered. Filled the first time the
+// tab is opened.
+async function loadHistoryPagePicker() {
+    const select = document.getElementById('history-page-picker');
+    if (!select) return;
+
+    let pages;
+    try {
+        const nav = await window.fetchNavigationData();
+        pages = Object.values(nav || {}).flat()
+            .filter(entry => entry && entry.cms_config && entry.cms_config.pageId)
+            .map(entry => ({ id: entry.cms_config.pageId, name: entry.name || entry.cms_config.pageId }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    } catch (e) {
+        console.error('[Page History] The page list could not be read:', e);
+        const note = document.getElementById('history-picker-note');
+        if (note) note.textContent = 'The page list could not be loaded. Reload the page to try again.';
+        return;
+    }
+
+    select.innerHTML = '<option value="">Pick a page...</option>';
+    pages.forEach(page => {
+        const opt = document.createElement('option');
+        opt.value = page.id;
+        // textContent: a name from the registry is still a value going into the DOM.
+        opt.textContent = page.name;
+        select.appendChild(opt);
+    });
+
+    // The site's dropdown copies a <select>'s options once, when it builds
+    // itself, which is before this list arrives. Rebuilt here, the same way
+    // populateQueuePageFilter (js/admin-queue.js) does for the same reason.
+    const built = select.nextElementSibling;
+    if (built && built.classList.contains('manga-select-wrapper')) {
+        built.remove();
+        select.classList.remove('manga-initialized');
+        window.initializeMangaSelects();
+    }
+}
+
+// The pick that is on screen. A second page picked while the first is still
+// loading must not have the first one's answer land on top of it.
+let pageHistoryPick = 0;
+
+window.openPageHistoryFor = async function(pageId) {
+    if (!pageId) return;
+    const pick = ++pageHistoryPick;
+
+    // One thing in the pane: the open submission and any clip are put away, so
+    // its buttons are not left acting on a page that is no longer on screen.
+    if (typeof window.closeMediaPreview === 'function') window.closeMediaPreview();
+    resetPreviewState();
+
+    document.getElementById('preview-status-text').innerHTML = `PAGE HISTORY: <strong class="admin-preview-status-highlight">${window.escapeHtml(pageId.toUpperCase())}</strong>`;
+    document.getElementById('preview-content-area').classList.add('active');
+
+    // COMPARE TO LIVE reads these, and no submission is there to have set
+    // them. A failed read stops here: comparing against an empty page would
+    // show every field as removed.
+    const { data: live, error } = await window.supabaseClient
+        .from('page_data').select('desc_data, frame_data').eq('page_id', pageId).maybeSingle();
+    if (pick !== pageHistoryPick) return;
+    if (error) {
+        revealPageHistoryContainer().innerHTML = `<div class="wiki-section"><p class="loading-msg">Failed to load the live page: ${window.escapeHtml(error.message)}</p></div>`;
+        return;
+    }
+    window.currentLiveDescData = live ? live.desc_data : {};
+    window.currentLiveFrameData = live ? live.frame_data : {};
+
+    await showPageHistory(pageId);
+
+    // On a phone the pane is off-screen until the reviewer switches to it, so
+    // picking a page has to take them there (as opening a clip does).
+    const toggle = document.getElementById('mobile-preview-toggle');
+    if (toggle && typeof window.toggleMobilePreview === 'function'
+        && getComputedStyle(toggle).display !== 'none'
+        && !document.body.classList.contains('mobile-preview-active')) {
+        window.toggleMobilePreview();
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    // `change`, not `input`: the site's dropdown only ever dispatches change.
+    const picker = document.getElementById('history-page-picker');
+    if (picker) picker.addEventListener('change', () => window.openPageHistoryFor(picker.value));
+});
 
 async function loadPageHistoryList(pageId, container) {
     container.innerHTML = `<p class="loading-msg loading-msg-busy">Loading page history...</p>`;

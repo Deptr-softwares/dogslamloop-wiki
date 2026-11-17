@@ -129,7 +129,9 @@ test('the queue sits in the same column as the other two, not on its own screen'
     expect(layout.allPresent).toBe(true);
     expect(layout.sameColumn).toBe(true);
     expect(layout.reportsLast).toBe(true);
-    expect(layout.tabs).toEqual(['revisions', 'media', 'reports']);
+    // The three queues, in this order. Page History comes after them: it is a
+    // tab in the same strip, and not something waiting for a reviewer.
+    expect(layout.tabs.slice(0, 3)).toEqual(['revisions', 'media', 'reports']);
     expect(layout.hasFilter).toBe(true);
 });
 
