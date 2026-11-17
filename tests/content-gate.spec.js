@@ -20,7 +20,7 @@ const listed = gate.testMatch.map(pattern => pattern.replace('**/', ''));
 // A Node-side read of a file the regeneration job writes. This is the rule in
 // playwright.content.config.js, as a pattern: a spec that matches it gets its
 // answer from the real content.
-const GENERATED = /(navigation|page-previews|portraits|faq|site_meta|search-index|search-fulltext|collaborators_data)\.json|sitemap\.xml|'site_meta\.js'/;
+const GENERATED = /(navigation|page-previews|portraits|faq|site_meta|search-index|search-fulltext|collaborators_data|video-stills)\.json|sitemap\.xml|'site_meta\.js'/;
 const NODE_READ = /require\(|readFileSync\(|path\.join\(/;
 const readsGenerated = (source) => source.split('\n').some(line => GENERATED.test(line) && NODE_READ.test(line));
 

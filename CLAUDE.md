@@ -35,6 +35,7 @@ npm run lock-migrations   # re-record migration checksums (only when re-locking 
 npm run generate          # rewrite page stubs from navigation.json
 npm run refresh-previews  # pull portrait URLs from Supabase
 npm run refresh-portraits # mirror those portraits into medias/portraits/
+npm run refresh-stills    # first frame + size of every video the pages show, into medias/stills/
 npm run refresh-registry  # rewrite navigation.json from site_pages
 npm run refresh-content   # rewrite faq.json + collaborators_data.json + site_meta.json
 ```
@@ -50,6 +51,7 @@ Edit the source and regenerate; `regenerate.yml` overwrites hand-edits.
 | `data/navigation.json` | `site_pages` table |
 | `data/page-previews.json` | `page_data.desc_data.profile.image` |
 | `data/portraits.json` + `medias/portraits/*` | mirrored from the URLs in `page-previews.json`; a portrait that is not really a WebP, or is over 200 KB, is shrunk to a WebP at most 512px (the original in Storage is untouched) |
+| `data/video-stills.json` + `medias/stills/*` | the first frame (a WebP at most 640px) and the size of every wiki-media video `page_data` links to, via `scripts/fetch-video-stills.js`. Only a new or changed video is fetched, and only its first 512 KB unless that cannot be decoded. Pages show the still until the video plays (`js/description.js`) |
 | `data/faq.json` | `site_faq` table |
 | `data/site_meta.json` | `site_meta` table. **The version string lives here**, so a release bump is an owner-tools edit plus `npm run refresh-content` |
 | `systems/collaborators/collaborators_data.json` | `site_collaborators` table |

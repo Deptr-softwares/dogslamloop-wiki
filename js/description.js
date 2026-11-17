@@ -2529,8 +2529,96 @@ function onClipScreen(entries) {
     });
 }
 
+// --- VIDEO STILLS (v1.2; the owner's performance card) ---
+//
+// Owner: "For videos that takes time to load, there should be a thumbnail that
+// stands in place for those videos with the exact dimension it has." A clip in
+// a skill card showed an empty box until its first frame came, and a video
+// block had no height at all until its metadata did, so the page jumped. The
+// nightly job (scripts/fetch-video-stills.js) saves each video's first frame
+// (the owner's pick: nothing jumps when it starts) and its size.
+//
+// A video gets its size as soon as the list is here, so its box is right
+// before any of the video arrives, and its still once it is within three
+// screens: a page with 33 clips does not fetch 33 pictures for a reader who
+// reads the top. The list can arrive after the page has drawn, so it is
+// applied to whatever is on the page then, and to every render after.
+const STILL_AHEAD_MARGIN = '300% 0px';
+const STILL_PATH_RE = /^medias\/stills\/[0-9a-f]{16}\.webp$/;
+let videoStills = null;
+let videoStillsAsked = false;
+let stillObserver = null;
+
+// The video's file in the wiki-media bucket, decoded, as the job keys it.
+function wikiMediaFileOf(src) {
+    const value = String(src || '');
+    const at = value.indexOf(WIKI_MEDIA_BUCKET_PATH);
+    if (at === -1) return null;
+    try { return decodeURIComponent(value.slice(at + WIKI_MEDIA_BUCKET_PATH.length).split(/[?#]/)[0]); } catch (e) { return null; }
+}
+
+function stillFor(video) {
+    if (!videoStills) return null;
+    const file = wikiMediaFileOf(video.getAttribute('data-lazy-src') || video.getAttribute('src'));
+    const entry = file && Object.prototype.hasOwnProperty.call(videoStills, file) ? videoStills[file] : null;
+    // The list is the job's own output, but its values still only ever name
+    // a still of ours and a size.
+    if (!entry || !STILL_PATH_RE.test(entry.still)) return null;
+    if (!(Number.isInteger(entry.w) && entry.w > 0 && Number.isInteger(entry.h) && entry.h > 0)) return null;
+    return entry;
+}
+
+function showStill(video) {
+    const entry = stillFor(video);
+    if (entry && !video.getAttribute('poster')) video.poster = window.getRootPath() + entry.still;
+}
+
+function applyStills(root) {
+    if (!videoStills) return;
+    root.querySelectorAll('video').forEach((video) => {
+        if (video.dataset.stillApplied) return;
+        const entry = stillFor(video);
+        if (!entry) return;
+        video.dataset.stillApplied = 'true';
+        // The shape before a byte of the video arrives: this ratio until the
+        // video has its own ("auto"). A ratio, not width and height
+        // attributes: those become a height in pixels, and a video block sets
+        // only its width. A skill card or a gallery tile sets its clip's
+        // height in CSS, which a ratio does not change.
+        if (!video.style.aspectRatio) video.style.aspectRatio = `auto ${entry.w} / ${entry.h}`;
+        if (stillObserver) stillObserver.observe(video);
+        else showStill(video);
+    });
+}
+
+function askForVideoStills() {
+    // Both from site_utils.js, which a cache-skewed load can be missing.
+    if (videoStillsAsked || typeof window.fetchJson !== 'function' || typeof window.getRootPath !== 'function') return;
+    videoStillsAsked = true;
+    // Deliberately quiet past the console: a still is an extra, and without
+    // the list every video draws exactly as it did before v1.2.
+    window.fetchJson(`${window.getRootPath()}data/video-stills.json`, { cache: true })
+        .then((list) => {
+            videoStills = list && typeof list === 'object' ? list : {};
+            applyStills(document);
+        })
+        .catch((err) => console.warn('[Media] No video stills this time:', err.message));
+}
+
 window.initLazyMedia = function(rootElement = document) {
     const lazyMedia = rootElement.querySelectorAll('video[data-lazy-src], iframe[data-lazy-src]');
+
+    if (!stillObserver && 'IntersectionObserver' in window) {
+        stillObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(({ target, isIntersecting }) => {
+                if (!isIntersecting) return;
+                showStill(target);
+                observer.unobserve(target);
+            });
+        }, { rootMargin: STILL_AHEAD_MARGIN });
+    }
+    askForVideoStills();
+    applyStills(rootElement);
 
     if (!('IntersectionObserver' in window)) {
         // Fallback for ancient browsers: everything at once, as before.
