@@ -22,20 +22,52 @@
 // .combo-node set `color` in a stylesheet that loaded later at equal
 // specificity - "thickened but not orange".
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
 
-// hsl(233, 39%, 23%) - well under the <50% lightness test.
-const DARK_PAGE = '/characters/Crow_charmer/index.html';
-// hsl(0, 1%, 75%) - well over it.
-const LIGHT_PAGE = '/characters/Boomcat/index.html';
+// NONE OF THE COLOURS HERE ARE THE OWNER'S (v1.2, the owner's regeneration
+// card). This file used to visit Crow Charmer and Boomcat and name Black Death
+// and Vessel, and it relied on the colours the owner had given those four:
+// recolouring any of them in the owner tools would have turned it red.
+//
+// The page is the first character on the roster, whoever that is today, booted
+// with a colour this file puts in the dictionary in place of its own. The two
+// names are not characters at all.
+const SUBJECT = (() => {
+  const nav = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'navigation.json'), 'utf8'));
+  return (nav.Characters || []).find(c => c.url && c.name);
+})();
 
-// Black Death is hsl(352, 49%, 27%); Vessel is hsl(0, 100%, 80%).
-const DARK_NAME = 'Black Death';
-const LIGHT_NAME = 'Vessel';
+const DARK_PAGE = 'hsl(233, 39%, 23%)';   // well under the <50% lightness test
+const LIGHT_PAGE = 'hsl(0, 1%, 75%)';     // well over it
 
-async function outlineOf(page, url, name) {
-  await page.goto(url, { waitUntil: 'networkidle' });
-  await page.waitForFunction(() => typeof window.applyInternalStyling === 'function', { timeout: 15000 });
-  await page.waitForTimeout(1200);
+const NAMES = { 'Outline Probe Dark': 'hsl(352, 49%, 27%)', 'Outline Probe Light': 'hsl(0, 100%, 80%)' };
+const DARK_NAME = 'Outline Probe Dark';
+const LIGHT_NAME = 'Outline Probe Light';
+
+// The roster's first character, wearing `pageColour`.
+async function open(page, pageColour, waitUntil) {
+  await page.addInitScript(([subject, pageColour, names]) => {
+    let colours;
+    Object.defineProperty(window, 'CHARACTER_COLORS', {
+      configurable: true,
+      get() { return colours; },
+      set(v) { colours = { ...v, ...names, [subject]: pageColour }; },
+    });
+  }, [SUBJECT.name, pageColour, NAMES]);
+  await page.goto(`/${SUBJECT.url}`, { waitUntil });
+}
+
+async function outlineOf(page, pageColour, name) {
+  // Waits for what it reads and nothing else: the page's theme applied (the
+  // title is in, and the page is marked dark or not), the highlighter loaded,
+  // and somewhere to put the probe. It used to wait for the network to go
+  // quiet and then 1.2s more, which on a page with clips is most of a test's
+  // 30 seconds, and this file is in the content gate since v1.2.
+  await open(page, pageColour, 'domcontentloaded');
+  await page.waitForFunction(() => typeof window.applyInternalStyling === 'function'
+    && !!document.querySelector('main')
+    && !!document.documentElement.style.getPropertyValue('--accent-blue'), null, { timeout: 15000 });
 
   return page.evaluate((who) => {
     const host = document.createElement('p');
@@ -69,10 +101,10 @@ function isOutlinedWhite(r) {
 
 test('a dark page is marked as one', async ({ page }) => {
   const dark = await outlineOf(page, DARK_PAGE, DARK_NAME);
-  expect(dark.pageDark, 'Crow Charmer is hsl(233, 39%, 23%)').toBe(true);
+  expect(dark.pageDark, 'the page was given hsl(233, 39%, 23%)').toBe(true);
 
   const light = await outlineOf(page, LIGHT_PAGE, DARK_NAME);
-  expect(light.pageDark, 'Boomcat is hsl(0, 1%, 75%)').toBe(false);
+  expect(light.pageDark, 'the page was given hsl(0, 1%, 75%)').toBe(false);
 });
 
 test('a dark name on a dark page is outlined in white', async ({ page }) => {
@@ -102,7 +134,7 @@ test('a dark name on a LIGHT page is left alone', async ({ page }) => {
 });
 
 test('the darkness test is stated once, not re-derived', async ({ page }) => {
-  await page.goto(DARK_PAGE, { waitUntil: 'domcontentloaded' });
+  await open(page, DARK_PAGE, 'domcontentloaded');
   await page.waitForFunction(() => typeof window.isDarkCharacterColor === 'function', { timeout: 15000 });
 
   // --character-ink, the title shadow engine and the name outline all ask this

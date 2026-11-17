@@ -45,6 +45,7 @@ const CONTENT_SPECS = [
   'routing.spec.js',
 
   // Features that draw from the real roster, registry or site meta.
+  'character-name-outline.spec.js',
   'combo-block.spec.js',
   'create-tier-list.spec.js',
   'free-submit-tier-list.spec.js',
