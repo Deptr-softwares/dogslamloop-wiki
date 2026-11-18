@@ -1202,7 +1202,7 @@ async function renderPreviewVersion(mode, onlyTab = null) {
         if (window.activePreviewPageType !== 'system' && typeof loadMoveSection === 'function') {
             // The side-by-side asks for one tab, and drawing the other move
             // tabs twice over was most of its wait on a page with many moves.
-            const moveTabs = ['m1s', 'skills', 'specials', 'ultimateAtk'].filter(tab => !onlyTab || tab === onlyTab);
+            const moveTabs = window.FRAME_MOVE_CATEGORIES.filter(tab => !onlyTab || tab === onlyTab);
             for (const tab of moveTabs) {
                 // Only when the tab exists - js/admin-modes.js injects the
                 // Ultimate one for a revision that actually has ultimate
