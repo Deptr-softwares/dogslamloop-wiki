@@ -85,6 +85,16 @@ test("the page draws every shown character's own colour, and leaves a hidden one
   expect(errors).toEqual([]);
 });
 
+test('when the registry cannot be read, the character grid says so instead of waiting', async ({ page }) => {
+  await servePage(page, PAGE);
+  await page.route('**/data/navigation.json*', route => route.fulfill({ status: 500, body: 'down' }));
+  await page.goto('/systems/color-codes/index.html', { waitUntil: 'networkidle' });
+
+  const grid = page.locator('.color-swatch-grid[data-swatch-set="characters"]');
+  await expect(grid).toHaveText('The character colors could not be loaded.');
+  await expect(grid.locator('.color-swatch-card')).toHaveCount(0);
+});
+
 test("the frame data and overlay swatches are the legend's own, by the legend's names", async ({ page }) => {
   await servePage(page, PAGE);
   await page.goto('/systems/color-codes/index.html', { waitUntil: 'networkidle' });
