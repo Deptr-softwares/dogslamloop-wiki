@@ -296,6 +296,10 @@ test('another tab picked while DIFF VIEW is open is drawn side by side too', asy
 
     await page.locator('#nav-overview').click();
     await expect(right(page).locator('ins.diff-add')).toHaveText(['A new middle line.']);
+
+    // A tab the submission did not touch says so.
+    await page.locator('#nav-m1s').click();
+    await expect(page.locator('.sbs-note')).toHaveText('Nothing on this tab changed.');
 });
 
 test('PENDING SUBMISSION and LIVE VERSION still draw every move tab', async ({ page }) => {

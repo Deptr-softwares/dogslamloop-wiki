@@ -13,19 +13,20 @@ const para = (text) => ({ type: 'paragraph', content: text });
 const LIVE = [para('Hold the dash to start a combo.'), para('Good for punishing a whiffed M1.')];
 const OLD = [para('Hold the jump to start a combo.'), para('Good for punishing a whiffed M1.')];
 
+// Oldest first, the order the table happens to hold them in, so the newest-
+// first list can only come from the order the editor asks for.
 const VERSIONS = [
-    { id: '00000000-0000-4000-8000-0000000000a2', author_name: 'Editor B', approved_at: '2026-11-12T09:00:00Z', is_delta: true, target_scope: 'move', target_key: 'skills::swipe' },
     { id: '00000000-0000-4000-8000-0000000000a1', author_name: 'Editor A', approved_at: '2026-11-08T09:00:00Z', is_delta: true, target_scope: 'overview', target_key: 'full' },
+    { id: '00000000-0000-4000-8000-0000000000a2', author_name: 'Editor B', approved_at: '2026-11-12T09:00:00Z', is_delta: true, target_scope: 'move', target_key: 'skills::swipe' },
 ];
 
 // `after` is the whole page after each approved edit, by its id, as the
 // database keeps it; an edit missing from it is one the site cannot rebuild.
-function mockEditor(page, { desc = { overview: LIVE }, versions = VERSIONS, after = { [VERSIONS[1].id]: { overview: OLD } } } = {}) {
-    return page.addInitScript(({ desc, versions, after }) => {
+function mockEditor(page, { desc = { overview: LIVE }, frame = { m1s: [], skills: [], specials: [] }, versions = VERSIONS, after = { [VERSIONS[0].id]: { overview: OLD } } } = {}) {
+    return page.addInitScript(({ desc, frame, versions, after }) => {
         window.__asked = [];
-        const frame = { m1s: [], skills: [], specials: [] };
         const rowsFor = (table) => {
-            if (table === 'page_data') return { data: { page_id: 'boomcat', desc_data: JSON.parse(JSON.stringify(desc)), frame_data: frame }, error: null };
+            if (table === 'page_data') return { data: { page_id: 'boomcat', desc_data: JSON.parse(JSON.stringify(desc)), frame_data: JSON.parse(JSON.stringify(frame)) }, error: null };
             if (table === 'approved_revisions') return { data: versions, error: null };
             if (['user_roles', 'site_settings', 'page_permissions', 'pending_revisions'].includes(table)) return { data: null, error: null };
             return { data: [], error: null };
@@ -37,7 +38,13 @@ function mockEditor(page, { desc = { overview: LIVE }, versions = VERSIONS, afte
             const chain = {
                 select() { return chain; }, eq(c, v) { asked.filters.push(['eq', c, v]); return chain; },
                 not(c, op, v) { asked.filters.push(['not', c, op, v]); return chain; },
-                in() { return chain; }, order() { return chain; }, limit() { return chain; },
+                in() { return chain; }, limit() { return chain; },
+                order(c, { ascending = true } = {}) {
+                    if (Array.isArray(result.data)) {
+                        result.data = [...result.data].sort((a, b) => (a[c] < b[c] ? -1 : a[c] > b[c] ? 1 : 0) * (ascending ? 1 : -1));
+                    }
+                    return chain;
+                },
                 single: async () => result, maybeSingle: async () => result,
                 then: (res) => Promise.resolve(result).then(res),
             };
@@ -69,7 +76,7 @@ function mockEditor(page, { desc = { overview: LIVE }, versions = VERSIONS, afte
                 }
             },
         });
-    }, { desc, versions, after });
+    }, { desc, frame, versions, after });
 }
 
 // The site's styled dropdown stands in front of the native <select>, which
@@ -83,10 +90,10 @@ const left = (page) => page.locator('#diff-view-container .sbs-col-left');
 const right = (page) => page.locator('#diff-view-container .sbs-col-right');
 
 // Boots the editor on the Overview and types into its first paragraph.
-async function editFirstParagraph(page, text) {
+async function editFirstParagraph(page, text, { search = '', ...fixture } = {}) {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await mockEditor(page);
-    await page.goto('/edit.html?char=boomcat&type=character&tab=overview', { waitUntil: 'domcontentloaded' });
+    await mockEditor(page, fixture);
+    await page.goto(`/edit.html?char=boomcat&type=character&tab=overview${search}`, { waitUntil: 'domcontentloaded' });
     const card = page.locator('#block-list .block-card').first();
     await expect(card).toBeVisible({ timeout: 45000 });
     const field = card.locator('textarea[data-field="content-array"]');
@@ -192,6 +199,42 @@ test('the Workspace is held while the two versions are drawn, and given back aft
     await page.locator('#block-list textarea[data-field="content-array"]').first().fill('Typed after the drawing.');
 });
 
+// The side-by-side is one tab, so it goes where the Workspace goes.
+test('VIEW DIFF follows the Workspace to another tab', async ({ page }) => {
+    await editFirstParagraph(page, 'Hold the jump button to start a combo.', {
+        desc: { overview: LIVE, matchups: [{ opponent: 'Zzq Rival', tier: 'even', content: [para('Keep your distance from Zzq.')] }] },
+    });
+    await page.locator('#btn-toggle-diff').click();
+    await expect(right(page).locator('ins.diff-add')).toHaveText(['jump button']);
+
+    await page.locator('#edit-nav-matchups').click();
+    await expect(right(page)).toContainText('Keep your distance from Zzq.');
+    await expect(right(page)).not.toContainText('Hold the');
+    await expect(page.locator('#diff-view-container .sbs-note')).toHaveText('Nothing this tab shows has changed.');
+});
+
+// A character's states (Ultimate and the like) are edited one at a time, and
+// the editor holds only that state's write-up. A past version is cut the same
+// way, or the base kit's overview would stand beside the Ultimate one.
+test("in a state, a past version is that state as it was, not the base kit", async ({ page }) => {
+    const withState = (base, ultimate) => ({ overview: [para(base)], modeData: { ultimate: { overview: [para(ultimate)] } } });
+    const modes = [{ id: 'base', label: 'Base Kit' }, { id: 'ultimate', label: 'Ultimate' }];
+    await editFirstParagraph(page, 'Hold the jump button to start a combo.', {
+        search: '&mode=ultimate',
+        desc: withState('Base kit overview.', 'Hold the dash to start a combo.'),
+        frame: { m1s: [], skills: [], specials: [], modes },
+        after: { [VERSIONS[0].id]: withState('Base kit overview, as it was.', 'Hold the jump to start a combo.') },
+    });
+    await page.locator('#btn-toggle-diff').click();
+    await expect(left(page).locator('del.diff-del')).toHaveText(['dash']);
+    await expect(right(page).locator('ins.diff-add')).toHaveText(['jump button']);
+
+    await compareWith(page, 'Nov 8, 2026, Editor A');
+    await expect(page.locator('.sbs-head-left').first()).toContainText('NOV 8, 2026');
+    await expect(right(page).locator('ins.diff-add')).toHaveText(['button']);
+    await expect(left(page)).not.toContainText('Base kit overview');
+});
+
 // A system page is drawn whole, every tab at once, so the side-by-side has to
 // pick out the tab the Workspace is on, and follow the Workspace's own tab
 // strip (window.switchSystemTab), which is not the character pages' one.
@@ -223,6 +266,31 @@ test('a system page compares the tab on screen, and follows the Workspace to ano
     await expect(right(page)).toContainText('Spacing wins neutral.');
     await expect(right(page)).not.toContainText('Hold the');
     await expect(page.locator('#diff-view-container .sbs-note')).toHaveText('Nothing this tab shows has changed.');
+
+    // The system renderer finds its place by class, the first one in the
+    // page, so the versions are drawn in a box put first; none of either may
+    // be left in the editor's own preview (a second tab strip, empty tabs).
+    await page.locator('#btn-toggle-diff').click();
+    const preview = page.locator('#standard-preview-container');
+    await expect(preview).toBeVisible();
+    await expect(preview.locator('[id="system-dynamic-nav"]')).toHaveCount(1);
+    await expect(preview.locator('[id="tab-basics"]')).toHaveCount(1);
+    await expect(preview.locator('[id="tab-advanced"]')).toHaveCount(1);
+    await expect(preview.locator('[id="tab-advanced"]')).toContainText('Spacing wins neutral.');
+});
+
+// A tool page (and a gallery, and a tier list) is not drawn tab by tab, so
+// there is no tab to put beside another: VIEW DIFF keeps the list for it.
+test('a tool page keeps the list', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await mockEditor(page, { desc: { intro: [para('Paste the ID here.')], notes: [] } });
+    await page.goto('/edit.html?page=id-reader&type=tool', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#tool-url')).toBeVisible({ timeout: 45000 });
+
+    await page.locator('#btn-toggle-diff').click();
+    await expect(page.locator('#diff-view-container h2.section-title')).toHaveText('REVISION COMPARISON');
+    await expect(page.locator('#diff-view-container .sbs')).toHaveCount(0);
+    await expect(page.locator('#sbs-compare-with')).toHaveCount(0);
 });
 
 test('CHANGE LIST shows the list, and SIDE BY SIDE comes back', async ({ page }) => {
