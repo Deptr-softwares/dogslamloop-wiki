@@ -86,17 +86,22 @@ test("a move's accolades show under its name, in the owner's order, each in its 
     }
 });
 
-// What the reader sees, pixel by pixel: the owner shaded 14 of the 26 icons
-// with grays rather than transparency, so a plain silhouette in the badge's
-// color would lose their shading. Each pixel is the icon's own times the
-// color, laid over the badge, and nothing shows outside the icon.
-test("a badge's icon is the owner's pixels in the badge's color, the grays darker", async ({ page }) => {
+// What the reader sees, pixel by pixel, on a 2x screen (most phones): the
+// owner shaded 14 of the 26 icons with grays rather than transparency, so a
+// plain silhouette in the badge's color would lose their shading. Each pixel
+// is the icon's own times the color, laid over the badge, as one clean 2x2
+// block (pixel art smoothed into a blur fails), and nothing shows outside it.
+test.describe('on a 2x screen', () => {
+  test.use({ deviceScaleFactor: 2 });
+
+  test("a badge's icon is the owner's pixels in the badge's color, the grays darker, each pixel sharp", async ({ page }) => {
     await drawMoves(page, [SWIPE(['blockbreak'])]);
     const icon = page.locator('#tab-specials .skill-accolade .px-icon').first();
     await expect(icon).toBeVisible();
     const box = await icon.boundingBox();
     expect([box.width, box.height]).toEqual([16, 16]);
-    const shot = await page.screenshot({ clip: { x: Math.round(box.x), y: Math.round(box.y), width: 16, height: 16 } });
+    const onDevicePixel = (v) => Math.round(v * 2) / 2;
+    const shot = await page.screenshot({ clip: { x: onDevicePixel(box.x), y: onDevicePixel(box.y), width: 16, height: 16 } });
 
     const result = await page.evaluate(async (b64) => {
         const load = (src) => new Promise((resolve, reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = src; });
@@ -105,7 +110,7 @@ test("a badge's icon is the owner's pixels in the badge's color, the grays darke
             c.width = img.width; c.height = img.height;
             const ctx = c.getContext('2d');
             ctx.drawImage(img, 0, 0);
-            return ctx.getImageData(0, 0, c.width, c.height).data;
+            return { width: img.width, data: ctx.getImageData(0, 0, c.width, c.height).data };
         };
         const channels = (css) => css.match(/\d+/g).slice(0, 3).map(Number);
         const badge = document.querySelector('#tab-specials .skill-accolade');
@@ -114,18 +119,31 @@ test("a badge's icon is the owner's pixels in the badge's color, the grays darke
         const drawn = pixels(await load('data:image/png;base64,' + b64));
         const source = pixels(await load('/medias/icons/accolades/blockbreak.png'));
         let wrong = 0;
+        let blurred = 0;
         const shades = new Set();
-        for (let i = 0; i < source.length; i += 4) {
-            const alpha = source[i + 3] / 255;
-            const want = [0, 1, 2].map(c => Math.round(source[i + c] * tint[c] / 255 * alpha + ground[c] * (1 - alpha)));
-            if (want.some((v, c) => Math.abs(v - drawn[i + c]) > 3)) wrong++;
-            if (alpha) shades.add(drawn.slice(i, i + 3).join());
+        for (let y = 0; y < 16; y++) {
+            for (let x = 0; x < 16; x++) {
+                const i = (y * 16 + x) * 4;
+                const alpha = source.data[i + 3] / 255;
+                const want = [0, 1, 2].map(c => Math.round(source.data[i + c] * tint[c] / 255 * alpha + ground[c] * (1 - alpha)));
+                // The source pixel's 2x2 block of screen pixels.
+                const block = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([dx, dy]) => {
+                    const j = ((y * 2 + dy) * drawn.width + (x * 2 + dx)) * 4;
+                    return [drawn.data[j], drawn.data[j + 1], drawn.data[j + 2]];
+                });
+                if (block.some(p => p.join() !== block[0].join())) blurred++;
+                if (want.some((v, c) => Math.abs(v - block[0][c]) > 3)) wrong++;
+                if (alpha) shades.add(block[0].join());
+            }
         }
-        return { wrong, shades: shades.size };
+        return { size: `${drawn.width}`, wrong, blurred, shades: shades.size };
     }, shot.toString('base64'));
 
+    expect(result.size, 'setup: a 2x screenshot').toBe('32');
     expect(result.wrong, 'pixels unlike the icon times the badge color').toBe(0);
+    expect(result.blurred, 'pixels smoothed into their neighbours').toBe(0);
     expect(result.shades, 'the grays stay darker shades of the color').toBeGreaterThan(1);
+  });
 });
 
 test('every accolade has its 16px icon', async ({ page }) => {
