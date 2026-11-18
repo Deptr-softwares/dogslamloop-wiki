@@ -83,7 +83,7 @@ test('real bug fix: media prev/next buttons use :disabled CSS instead of JS styl
 test('diff viewer: renderDiffView blocks-branch reuses the live .diff-container/.diff-section-title (not the dead shadowed rule)', async ({ page }) => {
   await page.evaluate(() => {
     window.currentEditorDescData.overview = [{ type: 'paragraph', content: 'Changed for the diff test' }];
-    window.toggleDiffMode();
+    window.renderDiffView(); // CHANGE LIST, which VIEW DIFF drew until v1.2
   });
   const container = page.locator('.diff-container').first();
   await expect(container).toBeVisible();
@@ -96,7 +96,7 @@ test('diff viewer: raw/JSON branch wins its compound border/box-shadow override,
   await page.evaluate(() => {
     window.currentEditorFrameData.m1s = window.currentEditorFrameData.m1s || [];
     window.currentEditorFrameData.m1s.push({ id: 'diff_test_move', name: 'Diff Test Move' });
-    window.toggleDiffMode();
+    window.renderDiffView(); // CHANGE LIST, which VIEW DIFF drew until v1.2
   });
 
   const rawContainer = page.locator('.diff-container.diff-container-raw').first();

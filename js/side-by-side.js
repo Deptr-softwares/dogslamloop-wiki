@@ -413,9 +413,11 @@
             next.classList.toggle('hidden', changes === 0);
             if (changes === 0) {
                 note.hidden = false;
-                note.textContent = opts.dataChanged
-                    ? 'This tab changed in ways the page does not show (an editor folder or a setting, for example). CHANGE LIST shows where.'
-                    : 'Nothing on this tab changed.';
+                // The Overseer knows which tabs a submission touched; the
+                // editor does not, so it gets the sentence that is true either way.
+                if (opts.dataChanged === true) note.textContent = 'This tab changed in ways the page does not show (an editor folder or a setting, for example). CHANGE LIST shows where.';
+                else if (opts.dataChanged === false) note.textContent = 'Nothing on this tab changed.';
+                else note.textContent = 'Nothing this tab shows has changed.';
             }
 
             let at = -1;

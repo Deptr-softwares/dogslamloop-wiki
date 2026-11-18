@@ -123,7 +123,14 @@ if (typeof window.setReorderRefresh === 'function') {
 
 // Switching draws the preview even under Preview only on Sync, the way a
 // character page's section switch does: the preview follows the Workspace.
-window.switchSystemTab = function(idx) { window.currentSystemTabIdx = idx; window.currentSystemSecIdx = 0; window.renderSystemEditor(document.getElementById('interactive-builder')); window.drawLivePreviewNow(); };
+// So does VIEW DIFF, which compares one tab (js/editor-tabs.js does the same
+// for a character page).
+window.switchSystemTab = function(idx) {
+    window.currentSystemTabIdx = idx; window.currentSystemSecIdx = 0;
+    window.renderSystemEditor(document.getElementById('interactive-builder'));
+    window.drawLivePreviewNow();
+    if (window.isDiffModeActive && typeof window.showEditorSideBySide === 'function') window.showEditorSideBySide();
+};
 window.switchSystemSection = function(idx) { window.currentSystemSecIdx = idx; window.renderSystemEditor(document.getElementById('interactive-builder')); window.drawLivePreviewNow(); };
 
 window.addSystemTab = async function() {

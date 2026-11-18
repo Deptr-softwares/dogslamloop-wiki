@@ -421,25 +421,298 @@ function updateLivePreview(skipHistory = false) {
     setTimeout(() => window.renderMathIfAny(document.querySelector('.live-preview-pane')), 150);
 }
 
-// --- VISUAL DIFF COMPARISON ENGINE ---
-window.toggleDiffMode = function() {
+// --- VIEW DIFF: SIDE BY SIDE (v1.2, owner's Overseer card) ---
+// "There is no way to compare historical page versions from the current
+// version in the editor". The owner's pick from the mockups (2026-11-18): a
+// "Compare with" picker beside the diff, in the same side-by-side as the
+// Overseer (js/side-by-side.js). The left side is the live page, or a past
+// version picked from the approved edits since 2026-10-29 (the ones the site
+// knows the whole page after, as on the History page); the right side is the
+// page in this editor. The list VIEW DIFF used to show is CHANGE LIST, which
+// is renderDiffView below.
+window.toggleDiffMode = async function() {
     window.isDiffModeActive = !window.isDiffModeActive;
     const btn = document.getElementById('btn-toggle-diff');
-    
+
     if (window.isDiffModeActive) {
         btn.className = "btn-sys btn-sys-purple btn-purple-fill";
         btn.textContent = "EXIT DIFF";
-        window.renderDiffView();
+        await window.showEditorSideBySide();
     } else {
         btn.className = "btn-sys btn-sys-purple";
         btn.textContent = "VIEW DIFF";
-        
+
+        editorSideBySideRun++;
+        if (editorSideBySide) { editorSideBySide.destroy(); editorSideBySide = null; }
         const diffCont = document.getElementById('diff-view-container');
         if (diffCont) diffCont.remove();
-        
+
         const standardCont = document.getElementById('standard-preview-container');
         if (standardCont) standardCont.classList.remove('hidden');
     }
+};
+
+let editorSideBySide = null;
+let editorSideBySideRun = 0;
+let compareWith = 'live';
+let pastVersions = null;
+const pastVersionPages = new Map();
+
+// Only the editor's own data from here: a mode's slice of a page, the way
+// js/editor-modes.js slices the page it edits.
+function editorModeSlice(master) {
+    const mode = window.editorActiveMode;
+    if (!master || !mode || (typeof window.isBaseMode === 'function' && window.isBaseMode(mode))) return master || {};
+    return (master.modeData && master.modeData[mode]) || {};
+}
+
+function editorDiffHost() {
+    const standard = document.getElementById('standard-preview-container');
+    if (standard) standard.classList.add('hidden');
+    let host = document.getElementById('diff-view-container');
+    if (!host) {
+        host = document.createElement('div');
+        host.id = 'diff-view-container';
+        host.className = 'main-content-area';
+        document.querySelector('main.main-content').appendChild(host);
+    }
+    host.innerHTML = '';
+    return host;
+}
+
+function editorDiffTabId() {
+    if (window.currentEditorPageType === 'system') {
+        const tab = ((window.currentEditorDescData || {}).tabs || [])[window.currentSystemTabIdx];
+        return tab ? tab.tabId : null;
+    }
+    return window.currentEditorTabId || 'overview';
+}
+
+// Where an approved edit was, in the words of the tab strip.
+function pastVersionPlace(rev) {
+    if (!rev.is_delta) return 'whole page';
+    if (rev.target_scope === 'multi') return 'several places';
+    const { scope, key } = typeof window.unwrapModeDelta === 'function'
+        ? window.unwrapModeDelta(rev.target_scope, rev.target_key)
+        : { scope: rev.target_scope, key: rev.target_key };
+    const labels = typeof window.getCharacterTabLabels === 'function' ? window.getCharacterTabLabels() : {};
+    if (scope === 'move' && key) return labels[String(key).split('::')[0]] || 'a move';
+    const keyed = window.getKeyedSectionByScope && window.getKeyedSectionByScope(scope);
+    if (keyed) return labels[keyed.tab] || keyed.label;
+    const fixed = (window.FIXED_BLOCK_SECTIONS || []).find(f => f.scope === scope);
+    if (fixed) return labels[fixed.tab] || fixed.label;
+    if (['profile', 'playstyle', 'overview', 'strategy', 'extra'].includes(scope)) return labels.overview || 'Overview';
+    if (scope === 'system_section' || scope === 'system_tab') {
+        const tabKey = scope === 'system_section' && window.splitSystemKey ? window.splitSystemKey(key).tabKey : key;
+        const tab = window.findSystemTab && window.findSystemTab(window.currentEditorDescData || {}, tabKey);
+        return (tab && (tab.tabLabel || tab.tabId)) || 'a tab';
+    }
+    if (scope === 'pageConfig') return 'Page Settings';
+    return String(scope);
+}
+
+const pastVersionDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+// The approved edits the site knows the whole page after: approved_at is set
+// from 2026-10-29 on (20261029000001). Older ones only know what they
+// changed, and stay on the History page.
+async function loadPastVersions() {
+    if (pastVersions) return pastVersions;
+    const { data, error } = await window.supabaseClient
+        .from('approved_revisions')
+        .select('id, author_name, approved_at, is_delta, target_scope, target_key')
+        .eq('page_id', window.currentEditorCharId)
+        .not('approved_at', 'is', null)
+        .order('approved_at', { ascending: false })
+        .limit(50);
+    if (error) {
+        // Not kept, so the next VIEW DIFF asks again.
+        console.warn('[Editor] Past versions could not be listed:', error.message);
+        return [];
+    }
+    pastVersions = (data || []).map(rev => ({
+        id: rev.id,
+        date: pastVersionDate(rev.approved_at),
+        label: `${pastVersionDate(rev.approved_at)}, ${rev.author_name || 'someone'} (${pastVersionPlace(rev)})`,
+    }));
+    return pastVersions;
+}
+
+// The left side: the live page as the editor loaded it, or a past version.
+async function comparedVersion(id) {
+    if (id === 'live') {
+        return { desc: window.originalCloudDescData || {}, frame: window.originalCloudMasterFrame || window.originalCloudFrameData || {} };
+    }
+    if (!pastVersionPages.has(id)) {
+        const { data, error } = await window.supabaseClient.rpc('get_page_after_revision', { target_revision_id: id });
+        if (error || !data) return { error: error ? error.message : 'the site does not have the whole page after that edit' };
+        pastVersionPages.set(id, data);
+    }
+    const page = pastVersionPages.get(id);
+    const desc = window.currentEditorPageType === 'system' ? (page.desc_data || {}) : editorModeSlice(page.desc_data || {});
+    return { desc, frame: page.frame_data || {} };
+}
+
+// Draws one version of a tab in a box of its own, so the editor's preview is
+// left exactly as it was. While it draws, every id in the preview is parked and
+// this box sits first in the pane, so a renderer looking an element up by id
+// finds this copy (getElementById returns the first in the page). `version`
+// null draws the page in the editor.
+async function drawTabApart(tabId, version) {
+    const charId = window.currentEditorCharId;
+    const pageType = window.currentEditorPageType || 'character';
+    const main = document.querySelector('.live-preview-pane main.main-content');
+    const standard = document.getElementById('standard-preview-container');
+    const holder = document.createElement('div');
+    if (!main || !standard) return holder;
+
+    const parked = Array.from(standard.querySelectorAll('[id]'));
+    parked.forEach(el => { el.dataset.sbsParked = el.id; el.removeAttribute('id'); });
+
+    const host = document.createElement('div');
+    host.className = 'main-content-area sbs-render-host';
+    if (pageType !== 'system') {
+        const box = document.createElement('div');
+        box.id = `tab-${tabId}`;
+        const twin = parked.find(el => el.dataset.sbsParked === `tab-${tabId}`);
+        box.className = twin ? twin.className : 'tab-content';
+        box.classList.remove('hidden');
+        host.appendChild(box);
+    }
+    main.insertBefore(host, main.firstChild);
+
+    const saved = {
+        desc: window.currentEditorDescData,
+        frameView: window.currentEditorFrameData,
+        frame: (window.cachedMasterFrameData || {})[charId],
+    };
+    window.cachedMasterFrameData = window.cachedMasterFrameData || {};
+    if (version) {
+        window.currentEditorDescData = version.desc;
+        window.currentEditorFrameData = editorModeSlice(version.frame);
+        window.cachedMasterFrameData[charId] = version.frame;
+    }
+    try {
+        const movesOnScreen = (window.FRAME_MOVE_CATEGORIES || []).includes(tabId);
+        if (movesOnScreen && typeof window.loadMoveSection === 'function') await window.loadMoveSection(charId, tabId);
+        if (typeof window.loadPageDescriptions === 'function') await window.loadPageDescriptions(charId, pageType);
+        // The move strategies and the profile card's Previous / Next tiles
+        // come in after the rest (js/description.js).
+        if (movesOnScreen && window.moveStrategiesDrawn) await window.moveStrategiesDrawn;
+        if (window.profilePagerFilled) await Promise.resolve(window.profilePagerFilled).catch(() => {});
+        if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
+
+        const drawn = document.getElementById(`tab-${tabId}`);
+        if (drawn) {
+            holder.className = drawn.className;
+            holder.classList.remove('hidden', 'active', 'tab-content');
+            holder.classList.add('sbs-version');
+            while (drawn.firstChild) holder.appendChild(drawn.firstChild);
+        }
+        return holder;
+    } finally {
+        window.currentEditorDescData = saved.desc;
+        window.currentEditorFrameData = saved.frameView;
+        window.cachedMasterFrameData[charId] = saved.frame;
+        host.remove();
+        parked.forEach(el => { el.id = el.dataset.sbsParked; delete el.dataset.sbsParked; });
+    }
+}
+
+function comparePicker() {
+    const wrap = document.createElement('label');
+    wrap.className = 'sbs-compare';
+    wrap.append('Compare with ');
+    const select = document.createElement('select');
+    select.id = 'sbs-compare-with';
+    select.className = 'editor-select';
+    // new Option sets text, never markup: an author's name is contributor text.
+    select.append(new Option('The live page', 'live'));
+    (pastVersions || []).forEach(v => select.append(new Option(v.label, v.id)));
+    if (!(pastVersions || []).length) {
+        const none = new Option('No past versions since Oct 29, 2026', '');
+        none.disabled = true;
+        select.append(none);
+    }
+    select.value = compareWith;
+    // `change`, not `input`: the site's dropdown only ever dispatches change.
+    select.addEventListener('change', () => {
+        if (!select.value) return;
+        compareWith = select.value;
+        window.showEditorSideBySide();
+    });
+    wrap.appendChild(select);
+    return wrap;
+}
+
+window.showEditorSideBySide = async function () {
+    const run = ++editorSideBySideRun;
+    if (editorSideBySide) { editorSideBySide.destroy(); editorSideBySide = null; }
+    const host = editorDiffHost();
+
+    // A tier list, a tool, a gallery: not drawn tab by tab, so they keep the list.
+    if (!['character', 'system'].includes(window.currentEditorPageType || 'character')) {
+        window.renderDiffView();
+        return;
+    }
+    host.innerHTML = '<p class="sbs-note">Drawing both versions...</p>';
+
+    // Saved first, so both sides are drawn from what was typed.
+    if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
+    await loadPastVersions();
+    const base = await comparedVersion(compareWith);
+    if (run !== editorSideBySideRun) return;
+    if (base.error) {
+        host.innerHTML = '';
+        const note = document.createElement('p');
+        note.className = 'sbs-note';
+        note.textContent = `That version could not be loaded: ${base.error}.`;
+        host.append(comparePicker(), note);
+        return;
+    }
+
+    const tabId = editorDiffTabId();
+    // Nothing typed while the two versions are drawn can land in the wrong one.
+    const workspace = document.querySelector('.editor-workspace');
+    if (workspace) workspace.inert = true;
+    let left;
+    let right;
+    try {
+        left = await drawTabApart(tabId, base);
+        right = await drawTabApart(tabId, null);
+    } finally {
+        if (workspace) workspace.inert = false;
+    }
+    if (run !== editorSideBySideRun) return;
+
+    const past = (pastVersions || []).find(v => v.id === compareWith);
+    const labels = past
+        ? { left: past.date.toUpperCase(), leftHint: 'red: not in your editor', right: 'YOUR EDITOR', rightHint: 'green: new since then', onlyRight: 'Not in that version', onlyLeft: 'Not in your editor' }
+        : { left: 'LIVE PAGE', leftHint: 'red: goes', right: 'YOUR EDITOR', rightHint: 'green: comes', onlyRight: 'Not on the live page', onlyLeft: 'Not in your editor' };
+
+    const extra = [comparePicker()];
+    // The list compares against the live page only.
+    if (!past) {
+        const list = document.createElement('button');
+        list.type = 'button';
+        list.className = 'btn-sys btn-sys-regular';
+        list.textContent = 'CHANGE LIST';
+        list.addEventListener('click', () => {
+            editorSideBySideRun++;
+            if (editorSideBySide) { editorSideBySide.destroy(); editorSideBySide = null; }
+            window.renderDiffView();
+            const back = document.createElement('button');
+            back.type = 'button';
+            back.className = 'btn-sys btn-sys-purple';
+            back.textContent = 'SIDE BY SIDE';
+            back.addEventListener('click', () => window.showEditorSideBySide());
+            const container = document.getElementById('diff-view-container');
+            if (container) container.prepend(back);
+        });
+        extra.push(list);
+    }
+
+    editorSideBySide = window.SideBySide.mount(host, left, right, { labels, extraButtons: extra });
 };
 
 // --- VISUAL DIFF COMPARISON ENGINE ---

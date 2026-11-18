@@ -28,7 +28,7 @@ test('a changed paragraph is marked, painted, and never printed as tags', async 
   await page.evaluate(() => {
     window.originalCloudDescData.overview = [{ type: 'paragraph', content: 'Hold the dash' }];
     window.currentEditorDescData.overview = [{ type: 'paragraph', content: 'Hold the jump' }];
-    window.toggleDiffMode();
+    window.renderDiffView(); // CHANGE LIST, which VIEW DIFF drew until v1.2
   });
 
   const target = page.locator('#diff-view-container .diff-inline-target')
