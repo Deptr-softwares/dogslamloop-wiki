@@ -15,6 +15,40 @@ async function legendItems(page) {
     }));
 }
 
+// The legend's columns follow its own width (owner, 2026-11-18). From a 1024px
+// screen the sidebar takes its share, and 7 columns in what was left cut
+// "Explosion" short and stood descriptions one word to a line. A 1440px screen
+// still gives it all 7.
+for (const [width, sevenColumns] of [[1100, false], [1440, true]]) {
+    test(`at a ${width}px screen the legend has ${sevenColumns ? 'all 7 columns' : 'fewer columns'}, and no name runs past its own`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+        await page.evaluate(async () => {
+            window.cachedMasterFrameData = window.cachedMasterFrameData || {};
+            window.cachedMasterFrameData['boomcat'] = { m1s: [{ id: 'jab', name: 'Jab', stats: [], variants: { standard: {
+                label: 'Standard', totalScale: 20, bars: [{ type: 'single', phases: [{ duration: 10, styleClass: 'bg-tick-start', label: 'Startup: 10f' }] }],
+            } } }] };
+            await window.loadMoveSection('boomcat', 'm1s');
+        });
+        await page.locator('#nav-m1s').click();
+        const grid = page.locator('#tab-m1s .legend-grid');
+        await expect(grid).toBeVisible();
+
+        const out = await grid.evaluate(el => ({
+            columns: getComputedStyle(el).gridTemplateColumns.split(' ').length,
+            // A name wider than its column runs into the next one's swatch.
+            runOver: [...el.querySelectorAll('.legend-item')].filter(item => {
+                const range = document.createRange();
+                range.selectNodeContents(item.querySelector('.legend-name'));
+                return range.getBoundingClientRect().right > item.getBoundingClientRect().right + 1;
+            }).map(item => item.querySelector('.legend-name').textContent),
+        }));
+        if (sevenColumns) expect(out.columns).toBe(7);
+        else expect(out.columns).toBeLessThan(7);
+        expect(out.runOver).toEqual([]);
+    });
+}
+
 test('the legend under a Frame Track no longer offers Reverse Hitcancel', async ({ page }) => {
     // Retired 2026-11-12: no Frame Track on any page ever used it.
     const names = (await legendItems(page)).map(i => i.name);

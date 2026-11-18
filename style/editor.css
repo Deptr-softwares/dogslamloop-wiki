@@ -1278,6 +1278,18 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .editor-checkbox-label { color: var(--text-muted); font-size: 0.75rem; }
 .daw-variant-media-row { margin: 0 0 0.75rem; }
 .daw-no-frames-hint { margin: 0.25rem 0 0; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem; line-height: 1.5; }
+/* The Accolades field (v1.2): every accolade as a chip, pressed in the colors
+   its badge has on the Skill Card (style/FrameData.css). */
+.accolade-picker { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem; }
+.accolade-chip {
+    font-family: var(--text-mono); font-size: 0.65rem; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--text-muted); background: var(--bg-secondary); border: 2px solid var(--border-color);
+    border-radius: 0; padding: 0.15rem 0.45rem; cursor: pointer;
+}
+.accolade-chip:hover, .accolade-chip:focus-visible { border-color: var(--accent-blue); outline: none; }
+.accolade-chip[aria-pressed="true"] { color: var(--text-primary); background: var(--bg-main); border-color: var(--text-primary); }
+.accolade-chip-safe[aria-pressed="true"] { color: #4ade80; border-color: #22c55e; }
+.accolade-chip-punish[aria-pressed="true"] { color: #fca5a5; border-color: #ef4444; }
 /* Compound selectors: .btn-sys's own base rule sets padding at the same
    single-class specificity. */
 .btn-sys.daw-stat-del-btn { padding: 0.3rem 0.5rem; }
@@ -2166,6 +2178,118 @@ del.diff-del {
     padding: 0 4px;
     border-radius: 2px;
     opacity: 0.8;
+}
+
+/* --- SIDE-BY-SIDE DIFF (v1.2, js/side-by-side.js) ---
+   The Overseer's DIFF VIEW and the editor's VIEW DIFF: the old version on the
+   left (what goes, red), the new one on the right (what comes, green), each
+   drawn as the page draws it, with rows pushed level by spacers. */
+.sbs { display: flex; flex-direction: column; width: 100%; }
+.sbs-top {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--bg-main);
+    border-bottom: 2px solid var(--border-color);
+}
+.sbs-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; padding: 0.5rem 0; }
+.sbs-count { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); margin-right: auto; }
+.sbs-heads, .sbs-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.sbs-cols { align-items: start; }
+.sbs-head {
+    font-family: 'CC-Wild-Words', sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    padding: 0.45rem 0.75rem;
+}
+.sbs-head small {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0;
+    color: var(--text-muted);
+    margin-left: 0.5rem;
+}
+.sbs-head-left { color: #fca5a5; }
+.sbs-head-right { color: #4ade80; }
+.sbs-heads .sbs-head-left { border-right: 2px solid var(--border-color); }
+.sbs-col { min-width: 0; padding: 1rem 0.75rem; box-sizing: border-box; }
+.sbs-col-left { border-right: 2px solid var(--border-color); }
+/* Each column's own heading shows only when the columns stack (below). */
+.sbs-col > .sbs-head { display: none; }
+.sbs-note { color: var(--text-muted); font-style: italic; border: 1px dashed var(--border-color); padding: 1rem; margin: 1rem 0 0; }
+/* The editor's "Compare with" picker (js/editor-sync.js). */
+.sbs-compare { display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); }
+.sbs-compare .editor-select { min-width: 16rem; }
+/* Where the editor draws a version for the side-by-side, out of sight and out
+   of the way, but laid out, so a clip or a picture can measure itself. */
+.sbs-render-host { position: absolute; left: 0; right: 0; top: 0; visibility: hidden; pointer-events: none; }
+/* The editor's side-by-side takes the pane's whole width, not the page's
+   1000px column, and the Workspace folds away while it is up (the
+   WORKSPACE button in its bar brings it back; js/editor-sync.js). */
+#diff-view-container.main-content-area:has(> .sbs) { max-width: none; }
+@media (min-width: 901px) {
+    .editor-layout-split.sbs-workspace-folded > .editor-workspace,
+    .editor-layout-split.sbs-workspace-folded > .editor-splitter { display: none; }
+}
+/* One column on a phone: there is no Workspace beside it to fold. */
+@media (max-width: 900px) { .sbs-workspace-toggle { display: none; } }
+
+/* Each half lays out for its own width. The page's own rules go by the
+   screen, so a Skill Card in a narrow half kept its desktop row and squeezed
+   its stats to one letter a line. Below 756px the card stacks, as the page
+   does: the page only uses that row once a card is 756px wide (a 1280px
+   screen), and narrower it wrapped a stat one word a line. (The Frame Data
+   legend follows its own width everywhere: style/FrameData.css.) */
+.sbs-col { container-type: inline-size; }
+@container (max-width: 755px) {
+    .sbs-col .skill-entry-body { flex-direction: column; }
+    .sbs-col .skill-left-col { width: auto; border-right: none; border-bottom: 2px solid var(--border-color); }
+    .sbs-col .skill-right-col { width: auto; }
+}
+
+/* The spacers that line rows up. A slot is the one opposite a block only the
+   other side has. */
+.sbs-spacer { display: block; margin: 0; padding: 0; border: 0; list-style: none; box-sizing: border-box; }
+.sbs-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed var(--border-color);
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.8rem;
+    overflow: hidden;
+}
+
+/* Outlines, not borders: an outline takes no room, so it cannot move the row
+   it is lining up. */
+.sbs-col-left .sbs-gone, .sbs-col-left .sbs-changed { outline: 2px solid #ef4444; outline-offset: 2px; }
+.sbs-col-left .sbs-gone { background-color: rgba(239, 68, 68, 0.12); }
+.sbs-col-right .sbs-new, .sbs-col-right .sbs-changed { outline: 2px solid #22c55e; outline-offset: 2px; }
+.sbs-col-right .sbs-new { background-color: rgba(34, 197, 94, 0.12); }
+
+/* A Micro Variant or Section Box tab whose hidden content changed: the same
+   blue dot the Overseer's tab strip puts on a changed tab (admin.css). */
+.sbs .sbs-tab-changed { border-color: var(--accent-blue); }
+.sbs .btn-manga.sbs-tab-changed .btn-manga-text::after,
+.sbs .sbox-tab.sbs-tab-changed::after {
+    content: '';
+    display: inline-block;
+    width: 0.45rem;
+    height: 0.45rem;
+    margin-left: 0.4rem;
+    vertical-align: 0.15rem;
+    border-radius: 50%;
+    background: var(--accent-blue);
+}
+
+/* The Overseer and the editor go to one column at this width, and so does
+   this: the old version, then the new one, each under its own heading. */
+@media (max-width: 900px) {
+    .sbs-heads { display: none; }
+    .sbs-cols { grid-template-columns: minmax(0, 1fr); }
+    .sbs-col-left { border-right: none; border-bottom: 2px solid var(--border-color); }
+    .sbs-col > .sbs-head { display: block; padding-left: 0; }
 }
 
 /* Stacked Layout (For complex data like JSON/Frames) */

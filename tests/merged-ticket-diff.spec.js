@@ -82,7 +82,7 @@ async function renderDiff(page, ticket) {
         const onError = (e) => errors.push(String(e.message || e));
         window.addEventListener('error', onError);
 
-        await switchVersionView('diff');
+        await switchVersionView('list');
 
         window.removeEventListener('error', onError);
 

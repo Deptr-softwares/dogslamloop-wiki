@@ -29,6 +29,32 @@ function closestEstimate(frames) {
     ).id;
 }
 
+// The move's accolades as chips, all of them in the owner's order
+// (js/framedata.js), pressed when the move has one. Their hover says what each
+// means, as the badge on the page does.
+function accoladeChipsHTML(ids) {
+    const esc = window.escapeHtml;
+    const has = new Set(Array.isArray(ids) ? ids : []);
+    return (window.ACCOLADES || []).map(a => `<button type="button" class="accolade-chip${a.tone ? ` accolade-chip-${a.tone}` : ''}" data-accolade="${esc(a.id)}" aria-pressed="${has.has(a.id)}" title="${esc(a.description)}">${esc(a.name)}</button>`).join('');
+}
+
+// Ticking one of a group that cannot all be true of one move unticks the rest
+// of the group. Stored in the owner's order, and not at all once none is
+// ticked, so a move ticked and unticked again is the same data as one never
+// touched, and a submission shows no change.
+function toggleAccolade(moveData, id) {
+    const has = new Set(Array.isArray(moveData.accolades) ? moveData.accolades : []);
+    if (has.has(id)) {
+        has.delete(id);
+    } else {
+        (window.ACCOLADE_OPPOSITES || []).filter(group => group.includes(id)).forEach(group => group.forEach(other => has.delete(other)));
+        has.add(id);
+    }
+    const ordered = window.orderedAccolades([...has]).map(a => a.id);
+    if (ordered.length) moveData.accolades = ordered;
+    else delete moveData.accolades;
+}
+
 function initDawEditor(containerId, moveData) {
     const container = document.getElementById(containerId);
     if (!moveData) {
@@ -97,6 +123,14 @@ function initDawEditor(containerId, moveData) {
                         <div>
                             <label class="editor-checkbox-label"><input type="checkbox" id="move-no-frame-data" ${moveData.noFrameData === true ? 'checked' : ''}> No frame data</label>
                             <p class="daw-no-frames-hint">For a move with nothing to measure, like a passive. Its Skill Card shows the description where the Frame Track would be.</p>
+                        </div>
+                    </div>
+                    <!-- The badges under the move's name on its Skill Card
+                         (owner's Kanban card "Skill Card accolades", v1.2). -->
+                    <div class="editor-row mt-2">
+                        <div>
+                            <span class="editor-field-label">Accolades</span>
+                            <div class="accolade-picker" role="group" aria-label="Accolades">${accoladeChipsHTML(moveData.accolades)}</div>
                         </div>
                     </div>
                 </div>
@@ -501,6 +535,13 @@ function initDawEditor(containerId, moveData) {
         if(btnAddStat) btnAddStat.addEventListener('click', () => {
             moveData.stats.push({ label: 'New Stat', value: 'Value' });
             renderDaw();
+        });
+
+        container.querySelectorAll('.accolade-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                toggleAccolade(moveData, chip.dataset.accolade);
+                renderDaw();
+            });
         });
 
         if (!currentObj) return;

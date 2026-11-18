@@ -18,7 +18,10 @@ function updateAdminTOC() {
     // but character-type revisions reuse admin.html's pre-existing static
     // #tab-* divs, which never pick it up - so this keys off visibility
     // (:not(.hidden)) alone, which every pane relies on regardless of type.
-    const activePane = document.querySelector('#preview-content-area > div:not(.hidden)') || document.getElementById('preview-content-area');
+    const visiblePane = document.querySelector('#preview-content-area > div:not(.hidden)') || document.getElementById('preview-content-area');
+    // The side-by-side (js/side-by-side.js) draws every heading twice; the
+    // submission's side is the one the list leads to.
+    const activePane = visiblePane.querySelector('.sbs-col-right') || visiblePane;
     const headers = activePane.querySelectorAll('h3.strategy-title, h3.diff-section-title, h3.card-header-title');
 
     if (headers.length === 0) {
@@ -49,6 +52,26 @@ function updateAdminTOC() {
         tocList.appendChild(li);
     });
 }
+
+// --- THE QUEUE COLUMN POPS IN AND OUT (v1.2, owner's Overseer card) ---
+// Out when the Overseer opens, since nothing is in the pane yet; put away when
+// a submission or a page's history is opened, so the pane has the whole
+// width; ☰ QUEUE brings it back. Opening a clip leaves it out, because that
+// clip's buttons are in the column. The CSS (admin.css) limits all of this to
+// wider screens and to anyone who reviews.
+window.setQueueOpen = function (open) {
+    document.body.classList.toggle('queue-collapsed', !open);
+    const toggle = document.getElementById('queue-toggle');
+    if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const toggle = document.getElementById('queue-toggle');
+    if (!toggle) return;
+    toggle.addEventListener('click', () => {
+        window.setQueueOpen(document.body.classList.contains('queue-collapsed'));
+    });
+});
 
 // --- 2. FETCH QUEUE ---
 async function loadQueue() {

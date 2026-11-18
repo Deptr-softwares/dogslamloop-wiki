@@ -292,7 +292,7 @@ test('a crafted combo route is a plain title in the reviewer diff view', async (
     window.currentLiveFrameData = { m1s: [], skills: [], specials: [] };
     window.currentPendingDescData = JSON.parse(JSON.stringify(live));
     window.currentPendingFrameData = { m1s: [], skills: [], specials: [] };
-    await switchVersionView('diff');
+    await switchVersionView('list');
     await new Promise(r => setTimeout(r, 400));
     const titles = [...document.querySelectorAll('.diff-section-title')].map(h => h.textContent);
     return { titles, fired: window.__xss || 0, images: document.querySelectorAll('img[src="x"]').length };

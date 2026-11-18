@@ -45,6 +45,70 @@ const windowTypes = {
     'iframe-complete': { class: 'span-iframe-complete', label: 'Complete I-Frames' }
 };
 
+// --- SKILL CARD ACCOLADES (v1.2, the owner's Kanban card) ---
+// "a preset amount of accolades that editor can attach to the skill card
+// however they want". The owner's 26, in their order, which is the order a
+// card shows them in, whatever order an editor ticks them. A move stores the
+// ids, so a name can be reworded without touching a move; an id never changes
+// once a move uses it (it is also the icon's file name, medias/icons/
+// accolades/<id>.png). `tone` colors the badge. The text is the owner's, with
+// two grammar fixes ("than", "manage the character's") and their spelling
+// calls (2026-11-18): "cannot", and one L in "canceled" and "Uncancelable".
+window.ACCOLADES = [
+    { id: 'blockbreak', name: 'Blockbreak', description: 'This move can break block' },
+    { id: 'block-bypass', name: 'Block Bypass', description: 'This move ignores block' },
+    { id: 'neutral-skip', name: 'Neutral Skip', description: 'This move closes the gap quickly' },
+    { id: 'punishable-on-block', name: 'Punishable on Block', description: 'This move can be punished on Block', tone: 'punish' },
+    { id: 'safe-on-block', name: 'Safe on Block', description: 'This move cannot be punished on Block', tone: 'safe' },
+    { id: 'punishable-on-whiff', name: 'Punishable on Whiff', description: 'This move can be punished on Whiff', tone: 'punish' },
+    { id: 'safe-on-whiff', name: 'Safe on Whiff', description: 'This move cannot be punished on Whiff', tone: 'safe' },
+    { id: 'punishable-on-hit', name: 'Punishable on Hit', description: 'This move can be punished on Hit', tone: 'punish' },
+    { id: 'safe-on-hit', name: 'Safe on Hit', description: 'This move cannot be punished on Hit', tone: 'safe' },
+    { id: 'evasive-punishable', name: 'Evasive Punishable', description: 'This move is evasive punishable on Hit' },
+    { id: 'frame-perfect-evasive-punishable', name: 'Frame Perfect Evasive Punishable', description: 'This move is evasive punishable on Hit with a really tight window' },
+    { id: 'hit-only-air-ragdoll', name: 'Hit only Air Ragdoll', description: 'This move can only hit ragdoll targets in the air' },
+    { id: 'hit-ragdoll', name: 'Hit Ragdoll', description: 'This move can hit ragdoll targets' },
+    { id: 'cannot-hit-ragdoll', name: 'Cannot hit Ragdoll', description: 'This move cannot hit ragdoll targets' },
+    { id: 'uncancelable', name: 'Uncancelable', description: 'This move cannot be canceled after casting it' },
+    { id: 'semi-uncancelable', name: 'Semi-uncancelable', description: 'This move can be canceled after casting it with a specific condition' },
+    { id: 'invincible', name: 'Invincible', description: 'This move has some sort of I-Frames within its duration' },
+    { id: 'multi-use', name: 'Multi-use', description: 'This move can be used multiple times before going on cooldown' },
+    { id: 'execution', name: 'Execution', description: 'This move kills earlier than its total damage' },
+    { id: 'qte', name: 'QTE', description: 'This move has some sort of Quick Time Event in it' },
+    { id: 'buff', name: 'Buff', description: 'This move buffs the character with something' },
+    { id: 'debuff', name: 'Debuff', description: 'This move debuffs the opponent with something' },
+    { id: 'resource', name: 'Resource', description: "This move helps manage the character's resource gimmick" },
+    { id: 'teleport', name: 'Teleport', description: 'This move teleports the character' },
+    { id: 'cursor-aimed', name: 'Cursor-aimed', description: 'This move is aimed with the cursor' },
+    { id: 'camera-aimed', name: 'Camera-aimed', description: 'This move is aimed with the camera direction' },
+];
+
+// No two of one group can be true of the same move, so the editor unticks the
+// rest of a group when one is ticked (js/editor-framedata.js).
+window.ACCOLADE_OPPOSITES = [
+    ['punishable-on-block', 'safe-on-block'],
+    ['punishable-on-whiff', 'safe-on-whiff'],
+    ['punishable-on-hit', 'safe-on-hit'],
+    ['hit-only-air-ragdoll', 'hit-ragdoll', 'cannot-hit-ragdoll'],
+    ['uncancelable', 'semi-uncancelable'],
+];
+
+// A move's accolades as the owner's entries, in the owner's order. An id that
+// is not one of theirs is left out rather than shown as a bare id.
+window.orderedAccolades = function (ids) {
+    const picked = new Set(Array.isArray(ids) ? ids : []);
+    return window.ACCOLADES.filter(a => picked.has(a.id));
+};
+
+// The badges under a move's name, or nothing, so a move with none takes no
+// room. Their hover is bound once the card is in the page.
+function accoladesHTML(ids) {
+    const list = window.orderedAccolades(ids);
+    if (!list.length) return '';
+    const badges = list.map(a => `<li class="skill-accolade${a.tone ? ` skill-accolade-${a.tone}` : ''}" data-accolade="${window.escapeHtml(a.id)}">${window.escapeHtml(a.name)}</li>`);
+    return `<ul class="skill-accolades">${badges.join('')}</ul>`;
+}
+
 // initTooltip/bindTooltip are defined once, in site_utils.js (loaded before
 // this file), and shared with description.js's inline callout tooltips.
 
@@ -368,6 +432,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                     <div>
                         <h2 class="skill-title">${window.escapeHtml(move.name || 'Unknown Move')}</h2>
                         <span class="skill-subtitle">Input: ${window.escapeHtml(move.input || 'N/A')} | Skill Type: ${window.escapeHtml(move.type || 'N/A')} | Damage Type: ${window.escapeHtml(move.damageType || 'N/A')} | ${window.escapeHtml(move.variant || '')}</span>
+                        ${accoladesHTML(move.accolades)}
                     </div>
 
                     <!-- move.id is contributor-submitted and used to be built
@@ -394,6 +459,12 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             `;
 
             container.appendChild(card);
+
+            // Hovering (or tapping) a badge shows its name and what it means.
+            card.querySelectorAll('.skill-accolade').forEach(badge => {
+                const accolade = window.ACCOLADES.find(a => a.id === badge.dataset.accolade);
+                if (accolade) window.bindTooltip(badge, `<strong>${window.escapeHtml(accolade.name)}</strong><br><span class="tooltip-desc">${window.escapeHtml(accolade.description)}</span>`);
+            });
 
             // Shape the box to the media rather than cropping the media to the
             // box. Runs after append so the element is measurable, and hooks

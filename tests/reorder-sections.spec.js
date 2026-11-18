@@ -12,6 +12,10 @@ const CHAR = '/edit.html?char=boomcat&type=character&tab=matchups';
 async function boot(page, url) {
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => typeof window.moveListItem === 'function', { timeout: 15000 });
+  // The page's data, which this spec reads from the real database: on a slow
+  // connection it took longer than the settle below, and a test writing into
+  // it found nothing there ("Cannot set properties of undefined").
+  await page.waitForFunction(() => !!window.currentEditorDescData, null, { timeout: 45000 });
   await page.waitForTimeout(1500);
 }
 

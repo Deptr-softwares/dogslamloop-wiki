@@ -675,6 +675,19 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 /* --- LIVE PREVIEW AREA --- */
 .admin-live-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #222; flex-shrink: 0; width: 100%; box-sizing: border-box; }
 .admin-status-container { display: flex; align-items: center; }
+
+/* --- THE QUEUE COLUMN POPS IN AND OUT (v1.2, owner's Overseer card) ---
+   "turning the navigation bar to an overlay that can pop out and in". Put
+   away, the column gives the pane, and the side-by-side in it, the whole
+   width. The page moves over for it rather than being dimmed under it: the
+   media queue opens a clip in the pane while its buttons stay in the column.
+   Wider screens only (a phone already swaps between the two), and not for a
+   moderator-only view, which has nothing in the pane. js/admin-queue.js. */
+.queue-toggle { display: none; margin-right: 0.75rem; }
+@media (min-width: 901px) {
+    body.admin-body:not(.admin-moderator-only) .queue-toggle { display: inline-flex; }
+    body.admin-body.queue-collapsed:not(.admin-moderator-only) .admin-sidebar { display: none; }
+}
 .admin-status-text { margin-left: 1rem; font-size: 0.9rem; color: var(--text-muted); font-family: var(--text-mono); }
 #preview-action-buttons { display: flex; gap: 0.75rem; }
 
@@ -727,6 +740,10 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 /* --- CONTENT VIEWERS --- */
 #preview-content-area { opacity: 0.2; pointer-events: none; transition: opacity 0.3s ease; padding: 0; max-width: 1000px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 #preview-content-area.active { opacity: 1; pointer-events: auto; }
+/* The side-by-side (v1.2) draws the page twice, so it takes the pane's whole
+   width rather than one page's reading width. */
+body.sbs-active .admin-main-pane .max-w-7xl,
+body.sbs-active #preview-content-area { max-width: none; }
 #version-toggle-bar { justify-content: center; gap: 0.75rem; margin-bottom: 2rem; border-bottom: 1px dashed #222; padding-bottom: 1.5rem; flex-shrink: 0; width: 100%; box-sizing: border-box; display: flex; }
 
 /* --- ACCESS DENIED (js/admin-core.js kickUser, also js/owner.js) --- */

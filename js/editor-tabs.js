@@ -171,6 +171,9 @@ window.switchEditorTab = async function(tabId) {
     url.searchParams.set('tab', tabId);
     url.searchParams.delete('move');
     window.history.replaceState({}, '', url);
+
+    // VIEW DIFF follows the tab, rather than keep comparing the one just left.
+    if (window.isDiffModeActive && typeof window.showEditorSideBySide === 'function') window.showEditorSideBySide();
 };
 
 // --- CUSTOM TAB MANAGEMENT ---

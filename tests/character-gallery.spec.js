@@ -318,7 +318,7 @@ test('the diff shows what changed about the media, not just the name', async ({ 
     window.currentLiveFrameData = {};
     window.currentPendingFrameData = {};
 
-    await switchVersionView('diff');
+    await switchVersionView('list');
     await new Promise(r => setTimeout(r, 250));
     const c = document.getElementById('admin-diff-container');
     return { blocks: c.querySelectorAll('.diff-container').length, text: c.innerText };
