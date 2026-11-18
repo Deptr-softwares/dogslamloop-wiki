@@ -20,10 +20,12 @@
 // types.
 const { test, expect } = require('@playwright/test');
 
-// All 8 routed system pages - every one of them carried this bug. The four
-// bespoke system pages (collaborators, tierlist, updatelog, color-codes) are
-// deliberately excluded: they are hand-authored and outside the router, so
-// they are not covered by this fix.
+// All 8 routed system pages - every one of them carried this bug. The bespoke
+// system pages (collaborators, tierlist, updatelog) are deliberately excluded:
+// they are hand-authored and outside the router, so they are not covered by
+// this fix. color-codes is routed since v1.2 but stays out of this list: the
+// History button this waits for shows on an editable page only, and whether
+// it is editable is the registry's call, not the code's.
 const ROUTED_SYSTEM_PAGES = [
   'evasive', 'framedata', 'fundamentals', 'hud',
   'm1-trading', 'starter-guide', 'terminologies', 'writing_guide',

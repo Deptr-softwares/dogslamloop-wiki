@@ -148,11 +148,12 @@ function socialTags({ name, relPath, pageType, category, image }) {
 // Template was here until 2026-10-24: hand-built with 5 tabs while a character
 // page grew to 11. The owner made it a worked example of a character page, so
 // it is generated like one and always has the same tabs.
+// systems/color-codes left the set in v1.2: it is a page edited in the editor
+// now, and its swatches are a Block.
 const NEVER_TOUCH = new Set([
     'systems/collaborators/index.html',
     'systems/tierlist/index.html',
     'systems/updatelog/index.html',
-    'systems/color-codes/index.html',
     'characters/index.html',
     'systems/index.html',
 ]);

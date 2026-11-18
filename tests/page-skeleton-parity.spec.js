@@ -27,12 +27,12 @@ const CHARACTER_PAGES = [
   'True_cannon', 'Vessel',
 ];
 
-// 8 of the 12 system directories. The other four are bespoke and stay
+// 9 of the 12 system directories. The other three are bespoke and stay
 // hand-authored: collaborators (own fetch engine), tierlist (own pageType +
-// tierlist.js), updatelog (home_widgets.js), color-codes (hand-authored
-// swatch markup).
+// tierlist.js), updatelog (home_widgets.js). color-codes is routed since v1.2:
+// its swatches are a Block.
 const SYSTEM_PAGES = [
-  'evasive', 'framedata', 'fundamentals', 'hud',
+  'color-codes', 'evasive', 'framedata', 'fundamentals', 'hud',
   'm1-trading', 'starter-guide', 'terminologies', 'writing_guide',
 ];
 
@@ -42,7 +42,6 @@ const NEVER_ROUTED = [
   '/systems/collaborators/index.html',
   '/systems/tierlist/index.html',
   '/systems/updatelog/index.html',
-  '/systems/color-codes/index.html',
   '/characters/index.html',
   '/systems/index.html',
 ];

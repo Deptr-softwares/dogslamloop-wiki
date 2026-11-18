@@ -739,6 +739,18 @@ const blockTemplates = {
     // shape comboGroups already uses, so the diff walkers and the nested
     // renderer read it without a fourth container convention being invented.
     sectionedbox: { type: 'sectionedbox', title: 'New Section Box', intro: [], sections: [{ title: 'Section 1', content: [] }], align: 'left', author: '' },
+    // Which grid of the site's own colours to draw (js/description.js). The
+    // colours are never stored: a character's comes from owner tools.
+    colorswatches: { type: 'colorswatches', set: 'characters' },
+};
+
+// Blocks drawn from what the site keeps for one page (the character colours
+// for Color Codes), offered on that page only. The type dropdown asks the
+// same question, so the two never offer different things.
+const PAGE_ONLY_BLOCKS = { colorswatches: 'color_codes' };
+window.blockOfferedHere = function (type) {
+    const only = PAGE_ONLY_BLOCKS[type];
+    return !only || only === window.currentEditorCharId;
 };
 
 // What each block type is CALLED, as opposed to what its template key is.
@@ -769,6 +781,7 @@ const BLOCK_TYPE_LABELS = {
     sectionedbox: 'Section Box',
     divider: 'Divider',
     author: 'Author',
+    colorswatches: 'Color Swatches',
 };
 
 // Falls back to the key rather than dropping the option: a template added
@@ -782,7 +795,7 @@ window.blockTypeLabel = function (type) {
 // the map above; only the grouping is editorial.
 const ADD_BLOCK_GROUPS = [
     { title: 'Text & Media', types: ['heading', 'paragraph', 'table', 'list', 'image', 'video', 'youtube'] },
-    { title: 'Components', types: ['callout', 'combo', 'accordion', 'theorybox', 'sectionedbox', 'divider', 'author'] },
+    { title: 'Components', types: ['callout', 'combo', 'accordion', 'theorybox', 'sectionedbox', 'divider', 'author', 'colorswatches'] },
 ];
 
 // A text prompt in the site's own modal, replacing window.prompt() for the
@@ -1615,7 +1628,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 <div class="add-block-popup" id="add-block-popup">
                     ${ADD_BLOCK_GROUPS.map((group, gi) => `
                     <div class="add-block-popup-title${gi ? ' add-block-popup-title-spaced' : ''}">${escField(group.title)}</div>
-                    ${group.types.map(t =>
+                    ${group.types.filter(window.blockOfferedHere).map(t =>
                         `<button class="btn-sys btn-sys-regular add-block-btn" data-type="${escField(t)}">+ ${escField(window.blockTypeLabel(t))}</button>`
                     ).join('')}`).join('')}
                 </div>
@@ -3579,6 +3592,11 @@ function blockSummary(block) {
         case 'author':
             text = block.author;
             break;
+        case 'colorswatches': {
+            const sets = window.COLOR_SWATCH_SETS || {};
+            text = sets[block.set] || sets.characters;
+            break;
+        }
         default:
             text = block.title || block.content || '';
     }
@@ -3963,7 +3981,8 @@ function renderBlockList() {
             + (window.isEditorBlockSelected(block) ? ' block-card-selected' : '');
         card.setAttribute('data-index', index);
 
-            const typeOptions = Object.keys(blockTemplates).map(t =>
+            // A Block that is somehow off its page still names its own type.
+            const typeOptions = Object.keys(blockTemplates).filter(t => window.blockOfferedHere(t) || t === block.type).map(t =>
                 `<option value="${escField(t)}" ${block.type === t ? 'selected' : ''}>${escField(window.blockTypeLabel(t))}</option>`
             ).join('');
 
@@ -4285,6 +4304,21 @@ function renderBlockList() {
             html += `
                 <div class="editor-row editor-row-nomargin">
                     <input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Contributor Name(s) (Comma separated)">
+                </div>
+            `;
+        }
+        else if (block.type === 'colorswatches') {
+            const sets = window.COLOR_SWATCH_SETS || {};
+            const set = sets[block.set] ? block.set : 'characters';
+            html += `
+                <div class="editor-row editor-row-nomargin">
+                    <div>
+                        <label class="block-field-label-sm">Swatches</label>
+                        <select class="editor-select" data-field="set">
+                            ${Object.entries(sets).map(([value, label]) =>
+                                `<option value="${escField(value)}" ${set === value ? 'selected' : ''}>${escField(label)}</option>`).join('')}
+                        </select>
+                    </div>
                 </div>
             `;
         }
