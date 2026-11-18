@@ -171,6 +171,27 @@ test("a version the site cannot rebuild says so, and leaves the picker to choose
     await expect(page.locator('.editor-workspace')).toBeVisible();
 });
 
+test('a version that throws while drawing says so, instead of "Drawing both versions..." for good', async ({ page }) => {
+    // Nothing caught a throw in the drawing until v1.2: the screen stayed on
+    // its placeholder with no way on but EXIT DIFF, folded away with the
+    // Workspace. A renderer throwing on what a page holds is the real case;
+    // the mount throwing stands in for it.
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await editFirstParagraph(page, 'Hold the jump button to start a combo.');
+    await page.evaluate(() => { window.SideBySide.mount = () => { throw new Error('a block would not draw'); }; });
+    await page.locator('#btn-toggle-diff').click();
+
+    const note = page.locator('#diff-view-container .sbs-note');
+    await expect(note).toHaveText('The two versions could not be drawn side by side: a block would not draw.');
+    await expect(page.locator('.editor-workspace')).toBeVisible();
+    await expect(page.locator('#sbs-compare-with + .manga-select-wrapper .manga-select-trigger')).toBeVisible();
+
+    await page.getByRole('button', { name: 'CHANGE LIST' }).click();
+    await expect(page.locator('#diff-view-container .diff-section-title').first()).toBeVisible();
+    expect(errors).toEqual([]);
+});
+
 test("leaving VIEW DIFF gives the editor's own preview back untouched", async ({ page }) => {
     await editFirstParagraph(page, 'Hold the jump button to start a combo.');
     await page.locator('#btn-sync').click();

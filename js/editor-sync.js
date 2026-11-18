@@ -680,8 +680,51 @@ function comparePicker() {
     return wrap;
 }
 
+// The list behind the side by side, and the way back from it.
+function changeListButton() {
+    const list = document.createElement('button');
+    list.type = 'button';
+    list.className = 'btn-sys btn-sys-regular';
+    list.textContent = 'CHANGE LIST';
+    list.addEventListener('click', () => {
+        editorSideBySideRun++;
+        if (editorSideBySide) { editorSideBySide.destroy(); editorSideBySide = null; }
+        foldWorkspace(false);
+        window.renderDiffView();
+        const back = document.createElement('button');
+        back.type = 'button';
+        back.className = 'btn-sys btn-sys-purple';
+        back.textContent = 'SIDE BY SIDE';
+        back.addEventListener('click', () => window.showEditorSideBySide());
+        const container = document.getElementById('diff-view-container');
+        if (container) container.prepend(back);
+    });
+    return list;
+}
+
+// A version that will not draw (a renderer throwing on what a page holds)
+// used to leave "Drawing both versions..." on screen for good, because nothing
+// caught it. It says so now, and keeps the list and the picker in reach.
 window.showEditorSideBySide = async function () {
     const run = ++editorSideBySideRun;
+    try {
+        await drawEditorSideBySide(run);
+    } catch (err) {
+        console.error('[Editor] The side by side could not be drawn:', err);
+        if (run !== editorSideBySideRun) return;
+        const workspace = document.querySelector('.editor-workspace');
+        if (workspace) workspace.inert = false;
+        foldWorkspace(false);
+        const host = editorDiffHost();
+        host.innerHTML = '';
+        const note = document.createElement('p');
+        note.className = 'sbs-note';
+        note.textContent = `The two versions could not be drawn side by side: ${(err && err.message) || err}.`;
+        host.append(comparePicker(), changeListButton(), note);
+    }
+};
+
+async function drawEditorSideBySide(run) {
     if (editorSideBySide) { editorSideBySide.destroy(); editorSideBySide = null; }
     const host = editorDiffHost();
 
@@ -728,26 +771,7 @@ window.showEditorSideBySide = async function () {
 
     const extra = [comparePicker()];
     // The list compares against the live page only.
-    if (!past) {
-        const list = document.createElement('button');
-        list.type = 'button';
-        list.className = 'btn-sys btn-sys-regular';
-        list.textContent = 'CHANGE LIST';
-        list.addEventListener('click', () => {
-            editorSideBySideRun++;
-            if (editorSideBySide) { editorSideBySide.destroy(); editorSideBySide = null; }
-            foldWorkspace(false);
-            window.renderDiffView();
-            const back = document.createElement('button');
-            back.type = 'button';
-            back.className = 'btn-sys btn-sys-purple';
-            back.textContent = 'SIDE BY SIDE';
-            back.addEventListener('click', () => window.showEditorSideBySide());
-            const container = document.getElementById('diff-view-container');
-            if (container) container.prepend(back);
-        });
-        extra.push(list);
-    }
+    if (!past) extra.push(changeListButton());
 
     const workspaceBtn = document.createElement('button');
     workspaceBtn.type = 'button';
@@ -765,7 +789,7 @@ window.showEditorSideBySide = async function () {
     foldWorkspace(!workspaceKeptOpen);
 
     editorSideBySide = window.SideBySide.mount(host, left, right, { labels, leadButtons: [workspaceBtn], extraButtons: extra });
-};
+}
 
 // --- VISUAL DIFF COMPARISON ENGINE ---
 window.renderDiffView = function() {
