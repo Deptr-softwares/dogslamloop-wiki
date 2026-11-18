@@ -310,7 +310,7 @@
          *
          * opts.labels overrides DEFAULT_LABELS; opts.dataChanged says the
          * caller's data differs, for the note when nothing visible does;
-         * opts.extraButtons are put in the bar.
+         * opts.extraButtons are put in the bar, opts.leadButtons first in it.
          */
         mount(host, left, right, opts = {}) {
             const labels = { ...DEFAULT_LABELS, ...(opts.labels || {}) };
@@ -329,7 +329,7 @@
             next.type = 'button';
             next.className = 'btn-sys btn-sys-purple sbs-next';
             next.textContent = '↓ NEXT CHANGE';
-            bar.append(count, next);
+            bar.append(...(opts.leadButtons || []), count, next);
             (opts.extraButtons || []).forEach(b => bar.appendChild(b));
 
             const head = (side, title, hint) => {

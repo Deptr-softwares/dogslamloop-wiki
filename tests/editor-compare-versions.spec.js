@@ -111,6 +111,10 @@ async function editFirstParagraph(page, text, options) {
 // the preview to hold still.
 const TYPING_PAUSE_MS = 400;
 
+// The Workspace folds away while the side-by-side is up; to use it (its tabs,
+// EXIT DIFF), a person brings it back first.
+const bringWorkspaceBack = (page) => page.getByRole('button', { name: '◀ WORKSPACE' }).click();
+
 test('VIEW DIFF puts the live page beside the page in the editor', async ({ page }) => {
     await editFirstParagraph(page, 'Hold the jump button to start a combo.');
     await page.locator('#btn-toggle-diff').click();
@@ -162,6 +166,9 @@ test("a version the site cannot rebuild says so, and leaves the picker to choose
     await compareWith(page, 'Nov 12, 2026, Editor B');
     await expect(page.locator('#diff-view-container .sbs-note')).toContainText('That version could not be loaded');
     await expect(page.locator('#sbs-compare-with + .manga-select-wrapper .manga-select-trigger')).toBeVisible();
+    // No side-by-side here, so no WORKSPACE button: the Workspace, and EXIT
+    // DIFF in it, come back by themselves.
+    await expect(page.locator('.editor-workspace')).toBeVisible();
 });
 
 test("leaving VIEW DIFF gives the editor's own preview back untouched", async ({ page }) => {
@@ -181,6 +188,7 @@ test("leaving VIEW DIFF gives the editor's own preview back untouched", async ({
     // any Sync does. From here on nothing may: the paragraph is marked, so a
     // redrawn copy would not pass.
     await page.evaluate(() => { document.querySelector('#standard-preview-container #tab-overview p.strategy-paragraph').__kept = true; });
+    await bringWorkspaceBack(page);
     await page.locator('#btn-toggle-diff').click();
 
     await expect(page.locator('#diff-view-container')).toHaveCount(0);
@@ -208,6 +216,7 @@ test('the Workspace is held while the two versions are drawn, and given back aft
 
     expect(await page.evaluate(() => window.__heldWhileDrawing)).toBe(true);
     await expect(page.locator('.editor-workspace')).not.toHaveAttribute('inert', '');
+    await bringWorkspaceBack(page);
     await page.locator('#block-list textarea[data-field="content-array"]').first().fill('Typed after the drawing.');
 });
 
@@ -251,6 +260,7 @@ test('VIEW DIFF follows the Workspace to another tab', async ({ page }) => {
     await page.locator('#btn-toggle-diff').click();
     await expect(right(page).locator('ins.diff-add')).toHaveText(['jump button']);
 
+    await bringWorkspaceBack(page);
     await page.locator('#edit-nav-matchups').click();
     await expect(right(page)).toContainText('Keep your distance from Zzq.');
     await expect(right(page)).not.toContainText('Hold the');
@@ -306,6 +316,7 @@ test('a system page compares the tab on screen, and follows the Workspace to ano
     expect(await page.locator('#sbs-compare-with option').allTextContents())
         .toEqual(['The live page', 'Nov 10, 2026, Editor C (Basics)']);
 
+    await bringWorkspaceBack(page);
     await page.locator('.daw-editor-nav-row .daw-tab-btn', { hasText: 'Advanced' }).click();
     await expect(right(page)).toContainText('Spacing wins neutral.');
     await expect(right(page)).not.toContainText('Hold the');
@@ -345,7 +356,69 @@ test('CHANGE LIST shows the list, and SIDE BY SIDE comes back', async ({ page })
     await page.getByRole('button', { name: 'CHANGE LIST' }).click();
     await expect(page.locator('#diff-view-container .diff-inline-target').first()).toContainText('Hold the');
     await expect(page.locator('#diff-view-container .sbs')).toHaveCount(0);
+    // The list has no WORKSPACE button, and EXIT DIFF is in the Workspace.
+    await expect(page.locator('.editor-workspace')).toBeVisible();
 
     await page.getByRole('button', { name: 'SIDE BY SIDE' }).click();
     await expect(right(page).locator('ins.diff-add')).toHaveText(['jump button']);
+    await expect(page.locator('.editor-workspace')).toBeHidden();
+});
+
+// "Way too compressed" (owner, 2026-11-18): each half was about 470px at a
+// 1440px screen, half of what the Workspace left, under the page's 1000px cap.
+// Their pick: the Workspace folds away while comparing.
+test('VIEW DIFF folds the Workspace away for the comparison, and WORKSPACE brings it back', async ({ page }) => {
+    await editFirstParagraph(page, 'Hold the jump button to start a combo.');
+    await page.locator('#btn-toggle-diff').click();
+    await expect(right(page).locator('ins.diff-add')).toHaveText(['jump button']);
+    await expect(page.locator('.editor-workspace')).toBeHidden();
+    expect(await right(page).evaluate(el => el.getBoundingClientRect().width)).toBeGreaterThan(600);
+
+    await page.getByRole('button', { name: '◀ WORKSPACE' }).click();
+    await expect(page.locator('.editor-workspace')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'HIDE WORKSPACE' })).toBeVisible();
+
+    // Kept open for the rest of this VIEW DIFF, a tab switch included.
+    await page.locator('#edit-nav-matchups').click();
+    await expect(page.getByRole('button', { name: 'HIDE WORKSPACE' })).toBeVisible();
+    await expect(page.locator('.editor-workspace')).toBeVisible();
+
+    await page.locator('#btn-toggle-diff').click();
+    await expect(page.locator('#standard-preview-container')).toBeVisible();
+    await expect(page.locator('.editor-workspace')).toBeVisible();
+
+    // A new VIEW DIFF folds it again.
+    await page.locator('#btn-toggle-diff').click();
+    await expect(page.locator('.editor-workspace')).toBeHidden();
+});
+
+// A narrow half kept the card's desktop row and squeezed each stat's value to
+// one letter a line (the owner's screenshot). Each half now lays out for its
+// own width: folded, the card keeps its row; with the Workspace back, it
+// stacks, as the page does on a narrow screen.
+test("a Skill Card's stats stay readable in a half, folded or not", async ({ page }) => {
+    const phase = (duration, styleClass, label) => ({ duration, styleClass, label });
+    const move = {
+        id: 'swipe', name: 'Crow Swipe', input: '2', type: 'Attack', damageType: 'Physical', variant: 'Standard',
+        stats: [{ label: 'Cooldown', value: '15s' }, { label: 'Hit Ragdoll?', value: 'Only Air Ragdoll' }],
+        variants: { standard: { label: 'Standard', totalScale: 60, bars: [{ type: 'single', phases: [phase(24, 'bg-tick-start', 'Startup: 24f'), phase(15, 'bg-tick-recov', 'Recovery: 15f')] }] } },
+    };
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await mockEditor(page, { frame: { m1s: [], skills: [move], specials: [] } });
+    await page.goto('/edit.html?char=boomcat&type=character&tab=skills', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.accolade-picker')).toBeVisible({ timeout: 45000 });
+    await page.locator('#btn-toggle-diff').click();
+
+    const value = right(page).locator('.stat-value', { hasText: 'Only Air Ragdoll' });
+    const lines = () => value.evaluate(el => {
+        const cs = getComputedStyle(el);
+        const lineHeight = Number.isFinite(parseFloat(cs.lineHeight)) ? parseFloat(cs.lineHeight) : parseFloat(cs.fontSize) * 1.2;
+        return Math.round(el.getBoundingClientRect().height / lineHeight);
+    });
+    await expect(value).toBeVisible();
+    expect(await lines(), 'folded').toBeLessThanOrEqual(2);
+
+    await page.getByRole('button', { name: '◀ WORKSPACE' }).click();
+    await expect(page.locator('.editor-workspace')).toBeVisible();
+    await expect.poll(lines, { message: 'with the Workspace back' }).toBeLessThanOrEqual(2);
 });

@@ -2223,6 +2223,29 @@ del.diff-del {
 /* Where the editor draws a version for the side-by-side, out of sight and out
    of the way, but laid out, so a clip or a picture can measure itself. */
 .sbs-render-host { position: absolute; left: 0; right: 0; top: 0; visibility: hidden; pointer-events: none; }
+/* The editor's side-by-side takes the pane's whole width, not the page's
+   1000px column, and the Workspace folds away while it is up (the
+   WORKSPACE button in its bar brings it back; js/editor-sync.js). */
+#diff-view-container.main-content-area:has(> .sbs) { max-width: none; }
+@media (min-width: 901px) {
+    .editor-layout-split.sbs-workspace-folded > .editor-workspace,
+    .editor-layout-split.sbs-workspace-folded > .editor-splitter { display: none; }
+}
+/* One column on a phone: there is no Workspace beside it to fold. */
+@media (max-width: 900px) { .sbs-workspace-toggle { display: none; } }
+
+/* Each half lays out for its own width. The page's own rules go by the
+   screen, so a Skill Card in a narrow half kept its desktop row and squeezed
+   its stats to one letter a line. Below 756px the card stacks, as the page
+   does: the page only uses that row once a card is 756px wide (a 1280px
+   screen), and narrower it wrapped a stat one word a line. (The Frame Data
+   legend follows its own width everywhere: style/FrameData.css.) */
+.sbs-col { container-type: inline-size; }
+@container (max-width: 755px) {
+    .sbs-col .skill-entry-body { flex-direction: column; }
+    .sbs-col .skill-left-col { width: auto; border-right: none; border-bottom: 2px solid var(--border-color); }
+    .sbs-col .skill-right-col { width: auto; }
+}
 
 /* The spacers that line rows up. A slot is the one opposite a block only the
    other side has. */

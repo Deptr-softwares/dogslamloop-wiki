@@ -448,6 +448,8 @@ window.toggleDiffMode = async function() {
 
         editorSideBySideRun++;
         if (editorSideBySide) { editorSideBySide.destroy(); editorSideBySide = null; }
+        workspaceKeptOpen = false;
+        foldWorkspace(false);
         const diffCont = document.getElementById('diff-view-container');
         if (diffCont) diffCont.remove();
 
@@ -458,6 +460,17 @@ window.toggleDiffMode = async function() {
 
 let editorSideBySide = null;
 let editorSideBySideRun = 0;
+
+// While the side-by-side is up, the Workspace folds away, so each half gets
+// about half the window instead of half of what the Workspace leaves (owner,
+// 2026-11-18: "way too compressed"). The bar's WORKSPACE button brings it back
+// for the rest of this VIEW DIFF. Anything without that button (the list, a
+// version that could not be loaded) unfolds it, since EXIT DIFF is in it.
+let workspaceKeptOpen = false;
+function foldWorkspace(fold) {
+    const layout = document.querySelector('.editor-layout-split');
+    if (layout) layout.classList.toggle('sbs-workspace-folded', fold);
+}
 
 // Set while drawTabApart has the preview's ids parked and, for the other
 // version, that version's data in the editor's place. A typing pause that
@@ -685,6 +698,7 @@ window.showEditorSideBySide = async function () {
     const base = await comparedVersion(compareWith);
     if (run !== editorSideBySideRun) return;
     if (base.error) {
+        foldWorkspace(false);
         host.innerHTML = '';
         const note = document.createElement('p');
         note.className = 'sbs-note';
@@ -722,6 +736,7 @@ window.showEditorSideBySide = async function () {
         list.addEventListener('click', () => {
             editorSideBySideRun++;
             if (editorSideBySide) { editorSideBySide.destroy(); editorSideBySide = null; }
+            foldWorkspace(false);
             window.renderDiffView();
             const back = document.createElement('button');
             back.type = 'button';
@@ -734,7 +749,22 @@ window.showEditorSideBySide = async function () {
         extra.push(list);
     }
 
-    editorSideBySide = window.SideBySide.mount(host, left, right, { labels, extraButtons: extra });
+    const workspaceBtn = document.createElement('button');
+    workspaceBtn.type = 'button';
+    workspaceBtn.className = 'btn-sys btn-sys-regular sbs-workspace-toggle';
+    const showWorkspaceState = () => {
+        workspaceBtn.textContent = workspaceKeptOpen ? 'HIDE WORKSPACE' : '◀ WORKSPACE';
+        workspaceBtn.setAttribute('aria-expanded', String(workspaceKeptOpen));
+    };
+    workspaceBtn.addEventListener('click', () => {
+        workspaceKeptOpen = !workspaceKeptOpen;
+        foldWorkspace(!workspaceKeptOpen);
+        showWorkspaceState();
+    });
+    showWorkspaceState();
+    foldWorkspace(!workspaceKeptOpen);
+
+    editorSideBySide = window.SideBySide.mount(host, left, right, { labels, leadButtons: [workspaceBtn], extraButtons: extra });
 };
 
 // --- VISUAL DIFF COMPARISON ENGINE ---
