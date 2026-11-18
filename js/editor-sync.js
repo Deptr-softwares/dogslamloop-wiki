@@ -1011,10 +1011,11 @@ window.renderDiffView = function() {
     compareAndRender('Character Overview', window.originalCloudDescData.overview, window.currentEditorDescData.overview, 'blocks');
     compareAndRender('General Strategy', window.originalCloudDescData.strategy, window.currentEditorDescData.strategy, 'blocks');
     compareArrayOfObjects('Custom Tab', window.originalCloudDescData.extras, window.currentEditorDescData.extras, 'title', 'blocks');
-    compareArrayOfObjects('Matchup', window.originalCloudDescData.matchups, window.currentEditorDescData.matchups, 'opponent', 'blocks');
     // Every keyed section, so a new one appears in the change summary the
     // contributor reads before submitting. One missing from here submits
-    // silently, which is the worst version of this bug.
+    // silently, which is the worst version of this bug. Matchups are one of
+    // them; until v1.2 they were also compared by name just above, so each
+    // changed matchup was listed twice.
     (window.getKeyedSections ? window.getKeyedSections() : []).forEach(s => {
         compareArrayOfObjects(s.entryLabel, window.originalCloudDescData[s.field],
             window.currentEditorDescData[s.field], s.keyField, 'blocks');
