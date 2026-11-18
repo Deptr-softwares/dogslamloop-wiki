@@ -587,6 +587,11 @@ test('a base-kit edit on a plain character still ships exactly as before', async
 test('a gallery page shows no character tab strip', async ({ page }) => {
   // Missing from renderEditorTabNav's exclusion list when the gallery type
   // shipped, so its editor offered six tabs that did nothing.
+  // The real Emotes page only boots the editor. Its preview would download
+  // every live emote video before the network went idle, which passed the 30s
+  // timeout in CI as the gallery grew. No video or sound is fetched, wherever
+  // it is hosted.
+  await page.route('**/*', route => route.request().resourceType() === 'media' ? route.abort() : route.fallback());
   await page.goto('/edit.html?page=emotes&type=gallery', { waitUntil: 'networkidle' });
 
   await page.evaluate(() => {

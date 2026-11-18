@@ -143,6 +143,12 @@ test('a still image is never asked about, whatever its size', async ({ page }) =
 
 test('the Gallery bin says the same thing when a heavy clip is picked', async ({ page }) => {
     // That modal uploads on its own, and a clip is what a gallery holds.
+    // The real Emotes page only boots the editor. Its preview would download
+    // every live emote video before the network went idle, which passed the
+    // 30s timeout in CI as the gallery grew. No video or sound is fetched,
+    // wherever it is hosted. The clip picked below is a local file, measured
+    // from the file itself, so this does not touch it.
+    await page.route('**/*', route => route.request().resourceType() === 'media' ? route.abort() : route.fallback());
     await page.goto('/edit.html?page=emotes&type=gallery', { waitUntil: 'networkidle' });
     // networkidle is not "every script ran": under load the shared dev server
     // has been seen to cut a response short, so wait for the function itself.
