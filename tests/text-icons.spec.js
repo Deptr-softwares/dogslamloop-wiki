@@ -22,7 +22,8 @@ const rgb = (hex) => `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)
 const prose = (page, start) => page.locator('main p', { hasText: start }).first();
 
 test('an accolade icon and a character icon draw inside page text, each named', async ({ page }) => {
-  await servePage(page, PAGE([para('Use [icon=accolade/blockbreak] against [b][icon=character/boomcat] Boomcat[/b] here.')]));
+  // The character's typed with capitals, as somebody typing by hand might.
+  await servePage(page, PAGE([para('Use [icon=accolade/blockbreak] against [b][icon=Character/Boomcat] Boomcat[/b] here.')]));
   await page.goto('/systems/hud/index.html', { waitUntil: 'networkidle' });
   const text = prose(page, 'Use');
   await expect(text).toBeVisible();
@@ -48,6 +49,10 @@ test('an accolade icon and a character icon draw inside page text, each named', 
   await expect(character).toHaveCount(1);
   expect(await character.getAttribute('src')).toMatch(/\/medias\/images\/BoomcatIcon\.webp$/);
   await expect.poll(() => character.evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
+  // At the height of the line, not the 128px picture it is.
+  const size = await character.evaluate(img => ({ height: img.getBoundingClientRect().height, font: parseFloat(getComputedStyle(img.closest('p')).fontSize) }));
+  expect(size.height).toBeGreaterThanOrEqual(size.font);
+  expect(size.height).toBeLessThanOrEqual(size.font * 1.5);
   const name = await page.evaluate(async () => (await window.loadCharacterRoster()).get('boomcat').name);
   await expect(character).toHaveAttribute('title', name);
   await expect(character).toHaveAttribute('alt', name);
@@ -66,12 +71,16 @@ test('a name it does not know stays as it was typed, so the mistake shows', asyn
 
 test('a hostile name is never markup', async ({ page }) => {
   const typed = 'X [icon=accolade/blockbreak" onmouseover="window.__hit=1] Y [icon=character/../../js/site_utils] Z';
+  // Nor does it send the browser after a path somebody wrote.
+  const asked = [];
+  page.on('request', r => { if (/site_utils(?!\.js)|onmouseover/i.test(decodeURIComponent(r.url()))) asked.push(r.url()); });
   await servePage(page, PAGE([para(typed)]));
   await page.goto('/systems/hud/index.html', { waitUntil: 'networkidle' });
   const text = prose(page, 'X [icon');
   await expect(text).toHaveText(typed);
   expect(await text.evaluate(el => [...el.querySelectorAll('*')].some(n => n.hasAttribute('onmouseover')))).toBe(false);
   expect(await text.locator('img, .text-icon').count()).toBe(0);
+  expect(asked).toEqual([]);
 });
 
 test('the tag stays out of section links, the contents list and search', async ({ page }) => {
