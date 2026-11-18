@@ -73,7 +73,8 @@ test('a hostile name is never markup', async ({ page }) => {
   const typed = 'X [icon=accolade/blockbreak" onmouseover="window.__hit=1] Y [icon=character/../../js/site_utils] Z';
   // Nor does it send the browser after a path somebody wrote.
   const asked = [];
-  page.on('request', r => { if (/site_utils(?!\.js)|onmouseover/i.test(decodeURIComponent(r.url()))) asked.push(r.url()); });
+  // The icon path rule would turn the second name into .../js/siteUtilsIcon.webp.
+  page.on('request', r => { if (/site_?utils(?!\.js)|onmouseover/i.test(decodeURIComponent(r.url()))) asked.push(r.url()); });
   await servePage(page, PAGE([para(typed)]));
   await page.goto('/systems/hud/index.html', { waitUntil: 'networkidle' });
   const text = prose(page, 'X [icon');
