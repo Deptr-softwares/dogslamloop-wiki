@@ -211,6 +211,10 @@ window.systemPreviewMatchesData = function (tab) {
 
 // --- LIVE SYNC & STATE MANAGEMENT ---
 function updateLivePreview(skipHistory = false) {
+    // Not while VIEW DIFF has another version of the page in the editor's
+    // place (drawTabApart below): this writes the Workspace into the page's
+    // data, which in that moment is the other version.
+    if (window.afterDrawingApart(() => updateLivePreview(skipHistory))) return;
     const draw = !previewHeld();
     if (!draw) previewMissedDraw = true;
     if (!skipHistory && typeof window.saveBlockHistory === 'function') {
@@ -454,6 +458,21 @@ window.toggleDiffMode = async function() {
 
 let editorSideBySide = null;
 let editorSideBySideRun = 0;
+
+// Set while drawTabApart has the preview's ids parked and, for the other
+// version, that version's data in the editor's place. A typing pause that
+// runs out in that moment (the block, profile, playstyle and system forms each
+// wait 400ms, and the click on VIEW DIFF does not cancel them) would write the
+// Workspace into that version, and for the live page that is the copy a
+// submission is measured against. So what those timers call waits, and runs
+// in order once the editor's own data is back. Returns true when it waited.
+let drawingApart = false;
+const waitingForEditorData = [];
+window.afterDrawingApart = function (fn) {
+    if (!drawingApart) return false;
+    waitingForEditorData.push(fn);
+    return true;
+};
 let compareWith = 'live';
 let pastVersions = null;
 const pastVersionPages = new Map();
@@ -566,6 +585,7 @@ async function drawTabApart(tabId, version) {
     const holder = document.createElement('div');
     if (!main || !standard) return holder;
 
+    drawingApart = true;
     const parked = Array.from(standard.querySelectorAll('[id]'));
     parked.forEach(el => { el.dataset.sbsParked = el.id; el.removeAttribute('id'); });
 
@@ -616,6 +636,8 @@ async function drawTabApart(tabId, version) {
         window.cachedMasterFrameData[charId] = saved.frame;
         host.remove();
         parked.forEach(el => { el.id = el.dataset.sbsParked; delete el.dataset.sbsParked; });
+        drawingApart = false;
+        waitingForEditorData.splice(0).forEach(fn => fn());
     }
 }
 

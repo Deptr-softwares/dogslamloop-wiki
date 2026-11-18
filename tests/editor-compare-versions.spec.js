@@ -89,8 +89,8 @@ async function compareWith(page, label) {
 const left = (page) => page.locator('#diff-view-container .sbs-col-left');
 const right = (page) => page.locator('#diff-view-container .sbs-col-right');
 
-// Boots the editor on the Overview and types into its first paragraph.
-async function editFirstParagraph(page, text, { search = '', ...fixture } = {}) {
+// Boots the editor on the Overview, with its first paragraph open to type in.
+async function openFirstParagraph(page, { search = '', ...fixture } = {}) {
     await page.setViewportSize({ width: 1440, height: 900 });
     await mockEditor(page, fixture);
     await page.goto(`/edit.html?char=boomcat&type=character&tab=overview${search}`, { waitUntil: 'domcontentloaded' });
@@ -99,8 +99,17 @@ async function editFirstParagraph(page, text, { search = '', ...fixture } = {}) 
     const field = card.locator('textarea[data-field="content-array"]');
     // A block opens collapsed unless the editor remembers it open.
     if (!(await field.isVisible())) await card.locator('.btn-collapse').click();
-    await field.fill(text);
+    return field;
 }
+
+async function editFirstParagraph(page, text, options) {
+    await (await openFirstParagraph(page, options)).fill(text);
+}
+
+// What was typed reaches the page's data 400ms after the last key
+// (js/editor-blocks.js), redrawing the preview. Waited out where a test needs
+// the preview to hold still.
+const TYPING_PAUSE_MS = 400;
 
 test('VIEW DIFF puts the live page beside the page in the editor', async ({ page }) => {
     await editFirstParagraph(page, 'Hold the jump button to start a combo.');
@@ -162,6 +171,9 @@ test("leaving VIEW DIFF gives the editor's own preview back untouched", async ({
     await expect(preview).toContainText('Hold the jump button to start a combo.');
     const ids = () => page.evaluate(() => Array.from(document.querySelectorAll('#standard-preview-container [id]')).map(el => el.id));
     const idsBefore = await ids();
+    // The typing pause redraws the preview too, as it should: let it pass, so
+    // the only thing left that could redraw it is VIEW DIFF.
+    await page.waitForTimeout(TYPING_PAUSE_MS + 100);
 
     await page.locator('#btn-toggle-diff').click();
     await expect(right(page)).toBeVisible();
@@ -197,6 +209,38 @@ test('the Workspace is held while the two versions are drawn, and given back aft
     expect(await page.evaluate(() => window.__heldWhileDrawing)).toBe(true);
     await expect(page.locator('.editor-workspace')).not.toHaveAttribute('inert', '');
     await page.locator('#block-list textarea[data-field="content-array"]').first().fill('Typed after the drawing.');
+});
+
+// Pressing VIEW DIFF does not cancel the typing pause, and it used to run out
+// while the live page stood in the editor's place: it wrote the Workspace into
+// the live copy, so the live side showed the edit too, and a submission made
+// after would have carried no change. The live side's drawing is slowed here
+// so the pause always runs out in the middle of it.
+test("a typing pause that runs out while VIEW DIFF draws leaves the live copy alone", async ({ page }) => {
+    const field = await openFirstParagraph(page);
+    await page.evaluate(() => {
+        const draw = window.loadPageDescriptions;
+        let first = true;
+        window.loadPageDescriptions = async function (...args) {
+            if (first) { first = false; await new Promise(r => setTimeout(r, 700)); }
+            return draw.apply(this, args);
+        };
+    });
+    // Typed, and VIEW DIFF pressed straight after, as one step, so the click
+    // always lands inside the pause.
+    await field.evaluate((el) => {
+        el.value = 'Hold the jump button to start a combo.';
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        document.getElementById('btn-toggle-diff').click();
+    });
+
+    await expect(left(page).locator('del.diff-del')).toHaveText(['dash']);
+    await expect(right(page).locator('ins.diff-add')).toHaveText(['jump button']);
+    expect(await page.evaluate(() => window.originalCloudDescData.overview[0].content)).toBe('Hold the dash to start a combo.');
+    // What was typed still reached the page, once the editor had it back, and
+    // the pause's own work ran then: the typing is a step UNDO can take back.
+    expect(await page.evaluate(() => window.currentEditorDescData.overview[0].content)).toEqual(['Hold the jump button to start a combo.']);
+    await expect(page.locator('#btn-undo')).toBeEnabled();
 });
 
 // The side-by-side is one tab, so it goes where the Workspace goes.

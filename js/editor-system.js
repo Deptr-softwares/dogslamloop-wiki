@@ -9,6 +9,9 @@
 // =====================================================================
 
 window.renderSystemEditor = function(container) {
+    // Not while VIEW DIFF has another version in the editor's place
+    // (js/editor-sync.js): this reloads the Workspace from the page's data.
+    if (typeof window.afterDrawingApart === 'function' && window.afterDrawingApart(() => window.renderSystemEditor(container))) return;
     let descData = window.currentEditorDescData;
     if (!descData.tabs || descData.tabs.length === 0) {
         descData.tabs = [{ tabId: 'overview', tabLabel: 'Overview', sections: [{ sectionTitle: 'New Section', layout: 'full', blocks: [] }] }];
