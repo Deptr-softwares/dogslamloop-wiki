@@ -228,6 +228,130 @@ window.generatePlaystyleHTML = function(playstyle) {
     `;
 };
 
+// --- COLOR SWATCHES (the Color Codes page, v1.2) ---
+// Drawn from the site's own colours, never from text an editor typed, so the
+// page cannot fall behind them: a character's is the one owner tools sets
+// (window.CHARACTER_COLORS, generated from site_pages.color), and the frame
+// data ones are the legend's (FRAME_COLORS, WINDOW_COLORS and their labels,
+// which js/site_meta.js reads from ColorCoding.css). The hand-written page
+// this replaced listed 21 characters by CSS variable, one of them misspelt.
+//
+// The grids a Block can draw, named the way the Color Codes page always
+// named them. The editor's dropdown reads this list too.
+window.COLOR_SWATCH_SETS = { characters: 'Character Themes', frames: 'Frame Data Types', overlays: 'Stackable Overlays' };
+
+// A colour the way an editor types it into [color=#...]. A canvas answers in
+// #rrggbb for any opaque colour, whatever syntax the source used; a value it
+// cannot read leaves the sentinel in place and shows no code.
+let swatchCanvas = null;
+function swatchHex(value) {
+    if (!value) return '';
+    swatchCanvas = swatchCanvas || document.createElement('canvas').getContext('2d');
+    swatchCanvas.fillStyle = '#010203';
+    swatchCanvas.fillStyle = String(value);
+    const out = swatchCanvas.fillStyle;
+    return out === '#010203' && String(value).trim().toLowerCase() !== '#010203' ? '' : out;
+}
+
+function swatchCardHTML(title, visual, code) {
+    return `<div class="color-swatch-card">${visual}<div class="swatch-meta">`
+        + `<span class="swatch-title">${escBlockText(title)}</span>`
+        + `<span class="swatch-code">${escBlockText(code)}</span></div></div>`;
+}
+
+// The class names below are the dictionaries' own keys, written in
+// js/site_meta.js, never anything from page data.
+function colorSwatchesHTML(set) {
+    const which = Object.prototype.hasOwnProperty.call(window.COLOR_SWATCH_SETS, set) ? set : 'characters';
+    const labels = window.FRAME_COLOR_LABELS || {};
+    if (which === 'frames') {
+        const frames = window.FRAME_COLORS || {};
+        const cards = Object.keys(frames).map(cls => swatchCardHTML(labels[cls] || cls,
+            `<div class="swatch-color-block ${cls}"><div class="frame-tick"></div></div>`, swatchHex(frames[cls])));
+        return `<div class="color-swatch-grid" data-swatch-set="frames">${cards.join('')}</div>`;
+    }
+    if (which === 'overlays') {
+        const windows = window.WINDOW_COLORS || {};
+        const cards = Object.keys(windows).map(key => swatchCardHTML(labels[key] || key,
+            `<div class="swatch-overlay-well"><div class="window-overlay span-${key}"></div></div>`, swatchHex(windows[key])));
+        return `<div class="color-swatch-grid" data-swatch-set="overlays">${cards.join('')}</div>`;
+    }
+    // Which characters to show needs the registry (a hidden one stays off),
+    // and that is fetched, so fillColorSwatches draws them once this is in
+    // the page.
+    return '<div class="color-swatch-grid" data-swatch-set="characters"><p class="loading-msg loading-msg-busy">Loading the character colors...</p></div>';
+}
+
+window.fillColorSwatches = async function (root) {
+    const grids = Array.from((root || document).querySelectorAll('.color-swatch-grid[data-swatch-set="characters"]:not([data-filled])'));
+    if (grids.length === 0) return;
+    grids.forEach(grid => grid.setAttribute('data-filled', 'pending'));
+
+    const roster = typeof window.loadCharacterRoster === 'function' ? await window.loadCharacterRoster() : new Map();
+    const colors = window.CHARACTER_COLORS || {};
+    const cards = [];
+    roster.forEach(entry => {
+        if (entry.hidden) return;
+        const color = typeof window.safeColor === 'function' ? window.safeColor(colors[entry.name]) : null;
+        if (!color) return;
+        cards.push(swatchCardHTML(entry.name,
+            `<div class="swatch-color-block" style="background-color: ${color};"></div>`, swatchHex(color)));
+    });
+
+    grids.forEach(grid => {
+        grid.setAttribute('data-filled', 'true');
+        grid.innerHTML = cards.length
+            ? cards.join('')
+            : '<p class="loading-msg">The character colors could not be loaded.</p>';
+    });
+};
+
+// --- COLLABORATORS (the Collaborators page, v1.2) ---
+// One Collaborator Block is one person, as a Card (Main Contributors) or a
+// Thanks line (Special Thanks). Cards next to each other share one grid and
+// lines one list, the way the page always drew them; each Block still starts
+// with an element of its own, which is what the editor's Preview follows the
+// Block marks. The home page's Credits list is built from the same Blocks
+// (scripts/fetch-content.js), so the two cannot drift again.
+//
+// The badge colours are the Update Log's badges, by colour: the editor's
+// dropdown reads this list, and nothing outside it reaches the class.
+window.COLLABORATOR_BADGES = { 'badge-general': 'Purple', 'badge-site': 'Green', 'badge-patch': 'Blue', 'badge-wip': 'Yellow', 'badge-ea': 'Orange' };
+
+const collaboratorKind = (b) => (b && b.type === 'collaborator' ? (b.kind === 'line' ? 'line' : 'card') : null);
+
+// Only an http(s) address becomes a link. The editor's form names the lines
+// that fail it, so one is never dropped without a word.
+window.isCollaboratorLink = (url) => /^https?:\/\/\S+$/i.test(String(url || '').trim());
+
+function collaboratorCardHTML(b) {
+    const name = escBlockText(b.name || '');
+    const badge = Object.prototype.hasOwnProperty.call(window.COLLABORATOR_BADGES, b.badge) ? b.badge : 'badge-general';
+    // As given, the way an Image Block's address is: the credits' avatars are
+    // paths from the site's root (/medias/images/...), and the site is served
+    // from its root.
+    const avatar = safeBlockUrl(b.avatar);
+    const links = (Array.isArray(b.links) ? b.links : [])
+        .filter(l => l && window.isCollaboratorLink(l.url))
+        .map(l => `<a href="${escBlockText(String(l.url).trim())}" target="_blank" rel="noopener noreferrer" class="btn-sys btn-sys-blue collaborator-link">${escBlockText(l.name || l.url)}</a>`)
+        .join('');
+    return '<div class="wiki-card collaborator-card"><div class="contributor-card"><div class="contributor-header">'
+        + (avatar
+            ? `<img src="${escBlockText(avatar)}" alt="${name}" class="contributor-avatar" loading="lazy">`
+            : '<div class="contributor-avatar-placeholder">N/A</div>')
+        + `<div><h3 class="collaborator-name">${name}</h3>`
+        + `<span class="update-badge ${badge}">${escBlockText(b.role || '')}</span></div></div>`
+        + `<p class="strategy-paragraph collaborator-description">${escBlockText(b.description || '')}</p>`
+        + (links ? `<div class="collaborator-links">${links}</div>` : '')
+        + '</div></div>';
+}
+
+function collaboratorLineHTML(b) {
+    return `<li class="collaborator-line"><strong class="collaborator-line-name">${escBlockText(b.name || '')}</strong>`
+        + (b.description ? ` - <span class="collaborator-line-reason">${escBlockText(b.description)}</span>` : '')
+        + '</li>';
+}
+
 // --- THE RECURSIVE BLOCK ENGINE ---
 // This standalone function can render blocks infinitely deep!
 //
@@ -706,7 +830,19 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 contentHTML += comboHTML;
             }
         }
-        
+        else if (block.type === 'colorswatches') {
+            contentHTML += colorSwatchesHTML(block.set);
+        }
+        else if (block.type === 'collaborator') {
+            const kind = collaboratorKind(block);
+            const [open, close] = kind === 'line'
+                ? ['<ul class="wiki-block-list collaborator-thanks">', '</ul>']
+                : ['<div class="grid-layout-3col collaborator-grid">', '</div>'];
+            contentHTML += (collaboratorKind(blocks[blockIndex - 1]) !== kind ? open : '')
+                + (kind === 'line' ? collaboratorLineHTML(block) : collaboratorCardHTML(block))
+                + (collaboratorKind(blocks[blockIndex + 1]) !== kind ? close : '');
+        }
+
         if (anchor) contentHTML = contentHTML.slice(0, blockStart) + anchor(contentHTML.slice(blockStart), blockIndex, block);
 
         // --- AUTHOR AGGREGATION ---
@@ -1731,6 +1867,10 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
         if (typeof window.initLazyMedia === 'function') {
             window.initLazyMedia(container);
         }
+
+        // 4. A Color Swatches Block's character colours need the registry,
+        // which is fetched (colorSwatchesHTML, above).
+        if (typeof window.fillColorSwatches === 'function') window.fillColorSwatches(container);
 
     } else {
         container.innerHTML = `

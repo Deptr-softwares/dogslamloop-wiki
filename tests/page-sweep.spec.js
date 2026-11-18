@@ -78,6 +78,13 @@ for (const p of PAGES) {
         // everything after it silently did not happen.
         page.on('pageerror', e => thrown.push(e.message));
 
+        // Videos and sounds are owner content too, like medias/ below, wherever
+        // they are hosted, and the sweep waits for the network to go idle. The
+        // Emotes page's videos took 18s of the 30s timeout in CI (2026-11-18),
+        // and one clip on an outside host held a character page up for 26s
+        // here (2026-11-19). Nothing here looks at a video, so none is fetched.
+        await page.route('**/*', route => route.request().resourceType() === 'media' ? route.abort() : route.fallback());
+
         page.on('response', r => {
             const url = r.url();
             if (r.status() < 400) return;

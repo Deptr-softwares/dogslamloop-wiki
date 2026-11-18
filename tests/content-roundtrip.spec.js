@@ -2,10 +2,12 @@
 //
 // data/faq.json and systems/collaborators/collaborators_data.json were static
 // files, so changing an answer or adding a contributor meant a commit. They
-// are now generated from site_faq and site_collaborators. The runtime still
-// fetches plain JSON, so the generated shapes must match what
-// js/home_widgets.js and the collaborators page already read - this is a
-// write-back, not a redesign, and the round-trip below is what proves it.
+// are now generated from site_faq and (since v1.2) the Collaborators page's
+// Collaborator Blocks, with site_collaborators deciding until the release
+// copies it into the page. The runtime still fetches plain JSON, so the
+// generated shapes must match what js/home_widgets.js already reads - this is
+// a write-back, not a redesign, and the round-trip below is what proves it.
+// That both sources give the same file is in tests/collaborators-page.spec.js.
 const { test, expect } = require('@playwright/test');
 
 const { buildFaq, buildCollaborators } = require('../scripts/fetch-content.js');
@@ -41,9 +43,10 @@ test('the two collaborator sections keep their different shapes', () => {
   // mainContributors are full cards, specialThanks are {name, reason} lines.
   // Normalising them into one shape would mean teaching the collaborators
   // page a new format for no benefit.
+  // isLead left in v1.2: nothing ever read it.
   const out = buildCollaborators(collaboratorRows(collaborators));
   expect(Object.keys(out.mainContributors[0]).sort()).toEqual(
-    ['avatar', 'badgeType', 'description', 'isLead', 'links', 'name', 'role']
+    ['avatar', 'badgeType', 'description', 'links', 'name', 'role']
   );
   expect(Object.keys(out.specialThanks[0]).sort()).toEqual(['name', 'reason']);
 });

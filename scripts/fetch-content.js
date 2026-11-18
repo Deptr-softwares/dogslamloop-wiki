@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 /**
  * Regenerates data/faq.json and systems/collaborators/collaborators_data.json
- * from the site_faq and site_collaborators tables.
+ * from the site_faq table and the Collaborators page.
  *
- * Both files are fetched at runtime as plain JSON by js/home_widgets.js and
- * the collaborators page, so the shapes below have to match what those
- * already expect exactly - this is a write-back, not a redesign. The
- * round-trip is asserted in tests/content-roundtrip.spec.js.
+ * Both files are fetched at runtime as plain JSON by js/home_widgets.js, so
+ * the shapes below have to match what it already expects exactly - this is a
+ * write-back, not a redesign. The round-trip is asserted in
+ * tests/content-roundtrip.spec.js.
+ *
+ * The credits come from the Collaborators page's Collaborator Blocks since
+ * v1.2, the page being edited in the editor. site_collaborators decides only
+ * while the page has no row: the release's migration copies the table into
+ * the page, and until it has run, the table is still the credits.
  *
  * Public anon key only, same reasoning as scripts/fetch-previews.js.
  *
@@ -53,6 +58,9 @@ function buildFaq(rows) {
  * so they are emitted differently rather than normalised into one shape the
  * page would then have to be taught to read.
  */
+//
+// isLead left the shape in v1.2: nothing ever read it, and the page's
+// Blocks have no such field.
 function buildCollaborators(rows) {
     const sorted = [...rows].sort((a, b) => a.sort_order - b.sort_order);
     return {
@@ -62,7 +70,6 @@ function buildCollaborators(rows) {
                 name: row.name,
                 role: row.role || '',
                 badgeType: row.badge_type || '',
-                isLead: !!row.is_lead,
                 avatar: row.avatar || '',
                 description: row.description || '',
                 links: Array.isArray(row.links) ? row.links : [],
@@ -71,6 +78,42 @@ function buildCollaborators(rows) {
             .filter(r => r.section === 'thanks')
             .map(row => ({ name: row.name, reason: row.description || '' })),
     };
+}
+
+/**
+ * Pure. The Collaborators page's desc_data in, the same shape out: every
+ * Collaborator Block in page order, a Card to mainContributors and a Thanks
+ * line to specialThanks. Blocks inside an accordion or a Section Box count
+ * too, so moving a card into one never drops a person from the home page.
+ */
+function buildCollaboratorsFromPage(desc) {
+    const out = { mainContributors: [], specialThanks: [] };
+    const visit = (block) => {
+        if (!block || typeof block !== 'object') return;
+        if (block.type === 'collaborator') {
+            if (block.kind === 'line') {
+                out.specialThanks.push({ name: block.name || '', reason: block.description || '' });
+            } else {
+                out.mainContributors.push({
+                    name: block.name || '',
+                    role: block.role || '',
+                    badgeType: block.badge || '',
+                    avatar: block.avatar || '',
+                    description: block.description || '',
+                    links: Array.isArray(block.links) ? block.links : [],
+                });
+            }
+            return;
+        }
+        for (const key of ['content', 'intro']) if (Array.isArray(block[key])) block[key].forEach(visit);
+        if (Array.isArray(block.sections)) block.sections.forEach(sec => (sec && Array.isArray(sec.content) ? sec.content : []).forEach(visit));
+    };
+    for (const tab of (desc && Array.isArray(desc.tabs) ? desc.tabs : [])) {
+        for (const section of (Array.isArray(tab.sections) ? tab.sections : [])) {
+            (Array.isArray(section.blocks) ? section.blocks : []).forEach(visit);
+        }
+    }
+    return out;
 }
 
 /**
@@ -134,6 +177,26 @@ async function fetchSingleton(table) {
         throw new Error(`Refusing to continue: ${table} returned no row.`);
     }
     return rows[0];
+}
+
+/**
+ * Pure. Which source the credits come from: the page once it has a row, even
+ * one with no Collaborator Blocks (then there are no credits, never the old
+ * table's), and the table only while the page has no row at all.
+ */
+function creditsFrom(collabPage, collabRows) {
+    return collabPage ? buildCollaboratorsFromPage(collabPage) : buildCollaborators(collabRows);
+}
+
+// One page's desc_data, or null while the page has no row at all.
+async function fetchPageDesc(pageId) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/page_data?select=desc_data&page_id=eq.${encodeURIComponent(pageId)}`, {
+        headers: { apikey: SUPABASE_ANON_KEY },
+    });
+    if (!res.ok) throw new Error(`Supabase returned HTTP ${res.status} for page_data: ${await res.text()}`);
+    const rows = await res.json();
+    if (!Array.isArray(rows)) throw new Error('Expected an array from page_data.');
+    return rows.length ? rows[0].desc_data : null;
 }
 
 async function fetchTable(table) {
@@ -268,16 +331,17 @@ function writeIfChanged(filePath, value, label, write, results) {
 async function main() {
     const write = process.argv.includes('--write');
 
-    const [faqRows, collabRows, metaRow, pageRows] = await Promise.all([
+    const [faqRows, collabRows, collabPage, metaRow, pageRows] = await Promise.all([
         fetchTable('site_faq'),
         fetchTable('site_collaborators'),
+        fetchPageDesc('collaborators'),
         fetchSingleton('site_meta'),
         fetchTable('site_pages'),
     ]);
 
     const results = [];
     writeIfChanged(FAQ_PATH, buildFaq(faqRows), 'faq.json', write, results);
-    writeIfChanged(COLLAB_PATH, buildCollaborators(collabRows), 'collaborators_data.json', write, results);
+    writeIfChanged(COLLAB_PATH, creditsFrom(collabPage, collabRows), 'collaborators_data.json', write, results);
     writeIfChanged(META_PATH, buildSiteMeta(metaRow), 'site_meta.json', write, results);
     writeRegionIfChanged(SITE_META_JS_PATH, buildCharacterColors(pageRows), 'site_meta.js colours', write, results);
 
@@ -291,4 +355,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { buildFaq, buildCollaborators, buildSiteMeta, buildCharacterColors, replaceRegion, COLORS_BEGIN, COLORS_END };
+module.exports = { buildFaq, buildCollaborators, buildCollaboratorsFromPage, creditsFrom, buildSiteMeta, buildCharacterColors, replaceRegion, COLORS_BEGIN, COLORS_END };

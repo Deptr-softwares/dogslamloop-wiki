@@ -108,7 +108,16 @@ test('an old revision that still names Reverse Hitcancel draws only the overlays
 });
 
 test('the Color Codes page no longer shows a Reverse Hitcancel overlay', async ({ page }) => {
-    await page.goto('/systems/color-codes/index.html', { waitUntil: 'domcontentloaded' });
+    // Its swatches are a Block since v1.2, so the page is served a row with
+    // the overlay grid in it (production has none until the release).
+    await page.route('**/rest/v1/page_data*', route => route.fulfill({
+        status: 200, contentType: 'application/json',
+        body: JSON.stringify({ page_id: 'color_codes', page_type: 'system', frame_data: {}, desc_data: { tabs: [{
+            tabId: 'overview', tabLabel: 'Overview',
+            sections: [{ sectionTitle: 'Stackable Overlays', layout: 'full', blocks: [{ type: 'colorswatches', set: 'overlays' }] }],
+        }] } }),
+    }));
+    await page.goto('/systems/color-codes/index.html', { waitUntil: 'networkidle' });
     const titles = await page.locator('.swatch-title').allTextContents();
 
     expect(titles).toContain('Swarm I-Frames');

@@ -4,7 +4,6 @@
       "name": "Deptr",
       "role": "Lead Developer and Owner",
       "badgeType": "badge-patch",
-      "isLead": true,
       "avatar": "/medias/images/DestroymanFront.webp",
       "description": "Pretty much the sole dev of Dogslamloop, worked on almost every feature in the site, and some double checking of frame data.",
       "links": [
@@ -18,7 +17,6 @@
       "name": "MrT1",
       "role": "Frame Data & Testing",
       "badgeType": "badge-site",
-      "isLead": false,
       "avatar": "/medias/images/Solid Blue.webp",
       "description": "Spent countless hours recording 60FPS footage to count frames and such. Contact him via @.mrt1 on Discord.",
       "links": []
@@ -27,7 +25,6 @@
       "name": "Air Putrifier",
       "role": "Strategies and Resource",
       "badgeType": "badge-site",
-      "isLead": false,
       "avatar": "/medias/images/diego2.webp",
       "description": "Written a lot of strategy entries for the site (perchance), also allow me to borrow his awesome Medal clips.",
       "links": [
@@ -41,7 +38,6 @@
       "name": "Nickolas4F",
       "role": "Strategies",
       "badgeType": "badge-site",
-      "isLead": false,
       "avatar": "/medias/images/nickpfp.webp",
       "description": "Written a lot of strategy entries for the site, awesome mobile player as well.",
       "links": [
@@ -55,7 +51,6 @@
       "name": "PositiveHA",
       "role": "Testing & Strategies",
       "badgeType": "badge-site",
-      "isLead": false,
       "avatar": "/medias/images/OrochimaruKunfoPop.webp",
       "description": "Figured out the 4-frames rule for M1 trading stuff, among other things as well.",
       "links": [
@@ -69,7 +64,6 @@
       "name": "Ocelol",
       "role": "Media and Arts",
       "badgeType": "badge-site",
-      "isLead": false,
       "avatar": "/medias/images/ocelolAvatar.webp",
       "description": "Create and submit almost every single demonstration videos for the site",
       "links": []
@@ -78,7 +72,6 @@
       "name": "Nukings3D",
       "role": "Media and Arts",
       "badgeType": "badge-wip",
-      "isLead": false,
       "avatar": "/medias/images/Nuking3DAvatar.webp",
       "description": "Draw most of the icons the wiki use",
       "links": []

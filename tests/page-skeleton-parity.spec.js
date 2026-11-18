@@ -27,22 +27,20 @@ const CHARACTER_PAGES = [
   'True_cannon', 'Vessel',
 ];
 
-// 8 of the 12 system directories. The other four are bespoke and stay
-// hand-authored: collaborators (own fetch engine), tierlist (own pageType +
-// tierlist.js), updatelog (home_widgets.js), color-codes (hand-authored
-// swatch markup).
+// 10 of the 12 system directories. The other two are bespoke and stay
+// hand-authored: tierlist (own pageType + tierlist.js), updatelog
+// (home_widgets.js). color-codes and collaborators are routed since v1.2:
+// their swatches and people are Blocks.
 const SYSTEM_PAGES = [
-  'evasive', 'framedata', 'fundamentals', 'hud',
+  'collaborators', 'color-codes', 'evasive', 'framedata', 'fundamentals', 'hud',
   'm1-trading', 'starter-guide', 'terminologies', 'writing_guide',
 ];
 
 // Every page the router must NOT touch. A generator bug that swallowed one of
 // these would be silent and destructive, so it gets an explicit guard.
 const NEVER_ROUTED = [
-  '/systems/collaborators/index.html',
   '/systems/tierlist/index.html',
   '/systems/updatelog/index.html',
-  '/systems/color-codes/index.html',
   '/characters/index.html',
   '/systems/index.html',
 ];

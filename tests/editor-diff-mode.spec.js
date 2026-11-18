@@ -17,6 +17,22 @@
 // owner's Boomcat content.
 const { test, expect } = require('@playwright/test');
 
+test('a changed matchup is listed once in CHANGE LIST', async ({ page }) => {
+  // Matchups joined the keyed sections on 2026-08-16, and from then the list
+  // compared them twice: once by name, once in the keyed sections' loop.
+  await page.goto('/edit.html?page=boomcat&type=character&tab=overview', { waitUntil: 'networkidle' });
+  await page.waitForFunction(() => window.currentEditorDescData && window.originalCloudDescData
+    && typeof window.renderDiffView === 'function', { timeout: 45000 });
+  await page.evaluate(() => {
+    window.originalCloudDescData.matchups = [{ opponent: 'Vessel', content: [{ type: 'paragraph', content: 'Old read.' }] }];
+    window.currentEditorDescData.matchups = [{ opponent: 'Vessel', content: [{ type: 'paragraph', content: 'New read.' }] }];
+    window.renderDiffView();
+  });
+  const titles = page.locator('#diff-view-container .diff-section-title', { hasText: 'MATCHUP: VESSEL' });
+  await expect(titles.first()).toBeVisible();
+  await expect(titles).toHaveCount(1);
+});
+
 test('a changed paragraph is marked, painted, and never printed as tags', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));

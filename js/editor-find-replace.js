@@ -42,6 +42,10 @@
         'folder',
         // Its colour (v1.1), a colour value and not text either.
         'folderColor',
+        // v1.2: which grid a Color Swatches Block draws, and a Collaborator's
+        // kind, badge colour and avatar address. Replacing "line" or "frames"
+        // would quietly change what the Block is.
+        'set', 'kind', 'badge', 'avatar',
     ]);
 
     const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
