@@ -51,37 +51,47 @@ const windowTypes = {
 // card shows them in, whatever order an editor ticks them. A move stores the
 // ids, so a name can be reworded without touching a move; an id never changes
 // once a move uses it (it is also the icon's file name, medias/icons/
-// accolades/<id>.png). `tone` colors the badge. The text is the owner's, with
-// two grammar fixes ("than", "manage the character's") and their spelling
-// calls (2026-11-18): "cannot", and one L in "canceled" and "Uncancelable".
+// accolades/<id>.png, the owner's 16px pixel art). `color` is the owner's
+// pick for the badge's text, border and icon (2026-11-19, on their Accolade
+// Colors page). The text is the owner's, with two grammar fixes ("than",
+// "manage the character's") and their spelling calls (2026-11-18): "cannot",
+// and one L in "canceled" and "Uncancelable".
 window.ACCOLADES = [
-    { id: 'blockbreak', name: 'Blockbreak', description: 'This move can break block' },
-    { id: 'block-bypass', name: 'Block Bypass', description: 'This move ignores block' },
-    { id: 'neutral-skip', name: 'Neutral Skip', description: 'This move closes the gap quickly' },
-    { id: 'punishable-on-block', name: 'Punishable on Block', description: 'This move can be punished on Block', tone: 'punish' },
-    { id: 'safe-on-block', name: 'Safe on Block', description: 'This move cannot be punished on Block', tone: 'safe' },
-    { id: 'punishable-on-whiff', name: 'Punishable on Whiff', description: 'This move can be punished on Whiff', tone: 'punish' },
-    { id: 'safe-on-whiff', name: 'Safe on Whiff', description: 'This move cannot be punished on Whiff', tone: 'safe' },
-    { id: 'punishable-on-hit', name: 'Punishable on Hit', description: 'This move can be punished on Hit', tone: 'punish' },
-    { id: 'safe-on-hit', name: 'Safe on Hit', description: 'This move cannot be punished on Hit', tone: 'safe' },
-    { id: 'evasive-punishable', name: 'Evasive Punishable', description: 'This move is evasive punishable on Hit' },
-    { id: 'frame-perfect-evasive-punishable', name: 'Frame Perfect Evasive Punishable', description: 'This move is evasive punishable on Hit with a really tight window' },
-    { id: 'hit-only-air-ragdoll', name: 'Hit only Air Ragdoll', description: 'This move can only hit ragdoll targets in the air' },
-    { id: 'hit-ragdoll', name: 'Hit Ragdoll', description: 'This move can hit ragdoll targets' },
-    { id: 'cannot-hit-ragdoll', name: 'Cannot hit Ragdoll', description: 'This move cannot hit ragdoll targets' },
-    { id: 'uncancelable', name: 'Uncancelable', description: 'This move cannot be canceled after casting it' },
-    { id: 'semi-uncancelable', name: 'Semi-uncancelable', description: 'This move can be canceled after casting it with a specific condition' },
-    { id: 'invincible', name: 'Invincible', description: 'This move has some sort of I-Frames within its duration' },
-    { id: 'multi-use', name: 'Multi-use', description: 'This move can be used multiple times before going on cooldown' },
-    { id: 'execution', name: 'Execution', description: 'This move kills earlier than its total damage' },
-    { id: 'qte', name: 'QTE', description: 'This move has some sort of Quick Time Event in it' },
-    { id: 'buff', name: 'Buff', description: 'This move buffs the character with something' },
-    { id: 'debuff', name: 'Debuff', description: 'This move debuffs the opponent with something' },
-    { id: 'resource', name: 'Resource', description: "This move helps manage the character's resource gimmick" },
-    { id: 'teleport', name: 'Teleport', description: 'This move teleports the character' },
-    { id: 'cursor-aimed', name: 'Cursor-aimed', description: 'This move is aimed with the cursor' },
-    { id: 'camera-aimed', name: 'Camera-aimed', description: 'This move is aimed with the camera direction' },
+    { id: 'blockbreak', name: 'Blockbreak', description: 'This move can break block', color: '#ff5c5c' },
+    { id: 'block-bypass', name: 'Block Bypass', description: 'This move ignores block', color: '#a855f7' },
+    { id: 'neutral-skip', name: 'Neutral Skip', description: 'This move closes the gap quickly', color: '#facc15' },
+    { id: 'punishable-on-block', name: 'Punishable on Block', description: 'This move can be punished on Block', color: '#fca5a5' },
+    { id: 'safe-on-block', name: 'Safe on Block', description: 'This move cannot be punished on Block', color: '#4ade80' },
+    { id: 'punishable-on-whiff', name: 'Punishable on Whiff', description: 'This move can be punished on Whiff', color: '#fca5a5' },
+    { id: 'safe-on-whiff', name: 'Safe on Whiff', description: 'This move cannot be punished on Whiff', color: '#4ade80' },
+    { id: 'punishable-on-hit', name: 'Punishable on Hit', description: 'This move can be punished on Hit', color: '#fca5a5' },
+    { id: 'safe-on-hit', name: 'Safe on Hit', description: 'This move cannot be punished on Hit', color: '#4ade80' },
+    { id: 'evasive-punishable', name: 'Evasive Punishable', description: 'This move is evasive punishable on Hit', color: '#34d399' },
+    { id: 'frame-perfect-evasive-punishable', name: 'Frame Perfect Evasive Punishable', description: 'This move is evasive punishable on Hit with a really tight window', color: '#5eead4' },
+    { id: 'hit-only-air-ragdoll', name: 'Hit only Air Ragdoll', description: 'This move can only hit ragdoll targets in the air', color: '#818cf8' },
+    { id: 'hit-ragdoll', name: 'Hit Ragdoll', description: 'This move can hit ragdoll targets', color: '#38bdf8' },
+    { id: 'cannot-hit-ragdoll', name: 'Cannot hit Ragdoll', description: 'This move cannot hit ragdoll targets', color: '#94a3b8' },
+    { id: 'uncancelable', name: 'Uncancelable', description: 'This move cannot be canceled after casting it', color: '#ec4899' },
+    { id: 'semi-uncancelable', name: 'Semi-uncancelable', description: 'This move can be canceled after casting it with a specific condition', color: '#f472b6' },
+    { id: 'invincible', name: 'Invincible', description: 'This move has some sort of I-Frames within its duration', color: '#e9d5ff' },
+    { id: 'multi-use', name: 'Multi-use', description: 'This move can be used multiple times before going on cooldown', color: '#fdba74' },
+    { id: 'execution', name: 'Execution', description: 'This move kills earlier than its total damage', color: '#ef4444' },
+    { id: 'qte', name: 'QTE', description: 'This move has some sort of Quick Time Event in it', color: '#fbbf24' },
+    { id: 'buff', name: 'Buff', description: 'This move buffs the character with something', color: '#22c55e' },
+    { id: 'debuff', name: 'Debuff', description: 'This move debuffs the opponent with something', color: '#d946ef' },
+    { id: 'resource', name: 'Resource', description: "This move helps manage the character's resource gimmick", color: '#fb923c' },
+    { id: 'teleport', name: 'Teleport', description: 'This move teleports the character', color: '#14b8a6' },
+    { id: 'cursor-aimed', name: 'Cursor-aimed', description: 'This move is aimed with the cursor', color: '#eab308' },
+    { id: 'camera-aimed', name: 'Camera-aimed', description: 'This move is aimed with the camera direction', color: '#f59e0b' },
 ];
+
+// An accolade's icon, in the color of whatever holds it (.px-icon in
+// style/Common.css). Root-absolute, because the site is always served from the
+// domain root (getRootPath in js/site_utils.js), so one path works at every
+// page depth.
+window.accoladeIconHTML = function (accolade) {
+    return `<span class="px-icon" aria-hidden="true" style="--px-icon: url('/medias/icons/accolades/${window.escapeHtml(accolade.id)}.png')"></span>`;
+};
 
 // No two of one group can be true of the same move, so the editor unticks the
 // rest of a group when one is ticked (js/editor-framedata.js).
@@ -105,7 +115,7 @@ window.orderedAccolades = function (ids) {
 function accoladesHTML(ids) {
     const list = window.orderedAccolades(ids);
     if (!list.length) return '';
-    const badges = list.map(a => `<li class="skill-accolade${a.tone ? ` skill-accolade-${a.tone}` : ''}" data-accolade="${window.escapeHtml(a.id)}">${window.escapeHtml(a.name)}</li>`);
+    const badges = list.map(a => `<li class="skill-accolade" data-accolade="${window.escapeHtml(a.id)}" style="--accolade-color: ${window.escapeHtml(a.color)}">${window.accoladeIconHTML(a)}${window.escapeHtml(a.name)}</li>`);
     return `<ul class="skill-accolades">${badges.join('')}</ul>`;
 }
 

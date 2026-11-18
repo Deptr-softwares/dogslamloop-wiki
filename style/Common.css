@@ -195,6 +195,23 @@ body {
 .items-start { align-items: flex-start !important; }
 .text-white { color: var(--text-white) !important; }
 .text-xl { font-size: 1.25rem !important; }
+
+/* --- PIXEL ICONS (v1.2) ---
+   The owner's 16px pixel art (medias/icons/), in the color of the text around
+   it. The color is multiplied into the icon, so white takes it as it is and
+   the owner's grays take darker shades of it (they shaded with grays, not with
+   transparency), and the icon's own shape masks the rest. Exactly 16px, so a
+   pixel stays one pixel, and `pixelated` keeps it square on a 2x screen. The
+   file comes inline as --px-icon. */
+.px-icon {
+    display: inline-block; flex: none; width: 16px; height: 16px; vertical-align: -0.2em;
+    background-color: currentColor; background-image: var(--px-icon); background-size: 16px 16px;
+    background-blend-mode: multiply;
+    -webkit-mask: var(--px-icon) center / 16px 16px no-repeat;
+    mask: var(--px-icon) center / 16px 16px no-repeat;
+    image-rendering: pixelated;
+}
+
 /* --- SHORTCODE OUTPUT (js/internalstyling.js) ---
 
    These replace the inline styles that engine used to write, 2026-08-14. It
