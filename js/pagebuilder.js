@@ -710,25 +710,8 @@ window.initRosterFilters = async function() {
 
 // --- ROSTER ICONS (v0.16) ---
 //
-// The icon path is DERIVED, not stored. `navigation.json` is generated from
-// site_pages, so an icon column would reach the site only through the nightly
-// regeneration job AND the next release - the same latency that put the Techs
-// flag in page_data rather than site_pages. A convention plus a fallback has
-// neither problem, and it is what the owner asked for: they upload a file and
-// nothing else.
-//
-// pageId -> PascalCase + "Icon.webp": honored_one -> HonoredOneIcon.webp.
-// 22 of 22 characters resolve today; a character added tomorrow resolves to a
-// file that does not exist yet, which is exactly when the fallback should run.
-window.rosterIconPath = function (pageId) {
-    if (!pageId) return null;
-    const pascal = String(pageId)
-        .split('_')
-        .filter(Boolean)
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-        .join('');
-    return pascal ? `medias/images/${pascal}Icon.webp` : null;
-};
+// The icon's path is window.rosterIconPath, in js/site_meta.js since v1.2,
+// where text on any page can reach it too. This is the roster card's half.
 
 // Marks the cards whose icon actually loaded, and drops the ones that did not.
 //

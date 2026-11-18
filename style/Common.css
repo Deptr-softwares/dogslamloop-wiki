@@ -211,6 +211,10 @@ body {
     mask: var(--px-icon) center / 16px 16px no-repeat;
     image-rendering: pixelated;
 }
+/* A character's icon in text, [icon=character/...] (v1.2,
+   js/internalstyling.js): their roster icon, a 128px picture, at the height
+   of the line it sits in. An accolade's is a .px-icon above. */
+.text-icon-character { display: inline-block; width: 1.25em; height: 1.25em; vertical-align: -0.3em; object-fit: contain; }
 
 /* --- SHORTCODE OUTPUT (js/internalstyling.js) ---
 

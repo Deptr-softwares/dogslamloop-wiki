@@ -753,6 +753,49 @@ window.applyInputSlotColours = function (root) {
     });
 };
 
+// --- MINI ICONS IN TEXT (v1.2) ---
+//
+// [icon=accolade/<id>] and [icon=character/<page id>]: the owner's Kanban card
+// "Add a way for editor to add mini icons to their text", like Dustloop, typed
+// or picked from the editor's icon button (js/editor-blocks.js). The owner's
+// site icons join as a third group once they are drawn.
+//
+// The name is a closed grammar (lowercase letters, digits, - and _), checked
+// before anything is built, so nothing a contributor types reaches an
+// attribute unless it is already proven to be a name. A name this file does not
+// know stays as the tag that was typed, so the mistake shows in the preview.
+const TEXT_ICON_TAG = /\[icon=([a-z]+)\/([a-z0-9_-]{1,64})\]/gi;
+
+function textIconHTML(tag, group, name) {
+    if (group === 'accolade') {
+        const accolade = (window.ACCOLADES || []).find(a => a.id === name);
+        return accolade && typeof window.accoladeIconHTML === 'function'
+            ? window.accoladeIconHTML(accolade, { inText: true }) || null
+            : null;
+    }
+    if (group === 'character') {
+        const file = typeof window.rosterIconPath === 'function' ? window.rosterIconPath(name) : null;
+        if (!file) return null;
+        // Named once the roster is in (nameCharacterIcons below): the tag
+        // carries the page id, which never changes, and a reader knows the name.
+        return `<img class="text-icon text-icon-character" src="/${escAttr(file)}" alt=""`
+             + ` data-character-id="${escAttr(name)}" data-icon-tag="${escAttr(tag)}" loading="lazy">`;
+    }
+    return null;
+}
+
+// A character's icon is found by the roster's file convention, so a page id
+// with no file behind it (a typo, or a character whose icon is not uploaded
+// yet) only shows once its image fails. It then goes back to the tag as typed.
+function watchTextIcon(img) {
+    const restore = () => img.replaceWith(document.createTextNode(img.dataset.iconTag || ''));
+    if (img.complete) {
+        if (!img.naturalWidth) restore();
+        return;
+    }
+    img.addEventListener('error', restore, { once: true });
+}
+
 function applyInternalStyling() {
     // 1. Select targets
     // HEADINGS AND LIST ITEMS ARE MATCHED BY THEIR OWN CLASS, not by a
@@ -825,6 +868,13 @@ function applyInternalStyling() {
     textBlocks.forEach(block => {
         block.classList.add('is-styled');
         let content = block.innerHTML;
+
+        // --- Mini icons (v1.2) ---
+        // First, so every pass below meets them as markup, which their
+        // (?![^<]*>) guards step over. An icon wraps nothing, so it needs none
+        // of the nesting loop.
+        content = content.replace(TEXT_ICON_TAG,
+            (tag, group, name) => textIconHTML(tag, group.toLowerCase(), name.toLowerCase()) || tag);
 
         // --- STEP A: Custom Shortcodes (Stackable & Nested) ---
         // A do-while loop ensures that nested tags (e.g. [color=red][b][i]Text[/i][/b][/color]) 
@@ -998,6 +1048,7 @@ function applyInternalStyling() {
 
         // Apply changes back to DOM
         block.innerHTML = content;
+        block.querySelectorAll('img.text-icon-character').forEach(watchTextIcon);
         paintPageWords(block, pageWords);
     });
 }
@@ -1019,6 +1070,7 @@ function applyInternalStyling() {
 // wrapped carries sc-linked and is skipped, so it is safe to run on every
 // observer tick and safe to run before the roster has loaded (it does nothing).
 let characterPageUrls = null;
+let characterNamesById = null;
 
 async function loadCharacterPageUrls() {
     if (characterPageUrls) return characterPageUrls;
@@ -1029,19 +1081,38 @@ async function loadCharacterPageUrls() {
             : await (await fetch(`${rootPath}data/navigation.json`)).json();
 
         const map = new Map();
+        const names = new Map();
         (nav.Characters || []).forEach(entry => {
             if (entry && entry.name && entry.url) map.set(entry.name, rootPath + entry.url);
+            const pageId = entry && entry.cms_config && entry.cms_config.pageId;
+            if (pageId && entry.name) names.set(pageId, entry.name);
         });
         characterPageUrls = map;
+        characterNamesById = names;
     } catch (e) {
         // A wiki that cannot reach its own roster still renders; the mentions
-        // just stay unlinked.
+        // just stay unlinked, and the icons unnamed.
         characterPageUrls = new Map();
+        characterNamesById = new Map();
     }
     return characterPageUrls;
 }
 
+// A character's icon in text is named once the roster is in, for a screen
+// reader and on hover. Part of the same pass as the links, so wherever
+// mentions get linked, icons get named.
+function nameCharacterIcons() {
+    if (!characterNamesById || !characterNamesById.size) return;
+    document.querySelectorAll('img.text-icon-character:not([title])').forEach(img => {
+        const name = characterNamesById.get(img.dataset.characterId);
+        if (!name) return;
+        img.title = name;
+        img.alt = name;
+    });
+}
+
 function linkCharacterMentions() {
+    nameCharacterIcons();
     if (!characterPageUrls || !characterPageUrls.size) return;
 
     document.querySelectorAll('.sc-char:not(.sc-linked)').forEach(span => {
