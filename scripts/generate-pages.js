@@ -107,9 +107,11 @@ function describe(name, pageType, category) {
     return `A Jujutsu Shenanigans guide to ${name}, on the Dogslamloop wiki.`;
 }
 
-function socialTags({ name, relPath, pageType, category, image }) {
+function socialTags({ name, relPath, pageType, category, image, overview }) {
     const url = `${SITE_ORIGIN}/${relPath}`;
-    const description = describe(name, pageType, category);
+    // A character's own Overview line says more than the line every character
+    // shares (Hover Banners, v1.2: data/banners.json).
+    const description = overview || describe(name, pageType, category);
 
     // A character's own portrait makes a far more useful Discord preview than
     // the site logo repeated 22 times. Portraits come from
@@ -516,7 +518,7 @@ function scanMovedStubs(root = ROOT) {
 // moved: relPath -> pageId, from scanMovedStubs. Any of those paths that no
 // live or archived page claims, whose page is live somewhere else, gets a
 // forward there.
-function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set(), toolStyles = new Set(), moved = {}) {
+function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set(), toolStyles = new Set(), moved = {}, banners = {}) {
     const pages = [];
     const problems = [];
     const livePaths = new Set();
@@ -541,12 +543,20 @@ function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set(), 
                 continue;
             }
 
+            // Hover Banners (v1.2): a character's banner is its Discord preview
+            // when it has one (the owner's card: "it will replace the embed
+            // that will show up in Discord"), mirrored onto the site by
+            // scripts/fetch-banners.js, so the address is the site's own. Only
+            // a real character: the Template is a character page filed under
+            // Site Info, the same test describe() makes.
+            const banner = (cms.pageType === 'character' && category === 'Characters' && banners[cms.pageId]) || {};
             const social = socialTags({
                 name: entry.name,
                 relPath,
                 pageType: cms.pageType,
                 category,
-                image: previews[cms.pageId],
+                image: banner.image ? `${SITE_ORIGIN}/${banner.image}` : previews[cms.pageId],
+                overview: banner.overview,
             });
             const stubArgs = {
                 pageId: cms.pageId,
@@ -671,9 +681,16 @@ function main() {
         ? JSON.parse(fs.readFileSync(archivedPath, 'utf8'))
         : {};
 
+    // Optional, like page-previews.json: without it, characters keep the
+    // portrait and the shared line (Hover Banners, v1.2).
+    const bannersPath = path.join(ROOT, 'data', 'banners.json');
+    const banners = fs.existsSync(bannersPath)
+        ? JSON.parse(fs.readFileSync(bannersPath, 'utf8'))
+        : {};
+
     const { toolScripts, toolStyles } = scanToolAssets();
 
-    const { pages, problems } = buildPages(nav, previews, archived, toolScripts, toolStyles, scanMovedStubs());
+    const { pages, problems } = buildPages(nav, previews, archived, toolScripts, toolStyles, scanMovedStubs(), banners);
 
     if (problems.length > 0) {
         console.error('generate-pages FAILED - refusing to write:\n');

@@ -2050,6 +2050,20 @@ function initProfileEditor(containerId, profileData) {
                     </div>
                 </div>
 
+                <!-- Hover Banners (v1.2): set by editors like the portrait
+                     (owner, 2026-11-19). scripts/fetch-banners.js mirrors it
+                     each night for the roster popup and the Discord preview. -->
+                <div class="block-card">
+                    <div class="block-header"><span class="block-type-badge">BANNER</span></div>
+                    <input type="text" class="editor-input" id="profile-banner-input" value="${window.escapeHtml(profileData.banner || '')}" placeholder="Wide image URL from the Media Library">
+                    <p class="config-option-hint">Pops up over this character on the Characters page and the home page, with the start of the Overview, and shows when the page is shared on Discord. A wide picture, about 16:9. It appears there after the next nightly update.</p>
+                    <div class="profile-banner-preview" id="profile-banner-preview">
+                        ${profileData.banner
+                            ? `<img src="${window.escapeHtml(profileData.banner)}" alt="Banner preview" id="profile-banner-img">`
+                            : `<span class="portrait-focus-empty">No banner yet</span>`}
+                    </div>
+                </div>
+
                 <div class="block-card">
                     <div class="block-header">
                         <span class="block-type-badge">CHARACTER STATS</span>
@@ -2078,6 +2092,30 @@ function initProfileEditor(containerId, profileData) {
             profileData.image = e.target.value; triggerSync();
             const preview = container.querySelector('#portrait-focus-img');
             if (preview) preview.src = e.target.value;
+        });
+
+        // Removed rather than left empty, so a page whose field was typed in
+        // and emptied again is the same data as one never touched, and shows
+        // no change to review.
+        container.querySelector('#profile-banner-input').addEventListener('input', (e) => {
+            const value = e.target.value.trim();
+            if (value) profileData.banner = value;
+            else delete profileData.banner;
+            triggerSync();
+            const box = container.querySelector('#profile-banner-preview');
+            box.replaceChildren();
+            if (value) {
+                const img = document.createElement('img');
+                img.src = value;
+                img.alt = 'Banner preview';
+                img.id = 'profile-banner-img';
+                box.appendChild(img);
+            } else {
+                const empty = document.createElement('span');
+                empty.className = 'portrait-focus-empty';
+                empty.textContent = 'No banner yet';
+                box.appendChild(empty);
+            }
         });
 
         // Delegated, and the value comes from a whitelist rather than the

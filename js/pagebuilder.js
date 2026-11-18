@@ -740,9 +740,153 @@ window.markLoadedRosterIcons = function (root) {
     });
 };
 
+// --- HOVER BANNERS (v1.2, the owner's Kanban card) ---
+//
+// "When hovering above a character box icon in the roster selection section
+// for about 0.25s, a banner pop up that have a custom wide stretch image
+// (different from the portrait) with a cut-off Overview." The banner is the
+// one editors set in the Profile tab, mirrored with the Overview's first line
+// into data/banners.json each night (scripts/fetch-banners.js), so a hover
+// asks Supabase for nothing. A character with no banner yet gets its line over
+// its colour; one with neither gets no popup.
+//
+// A mouse or a keyboard only. A finger has no hover, and a tap opens the page,
+// as it always did.
+const ROSTER_BANNER_DELAY_MS = 250;
+let rosterBanners = null;   // the promise of data/banners.json, fetched on the first hover
+let rosterBannerFor = null; // the card a popup is coming for, or showing
+let rosterBannerTimer = null;
+
+function loadRosterBanners() {
+    if (!rosterBanners) {
+        const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../';
+        rosterBanners = window.fetchJson(`${rootPath}data/banners.json`, { cache: true }).catch(err => {
+            // A roster without its banners is still a roster: the popups just
+            // do not open.
+            console.warn('The hover banners could not be loaded:', err.message);
+            return {};
+        });
+    }
+    return rosterBanners;
+}
+
+function rosterBannerElement() {
+    let el = document.getElementById('roster-banner');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'roster-banner';
+        el.className = 'roster-banner';
+        el.setAttribute('role', 'tooltip');
+        el.hidden = true;
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
+function hideRosterBanner() {
+    clearTimeout(rosterBannerTimer);
+    if (rosterBannerFor) rosterBannerFor.removeAttribute('aria-describedby');
+    rosterBannerFor = null;
+    const el = document.getElementById('roster-banner');
+    if (el) el.hidden = true;
+}
+
+// Above the card when there is room, below it when not, and kept on screen.
+function placeRosterBanner(el, card) {
+    const edge = 16;
+    const gap = 8;
+    const box = card.getBoundingClientRect();
+    let top = box.top - el.offsetHeight - gap;
+    if (top < edge) top = box.bottom + gap;
+    const left = Math.max(edge, Math.min(box.left + box.width / 2 - el.offsetWidth / 2, window.innerWidth - el.offsetWidth - edge));
+    el.style.top = `${Math.round(top)}px`;
+    el.style.left = `${Math.round(left)}px`;
+}
+
+async function showRosterBanner(card) {
+    const entry = (await loadRosterBanners())[card.dataset.pageId];
+    // Left meanwhile, or nothing to show.
+    if (rosterBannerFor !== card || !entry || (!entry.image && !entry.overview)) return;
+
+    const el = rosterBannerElement();
+    const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../';
+    el.style.setProperty('--banner-color', card.style.getPropertyValue('--char-color') || 'var(--border-color)');
+    el.replaceChildren();
+
+    if (entry.image) {
+        const img = document.createElement('img');
+        img.className = 'roster-banner-image';
+        img.src = rootPath + entry.image;
+        img.alt = '';
+        el.appendChild(img);
+    } else {
+        const band = document.createElement('div');
+        band.className = 'roster-banner-band';
+        el.appendChild(band);
+    }
+    // textContent throughout: the line is contributor text.
+    const body = document.createElement('div');
+    body.className = 'roster-banner-body';
+    const name = document.createElement('div');
+    name.className = 'roster-banner-name';
+    name.textContent = (card.querySelector('.roster-card-text') || card).textContent.trim();
+    body.appendChild(name);
+    if (entry.overview) {
+        const line = document.createElement('p');
+        line.className = 'roster-banner-overview';
+        line.textContent = entry.overview;
+        body.appendChild(line);
+    }
+    el.appendChild(body);
+
+    el.hidden = false;
+    placeRosterBanner(el, card);
+    card.setAttribute('aria-describedby', 'roster-banner');
+}
+
+// Bound once per grid: the grid's contents are rebuilt on every filter
+// change, the grid is not.
+function bindRosterBanners(grid) {
+    if (grid.dataset.bannersBound) return;
+    grid.dataset.bannersBound = 'true';
+
+    const comeFor = (card) => {
+        hideRosterBanner();
+        rosterBannerFor = card;
+        loadRosterBanners();
+        rosterBannerTimer = setTimeout(() => showRosterBanner(card), ROSTER_BANNER_DELAY_MS);
+    };
+
+    grid.addEventListener('pointerover', (e) => {
+        if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+        const card = e.target.closest('.roster-card');
+        if (card && card !== rosterBannerFor) comeFor(card);
+    });
+    grid.addEventListener('pointerout', (e) => {
+        const card = e.target.closest('.roster-card');
+        if (card && !card.contains(e.relatedTarget)) hideRosterBanner();
+    });
+    grid.addEventListener('focusin', (e) => {
+        const card = e.target.closest('.roster-card');
+        if (card && card.matches(':focus-visible')) comeFor(card);
+    });
+    grid.addEventListener('focusout', (e) => {
+        if (e.target.closest('.roster-card')) hideRosterBanner();
+    });
+    // A popup that is showing follows its card when the page scrolls. One
+    // still to come is placed when it opens, so a scroll must not cancel it:
+    // reaching a card often IS a scroll, and its last event lands after the
+    // pointer has (the home page roster sits below the fold).
+    window.addEventListener('scroll', () => {
+        const el = document.getElementById('roster-banner');
+        if (el && !el.hidden && rosterBannerFor) placeRosterBanner(el, rosterBannerFor);
+    }, { passive: true });
+}
+
 window.renderFilteredRoster = function() {
     const rosterGrid = document.getElementById('roster-grid') || document.querySelector('.roster-grid');
     if (!rosterGrid) return;
+    hideRosterBanner();
     rosterGrid.innerHTML = '';
 
     // --- Grab the root path to prevent duplicate directory stacking ---
@@ -798,7 +942,7 @@ window.renderFilteredRoster = function() {
         // the name slit's fill - and an inline background-color would beat every
         // stylesheet rule that needs to change one of them without !important.
         html += `
-            <a href="${esc(rootPath + char.url)}" class="roster-card" style="--char-color: ${charColor};">
+            <a href="${esc(rootPath + char.url)}" class="roster-card" data-page-id="${esc((char.cms_config || {}).pageId || '')}" style="--char-color: ${charColor};">
                 ${char.isEA ? `<span class="ea-star-indicator" title="Early Access" style="color: ${textColor};">★</span>` : ''}
                 ${char.isWip ? `<span class="roster-wip-indicator" title="Work In Progress" aria-label="Work In Progress">🚧</span>` : ''}
                 ${char.image ? `<img src="${esc(char.image)}" alt="${esc(char.name)}" class="roster-card-bg-image">` : ''}
@@ -809,6 +953,7 @@ window.renderFilteredRoster = function() {
     });
     rosterGrid.innerHTML = html;
     window.markLoadedRosterIcons(rosterGrid);
+    bindRosterBanners(rosterGrid);
 };
 
 // Categories that get their own Main Dashboard column, so they are not also

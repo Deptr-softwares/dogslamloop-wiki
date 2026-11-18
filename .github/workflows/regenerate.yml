@@ -171,6 +171,14 @@ jobs:
       - name: Mirror portraits into the repo
         run: node scripts/fetch-portraits.js --write
 
+      # Hover Banners (v1.2): each character's banner, mirrored and shrunk like
+      # a portrait, and the first line of their Overview, into
+      # data/banners.json for the roster popup and the Discord preview. Before
+      # `npm run generate`, which reads it. A banner it cannot mirror keeps its
+      # last good copy (or none) and is reported as a warning, like a portrait.
+      - name: Mirror hover banners into the repo
+        run: node scripts/fetch-banners.js --write
+
       # The first frame and size of every video the pages show (v1.2), drawn
       # in the browser installed above. Only a video that is new, or whose file
       # changed, is fetched, and only its first 512 KB unless that cannot be

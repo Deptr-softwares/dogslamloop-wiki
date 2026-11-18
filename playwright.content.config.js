@@ -34,6 +34,7 @@ const CONTENT_SPECS = [
   'registry-roundtrip.spec.js',
   'content-roundtrip.spec.js',
   'portrait-mirror.spec.js',
+  'banner-mirror.spec.js',
   'video-stills-mirror.spec.js',
   'hub-meta.spec.js',
   'hub-structured.spec.js',
