@@ -251,6 +251,11 @@
 .collaborator-grid { margin-bottom: 1rem; }
 .collaborator-card { padding: 1.5rem; }
 .collaborator-name { margin: 0 0 0.25rem 0; font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; color: var(--text-white); }
+/* A long tag wraps inside its card instead of running past the edge, as the
+   old page's "Lead Developer and Owner" did. Scoped here: .update-badge is the
+   Update Log's too, where it must stay on one line. */
+.collaborator-card .contributor-header > div { min-width: 0; }
+.collaborator-card .update-badge { white-space: normal; line-height: 1.2; }
 .collaborator-description { margin: 0; font-size: 0.85rem; color: var(--text-primary); }
 .collaborator-links { margin-top: auto; display: flex; gap: 0.5rem; flex-wrap: wrap; padding-top: 1rem; }
 .collaborator-link { text-decoration: none; }

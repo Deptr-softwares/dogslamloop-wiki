@@ -52,6 +52,22 @@ test('cards share one grid and thanks lines one list, as the page always drew th
   expect(errors).toEqual([]);
 });
 
+test('a long tag wraps inside its card instead of running past its edge', async ({ page }) => {
+  // The old page's "Lead Developer and Owner" ran 5px past its card at 1440px,
+  // and inside a section box the cards are narrower still.
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await servePage(page, systemPage([['Main Contributors', [card({ role: 'Lead Developer and Owner of the Whole Site' }), card(), card()]]]));
+  await page.goto('/systems/collaborators/index.html', { waitUntil: 'networkidle' });
+  const first = page.locator('.collaborator-card').first();
+  await expect(first).toBeVisible();
+
+  const edges = await first.evaluate(cardEl => ({
+    card: cardEl.getBoundingClientRect().right,
+    badge: cardEl.querySelector('.update-badge').getBoundingClientRect().right,
+  }));
+  expect(edges.badge).toBeLessThanOrEqual(edges.card);
+});
+
 test('what an editor typed stays text, and only an http(s) link becomes one', async ({ page }) => {
   await servePage(page, PAGE);
   await page.goto('/systems/collaborators/index.html', { waitUntil: 'networkidle' });
