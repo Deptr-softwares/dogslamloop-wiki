@@ -23,6 +23,7 @@ const PAGE = systemPage([
     { type: 'paragraph', content: 'This wiki would not be possible without:' },
     line(),
     line({ name: 'Di', description: '' }),
+    line({ name: 'Ed', description: `Helped ${TAG}` }),
   ]],
 ]);
 
@@ -47,7 +48,7 @@ test('cards share one grid and thanks lines one list, as the page always drew th
 
   const thanks = page.locator('.collaborator-thanks');
   await expect(thanks).toHaveCount(1);
-  await expect(thanks.locator('li')).toHaveText(['Bo - Suggested the colors.', 'Di']);
+  await expect(thanks.locator('li')).toHaveText(['Bo - Suggested the colors.', 'Di', `Ed - Helped ${TAG}`]);
   expect(errors).toEqual([]);
 });
 
