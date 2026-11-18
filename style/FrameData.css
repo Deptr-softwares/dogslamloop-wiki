@@ -217,12 +217,17 @@
 .strategy-content ul span { color: var(--text-primary); }
 .strategy-content li { margin-bottom: 0.5rem; }
 
-.legend-section { padding: 1.25rem; margin-bottom: 2rem; }
+/* The legend's columns follow its own width, not the screen's (owner,
+   2026-11-18). From 1024px the sidebar takes its share, and 7 columns in what
+   was left cut "Explosion" short and stood each description one word to a
+   line; the editor's VIEW DIFF halves did the same at any size. 7 columns
+   once the legend itself is 840px wide, which a 1440px screen gives it. */
+.legend-section { padding: 1.25rem; margin-bottom: 2rem; container-type: inline-size; }
 .legend-title { font-family: 'CC-Wild-Words', sans-serif; font-size: 0.875rem; color: var(--accent-blue); margin-bottom: 0.75rem; margin-top: 0; text-shadow: 1px 1px 0 #000; }
 .legend-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; font-size: 0.75rem; font-family: var(--text-mono); }
-@media (min-width: 640px) { .legend-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (min-width: 768px) { .legend-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-@media (min-width: 1024px) { .legend-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+@container (min-width: 520px) { .legend-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@container (min-width: 640px) { .legend-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@container (min-width: 840px) { .legend-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
 .legend-item { display: flex; align-items: flex-start; gap: 0.5rem; }
 .legend-swatch { width: 1rem; height: 1rem; border-radius: 0; border: 1px solid var(--text-white); flex-shrink: 0; margin-top: 0.125rem; box-shadow: 2px 2px 0 #000;}
 .legend-name { color: var(--text-white); display: block; font-weight: bold; }
