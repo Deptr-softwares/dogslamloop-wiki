@@ -15,6 +15,19 @@
     text-shadow: 2px 2px 0px var(--manga-shadow); 
 }
 .skill-subtitle { font-size: 0.75rem; font-family: var(--text-mono); color: var(--text-muted); }
+/* A move's accolades, under its name (v1.2, js/framedata.js). Text badges
+   until the owner's 16px icons are drawn. Green for the three Safe ones, red
+   for the three Punishable ones (the diff colors), the card's text color for
+   the rest. A long name wraps inside its badge on a phone rather than
+   pushing the card wider. */
+.skill-accolades { display: flex; flex-wrap: wrap; gap: 0.35rem; list-style: none; margin: 0.5rem 0 0; padding: 0; }
+.skill-accolade {
+    font-family: var(--text-mono); font-size: 0.65rem; letter-spacing: 0.04em; text-transform: uppercase;
+    padding: 0.1rem 0.45rem; border: 2px solid var(--border-color); background: var(--bg-main);
+    color: var(--text-primary); cursor: help;
+}
+.skill-accolade-safe { border-color: #22c55e; color: #4ade80; }
+.skill-accolade-punish { border-color: #ef4444; color: #fca5a5; }
 
 .skill-entry-body { display: flex; flex-direction: column; }
 @media (min-width: 1280px) { .skill-entry-body { flex-direction: row; } }

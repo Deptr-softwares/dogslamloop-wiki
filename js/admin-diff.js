@@ -96,10 +96,15 @@ window.renderStructuredDiff = function(oldObj, newObj) {
         const safeNew = newO && typeof newO === 'object' ? newO : {};
         const allKeys = [...new Set([...Object.keys(safeOld), ...Object.keys(safeNew)])];
 
+        // A move's accolades are stored as ids (js/framedata.js); a reviewer
+        // reads their names, in the order the card shows them.
+        const readable = (key, val) => (key === 'accolades' && Array.isArray(val) && typeof window.orderedAccolades === 'function'
+            ? window.orderedAccolades(val).map(a => a.name) : val);
+
         let rowsHtml = '';
         allKeys.forEach(key => {
-            const oldVal = safeOld[key];
-            const newVal = safeNew[key];
+            const oldVal = readable(key, safeOld[key]);
+            const newVal = readable(key, safeNew[key]);
             if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return; // unchanged - skip, not noise
 
             const bothPlainObjects = oldVal && newVal && typeof oldVal === 'object' && typeof newVal === 'object'
