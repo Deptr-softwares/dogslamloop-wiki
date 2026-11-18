@@ -179,6 +179,15 @@ async function fetchSingleton(table) {
     return rows[0];
 }
 
+/**
+ * Pure. Which source the credits come from: the page once it has a row, even
+ * one with no Collaborator Blocks (then there are no credits, never the old
+ * table's), and the table only while the page has no row at all.
+ */
+function creditsFrom(collabPage, collabRows) {
+    return collabPage ? buildCollaboratorsFromPage(collabPage) : buildCollaborators(collabRows);
+}
+
 // One page's desc_data, or null while the page has no row at all.
 async function fetchPageDesc(pageId) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/page_data?select=desc_data&page_id=eq.${encodeURIComponent(pageId)}`, {
@@ -332,8 +341,7 @@ async function main() {
 
     const results = [];
     writeIfChanged(FAQ_PATH, buildFaq(faqRows), 'faq.json', write, results);
-    const credits = collabPage ? buildCollaboratorsFromPage(collabPage) : buildCollaborators(collabRows);
-    writeIfChanged(COLLAB_PATH, credits, 'collaborators_data.json', write, results);
+    writeIfChanged(COLLAB_PATH, creditsFrom(collabPage, collabRows), 'collaborators_data.json', write, results);
     writeIfChanged(META_PATH, buildSiteMeta(metaRow), 'site_meta.json', write, results);
     writeRegionIfChanged(SITE_META_JS_PATH, buildCharacterColors(pageRows), 'site_meta.js colours', write, results);
 
@@ -347,4 +355,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { buildFaq, buildCollaborators, buildCollaboratorsFromPage, buildSiteMeta, buildCharacterColors, replaceRegion, COLORS_BEGIN, COLORS_END };
+module.exports = { buildFaq, buildCollaborators, buildCollaboratorsFromPage, creditsFrom, buildSiteMeta, buildCharacterColors, replaceRegion, COLORS_BEGIN, COLORS_END };

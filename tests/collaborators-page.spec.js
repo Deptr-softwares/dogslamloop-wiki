@@ -7,7 +7,7 @@
 // from the page (scripts/fetch-content.js), so the page and the home page
 // cannot drift apart again.
 const { test, expect } = require('@playwright/test');
-const { buildCollaborators, buildCollaboratorsFromPage } = require('../scripts/fetch-content.js');
+const { buildCollaborators, buildCollaboratorsFromPage, creditsFrom } = require('../scripts/fetch-content.js');
 
 const TAG = '<img src=x onerror="window.__xss=(window.__xss||0)+1">';
 const card = (over) => ({ type: 'collaborator', kind: 'card', name: 'Ann', role: 'Frame Data', badge: 'badge-site', avatar: '/medias/images/Ann.webp', description: 'Counted frames.', links: [], ...over });
@@ -105,6 +105,15 @@ test('the page and the old table give the home page the same file for the same p
     ['Special Thanks', rows.filter(r => r.section === 'thanks').map(asBlock)],
   ]));
   expect(fromPage).toEqual(buildCollaborators(rows));
+});
+
+test('the old table decides only while the page has no row', () => {
+  const rows = [{ name: 'Old', role: '', description: '', avatar: '', badge_type: '', is_lead: false, links: [], section: 'main', sort_order: 0 }];
+  // Before the release: no page row, so the table.
+  expect(creditsFrom(null, rows).mainContributors.map(c => c.name)).toEqual(['Old']);
+  // After it: the page, even with nobody on it. Never the frozen table.
+  expect(creditsFrom({ tabs: [] }, rows)).toEqual({ mainContributors: [], specialThanks: [] });
+  expect(creditsFrom(systemPage([['Main Contributors', [card()]]]), rows).mainContributors.map(c => c.name)).toEqual(['Ann']);
 });
 
 // --- THE EDITOR ---

@@ -324,18 +324,13 @@ const collaboratorKind = (b) => (b && b.type === 'collaborator' ? (b.kind === 'l
 // that fail it, so one is never dropped without a word.
 window.isCollaboratorLink = (url) => /^https?:\/\/\S+$/i.test(String(url || '').trim());
 
-// A path from the site's root, the way the credits have always stored their
-// avatars, works from any page's depth; anything else is used as given.
-function collaboratorAvatarSrc(raw) {
-    const url = safeBlockUrl(raw);
-    if (url.startsWith('/') && !url.startsWith('//')) return (window.getRootPath ? window.getRootPath() : './') + url.slice(1);
-    return url;
-}
-
 function collaboratorCardHTML(b) {
     const name = escBlockText(b.name || '');
     const badge = Object.prototype.hasOwnProperty.call(window.COLLABORATOR_BADGES, b.badge) ? b.badge : 'badge-general';
-    const avatar = collaboratorAvatarSrc(b.avatar);
+    // As given, the way an Image Block's address is: the credits' avatars are
+    // paths from the site's root (/medias/images/...), and the site is served
+    // from its root.
+    const avatar = safeBlockUrl(b.avatar);
     const links = (Array.isArray(b.links) ? b.links : [])
         .filter(l => l && window.isCollaboratorLink(l.url))
         .map(l => `<a href="${escBlockText(String(l.url).trim())}" target="_blank" rel="noopener noreferrer" class="btn-sys btn-sys-blue collaborator-link">${escBlockText(l.name || l.url)}</a>`)
