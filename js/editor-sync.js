@@ -625,9 +625,12 @@ window.renderDiffView = function() {
 
                 const diffedBlocks = applyInlineDiffToBlocks(oldBlocks, newBlocks);
 
+                // A section's name carries contributor text (a move's id, a
+                // custom tab's name, a matchup's opponent), and so does the
+                // JSON below, so both are escaped.
                 diffContainer.innerHTML += `
                     <div class="diff-container">
-                        <h3 class="diff-section-title">${sectionName.toUpperCase()}</h3>
+                        <h3 class="diff-section-title">${window.escapeHtml(sectionName.toUpperCase())}</h3>
                         <div id="diff-inline-${safeId}" class="diff-inline-target"></div>
                     </div>
                 `;
@@ -653,14 +656,14 @@ window.renderDiffView = function() {
                 // box-shadow differ from the inline-blocks branch above).
                 diffContainer.innerHTML += `
                     <div class="diff-container diff-container-raw">
-                        <h3 class="diff-section-title">${sectionName.toUpperCase()}</h3>
+                        <h3 class="diff-section-title">${window.escapeHtml(sectionName.toUpperCase())}</h3>
                         <div class="diff-stacked-old">
                             <div class="diff-stacked-label old">[-] LIVE CLOUD DATA</div>
-                            <pre class="diff-stacked-pre old">${JSON.stringify(oldData, null, 2)}</pre>
+                            <pre class="diff-stacked-pre old">${window.escapeHtml(String(JSON.stringify(oldData, null, 2)))}</pre>
                         </div>
                         <div class="diff-stacked-new">
                             <div class="diff-stacked-label new">[+] SUGGESTED REVISION</div>
-                            <pre class="diff-stacked-pre new">${JSON.stringify(newData, null, 2)}</pre>
+                            <pre class="diff-stacked-pre new">${window.escapeHtml(String(JSON.stringify(newData, null, 2)))}</pre>
                         </div>
                     </div>
                 `;
