@@ -47,6 +47,28 @@ function hideEverySecondCharacter(page) {
 
 const transparent = (c) => c === 'rgba(0, 0, 0, 0)' || c === 'transparent';
 
+// The content the release gives the page, read out of its migration rather
+// than restated, so the test is of what will really be in page_data.
+const RELEASE_CONTENT = (() => {
+  const sql = require('fs').readFileSync(require('path').join(__dirname, '..', 'supabase', 'migrations',
+    '20261118000000_color_codes_and_collaborators_in_the_editor.sql'), 'utf8');
+  const start = "VALUES ('color_codes', 'system', '";
+  const from = sql.indexOf(start) + start.length;
+  return JSON.parse(sql.slice(from, sql.indexOf("'::jsonb, '{}'::jsonb)", from)));
+})();
+
+test('the content the release brings draws the old page: its text and all three grids', async ({ page }) => {
+  await servePage(page, RELEASE_CONTENT);
+  await page.goto('/systems/color-codes/index.html', { waitUntil: 'networkidle' });
+
+  await expect(page.locator('.main-content-area')).toContainText('The standardized color codes, character colors');
+  await expect(page.locator('.section-title')).toHaveText(['Character Themes', 'Frame Data Types', 'Stackable Overlays']);
+  for (const set of ['characters', 'frames', 'overlays']) {
+    await expect(page.locator(`.color-swatch-grid[data-swatch-set="${set}"] .color-swatch-card`).first()).toBeVisible();
+  }
+  await expect(page.locator('.main-content-area')).not.toContainText('Color colors');
+});
+
 test("the page draws every shown character's own colour, and leaves a hidden one off", async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
