@@ -279,7 +279,7 @@ function colorSwatchesHTML(set) {
     // Which characters to show needs the registry (a hidden one stays off),
     // and that is fetched, so fillColorSwatches draws them once this is in
     // the page.
-    return '<div class="color-swatch-grid" data-swatch-set="characters"><p class="loading-msg">Loading the character colors...</p></div>';
+    return '<div class="color-swatch-grid" data-swatch-set="characters"><p class="loading-msg loading-msg-busy">Loading the character colors...</p></div>';
 }
 
 window.fillColorSwatches = async function (root) {
