@@ -52,24 +52,25 @@ const windowTypes = {
 // ids, so a name can be reworded without touching a move; an id never changes
 // once a move uses it (it is also the icon's file name, medias/icons/
 // accolades/<id>.png). `tone` colors the badge. The text is the owner's, with
-// two grammar fixes ("than", "manage the character's").
+// two grammar fixes ("than", "manage the character's") and their spelling
+// calls (2026-11-18): "cannot", and one L in "canceled" and "Uncancelable".
 window.ACCOLADES = [
     { id: 'blockbreak', name: 'Blockbreak', description: 'This move can break block' },
     { id: 'block-bypass', name: 'Block Bypass', description: 'This move ignores block' },
     { id: 'neutral-skip', name: 'Neutral Skip', description: 'This move closes the gap quickly' },
     { id: 'punishable-on-block', name: 'Punishable on Block', description: 'This move can be punished on Block', tone: 'punish' },
-    { id: 'safe-on-block', name: 'Safe on Block', description: 'This move can not be punished on Block', tone: 'safe' },
+    { id: 'safe-on-block', name: 'Safe on Block', description: 'This move cannot be punished on Block', tone: 'safe' },
     { id: 'punishable-on-whiff', name: 'Punishable on Whiff', description: 'This move can be punished on Whiff', tone: 'punish' },
-    { id: 'safe-on-whiff', name: 'Safe on Whiff', description: 'This move can not be punished on Whiff', tone: 'safe' },
+    { id: 'safe-on-whiff', name: 'Safe on Whiff', description: 'This move cannot be punished on Whiff', tone: 'safe' },
     { id: 'punishable-on-hit', name: 'Punishable on Hit', description: 'This move can be punished on Hit', tone: 'punish' },
-    { id: 'safe-on-hit', name: 'Safe on Hit', description: 'This move can not be punished on Hit', tone: 'safe' },
+    { id: 'safe-on-hit', name: 'Safe on Hit', description: 'This move cannot be punished on Hit', tone: 'safe' },
     { id: 'evasive-punishable', name: 'Evasive Punishable', description: 'This move is evasive punishable on Hit' },
     { id: 'frame-perfect-evasive-punishable', name: 'Frame Perfect Evasive Punishable', description: 'This move is evasive punishable on Hit with a really tight window' },
     { id: 'hit-only-air-ragdoll', name: 'Hit only Air Ragdoll', description: 'This move can only hit ragdoll targets in the air' },
     { id: 'hit-ragdoll', name: 'Hit Ragdoll', description: 'This move can hit ragdoll targets' },
-    { id: 'cannot-hit-ragdoll', name: 'Can not hit Ragdoll', description: 'This move can not hit ragdoll targets' },
-    { id: 'uncancellable', name: 'Uncancellable', description: 'This move can not be cancelled after casting it' },
-    { id: 'semi-uncancellable', name: 'Semi-uncancellable', description: 'This move can be cancelled after casting it with a specific condition' },
+    { id: 'cannot-hit-ragdoll', name: 'Cannot hit Ragdoll', description: 'This move cannot hit ragdoll targets' },
+    { id: 'uncancelable', name: 'Uncancelable', description: 'This move cannot be canceled after casting it' },
+    { id: 'semi-uncancelable', name: 'Semi-uncancelable', description: 'This move can be canceled after casting it with a specific condition' },
     { id: 'invincible', name: 'Invincible', description: 'This move has some sort of I-Frames within its duration' },
     { id: 'multi-use', name: 'Multi-use', description: 'This move can be used multiple times before going on cooldown' },
     { id: 'execution', name: 'Execution', description: 'This move kills earlier than its total damage' },
@@ -89,7 +90,7 @@ window.ACCOLADE_OPPOSITES = [
     ['punishable-on-whiff', 'safe-on-whiff'],
     ['punishable-on-hit', 'safe-on-hit'],
     ['hit-only-air-ragdoll', 'hit-ragdoll', 'cannot-hit-ragdoll'],
-    ['uncancellable', 'semi-uncancellable'],
+    ['uncancelable', 'semi-uncancelable'],
 ];
 
 // A move's accolades as the owner's entries, in the owner's order. An id that

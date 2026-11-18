@@ -70,7 +70,7 @@ test('hovering a badge shows its name and what it means', async ({ page }) => {
     await card.locator('.skill-accolade', { hasText: 'Safe on Block' }).hover();
     await expect(tip).toBeVisible();
     await expect(tip).toContainText('Safe on Block');
-    await expect(tip).toContainText('This move can not be punished on Block');
+    await expect(tip).toContainText('This move cannot be punished on Block');
 
     await card.locator('.skill-accolade', { hasText: 'Execution' }).hover();
     await expect(tip).toContainText('This move kills earlier than its total damage');
@@ -79,7 +79,7 @@ test('hovering a badge shows its name and what it means', async ({ page }) => {
 });
 
 test('on a phone a long badge wraps inside the card instead of widening the page', async ({ page }) => {
-    await drawMoves(page, [SWIPE(['frame-perfect-evasive-punishable', 'hit-only-air-ragdoll', 'safe-on-block', 'semi-uncancellable'])], { width: 360 });
+    await drawMoves(page, [SWIPE(['frame-perfect-evasive-punishable', 'hit-only-air-ragdoll', 'safe-on-block', 'semi-uncancelable'])], { width: 360 });
     const card = page.locator('#tab-specials .skill-entry-card', { hasText: 'Swipe' });
     await expect(card.locator('.skill-accolade')).toHaveCount(4);
 
@@ -173,10 +173,15 @@ test("ticking accolades stores them in the owner's order, an opposite unticks, a
 
     // Nor can two of the three Ragdoll ones.
     await chip(page, 'Hit Ragdoll').click();
-    await chip(page, 'Can not hit Ragdoll').click();
+    await chip(page, 'Cannot hit Ragdoll').click();
     expect((await stored(page)).accolades).toEqual(['blockbreak', 'punishable-on-block', 'cannot-hit-ragdoll']);
 
-    for (const name of ['Blockbreak', 'Punishable on Block', 'Can not hit Ragdoll']) await chip(page, name).click();
+    // And Uncancelable against Semi-uncancelable.
+    await chip(page, 'Uncancelable').click();
+    await chip(page, 'Semi-uncancelable').click();
+    expect((await stored(page)).accolades).toEqual(['blockbreak', 'punishable-on-block', 'cannot-hit-ragdoll', 'semi-uncancelable']);
+
+    for (const name of ['Blockbreak', 'Punishable on Block', 'Cannot hit Ragdoll', 'Semi-uncancelable']) await chip(page, name).click();
     // Gone, not an empty list: a move nobody ticked and a move ticked then
     // unticked are the same data, so the second is not a change to review.
     expect(await stored(page)).not.toHaveProperty('accolades');
