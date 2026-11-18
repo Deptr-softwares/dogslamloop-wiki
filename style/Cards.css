@@ -241,10 +241,23 @@
     flex-shrink: 0;
 }
 .contributor-avatar { object-fit: cover; }
-.contributor-avatar-placeholder { 
-    background: var(--bg-main); display: flex; align-items: center; justify-content: center; 
-    color: var(--text-muted); font-family: var(--text-mono); font-size: 0.75rem; 
+.contributor-avatar-placeholder {
+    background: var(--bg-main); display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-family: var(--text-mono); font-size: 0.75rem;
 }
+/* The Collaborator Block (js/description.js, v1.2): the Collaborators page's
+   own inline styles, kept as they looked, since the editor preview, the
+   Overseer and history.html draw it too. */
+.collaborator-grid { margin-bottom: 1rem; }
+.collaborator-card { padding: 1.5rem; }
+.collaborator-name { margin: 0 0 0.25rem 0; font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; color: var(--text-white); }
+.collaborator-description { margin: 0; font-size: 0.85rem; color: var(--text-primary); }
+.collaborator-links { margin-top: auto; display: flex; gap: 0.5rem; flex-wrap: wrap; padding-top: 1rem; }
+.collaborator-link { text-decoration: none; }
+.collaborator-thanks { margin: 0 0 1rem; }
+.collaborator-thanks > li + li { margin-top: 0.5rem; }
+.collaborator-line-name { color: var(--accent-blue); font-family: var(--text-mono); }
+.collaborator-line-reason { color: var(--text-primary); }
 /* Changelog part headings (v0.17). Every release is divided into Features,
    Fine-tuning and Bug fixes, and each opens its own list so a heading is a real
    heading rather than a bullet pretending to be one. Entries written before

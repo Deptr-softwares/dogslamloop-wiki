@@ -306,6 +306,57 @@ window.fillColorSwatches = async function (root) {
     });
 };
 
+// --- COLLABORATORS (the Collaborators page, v1.2) ---
+// One Collaborator Block is one person, as a Card (Main Contributors) or a
+// Thanks line (Special Thanks). Cards next to each other share one grid and
+// lines one list, the way the page always drew them; each Block still starts
+// with an element of its own, which is what the editor's Preview follows the
+// Block marks. The home page's Credits list is built from the same Blocks
+// (scripts/fetch-content.js), so the two cannot drift again.
+//
+// The badge colours are the Update Log's badges, by colour: the editor's
+// dropdown reads this list, and nothing outside it reaches the class.
+window.COLLABORATOR_BADGES = { 'badge-general': 'Purple', 'badge-site': 'Green', 'badge-patch': 'Blue', 'badge-wip': 'Yellow', 'badge-ea': 'Orange' };
+
+const collaboratorKind = (b) => (b && b.type === 'collaborator' ? (b.kind === 'line' ? 'line' : 'card') : null);
+
+// Only an http(s) address becomes a link. The editor's form names the lines
+// that fail it, so one is never dropped without a word.
+window.isCollaboratorLink = (url) => /^https?:\/\/\S+$/i.test(String(url || '').trim());
+
+// A path from the site's root, the way the credits have always stored their
+// avatars, works from any page's depth; anything else is used as given.
+function collaboratorAvatarSrc(raw) {
+    const url = safeBlockUrl(raw);
+    if (url.startsWith('/') && !url.startsWith('//')) return (window.getRootPath ? window.getRootPath() : './') + url.slice(1);
+    return url;
+}
+
+function collaboratorCardHTML(b) {
+    const name = escBlockText(b.name || '');
+    const badge = Object.prototype.hasOwnProperty.call(window.COLLABORATOR_BADGES, b.badge) ? b.badge : 'badge-general';
+    const avatar = collaboratorAvatarSrc(b.avatar);
+    const links = (Array.isArray(b.links) ? b.links : [])
+        .filter(l => l && window.isCollaboratorLink(l.url))
+        .map(l => `<a href="${escBlockText(String(l.url).trim())}" target="_blank" rel="noopener noreferrer" class="btn-sys btn-sys-blue collaborator-link">${escBlockText(l.name || l.url)}</a>`)
+        .join('');
+    return '<div class="wiki-card collaborator-card"><div class="contributor-card"><div class="contributor-header">'
+        + (avatar
+            ? `<img src="${escBlockText(avatar)}" alt="${name}" class="contributor-avatar" loading="lazy">`
+            : '<div class="contributor-avatar-placeholder">N/A</div>')
+        + `<div><h3 class="collaborator-name">${name}</h3>`
+        + `<span class="update-badge ${badge}">${escBlockText(b.role || '')}</span></div></div>`
+        + `<p class="strategy-paragraph collaborator-description">${escBlockText(b.description || '')}</p>`
+        + (links ? `<div class="collaborator-links">${links}</div>` : '')
+        + '</div></div>';
+}
+
+function collaboratorLineHTML(b) {
+    return `<li class="collaborator-line"><strong class="collaborator-line-name">${escBlockText(b.name || '')}</strong>`
+        + (b.description ? ` - <span class="collaborator-line-reason">${escBlockText(b.description)}</span>` : '')
+        + '</li>';
+}
+
 // --- THE RECURSIVE BLOCK ENGINE ---
 // This standalone function can render blocks infinitely deep!
 //
@@ -786,6 +837,15 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
         }
         else if (block.type === 'colorswatches') {
             contentHTML += colorSwatchesHTML(block.set);
+        }
+        else if (block.type === 'collaborator') {
+            const kind = collaboratorKind(block);
+            const [open, close] = kind === 'line'
+                ? ['<ul class="wiki-block-list collaborator-thanks">', '</ul>']
+                : ['<div class="grid-layout-3col collaborator-grid">', '</div>'];
+            contentHTML += (collaboratorKind(blocks[blockIndex - 1]) !== kind ? open : '')
+                + (kind === 'line' ? collaboratorLineHTML(block) : collaboratorCardHTML(block))
+                + (collaboratorKind(blocks[blockIndex + 1]) !== kind ? close : '');
         }
 
         if (anchor) contentHTML = contentHTML.slice(0, blockStart) + anchor(contentHTML.slice(blockStart), blockIndex, block);

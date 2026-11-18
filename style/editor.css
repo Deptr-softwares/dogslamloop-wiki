@@ -2846,6 +2846,9 @@ del.diff-del {
 .nstyle-names-note { flex-basis: 100%; color: var(--accent-yellow); }
 .nstyle-names-note:empty { display: none; }
 
+/* A Collaborator's links that will not show (v1.2), named the same way. */
+.collaborator-links-note { color: var(--accent-yellow); font-family: var(--text-mono); font-size: 0.7rem; margin: 0.35rem 0 0; }
+
 /* --- WRITING CHECKS (v1.1, js/editor-writing-checks.js) ---
    A line under the field for each character name or broken tag, and the list
    at Submit. */

@@ -68,9 +68,10 @@ test('never generates a hand-authored page', () => {
   }
   // Named explicitly as well as via the set, so that shrinking NEVER_TOUCH by
   // accident fails here rather than silently widening what gets overwritten.
-  // (characters/Template left the set on purpose, 2026-10-24.)
+  // (characters/Template left the set on purpose, 2026-10-24, and
+  // systems/color-codes and systems/collaborators in v1.2.)
   expect(generated).not.toContain('systems/tierlist/index.html');
-  expect(generated).not.toContain('systems/collaborators/index.html');
+  expect(generated).not.toContain('systems/updatelog/index.html');
 });
 
 test('a character page outside the Characters category is not described as a character', () => {

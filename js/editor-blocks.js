@@ -742,12 +742,35 @@ const blockTemplates = {
     // Which grid of the site's own colours to draw (js/description.js). The
     // colours are never stored: a character's comes from owner tools.
     colorswatches: { type: 'colorswatches', set: 'characters' },
+    // One person on the Collaborators page, as a Card or a Thanks line
+    // (`kind`). The home page's Credits list is built from these.
+    collaborator: { type: 'collaborator', kind: 'card', name: 'New Collaborator', role: '', badge: 'badge-general', avatar: '', description: '', links: [] },
 };
 
 // Blocks drawn from what the site keeps for one page (the character colours
-// for Color Codes), offered on that page only. The type dropdown asks the
-// same question, so the two never offer different things.
-const PAGE_ONLY_BLOCKS = { colorswatches: 'color_codes' };
+// for Color Codes, the people the home page credits), offered on that page
+// only. The type dropdown asks the same question, so the two never offer
+// different things.
+const PAGE_ONLY_BLOCKS = { colorswatches: 'color_codes', collaborator: 'collaborators' };
+
+// A Collaborator's links, edited one per line as "Label | address". A line
+// with no bar is an address on its own, labelled by itself.
+function parseLinkLines(text) {
+    return String(text || '').split('\n').map(line => {
+        const bar = line.indexOf('|');
+        const name = (bar === -1 ? '' : line.slice(0, bar)).trim();
+        const url = (bar === -1 ? line : line.slice(bar + 1)).trim();
+        return { name: name || url, url };
+    }).filter(link => link.url);
+}
+const linkLinesText = (links) => (Array.isArray(links) ? links : []).map(l => `${l.name || ''} | ${l.url || ''}`).join('\n');
+
+// The lines the page will not link, named under the field while typing.
+function collaboratorLinkNote(links) {
+    const isLink = window.isCollaboratorLink || (() => true);
+    const bad = (Array.isArray(links) ? links : []).filter(l => !isLink(l.url)).map(l => l.url);
+    return bad.length ? `Not shown, as only an http or https address links: ${bad.join(', ')}` : '';
+}
 window.blockOfferedHere = function (type) {
     const only = PAGE_ONLY_BLOCKS[type];
     return !only || only === window.currentEditorCharId;
@@ -782,6 +805,7 @@ const BLOCK_TYPE_LABELS = {
     divider: 'Divider',
     author: 'Author',
     colorswatches: 'Color Swatches',
+    collaborator: 'Collaborator',
 };
 
 // Falls back to the key rather than dropping the option: a template added
@@ -795,7 +819,7 @@ window.blockTypeLabel = function (type) {
 // the map above; only the grouping is editorial.
 const ADD_BLOCK_GROUPS = [
     { title: 'Text & Media', types: ['heading', 'paragraph', 'table', 'list', 'image', 'video', 'youtube'] },
-    { title: 'Components', types: ['callout', 'combo', 'accordion', 'theorybox', 'sectionedbox', 'divider', 'author', 'colorswatches'] },
+    { title: 'Components', types: ['callout', 'combo', 'accordion', 'theorybox', 'sectionedbox', 'divider', 'author', 'colorswatches', 'collaborator'] },
 ];
 
 // A text prompt in the site's own modal, replacing window.prompt() for the
@@ -2620,8 +2644,18 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             if (!card) return;
             const index = parseInt(card.getAttribute('data-index'));
             const field = e.target.getAttribute('data-field');
+            const block = window.getActiveBlocks()[index];
 
-            window.getActiveBlocks()[index][field] = e.target.value; 
+            // A Collaborator's kind decides which fields its form shows, so it
+            // redraws, the same way the Multiple Sections switch does.
+            if (field === 'kind' && block.type === 'collaborator') {
+                block.kind = e.target.value === 'line' ? 'line' : 'card';
+                renderBlockList();
+                updateLivePreview();
+                return;
+            }
+
+            block[field] = e.target.value;
 
             clearTimeout(typingTimer);
             typingTimer = setTimeout(() => { updateLivePreview(); }, 400);
@@ -3177,6 +3211,11 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             const target = window.editorCardFieldTarget(activeBlocks[index]);
 
             if (field === 'content-array') target.content = e.target.value.split('\n');
+            else if (field === 'links-lines') {
+                target.links = parseLinkLines(e.target.value);
+                const note = e.target.closest('.block-card').querySelector('[data-links-note]');
+                if (note) { note.textContent = collaboratorLinkNote(target.links); note.hidden = !note.textContent; }
+            }
             // A combo route is an ARRAY of steps, edited one per line. Blank
             // lines are dropped rather than becoming empty chips in the route.
             else if (field === 'sequence-lines') target.sequence = e.target.value.split('\n').map(v => v.trim()).filter(Boolean);
@@ -3597,6 +3636,9 @@ function blockSummary(block) {
             text = sets[block.set] || sets.characters;
             break;
         }
+        case 'collaborator':
+            text = block.name;
+            break;
         default:
             text = block.title || block.content || '';
     }
@@ -4306,6 +4348,43 @@ function renderBlockList() {
                     <input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Contributor Name(s) (Comma separated)">
                 </div>
             `;
+        }
+        else if (block.type === 'collaborator') {
+            const isLine = block.kind === 'line';
+            const badges = window.COLLABORATOR_BADGES || {};
+            const badge = badges[block.badge] ? block.badge : 'badge-general';
+            html += `
+                <div class="editor-row">
+                    <div>
+                        <label class="block-field-label-sm">Shown as</label>
+                        <select class="editor-select" data-field="kind">
+                            <option value="card" ${isLine ? '' : 'selected'}>Main contributor (full card)</option>
+                            <option value="line" ${isLine ? 'selected' : ''}>Special thanks (one line)</option>
+                        </select>
+                    </div>
+                    <div><input type="text" class="editor-input" data-field="name" value="${escField(block.name || '')}" placeholder="Name"></div>
+                </div>
+            `;
+            if (isLine) {
+                html += `<textarea class="editor-textarea" data-field="description" placeholder="Why they are thanked">${escField(block.description || '')}</textarea>`;
+            } else {
+                html += `
+                    <div class="editor-row">
+                        <div><input type="text" class="editor-input" data-field="role" value="${escField(block.role || '')}" placeholder="Tag, e.g. Frame Data &amp; Testing"></div>
+                        <div>
+                            <label class="block-field-label-sm">Tag color</label>
+                            <select class="editor-select" data-field="badge">
+                                ${Object.entries(badges).map(([value, label]) =>
+                                    `<option value="${escField(value)}" ${badge === value ? 'selected' : ''}>${escField(label)}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <input type="text" class="editor-input" data-field="avatar" value="${escField(block.avatar || '')}" placeholder="Icon path, e.g. /medias/images/Something.webp, or a Media Library address">
+                    <textarea class="editor-textarea" data-field="description" placeholder="What they did">${escField(block.description || '')}</textarea>
+                    <textarea class="editor-textarea" data-field="links-lines" placeholder="Links, one per line: GitHub | https://github.com/someone">${escField(linkLinesText(block.links))}</textarea>
+                    <p class="collaborator-links-note" data-links-note ${collaboratorLinkNote(block.links) ? '' : 'hidden'}>${escField(collaboratorLinkNote(block.links))}</p>
+                `;
+            }
         }
         else if (block.type === 'colorswatches') {
             const sets = window.COLOR_SWATCH_SETS || {};
