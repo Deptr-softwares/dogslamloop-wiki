@@ -151,6 +151,177 @@ test('frame data keeps its phase colours and its monospace in Classic', async ({
     expect(classic.ruler).toMatch(/monospace/);
 });
 
+// --- ROUND 2 (owner, 2026-11-20): "It feels like watered down default
+// version." Panels lose their box and stop lifting, the playstyle and the
+// profile's stats read as tables, content tables are ruled, the account
+// buttons are links, sidebar headings and pop-ups are plain. ---
+
+const ACCENT = 'rgb(136, 163, 232)';
+
+test('Classic panels have no box and do not lift on hover; the infobox and frame data cards keep a thin one', async ({ page }) => {
+    const add = () => page.evaluate(() => {
+        document.querySelector('main').insertAdjacentHTML('afterbegin', `
+            <section class="wiki-section" id="t-panel" style="height: 120px"><h2 class="section-title">Overview</h2></section>
+            <aside class="wiki-section profile-card" id="t-infobox"></aside>
+            <section class="skill-entry-card" id="t-move"></section>`);
+    });
+    const read = (id) => page.evaluate((id) => {
+        const cs = getComputedStyle(document.getElementById(id));
+        return { border: cs.borderTopWidth, ground: cs.backgroundColor, pad: cs.paddingTop, lift: cs.transform };
+    }, id);
+
+    await boot(page, 'default');
+    await add();
+    await page.hover('#t-panel');
+    expect((await read('t-panel')).lift, 'the default look lifts a panel').not.toBe('none');
+
+    await boot(page, 'classic');
+    await add();
+    await page.hover('#t-panel');
+    expect(await read('t-panel')).toEqual({ border: '0px', ground: 'rgba(0, 0, 0, 0)', pad: '0px', lift: 'none' });
+    expect((await read('t-infobox')).border).toBe('1px');
+    expect((await read('t-move')).border).toBe('1px');
+});
+
+test('the playstyle reads as a two-column table with plain headers; Default still shouts them', async ({ page }) => {
+    const render = () => page.evaluate(() => {
+        document.querySelector('main').insertAdjacentHTML('afterbegin',
+            window.generatePlaystyleHTML({ likes: ['Air combos'], dislikes: ['M1 trading'] }));
+        const box = document.querySelector('.playstyle-container');
+        return {
+            heads: [...box.querySelectorAll('.playstyle-header')].map(h => h.innerText),
+            layout: getComputedStyle(box).display,
+            icon: getComputedStyle(box.querySelector('.playstyle-icon')).display,
+            bullet: getComputedStyle(box.querySelector('.playstyle-item')).display,
+        };
+    });
+    await boot(page, 'default');
+    expect((await render()).heads).toEqual(['PICK IF YOU LIKE', 'AVOID IF YOU DISLIKE']);
+    await boot(page, 'classic');
+    expect(await render()).toEqual({ heads: ['Pick if you like', 'Avoid if you dislike'], layout: 'grid', icon: 'none', bullet: 'list-item' });
+});
+
+test('tables in page content are ruled cell by cell, with a plain header row', async ({ page }) => {
+    await boot(page, 'classic');
+    const t = await page.evaluate(() => {
+        document.querySelector('main').insertAdjacentHTML('afterbegin', `<div class="wiki-table-wrapper"><table class="update-table wiki-content-table">
+            <thead><tr><th>Techs</th><th>How</th></tr></thead><tbody><tr><td>Clever</td><td>M1</td></tr></tbody></table></div>`);
+        const th = getComputedStyle(document.querySelector('.wiki-content-table th'));
+        const td = getComputedStyle(document.querySelector('.wiki-content-table td'));
+        return { thCase: th.textTransform, thColour: th.color, tdLeft: td.borderLeftWidth, tdRight: td.borderRightWidth,
+            wrapShadow: getComputedStyle(document.querySelector('.wiki-table-wrapper')).boxShadow };
+    });
+    expect(t).toEqual({ thCase: 'none', thColour: 'rgb(255, 255, 255)', tdLeft: '1px', tdRight: '1px', wrapShadow: 'none' });
+});
+
+// A signed-in reviewer with unread mail, as far as the dock asks: its session,
+// its role and the unread count. The display name carries markup, which must
+// come out as text.
+async function signedIn(page) {
+    await page.addInitScript(() => {
+        Object.defineProperty(window, 'supabase', {
+            configurable: true,
+            get() { return window.__lib; },
+            set(lib) {
+                window.__lib = lib;
+                if (!lib || !lib.createClient || lib.__patched) return;
+                lib.__patched = true;
+                const real = lib.createClient.bind(lib);
+                lib.createClient = (...args) => {
+                    const client = real(...args);
+                    client.auth.getSession = async () => ({ data: { session: {
+                        user: { id: 'me', email: 'me@example.com', user_metadata: { display_name: 'Real <i>Deptr</i>' } },
+                        access_token: 'tok' } } });
+                    const from = client.from.bind(client);
+                    client.from = (table) => {
+                        if (table === 'user_roles') {
+                            const c = { select: () => c, eq: () => c, single: async () => ({ data: { role: 'reviewer' }, error: null }) };
+                            return c;
+                        }
+                        if (table === 'user_notifications') {
+                            const c = { select: () => c, eq: () => c, then: (ok, no) => Promise.resolve({ count: 2, data: [], error: null }).then(ok, no) };
+                            return c;
+                        }
+                        return from(table);
+                    };
+                    return client;
+                };
+            },
+        });
+    });
+}
+
+test('the account buttons are plain links under "Account", in normal case; a name shows as text', async ({ page }) => {
+    const read = () => page.evaluate(() => {
+        const dock = document.getElementById('sidebar-dynamic-dock');
+        const inbox = document.getElementById('dock-btn-inbox');
+        const auth = document.getElementById('dock-btn-auth');
+        return {
+            label: getComputedStyle(dock, '::before').content,
+            inbox: inbox.innerText.replace(/\s+/g, ' ').trim(),
+            // Generated text: innerText never includes it.
+            unread: getComputedStyle(inbox.querySelector('.dock-badge'), '::before').content,
+            inboxGround: getComputedStyle(inbox).backgroundImage,
+            inboxBorder: getComputedStyle(inbox).borderTopWidth,
+            icon: getComputedStyle(inbox.querySelector('.dock-action-icon')).display,
+            overseer: document.getElementById('dock-btn-edit').innerText.trim(),
+            name: auth.innerText.trim(),
+            markup: auth.querySelectorAll('i').length,
+            settingsIcon: getComputedStyle(document.querySelector('#dock-btn-settings .dock-action-icon')).display,
+        };
+    });
+    await signedIn(page);
+    await boot(page, 'default');
+    await expect(page.locator('#dock-btn-inbox')).toBeVisible();
+    const usual = await read();
+    expect(usual.inbox, 'Default still shows the labels in capitals').toBe('INBOX');
+    expect(usual.overseer).toBe('OVERSEER');
+    expect(usual.markup, 'the name is text, not markup').toBe(0);
+
+    await boot(page, 'classic');
+    await expect(page.locator('#dock-btn-inbox')).toBeVisible();
+    expect(await read()).toEqual({
+        label: '"Account"', inbox: 'Inbox', unread: '"(new)"', inboxGround: 'none', inboxBorder: '0px', icon: 'none',
+        overseer: 'Overseer', name: 'Real <i>Deptr</i>', markup: 0, settingsIcon: 'flex',
+    });
+});
+
+test('sidebar headings are small grey words, while the category toggles stay links', async ({ page }) => {
+    await boot(page, 'classic');
+    await expect(page.locator('.sidebar-group-header').first()).toBeVisible();
+    const s = await page.evaluate(() => {
+        const head = getComputedStyle(document.querySelector('.sidebar-master-title'));
+        const toggle = getComputedStyle(document.querySelector('.sidebar-group-header'));
+        return { headCase: head.textTransform, headSize: head.fontSize, headColour: head.color, toggleColour: toggle.color, toggleRule: toggle.borderBottomWidth };
+    });
+    expect(s).toEqual({ headCase: 'none', headSize: '12.8px', headColour: 'rgb(162, 169, 177)', toggleColour: ACCENT, toggleRule: '0px' });
+});
+
+test('"On this tab" is a list of plain links', async ({ page }) => {
+    await boot(page, 'classic');
+    const link = await page.evaluate(() => {
+        const a = document.createElement('a');
+        a.className = 'btn-nav toc-link-major';
+        a.textContent = 'Character Overview';
+        document.querySelector('.local-sidebar-right').appendChild(a);
+        const cs = getComputedStyle(a);
+        return { ground: cs.backgroundColor, border: cs.borderTopWidth, colour: cs.color };
+    });
+    expect(link).toEqual({ ground: 'rgba(0, 0, 0, 0)', border: '0px', colour: ACCENT });
+});
+
+test('pop-ups are one plain box with the title as written', async ({ page }) => {
+    const open = () => page.evaluate(() => {
+        window.openSiteSettings();
+        const box = getComputedStyle(document.querySelector('#site-settings-overlay .modal-box'));
+        return { title: document.getElementById('site-settings-title').innerText, top: box.borderTopColor, topWidth: box.borderTopWidth, rise: box.animationName };
+    });
+    await boot(page, 'default');
+    expect((await open()).title, 'Default still shows the title in capitals').toBe('SITE SETTINGS');
+    await boot(page, 'classic');
+    expect(await open()).toEqual({ title: 'Site settings', top: 'rgb(84, 89, 93)', topWidth: '1px', rise: 'none' });
+});
+
 test('the editor keeps the default look even with Classic picked', async ({ page }) => {
     await boot(page, 'classic', '/edit.html');
     // The class follows the setting everywhere; the stylesheet is what is

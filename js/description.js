@@ -213,13 +213,13 @@ window.generatePlaystyleHTML = function(playstyle) {
     return `
         <div class="playstyle-container">
             <div class="playstyle-col likes">
-                <h4 class="playstyle-header">PICK IF YOU LIKE</h4>
+                <h4 class="playstyle-header">Pick if you like</h4>
                 <ul class="playstyle-list">
                     ${renderList(playstyle.likes || [], '✓', 'likes')}
                 </ul>
             </div>
             <div class="playstyle-col dislikes">
-                <h4 class="playstyle-header">AVOID IF YOU DISLIKE</h4>
+                <h4 class="playstyle-header">Avoid if you dislike</h4>
                 <ul class="playstyle-list">
                     ${renderList(playstyle.dislikes || [], '✖', 'dislikes')}
                 </ul>

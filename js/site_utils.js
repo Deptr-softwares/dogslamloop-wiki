@@ -115,7 +115,7 @@ window.openSiteSettings = function () {
         overlay.className = 'modal-overlay hidden';
         overlay.innerHTML = `
             <div class="modal-box modal-sm accent-blue" role="dialog" aria-modal="true" aria-labelledby="site-settings-title">
-                <div class="modal-header"><h3 id="site-settings-title">SITE SETTINGS</h3></div>
+                <div class="modal-header"><h3 id="site-settings-title">Site settings</h3></div>
                 <div class="modal-body site-settings-body">
                     <fieldset class="site-setting-group">
                         <legend class="site-setting-name">Look</legend>

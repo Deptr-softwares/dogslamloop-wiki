@@ -41,6 +41,7 @@ html.look-classic :is(.home-main-title, .character-title, .section-title, .strat
     font-family: var(--font-title), serif;
     font-weight: normal;
     text-transform: none;
+    border-bottom-width: 1px;
 }
 html.look-classic .character-header h1.character-title::before,
 html.look-classic .section-title::after { content: none !important; }
@@ -70,3 +71,150 @@ html.look-classic :is(.btn-manga, .filter-toggle).active {
     border-color: var(--text-primary);
 }
 html.look-classic .btn-manga-content { transform: none; }
+
+/* Panels have no box, like an article: a heading and its rule separate them
+   (owner, 2026-11-20). Nothing lifts on hover. A frame data card keeps a thin
+   box, and the profile card is the infobox. */
+html.look-classic :is(.wiki-card, .wiki-section, .changelog-box) {
+    background: none;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+}
+html.look-classic :is(.update-log-item, .faq-details) {
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: none;
+    padding: 0.75rem 0;
+}
+html.look-classic :is(.skill-entry-card, .wiki-section.profile-card) {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    box-shadow: none;
+}
+html.look-classic .wiki-section.profile-card { padding: 0.75rem; }
+html.look-classic :is(.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .roster-card, .tier-char-card, .image-card-container):hover,
+html.look-classic .roster-card:hover .roster-card-text {
+    transform: none;
+    box-shadow: none;
+}
+
+/* The infobox's rows: the label, then the value, as a table would. */
+html.look-classic .profile-stat-row { justify-content: flex-start; gap: 0.75rem; padding: 0.3rem 0; }
+html.look-classic .profile-stat-label { flex: 0 0 45%; color: var(--text-primary); font-weight: bold; }
+html.look-classic .profile-stat-val { font-weight: normal; color: var(--text-primary); }
+
+/* Playstyle: a two-column table, a list in each cell. The 1px gap over the
+   border colour draws the rules, also when the columns stack on a phone. */
+html.look-classic .playstyle-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 1px;
+    background: var(--border-color);
+    border: 1px solid var(--border-color);
+}
+html.look-classic .playstyle-col { min-width: 0; padding: 0; border: 0; box-shadow: none; background: var(--bg-main); }
+html.look-classic .playstyle-col .playstyle-header {
+    margin: 0;
+    padding: 0.4rem 0.75rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-white);
+}
+html.look-classic .playstyle-list { list-style: disc; padding: 0.5rem 0.75rem 0.5rem 2rem; font-family: inherit; color: var(--text-primary); }
+html.look-classic .playstyle-item { display: list-item; }
+html.look-classic .playstyle-icon { display: none; }
+
+/* Tables in page content: every cell ruled, a grey header row. Play is a link. */
+html.look-classic .wiki-table-wrapper { border: 0; box-shadow: none; }
+html.look-classic .update-table { border: 1px solid var(--border-color); background: var(--bg-main); }
+html.look-classic .update-table :is(th, td) { border: 1px solid var(--border-color); padding: 0.4rem 0.6rem; }
+html.look-classic .update-table th { background: var(--bg-secondary); color: var(--text-white); }
+html.look-classic .update-table tbody tr:is(:nth-child(even), :hover) { background: none; }
+html.look-classic .wiki-video-btn { background: none; border: 0; box-shadow: none; padding: 0; color: var(--accent-blue); transform: none; }
+html.look-classic .wiki-video-btn:hover { background: none; color: var(--accent-blue-hover); text-decoration: underline; transform: none; }
+
+/* Sidebar headings and small panel labels: small grey words over a rule. */
+html.look-classic :is(.sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title),
+html.look-classic #sidebar-dynamic-dock::before {
+    font-size: 0.8rem;
+    font-weight: normal;
+    color: var(--text-muted);
+    letter-spacing: 0;
+    text-shadow: none;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.2rem;
+    margin-bottom: 0.4rem;
+}
+
+/* The sidebar's category toggles share the heading class but are links. */
+html.look-classic .sidebar-nav-title.sidebar-group-header {
+    color: var(--accent-blue);
+    font-size: 0.85rem;
+    border-bottom: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+}
+
+/* "On this tab": plain links, the minor ones indented. */
+html.look-classic .local-sidebar-right .btn-nav {
+    background: none;
+    border: 0;
+    padding: 0.15rem 0;
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--accent-blue);
+    transform: none;
+}
+html.look-classic .local-sidebar-right .btn-nav.toc-link-minor { padding-left: 1rem; font-size: 0.8rem; opacity: 1; }
+html.look-classic .local-sidebar-right .btn-nav.active { background: none; color: var(--text-white); font-weight: bold; }
+
+/* The account buttons are a list of links under "Account" (owner,
+   2026-11-20). Site settings keeps its small box. A collapsed sidebar has no
+   room for words, so it keeps the icons. */
+html.look-classic #sidebar-dynamic-dock { gap: 0.15rem; }
+html.look-classic #sidebar-dynamic-dock::before { content: 'Account'; }
+html.look-classic .global-sidebar-left.collapsed #sidebar-dynamic-dock::before { content: none; }
+html.look-classic .btn-sys.dock-action-btn {
+    background: none;
+    border: 0;
+    padding: 0.15rem 0;
+    color: var(--accent-blue);
+    font-size: 0.85rem;
+    font-weight: normal;
+}
+html.look-classic .btn-sys.dock-action-btn:is(:hover, :active):not(:disabled) {
+    background: none;
+    color: var(--accent-blue-hover);
+    text-decoration: underline;
+}
+html.look-classic .global-sidebar-left:not(.collapsed) .dock-action-btn .dock-action-icon { display: none; }
+html.look-classic .dock-badge {
+    position: static;
+    width: auto;
+    height: auto;
+    background: none;
+    border: 0;
+    box-shadow: none;
+    transform: none;
+    color: #ef4444;
+    font-size: 0.75rem;
+}
+html.look-classic .dock-badge::before { content: '(new)'; }
+
+/* Pop-ups: one plain box, no coloured top, no slide-in. */
+html.look-classic .modal-box {
+    border: 1px solid var(--border-color);
+    box-shadow: none;
+    animation: none;
+}
+html.look-classic .modal-box .modal-header h3 { color: var(--text-primary); font-family: var(--font-title), serif; font-weight: normal; letter-spacing: 0; }
+html.look-classic .modal-footer { border-top-style: solid; }
+
+/* Words the default look writes in capitals read as written. */
+html.look-classic :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .modal-header h3, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav) {
+    text-transform: none;
+    font-family: Arial, Helvetica, sans-serif;
+}
+html.look-classic .modal-box .modal-header h3 { font-family: var(--font-title), serif; }
