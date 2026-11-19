@@ -143,6 +143,9 @@ test('opened as a picker, a click previews and USE THIS hands the file back and 
     expect(await page.evaluate(() => window.__picked)).toEqual({ url: 'https://example.test/Clip.webm', name: 'Clip.webm' });
     await expect(page.locator('#media-modal-overlay')).toBeHidden();
     expect(await page.evaluate(() => window.mediaPickHandler), 'the picker is disarmed').toBeNull();
+    // A hidden overlay would keep a clip in it downloading: closing empties it.
+    await expect(page.locator('#media-lib-preview video')).toHaveCount(0);
+    await expect(page.locator('#media-lib-preview .media-lib-preview-empty')).toBeAttached();
 });
 
 test('@ searches by uploader, and the words after the name search the file name', async ({ page }) => {
@@ -170,10 +173,34 @@ test('@ searches by uploader, and the words after the name search the file name'
     await expectNames('old', ['Old.webm']);
     await expectNames('kick', ['Kick_1.webm', 'Kick_2.webm']);
 
-    // A file with no recorded uploader is never an uploader's, and nobody
-    // matching shows the empty message, not every file.
+    // A file with no recorded uploader is never an uploader's (not even as the
+    // word "undefined"), and nobody matching shows the empty message, not
+    // every file.
     await expectNames('@nobody', []);
     await expect(page.locator('#media-gallery-grid .media-status-msg')).toHaveText('No media matches your search criteria.');
+    await expectNames('@und', []);
+});
+
+test('@ takes the longest uploader name that fits, when one name starts another', async ({ page }) => {
+    await openLibrary(page, {
+        files: ['Fan_Clip.webm', 'Kick_1.webm', 'Kick_Fan.webm'],
+        credits: [
+            { path: 'Kick_1.webm', uploaded_by: 'u7' },
+            { path: 'Kick_Fan.webm', uploaded_by: 'u7' },
+            { path: 'Fan_Clip.webm', uploaded_by: 'u8' },
+        ],
+        profiles: [{ user_id: 'u7', display_name: 'Deptr' }, { user_id: 'u8', display_name: 'Deptr Fan' }],
+    });
+    await expect(row(page, 'Fan_Clip.webm').locator('.media-row-uploader')).toHaveText('by Deptr Fan');
+
+    const search = page.locator('#media-search-input');
+    await search.fill('@deptr fan');
+    await expect.poll(() => names(page)).toEqual(['Fan_Clip.webm']);
+    // And the shorter name still takes words after it.
+    await search.fill('@deptr fan clip');
+    await expect.poll(() => names(page)).toEqual(['Fan_Clip.webm']);
+    await search.fill('@deptr kick');
+    await expect.poll(() => names(page)).toEqual(['Kick_1.webm', 'Kick_Fan.webm']);
 });
 
 test('the whole bucket is listed, past the first 1000 files, and the upload check knows all of it', async ({ page }) => {
