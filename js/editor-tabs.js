@@ -2056,7 +2056,7 @@ function initProfileEditor(containerId, profileData) {
                 <div class="block-card">
                     <div class="block-header"><span class="block-type-badge">BANNER</span></div>
                     <input type="text" class="editor-input" id="profile-banner-input" value="${window.escapeHtml(profileData.banner || '')}" placeholder="Wide image URL from the Media Library">
-                    <p class="config-option-hint">Pops up over this character on the Characters page and the home page, with the start of the Overview, and shows when the page is shared on Discord. A wide picture, about 16:9. It appears there after the next nightly update.</p>
+                    <p class="config-option-hint">Pops up over this character on the Characters page and the home page, with the start of the Overview, and shows when the page is shared on Discord. A wide picture, about 16:9.</p>
                     <div class="profile-banner-preview" id="profile-banner-preview">
                         ${profileData.banner
                             ? `<img src="${window.escapeHtml(profileData.banner)}" alt="Banner preview" id="profile-banner-img">`
