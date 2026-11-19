@@ -46,42 +46,8 @@ const windowTypes = {
 };
 
 // --- SKILL CARD ACCOLADES (v1.2, the owner's Kanban card) ---
-// "a preset amount of accolades that editor can attach to the skill card
-// however they want". The owner's 26, in their order, which is the order a
-// card shows them in, whatever order an editor ticks them. A move stores the
-// ids, so a name can be reworded without touching a move; an id never changes
-// once a move uses it (it is also the icon's file name, medias/icons/
-// accolades/<id>.png). `tone` colors the badge. The text is the owner's, with
-// two grammar fixes ("than", "manage the character's") and their spelling
-// calls (2026-11-18): "cannot", and one L in "canceled" and "Uncancelable".
-window.ACCOLADES = [
-    { id: 'blockbreak', name: 'Blockbreak', description: 'This move can break block' },
-    { id: 'block-bypass', name: 'Block Bypass', description: 'This move ignores block' },
-    { id: 'neutral-skip', name: 'Neutral Skip', description: 'This move closes the gap quickly' },
-    { id: 'punishable-on-block', name: 'Punishable on Block', description: 'This move can be punished on Block', tone: 'punish' },
-    { id: 'safe-on-block', name: 'Safe on Block', description: 'This move cannot be punished on Block', tone: 'safe' },
-    { id: 'punishable-on-whiff', name: 'Punishable on Whiff', description: 'This move can be punished on Whiff', tone: 'punish' },
-    { id: 'safe-on-whiff', name: 'Safe on Whiff', description: 'This move cannot be punished on Whiff', tone: 'safe' },
-    { id: 'punishable-on-hit', name: 'Punishable on Hit', description: 'This move can be punished on Hit', tone: 'punish' },
-    { id: 'safe-on-hit', name: 'Safe on Hit', description: 'This move cannot be punished on Hit', tone: 'safe' },
-    { id: 'evasive-punishable', name: 'Evasive Punishable', description: 'This move is evasive punishable on Hit' },
-    { id: 'frame-perfect-evasive-punishable', name: 'Frame Perfect Evasive Punishable', description: 'This move is evasive punishable on Hit with a really tight window' },
-    { id: 'hit-only-air-ragdoll', name: 'Hit only Air Ragdoll', description: 'This move can only hit ragdoll targets in the air' },
-    { id: 'hit-ragdoll', name: 'Hit Ragdoll', description: 'This move can hit ragdoll targets' },
-    { id: 'cannot-hit-ragdoll', name: 'Cannot hit Ragdoll', description: 'This move cannot hit ragdoll targets' },
-    { id: 'uncancelable', name: 'Uncancelable', description: 'This move cannot be canceled after casting it' },
-    { id: 'semi-uncancelable', name: 'Semi-uncancelable', description: 'This move can be canceled after casting it with a specific condition' },
-    { id: 'invincible', name: 'Invincible', description: 'This move has some sort of I-Frames within its duration' },
-    { id: 'multi-use', name: 'Multi-use', description: 'This move can be used multiple times before going on cooldown' },
-    { id: 'execution', name: 'Execution', description: 'This move kills earlier than its total damage' },
-    { id: 'qte', name: 'QTE', description: 'This move has some sort of Quick Time Event in it' },
-    { id: 'buff', name: 'Buff', description: 'This move buffs the character with something' },
-    { id: 'debuff', name: 'Debuff', description: 'This move debuffs the opponent with something' },
-    { id: 'resource', name: 'Resource', description: "This move helps manage the character's resource gimmick" },
-    { id: 'teleport', name: 'Teleport', description: 'This move teleports the character' },
-    { id: 'cursor-aimed', name: 'Cursor-aimed', description: 'This move is aimed with the cursor' },
-    { id: 'camera-aimed', name: 'Camera-aimed', description: 'This move is aimed with the camera direction' },
-];
+// The 26 themselves (window.ACCOLADES) and their icons (window.accoladeIconHTML)
+// are in js/site_meta.js since the mini icons in text, which any page can show.
 
 // No two of one group can be true of the same move, so the editor unticks the
 // rest of a group when one is ticked (js/editor-framedata.js).
@@ -105,7 +71,7 @@ window.orderedAccolades = function (ids) {
 function accoladesHTML(ids) {
     const list = window.orderedAccolades(ids);
     if (!list.length) return '';
-    const badges = list.map(a => `<li class="skill-accolade${a.tone ? ` skill-accolade-${a.tone}` : ''}" data-accolade="${window.escapeHtml(a.id)}">${window.escapeHtml(a.name)}</li>`);
+    const badges = list.map(a => `<li class="skill-accolade" data-accolade="${window.escapeHtml(a.id)}" style="--accolade-color: ${window.escapeHtml(a.color)}">${window.accoladeIconHTML(a)}${window.escapeHtml(a.name)}</li>`);
     return `<ul class="skill-accolades">${badges.join('')}</ul>`;
 }
 

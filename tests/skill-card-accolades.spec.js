@@ -34,7 +34,12 @@ async function drawMoves(page, moves, { width = 1440 } = {}) {
 
 const SWIPE = (accolades) => ({ id: 'swipe', name: 'Swipe', input: 'M1', type: 'Attack', damageType: 'Physical', stats: [], variants: TRACK, ...(accolades ? { accolades } : {}) });
 
-test("a move's accolades show under its name, in the owner's order, coloured by what they say", async ({ page }) => {
+// An accolade's color as the browser reports it. The expected colors are read
+// from window.ACCOLADES rather than typed here, so the owner changing one is
+// not a test to edit.
+const rgb = (hex) => `rgb(${[1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16)).join(', ')})`;
+
+test("a move's accolades show under its name, in the owner's order, each in its own color with its icon in front", async ({ page }) => {
     await drawMoves(page, [SWIPE(['safe-on-block', 'blockbreak', 'punishable-on-whiff', 'not-an-accolade'])]);
     const card = page.locator('#tab-specials .skill-entry-card', { hasText: 'Swipe' });
     const badges = card.locator('.skill-accolades .skill-accolade');
@@ -54,12 +59,103 @@ test("a move's accolades show under its name, in the owner's order, coloured by 
     expect(place.under).toBe(true);
     expect(place.inHeader).toBe(true);
 
-    const color = (name) => card.locator('.skill-accolade', { hasText: name }).evaluate(el => getComputedStyle(el).color);
-    const plain = await color('Blockbreak');
-    expect(await color('Safe on Block'), 'Safe is green').toBe('rgb(74, 222, 128)');
-    expect(await color('Punishable on Whiff'), 'Punishable is red').toBe('rgb(252, 165, 165)');
-    expect(plain).not.toBe('rgb(74, 222, 128)');
-    expect(plain).not.toBe('rgb(252, 165, 165)');
+    // The text, the border and the icon in the accolade's own color (the
+    // owner's 26, picked 2026-11-19), the icon first.
+    const seen = await badges.evaluateAll(els => els.map(el => {
+        const accolade = window.ACCOLADES.find(a => a.id === el.dataset.accolade);
+        const icon = el.firstElementChild;
+        const style = getComputedStyle(el);
+        return {
+            id: el.dataset.accolade,
+            want: accolade && accolade.color,
+            color: style.color,
+            border: style.borderTopColor,
+            iconFirst: !!icon && icon.classList.contains('px-icon') && el.firstChild === icon,
+            iconColor: icon ? getComputedStyle(icon).color : '',
+            iconFile: icon ? getComputedStyle(icon).maskImage : '',
+        };
+    }));
+    expect(seen).toHaveLength(3);
+    for (const badge of seen) {
+        expect(badge.want, `${badge.id} has a color`).toMatch(/^#[0-9a-f]{6}$/);
+        expect(badge.color, `${badge.id}'s text`).toBe(rgb(badge.want));
+        expect(badge.border, `${badge.id}'s border`).toBe(rgb(badge.want));
+        expect(badge.iconFirst, `${badge.id}'s icon comes first`).toBe(true);
+        expect(badge.iconColor, `${badge.id}'s icon`).toBe(rgb(badge.want));
+        expect(badge.iconFile, `${badge.id}'s own icon`).toContain(`/medias/icons/accolades/${badge.id}.png`);
+    }
+});
+
+// What the reader sees, pixel by pixel, on a 2x screen (most phones): the
+// owner shaded 14 of the 26 icons with grays rather than transparency, so a
+// plain silhouette in the badge's color would lose their shading. Each pixel
+// is the icon's own times the color, laid over the badge, as one clean 2x2
+// block (pixel art smoothed into a blur fails), and nothing shows outside it.
+test.describe('on a 2x screen', () => {
+  test.use({ deviceScaleFactor: 2 });
+
+  test("a badge's icon is the owner's pixels in the badge's color, the grays darker, each pixel sharp", async ({ page }) => {
+    await drawMoves(page, [SWIPE(['blockbreak'])]);
+    const icon = page.locator('#tab-specials .skill-accolade .px-icon').first();
+    await expect(icon).toBeVisible();
+    const box = await icon.boundingBox();
+    expect([box.width, box.height]).toEqual([16, 16]);
+    const onDevicePixel = (v) => Math.round(v * 2) / 2;
+    const shot = await page.screenshot({ clip: { x: onDevicePixel(box.x), y: onDevicePixel(box.y), width: 16, height: 16 } });
+
+    const result = await page.evaluate(async (b64) => {
+        const load = (src) => new Promise((resolve, reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = src; });
+        const pixels = (img) => {
+            const c = document.createElement('canvas');
+            c.width = img.width; c.height = img.height;
+            const ctx = c.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            return { width: img.width, data: ctx.getImageData(0, 0, c.width, c.height).data };
+        };
+        const channels = (css) => css.match(/\d+/g).slice(0, 3).map(Number);
+        const badge = document.querySelector('#tab-specials .skill-accolade');
+        const tint = channels(getComputedStyle(badge).color);
+        const ground = channels(getComputedStyle(badge).backgroundColor);
+        const drawn = pixels(await load('data:image/png;base64,' + b64));
+        const source = pixels(await load('/medias/icons/accolades/blockbreak.png'));
+        let wrong = 0;
+        let blurred = 0;
+        const shades = new Set();
+        for (let y = 0; y < 16; y++) {
+            for (let x = 0; x < 16; x++) {
+                const i = (y * 16 + x) * 4;
+                const alpha = source.data[i + 3] / 255;
+                const want = [0, 1, 2].map(c => Math.round(source.data[i + c] * tint[c] / 255 * alpha + ground[c] * (1 - alpha)));
+                // The source pixel's 2x2 block of screen pixels.
+                const block = [[0, 0], [1, 0], [0, 1], [1, 1]].map(([dx, dy]) => {
+                    const j = ((y * 2 + dy) * drawn.width + (x * 2 + dx)) * 4;
+                    return [drawn.data[j], drawn.data[j + 1], drawn.data[j + 2]];
+                });
+                if (block.some(p => p.join() !== block[0].join())) blurred++;
+                if (want.some((v, c) => Math.abs(v - block[0][c]) > 3)) wrong++;
+                if (alpha) shades.add(block[0].join());
+            }
+        }
+        return { size: `${drawn.width}`, wrong, blurred, shades: shades.size };
+    }, shot.toString('base64'));
+
+    expect(result.size, 'setup: a 2x screenshot').toBe('32');
+    expect(result.wrong, 'pixels unlike the icon times the badge color').toBe(0);
+    expect(result.blurred, 'pixels smoothed into their neighbours').toBe(0);
+    expect(result.shades, 'the grays stay darker shades of the color').toBeGreaterThan(1);
+  });
+});
+
+test('every accolade has its 16px icon', async ({ page }) => {
+    await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
+    const sizes = await page.evaluate(() => Promise.all(window.ACCOLADES.map(a => new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => resolve(`${a.id}: ${img.naturalWidth}x${img.naturalHeight}`);
+        img.onerror = () => resolve(`${a.id}: missing`);
+        img.src = `/medias/icons/accolades/${a.id}.png`;
+    }))));
+    expect(sizes.length).toBeGreaterThan(0);
+    expect(sizes.filter(s => !s.endsWith(': 16x16'))).toEqual([]);
 });
 
 test('hovering a badge shows its name and what it means', async ({ page }) => {
@@ -161,10 +257,27 @@ test("ticking accolades stores them in the owner's order, an opposite unticks, a
     expect((await stored(page)).accolades).toEqual(['blockbreak', 'safe-on-block']);
     await expect(chip(page, 'Safe on Block')).toHaveAttribute('aria-pressed', 'true');
 
-    // A ticked chip looks ticked, in its badge's color when it has one.
-    const color = (name) => chip(page, name).evaluate(el => getComputedStyle(el).color);
-    expect(await color('Safe on Block')).toBe('rgb(74, 222, 128)');
-    expect(await color('Blockbreak'), 'ticked').not.toBe(await color('Block Bypass'));
+    // A ticked chip is in its accolade's color, icon and all, and an unticked
+    // one is muted, so what is ticked reads at a glance.
+    const look = (name) => chip(page, name).evaluate(el => {
+        const icon = el.firstElementChild;
+        return {
+            want: window.ACCOLADES.find(a => a.id === el.dataset.accolade).color,
+            color: getComputedStyle(el).color,
+            border: getComputedStyle(el).borderTopColor,
+            icon: icon && icon.classList.contains('px-icon') ? getComputedStyle(icon).maskImage : '',
+            iconColor: icon ? getComputedStyle(icon).color : '',
+        };
+    });
+    for (const name of ['Safe on Block', 'Blockbreak']) {
+        const ticked = await look(name);
+        expect(ticked.color, `${name} ticked`).toBe(rgb(ticked.want));
+        expect(ticked.border, `${name} ticked`).toBe(rgb(ticked.want));
+        expect(ticked.iconColor, `${name}'s icon`).toBe(rgb(ticked.want));
+    }
+    const unticked = await look('Block Bypass');
+    expect(unticked.color, 'unticked').not.toBe(rgb(unticked.want));
+    expect(unticked.icon, "an unticked chip still shows its icon").toContain('/medias/icons/accolades/block-bypass.png');
 
     // Safe and Punishable on Block cannot both be true of one move.
     await chip(page, 'Punishable on Block').click();

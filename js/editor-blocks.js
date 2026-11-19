@@ -1586,6 +1586,19 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                         <div id="format-jump-list" class="format-jump-list"></div>
                     </div>
                 </div>
+                <!-- Mini icons in text (v1.2): the owner's accolade icons and
+                     the characters' roster icons, picked here rather than
+                     typed as [icon=...]. -->
+                <div class="format-jump-wrapper">
+                    <button class="format-btn format-btn-icon" id="btn-format-icon"
+                            title="Put an icon in the text">🖼</button>
+                    <div id="format-icon-popup" class="format-jump-popup format-icon-popup hidden">
+                        <div class="format-jump-label">Put an icon in the text</div>
+                        <input type="text" id="format-icon-search" class="format-jump-search"
+                               placeholder="Search icons…" autocomplete="off">
+                        <div id="format-icon-list" class="format-jump-list"></div>
+                    </div>
+                </div>
                 <!-- The two shortcodes v0.14 added to js/internalstyling.js.
                      They rendered on the page from the day they shipped and
                      had no way to be typed except by hand, which is the same
@@ -2294,6 +2307,20 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         field.setSelectionRange(start + openTag.length, start + openTag.length + selectedText.length);
     };
 
+    // A tag that wraps nothing (a mini icon) goes in where the caret is,
+    // before any highlighted text, which it keeps. The caret ends after it, so
+    // a second icon follows the first.
+    const insertTag = (tag) => {
+        if (!lastFocusedInput) return;
+        const field = lastFocusedInput;
+        const at = lastSelection.start !== undefined ? lastSelection.start : field.selectionStart;
+        field.value = field.value.substring(0, at) + tag + field.value.substring(at);
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.focus();
+        field.setSelectionRange(at + tag.length, at + tag.length);
+        lastSelection.start = lastSelection.end = at + tag.length;
+    };
+
     formatToolbar.addEventListener('click', (e) => {
         const btn = e.target.closest('.format-btn');
         if (btn && btn.hasAttribute('data-tag')) applyFormat(btn.getAttribute('data-tag'));
@@ -2548,6 +2575,101 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#format-jump-popup') && !e.target.closest('#btn-format-jump')) {
                 jumpPopup.classList.add('hidden');
+            }
+        });
+    }
+
+    // --- ICON PICKER (v1.2) ---
+    //
+    // The two groups js/internalstyling.js draws for [icon=...]: the owner's
+    // accolades, and every character the roster shows whose icon is uploaded.
+    // A character without one is left out rather than offered as a tag that
+    // would only come back as text. Built like the section-link picker above.
+    const iconBtn = container.querySelector('#btn-format-icon');
+    const iconPopup = container.querySelector('#format-icon-popup');
+    const iconList = container.querySelector('#format-icon-list');
+    const iconSearch = container.querySelector('#format-icon-search');
+
+    if (iconBtn && iconPopup && iconList) {
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+        // null until the roster and its icons are in, then [{ id, name, src }].
+        let characters = null;
+        let charactersFailed = false;
+
+        const iconLoads = (src) => new Promise(resolve => {
+            const img = new Image();
+            img.onload = () => resolve(img.naturalWidth > 0);
+            img.onerror = () => resolve(false);
+            img.src = src;
+        });
+        const loadCharacters = async () => {
+            const roster = await window.loadCharacterRoster();
+            const rows = [...roster.entries()]
+                .filter(([, entry]) => !entry.hidden)
+                .map(([id, entry]) => ({ id, name: entry.name, src: '/' + window.rosterIconPath(id) }));
+            const uploaded = await Promise.all(rows.map(row => iconLoads(row.src)));
+            return rows.filter((row, i) => uploaded[i]);
+        };
+
+        const renderIconList = (filter) => {
+            const needle = String(filter || '').trim().toLowerCase();
+            const hit = (name) => !needle || String(name).toLowerCase().includes(needle);
+            const accolades = (window.ACCOLADES || []).filter(a => hit(a.name));
+            const people = (characters || []).filter(c => hit(c.name));
+
+            let html = '';
+            if (accolades.length) {
+                html += '<div class="format-jump-group">Accolades</div>' + accolades.map(a =>
+                    `<button type="button" class="format-jump-item format-icon-item" data-icon="accolade/${esc(a.id)}">`
+                    + `<span class="format-icon-glyph" style="color: ${esc(a.color)}">${window.accoladeIconHTML(a)}</span>`
+                    + `<span>${esc(a.name)}</span></button>`).join('');
+            }
+            if (people.length) {
+                html += '<div class="format-jump-group">Characters</div>' + people.map(c =>
+                    `<button type="button" class="format-jump-item format-icon-item" data-icon="character/${esc(c.id)}">`
+                    + `<img class="format-icon-character" src="${esc(c.src)}" alt="">`
+                    + `<span>${esc(c.name)}</span></button>`).join('');
+            } else if (!needle && (charactersFailed || !characters)) {
+                html += '<div class="format-jump-group">Characters</div>' + (charactersFailed
+                    ? '<p class="format-jump-empty">The characters could not be loaded.</p>'
+                    : '<p class="loading-msg loading-msg-busy">Loading the characters...</p>');
+            }
+            iconList.innerHTML = html || '<p class="format-jump-empty">No icon matches that.</p>';
+        };
+
+        iconBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const opening = iconPopup.classList.contains('hidden');
+            iconPopup.classList.toggle('hidden');
+            if (!opening) return;
+            if (iconSearch) iconSearch.value = '';
+            renderIconList('');
+            keepColorPopupOnScreen(iconPopup);
+            if (characters || charactersFailed) return;
+            loadCharacters().then(list => { characters = list; }, err => {
+                console.error('The icon picker could not load the characters:', err);
+                charactersFailed = true;
+            }).then(() => {
+                if (!iconPopup.classList.contains('hidden')) renderIconList(iconSearch ? iconSearch.value : '');
+            });
+        });
+
+        // The selection the icon goes in at dies the moment focus moves.
+        iconPopup.addEventListener('mousedown', (e) => {
+            if (!e.target.closest('.format-jump-search')) e.preventDefault();
+        });
+        if (iconSearch) iconSearch.addEventListener('input', () => renderIconList(iconSearch.value));
+
+        iconList.addEventListener('click', (e) => {
+            const item = e.target.closest('.format-icon-item');
+            if (!item) return;
+            insertTag(`[icon=${item.getAttribute('data-icon')}]`);
+            iconPopup.classList.add('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#format-icon-popup') && !e.target.closest('#btn-format-icon')) {
+                iconPopup.classList.add('hidden');
             }
         });
     }

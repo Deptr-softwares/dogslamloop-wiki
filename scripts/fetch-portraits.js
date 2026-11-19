@@ -65,45 +65,11 @@ const ALLOWED_EXT = new Set(['.webp', '.png', '.jpg', '.jpeg', '.gif']);
 const MAX_BYTES = 200 * 1024;
 const MAX_SIDE = 512;
 
-// RIFF....WEBP: the bytes, not the name. Both oversized uploads were PNGs
-// called .webp.
-function isWebp(buf) {
-    return buf.length >= 12 && buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP';
-}
+// Shared with scripts/fetch-banners.js since v1.2.
+const { isWebp, shrinkToWebp, closeShrinker } = require('./shrink-to-webp');
 
 function needsShrinking(buf) {
     return !isWebp(buf) || buf.length > MAX_BYTES;
-}
-
-// One browser for the run, started the first time a portrait needs it, so a
-// night with nothing to shrink never starts one.
-let browser = null;
-async function shrinkToWebp(buf) {
-    if (!browser) browser = await require('playwright').chromium.launch();
-    const page = await browser.newPage();
-    try {
-        const out = await page.evaluate(async ({ data, maxSide }) => {
-            const bytes = Uint8Array.from(atob(data), c => c.charCodeAt(0));
-            const bitmap = await createImageBitmap(new Blob([bytes]));
-            const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
-            const width = Math.max(1, Math.round(bitmap.width * scale));
-            const height = Math.max(1, Math.round(bitmap.height * scale));
-            const canvas = new OffscreenCanvas(width, height);
-            const ctx = canvas.getContext('2d');
-            ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(bitmap, 0, 0, width, height);
-            const blob = await canvas.convertToBlob({ type: 'image/webp', quality: 0.9 });
-            // A browser that cannot write WebP hands back a PNG instead.
-            if (blob.type !== 'image/webp') throw new Error(`the browser wrote ${blob.type}, not image/webp`);
-            const view = new Uint8Array(await blob.arrayBuffer());
-            let binary = '';
-            for (let i = 0; i < view.length; i += 0x8000) binary += String.fromCharCode(...view.subarray(i, i + 0x8000));
-            return btoa(binary);
-        }, { data: buf.toString('base64'), maxSide: MAX_SIDE });
-        return Buffer.from(out, 'base64');
-    } finally {
-        await page.close();
-    }
 }
 
 const write = process.argv.includes('--write');
@@ -226,7 +192,7 @@ if (check) {
         let savedExt = ext;
         if (needsShrinking(body)) {
             try {
-                body = await shrinkToWebp(body);
+                body = await shrinkToWebp(body, MAX_SIDE);
                 savedExt = '.webp';
                 shrunk++;
             } catch (err) {
@@ -259,7 +225,7 @@ if (check) {
     for (const { pageId, failure, kb } of unshrunk) {
         console.log(`::warning title=Portrait not shrunk::${pageId}: ${failure}. Kept as downloaded (${kb} KB).`);
     }
-    if (browser) await browser.close();
+    await closeShrinker();
 
     // Files that no longer correspond to any portrait in the map.
     const keep = new Set(Object.values(manifest).filter(Boolean).map(rel => path.basename(rel)));

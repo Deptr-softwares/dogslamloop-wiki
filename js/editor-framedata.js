@@ -30,12 +30,13 @@ function closestEstimate(frames) {
 }
 
 // The move's accolades as chips, all of them in the owner's order
-// (js/framedata.js), pressed when the move has one. Their hover says what each
-// means, as the badge on the page does.
+// (js/framedata.js), icon and name, pressed when the move has one and then in
+// its own color, as its badge is on the page. Their hover says what each means,
+// as the badge does.
 function accoladeChipsHTML(ids) {
     const esc = window.escapeHtml;
     const has = new Set(Array.isArray(ids) ? ids : []);
-    return (window.ACCOLADES || []).map(a => `<button type="button" class="accolade-chip${a.tone ? ` accolade-chip-${a.tone}` : ''}" data-accolade="${esc(a.id)}" aria-pressed="${has.has(a.id)}" title="${esc(a.description)}">${esc(a.name)}</button>`).join('');
+    return (window.ACCOLADES || []).map(a => `<button type="button" class="accolade-chip" data-accolade="${esc(a.id)}" aria-pressed="${has.has(a.id)}" title="${esc(a.description)}" style="--accolade-color: ${esc(a.color)}">${window.accoladeIconHTML(a)}${esc(a.name)}</button>`).join('');
 }
 
 // Ticking one of a group that cannot all be true of one move unticks the rest

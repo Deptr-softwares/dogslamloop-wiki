@@ -159,10 +159,12 @@ test('the committed stubs on disk match what the generator produces', () => {
   // Same trap, second instance: a tool page carries its own script and
   // stylesheet, so the scan has to be the CLI's rather than an empty default.
   // A third instance: a moved page's forward is only produced from the scan of
-  // the stubs already on disk.
+  // the stubs already on disk. A fourth: a character's Overview line and
+  // banner (data/banners.json, Hover Banners) are its description and image.
   const previews = require('../data/page-previews.json');
+  const banners = require('../data/banners.json');
   const { toolScripts, toolStyles } = scanToolAssets();
-  const { pages } = buildPages(nav, previews, {}, toolScripts, toolStyles, scanMovedStubs());
+  const { pages } = buildPages(nav, previews, {}, toolScripts, toolStyles, scanMovedStubs(), banners);
   const stale = pages.filter(page => {
     const abs = path.join(__dirname, '..', page.relPath);
     return !fs.existsSync(abs) || fs.readFileSync(abs, 'utf8') !== page.html;

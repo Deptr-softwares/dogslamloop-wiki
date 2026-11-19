@@ -136,6 +136,8 @@ test('a portrait that cannot be mirrored keeps its last good copy, or none, and 
         const at = (...p) => path.join(tmp, ...p);
         for (const dir of ['scripts', 'data', 'medias/portraits']) fs.mkdirSync(at(dir), { recursive: true });
         fs.copyFileSync(path.join(ROOT, 'scripts', 'fetch-portraits.js'), at('scripts', 'fetch-portraits.js'));
+        // Its shrinker is a module of its own since v1.2, shared with fetch-banners.js.
+        fs.copyFileSync(path.join(ROOT, 'scripts', 'shrink-to-webp.js'), at('scripts', 'shrink-to-webp.js'));
 
         const STORE = 'https://example.supabase.co/storage/v1/object/public/wiki-media';
         fs.writeFileSync(at('data', 'page-previews.json'), JSON.stringify({
@@ -258,6 +260,8 @@ test('a portrait that is not really a WebP, or is too big, is mirrored as a smal
         const at = (...p) => path.join(tmp, ...p);
         for (const dir of ['scripts', 'data', 'medias/portraits', 'served']) fs.mkdirSync(at(dir), { recursive: true });
         fs.copyFileSync(path.join(ROOT, 'scripts', 'fetch-portraits.js'), at('scripts', 'fetch-portraits.js'));
+        // Its shrinker is a module of its own since v1.2, shared with fetch-banners.js.
+        fs.copyFileSync(path.join(ROOT, 'scripts', 'shrink-to-webp.js'), at('scripts', 'shrink-to-webp.js'));
 
         const STORE = 'https://example.supabase.co/storage/v1/object/public/wiki-media';
         const previews = {};

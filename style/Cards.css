@@ -284,3 +284,24 @@
 /* The list already carries an inline margin-top for the unheaded case; a list
    that follows a heading of its own does not need it twice. */
 .update-changes-heading + .update-changes-list { margin-top: 0.4rem !important; }
+
+/* --- HOVER BANNERS (v1.2, js/pagebuilder.js) ---
+   Over a roster card after 0.25s: the character's banner, name and the start
+   of their Overview, edged in their colour, or a band of it when they have no
+   banner yet. Fixed to the screen and placed beside the card it is about by
+   the script; pointer-events off, so it never takes the hover from the card
+   underneath. The name stays white, as a dark character colour on this
+   background would not read. */
+.roster-banner {
+    position: fixed; z-index: 60; width: min(360px, calc(100vw - 32px));
+    background: var(--bg-secondary); border: 2px solid var(--banner-color, var(--border-color));
+    box-shadow: 4px 4px 0 var(--manga-shadow); pointer-events: none;
+}
+.roster-banner-image { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.roster-banner-band { height: 6px; background: var(--banner-color, var(--border-color)); }
+.roster-banner-body { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.6rem 0.75rem 0.7rem; }
+.roster-banner-name {
+    font-family: 'Finger-Paint', sans-serif; font-size: 1.05rem; line-height: 1.15;
+    color: var(--text-white); text-shadow: 2px 2px 0 var(--manga-shadow);
+}
+.roster-banner-overview { margin: 0; color: var(--text-primary); font-size: 0.8rem; line-height: 1.45; }
