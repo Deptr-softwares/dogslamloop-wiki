@@ -694,9 +694,11 @@
         btn.disabled = !state.canEdit || !select || !select.value || !field || !field.value.trim();
     }
 
-    // Filled once the roster is in, and only then given the site's dropdown:
-    // initializeMangaSelects copies a <select>'s options when it builds, so a
-    // dropdown built empty would stay empty.
+    // Filled once the roster is in, and only then given the class that makes
+    // it the site's dropdown: initializeMangaSelects copies a <select>'s
+    // options when it builds, and site_utils.js runs it whenever anything is
+    // added to the page, so a select carrying the class while still empty
+    // would be built empty and stay that way.
     function fillCopyCharacters() {
         const select = document.getElementById('tier-copy-character');
         if (!select) return;
@@ -714,7 +716,6 @@
         });
         select.disabled = !state.canEdit;
         select.classList.add('editor-select');
-        if (typeof window.initializeMangaSelects === 'function') window.initializeMangaSelects();
         select.addEventListener('change', updateAddCopyState);
         updateAddCopyState();
     }
