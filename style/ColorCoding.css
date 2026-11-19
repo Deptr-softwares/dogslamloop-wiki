@@ -272,5 +272,5 @@
     border-bottom: 2px solid var(--border-color);
 }
 .swatch-meta { padding: 0.75rem; display: flex; flex-direction: column; gap: 0.25rem; }
-.swatch-title { font-family: 'CC-Wild-Words', sans-serif; font-size: 0.75rem; color: var(--text-white); text-transform: uppercase; }
+.swatch-title { font-family: var(--font-label), sans-serif; font-size: 0.75rem; color: var(--text-white); text-transform: uppercase; }
 .swatch-code { font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); }

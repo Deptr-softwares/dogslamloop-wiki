@@ -698,7 +698,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 0.8rem;
     z-index: 10;
     pointer-events: none;
@@ -1069,7 +1069,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
    today since the inline max-width already clips to 400px at normal
    viewport widths, but this is the correct fix regardless. */
 .auth-modal-box.qa-modal-box { width: 100%; transition: max-width 0.3s ease; }
-.qa-modal-title { color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; }
+.qa-modal-title { color: var(--accent-blue); font-family: var(--font-label), sans-serif; }
 .qa-form-container { display: flex; flex-direction: column; text-align: left; }
 .qa-modal-actions-divided { border-top: 1px dashed #333; }
 .qa-tabs-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
@@ -1084,13 +1084,13 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 /* --- MOVE ID MODAL (js/editor-tabs.js promptForMoveId) --- */
 .move-id-modal-elevated { z-index: 10006; }
 .auth-modal-box.move-id-modal-box { border-top-color: #22c55e; width: 100%; max-width: 400px; }
-.move-id-modal-title { color: #22c55e; font-family: 'CC-Wild-Words', sans-serif; }
+.move-id-modal-title { color: #22c55e; font-family: var(--font-label), sans-serif; }
 .move-id-form-fields { display: flex; flex-direction: column; gap: 1rem; text-align: left; }
 
 /* --- TIER LIST EDITOR: LIVE PREVIEW DISABLED NOTICE (initFullTabEditor) --- */
 .tierlist-preview-disabled-notice { padding: 2rem; color: #888; text-align: center; border: 1px dashed #333; margin-top: 4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
 .tierlist-preview-disabled-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
-.tierlist-preview-disabled-title { color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; letter-spacing: 1px; }
+.tierlist-preview-disabled-title { color: var(--accent-blue); font-family: var(--font-label), sans-serif; letter-spacing: 1px; }
 .tierlist-preview-disabled-text { font-family: var(--text-mono); font-size: 0.85rem; max-width: 400px; line-height: 1.5; }
 
 /* --- TOOL PAGE SETUP (js/editor-tool.js) ---
@@ -1388,7 +1388,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .strategy-toolbar-row-end { justify-content: flex-end; }
 .accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 .accordion-back-label { color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
-.accordion-back-title { color: #fff; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; }
+.accordion-back-title { color: #fff; font-family: var(--font-label), sans-serif; font-size: 0.9rem; }
 /* Two dropdowns share this row since v0.15 item 9, and the shared
    .manga-select-wrapper rule in Forms.css is `flex: 1` with `min-width: 0` -
    which is `flex-basis: 0%` and free to collapse. In a row that shrink-wraps to
@@ -1978,7 +1978,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         color: #000;
         padding: 0.6rem 1rem;
         border-radius: 4px;
-        font-family: 'CC-Wild-Words', sans-serif;
+        font-family: var(--font-label), sans-serif;
         font-size: 0.75rem;
         box-shadow: 4px 4px 0px var(--manga-shadow);
         border: 2px solid #000;
@@ -2145,7 +2145,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 }
 
 .diff-section-title {
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     color: #a855f7;
     font-size: 1rem;
     border-bottom: 1px dashed #333;
@@ -2197,7 +2197,7 @@ del.diff-del {
 .sbs-heads, .sbs-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .sbs-cols { align-items: start; }
 .sbs-head {
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 0.7rem;
     letter-spacing: 0.06em;
     padding: 0.45rem 0.75rem;
@@ -2355,7 +2355,7 @@ del.diff-del {
 /* --- LOCAL DRAFT MANAGER (js/editor-drafts.js openDraftManager) --- */
 .draft-empty-msg { color: #666; font-family: var(--text-mono); font-size: 0.8rem; text-align: center; padding: 2rem 0; border: 1px dashed #333; }
 .draft-row { display: flex; justify-content: space-between; align-items: center; background: #050505; border: 1px solid #333; padding: 1rem; margin-bottom: 0.5rem; border-left: 3px solid var(--accent-blue); }
-.draft-row-label { color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.25rem; }
+.draft-row-label { color: var(--accent-blue); font-family: var(--font-label), sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.25rem; }
 .draft-row-title { color: #fff; font-family: var(--text-mono); font-size: 0.8rem; margin-bottom: 0.25rem; font-weight: bold; }
 .draft-row-context { color: #888; font-weight: normal; }
 .draft-row-timestamp { color: #666; font-family: var(--text-mono); font-size: 0.65rem; }
@@ -2365,7 +2365,7 @@ del.diff-del {
    specificity. */
 .btn-sys.draft-resume-btn { padding: 0.4rem 0.8rem; font-size: 0.65rem; }
 .draft-active-badge { color: #22c55e; font-family: var(--text-mono); font-size: 0.65rem; padding: 0.4rem 0.8rem; border: 1px solid #22c55e; }
-.btn-sys.draft-discard-btn { padding: 0.4rem 0.8rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.65rem; }
+.btn-sys.draft-discard-btn { padding: 0.4rem 0.8rem; font-family: var(--font-label), sans-serif; font-size: 0.65rem; }
 
 /* --- SYSTEM PAGE EDITOR (js/editor-system.js renderSystemEditor) ---
    The tab/section-tab row reuses .daw-tab-item/.daw-tab-btn-removable/
@@ -2713,7 +2713,7 @@ del.diff-del {
 }
 
 .tutorial-title {
-    font-family: 'Finger-Paint', sans-serif; color: var(--accent-blue);
+    font-family: var(--font-title), sans-serif; color: var(--accent-blue);
     font-size: 1.1rem; margin: 0.25rem 0 0.75rem;
     text-shadow: 2px 2px 0 var(--manga-shadow);
 }
@@ -3078,7 +3078,7 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
 .playground-pull-category {
     flex-basis: 100%;
     margin: 0;
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 0.8rem;
     color: var(--accent-blue);
     text-transform: uppercase;

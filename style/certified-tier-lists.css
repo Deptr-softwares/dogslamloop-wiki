@@ -77,7 +77,7 @@
    cleaned up before, and tests/tierlist-live-dedupe.spec.js holds that shut for
    the five classes it already caught. */
 .ctl-nobody-title {
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 1.1rem;
     color: var(--text-white);
     margin: 0;
@@ -92,7 +92,7 @@
 }
 
 .ctl-author {
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 1.4rem;
     color: var(--accent-blue);
     margin: 0;
@@ -147,7 +147,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 1.5rem;
     color: #000;
     text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5);
@@ -181,7 +181,7 @@
 /* --- REASONING AND CHANGELOG --- */
 
 .ctl-subheading {
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 1rem;
     color: var(--accent-blue);
     text-transform: uppercase;

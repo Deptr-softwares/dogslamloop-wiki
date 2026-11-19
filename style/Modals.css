@@ -96,7 +96,7 @@
 .editor-modal-header h3,
 #auth-modal h2 {
     margin: 0;
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 0.9rem;
     color: var(--text-white);
     text-transform: uppercase;
