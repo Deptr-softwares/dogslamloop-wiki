@@ -1625,12 +1625,19 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     font-size: 0.9rem; text-shadow: 1px 1px 0px #000; margin-left: 0.3rem;
 }
 
-/* Heading for an authored strategy block, moved here for the same reason. */
-.strategy-title { 
+/* Heading for an authored strategy block, moved here for the same reason.
+   The same heading as a card's (.card-header-flex + .card-header-title
+   above): same size, weight and colour, and a rule across the whole panel.
+   Until v1.2 it was a small 1rem heading with a short accent underline, so
+   Overview & Strategy and every move's "Move Overview and Strategy" read
+   unlike Matchups, Starter Guide, Counterplay, Combos and Techs (owner,
+   2026-11-20: "This type of small heading and underline is seemingly only
+   used in the Overview and Strategy, M1s, Skills, and Innate sections"). */
+.strategy-title {
     font-family: var(--font-title), sans-serif;
-    font-size: 1rem; color: var(--accent-blue); 
-    margin-bottom: 1rem; padding-bottom: 0.5rem; margin-top: 0; text-shadow: 1px 1px 0px #000; 
-    display: inline-block; border-bottom: 2px solid var(--accent-blue);
+    font-size: 1.5rem; font-weight: bold; color: var(--text-white);
+    margin: 0 0 1rem; padding-bottom: 0.75rem;
+    display: block; border-bottom: 1px solid var(--border-color);
 }
 
 
