@@ -59,8 +59,35 @@ test('an accolade icon and a character icon draw inside page text, each named', 
   await expect(text.locator('.sc-char')).toHaveText(name);
 });
 
+test("the owner's site icons draw in text too, in the color of the words around them", async ({ page }) => {
+  // Typed with capitals once, as somebody typing by hand might.
+  await servePage(page, PAGE([para('Press [icon=ui/edit] to fix it, said the [color=#ff0000][icon=UI/role--guest] guest[/color].')]));
+  await page.goto('/systems/hud/index.html', { waitUntil: 'networkidle' });
+  const text = prose(page, 'Press');
+  await expect(text).toBeVisible();
+  await expect(text).not.toContainText('[icon=');
+  const drawn = (icon) => icon.evaluate(el => ({
+    file: getComputedStyle(el).maskImage,
+    color: getComputedStyle(el).backgroundColor,
+    around: getComputedStyle(el.parentElement).color,
+    size: `${el.getBoundingClientRect().width}x${el.getBoundingClientRect().height}`,
+  }));
+
+  const edit = text.locator('.text-icon[aria-label="Edit"]');
+  await expect(edit).toHaveCount(1);
+  await expect(edit).toHaveAttribute('title', 'Edit');
+  const e = await drawn(edit);
+  expect(e.file).toContain('/medias/icons/edit.png');
+  expect(e).toMatchObject({ size: '16x16', color: e.around });
+
+  // Inside colored words, it takes their color.
+  const g = await drawn(text.locator('.text-icon[aria-label="Guest"]'));
+  expect(g.file).toContain('/medias/icons/role--guest.png');
+  expect(g.color).toBe(rgb('#ff0000'));
+});
+
 test('a name it does not know stays as it was typed, so the mistake shows', async ({ page }) => {
-  const typed = 'A [icon=accolade/not-one] B [icon=character/not_a_character] C [icon=nothing/blockbreak] D';
+  const typed = 'A [icon=accolade/not-one] B [icon=character/not_a_character] C [icon=nothing/blockbreak] D [icon=ui/not-an-icon] E';
   await servePage(page, PAGE([para(typed)]));
   await page.goto('/systems/hud/index.html', { waitUntil: 'networkidle' });
   const text = prose(page, 'A [icon');
@@ -157,9 +184,14 @@ test('the icon button lists the accolades and the characters, and puts the picke
   const popup = page.locator('#format-icon-popup');
   await expect(popup).toBeVisible();
   const groups = popup.locator('.format-jump-group');
-  await expect(groups).toHaveText(['Accolades', 'Characters']);
+  await expect(groups).toHaveText(['Accolades', 'Characters', 'UI']);
   const accolades = await page.evaluate(() => window.ACCOLADES.length);
   await expect(popup.locator('.format-icon-item[data-icon^="accolade/"]')).toHaveCount(accolades);
+  // Every one of the owner's site icons, each drawn in the list.
+  const site = await page.evaluate(() => window.UI_ICONS.map(i => `ui/${i.id}`));
+  await expect(popup.locator('.format-icon-item[data-icon^="ui/"]')).toHaveCount(site.length);
+  expect(await popup.locator('.format-icon-item[data-icon^="ui/"]').evaluateAll(els => els.map(e => e.dataset.icon))).toEqual(site);
+  await expect(popup.locator('.format-icon-item[data-icon^="ui/"] .px-icon')).toHaveCount(site.length);
   // Every character the roster shows whose icon is uploaded, in the roster's
   // order, and none of the hidden ones. Worked out from the files, so a
   // character the owner adds or hides is not a test to edit.
@@ -198,4 +230,12 @@ test('the icon button lists the accolades and the characters, and puts the picke
   await popup.locator('.format-icon-item', { hasText: /^Boomcat$/ }).click();
   await expect(field).toHaveValue('Hit them with a [icon=accolade/blockbreak][icon=character/boomcat]');
   await expect(preview.locator('img.text-icon-character')).toHaveCount(1);
+
+  // And one of the owner's site icons.
+  await page.locator('#btn-format-icon').click();
+  await popup.locator('#format-icon-search').fill('history');
+  await expect(groups).toHaveText(['UI']);
+  await popup.locator('.format-icon-item', { hasText: /^History$/ }).click();
+  await expect(field).toHaveValue('Hit them with a [icon=accolade/blockbreak][icon=character/boomcat][icon=ui/history]');
+  await expect(preview.locator('.text-icon[aria-label="History"]')).toHaveCount(1);
 });

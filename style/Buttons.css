@@ -178,17 +178,13 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
 .btn-manga-box .btn-manga-content { transform: none; }
 .btn-manga-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-/* SVG scaling and alignment */
+/* The box a dock button's icon sits in. The icon is the owner's pixel art
+   (.px-icon, 16px), never stretched or scaled on hover: a pixel between
+   whole sizes smears. */
 .btn-manga-icon { 
     display: flex; justify-content: center; align-items: center; 
     flex-shrink: 0; width: 1.2rem; height: 1.2rem; 
 }
-.btn-manga-icon svg { 
-    width: 100%; height: 100%; 
-    stroke: currentColor;
-    transition: transform 0.1s ease;
-}
-.btn-manga:hover .btn-manga-icon svg { transform: scale(1.1); } /* Slight pop on hover */
 /* =========================================
    FAMILY 3: NAVIGATION BUTTONS
    ========================================= */

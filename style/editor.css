@@ -440,11 +440,14 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     box-sizing: border-box;
     transition: border-color 0.1s, background 0.1s;
     cursor: pointer;
-    /* Custom SVG Arrow */
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d1d5db' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    /* The owner's 8px arrow (medias/icons/dropdown.png, v1.2), white as they
+       drew it: a background cannot take the field's color the way a .px-icon
+       does. 8px exactly, so its pixels stay square. */
+    background-image: url('/medias/icons/dropdown.png');
     background-repeat: no-repeat;
     background-position: right 0.4rem center;
-    background-size: 1em;
+    background-size: 8px 8px;
+    image-rendering: pixelated;
 }
 .editor-select:focus {
     outline: none; border-color: var(--accent-blue); background-color: rgba(0,0,0,0.5); color: #fff;
@@ -475,11 +478,12 @@ input[type="checkbox"]:hover {
 input[type="checkbox"]:checked {
     background-color: var(--accent-blue);
     border-color: var(--accent-blue);
-    /* Custom sharp SVG checkmark */
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='20 6 9 17 4 12'%3e%3c/polyline%3e%3c/svg%3e");
-    background-size: 80%;
+    /* The owner's 8px tick (medias/icons/check.png, v1.2), white as drawn. */
+    background-image: url('/medias/icons/check.png');
+    background-size: 8px 8px;
     background-position: center;
     background-repeat: no-repeat;
+    image-rendering: pixelated;
 }
 
 /* --- DAW FRAME EDITOR UI --- */

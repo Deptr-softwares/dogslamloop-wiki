@@ -17,7 +17,7 @@
 // exist today.
 //
 // Only the region between these two markers is generated. Everything else in
-// this file - CHARACTER_ALIASES, ACCOLADES, rosterIconPath, applyCharacterTheme -
+// this file - CHARACTER_ALIASES, ACCOLADES, UI_ICONS, rosterIconPath, applyCharacterTheme -
 // is hand-authored, and scripts/fetch-content.js refuses to write at all if the
 // markers are missing rather than guessing where the boundary was.
 //
@@ -152,6 +152,54 @@ window.accoladeIconHTML = function (accolade, { inText = false } = {}) {
     const name = window.escapeHtml(accolade.name);
     const color = /^#[0-9a-f]{6}$/i.test(accolade.color || '') ? `; color: ${accolade.color}` : '';
     return `<span class="px-icon text-icon" role="img" aria-label="${name}" title="${name}" style="${file}${color}"></span>`;
+};
+
+// --- THE SITE'S ICONS (v1.2) ---
+// The owner's pixel art for the site's buttons and badges (medias/icons/
+// <id>.png, 16px; the tick and the dropdown arrow 8px), drawn to replace the
+// SVGs an AI assistant drew and the copies of Feather and Lucide (owner,
+// 2026-10-24). The id is the file name, as the owner named it, and also what
+// [icon=ui/<id>] takes in text (owner, 2026-11-19), so an id never changes
+// once a page uses it. `name` is what a hover and a screen reader say for one
+// in text. The tick and the arrow are drawn by style/editor.css as well, and
+// js/page_router.js and the hand-written pages' Ko-fi buttons write this
+// markup out themselves, since they come before this file.
+window.UI_ICONS = [
+    { id: 'edit', name: 'Edit' },
+    { id: 'history', name: 'History' },
+    { id: 'discussion', name: 'Discussion' },
+    { id: 'search', name: 'Search' },
+    { id: 'kofi', name: 'Ko-fi' },
+    { id: 'delete', name: 'Delete' },
+    { id: 'check', name: 'Check' },
+    { id: 'dropdown', name: 'Dropdown' },
+    { id: 'align-left', name: 'Align left' },
+    { id: 'align-center', name: 'Align center' },
+    { id: 'align-right', name: 'Align right' },
+    { id: 'dock-overseer', name: 'Overseer' },
+    { id: 'dock-inbox', name: 'Inbox' },
+    { id: 'dock-submissions', name: 'My Submissions' },
+    { id: 'dock-site-settings', name: 'Site Settings' },
+    { id: 'role-owner', name: 'Owner' },
+    { id: 'role-admin', name: 'Admin' },
+    { id: 'role-reviewer', name: 'Reviewer' },
+    { id: 'role-trusted-editor', name: 'Trusted Editor' },
+    { id: 'role--member', name: 'Member' },
+    { id: 'role--guest', name: 'Guest' },
+];
+
+// A site icon. On a button it takes the color of what holds it, as an
+// accolade's does on a chip, and is hidden from screen readers, since the
+// button says what it does. In text ([icon=ui/<id>]) it stands for a word, so
+// it is named. An id that is not in UI_ICONS draws nothing.
+window.uiIconHTML = function (id, { className = '', inText = false } = {}) {
+    const icon = window.UI_ICONS.find(i => i.id === id);
+    if (!icon) return '';
+    const cls = window.escapeHtml(['px-icon', inText ? 'text-icon' : '', className].filter(Boolean).join(' '));
+    const file = `--px-icon: url('/medias/icons/${icon.id}.png')`;
+    if (!inText) return `<span class="${cls}" aria-hidden="true" style="${file}"></span>`;
+    const name = window.escapeHtml(icon.name);
+    return `<span class="${cls}" role="img" aria-label="${name}" title="${name}" style="${file}"></span>`;
 };
 
 // --- CHARACTER ICONS (v0.16) ---

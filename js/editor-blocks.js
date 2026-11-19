@@ -2616,6 +2616,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             const hit = (name) => !needle || String(name).toLowerCase().includes(needle);
             const accolades = (window.ACCOLADES || []).filter(a => hit(a.name));
             const people = (characters || []).filter(c => hit(c.name));
+            const site = (window.UI_ICONS || []).filter(i => hit(i.name) || hit(i.id));
 
             let html = '';
             if (accolades.length) {
@@ -2633,6 +2634,14 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 html += '<div class="format-jump-group">Characters</div>' + (charactersFailed
                     ? '<p class="format-jump-empty">The characters could not be loaded.</p>'
                     : '<p class="loading-msg loading-msg-busy">Loading the characters...</p>');
+            }
+            // The owner's site icons (v1.2), [icon=ui/<id>], after the
+            // characters as they asked.
+            if (site.length) {
+                html += '<div class="format-jump-group">UI</div>' + site.map(i =>
+                    `<button type="button" class="format-jump-item format-icon-item" data-icon="ui/${esc(i.id)}">`
+                    + `<span class="format-icon-glyph">${window.uiIconHTML(i.id)}</span>`
+                    + `<span>${esc(i.name)}</span></button>`).join('');
             }
             iconList.innerHTML = html || '<p class="format-jump-empty">No icon matches that.</p>';
         };
@@ -3990,13 +3999,13 @@ function renderBlockList() {
         return `
             <div class="align-group">
                 <button class="align-btn ${align === 'left' ? 'active' : ''}" data-val="left" title="Align/Float Left">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="15" y1="12" x2="3" y2="12"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+                    ${window.uiIconHTML('align-left')}
                 </button>
                 <button class="align-btn ${align === 'center' ? 'active' : ''}" data-val="center" title="Align/Float Center">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="18" y1="12" x2="6" y2="12"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+                    ${window.uiIconHTML('align-center')}
                 </button>
                 <button class="align-btn ${align === 'right' ? 'active' : ''}" data-val="right" title="Align/Float Right">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="12" x2="9" y2="12"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+                    ${window.uiIconHTML('align-right')}
                 </button>
             </div>
         `;

@@ -202,13 +202,15 @@ body {
    the owner's grays take darker shades of it (they shaded with grays, not with
    transparency), and the icon's own shape masks the rest. Exactly 16px, so a
    pixel stays one pixel, and `pixelated` keeps it square on a 2x screen. The
-   file comes inline as --px-icon. */
+   file comes inline as --px-icon. A place that shows one bigger sets
+   --px-size to a whole multiple (the profile's role badge is 32px), never a
+   size in between, which would smear the pixels. */
 .px-icon {
-    display: inline-block; flex: none; width: 16px; height: 16px; vertical-align: -0.2em;
-    background-color: currentColor; background-image: var(--px-icon); background-size: 16px 16px;
+    display: inline-block; flex: none; width: var(--px-size, 16px); height: var(--px-size, 16px); vertical-align: -0.2em;
+    background-color: currentColor; background-image: var(--px-icon); background-size: var(--px-size, 16px) var(--px-size, 16px);
     background-blend-mode: multiply;
-    -webkit-mask: var(--px-icon) center / 16px 16px no-repeat;
-    mask: var(--px-icon) center / 16px 16px no-repeat;
+    -webkit-mask: var(--px-icon) center / var(--px-size, 16px) var(--px-size, 16px) no-repeat;
+    mask: var(--px-icon) center / var(--px-size, 16px) var(--px-size, 16px) no-repeat;
     image-rendering: pixelated;
 }
 /* A character's icon in text, [icon=character/...] (v1.2,
