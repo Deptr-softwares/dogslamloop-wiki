@@ -383,6 +383,43 @@ test('the site\'s dropdown is a plain box in Classic', async ({ page }) => {
     expect(d).toEqual({ shadow: 'none', top: '1px', rise: 'none', buttonShadow: 'none', buttonLift: 'none', rule: '0px' });
 });
 
+// Owner, 2026-11-20: "I think you forget to change the buttons on the left
+// sidebar as well. I think it's fine to leave the character text colors in."
+test('the site menu on the left is plain links, a character keeps its colour, WIP is a word', async ({ page }) => {
+    // One entry as js/pagebuilder.js builds a WIP character's, placed in the
+    // real menu, so no roster content decides the answer.
+    const read = async () => {
+        await expect(page.locator('.global-sidebar-left .toc-list').first()).toBeAttached();
+        return page.evaluate(() => {
+            const list = document.querySelector('.global-sidebar-left .toc-list');
+            list.classList.remove('hidden');
+            list.insertAdjacentHTML('afterbegin', `<li><a href="#" class="btn-nav" id="t-menu-link">
+                <span class="toc-link-text" style="color: hsl(0, 100%, 80%); font-weight: bold;">Vessel</span>
+                <span class="update-badge badge-wip update-badge-inline">WIP</span></a></li>`);
+            const a = document.getElementById('t-menu-link');
+            const cs = getComputedStyle(a);
+            const badge = getComputedStyle(a.querySelector('.update-badge'));
+            return {
+                ground: cs.backgroundColor, border: cs.borderTopWidth, leftEdge: cs.borderLeftWidth,
+                nameColour: getComputedStyle(a.querySelector('.toc-link-text')).color,
+                badgeGround: badge.backgroundColor, badgeColour: badge.color, badgeBorder: badge.borderTopWidth,
+            };
+        });
+    };
+    await boot(page, 'default');
+    const usual = await read();
+    expect(usual.border, 'Default draws each link as a box').not.toBe('0px');
+    expect(usual.badgeGround, 'and WIP as a filled tag').not.toBe('rgba(0, 0, 0, 0)');
+
+    await boot(page, 'classic');
+    expect(await read()).toEqual({
+        ground: 'rgba(0, 0, 0, 0)', border: '0px', leftEdge: '0px',
+        nameColour: 'rgb(255, 153, 153)',
+        // --accent-yellow, hsl(45, 93%, 47%).
+        badgeGround: 'rgba(0, 0, 0, 0)', badgeColour: 'rgb(231, 176, 8)', badgeBorder: '0px',
+    });
+});
+
 test('the editor keeps the default look even with Classic picked', async ({ page }) => {
     await boot(page, 'classic', '/edit.html');
     // The class follows the setting everywhere; the stylesheet is what is

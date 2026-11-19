@@ -157,8 +157,9 @@ html.look-classic .sidebar-nav-title.sidebar-group-header {
     margin-bottom: 0;
 }
 
-/* "On this tab": plain links, the minor ones indented. */
-html.look-classic .local-sidebar-right .btn-nav {
+/* "On this tab" and the site menu on the left: plain links, the minor ones
+   indented. A character's name keeps its own colour (owner, 2026-11-20). */
+html.look-classic :is(.local-sidebar-right, .global-sidebar-left) .btn-nav {
     background: none;
     border: 0;
     padding: 0.15rem 0;
@@ -168,7 +169,10 @@ html.look-classic .local-sidebar-right .btn-nav {
     transform: none;
 }
 html.look-classic .local-sidebar-right .btn-nav.toc-link-minor { padding-left: 1rem; font-size: 0.8rem; opacity: 1; }
-html.look-classic .local-sidebar-right .btn-nav.active { background: none; color: var(--text-white); font-weight: bold; }
+html.look-classic :is(.local-sidebar-right, .global-sidebar-left) .btn-nav.active { background: none; color: var(--text-white); font-weight: bold; }
+/* WIP and EA in the menu: small coloured words, not a filled tag. */
+html.look-classic .global-sidebar-left .update-badge { background: none; border: 0; padding: 0; color: var(--accent-yellow); }
+html.look-classic .global-sidebar-left .badge-ea { color: hsl(28, 99%, 53%); }
 
 /* The account buttons are a list of links under "Account" (owner,
    2026-11-20). Site settings keeps its small box. A collapsed sidebar has no
@@ -250,7 +254,7 @@ html.look-classic .manga-option:hover { padding-left: 0.75rem; font-weight: norm
 html.look-classic .manga-option.selected { border-left: 0; font-weight: bold; }
 
 /* Words the default look writes in capitals read as written. */
-html.look-classic :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .modal-header h3, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sbox-tab, .manga-select-trigger, .manga-option) {
+html.look-classic :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .modal-header h3, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .global-sidebar-left .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sbox-tab, .manga-select-trigger, .manga-option) {
     text-transform: none;
     font-family: Arial, Helvetica, sans-serif;
 }
