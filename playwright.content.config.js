@@ -16,8 +16,8 @@
 // WHAT BELONGS HERE: a spec whose Node side reads a file the job writes
 // (data/navigation.json, page-previews.json, portraits.json, faq.json,
 // site_meta.json, the search indexes, collaborators_data.json, sitemap.xml,
-// the colours in js/site_meta.js, video-stills.json). Its result depends on the real content, so
-// it is the content's check. tests/content-gate.spec.js fails a PR that adds
+// the colours in js/site_meta.js, video-stills.json, banners.json). Its
+// result depends on the real content, so it is the content's check. tests/content-gate.spec.js fails a PR that adds
 // such a spec without listing it here.
 //
 // Everything else is the base config's: one browser, the same server, the
