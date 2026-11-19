@@ -116,49 +116,74 @@ test("a character's Discord preview is its banner and its Overview line, else th
 
 // --- THE ROSTER ---
 
-const BANNERS = {
-  boomcat: { image: 'medias/portraits/boomcat.webp', overview: 'Boomcat line, from its Overview.' },
-  vessel: { overview: 'Vessel line, no banner yet.' },
-};
+// The first two characters on the roster, whoever they are today: a test that
+// named one would go red the day the owner renamed or removed it. The banner
+// is the site's logo, a file that is always there.
+const LOGO = 'medias/images/DogslamloopIcon.webp';
 
-async function openRoster(page, url = '/characters/index.html', banners = BANNERS) {
-  await page.route('**/data/banners.json*', route => route.fulfill({ json: banners }));
-  await page.setViewportSize({ width: 1440, height: 900 });
+async function openRoster(page, { url = '/characters/index.html', width = 1440, height = 900 } = {}) {
+  await page.setViewportSize({ width, height });
   await page.goto(url, { waitUntil: 'networkidle' });
-  await expect(page.locator('.roster-card[data-page-id="boomcat"]')).toBeVisible();
+  const cards = page.locator('.roster-card[data-page-id]');
+  await expect(cards.first()).toBeVisible();
+  const [withBanner, lineOnly] = await cards.evaluateAll(list => list.slice(0, 2).map(c => c.dataset.pageId));
+  // data/banners.json is fetched on the first hover, so a route set now is in
+  // time, and a route a test sets after this one wins.
+  await page.route('**/data/banners.json*', route => route.fulfill({ json: {
+    [withBanner]: { image: LOGO, overview: 'A line from the Overview.' },
+    [lineOnly]: { overview: 'A line, and no banner yet.' },
+  } }));
+  return { withBanner, lineOnly, card: (id) => page.locator(`.roster-card[data-page-id="${id}"]`) };
 }
 const popup = (page) => page.locator('#roster-banner');
 
+// Where the popup is against its card, in the window's own pixels.
+const geometry = (page, id) => page.evaluate((id) => {
+  const card = document.querySelector(`.roster-card[data-page-id="${id}"]`).getBoundingClientRect();
+  const box = document.getElementById('roster-banner').getBoundingClientRect();
+  return {
+    card: { top: card.top, bottom: card.bottom, center: card.left + card.width / 2 },
+    box: { top: box.top },
+    overlaps: !(box.bottom <= card.top || box.top >= card.bottom || box.right <= card.left || box.left >= card.right),
+    onScreen: box.left >= 0 && box.right <= window.innerWidth && box.top >= 0 && box.bottom <= window.innerHeight,
+  };
+}, id);
+
+// Room to scroll whatever the roster's length, then a card this many pixels
+// from the top of the window.
+const cardAt = (page, id, top) => page.evaluate(({ id, top }) => {
+  document.body.style.paddingBottom = '2000px';
+  const card = document.querySelector(`.roster-card[data-page-id="${id}"]`);
+  window.scrollBy({ top: card.getBoundingClientRect().top - top, behavior: 'instant' });
+}, { id, top });
+
 test('hovering a character for a quarter of a second shows its banner, name and Overview line', async ({ page }) => {
-  await openRoster(page);
-  const card = page.locator('.roster-card[data-page-id="boomcat"]');
-  await card.hover();
+  const { withBanner, card } = await openRoster(page);
+  await card(withBanner).hover();
 
   // Not at once: a pointer crossing the roster should not flash every banner.
   await page.waitForTimeout(120);
   await expect(popup(page)).toBeHidden();
 
   await expect(popup(page)).toBeVisible();
-  expect(await popup(page).locator('img.roster-banner-image').getAttribute('src')).toMatch(/medias\/portraits\/boomcat\.webp$/);
+  expect(await popup(page).locator('img.roster-banner-image').getAttribute('src')).toMatch(/medias\/images\/DogslamloopIcon\.webp$/);
   await expect.poll(() => popup(page).locator('img.roster-banner-image').evaluate(img => img.complete && img.naturalWidth > 0)).toBe(true);
-  await expect(popup(page).locator('.roster-banner-name')).toHaveText(await card.locator('.roster-card-text').textContent());
-  await expect(popup(page).locator('.roster-banner-overview')).toHaveText('Boomcat line, from its Overview.');
+  await expect(popup(page).locator('.roster-banner-name')).toHaveText(await card(withBanner).locator('.roster-card-text').textContent());
+  await expect(popup(page).locator('.roster-banner-overview')).toHaveText('A line from the Overview.');
 
   // In the character's own color, and never covering the card it is about.
-  const look = await page.evaluate(() => {
-    const card = document.querySelector('.roster-card[data-page-id="boomcat"]').getBoundingClientRect();
-    const pop = document.getElementById('roster-banner');
-    const box = pop.getBoundingClientRect();
-    return {
-      border: getComputedStyle(pop).borderTopColor,
-      want: (() => { const s = document.createElement('span'); s.style.color = document.querySelector('.roster-card[data-page-id="boomcat"]').style.getPropertyValue('--char-color'); document.body.appendChild(s); const c = getComputedStyle(s).color; s.remove(); return c; })(),
-      overlaps: !(box.bottom <= card.top || box.top >= card.bottom || box.right <= card.left || box.left >= card.right),
-      onScreen: box.left >= 0 && box.right <= window.innerWidth && box.top >= 0 && box.bottom <= window.innerHeight,
-    };
-  });
-  expect(look.border).toBe(look.want);
-  expect(look.overlaps, 'the popup covers its card').toBe(false);
-  expect(look.onScreen, 'the popup is on screen').toBe(true);
+  const color = await page.evaluate((id) => {
+    const s = document.createElement('span');
+    s.style.color = document.querySelector(`.roster-card[data-page-id="${id}"]`).style.getPropertyValue('--char-color');
+    document.body.appendChild(s);
+    const want = getComputedStyle(s).color;
+    s.remove();
+    return { want, border: getComputedStyle(document.getElementById('roster-banner')).borderTopColor };
+  }, withBanner);
+  expect(color.border).toBe(color.want);
+  const at = await geometry(page, withBanner);
+  expect(at.overlaps, 'the popup covers its card').toBe(false);
+  expect(at.onScreen, 'the popup is on screen').toBe(true);
 
   // Leaving puts it away.
   await page.mouse.move(5, 5);
@@ -166,47 +191,154 @@ test('hovering a character for a quarter of a second shows its banner, name and 
 });
 
 test('no banner yet shows the line over the character color; neither shows nothing', async ({ page }) => {
-  await openRoster(page);
-  await page.locator('.roster-card[data-page-id="vessel"]').hover();
+  const { withBanner, lineOnly, card } = await openRoster(page);
+  await card(lineOnly).hover();
   await expect(popup(page)).toBeVisible();
   await expect(popup(page).locator('img')).toHaveCount(0);
   await expect(popup(page).locator('.roster-banner-band')).toBeVisible();
-  await expect(popup(page).locator('.roster-banner-overview')).toHaveText('Vessel line, no banner yet.');
+  await expect(popup(page).locator('.roster-banner-overview')).toHaveText('A line, and no banner yet.');
 
   // A character absent from data/banners.json has no popup at all.
-  const absent = await page.evaluate(() => [...document.querySelectorAll('.roster-card[data-page-id]')]
-    .map(c => c.dataset.pageId).find(id => id !== 'boomcat' && id !== 'vessel'));
-  await page.locator(`.roster-card[data-page-id="${absent}"]`).hover();
+  const absent = await page.evaluate((known) => [...document.querySelectorAll('.roster-card[data-page-id]')]
+    .map(c => c.dataset.pageId).find(id => !known.includes(id)), [withBanner, lineOnly]);
+  await card(absent).hover();
   await page.waitForTimeout(600);
   await expect(popup(page)).toBeHidden();
 });
 
-test('a keyboard user gets the banner on focus, and a tap gets none', async ({ page }) => {
-  await openRoster(page);
-  const card = page.locator('.roster-card[data-page-id="boomcat"]');
-  await card.focus();
-  await expect(popup(page)).toBeVisible();
-  await expect(card).toHaveAttribute('aria-describedby', 'roster-banner');
-  await card.blur();
-  await expect(popup(page)).toBeHidden();
+test('the Overview line is shown as text, never as HTML', async ({ page }) => {
+  const { withBanner, card } = await openRoster(page);
+  // Contributor text: the nightly run strips the site's own tags, not HTML.
+  const hostile = '<img src=x onerror="window.__bannerPwned = 1">Fast & <b>loud</b>';
+  await page.route('**/data/banners.json*', route => route.fulfill({ json: { [withBanner]: { overview: hostile } } }));
+  await card(withBanner).hover();
+  await expect(popup(page).locator('.roster-banner-overview')).toHaveText(hostile);
+  await expect(popup(page).locator('.roster-banner-overview *')).toHaveCount(0);
+  expect(await page.evaluate(() => window.__bannerPwned)).toBeUndefined();
+});
 
-  // A finger has no hover, and a tap opens the page, as it always did.
-  await card.dispatchEvent('pointerover', { pointerType: 'touch', bubbles: true });
-  await page.waitForTimeout(600);
+test('leaving before the banners have loaded opens nothing', async ({ page }) => {
+  const { withBanner, card } = await openRoster(page);
+  // The first hover fetches the file. On a slow connection the pointer can be
+  // gone before it arrives, and nothing may open for a card it has left.
+  let arrive;
+  const arrived = new Promise(resolve => { arrive = resolve; });
+  await page.route('**/data/banners.json*', async route => {
+    await arrived;
+    await route.fulfill({ json: { [withBanner]: { overview: 'A late line.' } } });
+  });
+  await card(withBanner).hover();
+  await page.waitForTimeout(400); // the quarter second is up, the file is not here
+  await page.mouse.move(5, 5);
+  const response = page.waitForResponse('**/data/banners.json*');
+  arrive();
+  await response;
+  await page.waitForTimeout(300);
+  await expect(popup(page)).toBeHidden();
+});
+
+test('a keyboard user gets the banner on focus', async ({ page }) => {
+  const { withBanner, lineOnly, card } = await openRoster(page);
+  // Real keyboard focus: from the second card back to the first.
+  await card(lineOnly).focus();
+  await page.keyboard.press('Shift+Tab');
+  await expect(card(withBanner)).toBeFocused();
+  await expect(popup(page)).toBeVisible();
+  await expect(popup(page).locator('.roster-banner-overview')).toHaveText('A line from the Overview.');
+  await expect(card(withBanner)).toHaveAttribute('aria-describedby', 'roster-banner');
+  await card(withBanner).blur();
+  await expect(popup(page)).toBeHidden();
+});
+
+test.describe('on a touch screen', () => {
+  test.use({ hasTouch: true });
+
+  test('a tap opens the page with no popup on the way, and a finger held down shows none', async ({ page }) => {
+    const { withBanner, card } = await openRoster(page);
+    // Stay on the roster, to see what the tap left behind.
+    await page.evaluate(() => document.addEventListener('click', e => e.preventDefault(), true));
+    await card(withBanner).tap();
+    await expect(card(withBanner), 'the tap reached the card').toBeFocused();
+    await page.waitForTimeout(600);
+    await expect(popup(page)).toBeHidden();
+
+    // A finger held on the card, through the browser's own touch input.
+    const box = await card(withBanner).boundingBox();
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + box.width / 2, y: box.y + box.height / 2 }] });
+    await page.waitForTimeout(600);
+    await expect(popup(page)).toBeHidden();
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  });
+});
+
+test('near the top of the window the popup opens below its card, and in a narrow window it stays inside', async ({ page }) => {
+  const wide = await openRoster(page);
+  await cardAt(page, wide.withBanner, 40);
+  await wide.card(wide.withBanner).hover();
+  await expect(popup(page)).toBeVisible();
+  let at = await geometry(page, wide.withBanner);
+  expect(at.box.top, 'below the card').toBeGreaterThanOrEqual(at.card.bottom);
+  expect(at.onScreen, 'on screen').toBe(true);
+
+  // Here the first card of a row sits near the window's left edge.
+  const narrow = await openRoster(page, { width: 800 });
+  await narrow.card(narrow.withBanner).hover();
+  await expect(popup(page)).toBeVisible();
+  at = await geometry(page, narrow.withBanner);
+  expect(at.card.center - 180, 'a 360px popup centered on this card would cross the 16px edge').toBeLessThan(16);
+  expect(at.onScreen, 'on screen').toBe(true);
+  expect(at.overlaps, 'clear of its card').toBe(false);
+});
+
+test('a popup that is showing follows its card when the page scrolls', async ({ page }) => {
+  const { withBanner, card } = await openRoster(page);
+  await cardAt(page, withBanner, 200);
+  await card(withBanner).hover();
+  await expect(popup(page)).toBeVisible();
+  const before = await geometry(page, withBanner);
+
+  await page.evaluate(() => window.scrollBy({ top: 20, behavior: 'instant' }));
+  await expect.poll(async () => {
+    const now = await geometry(page, withBanner);
+    return { moved: Math.round(before.card.top - now.card.top), gap: Math.round(now.box.top - now.card.top) };
+  }).toEqual({ moved: 20, gap: Math.round(before.box.top - before.card.top) });
+});
+
+test('a filter pressed from the keyboard under a popup puts it away', async ({ page }) => {
+  // Tall enough that nothing scrolls: the roster stays where the pointer is.
+  const { card } = await openRoster(page, { height: 1400 });
+  // The last card: once EA Only leaves the Early Access characters alone in
+  // the first row, nothing is where it was.
+  const last = await page.locator('.roster-card[data-page-id]').last().getAttribute('data-page-id');
+  await page.route('**/data/banners.json*', route => route.fulfill({ json: { [last]: { overview: 'A line.' } } }));
+  await card(last).hover();
+  await expect(popup(page)).toBeVisible();
+  const box = await card(last).boundingBox();
+
+  // The pointer rests on the card while the keyboard presses EA Only: the card
+  // goes, and no pointer event says so.
+  await page.locator('#filter-ea').evaluate(button => button.focus({ preventScroll: true }));
+  await page.keyboard.press('Space');
+  await expect(page.locator('#filter-ea')).toHaveClass(/\bactive\b/);
+  const cardUnderPointer = await page.evaluate(({ x, y }) => Boolean(document.elementFromPoint(x, y)?.closest('.roster-card')),
+    { x: box.x + box.width / 2, y: box.y + box.height / 2 });
+  expect(cardUnderPointer, 'no card is left under the pointer, or this test proves nothing').toBe(false);
   await expect(popup(page)).toBeHidden();
 });
 
 test('the home page roster has the banners too, and a site without the file still has its roster', async ({ page }) => {
-  await openRoster(page, '/index.html');
-  await page.locator('.roster-card[data-page-id="boomcat"]').hover();
+  // The home page roster sits below the fold, so reaching a card is a scroll.
+  const home = await openRoster(page, { url: '/index.html' });
+  await home.card(home.withBanner).hover();
   await expect(popup(page)).toBeVisible();
-  await expect(popup(page).locator('.roster-banner-overview')).toHaveText('Boomcat line, from its Overview.');
+  await expect(popup(page).locator('.roster-banner-overview')).toHaveText('A line from the Overview.');
 
   const other = await page.context().newPage();
   await other.route('**/data/banners.json*', route => route.fulfill({ status: 404, body: 'missing' }));
   await other.setViewportSize({ width: 1440, height: 900 });
   await other.goto('/characters/index.html', { waitUntil: 'networkidle' });
-  const card = other.locator('.roster-card[data-page-id="boomcat"]');
+  const card = other.locator('.roster-card[data-page-id]').first();
   await card.hover();
   await other.waitForTimeout(600);
   await expect(other.locator('#roster-banner')).toBeHidden();
@@ -258,11 +390,15 @@ function mockEditor(page, profile) {
 
 test("the Profile tab's Banner field sets the banner, previews it, and an emptied field removes it", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
-  await mockEditor(page, { image: '/medias/portraits/boomcat.webp', stats: [] });
+  // A saved banner that would break out of the field if it were not escaped.
+  const hostile = '"><img id="pwned-banner" src=x>';
+  await mockEditor(page, { image: `/${LOGO}`, banner: hostile, stats: [] });
   await page.goto('/edit.html?char=boomcat&type=character&tab=overview', { waitUntil: 'domcontentloaded' });
   await page.locator('#overview-nav-profile').click({ timeout: 45000 });
   const field = page.locator('#profile-banner-input');
   await expect(field).toBeVisible({ timeout: 45000 });
+  await expect(field).toHaveValue(hostile);
+  await expect(page.locator('#pwned-banner')).toHaveCount(0);
   const stored = () => page.evaluate(() => window.currentEditorDescData.profile);
 
   // The banner card sits under the portrait's.
@@ -273,13 +409,15 @@ test("the Profile tab's Banner field sets the banner, previews it, and an emptie
   });
   expect(order).toBeTruthy();
 
-  await field.fill('/medias/portraits/boomcat.webp');
-  expect((await stored()).banner).toBe('/medias/portraits/boomcat.webp');
-  await expect(page.locator('#profile-banner-img')).toHaveAttribute('src', '/medias/portraits/boomcat.webp');
+  await field.fill(`/${LOGO}`);
+  expect((await stored()).banner).toBe(`/${LOGO}`);
+  await expect(page.locator('#profile-banner-img')).toHaveAttribute('src', `/${LOGO}`);
 
   // Gone, not an empty string: an untouched page and an emptied field are the
-  // same data, so clearing it is not a change to review.
+  // same data, so clearing it is not a change to review. Spaces alone too.
   await field.fill('');
   expect(await stored()).not.toHaveProperty('banner');
   await expect(page.locator('#profile-banner-img')).toHaveCount(0);
+  await field.fill('   ');
+  expect(await stored()).not.toHaveProperty('banner');
 });
