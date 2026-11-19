@@ -119,10 +119,9 @@ test('the dock still draws the owner crown after the icon suite moved', async ({
 
     const btn = page.locator('#dock-btn-auth');
     await expect(btn).toHaveClass(/btn-sys-purple/);
-    // The redrawn crown, by its path data. A stale duplicate of the icon suite
-    // is exactly what this PR removes the possibility of, so it is asserted on
-    // the shape rather than on "an svg is present".
-    await expect(btn.locator('svg path').first()).toHaveAttribute('d', 'M3 16L5 6.5L9.5 11L12 4.5L14.5 11L19 6.5L21 16Z');
+    // The owner's crown, by its file: a stale duplicate of the badge table is
+    // exactly what sharing it removes the possibility of.
+    await expect(btn.locator('.px-icon')).toHaveAttribute('style', /medias\/icons\/role-owner\.png/);
 });
 
 test('the dock gives an admin the shield, not the crown', async ({ page }) => {
@@ -132,7 +131,7 @@ test('the dock gives an admin the shield, not the crown', async ({ page }) => {
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     const btn = page.locator('#dock-btn-auth');
     await expect(btn).toHaveClass(/btn-sys-red/);
-    await expect(btn.locator('svg path').first()).toHaveAttribute('d', 'M12 2.5L20.5 6.5V12L12 21.5L3.5 12V6.5Z');
+    await expect(btn.locator('.px-icon')).toHaveAttribute('style', /medias\/icons\/role-admin\.png/);
 });
 
 test('a soft-banned account gets no badge of its own in the dock', async ({ page }) => {

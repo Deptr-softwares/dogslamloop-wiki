@@ -781,6 +781,10 @@ function textIconHTML(tag, group, name) {
         return `<img class="text-icon text-icon-character" src="/${escAttr(file)}" alt=""`
              + ` data-character-id="${escAttr(name)}" data-icon-tag="${escAttr(tag)}" loading="lazy">`;
     }
+    // The owner's site icons (v1.2), in the color of the text around them.
+    if (group === 'ui') {
+        return typeof window.uiIconHTML === 'function' ? window.uiIconHTML(name, { inText: true }) || null : null;
+    }
     return null;
 }
 

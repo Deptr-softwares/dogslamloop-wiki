@@ -1972,7 +1972,7 @@ window.hydrateProfileModal = async function (session) {
     const labelEl = document.getElementById('profile-standing-label');
     if (iconEl) {
         // Built from the fixed ROLE_BADGES table; nothing here is user text.
-        iconEl.innerHTML = window.roleIconSvg(role, 'profile-role-icon');
+        iconEl.innerHTML = window.roleIconHTML(role, 'profile-role-icon');
         iconEl.className = `profile-standing-icon profile-standing-${badge.color}`;
     }
     if (labelEl) labelEl.textContent = badge.label;
@@ -2137,7 +2137,7 @@ window.openPublicProfile = async function (userId) {
 
     const standing = p.standing || 'member';
     const badge = window.roleBadge(standing);
-    iconEl.innerHTML = window.roleIconSvg(standing, 'profile-role-icon');
+    iconEl.innerHTML = window.roleIconHTML(standing, 'profile-role-icon');
     iconEl.className = `profile-standing-icon profile-standing-${badge.color}`;
     standingEl.textContent = badge.label;
 
@@ -2747,7 +2747,7 @@ window.initNotifications = async function() {
                     <div style="display: flex; gap: 0.75rem; align-items: center;">
                         ${!n.is_read ? `<span id="notif-dot-${window.escapeHtml(n.id)}" class="status-dot online" style="background: var(--accent-blue); color: var(--accent-blue); width: 8px; height: 8px;"></span>` : ''}
                         <button data-notif-delete="${window.escapeHtml(n.id)}" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0; display:flex; transition:color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text-muted)'" title="Delete">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                            ${window.uiIconHTML('delete')}
                         </button>
                     </div>
                 </div>
@@ -2933,47 +2933,20 @@ window.DISPLAY_NAME_MAX = 32;
 // js/pagebuilder.js:422 - an icon is an identity, not a bar somebody clears.
 // roleMeets would hand the owner the admin's shield, since the owner does meet
 // the admin bar.
+//
+// Each badge's icon is the owner's pixel art (v1.2, window.UI_ICONS in
+// js/site_meta.js), in the badge's color.
 window.ROLE_BADGES = {
-    // OWNER - a crown, redrawn for v0.17. The old one was a zigzag over a
-    // full-height box, which at 1.2rem read as a treasure chest rather than a
-    // crown: the box dominated and the peaks were uneven. Three peaks with real
-    // dips between them, and the band pulled out into a separate thin bar under
-    // the base, so at icon size the silhouette is crown-shaped.
-    owner: {
-        label: 'Owner', color: 'purple', join: true,
-        paths: '<path d="M3 16L5 6.5L9.5 11L12 4.5L14.5 11L19 6.5L21 16Z"></path><path d="M4.5 19.5h15"></path>'
-    },
-    // ADMIN - a shield with a check, new in v0.17 when the role stopped meaning
-    // the owner. Angular rather than the usual curved shield, to sit with the
-    // pencil and the eye rather than against them. The check deliberately echoes
-    // the member badge's: that one is a person plus a check ("you are signed
-    // in"), this is a shield plus a check ("you are the one who approves"),
-    // which is exactly what an admin has that a reviewer does not - force
-    // approve and force reject.
-    admin: {
-        label: 'Admin', color: 'red', join: true,
-        paths: '<path d="M12 2.5L20.5 6.5V12L12 21.5L3.5 12V6.5Z"></path><polyline points="8.5 12.5 11 15 15.5 9.5"></polyline>'
-    },
-    reviewer: {
-        label: 'Reviewer', color: 'blue',
-        paths: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>'
-    },
-    trusted_editor: {
-        label: 'Trusted Editor', color: 'yellow',
-        paths: '<path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>'
-    },
+    owner: { label: 'Owner', color: 'purple', icon: 'role-owner' },
+    admin: { label: 'Admin', color: 'red', icon: 'role-admin' },
+    reviewer: { label: 'Reviewer', color: 'blue', icon: 'role-reviewer' },
+    trusted_editor: { label: 'Trusted Editor', color: 'yellow', icon: 'role-trusted-editor' },
     // Signed in, no role - and also where `viewer` lands. A viewer is a soft
     // ban, and giving it a badge of its own would publish a moderation decision
     // on the person's own profile. get_public_profile() nulls the standing for
     // exactly the same reason.
-    member: {
-        label: 'Member', color: 'green',
-        paths: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline>'
-    },
-    guest: {
-        label: 'Guest', color: 'regular',
-        paths: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>'
-    }
+    member: { label: 'Member', color: 'green', icon: 'role--member' },
+    guest: { label: 'Guest', color: 'regular', icon: 'role--guest' },
 };
 
 // Which badge belongs to a role string. Anything unrecognised falls through to
@@ -2983,14 +2956,9 @@ window.roleBadge = function (roleName) {
     return window.ROLE_BADGES[key] || window.ROLE_BADGES.member;
 };
 
-// Builds the icon markup. `paths` is a fixed string from the table above and is
-// never user-influenced; className is caller-supplied, so it is escaped anyway
-// rather than relying on every future caller passing a literal.
-window.roleIconSvg = function (roleName, className) {
-    const badge = window.roleBadge(roleName);
-    const cls = window.escapeHtml(className || 'dock-role-icon');
-    const join = badge.join ? 'stroke-linejoin="round" ' : '';
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" ${join}stroke-linecap="square" class="${cls}">${badge.paths}</svg>`;
+// A role's icon, for whoever draws a badge (the dock, the profile).
+window.roleIconHTML = function (roleName, className) {
+    return window.uiIconHTML(window.roleBadge(roleName).icon, { className });
 };
 
 // A confirmation in the site's own modal, for code that runs on EVERY page.

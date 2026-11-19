@@ -200,10 +200,9 @@
     box-shadow: 3px 3px 0px var(--manga-shadow);
 }
 
-.profile-role-icon {
-    width: 1.5rem;
-    height: 1.5rem;
-}
+/* The owner's 16px role icon at twice its size, so each pixel is a whole
+   2x2 block. */
+.profile-role-icon { --px-size: 32px; }
 
 /* The badge colours match the sidebar dock's, because they are the same
    identity seen in two places. Keyed by name, never by rank. */
