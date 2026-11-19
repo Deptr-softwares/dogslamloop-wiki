@@ -111,12 +111,18 @@ select.editor-select.manga-initialized {
     transform: translateY(-50%) rotate(180deg);
 }
 
-/* The dropdown menu */
+/* The dropdown menu. At least as wide as its button and as wide as its
+   longest option (capped by the screen): pinned to the button's width, the
+   home page's Archetype list (a button just wide enough for "ALL") cut its
+   options to "M1 Mercha" and "Oppres" (owner's screenshot, 2026-11-20). */
 .manga-select-options {
     position: absolute;
     top: 100%;
     left: 0;
-    right: 0;
+    min-width: 100%;
+    width: max-content;
+    max-width: min(20rem, 90vw);
+    box-sizing: border-box;
     margin-top: 0.5rem;
     background: #0a0a0a;
     border: 2px solid var(--accent-blue);
