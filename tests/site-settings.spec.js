@@ -109,6 +109,33 @@ test('a jump from the contents scrolls instantly with animations off, smoothly w
   expect(await jumpBehaviour()).toBe('auto');
 });
 
+// v1.2: the Classic look (owner, 2026-11-19), one more key in the same store.
+// Picking it repaints the page at once, it is still picked after a reload, and
+// Default takes it back. tests/look-classic.spec.js covers what it looks like.
+test('Look: Classic repaints the page at once and stays after a reload; Default takes it back', async ({ page }) => {
+  const ground = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  await open(page);
+  const usual = await ground();
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#site-setting-look-default')).toBeChecked();
+  await expect(page.locator('#site-setting-look-default')).toBeFocused();
+
+  await page.locator('#site-setting-look-classic').check();
+  await expect(page.locator('html')).toHaveClass(/\blook-classic\b/);
+  expect(await ground()).toBe('rgb(16, 20, 24)');
+  await page.keyboard.press('Escape');
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await expect(page.locator('html')).toHaveClass(/\blook-classic\b/);
+  expect(await ground()).toBe('rgb(16, 20, 24)');
+  await page.locator('#dock-btn-settings').click();
+  await expect(page.locator('#site-setting-look-classic')).toBeChecked();
+
+  await page.locator('#site-setting-look-default').check();
+  await expect(page.locator('html')).not.toHaveClass(/\blook-classic\b/);
+  expect(await ground()).toBe(usual);
+});
+
 test('when the browser blocks saving, the panel says so and the setting still holds on this page', async ({ page }) => {
   await page.addInitScript(() => {
     const real = Storage.prototype.setItem;

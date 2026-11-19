@@ -117,6 +117,23 @@ window.openSiteSettings = function () {
             <div class="modal-box modal-sm accent-blue" role="dialog" aria-modal="true" aria-labelledby="site-settings-title">
                 <div class="modal-header"><h3 id="site-settings-title">SITE SETTINGS</h3></div>
                 <div class="modal-body site-settings-body">
+                    <fieldset class="site-setting-group">
+                        <legend class="site-setting-name">Look</legend>
+                        <label class="site-setting" for="site-setting-look-default">
+                            <input type="radio" name="site-setting-look" id="site-setting-look-default" value="default">
+                            <span class="site-setting-text">
+                                <span class="site-setting-name">Default</span>
+                                <span class="site-setting-hint">The site's usual look.</span>
+                            </span>
+                        </label>
+                        <label class="site-setting" for="site-setting-look-classic">
+                            <input type="radio" name="site-setting-look" id="site-setting-look-classic" value="classic">
+                            <span class="site-setting-text">
+                                <span class="site-setting-name">Classic</span>
+                                <span class="site-setting-hint">A plain, dark wiki look. The editor and staff pages keep the usual look.</span>
+                            </span>
+                        </label>
+                    </fieldset>
                     <label class="site-setting" for="site-setting-motion-off">
                         <input type="checkbox" id="site-setting-motion-off">
                         <span class="site-setting-text">
@@ -141,10 +158,16 @@ window.openSiteSettings = function () {
             const saved = window.siteSettings.set('motionOff', e.target.checked);
             overlay.querySelector('.site-settings-error').hidden = saved;
         });
+        overlay.querySelector('.site-setting-group').addEventListener('change', e => {
+            const saved = window.siteSettings.set('look', e.target.value);
+            overlay.querySelector('.site-settings-error').hidden = saved;
+        });
     }
+    const look = window.siteSettings.get('look') === 'classic' ? 'classic' : 'default';
+    overlay.querySelector(`#site-setting-look-${look}`).checked = true;
     overlay.querySelector('#site-setting-motion-off').checked = window.siteSettings.get('motionOff');
     overlay.classList.remove('hidden');
-    overlay.querySelector('#site-setting-motion-off').focus();
+    overlay.querySelector(`#site-setting-look-${look}`).focus();
 };
 
 const fetchPromiseCache = {};
