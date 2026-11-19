@@ -41,7 +41,49 @@ const STORE = 'https://example.supabase.co/storage/v1/object/public/wiki-media/'
 
 // A real WebM, recorded in the test's own browser: `first` for its opening
 // frames, then `rest`. The still has to be `first`.
-async function recordClip(page, { width, height, first, rest }) {
+//
+// On a busy runner the recorder could miss the opening frames, and then a
+// still that is not `first` would say nothing about the script (this test
+// passed only on a retry once, on PR #284's CI, and no cause was found). So a
+// clip is checked before it is used, drawn half a second after it loads, when
+// its first frame is surely there, and recorded again if it does not start
+// with `first`. A wrong still is then the script's doing, never the clip's.
+async function recordClip(page, opts) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        const clip = await recordOnce(page, opts);
+        const start = await firstFrameOf(page, clip);
+        if (near(start, opts.first)) return clip;
+        console.log(`recordClip: attempt ${attempt} starts ${JSON.stringify(start)}, not ${opts.first}; recording again`);
+    }
+    throw new Error(`the browser could not record a clip that starts ${opts.first}`);
+}
+
+// Within what VP8's compression moves a flat color.
+const near = (px, hex) => [1, 3, 5].every((i, k) => Math.abs(parseInt(hex.slice(i, i + 2), 16) - [px.r, px.g, px.b][k]) < 80);
+
+async function firstFrameOf(page, buf) {
+    return page.evaluate(async (b64) => {
+        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const src = URL.createObjectURL(new Blob([bytes], { type: 'video/webm' }));
+        const video = document.createElement('video');
+        video.muted = true;
+        video.preload = 'auto';
+        await new Promise((resolve, reject) => {
+            video.addEventListener('loadeddata', resolve, { once: true });
+            video.addEventListener('error', () => reject(new Error('the recorded clip does not decode')), { once: true });
+            video.src = src;
+        });
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const canvas = new OffscreenCanvas(video.videoWidth, video.videoHeight);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+        const [r, g, b] = ctx.getImageData(Math.floor(canvas.width / 2), Math.floor(canvas.height / 2), 1, 1).data;
+        URL.revokeObjectURL(src);
+        return { r, g, b };
+    }, buf.toString('base64'));
+}
+
+async function recordOnce(page, { width, height, first, rest }) {
     const b64 = await page.evaluate(async ({ width, height, first, rest }) => {
         const canvas = document.createElement('canvas');
         canvas.width = width;
@@ -81,8 +123,9 @@ async function lookAt(page, buf) {
         const canvas = new OffscreenCanvas(bmp.width, bmp.height);
         const ctx = canvas.getContext('2d');
         ctx.drawImage(bmp, 0, 0);
-        const [r, g, b] = ctx.getImageData(Math.floor(bmp.width / 2), Math.floor(bmp.height / 2), 1, 1).data;
-        return { width: bmp.width, height: bmp.height, r, g, b };
+        // The alpha too: a still drawn before its frame was there is see-through.
+        const [r, g, b, a] = ctx.getImageData(Math.floor(bmp.width / 2), Math.floor(bmp.height / 2), 1, 1).data;
+        return { width: bmp.width, height: bmp.height, r, g, b, a };
     }, buf.toString('base64'));
 }
 const isRed = (px) => px.r > 180 && px.g < 90 && px.b < 90;
@@ -175,8 +218,12 @@ test('the job saves each video\'s first frame and its size, and the next night f
         expect(isRed(wideStill), `the first frame (red), not a later one: ${JSON.stringify(wideStill)}`).toBe(true);
         const tallStill = await lookAt(page, s.still(list['tall.webm']));
         expect([tallStill.width, tallStill.height]).toEqual([360, 640]);
-        expect(isBlue(tallStill), JSON.stringify(tallStill)).toBe(true);
-        expect(isRed(await lookAt(page, s.still(list['late-index.webm'])))).toBe(true);
+        expect(isBlue(tallStill), `the first frame (blue), not a later one: ${JSON.stringify(tallStill)}`).toBe(true);
+        // The one that once passed only on a retry: what it saw, if it fails
+        // again. Its clip is checked to start red, so see-through (a: 0) means
+        // the script drew too early, and green that it drew a later frame.
+        const lateStill = await lookAt(page, s.still(list['late-index.webm']));
+        expect(isRed(lateStill), `the first frame (red), not a later one: ${JSON.stringify(lateStill)}`).toBe(true);
 
         // The start only, except for the one whose start cannot be decoded.
         const gets = (url) => first.requests.filter((r) => r.url === url && r.method === 'GET');
@@ -198,7 +245,8 @@ test('the job saves each video\'s first frame and its size, and the next night f
         const tallBytes = s.still(list['tall.webm']);
         const third = s.run();
         expect(third.stdout).toContain('1 made, 2 unchanged');
-        expect(isBlue(await lookAt(page, s.still(s.list()['My Clip.webm'])))).toBe(true);
+        const replaced = await lookAt(page, s.still(s.list()['My Clip.webm']));
+        expect(isBlue(replaced), `the new clip's first frame (blue): ${JSON.stringify(replaced)}`).toBe(true);
         expect(s.list()['My Clip.webm'].etag).toBe('"w2"');
         expect(Buffer.compare(s.still(s.list()['tall.webm']), tallBytes)).toBe(0);
 
