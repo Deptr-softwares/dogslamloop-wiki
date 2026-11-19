@@ -528,10 +528,12 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
             const bData = block.data || block; 
             
             const intentMap = {
-                'tip': { color: '#facc15', icon: '💡', label: 'TIP' },
-                'warning': { color: '#fb923c', icon: '⚠️', label: 'WARNING' },
-                'danger': { color: '#ef4444', icon: '🚨', label: 'DANGER' },
-                'info': { color: '#22d3ee', icon: '📌', label: 'INFO' }
+                // Typed in normal case: the default look shows them in capitals
+                // (.inline-callout-btn), the Classic look as written.
+                'tip': { color: '#facc15', icon: '💡', label: 'Tip' },
+                'warning': { color: '#fb923c', icon: '⚠️', label: 'Warning' },
+                'danger': { color: '#ef4444', icon: '🚨', label: 'Danger' },
+                'info': { color: '#22d3ee', icon: '📌', label: 'Info' }
             };
             const config = intentMap[bData.intent] || intentMap['info'];
             // Same escape-then-join rule as paragraphs. config.color comes from

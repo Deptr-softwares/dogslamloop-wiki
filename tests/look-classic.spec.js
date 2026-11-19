@@ -322,6 +322,67 @@ test('pop-ups are one plain box with the title as written', async ({ page }) => 
     expect(await open()).toEqual({ title: 'Site settings', top: 'rgb(84, 89, 93)', topWidth: '1px', rise: 'none' });
 });
 
+// --- ROUND 3 (owner, 2026-11-20): "custom build blocks such as callout and
+// dropdown could get its own version in the classic look as well." ---
+
+test('content blocks are plain in Classic: callout, dropdown, boxed list, Section Box, tooltip', async ({ page }) => {
+    const render = () => page.evaluate(() => {
+        const host = document.createElement('section');
+        host.className = 'wiki-section';
+        host.innerHTML = window.generateHTMLForBlocks([
+            { type: 'callout', intent: 'tip', title: 'Why', content: 'No audio cue.' },
+            { type: 'accordion', title: 'More about air combos', content: [{ type: 'paragraph', content: ['Inside.'] }] },
+            { type: 'list', items: ['Get up Theory'], boxed: true },
+            { type: 'sectionedbox', title: 'Wakeup', sections: [{ title: 'First hit', content: [] }, { title: 'Second hit', content: [] }] },
+        ], '');
+        document.querySelector('main').prepend(host);
+        if (typeof window.initTooltip === 'function') window.initTooltip();
+        const cs = (sel) => getComputedStyle(host.querySelector(sel) || document.querySelector(sel));
+        const callout = host.querySelector('.inline-callout-btn');
+        return {
+            calloutLabel: callout.innerText.trim().replace(/^\S+\s*/, ''),
+            calloutShadow: cs('.inline-callout-btn').boxShadow,
+            calloutTop: cs('.inline-callout-btn').borderTopWidth,
+            calloutEdge: cs('.inline-callout-btn').borderLeftWidth,
+            summaryCase: cs('.wiki-accordion-summary').textTransform,
+            summaryColour: cs('.wiki-accordion-summary').color,
+            listBorder: cs('.wiki-block-list-boxed').borderTopWidth,
+            tabCase: cs('.sbox-tab').textTransform,
+            activeTab: cs('.sbox-tab.is-active').color,
+            tooltipBorder: getComputedStyle(document.getElementById('wiki-frame-tooltip')).borderTopWidth,
+        };
+    });
+    await boot(page, 'default');
+    const usual = await render();
+    expect(usual.calloutLabel, 'Default still shows the label in capitals').toBe('TIP');
+    expect(usual.calloutShadow).not.toBe('none');
+    expect(usual.tooltipBorder).toBe('2px');
+
+    await boot(page, 'classic');
+    expect(await render()).toEqual({
+        calloutLabel: 'Tip', calloutShadow: 'none', calloutTop: '1px', calloutEdge: '3px',
+        summaryCase: 'none', summaryColour: 'rgb(234, 236, 240)', listBorder: '1px',
+        tabCase: 'none', activeTab: 'rgb(255, 255, 255)', tooltipBorder: '1px',
+    });
+    // Nothing moves under the pointer.
+    await page.hover('.inline-callout-btn');
+    expect(await page.evaluate(() => getComputedStyle(document.querySelector('.inline-callout-btn')).transform)).toBe('none');
+});
+
+test('the site\'s dropdown is a plain box in Classic', async ({ page }) => {
+    await boot(page, 'classic', '/characters/index.html');
+    await page.locator('#filter-archetype + .manga-select-wrapper .manga-select-trigger').click();
+    const list = page.locator('#filter-archetype + .manga-select-wrapper .manga-select-options');
+    await expect(list).toBeVisible();
+    const d = await list.evaluate((el) => {
+        const cs = getComputedStyle(el);
+        const trigger = getComputedStyle(el.parentElement.querySelector('.manga-select-trigger'));
+        const option = getComputedStyle(el.querySelector('.manga-option'));
+        return { shadow: cs.boxShadow, top: cs.borderTopWidth, rise: cs.animationName, buttonShadow: trigger.boxShadow, buttonLift: trigger.transform, rule: option.borderBottomWidth };
+    });
+    expect(d).toEqual({ shadow: 'none', top: '1px', rise: 'none', buttonShadow: 'none', buttonLift: 'none', rule: '0px' });
+});
+
 test('the editor keeps the default look even with Classic picked', async ({ page }) => {
     await boot(page, 'classic', '/edit.html');
     // The class follows the setting everywhere; the stylesheet is what is

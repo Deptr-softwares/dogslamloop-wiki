@@ -212,8 +212,45 @@ html.look-classic .modal-box {
 html.look-classic .modal-box .modal-header h3 { color: var(--text-primary); font-family: var(--font-title), serif; font-weight: normal; letter-spacing: 0; }
 html.look-classic .modal-footer { border-top-style: solid; }
 
+/* Content blocks (owner, 2026-11-20: "custom build blocks such as callout
+   and dropdown could get its own version"): thin rules, no shadow, nothing
+   that moves. A callout keeps its colour as a left edge, which says what kind
+   it is. */
+html.look-classic .inline-callout-btn {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-left: 3px solid var(--callout-color, var(--accent-blue));
+    box-shadow: none;
+    font-size: 0.85rem;
+    font-weight: normal;
+}
+html.look-classic .inline-callout-btn:hover {
+    border-color: var(--border-color);
+    border-left-color: var(--callout-color, var(--accent-blue));
+    color: var(--text-white);
+    transform: none;
+    box-shadow: none;
+}
+html.look-classic .wiki-accordion-summary { color: var(--text-primary); font-size: 0.9rem; background: var(--bg-secondary); }
+html.look-classic .wiki-accordion-body { background: none; border-top-style: solid; }
+html.look-classic .sbox-boxed,
+html.look-classic .wiki-block-list-boxed { border-width: 1px; box-shadow: none; }
+html.look-classic .sbox-tabs { border-bottom-width: 1px; }
+html.look-classic .sbox-tab { font-size: 0.8rem; letter-spacing: 0; }
+html.look-classic .sbox-tab.is-active { color: var(--text-white); border-color: var(--text-primary); }
+/* The hover tooltip draws its own border inline (js/site_utils.js). */
+html.look-classic #wiki-frame-tooltip { border-width: 1px !important; }
+
+/* The site's dropdown: a plain box like a browser's own. */
+html.look-classic .manga-select-trigger { border-color: var(--border-color); background: var(--bg-secondary); box-shadow: none; }
+html.look-classic :is(.manga-select-trigger:hover, .manga-select-wrapper.open .manga-select-trigger) { transform: none; box-shadow: none; border-color: var(--text-muted); }
+html.look-classic .manga-select-wrapper .manga-select-options { border: 1px solid var(--border-color); box-shadow: none; animation: none; background: var(--bg-main); }
+html.look-classic .manga-option { border-bottom: 0; }
+html.look-classic .manga-option:hover { padding-left: 0.75rem; font-weight: normal; }
+html.look-classic .manga-option.selected { border-left: 0; font-weight: bold; }
+
 /* Words the default look writes in capitals read as written. */
-html.look-classic :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .modal-header h3, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav) {
+html.look-classic :is(.btn-sys, .btn-manga, .filter-toggle, .playstyle-header, .modal-header h3, .sidebar-master-title, .sidebar-nav-title, .profile-trivia-title, .profile-pager-title, .update-table th, .wiki-video-btn, .local-sidebar-right .btn-nav, .inline-callout-btn, .callout-tooltip-title, .callout-tooltip-desc, .wiki-accordion-summary, .sbox-title, .sbox-tab, .manga-select-trigger, .manga-option) {
     text-transform: none;
     font-family: Arial, Helvetica, sans-serif;
 }
