@@ -41,6 +41,12 @@
     
     --text-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     --manga-shadow: #000000;
+
+    /* The two display faces, named once so a look can swap them
+       (style/look-classic.css). Every rule that uses one keeps its own
+       fallbacks after the variable: font-family: var(--font-label), sans-serif. */
+    --font-title: 'Finger-Paint';
+    --font-label: 'CC-Wild-Words';
 }
 
 body {
@@ -86,7 +92,7 @@ body {
 }
 
 .site-title, .character-title {
-    font-family: 'Finger-Paint', 'Impact', sans-serif;
+    font-family: var(--font-title), 'Impact', sans-serif;
     color: var(--text-white);
     letter-spacing: 0.05em; 
     text-decoration: none;
@@ -160,7 +166,7 @@ body {
 
 /* --- GLOBAL TYPOGRAPHY --- */
 .section-title {
-    font-family: 'Finger-Paint', sans-serif;
+    font-family: var(--font-title), sans-serif;
     font-size: 1.5rem;
     color: var(--accent-blue);
     margin-bottom: 1.5rem;

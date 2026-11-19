@@ -98,7 +98,7 @@
 
 /* Internal Card Elements */
 .roster-card-text {
-    font-family: 'Finger-Paint', sans-serif; font-size: 0.65rem; color: var(--text-white);
+    font-family: var(--font-title), sans-serif; font-size: 0.65rem; color: var(--text-white);
     text-align: center; line-height: 1.1; word-wrap: break-word; transition: transform 0.2s;
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 2px 2px 0px rgba(0,0,0,0.8);
     position: relative; z-index: 2; width: 100%; white-space: normal; padding: 0 0.25rem; font-weight: bold;
@@ -250,7 +250,7 @@
    Overseer and history.html draw it too. */
 .collaborator-grid { margin-bottom: 1rem; }
 .collaborator-card { padding: 1.5rem; }
-.collaborator-name { margin: 0 0 0.25rem 0; font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; color: var(--text-white); }
+.collaborator-name { margin: 0 0 0.25rem 0; font-family: var(--font-label), sans-serif; font-size: 1rem; color: var(--text-white); }
 /* A long tag wraps inside its card instead of running past the edge, as the
    old page's "Lead Developer and Owner" did. Scoped here: .update-badge is the
    Update Log's too, where it must stay on one line. */
@@ -267,7 +267,7 @@
    heading rather than a bullet pretending to be one. Entries written before
    this carry no headings and render as one unheaded list, unchanged. */
 .update-changes-heading {
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -301,7 +301,7 @@
 .roster-banner-band { height: 6px; background: var(--banner-color, var(--border-color)); }
 .roster-banner-body { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.6rem 0.75rem 0.7rem; }
 .roster-banner-name {
-    font-family: 'Finger-Paint', sans-serif; font-size: 1.05rem; line-height: 1.15;
+    font-family: var(--font-title), sans-serif; font-size: 1.05rem; line-height: 1.15;
     color: var(--text-white); text-shadow: 2px 2px 0 var(--manga-shadow);
 }
 .roster-banner-overview { margin: 0; color: var(--text-primary); font-size: 0.8rem; line-height: 1.45; }

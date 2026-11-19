@@ -190,6 +190,40 @@ test('the roster filters use the wiki dropdown, not the operating system one', a
     expect(styled).not.toBe('none');
 });
 
+// v1.2 (owner's screenshot, 2026-11-20): the open list was pinned to its
+// button, which is only as wide as "ALL", so the names were cut to "M1
+// Mercha" and "Oppres", and "In n Out" broke over three lines.
+test('an open Archetype list shows every name whole, on one line', async ({ page }) => {
+    await mockNav(page, { Characters: [
+        { id: 'A', name: 'Alpha', url: 'characters/Alpha/index.html', archetype: 'M1 Merchant', cms_config: { pageType: 'character', pageId: 'alpha' } },
+        { id: 'B', name: 'Beta', url: 'characters/Beta/index.html', archetype: 'Oppressor', cms_config: { pageType: 'character', pageId: 'beta' } },
+        { id: 'C', name: 'Gamma', url: 'characters/Gamma/index.html', archetype: 'In n Out', cms_config: { pageType: 'character', pageId: 'gamma' } },
+    ] });
+    await page.goto('/characters/index.html', { waitUntil: 'networkidle' });
+    await page.locator('#filter-archetype + .manga-select-wrapper .manga-select-trigger').click();
+    const list = page.locator('#filter-archetype + .manga-select-wrapper .manga-select-options');
+    await expect(list).toBeVisible();
+
+    const m = await list.evaluate((el) => {
+        const trigger = el.parentElement.querySelector('.manga-select-trigger').getBoundingClientRect();
+        const opts = [...el.querySelectorAll('.manga-option')];
+        const line = parseFloat(getComputedStyle(opts[0]).lineHeight) || 20;
+        return {
+            names: opts.map(o => o.textContent.trim()),
+            cut: opts.filter(o => o.scrollWidth > o.clientWidth + 1).map(o => o.textContent.trim()),
+            heights: opts.map(o => o.getBoundingClientRect().height),
+            asWide: el.getBoundingClientRect().width >= trigger.width - 0.5,
+            line,
+        };
+    });
+    expect(m.names).toEqual(expect.arrayContaining(['M1 Merchant', 'Oppressor', 'In n Out']));
+    expect(m.cut, 'no name is cut').toEqual([]);
+    // The last option has no bottom border, so 1px apart is still one line;
+    // a second line adds a whole line height.
+    expect(Math.max(...m.heights) - Math.min(...m.heights), 'every option is one line').toBeLessThanOrEqual(1);
+    expect(m.asWide, 'never narrower than its button').toBe(true);
+});
+
 // Driving the real control. A dropdown that renders and does not filter is
 // worse than the native one it replaced, and the widget dispatches its own
 // synthetic change event - which is exactly the kind of wiring that breaks

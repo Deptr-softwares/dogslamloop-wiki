@@ -17,6 +17,11 @@
     <link rel="stylesheet" href="style/Modals.css">
     <link rel="stylesheet" href="style/Forms.css">
     <link rel="stylesheet" href="style/RecentChanges.css">
+    <link rel="stylesheet" href="style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 </head>
 <body class="site-body p-0">
 
@@ -81,13 +86,13 @@
     </div>
 
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/character_tabs.js?v=3a322c7e"></script>
-    <script src="js/input_slots.js?v=3a322c7e"></script>
-    <script src="js/site_utils.js?v=3a322c7e"></script>
-    <script src="js/site_meta.js?v=3a322c7e"></script>
-    <script src="js/pagebuilder.js?v=3a322c7e"></script>
-    <script src="js/search.js?v=3a322c7e"></script>
-    <script src="js/recent-changes.js?v=3a322c7e"></script>
-    <script async src="js/analytics.js?v=3a322c7e"></script>
+    <script src="js/character_tabs.js?v=3f59591a"></script>
+    <script src="js/input_slots.js?v=3f59591a"></script>
+    <script src="js/site_utils.js?v=3f59591a"></script>
+    <script src="js/site_meta.js?v=3f59591a"></script>
+    <script src="js/pagebuilder.js?v=3f59591a"></script>
+    <script src="js/search.js?v=3f59591a"></script>
+    <script src="js/recent-changes.js?v=3f59591a"></script>
+    <script async src="js/analytics.js?v=3f59591a"></script>
 </body>
 </html>

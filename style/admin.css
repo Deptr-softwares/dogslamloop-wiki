@@ -77,7 +77,7 @@
 
 /* --- SIDEBAR TABLE OF CONTENTS --- */
 #preview-nav-sidebar .sidebar-nav-title {
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 0.7rem; 
     color: var(--accent-blue);
     text-transform: uppercase;
@@ -707,7 +707,7 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 }
 .ticket-left-col { flex: 1; border-right: 1px solid #333; padding-right: 2rem; display: flex; flex-direction: column; }
 .ticket-right-col { flex: 2; display: flex; flex-direction: column; }
-.ticket-header-title { margin: 0 0 0.75rem 0; font-size: 0.85rem; font-family: 'CC-Wild-Words', sans-serif; }
+.ticket-header-title { margin: 0 0 0.75rem 0; font-size: 0.85rem; font-family: var(--font-label), sans-serif; }
 .ticket-header-title.status { color: #eab308; }
 .ticket-header-title.log { color: var(--accent-blue); }
 .ticket-header-title.qa { color: #3b82f6; }
@@ -748,14 +748,14 @@ body.sbs-active #preview-content-area { max-width: none; }
 
 /* --- ACCESS DENIED (js/admin-core.js kickUser, also js/owner.js) --- */
 .access-denied-screen { height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; flex-direction: column; background: #050505; }
-.access-denied-title { color: #ef4444; font-family: 'CC-Wild-Words', sans-serif; }
+.access-denied-title { color: #ef4444; font-family: var(--font-label), sans-serif; }
 
 /* --- QUEUE LOADING / ERROR / EMPTY STATES (js/admin-queue.js loadQueue) --- */
 .admin-error-text { color: #ef4444; font-size: 0.75rem; }
 .admin-queue-empty-msg { border: 1px dashed #333; padding: 1.5rem 1rem; font-size: 0.7rem; }
 
 /* --- QUEUE GROUP HEADER --- */
-.admin-queue-group-title { font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; color: var(--text-white); margin: 0; text-transform: uppercase; }
+.admin-queue-group-title { font-family: var(--font-label), sans-serif; font-size: 1rem; color: var(--text-white); margin: 0; text-transform: uppercase; }
 .admin-merge-btn { font-size: 0.65rem; padding: 0.3rem 0.6rem; }
 
 /* --- QUEUE STATUS BADGES --- */
@@ -902,7 +902,7 @@ body.sbs-active #preview-content-area { max-width: none; }
    redesign - browse + restore past live versions) --- */
 .page-history-card { margin-bottom: 1rem; border-left: 4px solid var(--accent-yellow); }
 .page-history-card-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
-.page-history-card-title { margin: 0; color: var(--text-white); font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; }
+.page-history-card-title { margin: 0; color: var(--text-white); font-family: var(--font-label), sans-serif; font-size: 1rem; }
 .page-history-card-editor { font-size: 0.75rem; color: var(--text-muted); font-family: var(--text-mono); margin-top: 0.25rem; }
 .page-history-card-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .page-history-diff { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border-color); }
@@ -915,7 +915,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 .compiler-select { margin-bottom: 0; border-color: #a855f7; background: rgba(168,85,247,0.1); color: #fff; font-weight: bold; }
 .compiler-discard-option { color: #888; font-weight: normal; }
 .compiler-conflict-card { background: rgba(255,255,255,0.02); border: 1px solid #333; padding: 0.75rem; margin-bottom: 0.75rem; border-left: 3px solid #a855f7; }
-.compiler-conflict-title { font-family: 'CC-Wild-Words', sans-serif; font-size: 0.8rem; color: #fff; margin-bottom: 0.5rem; text-transform: uppercase; }
+.compiler-conflict-title { font-family: var(--font-label), sans-serif; font-size: 0.8rem; color: #fff; margin-bottom: 0.5rem; text-transform: uppercase; }
 #btn-compiler-confirm:disabled { opacity: 0.5; }
 .version-toggle-btn { font-size: 0.7rem; padding: 0.5rem 1.25rem; }
 /* --- PER-USER CAPABILITIES (js/owner.js loadPersonnel) --- */

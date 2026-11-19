@@ -560,7 +560,7 @@ window.initAuthDock = async function() {
         html += `
             <button id="dock-btn-edit" class="btn-sys btn-sys-purple dock-action-btn" onclick="window.location.href='${rootPath}admin.html'">
                 <span class="btn-manga-icon dock-action-icon">${svgGear}</span>
-                <span class="btn-manga-text dock-action-text">OVERSEER</span>
+                <span class="btn-manga-text dock-action-text">Overseer</span>
             </button>`;
     }
 
@@ -570,7 +570,7 @@ window.initAuthDock = async function() {
         html += `
             <button id="dock-btn-inbox" class="btn-sys btn-sys-blue dock-action-btn dock-btn-inbox">
                 <span class="btn-manga-icon dock-action-icon">${svgMail}</span>
-                <span class="btn-manga-text dock-action-text">INBOX</span>
+                <span class="btn-manga-text dock-action-text">Inbox</span>
                 ${badgeHtml}
             </button>`;
     }
@@ -581,7 +581,7 @@ window.initAuthDock = async function() {
         html += `
             <button id="dock-btn-submissions" class="btn-sys btn-sys-regular dock-action-btn" onclick="window.location.href='${rootPath}submissions.html'">
                 <span class="btn-manga-icon dock-action-icon">${svgSubmissions}</span>
-                <span class="btn-manga-text dock-action-text">MY SUBMISSIONS</span>
+                <span class="btn-manga-text dock-action-text">My submissions</span>
             </button>`;
     }
 
@@ -594,7 +594,7 @@ window.initAuthDock = async function() {
         <div class="dock-auth-row">
             <button id="dock-btn-auth" class="btn-sys ${dynamicColorClass} dock-action-btn">
                 <span class="btn-manga-icon dock-action-icon">${loginIcon}</span>
-                <span class="btn-manga-text dock-action-text">${username.toUpperCase()}</span>
+                <span class="btn-manga-text dock-action-text">${username === 'LOGIN' ? 'Login' : window.escapeHtml(username)}</span>
             </button>
             <button type="button" id="dock-btn-settings" class="btn-sys btn-sys-regular dock-settings-btn" title="Site settings" aria-label="Site settings">
                 <span class="btn-manga-icon dock-action-icon">${svgSliders}</span>

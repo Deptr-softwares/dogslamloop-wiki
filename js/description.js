@@ -213,13 +213,13 @@ window.generatePlaystyleHTML = function(playstyle) {
     return `
         <div class="playstyle-container">
             <div class="playstyle-col likes">
-                <h4 class="playstyle-header">PICK IF YOU LIKE</h4>
+                <h4 class="playstyle-header">Pick if you like</h4>
                 <ul class="playstyle-list">
                     ${renderList(playstyle.likes || [], '✓', 'likes')}
                 </ul>
             </div>
             <div class="playstyle-col dislikes">
-                <h4 class="playstyle-header">AVOID IF YOU DISLIKE</h4>
+                <h4 class="playstyle-header">Avoid if you dislike</h4>
                 <ul class="playstyle-list">
                     ${renderList(playstyle.dislikes || [], '✖', 'dislikes')}
                 </ul>
@@ -528,10 +528,12 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
             const bData = block.data || block; 
             
             const intentMap = {
-                'tip': { color: '#facc15', icon: '💡', label: 'TIP' },
-                'warning': { color: '#fb923c', icon: '⚠️', label: 'WARNING' },
-                'danger': { color: '#ef4444', icon: '🚨', label: 'DANGER' },
-                'info': { color: '#22d3ee', icon: '📌', label: 'INFO' }
+                // Typed in normal case: the default look shows them in capitals
+                // (.inline-callout-btn), the Classic look as written.
+                'tip': { color: '#facc15', icon: '💡', label: 'Tip' },
+                'warning': { color: '#fb923c', icon: '⚠️', label: 'Warning' },
+                'danger': { color: '#ef4444', icon: '🚨', label: 'Danger' },
+                'info': { color: '#22d3ee', icon: '📌', label: 'Info' }
             };
             const config = intentMap[bData.intent] || intentMap['info'];
             // Same escape-then-join rule as paragraphs. config.color comes from
@@ -2556,7 +2558,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
 // the connection, and a 0.31 MB clip waited 4.9s behind a 4.24 MB one. 11 of
 // 26 were still blank two seconds after scrolling into view, on desktop too.
 //
-// So an autoplaying clip now joins a queue two screens ahead of the reader,
+// So an autoplaying clip now joins a queue one screen ahead of the reader,
 // two start at a time, the clip nearest the screen always goes next, and a
 // loop plays only while it is on screen. A clip hands its turn on once it can
 // play through, not once its last byte lands, so the browser may still be
@@ -2572,7 +2574,11 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
 // render, the editor's preview renders on every keystroke, and observing an
 // element twice is a no-op, so a second call costs nothing.
 const CLIP_SLOTS = 2;
-const CLIP_AHEAD_MARGIN = '200% 0px';
+// Two screens until 2026-11-19, when cached egress stood at 155 of the plan's
+// 250 GB 16 days into the month. Clips are the heaviest thing a page fetches
+// from Storage, and a clip two screens down is often one the reader never
+// scrolls to.
+const CLIP_AHEAD_MARGIN = '100% 0px';
 // A slot is freed when the browser can play the clip through, stops fetching
 // it, or fails. A clip that does none of those in this long stops holding the
 // queue up, so one stalled download cannot stop every clip below it.
@@ -2622,7 +2628,7 @@ function startClip(video) {
     clipLoading.set(video, setTimeout(free, CLIP_SLOT_TIMEOUT_MS));
 
     // From here the queue decides when the clip plays, not the attribute:
-    // autoplay would start a loop two screens down that nobody is watching.
+    // autoplay would start a loop a screen down that nobody is watching.
     // preload="auto" because without autoplay, "none" fetches nothing until
     // play() is called on screen, which is the wait this exists to remove.
     video.autoplay = false;
@@ -2653,7 +2659,7 @@ function pumpClipQueue() {
     }
 }
 
-// Membership of the queue is "within two screens and not started". A clip the
+// Membership of the queue is "within a screen and not started". A clip the
 // reader scrolled far past leaves it, rather than downloading later for
 // nobody.
 function onClipAhead(entries) {

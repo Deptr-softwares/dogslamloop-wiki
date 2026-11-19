@@ -119,7 +119,7 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
     color: var(--manga-text);
     border: 2px solid var(--manga-border);
     padding: 0.35rem 0.75rem;
-    font-family: 'Finger-Paint', sans-serif;
+    font-family: var(--font-title), sans-serif;
     font-size: 0.75rem;
     text-transform: uppercase;
     white-space: nowrap;
