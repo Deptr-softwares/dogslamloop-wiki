@@ -343,7 +343,11 @@ test('quote, speaker and trivia are shown as text, never as markup', async ({ pa
   const term = section(page).locator('.profile-trivia-term');
   expect(await term.evaluate(t => t.firstChild.textContent)).toBe('<b>term</b>');
   expect(await term.locator('.profile-trivia-tip').evaluate(t => t.textContent)).toBe('<img src=x onerror="window.__PWN=1">tip');
-  expect(await section(page).locator('img, b, script').count()).toBe(0);
+  // Counted in the quote and trivia, where the hostile text is. Character
+  // Navigation under them draws its neighbors' icons, and a made-up
+  // character's is an <img> until its 404 comes back: on a busy runner the
+  // count saw one (PR #284's CI, passed on the retry).
+  expect(await section(page).locator('.profile-quote, .profile-trivia').locator('img, b, script').count()).toBe(0);
   expect(await page.evaluate(() => window.__PWN)).toBeUndefined();
 });
 
