@@ -184,6 +184,11 @@ ${social}
     <link rel="stylesheet" href="../../style/discussions.css">
 
     <link rel="stylesheet" href="../../style/Layout.css">
+    <link rel="stylesheet" href="../../style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 
 
     <script>window.PAGE_ROUTE = { pageId: "${pageId}", pageType: "character", title: "${title}" };</script>
@@ -243,6 +248,11 @@ ${social}
          system and others/ stubs rendered the login form as bare browser
          inputs. See tests/modal-stylesheets.spec.js. -->
     <link rel="stylesheet" href="../../style/Forms.css">
+    <link rel="stylesheet" href="../../style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 
 
     <script>window.PAGE_ROUTE = { pageId: "${pageId}", pageType: "system", title: "${title}" };</script>
@@ -303,6 +313,11 @@ ${social}
     <link rel="stylesheet" href="../../style/Alerts.css">
     <link rel="stylesheet" href="../../style/Modals.css">
     <link rel="stylesheet" href="../../style/Forms.css">${extraStyles}
+    <link rel="stylesheet" href="../../style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 
 
     <script>window.PAGE_ROUTE = { pageId: "${pageId}", pageType: "${pageType}", title: "${title}" };</script>

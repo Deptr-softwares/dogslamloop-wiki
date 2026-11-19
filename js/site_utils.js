@@ -15,7 +15,10 @@
 // First in the file so the class is on before anything starts moving.
 (function () {
     const STORE_KEY = 'dsl_site_settings';
-    const DEFAULTS = Object.freeze({ motionOff: false });
+    // look: 'default' or 'classic' (v1.2). html.look-classic does nothing on a
+    // page that does not load style/look-classic.css, which is how the editor
+    // and staff pages keep the default look.
+    const DEFAULTS = Object.freeze({ motionOff: false, look: 'default' });
 
     function readStore() {
         try {
@@ -40,6 +43,7 @@
     function apply() {
         document.documentElement.classList.toggle('reduce-motion',
             get('motionOff') || !!(deviceReduce && deviceReduce.matches));
+        document.documentElement.classList.toggle('look-classic', get('look') === 'classic');
     }
 
     // Returns whether the value was saved, so the panel can say when it was

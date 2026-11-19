@@ -38,6 +38,11 @@
 
     <!-- 3. PAGE LAYOUT -->
     <link rel="stylesheet" href="style/Layout.css">
+    <link rel="stylesheet" href="style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 
     <meta http-equiv="Content-Security-Policy" content="
     default-src 'self'; 
@@ -297,22 +302,22 @@
          them too. -->
     <script defer src="js/vendor/supabase-js-2.118.0.js"></script>
 
-    <script defer src="js/site_meta.js?v=91c084bb"></script>
-    <script defer src="js/character_tabs.js?v=91c084bb"></script>
-    <script defer src="js/input_slots.js?v=91c084bb"></script>
-    <script defer src="js/site_utils.js?v=91c084bb"></script>
-    <script defer src="js/home_widgets.js?v=91c084bb"></script>
-    <script defer src="js/pagebuilder.js?v=91c084bb"></script>
-    <script defer src="js/search.js?v=91c084bb"></script>
+    <script defer src="js/site_meta.js?v=39c31e9d"></script>
+    <script defer src="js/character_tabs.js?v=39c31e9d"></script>
+    <script defer src="js/input_slots.js?v=39c31e9d"></script>
+    <script defer src="js/site_utils.js?v=39c31e9d"></script>
+    <script defer src="js/home_widgets.js?v=39c31e9d"></script>
+    <script defer src="js/pagebuilder.js?v=39c31e9d"></script>
+    <script defer src="js/search.js?v=39c31e9d"></script>
     <!-- The homepage post widget lists posts only (escaped title/summary/date)
          and needs neither of these. The About Us section does: it renders
          authored blocks through generateHTMLForBlocks, which lives in
          description.js and relies on internalstyling.js for inline markup. -->
-    <script defer src="js/description.js?v=91c084bb"></script>
-    <script defer src="js/internalstyling.js?v=91c084bb"></script>
-    <script defer src="js/posts.js?v=91c084bb"></script>
-    <script defer src="js/hub_content.js?v=91c084bb"></script>
-    <script async src="js/analytics.js?v=91c084bb"></script>
+    <script defer src="js/description.js?v=39c31e9d"></script>
+    <script defer src="js/internalstyling.js?v=39c31e9d"></script>
+    <script defer src="js/posts.js?v=39c31e9d"></script>
+    <script defer src="js/hub_content.js?v=39c31e9d"></script>
+    <script async src="js/analytics.js?v=39c31e9d"></script>
 
     <!-- A module rather than a plain script since v1.2: a module waits in the
          same queue as the deferred scripts above, so it still runs after them

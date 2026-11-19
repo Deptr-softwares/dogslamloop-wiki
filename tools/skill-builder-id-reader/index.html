@@ -27,6 +27,11 @@
     <link rel="stylesheet" href="../../style/Alerts.css">
     <link rel="stylesheet" href="../../style/Modals.css">
     <link rel="stylesheet" href="../../style/Forms.css">
+    <link rel="stylesheet" href="../../style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 
 
     <script>window.PAGE_ROUTE = { pageId: "skill_builder_id_reader", pageType: "tool", title: "Skill Builder ID Reader" };</script>
@@ -35,20 +40,20 @@
 
     <!-- Must precede page_router.js: it builds the tab strip from this
          vocabulary, synchronously, before site_utils.js has loaded. -->
-    <script src="../../js/character_tabs.js?v=91c084bb"></script>
-    <script src="../../js/input_slots.js?v=91c084bb"></script>
-    <script src="../../js/page_router.js?v=91c084bb"></script>
+    <script src="../../js/character_tabs.js?v=39c31e9d"></script>
+    <script src="../../js/input_slots.js?v=39c31e9d"></script>
+    <script src="../../js/page_router.js?v=39c31e9d"></script>
 
     <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="../../js/site_utils.js?v=91c084bb"></script>
-    <script src="../../js/site_meta.js?v=91c084bb"></script>
-    <script src="../../js/pagebuilder.js?v=91c084bb"></script>
-    <script src="../../js/search.js?v=91c084bb"></script>
-    <script src="../../js/description.js?v=91c084bb"></script>
-    <script src="../../js/internalstyling.js?v=91c084bb"></script>
-    <script src="../../js/tool_page.js?v=91c084bb"></script>
+    <script src="../../js/site_utils.js?v=39c31e9d"></script>
+    <script src="../../js/site_meta.js?v=39c31e9d"></script>
+    <script src="../../js/pagebuilder.js?v=39c31e9d"></script>
+    <script src="../../js/search.js?v=39c31e9d"></script>
+    <script src="../../js/description.js?v=39c31e9d"></script>
+    <script src="../../js/internalstyling.js?v=39c31e9d"></script>
+    <script src="../../js/tool_page.js?v=39c31e9d"></script>
 
-    <script src="../../js/page_boot.js?v=91c084bb"></script>
-    <script async src="../../js/analytics.js?v=91c084bb"></script>
+    <script src="../../js/page_boot.js?v=39c31e9d"></script>
+    <script async src="../../js/analytics.js?v=39c31e9d"></script>
 </body>
 </html>

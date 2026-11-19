@@ -1,0 +1,72 @@
+/* THE CLASSIC LOOK (v1.2, owner 2026-11-19): a plain dark wiki, picked under
+   Look in Site settings (js/site_utils.js) and worn as html.look-classic.
+   Reader pages only: the editor and staff pages never load this file.
+
+   Kept small on purpose (owner: "minimal code"). It re-points the shared
+   variables, then takes away the slants, hard shadows, halftone dots and the
+   striped ground. The layout is today's. Frame data keeps its colours and its
+   monospace. Colours inside page content are the editors', as written. */
+
+/* !important where a character page's theme (applyCharacterTheme,
+   js/site_meta.js) sets the same variable inline on <html>. */
+html.look-classic {
+    --bg-main: #101418 !important;
+    --bg-secondary: #202122 !important;
+    --border-color: #54595d !important;
+    --accent-blue: #88a3e8 !important;
+    --accent-blue-hover: #a6bbf0;
+    --character-ink: #000000 !important;
+    --text-primary: #eaecf0;
+    --text-white: #ffffff;
+    --text-muted: #a2a9b1 !important;
+    --text-mono: Arial, Helvetica, sans-serif;
+    --font-title: Georgia, 'Times New Roman', serif;
+    --font-label: Arial, Helvetica;
+    --manga-shadow: transparent !important;
+}
+
+html.look-classic body { background-image: none; }
+
+/* Frame data reads in monospace, as it does today. */
+html.look-classic .views-wrapper,
+html.look-classic .legend-section {
+    --text-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Headings: the text colour, no outline, no bar. !important against the
+   character theme's inline title style and its injected heading rule. */
+html.look-classic :is(.home-main-title, .character-title, .section-title, .strategy-title, .card-header-title, .skill-title, .site-title) {
+    color: var(--text-primary) !important;
+    text-shadow: none !important;
+    font-family: var(--font-title), serif;
+    font-weight: normal;
+    text-transform: none;
+}
+html.look-classic .character-header h1.character-title::before,
+html.look-classic .section-title::after { content: none !important; }
+
+/* Buttons and tabs: plain boxes. */
+html.look-classic .btn-sys {
+    clip-path: none;
+    box-shadow: none;
+    background: color-mix(in srgb, var(--sys-edge) 12%, var(--bg-main));
+}
+html.look-classic .btn-sys:is(:hover, :active):not(:disabled) {
+    transform: none;
+    box-shadow: none;
+    color: var(--text-white);
+    background: color-mix(in srgb, var(--sys-edge) 30%, var(--bg-main));
+}
+html.look-classic :is(.btn-manga, .filter-toggle) {
+    border-width: 1px;
+    box-shadow: none;
+    transform: none;
+    animation: none;
+    font-family: Arial, Helvetica, sans-serif;
+}
+html.look-classic :is(.btn-manga, .filter-toggle).active {
+    background: var(--bg-secondary);
+    color: var(--text-white);
+    border-color: var(--text-primary);
+}
+html.look-classic .btn-manga-content { transform: none; }
