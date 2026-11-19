@@ -163,6 +163,23 @@
 
 .tier-control-btn { padding: 0.3rem 0.45rem; font-size: 0.65rem; flex-shrink: 0; }
 
+/* --- COPIES (v1.2) ---
+   The add row (character, badge, + COPY) and one group per character with
+   copies: its original, then each copy, every row shaped like a tier row so
+   the two sections read as one column of controls. */
+.tier-copy-add { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.6rem; }
+.tier-copy-add .manga-select-wrapper { flex: 1.4; min-width: 0; }
+.tier-copy-label { flex: 1; min-width: 0; margin: 0; font-size: 0.78rem; }
+#btn-add-copy { flex-shrink: 0; padding: 0.3rem 0.5rem; font-size: 0.65rem; }
+#btn-add-copy:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.tier-copies { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1.5rem; }
+.tier-copy-group { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.4rem; border: 1px dashed var(--border-color); }
+.tier-copy-group-name { font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-white); }
+.tier-copy-row { display: flex; align-items: center; gap: 0.35rem; }
+.tier-copy-kind { flex: 0 0 4.6rem; font-family: var(--text-mono); font-size: 0.55rem; color: var(--text-muted); }
+.tier-copy-label-input { flex: 1; min-width: 0; margin: 0; font-size: 0.78rem; }
+
 .tier-reasoning-hint {
     font-size: 0.75rem;
     color: var(--text-muted);
