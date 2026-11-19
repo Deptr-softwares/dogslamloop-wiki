@@ -29,8 +29,8 @@ const LIST = {
     reasoning: [],
 };
 
-async function openEditor(page, { list = LIST } = {}) {
-    await page.addInitScript(({ list }) => {
+async function openEditor(page, { list = LIST, changes = [] } = {}) {
+    await page.addInitScript(({ list, changes }) => {
         window.__rpcCalls = [];
         Object.defineProperty(window, 'supabase', {
             configurable: true,
@@ -54,6 +54,13 @@ async function openEditor(page, { list = LIST } = {}) {
                             };
                             return chain;
                         }
+                        if (table === 'tier_list_changes') {
+                            const chain = {
+                                select() { return chain; }, eq() { return chain; }, order() { return chain; },
+                                then(r) { return r({ data: changes, error: null }); },
+                            };
+                            return chain;
+                        }
                         const inert = new Proxy({}, {
                             get(_t, p) {
                                 if (p === 'then') return (r) => r({ data: [], error: null });
@@ -71,7 +78,7 @@ async function openEditor(page, { list = LIST } = {}) {
                 };
             },
         });
-    }, { list });
+    }, { list, changes });
     await page.goto('/tier-editor.html', { waitUntil: 'networkidle' });
     await page.waitForSelector('.tier-editor-board');
 }
@@ -158,6 +165,48 @@ test('a copy still in Unranked stops SAVE, and says which one', async ({ page })
     await place(page, key, '1');
     await page.locator('.tier-move', { hasText: 'Vessel [Ult]' }).locator('.tier-move-note').fill('Placed.');
     await expect(saveBtn(page)).toBeEnabled();
+
+    // Dragged back, it waits in Unranked again with its badge, not lost.
+    await place(page, key, 'unranked');
+    await expect(withBadge(page, '#tier-editor-tray', 'Ult')).toHaveAttribute('data-char-id', key);
+    await expect(saveBtn(page)).toBeDisabled();
+});
+
+test('a stored list with junk and a repeated character opens clean, and saves that way', async ({ page }) => {
+    // save_tier_list stores whatever it is sent.
+    await openEditor(page, {
+        list: {
+            ...LIST,
+            tiers: [
+                { name: 'S', color: '#ff0000', characters: ['vessel', 42, null, { label: 'no id' }] },
+                { name: 'B', color: '#ffff00', characters: ['vessel', 'ten_shadows'] },
+            ],
+        },
+    });
+    await expect(page.locator('.tier-editor-board .tier-portrait[data-char-id="vessel"]'), 'a key met twice keeps its first place').toHaveCount(1);
+    await expect(page.locator('.tier-editor-row[data-tier-index="0"] .tier-portrait')).toHaveCount(1);
+    await expect(page.locator('.tier-move')).toHaveCount(0);
+    await saveBtn(page).click();
+    const params = await lastSave(page);
+    expect(params.p_tiers.map(t => t.characters)).toEqual([['vessel'], ['ten_shadows']]);
+});
+
+test('a new copy never takes a key the changelog already holds', async ({ page }) => {
+    // 2/7 is 0.aaaa... in base 36 and 1/7 is 0.5555..., so the first key drawn
+    // would be "aaaa", which a deleted copy left in the changelog. Pinned just
+    // before + COPY: the page's own code draws random numbers while it loads.
+    await openEditor(page, {
+        changes: [{ id: 'old', list_id: 'list-1', character_id: 'vessel#aaaa', from_tier: 'S', to_tier: null, note: 'Gone.', created_at: '2026-11-01T00:00:00Z' }],
+    });
+    await pickCopyCharacter(page, 'vessel');
+    await page.fill('#tier-copy-label', 'Ult');
+    await page.evaluate(() => {
+        const real = Math.random;
+        const queue = [2 / 7, 1 / 7];
+        Math.random = () => (queue.length ? queue.shift() : real());
+    });
+    await page.click('#btn-add-copy');
+    await expect(withBadge(page, '#tier-editor-tray', 'Ult')).toHaveAttribute('data-char-id', 'vessel#5555');
 });
 
 test('the original may carry a badge, and an empty one saves exactly as before', async ({ page }) => {
@@ -371,6 +420,17 @@ test('the reader shows every copy with its badge, and each one\'s own last move 
     await expect(copy.locator('.tier-badge')).toHaveCSS('background-color', 'rgb(255, 0, 0)');
     await expect(original.locator('.tier-badge')).toHaveText('Base');
     await expect(page.locator('#tier-list-ui [data-ctl-char="ten_shadows"] .tier-badge')).toHaveCount(0);
+    // Over the art, not under it: the badge is what the page shows at its spot.
+    // It takes no pointer events (hovering it is hovering the portrait), and
+    // elementFromPoint skips such elements, so they are on for the measuring.
+    const onTop = await copy.locator('.tier-badge').evaluate(badge => {
+        badge.style.pointerEvents = 'auto';
+        const r = badge.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === badge;
+        badge.style.pointerEvents = '';
+        return hit;
+    });
+    expect(onTop, 'the badge is drawn above the portrait').toBe(true);
 
     await copy.hover();
     await expect(page.locator('#wiki-frame-tooltip .ctl-tip-move')).toHaveText('A → S');
