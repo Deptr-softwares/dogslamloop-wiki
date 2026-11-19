@@ -7,21 +7,26 @@
 // The small one was .strategy-title (Overview & Strategy's panels and every
 // move's "Move Overview and Strategy"); the bigger one is a card's
 // .card-header-title in its .card-header-flex row (Matchups, Starter Guide,
-// Counterplay, Combos, Techs). They now match in both looks. Puppet Master's
-// colour is dark, so the character theme's !important heading rule is in play
-// too. Supabase's REST API is refused: the headings are placed by hand.
+// Counterplay, Combos, Techs). They now match in both looks. Supabase's REST
+// API is refused: the headings are placed by hand.
 const { test, expect } = require('@playwright/test');
 
-const PAGE = '/characters/Puppet_master/index.html';
+// Puppet Master's colour is dark, so the theme's !important rule paints both
+// headings; Vessel's is light, so there each heading shows its own colour.
+const CASES = [
+    { look: 'default', who: 'Puppet Master', url: '/characters/Puppet_master/index.html' },
+    { look: 'default', who: 'Vessel', url: '/characters/Vessel/index.html' },
+    { look: 'classic', who: 'Puppet Master', url: '/characters/Puppet_master/index.html' },
+];
 
-for (const look of ['default', 'classic']) {
-    test(`${look}: a strategy heading matches a card heading in size, weight, colour and rule`, async ({ page }) => {
+for (const { look, who, url } of CASES) {
+    test(`${look}, ${who}: a strategy heading matches a card heading in size, weight, colour and rule`, async ({ page }) => {
         await page.route('**/rest/v1/**', r => r.abort());
         await page.addInitScript((look) => {
             try { localStorage.setItem('dsl_site_settings', JSON.stringify({ look })); } catch (e) {}
         }, look);
-        await page.goto(PAGE);
-        await expect(page.locator('.character-title')).toHaveText('Puppet Master');
+        await page.goto(url);
+        await expect(page.locator('.character-title')).toHaveText(who);
 
         const m = await page.evaluate(() => {
             document.querySelector('main').insertAdjacentHTML('afterbegin', `
