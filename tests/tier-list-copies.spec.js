@@ -29,8 +29,11 @@ const LIST = {
     reasoning: [],
 };
 
-async function openEditor(page, { list = LIST, changes = [] } = {}) {
-    await page.addInitScript(({ list, changes }) => {
+// listDelay holds the list back the way a real network does: the site builds
+// its dropdowns 100ms after load, and in production the list always arrives
+// after that (the same option as tests/tier-editor.spec.js).
+async function openEditor(page, { list = LIST, changes = [], listDelay = 0 } = {}) {
+    await page.addInitScript(({ list, changes, listDelay }) => {
         window.__rpcCalls = [];
         Object.defineProperty(window, 'supabase', {
             configurable: true,
@@ -49,7 +52,10 @@ async function openEditor(page, { list = LIST, changes = [] } = {}) {
                         if (table === 'tier_lists') {
                             const chain = {
                                 select() { return chain; }, eq() { return chain; },
-                                maybeSingle: async () => ({ data: list, error: null }),
+                                maybeSingle: async () => {
+                                    if (listDelay) await new Promise(r => setTimeout(r, listDelay));
+                                    return { data: list, error: null };
+                                },
                                 then(r) { return r({ data: [list], error: null }); },
                             };
                             return chain;
@@ -78,7 +84,7 @@ async function openEditor(page, { list = LIST, changes = [] } = {}) {
                 };
             },
         });
-    }, { list, changes });
+    }, { list, changes, listDelay });
     await page.goto('/tier-editor.html', { waitUntil: 'networkidle' });
     await page.waitForSelector('.tier-editor-board');
 }
@@ -104,7 +110,9 @@ const saveBtn = (page) => page.locator('#btn-save-tier-list');
 const lastSave = (page) => page.evaluate(() => window.__rpcCalls.filter(c => c.name === 'save_tier_list').pop().params);
 
 test('a copy is made in the Copies panel, waits in Unranked, and saves with its badge once placed', async ({ page }) => {
-    await openEditor(page);
+    // The list arrives after the site's dropdowns are built, as in production,
+    // so the picker's own dropdown is the one this file builds.
+    await openEditor(page, { listDelay: 400 });
 
     // The real control: the site's dropdown, then the badge, then + COPY.
     await page.click('.tier-copy-add .manga-select-trigger');
@@ -421,13 +429,16 @@ test('the reader shows every copy with its badge, and each one\'s own last move 
     await expect(original.locator('.tier-badge')).toHaveText('Base');
     await expect(page.locator('#tier-list-ui [data-ctl-char="ten_shadows"] .tier-badge')).toHaveCount(0);
     // Over the art, not under it: the badge is what the page shows at its spot.
-    // It takes no pointer events (hovering it is hovering the portrait), and
-    // elementFromPoint skips such elements, so they are on for the measuring.
-    const onTop = await copy.locator('.tier-badge').evaluate(badge => {
-        badge.style.pointerEvents = 'auto';
+    // The badge and the art both take no pointer events (hovering either is
+    // hovering the portrait), and elementFromPoint skips such elements, so
+    // both are switched on for the measuring and stacking decides the hit.
+    const onTop = await copy.evaluate(portrait => {
+        const parts = [...portrait.querySelectorAll('.tier-badge, .tier-portrait-img')];
+        parts.forEach(p => { p.style.pointerEvents = 'auto'; });
+        const badge = portrait.querySelector('.tier-badge');
         const r = badge.getBoundingClientRect();
         const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === badge;
-        badge.style.pointerEvents = '';
+        parts.forEach(p => { p.style.pointerEvents = ''; });
         return hit;
     });
     expect(onTop, 'the badge is drawn above the portrait').toBe(true);
