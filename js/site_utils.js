@@ -246,6 +246,46 @@ async function loadCharacterRoster() {
     return roster;
 }
 
+// --- TIER LIST ENTRIES: COPIES AND BADGES (v1.2) ---
+//
+// A certified tier list may hold a character more than once, each copy told
+// apart by a badge (owner, 2026-11-19). An entry in tiers[].characters is:
+//   "page_id"                       the character, no badge (every list before)
+//   { id, label, color }            the character, with a badge
+//   { id, copy, label, color }      a copy of it, which always has one
+// The key ("page_id", or "page_id#copy") is what the board, the move diff,
+// the notes and tier_list_changes.character_id use, so each copy is moved and
+// logged on its own. Read here once for the editor (js/tier-editor.js) and the
+// reader (js/certified-tier-lists.js), which must never disagree.
+//
+// save_tier_list stores the tiers as sent, so nothing is trusted: an entry
+// with no string id is dropped (null), a label is cut to TIER_BADGE_MAX, and a
+// colour that is not #rgb or #rrggbb is dropped, because it goes into a style.
+window.TIER_BADGE_MAX = 12;
+window.tierListEntry = function (raw) {
+    if (typeof raw === 'string') return raw ? { key: raw, id: raw, copy: null, label: '', color: '' } : null;
+    if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' || !raw.id) return null;
+    const copy = typeof raw.copy === 'string' && /^[a-z0-9]{1,12}$/i.test(raw.copy) ? raw.copy : null;
+    const label = typeof raw.label === 'string' ? raw.label.trim().slice(0, window.TIER_BADGE_MAX) : '';
+    const color = typeof raw.color === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw.color) ? raw.color : '';
+    return { key: copy ? `${raw.id}#${copy}` : raw.id, id: raw.id, copy, label, color };
+};
+
+// The badge on a portrait's corner, or null for an entry without one. Its
+// text is black or white by the colour's lightness, the same test the
+// character colours use (isDarkCharacterColor, js/site_meta.js).
+window.tierBadgeElement = function (entry) {
+    if (!entry || !entry.label) return null;
+    const color = entry.color || '#888888';
+    const badge = document.createElement('span');
+    badge.className = 'tier-badge';
+    badge.textContent = entry.label;
+    badge.style.backgroundColor = color;
+    const dark = typeof window.isDarkCharacterColor === 'function' && window.isDarkCharacterColor(color);
+    badge.style.color = dark ? '#ffffff' : '#000000';
+    return badge;
+};
+
 // --- ARCHIVED PAGES ---
 // Lives next to fetchNavigationData because it answers the question that file
 // cannot: navigation.json contains only live pages, so anything reading it is

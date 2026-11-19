@@ -13,3 +13,10 @@ Every tier list reads its characters from `loadCharacterRoster` in `js/site_util
 - Never read the roster or the portrait manifest in a list's own file. `tests/character-roster.spec.js` fails if one does.
 - `hidden` is passed through, not filtered: each list decides. Create Tier List leaves hidden characters out; the certified lists may rank one.
 - `js/tierlist.js` (`fetchTierRoster`) still merges the manifest itself, onto an array matched by nav id, for the old tab renderer. It is not one of these.
+
+## One reading of a certified list's entries
+
+Since v1.2 an entry in a certified list's `tiers[].characters` is a page id, a badged character `{ id, label, color }`, or a copy `{ id, copy, label, color }` whose key is `page_id#copy`. The editor (`js/tier-editor.js`) and the reader (`js/certified-tier-lists.js`) both read it through `window.tierListEntry` and draw badges with `window.tierBadgeElement` (`js/site_utils.js`).
+
+- Never treat an entry as a plain page id, and never read a label or colour off one directly. `save_tier_list` stores tiers as sent, so `tierListEntry` is also the check: an entry with no string id is dropped, a label is cut to 12 characters, and a colour that is not `#rgb`/`#rrggbb` never reaches a style.
+- Moves, notes and `tier_list_changes.character_id` use the entry's key, so each copy is logged on its own.

@@ -89,7 +89,10 @@ function resolveFunctions() {
 // within one file source order decides. Revoking from PUBLIC does NOT drop a
 // grant held directly by a role, which is why the linter reports anon and
 // authenticated separately and why that case is skipped here.
-function anonExecutable(latest) {
+//
+// GRANT ALL counts as well as GRANT EXECUTE: the baseline dump
+// (20260727000000_remote_schema.sql) grants functions with GRANT ALL.
+function executableBy(latest, wanted) {
     const files = fs.readdirSync(MIGRATIONS).filter(f => f.endsWith('.sql')).sort();
     const roles = new Map();
 
@@ -98,7 +101,7 @@ function anonExecutable(latest) {
         const events = [];
         let m;
 
-        const grant = /GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+"?public"?\."?([a-z0-9_]+)"?\s*\([^)]*\)\s+TO\s+"?([a-z_]+)"?/gi;
+        const grant = /GRANT\s+(?:EXECUTE|ALL(?:\s+PRIVILEGES)?)\s+ON\s+FUNCTION\s+"?public"?\."?([a-z0-9_]+)"?\s*\([^)]*\)\s+TO\s+"?([a-z_]+)"?/gi;
         while ((m = grant.exec(code)) !== null) events.push([m.index, 'grant', m[1], m[2].toLowerCase()]);
 
         const revoke = /REVOKE\s+ALL\s+ON\s+FUNCTION\s+"?public"?\."?([a-z0-9_]+)"?\s*\([^)]*\)\s+FROM\s+"?([a-z_]+)"?/gi;
@@ -113,10 +116,12 @@ function anonExecutable(latest) {
     }
 
     return [...latest.entries()]
-        .filter(([fn, meta]) => meta.definer && !meta.trigger && (roles.get(fn) || new Set()).has('anon'))
+        .filter(([fn, meta]) => meta.definer && !meta.trigger && (roles.get(fn) || new Set()).has(wanted))
         .map(([fn]) => fn)
         .sort();
 }
+
+const anonExecutable = (latest) => executableBy(latest, 'anon');
 
 // Every one of these is reachable without signing in, on purpose. The reason
 // matters more than the entry: four of them are called from RLS POLICY
@@ -185,6 +190,37 @@ test('every writing SECURITY DEFINER function checks its caller', () => {
         + "      RAISE EXCEPTION 'Permission denied: ...' USING ERRCODE = '42501';\n"
         + '  END IF;\n\n'
         + 'Never test a role by name - use role_rank()/is_staff()/is_owner().\n',
+    ).toEqual([]);
+});
+
+test('every SECURITY DEFINER function a signed-in account can call checks its caller, unless anyone may call it', () => {
+    // The reading half of the check above (owner, 2026-11-19). A reader is
+    // excused there, but list_personnel and search_users READ emails, and
+    // their only lock is the 42501 inside them: the grant is `authenticated`,
+    // which is every registered account. So a signed-in reader that forgot its
+    // check would hand every account whatever it reads, and Supabase's advisor
+    // lists it exactly like the 40 guarded ones. The functions anyone may call,
+    // signed in or not, are the documented allowlist below, and are excused
+    // here for the same reason they are there.
+    const latest = resolveFunctions();
+    const signedIn = executableBy(latest, 'authenticated');
+
+    // Not vacuous: two readers this exists for, and the size of the set.
+    expect(signedIn, 'the grant parser found too few functions; it has drifted').toEqual(
+        expect.arrayContaining(['list_personnel', 'search_users', 'get_open_submission_scopes']));
+    expect(signedIn.length).toBeGreaterThan(30);
+
+    const unguarded = signedIn
+        .filter(fn => !ANON_BY_DESIGN[fn])
+        .filter(fn => !/42501/.test(latest.get(fn).body))
+        .map(fn => `${fn} (${latest.get(fn).file})`);
+
+    expect(
+        unguarded,
+        'these SECURITY DEFINER functions answer any signed-in account without a\n'
+        + 'caller check. Add one as the first statement in the body (see the test\n'
+        + 'above), or, if anyone may call it, grant it to anon and list it in\n'
+        + 'ANON_BY_DESIGN with the reason.\n',
     ).toEqual([]);
 });
 

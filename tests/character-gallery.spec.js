@@ -495,10 +495,12 @@ test('the Media Library opens ABOVE the item modal, and a pick re-uses instead o
   expect(z.armed, 'the picker is armed while the library is open').toBe(true);
   expect(z.lib).toBeGreaterThan(z.modal);
 
-  // The real control. Clicking the card is what proves the picker outranks
+  // The real control. Clicking the file is what proves the picker outranks
   // the modal - if the lift were missing this click would hit the item modal
-  // instead and time out, which no z-index assertion alone would catch.
-  await page.click('.media-thumbnail-card');
+  // instead and time out, which no z-index assertion alone would catch. Since
+  // v1.2 a click previews the file, and USE THIS picks it.
+  await page.click('#media-gallery-grid .media-row');
+  await page.click('#media-lib-preview [data-media-use]');
   await page.waitForTimeout(200);
 
   const afterPick = await page.evaluate(() => ({

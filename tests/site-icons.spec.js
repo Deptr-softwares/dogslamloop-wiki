@@ -95,6 +95,17 @@ test("the site draws no SVG of its own any more, only the sign-in buttons' brand
   walk(path.join(ROOT, 'js'));
   for (const f of fs.readdirSync(ROOT)) if (f.endsWith('.html')) files.push(path.join(ROOT, f));
   for (const f of fs.readdirSync(path.join(ROOT, 'style'))) if (f.endsWith('.css')) files.push(path.join(ROOT, 'style', f));
+  // Every page in a folder too. Until 2026-11-19 this read the root pages
+  // alone, so the four hand-written ones in folders (both hubs, Tier Lists,
+  // the Update Log) kept the old Ko-fi cup and Tier Lists its old edit
+  // pencil, and the owner found them on the page. Generated stubs are read as
+  // well: they come from generate-pages.js above, and are checked as built.
+  for (const dir of ['characters', 'systems', 'tools']) {
+    for (const sub of fs.readdirSync(path.join(ROOT, dir), { withFileTypes: true })) {
+      const page = sub.isDirectory() ? path.join(ROOT, dir, sub.name, 'index.html') : path.join(ROOT, dir, sub.name);
+      if (page.endsWith('.html') && fs.existsSync(page)) files.push(page);
+    }
+  }
 
   // Discord's, GitHub's and Google's marks on the sign-in buttons are theirs,
   // and stay as they are.

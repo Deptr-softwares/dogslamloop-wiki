@@ -21,6 +21,28 @@
 
 #tier-list-ui .tier-portrait-name { font-size: 0.56rem; }
 
+/* A copy's badge (v1.2): its label on the portrait's top corner, over the art
+   (the image is z-index 3). Background and text colour are set inline by
+   tierBadgeElement (js/site_utils.js), which checks the colour first. Shared
+   with the editor's board and tray, which load this sheet too. */
+.tier-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    z-index: 4;
+    max-width: calc(100% - 4px);
+    padding: 0 3px;
+    border: 1px solid rgba(0, 0, 0, 0.6);
+    font-family: var(--text-mono);
+    font-size: 0.5rem;
+    font-weight: bold;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+
 /* --- THE PICKER --- */
 
 .ctl-author-btn .btn-manga-content {

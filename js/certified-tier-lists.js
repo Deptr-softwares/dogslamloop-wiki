@@ -32,6 +32,7 @@
         roster: new Map(),   // page_id -> { name, url, image }
         activeSlug: null,
         loaded: new Map(),   // slug -> full row
+        entryByKey: new Map(), // the open list's entries by key (copies, v1.2)
     };
 
     const client = () => window.supabaseClient;
@@ -80,7 +81,13 @@
     // Unknown values fall back to the portrait rather than throwing. The
     // database CHECK is what keeps them out; this is the second line, for a row
     // written before the column existed.
-    function portrait(pageId, style) {
+    // `raw` is one entry of tiers[].characters: a page_id, or since v1.2 a
+    // badged character or a copy (window.tierListEntry, js/site_utils.js). An
+    // entry that is neither is not drawn (null).
+    function portrait(raw, style) {
+        const entry = window.tierListEntry(raw);
+        if (!entry) return null;
+        const pageId = entry.id;
         const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../../';
         const meta = state.roster.get(pageId) || { name: String(pageId).replace(/_/g, ' ') };
         const useIcon = style === 'icon';
@@ -91,8 +98,9 @@
         wrap.title = meta.name;
         // So the changelog can find this portrait again once it has loaded.
         // The board is drawn first and the changes are fetched after it, which
-        // is the right order - the icons are what the reader came for.
-        wrap.dataset.ctlChar = pageId;
+        // is the right order - the icons are what the reader came for. The
+        // entry's key, so each copy carries its own last move.
+        wrap.dataset.ctlChar = entry.key;
 
         // In ICON mode the character's colour moves from the fill to the
         // border, which is the whole of the roster-card treatment this is
@@ -138,7 +146,21 @@
                 : `https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/${encodeURIComponent(String(meta.name).replace(/[^a-zA-Z0-9]/g, ''))}Portrait.webp`);
         wrap.appendChild(img);
 
+        const badge = window.tierBadgeElement(entry);
+        if (badge) wrap.appendChild(badge);
+
         return wrap;
+    }
+
+    // A changelog row names its character the way the board shows it: a copy
+    // by its badge ("Vessel [Ult]"), and a copy deleted since as "(copy)".
+    function labelledName(key) {
+        const entry = state.entryByKey.get(key);
+        const id = entry ? entry.id : String(key).split('#')[0];
+        const who = state.roster.get(id);
+        const name = who ? who.name : id;
+        if (entry && entry.label) return `${name} [${entry.label}]`;
+        return String(key).includes('#') ? `${name} (copy)` : name;
     }
 
     // How one move reads, in one place. The changelog list and the portrait
@@ -372,6 +394,8 @@
         }
 
         const labels = [];
+        // Every entry on this list by its key, for the changelog's names.
+        state.entryByKey = new Map();
         tiers.forEach(tier => {
             const rowEl = el('div', 'ctl-row');
 
@@ -381,8 +405,14 @@
             labels.push(label);
 
             const chars = el('div', 'ctl-chars');
-            (tier.characters || []).forEach(pageId => chars.appendChild(portrait(pageId, row.art_style)));
-            if (!(tier.characters || []).length) {
+            (Array.isArray(tier.characters) ? tier.characters : []).forEach(raw => {
+                const node = portrait(raw, row.art_style);
+                if (!node) return;
+                const entry = window.tierListEntry(raw);
+                state.entryByKey.set(entry.key, entry);
+                chars.appendChild(node);
+            });
+            if (!chars.children.length) {
                 chars.appendChild(el('span', 'ctl-empty-note', 'nobody'));
             }
             rowEl.appendChild(chars);
@@ -548,8 +578,7 @@
             const entry = el('div', 'ctl-change');
 
             const meta = el('div', 'ctl-change-head');
-            const who = state.roster.get(change.character_id);
-            meta.appendChild(el('span', 'ctl-change-char', who ? who.name : change.character_id));
+            meta.appendChild(el('span', 'ctl-change-char', labelledName(change.character_id)));
 
             meta.appendChild(el('span', 'ctl-change-move', moveLabel(change)));
             meta.appendChild(el('span', 'ctl-change-date', new Date(change.created_at).toLocaleDateString()));

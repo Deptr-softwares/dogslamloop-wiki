@@ -123,6 +123,27 @@
                 <div id="tier-controls" class="tier-controls"></div>
 
                 <!--
+                    Copies (v1.2, owner, 2026-11-19): a character can be on a
+                    list more than once, each copy told apart by a badge, a
+                    short label and a colour. The original can wear one too. A
+                    new copy waits in Unranked until it is dragged onto the
+                    board. The picker gets the site's dropdown once
+                    js/tier-editor.js has filled it with the roster.
+                -->
+                <div class="dashboard-header-split admin-split-header">
+                    <h3 class="section-title section-title-clean m-0 admin-section-title">Copies</h3>
+                </div>
+
+                <div class="tier-copy-add">
+                    <select id="tier-copy-character" class="tier-copy-character" aria-label="Character to copy"></select>
+                    <input type="text" id="tier-copy-label" class="editor-input tier-copy-label"
+                           maxlength="12" placeholder="Badge, e.g. Ult" aria-label="Badge for the new copy">
+                    <button type="button" id="btn-add-copy" class="btn-sys btn-sys-regular" disabled>+ COPY</button>
+                </div>
+
+                <div id="tier-copies" class="tier-copies"></div>
+
+                <!--
                     One block editor, two documents. initStrategyBlockBuilder
                     keeps a single module-level buffer, so two builders cannot
                     exist at once - switching flushes the open one and loads the
@@ -194,17 +215,17 @@
     </div>
 
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/character_tabs.js?v=561633a2"></script>
-    <script src="js/input_slots.js?v=561633a2"></script>
-    <script src="js/site_utils.js?v=561633a2"></script>
-    <script src="js/site_meta.js?v=561633a2"></script>
-    <script src="js/pagebuilder.js?v=561633a2"></script>
-    <script src="js/search.js?v=561633a2"></script>
-    <script src="js/description.js?v=561633a2"></script>
-    <script src="js/internalstyling.js?v=561633a2"></script>
-    <script src="js/editor-folders.js?v=561633a2"></script>
-    <script src="js/editor-blocks.js?v=561633a2"></script>
-    <script src="js/editor-media.js?v=561633a2"></script>
-    <script src="js/tier-editor.js?v=561633a2"></script>
+    <script src="js/character_tabs.js?v=3a322c7e"></script>
+    <script src="js/input_slots.js?v=3a322c7e"></script>
+    <script src="js/site_utils.js?v=3a322c7e"></script>
+    <script src="js/site_meta.js?v=3a322c7e"></script>
+    <script src="js/pagebuilder.js?v=3a322c7e"></script>
+    <script src="js/search.js?v=3a322c7e"></script>
+    <script src="js/description.js?v=3a322c7e"></script>
+    <script src="js/internalstyling.js?v=3a322c7e"></script>
+    <script src="js/editor-folders.js?v=3a322c7e"></script>
+    <script src="js/editor-blocks.js?v=3a322c7e"></script>
+    <script src="js/editor-media.js?v=3a322c7e"></script>
+    <script src="js/tier-editor.js?v=3a322c7e"></script>
 </body>
 </html>
