@@ -47,7 +47,8 @@ window.CHARACTER_COLORS = {
     "Black Death": "hsl(352, 49%, 27%)",
     "Sky Bender": "hsl(275, 17%, 60%)",
     "Boomcat": "hsl(0, 1%, 75%)",
-    "Strongest of History": "hsl(0, 100%, 25%)"
+    "Strongest of History": "hsl(0, 100%, 25%)",
+    "Monkey Kid": "hsl(352, 100%, 54%)"
 };
 // --- END GENERATED REGION ---
 
