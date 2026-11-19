@@ -291,10 +291,14 @@ test('near the top of the window the popup opens below its card, and in a narrow
   expect(at.overlaps, 'clear of its card').toBe(false);
 });
 
-test('a popup that is showing follows its card when the page scrolls', async ({ page }) => {
+test('a scroll never cancels a popup on its way, and one that is showing follows its card', async ({ page }) => {
   const { withBanner, card } = await openRoster(page);
   await cardAt(page, withBanner, 200);
+  // Reaching a card below the fold is a scroll whose last event can land after
+  // the pointer (the home page roster): a scroll inside the quarter second
+  // once cancelled the popup.
   await card(withBanner).hover();
+  await page.evaluate(() => window.scrollBy({ top: 1, behavior: 'instant' }));
   await expect(popup(page)).toBeVisible();
   const before = await geometry(page, withBanner);
 
@@ -328,7 +332,6 @@ test('a filter pressed from the keyboard under a popup puts it away', async ({ p
 });
 
 test('the home page roster has the banners too, and a site without the file still has its roster', async ({ page }) => {
-  // The home page roster sits below the fold, so reaching a card is a scroll.
   const home = await openRoster(page, { url: '/index.html' });
   await home.card(home.withBanner).hover();
   await expect(popup(page)).toBeVisible();
