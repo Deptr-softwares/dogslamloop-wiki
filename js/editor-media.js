@@ -152,6 +152,38 @@ window.mediaWeightNote = async function(file) {
     return reasons.length ? reasons.join(', ') : null;
 };
 
+// --- THE WHOLE BUCKET (v1.2) ---
+//
+// Storage answers one page per request, and the library asked for one page of
+// 1000 and stopped. Past 1000 files that hid every file after the 1000th by
+// name, from the library and from the overwrite guard above alike (pages
+// already linked 510 different files on 2026-11-19). Paged to the end, the
+// way the admin media queue lists the same bucket. It stops at a short page,
+// or at a page that brings no new name, so an API ignoring offset cannot loop.
+const MEDIA_LIST_PAGE = 1000;
+async function listWikiMediaBucket() {
+    const files = [];
+    const seen = new Set();
+    for (let offset = 0; ; offset += MEDIA_LIST_PAGE) {
+        const { data, error } = await window.supabaseClient.storage.from('wiki-media')
+            .list('', { limit: MEDIA_LIST_PAGE, offset, sortBy: { column: 'name', order: 'asc' } });
+        if (error) return { data: null, error };
+        const page = data || [];
+        const fresh = page.filter(f => !seen.has(f.name));
+        fresh.forEach(f => { seen.add(f.name); files.push(f); });
+        if (page.length < MEDIA_LIST_PAGE || fresh.length === 0) return { data: files, error: null };
+    }
+}
+
+function mediaKind(name) {
+    const lower = String(name).toLowerCase();
+    if (lower.endsWith('.webm') || lower.endsWith('.mp4')) return 'VIDEO';
+    if (lower.endsWith('.gif')) return 'GIF';
+    return 'IMAGE';
+}
+
+const MEDIA_PREVIEW_EMPTY = '<p class="media-lib-preview-empty">Pick a file to preview it here.</p>';
+
 window.uploadWikiMedia = async function(file, onStatus = () => {}, alsoKnown = []) {
     // Here rather than only on the drop zone: the Gallery bin uploads too.
     if (window.editorPlayground) return { error: MEDIA_PLAYGROUND_TEXT };
@@ -191,7 +223,7 @@ A WebM of the same clip is usually 4-5x smaller and plays exactly the same on th
     // that protects content already live.
     let known = window.currentMediaFiles;
     if (!Array.isArray(known) || known.length === 0) {
-        const { data } = await window.supabaseClient.storage.from('wiki-media').list('', { limit: 1000 });
+        const { data } = await listWikiMediaBucket();
         known = data || [];
     }
     const taken = [...known.map(f => f.name), ...alsoKnown];
@@ -313,6 +345,11 @@ window.closeMediaLibrary = function () {
         overlay.style.zIndex = '';
         overlay.classList.add('hidden');
     }
+    // A hidden overlay does not stop a clip it holds from downloading, and the
+    // next open (maybe as a picker) must not offer the last file's button.
+    window.mediaSelectedName = null;
+    const preview = document.getElementById('media-lib-preview');
+    if (preview) preview.innerHTML = MEDIA_PREVIEW_EMPTY;
 };
 
 window.initMediaLibrary = function() {
@@ -327,19 +364,24 @@ window.initMediaLibrary = function() {
 
 
     window.currentMediaPage = 1;
-    window.mediaItemsPerPage = 24;
+    // Rows of names are cheap to draw, so a page holds more than the 24 cards
+    // the old grid did.
+    window.mediaItemsPerPage = 50;
+    window.mediaSelectedName = null;
 
     window.loadMediaGallery = async function() {
         const grid = document.getElementById('media-gallery-grid');
         if (!grid) return;
 
         grid.innerHTML = '<div class="media-status-msg">Connecting to Cloud Storage...</div>';
+        window.mediaSelectedName = null;
+        renderMediaPreview(null);
 
         if (!window.supabaseClient) return;
 
-        const { data, error } = await window.supabaseClient.storage.from('wiki-media').list('', { limit: 1000 });
+        const { data, error } = await listWikiMediaBucket();
         if (error) {
-            grid.innerHTML = `<div class="media-error-msg">Error: ${error.message}</div>`;
+            grid.innerHTML = `<div class="media-error-msg">Error: ${window.escapeHtml(error.message)}</div>`;
             return;
         }
 
@@ -405,18 +447,39 @@ window.initMediaLibrary = function() {
         }
     }
 
+    // Search (owner, 2026-11-19): words search the file name, and "@" searches
+    // by uploader. The uploader's name is matched from its start, longest name
+    // first, so a name with a space works ("@Hired Killer kick") and the words
+    // after it search the file name. A name typed in part ("@hir") matches
+    // every uploader whose name starts that way. A file with no recorded
+    // uploader (everything before 2026-09-10) never matches an @ search.
+    function mediaSearch(raw) {
+        const query = String(raw || '').trim().toLowerCase();
+        if (!query.startsWith('@')) return { uploader: null, words: query };
+        const rest = query.slice(1).trimStart();
+        const known = [...new Set(Object.values(window.mediaUploaderNames).map(n => String(n).toLowerCase()))]
+            .sort((a, b) => b.length - a.length);
+        const whole = known.find(n => rest === n || rest.startsWith(`${n} `));
+        if (whole) return { uploader: (by) => by === whole, words: rest.slice(whole.length).trim() };
+        return { uploader: (by) => by.startsWith(rest), words: '' };
+    }
+
     window.renderMediaGrid = function() {
         const grid = document.getElementById('media-gallery-grid');
-        const searchQuery = (document.getElementById('media-search-input')?.value || '').toLowerCase();
+        const search = mediaSearch(document.getElementById('media-search-input')?.value);
         const filterType = document.getElementById('media-filter-select')?.value || 'all';
 
         if (!grid) return;
 
         const filteredFiles = window.currentMediaFiles.filter(file => {
             const name = file.name.toLowerCase();
-            const isAnimated = name.endsWith('.webm') || name.endsWith('.mp4') || name.endsWith('.gif');
+            const isAnimated = mediaKind(file.name) !== 'IMAGE';
 
-            if (searchQuery && !name.includes(searchQuery)) return false;
+            if (search.uploader) {
+                const by = window.mediaUploaderNames[file.name];
+                if (!by || !search.uploader(String(by).toLowerCase())) return false;
+            }
+            if (search.words && !name.includes(search.words)) return false;
             if (filterType === 'video' && !isAnimated) return false;
             if (filterType === 'image' && isAnimated) return false;
 
@@ -446,110 +509,98 @@ window.initMediaLibrary = function() {
             return;
         }
 
-        grid.innerHTML = '';
-
-        paginatedFiles.forEach(file => {
-            const { data: publicUrlData } = window.supabaseClient.storage.from('wiki-media').getPublicUrl(file.name);
-            const url = publicUrlData.publicUrl;
-
-            const card = document.createElement('div');
-            card.className = 'media-thumbnail-card';
-
-            card.onclick = () => {
-                // Picking wins over copying when the library was opened by
-                // openMediaLibraryPicker. Read and cleared before the handler
-                // runs, so a handler that throws cannot leave the library
-                // armed for the next caller.
-                if (typeof window.mediaPickHandler === 'function') {
-                    const pick = window.mediaPickHandler;
-                    // Captured first, then closed: closeMediaLibrary is what
-                    // disarms the handler, so a handler that throws still
-                    // cannot leave the library armed for the next caller.
-                    window.closeMediaLibrary();
-                    pick(url, file);
-                    return;
-                }
-
-                navigator.clipboard.writeText(url).then(() => {
-                    const toast = card.querySelector('.copy-toast');
-                    if (toast) {
-                        toast.classList.remove('hidden');
-                        setTimeout(() => toast.classList.add('hidden'), 1200);
-                    }
-                }).catch(err => {
-                    alert("Clipboard access denied. Manual URL: " + url);
-                });
-            };
-
-            const isVideo = file.name.endsWith('.webm') || file.name.endsWith('.mp4');
-            const isGif = file.name.endsWith('.gif');
-
-            // The URL is built from the filename by getPublicUrl, so it is as
-            // attacker-influenced as the name is - and it lands in an ATTRIBUTE
-            // here, where a bare double quote closes src and everything after
-            // it becomes markup. Found by the escaping test below: a file named
-            // with an onerror handler produced an <img> that had lost its own
-            // class, because the attribute had been broken out of.
-            //
-            // Real Storage percent-encodes what it returns, so this is defence
-            // in depth rather than a live hole - but "the layer below happens to
-            // sanitise" is not the standard this project keeps.
-            const safeUrl = window.escapeHtml(url);
-
-            let mediaHTML = isVideo
-                ? `<video src="${safeUrl}" loop muted playsinline preload="metadata" class="media-thumbnail-media"></video>`
-                // loading="lazy" is the whole of the library's loading fix -
-                // it already pages at 24 and videos already use
-                // preload="metadata", so this was the one place still
-                // fetching everything on the page up front. Deliberately not
-                // click-to-reveal like the moderation queue: picking media
-                // means looking at it, and hiding it behind a click would
-                // trade real usability for a saving already mostly banked.
-                : `<img src="${safeUrl}" class="media-thumbnail-media" loading="lazy">`;
-
-            const badgeHTML = (isVideo || isGif)
-                ? `<div class="media-thumbnail-badge">${isVideo ? 'VIDEO' : 'GIF'}</div>`
-                : '';
-
-            // v0.19 F8. Absent for every file uploaded before the credit
-            // shipped, and for one whose uploader deleted their account - both
-            // are honest gaps rather than guesses, so the line is omitted
-            // entirely rather than reading "Unknown". A caption that says
-            // nothing is worse than no caption.
+        // Names only (owner, 2026-11-19). A card used to be a <video
+        // preload="metadata"> per clip, and one page of 24 downloaded 52.2 MB
+        // of those clips' 120.7 MB on 2026-11-19 before anyone hovered. Now
+        // nothing is fetched until a row is picked, and then only that file.
+        //
+        // file.name and the uploader's name are escaped: file names come from
+        // the uploader's disk, and get_public_profiles reads display_name out
+        // of raw_user_meta_data, which is whatever the person typed.
+        grid.innerHTML = paginatedFiles.map(file => {
             const uploader = window.mediaUploaderNames[file.name];
-            const uploaderHTML = uploader
-                ? `<div class="media-thumbnail-uploader">by ${window.escapeHtml(uploader)}</div>`
-                : '';
-
-            // file.name is ESCAPED here. It comes from the uploader's disk, and
-            // this is the same value the upload queue below has always escaped
-            // - the two disagreed, and this was the half that did not. A
-            // display name is escaped for the same reason: get_public_profiles
-            // reads it from raw_user_meta_data, which is whatever the person
-            // typed at sign-up.
-            card.innerHTML = `
-                ${mediaHTML}
-                ${badgeHTML}
-                <div class="copy-toast hidden">COPIED URL!</div>
-                <div class="media-thumbnail-filename">
-                    ${window.escapeHtml(file.name)}
-                </div>
-                ${uploaderHTML}
-            `;
-
-            if (isVideo) {
-                const vidEl = card.querySelector('video');
-                card.addEventListener('mouseenter', () => {
-                    if (vidEl) vidEl.play().catch(e => console.warn("Hover play blocked by browser:", e));
-                });
-                card.addEventListener('mouseleave', () => {
-                    if (vidEl) vidEl.pause();
-                });
-            }
-
-            grid.appendChild(card);
-        });
+            const selected = file.name === window.mediaSelectedName;
+            const name = window.escapeHtml(file.name);
+            return `<button type="button" class="media-row${selected ? ' is-selected' : ''}" aria-pressed="${selected}" data-media-name="${name}" title="${name}">
+                <span class="media-row-name">${name}</span>
+                <span class="media-row-type">${mediaKind(file.name)}</span>
+                ${uploader ? `<span class="media-row-uploader">by ${window.escapeHtml(uploader)}</span>` : ''}
+            </button>`;
+        }).join('');
     };
+
+    function publicUrlOf(file) {
+        return window.supabaseClient.storage.from('wiki-media').getPublicUrl(file.name).data.publicUrl;
+    }
+
+    // The one file being looked at. Its button is the only way to use it:
+    // COPY LINK, or USE THIS when the library was opened by
+    // openMediaLibraryPicker (the Gallery bin), where a click used to pick at
+    // once. The picker now takes one more click, the price of seeing the file
+    // before handing it over.
+    function renderMediaPreview(file) {
+        const box = document.getElementById('media-lib-preview');
+        if (!box) return;
+        if (!file) { box.innerHTML = MEDIA_PREVIEW_EMPTY; return; }
+
+        // The URL is built from the file name, so it is escaped into the
+        // attribute like the name is: a bare quote would close src.
+        const url = window.escapeHtml(publicUrlOf(file));
+        const media = mediaKind(file.name) === 'VIDEO'
+            ? `<video src="${url}" class="media-lib-preview-media" controls autoplay muted loop playsinline></video>`
+            : `<img src="${url}" class="media-lib-preview-media" alt="">`;
+        const uploader = window.mediaUploaderNames[file.name];
+        const action = typeof window.mediaPickHandler === 'function'
+            ? '<button type="button" class="btn-sys btn-sys-green" data-media-use>USE THIS</button>'
+            : '<button type="button" class="btn-sys btn-sys-blue" data-media-copy>COPY LINK</button>';
+        box.innerHTML = `
+            <div class="media-lib-preview-frame">${media}</div>
+            <p class="media-lib-preview-name">${window.escapeHtml(file.name)}</p>
+            ${uploader ? `<p class="media-lib-preview-uploader">by ${window.escapeHtml(uploader)}</p>` : ''}
+            <div class="media-lib-preview-actions">${action}</div>`;
+    }
+
+    // One listener each, for whatever the list and the preview hold now.
+    gallery.addEventListener('click', (e) => {
+        const btn = e.target.closest('.media-row');
+        if (!btn) return;
+        const file = window.currentMediaFiles.find(f => f.name === btn.dataset.mediaName);
+        if (!file) return;
+        window.mediaSelectedName = file.name;
+        gallery.querySelectorAll('.media-row').forEach(r => {
+            const on = r === btn;
+            r.classList.toggle('is-selected', on);
+            r.setAttribute('aria-pressed', String(on));
+        });
+        renderMediaPreview(file);
+    });
+
+    const previewBox = document.getElementById('media-lib-preview');
+    if (previewBox) previewBox.addEventListener('click', (e) => {
+        const file = window.currentMediaFiles.find(f => f.name === window.mediaSelectedName);
+        if (!file) return;
+        const url = publicUrlOf(file);
+
+        if (e.target.closest('[data-media-use]')) {
+            if (typeof window.mediaPickHandler !== 'function') return;
+            // Captured first, then closed: closeMediaLibrary is what disarms
+            // the handler, so a handler that throws still cannot leave the
+            // library armed for the next caller.
+            const pick = window.mediaPickHandler;
+            window.closeMediaLibrary();
+            pick(url, file);
+            return;
+        }
+
+        const copy = e.target.closest('[data-media-copy]');
+        if (!copy) return;
+        navigator.clipboard.writeText(url).then(() => {
+            copy.textContent = 'COPIED!';
+            setTimeout(() => { if (copy.isConnected) copy.textContent = 'COPY LINK'; }, 1200);
+        }).catch(() => {
+            alert("Clipboard access denied. Manual URL: " + url);
+        });
+    });
 
     document.getElementById('btn-media-prev').addEventListener('click', () => {
         if (window.currentMediaPage > 1) {
