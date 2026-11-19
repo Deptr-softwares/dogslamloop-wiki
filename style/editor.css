@@ -1734,7 +1734,9 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .media-lib-preview-media { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
 .media-lib-preview-name { margin: 0; font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-white); overflow-wrap: anywhere; }
 .media-lib-preview-uploader { margin: 0; font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); overflow-wrap: anywhere; }
-.media-lib-preview-actions { display: flex; gap: 0.5rem; }
+/* Pinned to the bottom of the preview: when a long name or a short screen
+   makes the preview scroll, the button stays in view. */
+.media-lib-preview-actions { display: flex; gap: 0.5rem; position: sticky; bottom: 0; padding-top: 0.25rem; background: #0a0a0a; }
 .media-lib-preview-empty { margin: auto; color: #888; font-family: var(--text-mono); font-size: 0.75rem; text-align: center; }
 
 /* --- MEDIA LIBRARY UPLOAD QUEUE (js/editor-media.js handleUploads) --- */
@@ -2042,10 +2044,11 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     
     /* The Media Library on a phone: the preview above the list, so the file
        picked is on screen without scrolling the list away. */
-    /* Measured at 390x844: a 112px frame leaves the whole preview, COPY LINK
-       included, in 207px, and the list 161px under it. */
+    /* Measured at 390x844: a 112px frame and a 55% cap leave the list 161px.
+       A long name with an uploader line overflows the cap and scrolls, with
+       COPY LINK pinned in view (above). */
     .media-browser { flex-direction: column; gap: 0.5rem; }
-    .media-lib-preview { flex: none; max-height: 60%; order: -1; }
+    .media-lib-preview { flex: none; max-height: 55%; order: -1; }
     .media-lib-preview-frame { aspect-ratio: auto; height: 112px; }
     /* The footer stacks into three rows here, so the library takes more of
        the screen to leave the list room. */

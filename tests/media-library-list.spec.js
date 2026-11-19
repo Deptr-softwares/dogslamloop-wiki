@@ -248,31 +248,54 @@ test('a hostile file name and uploader name stay text, in the list and in the pr
     expect(await page.evaluate(() => [window.__xss, window.__xss2]), 'no handler ran').toEqual([undefined, undefined]);
 });
 
-test('on a phone the list and the preview both fit the screen', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await openLibrary(page, { files: ['A_very_long_clip_name_that_would_push_a_row_wider_than_a_phone.webm', 'Pic.webp'] });
+// The worst case for the preview's height: a long name that wraps, and an
+// uploader line under it.
+const LONG = 'A_very_long_clip_name_that_would_push_a_row_wider_than_a_phone.webp';
+const PHONE_FILES = {
+    files: [LONG, 'Pic.webp', 'Q.webp', 'R.webp', 'S.webp', 'T.webp'],
+    credits: [{ path: LONG, uploaded_by: 'u7' }],
+    profiles: [{ user_id: 'u7', display_name: 'Hired Killer' }],
+};
 
-    await row(page, 'Pic.webp').click();
-    // The frame, not the picture: a mocked file never loads, and a broken
-    // image draws at no size at all.
-    const frame = await page.locator('#media-lib-preview .media-lib-preview-frame').boundingBox();
-    expect(frame && frame.width).toBeGreaterThan(100);
-    // Height too: in a column the frame was once squeezed to nothing, leaving
-    // the name and the button with no picture above them.
-    expect(frame.height, 'the preview frame has room to show the file').toBeGreaterThan(80);
-    // COPY LINK is the point of the preview: it sits inside the preview's
-    // visible part, not below a scroll.
-    const preview = await page.locator('#media-lib-preview').boundingBox();
-    const copy = await page.locator('#media-lib-preview [data-media-copy]').boundingBox();
+async function previewOnPhone(page, height) {
+    await page.setViewportSize({ width: 390, height });
+    await openLibrary(page, PHONE_FILES);
+    await row(page, 'A_very_long').click();
+    const box = (sel) => page.locator(sel).boundingBox();
+    return {
+        // The frame, not the picture: a mocked file never loads, and a broken
+        // image draws at no size at all.
+        frame: await box('#media-lib-preview .media-lib-preview-frame'),
+        preview: await box('#media-lib-preview'),
+        copy: await box('#media-lib-preview [data-media-copy]'),
+        list: await box('#media-gallery-grid'),
+    };
+}
+
+test('on a phone the list and the preview both fit the screen', async ({ page }) => {
+    const { frame, preview, copy, list } = await previewOnPhone(page, 844);
+
+    expect(frame.width).toBeGreaterThan(100);
+    // In a column the frame was once squeezed to nothing, leaving the name and
+    // the button with no picture above them.
+    expect(frame.height, 'the preview frame keeps its size').toBeGreaterThan(100);
+    // COPY LINK is the point of the preview: it sits in its visible part.
     expect(copy.y + copy.height, 'COPY LINK shows without scrolling the preview').toBeLessThanOrEqual(preview.y + preview.height + 1);
-    // And the list keeps room for more than a couple of rows.
-    const list = await page.locator('#media-gallery-grid').boundingBox();
-    expect(list.height, 'the list keeps room beside the preview').toBeGreaterThan(150);
-    for (const el of ['#media-gallery-grid', '#media-lib-preview']) {
-        const b = await page.locator(el).boundingBox();
-        expect(b.x, `${el} starts on screen`).toBeGreaterThanOrEqual(0);
-        expect(b.x + b.width, `${el} ends on screen`).toBeLessThanOrEqual(390);
+    expect(list.height, 'the list keeps room under the preview').toBeGreaterThan(150);
+    for (const [name, b] of [['list', list], ['preview', preview]]) {
+        expect(b.x, `the ${name} starts on screen`).toBeGreaterThanOrEqual(0);
+        expect(b.x + b.width, `the ${name} ends on screen`).toBeLessThanOrEqual(390);
     }
     const longName = row(page, 'A_very_long').locator('.media-row-name');
     expect(await longName.evaluate(el => el.scrollWidth > el.clientWidth), 'the long name is cut, not widening the row').toBe(true);
+});
+
+test('on a short phone COPY LINK still shows and the picture keeps its size', async ({ page }) => {
+    // 667px tall (an iPhone SE): the preview cannot hold everything, so it
+    // scrolls, and the button stays pinned to its bottom.
+    const { frame, preview, copy } = await previewOnPhone(page, 667);
+
+    expect(frame.height, 'the preview frame keeps its size').toBeGreaterThan(100);
+    expect(copy.y + copy.height, 'COPY LINK shows without scrolling the preview').toBeLessThanOrEqual(preview.y + preview.height + 1);
+    expect(copy.y, 'COPY LINK is inside the preview, not above it').toBeGreaterThanOrEqual(preview.y);
 });
