@@ -113,7 +113,10 @@ test('Classic makes buttons and tabs plain boxes', async ({ page }) => {
     const read = () => page.evaluate(() => {
         const btn = getComputedStyle(document.querySelector('.btn-sys'));
         const tab = getComputedStyle(document.querySelector('.btn-manga-slanted'));
-        return { clip: btn.clipPath, shadow: btn.boxShadow, tabLean: tab.transform, tabShadow: tab.boxShadow };
+        // The label leans back against the tab today; on a straight tab that
+        // would tip it the other way.
+        const label = getComputedStyle(document.querySelector('.btn-manga-slanted .btn-manga-content'));
+        return { clip: btn.clipPath, shadow: btn.boxShadow, tabLean: tab.transform, tabShadow: tab.boxShadow, labelLean: label.transform };
     });
     await boot(page, 'default');
     await expect(page.locator('.btn-manga-slanted').first()).toBeVisible();
@@ -123,7 +126,7 @@ test('Classic makes buttons and tabs plain boxes', async ({ page }) => {
 
     await boot(page, 'classic');
     await expect(page.locator('.btn-manga-slanted').first()).toBeVisible();
-    expect(await read()).toEqual({ clip: 'none', shadow: 'none', tabLean: 'none', tabShadow: 'none' });
+    expect(await read()).toEqual({ clip: 'none', shadow: 'none', tabLean: 'none', tabShadow: 'none', labelLean: 'none' });
 });
 
 test('frame data keeps its phase colours and its monospace in Classic', async ({ page }) => {
