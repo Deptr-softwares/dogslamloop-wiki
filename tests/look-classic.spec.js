@@ -153,7 +153,13 @@ test('frame data keeps its phase colours and its monospace in Classic', async ({
 
 test('the editor keeps the default look even with Classic picked', async ({ page }) => {
     await boot(page, 'classic', '/edit.html');
-    // The class follows the setting everywhere; the stylesheet is what is missing.
+    // The class follows the setting everywhere; the stylesheet is what is
+    // missing. Read off the variables it would set: the editor paints its own
+    // body, so the body's colour would not tell.
     await expect(page.locator('html')).toHaveClass(/\blook-classic\b/);
-    expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor)).not.toBe(CLASSIC_BG);
+    const vars = await page.evaluate(() => {
+        const cs = getComputedStyle(document.documentElement);
+        return { ground: cs.getPropertyValue('--bg-main').trim(), title: cs.getPropertyValue('--font-title').trim() };
+    });
+    expect(vars).toEqual({ ground: 'hsl(216, 28%, 7%)', title: "'Finger-Paint'" });
 });
