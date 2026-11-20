@@ -497,7 +497,7 @@
       "cms_config": {
         "pageType": "system",
         "pageId": "collaborators",
-        "editRole": "locked"
+        "editRole": "elevated"
       }
     },
     {
@@ -554,7 +554,7 @@
       "cms_config": {
         "pageType": "system",
         "pageId": "color_codes",
-        "editRole": "locked"
+        "editRole": "elevated"
       }
     },
     {
