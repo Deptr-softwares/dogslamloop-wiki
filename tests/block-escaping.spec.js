@@ -34,6 +34,27 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/characters/Boomcat/index.html', { waitUntil: 'domcontentloaded' });
 });
 
+test('the editor names an unsupported block type as text', async ({ page }) => {
+  // A block's type is whatever the submitted JSON says, and the editor names
+  // one it does not know in that block's card. A reviewer opens the editor
+  // on a submission.
+  await page.goto('/edit.html?char=boomcat&type=character&tab=overview', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => typeof window.initStrategyBlockBuilder === 'function', { timeout: 15000 });
+  const out = await page.evaluate((payload) => {
+    document.body.innerHTML = '<div id="block-host"></div>';
+    window.initStrategyBlockBuilder('block-host', [{ type: payload, content: 'x' }]);
+    (window.getActiveBlocks() || []).forEach(blk => window.setEditorBlockExpanded(blk, true));
+    window.renderBlockList();
+    const msg = document.querySelector('#block-list .block-unsupported-msg');
+    return { text: msg && msg.textContent, imgs: document.querySelectorAll('#block-list img').length };
+  }, PAYLOAD);
+  await page.waitForTimeout(200);
+
+  expect(await page.evaluate(() => window.__PWN || 0), 'the payload must not run').toBe(0);
+  expect(out.imgs, 'and never became an element').toBe(0);
+  expect(out.text, 'the type shows as written').toContain(PAYLOAD);
+});
+
 test('no block type renders submitted markup as markup', async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));

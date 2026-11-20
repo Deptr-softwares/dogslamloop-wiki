@@ -4533,7 +4533,7 @@ function renderBlockList() {
             `;
         }
         else {
-            html += `<p class="block-unsupported-msg">Complex block type (${block.type}) detected. Render raw JSON view here if needed.</p>`;
+            html += `<p class="block-unsupported-msg">Complex block type (${window.escapeHtml(block.type)}) detected. Render raw JSON view here if needed.</p>`;
         }
 
         html += `</div>`;
