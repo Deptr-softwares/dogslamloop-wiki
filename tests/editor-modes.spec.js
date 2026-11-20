@@ -129,6 +129,61 @@ test('switching states flushes what is being typed into the state being left', a
   expect(seen.backOnState).toEqual([{ type: 'paragraph', content: 'Ultimate overview.' }]);
 });
 
+test("switching states on Techs never writes one state's open card into the other's", async ({ page }) => {
+  // Reported by an editor, 2026-11-20, on Perfection's Techs tab: "i was
+  // editing and went to look at smmthn in ult while editing base ... and then
+  // once i went back it js wasnt there". A switch forgot which section was
+  // open on Overview, Matchups and the keyed tabs, but not the open Techs
+  // group and card. The state arrived at reopened the group of the same
+  // number and flushed the card buffer, still holding the other state's
+  // card, into its card of the same number: both ways.
+  const p = (content) => ({ type: 'paragraph', content });
+  const card = (title, text) => ({ type: 'theorybox', title, sequence: [], content: [p(text)] });
+  await page.setViewportSize({ width: 1400, height: 950 });
+  await openEditor(page, {
+    tab: 'techs',
+    desc: {
+      overview: [], strategy: [], extras: [], matchups: [], counterplay: [], moveStrategies: {},
+      techGroups: [{ title: 'Air M1 Overview', content: [card('Blade to Club', 'Base write-up.')] }],
+      modeData: { ultimate: { techGroups: [{ title: 'Ult Techs', content: [card('Ult card', 'Ult write-up.')] }] } },
+    },
+    frame: {
+      m1s: [], skills: [], specials: [],
+      modes: [{ id: 'base', label: 'Base Kit' }, { id: 'ultimate', label: 'Ultimate' }],
+    },
+  });
+
+  const writeUp = page.locator('#combo-card-body textarea[data-field="content-array"]');
+  const techCards = (mode) => page.evaluate((mode) => {
+    const desc = mode === 'base' ? window.editorMasterDescData : window.editorMasterDescData.modeData[mode];
+    return desc.techGroups.map(g => `${g.title}: ${g.content.map(c => `${c.title}=${c.content.map(b => b.content).join('|')}`).join(', ')}`);
+  }, mode);
+
+  // Base: open the card and type in it.
+  await page.locator('#techs-nav-group-0').click();
+  await page.locator('#combo-cards-panel [data-card="0"]').click();
+  await writeUp.fill('Base write-up, edited.');
+  await page.waitForTimeout(300);
+
+  // Over to the Ultimate, and open its card to look at it.
+  await page.locator('#editor-mode-bar [data-mode-id="ultimate"]').click();
+  await expect(page.locator('#editor-mode-bar .character-mode-chip.active')).toHaveText('Ultimate');
+  expect(await techCards('ultimate'), "arriving does not write the Base card into the Ultimate's").toEqual(['Ult Techs: Ult card=Ult write-up.']);
+  // It opens on the tab's first section, as crossing to another tab does,
+  // not on whichever group has the Base group's number.
+  await expect(page.locator('#techs-nav-intro')).toHaveClass(/\bactive\b/);
+  await expect(page.locator('#techs-nav-group-0')).not.toHaveClass(/\bactive\b/);
+  await page.locator('#techs-nav-group-0').click();
+  await page.locator('#combo-cards-panel [data-card="0"]').click();
+  await expect(writeUp).toHaveValue('Ult write-up.');
+
+  // And back.
+  await page.locator('#editor-mode-bar [data-mode-id="base"]').click();
+  await expect(page.locator('#editor-mode-bar .character-mode-chip.active')).toHaveText('Base Kit');
+  expect(await techCards('base'), 'the Base card keeps what was typed').toEqual(['Air M1 Overview: Blade to Club=Base write-up, edited.']);
+  expect(await techCards('ultimate')).toEqual(['Ult Techs: Ult card=Ult write-up.']);
+});
+
 test('a state edit becomes a mode-scoped delta that lands where it should', async ({ page }) => {
   const { desc, frame } = PLAIN();
   await openEditor(page, { desc, frame });

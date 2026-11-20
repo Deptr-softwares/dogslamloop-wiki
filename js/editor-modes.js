@@ -271,10 +271,12 @@
 
         // Same reset as switchEditorTab, for the same reason: every sub-tab
         // loader flushes the *previous* selection's blocks on entry, and the
-        // previous selection belongs to the state being left.
-        window.currentOverviewSection = null;
-        window.currentMatchupIndex = undefined;
-        window.currentKeyedIndex = {};
+        // previous selection belongs to the state being left. The shared
+        // function, not a copy: a copy of three of its lines left the open
+        // Combos/Techs group and card set, so the state arrived at flushed the
+        // other state's card into its card of the same number (reported by an
+        // editor on Perfection's Techs, 2026-11-20).
+        window.clearEditorSubSelection();
 
         window.editorActiveMode = isBase(modeId) ? BASE() : modeId;
         window.applyEditorModeView();

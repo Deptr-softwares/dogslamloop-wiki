@@ -74,6 +74,10 @@ function clearSubSelection() {
     window.currentDocCardIndex = undefined;
     window.currentDocTableIndex = undefined;
 }
+// Switching state (js/editor-modes.js) needs exactly this reset. It kept its
+// own copy of the first three lines, which missed the document cursors when
+// Techs added them (2026-11-20, an editor lost a Techs card that way).
+window.clearEditorSubSelection = clearSubSelection;
 
 // For the reorder bar (js/editor-reorder.js), which changes the order under the
 // selection. Only the selections that name the open entry BY POSITION are
