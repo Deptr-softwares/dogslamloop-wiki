@@ -286,6 +286,38 @@ test('the account buttons are plain links under "Account", in normal case; a nam
     });
 });
 
+test('the account links are spaced the same on the home page as on a character page, in both looks', async ({ page }) => {
+    // Owner, 2026-11-20: the Classic account links sat further apart on the
+    // Main Hub than on a character or system page, "a CSS inconsistency that
+    // is not obvious when using the default look". Twelve hand-written pages
+    // wrote the dock's layout as an inline style, which beats any stylesheet,
+    // so Classic's tighter gap never reached them.
+    const spacing = () => page.evaluate(() => {
+        const a = document.getElementById('dock-btn-edit').getBoundingClientRect();
+        const b = document.getElementById('dock-btn-inbox').getBoundingClientRect();
+        return Math.round(b.top - a.bottom);
+    });
+    await signedIn(page);
+    const seen = {};
+    for (const look of ['default', 'classic']) {
+        for (const url of [PAGE, '/index.html']) {
+            await boot(page, look, url);
+            await expect(page.locator('#dock-btn-inbox')).toBeVisible();
+            seen[`${look} ${url}`] = await spacing();
+        }
+    }
+    expect(seen[`classic /index.html`], 'Classic: the home page as tight as a character page').toBe(seen[`classic ${PAGE}`]);
+    expect(seen[`classic ${PAGE}`]).toBeLessThan(seen[`default ${PAGE}`]);
+    expect(seen[`default /index.html`], 'Default is the same on both, as it was').toBe(seen[`default ${PAGE}`]);
+});
+
+test('no page writes the account dock\'s layout inline, where no look can reach it', () => {
+    const inline = execSync('git ls-files "*.html"', { cwd: ROOT, encoding: 'utf8' })
+        .split('\n').filter(Boolean)
+        .filter(rel => /id="sidebar-dynamic-dock"[^>]*\sstyle=/.test(fs.readFileSync(path.join(ROOT, rel), 'utf8')));
+    expect(inline).toEqual([]);
+});
+
 test('sidebar headings are small grey words, while the category toggles stay links', async ({ page }) => {
     await boot(page, 'classic');
     await expect(page.locator('.sidebar-group-header').first()).toBeVisible();
