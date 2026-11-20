@@ -183,7 +183,9 @@ window.renderRevision = async function(index) {
     `;
 
     // --- RECONSTRUCT THE PAYLOAD ---
-    window.currentEditorPageType = rev.page_type || 'character';
+    // From the page list, not the revision's own page_type (the submitter's
+    // word): it picks the renderer below.
+    window.currentEditorPageType = (await window.registeredPageType(rev.page_id)) || 'character';
     window.activePreviewCharId = rev.page_id;
 
     const mainArea = document.getElementById('history-content-area');

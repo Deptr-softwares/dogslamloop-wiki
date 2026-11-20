@@ -25,8 +25,11 @@ window.editCurrentTicket = async function() {
     // duplication over a new cross-file dependency. The tab logic below stays
     // different on purpose - a reviewer's strip is the honest target here, where
     // the contributor's page has no strip to read.
+    //
+    // The kind comes from the page list, not the submission's page_type.
+    const pageType = (await window.registeredPageType(rev.page_id)) || 'character';
     let url = `edit.html?char=${encodeURIComponent(rev.page_id)}`
-        + `&type=${encodeURIComponent(rev.page_type || 'character')}`
+        + `&type=${encodeURIComponent(pageType)}`
         + `&editTicket=${encodeURIComponent(rev.id)}`;
 
     // Open the editor on whatever tab the reviewer is currently reading.
@@ -88,6 +91,11 @@ async function approveCurrentPreview() {
         return;
     }
 
+    // Written onto the live row below, so it comes from the page list, then
+    // the live row itself, never the submission's page_type.
+    const pageType = (await window.registeredPageType(revData.page_id))
+        || (freshLive && freshLive.page_type) || 'character';
+
     // Your Supabase trigger "trigger_archive_page_before_update" handles the backup automatically.
 
     const liveDesc = freshLive ? freshLive.desc_data : {};
@@ -107,7 +115,7 @@ async function approveCurrentPreview() {
 
     const livePayload = {
         page_id: revData.page_id,
-        page_type: revData.page_type,
+        page_type: pageType,
         desc_data: finalDesc,
         frame_data: finalFrame,
         last_editor_name: window.currentUsername
@@ -134,7 +142,7 @@ async function approveCurrentPreview() {
     // This one is clicked days later, so getting it wrong is a 404 with no
     // context around it.
     await window.primePageUrlIndex();
-    const pageUrl = window.buildPageUrl(revData.page_id, revData.page_type);
+    const pageUrl = window.buildPageUrl(revData.page_id, pageType);
 
     // Update Notification to include the Staff Note
     // author_id is NULL when the author's account has been anonymized -
@@ -185,7 +193,8 @@ async function rejectCurrentPreview() {
     // This one is clicked days later, so getting it wrong is a 404 with no
     // context around it.
     await window.primePageUrlIndex();
-    const pageUrl = window.buildPageUrl(revData.page_id, revData.page_type);
+    // No kind passed: the submission's page_type is only its word.
+    const pageUrl = window.buildPageUrl(revData.page_id);
 
     // Skipped for an anonymized author - see the approve path above.
     if (revData.author_id) await window.supabaseClient.from('user_notifications').insert([{

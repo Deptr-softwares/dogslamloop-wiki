@@ -83,7 +83,9 @@ function renderChangeCard(rev) {
     const dateStr = new Date(rev.created_at).toLocaleString();
     const qa = rev.qa_metadata || {};
     const reviewer = qa.reviewed_by || 'Legacy System';
-    const pageUrl = window.buildPageUrl(rev.page_id, rev.page_type);
+    // No kind passed: the revision's page_type is only the submitter's word,
+    // and the index primed above already holds every listed page's path.
+    const pageUrl = window.buildPageUrl(rev.page_id);
     const historyUrl = `history.html?page=${encodeURIComponent(rev.page_id)}`;
 
     let scopeText = rev.is_delta

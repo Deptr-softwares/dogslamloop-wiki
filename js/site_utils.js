@@ -1361,6 +1361,8 @@ window.hideTooltip = function() {
 // notification for a tool, a gallery, or one of the system pages under others/
 // to a 404. navigation.json already carries the answer, so look it up.
 let pageUrlIndex = null;
+// Each page's kind, read from the same two files in the same pass.
+let pageTypeIndex = {};
 
 /**
  * Loads the pageId -> url index buildPageUrl prefers. Idempotent, and the
@@ -1373,13 +1375,16 @@ window.primePageUrlIndex = async function() {
     if (pageUrlIndex) return pageUrlIndex;
 
     const index = {};
+    const types = {};
     let navLoaded = false;
     try {
         const nav = await fetchNavigationData();
         for (const entries of Object.values(nav || {})) {
             for (const entry of entries || []) {
-                const id = entry && entry.cms_config && entry.cms_config.pageId;
+                const config = entry && entry.cms_config;
+                const id = config && config.pageId;
                 if (id && entry.url) index[id] = entry.url;
+                if (id && config.pageType) types[id] = config.pageType;
             }
         }
         navLoaded = true;
@@ -1395,10 +1400,24 @@ window.primePageUrlIndex = async function() {
     const archived = await fetchArchivedPages();
     for (const [id, row] of Object.entries(archived)) {
         if (row && row.url && !index[id]) index[id] = row.url;
+        if (row && row.pageType && !types[id]) types[id] = row.pageType;
     }
 
-    if (navLoaded) pageUrlIndex = index;
+    if (navLoaded) {
+        pageUrlIndex = index;
+        pageTypeIndex = types;
+    }
     return index;
+};
+
+// A page's kind (character, system, tierlist...) from the site's own page
+// list, or null for a page the list does not know. A submission names its
+// page's kind as well, but that is only the submitter's word, so the preview,
+// History, the editor links and approval all ask here instead (owner,
+// 2026-11-21).
+window.registeredPageType = async function(pageId) {
+    await window.primePageUrlIndex();
+    return pageTypeIndex[pageId] || null;
 };
 
 window.buildPageUrl = function(pageId, pageType) {

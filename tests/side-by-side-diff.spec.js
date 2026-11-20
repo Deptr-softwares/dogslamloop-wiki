@@ -163,7 +163,7 @@ test("a move's strategy text is compared with the rest of its card", async ({ pa
 test('a tier list opens on CHANGE LIST', async ({ page }) => {
     const tiers = (who) => ({ tabs: [{ id: 'overall', label: 'Overall', tiers: [{ label: 'S', characters: [who] }], changelog: [] }] });
     const edit = rev({
-        page_id: 'tier_list', page_type: 'tierlist',
+        page_id: 'tierlist', page_type: 'tierlist',
         target_scope: 'tierlist_tiers', target_key: 'overall', delta_payload: tiers('vessel').tabs[0].tiers,
     });
     await openOverseer(page, { rows: [edit], desc: tiers('boomcat'), frame: {} });
