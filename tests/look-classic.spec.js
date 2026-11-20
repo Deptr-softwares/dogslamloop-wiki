@@ -14,7 +14,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
-const STAFF = ['admin.html', 'edit.html', 'owner.html', 'post-editor.html', 'tier-editor.html', 'submissions.html'];
+const STAFF = ['admin.html', 'edit.html', 'owner.html', 'post-editor.html', 'tier-editor.html'];
 // Puppet Master's colour is dark (46% light), so the character theme both
 // tints the page and injects its outlined-heading rule: the most it can do.
 const PAGE = '/characters/Puppet_master/index.html';
@@ -449,6 +449,39 @@ test('the site menu on the left is plain links, a character keeps its colour, WI
         nameColour: 'rgb(255, 153, 153)',
         // --accent-yellow, hsl(45, 93%, 47%).
         badgeGround: 'rgba(0, 0, 0, 0)', badgeColour: 'rgb(231, 176, 8)', badgeBorder: '0px',
+    });
+});
+
+test('My Submissions takes Classic, before its body is built, with each submission ruled off', async ({ page }) => {
+    // Owner, 2026-11-20: "My Submissions page is not Classic look despite
+    // selecting the setting, probably an oversight". It was counted with the
+    // staff pages; it is a reader's own page.
+    const show = () => page.evaluate(async () => {
+        const at = '2026-11-19T18:52:00Z';
+        const revisions = [
+            { id: 'r-1', page_id: 'locust_guy', author_id: 'me', status: 'pending', is_delta: false, created_at: at, qa_metadata: { changelog: 'One.' } },
+            { id: 'r-2', page_id: 'locust_guy', author_id: 'me', status: 'approved', is_delta: false, created_at: at, qa_metadata: { changelog: 'Two.' } },
+        ];
+        window.supabaseClient = { from() { return { select() { return this; }, eq() { return this; }, order: async () => ({ data: revisions, error: null }) }; } };
+        window.currentSessionUserId = 'me';
+        await window.loadSubmissions();
+        const cs = getComputedStyle(document.querySelector('.submission-card'));
+        return {
+            body: getComputedStyle(document.body).backgroundColor,
+            ground: cs.backgroundColor, sides: cs.borderLeftWidth, rule: cs.borderBottomWidth,
+            title: getComputedStyle(document.getElementById('submissions-page-title')).fontFamily,
+        };
+    });
+
+    await boot(page, 'default', '/submissions.html');
+    const usual = await show();
+    expect(usual.sides, 'Default draws each submission as a box').not.toBe('0px');
+
+    await boot(page, 'classic', '/submissions.html');
+    expect(await page.evaluate(() => window.__classAtBody)).toMatch(/\blook-classic\b/);
+    expect(await show()).toEqual({
+        body: CLASSIC_BG, ground: 'rgba(0, 0, 0, 0)', sides: '0px', rule: '1px',
+        title: 'Georgia, "Times New Roman", serif, serif',
     });
 });
 

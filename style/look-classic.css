@@ -88,6 +88,8 @@ html.look-classic :is(.update-log-item, .faq-details) {
     box-shadow: none;
     padding: 0.75rem 0;
 }
+/* My Submissions: one entry per submission, ruled off like the Update Log. */
+html.look-classic .wiki-section.submission-card { border-bottom: 1px solid var(--border-color); padding-bottom: 1rem; }
 html.look-classic :is(.skill-entry-card, .wiki-section.profile-card) {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);

@@ -15,6 +15,11 @@
     <link rel="stylesheet" href="style/Layout.css">
     <link rel="stylesheet" href="style/Cards.css">
     <link rel="stylesheet" href="style/Submissions.css">
+    <link rel="stylesheet" href="style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 </head>
 <body class="site-body p-0">
 
