@@ -22,6 +22,13 @@ const tierEscape = (v) => (typeof window.escapeHtml === 'function'
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;').replace(/'/g, '&#39;'));
 
+// A tier's colour goes inside a style attribute, where escaping stops it
+// closing the attribute but not adding declarations of its own. So only a
+// plain colour passes (a hex code, rgb() or hsl() of numbers, or a name), and
+// anything else gets the default grey.
+const TIER_COLOR = /^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([\d\s.,%/+-]+\)|[a-z]+)$/i;
+const tierColor = (value, fallback) => (typeof value === 'string' && TIER_COLOR.test(value.trim()) ? value : fallback);
+
 // --- CORE ROSTER MATCHER ---
 // Fetches navigation.json to link Character IDs to their official names and colors
 async function fetchTierRoster() {
@@ -168,7 +175,7 @@ window.loadTierList = async function() {
     let navHTML = `
         <div class="tier-nav-overall-wrapper">
             <!-- Removed 'transform: scale' and used font-size/padding to preserve the slant -->
-            <button id="nav-tier-${overallTab.id}" class="btn-manga btn-manga-slanted tier-nav-overall-btn" onclick="window.switchLiveTierTab(${overallIdx})">
+            <button id="nav-tier-${tierEscape(overallTab.id)}" class="btn-manga btn-manga-slanted tier-nav-overall-btn" onclick="window.switchLiveTierTab(${overallIdx})">
                 <div class="btn-manga-content">
                     <span class="btn-manga-text tier-nav-overall-text">${tierEscape(String(overallTab.label || "").toUpperCase())}</span>
                 </div>
@@ -186,7 +193,7 @@ window.loadTierList = async function() {
         let charColor = (window.CHARACTER_COLORS && window.CHARACTER_COLORS[charName]) ? window.CHARACTER_COLORS[charName] : 'var(--border-color)';
 
         navHTML += `
-            <button id="nav-tier-${tab.id}" class="btn-manga btn-manga-slanted tier-nav-matchup-btn" onclick="window.switchLiveTierTab(${idx})" style="--tier-nav-color: ${charColor};">
+            <button id="nav-tier-${tierEscape(tab.id)}" class="btn-manga btn-manga-slanted tier-nav-matchup-btn" onclick="window.switchLiveTierTab(${idx})" style="--tier-nav-color: ${charColor};">
                 <div class="btn-manga-content">
                     <span class="btn-manga-text tier-nav-matchup-text">${tierEscape(String(tab.label || "").toUpperCase())}</span>
                 </div>
@@ -222,7 +229,7 @@ window.switchLiveTierTab = function(tabIndex) {
         listHTML += `<div class="tier-list-empty">No tiers configured for this category.</div>`;
     } else {
         activeTab.tiers.forEach(tier => {
-            const rowColor = tier.color || '#555555';
+            const rowColor = tierColor(tier.color, '#555555');
             let charsHTML = '';
 
             if (tier.characters && tier.characters.length > 0) {
@@ -335,10 +342,10 @@ window.renderTierEditorUI = function(container) {
         }
 
         tiersHTML += `
-            <div class="tier-editor-row" style="border-left: 4px solid ${tier.color || '#555'};">
+            <div class="tier-editor-row" style="border-left: 4px solid ${tierColor(tier.color, '#555')};">
 
                 <div class="tier-editor-row-header">
-                    <input type="color" class="tier-color-input" value="${tier.color ? tier.color.startsWith('#') ? tier.color : '#555555' : '#555555'}" onchange="window.updateTierMeta(${tIdx}, 'color', this.value)">
+                    <input type="color" class="tier-color-input" value="${tierEscape(tier.color ? tier.color.startsWith('#') ? tier.color : '#555555' : '#555555')}" onchange="window.updateTierMeta(${tIdx}, 'color', this.value)">
                     <input type="text" class="editor-input tier-name-input" value="${tierEscape(tier.name)}" placeholder="Tier Name" oninput="window.updateTierMeta(${tIdx}, 'name', this.value)">
                     <div class="tier-row-btn-group">
                         <button class="btn-sys btn-sys-regular btn-sys-compact" onclick="window.moveTier(${tIdx}, -1)">▲</button>
@@ -368,13 +375,13 @@ window.renderTierEditorUI = function(container) {
                 <div class="tier-changelog-header-row">
                     <div class="tier-changelog-date-field">
                         <label class="editor-field-label-sm">Date / Title (e.g. 2026-06-20)</label>
-                        <input type="text" class="editor-input tier-changelog-date-input" value="${log.date || ''}" oninput="window.updateTierChangelog(${lIdx}, 'date', this.value)">
+                        <input type="text" class="editor-input tier-changelog-date-input" value="${tierEscape(log.date || '')}" oninput="window.updateTierChangelog(${lIdx}, 'date', this.value)">
                     </div>
                     <button class="btn-sys btn-sys-red btn-sys-compact tier-changelog-delete-btn" onclick="window.removeTierChangelog(${lIdx})">✖</button>
                 </div>
                 <div>
                     <label class="editor-field-label-sm">Patch Notes (New line for each bullet point)</label>
-                    <textarea class="editor-textarea tier-changelog-textarea" oninput="window.updateTierChangelog(${lIdx}, 'notes', this.value)">${notesText}</textarea>
+                    <textarea class="editor-textarea tier-changelog-textarea" oninput="window.updateTierChangelog(${lIdx}, 'notes', this.value)">${tierEscape(notesText)}</textarea>
                 </div>
             </div>
         `;
