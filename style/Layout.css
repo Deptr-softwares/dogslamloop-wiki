@@ -296,12 +296,6 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .loading-msg-toc { padding: 0.25rem 0.75rem; }
 .loading-msg-error { color: #ef4444; }
 
-.sidebar-action-dock {
-    display: flex; flex-direction: column; gap: 0.75rem; width: 100%;
-    padding: 0 1.5rem 1.5rem 1.5rem; box-sizing: border-box; margin-top: auto;
-}
-.global-sidebar-left.collapsed .sidebar-action-dock { padding: 0 0.5rem 1.5rem 0.5rem; gap: 1rem; }
-
 /* Auth/dock action buttons (js/pagebuilder.js initAuthDock) */
 .kofi-text { font-family: var(--font-label), sans-serif; }
 /* Deliberately declares NO padding and NO font-size, 2026-08-14.
@@ -352,13 +346,6 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .site-settings-note { margin: 0; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem; }
 .site-settings-error { margin: 0; color: #ef4444; font-size: 0.8rem; }
 .dock-btn-inbox { position: relative; }
-.inbox-message-card {
-    padding: 0.75rem; border-radius: 4px;
-    background: var(--inbox-msg-bg, transparent);
-    border: 1px solid var(--inbox-msg-border, var(--border-color));
-}
-.inbox-message-date { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; }
-.inbox-message-text { font-size: 0.85rem; color: var(--text-white); }
 
 /* Character page sidebar dock (js/pagebuilder.js populates #sidebar-dynamic-dock) */
 #sidebar-dynamic-dock {
@@ -1794,14 +1781,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .mobile-menu-btn { background: none; border: none; color: var(--text-white); font-size: 1.75rem; padding: 0; cursor: pointer; }
     .mobile-menu-btn[hidden] { display: none; }
     
-    .mobile-edit-fab {
-        display: flex !important; align-items: center; justify-content: center;
-        position: fixed; bottom: 1.5rem; right: 1.5rem; width: 56px; height: 56px;
-        background: var(--bg-main); border: 2px solid var(--accent-blue); color: var(--accent-blue);
-        z-index: 900; box-shadow: 4px 4px 0px var(--manga-shadow); transform: skewX(-10deg);
-    }
-    .mobile-edit-fab svg { transform: skewX(10deg); }
-
     /* The bottom bar (js/pagebuilder.js buildMobileBottomBar): Search, Ko-fi,
        Settings and the account, one tap away. Under the drawers and their
        backdrop, which cover it while one is open. The page and the edit
@@ -1825,7 +1804,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .mobile-bottom-kofi { color: var(--accent-yellow); }
     /* !important only to get past .p-0, which every page puts on its body. */
     body.has-mobile-bottom-bar { padding-bottom: calc(3rem + 2px + env(safe-area-inset-bottom, 0px)) !important; }
-    body.has-mobile-bottom-bar .mobile-edit-fab { bottom: calc(4.5rem + 2px + env(safe-area-inset-bottom, 0px)); }
     /* Mobile Sidebar Dock Collapsing */
     .global-sidebar-left.collapsed .btn-manga-text { display: none; }
     .global-sidebar-left.collapsed .btn-manga-slanted { padding: 0.6rem; justify-content: center; }
@@ -1844,7 +1822,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
    3 lines. */
 @media (max-width: 640px) {
     .main-content-area { padding: 1rem; }
-    .wiki-section, .changelog-box { padding: 1rem; }
+    .wiki-section { padding: 1rem; }
 
     /* Phone text (owner's mobile card, v1.2: "Texts are too large"). Their
        pick, 2026-11-16: body 14px and titles two steps down, so section
@@ -2020,15 +1998,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .combo-resource { color: var(--text-muted); margin-bottom: 0.2rem; }
 .combo-resource strong { color: var(--text-white); }
 .combo-note-text { white-space: normal; }
-.combo-video-link {
-    /* NOT var(--accent-blue). On a character page that variable becomes the
-       character's own colour, and Crow Charmer (23% lightness) or Black Death
-       (27%) render a navy link on a near-black cell that cannot be read at
-       all. A link has to work on every character, so it takes the text colour
-       and earns its emphasis from the underline. */
-    color: var(--text-white); text-decoration: underline; text-underline-offset: 2px;
-}
-.combo-video-link:hover { color: var(--accent-blue); }
 
 /* Difficulty is ORDINAL, not categorical: eight distinguishable hues on a dark
    background is close to impossible, eight steps along a ramp is routine - and
@@ -2110,10 +2079,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
    170px wider than a phone (v1.2 mobile pass). The head still gives it a row
    of its own before it has to break. */
 .theorybox-practicality { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); min-width: 0; overflow-wrap: anywhere; }
-/* Not var(--accent-blue): on a character page that is the character's colour,
-   and the dark ones render an unreadable link. Same reason as .combo-video-link. */
-.theorybox-video { color: var(--text-white); text-decoration: underline; text-underline-offset: 2px; font-family: var(--text-mono); font-size: 0.75rem; }
-.theorybox-video:hover { color: var(--accent-blue); }
 .theorybox-oneliner { color: var(--text-muted); font-size: 0.85rem; margin: 0.35rem 0 0; }
 .theorybox-route { margin: 0.6rem 0 0; }
 .theorybox-body { margin-top: 0.7rem; border-top: 1px dashed var(--border-color); padding-top: 0.7rem; }

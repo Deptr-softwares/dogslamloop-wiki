@@ -434,7 +434,6 @@
 #preview-nav-sidebar { display: block; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px dashed #333; }
 .admin-split-header { margin-bottom: 0.75rem; border-bottom: 1px solid var(--accent-blue); padding-bottom: 0.5rem; }
 .admin-section-title { color: var(--text-white); font-size: 0.9rem; margin: 0; text-transform: uppercase; }
-.admin-nav-col { display: flex; flex-direction: column; margin-bottom: 1.5rem; }
 .admin-toc-empty { color: var(--text-muted); font-style: italic; font-size: 0.75rem; margin: 0; }
 
 /* --- PENDING QUEUE CARDS --- */
@@ -1254,15 +1253,6 @@ body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
 .queue-filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .queue-filter { flex: 1; font-size: 0.7rem; padding: 0.35rem; min-width: 0; }
 .queue-summary { font-family: var(--text-mono); font-size: 0.7rem; color: #888; margin: 0 0 0.75rem 0; }
-
-/* An expert sees only their own pages, so a queue that looks short is correct
-   rather than broken - the label is what says so. */
-.queue-scope-note {
-    font-family: var(--text-mono); font-size: 0.68rem; line-height: 1.5;
-    color: #888; margin: 0 0 0.75rem 0;
-    border-left: 3px solid var(--accent-blue); padding: 0.4rem 0.6rem;
-    background: rgba(96, 165, 250, 0.06);
-}
 
 /* Page Experts (v0.17 F5). Reuses .personnel-row from the roster above - the
    same shape showing the same kind of thing - and adds only the per-page

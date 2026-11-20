@@ -3,7 +3,7 @@
    ========================================= */
 
 /* --- 1. THE MASTER SURFACE ENGINE --- */
-.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .changelog-box {
+.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details {
     background-color: var(--bg-secondary);
     border: 2px solid var(--border-color);
     border-radius: 0;
@@ -26,7 +26,7 @@
 
 
 /* --- 2. FAMILY A: LARGE CONTENT PANELS --- */
-.wiki-section, .changelog-box {
+.wiki-section {
     padding: 1.5rem;
     margin-bottom: 1.5rem;
     box-shadow: 6px 6px 0px var(--manga-shadow);
@@ -42,8 +42,6 @@
 }
 
 .skill-entry-card { margin-bottom: 2rem; }
-.changelog-box { margin-top: 2rem; }
-
 
 /* --- 3. FAMILY B: DASHBOARD LIST ITEMS --- */
 .update-log-item, .faq-details {
@@ -53,7 +51,7 @@
 
 
 /* --- 4. FAMILY C: INTERACTIVE GRID ITEMS --- */
-.roster-card, .tier-char-card, .image-card-container {
+.roster-card, .image-card-container {
     border: 2px solid var(--border-color);
     border-radius: 0;
     background-color: var(--bg-main);
@@ -67,7 +65,7 @@
     justify-content: center;
 }
 
-.roster-card:hover, .tier-char-card:hover, .image-card-container:hover {
+.roster-card:hover, .image-card-container:hover {
     border-color: var(--accent-blue);
     transform: translate(-2px, -2px);
     box-shadow: 5px 5px 0px var(--accent-blue);
@@ -84,14 +82,6 @@
 }
 @media (min-width: 600px) { 
     .roster-card { width: 6rem; height: 6rem; } 
-}
-
-.tier-char-card { 
-    width: 4rem; 
-    height: 4rem; 
-}
-@media (min-width: 600px) { 
-    .tier-char-card { width: 6rem; height: 6rem; } 
 }
 
 .image-card-container { aspect-ratio: 16 / 9; box-shadow: 6px 6px 0px var(--manga-shadow); }
@@ -130,8 +120,8 @@
        Set on .roster-card rather than on .has-icon so every card in the grid
        stays the same SIZE: these are content-box, so a border only some cards
        had would make those cards physically bigger. And set here rather than on
-       the shared `.roster-card, .tier-char-card, .image-card-container` rule,
-       which the other two also read. */
+       the shared `.roster-card, .image-card-container` rule, which the image
+       cards also read. */
     border-width: 3px;
 }
 
@@ -162,9 +152,8 @@
 }
 
 /* The hover shadow matches the border (owner, 2026-08-24). Same reasoning as
-   the border rule: the shared `.roster-card:hover, .tier-char-card:hover,
-   .image-card-container:hover` sets --accent-blue here, and the other two
-   consumers keep it. Offsets are copied from that rule deliberately - only the
+   the border rule: the shared `.roster-card:hover, .image-card-container:hover`
+   sets --accent-blue here, and the image cards keep it. Offsets are copied from that rule deliberately - only the
    colour is in question, so only the colour changes. */
 .roster-card.has-icon:hover,
 .roster-card.has-icon:focus-visible {
@@ -225,7 +214,6 @@
 }
 .roster-empty-msg { width: 100%; text-align: center; color: var(--text-muted); font-family: var(--text-mono); }
 
-.tier-char-card img { width: 100%; height: 100%; object-fit: cover; }
 .image-card-img { object-fit: cover; width: 100%; height: 100%; opacity: 0.6; transition: opacity 0.3s; filter: grayscale(50%); }
 .image-card-container:hover .image-card-img { opacity: 1; filter: grayscale(0%); }
 

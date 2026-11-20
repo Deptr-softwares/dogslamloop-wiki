@@ -149,11 +149,6 @@ html.reduce-motion .btn-sys:hover:not(:disabled), html.reduce-motion .btn-sys:ac
 
 /* --- 2. Color Modifiers --- */
 /* Simply swap the local variable to instantly create new colored buttons! */
-.btn-manga-purple { --manga-accent: #a855f7; }
-.btn-manga-blue   { --manga-accent: var(--accent-blue); }
-.btn-manga-green  { --manga-accent: #22c55e; }
-.btn-manga-yellow { --manga-accent: #eab308; }
-.btn-manga-red    { --manga-accent: #ef4444; }
 .btn-manga-gray   { --manga-accent: var(--text-muted); color: var(--text-muted); border-color: var(--border-color); }
 
 
