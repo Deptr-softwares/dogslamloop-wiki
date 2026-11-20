@@ -5,22 +5,6 @@
 // `" onfocus=alert(1) autofocus="` executed when the editor rendered it - and
 // a reviewer intercepting a ticket opens exactly that editor on exactly that
 // contributor's content.
-//
-// Named escField, NOT esc: these files are classic scripts sharing one global
-// lexical scope, and a top-level `const esc` here collides with the one in
-// js/description.js, js/dashboards.js and js/post-editor.js on every page that
-// loads two of them - aborting this entire file. See the note in
-// description.js, and tests/global-scope-collisions.spec.js, which now fails
-// on any recurrence.
-//
-// window.escapeHtml escapes both quote characters as well as the angle
-// brackets, so it is correct for text and attribute contexts alike. The
-// fallback mirrors it for the cache-skew case site_utils.js is stamped for.
-const escField = (v) => (typeof window.escapeHtml === 'function'
-    ? window.escapeHtml(v === null || v === undefined ? '' : v)
-    : String(v === null || v === undefined ? '' : v)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;'));
 
 /**
  * Dogslamloop Wiki - Editor: Content Block Builder (add/edit/reorder text,
@@ -1000,19 +984,18 @@ function cloneComboNotations(list) {
 // Combo Card and the Combo Row, comma separated on the Combo Block.
 window.comboNotationFieldsHTML = function (item, opts) {
     const lines = !!(opts && opts.lines);
-    const esc = (v) => window.escapeHtml(v === null || v === undefined ? '' : v);
     const list = (item && Array.isArray(item.notations)) ? item.notations : [];
 
     const rows = list.map((n, i) => {
         const steps = Array.isArray(n && n.sequence) ? n.sequence : [];
         const route = lines
             ? `<textarea class="editor-textarea" data-nstyle-route="${i}" rows="3"
-                   placeholder="The route in this style, one step per line">${esc(steps.join('\n'))}</textarea>`
-            : `<input type="text" class="editor-input" data-nstyle-route="${i}" value="${esc(steps.join(', '))}"
+                   placeholder="The route in this style, one step per line">${window.escapeHtml(steps.join('\n'))}</textarea>`
+            : `<input type="text" class="editor-input" data-nstyle-route="${i}" value="${window.escapeHtml(steps.join(', '))}"
                    placeholder="The route in this style (comma separated)">`;
         return `<div class="nstyle-row" data-nstyle-row="${i}">
                 <div class="nstyle-row-head">
-                    <input type="text" class="editor-input" data-nstyle-label="${i}" value="${esc((n && n.label) || '')}"
+                    <input type="text" class="editor-input" data-nstyle-label="${i}" value="${window.escapeHtml((n && n.label) || '')}"
                            placeholder="Style name (e.g. Keyboard)">
                     <button type="button" class="btn-sys btn-sys-red" data-nstyle-remove="${i}"
                             title="Remove this notation style" aria-label="Remove this notation style">&#10006;</button>
@@ -1664,9 +1647,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             <div class="add-block-menu-wrapper">
                 <div class="add-block-popup" id="add-block-popup">
                     ${ADD_BLOCK_GROUPS.map((group, gi) => `
-                    <div class="add-block-popup-title${gi ? ' add-block-popup-title-spaced' : ''}">${escField(group.title)}</div>
+                    <div class="add-block-popup-title${gi ? ' add-block-popup-title-spaced' : ''}">${window.escapeHtml(group.title)}</div>
                     ${group.types.filter(window.blockOfferedHere).map(t =>
-                        `<button class="btn-sys btn-sys-regular add-block-btn" data-type="${escField(t)}">+ ${escField(window.blockTypeLabel(t))}</button>`
+                        `<button class="btn-sys btn-sys-regular add-block-btn" data-type="${window.escapeHtml(t)}">+ ${window.escapeHtml(window.blockTypeLabel(t))}</button>`
                     ).join('')}`).join('')}
                 </div>
                 <button class="btn-sys btn-sys-green btn-add-block-toggle" id="btn-toggle-add-menu">
@@ -2463,14 +2446,13 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     const jumpSearch = container.querySelector('#format-jump-search');
 
     if (jumpBtn && jumpPopup && jumpList) {
-        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
 
         // data- attributes with a delegated listener throughout: a section
         // title is contributor-written and must never reach an inline handler.
         const itemHTML = (target, cls) =>
             `<button type="button" class="${cls}"
-                     data-anchor="${esc(target.id)}"
-                     data-title="${esc(target.title)}">${esc(target.title)}</button>`;
+                     data-anchor="${window.escapeHtml(target.id)}"
+                     data-title="${window.escapeHtml(target.title)}">${window.escapeHtml(target.title)}</button>`;
 
         const renderJumpList = (filter) => {
             const data = window.currentEditorDescData || window.editorMasterDescData || {};
@@ -2510,7 +2492,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             let lastTab = null;
             shown.forEach(target => {
                 if (target.tab !== lastTab) {
-                    html += `<div class="format-jump-group">${esc(target.tabLabel)}</div>`;
+                    html += `<div class="format-jump-group">${window.escapeHtml(target.tabLabel)}</div>`;
                     lastTab = target.tab;
                 }
 
@@ -2523,7 +2505,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 html += itemHTML(target, 'format-jump-item');
                 if (children.length) {
                     html += `<button type="button" class="format-jump-toggle" aria-expanded="${open}"
-                                     aria-label="Sections inside ${esc(target.title)}">▼</button>`;
+                                     aria-label="Sections inside ${window.escapeHtml(target.title)}">▼</button>`;
                 }
                 html += '</div>';
 
@@ -2591,7 +2573,6 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
     const iconSearch = container.querySelector('#format-icon-search');
 
     if (iconBtn && iconPopup && iconList) {
-        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
         // null until the roster and its icons are in, then [{ id, name, src }].
         let characters = null;
         let charactersFailed = false;
@@ -2621,15 +2602,15 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             let html = '';
             if (accolades.length) {
                 html += '<div class="format-jump-group">Accolades</div>' + accolades.map(a =>
-                    `<button type="button" class="format-jump-item format-icon-item" data-icon="accolade/${esc(a.id)}">`
-                    + `<span class="format-icon-glyph" style="color: ${esc(a.color)}">${window.accoladeIconHTML(a)}</span>`
-                    + `<span>${esc(a.name)}</span></button>`).join('');
+                    `<button type="button" class="format-jump-item format-icon-item" data-icon="accolade/${window.escapeHtml(a.id)}">`
+                    + `<span class="format-icon-glyph" style="color: ${window.escapeHtml(a.color)}">${window.accoladeIconHTML(a)}</span>`
+                    + `<span>${window.escapeHtml(a.name)}</span></button>`).join('');
             }
             if (people.length) {
                 html += '<div class="format-jump-group">Characters</div>' + people.map(c =>
-                    `<button type="button" class="format-jump-item format-icon-item" data-icon="character/${esc(c.id)}">`
-                    + `<img class="format-icon-character" src="${esc(c.src)}" alt="">`
-                    + `<span>${esc(c.name)}</span></button>`).join('');
+                    `<button type="button" class="format-jump-item format-icon-item" data-icon="character/${window.escapeHtml(c.id)}">`
+                    + `<img class="format-icon-character" src="${window.escapeHtml(c.src)}" alt="">`
+                    + `<span>${window.escapeHtml(c.name)}</span></button>`).join('');
             } else if (!needle && (charactersFailed || !characters)) {
                 html += '<div class="format-jump-group">Characters</div>' + (charactersFailed
                     ? '<p class="format-jump-empty">The characters could not be loaded.</p>'
@@ -2639,9 +2620,9 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             // characters as they asked.
             if (site.length) {
                 html += '<div class="format-jump-group">UI</div>' + site.map(i =>
-                    `<button type="button" class="format-jump-item format-icon-item" data-icon="ui/${esc(i.id)}">`
+                    `<button type="button" class="format-jump-item format-icon-item" data-icon="ui/${window.escapeHtml(i.id)}">`
                     + `<span class="format-icon-glyph">${window.uiIconHTML(i.id)}</span>`
-                    + `<span>${esc(i.name)}</span></button>`).join('');
+                    + `<span>${window.escapeHtml(i.name)}</span></button>`).join('');
             }
             iconList.innerHTML = html || '<p class="format-jump-empty">No icon matches that.</p>';
         };
@@ -3887,7 +3868,7 @@ function keepTableButtonsInPlace(index, before) {
 // for this would make folder naming the only prompt on the site.
 //
 // Every interpolation here is contributor-authored and lands in an attribute,
-// so it goes through escField exactly like the block fields below it. `color`
+// so it is escaped exactly like the block fields below it. `color`
 // arrives already through safeColor (renderBlockList).
 function folderShellHTML(run, isCollapsed, isEmpty, color) {
     const count = isEmpty ? 'empty' : `${run.count} block${run.count === 1 ? '' : 's'}`;
@@ -3931,8 +3912,8 @@ function folderShellHTML(run, isCollapsed, isEmpty, color) {
             <button class="btn-sys btn-sys-regular block-folder-toggle"
                     title="${isCollapsed ? 'Expand' : 'Collapse'} this folder"
                     aria-expanded="${isCollapsed ? 'false' : 'true'}">${isCollapsed ? '&#9656;' : '&#9662;'}</button>
-            <input type="text" class="block-folder-name-input" value="${escField(run.name)}"
-                   data-folder="${escField(run.name)}" maxlength="60"
+            <input type="text" class="block-folder-name-input" value="${window.escapeHtml(run.name)}"
+                   data-folder="${window.escapeHtml(run.name)}" maxlength="60"
                    aria-label="Folder name" title="Rename this folder">${colorSwatch}
             <span class="block-folder-count">${count}</span>
             <button class="btn-sys btn-sys-regular block-folder-add"
@@ -4049,12 +4030,12 @@ function renderBlockList() {
             blocks = nested;
         }
 
-        // escField, not raw. The title is contributor-written and this string
+        // escapeHtml, not raw. The title is contributor-written and this string
         // goes through insertAdjacentHTML - it was an unescaped innerHTML sink
         // on every nested edit, found while extending this walk for C3.
         const heading = partLabel
-            ? `${escField(parentTitle)} <span class="accordion-back-part">${escField(partLabel)}</span>`
-            : escField(parentTitle);
+            ? `${window.escapeHtml(parentTitle)} <span class="accordion-back-part">${window.escapeHtml(partLabel)}</span>`
+            : window.escapeHtml(parentTitle);
 
         const backBtnHTML = `
             <div class="accordion-back-banner">
@@ -4131,7 +4112,7 @@ function renderBlockList() {
             rows += `<div class="folder-option-sep">Folders</div>`;
             rows += choices.map(n =>
                 `<button type="button" class="manga-option folder-option folder-option-item${n === own ? ' selected' : ''}"
-                         data-folder-action="pick" data-folder-name="${escField(n)}">${escField(n)}</button>`
+                         data-folder-action="pick" data-folder-name="${window.escapeHtml(n)}">${window.escapeHtml(n)}</button>`
             ).join('');
         }
         rows += `<button type="button" class="manga-option folder-option folder-option-new"
@@ -4140,7 +4121,7 @@ function renderBlockList() {
         return `
             <div class="manga-select-wrapper block-folder-picker">
                 <button type="button" class="block-folder-trigger${own ? ' has-folder' : ''}"
-                        title="Put this block in a folder">${own ? escField(own) : 'No folder'}</button>
+                        title="Put this block in a folder">${own ? window.escapeHtml(own) : 'No folder'}</button>
                 <div class="manga-select-options">${rows}</div>
             </div>
         `;
@@ -4156,7 +4137,7 @@ function renderBlockList() {
 
             // A Block that is somehow off its page still names its own type.
             const typeOptions = Object.keys(blockTemplates).filter(t => window.blockOfferedHere(t) || t === block.type).map(t =>
-                `<option value="${escField(t)}" ${block.type === t ? 'selected' : ''}>${escField(window.blockTypeLabel(t))}</option>`
+                `<option value="${window.escapeHtml(t)}" ${block.type === t ? 'selected' : ''}>${window.escapeHtml(window.blockTypeLabel(t))}</option>`
             ).join('');
 
             let html = `
@@ -4166,10 +4147,10 @@ function renderBlockList() {
                         <select class="editor-select block-type-selector">
                             ${typeOptions}
                         </select>
-                        <span class="block-type-badge block-type-label">${escField(window.blockTypeLabel(block.type))}</span>
+                        <span class="block-type-badge block-type-label">${window.escapeHtml(window.blockTypeLabel(block.type))}</span>
                         ${folderPickerHTML(block)}
                     </div>
-                <span class="block-card-summary" title="${escField(blockSummary(block))}">${escField(blockSummary(block))}</span>
+                <span class="block-card-summary" title="${window.escapeHtml(blockSummary(block))}">${window.escapeHtml(blockSummary(block))}</span>
                 <div class="block-actions">
                     <button class="btn-sys btn-sys-green btn-insert-below" title="Insert Paragraph Below">⨁</button>
                     <button class="btn-sys btn-sys-regular btn-collapse" title="Minimize/Expand">${isOpen ? '—' : '□'}</button>
@@ -4183,7 +4164,7 @@ function renderBlockList() {
 
         if (block.type === 'heading') {
             html += `
-                <input type="text" class="editor-input block-heading-input" data-field="content" value="${escField(block.content)}" placeholder="Heading Text">
+                <input type="text" class="editor-input block-heading-input" data-field="content" value="${window.escapeHtml(block.content)}" placeholder="Heading Text">
                 <div class="editor-row">
                     <div>
                         <select class="editor-select" data-field="size">
@@ -4200,43 +4181,43 @@ function renderBlockList() {
         else if (block.type === 'paragraph') {
             const textValue = Array.isArray(block.content) ? block.content.join('\n') : block.content;
             html += `
-                <textarea class="editor-textarea" data-field="content-array" placeholder="Enter paragraph. Use new lines to break array elements. Tip: Use [M1] for keybinds.">${escField(textValue)}</textarea>
+                <textarea class="editor-textarea" data-field="content-array" placeholder="Enter paragraph. Use new lines to break array elements. Tip: Use [M1] for keybinds.">${window.escapeHtml(textValue)}</textarea>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'left')}</div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${window.escapeHtml(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
             `;
         }
         else if (block.type === 'list') {
             const listValue = Array.isArray(block.items) ? block.items.join('\n') : block.items;
             html += `
-                <textarea class="editor-textarea" data-field="list-items" placeholder="Enter list items. Use a new line for each bullet point.">${escField(listValue)}</textarea>
+                <textarea class="editor-textarea" data-field="list-items" placeholder="Enter list items. Use a new line for each bullet point.">${window.escapeHtml(listValue)}</textarea>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'left')}</div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${window.escapeHtml(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
                 <label class="block-video-controls-label"><input type="checkbox" data-field="boxed" ${block.boxed ? 'checked' : ''}> Box this list</label>
             `;
         }
         else if (block.type === 'image') {
             html += `
-                <input type="text" class="editor-input" data-field="src" value="${escField(block.src || '')}" placeholder="Image Path/URL (e.g. VesselPortrait.webp)">
+                <input type="text" class="editor-input" data-field="src" value="${window.escapeHtml(block.src || '')}" placeholder="Image Path/URL (e.g. VesselPortrait.webp)">
                 <div class="editor-row">
-                    <div><input type="text" class="editor-input" data-field="alt" value="${escField(block.alt || '')}" placeholder="Alt Text (Required for accessibility)"></div>
-                    <div><input type="text" class="editor-input" data-field="caption" value="${escField(block.caption || '')}" placeholder="Caption (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="alt" value="${window.escapeHtml(block.alt || '')}" placeholder="Alt Text (Required for accessibility)"></div>
+                    <div><input type="text" class="editor-input" data-field="caption" value="${window.escapeHtml(block.caption || '')}" placeholder="Caption (Optional)"></div>
                 </div>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'center')}</div>
-                    <div><input type="text" class="editor-input" data-field="width" value="${escField(block.width || '100%')}" placeholder="Width (e.g. 50% or 400px)"></div>
+                    <div><input type="text" class="editor-input" data-field="width" value="${window.escapeHtml(block.width || '100%')}" placeholder="Width (e.g. 50% or 400px)"></div>
                 </div>
             `;
         }
         else if (block.type === 'video') {
             html += `
-                <input type="text" class="editor-input" data-field="src" value="${escField(block.src)}" placeholder="Video URL (e.g. /medias/videos/NoNeutralCS.webm)">
+                <input type="text" class="editor-input" data-field="src" value="${window.escapeHtml(block.src)}" placeholder="Video URL (e.g. /medias/videos/NoNeutralCS.webm)">
                 <div class="editor-row">
-                    <div><input type="text" class="editor-input" data-field="caption" value="${escField(block.caption || '')}" placeholder="Caption (Optional)"></div>
-                    <div><input type="text" class="editor-input" data-field="width" value="${escField(block.width || '100%')}" placeholder="Width (e.g. 50%)"></div>
+                    <div><input type="text" class="editor-input" data-field="caption" value="${window.escapeHtml(block.caption || '')}" placeholder="Caption (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="width" value="${window.escapeHtml(block.width || '100%')}" placeholder="Width (e.g. 50%)"></div>
                 </div>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'center')}</div>
@@ -4248,10 +4229,10 @@ function renderBlockList() {
         }
         else if (block.type === 'youtube') {
             html += `
-                <input type="text" class="editor-input" data-field="videoId" value="${escField(block.videoId || '')}" placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)">
+                <input type="text" class="editor-input" data-field="videoId" value="${window.escapeHtml(block.videoId || '')}" placeholder="YouTube Video ID (e.g. dQw4w9WgXcQ)">
                 <div class="editor-row">
-                    <div><input type="text" class="editor-input" data-field="caption" value="${escField(block.caption || '')}" placeholder="Caption (Optional)"></div>
-                    <div><input type="text" class="editor-input" data-field="width" value="${escField(block.width || '100%')}" placeholder="Width (e.g. 75%)"></div>
+                    <div><input type="text" class="editor-input" data-field="caption" value="${window.escapeHtml(block.caption || '')}" placeholder="Caption (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="width" value="${window.escapeHtml(block.width || '100%')}" placeholder="Width (e.g. 75%)"></div>
                 </div>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'center')}</div>
@@ -4262,15 +4243,15 @@ function renderBlockList() {
         else if (block.type === 'combo') {
             const seq = block.sequence ? block.sequence.join(', ') : '';
             html += `
-                <input type="text" class="editor-input" data-field="combo-sequence" value="${escField(seq)}" placeholder="Sequence (Comma separated: M1, M1, Skill)">
+                <input type="text" class="editor-input" data-field="combo-sequence" value="${window.escapeHtml(seq)}" placeholder="Sequence (Comma separated: M1, M1, Skill)">
                 ${window.comboNotationFieldsHTML(block, { lines: false })}
                 <div class="editor-row">
-                    <div><input type="text" class="editor-input" data-field="damage" value="${escField(block.damage || '')}" placeholder="Damage text (e.g. 40 DMG)"></div>
-                    <div><input type="text" class="editor-input" data-field="note" value="${escField(block.note || '')}" placeholder="Condition/Note (e.g. Corner Only)"></div>
+                    <div><input type="text" class="editor-input" data-field="damage" value="${window.escapeHtml(block.damage || '')}" placeholder="Damage text (e.g. 40 DMG)"></div>
+                    <div><input type="text" class="editor-input" data-field="note" value="${window.escapeHtml(block.note || '')}" placeholder="Condition/Note (e.g. Corner Only)"></div>
                 </div>
                 <div class="editor-row">
                     <div>${getAlignUI(block.align, 'left')}</div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${window.escapeHtml(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
             `;
         }
@@ -4281,14 +4262,14 @@ function renderBlockList() {
 
             tableHTML += `<tr>`;
             block.headers.forEach((h, c) => {
-                tableHTML += `<td class="${tablePickedClass(pick, null, c)}"><input type="text" class="editor-input table-header-input" data-col="${c}" value="${escField(h)}" placeholder="Header"></td>`;
+                tableHTML += `<td class="${tablePickedClass(pick, null, c)}"><input type="text" class="editor-input table-header-input" data-col="${c}" value="${window.escapeHtml(h)}" placeholder="Header"></td>`;
             });
             tableHTML += `</tr>`;
 
             block.rows.forEach((r, rIdx) => {
                 tableHTML += `<tr>`;
                 r.forEach((cell, cIdx) => {
-                    tableHTML += `<td class="${tablePickedClass(pick, rIdx, cIdx)}"><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${escField(cell)}" placeholder="..."></td>`;
+                    tableHTML += `<td class="${tablePickedClass(pick, rIdx, cIdx)}"><input type="text" class="editor-input table-cell-input" data-row="${rIdx}" data-col="${cIdx}" value="${window.escapeHtml(cell)}" placeholder="..."></td>`;
                 });
                 tableHTML += `</tr>`;
             });
@@ -4302,16 +4283,16 @@ function renderBlockList() {
                     <button class="btn-sys btn-sys-red btn-table-del-row" title="${del.row.title}">${del.row.label}</button>
                     <button class="btn-sys btn-sys-red btn-table-del-col" title="${del.col.title}">${del.col.label}</button>
                 </div>
-                <input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)">
+                <input type="text" class="editor-input" data-field="author" value="${window.escapeHtml(block.author || '')}" placeholder="Author Credit (Optional)">
             `;
         }
         else if (block.type === 'accordion') {
             const innerCount = block.content ? block.content.length : 0;
             html += `
-                <input type="text" class="editor-input" data-field="title" value="${escField(block.title || '')}" placeholder="Accordion Title">
+                <input type="text" class="editor-input" data-field="title" value="${window.escapeHtml(block.title || '')}" placeholder="Accordion Title">
                 <div class="editor-row editor-row-spaced-md">
                     <div>${getAlignUI(block.align, 'center')}</div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${window.escapeHtml(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
                 <div class="accordion-inner-block-wrapper">
                     <button class="btn-sys btn-sys-purple" onclick="window.activeAccordionPath.push(${index}); renderBlockList();">
@@ -4334,7 +4315,7 @@ function renderBlockList() {
             const rows = sections.map((section, sIdx) => `
                 <div class="sbox-editor-row">
                     <input type="text" class="editor-input" data-sbox-title="${sIdx}"
-                           value="${escField(section.title || '')}" placeholder="Section ${sIdx + 1}">
+                           value="${window.escapeHtml(section.title || '')}" placeholder="Section ${sIdx + 1}">
                     <button class="btn-sys btn-sys-purple" data-sbox-edit="${sIdx}">
                         ⮑ CONTENTS (${Array.isArray(section.content) ? section.content.length : 0})
                     </button>
@@ -4343,10 +4324,10 @@ function renderBlockList() {
             `).join('');
 
             html += `
-                <input type="text" class="editor-input" data-field="title" value="${escField(block.title || '')}" placeholder="Section Box Title">
+                <input type="text" class="editor-input" data-field="title" value="${window.escapeHtml(block.title || '')}" placeholder="Section Box Title">
                 <div class="editor-row editor-row-spaced-md">
                     <div>${getAlignUI(block.align, 'left')}</div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${window.escapeHtml(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
                 <div class="accordion-inner-block-wrapper">
                     <button class="btn-sys btn-sys-purple" data-sbox-intro="${index}">
@@ -4371,7 +4352,7 @@ function renderBlockList() {
             const innerCount = card.content ? card.content.length : 0;
             const route = Array.isArray(card.sequence) ? card.sequence.join('\n') : '';
             const difficulties = ['', ...(window.COMBO_DIFFICULTIES || [])]
-                .map(d => `<option value="${escField(d)}" ${card.difficulty === d ? 'selected' : ''}>${escField(d || '- none -')}</option>`)
+                .map(d => `<option value="${window.escapeHtml(d)}" ${card.difficulty === d ? 'selected' : ''}>${window.escapeHtml(d || '- none -')}</option>`)
                 .join('');
 
             // The tab strip, and the LABEL is its own field: the reference the
@@ -4383,12 +4364,12 @@ function renderBlockList() {
                     <div class="cardsec-tabs">
                         ${sections.map((sec, i) =>
                             `<button class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'} cardsec-tab" data-cardsec="${i}">`
-                            + `${escField(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
+                            + `${window.escapeHtml(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
                         <button class="btn-sys btn-sys-green" data-cardsec-add="1" title="Add a section">+</button>
                         ${sections.length > 1 ? `<button class="btn-sys btn-sys-red" data-cardsec-remove="${secIdx}" title="Remove this section">&#10006;</button>` : ''}
                     </div>
                     <input type="text" class="editor-input" data-cardsec-label="${secIdx}"
-                           value="${escField(card.label || '')}" placeholder="Tab label (e.g. In Corner 6H)">
+                           value="${window.escapeHtml(card.label || '')}" placeholder="Tab label (e.g. In Corner 6H)">
                 </div>` : '';
 
             html += `
@@ -4396,23 +4377,23 @@ function renderBlockList() {
                     <input type="checkbox" data-field="multiSections" ${multi ? 'checked' : ''}> Multiple Sections
                 </label>
                 ${strip}
-                <input type="text" class="editor-input" data-field="title" value="${escField(card.title || '')}" placeholder="Combo name (e.g. Corner BnB)">
-                <input type="text" class="editor-input" data-field="oneliner" value="${escField(card.oneliner || '')}" placeholder="One line: what this combo is for">
+                <input type="text" class="editor-input" data-field="title" value="${window.escapeHtml(card.title || '')}" placeholder="Combo name (e.g. Corner BnB)">
+                <input type="text" class="editor-input" data-field="oneliner" value="${window.escapeHtml(card.oneliner || '')}" placeholder="One line: what this combo is for">
                 <div class="editor-row editor-row-spaced-md">
                     <div>
                         <label class="editor-field-label-sm">Route - one step per line</label>
-                        <textarea class="editor-textarea" data-field="sequence-lines" rows="4">${escField(route)}</textarea>
+                        <textarea class="editor-textarea" data-field="sequence-lines" rows="4">${window.escapeHtml(route)}</textarea>
                     </div>
                 </div>
                 ${window.comboNotationFieldsHTML(card, { lines: true })}
                 <div class="editor-row editor-row-spaced-md">
-                    <div><input type="text" class="editor-input" data-field="damage" value="${escField(card.damage || '')}" placeholder="Damage (e.g. 38-46)"></div>
+                    <div><input type="text" class="editor-input" data-field="damage" value="${window.escapeHtml(card.damage || '')}" placeholder="Damage (e.g. 38-46)"></div>
                     <div><select class="editor-select" data-field="difficulty">${difficulties}</select></div>
-                    <div><input type="text" class="editor-input" data-field="practicality" value="${escField(card.practicality || '')}" placeholder="Practicality (anything)"></div>
+                    <div><input type="text" class="editor-input" data-field="practicality" value="${window.escapeHtml(card.practicality || '')}" placeholder="Practicality (anything)"></div>
                 </div>
                 <div class="editor-row editor-row-spaced-md">
-                    <div><input type="text" class="editor-input" data-field="video" value="${escField(card.video || '')}" placeholder="Video URL (optional)"></div>
-                    <div><input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Author Credit (Optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="video" value="${window.escapeHtml(card.video || '')}" placeholder="Video URL (optional)"></div>
+                    <div><input type="text" class="editor-input" data-field="author" value="${window.escapeHtml(block.author || '')}" placeholder="Author Credit (Optional)"></div>
                 </div>
                 <div class="accordion-inner-block-wrapper">
                     <button class="btn-sys btn-sys-purple" data-cardsec-edit="${secIdx}">
@@ -4433,10 +4414,10 @@ function renderBlockList() {
                             <option value="danger" ${block.intent === 'danger' ? 'selected' : ''}>Danger (Red)</option>
                         </select>
                     </div>
-                    <div><input type="text" class="editor-input" data-field="title" value="${escField(block.title || '')}" placeholder="Callout Title"></div>
+                    <div><input type="text" class="editor-input" data-field="title" value="${window.escapeHtml(block.title || '')}" placeholder="Callout Title"></div>
                     <div>${getAlignUI(block.align, 'center')}</div>
                 </div>
-                <textarea class="editor-textarea" data-field="content-array" placeholder="Tooltip text...">${escField(textValue)}</textarea>
+                <textarea class="editor-textarea" data-field="content-array" placeholder="Tooltip text...">${window.escapeHtml(textValue)}</textarea>
             `;
         }
         else if (block.type === 'divider') {
@@ -4476,7 +4457,7 @@ function renderBlockList() {
         else if (block.type === 'author') {
             html += `
                 <div class="editor-row editor-row-nomargin">
-                    <input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Contributor Name(s) (Comma separated)">
+                    <input type="text" class="editor-input" data-field="author" value="${window.escapeHtml(block.author || '')}" placeholder="Contributor Name(s) (Comma separated)">
                 </div>
             `;
         }
@@ -4493,27 +4474,27 @@ function renderBlockList() {
                             <option value="line" ${isLine ? 'selected' : ''}>Special thanks (one line)</option>
                         </select>
                     </div>
-                    <div><input type="text" class="editor-input" data-field="name" value="${escField(block.name || '')}" placeholder="Name"></div>
+                    <div><input type="text" class="editor-input" data-field="name" value="${window.escapeHtml(block.name || '')}" placeholder="Name"></div>
                 </div>
             `;
             if (isLine) {
-                html += `<textarea class="editor-textarea" data-field="description" placeholder="Why they are thanked">${escField(block.description || '')}</textarea>`;
+                html += `<textarea class="editor-textarea" data-field="description" placeholder="Why they are thanked">${window.escapeHtml(block.description || '')}</textarea>`;
             } else {
                 html += `
                     <div class="editor-row">
-                        <div><input type="text" class="editor-input" data-field="role" value="${escField(block.role || '')}" placeholder="Tag, e.g. Frame Data &amp; Testing"></div>
+                        <div><input type="text" class="editor-input" data-field="role" value="${window.escapeHtml(block.role || '')}" placeholder="Tag, e.g. Frame Data &amp; Testing"></div>
                         <div>
                             <label class="block-field-label-sm">Tag color</label>
                             <select class="editor-select" data-field="badge">
                                 ${Object.entries(badges).map(([value, label]) =>
-                                    `<option value="${escField(value)}" ${badge === value ? 'selected' : ''}>${escField(label)}</option>`).join('')}
+                                    `<option value="${window.escapeHtml(value)}" ${badge === value ? 'selected' : ''}>${window.escapeHtml(label)}</option>`).join('')}
                             </select>
                         </div>
                     </div>
-                    <input type="text" class="editor-input" data-field="avatar" value="${escField(block.avatar || '')}" placeholder="Icon path, e.g. /medias/images/Something.webp, or a Media Library address">
-                    <textarea class="editor-textarea" data-field="description" placeholder="What they did">${escField(block.description || '')}</textarea>
-                    <textarea class="editor-textarea" data-field="links-lines" placeholder="Links, one per line: GitHub | https://github.com/someone">${escField(linkLinesText(block.links))}</textarea>
-                    <p class="collaborator-links-note" data-links-note ${collaboratorLinkNote(block.links) ? '' : 'hidden'}>${escField(collaboratorLinkNote(block.links))}</p>
+                    <input type="text" class="editor-input" data-field="avatar" value="${window.escapeHtml(block.avatar || '')}" placeholder="Icon path, e.g. /medias/images/Something.webp, or a Media Library address">
+                    <textarea class="editor-textarea" data-field="description" placeholder="What they did">${window.escapeHtml(block.description || '')}</textarea>
+                    <textarea class="editor-textarea" data-field="links-lines" placeholder="Links, one per line: GitHub | https://github.com/someone">${window.escapeHtml(linkLinesText(block.links))}</textarea>
+                    <p class="collaborator-links-note" data-links-note ${collaboratorLinkNote(block.links) ? '' : 'hidden'}>${window.escapeHtml(collaboratorLinkNote(block.links))}</p>
                 `;
             }
         }
@@ -4526,7 +4507,7 @@ function renderBlockList() {
                         <label class="block-field-label-sm">Swatches</label>
                         <select class="editor-select" data-field="set">
                             ${Object.entries(sets).map(([value, label]) =>
-                                `<option value="${escField(value)}" ${set === value ? 'selected' : ''}>${escField(label)}</option>`).join('')}
+                                `<option value="${window.escapeHtml(value)}" ${set === value ? 'selected' : ''}>${window.escapeHtml(label)}</option>`).join('')}
                         </select>
                     </div>
                 </div>

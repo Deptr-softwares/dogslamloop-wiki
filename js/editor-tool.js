@@ -23,8 +23,6 @@
         { id: 'notes', label: 'Notes', hint: 'Shown below the tool.' },
     ];
 
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
-
     function toolConfig() {
         const desc = window.currentEditorDescData || {};
         if (!desc.tool) desc.tool = {};
@@ -65,7 +63,7 @@
         const hasOwnRenderer = !!(window.WIKI_TOOLS && window.WIKI_TOOLS[window.currentEditorCharId]);
 
         const sectionTabs = SECTIONS.map(s => `
-            <button class="daw-tab-btn${s.id === active.id ? ' active' : ''}" data-tool-section="${s.id}">${esc(s.label)}</button>
+            <button class="daw-tab-btn${s.id === active.id ? ' active' : ''}" data-tool-section="${s.id}">${window.escapeHtml(s.label)}</button>
         `).join('');
 
         builder.innerHTML = `
@@ -88,18 +86,18 @@
 
                     <label class="block-field-label-sm" for="tool-url">Tool URL</label>
                     <input type="text" class="editor-input" id="tool-url"
-                           value="${esc(config.url || '')}" placeholder="https://...">
+                           value="${window.escapeHtml(config.url || '')}" placeholder="https://...">
 
                     <div class="editor-row editor-row-divider">
                         <div>
                             <label class="block-field-label-sm" for="tool-launch-label">Button text</label>
                             <input type="text" class="editor-input" id="tool-launch-label"
-                                   value="${esc(config.launchLabel || '')}" placeholder="Open the tool">
+                                   value="${window.escapeHtml(config.launchLabel || '')}" placeholder="Open the tool">
                         </div>
                         <div>
                             <label class="block-field-label-sm" for="tool-height">Embed height (px)</label>
                             <input type="number" class="editor-input" id="tool-height" min="200" max="2000" step="20"
-                                   value="${esc(config.height || 720)}">
+                                   value="${window.escapeHtml(config.height || 720)}">
                         </div>
                     </div>
 
@@ -124,7 +122,7 @@
             </div>
 
             <div class="daw-variant-tabs daw-editor-nav-row" id="tool-section-tabs">${sectionTabs}</div>
-            <p class="tool-editor-hint">${esc(active.hint)}</p>
+            <p class="tool-editor-hint">${window.escapeHtml(active.hint)}</p>
             <div id="tool-block-target"></div>
         `;
 

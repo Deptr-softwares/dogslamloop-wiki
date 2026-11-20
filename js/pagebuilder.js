@@ -252,7 +252,6 @@ window.buildGlobalSidebarMenu = async function(containerId) {
         // The header's onclick stays: it interpolates nothing, so it is static
         // markup rather than the user-influenced-handler pattern CLAUDE.md
         // rules out.
-        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
 
         let html = '';
         for (const [category, items] of Object.entries(navData)) {
@@ -262,7 +261,7 @@ window.buildGlobalSidebarMenu = async function(containerId) {
             // conveys visually and conveyed to nobody else.
             html += `<div class="sidebar-group-wrapper">`;
             html += `<button type="button" class="sidebar-nav-title sidebar-group-header" aria-expanded="false">
-                        ${esc(category)} <span class="sidebar-group-caret" aria-hidden="true">▼</span>
+                        ${window.escapeHtml(category)} <span class="sidebar-group-caret" aria-hidden="true">▼</span>
                      </button>`;
             html += `<ul class="toc-list hidden">`;
 
@@ -278,8 +277,8 @@ window.buildGlobalSidebarMenu = async function(containerId) {
 
                 html += `
                     <li>
-                        <a href="${esc(rootPath + item.url)}" class="btn-nav">
-                            <span class="toc-link-text" style="${colorStyle}">${esc(item.name)}</span>
+                        <a href="${window.escapeHtml(rootPath + item.url)}" class="btn-nav">
+                            <span class="toc-link-text" style="${colorStyle}">${window.escapeHtml(item.name)}</span>
                             ${badge}
                         </a>
                     </li>
@@ -920,7 +919,6 @@ window.renderFilteredRoster = function() {
         // Names, URLs and image paths are all owner-editable through
         // owner.html as of v0.10, so they are escaped at every interpolation
         // rather than trusted for being "internal" data.
-        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
 
         // WIP moved out of the name and into its own corner marker, beside the
         // Early Access star (owner, 2026-08-24). It has to survive the name
@@ -934,12 +932,12 @@ window.renderFilteredRoster = function() {
         // the name slit's fill - and an inline background-color would beat every
         // stylesheet rule that needs to change one of them without !important.
         html += `
-            <a href="${esc(rootPath + char.url)}" class="roster-card" data-page-id="${esc((char.cms_config || {}).pageId || '')}" style="--char-color: ${charColor};">
+            <a href="${window.escapeHtml(rootPath + char.url)}" class="roster-card" data-page-id="${window.escapeHtml((char.cms_config || {}).pageId || '')}" style="--char-color: ${charColor};">
                 ${char.isEA ? `<span class="ea-star-indicator" title="Early Access" style="color: ${textColor};">★</span>` : ''}
                 ${char.isWip ? `<span class="roster-wip-indicator" title="Work In Progress" aria-label="Work In Progress">🚧</span>` : ''}
-                ${char.image ? `<img src="${esc(char.image)}" alt="${esc(char.name)}" class="roster-card-bg-image">` : ''}
-                ${iconSrc ? `<img src="${esc(rootPath + iconSrc)}" alt="" aria-hidden="true" class="roster-card-icon" loading="lazy">` : ''}
-                <div class="roster-card-text" style="color: ${textColor};">${esc(char.name)}</div>
+                ${char.image ? `<img src="${window.escapeHtml(char.image)}" alt="${window.escapeHtml(char.name)}" class="roster-card-bg-image">` : ''}
+                ${iconSrc ? `<img src="${window.escapeHtml(rootPath + iconSrc)}" alt="" aria-hidden="true" class="roster-card-icon" loading="lazy">` : ''}
+                <div class="roster-card-text" style="color: ${textColor};">${window.escapeHtml(char.name)}</div>
             </a>
         `;
     });
@@ -996,7 +994,6 @@ window.buildCategoryColumn = async function(containerId, categories) {
     try {
         const rootPath = window.getRootPath ? window.getRootPath() : './';
         const navData = await window.fetchJson(`${rootPath}data/navigation.json`, { cache: true });
-        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
 
         const populated = groups
             .map(name => ({ name, items: (navData && navData[name]) || [] }))
@@ -1022,7 +1019,7 @@ window.buildCategoryColumn = async function(containerId, categories) {
         // and URLs come from site_pages, which an admin edits.
         container.innerHTML = populated.map(group => {
             const heading = showHeadings
-                ? `<h3 class="column-subgroup-title">${esc(group.name)}</h3>`
+                ? `<h3 class="column-subgroup-title">${window.escapeHtml(group.name)}</h3>`
                 : '';
 
             // No WIP badge here (owner, 2026-09-03: "kinda off and not fitting.
@@ -1030,9 +1027,9 @@ window.buildCategoryColumn = async function(containerId, categories) {
             // enough"). buildGlobalSidebarMenu still draws it, which is the one
             // place a reader is choosing what to open from a full list.
             const buttons = group.items.map(item => `
-                <button class="btn-manga btn-manga-box system-directory-btn" data-href="${esc(rootPath + item.url)}">
+                <button class="btn-manga btn-manga-box system-directory-btn" data-href="${window.escapeHtml(rootPath + item.url)}">
                     <div class="btn-manga-content">
-                        <span class="btn-manga-text">${esc(item.name)}</span>
+                        <span class="btn-manga-text">${window.escapeHtml(item.name)}</span>
                     </div>
                 </button>`).join('');
 
@@ -1100,7 +1097,6 @@ window.buildSystemsDirectory = async function(containerId, options) {
 
         // Category names are owner-authored too - they come straight from
         // site_pages.category - so they get the same treatment as page names.
-        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
 
         let html = `<div class="systems-grid-container${compact ? ' systems-grid-container-compact' : ''}">`;
         // Others and Tools have their own Main Dashboard columns, so they are
@@ -1113,7 +1109,7 @@ window.buildSystemsDirectory = async function(containerId, options) {
             const items = navData[category];
             html += `
                 <div class="system-category-block">
-                    <h3 class="sidebar-master-title">${esc(category)}</h3>
+                    <h3 class="sidebar-master-title">${window.escapeHtml(category)}</h3>
 
                     <div class="${gridClass}">
             `;
@@ -1127,9 +1123,9 @@ window.buildSystemsDirectory = async function(containerId, options) {
                 // outright. Building owner-supplied values into an inline
                 // onclick is the pattern CLAUDE.md rules out.
                 html += `
-                    <button class="btn-manga ${shapeClass} system-directory-btn" data-href="${esc(rootPath + sys.url)}">
+                    <button class="btn-manga ${shapeClass} system-directory-btn" data-href="${window.escapeHtml(rootPath + sys.url)}">
                         <div class="btn-manga-content">
-                            <span class="btn-manga-text">${esc(sys.name)}</span>
+                            <span class="btn-manga-text">${window.escapeHtml(sys.name)}</span>
                         </div>
                     </button>
                 `;
@@ -1545,7 +1541,6 @@ window.refreshTOC = function() {
     // escaped here. A ToC entry is a label, not markup; a heading containing
     // <b>Bold</b> already arrives as "Bold" via textContent, so this changes
     // nothing for legitimate content.
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
 
     let tocStructure = [];
     let currentGroup = null;
@@ -1591,8 +1586,8 @@ window.refreshTOC = function() {
             // Fallback for orphaned minor headers
             tocHtml += `
                 <li>
-                    <a href="#${esc(group.id)}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${esc(group.id)}')">
-                        <span class="toc-link-text">${esc(group.text)}</span>
+                    <a href="#${window.escapeHtml(group.id)}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${window.escapeHtml(group.id)}')">
+                        <span class="toc-link-text">${window.escapeHtml(group.text)}</span>
                     </a>
                 </li>
             `;
@@ -1602,11 +1597,11 @@ window.refreshTOC = function() {
                 tocHtml += `
                     <li>
                         <div class="toc-group-row">
-                            <a href="#${esc(group.id)}" class="btn-nav toc-link-major-toggle" onclick="smoothScroll(event, '${esc(group.id)}')">
-                                <span class="toc-link-text">${esc(group.text)}</span>
+                            <a href="#${window.escapeHtml(group.id)}" class="btn-nav toc-link-major-toggle" onclick="smoothScroll(event, '${window.escapeHtml(group.id)}')">
+                                <span class="toc-link-text">${window.escapeHtml(group.text)}</span>
                             </a>
                             <button type="button" class="toc-toggle-btn" aria-expanded="true"
-                                    aria-label="Toggle subsections of ${esc(group.text)}">
+                                    aria-label="Toggle subsections of ${window.escapeHtml(group.text)}">
                                 <span aria-hidden="true">▼</span>
                             </button>
                         </div>
@@ -1617,8 +1612,8 @@ window.refreshTOC = function() {
                 group.children.forEach(child => {
                     tocHtml += `
                         <li>
-                            <a href="#${esc(child.id)}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${esc(child.id)}')">
-                                <span class="toc-link-text">${esc(child.text)}</span>
+                            <a href="#${window.escapeHtml(child.id)}" class="btn-nav toc-link-minor" onclick="smoothScroll(event, '${window.escapeHtml(child.id)}')">
+                                <span class="toc-link-text">${window.escapeHtml(child.text)}</span>
                             </a>
                         </li>
                     `;
@@ -1629,8 +1624,8 @@ window.refreshTOC = function() {
                 // Standard Parent Header (No Children, No Toggle Arrow)
                 tocHtml += `
                     <li>
-                        <a href="#${esc(group.id)}" class="btn-nav toc-link-major" onclick="smoothScroll(event, '${esc(group.id)}')">
-                            <span class="toc-link-text">${esc(group.text)}</span>
+                        <a href="#${window.escapeHtml(group.id)}" class="btn-nav toc-link-major" onclick="smoothScroll(event, '${window.escapeHtml(group.id)}')">
+                            <span class="toc-link-text">${window.escapeHtml(group.text)}</span>
                         </a>
                     </li>
                 `;

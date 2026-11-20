@@ -14,12 +14,6 @@
 
 window.POSTS_PAGE_SIZE = 10;
 
-function postEscape(str) {
-    return String(str === null || str === undefined ? '' : str)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
 function postDate(iso) {
     if (!iso) return '';
     const d = new Date(iso);
@@ -88,12 +82,12 @@ window.loadPostList = async function(containerId, { kind = 'blog', limit = windo
         // code and applying the migration every page load would otherwise
         // report a failure for a table that simply does not exist yet.
         console.warn('Posts unavailable:', error.message || error);
-        container.innerHTML = `<div class="wiki-section-empty">${postEscape(emptyMessage || 'Nothing posted yet.')}</div>`;
+        container.innerHTML = `<div class="wiki-section-empty">${window.escapeHtml(emptyMessage || 'Nothing posted yet.')}</div>`;
         return;
     }
 
     if (!data || data.length === 0) {
-        container.innerHTML = `<div class="wiki-section-empty">${postEscape(emptyMessage || 'Nothing posted yet.')}</div>`;
+        container.innerHTML = `<div class="wiki-section-empty">${window.escapeHtml(emptyMessage || 'Nothing posted yet.')}</div>`;
         return;
     }
 
@@ -102,13 +96,13 @@ window.loadPostList = async function(containerId, { kind = 'blog', limit = windo
     container.innerHTML = data.map(post => `
         <article class="post-card">
             <a class="post-card-link" href="${rootPath}blog.html?post=${encodeURIComponent(post.slug)}">
-                <h3 class="post-card-title">${postEscape(post.title)}</h3>
+                <h3 class="post-card-title">${window.escapeHtml(post.title)}</h3>
             </a>
             <div class="post-card-meta">
-                ${post.published_at ? `<span class="post-card-date">${postEscape(postDate(post.published_at))}</span>` : ''}
-                ${post.author_name ? `<span class="post-card-author">by ${postEscape(post.author_name)}</span>` : ''}
+                ${post.published_at ? `<span class="post-card-date">${window.escapeHtml(postDate(post.published_at))}</span>` : ''}
+                ${post.author_name ? `<span class="post-card-author">by ${window.escapeHtml(post.author_name)}</span>` : ''}
             </div>
-            ${post.summary ? `<p class="post-card-summary">${postEscape(post.summary)}</p>` : ''}
+            ${post.summary ? `<p class="post-card-summary">${window.escapeHtml(post.summary)}</p>` : ''}
         </article>
     `).join('');
 };
@@ -137,10 +131,10 @@ window.loadSinglePost = async function(containerId, slug) {
 
     container.innerHTML = `
         <header class="post-header">
-            <h1 class="post-title">${postEscape(post.title)}</h1>
+            <h1 class="post-title">${window.escapeHtml(post.title)}</h1>
             <div class="post-meta">
-                ${post.published_at ? `<span class="post-card-date">${postEscape(postDate(post.published_at))}</span>` : ''}
-                ${post.author_name ? `<span class="post-card-author">by ${postEscape(post.author_name)}</span>` : ''}
+                ${post.published_at ? `<span class="post-card-date">${window.escapeHtml(postDate(post.published_at))}</span>` : ''}
+                ${post.author_name ? `<span class="post-card-author">by ${window.escapeHtml(post.author_name)}</span>` : ''}
             </div>
         </header>
     `;
@@ -172,13 +166,13 @@ window.loadHotfixPosts = async function(containerId, limit = 20) {
         <details class="update-log-item hotfix-log-item">
             <summary class="update-log-summary">
                 <div class="update-log-meta">
-                    <span>${postEscape(postDate(post.published_at))}</span>
+                    <span>${window.escapeHtml(postDate(post.published_at))}</span>
                     <span class="update-badge badge-hotfix">hotfix</span>
                     <span class="expand-hint">▼</span>
                 </div>
-                <h3 class="update-title">${postEscape(post.title)}</h3>
+                <h3 class="update-title">${window.escapeHtml(post.title)}</h3>
             </summary>
-            <div class="update-log-body" id="hotfix-body-${postEscape(post.id)}"></div>
+            <div class="update-log-body" id="hotfix-body-${window.escapeHtml(post.id)}"></div>
         </details>
     `).join('');
 

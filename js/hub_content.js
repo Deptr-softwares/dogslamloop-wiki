@@ -221,8 +221,6 @@ window.renderGameInfo = async function(containerId) {
         return false;
     }
 
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
-
     // Only http(s) survives. These URLs are admin-authored, but an href is the
     // one field here that becomes executable if it starts with "javascript:",
     // and a scheme allowlist costs nothing.
@@ -233,19 +231,19 @@ window.renderGameInfo = async function(containerId) {
 
     let html = fields.map(field => `
         <div>
-            <span class="game-info-label">${esc(field.label)}</span>
-            <span class="text-gray-300">${esc(field.value)}</span>
-            ${field.subtext ? `<span class="game-info-subtext">${esc(field.subtext)}</span>` : ''}
+            <span class="game-info-label">${window.escapeHtml(field.label)}</span>
+            <span class="text-gray-300">${window.escapeHtml(field.value)}</span>
+            ${field.subtext ? `<span class="game-info-subtext">${window.escapeHtml(field.subtext)}</span>` : ''}
         </div>
     `).join('');
 
     if (links.length > 0) {
         html += `
             <div class="game-info-footer">
-                <span class="game-info-label mb-2">${esc(info.linksLabel || 'Official Links')}</span>
+                <span class="game-info-label mb-2">${window.escapeHtml(info.linksLabel || 'Official Links')}</span>
                 <div class="space-y-2">
                     ${links.map(link => `
-                        <a href="${esc(safeHref(link.url))}" target="_blank" rel="noopener noreferrer" class="game-info-link">▶ ${esc(link.name)}</a>
+                        <a href="${window.escapeHtml(safeHref(link.url))}" target="_blank" rel="noopener noreferrer" class="game-info-link">▶ ${window.escapeHtml(link.name)}</a>
                     `).join('')}
                 </div>
             </div>
@@ -277,8 +275,6 @@ window.renderHubList = async function(pageId, listId, containerId) {
         return false;
     }
 
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
-
     // Only relative paths and http(s). A step's url is owner-authored, but an
     // href is where a bad value becomes executable rather than merely broken.
     const safeHref = (url) => {
@@ -294,12 +290,12 @@ window.renderHubList = async function(pageId, listId, containerId) {
         // A step with no link is still a step - "Sign in" is an instruction,
         // not a page.
         const title = href
-            ? `<a href="${esc(href)}" class="reading-step-title">${esc(step.title)}</a>`
-            : `<span class="reading-step-title">${esc(step.title)}</span>`;
+            ? `<a href="${window.escapeHtml(href)}" class="reading-step-title">${window.escapeHtml(step.title)}</a>`
+            : `<span class="reading-step-title">${window.escapeHtml(step.title)}</span>`;
         return `
             <li class="reading-step">
                 ${title}
-                ${step.description ? `<span class="reading-step-desc">${esc(step.description)}</span>` : ''}
+                ${step.description ? `<span class="reading-step-desc">${window.escapeHtml(step.description)}</span>` : ''}
             </li>
         `;
     }).join('');

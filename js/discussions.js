@@ -146,7 +146,7 @@
     }
 
     // Text into an element as text, with line breaks preserved. Not
-    // `escapeHtml(body).replace(/\n/g, '<br>')` - that works, but it puts an
+    // `window.escapeHtml(body).replace(/\n/g, '<br>')` - that works, but it puts an
     // attacker-authored string back into an innerHTML sink, and the next person
     // to touch this file has to notice the escape to know it is safe. Nodes
     // cannot be got wrong the same way.

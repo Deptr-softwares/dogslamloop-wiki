@@ -2692,12 +2692,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// The one escaper. This file loads on every page, so admin-core.js,
-// history.js, recent-changes.js and submissions.js use it rather than their
-// own copies, which they carried until v1.1 batch 9. First written here for
-// notification text: staff-authored free text (the approve/reject "Staff
-// Note" typed into admin.html's prompt, see js/admin-actions.js) and a stored
-// link, neither safe to drop straight into innerHTML.
+// The one HTML escaper, called as window.escapeHtml everywhere. Only
+// page_router.js keeps a copy, because it runs before this file loads
+// (tests/one-escape-helper.spec.js). It escapes both quote characters as well
+// as & < >, so it is safe in text and in attribute values alike; null and
+// undefined become ''.
 window.escapeHtml = function(str) {
     return String(str === null || str === undefined ? '' : str)
         .replace(/&/g, '&amp;')

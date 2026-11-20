@@ -14,30 +14,16 @@
  * the order is always: escape the input, THEN add the generated markup.
  *
  * Three contexts, three different rules:
- *   text       -> escBlockText()
- *   attribute  -> escBlockText() as well; it escapes both quote characters
+ *   text       -> window.escapeHtml()
+ *   attribute  -> window.escapeHtml() as well; it escapes both quote characters
  *   CSS value  -> NEITHER is enough. Escaping quotes stops an attribute
  *                 breakout but still permits `100%; background: url(...)`, so
  *                 align and width are validated against allowlists instead.
  */
 
-// NAMES ARE PREFIXED ON PURPOSE. Every js/ file here is a classic <script>
-// sharing ONE global lexical scope, so a top-level `const esc` in two files
-// that load on the same page is "Identifier 'esc' has already been declared"
-// - which aborts the whole second file. That is not hypothetical: writing
-// these as `esc` and `safeUrl` collided with js/editor-blocks.js and
-// js/internalstyling.js and took the entire editor down with
-// "Editor failed to initialize context", the same symptom as the 2026-08-10
-// cache-skew incident. Caught only because the spec drove the real builder.
-//
-// window.escapeHtml lives in site_utils.js, which is stamped alongside this
-// file's page but not this file; the fallback keeps a cache-skewed load
-// rendering escaped text rather than throwing.
-const escBlockText = (v) => (typeof window.escapeHtml === 'function'
-    ? window.escapeHtml(v === null || v === undefined ? '' : v)
-    : String(v === null || v === undefined ? '' : v)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;'));
+// The safeBlock* names are prefixed on purpose: every js/ file shares one
+// global lexical scope, so a top-level name used by two files on one page
+// aborts the second file (tests/global-scope-collisions.spec.js).
 
 // CSS-value allowlists. Anything unrecognised falls back to the default rather
 // than being passed through - a contributor cannot name a value this does not
@@ -123,10 +109,10 @@ window.wikiMediaKind = function (value) {
 // per character page - so the player re-themes itself and there is nothing
 // here that knows about characters at all.
 window.wikiVideoPlayerHTML = function (url, extraClass) {
-    const safe = escBlockText(safeBlockUrl(url));
+    const safe = window.escapeHtml(safeBlockUrl(url));
     if (!safe) return '';
     return `
-        <div class="wiki-player${extraClass ? ' ' + escBlockText(extraClass) : ''}" data-wiki-player>
+        <div class="wiki-player${extraClass ? ' ' + window.escapeHtml(extraClass) : ''}" data-wiki-player>
             <video data-lazy-src="${safe}" class="wiki-video-native" preload="none" playsinline></video>
             <div class="wiki-player-controls">
                 <button type="button" class="wiki-player-btn wiki-player-toggle" data-player-toggle
@@ -152,11 +138,11 @@ window.wikiVideoPlayerHTML = function (url, extraClass) {
 // wiki to a bare video on a Supabase domain, with no way back but the back
 // button (owner, 2026-08-18).
 window.wikiVideoButtonHTML = function (url, label) {
-    const safe = escBlockText(safeBlockUrl(url));
+    const safe = window.escapeHtml(safeBlockUrl(url));
     if (!safe) return '';
     return `<button type="button" class="wiki-video-btn" data-wiki-video="${safe}">`
         + `<span class="wiki-video-btn-glyph" aria-hidden="true"></span>`
-        + `${escBlockText(label || 'Watch')}</button>`;
+        + `${window.escapeHtml(label || 'Watch')}</button>`;
 };
 
 // --- THE CLIP AND ITS CORNER BUTTON (v0.20 V1) ---
@@ -175,12 +161,12 @@ window.wikiVideoButtonHTML = function (url, label) {
 // moderated clip is replaced by, so the button never outlives its clip
 // (showMissingMedia below, blockedMediaTarget in js/site_utils.js).
 window.wikiClipHTML = function (url, opts) {
-    const safe = escBlockText(safeBlockUrl(url));
+    const safe = window.escapeHtml(safeBlockUrl(url));
     if (!safe) return '';
     const o = opts || {};
-    const label = o.label ? ` aria-label="${escBlockText(o.label)}"` : '';
+    const label = o.label ? ` aria-label="${window.escapeHtml(o.label)}"` : '';
     return `<div class="wiki-clip">`
-        + `<video data-lazy-src="${safe}" class="${escBlockText(o.className || 'wiki-video-native')}"${label}`
+        + `<video data-lazy-src="${safe}" class="${window.escapeHtml(o.className || 'wiki-video-native')}"${label}`
         + ` autoplay loop muted playsinline preload="none"></video>`
         + `<button type="button" class="wiki-clip-open" data-wiki-video="${safe}"`
         + ` aria-label="Open in player" title="Open in player">`
@@ -206,7 +192,7 @@ window.generatePlaystyleHTML = function(playstyle) {
     const renderList = (items, icon, variant) => items.map(text => `
         <li class="playstyle-item">
             <span class="playstyle-icon ${variant}">${icon}</span>
-            <span class="playstyle-item-text">${escBlockText(text)}</span>
+            <span class="playstyle-item-text">${window.escapeHtml(text)}</span>
         </li>
     `).join('');
 
@@ -255,8 +241,8 @@ function swatchHex(value) {
 
 function swatchCardHTML(title, visual, code) {
     return `<div class="color-swatch-card">${visual}<div class="swatch-meta">`
-        + `<span class="swatch-title">${escBlockText(title)}</span>`
-        + `<span class="swatch-code">${escBlockText(code)}</span></div></div>`;
+        + `<span class="swatch-title">${window.escapeHtml(title)}</span>`
+        + `<span class="swatch-code">${window.escapeHtml(code)}</span></div></div>`;
 }
 
 // The class names below are the dictionaries' own keys, written in
@@ -325,7 +311,7 @@ const collaboratorKind = (b) => (b && b.type === 'collaborator' ? (b.kind === 'l
 window.isCollaboratorLink = (url) => /^https?:\/\/\S+$/i.test(String(url || '').trim());
 
 function collaboratorCardHTML(b) {
-    const name = escBlockText(b.name || '');
+    const name = window.escapeHtml(b.name || '');
     const badge = Object.prototype.hasOwnProperty.call(window.COLLABORATOR_BADGES, b.badge) ? b.badge : 'badge-general';
     // As given, the way an Image Block's address is: the credits' avatars are
     // paths from the site's root (/medias/images/...), and the site is served
@@ -333,22 +319,22 @@ function collaboratorCardHTML(b) {
     const avatar = safeBlockUrl(b.avatar);
     const links = (Array.isArray(b.links) ? b.links : [])
         .filter(l => l && window.isCollaboratorLink(l.url))
-        .map(l => `<a href="${escBlockText(String(l.url).trim())}" target="_blank" rel="noopener noreferrer" class="btn-sys btn-sys-blue collaborator-link">${escBlockText(l.name || l.url)}</a>`)
+        .map(l => `<a href="${window.escapeHtml(String(l.url).trim())}" target="_blank" rel="noopener noreferrer" class="btn-sys btn-sys-blue collaborator-link">${window.escapeHtml(l.name || l.url)}</a>`)
         .join('');
     return '<div class="wiki-card collaborator-card"><div class="contributor-card"><div class="contributor-header">'
         + (avatar
-            ? `<img src="${escBlockText(avatar)}" alt="${name}" class="contributor-avatar" loading="lazy">`
+            ? `<img src="${window.escapeHtml(avatar)}" alt="${name}" class="contributor-avatar" loading="lazy">`
             : '<div class="contributor-avatar-placeholder">N/A</div>')
         + `<div><h3 class="collaborator-name">${name}</h3>`
-        + `<span class="update-badge ${badge}">${escBlockText(b.role || '')}</span></div></div>`
-        + `<p class="strategy-paragraph collaborator-description">${escBlockText(b.description || '')}</p>`
+        + `<span class="update-badge ${badge}">${window.escapeHtml(b.role || '')}</span></div></div>`
+        + `<p class="strategy-paragraph collaborator-description">${window.escapeHtml(b.description || '')}</p>`
         + (links ? `<div class="collaborator-links">${links}</div>` : '')
         + '</div></div>';
 }
 
 function collaboratorLineHTML(b) {
-    return `<li class="collaborator-line"><strong class="collaborator-line-name">${escBlockText(b.name || '')}</strong>`
-        + (b.description ? ` - <span class="collaborator-line-reason">${escBlockText(b.description)}</span>` : '')
+    return `<li class="collaborator-line"><strong class="collaborator-line-name">${window.escapeHtml(b.name || '')}</strong>`
+        + (b.description ? ` - <span class="collaborator-line-reason">${window.escapeHtml(b.description)}</span>` : '')
         + '</li>';
 }
 
@@ -398,15 +384,15 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
             const tag = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(block.size) ? block.size : 'h3';
             const headingStyle = getAlignStyle(block.align, bar ? `--heading-bar: ${bar};` : '');
 
-            contentHTML += `<${tag} class="${headingClass}" ${headingStyle}>${escBlockText(block.content)}</${tag}>`;
+            contentHTML += `<${tag} class="${headingClass}" ${headingStyle}>${window.escapeHtml(block.content)}</${tag}>`;
         }
         // --- PARAGRAPHS (With Inline Keybinds & URL Links) ---
         else if (block.type === 'paragraph') {
             // Escape FIRST, then join and add the generated markup - the <br>
             // and the <kbd> are this renderer's, not the contributor's.
             const rawText = Array.isArray(block.content)
-                ? block.content.map(escBlockText).join('<br>')
-                : escBlockText(block.content);
+                ? block.content.map(window.escapeHtml).join('<br>')
+                : window.escapeHtml(block.content);
 
             // Convert keybinds. The pattern only matches A-Z, digits, spaces
             // and +, none of which escaping alters, so it still finds [M1].
@@ -425,7 +411,7 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
             const lClass = (contextClass ? 'wiki-block-list space-y-2 card-text' : 'wiki-block-list space-y-2 text-gray-300')
                 + (block.boxed ? ' wiki-block-list-boxed' : '');
             contentHTML += `<ul class="${lClass}" ${alignAttr}>`;
-            block.items.forEach(item => { contentHTML += `<li>${escBlockText(item)}</li>`; });
+            block.items.forEach(item => { contentHTML += `<li>${window.escapeHtml(item)}</li>`; });
             contentHTML += `</ul>`;
         }
         else if (block.type === 'image') {
@@ -436,21 +422,21 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 contentHTML += block.caption
                     ? `<figure ${getMediaAttributes(block.align, block.width, 'text-align: center;')}>`
                       + window.wikiMediaPlaceholderHTML()
-                      + `<figcaption class="wiki-figcaption">${escBlockText(block.caption)}</figcaption></figure>`
+                      + `<figcaption class="wiki-figcaption">${window.escapeHtml(block.caption)}</figcaption></figure>`
                     : `<div ${getMediaAttributes(block.align, block.width)}>`
                       + window.wikiMediaPlaceholderHTML() + `</div>`;
             }
             else if (block.caption) {
                 contentHTML += `
                     <figure ${getMediaAttributes(block.align, block.width, 'text-align: center;')} >
-                        <img src="${escBlockText(safeBlockUrl(block.src))}" alt="${escBlockText(block.alt || 'Wiki Image')}" class="wiki-block-image" loading="lazy">
+                        <img src="${window.escapeHtml(safeBlockUrl(block.src))}" alt="${window.escapeHtml(block.alt || 'Wiki Image')}" class="wiki-block-image" loading="lazy">
                         <figcaption class="wiki-figcaption">
-                            ${escBlockText(block.caption)}
+                            ${window.escapeHtml(block.caption)}
                         </figcaption>
                     </figure>
                 `;
             } else {
-                contentHTML += `<img src="${escBlockText(safeBlockUrl(block.src))}" alt="${escBlockText(block.alt || 'Wiki Image')}" ${getMediaAttributes(block.align, block.width, 'box-shadow: 4px 4px 0px var(--manga-shadow, #000);')} loading="lazy">`;
+                contentHTML += `<img src="${window.escapeHtml(safeBlockUrl(block.src))}" alt="${window.escapeHtml(block.alt || 'Wiki Image')}" ${getMediaAttributes(block.align, block.width, 'box-shadow: 4px 4px 0px var(--manga-shadow, #000);')} loading="lazy">`;
             }
         }
         // --- DIVIDERS ---
@@ -539,12 +525,12 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
             // Same escape-then-join rule as paragraphs. config.color comes from
             // intentMap above, never from the block, so it needs nothing.
             const text = Array.isArray(bData.content)
-                ? bData.content.map(escBlockText).join('<br>')
-                : escBlockText(bData.content || bData.text || '');
+                ? bData.content.map(window.escapeHtml).join('<br>')
+                : window.escapeHtml(bData.content || bData.text || '');
 
             let tooltipContent = '';
             if (bData.title) {
-                tooltipContent += `<strong class="callout-tooltip-title" style="--tooltip-accent: ${config.color};">${escBlockText(bData.title)}</strong>`;
+                tooltipContent += `<strong class="callout-tooltip-title" style="--tooltip-accent: ${config.color};">${window.escapeHtml(bData.title)}</strong>`;
             }
 
             tooltipContent += `<span class="tooltip-desc callout-tooltip-desc">${text}</span>`;
@@ -571,7 +557,7 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
             if (headers.length > 0) {
                 tableContent += `<thead><tr>`;
                 headers.forEach(h => {
-                    tableContent += `<th>${escBlockText(h)}</th>`;
+                    tableContent += `<th>${window.escapeHtml(h)}</th>`;
                 });
                 tableContent += `</tr></thead>`;
             }
@@ -591,7 +577,7 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                         const kind = window.wikiMediaKind(cell);
                         if (kind === 'image') {
                             tableContent += `<td class="wiki-cell-media-td">`
-                                + `<img src="${escBlockText(safeBlockUrl(cell))}" alt=""`
+                                + `<img src="${window.escapeHtml(safeBlockUrl(cell))}" alt=""`
                                 + ` class="wiki-cell-media" loading="lazy"></td>`;
                             return;
                         }
@@ -600,7 +586,7 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                                 + window.wikiVideoButtonHTML(cell, 'Play') + `</td>`;
                             return;
                         }
-                        let parsedCell = escBlockText(cell).replace(/\[([A-Z0-9\s\+]+)\]/g, '<kbd class="keybind-badge">$1</kbd>');
+                        let parsedCell = window.escapeHtml(cell).replace(/\[([A-Z0-9\s\+]+)\]/g, '<kbd class="keybind-badge">$1</kbd>');
                         tableContent += `<td>${parsedCell}</td>`;
                     });
                     tableContent += `</tr>`;
@@ -672,7 +658,7 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                         <figure ${getMediaAttributes(bData.align, bData.width, 'text-align: center;')} >
                             ${mediaInnerHtml}
                             <figcaption class="wiki-figcaption">
-                                ${escBlockText(bData.caption)}
+                                ${window.escapeHtml(bData.caption)}
                             </figcaption>
                         </figure>
                     `;
@@ -698,7 +684,7 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 <div class="wiki-accordion-wrapper">
                     <details class="manga-accordion">
                         <summary class="wiki-accordion-summary" style="text-align: ${safeBlockAlign(bData.align) || 'left'};">
-                            <span>${escBlockText(title)}</span>
+                            <span>${window.escapeHtml(title)}</span>
                             <span class="accordion-arrow">▼</span>
                         </summary>
                         <div class="wiki-accordion-body">
@@ -740,7 +726,7 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
             // which is what lets one implementation serve both.
             contentHTML += `
                 <section class="sbox sbox-tabbed${boxed ? ' sbox-boxed' : ''}" ${alignAttr}>
-                    <h4 class="sbox-title">${escBlockText(bData.title || 'Section Box')}</h4>
+                    <h4 class="sbox-title">${window.escapeHtml(bData.title || 'Section Box')}</h4>
                     ${introHTML ? `<div class="sbox-intro">${introHTML}</div>` : ''}
                     ${sections.length ? sboxTabRowHTML(sections.map((sec, i) => sec.title || `Section ${i + 1}`)) : ''}
                     ${panelsHTML}
@@ -818,14 +804,14 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 // sequence rather than a column at the page edge.
                 comboHTML += window.comboRouteHTML(block, {
                     style: `justify-content: ${justifyClass};`,
-                    trailing: block.damage ? `<span class="combo-damage">${escBlockText(block.damage)}</span>` : '',
+                    trailing: block.damage ? `<span class="combo-damage">${window.escapeHtml(block.damage)}</span>` : '',
                 });
 
                 // Under the route, full width, so it reads as a condition on
                 // the whole combo.
                 if (block.note) {
                     comboHTML += `<div class="combo-note-row" style="justify-content: ${justifyClass};">`
-                        + `<span class="combo-note">${escBlockText(block.note)}</span></div>`;
+                        + `<span class="combo-note">${window.escapeHtml(block.note)}</span></div>`;
                 }
 
                 comboHTML += `</div>`;
@@ -1061,7 +1047,7 @@ window.diffComboNotations = function (oldList, newList) {
 // times, which is how a route would come to read differently in a table than
 // in prose.
 function comboStepsHTML(steps) {
-    return steps.map((step, i) => `<span class="combo-node">${escBlockText(step)}</span>`
+    return steps.map((step, i) => `<span class="combo-node">${window.escapeHtml(step)}</span>`
         + (i < steps.length - 1 ? '<span class="combo-sep" aria-hidden="true">&gt;</span>' : '')).join('');
 }
 
@@ -1085,7 +1071,7 @@ window.comboRouteHTML = function (item, opts) {
 
     const choice = window.comboNotationPreference();
     const active = Math.max(0, styles.findIndex(s => stripDiffMarks(s.key) === choice));
-    const title = escBlockText(comboNotationTitle(stripDiffMarks(styles[active].label), active, styles.length));
+    const title = window.escapeHtml(comboNotationTitle(stripDiffMarks(styles[active].label), active, styles.length));
 
     const mark = '<span class="combo-notation-mark" aria-hidden="true">'
         + styles.map((s, i) => `<i${i === active ? ' class="is-on"' : ''}></i>`).join('')
@@ -1095,9 +1081,9 @@ window.comboRouteHTML = function (item, opts) {
     // reviewer never has to click to find a changed route. The first style has
     // no label of its own, so it is named for what it is.
     const routes = styles.map((s, i) =>
-        `<span class="combo-notation" data-notation-key="${escBlockText(stripDiffMarks(s.key))}"`
-        + ` data-notation-label="${escBlockText(stripDiffMarks(s.label))}"${i === active ? '' : ' hidden'}>`
-        + `<span class="combo-notation-name">${escBlockText(s.label || 'Route')}</span>`
+        `<span class="combo-notation" data-notation-key="${window.escapeHtml(stripDiffMarks(s.key))}"`
+        + ` data-notation-label="${window.escapeHtml(stripDiffMarks(s.label))}"${i === active ? '' : ' hidden'}>`
+        + `<span class="combo-notation-name">${window.escapeHtml(s.label || 'Route')}</span>`
         + comboStepsHTML(s.sequence) + '</span>').join('');
 
     return `<div class="${cls} combo-has-notations"${styleAttr} role="button" tabindex="0"`
@@ -1178,10 +1164,10 @@ function renderComboNotes(row) {
     let html = '';
     [['ultGain', 'Ult Gain'], ['evasiveGain', 'Evasive Gain']].forEach(([field, label]) => {
         const value = String(row[field] || '').trim();
-        if (value) html += `<div class="combo-resource"><strong>${label}:</strong> ${escBlockText(value)}</div>`;
+        if (value) html += `<div class="combo-resource"><strong>${label}:</strong> ${window.escapeHtml(value)}</div>`;
     });
     const notes = String(row.notes || '').trim();
-    if (notes) html += `<div class="combo-note-text">${escBlockText(notes)}</div>`;
+    if (notes) html += `<div class="combo-note-text">${window.escapeHtml(notes)}</div>`;
     return html || '<span class="combo-cell-empty">-</span>';
 }
 
@@ -1204,9 +1190,9 @@ function renderComboCell(row, column) {
         // palette lives in CSS with every other colour on the site.
         const i = window.COMBO_DIFFICULTIES.indexOf(value);
         const slot = i === -1 ? '' : ` combo-difficulty-${i}`;
-        return `<span class="combo-difficulty${slot}">${escBlockText(value)}</span>`;
+        return `<span class="combo-difficulty${slot}">${window.escapeHtml(value)}</span>`;
     }
-    return escBlockText(value);
+    return window.escapeHtml(value);
 }
 
 // Sorting is applied by re-rendering the body rather than by moving nodes:
@@ -1236,7 +1222,7 @@ window.renderComboTableBody = function (tbody, rows, columns, sort) {
             // three fields that were actually filled in.
             const empty = html.indexOf('combo-cell-empty') > -1 || html.indexOf('combo-route-empty') > -1;
             return `<td class="combo-cell combo-cell-${col.field}${empty ? ' combo-cell-is-empty' : ''}"`
-                + ` data-label="${escBlockText(col.label)}">${html}</td>`;
+                + ` data-label="${window.escapeHtml(col.label)}">${html}</td>`;
         }).join('');
         return `<tr class="combo-row">${cells}</tr>`;
     }).join('');
@@ -1250,7 +1236,7 @@ window.renderComboListTable = function (group, section) {
     const name = group[section.keyField] || 'Untitled';
     wrapper.innerHTML = `
         <div class="card-header-flex">
-            <h3 class="card-header-title">${escBlockText(name)}</h3>
+            <h3 class="card-header-title">${window.escapeHtml(name)}</h3>
         </div>
     `;
 
@@ -1277,10 +1263,10 @@ window.renderComboListTable = function (group, section) {
     table.innerHTML = `
         <thead>
             <tr>${columns.map(col => (col.sort
-                ? `<th class="combo-th combo-th-sortable" data-sort-field="${escBlockText(col.field)}"`
-                  + ` role="button" tabindex="0" aria-sort="none">${escBlockText(col.label)}`
+                ? `<th class="combo-th combo-th-sortable" data-sort-field="${window.escapeHtml(col.field)}"`
+                  + ` role="button" tabindex="0" aria-sort="none">${window.escapeHtml(col.label)}`
                   + `<span class="combo-sort-arrow" aria-hidden="true"></span></th>`
-                : `<th class="combo-th">${escBlockText(col.label)}</th>`)).join('')}</tr>
+                : `<th class="combo-th">${window.escapeHtml(col.label)}</th>`)).join('')}</tr>
         </thead>
         <tbody></tbody>
     `;
@@ -1429,7 +1415,7 @@ window.renderDocumentTab = function (tabId, data) {
     if ((!introBlocks || !introBlocks.length)
         && (!groupList || !groupList.length)
         && (!tables || !tables.length)) {
-        container.innerHTML = `<div class="empty-tab-msg">${escBlockText(sections.tab.emptyMessage || 'Nothing written for this character yet.')}</div>`;
+        container.innerHTML = `<div class="empty-tab-msg">${window.escapeHtml(sections.tab.emptyMessage || 'Nothing written for this character yet.')}</div>`;
         return;
     }
 
@@ -1455,7 +1441,7 @@ window.renderDocumentTab = function (tabId, data) {
     if (introBlocks && introBlocks.length) {
         const section = document.createElement('section');
         section.className = 'wiki-section wiki-section-clip combo-intro';
-        section.innerHTML = `<div class="card-header-flex"><h3 class="card-header-title">${escBlockText(intro.label)}</h3></div>`;
+        section.innerHTML = `<div class="card-header-flex"><h3 class="card-header-title">${window.escapeHtml(intro.label)}</h3></div>`;
         const body = document.createElement('div');
         body.className = 'combos-content';
         // Every id below carries the tab, because a character can have both
@@ -1488,7 +1474,7 @@ window.renderDocumentTab = function (tabId, data) {
             const injected = body.querySelector('section.wiki-section');
             if (injected) injected.classList.remove('wiki-section');
         } else {
-            body.innerHTML = `<p class="empty-notes-msg">${escBlockText(groups.emptyEntryMessage)}</p>`;
+            body.innerHTML = `<p class="empty-notes-msg">${window.escapeHtml(groups.emptyEntryMessage)}</p>`;
         }
     });
 
@@ -1496,7 +1482,7 @@ window.renderDocumentTab = function (tabId, data) {
     if (list && tables && tables.length) {
         const host = document.createElement('div');
         host.className = 'combo-list-section space-y-6';
-        host.innerHTML = `<h3 class="section-title section-title-clean combo-section-title combo-list-title">${escBlockText(list.label)}</h3>`;
+        host.innerHTML = `<h3 class="section-title section-title-clean combo-section-title combo-list-title">${window.escapeHtml(list.label)}</h3>`;
 
         // Every row in the SECTION decides the columns, so all its tables share
         // a shape. Per table, one grows a Setup column and the next grows
@@ -1559,7 +1545,7 @@ window.renderCharacterGalleryTab = function (data) {
     if (!items.length) {
         container.innerHTML = `
             <div class="empty-tab-msg">
-                ${escBlockText((section && section.emptyMessage)
+                ${window.escapeHtml((section && section.emptyMessage)
                     || 'No media has been added for this character yet.')}
             </div>`;
         return;
@@ -1656,14 +1642,14 @@ function theoryboxCardHTML(bData, contextClass) {
             const difficulty = String(bData.difficulty || '').trim();
             const diffIndex = (window.COMBO_DIFFICULTIES || []).indexOf(difficulty);
             const diffHTML = difficulty
-                ? `<span class="theorybox-difficulty combo-difficulty${diffIndex === -1 ? '' : ` combo-difficulty-${diffIndex}`}">${escBlockText(difficulty)}</span>`
+                ? `<span class="theorybox-difficulty combo-difficulty${diffIndex === -1 ? '' : ` combo-difficulty-${diffIndex}`}">${window.escapeHtml(difficulty)}</span>`
                 : '';
 
             // Free text, so it is labelled: a bare "High" beside a difficulty
             // chip would read as a second difficulty.
             const practicality = String(bData.practicality || '').trim();
             const practicalityHTML = practicality
-                ? `<span class="theorybox-practicality">Practicality: ${escBlockText(practicality)}</span>`
+                ? `<span class="theorybox-practicality">Practicality: ${window.escapeHtml(practicality)}</span>`
                 : '';
 
             // Same chips and separators as the legacy combo block and the
@@ -1674,7 +1660,7 @@ function theoryboxCardHTML(bData, contextClass) {
             const routeHTML = (steps.length || window.comboNotationStyles(bData).length > 1)
                 ? window.comboRouteHTML(bData, {
                     className: 'theorybox-route',
-                    trailing: bData.damage ? `<span class="combo-damage">${escBlockText(bData.damage)}</span>` : '',
+                    trailing: bData.damage ? `<span class="combo-damage">${window.escapeHtml(bData.damage)}</span>` : '',
                 })
                 : '';
 
@@ -1695,14 +1681,14 @@ function theoryboxCardHTML(bData, contextClass) {
             const untitled = !window.stripStyleShortcodes(bData.title).trim();
 
             return `
-                <section class="theorybox"${anchor ? ` id="combo-${escBlockText(anchor)}"` : ''}>
+                <section class="theorybox"${anchor ? ` id="combo-${window.escapeHtml(anchor)}"` : ''}>
                     <div class="theorybox-head">
-                        <h4 class="theorybox-title${untitled ? ' is-untitled' : ''}">${escBlockText(bData.title || 'Combo')}</h4>
+                        <h4 class="theorybox-title${untitled ? ' is-untitled' : ''}">${window.escapeHtml(bData.title || 'Combo')}</h4>
                         ${diffHTML}
                         ${practicalityHTML}
                         ${videoHTML}
                     </div>
-                    ${bData.oneliner ? `<p class="theorybox-oneliner">${escBlockText(bData.oneliner)}</p>` : ''}
+                    ${bData.oneliner ? `<p class="theorybox-oneliner">${window.escapeHtml(bData.oneliner)}</p>` : ''}
                     ${routeHTML}
                     ${innerHTML ? `<div class="theorybox-body">${innerHTML}</div>` : ''}
                 </section>
@@ -1717,7 +1703,7 @@ function theoryboxCardHTML(bData, contextClass) {
 function sboxTabRowHTML(labels) {
     return '<div class="sbox-tabs">' + labels.map((label, i) =>
         `<button type="button" class="sbox-tab${i === 0 ? ' is-active' : ''}"`
-        + ` data-sbox-tab="${i}">${escBlockText(label)}</button>`
+        + ` data-sbox-tab="${i}">${window.escapeHtml(label)}</button>`
     ).join('') + '</div>';
 }
 
@@ -1840,14 +1826,14 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
         }
         
         if (sectionTitle) {
-            // escBlockText, not raw. Reached with `extraItem.title` at the
+            // escapeHtml, not raw. Reached with `extraItem.title` at the
             // "extras" call below, which is contributor-authored through the
             // editor (js/editor-tabs.js:107) - so this was an innerHTML sink
             // with attacker-reachable input on every character page carrying
             // an extra section. Confirmed live before fixing: a title of
             // `<img src=x onerror=...>` produced a REAL img element with a
             // real handler, not escaped text.
-            section.innerHTML = `<h3 class="strategy-title">${escBlockText(sectionTitle)}</h3>`;
+            section.innerHTML = `<h3 class="strategy-title">${window.escapeHtml(sectionTitle)}</h3>`;
         }
 
         // 1. Generate the HTML using our recursive engine
@@ -1877,7 +1863,7 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
     } else {
         container.innerHTML = `
             <div class="wiki-section-empty">
-                "${escBlockText(sectionTitle)}" analysis has not been written yet.
+                "${window.escapeHtml(sectionTitle)}" analysis has not been written yet.
             </div>
         `;
     }
@@ -1925,18 +1911,17 @@ function modeScopedTabIsDrawable(section, pageId, modeId) {
 // label underlined, with the text on hover, or on a tap, which focuses it.
 // Only the first "|" splits, so the text can hold more; a line with nothing on
 // one side of it is shown as written.
-function triviaItemHTML(line, esc) {
+function triviaItemHTML(line) {
     const at = line.indexOf('|');
     const label = at < 0 ? '' : line.slice(0, at).trim();
     const tip = at < 0 ? '' : line.slice(at + 1).trim();
-    if (!label || !tip) return `<li>${esc(line)}</li>`;
-    return `<li><span class="profile-trivia-term" tabindex="0">${esc(label)}`
-        + `<span class="profile-trivia-tip" role="tooltip">${esc(tip)}</span></span></li>`;
+    if (!label || !tip) return `<li>${window.escapeHtmlKeepBreaks(line)}</li>`;
+    return `<li><span class="profile-trivia-term" tabindex="0">${window.escapeHtmlKeepBreaks(label)}`
+        + `<span class="profile-trivia-tip" role="tooltip">${window.escapeHtmlKeepBreaks(tip)}</span></span></li>`;
 }
 
 window.profileDescriptionHTML = function (profile) {
     const p = profile || {};
-    const esc = window.escapeHtmlKeepBreaks;
     const quote = String(p.quote || '').trim();
     const speaker = String(p.quoteSpeaker || '').trim();
     const trivia = (Array.isArray(p.trivia) ? p.trivia : [])
@@ -1944,12 +1929,12 @@ window.profileDescriptionHTML = function (profile) {
 
     let body = '';
     if (quote) {
-        body += `<figure class="profile-quote"><blockquote><p>${esc(quote)}</p></blockquote>`
-            + `${speaker ? `<figcaption><p>${esc(speaker)}</p></figcaption>` : ''}</figure>`;
+        body += `<figure class="profile-quote"><blockquote><p>${window.escapeHtmlKeepBreaks(quote)}</p></blockquote>`
+            + `${speaker ? `<figcaption><p>${window.escapeHtmlKeepBreaks(speaker)}</p></figcaption>` : ''}</figure>`;
     }
     if (trivia.length) {
         body += `<div class="profile-trivia-title">Trivia</div>`
-            + `<ul class="wiki-block-list profile-trivia">${trivia.map(t => triviaItemHTML(t, esc)).join('')}</ul>`;
+            + `<ul class="wiki-block-list profile-trivia">${trivia.map(t => triviaItemHTML(t)).join('')}</ul>`;
     }
     // With nothing written, this is only Character Navigation, and stays
     // hidden until fillProfilePager has something to put in it.
@@ -1986,7 +1971,6 @@ window.fillProfilePager = async function (root, pageId) {
     const at = order.findIndex(c => String((c.cms_config || {}).pageId || '').toLowerCase() === String(pageId || '').toLowerCase());
     if (at < 0) return;
 
-    const esc = window.escapeHtml;
     // Two tiles, each the character's icon framed in their colour and their
     // name in it (owner's pick from mockups, 2026-10-23). A dark colour gets
     // the white outline the [outline] tag draws, since the card behind it is
@@ -1997,9 +1981,9 @@ window.fillProfilePager = async function (root, pageId) {
         const color = (window.CHARACTER_COLORS || {})[c.name];
         const dark = color && typeof window.isDarkCharacterColor === 'function' && window.isDarkCharacterColor(color);
         const iconPath = typeof window.rosterIconPath === 'function' ? window.rosterIconPath((c.cms_config || {}).pageId) : null;
-        const icon = iconPath ? `<img class="profile-pager-icon" src="${esc(rootPath + iconPath)}" alt="">` : '';
-        const name = `<span class="profile-pager-name${dark ? ' sc-outline' : ''}">${esc(c.name)}</span>`;
-        return `<a class="profile-pager-link profile-pager-${dir}" href="${esc(rootPath + c.url)}"${color ? ` style="--pager-color: ${esc(color)};"` : ''}>`
+        const icon = iconPath ? `<img class="profile-pager-icon" src="${window.escapeHtml(rootPath + iconPath)}" alt="">` : '';
+        const name = `<span class="profile-pager-name${dark ? ' sc-outline' : ''}">${window.escapeHtml(c.name)}</span>`;
+        return `<a class="profile-pager-link profile-pager-${dir}" href="${window.escapeHtml(rootPath + c.url)}"${color ? ` style="--pager-color: ${window.escapeHtml(color)};"` : ''}>`
             + `<span class="profile-pager-dir">${label}</span>`
             + `<span class="profile-pager-who">${icon}${name}</span></a>`;
     };
@@ -2128,7 +2112,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 // alone - a payload in a tab label executed here until
                 // 2026-09-06. Fixing a class in one renderer and not its pair
                 // is the shape worth looking for.
-                navHTML += `<button id="nav-${escBlockText(tab.tabId)}" class="btn-manga btn-manga-slanted ${isActive}"><div class="btn-manga-content"><span class="btn-manga-text">${escBlockText(tab.tabLabel)}</span></div></button>`;
+                navHTML += `<button id="nav-${window.escapeHtml(tab.tabId)}" class="btn-manga btn-manga-slanted ${isActive}"><div class="btn-manga-content"><span class="btn-manga-text">${window.escapeHtml(tab.tabLabel)}</span></div></button>`;
                 tabIdsForPageBuilder.push(tab.tabId);
             });
             navHTML += `</nav>`;
@@ -2201,7 +2185,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                             // Same sink, same reason: a system page's section
                             // title is contributor-authored through
                             // updateSystemMeta('sectionTitle', ...).
-                            sectionNode.innerHTML = `<h2 class="section-title mb-4">${escBlockText(section.sectionTitle)}</h2>`;
+                            sectionNode.innerHTML = `<h2 class="section-title mb-4">${window.escapeHtml(section.sectionTitle)}</h2>`;
                         }
                         
                         const contentDiv = document.createElement('div');
@@ -2459,7 +2443,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                     if (!entries || entries.length === 0) {
                         container.innerHTML = `
                         <div class="empty-tab-msg">
-                            ${escBlockText(section.emptyMessage || 'Not written yet.')}
+                            ${window.escapeHtml(section.emptyMessage || 'Not written yet.')}
                         </div>
                     `;
                         return;
@@ -2479,12 +2463,12 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                         // in the vocabulary with a fixed fallback, so the
                         // contributor's value SELECTS a colour rather than
                         // supplying one.
-                        const title = escBlockText(entry[section.keyField] || 'Unknown');
+                        const title = window.escapeHtml(entry[section.keyField] || 'Unknown');
                         let metaHTML = '';
                         if (section.metaField) {
                             const value = entry[section.metaField];
                             const colour = (section.metaColors || {})[value] || '#9ca3af';
-                            metaHTML = `<span class="card-tier-label" style="color: ${colour};">${escBlockText(value || '')}</span>`;
+                            metaHTML = `<span class="card-tier-label" style="color: ${colour};">${window.escapeHtml(value || '')}</span>`;
                         }
 
                         entrySection.innerHTML = `
@@ -2509,7 +2493,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                             const emptyH3 = contentWrapper.querySelector('h3.strategy-title');
                             if (emptyH3 && !emptyH3.textContent) emptyH3.remove();
                         } else {
-                            contentWrapper.innerHTML = `<p class="empty-notes-msg">${escBlockText(section.emptyEntryMessage || 'Nothing recorded yet.')}</p>`;
+                            contentWrapper.innerHTML = `<p class="empty-notes-msg">${window.escapeHtml(section.emptyEntryMessage || 'Nothing recorded yet.')}</p>`;
                         }
                     });
 

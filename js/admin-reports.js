@@ -31,10 +31,6 @@ const REPORT_REASON_LABELS = {
     other: 'Other',
 };
 
-function reportEscape(value) {
-    return window.escapeHtml ? window.escapeHtml(value) : String(value == null ? '' : value);
-}
-
 // post_images arrives with list_content_reports since v0.20; absent before the
 // release, which reads as no images rather than an error.
 function reportImagePaths(row) {
@@ -84,7 +80,7 @@ window.loadReportQueue = async function () {
         const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
         container.innerHTML = notDeployed
             ? `<p class="admin-error-text">The report queue isn't available yet - <code>list_content_reports</code> arrives with the next release.</p>`
-            : `<p class="admin-error-text">Could not load reports: ${reportEscape(error.message)}</p>`;
+            : `<p class="admin-error-text">Could not load reports: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 
@@ -163,17 +159,17 @@ function renderReportQueue() {
     reportQueueRows.forEach(row => {
         const card = document.createElement('div');
         card.className = 'report-card';
-        card.id = `report-${reportEscape(row.id)}`;
+        card.id = `report-${window.escapeHtml(row.id)}`;
 
         const head = document.createElement('div');
         head.className = 'report-card-head';
         head.innerHTML = `
-            <span class="update-badge report-reason-badge">${reportEscape(REPORT_REASON_LABELS[row.reason] || row.reason)}</span>
+            <span class="update-badge report-reason-badge">${window.escapeHtml(REPORT_REASON_LABELS[row.reason] || row.reason)}</span>
             ${Number(row.report_count) > 1
-                ? `<span class="update-badge report-count-badge">${reportEscape(String(row.report_count))} REPORTS</span>`
+                ? `<span class="update-badge report-count-badge">${window.escapeHtml(String(row.report_count))} REPORTS</span>`
                 : ''}
-            <span class="report-page">${reportEscape(reportPageLabel(row.page_id))}</span>
-            <span class="report-time">${reportEscape(reportTimeAgo(row.created_at))}</span>
+            <span class="report-page">${window.escapeHtml(reportPageLabel(row.page_id))}</span>
+            <span class="report-time">${window.escapeHtml(reportTimeAgo(row.created_at))}</span>
         `;
         card.appendChild(head);
 

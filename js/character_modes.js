@@ -52,8 +52,6 @@
     const requestedMode = new URLSearchParams(window.location.search).get('mode');
     if (requestedMode) window.activeCharacterMode = requestedMode;
 
-    const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s === null || s === undefined ? '' : s));
-
     // js/site_utils.js is cached for an hour by GitHub Pages while this file is
     // new, so the first load after a deploy can pair a fresh copy of this file
     // with an hour-old copy of that one. Local fallbacks for the two trivial
@@ -88,7 +86,7 @@
         const btn = document.createElement('button');
         btn.id = `nav-${ULTIMATE_TAB_ID}`;
         btn.className = 'btn-manga btn-manga-slanted';
-        btn.innerHTML = `<div class="btn-manga-content"><span class="btn-manga-text">${esc(ULTIMATE_TAB_LABEL)}</span></div>`;
+        btn.innerHTML = `<div class="btn-manga-content"><span class="btn-manga-text">${window.escapeHtml(ULTIMATE_TAB_LABEL)}</span></div>`;
 
         // After Counterplay, which leaves Gallery last. Gallery is the media
         // dump and reads as the end of the page; an Ultimate tab past it would
@@ -128,7 +126,7 @@
             const isActive = m.id === activeId;
             return `<button type="button" role="tab" aria-selected="${isActive ? 'true' : 'false'}"` +
                 ` class="character-mode-chip${isActive ? ' active' : ''}"` +
-                ` data-mode-id="${esc(m.id)}">${esc(m.label)}</button>`;
+                ` data-mode-id="${window.escapeHtml(m.id)}">${window.escapeHtml(m.label)}</button>`;
         }).join('');
     }
 

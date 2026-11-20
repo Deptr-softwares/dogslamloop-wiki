@@ -42,10 +42,6 @@ function decodeMediaRef(ref) {
     }
 }
 
-function mediaQueueEscape(value) {
-    return window.escapeHtml ? window.escapeHtml(value) : String(value == null ? '' : value);
-}
-
 function formatBytes(bytes) {
     const size = Number(bytes);
     if (!isFinite(size) || size <= 0) return '';
@@ -137,7 +133,7 @@ window.loadMediaQueue = async function() {
         mediaQueueLoaded = true;
         window.renderMediaQueue();
     } catch (err) {
-        container.innerHTML = `<p class="admin-error-text">${mediaQueueEscape(err.message)}</p>`;
+        container.innerHTML = `<p class="admin-error-text">${window.escapeHtml(err.message)}</p>`;
     }
 };
 
@@ -178,7 +174,7 @@ window.renderMediaQueue = function() {
             : (category === 'history' ? 'Only in history/pending' : 'Nothing references it');
 
         const pageList = usage.livePages.length
-            ? `<span class="media-queue-pages">${mediaQueueEscape(usage.livePages.join(', '))}</span>`
+            ? `<span class="media-queue-pages">${window.escapeHtml(usage.livePages.join(', '))}</span>`
             : '';
 
         const meta = [formatBytes(row.size), row.createdAt ? String(row.createdAt).slice(0, 10) : '']
@@ -187,17 +183,17 @@ window.renderMediaQueue = function() {
         // data- attributes with a delegated listener, never an inline onclick:
         // the file name is contributor-supplied.
         return `
-            <div class="media-queue-row media-queue-row-${mediaQueueEscape(row.status)}" data-path="${mediaQueueEscape(row.name)}">
+            <div class="media-queue-row media-queue-row-${window.escapeHtml(row.status)}" data-path="${window.escapeHtml(row.name)}">
                 <div class="media-queue-head">
-                    <span class="media-queue-name">${mediaQueueEscape(row.name)}</span>
-                    <span class="update-badge media-queue-status-${mediaQueueEscape(row.status)}">${mediaQueueEscape(row.status)}</span>
+                    <span class="media-queue-name">${window.escapeHtml(row.name)}</span>
+                    <span class="update-badge media-queue-status-${window.escapeHtml(row.status)}">${window.escapeHtml(row.status)}</span>
                 </div>
                 <div class="media-queue-meta">
-                    <span class="media-queue-usage media-queue-usage-${category}">${mediaQueueEscape(usageLabel)}</span>
-                    ${meta ? `<span>${mediaQueueEscape(meta)}</span>` : ''}
+                    <span class="media-queue-usage media-queue-usage-${category}">${window.escapeHtml(usageLabel)}</span>
+                    ${meta ? `<span>${window.escapeHtml(meta)}</span>` : ''}
                 </div>
                 ${pageList}
-                ${row.note && row.status === 'flagged' ? `<p class="media-queue-note">${mediaQueueEscape(row.note)}</p>` : ''}
+                ${row.note && row.status === 'flagged' ? `<p class="media-queue-note">${window.escapeHtml(row.note)}</p>` : ''}
                 <div class="media-queue-preview" data-loaded="false"></div>
                 <div class="media-queue-actions">
                     <button class="btn-sys btn-sys-regular media-queue-btn" data-action="view">VIEW</button>

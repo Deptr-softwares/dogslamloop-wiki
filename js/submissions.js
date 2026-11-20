@@ -17,10 +17,10 @@ function showConfirm(message, confirmText = 'CONFIRM', isDanger = false) {
         overlay.innerHTML = `
             <div class="modal-box modal-md accent-blue">
                 <div class="modal-header"><h3>PLEASE CONFIRM</h3></div>
-                <div class="modal-body"><p>${escapeHtml(message)}</p></div>
+                <div class="modal-body"><p>${window.escapeHtml(message)}</p></div>
                 <div class="modal-footer">
                     <button class="btn-sys btn-sys-regular" id="submissions-confirm-cancel">CANCEL</button>
-                    <button class="btn-sys ${isDanger ? 'btn-sys-red' : 'btn-sys-green'}" id="submissions-confirm-ok">${escapeHtml(confirmText)}</button>
+                    <button class="btn-sys ${isDanger ? 'btn-sys-red' : 'btn-sys-green'}" id="submissions-confirm-ok">${window.escapeHtml(confirmText)}</button>
                 </div>
             </div>
         `;
@@ -37,7 +37,7 @@ function showAlert(message) {
     overlay.innerHTML = `
         <div class="modal-box modal-md accent-blue">
             <div class="modal-header"><h3>NOTICE</h3></div>
-            <div class="modal-body"><p>${escapeHtml(message)}</p></div>
+            <div class="modal-body"><p>${window.escapeHtml(message)}</p></div>
             <div class="modal-footer">
                 <button class="btn-sys btn-sys-regular" id="submissions-alert-ok">OK</button>
             </div>
@@ -91,14 +91,14 @@ function renderTicketThread(rev) {
             // is a staff line from before this shipped.
             if (msg.type === 'changes_requested') {
                 return `<div class="ticket-thread-msg ticket-thread-changes">
-                    <div class="ticket-thread-who">&#9873; CHANGES REQUESTED &middot; ${escapeHtml(msg.author)} &middot; ${escapeHtml(time)}</div>
-                    <div class="ticket-thread-text">${escapeHtml(msg.text)}</div>
+                    <div class="ticket-thread-who">&#9873; CHANGES REQUESTED &middot; ${window.escapeHtml(msg.author)} &middot; ${window.escapeHtml(time)}</div>
+                    <div class="ticket-thread-text">${window.escapeHtml(msg.text)}</div>
                 </div>`;
             }
             const mine = msg.type === 'author';
             return `<div class="ticket-thread-msg ${mine ? 'ticket-thread-mine' : 'ticket-thread-staff'}">
-                <div class="ticket-thread-who">${escapeHtml(msg.author)}${mine ? ' (you)' : ''} &middot; ${escapeHtml(time)}</div>
-                <div class="ticket-thread-text">${escapeHtml(msg.text)}</div>
+                <div class="ticket-thread-who">${window.escapeHtml(msg.author)}${mine ? ' (you)' : ''} &middot; ${window.escapeHtml(time)}</div>
+                <div class="ticket-thread-text">${window.escapeHtml(msg.text)}</div>
             </div>`;
         }).join('')
         : `<p class="ticket-thread-empty">A reviewer opened this for discussion. Nothing has been said yet.</p>`;
@@ -107,11 +107,11 @@ function renderTicketThread(rev) {
     // and offering a control that cannot work is worse than not offering one.
     const replyBox = open ? `
         <div class="ticket-thread-reply">
-            <textarea id="ticket-reply-${escapeHtml(rev.id)}" class="editor-input ticket-thread-input"
+            <textarea id="ticket-reply-${window.escapeHtml(rev.id)}" class="editor-input ticket-thread-input"
                       rows="2" maxlength="2000" placeholder="Reply to the reviewer..."></textarea>
-            <button class="btn-sys btn-sys-blue" id="ticket-send-${escapeHtml(rev.id)}">SEND</button>
+            <button class="btn-sys btn-sys-blue" id="ticket-send-${window.escapeHtml(rev.id)}">SEND</button>
         </div>
-        <p class="ticket-thread-status" id="ticket-status-${escapeHtml(rev.id)}"></p>` : '';
+        <p class="ticket-thread-status" id="ticket-status-${window.escapeHtml(rev.id)}"></p>` : '';
 
     return `
         <div class="ticket-thread">
@@ -222,7 +222,7 @@ async function loadSubmissions() {
         .order('created_at', { ascending: false });
 
     if (error) {
-        listEl.innerHTML = `<div class="wiki-section login-required-card"><p class="loading-msg">Failed to load your submissions: ${escapeHtml(error.message)}</p></div>`;
+        listEl.innerHTML = `<div class="wiki-section login-required-card"><p class="loading-msg">Failed to load your submissions: ${window.escapeHtml(error.message)}</p></div>`;
         return;
     }
 
@@ -255,15 +255,15 @@ function renderSubmissionCard(rev) {
     let targetLabel;
     if (rev.is_delta) {
         const scopeLabel = (rev.target_scope || 'section').toUpperCase();
-        targetLabel = rev.target_key ? `${scopeLabel}: ${escapeHtml(rev.target_key)}` : scopeLabel;
+        targetLabel = rev.target_key ? `${scopeLabel}: ${window.escapeHtml(rev.target_key)}` : scopeLabel;
     } else {
         targetLabel = 'FULL PAGE REWRITE';
     }
 
     const qa = rev.qa_metadata || {};
-    const changelog = qa.changelog ? `<div class="submission-changelog">${escapeHtml(qa.changelog)}</div>` : '';
+    const changelog = qa.changelog ? `<div class="submission-changelog">${window.escapeHtml(qa.changelog)}</div>` : '';
     const rejectionReason = (rev.status === 'rejected' && qa.rejection_reason)
-        ? `<div class="submission-rejection-reason"><strong>Staff Note:</strong> ${escapeHtml(qa.rejection_reason)}</div>`
+        ? `<div class="submission-rejection-reason"><strong>Staff Note:</strong> ${window.escapeHtml(qa.rejection_reason)}</div>`
         : '';
 
     // A ticket_open row with a changes-requested message is more specific
@@ -274,7 +274,7 @@ function renderSubmissionCard(rev) {
         statusInfo.className = 'badge-status-changes-requested';
     }
     const changesRequestedNote = changesRequested
-        ? `<div class="submission-rejection-reason"><strong>Reviewer asked for:</strong> ${escapeHtml(changesRequested.text)}</div>`
+        ? `<div class="submission-rejection-reason"><strong>Reviewer asked for:</strong> ${window.escapeHtml(changesRequested.text)}</div>`
         : '';
 
     const actions = canEdit ? `
@@ -290,7 +290,7 @@ function renderSubmissionCard(rev) {
                 <div>
                     <div class="submission-badges-row">
                         <span class="update-badge ${statusInfo.className}">${statusInfo.label}</span>
-                        <span class="update-badge badge-site">${escapeHtml((rev.page_id || '').toUpperCase())}</span>
+                        <span class="update-badge badge-site">${window.escapeHtml((rev.page_id || '').toUpperCase())}</span>
                         <span class="update-badge badge-patch">${targetLabel}</span>
                     </div>
                     <div class="submission-meta">Submitted ${dateStr}</div>

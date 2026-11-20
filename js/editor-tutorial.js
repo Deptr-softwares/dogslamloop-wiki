@@ -75,11 +75,6 @@
         catch (e) { /* shows once more; the harmless direction */ }
     }
 
-    const esc = (v) => (typeof window.escapeHtml === 'function'
-        ? window.escapeHtml(v)
-        : String(v == null ? '' : v).replace(/[&<>"']/g, c =>
-            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
-
     // Shortcodes are converted by js/internalstyling.js AFTER this is in the
     // DOM, so what goes in is escaped text and what comes out is styled markup.
     // Stripping them here instead would show a contributor `[b]` in a tour
@@ -109,15 +104,15 @@
             // part of the Workspace Header, and the owner's list has five
             // elements, not six.
             if (block.type === 'heading') {
-                current.body.push(`<h4 class="tutorial-subheading">${esc(stripCodes(blockText(block)))}</h4>`);
+                current.body.push(`<h4 class="tutorial-subheading">${window.escapeHtml(stripCodes(blockText(block)))}</h4>`);
             } else if (block.type === 'paragraph') {
                 const text = blockText(block);
-                if (text.trim()) current.body.push(`<p class="strategy-paragraph">${esc(text)}</p>`);
+                if (text.trim()) current.body.push(`<p class="strategy-paragraph">${window.escapeHtml(text)}</p>`);
             } else if (block.type === 'list') {
                 const items = (block.items || []).filter(i => String(i || '').trim());
                 if (items.length) {
                     current.body.push(`<ul class="wiki-block-list">${
-                        items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`);
+                        items.map(i => `<li>${window.escapeHtml(i)}</li>`).join('')}</ul>`);
                 }
             }
             // image, video, divider: skipped. The guide's screenshots are of
@@ -197,7 +192,7 @@
 
         box.innerHTML = `
             <div class="tutorial-progress">Step ${at + 1} of ${steps.length}</div>
-            <h3 class="tutorial-title">${esc(step.title)}</h3>
+            <h3 class="tutorial-title">${window.escapeHtml(step.title)}</h3>
             <div class="tutorial-body">${step.body.join('')}</div>
             <div class="tutorial-actions">
                 <button type="button" class="btn-sys btn-sys-regular" data-tutorial="skip">SKIP</button>
@@ -434,7 +429,7 @@
                     ${LANGUAGE_STANDARD.map(p => `<p class="strategy-paragraph">${p}</p>`).join('')}
 
                     <h4 class="mos-heading">The basics</h4>
-                    <ul class="wiki-block-list">${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+                    <ul class="wiki-block-list">${items.map(i => `<li>${window.escapeHtml(i)}</li>`).join('')}</ul>
 
                     <p class="mos-footnote">
                         These come from the

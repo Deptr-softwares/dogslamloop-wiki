@@ -191,14 +191,12 @@ function renderKeyedSectionPreview(tabId) {
         return;
     }
 
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
-
     container.innerHTML = '';
     container.classList.add('vessel-content', 'space-y-6');
 
     const entries = descData[section.field];
     if (!entries || entries.length === 0) {
-        container.innerHTML = `<div class="empty-tab-msg">${esc(section.emptyMessage || 'Not written yet.')}</div>`;
+        container.innerHTML = `<div class="empty-tab-msg">${window.escapeHtml(section.emptyMessage || 'Not written yet.')}</div>`;
         return;
     }
 
@@ -215,12 +213,12 @@ function renderKeyedSectionPreview(tabId) {
             const value = entry[section.metaField];
             // Selected by the value, never supplied by it.
             const colour = (section.metaColors || {})[value] || '#9ca3af';
-            metaHTML = `<span class="card-tier-label" style="color: ${colour};">${esc(value || '')}</span>`;
+            metaHTML = `<span class="card-tier-label" style="color: ${colour};">${window.escapeHtml(value || '')}</span>`;
         }
 
         entrySection.innerHTML = `
             <div class="card-header-flex">
-                <h3 class="card-header-title">${esc(key)}</h3>
+                <h3 class="card-header-title">${window.escapeHtml(key)}</h3>
                 ${metaHTML}
             </div>
         `;
@@ -238,7 +236,7 @@ function renderKeyedSectionPreview(tabId) {
                 const emptyH3 = contentWrapper.querySelector('h3.strategy-title');
                 if (emptyH3 && !emptyH3.textContent) emptyH3.remove();
             } else {
-                contentWrapper.innerHTML = `<p class="empty-notes-msg">${esc(section.emptyEntryMessage || 'Nothing recorded yet.')}</p>`;
+                contentWrapper.innerHTML = `<p class="empty-notes-msg">${window.escapeHtml(section.emptyEntryMessage || 'Nothing recorded yet.')}</p>`;
             }
         }
     });

@@ -31,12 +31,6 @@ function readBlocks() {
     }
 }
 
-function esc(str) {
-    return String(str === null || str === undefined ? '' : str)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
 // URL-safe, stable, and predictable from the title so the owner rarely has to
 // think about it - but still editable, because changing a published post's
 // title should not silently break its existing links.
@@ -90,7 +84,7 @@ window.loadPostAdminList = async function() {
         .order('updated_at', { ascending: false });
 
     if (error) {
-        container.innerHTML = `<p class="post-error">Could not load posts: ${esc(error.message)}</p>`;
+        container.innerHTML = `<p class="post-error">Could not load posts: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 
@@ -102,13 +96,13 @@ window.loadPostAdminList = async function() {
     container.innerHTML = data.map(post => `
         <div class="post-admin-row">
             <div class="post-admin-row-main">
-                <span class="update-badge ${post.status === 'published' ? 'badge-site' : 'badge-general'}">${esc(post.status)}</span>
-                <span class="update-badge badge-general">${esc(post.kind)}</span>
-                <span class="post-admin-row-title">${esc(post.title)}</span>
+                <span class="update-badge ${post.status === 'published' ? 'badge-site' : 'badge-general'}">${window.escapeHtml(post.status)}</span>
+                <span class="update-badge badge-general">${window.escapeHtml(post.kind)}</span>
+                <span class="post-admin-row-title">${window.escapeHtml(post.title)}</span>
             </div>
             <div class="post-admin-row-actions">
-                <button class="btn-sys btn-sys-regular" onclick="window.editPost('${esc(post.id)}')">EDIT</button>
-                <button class="btn-sys btn-sys-red" onclick="window.deletePost('${esc(post.id)}')">DELETE</button>
+                <button class="btn-sys btn-sys-regular" onclick="window.editPost('${window.escapeHtml(post.id)}')">EDIT</button>
+                <button class="btn-sys btn-sys-red" onclick="window.deletePost('${window.escapeHtml(post.id)}')">DELETE</button>
             </div>
         </div>
     `).join('');

@@ -251,7 +251,6 @@ function skillMediaHTML(media) {
         const isVideo = ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => path.endsWith(ext));
         // .gif stays an image on purpose - it animates on its own.
         const filename = path.split('/').pop();
-        const esc = window.escapeHtml;
         const altText = media.alt || '';
 
         if (isVideo) {
@@ -269,7 +268,7 @@ function skillMediaHTML(media) {
             mediaContent = window.wikiClipHTML(media.src, {
                 className: 'skill-media-img', label: altText,
             }) + `
-                <span class="skill-media-filename">${esc(filename)}</span>`;
+                <span class="skill-media-filename">${window.escapeHtml(filename)}</span>`;
         } else {
             // Native loading="lazy" with a real src, matching how
             // description.js renders wiki images. This carried
@@ -278,8 +277,8 @@ function skillMediaHTML(media) {
             // - never img - so every static image in a skill card
             // rendered with no source at all.
             mediaContent = `
-                <img src="${esc(media.src)}" alt="${esc(altText)}" class="skill-media-img" loading="lazy">
-                <span class="skill-media-filename">${esc(filename)}</span>`;
+                <img src="${window.escapeHtml(media.src)}" alt="${window.escapeHtml(altText)}" class="skill-media-img" loading="lazy">
+                <span class="skill-media-filename">${window.escapeHtml(filename)}</span>`;
         }
     }
     return mediaContent;

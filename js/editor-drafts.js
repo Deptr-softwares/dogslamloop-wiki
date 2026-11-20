@@ -190,7 +190,6 @@ let draftManagerRows = [];
 window.openDraftManager = function() {
     const container = document.getElementById('draft-list-container');
     const drafts = [];
-    const esc = (s) => window.escapeHtml(String(s));
 
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -240,16 +239,16 @@ window.openDraftManager = function() {
                 <div class="draft-row draft-row-${draft.kind.kind}">
                     <div>
                         <div class="draft-row-label">${draft.kind.label}</div>
-                        <div class="draft-row-title">${esc(charDisplay)} <span class="draft-row-context">[ ${esc(contextDisplay)} ]</span></div>
-                        <div class="draft-row-timestamp">${draft.kind.stamp}: ${esc(dateStr)}</div>
-                        ${submittedAt ? `<div class="draft-row-submitted">Page submitted after this was saved: ${esc(new Date(submittedAt).toLocaleString())}</div>` : ''}
+                        <div class="draft-row-title">${window.escapeHtml(charDisplay)} <span class="draft-row-context">[ ${window.escapeHtml(contextDisplay)} ]</span></div>
+                        <div class="draft-row-timestamp">${draft.kind.stamp}: ${window.escapeHtml(dateStr)}</div>
+                        ${submittedAt ? `<div class="draft-row-submitted">Page submitted after this was saved: ${window.escapeHtml(new Date(submittedAt).toLocaleString())}</div>` : ''}
                     </div>
                     <div class="draft-row-actions">
                         ${!isCurrent ?
-                            `<button class="btn-sys btn-sys-blue draft-resume-btn" data-draft-resume="${esc(draft.key)}">RESUME</button>` :
+                            `<button class="btn-sys btn-sys-blue draft-resume-btn" data-draft-resume="${window.escapeHtml(draft.key)}">RESUME</button>` :
                             `<span class="draft-active-badge">CURRENTLY ACTIVE</span>`
                         }
-                        <button class="btn-sys btn-sys-red draft-discard-btn" data-draft-discard="${esc(draft.key)}">DISCARD</button>
+                        <button class="btn-sys btn-sys-red draft-discard-btn" data-draft-discard="${window.escapeHtml(draft.key)}">DISCARD</button>
                     </div>
                 </div>
             `;

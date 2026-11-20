@@ -10,17 +10,8 @@ window.tierRoster = [];
 // an <img onerror> in a tier name EXECUTED - confirmed by a test that watched
 // the payload fire, not by reading the code.
 //
-// Same shape as escBlockText in js/description.js: window.escapeHtml when
-// site_utils has loaded, an inline fallback when a cache-skewed load means it
-// has not, so a stale cache renders escaped text rather than throwing.
-//
 // Uppercase BEFORE escaping where a label is upper-cased. The other order
 // turns &amp; into &AMP;, which no browser resolves.
-const tierEscape = (v) => (typeof window.escapeHtml === 'function'
-    ? window.escapeHtml(v === null || v === undefined ? '' : v)
-    : String(v === null || v === undefined ? '' : v)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;'));
 
 // --- CORE ROSTER MATCHER ---
 // Fetches navigation.json to link Character IDs to their official names and colors
@@ -91,7 +82,7 @@ function getCharPortraitHTML(charId, isDraggable = false) {
     const finalImgSrc = charMeta.image ? `${rootPath}${charMeta.image}` : cloudImageUrl;
 
     // Image is layered on top. If it fails to load, it hides itself revealing the text!
-    const imgHTML = `<img src="${tierEscape(finalImgSrc)}" onerror="this.style.display='none'" class="tier-portrait-img">`;
+    const imgHTML = `<img src="${window.escapeHtml(finalImgSrc)}" onerror="this.style.display='none'" class="tier-portrait-img">`;
 
     // charId comes from the tier list's own `characters` array, which is
     // contributor-submitted, and charMeta.name falls back to it whenever the id
@@ -104,12 +95,12 @@ function getCharPortraitHTML(charId, isDraggable = false) {
     // different (and easier to get wrong) problem than escaping text.
     return `
         <div class="tier-portrait ${isDraggable ? 'draggable-portrait' : ''}"
-             data-char-id="${tierEscape(charId)}"
-             title="${tierEscape(charMeta.name)}"
+             data-char-id="${window.escapeHtml(charId)}"
+             title="${window.escapeHtml(charMeta.name)}"
              style="background-color: ${charColor};"
              ${!isDraggable && charMeta.url ? `onclick="window.location.href='${rootPath}${charMeta.url}'"` : ''}>
             <span class="tier-portrait-name">
-                ${tierEscape(charMeta.name)}
+                ${window.escapeHtml(charMeta.name)}
             </span>
             ${imgHTML}
         </div>
@@ -170,7 +161,7 @@ window.loadTierList = async function() {
             <!-- Removed 'transform: scale' and used font-size/padding to preserve the slant -->
             <button id="nav-tier-${overallTab.id}" class="btn-manga btn-manga-slanted tier-nav-overall-btn" onclick="window.switchLiveTierTab(${overallIdx})">
                 <div class="btn-manga-content">
-                    <span class="btn-manga-text tier-nav-overall-text">${tierEscape(String(overallTab.label || "").toUpperCase())}</span>
+                    <span class="btn-manga-text tier-nav-overall-text">${window.escapeHtml(String(overallTab.label || "").toUpperCase())}</span>
                 </div>
             </button>
         </div>
@@ -188,7 +179,7 @@ window.loadTierList = async function() {
         navHTML += `
             <button id="nav-tier-${tab.id}" class="btn-manga btn-manga-slanted tier-nav-matchup-btn" onclick="window.switchLiveTierTab(${idx})" style="--tier-nav-color: ${charColor};">
                 <div class="btn-manga-content">
-                    <span class="btn-manga-text tier-nav-matchup-text">${tierEscape(String(tab.label || "").toUpperCase())}</span>
+                    <span class="btn-manga-text tier-nav-matchup-text">${window.escapeHtml(String(tab.label || "").toUpperCase())}</span>
                 </div>
             </button>
         `;
@@ -234,7 +225,7 @@ window.switchLiveTierTab = function(tabIndex) {
             listHTML += `
                 <div class="tier-list-row">
                     <div class="tier-list-row-label" style="--tier-row-color: ${rowColor};">
-                        <span class="tier-list-row-label-text">${tierEscape(tier.name)}</span>
+                        <span class="tier-list-row-label-text">${window.escapeHtml(tier.name)}</span>
                     </div>
                     <div class="tier-list-row-chars">
                         ${charsHTML}
@@ -252,9 +243,9 @@ window.switchLiveTierTab = function(tabIndex) {
         activeTab.changelog.forEach(log => {
             logHTML += `
                 <div class="tier-changelog-entry">
-                    <div class="tier-changelog-date">${tierEscape(log.date)}</div>
+                    <div class="tier-changelog-date">${window.escapeHtml(log.date)}</div>
                     <ul class="wiki-block-list space-y-2 text-gray-300 tier-changelog-notes">
-                        ${log.notes.map(note => `<li>${tierEscape(note)}</li>`).join('')}
+                        ${log.notes.map(note => `<li>${window.escapeHtml(note)}</li>`).join('')}
                     </ul>
                 </div>
             `;
@@ -302,7 +293,7 @@ window.renderTierEditorUI = function(container) {
         let removeBtnClass = tIdx === activeIdx ? 'on-active-tab' : '';
 
         tabHTML += `<div class="daw-tab-item">`;
-        tabHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${activeClass}" onclick="window.switchEditorTierTab(${tIdx})">${tierEscape(String(tab.label || "").toUpperCase())}</button>`;
+        tabHTML += `<button class="daw-tab-btn daw-tab-btn-removable ${activeClass}" onclick="window.switchEditorTierTab(${tIdx})">${window.escapeHtml(String(tab.label || "").toUpperCase())}</button>`;
         tabHTML += `<button class="daw-tab-remove-btn ${removeBtnClass}" onclick="window.removeEditorTierTab(${tIdx})" title="Delete Tab">✖</button>`;
         tabHTML += `</div>`;
     });
@@ -339,7 +330,7 @@ window.renderTierEditorUI = function(container) {
 
                 <div class="tier-editor-row-header">
                     <input type="color" class="tier-color-input" value="${tier.color ? tier.color.startsWith('#') ? tier.color : '#555555' : '#555555'}" onchange="window.updateTierMeta(${tIdx}, 'color', this.value)">
-                    <input type="text" class="editor-input tier-name-input" value="${tierEscape(tier.name)}" placeholder="Tier Name" oninput="window.updateTierMeta(${tIdx}, 'name', this.value)">
+                    <input type="text" class="editor-input tier-name-input" value="${window.escapeHtml(tier.name)}" placeholder="Tier Name" oninput="window.updateTierMeta(${tIdx}, 'name', this.value)">
                     <div class="tier-row-btn-group">
                         <button class="btn-sys btn-sys-regular btn-sys-compact" onclick="window.moveTier(${tIdx}, -1)">▲</button>
                         <button class="btn-sys btn-sys-regular btn-sys-compact" onclick="window.moveTier(${tIdx}, 1)">▼</button>
@@ -391,11 +382,11 @@ window.renderTierEditorUI = function(container) {
         <div class="editor-row tier-tab-meta-row">
             <div class="tier-tab-meta-field">
                 <label class="editor-field-label-sm">Tab Name (Navigation)</label>
-                <input type="text" class="editor-input" value="${tierEscape(activeTab.label)}" oninput="window.updateTierTabLabel(this.value)">
+                <input type="text" class="editor-input" value="${window.escapeHtml(activeTab.label)}" oninput="window.updateTierTabLabel(this.value)">
             </div>
             <div class="tier-tab-meta-field">
                 <label class="editor-field-label-sm">Tab Slug ID (Internal)</label>
-                <input type="text" class="editor-input" value="${tierEscape(activeTab.id)}" disabled>
+                <input type="text" class="editor-input" value="${window.escapeHtml(activeTab.id)}" disabled>
             </div>
         </div>
 

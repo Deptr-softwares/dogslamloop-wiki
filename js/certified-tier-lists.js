@@ -36,7 +36,6 @@
     };
 
     const client = () => window.supabaseClient;
-    const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s == null ? '' : s));
 
     function el(tag, className, text) {
         const node = document.createElement(tag);
@@ -190,8 +189,6 @@
         const ui = document.getElementById('tier-list-ui');
         if (!ui || typeof window.bindTooltip !== 'function') return;
 
-        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
-
         const latest = new Map();
         (changes || []).forEach(change => {
             if (!latest.has(change.character_id)) latest.set(change.character_id, change);
@@ -207,11 +204,11 @@
             // bindTooltip assigns innerHTML, so every value here is escaped.
             // The note and the author name are written by whoever owns the
             // list, which makes them contributor content on a public page.
-            let html = `<div class="ctl-tip-move">${esc(moveLabel(change))}</div>`;
-            if (date) html += `<div class="ctl-tip-date">${esc(date)}</div>`;
-            html += `<div class="ctl-tip-note">${esc(change.note)}</div>`;
+            let html = `<div class="ctl-tip-move">${window.escapeHtml(moveLabel(change))}</div>`;
+            if (date) html += `<div class="ctl-tip-date">${window.escapeHtml(date)}</div>`;
+            html += `<div class="ctl-tip-note">${window.escapeHtml(change.note)}</div>`;
             if (change.author_name) {
-                html += `<div class="ctl-tip-author">&mdash; ${esc(change.author_name)}</div>`;
+                html += `<div class="ctl-tip-author">&mdash; ${window.escapeHtml(change.author_name)}</div>`;
             }
 
             // The native tooltip would otherwise sit on top of this one. The

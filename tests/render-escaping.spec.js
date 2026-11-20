@@ -292,7 +292,7 @@ test('a system section title cannot inject markup into the page', async ({ page 
     // already had to fix once.
     const usesEscape = await page.evaluate(async () => {
         const src = await (await fetch('/js/description.js')).text();
-        return src.includes('${escBlockText(section.sectionTitle)}');
+        return src.includes('${window.escapeHtml(section.sectionTitle)}');
     });
     expect(usesEscape, 'the system renderer escapes its section title').toBe(true);
 

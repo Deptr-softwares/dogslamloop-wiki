@@ -58,7 +58,6 @@ window.humanFieldName = function(key) {
 };
 
 window.renderStructuredDiff = function(oldObj, newObj) {
-    const esc = (v) => window.escapeHtml(v);
 
     // A value a reviewer can read. This used to be JSON.stringify for anything
     // that was not a primitive, which is where most of the "it just shows raw
@@ -89,7 +88,7 @@ window.renderStructuredDiff = function(oldObj, newObj) {
 
     // Multi-line values keep their lines. Escaped first, so the <br> is the
     // only markup that survives - these values are contributor-submitted.
-    const show = (val) => esc(formatValue(val)).replace(/\n/g, '<br>');
+    const show = (val) => window.escapeHtml(formatValue(val)).replace(/\n/g, '<br>');
 
     const renderFields = (oldO, newO, depth) => {
         const safeOld = oldO && typeof oldO === 'object' ? oldO : {};
@@ -137,7 +136,7 @@ window.renderStructuredDiff = function(oldObj, newObj) {
                 valueHtml = `<del class="diff-del">${show(oldVal)}</del> <ins class="diff-add">${show(newVal)}</ins>`;
             }
 
-            rowsHtml += `<div class="diff-field-row"><span class="diff-field-key">${esc(window.humanFieldName(key))}:</span> ${valueHtml}</div>`;
+            rowsHtml += `<div class="diff-field-row"><span class="diff-field-key">${window.escapeHtml(window.humanFieldName(key))}:</span> ${valueHtml}</div>`;
         });
 
         return rowsHtml || `<div class="diff-field-row diff-field-unchanged">No field-level changes detected.</div>`;

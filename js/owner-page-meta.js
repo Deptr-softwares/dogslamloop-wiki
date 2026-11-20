@@ -87,7 +87,7 @@ async function loadPageMeta() {
     // Archived and draft pages are included on purpose: their details are
     // exactly what you would want to fix before bringing one back.
     select.innerHTML = pageMetaRows.map(row => `
-        <option value="${ownerEscape(row.page_id)}">${ownerEscape(row.name)}${row.status !== 'live' ? ` (${ownerEscape(row.status)})` : ''}</option>
+        <option value="${window.escapeHtml(row.page_id)}">${window.escapeHtml(row.name)}${row.status !== 'live' ? ` (${window.escapeHtml(row.status)})` : ''}</option>
     `).join('');
 
     renderPageMetaFields();
@@ -178,8 +178,8 @@ function renderPageMetaFields() {
 
     flags.innerHTML = PAGE_FLAGS.map(flag => `
         <label class="page-meta-flag">
-            <input type="checkbox" class="page-meta-checkbox" data-column="${ownerEscape(flag.column)}"${row[flag.column] ? ' checked' : ''}>
-            <span>${ownerEscape(flag.label)}</span>
+            <input type="checkbox" class="page-meta-checkbox" data-column="${window.escapeHtml(flag.column)}"${row[flag.column] ? ' checked' : ''}>
+            <span>${window.escapeHtml(flag.label)}</span>
         </label>
     `).join('');
 
@@ -214,8 +214,8 @@ function renderPageMetaTabs(row, isCharacter) {
     const settings = pageMetaTabSettings[row.page_id] || {};
     host.innerHTML = optional.map(tab => `
         <label class="page-meta-flag">
-            <input type="checkbox" class="page-meta-tab-checkbox" data-tab="${ownerEscape(tab.id)}"${settings[tab.id] === true ? ' checked' : ''}>
-            <span>${ownerEscape(tab.label)} tab</span>
+            <input type="checkbox" class="page-meta-tab-checkbox" data-tab="${window.escapeHtml(tab.id)}"${settings[tab.id] === true ? ' checked' : ''}>
+            <span>${window.escapeHtml(tab.label)} tab</span>
         </label>
     `).join('');
 }
@@ -251,14 +251,14 @@ async function savePageMeta() {
         // parse reaches ten consumers and renders as nothing on all of them.
         const typed = value('page-meta-color');
         if (typed && !isValidCssColor(typed)) {
-            results.innerHTML = `<span class="admin-error-text">${ownerEscape(typed)} is not a colour the browser understands. Try #ff8080 or hsl(0, 100%, 75%).</span>`;
+            results.innerHTML = `<span class="admin-error-text">${window.escapeHtml(typed)} is not a colour the browser understands. Try #ff8080 or hsl(0, 100%, 75%).</span>`;
             return;
         }
         // Stored in a form the site reads (see toSiteColor), and the box shows
         // what was stored.
         const color = typed ? toSiteColor(typed) : null;
         if (typed && !color) {
-            results.innerHTML = `<span class="admin-error-text">${ownerEscape(typed)} is see-through, and a page colour cannot be. Try #ff8080 or hsl(0, 100%, 75%).</span>`;
+            results.innerHTML = `<span class="admin-error-text">${window.escapeHtml(typed)} is see-through, and a page colour cannot be. Try #ff8080 or hsl(0, 100%, 75%).</span>`;
             return;
         }
         if (color !== typed) {
@@ -283,21 +283,21 @@ async function savePageMeta() {
     btn.disabled = false;
 
     if (error) {
-        results.innerHTML = `<p class="admin-error-text">Could not save: ${ownerEscape(error.message)}</p>`;
+        results.innerHTML = `<p class="admin-error-text">Could not save: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 
     Object.assign(row, payload);
 
     if (tabError) {
-        results.innerHTML = `<p class="admin-error-text">Details saved, but the optional tabs did not: ${ownerEscape(tabError.message)}</p>`;
+        results.innerHTML = `<p class="admin-error-text">Details saved, but the optional tabs did not: ${window.escapeHtml(tabError.message)}</p>`;
         return;
     }
 
     const tabsShown = !document.getElementById('page-meta-tabs-block').hidden;
-    results.innerHTML = `<span class="owner-success-text">Saved. "${ownerEscape(row.name)}" updates on the site after the next regeneration run`
+    results.innerHTML = `<span class="owner-success-text">Saved. "${window.escapeHtml(row.name)}" updates on the site after the next regeneration run`
         + (tabsShown ? `; optional tabs take effect on the next page load.` : `.`)
-        + (convertedFrom ? ` The colour ${ownerEscape(convertedFrom)} is stored as ${ownerEscape(payload.color)}, which is the form the site reads.` : ``)
+        + (convertedFrom ? ` The colour ${window.escapeHtml(convertedFrom)} is stored as ${window.escapeHtml(payload.color)}, which is the form the site reads.` : ``)
         + `</span>`;
 }
 

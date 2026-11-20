@@ -252,8 +252,6 @@
 (function () {
     'use strict';
 
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
-
     // The WHOLE page, every tab and every character state - not the slice the
     // editor is showing. window.currentEditorDescData points at the active
     // state (js/editor-modes.js), so searching that would quietly miss the
@@ -341,13 +339,13 @@
         let lastWhere = null;
         lastMatches.forEach((m, i) => {
             if (m.where !== lastWhere) {
-                html += `<div class="find-replace-where">${esc(m.where || 'This page')}</div>`;
+                html += `<div class="find-replace-where">${window.escapeHtml(m.where || 'This page')}</div>`;
                 lastWhere = m.where;
             }
             html += `<div class="find-replace-row">`
-                + `<span class="find-replace-snippet">${esc(m.before)}`
-                + `<mark class="find-replace-hit">${esc(m.match)}</mark>`
-                + `${esc(m.after)}</span>`
+                + `<span class="find-replace-snippet">${window.escapeHtml(m.before)}`
+                + `<mark class="find-replace-hit">${window.escapeHtml(m.match)}</mark>`
+                + `${window.escapeHtml(m.after)}</span>`
                 + `<button type="button" class="btn-sys btn-sys-regular find-replace-one" data-match="${i}">Replace</button>`
                 + `</div>`;
         });

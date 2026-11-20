@@ -64,8 +64,7 @@
      */
     window.reorderStripControls = function (listSpec) {
         if (!listSpec) return '';
-        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v));
-        const spec = esc(listSpec);
+        const spec = window.escapeHtml(listSpec);
         return `<div class="daw-reorder-bar">`
              + `<span class="daw-reorder-label">Selected</span>`
              + `<span class="daw-reorder-group" data-reorder-list="${spec}">`

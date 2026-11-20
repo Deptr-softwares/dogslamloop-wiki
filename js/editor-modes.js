@@ -34,8 +34,6 @@
         return !NON_CHARACTER_TYPES.has(window.currentEditorPageType);
     }
 
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
-
     // Local fallbacks for the two trivial predicates this module leans on, so
     // an hour-old cached site_utils.js cannot throw partway through a render.
     // A one-line duplicate of a one-line predicate is cheaper than a module
@@ -324,7 +322,7 @@
         const chips = modes.map(m => {
             const isActive = m.id === active;
             return `<button type="button" class="character-mode-chip${isActive ? ' active' : ''}"` +
-                ` aria-pressed="${isActive ? 'true' : 'false'}" data-mode-id="${esc(m.id)}">${esc(m.label)}</button>`;
+                ` aria-pressed="${isActive ? 'true' : 'false'}" data-mode-id="${window.escapeHtml(m.id)}">${window.escapeHtml(m.label)}</button>`;
         }).join('');
 
         // The add button carries no mode id, so the delegated handler can tell
@@ -344,9 +342,9 @@
         controls.innerHTML = `
             <label class="editor-mode-label-field">
                 <span>State name</span>
-                <input type="text" id="editor-mode-name" value="${esc(label)}" maxlength="40">
+                <input type="text" id="editor-mode-name" value="${window.escapeHtml(label)}" maxlength="40">
             </label>
-            <span class="editor-mode-id-hint">?mode=${esc(active)}</span>
+            <span class="editor-mode-id-hint">?mode=${window.escapeHtml(active)}</span>
             <button type="button" id="editor-mode-delete" class="btn-sys btn-sys-red">DELETE STATE</button>
         `;
 

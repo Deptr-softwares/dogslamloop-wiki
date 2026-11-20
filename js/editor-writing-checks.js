@@ -18,8 +18,6 @@
 (function () {
     'use strict';
 
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
-
     // The JJK names, both orders where js/site_meta.js has them, and the two the
     // owner added. Each resolves to its character through
     // window.CHARACTER_ALIASES, which also holds the nicknames left out here.
@@ -194,8 +192,8 @@
             fieldOf.set(box, field);
         }
         box.innerHTML = issues.map(i => `
-            <div class="writing-check"><span>${esc(i.text)}</span>${i.fix
-                ? `<button type="button" class="btn-sys btn-sys-yellow writing-check-fix" data-writing-fix="${esc(i.fix)}">FIX</button>`
+            <div class="writing-check"><span>${window.escapeHtml(i.text)}</span>${i.fix
+                ? `<button type="button" class="btn-sys btn-sys-yellow writing-check-fix" data-writing-fix="${window.escapeHtml(i.fix)}">FIX</button>`
                 : ''}</div>`).join('');
     }
 
@@ -273,7 +271,7 @@
                     <div class="auth-body">
                         <p class="modal-prompt-text">${found.length === 1 ? '1 thing' : `${found.length} things`} to check before sending:</p>
                         <ul class="writing-checks-list">${found.map(f => `
-                            <li><span class="writing-checks-where">${esc(f.where)}:</span> ${esc(f.text)}</li>`).join('')}
+                            <li><span class="writing-checks-where">${window.escapeHtml(f.where)}:</span> ${window.escapeHtml(f.text)}</li>`).join('')}
                         </ul>
                         <div class="modal-actions-centered">
                             <button type="button" class="btn-sys btn-sys-regular" data-writing-back>GO BACK</button>

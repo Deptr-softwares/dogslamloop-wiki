@@ -1,8 +1,7 @@
 /**
  * Dogslamloop Wiki - Owner Tools: Tier Lists
  *
- * Split from owner.js like the other owner-*.js modules, and depends on it for
- * ownerEscape.
+ * Split from owner.js like the other owner-*.js modules.
  *
  * Two controls that belong together:
  *
@@ -25,16 +24,12 @@
 
 let tierPageIntroLoaded = false;
 
-function tierListEscape(value) {
-    return window.ownerEscape ? window.ownerEscape(value) : String(value == null ? '' : value);
-}
-
 function tierToolSay(containerId, message, isError) {
     const box = document.getElementById(containerId);
     if (!box) return;
     box.innerHTML = isError
-        ? `<span class="admin-error-text">${tierListEscape(message)}</span>`
-        : `<span class="owner-success-text">${tierListEscape(message)}</span>`;
+        ? `<span class="admin-error-text">${window.escapeHtml(message)}</span>`
+        : `<span class="owner-success-text">${window.escapeHtml(message)}</span>`;
 }
 
 // The normal state between writing a migration and the release that applies
@@ -105,7 +100,7 @@ window.loadTierListRoster = async function () {
     if (error) {
         container.innerHTML = tierNotDeployed(error)
             ? `<p class="admin-error-text">Tier list assignments arrive with the next release.</p>`
-            : `<p class="admin-error-text">Could not load: ${tierListEscape(error.message)}</p>`;
+            : `<p class="admin-error-text">Could not load: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 
@@ -119,18 +114,18 @@ window.loadTierListRoster = async function () {
     container.innerHTML = data.map(row => `
         <div class="personnel-row">
             <div class="personnel-row-main">
-                <span class="update-badge">${tierListEscape(row.status)}</span>
-                <span class="personnel-email">${tierListEscape(row.author_name)}
-                    <span class="personnel-self">${tierListEscape(row.email || 'no account')}</span>
+                <span class="update-badge">${window.escapeHtml(row.status)}</span>
+                <span class="personnel-email">${window.escapeHtml(row.author_name)}
+                    <span class="personnel-self">${window.escapeHtml(row.email || 'no account')}</span>
                 </span>
             </div>
             <div class="personnel-row-actions">
                 <a class="btn-sys btn-sys-regular" href="tier-editor.html?list=${encodeURIComponent(row.slug)}">OPEN</a>
                 <a class="btn-sys btn-sys-regular" href="systems/tierlist/index.html?list=${encodeURIComponent(row.slug)}">VIEW</a>
                 ${row.status === 'archived'
-                    ? `<button class="btn-sys btn-sys-green tier-status-btn" data-slug="${tierListEscape(row.slug)}" data-status="published">RESTORE</button>
-                       <button class="btn-sys btn-sys-red tier-delete-btn" data-slug="${tierListEscape(row.slug)}">DELETE</button>`
-                    : `<button class="btn-sys btn-sys-red tier-status-btn" data-slug="${tierListEscape(row.slug)}" data-status="archived">ARCHIVE</button>`}
+                    ? `<button class="btn-sys btn-sys-green tier-status-btn" data-slug="${window.escapeHtml(row.slug)}" data-status="published">RESTORE</button>
+                       <button class="btn-sys btn-sys-red tier-delete-btn" data-slug="${window.escapeHtml(row.slug)}">DELETE</button>`
+                    : `<button class="btn-sys btn-sys-red tier-status-btn" data-slug="${window.escapeHtml(row.slug)}" data-status="archived">ARCHIVE</button>`}
             </div>
         </div>`).join('');
 

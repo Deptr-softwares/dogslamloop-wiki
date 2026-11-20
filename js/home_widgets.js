@@ -56,7 +56,7 @@ function buildUpdateChangesHTML(changes) {
         const heading = change && typeof change === 'object' ? change.heading : null;
         if (heading) {
             if (open) { html += '</ul>'; open = false; }
-            html += `<h4 class="update-changes-heading">${window.escapeHtml ? window.escapeHtml(heading) : heading}</h4>`;
+            html += `<h4 class="update-changes-heading">${window.escapeHtml(heading)}</h4>`;
             return;
         }
         if (!open) {
@@ -188,10 +188,6 @@ async function loadCredits(containerId) {
     // meaning.
     const DOTS = ['dot-green', 'dot-blue', 'dot-yellow', 'dot-lime', 'dot-grey', 'dot-pink'];
 
-    const escapeHtml = (str) => String(str === null || str === undefined ? '' : str)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-
     try {
         const rootPath = window.getRootPath ? window.getRootPath() : './';
         const data = await window.fetchJson(`${rootPath}systems/collaborators/collaborators_data.json`, { cache: true });
@@ -209,7 +205,7 @@ async function loadCredits(containerId) {
         container.innerHTML = people.map((person, i) => `
             <li>
                 <span class="dot-indicator ${DOTS[i % DOTS.length]}"></span>
-                <div><span class="credit-name">@${escapeHtml(person.name)}</span>${person.note ? ` - ${escapeHtml(person.note)}` : ''}</div>
+                <div><span class="credit-name">@${window.escapeHtml(person.name)}</span>${person.note ? ` - ${window.escapeHtml(person.note)}` : ''}</div>
             </li>
         `).join('');
     } catch (error) {
