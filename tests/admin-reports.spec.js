@@ -246,13 +246,14 @@ test('a missing migration says so rather than showing a raw error', async ({ pag
     await expect(page.locator('#report-queue-container')).toContainText("isn't available yet");
 });
 
-test('reporter notes and post bodies are never parsed as markup', async ({ page }) => {
-    // Both are written by ordinary users and both land in a moderator's
-    // authenticated admin session, which is the worst place on the site to
-    // render untrusted markup.
+test('reporter notes, post bodies and page ids are never parsed as markup', async ({ page }) => {
+    // All three come from rows ordinary users wrote, and all three land in a
+    // moderator's authenticated admin session, which is the worst place on
+    // the site to render untrusted markup.
     await openQueue(page, {
         rows: [report({
             id: 'r1',
+            page_id: '<img src=x>page',
             note: '<img src=x onerror="window.__pwned=1">',
             post_body: '<script>window.__pwned2=1</script>hostile',
             reporter_name: '<b>bold</b>reporter',
@@ -266,6 +267,7 @@ test('reporter notes and post bodies are never parsed as markup', async ({ page 
         bolds: document.querySelectorAll('#report-queue-container b').length,
         scripts: document.querySelectorAll('#report-queue-container script').length,
         quote: document.querySelector('.report-quote').textContent,
+        pageLabel: document.querySelector('.report-page').textContent,
     }));
 
     expect(result.pwned).toBe(false);
@@ -274,6 +276,7 @@ test('reporter notes and post bodies are never parsed as markup', async ({ page 
     expect(result.bolds).toBe(0);
     expect(result.scripts).toBe(0);
     expect(result.quote).toContain('<script>');
+    expect(result.pageLabel).toContain('<IMG SRC=X>PAGE');
 });
 
 test('a reported post shows its images, and only paths that pass the rule', async ({ page }) => {
