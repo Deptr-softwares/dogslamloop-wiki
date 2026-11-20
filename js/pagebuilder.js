@@ -1323,7 +1323,6 @@ function anchorLabel(header) {
     return window.stripStyleShortcodes(labelSource.textContent).trim()
         || window.stripStyleShortcodes(header.textContent).trim();
 }
-window.sectionAnchorLabel = anchorLabel;
 
 window.assignSectionAnchors = function(root) {
     const scope = root

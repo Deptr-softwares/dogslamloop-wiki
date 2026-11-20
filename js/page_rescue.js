@@ -71,8 +71,6 @@
         return data.find(row => row && row.status === 'live') || null;
     }
 
-    window.findLivePageForPath = findLivePage;
-
     function unpublishedBanner(row) {
         const banner = document.createElement('div');
         banner.className = 'rescue-banner';

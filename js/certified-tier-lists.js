@@ -661,6 +661,4 @@
         const requested = new URLSearchParams(window.location.search).get('list');
         if (requested && state.lists.some(l => l.slug === requested)) await showList(requested);
     };
-
-    window.showCertifiedTierList = showList;
 })();

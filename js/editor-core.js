@@ -1001,7 +1001,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (useDraft) {
                         descData = parsedDraft.desc_data || baseCloudDesc;
                         frameData = parsedDraft.frame_data || baseCloudFrame;
-                        window.currentDraftKey = targetKey; 
                         console.log(`[Editor] Restored local draft: ${targetKey}`);
                     }
                 } catch (e) {

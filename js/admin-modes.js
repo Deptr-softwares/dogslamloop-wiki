@@ -75,13 +75,6 @@
         });
         return out;
     }
-    window.previewCharacterModes = previewModes;
-
-    function stateLabel(modeId) {
-        const hit = previewModes().find(m => sameState(m.id, modeId));
-        return (hit && hit.label) || (isBase(modeId) ? 'Base Kit' : String(modeId));
-    }
-    window.previewStateLabel = stateLabel;
 
     // The base kit is the top level minus the state buckets. Comparing the
     // whole object instead would report every state edit as a base edit too,

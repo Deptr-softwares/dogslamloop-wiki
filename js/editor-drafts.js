@@ -140,7 +140,6 @@ window.saveLocalDraft = function() {
     try {
         makeRoomForAutoSave(draftKey);
         localStorage.setItem(draftKey, JSON.stringify(editorDraftPayload()));
-        window.currentDraftKey = draftKey;
     } catch (e) {
         console.warn("Auto-Save Failed: LocalStorage is full. Please discard old drafts in the Draft Manager.");
     }

@@ -1547,8 +1547,6 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
     const row = rows[rowIdx];
     if (!row) return;
 
-    window.currentDocRowIndex = rowIdx;
-
     const titleEl = document.getElementById('combo-row-modal-title');
     if (titleEl) titleEl.textContent = `EDIT ROW ${rowIdx + 1}`;
 
@@ -1625,7 +1623,6 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
 
     const close = () => {
         modal.classList.add('hidden');
-        window.currentDocRowIndex = undefined;
         window.renderDocumentListEditor(tabId);
     };
 

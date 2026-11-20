@@ -305,11 +305,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // unless ticked.
     const moderates = canModerate || window.rolesMeet(roles, 'admin');
     window.currentUserCanModerate = moderates;
-    window.currentUserExpertPages = expertPages.map(p => p.page_id);
-    // Moderator-only: in the building, but not on the review team.
-    window.currentUserIsModeratorOnly = !isReviewStaff && canModerate && !isExpert;
-    // Expert-only: here for their own pages' revisions and nothing else.
-    window.currentUserIsExpertOnly = !isReviewStaff && !canModerate && isExpert;
 
     // What this person is here to do, as three independent answers rather than
     // one label - because the three ways in compose. An expert who also holds
@@ -327,8 +322,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // nobody else's (page_data and page_history say the same in their RLS).
     const seesHistory   = isReviewStaff;
     window.currentUserSeesRevisions = seesRevisions;
-    window.currentUserSeesMedia = seesMedia;
-    window.currentUserSeesReports = seesReports;
     window.currentUsername = window.getDisplayName ? window.getDisplayName(session) : "Staff";
 
     // Scope the page down before anything loads, so nobody sees a queue flash

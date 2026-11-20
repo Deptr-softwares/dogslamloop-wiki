@@ -425,6 +425,4 @@
         if (id) await showPost(root, id);
         else await showList(root);
     };
-
-    window.__forumInternals = { FORUM_TAGS, MAX_TITLE };
 })();

@@ -1107,7 +1107,6 @@
         }
         renderPreviewDocs();
     }
-    window.tierEditorSwitchDoc = switchDoc;
 
     // --- SAVING ---
 
