@@ -759,7 +759,6 @@
     function renderPendingMoves() {
         const host = document.getElementById('tier-pending-moves');
         const count = document.getElementById('tier-move-count');
-        const save = document.getElementById('btn-save-tier-list');
         if (!host) return;
 
         const moves = pendingMoves();

@@ -454,7 +454,6 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             }
 
             const rightCol = document.getElementById(`right-col-${move.id}`);
-            const pendingTabs = [];
 
             // --- MEDIA PER MICRO VARIANT (owner, 2026-11-16) ---
             // Each timeline (a leaf of the tree, however deep) can carry its

@@ -1789,7 +1789,7 @@ window.injectAuthModal = function() {
         }
         
         btn.textContent = "VERIFYING..."; btn.disabled = true;
-        const { data, error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
+        const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
         btn.disabled = false; btn.textContent = "AUTHENTICATE";
 
         if (error) {
@@ -2488,7 +2488,7 @@ window.openAuthModal = async function() {
 
 window.triggerOAuth = async function(providerName) {
     if (!window.supabaseClient) return;
-    const { data, error } = await window.supabaseClient.auth.signInWithOAuth({
+    const { error } = await window.supabaseClient.auth.signInWithOAuth({
         provider: providerName,
         options: { redirectTo: window.location.origin + window.location.pathname + window.location.search }
     });

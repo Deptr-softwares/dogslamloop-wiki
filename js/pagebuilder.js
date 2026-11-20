@@ -1868,7 +1868,7 @@ window.loadPageAlerts = async function(pageId) {
         else { const res = await fetch(`${rootPath}data/navigation.json`); navData = await res.json(); }
 
         let targetEntry = null;
-        for (const [cat, items] of Object.entries(navData)) {
+        for (const items of Object.values(navData)) {
             const found = items.find(i => i.cms_config && i.cms_config.pageId === pageId);
             if (found) { targetEntry = found; break; }
         }
