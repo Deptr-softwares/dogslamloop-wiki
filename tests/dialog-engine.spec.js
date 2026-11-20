@@ -19,9 +19,11 @@ async function openBox(page) {
         box.innerHTML = '<input id="test-input"><button id="test-ok">OK</button><button id="test-no">NO</button>';
         document.body.appendChild(box);
         window.__answers = [];
+        window.__closes = 0;
         window.__ask = (opts = {}) => window.runDialog(box, {
             buttons: [[box.querySelector('#test-ok'), true], [box.querySelector('#test-no'), false]],
             cancel: false,
+            onClose: () => { window.__closes++; },
             ...opts,
         }).then(answer => window.__answers.push(answer));
     });
@@ -48,24 +50,38 @@ test('a second question on a box already showing is refused, so one click answer
     await page.evaluate(() => { window.__ask(); });
     await page.click('#test-no');
     await expect.poll(() => page.evaluate(() => window.__answers)).toEqual([false, true, false]);
+    // And a press on a box nobody is asking anything of closes nothing.
+    const closes = await page.evaluate(() => window.__closes);
+    await page.evaluate(() => document.getElementById('test-ok').click());
+    expect(await page.evaluate(() => window.__closes)).toBe(closes);
 });
 
 test('Escape and the backdrop close it only when the box asks for them', async ({ page }) => {
     const box = await openBox(page);
+    // The backdrop is the overlay itself, so the click is sent to it directly.
+    const clickBackdrop = () => page.evaluate(() => document.getElementById('test-box').click());
     await page.evaluate(() => { window.__ask(); });
     await page.keyboard.press('Escape');
-    await box.click({ position: { x: 2, y: 2 } });
+    await clickBackdrop();
     await expect(box).toBeVisible();
     expect(await page.evaluate(() => window.__answers)).toEqual([]);
     await page.click('#test-no');
+
+    // Listening for Enter is not taking Escape.
+    await page.evaluate(() => { window.__ask({ enter: true }); });
+    await page.keyboard.press('Escape');
+    await expect(box).toBeVisible();
+    await page.click('#test-no');
+    expect(await page.evaluate(() => window.__answers)).toEqual([false, false]);
+    await page.evaluate(() => { window.__answers = []; });
 
     await page.evaluate(() => { window.__ask({ escape: true, backdrop: true }); });
     await page.keyboard.press('Escape');
     await expect(box).toBeHidden();
     await page.evaluate(() => { window.__ask({ escape: true, backdrop: true }); });
-    await page.evaluate(() => document.getElementById('test-box').click());
+    await clickBackdrop();
     await expect(box).toBeHidden();
-    expect(await page.evaluate(() => window.__answers)).toEqual([false, false, false]);
+    expect(await page.evaluate(() => window.__answers)).toEqual([false, false]);
 });
 
 test('Enter answers from where the box listens, and a value can be read at the press', async ({ page }) => {
