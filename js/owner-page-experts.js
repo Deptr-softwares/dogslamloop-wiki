@@ -2,7 +2,7 @@
  * Dogslamloop Wiki - Owner Tools: Page Experts (v0.17 F5)
  *
  * Split from owner.js like the other owner-*.js modules, and depends on it for
- * ownerEscape and contentNotDeployedMessage.
+ * contentNotDeployedMessage.
  *
  * WHY THIS IS AN OWNER TOOL AND NOT AN ADMIN ONE
  *
@@ -58,16 +58,16 @@ async function loadPageExperts() {
 
     container.innerHTML = Object.keys(byPage).sort().map(pageId => `
         <div class="expert-group">
-            <h4 class="expert-group-title">${ownerEscape(pageId.replace(/_/g, ' '))}</h4>
+            <h4 class="expert-group-title">${window.escapeHtml(pageId.replace(/_/g, ' '))}</h4>
             ${byPage[pageId].map(row => `
                 <div class="personnel-row">
                     <div class="personnel-row-main">
-                        <span class="personnel-email">${ownerEscape(row.email)}</span>
+                        <span class="personnel-email">${window.escapeHtml(row.email)}</span>
                     </div>
                     <div class="personnel-row-actions">
                         <button class="btn-sys btn-sys-red expert-revoke-btn"
-                                data-email="${ownerEscape(row.email)}"
-                                data-page="${ownerEscape(row.page_id)}">REVOKE</button>
+                                data-email="${window.escapeHtml(row.email)}"
+                                data-page="${window.escapeHtml(row.page_id)}">REVOKE</button>
                     </div>
                 </div>`).join('')}
         </div>`).join('');
@@ -123,7 +123,7 @@ async function grantPageExpert() {
     // owner mistyping an address is not an exception. It still starts with
     // "Error:" in that case, so colour by the answer rather than assuming.
     const failed = String(data || '').startsWith('Error:');
-    results.innerHTML = `<p class="${failed ? 'admin-error-text' : 'owner-success-text'}">${ownerEscape(data)}</p>`;
+    results.innerHTML = `<p class="${failed ? 'admin-error-text' : 'owner-success-text'}">${window.escapeHtml(data)}</p>`;
 
     if (!failed) {
         document.getElementById('expert-email').value = '';
@@ -151,6 +151,6 @@ async function revokePageExpert(email, pageId) {
         return;
     }
 
-    results.innerHTML = `<p class="owner-success-text">${ownerEscape(data)}</p>`;
+    results.innerHTML = `<p class="owner-success-text">${window.escapeHtml(data)}</p>`;
     await loadPageExperts();
 }

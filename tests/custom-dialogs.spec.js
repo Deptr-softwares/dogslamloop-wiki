@@ -120,6 +120,22 @@ test('typing a URL and confirming wraps the selection', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+test('Enter in the link box does what INSERT does', async ({ page }) => {
+  // What window.prompt gave for free, and what anyone typing a URL reaches for.
+  const { errors } = await workspaceWithText(page);
+  await clickLinkButton(page);
+
+  const input = page.locator('#editor-custom-modal .editor-modal-input');
+  await expect(input).toBeFocused();
+  await input.fill('/systems/writing_guide/');
+  await input.press('Enter');
+
+  await expect(page.locator('#editor-custom-modal')).toBeHidden();
+  await expect(page.locator('#block-list .editor-textarea').first())
+    .toHaveValue(/\[url=\/systems\/writing_guide\/\]guide here\[\/url\]/);
+  expect(errors).toEqual([]);
+});
+
 test('cancelling the link modal inserts nothing', async ({ page }) => {
   const { dialogs } = await workspaceWithText(page);
   const before = await page.evaluate(() =>

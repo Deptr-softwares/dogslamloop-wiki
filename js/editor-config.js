@@ -503,7 +503,7 @@
     }
 
     async function runConflictCheck(out, btn) {
-        const say = (text) => { out.innerHTML = `<p class="config-option-hint">${esc(text)}</p>`; };
+        const say = (text) => { out.innerHTML = `<p class="config-option-hint">${window.escapeHtml(text)}</p>`; };
         const pageId = window.currentEditorCharId;
         if (!pageId || !window.supabaseClient || typeof window.collectEditorDeltas !== 'function') {
             say('The check is not available on this page.');
@@ -557,8 +557,8 @@
                 <ul class="config-conflict-list">
                     ${clashing.map(s => `
                         <li data-conflict-item>
-                            <strong>${esc(s.who)}</strong>${s.mine ? ' (you)' : ''}, sent ${esc(when(s.when))}:
-                            ${esc(s.parts.join(', '))}
+                            <strong>${window.escapeHtml(s.who)}</strong>${s.mine ? ' (you)' : ''}, sent ${window.escapeHtml(when(s.when))}:
+                            ${window.escapeHtml(s.parts.join(', '))}
                         </li>`).join('')}
                 </ul>`;
         } catch (e) {
@@ -776,7 +776,7 @@
                 <div class="config-word-row" data-word-index="${i}">
                     <div class="config-word-main">
                         <button type="button" class="config-word-swatch" data-word-swatch aria-label="Color for this word" aria-expanded="false"></button>
-                        <input type="text" class="editor-input config-word-text" data-word-text value="${esc(w.word)}"
+                        <input type="text" class="editor-input config-word-text" data-word-text value="${window.escapeHtml(w.word)}"
                                placeholder="Word or phrase" aria-label="Word" spellcheck="false" autocomplete="off">
                         <button type="button" class="btn-sys btn-sys-red config-word-remove" data-word-remove title="Delete this word">✖</button>
                     </div>
@@ -877,8 +877,6 @@
 
     // --- THE PANEL ---
 
-    const esc = (s) => (typeof window.escapeHtml === 'function' ? window.escapeHtml(s) : String(s));
-
     // The Editor tab's three sections (owner, 2026-10-19: "Workspace, Block,
     // and Preview Panel"). `invert` ticks the box when the stored value is
     // false (see DEFAULTS).
@@ -913,10 +911,10 @@
         const ticked = opt.invert ? !get(opt.key) : get(opt.key);
         return `
             <label class="config-option">
-                <input type="checkbox" data-config-key="${esc(opt.key)}" ${opt.invert ? 'data-config-invert' : ''} ${ticked ? 'checked' : ''}>
+                <input type="checkbox" data-config-key="${window.escapeHtml(opt.key)}" ${opt.invert ? 'data-config-invert' : ''} ${ticked ? 'checked' : ''}>
                 <span class="config-option-text">
-                    <span class="config-option-label">${esc(opt.label)}</span>
-                    ${opt.hint ? `<span class="config-option-hint">${esc(opt.hint)}</span>` : ''}
+                    <span class="config-option-label">${window.escapeHtml(opt.label)}</span>
+                    ${opt.hint ? `<span class="config-option-hint">${window.escapeHtml(opt.hint)}</span>` : ''}
                 </span>
             </label>`;
     }

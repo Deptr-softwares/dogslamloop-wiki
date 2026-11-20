@@ -411,7 +411,6 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         // of js/character_tabs.js - this branch does not know either tab's name.
         const doc = window.getDocumentSections(tabId);
         const { intro, groups, list } = doc;
-        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
 
         if (!window.currentEditorDescData[intro.field]) window.currentEditorDescData[intro.field] = [];
         if (!window.currentEditorDescData[groups.field]) window.currentEditorDescData[groups.field] = [];
@@ -421,25 +420,25 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         // The tab id, not a literal: two document tabs would otherwise share
         // one set of button ids, and loadDocumentSectionIntoEditor clears
         // `active` by prefix.
-        navHTML += `<button class="daw-tab-btn active" id="${esc(tabId)}-nav-intro" onclick="window.loadDocumentSectionIntoEditor('${esc(tabId)}', 'intro')">${esc(intro.label)}</button>`;
-        navHTML += `<button class="daw-tab-btn" id="${esc(tabId)}-nav-list" onclick="window.loadDocumentSectionIntoEditor('${esc(tabId)}', 'list')">${esc(list.label)}</button>`;
+        navHTML += `<button class="daw-tab-btn active" id="${window.escapeHtml(tabId)}-nav-intro" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'intro')">${window.escapeHtml(intro.label)}</button>`;
+        navHTML += `<button class="daw-tab-btn" id="${window.escapeHtml(tabId)}-nav-list" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'list')">${window.escapeHtml(list.label)}</button>`;
 
         window.currentEditorDescData[groups.field].forEach((group, idx) => {
             // Escaped: a group title is contributor text reaching innerHTML.
             const name = group[groups.keyField] || `Group ${idx + 1}`;
             navHTML += `<div class="daw-tab-item">`;
-            navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${esc(tabId)}-nav-group-${idx}" onclick="window.loadDocumentSectionIntoEditor('${esc(tabId)}', 'group-${idx}')">${esc(name)}</button>`;
-            navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeDocumentGroup('${esc(tabId)}', ${idx})" title="Remove Group">&#10006;</button>`;
+            navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${window.escapeHtml(tabId)}-nav-group-${idx}" onclick="window.loadDocumentSectionIntoEditor('${window.escapeHtml(tabId)}', 'group-${idx}')">${window.escapeHtml(name)}</button>`;
+            navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeDocumentGroup('${window.escapeHtml(tabId)}', ${idx})" title="Remove Group">&#10006;</button>`;
             navHTML += `</div>`;
         });
 
         window.registerInserter(`desc.${groups.field}`, () => window.addDocumentGroup(tabId));
-        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addDocumentGroup('${esc(tabId)}')">+ GROUP</button>`;
+        navHTML += `<button class="daw-tab-btn daw-add-btn btn-sys btn-sys-green" onclick="window.addDocumentGroup('${window.escapeHtml(tabId)}')">+ GROUP</button>`;
         navHTML += `</div>`;
 
         builder.innerHTML = `
             ${navHTML}
-            <div id="${esc(tabId)}-editor-container"></div>
+            <div id="${window.escapeHtml(tabId)}-editor-container"></div>
         `;
 
         window.loadDocumentSectionIntoEditor(tabId, window.currentDocSection || 'intro');
@@ -456,13 +455,12 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
         if (!window.currentEditorDescData[section.field]) window.currentEditorDescData[section.field] = [];
         const entries = window.currentEditorDescData[section.field];
 
-        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
         const noun = section.entryLabel;
 
         let navHTML = window.reorderStripControls(`desc.${section.field}`);
         navHTML += `<div class="daw-variant-tabs daw-editor-nav-row">`;
         if (entries.length === 0) {
-            navHTML += `<span class="daw-empty-state">No ${esc(noun.toLowerCase())} entries defined yet.</span>`;
+            navHTML += `<span class="daw-empty-state">No ${window.escapeHtml(noun.toLowerCase())} entries defined yet.</span>`;
         } else {
             entries.forEach((entry, idx) => {
                 // Escaped: the name is contributor-authored and lands in
@@ -470,7 +468,7 @@ function initFullTabEditor(charId, tabId, descData, frameData) {
                 // why it may sit in the inline handler while the name may not.
                 const name = entry[section.keyField] || `${noun} ${idx + 1}`;
                 navHTML += `<div class="daw-tab-item">`;
-                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${section.tab}-nav-${idx}" onclick="window.loadKeyedEntryIntoEditor('${section.tab}', ${idx})">${esc(name)}</button>`;
+                navHTML += `<button class="daw-tab-btn daw-tab-btn-removable" id="${section.tab}-nav-${idx}" onclick="window.loadKeyedEntryIntoEditor('${section.tab}', ${idx})">${window.escapeHtml(name)}</button>`;
                 navHTML += `<button class="daw-tab-remove-btn" onclick="window.removeKeyedEntry('${section.tab}', ${idx})" title="Remove">&#10006;</button>`;
                 navHTML += `</div>`;
             });
@@ -879,7 +877,6 @@ window.loadDocumentSectionIntoEditor = function (tabId, sectionId) {
     if (!doc || !doc.groups || !doc.intro || !container) return;
 
     const { intro, groups } = doc;
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
 
     // Flush the section being left, or its blocks are lost. currentStrategyBlocks
     // is only written back into desc_data on sync.
@@ -900,7 +897,7 @@ window.loadDocumentSectionIntoEditor = function (tabId, sectionId) {
     if (sectionId === 'intro') {
         container.innerHTML = `
             <div class="editor-section-banner">
-                <span class="editor-section-banner-text">${esc(intro.label.toUpperCase())}</span>
+                <span class="editor-section-banner-text">${window.escapeHtml(intro.label.toUpperCase())}</span>
             </div>
             <div id="strategy-block-target"></div>
         `;
@@ -922,15 +919,15 @@ window.loadDocumentSectionIntoEditor = function (tabId, sectionId) {
                 <div class="editor-row">
                     <div>
                         <label class="editor-field-label-sm">Group Title</label>
-                        <input type="text" class="editor-input" value="${esc(group[groups.keyField] || '')}"
-                               oninput="window.updateDocumentGroupTitle('${esc(tabId)}', ${idx}, this.value)"
+                        <input type="text" class="editor-input" value="${window.escapeHtml(group[groups.keyField] || '')}"
+                               oninput="window.updateDocumentGroupTitle('${window.escapeHtml(tabId)}', ${idx}, this.value)"
                                placeholder="e.g. True Combos">
                     </div>
                 </div>
             </div>
         </div>
         <div class="editor-section-banner">
-            <span class="editor-section-banner-text">${esc(String(groups.unitNoun || 'Combo').toUpperCase())} CARDS</span>
+            <span class="editor-section-banner-text">${window.escapeHtml(String(groups.unitNoun || 'Combo').toUpperCase())} CARDS</span>
         </div>
         <div id="combo-cards-panel"></div>
     `;
@@ -955,7 +952,6 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
 
     const groups = doc.groups;
     const noun = groups.unitNoun || 'Combo';
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
     const group = (window.currentEditorDescData[groups.field] || [])[groupIdx];
     if (!group) return;
     if (!Array.isArray(group.content)) group.content = [];
@@ -965,7 +961,7 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
 
     let html = `<div class="daw-variant-tabs daw-editor-nav-row">`;
     if (cards.length === 0) {
-        html += `<span class="daw-empty-state">No ${esc(noun.toLowerCase())} cards in this group yet.</span>`;
+        html += `<span class="daw-empty-state">No ${window.escapeHtml(noun.toLowerCase())} cards in this group yet.</span>`;
     } else {
         cards.forEach((card, i) => {
             // A card is recognised by its name, and falls back to its route -
@@ -975,7 +971,7 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
             // name field reading something else.
             const label = window.comboCardLabel(card, i);
             html += `<div class="daw-tab-item">`;
-            html += `<button class="daw-tab-btn daw-tab-btn-removable${i === open ? ' active' : ''}" data-card="${i}">${esc(label)}</button>`;
+            html += `<button class="daw-tab-btn daw-tab-btn-removable${i === open ? ' active' : ''}" data-card="${i}">${window.escapeHtml(label)}</button>`;
             html += `<button class="daw-tab-remove-btn" data-remove-card="${i}" title="Remove Card">&#10006;</button>`;
             html += `</div>`;
         });
@@ -1056,11 +1052,9 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
     if (!card) {
         // No card open, so no block toolbar. This is the owner's point: an
         // ADD BLOCK with nothing selected has nowhere to put the block.
-        container.innerHTML = `<p class="admin-tool-hint">Select a ${escapeForHint(noun.toLowerCase())} card to edit it, or add one.</p>`;
+        container.innerHTML = `<p class="admin-tool-hint">Select a ${window.escapeHtml(noun.toLowerCase())} card to edit it, or add one.</p>`;
         return;
     }
-
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
 
     // MULTIPLE SECTIONS (v0.19 C3b). A Combo Card has TWO editors: this one,
     // for a card inside a Combos/Techs group, and the theorybox block form in
@@ -1087,23 +1081,23 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
                     // carries it and the CSS is written against it. The two
                     // editors had drifted on this class alone.
                     `<button type="button" class="btn-sys ${i === secIdx ? 'btn-sys-blue' : 'btn-sys-regular'} cardsec-tab" data-cardsec="${i}">`
-                    + `${esc(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
+                    + `${window.escapeHtml(sec.label || sec.title || `Section ${i + 1}`)}</button>`).join('')}
                 <button type="button" class="btn-sys btn-sys-green" data-cardsec-add="1" title="Add a section">+</button>
                 ${sections.length > 1 ? `<button type="button" class="btn-sys btn-sys-red" data-cardsec-remove="${secIdx}" title="Remove this section">&#10006;</button>` : ''}
             </div>
             <label class="editor-field-label-sm">Tab label</label>
-            <input type="text" class="editor-input" data-cardsec-label="${secIdx}" value="${esc(target.label || '')}" placeholder="e.g. In Corner 6H">
+            <input type="text" class="editor-input" data-cardsec-label="${secIdx}" value="${window.escapeHtml(target.label || '')}" placeholder="e.g. In Corner 6H">
         </div>` : '';
 
     const route = Array.isArray(target.sequence) ? target.sequence.join('\n') : '';
     const difficulties = ['', ...(window.COMBO_DIFFICULTIES || [])]
-        .map(d => `<option value="${esc(d)}" ${target.difficulty === d ? 'selected' : ''}>${esc(d || '- none -')}</option>`)
+        .map(d => `<option value="${window.escapeHtml(d)}" ${target.difficulty === d ? 'selected' : ''}>${window.escapeHtml(d || '- none -')}</option>`)
         .join('');
 
     container.innerHTML = `
         <div class="block-editor-container block-editor-container-tight">
             <div class="block-card">
-                <div class="block-header"><span class="block-type-badge">${esc(noun.toUpperCase())} CARD</span></div>
+                <div class="block-header"><span class="block-type-badge">${window.escapeHtml(noun.toUpperCase())} CARD</span></div>
                 <label class="block-video-controls-label cardsec-switch">
                     <input type="checkbox" data-card-multi ${multi ? 'checked' : ''}> Multiple Sections
                 </label>
@@ -1114,28 +1108,28 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
                         <!-- data-format-field: the styling toolbar reaches
                              it, though it sits outside the write-up's
                              builder (v1.0 Part 2). The name renders styled. -->
-                        <input type="text" class="editor-input" data-card-field="title" data-format-field value="${esc(target.title || '')}" placeholder="e.g. Corner BnB">
+                        <input type="text" class="editor-input" data-card-field="title" data-format-field value="${window.escapeHtml(target.title || '')}" placeholder="e.g. Corner BnB">
                     </div>
                     <div class="combo-field-full">
                         <label class="editor-field-label-sm">One line</label>
-                        <input type="text" class="editor-input" data-card-field="oneliner" value="${esc(target.oneliner || '')}" placeholder="What this ${esc(noun.toLowerCase())} is for">
+                        <input type="text" class="editor-input" data-card-field="oneliner" value="${window.escapeHtml(target.oneliner || '')}" placeholder="What this ${window.escapeHtml(noun.toLowerCase())} is for">
                     </div>
                     <div class="combo-field-full">
                         <label class="editor-field-label-sm">Route - one step per line</label>
-                        <textarea class="editor-textarea" data-card-field="sequence" rows="4">${esc(route)}</textarea>
+                        <textarea class="editor-textarea" data-card-field="sequence" rows="4">${window.escapeHtml(route)}</textarea>
                     </div>
                     <!-- The same fields as the Combo Card block form, from the
                          same helper: this editor has drifted from that one
                          three times. -->
                     <div class="combo-field-full">${window.comboNotationFieldsHTML(target, { lines: true })}</div>
                     <div><label class="editor-field-label-sm">Damage</label>
-                        <input type="text" class="editor-input" data-card-field="damage" value="${esc(target.damage || '')}" placeholder="e.g. 38-46"></div>
+                        <input type="text" class="editor-input" data-card-field="damage" value="${window.escapeHtml(target.damage || '')}" placeholder="e.g. 38-46"></div>
                     <div><label class="editor-field-label-sm">Difficulty</label>
                         <select class="editor-select" data-card-field="difficulty">${difficulties}</select></div>
                     <div><label class="editor-field-label-sm">Practicality</label>
-                        <input type="text" class="editor-input" data-card-field="practicality" value="${esc(target.practicality || '')}" placeholder="Anything"></div>
+                        <input type="text" class="editor-input" data-card-field="practicality" value="${window.escapeHtml(target.practicality || '')}" placeholder="Anything"></div>
                     <div><label class="editor-field-label-sm">Video</label>
-                        <input type="text" class="editor-input" data-card-field="video" value="${esc(target.video || '')}" placeholder="Optional URL"></div>
+                        <input type="text" class="editor-input" data-card-field="video" value="${window.escapeHtml(target.video || '')}" placeholder="Optional URL"></div>
                     <!-- Author credit was set when the card was spawned and
                          exposed nowhere, so it could not be removed by hand -
                          the theorybox BLOCK editor has this field, the combo
@@ -1143,7 +1137,7 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
                          through the card path. Owner's ask: credit is fully
                          optional, so it needs somewhere to be cleared. -->
                     <div class="combo-field-full"><label class="editor-field-label-sm">Author credit (optional)</label>
-                        <input type="text" class="editor-input" data-card-field="author" value="${esc(card.author || '')}" placeholder="Leave blank for no credit"></div>
+                        <input type="text" class="editor-input" data-card-field="author" value="${window.escapeHtml(card.author || '')}" placeholder="Leave blank for no credit"></div>
                 </div>
             </div>
         </div>
@@ -1286,13 +1280,6 @@ function renderDocumentCardBody(tabId, groupIdx, cards) {
     initStrategyBlockBuilder('strategy-block-target', target.content || []);
 }
 
-// The noun comes from the registry, so it is ours rather than contributor text -
-// but it still lands in innerHTML, and "escape at every interpolation" has no
-// exceptions in this codebase.
-function escapeForHint(value) {
-    return window.escapeHtml ? window.escapeHtml(value) : String(value === null || value === undefined ? '' : value);
-}
-
 // Writes the block buffer back into whichever document section is open.
 //
 // Reads currentEditorTabId rather than taking the tab as an argument: this is
@@ -1380,7 +1367,6 @@ window.renderDocumentListEditor = function (tabId) {
     const section = doc.list;
     const noun = section.entryNoun || 'Starter';
     const nounPlural = section.entryNounPlural || 'starters';
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
     if (!window.currentEditorDescData[section.field]) window.currentEditorDescData[section.field] = [];
     const tables = window.currentEditorDescData[section.field];
 
@@ -1397,16 +1383,16 @@ window.renderDocumentListEditor = function (tabId) {
     let html = window.reorderStripControls(`desc.${section.field}`);
     html += `<div class="daw-variant-tabs daw-editor-nav-row">`;
     if (tables.length === 0) {
-        html += `<span class="daw-empty-state">No ${esc(nounPlural)} defined yet.</span>`;
+        html += `<span class="daw-empty-state">No ${window.escapeHtml(nounPlural)} defined yet.</span>`;
     } else {
         tables.forEach((t, i) => {
             html += `<div class="daw-tab-item">`;
-            html += `<button class="daw-tab-btn daw-tab-btn-removable${i === openTable ? ' active' : ''}" data-table="${i}">${esc(t[section.keyField] || `${noun} ${i + 1}`)}</button>`;
-            html += `<button class="daw-tab-remove-btn" data-remove-table="${i}" title="Remove ${esc(noun)}">&#10006;</button>`;
+            html += `<button class="daw-tab-btn daw-tab-btn-removable${i === openTable ? ' active' : ''}" data-table="${i}">${window.escapeHtml(t[section.keyField] || `${noun} ${i + 1}`)}</button>`;
+            html += `<button class="daw-tab-remove-btn" data-remove-table="${i}" title="Remove ${window.escapeHtml(noun)}">&#10006;</button>`;
             html += `</div>`;
         });
     }
-    html += `<button type="button" id="combo-table-add" class="daw-tab-btn daw-add-btn btn-sys btn-sys-green">+ ${esc(noun.toUpperCase())}</button>`;
+    html += `<button type="button" id="combo-table-add" class="daw-tab-btn daw-add-btn btn-sys btn-sys-green">+ ${window.escapeHtml(noun.toUpperCase())}</button>`;
     html += `</div><div id="combo-table-body"></div>`;
 
     host.innerHTML = html;
@@ -1456,22 +1442,21 @@ function renderDocumentListRows(tabId, section, tables) {
     if (!table) { container.innerHTML = ''; return; }
 
     const noun = section.entryNoun || 'Starter';
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
     if (!Array.isArray(table.rows)) table.rows = [];
 
     let html = `<div class="block-editor-container block-editor-container-tight">
             <div class="block-card">
-                <div class="block-header"><span class="block-type-badge">${esc(noun.toUpperCase())}</span></div>
+                <div class="block-header"><span class="block-type-badge">${window.escapeHtml(noun.toUpperCase())}</span></div>
                 <div class="editor-row"><div>
-                    <label class="editor-field-label-sm">${esc(noun)} Name</label>
-                    <input type="text" class="editor-input" id="combo-table-name" value="${esc(table[section.keyField] || '')}" placeholder="e.g. M1 Starters">
+                    <label class="editor-field-label-sm">${window.escapeHtml(noun)} Name</label>
+                    <input type="text" class="editor-input" id="combo-table-name" value="${window.escapeHtml(table[section.keyField] || '')}" placeholder="e.g. M1 Starters">
                 </div></div>
             </div>
         </div>
         <div class="combo-rows-list">`;
 
     if (table.rows.length === 0) {
-        html += `<p class="admin-tool-hint">${esc(section.emptyEntryMessage || 'Nothing here yet.')}</p>`;
+        html += `<p class="admin-tool-hint">${window.escapeHtml(section.emptyEntryMessage || 'Nothing here yet.')}</p>`;
     } else {
         // v0.18 F4. PER-ROW controls, deliberately not the fixed bar every strip
         // above uses.
@@ -1492,7 +1477,7 @@ function renderDocumentListRows(tabId, section, tables) {
                     <button type="button" class="combo-row-up btn-sys btn-sys-regular" data-row="${i}"${i === 0 ? ' disabled' : ''} title="Move up" aria-label="Move this entry up">&#9650;</button>
                     <button type="button" class="combo-row-down btn-sys btn-sys-regular" data-row="${i}"${i === lastRow ? ' disabled' : ''} title="Move down" aria-label="Move this entry down">&#9660;</button>
                 </span>
-                <button type="button" class="combo-row-open btn-sys btn-sys-regular" data-row="${i}">${esc(comboRowSummary(row || {}))}</button>
+                <button type="button" class="combo-row-open btn-sys btn-sys-regular" data-row="${i}">${window.escapeHtml(comboRowSummary(row || {}))}</button>
                 <button type="button" class="combo-row-remove btn-sys btn-sys-red" data-row="${i}" title="Remove this entry">&#10006;</button>
             </div>`;
         });
@@ -1562,9 +1547,6 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
     const row = rows[rowIdx];
     if (!row) return;
 
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
-    window.currentDocRowIndex = rowIdx;
-
     const titleEl = document.getElementById('combo-row-modal-title');
     if (titleEl) titleEl.textContent = `EDIT ROW ${rowIdx + 1}`;
 
@@ -1574,8 +1556,8 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
             // Notation styles (v0.20) sit directly under the route they are
             // alternatives to, from the helper every other combo form uses.
             return `<div class="combo-field-full">
-                <label class="editor-field-label-sm">${esc(f.label)}<span class="admin-tool-hint"> - ${esc(f.hint)}</span></label>
-                <textarea class="editor-textarea" data-combo-field="sequence" rows="5">${esc(value)}</textarea>
+                <label class="editor-field-label-sm">${window.escapeHtml(f.label)}<span class="admin-tool-hint"> - ${window.escapeHtml(f.hint)}</span></label>
+                <textarea class="editor-textarea" data-combo-field="sequence" rows="5">${window.escapeHtml(value)}</textarea>
             </div>
             <div class="combo-field-full">${window.comboNotationFieldsHTML(row, { lines: true })}</div>`;
         }
@@ -1584,19 +1566,19 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
             // row to the bottom silently (comboSortValue ranks an unrecognised
             // value last) rather than showing an error anywhere.
             const options = ['', ...(window.COMBO_DIFFICULTIES || [])]
-                .map(d => `<option value="${esc(d)}" ${row.difficulty === d ? 'selected' : ''}>${esc(d || '- none -')}</option>`)
+                .map(d => `<option value="${window.escapeHtml(d)}" ${row.difficulty === d ? 'selected' : ''}>${window.escapeHtml(d || '- none -')}</option>`)
                 .join('');
-            return `<div><label class="editor-field-label-sm">${esc(f.label)}</label>
+            return `<div><label class="editor-field-label-sm">${window.escapeHtml(f.label)}</label>
                 <select class="editor-select" data-combo-field="difficulty">${options}</select></div>`;
         }
         if (f.field === 'notes') {
             return `<div class="combo-field-full">
-                <label class="editor-field-label-sm">${esc(f.label)}</label>
-                <textarea class="editor-textarea" data-combo-field="notes" rows="3">${esc(row.notes || '')}</textarea>
+                <label class="editor-field-label-sm">${window.escapeHtml(f.label)}</label>
+                <textarea class="editor-textarea" data-combo-field="notes" rows="3">${window.escapeHtml(row.notes || '')}</textarea>
             </div>`;
         }
-        return `<div><label class="editor-field-label-sm">${esc(f.label)}</label>
-            <input type="text" class="editor-input" data-combo-field="${esc(f.field)}" value="${esc(row[f.field] || '')}"></div>`;
+        return `<div><label class="editor-field-label-sm">${window.escapeHtml(f.label)}</label>
+            <input type="text" class="editor-input" data-combo-field="${window.escapeHtml(f.field)}" value="${window.escapeHtml(row[f.field] || '')}"></div>`;
     }).join('');
 
     // Live, on every keystroke: the preview behind the modal is the point of
@@ -1641,7 +1623,6 @@ window.openDocumentRowModal = function (tabId, tableIdx, rowIdx) {
 
     const close = () => {
         modal.classList.add('hidden');
-        window.currentDocRowIndex = undefined;
         window.renderDocumentListEditor(tabId);
     };
 
@@ -1667,7 +1648,6 @@ window.loadKeyedEntryIntoEditor = function(tabId, idx) {
     const section = window.getKeyedSectionByTab(tabId);
     if (!section) return;
 
-    const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v === null || v === undefined ? '' : v));
     const open = window.currentKeyedIndex[tabId];
     const list = window.currentEditorDescData[section.field] || [];
 
@@ -1691,11 +1671,11 @@ window.loadKeyedEntryIntoEditor = function(tabId, idx) {
     if (section.metaField) {
         const options = Object.keys(section.metaColors || {});
         const optionHTML = options.map(t =>
-            `<option value="${esc(t)}" ${entry[section.metaField] === t ? 'selected' : ''}>${esc(t)}</option>`).join('');
+            `<option value="${window.escapeHtml(t)}" ${entry[section.metaField] === t ? 'selected' : ''}>${window.escapeHtml(t)}</option>`).join('');
         metaHTML = `
                     <div>
-                        <label class="editor-field-label-sm">${esc(section.metaLabel || section.metaField)}</label>
-                        <select class="editor-select" onchange="window.updateKeyedMeta('${section.tab}', ${idx}, '${esc(section.metaField)}', this.value)">
+                        <label class="editor-field-label-sm">${window.escapeHtml(section.metaLabel || section.metaField)}</label>
+                        <select class="editor-select" onchange="window.updateKeyedMeta('${section.tab}', ${idx}, '${window.escapeHtml(section.metaField)}', this.value)">
                             ${optionHTML}
                         </select>
                     </div>`;
@@ -1704,11 +1684,11 @@ window.loadKeyedEntryIntoEditor = function(tabId, idx) {
     container.innerHTML = `
         <div class="block-editor-container block-editor-container-tight">
             <div class="block-card">
-                <div class="block-header"><span class="block-type-badge">${esc(section.entryLabel.toUpperCase())} METADATA</span></div>
+                <div class="block-header"><span class="block-type-badge">${window.escapeHtml(section.entryLabel.toUpperCase())} METADATA</span></div>
                 <div class="editor-row">
                     <div>
-                        <label class="editor-field-label-sm">${esc(section.entryLabel)} Name</label>
-                        <input type="text" class="editor-input" value="${esc(entry[section.keyField] || '')}" oninput="window.updateKeyedMeta('${section.tab}', ${idx}, '${esc(section.keyField)}', this.value)" placeholder="${esc(section.placeholder || 'e.g. Dealing with M1s')}">
+                        <label class="editor-field-label-sm">${window.escapeHtml(section.entryLabel)} Name</label>
+                        <input type="text" class="editor-input" value="${window.escapeHtml(entry[section.keyField] || '')}" oninput="window.updateKeyedMeta('${section.tab}', ${idx}, '${window.escapeHtml(section.keyField)}', this.value)" placeholder="${window.escapeHtml(section.placeholder || 'e.g. Dealing with M1s')}">
                     </div>${metaHTML}
                 </div>
             </div>

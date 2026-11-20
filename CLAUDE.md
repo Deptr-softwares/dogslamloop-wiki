@@ -106,7 +106,7 @@ Code an assistant wrote is a draft until something has checked it. Assistant cod
 - Authorization lives in Postgres: RLS, table grants and the RPC's own caller check. A page's RBAC gate only decides what to show, because anyone can call the REST endpoint directly.
 - Fail visibly. No empty `catch`, no error swallowed into a half-built page: show the reader an error state and keep the message. A deliberate silent failure says so in a comment (`window.loadHotfixPosts` is one).
 - Walk the edges: empty, NULL, one, many, signed out, roleless, banned, slow network, a second click. NULL made the worst hole here (`is_owner()`, closed 2026-09-28).
-- State a rule once and derive the rest (`role_rank()`, `NAV_FLAGS` in `scripts/fetch-registry.js`). Small per-file duplication is still preferred over new cross-file coupling (`owner.js` reimplements `kickUser` rather than importing `admin-core.js`), but two copies of one rule that must agree will drift: the rules in `.claude/rules/` name the known pairs.
+- State a rule once and derive the rest (`role_rank()`, `NAV_FLAGS` in `scripts/fetch-registry.js`). Small per-file duplication is still preferred over one feature file depending on another (`owner.js` runs its own RBAC gate rather than importing `admin-core.js`'s), but two copies of one rule that must agree will drift: the rules in `.claude/rules/` name the known pairs. What several files share lives in `site_utils.js`, which every page loads first (`window.escapeHtml`, `window.escapeRegExp`, `window.showAccessDenied`).
 - Comments say why, not what.
 
 **Before saying it is done**

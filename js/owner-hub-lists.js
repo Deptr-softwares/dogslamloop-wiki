@@ -69,9 +69,9 @@ function renderHubListSteps() {
     container.innerHTML = steps.map((step, i) => `
         <div class="personnel-row">
             <div class="personnel-row-main">
-                <input type="text" class="editor-input hub-step-title" data-i="${i}" value="${ownerEscape(step.title)}" placeholder="Step title">
-                <input type="text" class="editor-input hub-step-url" data-i="${i}" value="${ownerEscape(step.url || '')}" placeholder="Link (blank for an instruction)">
-                <input type="text" class="editor-input hub-step-desc" data-i="${i}" value="${ownerEscape(step.description || '')}" placeholder="One line on what it covers">
+                <input type="text" class="editor-input hub-step-title" data-i="${i}" value="${window.escapeHtml(step.title)}" placeholder="Step title">
+                <input type="text" class="editor-input hub-step-url" data-i="${i}" value="${window.escapeHtml(step.url || '')}" placeholder="Link (blank for an instruction)">
+                <input type="text" class="editor-input hub-step-desc" data-i="${i}" value="${window.escapeHtml(step.description || '')}" placeholder="One line on what it covers">
             </div>
             <div class="personnel-row-actions">
                 <button class="btn-sys btn-sys-regular hub-step-up" data-i="${i}"${i === 0 ? ' disabled' : ''}>&uarr;</button>
@@ -161,7 +161,7 @@ async function saveHubLists() {
     // than silently dropping the link means a typo is visible at save time.
     const bad = currentSteps().find(s => s.url && /^[a-z][a-z0-9+.-]*:/i.test(s.url) && !/^https?:\/\//i.test(s.url));
     if (bad) {
-        results.innerHTML = `<p class="admin-error-text">"${ownerEscape(bad.title || bad.url)}" must be a page path or an http(s) link.</p>`;
+        results.innerHTML = `<p class="admin-error-text">"${window.escapeHtml(bad.title || bad.url)}" must be a page path or an http(s) link.</p>`;
         return;
     }
 
@@ -171,7 +171,7 @@ async function saveHubLists() {
     btn.disabled = false;
 
     if (error) {
-        results.innerHTML = `<p class="admin-error-text">Could not save: ${ownerEscape(error.message)}</p>`;
+        results.innerHTML = `<p class="admin-error-text">Could not save: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 

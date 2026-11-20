@@ -36,7 +36,7 @@ async function loadRecentChanges() {
         .range(currentOffset, currentOffset + PAGE_SIZE - 1);
 
     if (error) {
-        listEl.innerHTML = `<div class="wiki-section"><p class="loading-msg">Failed to load recent changes: ${escapeHtml(error.message)}</p></div>`;
+        listEl.innerHTML = `<div class="wiki-section"><p class="loading-msg">Failed to load recent changes: ${window.escapeHtml(error.message)}</p></div>`;
         return;
     }
 
@@ -91,23 +91,23 @@ function renderChangeCard(rev) {
         : 'FULL PAGE REWRITE';
     if (rev.target_scope === 'multi') scopeText = `BATCHED MULTI-EDIT (${(rev.delta_payload || []).length} targets)`;
 
-    const changelog = qa.changelog ? escapeHtml(qa.changelog).replace(/\n/g, '<br>') : 'No notes provided.';
+    const changelog = qa.changelog ? window.escapeHtml(qa.changelog).replace(/\n/g, '<br>') : 'No notes provided.';
 
     return `
         <section class="wiki-section change-card">
             <div class="change-card-header">
                 <div>
-                    <a href="${escapeHtml(pageUrl)}" class="change-card-page-link">${escapeHtml((rev.page_id || '').replace(/_/g, ' ').toUpperCase())}</a>
-                    <div class="change-card-scope">${escapeHtml(scopeText)}</div>
+                    <a href="${window.escapeHtml(pageUrl)}" class="change-card-page-link">${window.escapeHtml((rev.page_id || '').replace(/_/g, ' ').toUpperCase())}</a>
+                    <div class="change-card-scope">${window.escapeHtml(scopeText)}</div>
                 </div>
                 <div class="change-card-meta">
                     <div>${dateStr}</div>
-                    <div>By: <strong>${escapeHtml(rev.author_name || 'Unknown')}</strong></div>
-                    <div>Approved By: <strong class="reviewer">${escapeHtml(reviewer)}</strong></div>
+                    <div>By: <strong>${window.escapeHtml(rev.author_name || 'Unknown')}</strong></div>
+                    <div>Approved By: <strong class="reviewer">${window.escapeHtml(reviewer)}</strong></div>
                 </div>
             </div>
             <div class="change-card-changelog">${changelog}</div>
-            <a href="${escapeHtml(historyUrl)}" class="btn-ghost change-card-history-link">View full history for this page →</a>
+            <a href="${window.escapeHtml(historyUrl)}" class="btn-ghost change-card-history-link">View full history for this page →</a>
         </section>
     `;
 }

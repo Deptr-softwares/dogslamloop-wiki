@@ -268,13 +268,6 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
 .editor-header.is-collapsed .editor-title { font-size: 0.85rem; }
 .editor-header.is-collapsed .header-actions { flex-shrink: 0; }
 
-.editor-title-group h1 { 
-    margin: 0; font-size: 1.25rem; color: #fff; text-transform: uppercase; letter-spacing: 1px; font-family: var(--text-manga); 
-}
-.editor-title-group span { 
-    color: var(--accent-blue); font-size: 0.75rem; font-family: var(--text-mono); 
-}
-
 /* --- BLOCK BUILDER UI --- */
 .block-editor-container {
     display: flex;
@@ -506,8 +499,6 @@ input[type="checkbox"]:checked {
 .daw-tab-btn.active { background: var(--accent-blue); color: #000; border-bottom-color: var(--accent-blue); }
 .daw-tab-btn:hover:not(.active) { background: #111; color: #fff; border-bottom-color: #555; }
 .daw-timeline-wrapper { position: relative; background: #0a0a0a; border: 1px solid #222; border-radius: 0; padding: 1rem 0; overflow-x: auto; margin-bottom: 1rem; }
-.daw-ruler { position: relative; height: 20px; border-bottom: 1px dashed #333; margin-bottom: 0.5rem; }
-.daw-ruler-tick { position: absolute; top: 0; font-family: var(--text-mono); font-size: 0.65rem; color: #666; transform: translateX(-50%); }
 .daw-track { position: relative; height: 30px; background: #000; border: 1px solid #222; margin-bottom: 0.5rem; display: flex; align-items: stretch; }
 .daw-phase-block { position: relative; height: 100%; box-sizing: border-box; border-right: 1px solid #000; cursor: pointer; transition: filter 0.1s; display: flex; align-items: center; justify-content: center; font-family: var(--text-mono); font-size: 0.7rem; font-weight: bold; color: rgba(255,255,255,0.8); overflow: hidden; white-space: nowrap; }
 .daw-phase-block:hover { color: #fff; filter: brightness(1.2); }
@@ -523,7 +514,6 @@ input[type="checkbox"]:checked {
     font-style: italic;
 }
 .daw-inspector { background: #0a0a0a; padding: 1rem; border: 1px solid #222; border-left: 3px solid #ef4444; border-radius: 0; }
-.live-preview-pane .edit-move-btn { display: none !important; }
 
 /* --- CUSTOM MODAL UI --- */
 .editor-modal-overlay {
@@ -687,22 +677,6 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 }
 .format-btn:hover { background: var(--accent-blue); color: #000; border-color: var(--accent-blue); transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--accent-blue); }
 .format-btn:active { transform: translate(1px, 1px); box-shadow: none; }
-.copy-toast {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(34, 197, 94, 0.9);
-    color: #000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-label), sans-serif;
-    font-size: 0.8rem;
-    z-index: 10;
-    pointer-events: none;
-}
 .format-color-popup {
     display: block;
     position: absolute;
@@ -745,11 +719,6 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
        otherwise - the pane clips it - and the extra padding only made the
        popup wider, so it is gone. */
 }
-.format-select {
-    background: transparent; color: #d1d5db; border: 1px solid #333; height: 28px;
-    font-family: var(--text-mono); font-size: 0.75rem; padding: 0 0.5rem; cursor: pointer; margin-left: 0.5rem;
-}
-.format-select:focus { outline: none; border-color: var(--accent-blue); }
 .format-btn-italic { font-style: italic; }
 .format-btn-underline { text-decoration: underline; }
 .format-btn-strikethrough { text-decoration: line-through; }
@@ -886,7 +855,6 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .color-preset-btn:hover { outline-color: var(--text-white, #fff); transform: translateY(-1px); }
 .color-preset-btn:focus-visible { outline-color: var(--accent-blue); }
 .format-color-custom-row { border-top: 1px solid #333; padding-top: 0.5rem; display: flex; align-items: center; gap: 0.4rem; }
-.format-color-custom-label { font-size: 0.75rem; color: #ccc; }
 
 /* --- THE VISUAL COLOUR PICKER (v0.14) ---
 
@@ -1817,7 +1785,6 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 
 .modal-warning .editor-modal-box { border-top-color: #eab308; width: 450px; }
 .modal-warning .auth-header h3 { color: #eab308; font-size: 1rem; }
-.modal-warning .btn-warning-outline { color: #eab308; border-color: #eab308; width: 100%; padding: 0.5rem; }
 
 .auth-body-centered {
     text-align: center;
@@ -2001,23 +1968,12 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         min-height: 0;
     }
     
-    .action-panel { 
-        padding: 0.5rem !important; 
-        margin: 0.5rem !important;
-        gap: 0.25rem !important;
-    }
-    .section-header { padding: 0.5rem 0.75rem !important; }
     .section-title { font-size: 0.65rem !important; }
     
     #workspace-container { padding: 0.5rem !important; gap: 0.5rem !important; }
     .block-card { padding: 0.5rem !important; }
     .editor-input, .editor-select { font-size: 0.7rem !important; padding: 0.4rem !important; margin-bottom: 0.4rem !important;}
     .block-header { margin-bottom: 0.5rem !important; }
-    
-    /* Compress the DAW Phase Inspector for touch devices */
-    .daw-timeline-header { padding: 0.25rem !important; }
-    .daw-track-row { height: 28px !important; }
-    .daw-frame-cell { min-width: 12px !important; }
     
     /* --- MOBILE MODAL OVERRIDES --- */
     .editor-modal-box, .auth-modal-box, .media-modal-box {
@@ -2797,7 +2753,6 @@ del.diff-del {
 }
 .gradient-preset-btn:hover { outline-color: var(--text-white, #fff); transform: translateY(-1px); }
 .gradient-preset-btn:focus-visible { outline-color: var(--accent-blue); }
-
 
 /* --- SECTION BOX EDITOR (v0.19 C3) --- */
 .sbox-editor-sections { margin-top: 0.6rem; border-top: 1px dashed #333; padding-top: 0.6rem; }

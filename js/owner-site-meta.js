@@ -3,7 +3,7 @@
  *
  * Split from owner.js rather than appended to it, matching the admin-*.js and
  * editor-*.js precedent: owner.js was already 900 lines of unrelated tools.
- * Depends on owner.js for ownerEscape and contentNotDeployedMessage, which is
+ * Depends on owner.js for contentNotDeployedMessage, which is
  * the same direction the other owner tools already lean.
  *
  * site_meta is a singleton row holding three kinds of thing that reach the
@@ -75,11 +75,11 @@ function renderHubMetaFields() {
     container.innerHTML = keys.map(key => `
         <div class="personnel-row">
             <div class="personnel-row-main">
-                <span class="personnel-email">${ownerEscape(key)}</span>
+                <span class="personnel-email">${window.escapeHtml(key)}</span>
             </div>
             <div class="personnel-row-actions">
                 <input type="text" class="editor-input meta-heading-input"
-                       data-heading-key="${ownerEscape(key)}" value="${ownerEscape(headings[key])}">
+                       data-heading-key="${window.escapeHtml(key)}" value="${window.escapeHtml(headings[key])}">
             </div>
         </div>
     `).join('');
@@ -116,7 +116,7 @@ async function saveSiteMeta() {
     btn.disabled = false;
 
     if (error) {
-        results.innerHTML = `<p class="admin-error-text">Could not save: ${ownerEscape(error.message)}</p>`;
+        results.innerHTML = `<p class="admin-error-text">Could not save: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 
@@ -140,9 +140,9 @@ function renderGameInfoAdmin() {
     document.getElementById('game-info-fields-admin').innerHTML = info.fields.map((field, i) => `
         <div class="personnel-row">
             <div class="personnel-row-main">
-                <input type="text" class="editor-input gi-field-label" data-i="${i}" value="${ownerEscape(field.label)}" placeholder="Label">
-                <input type="text" class="editor-input gi-field-value" data-i="${i}" value="${ownerEscape(field.value)}" placeholder="Value">
-                <input type="text" class="editor-input gi-field-subtext" data-i="${i}" value="${ownerEscape(field.subtext || '')}" placeholder="Subtext (optional)">
+                <input type="text" class="editor-input gi-field-label" data-i="${i}" value="${window.escapeHtml(field.label)}" placeholder="Label">
+                <input type="text" class="editor-input gi-field-value" data-i="${i}" value="${window.escapeHtml(field.value)}" placeholder="Value">
+                <input type="text" class="editor-input gi-field-subtext" data-i="${i}" value="${window.escapeHtml(field.subtext || '')}" placeholder="Subtext (optional)">
             </div>
             <div class="personnel-row-actions">
                 <button class="btn-sys btn-sys-red gi-field-delete" data-i="${i}">DELETE</button>
@@ -153,8 +153,8 @@ function renderGameInfoAdmin() {
     document.getElementById('game-info-links-admin').innerHTML = info.links.map((link, i) => `
         <div class="personnel-row">
             <div class="personnel-row-main">
-                <input type="text" class="editor-input gi-link-name" data-i="${i}" value="${ownerEscape(link.name)}" placeholder="Official Discord">
-                <input type="text" class="editor-input gi-link-url" data-i="${i}" value="${ownerEscape(link.url)}" placeholder="https://discord.gg/...">
+                <input type="text" class="editor-input gi-link-name" data-i="${i}" value="${window.escapeHtml(link.name)}" placeholder="Official Discord">
+                <input type="text" class="editor-input gi-link-url" data-i="${i}" value="${window.escapeHtml(link.url)}" placeholder="https://discord.gg/...">
             </div>
             <div class="personnel-row-actions">
                 <button class="btn-sys btn-sys-red gi-link-delete" data-i="${i}">DELETE</button>
@@ -241,7 +241,7 @@ async function saveGameInfo() {
     // the save had worked, which is worse than refusing it outright.
     const badLink = info.links.find(l => l.url && !/^https?:\/\//i.test(l.url));
     if (badLink) {
-        results.innerHTML = `<p class="admin-error-text">"${ownerEscape(badLink.name || badLink.url)}" must start with http:// or https://.</p>`;
+        results.innerHTML = `<p class="admin-error-text">"${window.escapeHtml(badLink.name || badLink.url)}" must start with http:// or https://.</p>`;
         return;
     }
 
@@ -252,7 +252,7 @@ async function saveGameInfo() {
     btn.disabled = false;
 
     if (error) {
-        results.innerHTML = `<p class="admin-error-text">Could not save: ${ownerEscape(error.message)}</p>`;
+        results.innerHTML = `<p class="admin-error-text">Could not save: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 

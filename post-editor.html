@@ -41,7 +41,7 @@
             <div class="auth-header"><h3>SYSTEM WARNING</h3></div>
             <div class="auth-body auth-body-centered">
                 <p id="editor-alert-msg" class="modal-prompt-text pre-wrap"></p>
-                <button onclick="document.getElementById('editor-alert-modal').classList.add('hidden')" class="btn-sys btn-sys-yellow">ACKNOWLEDGE</button>
+                <button id="editor-alert-ok" class="btn-sys btn-sys-yellow">ACKNOWLEDGE</button>
             </div>
         </div>
     </div>
@@ -130,50 +130,25 @@
     </div>
 
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/character_tabs.js?v=44484b72"></script>
-    <script src="js/input_slots.js?v=44484b72"></script>
-    <script src="js/site_utils.js?v=44484b72"></script>
-    <script src="js/site_meta.js?v=44484b72"></script>
-    <script src="js/description.js?v=44484b72"></script>
-    <script src="js/internalstyling.js?v=44484b72"></script>
+    <script src="js/character_tabs.js?v=2c84bd8b"></script>
+    <script src="js/input_slots.js?v=2c84bd8b"></script>
+    <script src="js/site_utils.js?v=2c84bd8b"></script>
+    <script src="js/site_meta.js?v=2c84bd8b"></script>
+    <script src="js/description.js?v=2c84bd8b"></script>
+    <script src="js/internalstyling.js?v=2c84bd8b"></script>
+    <script src="js/editor-dialogs.js?v=2c84bd8b"></script>
     <!-- posts.js supplies renderPostBody, so the preview goes through exactly
          the same render path as the published blog page. -->
-    <script src="js/posts.js?v=44484b72"></script>
-    <script src="js/editor-folders.js?v=44484b72"></script>
-    <script src="js/editor-blocks.js?v=44484b72"></script>
-    <script src="js/editor-media.js?v=44484b72"></script>
+    <script src="js/posts.js?v=2c84bd8b"></script>
+    <script src="js/editor-folders.js?v=2c84bd8b"></script>
+    <script src="js/editor-blocks.js?v=2c84bd8b"></script>
+    <script src="js/editor-media.js?v=2c84bd8b"></script>
 
     <script>
         // Helpers editor-blocks.js expects from editor-core.js. Reimplemented
         // here rather than loading that file, whose DOMContentLoaded boots the
         // full page-revision editor and throws without a ?page= parameter.
-        window.editorAlert = function(message) {
-            document.getElementById('editor-alert-msg').textContent = message;
-            document.getElementById('editor-alert-modal').classList.remove('hidden');
-        };
-
-        window.customConfirm = function(message, confirmText = 'DELETE', isDanger = true) {
-            return new Promise((resolve) => {
-                const modal = document.getElementById('editor-custom-modal');
-                const confirmBtn = document.getElementById('editor-modal-confirm');
-                const cancelBtn = document.getElementById('editor-modal-cancel');
-
-                document.getElementById('editor-modal-text').textContent = message;
-                confirmBtn.textContent = confirmText;
-                confirmBtn.className = isDanger
-                    ? 'btn-sys btn-sys-red btn-danger-fill'
-                    : 'btn-sys btn-sys-green';
-                modal.classList.remove('hidden');
-
-                const cleanup = () => {
-                    modal.classList.add('hidden');
-                    confirmBtn.onclick = null;
-                    cancelBtn.onclick = null;
-                };
-                confirmBtn.onclick = () => { cleanup(); resolve(true); };
-                cancelBtn.onclick = () => { cleanup(); resolve(false); };
-            });
-        };
+        // Its two boxes come from js/editor-dialogs.js, like edit.html's.
 
         // Mobile pane toggle, same class contract editor.css already defines
         // (body.mobile-preview-active + #mobile-preview-toggle).
@@ -233,6 +208,6 @@
         window.updateLivePreview = updateLivePreview;
     </script>
 
-    <script src="js/post-editor.js?v=44484b72"></script>
+    <script src="js/post-editor.js?v=2c84bd8b"></script>
 </body>
 </html>

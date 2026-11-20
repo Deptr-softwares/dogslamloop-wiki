@@ -28,22 +28,11 @@
  * shows as the literal text "[url=...]", and the handler only exists after
  * this file has run.
  *
- * So every interpolation now goes through one of three gates - escAttr,
+ * So every interpolation now goes through one of three gates - escapeHtml,
  * safeUrl, safeColor - and anything that fails renders as plain text rather
  * than as markup. Losing a colour is a rendering nit; the alternative is
  * executing somebody's script on a page 1.4M people are pointed at.
  */
-
-// Attribute context: quotes are what let a value escape into a new attribute,
-// and angle brackets are what let it escape the tag.
-function escAttr(value) {
-    return String(value == null ? '' : value)
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
 
 // Allowed: absolute http(s), mailto, a site-relative path, a fragment, or a
 // bare relative path. Everything else is refused - which is the point, because
@@ -228,8 +217,7 @@ const TERM_ALIASES = {
 // because KaTeX inserts non-breaking ones, and the hyphen in "I-Frames" is
 // optional because people type it both ways.
 function termPattern(text) {
-    return String(text)
-        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return window.escapeRegExp(text)
         .replace(/ /g, '\\s+')
         .replace(/-/g, '[-\\s]?');
 }
@@ -429,7 +417,7 @@ function buildPageWords() {
         // after an "&", so a word like "amp" cannot split an escaped "&amp;".
         const source = Array.from(byText.keys())
             .sort((a, b) => b.length - a.length)
-            .map(w => w.split(' ').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+'))
+            .map(w => w.split(' ').map(part => window.escapeRegExp(part)).join('\\s+'))
             .join('|');
         value = { lookup: byText, pattern: new RegExp(`(?<![\\w&])(${source})(?!\\w)`, 'g') };
     }
@@ -461,7 +449,7 @@ function paintPageWords(block, words) {
             matched = true;
             return entry.stops
                 ? `<span class="sc-auto sc-page-word sc-page-gradient">${splitGradient(match, entry.stops)}</span>`
-                : `<span class="sc-auto sc-page-word" style="color: ${escAttr(entry.color)};">${match}</span>`;
+                : `<span class="sc-auto sc-page-word" style="color: ${window.escapeHtml(entry.color)};">${match}</span>`;
         });
         if (!matched) return;
         const tpl = document.createElement('template');
@@ -666,7 +654,7 @@ window.applyInputSlotColours = function (root) {
         compound.lastIndex = 0;
 
         let matched = false;
-        const replaced = escAttr(text).replace(compound, (match) => {
+        const replaced = window.escapeHtml(text).replace(compound, (match) => {
             const id = terms.lookup.get(window.normaliseMoveName(match));
             const slot = window.getInputSlot(id || match);
             if (!slot) return match;
@@ -740,10 +728,10 @@ window.applyInputSlotColours = function (root) {
             while (walker.nextNode()) textNodes.push(walker.currentNode);
 
             textNodes.forEach(node => {
-                // Escaped the way innerHTML serialises text (&, < and > only),
-                // so a move name with an apostrophe matches as it did before.
-                const before = node.nodeValue
-                    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                // escPageText, not escapeHtml: it escapes the way innerHTML
+                // writes text (&, < and > only), so a move name with an
+                // apostrophe still matches.
+                const before = escPageText(node.nodeValue);
                 terms.pattern.lastIndex = 0;
                 let matched = false;
                 const after = before.replace(terms.pattern, (match) => {
@@ -787,8 +775,8 @@ function textIconHTML(tag, group, name) {
         if (!file) return null;
         // Named once the roster is in (nameCharacterIcons below): the tag
         // carries the page id, which never changes, and a reader knows the name.
-        return `<img class="text-icon text-icon-character" src="/${escAttr(file)}" alt=""`
-             + ` data-character-id="${escAttr(name)}" data-icon-tag="${escAttr(tag)}" loading="lazy">`;
+        return `<img class="text-icon text-icon-character" src="/${window.escapeHtml(file)}" alt=""`
+             + ` data-character-id="${window.escapeHtml(name)}" data-icon-tag="${window.escapeHtml(tag)}" loading="lazy">`;
     }
     // The owner's site icons (v1.2), in the color of the text around them.
     if (group === 'ui') {
@@ -845,7 +833,7 @@ function applyInternalStyling() {
         // A Combo Card's name, and each section's (v1.0 Part 2 bug). The same
         // split as headings above: reached only through `.vessel-content h4`,
         // so in the Combos and Techs tabs, which are `.tab-content`, a name
-        // kept its literal [b]...[/b]. Rendered through escBlockText
+        // kept its literal [b]...[/b]. Rendered through escapeHtml
         // (js/description.js), so what this reads back is already escaped.
         + ' .theorybox-title:not(.is-styled),'
         + ' .update-table th:not(.is-styled), .update-table td:not(.is-styled)');
@@ -920,7 +908,7 @@ function applyInternalStyling() {
                 (whole, rawColor, inner) => {
                     const color = safeColor(rawColor);
                     return color
-                        ? `<span class="sc-color" style="color: ${escAttr(color)};">${inner}</span>`
+                        ? `<span class="sc-color" style="color: ${window.escapeHtml(color)};">${inner}</span>`
                         : inner;
                 });
 
@@ -967,9 +955,9 @@ function applyInternalStyling() {
                     const url = safeUrl(rawUrl);
                     if (!url) return label;
                     if (url.charAt(0) === '#') {
-                        return `<a href="${escAttr(url)}" class="wiki-link wiki-link-jump">${label}</a>`;
+                        return `<a href="${window.escapeHtml(url)}" class="wiki-link wiki-link-jump">${label}</a>`;
                     }
-                    return `<a href="${escAttr(url)}" class="wiki-link" target="_blank" rel="noopener noreferrer">${label}</a>`;
+                    return `<a href="${window.escapeHtml(url)}" class="wiki-link" target="_blank" rel="noopener noreferrer">${label}</a>`;
                 });
 
         } while (content !== previousContent);
@@ -1006,8 +994,8 @@ function applyInternalStyling() {
                 const dark = typeof window.isDarkCharacterColor === 'function'
                     && window.isDarkCharacterColor(entry.color);
                 return `<span class="sc-auto sc-char${dark ? ' sc-char-dark' : ''}"`
-                     + ` data-character="${escAttr(entry.canonical)}"`
-                     + ` style="color: ${escAttr(entry.color)};">${match}</span>`;
+                     + ` data-character="${window.escapeHtml(entry.canonical)}"`
+                     + ` style="color: ${window.escapeHtml(entry.color)};">${match}</span>`;
             });
         }
 
@@ -1016,7 +1004,7 @@ function applyInternalStyling() {
             content = content.replace(highlightTerms.pattern, (match) => {
                 const entry = highlightTerms.lookup.get(normalizeTerm(match));
                 if (!entry) return match;
-                return `<span class="sc-auto" style="color: ${escAttr(entry.color)};">${match}</span>`;
+                return `<span class="sc-auto" style="color: ${window.escapeHtml(entry.color)};">${match}</span>`;
             });
         }
 
@@ -1054,7 +1042,7 @@ function applyInternalStyling() {
             }
 
             const color = safeColor(finalColor) || 'var(--text-white)';
-            return `<span class="sc-timing" style="color: ${escAttr(color)};">${match}</span>`;
+            return `<span class="sc-timing" style="color: ${window.escapeHtml(color)};">${match}</span>`;
         });
 
         content = restoreNoAuto(content, protectedRegions);

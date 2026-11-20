@@ -4,11 +4,12 @@
  * Split out of admin.js as part of the admin-page rework: these two tools
  * are admin-only and unrelated to the reviewer workflow admin.html/admin.js
  * are scoped to. Access here is admin-only, not admin/reviewer like
- * admin.html - kickUser/the RBAC-gate shape is intentionally duplicated
- * from admin.js rather than shared, matching this codebase's existing
- * precedent of small per-file duplication over new cross-file coupling
- * (see admin.js's own toggleMobilePreview, reimplemented rather than
- * pulling in editor.js for one function).
+ * admin.html - the RBAC-gate shape is intentionally duplicated from
+ * admin.js rather than shared, matching this codebase's precedent of small
+ * per-file duplication over one feature file depending on another (see
+ * admin.js's own toggleMobilePreview, reimplemented rather than pulling in
+ * editor.js for one function). The ACCESS DENIED screen both gates show is
+ * window.showAccessDenied, in site_utils.js.
  */
 
 // --- BFCACHE GUARD ---
@@ -32,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await new Promise(r => setTimeout(r, 600));
         ({ data: { session } } = await window.supabaseClient.auth.getSession());
     }
-    if (!session) { kickUser(); return; }
+    if (!session) { window.showAccessDenied(); return; }
 
     let { data: roleData, error } = await window.supabaseClient
         .from('user_roles').select('role').eq('user_id', session.user.id);
@@ -46,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Owner only, which is the whole point of v0.17's split: an admin works the
     // review queue and has no owner-tool access at all (owner, 2026-08-27).
-    if (error || !window.rolesMeet(roles, 'owner')) { kickUser(); return; }
+    if (error || !window.rolesMeet(roles, 'owner')) { window.showAccessDenied(); return; }
 
     // Lets loadPersonnel mark the signed-in admin and enforce the
     // self-demotion guard without a second lookup.
@@ -95,31 +96,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof loadPageExperts === 'function') await loadPageExperts();
 });
 
-function kickUser() {
-    document.body.innerHTML = `<div class="access-denied-screen"><h1 class="access-denied-title">ACCESS DENIED</h1></div>`;
-}
-
-// --- CUSTOM MODAL PROMISE (same contract as admin.js's adminConfirm) ---
-window.adminConfirm = function(message) {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('admin-confirm-modal');
-        document.getElementById('admin-confirm-msg').textContent = message;
-        modal.classList.remove('hidden');
-
-        const btnOk = document.getElementById('btn-admin-confirm-ok');
-        const btnCancel = document.getElementById('btn-admin-confirm-cancel');
-
-        const cleanup = () => {
-            modal.classList.add('hidden');
-            btnOk.onclick = null;
-            btnCancel.onclick = null;
-        };
-
-        btnOk.onclick = () => { cleanup(); resolve(true); };
-        btnCancel.onclick = () => { cleanup(); resolve(false); };
-    });
-};
-
 // --- PERSONNEL MANAGEMENT ---
 // assign_role_by_email() is a "set role" RPC (supabase/migrations/
 // 20260801000000_role_model_fix.sql, applied 2026-08-01): it unconditionally
@@ -129,18 +105,6 @@ window.adminConfirm = function(message) {
 // "clear all roles" - passed through as SQL NULL, not the string 'guest'
 // the old (always-broken, since 'guest' was never a legal role value)
 // dropdown option used to send.
-// Escaping every interpolated value, including error.message and the RPC's
-// own returned string - both of which echo the email typed into the form.
-// Only an admin can reach this page, so this is self-XSS at worst, but the
-// standard held everywhere else in this codebase is "escape at every
-// innerHTML interpolation" and there is no reason for this file to be the
-// exception. Flagged as deferred cleanup when the security hotfix shipped;
-// done here now that the file is being rewritten anyway.
-function ownerEscape(str) {
-    return String(str === null || str === undefined ? '' : str)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
 
 // 'contributor' was removed in v0.11 - it gated nothing, so holding it and
 // holding no role at all were the same permission set. 'viewer' now means a
@@ -166,7 +130,7 @@ function roleLabelFor(role) {
 }
 
 function roleBadgeClass(role) {
-    return role ? `badge-role-${ownerEscape(role)}` : 'badge-role-none';
+    return role ? `badge-role-${window.escapeHtml(role)}` : 'badge-role-none';
 }
 
 // The dropdown must always open showing what the person ACTUALLY has, because
@@ -188,12 +152,12 @@ function roleOptionsHTML(currentRole) {
     if (!currentRole) {
         options.push(`<option value="" selected>No role</option>`);
     } else if (!ROLE_LABELS[currentRole]) {
-        options.push(`<option value="${ownerEscape(currentRole)}" selected>${ownerEscape(currentRole)}</option>`);
+        options.push(`<option value="${window.escapeHtml(currentRole)}" selected>${window.escapeHtml(currentRole)}</option>`);
     }
 
     for (const [value, label] of Object.entries(ROLE_LABELS)) {
         options.push(
-            `<option value="${ownerEscape(value)}" ${value === currentRole ? 'selected' : ''}>${ownerEscape(label)}</option>`
+            `<option value="${window.escapeHtml(value)}" ${value === currentRole ? 'selected' : ''}>${window.escapeHtml(label)}</option>`
         );
     }
 
@@ -256,7 +220,7 @@ async function loadPersonnel() {
         const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
         container.innerHTML = notDeployed
             ? `<p class="admin-error-text">The roster isn't available yet - the <code>list_personnel</code> database function hasn't been deployed. It arrives with the next migration.</p>`
-            : `<p class="admin-error-text">Could not load the roster: ${ownerEscape(error.message)}</p>`;
+            : `<p class="admin-error-text">Could not load the roster: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 
@@ -292,16 +256,16 @@ function personnelRowHTML(person) {
         return `
         <div class="personnel-row">
             <div class="personnel-row-main">
-                <span class="update-badge ${roleBadgeClass(person.role)}">${ownerEscape(roleLabelFor(person.role))}</span>
-                ${person.display_name ? `<span class="personnel-name">${ownerEscape(person.display_name)}</span>` : ''}
-                <span class="personnel-email">${ownerEscape(person.email)}${isSelf ? ' <span class="personnel-self">(you)</span>' : ''}</span>
+                <span class="update-badge ${roleBadgeClass(person.role)}">${window.escapeHtml(roleLabelFor(person.role))}</span>
+                ${person.display_name ? `<span class="personnel-name">${window.escapeHtml(person.display_name)}</span>` : ''}
+                <span class="personnel-email">${window.escapeHtml(person.email)}${isSelf ? ' <span class="personnel-self">(you)</span>' : ''}</span>
             </div>
             <div class="personnel-row-actions">
-                <select class="editor-input personnel-role-select" data-email="${ownerEscape(person.email)}" ${isLastAdmin ? 'disabled' : ''}>
+                <select class="editor-input personnel-role-select" data-email="${window.escapeHtml(person.email)}" ${isLastAdmin ? 'disabled' : ''}>
                     ${roleOptionsHTML(person.role)}
                 </select>
                 <button class="btn-sys btn-sys-regular personnel-apply-btn"
-                        data-email="${ownerEscape(person.email)}"
+                        data-email="${window.escapeHtml(person.email)}"
                         ${isLastAdmin ? 'disabled title="You are the only admin - promote someone else first."' : ''}>APPLY</button>
             </div>
             <!--
@@ -312,7 +276,7 @@ function personnelRowHTML(person) {
             -->
             <label class="personnel-capability" title="Skips the 3-minute wait between submissions for this person only.">
                 <input type="checkbox" class="personnel-capability-box"
-                       data-email="${ownerEscape(person.email)}"
+                       data-email="${window.escapeHtml(person.email)}"
                        data-capability="bypass_cooldown"
                        ${person.bypass_cooldown ? 'checked' : ''}>
                 <span>Skip submission cooldown</span>
@@ -326,11 +290,11 @@ function personnelRowHTML(person) {
             -->
             <label class="personnel-capability" title="Lets this person hide or remove discussion posts and handle reports. Admins can already do this.">
                 <input type="checkbox" class="personnel-capability-box"
-                       data-email="${ownerEscape(person.email)}"
+                       data-email="${window.escapeHtml(person.email)}"
                        data-capability="can_moderate"
                        ${person.can_moderate ? 'checked' : ''}
                        ${moderateState.disabled ? 'disabled' : ''}>
-                <span>Moderate discussions${moderateState.note ? ` <span class="personnel-capability-note">(${ownerEscape(moderateState.note)})</span>` : ''}</span>
+                <span>Moderate discussions${moderateState.note ? ` <span class="personnel-capability-note">(${window.escapeHtml(moderateState.note)})</span>` : ''}</span>
             </label>
             <!--
                 Deliberately NOT implied by reviewer, unlike moderation. This
@@ -340,11 +304,11 @@ function personnelRowHTML(person) {
             -->
             <label class="personnel-capability" title="Lets this person permanently delete files from the media bucket. Not implied by any role except admin.">
                 <input type="checkbox" class="personnel-capability-box"
-                       data-email="${ownerEscape(person.email)}"
+                       data-email="${window.escapeHtml(person.email)}"
                        data-capability="can_delete_media"
                        ${person.can_delete_media ? 'checked' : ''}
                        ${deleteMediaState.disabled ? 'disabled' : ''}>
-                <span>Delete media${deleteMediaState.note ? ` <span class="personnel-capability-note">(${ownerEscape(deleteMediaState.note)})</span>` : ''}</span>
+                <span>Delete media${deleteMediaState.note ? ` <span class="personnel-capability-note">(${window.escapeHtml(deleteMediaState.note)})</span>` : ''}</span>
             </label>
             <!--
                 v0.20. One permission for both places media is added: the
@@ -353,11 +317,11 @@ function personnelRowHTML(person) {
             -->
             <label class="personnel-capability" title="Lets this person upload to the Media Library and attach images to discussion posts. Trusted Editors and up already can.">
                 <input type="checkbox" class="personnel-capability-box"
-                       data-email="${ownerEscape(person.email)}"
+                       data-email="${window.escapeHtml(person.email)}"
                        data-capability="can_upload_media"
                        ${person.can_upload_media ? 'checked' : ''}
                        ${uploadMediaState.disabled ? 'disabled' : ''}>
-                <span>Upload media${uploadMediaState.note ? ` <span class="personnel-capability-note">(${ownerEscape(uploadMediaState.note)})</span>` : ''}</span>
+                <span>Upload media${uploadMediaState.note ? ` <span class="personnel-capability-note">(${window.escapeHtml(uploadMediaState.note)})</span>` : ''}</span>
             </label>
         </div>`;
     }
@@ -387,11 +351,11 @@ function bindPersonnelRows(container) {
                 const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
                 results.innerHTML = notDeployed
                     ? `<span class="admin-error-text">Capabilities aren't available yet - the <code>set_user_capability</code> function hasn't been deployed. It arrives with the next migration.</span>`
-                    : `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`;
+                    : `<span class="admin-error-text">Error: ${window.escapeHtml(error.message)}</span>`;
                 return;
             }
 
-            results.innerHTML = `<span class="owner-success-text">${ownerEscape(data)}</span>`;
+            results.innerHTML = `<span class="owner-success-text">${window.escapeHtml(data)}</span>`;
         });
     });
 
@@ -443,7 +407,7 @@ async function searchAccounts() {
         const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
         container.innerHTML = notDeployed
             ? `<p class="admin-error-text">Account search isn't available yet - the <code>search_users</code> database function hasn't been deployed. It arrives with the next migration.</p>`
-            : `<p class="admin-error-text">Could not search: ${ownerEscape(error.message)}</p>`;
+            : `<p class="admin-error-text">Could not search: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 
@@ -471,11 +435,11 @@ async function applyRoleChange(email, newRole) {
     });
 
     if (error) {
-        results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`;
+        results.innerHTML = `<span class="admin-error-text">Error: ${window.escapeHtml(error.message)}</span>`;
         return;
     }
 
-    results.innerHTML = `<span class="owner-success-text">${ownerEscape(data)}</span>`;
+    results.innerHTML = `<span class="owner-success-text">${window.escapeHtml(data)}</span>`;
     await loadPersonnel();
 }
 
@@ -564,7 +528,7 @@ function populateDirectoryOptions() {
     const current = select.value;
 
     select.innerHTML = Object.entries(PAGE_DIRECTORIES)
-        .map(([dir, meta]) => `<option value="${ownerEscape(dir)}">${ownerEscape(meta.label)}</option>`)
+        .map(([dir, meta]) => `<option value="${window.escapeHtml(dir)}">${window.escapeHtml(meta.label)}</option>`)
         .join('');
 
     const suits = current && PAGE_DIRECTORIES[current] && PAGE_DIRECTORIES[current].pageTypes.includes(pageType);
@@ -581,7 +545,7 @@ function updateNewPagePreview() {
     const directory = (document.getElementById('new-page-directory') || {}).value;
     const identity = derivePageIdentity(name, type, directory);
     el.innerHTML = identity
-        ? `Will be created at <code>${ownerEscape(identity.url)}</code>`
+        ? `Will be created at <code>${window.escapeHtml(identity.url)}</code>`
         : '';
 }
 
@@ -596,7 +560,7 @@ async function loadSitePages() {
         const notDeployed = error.code === 'PGRST205' || /schema cache/i.test(error.message || '');
         container.innerHTML = notDeployed
             ? `<p class="admin-error-text">Page management isn't available yet - the <code>site_pages</code> table hasn't been deployed. It arrives with the next migration.</p>`
-            : `<p class="admin-error-text">Could not load pages: ${ownerEscape(error.message)}</p>`;
+            : `<p class="admin-error-text">Could not load pages: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 
@@ -627,25 +591,25 @@ async function loadSitePages() {
     }
 
     container.innerHTML = [...groups.entries()].map(([category, pages]) => `
-        <details class="page-group" data-category="${ownerEscape(category)}">
+        <details class="page-group" data-category="${window.escapeHtml(category)}">
             <summary class="page-group-summary">
-                <span class="page-group-name">${ownerEscape(category)}</span>
+                <span class="page-group-name">${window.escapeHtml(category)}</span>
                 <span class="page-group-count">${pages.length}</span>
             </summary>
             ${pages.map(page => `
                 <div class="personnel-row page-row"
-                     data-search="${ownerEscape(`${page.name} ${page.url} ${category}`.toLowerCase())}">
+                     data-search="${window.escapeHtml(`${page.name} ${page.url} ${category}`.toLowerCase())}">
                     <div class="personnel-row-main">
-                        <span class="update-badge badge-status-${ownerEscape(page.status)}">${ownerEscape(STATUS_LABELS[page.status] || page.status)}</span>
-                        <span class="personnel-email">${ownerEscape(page.name)}</span>
-                        <span class="page-row-path">${ownerEscape(page.url)}</span>
+                        <span class="update-badge badge-status-${window.escapeHtml(page.status)}">${window.escapeHtml(STATUS_LABELS[page.status] || page.status)}</span>
+                        <span class="personnel-email">${window.escapeHtml(page.name)}</span>
+                        <span class="page-row-path">${window.escapeHtml(page.url)}</span>
                     </div>
                     <div class="personnel-row-actions">
-                        <button class="btn-sys btn-sys-regular page-move-btn" data-page="${ownerEscape(page.page_id)}" data-dir="up" title="Move up">▲</button>
-                        <button class="btn-sys btn-sys-regular page-move-btn" data-page="${ownerEscape(page.page_id)}" data-dir="down" title="Move down">▼</button>
+                        <button class="btn-sys btn-sys-regular page-move-btn" data-page="${window.escapeHtml(page.page_id)}" data-dir="up" title="Move up">▲</button>
+                        <button class="btn-sys btn-sys-regular page-move-btn" data-page="${window.escapeHtml(page.page_id)}" data-dir="down" title="Move down">▼</button>
                         ${page.status === 'archived'
-                            ? `<button class="btn-sys btn-sys-green page-restore-btn" data-page="${ownerEscape(page.page_id)}">RESTORE</button>`
-                            : `<button class="btn-sys btn-sys-yellow page-archive-btn" data-page="${ownerEscape(page.page_id)}">ARCHIVE</button>`}
+                            ? `<button class="btn-sys btn-sys-green page-restore-btn" data-page="${window.escapeHtml(page.page_id)}">RESTORE</button>`
+                            : `<button class="btn-sys btn-sys-yellow page-archive-btn" data-page="${window.escapeHtml(page.page_id)}">ARCHIVE</button>`}
                     </div>
                 </div>
             `).join('')}
@@ -736,7 +700,7 @@ function populateCategoryOptions() {
     const list = document.getElementById('page-category-options');
     if (!list) return;
     list.innerHTML = knownCategories()
-        .map(c => `<option value="${ownerEscape(c)}"></option>`).join('');
+        .map(c => `<option value="${window.escapeHtml(c)}"></option>`).join('');
 }
 
 // Trims, then adopts an existing category's exact spelling if one matches
@@ -835,7 +799,7 @@ function populatePositionOptions() {
     const current = select.value;
 
     select.innerHTML = `<option value="">At the end of the category</option>`
-        + siblings.map(p => `<option value="${ownerEscape(p.page_id)}">After: ${ownerEscape(p.name)}</option>`).join('');
+        + siblings.map(p => `<option value="${window.escapeHtml(p.page_id)}">After: ${window.escapeHtml(p.name)}</option>`).join('');
 
     // Preserve the choice across a re-render if it is still valid.
     if (current && siblings.some(p => p.page_id === current)) select.value = current;
@@ -912,11 +876,11 @@ async function movePage(pageId, direction) {
     const [{ error: errA }, { error: errB }] = await Promise.all([a, b]);
 
     if (errA || errB) {
-        results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape((errA || errB).message)}</span>`;
+        results.innerHTML = `<span class="admin-error-text">Error: ${window.escapeHtml((errA || errB).message)}</span>`;
         return;
     }
 
-    results.innerHTML = `<span class="owner-success-text">Moved "${ownerEscape(page.name)}". Menus update after the next regeneration run.</span>`;
+    results.innerHTML = `<span class="owner-success-text">Moved "${window.escapeHtml(page.name)}". Menus update after the next regeneration run.</span>`;
     await loadSitePages();
 }
 
@@ -933,10 +897,10 @@ async function setPageStatus(pageId, status) {
         .from('site_pages').update({ status, updated_at: new Date().toISOString() }).eq('page_id', pageId);
 
     if (error) {
-        results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`;
+        results.innerHTML = `<span class="admin-error-text">Error: ${window.escapeHtml(error.message)}</span>`;
         return;
     }
-    results.innerHTML = `<span class="owner-success-text">"${ownerEscape(pageId)}" is now ${ownerEscape(STATUS_LABELS[status])}. It updates on the site after the next regeneration run.</span>`;
+    results.innerHTML = `<span class="owner-success-text">"${window.escapeHtml(pageId)}" is now ${window.escapeHtml(STATUS_LABELS[status])}. It updates on the site after the next regeneration run.</span>`;
     await loadSitePages();
 }
 
@@ -999,12 +963,12 @@ async function createSitePage() {
     if (error) {
         const duplicate = /duplicate key|unique/i.test(error.message || '');
         results.innerHTML = `<span class="admin-error-text">${duplicate
-            ? `A page already exists at that address (${ownerEscape(identity.url)}). Pick a different name.`
-            : `Error: ${ownerEscape(error.message)}`}</span>`;
+            ? `A page already exists at that address (${window.escapeHtml(identity.url)}). Pick a different name.`
+            : `Error: ${window.escapeHtml(error.message)}`}</span>`;
         return;
     }
 
-    results.innerHTML = `<span class="owner-success-text">Created "${ownerEscape(name)}". It appears on the site after the next regeneration run.</span>`;
+    results.innerHTML = `<span class="owner-success-text">Created "${window.escapeHtml(name)}". It appears on the site after the next regeneration run.</span>`;
     document.getElementById('new-page-name').value = '';
     updateNewPagePreview();
     await loadSitePages();
@@ -1030,7 +994,7 @@ async function loadPagePermissions() {
         .from('page_permissions').select('page_id, required_role').order('page_id');
 
     if (error) {
-        container.innerHTML = `<p class="admin-error-text">Could not load restrictions: ${ownerEscape(error.message)}</p>`;
+        container.innerHTML = `<p class="admin-error-text">Could not load restrictions: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 
@@ -1044,17 +1008,17 @@ async function loadPagePermissions() {
     container.innerHTML = data.map(row => `
         <div class="personnel-row">
             <div class="personnel-row-main">
-                <span class="update-badge badge-role-${ownerEscape(row.required_role)}">${ownerEscape(PERMISSION_ROLE_LABELS[row.required_role] || row.required_role)}</span>
-                <span class="personnel-email">${ownerEscape(row.page_id)}</span>
+                <span class="update-badge badge-role-${window.escapeHtml(row.required_role)}">${window.escapeHtml(PERMISSION_ROLE_LABELS[row.required_role] || row.required_role)}</span>
+                <span class="personnel-email">${window.escapeHtml(row.page_id)}</span>
             </div>
             <div class="personnel-row-actions">
-                <select class="editor-input personnel-role-select" data-page="${ownerEscape(row.page_id)}">
+                <select class="editor-input personnel-role-select" data-page="${window.escapeHtml(row.page_id)}">
                     ${Object.entries(PERMISSION_ROLE_LABELS).map(([value, label]) =>
-                        `<option value="${ownerEscape(value)}" ${value === row.required_role ? 'selected' : ''}>${ownerEscape(label)}</option>`
+                        `<option value="${window.escapeHtml(value)}" ${value === row.required_role ? 'selected' : ''}>${window.escapeHtml(label)}</option>`
                     ).join('')}
                 </select>
-                <button class="btn-sys btn-sys-regular permission-apply-btn" data-page="${ownerEscape(row.page_id)}">APPLY</button>
-                <button class="btn-sys btn-sys-red permission-remove-btn" data-page="${ownerEscape(row.page_id)}">UNRESTRICT</button>
+                <button class="btn-sys btn-sys-regular permission-apply-btn" data-page="${window.escapeHtml(row.page_id)}">APPLY</button>
+                <button class="btn-sys btn-sys-red permission-remove-btn" data-page="${window.escapeHtml(row.page_id)}">UNRESTRICT</button>
             </div>
         </div>
     `).join('');
@@ -1108,7 +1072,7 @@ async function populatePermissionPageOptions(existing) {
 
     select.innerHTML = options.length === 0
         ? `<option value="">(every page is already restricted)</option>`
-        : options.map(e => `<option value="${ownerEscape(e.cms_config.pageId)}">${ownerEscape(e.name)}</option>`).join('');
+        : options.map(e => `<option value="${window.escapeHtml(e.cms_config.pageId)}">${window.escapeHtml(e.name)}</option>`).join('');
 }
 
 async function setPagePermission(pageId, requiredRole) {
@@ -1123,10 +1087,10 @@ async function setPagePermission(pageId, requiredRole) {
         .upsert([{ page_id: pageId, required_role: requiredRole }], { onConflict: 'page_id' });
 
     if (error) {
-        results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`;
+        results.innerHTML = `<span class="admin-error-text">Error: ${window.escapeHtml(error.message)}</span>`;
         return;
     }
-    results.innerHTML = `<span class="owner-success-text">"${ownerEscape(pageId)}" now requires ${ownerEscape(label)}.</span>`;
+    results.innerHTML = `<span class="owner-success-text">"${window.escapeHtml(pageId)}" now requires ${window.escapeHtml(label)}.</span>`;
     await loadPagePermissions();
 }
 
@@ -1151,10 +1115,10 @@ async function removePagePermission(pageId) {
     const { error } = await window.supabaseClient.from('page_permissions').delete().eq('page_id', pageId);
 
     if (error) {
-        results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`;
+        results.innerHTML = `<span class="admin-error-text">Error: ${window.escapeHtml(error.message)}</span>`;
         return;
     }
-    results.innerHTML = `<span class="owner-success-text">"${ownerEscape(pageId)}" is no longer restricted.</span>`;
+    results.innerHTML = `<span class="owner-success-text">"${window.escapeHtml(pageId)}" is no longer restricted.</span>`;
     await loadPagePermissions();
 }
 
@@ -1176,7 +1140,7 @@ function contentNotDeployedMessage(error, what) {
     }
     return notDeployed
         ? `<p class="admin-error-text">${what} editing isn't available yet - its table hasn't been deployed. It arrives with the next migration.</p>`
-        : `<p class="admin-error-text">Could not load: ${ownerEscape(error.message)}</p>`;
+        : `<p class="admin-error-text">Could not load: ${window.escapeHtml(error.message)}</p>`;
 }
 
 async function loadFaqEntries() {
@@ -1202,22 +1166,22 @@ async function loadFaqEntries() {
     // thing most likely to surprise, and seeing the answer in the same shape it
     // was written is what makes that legible.
     container.innerHTML = data.map(row => `
-        <div class="personnel-row faq-row" data-id="${ownerEscape(row.id)}">
+        <div class="personnel-row faq-row" data-id="${window.escapeHtml(row.id)}">
             <div class="personnel-row-main">
-                <span class="personnel-email">${ownerEscape(row.question)}</span>
+                <span class="personnel-email">${window.escapeHtml(row.question)}</span>
             </div>
             <div class="personnel-row-actions">
-                <button class="btn-sys btn-sys-regular faq-edit-btn" data-id="${ownerEscape(row.id)}">EDIT</button>
-                <button class="btn-sys btn-sys-red faq-delete-btn" data-id="${ownerEscape(row.id)}">DELETE</button>
+                <button class="btn-sys btn-sys-regular faq-edit-btn" data-id="${window.escapeHtml(row.id)}">EDIT</button>
+                <button class="btn-sys btn-sys-red faq-delete-btn" data-id="${window.escapeHtml(row.id)}">DELETE</button>
             </div>
             <div class="owner-inline-editor" hidden>
                 <label class="block-field-label-sm">QUESTION</label>
-                <input type="text" class="editor-input admin-input-full faq-edit-question" value="${ownerEscape(row.question)}">
+                <input type="text" class="editor-input admin-input-full faq-edit-question" value="${window.escapeHtml(row.question)}">
                 <label class="block-field-label-sm">ANSWER</label>
-                <textarea class="editor-textarea admin-input-full faq-edit-answer" rows="5">${ownerEscape((row.paragraphs || []).join('\n\n'))}</textarea>
+                <textarea class="editor-textarea admin-input-full faq-edit-answer" rows="5">${window.escapeHtml((row.paragraphs || []).join('\n\n'))}</textarea>
                 <p class="admin-tool-hint">A blank line starts a new paragraph.</p>
                 <div class="owner-inline-editor-actions">
-                    <button class="btn-sys btn-sys-green faq-save-btn" data-id="${ownerEscape(row.id)}">SAVE</button>
+                    <button class="btn-sys btn-sys-green faq-save-btn" data-id="${window.escapeHtml(row.id)}">SAVE</button>
                     <button class="btn-sys btn-sys-regular faq-cancel-btn">CANCEL</button>
                 </div>
             </div>
@@ -1275,7 +1239,7 @@ async function saveFaqEntry(id, question, answer) {
     const { error } = await window.supabaseClient
         .from('site_faq').update({ question: trimmed, paragraphs }).eq('id', id);
 
-    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`; return; }
+    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${window.escapeHtml(error.message)}</span>`; return; }
 
     results.innerHTML = `<span class="owner-success-text">Saved. It reaches the site on the next regeneration.</span>`;
     await loadFaqEntries();
@@ -1302,7 +1266,7 @@ async function addFaqEntry() {
     const { error } = await window.supabaseClient
         .from('site_faq').insert([{ question, paragraphs, sort_order: sortOrder }]);
 
-    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`; return; }
+    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${window.escapeHtml(error.message)}</span>`; return; }
 
     results.innerHTML = `<span class="owner-success-text">Added. It appears on the site after the next regeneration run.</span>`;
     document.getElementById('new-faq-question').value = '';
@@ -1316,7 +1280,7 @@ async function deleteFaqEntry(id) {
     if (!(await adminConfirm('Delete this FAQ entry?'))) return;
 
     const { error } = await window.supabaseClient.from('site_faq').delete().eq('id', id);
-    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`; return; }
+    if (error) { results.innerHTML = `<span class="admin-error-text">Error: ${window.escapeHtml(error.message)}</span>`; return; }
 
     results.innerHTML = `<span class="owner-success-text">Deleted.</span>`;
     await loadFaqEntries();
@@ -1356,11 +1320,11 @@ async function anonymizeAccount() {
         const notDeployed = error.code === 'PGRST202' || /schema cache/i.test(error.message || '');
         results.innerHTML = notDeployed
             ? `<span class="admin-error-text">Account deletion isn't available yet - the database function hasn't been deployed. It arrives with the next migration.</span>`
-            : `<span class="admin-error-text">Error: ${ownerEscape(error.message)}</span>`;
+            : `<span class="admin-error-text">Error: ${window.escapeHtml(error.message)}</span>`;
         return;
     }
 
-    results.innerHTML = `<span class="owner-success-text">${ownerEscape(data)}</span>`;
+    results.innerHTML = `<span class="owner-success-text">${window.escapeHtml(data)}</span>`;
     input.value = '';
     await loadPersonnel();
 }
@@ -1532,7 +1496,7 @@ async function runGarbageCollector() {
     btn.textContent = 'SCANNING...';
     btn.disabled = true;
     results.innerHTML = '';
-    const report = (line) => { results.innerHTML += `${ownerEscape(line)}<br>`; };
+    const report = (line) => { results.innerHTML += `${window.escapeHtml(line)}<br>`; };
 
     try {
         const { files, orphans } = await gcFindOrphans(report);
@@ -1542,14 +1506,14 @@ async function runGarbageCollector() {
         } else if (orphans.length === 0) {
             results.innerHTML += `<span class="owner-success-text">All ${files.length} files are still linked. Nothing to clean up.</span>`;
         } else {
-            const list = orphans.map(f => `<li>${ownerEscape(f.name)}</li>`).join('');
+            const list = orphans.map(f => `<li>${window.escapeHtml(f.name)}</li>`).join('');
             results.innerHTML +=
                 `<span class="gc-orphan-count">${orphans.length} of ${files.length} files are unused:</span>` +
                 `<ul class="gc-orphan-list">${list}</ul>`;
             gcSetOrphans(orphans, files.length);
         }
     } catch (err) {
-        results.innerHTML += `<span class="admin-error-text">Stopped, nothing deleted: ${ownerEscape(err.message)}</span>`;
+        results.innerHTML += `<span class="admin-error-text">Stopped, nothing deleted: ${window.escapeHtml(err.message)}</span>`;
     }
 
     btn.textContent = 'SCAN FOR UNUSED MEDIA';
@@ -1594,7 +1558,7 @@ async function purgeOrphanedMedia() {
     purgeBtn.disabled = false;
 
     if (error) {
-        results.innerHTML += `<span class="admin-error-text">Deletion failed: ${ownerEscape(error.message)}</span>`;
+        results.innerHTML += `<span class="admin-error-text">Deletion failed: ${window.escapeHtml(error.message)}</span>`;
         return;
     }
 

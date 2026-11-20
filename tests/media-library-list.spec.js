@@ -181,6 +181,34 @@ test('@ searches by uploader, and the words after the name search the file name'
     await expectNames('@und', []);
 });
 
+test('typing in the search or changing the filter draws the list once, from the first page', async ({ page }) => {
+    // Two listeners on each control each drew the list, and only one of them
+    // went back to page 1.
+    await openLibrary(page, { files: Array.from({ length: 60 }, (_, i) => `Clip_${i}.webm`) });
+    await page.click('#btn-media-next');
+    await expect(page.locator('#media-page-indicator')).toHaveText('PAGE 2/2');
+
+    await page.evaluate(() => {
+        window.__gridDraws = 0;
+        new MutationObserver(records => { window.__gridDraws += records.length; })
+            .observe(document.getElementById('media-gallery-grid'), { childList: true });
+    });
+    await page.locator('#media-search-input').fill('clip_1');
+    await expect(page.locator('#media-page-indicator')).toHaveText('PAGE 1/1');
+    await expect.poll(() => names(page)).toEqual(['Clip_1.webm', ...Array.from({ length: 10 }, (_, i) => `Clip_1${i}.webm`)]);
+    // Observer callbacks run after the input event's task, so both draws
+    // are counted by the next frame.
+    const draws = () => page.evaluate(() => new Promise(r => requestAnimationFrame(() => r(window.__gridDraws))));
+    expect(await draws()).toBe(1);
+
+    // The real <select> is hidden behind the site's own dropdown.
+    const filter = page.locator('#media-filter-select + .manga-select-wrapper');
+    await filter.locator('.manga-select-trigger').click();
+    await filter.locator('.manga-option', { hasText: 'Images' }).click();
+    await expect.poll(() => names(page)).toEqual([]);
+    expect(await draws()).toBe(2);
+});
+
 test('@ takes the longest uploader name that fits, when one name starts another', async ({ page }) => {
     await openLibrary(page, {
         files: ['Fan_Clip.webm', 'Kick_1.webm', 'Kick_Fan.webm'],

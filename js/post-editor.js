@@ -31,12 +31,6 @@ function readBlocks() {
     }
 }
 
-function esc(str) {
-    return String(str === null || str === undefined ? '' : str)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
 // URL-safe, stable, and predictable from the title so the owner rarely has to
 // think about it - but still editable, because changing a published post's
 // title should not silently break its existing links.
@@ -90,7 +84,7 @@ window.loadPostAdminList = async function() {
         .order('updated_at', { ascending: false });
 
     if (error) {
-        container.innerHTML = `<p class="post-error">Could not load posts: ${esc(error.message)}</p>`;
+        container.innerHTML = `<p class="post-error">Could not load posts: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 
@@ -102,13 +96,13 @@ window.loadPostAdminList = async function() {
     container.innerHTML = data.map(post => `
         <div class="post-admin-row">
             <div class="post-admin-row-main">
-                <span class="update-badge ${post.status === 'published' ? 'badge-site' : 'badge-general'}">${esc(post.status)}</span>
-                <span class="update-badge badge-general">${esc(post.kind)}</span>
-                <span class="post-admin-row-title">${esc(post.title)}</span>
+                <span class="update-badge ${post.status === 'published' ? 'badge-site' : 'badge-general'}">${window.escapeHtml(post.status)}</span>
+                <span class="update-badge badge-general">${window.escapeHtml(post.kind)}</span>
+                <span class="post-admin-row-title">${window.escapeHtml(post.title)}</span>
             </div>
             <div class="post-admin-row-actions">
-                <button class="btn-sys btn-sys-regular" onclick="window.editPost('${esc(post.id)}')">EDIT</button>
-                <button class="btn-sys btn-sys-red" onclick="window.deletePost('${esc(post.id)}')">DELETE</button>
+                <button class="btn-sys btn-sys-regular" onclick="window.editPost('${window.escapeHtml(post.id)}')">EDIT</button>
+                <button class="btn-sys btn-sys-red" onclick="window.deletePost('${window.escapeHtml(post.id)}')">DELETE</button>
             </div>
         </div>
     `).join('');
@@ -220,7 +214,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await new Promise(r => setTimeout(r, 600));
         ({ data: { session } } = await window.supabaseClient.auth.getSession());
     }
-    if (!session) { kickUser(); return; }
+    if (!session) { window.showAccessDenied(); return; }
 
     let { data: roleData, error } = await window.supabaseClient
         .from('user_roles').select('role').eq('user_id', session.user.id);
@@ -234,7 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Owner only. Authoring site-wide posts is not on the list of what an admin
     // may do (owner, 2026-08-27), and this mirrors "Admins can write posts" on
     // site_posts, which became is_owner() in 20260827000003.
-    if (error || !window.rolesMeet(roles, 'owner')) { kickUser(); return; }
+    if (error || !window.rolesMeet(roles, 'owner')) { window.showAccessDenied(); return; }
 
     window.currentGlobalUsername = window.getDisplayName ? window.getDisplayName(session) : 'Staff';
 
@@ -261,10 +255,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.resetPostForm();
     await window.loadPostAdminList();
 });
-
-function kickUser() {
-    document.body.innerHTML = `<div class="access-denied-screen"><h1 class="access-denied-title">ACCESS DENIED</h1></div>`;
-}
 
 // Same bfcache guard as admin.html/owner.html: a back-forward restore skips
 // DOMContentLoaded entirely, so the gate above would never re-run.

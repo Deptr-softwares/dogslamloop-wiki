@@ -29,11 +29,6 @@
     let results = [];
     let activeIdx = -1;
 
-    const esc = (v) => (typeof window.escapeHtml === 'function'
-        ? window.escapeHtml(v)
-        : String(v == null ? '' : v).replace(/[&<>"']/g, c =>
-            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
-
     // Positions in an entry array. The file declares these in `fields`; read
     // from there rather than hard-coding, so a column added to the generator
     // does not silently shift what this reads.
@@ -131,8 +126,8 @@
     // is in a paragraph". Shown on every render, including the empty one, which
     // is exactly when it is most useful.
     function moreLink(rootPath, query) {
-        return `<a class="site-search-more" href="${esc(rootPath)}search.html?q=${encodeURIComponent(query)}">
-                    Search all writing for “${esc(query)}” &rarr;
+        return `<a class="site-search-more" href="${window.escapeHtml(rootPath)}search.html?q=${encodeURIComponent(query)}">
+                    Search all writing for “${window.escapeHtml(query)}” &rarr;
                 </a>`;
     }
 
@@ -149,15 +144,15 @@
         // generator, which does no escaping of its own and should not.
         panel.innerHTML = results.map((r, i) => {
             const where = r.kind === 'page'
-                ? `<span class="site-search-kind">${esc(r.type || 'page')}</span>`
-                : `<span class="site-search-where">${esc(r.pageName)} &middot; ${esc(r.tabLabel || r.tab)}</span>`;
+                ? `<span class="site-search-kind">${window.escapeHtml(r.type || 'page')}</span>`
+                : `<span class="site-search-where">${window.escapeHtml(r.pageName)} &middot; ${window.escapeHtml(r.tabLabel || r.tab)}</span>`;
             const sub = r.kind === 'section' && r.parent
-                ? `<span class="site-search-parent">in ${esc(r.parent)}</span>`
+                ? `<span class="site-search-parent">in ${window.escapeHtml(r.parent)}</span>`
                 : '';
             return `
                 <a class="site-search-hit${i === activeIdx ? ' is-active' : ''}"
-                   href="${esc(rootPath + r.url)}" data-hit="${i}">
-                    <span class="site-search-title">${esc(r.name)}</span>
+                   href="${window.escapeHtml(rootPath + r.url)}" data-hit="${i}">
+                    <span class="site-search-title">${window.escapeHtml(r.name)}</span>
                     ${sub}
                     ${where}
                 </a>`;

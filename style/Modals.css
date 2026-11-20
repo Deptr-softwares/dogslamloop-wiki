@@ -24,18 +24,8 @@
     z-index: 9500;
 }
 
-/* Tier 3: Critical System Interrupts */
-.modal-overlay.tier-critical,
-.editor-modal-overlay.tier-critical {
-    z-index: 10000;
-}
-
-
 /* --- 2. THE MODAL CONTAINER (.modal-box) --- */
-/* Added legacy aliases so old JS scripts snap into the new engine */
-.modal-box,
-.editor-modal,
-#auth-modal .modal-content {
+.modal-box {
     background: #0a0a0a;
     border: 1px solid #333;
     border-top: 3px solid #555; /* Default Accent */
@@ -54,9 +44,8 @@
 }
 
 /* Modal Sizing Modifiers */
-.modal-box.modal-sm, .editor-modal.modal-sm { width: 400px; }
-.modal-box.modal-lg, .editor-modal.modal-lg { width: 650px; }
-.modal-box.modal-xl, .editor-modal.modal-xl { width: 95vw; height: 90vh; }
+.modal-box.modal-sm { width: 400px; }
+.modal-box.modal-lg { width: 650px; }
 
 /* Auth modal inline feedback (error/success message) */
 #auth-feedback-message { display: block; }
@@ -75,17 +64,15 @@
 
 
 /* --- 3. MODAL ACCENT COLORS (The Top Bar) --- */
-.modal-box.accent-blue, .editor-modal.accent-blue { border-top-color: var(--accent-blue); }
-.modal-box.accent-purple, .editor-modal.accent-purple { border-top-color: #a855f7; }
-.modal-box.accent-red, .editor-modal.accent-red { border-top-color: #ef4444; }
-.modal-box.accent-yellow, .editor-modal.accent-yellow { border-top-color: #eab308; }
-.modal-box.accent-green, .editor-modal.accent-green { border-top-color: #22c55e; }
+.modal-box.accent-blue { border-top-color: var(--accent-blue); }
+.modal-box.accent-purple { border-top-color: #a855f7; }
+.modal-box.accent-red { border-top-color: #ef4444; }
+.modal-box.accent-green { border-top-color: #22c55e; }
 
 
 /* --- 4. INTERNAL STRUCTURAL SECTIONS --- */
 /* The Header */
-.modal-header,
-.editor-modal-header {
+.modal-header {
     background: #050505;
     border-bottom: 1px solid #333;
     padding: 1rem 1.5rem;
@@ -93,7 +80,6 @@
 }
 
 .modal-header h3,
-.editor-modal-header h3,
 #auth-modal h2 {
     margin: 0;
     font-family: var(--font-label), sans-serif;
@@ -103,38 +89,24 @@
 }
 
 /* Inherit Header Colors */
-.modal-box.accent-blue .modal-header h3, .editor-modal.accent-blue .editor-modal-header h3 { color: var(--accent-blue); }
-.modal-box.accent-purple .modal-header h3, .editor-modal.accent-purple .editor-modal-header h3 { color: #a855f7; }
-.modal-box.accent-red .modal-header h3, .editor-modal.accent-red .editor-modal-header h3 { color: #ef4444; }
-.modal-box.accent-yellow .modal-header h3, .editor-modal.accent-yellow .editor-modal-header h3 { color: #eab308; }
+.modal-box.accent-blue .modal-header h3 { color: var(--accent-blue); }
+.modal-box.accent-purple .modal-header h3 { color: #a855f7; }
+.modal-box.accent-red .modal-header h3 { color: #ef4444; }
 
 /* The Body */
-.modal-body,
-.editor-modal-body {
+.modal-body {
     padding: 1.5rem;
     flex-grow: 1;
     overflow-y: auto;
     text-align: left;
 }
 
-.modal-body.centered-text,
-.editor-modal-body.centered-text {
+.modal-body.centered-text {
     text-align: center;
 }
 
-.modal-body p.modal-desc,
-.editor-modal-body p.modal-desc {
-    font-family: var(--text-mono);
-    font-size: 0.75rem;
-    color: #888;
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-    line-height: 1.5;
-}
-
 /* The Footer (Action Buttons) */
-.modal-footer,
-.editor-modal-footer {
+.modal-footer {
     border-top: 1px dashed #333;
     padding: 1rem 1.5rem;
     margin-top: 0;
@@ -145,8 +117,7 @@
     flex-shrink: 0;
 }
 
-.modal-footer.centered-actions,
-.editor-modal-footer.centered-actions {
+.modal-footer.centered-actions {
     justify-content: center;
 }
 /* --- SITE-WIDE CONFIRMATION (window.siteConfirm, js/site_utils.js) ---

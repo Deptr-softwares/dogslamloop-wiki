@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // A refused read is not an empty history. Reading it as one hid History
     // failing for every logged-out reader in 2026-08 (20260803000000).
     if (error) {
-        document.getElementById('history-meta-card').innerHTML = `<div class="empty-tab-msg">Failed to load this page's history: ${escapeHtml(error.message)}</div>`;
+        document.getElementById('history-meta-card').innerHTML = `<div class="empty-tab-msg">Failed to load this page's history: ${window.escapeHtml(error.message)}</div>`;
         return;
     }
 
@@ -150,7 +150,7 @@ window.renderRevision = async function(index) {
     const qa = rev.qa_metadata || {};
     const reviewer = qa.reviewed_by || 'Legacy System';
 
-    let scopeText = rev.is_delta ? `Target Scope: ${escapeHtml(rev.target_scope.toUpperCase())} [${escapeHtml(rev.target_key)}]` : `Target Scope: FULL OVERWRITE`;
+    let scopeText = rev.is_delta ? `Target Scope: ${window.escapeHtml(rev.target_scope.toUpperCase())} [${window.escapeHtml(rev.target_key)}]` : `Target Scope: FULL OVERWRITE`;
     if (rev.target_scope === 'multi') scopeText = `Target Scope: BATCHED MULTI-EDIT (${rev.delta_payload.length} targets)`;
 
     // --- RENDER PAGINATION & METADATA CARD ---
@@ -169,15 +169,15 @@ window.renderRevision = async function(index) {
                     <div style="font-size: 0.75rem; color: var(--accent-blue); font-family: var(--text-mono); margin-top: 0.25rem;">${dateStr}</div>
                 </div>
                 <div style="text-align: right; font-size: 0.75rem; font-family: var(--text-mono); color: var(--text-muted);">
-                    <div style="margin-bottom: 0.25rem;">Author: <strong style="color: #fff; font-size: 0.85rem;">${escapeHtml(rev.author_name)}</strong></div>
-                    <div>Approved By: <strong style="color: #34d399; font-size: 0.85rem;">${escapeHtml(reviewer)}</strong></div>
+                    <div style="margin-bottom: 0.25rem;">Author: <strong style="color: #fff; font-size: 0.85rem;">${window.escapeHtml(rev.author_name)}</strong></div>
+                    <div>Approved By: <strong style="color: #34d399; font-size: 0.85rem;">${window.escapeHtml(reviewer)}</strong></div>
                 </div>
             </div>
 
             <div style="font-size: 0.85rem; color: #d1d5db; line-height: 1.6; font-family: var(--text-mono);">
                 <div style="margin-bottom: 0.75rem; display: inline-block; background: #222; padding: 0.25rem 0.5rem; border-radius: 2px; color: #a855f7;">${scopeText}</div><br>
                 <strong style="color: #fff; text-transform: uppercase;">Public Changelog:</strong><br>
-                ${escapeHtml(qa.changelog || 'No notes provided.').replace(/\n/g, '<br>')}
+                ${window.escapeHtml(qa.changelog || 'No notes provided.').replace(/\n/g, '<br>')}
             </div>
         </div>
     `;
@@ -293,7 +293,7 @@ function historyStep(index, label) {
     if (!target) return `<button class="btn-sys btn-sys-regular" disabled>${label}</button>`;
     const pageId = new URLSearchParams(window.location.search).get('page');
     const href = `history.html?page=${encodeURIComponent(pageId)}&rev=${encodeURIComponent(target.id)}`;
-    return `<a class="btn-sys btn-sys-regular" href="${escapeHtml(href)}">${label}</a>`;
+    return `<a class="btn-sys btn-sys-regular" href="${window.escapeHtml(href)}">${label}</a>`;
 }
 
 // NULL from the database means "not one it can answer for": a revision from

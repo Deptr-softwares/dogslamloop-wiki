@@ -75,7 +75,7 @@ html.look-classic .btn-manga-content { transform: none; }
 /* Panels have no box, like an article: a heading and its rule separate them
    (owner, 2026-11-20). Nothing lifts on hover. A frame data card keeps a thin
    box, and the profile card is the infobox. */
-html.look-classic :is(.wiki-card, .wiki-section, .changelog-box) {
+html.look-classic :is(.wiki-card, .wiki-section) {
     background: none;
     border: 0;
     box-shadow: none;
@@ -96,7 +96,7 @@ html.look-classic :is(.skill-entry-card, .wiki-section.profile-card) {
     box-shadow: none;
 }
 html.look-classic .wiki-section.profile-card { padding: 0.75rem; }
-html.look-classic :is(.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .roster-card, .tier-char-card, .image-card-container):hover,
+html.look-classic :is(.wiki-card, .wiki-section, .skill-entry-card, .update-log-item, .faq-details, .roster-card, .image-card-container):hover,
 html.look-classic .roster-card:hover .roster-card-text {
     transform: none;
     box-shadow: none;

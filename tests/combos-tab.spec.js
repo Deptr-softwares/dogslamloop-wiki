@@ -296,12 +296,13 @@ test('nothing a contributor writes is parsed as markup', async ({ page }) => {
   const result = await page.evaluate(() => ({
     fired: !!window.__PWN,
     injected: document.querySelectorAll('#tab-combos img').length,
-    videoHref: document.querySelector('.combo-video-link')?.getAttribute('href') || null,
+    videoCell: document.querySelector('#tab-combos .combo-cell-video')?.innerHTML || null,
   }));
 
   expect(result.fired).toBe(false);
   expect(result.injected).toBe(0);
-  expect(result.videoHref, 'a javascript: video link is dropped, not rendered').toBeNull();
+  expect(result.videoCell, 'a javascript: video is dropped, and the cell says so')
+    .toBe('<span class="combo-cell-empty">-</span>');
   expect(errors).toEqual([]);
 });
 

@@ -10,6 +10,7 @@ test('owner.html: kicks logged-out visitors to the access-denied screen with rea
   await page.goto('/owner.html', { waitUntil: 'networkidle' });
   const screen = page.locator('.access-denied-screen');
   await expect(screen).toBeVisible();
+  await expect(screen).toHaveText('ACCESS DENIED');
   expect(await screen.evaluate(el => getComputedStyle(el).display)).toBe('flex');
 });
 

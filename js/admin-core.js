@@ -126,10 +126,10 @@ function timeSince(dateString) {
 
 // --- CUSTOM MODAL PROMISES ---
 window.adminAlert = function(message) {
-    const modal = document.getElementById('admin-alert-modal');
     document.getElementById('admin-alert-msg').textContent = message;
-    modal.classList.remove('hidden');
-    document.getElementById('btn-admin-alert-ok').onclick = () => { modal.classList.add('hidden'); };
+    window.runDialog(document.getElementById('admin-alert-modal'), {
+        buttons: [[document.getElementById('btn-admin-alert-ok')]],
+    });
 };
 
 // placeholder is a parameter because all three moderation actions share this
@@ -138,65 +138,37 @@ window.adminAlert = function(message) {
 // revision therefore asked the reviewer to justify a decline, in red. Working
 // through a queue at speed, that is wording someone eventually acts on.
 window.adminPrompt = function(message, title = "SYSTEM PROMPT", confirmText = "CONFIRM", isDanger = false, placeholder = "Type your note here...") {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('admin-prompt-modal');
+    const modal = document.getElementById('admin-prompt-modal');
 
-        // The modal box is always the first child of the overlay
-        const modalBox = modal.firstElementChild;
-        const titleEl = modalBox ? modalBox.querySelector('h3') : null;
-        const msgEl = document.getElementById('admin-prompt-msg');
-        const input = document.getElementById('admin-prompt-input');
-        const btnOk = document.getElementById('btn-admin-prompt-ok');
-        const btnCancel = document.getElementById('btn-admin-prompt-cancel');
+    // The modal box is always the first child of the overlay
+    const modalBox = modal.firstElementChild;
+    const titleEl = modalBox ? modalBox.querySelector('h3') : null;
+    const msgEl = document.getElementById('admin-prompt-msg');
+    const input = document.getElementById('admin-prompt-input');
+    const btnOk = document.getElementById('btn-admin-prompt-ok');
+    const btnCancel = document.getElementById('btn-admin-prompt-cancel');
 
-        // Dynamic Text Injection
-        if (titleEl) titleEl.textContent = title;
-        if (msgEl) msgEl.textContent = message;
-        if (input) {
-            input.value = '';
-            input.placeholder = placeholder;
-        }
-        if (btnOk) btnOk.textContent = confirmText;
+    // Dynamic Text Injection
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
+    if (input) {
+        input.value = '';
+        input.placeholder = placeholder;
+    }
+    if (btnOk) btnOk.textContent = confirmText;
 
-        // Safe Class Replacement
-        if (modalBox) {
-            modalBox.classList.remove('accent-red', 'accent-green');
-            modalBox.classList.add(isDanger ? 'accent-red' : 'accent-green');
-        }
-        if (btnOk) {
-            btnOk.className = `btn-sys ${isDanger ? 'btn-sys-red btn-danger-fill' : 'btn-sys-green'}`;
-        }
+    // Safe Class Replacement
+    if (modalBox) {
+        modalBox.classList.remove('accent-red', 'accent-green');
+        modalBox.classList.add(isDanger ? 'accent-red' : 'accent-green');
+    }
+    if (btnOk) {
+        btnOk.className = `btn-sys ${isDanger ? 'btn-sys-red btn-danger-fill' : 'btn-sys-green'}`;
+    }
 
-        modal.classList.remove('hidden');
-
-        const cleanup = () => {
-            modal.classList.add('hidden');
-            if (btnOk) btnOk.onclick = null;
-            if (btnCancel) btnCancel.onclick = null;
-        };
-
-        if (btnCancel) btnCancel.onclick = () => { cleanup(); resolve(null); };
-        if (btnOk) btnOk.onclick = () => { cleanup(); resolve(input.value.trim()); };
-    });
-};
-
-window.adminConfirm = function(message) {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('admin-confirm-modal');
-        document.getElementById('admin-confirm-msg').textContent = message;
-        modal.classList.remove('hidden');
-
-        const btnOk = document.getElementById('btn-admin-confirm-ok');
-        const btnCancel = document.getElementById('btn-admin-confirm-cancel');
-
-        const cleanup = () => {
-            modal.classList.add('hidden');
-            btnOk.onclick = null;
-            btnCancel.onclick = null;
-        };
-
-        btnOk.onclick = () => { cleanup(); resolve(true); };
-        btnCancel.onclick = () => { cleanup(); resolve(false); };
+    return window.runDialog(modal, {
+        buttons: [[btnCancel, null], [btnOk, () => input.value.trim()]],
+        cancel: null,
     });
 };
 
@@ -231,7 +203,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await new Promise(r => setTimeout(r, 600));
         ({ data: { session } } = await window.supabaseClient.auth.getSession());
     }
-    if (!session) { kickUser(); return; }
+    if (!session) { window.showAccessDenied(); return; }
 
     // Fetch ALL roles assigned to the user.
     //
@@ -296,7 +268,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.currentUserCanDeleteMedia = window.rolesMeet(roles, 'admin')
         || (!!roleRow && roleRow.can_delete_media === true);
 
-    if (error || (!isReviewStaff && !canModerate && !isExpert)) { kickUser(); return; }
+    if (error || (!isReviewStaff && !canModerate && !isExpert)) { window.showAccessDenied(); return; }
 
     window.currentUserId = session.user.id;
     window.currentUserRoles = roles;
@@ -305,11 +277,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // unless ticked.
     const moderates = canModerate || window.rolesMeet(roles, 'admin');
     window.currentUserCanModerate = moderates;
-    window.currentUserExpertPages = expertPages.map(p => p.page_id);
-    // Moderator-only: in the building, but not on the review team.
-    window.currentUserIsModeratorOnly = !isReviewStaff && canModerate && !isExpert;
-    // Expert-only: here for their own pages' revisions and nothing else.
-    window.currentUserIsExpertOnly = !isReviewStaff && !canModerate && isExpert;
 
     // What this person is here to do, as three independent answers rather than
     // one label - because the three ways in compose. An expert who also holds
@@ -327,8 +294,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // nobody else's (page_data and page_history say the same in their RLS).
     const seesHistory   = isReviewStaff;
     window.currentUserSeesRevisions = seesRevisions;
-    window.currentUserSeesMedia = seesMedia;
-    window.currentUserSeesReports = seesReports;
     window.currentUsername = window.getDisplayName ? window.getDisplayName(session) : "Staff";
 
     // Scope the page down before anything loads, so nobody sees a queue flash
@@ -459,10 +424,6 @@ document.addEventListener('click', (event) => {
     const tab = event.target.closest('[data-queue-tab]');
     if (tab) window.showQueuePanel(tab.dataset.queueTab);
 });
-
-function kickUser() {
-    document.body.innerHTML = `<div class="access-denied-screen"><h1 class="access-denied-title">ACCESS DENIED</h1></div>`;
-}
 
 // Narrows the Overseer to the queues this person is actually here for.
 //

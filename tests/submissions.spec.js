@@ -107,9 +107,11 @@ test('submissions.html: withdraw scopes the update to the current user and the s
     if (confirmBtn) confirmBtn.click();
     await withdrawPromise.catch(() => {});
 
-    return { capturedPayload, capturedEqCalls };
+    return { capturedPayload, capturedEqCalls, boxesLeft: document.querySelectorAll('#submissions-confirm-ok').length };
   });
 
+  // Each question builds its own box, so an answered one has to go.
+  expect(result.boxesLeft).toBe(0);
   expect(result.capturedPayload).toEqual({ status: 'withdrawn' });
   expect(result.capturedEqCalls).toContainEqual(['id', 'rev-123']);
   expect(result.capturedEqCalls).toContainEqual(['author_id', 'me']);

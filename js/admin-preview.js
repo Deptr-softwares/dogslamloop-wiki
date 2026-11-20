@@ -343,7 +343,7 @@ async function switchVersionView(mode) {
         const renderLocation = (crumbs) => {
             const parts = crumbs
                 .filter(Boolean)
-                .map(s => (window.escapeHtml ? window.escapeHtml(String(s)) : String(s)));
+                .map(s => window.escapeHtml(s));
             if (!parts.length) return;
             diffContainer.innerHTML += `<div class="diff-location-label">`
                 + `<span class="diff-location-lead">Changed:</span> `
@@ -705,10 +705,9 @@ async function switchVersionView(mode) {
                 // poor diff; it is still infinitely better than a blank space,
                 // and the banner says plainly that this is the fallback.
                 else {
-                    const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s));
                     diffContainer.innerHTML += `<div class="diff-unknown-scope">`
                         + `This change is shown in its raw form because the review screen has no`
-                        + ` purpose-built view for "${esc(scope)}" yet. It is a real change and`
+                        + ` purpose-built view for "${window.escapeHtml(scope)}" yet. It is a real change and`
                         + ` it will be applied if you approve it.`
                         + `</div>`;
                     renderDiffBlock(formatScopeName(scope), null, payload, 'json');
@@ -730,10 +729,9 @@ async function switchVersionView(mode) {
                         renderDeltaDiff(edit.scope, edit.key, edit.payload);
                     } catch (err) {
                         console.error('[Diff] Edit', i + 1, 'failed to render:', err, edit);
-                        const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s));
                         diffContainer.innerHTML += `<div class="diff-location-label">`
                             + `Edit ${i + 1} of ${rev.delta_payload.length} could not be displayed`
-                            + ` (scope: ${esc(edit && edit.scope)}). It is still part of this ticket.`
+                            + ` (scope: ${window.escapeHtml(edit && edit.scope)}). It is still part of this ticket.`
                             + `</div>`;
                     }
                 });

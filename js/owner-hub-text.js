@@ -90,7 +90,7 @@ function renderSlotOptions() {
     const { hub, slot } = hubTextEls();
     const config = HUB_SLOTS[hub.value];
     slot.innerHTML = config.slots
-        .map(s => `<option value="${ownerEscape(s.id)}">${ownerEscape(s.label)}</option>`)
+        .map(s => `<option value="${window.escapeHtml(s.id)}">${window.escapeHtml(s.label)}</option>`)
         .join('');
 }
 
@@ -134,7 +134,7 @@ async function saveHubText() {
     btn.disabled = false;
 
     if (error) {
-        results.innerHTML = `<p class="admin-error-text">Could not save: ${ownerEscape(error.message)}</p>`;
+        results.innerHTML = `<p class="admin-error-text">Could not save: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 

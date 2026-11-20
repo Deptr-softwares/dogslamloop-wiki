@@ -1,10 +1,3 @@
-// --- EDITOR SYSTEM ---
-window.editorAlert = function(message) {
-    const modal = document.getElementById('editor-alert-modal');
-    document.getElementById('editor-alert-msg').textContent = message;
-    modal.classList.remove('hidden');
-};
-
 // --- MOBILE VIEW TOGGLE ---
 window.toggleMobilePreview = function() {
     const body = document.body;
@@ -1001,7 +994,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (useDraft) {
                         descData = parsedDraft.desc_data || baseCloudDesc;
                         frameData = parsedDraft.frame_data || baseCloudFrame;
-                        window.currentDraftKey = targetKey; 
                         console.log(`[Editor] Restored local draft: ${targetKey}`);
                     }
                 } catch (e) {
@@ -1625,66 +1617,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 });
-
-// --- CUSTOM MODAL ENGINE ---
-// cancelText is optional: most confirms are "do it or don't", but a choice
-// between two real actions needs both buttons named. The markup's own label is
-// kept and put back when no cancelText is given.
-//
-// altText adds a third button, for a choice between two actions that can
-// still be called off (+ STATE: start empty or copy the base kit). It
-// resolves 'alt', so a caller that never passes it only ever sees true/false.
-window.customConfirm = function(message, confirmText = "DELETE", isDanger = true, cancelText = null, altText = null) {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('editor-custom-modal');
-        const textEl = document.getElementById('editor-modal-text');
-        const btnCancel = document.getElementById('editor-modal-cancel');
-        const btnConfirm = document.getElementById('editor-modal-confirm');
-
-        if (btnCancel.dataset.defaultLabel === undefined) btnCancel.dataset.defaultLabel = btnCancel.textContent;
-        btnCancel.textContent = cancelText || btnCancel.dataset.defaultLabel;
-
-        // Made on first use, so neither page carrying this modal needs new
-        // markup for a button most of its confirms never show.
-        let btnAlt = document.getElementById('editor-modal-alt');
-        if (altText && !btnAlt) {
-            btnAlt = document.createElement('button');
-            btnAlt.type = 'button';
-            btnAlt.id = 'editor-modal-alt';
-            btnConfirm.before(btnAlt);
-        }
-        if (btnAlt) {
-            btnAlt.className = altText ? 'btn-sys btn-sys-blue' : 'btn-sys btn-sys-blue hidden';
-            btnAlt.textContent = altText || '';
-        }
-
-        textEl.textContent = message;
-        btnConfirm.textContent = confirmText;
-
-        if (isDanger) {
-            btnConfirm.className = "btn-sys btn-sys-red btn-danger-fill";
-        } else {
-            btnConfirm.className = "btn-sys btn-sys-blue";
-        }
-
-        modal.classList.remove('hidden');
-
-        const cleanup = () => {
-            modal.classList.add('hidden');
-            btnCancel.removeEventListener('click', onCancel);
-            btnConfirm.removeEventListener('click', onConfirm);
-            if (btnAlt) btnAlt.removeEventListener('click', onAlt);
-        };
-
-        const onCancel = () => { cleanup(); resolve(false); };
-        const onConfirm = () => { cleanup(); resolve(true); };
-        const onAlt = () => { cleanup(); resolve('alt'); };
-
-        btnCancel.addEventListener('click', onCancel);
-        btnConfirm.addEventListener('click', onConfirm);
-        if (btnAlt && altText) btnAlt.addEventListener('click', onAlt);
-    });
-};
 
 // True to carry on into the editor. The two reads and roleMeets are the submit
 // guard's own, so the warning and the refusal agree. A failed read carries on

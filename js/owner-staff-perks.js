@@ -2,7 +2,7 @@
  * Dogslamloop Wiki - Owner Tools: Staff Perks
  *
  * Split from owner.js for the same reason the other owner-*.js modules were,
- * and depends on it for ownerEscape and contentNotDeployedMessage.
+ * and depends on it for contentNotDeployedMessage.
  *
  * One switch so far: whether Trusted Editors, Reviewers and Admins skip the
  * 3-minute submission cooldown. The owner asked for a toggle rather than a
@@ -55,7 +55,7 @@ async function saveStaffPerk(enabled) {
         // database rejected is how someone ends up believing a limit is off
         // when it is on.
         if (box) box.checked = !enabled;
-        results.innerHTML = `<p class="admin-error-text">Could not save: ${ownerEscape(error.message)}</p>`;
+        results.innerHTML = `<p class="admin-error-text">Could not save: ${window.escapeHtml(error.message)}</p>`;
         return;
     }
 

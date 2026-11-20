@@ -56,7 +56,6 @@
 
     const BASE = () => window.BASE_MODE_ID || 'base';
     const isBase = (m) => (typeof window.isBaseMode === 'function' ? window.isBaseMode(m) : (!m || m === 'base'));
-    const esc = (s) => (window.escapeHtml ? window.escapeHtml(s) : String(s === null || s === undefined ? '' : s));
 
     // null, undefined and 'base' all name the same state.
     const sameState = (a, b) => ((isBase(a) && isBase(b)) || a === b);
@@ -76,13 +75,6 @@
         });
         return out;
     }
-    window.previewCharacterModes = previewModes;
-
-    function stateLabel(modeId) {
-        const hit = previewModes().find(m => sameState(m.id, modeId));
-        return (hit && hit.label) || (isBase(modeId) ? 'Base Kit' : String(modeId));
-    }
-    window.previewStateLabel = stateLabel;
 
     // The base kit is the top level minus the state buckets. Comparing the
     // whole object instead would report every state edit as a base edit too,
@@ -179,7 +171,7 @@
             const hasChanges = changed.some(id => sameState(id, m.id));
             return `<button type="button" role="tab" aria-selected="${on ? 'true' : 'false'}"` +
                 ` class="character-mode-chip${on ? ' active' : ''}${hasChanges ? ' tab-changed' : ''}"` +
-                ` data-mode-id="${esc(m.id)}">${esc(m.label)}</button>`;
+                ` data-mode-id="${window.escapeHtml(m.id)}">${window.escapeHtml(m.label)}</button>`;
         }).join('');
 
         wireModeBar(bar);
@@ -259,7 +251,7 @@
             const created = document.createElement('button');
             created.id = `nav-${ULTIMATE_TAB_ID}`;
             created.className = 'btn-manga btn-manga-slanted';
-            created.innerHTML = `<div class="btn-manga-content"><span class="btn-manga-text">${esc(ULTIMATE_TAB_LABEL)}</span></div>`;
+            created.innerHTML = `<div class="btn-manga-content"><span class="btn-manga-text">${window.escapeHtml(ULTIMATE_TAB_LABEL)}</span></div>`;
 
             const counterplayBtn = document.getElementById('nav-counterplay');
             if (counterplayBtn) counterplayBtn.insertAdjacentElement('afterend', created);

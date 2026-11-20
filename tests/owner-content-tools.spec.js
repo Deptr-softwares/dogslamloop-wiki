@@ -29,7 +29,7 @@ const TIER_LISTS = [
     { id: 'tl-2', slug: 'old', author_name: 'Retired', email: 'gone@site.test', blurb: null, status: 'archived', updated_at: '2026-08-01T00:00:00Z' },
 ];
 
-async function openOwner(page, group = 'content', { tierIntro = null } = {}) {
+async function openOwner(page, group = 'content', { tierIntro = null, tierLists = TIER_LISTS } = {}) {
     await page.addInitScript(({ faq, tierLists, tierIntro }) => {
         window.__writes = [];
         window.__rpcCalls = [];
@@ -97,7 +97,7 @@ async function openOwner(page, group = 'content', { tierIntro = null } = {}) {
                 }
             },
         });
-    }, { faq: FAQ, tierLists: TIER_LISTS, tierIntro });
+    }, { faq: FAQ, tierLists, tierIntro });
 
     await page.goto('/owner.html', { waitUntil: 'networkidle' });
 
@@ -170,6 +170,25 @@ test('a published list offers ARCHIVE and an archived one offers RESTORE', async
 
     await expect(rows.nth(0).locator('.tier-status-btn')).toHaveText('ARCHIVE');
     await expect(rows.nth(1).locator('.tier-status-btn')).toHaveText('RESTORE');
+});
+
+test('an author name or email in the list is never parsed as markup', async ({ page }) => {
+    // author_name is the person's own display name, so they choose it, and
+    // this table renders in the owner's session.
+    await openOwner(page, 'tierlists', { tierLists: [{
+        ...TIER_LISTS[0],
+        author_name: '<img src=x onerror="window.__pwned=1">MrT1',
+        email: '<b>bold</b>@site.test',
+    }] });
+    const roster = page.locator('#tier-assign-roster');
+    await expect(roster.locator('.personnel-row')).toHaveCount(1);
+    await expect(roster).toContainText('<img src=x onerror="window.__pwned=1">MrT1');
+    await expect(roster).toContainText('<b>bold</b>@site.test');
+    expect(await page.evaluate(() => ({
+        pwned: !!window.__pwned,
+        imgs: document.querySelectorAll('#tier-assign-roster img').length,
+        bolds: document.querySelectorAll('#tier-assign-roster b').length,
+    }))).toEqual({ pwned: false, imgs: 0, bolds: 0 });
 });
 
 test('archiving asks first and says nothing is deleted', async ({ page }) => {

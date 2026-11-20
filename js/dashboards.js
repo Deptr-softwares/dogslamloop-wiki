@@ -21,8 +21,6 @@
  *      what data/archived-pages.json and isEntryPointHidden exist for.
  */
 
-const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
-
 /**
  * "3 days ago" for anything recent, a plain date beyond that.
  *
@@ -56,7 +54,7 @@ const CHARACTER_SECTIONS = [
 ];
 
 function widgetError(container, message) {
-    container.innerHTML = `<p class="admin-error-text">${esc(message)}</p>`;
+    container.innerHTML = `<p class="admin-error-text">${window.escapeHtml(message)}</p>`;
 }
 
 /** page_id -> {name, url} for every live character, from navigation.json. */
@@ -136,13 +134,13 @@ window.buildNeedsWork = async function(containerId, limit = 6) {
             <ul class="needs-work-list">
                 ${shown.map(c => `
                     <li class="needs-work-row">
-                        <a href="${esc(c.url)}" class="needs-work-name">${esc(c.name)}</a>
+                        <a href="${window.escapeHtml(c.url)}" class="needs-work-name">${window.escapeHtml(c.name)}</a>
                         <span class="needs-work-missing">${
                             // A page can be flagged in progress with every
                             // section already written - the flag is a
                             // judgement, not a measurement.
                             c.missing.length > 0
-                                ? c.missing.map(m => esc(m.label)).join(', ')
+                                ? c.missing.map(m => window.escapeHtml(m.label)).join(', ')
                                 : 'in progress'
                         }</span>
                     </li>
@@ -200,8 +198,8 @@ window.buildRecentCharacterEdits = async function(containerId, limit = 6) {
             <ul class="recent-edit-list">
                 ${rows.map(r => `
                     <li class="recent-edit-row">
-                        <a href="${esc(r.url)}" class="recent-edit-name">${esc(r.name)}</a>
-                        <span class="recent-edit-meta">${esc(relativeDate(r.created_at))} &middot; ${esc(r.author_name || 'someone')}</span>
+                        <a href="${window.escapeHtml(r.url)}" class="recent-edit-name">${window.escapeHtml(r.name)}</a>
+                        <span class="recent-edit-meta">${window.escapeHtml(relativeDate(r.created_at))} &middot; ${window.escapeHtml(r.author_name || 'someone')}</span>
                     </li>
                 `).join('')}
             </ul>
@@ -252,9 +250,9 @@ window.buildTierSnapshot = async function(containerId) {
             if (names.length === 0) return '';
             return `
                 <div class="tier-snapshot-row">
-                    <span class="tier-snapshot-label" style="background-color: ${esc(tier.color || 'var(--bg-secondary)')};">${esc(tier.name)}</span>
+                    <span class="tier-snapshot-label" style="background-color: ${window.escapeHtml(tier.color || 'var(--bg-secondary)')};">${window.escapeHtml(tier.name)}</span>
                     <div class="tier-snapshot-names">
-                        ${names.map(c => `<a href="${esc(c.url)}" class="tier-snapshot-name">${esc(c.name)}</a>`).join('')}
+                        ${names.map(c => `<a href="${window.escapeHtml(c.url)}" class="tier-snapshot-name">${window.escapeHtml(c.name)}</a>`).join('')}
                     </div>
                 </div>
             `;
@@ -294,8 +292,8 @@ window.buildWikiStats = async function(containerId) {
             <div class="wiki-stats-grid">
                 ${stats.map(s => `
                     <div class="wiki-stat">
-                        <span class="wiki-stat-value">${esc(s.value)}</span>
-                        <span class="wiki-stat-label">${esc(s.label)}</span>
+                        <span class="wiki-stat-value">${window.escapeHtml(s.value)}</span>
+                        <span class="wiki-stat-label">${window.escapeHtml(s.label)}</span>
                     </div>
                 `).join('')}
             </div>
@@ -350,8 +348,8 @@ window.buildTerminologyPeek = async function(sectionId, containerId, limit = 6) 
             <dl class="glossary-list">
                 ${terms.map(t => `
                     <div class="glossary-row">
-                        <dt class="glossary-term wiki-text">${esc(t.term)}</dt>
-                        <dd class="glossary-def wiki-text">${esc(t.definition)}</dd>
+                        <dt class="glossary-term wiki-text">${window.escapeHtml(t.term)}</dt>
+                        <dd class="glossary-def wiki-text">${window.escapeHtml(t.definition)}</dd>
                     </div>
                 `).join('')}
             </dl>
@@ -546,8 +544,8 @@ window.buildMatchupTable = async function (sectionId, containerId) {
         clashes.sort((x, y) => (y.gap - x.gap) || (x.order - y.order));
 
         const head = roster.map(c =>
-            '<th class="matchup-grid-col" scope="col" title="' + esc(c.name) + '">'
-            + esc(abbrev(c.name)) + '</th>').join('');
+            '<th class="matchup-grid-col" scope="col" title="' + window.escapeHtml(c.name) + '">'
+            + window.escapeHtml(abbrev(c.name)) + '</th>').join('');
 
         const body = roster.map(rowChar => {
             const rowClashes = clashOf.get(rowChar.name);
@@ -558,38 +556,38 @@ window.buildMatchupTable = async function (sectionId, containerId) {
                 const raw = ratingOf(rowChar.name, colChar.name);
                 if (raw === undefined) {
                     return '<td class="matchup-grid-cell is-blank" title="'
-                        + esc(rowChar.name) + ' vs ' + esc(colChar.name) + ': not rated"></td>';
+                        + window.escapeHtml(rowChar.name) + ' vs ' + window.escapeHtml(colChar.name) + ': not rated"></td>';
                 }
 
                 const tier = window.resolveMatchupTier(raw);
                 const href = matchupHref(rowChar, colChar);
-                const label = esc(rowChar.name) + ' vs ' + esc(colChar.name) + ': ' + esc(tier.id);
+                const label = window.escapeHtml(rowChar.name) + ' vs ' + window.escapeHtml(colChar.name) + ': ' + window.escapeHtml(tier.id);
 
                 // A clashing cell names the other page's rating as well, so it
                 // says what it disagrees with without opening the list. A new
                 // line in the tooltip, a full stop for a screen reader.
                 const other = rowClashes ? rowClashes.get(colChar.name) : undefined;
                 const clash = other
-                    ? 'Clash: ' + esc(colChar.name) + ' vs ' + esc(rowChar.name) + ' is ' + esc(other.id)
+                    ? 'Clash: ' + window.escapeHtml(colChar.name) + ' vs ' + window.escapeHtml(rowChar.name) + ' is ' + window.escapeHtml(other.id)
                     : '';
 
                 return '<td class="matchup-grid-cell">'
-                    + '<a class="matchup-grid-link' + (clash ? ' is-clash' : '') + '" href="' + esc(href) + '"'
-                    + ' style="background:' + esc(tier.color) + '"'
+                    + '<a class="matchup-grid-link' + (clash ? ' is-clash' : '') + '" href="' + window.escapeHtml(href) + '"'
+                    + ' style="background:' + window.escapeHtml(tier.color) + '"'
                     + ' title="' + label + (clash ? '&#10;' + clash : '') + '">'
                     + '<span class="sr-only">' + label + (clash ? '. ' + clash : '') + '</span></a></td>';
             }).join('');
 
             return '<tr><th class="matchup-grid-row" scope="row" style="color:'
-                + esc(colour(rowChar.name)) + '">'
-                + '<a href="' + esc(rootPath + rowChar.url) + '?tab=matchups">'
-                + esc(rowChar.name) + '</a></th>' + cells + '</tr>';
+                + window.escapeHtml(colour(rowChar.name)) + '">'
+                + '<a href="' + window.escapeHtml(rootPath + rowChar.url) + '?tab=matchups">'
+                + window.escapeHtml(rowChar.name) + '</a></th>' + cells + '</tr>';
         }).join('');
 
         const legend = window.MATCHUP_TIERS.map(t =>
             '<span class="matchup-legend-item">'
-            + '<span class="matchup-legend-swatch" style="background:' + esc(t.color) + '"></span>'
-            + esc(t.id) + '</span>').join('')
+            + '<span class="matchup-legend-swatch" style="background:' + window.escapeHtml(t.color) + '"></span>'
+            + window.escapeHtml(t.id) + '</span>').join('')
             + (clashes.length
                 ? '<span class="matchup-legend-item"><span class="matchup-legend-swatch is-clash"></span>Clash</span>'
                 : '');
@@ -601,10 +599,10 @@ window.buildMatchupTable = async function (sectionId, containerId) {
         // production data and the grid is what the section is for. Absent
         // entirely when there are none.
         const side = (rowChar, colChar, tier) =>
-            '<a href="' + esc(matchupHref(rowChar, colChar)) + '">'
-            + esc(rowChar.name) + ' vs ' + esc(colChar.name) + '</a> is '
-            + '<span class="matchup-clash-tier" style="color:' + esc(tier.color) + '">'
-            + esc(tier.id) + '</span>';
+            '<a href="' + window.escapeHtml(matchupHref(rowChar, colChar)) + '">'
+            + window.escapeHtml(rowChar.name) + ' vs ' + window.escapeHtml(colChar.name) + '</a> is '
+            + '<span class="matchup-clash-tier" style="color:' + window.escapeHtml(tier.color) + '">'
+            + window.escapeHtml(tier.id) + '</span>';
         const notices = clashes.length
             ? '<details class="matchup-clashes"><summary>Clashes (' + clashes.length + ')</summary>'
                 + '<p class="matchup-grid-caption">Clash: the two character pages don\'t mirror each'

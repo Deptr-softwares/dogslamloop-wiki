@@ -298,23 +298,6 @@ test('Ko-fi goes where the page\'s own Ko-fi button goes', async ({ browser }) =
   await context.close();
 });
 
-test('the edit button sits above the bar, not under it', async ({ browser }) => {
-  const { context, page } = await openBoomcat(browser, PHONE);
-  await page.evaluate(() => {
-    const fab = document.createElement('a');
-    fab.className = 'mobile-edit-fab';
-    document.body.appendChild(fab);
-  });
-
-  const clear = await page.evaluate(() => {
-    const fab = document.querySelector('.mobile-edit-fab').getBoundingClientRect();
-    const bar = document.getElementById('mobile-bottom-bar').getBoundingClientRect();
-    return bar.top - fab.bottom;
-  });
-  expect(clear).toBeGreaterThan(4);
-  await context.close();
-});
-
 test('a signed-in reader sees Account, not Login', async ({ browser }) => {
   const { context, page } = await openBoomcat(browser, PHONE, (page) => page.addInitScript(() => {
     Object.defineProperty(window, 'supabase', {

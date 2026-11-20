@@ -217,8 +217,7 @@ test('the border is thicker than the shared card border, and so is the hover sha
   const card = page.locator('.roster-card.has-icon').first();
 
   const border = await card.evaluate(el => parseFloat(getComputedStyle(el).borderTopWidth));
-  // The shared `.roster-card, .tier-char-card, .image-card-container` rule sets
-  // 2px. The claim here is only "thicker than that", never a specific value:
+  // The shared `.roster-card, .image-card-container` rule sets 2px. The claim here is only "thicker than that", never a specific value:
   // the owner is tuning this by eye (5px, then 3.5px on 2026-08-24) and a test
   // that pins the number turns red on a taste decision, which teaches everyone
   // to stop trusting it. A value below 2 is not taste - it means the override
@@ -226,17 +225,17 @@ test('the border is thicker than the shared card border, and so is the hover sha
   expect(border, 'roster cards carry a thicker border than the shared 2px')
     .toBeGreaterThan(2);
 
-  // And .tier-char-card must NOT have been dragged along with it - the width
-  // is set on .roster-card alone, precisely so its two co-tenants keep theirs.
-  const tierBorder = await page.evaluate(() => {
+  // And .image-card-container must NOT have been dragged along with it - the
+  // width is set on .roster-card alone, precisely so its co-tenant keeps its own.
+  const imageBorder = await page.evaluate(() => {
     const probe = document.createElement('div');
-    probe.className = 'tier-char-card';
+    probe.className = 'image-card-container';
     document.body.appendChild(probe);
     const w = parseFloat(getComputedStyle(probe).borderTopWidth);
     probe.remove();
     return w;
   });
-  expect(tierBorder, '.tier-char-card keeps the shared 2px border').toBe(2);
+  expect(imageBorder, '.image-card-container keeps the shared 2px border').toBe(2);
 
   await card.hover();
   await page.waitForTimeout(300);

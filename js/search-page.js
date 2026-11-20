@@ -29,11 +29,6 @@
     let fulltext = null;
     let fulltextFields = null;
 
-    const esc = (v) => (typeof window.escapeHtml === 'function'
-        ? window.escapeHtml(v)
-        : String(v == null ? '' : v).replace(/[&<>"']/g, c =>
-            ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])));
-
     async function loadFulltext() {
         if (fulltext) return fulltext;
         const rootPath = window.getRootPath ? window.getRootPath() : './';
@@ -93,7 +88,7 @@
             // one inside a longer word. Deliberately simple: the alternative is
             // a real relevance model, and with 595 sections a plain ordering
             // that the reader can predict beats one they cannot.
-            const wholeWord = new RegExp(`\\b${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(text.toLowerCase());
+            const wholeWord = new RegExp(`\\b${window.escapeRegExp(query)}\\b`).test(text.toLowerCase());
             out.push({
                 score: (wholeWord ? 40 : 0) - Math.min(at, 400) * 0.05,
                 section: row[F.section],
@@ -141,10 +136,10 @@
             <ul class="search-page-list">
                 ${structural.map(r => `
                     <li class="search-page-hit">
-                        <a class="search-page-hit-link" href="${esc(rootPath + r.url)}">${esc(r.name)}</a>
+                        <a class="search-page-hit-link" href="${window.escapeHtml(rootPath + r.url)}">${window.escapeHtml(r.name)}</a>
                         <span class="search-page-hit-where">${r.kind === 'page'
-                            ? esc(r.type || 'page')
-                            : `${esc(r.pageName)} &middot; ${esc(r.tabLabel || r.tab)}`}</span>
+                            ? window.escapeHtml(r.type || 'page')
+                            : `${window.escapeHtml(r.pageName)} &middot; ${window.escapeHtml(r.tabLabel || r.tab)}`}</span>
                     </li>`).join('')}
             </ul>` : '';
 
@@ -153,9 +148,9 @@
             <ul class="search-page-list">
                 ${prose.map(r => `
                     <li class="search-page-hit">
-                        <a class="search-page-hit-link" href="${esc(rootPath + r.url)}">${esc(r.section)}</a>
-                        <span class="search-page-hit-where">${esc(r.pageName)} &middot; ${esc(r.tabLabel)}</span>
-                        <p class="search-page-snippet">${esc(r.snippet.before)}<mark>${esc(r.snippet.match)}</mark>${esc(r.snippet.after)}</p>
+                        <a class="search-page-hit-link" href="${window.escapeHtml(rootPath + r.url)}">${window.escapeHtml(r.section)}</a>
+                        <span class="search-page-hit-where">${window.escapeHtml(r.pageName)} &middot; ${window.escapeHtml(r.tabLabel)}</span>
+                        <p class="search-page-snippet">${window.escapeHtml(r.snippet.before)}<mark>${window.escapeHtml(r.snippet.match)}</mark>${window.escapeHtml(r.snippet.after)}</p>
                     </li>`).join('')}
             </ul>` : '';
 
