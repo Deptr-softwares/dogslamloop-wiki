@@ -378,3 +378,87 @@ test('on a phone the two versions stack, live above the submission, with nothing
     await expect(page.locator('.sbs-spacer')).toHaveCount(0);
     await expect(left(page).locator('.sbs-head-left')).toBeVisible();
 });
+
+test('a Micro Variant only one side has leaves both tab bars level, the same size, and still', async ({ page }) => {
+    // Live: four stats and two variants. The submission: three stats, and a
+    // variant between the two. Until 2026-11-21 the levelling pushed each
+    // paired button down inside its row on its own: the row grew, the new
+    // button stretched to fill it, and the buttons' `transition: all`
+    // animated each margin, so the levelling ran again mid-animation every
+    // frame and the tabs never stopped moving (owner's Salaryman report).
+    const stats = (...pairs) => pairs.map(([label, value]) => ({ label, value }));
+    const liveMove = { ...move('16', 'Hold for 1s'), stats: stats(['Damage', '16'], ['Cooldown', '16s'], ['Blockbreak?', 'Yes'], ['Hit Ragdoll?', 'No']) };
+    const pendingMove = {
+        ...liveMove,
+        stats: stats(['Damage', '16'], ['Cooldown', '16s'], ['Distance', '25 Studs']),
+        variants: { std: liveMove.variants.std, blk: leaf('On Block', 'Blocked', 16), chg: liveMove.variants.chg },
+    };
+    await openOverseer(page, {
+        rows: [rev({ target_scope: 'move', target_key: 'skills::m-1', delta_payload: { frame_data: pendingMove, desc_data: [] } })],
+        frame: liveFrame({ skills: [liveMove] }),
+    });
+    await reviewFirst(page);
+    await expect(right(page).locator('.skill-tab-bar > button')).toHaveCount(3);
+
+    const read = () => page.evaluate(() => ['left', 'right'].map(side =>
+        [...document.querySelectorAll(`.sbs-col-${side} .skill-tab-bar > button`)].map(b => {
+            const box = b.getBoundingClientRect();
+            return { text: b.textContent.trim(), top: Math.round(box.top), height: Math.round(box.height), margin: b.style.marginTop };
+        })));
+    const settled = await read();
+    for (let i = 0; i < 6; i++) {
+        await page.waitForTimeout(80);
+        expect(await read(), 'the tabs stay where the levelling put them').toEqual(settled);
+    }
+
+    const [l, r] = settled;
+    expect(r.map(b => b.text)).toEqual(['Standard', 'On Block', 'Charged']);
+    expect(Math.abs(l[0].top - r[0].top), 'each tab beside its twin').toBeLessThanOrEqual(1);
+    expect(Math.abs(l[1].top - r[2].top)).toBeLessThanOrEqual(1);
+    expect(r[1].height, 'the new tab is the size of its neighbours').toBe(r[0].height);
+    expect([...l, ...r].map(b => b.margin), 'no tab is pushed on its own').toEqual(['', '', '', '', '']);
+});
+
+test('the levelling moves a grid row as one, and nothing it pushes animates', async ({ page }) => {
+    // Straight at the levelling, with content of its own: one side has a
+    // line the other does not, above a twin with `transition: all` in a
+    // column (pushed by a margin, which must not animate, or the levelling
+    // chases it every frame), and above twins in a two-column grid (which
+    // must move as one row, not item by item).
+    await page.goto('/admin.html', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => window.SideBySide);
+    const out = await page.evaluate(async () => {
+        const side = (extra) => {
+            const root = document.createElement('div');
+            root.innerHTML = `
+                <div style="display: flex; flex-direction: column;">
+                    ${extra ? '<p style="margin: 0; height: 40px;">Only on this side</p>' : ''}
+                    <div class="twin-col" style="height: 30px; transition: all 0.3s;">Twin</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr;">
+                    ${extra ? '<p style="margin: 0; height: 40px; grid-column: 1 / -1;">Only here too</p>' : ''}
+                    <div class="twin-grid" style="height: 30px;">A</div>
+                    <div class="twin-grid" style="height: 30px;">B</div>
+                </div>`;
+            return root;
+        };
+        const host = document.createElement('div');
+        document.body.prepend(host);
+        window.SideBySide.mount(host, side(true), side(false));
+        const read = () => [...host.querySelectorAll('.twin-col, .twin-grid')].map(el => {
+            const box = el.getBoundingClientRect();
+            return `${Math.round(box.top)}/${Math.round(box.height)}/${el.style.marginTop || '-'}`;
+        }).join(' ');
+        const samples = [];
+        for (let i = 0; i < 8; i++) { samples.push(read()); await new Promise(r => setTimeout(r, 60)); }
+        const tops = (cls) => [...host.querySelectorAll(cls)].map(el => Math.round(el.getBoundingClientRect().top));
+        return { samples, col: tops('.twin-col'), grid: tops('.twin-grid'), gridMargins: [...host.querySelectorAll('.twin-grid')].map(el => el.style.marginTop) };
+    });
+
+    expect(new Set(out.samples).size, 'everything stops where it was put').toBe(1);
+    expect(Math.abs(out.col[0] - out.col[1]), 'the column twins are level').toBeLessThanOrEqual(1);
+    // Left A, left B, right A, right B: the rows level, and neither item pushed on its own.
+    expect(Math.abs(out.grid[0] - out.grid[2])).toBeLessThanOrEqual(1);
+    expect(out.grid[2], 'a grid row keeps its items side by side').toBe(out.grid[3]);
+    expect(out.gridMargins).toEqual(['', '', '', '']);
+});

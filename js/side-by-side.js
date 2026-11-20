@@ -24,8 +24,9 @@
  *      whose words match but whose picture changed (a clip, a colour, a
  *      Frame Track bar), outlined on both sides.
  *   4. The higher unit of each pair is pushed down until the two are level,
- *      so a change sits beside what it replaces. The gap left opposite a unit
- *      only one side has is the labelled slot ("Not on the live page").
+ *      so a change sits beside what it replaces. A unit standing in a row
+ *      moves with its row. The gap left opposite a unit only one side has is
+ *      the labelled slot ("Not on the live page").
  *
  * Text is never re-rendered here. Changed words are wrapped where they stand,
  * in elements this file creates, so nothing a contributor wrote goes through
@@ -437,30 +438,55 @@
             const stacked = window.matchMedia(STACK_QUERY);
             const topOf = (el) => el.getBoundingClientRect().top;
 
+            // Side by side rather than one above the other: a flex row, or a
+            // grid of more than one column.
+            const isRow = (el) => {
+                const c = cs(el);
+                if (/flex/.test(c.display)) return !c.flexDirection.startsWith('column');
+                if (/grid/.test(c.display)) return c.gridTemplateColumns.trim().split(/\s+/).length > 1;
+                return false;
+            };
+            // What moves to level a unit: the unit, or the row it stands in.
+            // Pushing one item of a row down makes the whole row taller and
+            // stretches the items beside it (a Micro Variant's tab bar,
+            // 2026-11-21). The row moves as one instead, so the next pair in
+            // the same two rows is usually level already.
+            const moverOf = (el) => {
+                while (el.parentElement !== left && el.parentElement !== right && isRow(el.parentElement)) el = el.parentElement;
+                return el;
+            };
+
             function clear() {
                 cols.querySelectorAll('.sbs-spacer').forEach(sp => sp.remove());
                 saved.forEach((margin, el) => { el.style.marginTop = margin; });
                 saved.clear();
             }
 
-            // Pushes `el` down by `by` pixels: a spacer before it in ordinary
-            // flow, or a larger top margin where a new element would become a
-            // flex item or a grid cell. Then corrects for margins that
-            // collapsed differently once the spacer was there.
-            function push(el, by, twin, slotText) {
+            // Pushes `unit` down by `by` pixels, by moving it or its row
+            // (moverOf): a spacer before that in ordinary flow, or a larger top
+            // margin where a new element would become a flex item or a grid
+            // cell. Then corrects for margins that collapsed differently once
+            // the spacer was there.
+            function push(unit, by, twin, slotText) {
+                const el = moverOf(unit);
                 const parent = el.parentElement;
                 const display = cs(parent).display;
                 if (/flex|grid/.test(display)) {
                     if (!saved.has(el)) saved.set(el, el.style.marginTop);
+                    // At once, and for good: a margin that animates (many
+                    // things here have `transition: all`) is still moving
+                    // after it was measured, so the observer below would
+                    // level again, mid-animation, every frame.
+                    el.style.transition = 'none';
                     const base = parseFloat(cs(el).marginTop) || 0;
                     el.style.marginTop = `${base + by}px`;
-                    const off = topOf(twin) - topOf(el);
+                    const off = topOf(twin) - topOf(unit);
                     if (Math.abs(off) >= 1) el.style.marginTop = `${Math.max(0, base + by + off)}px`;
                     return;
                 }
                 const sp = makeSpacer(parent, by, slotText);
                 parent.insertBefore(sp, el);
-                const off = topOf(twin) - topOf(el);
+                const off = topOf(twin) - topOf(unit);
                 if (Math.abs(off) >= 1) sp.style.height = `${Math.max(0, by + off)}px`;
             }
 
