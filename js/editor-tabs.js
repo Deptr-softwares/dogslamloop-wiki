@@ -1017,10 +1017,17 @@ window.renderDocumentCardsPanel = function (tabId, groupIdx) {
 
 // The block buffer belongs to the open card's write-up. Only ever written back
 // on a switch or a sync, same as every other block surface.
+//
+// The buffer is currentStrategyBlocks, the write-up's own list. Not
+// getActiveBlocks(): inside a Section Box or a Dropdown that is the box's list,
+// so a sync saved the box's blocks as the whole card and the preview showed
+// only those, and switching away from inside the box lost the rest for good
+// (reported by an editor, 2026-11-20). The same goes for the three other
+// write-backs in this file: the introduction, a keyed entry and a matchup.
 function flushDocumentCard(tabId, groupIdx) {
     const doc = docSections(tabId);
     const idx = window.currentDocCardIndex;
-    if (!doc || !doc.groups || idx === undefined || typeof window.getActiveBlocks !== 'function') return;
+    if (!doc || !doc.groups || idx === undefined || typeof currentStrategyBlocks === 'undefined') return;
     const group = (window.currentEditorDescData[doc.groups.field] || [])[groupIdx];
     const card = group && Array.isArray(group.content) ? group.content[idx] : null;
     // Back into the SECTION on screen when the card is in Multiple Sections
@@ -1030,7 +1037,7 @@ function flushDocumentCard(tabId, groupIdx) {
     const dest = (card && typeof window.editorCardFieldTarget === 'function')
         ? window.editorCardFieldTarget(card)
         : card;
-    if (dest) dest.content = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+    if (dest) dest.content = JSON.parse(JSON.stringify(currentStrategyBlocks));
 }
 window.flushDocumentCard = flushDocumentCard;
 
@@ -1292,9 +1299,10 @@ function flushDocumentSection() {
     const tabId = window.currentEditorTabId;
     const doc = docSections(tabId);
     if (!open || open === 'list' || !doc || !window.currentEditorDescData) return;
-    if (typeof window.getActiveBlocks !== 'function') return;
+    if (typeof currentStrategyBlocks === 'undefined') return;
 
-    const blocks = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+    // The whole buffer, not getActiveBlocks(): see flushDocumentCard.
+    const blocks = JSON.parse(JSON.stringify(currentStrategyBlocks));
     if (open === 'intro') {
         window.currentEditorDescData[doc.intro.field] = blocks;
         return;
@@ -1660,8 +1668,9 @@ window.loadKeyedEntryIntoEditor = function(tabId, idx) {
     const list = window.currentEditorDescData[section.field] || [];
 
     // Flush the entry being left before switching away, or its blocks are lost.
+    // The whole buffer, not getActiveBlocks(): see flushDocumentCard.
     if (open !== undefined && list[open]) {
-        list[open].content = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+        list[open].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
     }
 
     document.querySelectorAll(`[id^="${section.tab}-nav-"]`).forEach(btn => btn.classList.remove('active'));
@@ -1724,7 +1733,8 @@ window.loadKeyedEntryIntoEditor = function(tabId, idx) {
 // --- MOVES ---
 window.loadMatchupIntoEditor = function(idx) {
     if (window.currentMatchupIndex !== undefined && window.currentEditorDescData && window.currentEditorDescData.matchups[window.currentMatchupIndex]) {
-        window.currentEditorDescData.matchups[window.currentMatchupIndex].content = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+        // The whole buffer, not getActiveBlocks(): see flushDocumentCard.
+        window.currentEditorDescData.matchups[window.currentMatchupIndex].content = JSON.parse(JSON.stringify(currentStrategyBlocks));
     }
 
     document.querySelectorAll('[id^="matchup-nav-"]').forEach(btn => btn.classList.remove('active'));
