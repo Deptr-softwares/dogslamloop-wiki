@@ -254,7 +254,7 @@ async function renderSystemScope(page, scope, key, payload, live) {
     window.changedTabs = [];
 
     let err = '';
-    try { await switchVersionView('diff'); } catch (e) { err = String(e.message || e); }
+    try { await switchVersionView('list'); } catch (e) { err = String(e.message || e); }
     await new Promise(r => setTimeout(r, 250));
 
     calculateTabDiffs(rev, false);

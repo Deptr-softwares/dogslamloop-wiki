@@ -38,6 +38,7 @@ async function render(page, rows, { pageFilter = 'all', statusFilter = 'all' } =
         document.body.innerHTML = `
             <select id="queue-filter-page"><option value="all">All pages</option></select>
             <select id="queue-filter-status"><option value="all">Pending and tickets</option></select>
+            <span data-queue-count="revisions"></span>
             <div id="queue-container"></div>`;
         window.currentQueueData = rows;
         populateQueuePageFilter(rows);
@@ -58,6 +59,7 @@ async function render(page, rows, { pageFilter = 'all', statusFilter = 'all' } =
             summary: (container.querySelector('.queue-summary') || {}).textContent || '',
             mergeButtons: [...container.querySelectorAll('.admin-merge-btn')].map(b => b.textContent.trim()),
             pageOptions: [...document.querySelectorAll('#queue-filter-page option')].map(o => o.value),
+            tabCount: document.querySelector('[data-queue-count="revisions"]').textContent,
         };
     }, { rows, pageFilter, statusFilter });
 }
@@ -98,6 +100,19 @@ test('filtering by status shows only that status', async ({ page }) => {
     expect(out.cards).toBe(1);
     expect(out.html).toContain('TICKET OPEN');
     expect(out.summary).toBe('1 of 2 waiting');
+});
+
+test('the Pending Queue tab counts everything waiting, not what a filter shows', async ({ page }) => {
+    // The tabs are v1.2 (the owner's Overseer card). The count is what is
+    // waiting, so narrowing the list to one page does not make it smaller.
+    const out = await render(page, [
+        rev({ id: 'a', page_id: 'boomcat' }),
+        rev({ id: 'b', page_id: 'sukuna' }),
+        rev({ id: 'c', page_id: 'boomcat', status: 'ticket_open' }),
+    ], { pageFilter: 'sukuna' });
+
+    expect(out.cards).toBe(1);
+    expect(out.tabCount).toBe('3');
 });
 
 test('the two filters intersect rather than replace each other', async ({ page }) => {

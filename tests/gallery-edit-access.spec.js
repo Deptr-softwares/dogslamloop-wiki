@@ -17,6 +17,15 @@ const path = require('path');
 
 const GALLERY = '/others/emotes/index.html';
 
+// The live Emotes page downloads every emote video before the network goes
+// idle, and these tests wait for idle: 17 to 23s of the 30s timeout in CI
+// (2026-11-18), more with every emote uploaded. This spec is in the content
+// gate, so an upload could stop the nightly regeneration. No test here looks
+// at a video, so none is fetched, wherever it is hosted.
+test.beforeEach(async ({ page }) => {
+    await page.route('**/*', route => route.request().resourceType() === 'media' ? route.abort() : route.fallback());
+});
+
 test('a gallery page offers an edit button', async ({ page }) => {
     await page.goto(GALLERY, { waitUntil: 'networkidle' });
 

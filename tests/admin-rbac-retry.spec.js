@@ -70,6 +70,16 @@ async function mockAuth(page, { sessionFailWindowMs = 0, roleResults }) {
               return origFrom(table);
             };
 
+            // A user below review staff is asked which pages they are an
+            // expert on, and that lookup is not what this file tests. Left
+            // real, it went to production, so a denial waited on a live round
+            // trip (535ms here) and missed its 600ms bound in CI. No pages, as
+            // for anyone with no expert row; every other call is left alone.
+            const origRpc = client.rpc.bind(client);
+            client.rpc = (name, params) => name === 'get_user_expert_pages'
+              ? Promise.resolve({ data: [], error: null })
+              : origRpc(name, params);
+
             return client;
           };
           lib.__patched = true;

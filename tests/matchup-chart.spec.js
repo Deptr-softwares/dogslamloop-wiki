@@ -43,10 +43,13 @@ const MATCHUPS = [
     { page_id: 'honored_one', matchups: [] },
 ];
 
-async function mockHub(page, { roster = ROSTER, matchups = MATCHUPS, fail = false } = {}) {
+async function mockHub(page, { roster = ROSTER, matchups = MATCHUPS, fail = false, peek = null, peekDelay = 0, matchupDelay = 0 } = {}) {
     await page.route('**/data/navigation.json*', route => route.fulfill({ json: roster }));
 
-    await page.addInitScript(({ matchups, fail }) => {
+    await page.addInitScript(({ matchups, fail, peek, peekDelay, matchupDelay }) => {
+        // When each widget's query went out and came back, for the test that
+        // checks they run together.
+        window.__hubTimes = {};
         Object.defineProperty(window, 'supabase', {
             configurable: true,
             get() { return window.__lib; },
@@ -64,14 +67,25 @@ async function mockHub(page, { roster = ROSTER, matchups = MATCHUPS, fail = fals
                                 ? { data: null, error: { message: 'the database said no' } }
                                 : { data: matchups, error: null };
                             const chain = {
-                                select() { return chain; },
+                                select(columns) {
+                                    if (/matchups/.test(columns)) window.__hubTimes.matchupAsked = performance.now();
+                                    return chain;
+                                },
                                 eq() { return chain; },
                                 // buildMatchupTable awaits the chain straight
                                 // after .select(); the terminology peek beside
                                 // it calls .maybeSingle(). Both are supported so
                                 // this mock does not break the other widget.
-                                maybeSingle: async () => ({ data: null, error: null }),
-                                then(resolve, reject) { return Promise.resolve(result).then(resolve, reject); },
+                                maybeSingle: async () => {
+                                    window.__hubTimes.peekAsked = performance.now();
+                                    if (peekDelay) await new Promise(r => setTimeout(r, peekDelay));
+                                    window.__hubTimes.peekAnswered = performance.now();
+                                    return { data: peek ? { desc_data: peek } : null, error: null };
+                                },
+                                then(resolve, reject) {
+                                    const answer = matchupDelay ? new Promise(r => setTimeout(() => r(result), matchupDelay)) : Promise.resolve(result);
+                                    return answer.then(resolve, reject);
+                                },
                             };
                             return chain;
                         };
@@ -81,10 +95,36 @@ async function mockHub(page, { roster = ROSTER, matchups = MATCHUPS, fail = fals
                 }
             },
         });
-    }, { matchups, fail });
+    }, { matchups, fail, peek, peekDelay, matchupDelay });
 }
 
 const grid = page => page.locator('#matchup-grid .matchup-grid');
+
+// The Terminologies page in the shape the peek reads: a heading, then the
+// paragraph that defines it.
+const GLOSSARY = { tabs: [{ sections: [{ blocks: [
+    { type: 'heading', content: 'Neutral' },
+    { type: 'paragraph', content: 'The part of a round where neither player has the advantage.' },
+] }] }] };
+
+test('the chart is asked for while the glossary peek is still loading', async ({ page }) => {
+    // v1.2, the owner's performance card. The chart's query used to go out
+    // only after the peek's answer came back: one whole trip to the database
+    // (Frankfurt) more, about 0.4 to 0.7s.
+    await mockHub(page, { peek: GLOSSARY, peekDelay: 1500 });
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    await expect(page.locator('#glossary-section')).toBeVisible();
+    await expect(grid(page)).toBeVisible();
+
+    const t = await page.evaluate(() => window.__hubTimes);
+    expect(t.matchupAsked, 'the chart was asked for').toBeGreaterThan(0);
+    expect(t.matchupAsked, 'before the peek had its answer').toBeLessThan(t.peekAnswered);
+
+    // Not asserted: that the contents list is built after both. It lists both
+    // sections whether or not they are showing (refreshTOC skips only the
+    // .hidden class), so the order cannot be seen from the page.
+});
 
 test('the chart renders a cell per pairing, coloured by tier', async ({ page }) => {
     const errors = [];
@@ -186,6 +226,25 @@ test('the section stays hidden when nothing is rated at all', async ({ page }) =
     await expect(page.locator('#matchup-section')).toBeHidden();
 });
 
+test('a section that stays hidden is left out of the table of contents', async ({ page }) => {
+    // Found in v1.2 (the performance card): refreshTOC skipped only the
+    // .hidden class, and these two sections hide with the attribute, so the
+    // contents listed Terminology and Matchup Chart while the page hid them:
+    // two links that scrolled nowhere. Nothing rated and no glossary here, so
+    // both stay hidden.
+    await mockHub(page, { matchups: [{ page_id: 'boomcat', matchups: [] }] });
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+    await expect(page.locator('#matchup-section')).toBeHidden();
+    await expect(page.locator('#glossary-section')).toBeHidden();
+
+    // The real contents builder, run on the page as it settled.
+    await page.evaluate(() => window.refreshTOC());
+    const toc = page.locator('#dynamic-toc');
+    await expect(toc.locator('a').first(), 'the rest of the hub is still listed').toBeAttached();
+    await expect(toc).not.toContainText('Matchup Chart');
+    await expect(toc).not.toContainText('Terminology');
+});
+
 test('a failure explains itself rather than rendering an empty box', async ({ page }) => {
     // Rule 2 in js/dashboards.js's header. Deliberately UNLIKE the terminology
     // peek, which hides on failure: that is a sample of something one click
@@ -225,6 +284,17 @@ test('the chart appears in the table of contents', async ({ page }) => {
     await mockHub(page);
     await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
 
+    await expect(page.locator('#dynamic-toc')).toContainText('Matchup Chart', { timeout: 10000 });
+});
+
+test('a chart that answers slowly is still in the table of contents', async ({ page }) => {
+    // A real answer takes a trip to the database (0.4 to 0.7s from where it
+    // was measured). The contents leave out a section that is still hidden,
+    // so a hub that built them without waiting would leave the chart out.
+    await mockHub(page, { matchupDelay: 1500 });
+    await page.goto('/systems/index.html', { waitUntil: 'networkidle' });
+
+    await expect(page.locator('#matchup-section')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('#dynamic-toc')).toContainText('Matchup Chart', { timeout: 10000 });
 });
 

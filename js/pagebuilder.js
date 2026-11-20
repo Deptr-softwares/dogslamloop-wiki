@@ -147,6 +147,82 @@ window.initMobileNav = function() {
             if (event.target.closest('a')) setOpen(null, false);
         });
     }
+
+    const navPanel = panels.find(p => p.el === left);
+    buildMobileBottomBar(navPanel ? () => setOpen(navPanel, true) : null);
+};
+
+// THE BOTTOM BAR (owner's mobile card, v1.2).
+//
+// On a phone, search, the account, Site Settings and Ko-fi all sat inside a
+// drawer: "No quick way to start searching the wiki on mobile (need to press
+// on the burger first in order to search)", and the same for the other three.
+// The owner's pick (2026-11-16) was one bar fixed to the bottom of the screen
+// with all four, on every page that starts the phone navigation. The editor
+// and the review queue never do, so they get no bottom bar.
+//
+// Nothing here is a second copy of a feature. Search opens the navigation
+// drawer with its search box focused, Settings and Account call what the dock
+// buttons call, and Ko-fi takes its address from the page's own Ko-fi link.
+function buildMobileBottomBar(openNavDrawer) {
+    if (document.getElementById('mobile-bottom-bar')) return;
+
+    const icon = (id) => window.uiIconHTML(id);
+    const ICONS = {
+        search: icon('search'),
+        kofi: icon('kofi'),
+        settings: icon('dock-site-settings'),
+    };
+    const kofiLink = document.querySelector('a[href*="ko-fi.com" i]');
+
+    const bar = document.createElement('nav');
+    bar.id = 'mobile-bottom-bar';
+    bar.className = 'mobile-bottom-bar';
+    bar.setAttribute('aria-label', 'Quick access');
+    bar.innerHTML = `
+        <button type="button" class="mobile-bottom-btn" data-bottom="search">${ICONS.search}<span>Search</span></button>
+        ${kofiLink ? `<a class="mobile-bottom-btn mobile-bottom-kofi" data-bottom="kofi" target="_blank" rel="noopener">${ICONS.kofi}<span>Ko-fi</span></a>` : ''}
+        <button type="button" class="mobile-bottom-btn" data-bottom="settings">${ICONS.settings}<span>Settings</span></button>
+        <button type="button" class="mobile-bottom-btn" data-bottom="account"><span class="mobile-bottom-icon"></span><span class="mobile-bottom-label">Account</span></button>`;
+    if (kofiLink) bar.querySelector('[data-bottom="kofi"]').href = kofiLink.href;
+    document.body.appendChild(bar);
+    document.body.classList.add('has-mobile-bottom-bar');
+
+    bar.querySelector('[data-bottom="search"]').addEventListener('click', () => {
+        // Looked up at the tap: the search box is built after this bar on
+        // some pages. Focused inside the tap itself, which is what lets a
+        // phone bring its keyboard up.
+        const input = document.getElementById('site-search-input');
+        if (!input || !openNavDrawer) {
+            const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : './';
+            window.location.href = `${rootPath}search.html`;
+            return;
+        }
+        openNavDrawer();
+        input.focus({ preventScroll: true });
+    });
+    bar.querySelector('[data-bottom="settings"]').addEventListener('click', () => {
+        if (typeof window.openSiteSettings === 'function') window.openSiteSettings();
+    });
+    bar.querySelector('[data-bottom="account"]').addEventListener('click', () => {
+        if (typeof window.openAuthModal === 'function') window.openAuthModal();
+    });
+
+    window.syncMobileBottomAccount();
+}
+
+// The account button shows who is signed in the way the dock does: the role's
+// icon, and LOGIN for a guest. The dock learns that from a request, and may
+// finish before or after the bar is built, so both ends call this.
+let mobileBottomAccount = { icon: null, signedIn: false };
+window.syncMobileBottomAccount = function(state) {
+    if (state) mobileBottomAccount = state;
+    const btn = document.querySelector('#mobile-bottom-bar [data-bottom="account"]');
+    if (!btn) return;
+    const icon = mobileBottomAccount.icon
+        || (typeof window.roleIconHTML === 'function' ? window.roleIconHTML('guest') : '');
+    btn.querySelector('.mobile-bottom-icon').innerHTML = icon;
+    btn.querySelector('.mobile-bottom-label').textContent = mobileBottomAccount.signedIn ? 'Account' : 'Login';
 };
 
 window.buildGlobalSidebarMenu = async function(containerId) {
@@ -326,7 +402,7 @@ window.initTabEditorButtons = async function(pageId, pageType = 'character') {
             const histBtn = document.createElement('button');
             histBtn.id = 'btn-history-current-tab';
             histBtn.className = 'btn-sys btn-sys-regular tab-editor-btn-sidebar is-active';
-            histBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> HISTORY`;
+            histBtn.innerHTML = `${window.uiIconHTML('history')} HISTORY`;
             histBtn.onclick = handleHistoryClick;
 
             btnGroup.insertBefore(histBtn, sidebarBtn);
@@ -436,20 +512,12 @@ window.initAuthDock = async function() {
         } catch (e) { console.warn("Auth sync skipped."); }
     }
 
-    // --- V0.4 FULL ROLE ICON SUITE (2.5px Geometric SVG) ---
-    //
-    // The suite itself moved to window.ROLE_BADGES (js/site_utils.js) in v0.17,
-    // when the profile modal became a second thing that draws a role. Two copies
-    // would drift the first time an icon changed, and the crown and the shield
-    // had both been redrawn days earlier - so the modal would have been showing
-    // a treasure chest. The design notes for each icon live with the table.
-    //
-    // site_utils.js is stamped (?v=) and loads before this file, so the lookup
-    // is always at least as fresh as this code is.
-
-    // Core App Icons
-    const svgGear = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
-    const svgMail = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>`;
+    // --- ICONS ---
+    // The owner's pixel art (v1.2, window.UI_ICONS in js/site_meta.js). A
+    // role's badge is window.ROLE_BADGES (js/site_utils.js), shared with the
+    // profile modal so the two cannot drift.
+    const svgGear = window.uiIconHTML('dock-overseer');
+    const svgMail = window.uiIconHTML('dock-inbox');
 
     // --- ASSIGN ROLES & COLORS ---
     // Matched by NAME, not by rank, and this is one of the two places in the
@@ -462,7 +530,7 @@ window.initAuthDock = async function() {
     // falls through to the signed-in badge for anything unrecognised rather than
     // borrowing a senior one.
     const dockBadge = window.roleBadge(username === 'LOGIN' ? 'guest' : userRole);
-    const loginIcon = window.roleIconSvg(username === 'LOGIN' ? 'guest' : userRole);
+    const loginIcon = window.roleIconHTML(username === 'LOGIN' ? 'guest' : userRole);
     const dynamicColorClass = `btn-sys-${dockBadge.color}`;
 
     // --- CRITICAL DOM STRUCTURE FIX ---
@@ -492,7 +560,7 @@ window.initAuthDock = async function() {
         html += `
             <button id="dock-btn-edit" class="btn-sys btn-sys-purple dock-action-btn" onclick="window.location.href='${rootPath}admin.html'">
                 <span class="btn-manga-icon dock-action-icon">${svgGear}</span>
-                <span class="btn-manga-text dock-action-text">OVERSEER</span>
+                <span class="btn-manga-text dock-action-text">Overseer</span>
             </button>`;
     }
 
@@ -502,18 +570,18 @@ window.initAuthDock = async function() {
         html += `
             <button id="dock-btn-inbox" class="btn-sys btn-sys-blue dock-action-btn dock-btn-inbox">
                 <span class="btn-manga-icon dock-action-icon">${svgMail}</span>
-                <span class="btn-manga-text dock-action-text">INBOX</span>
+                <span class="btn-manga-text dock-action-text">Inbox</span>
                 ${badgeHtml}
             </button>`;
     }
 
     // 3. MY SUBMISSIONS (self-service - any logged-in user, not role-gated)
     if (username !== 'LOGIN') {
-        const svgSubmissions = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>`;
+        const svgSubmissions = window.uiIconHTML('dock-submissions');
         html += `
             <button id="dock-btn-submissions" class="btn-sys btn-sys-regular dock-action-btn" onclick="window.location.href='${rootPath}submissions.html'">
                 <span class="btn-manga-icon dock-action-icon">${svgSubmissions}</span>
-                <span class="btn-manga-text dock-action-text">MY SUBMISSIONS</span>
+                <span class="btn-manga-text dock-action-text">My submissions</span>
             </button>`;
     }
 
@@ -521,12 +589,12 @@ window.initAuthDock = async function() {
     // its own above it would push the account button further down, out of
     // sight on a short screen, which is how Ko-fi ended up leaving this dock
     // (owner, 2026-10-20). Sliders rather than a gear: OVERSEER is the gear.
-    const svgSliders = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>`;
+    const svgSliders = window.uiIconHTML('dock-site-settings');
     html += `
         <div class="dock-auth-row">
             <button id="dock-btn-auth" class="btn-sys ${dynamicColorClass} dock-action-btn">
                 <span class="btn-manga-icon dock-action-icon">${loginIcon}</span>
-                <span class="btn-manga-text dock-action-text">${username.toUpperCase()}</span>
+                <span class="btn-manga-text dock-action-text">${username === 'LOGIN' ? 'Login' : window.escapeHtml(username)}</span>
             </button>
             <button type="button" id="dock-btn-settings" class="btn-sys btn-sys-regular dock-settings-btn" title="Site settings" aria-label="Site settings">
                 <span class="btn-manga-icon dock-action-icon">${svgSliders}</span>
@@ -541,7 +609,7 @@ window.initAuthDock = async function() {
         if (targetNode) {
             targetNode.className = 'btn-sys btn-sys-yellow dock-action-btn';
             if (!targetNode.querySelector('.btn-manga-icon')) {
-                const svgCoffee = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" class="dock-role-icon"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>`;
+                const svgCoffee = window.uiIconHTML('kofi');
                 targetNode.innerHTML = `
                     <span class="btn-manga-icon dock-action-icon">${svgCoffee}</span>
                     <span class="kofi-text btn-manga-text">SUPPORT KO-FI</span>
@@ -556,6 +624,7 @@ window.initAuthDock = async function() {
     if (btnAuth && typeof window.openAuthModal === 'function') btnAuth.onclick = window.openAuthModal;
     const btnSettings = document.getElementById('dock-btn-settings');
     if (btnSettings) btnSettings.onclick = () => window.openSiteSettings();
+    window.syncMobileBottomAccount({ icon: loginIcon, signedIn: username !== 'LOGIN' });
 
     // Opens the real inbox modal built by js/site_utils.js's initNotifications.
     // This used to build a second modal here, with the same literal
@@ -633,25 +702,8 @@ window.initRosterFilters = async function() {
 
 // --- ROSTER ICONS (v0.16) ---
 //
-// The icon path is DERIVED, not stored. `navigation.json` is generated from
-// site_pages, so an icon column would reach the site only through the nightly
-// regeneration job AND the next release - the same latency that put the Techs
-// flag in page_data rather than site_pages. A convention plus a fallback has
-// neither problem, and it is what the owner asked for: they upload a file and
-// nothing else.
-//
-// pageId -> PascalCase + "Icon.webp": honored_one -> HonoredOneIcon.webp.
-// 22 of 22 characters resolve today; a character added tomorrow resolves to a
-// file that does not exist yet, which is exactly when the fallback should run.
-window.rosterIconPath = function (pageId) {
-    if (!pageId) return null;
-    const pascal = String(pageId)
-        .split('_')
-        .filter(Boolean)
-        .map(part => part.charAt(0).toUpperCase() + part.slice(1))
-        .join('');
-    return pascal ? `medias/images/${pascal}Icon.webp` : null;
-};
+// The icon's path is window.rosterIconPath, in js/site_meta.js since v1.2,
+// where text on any page can reach it too. This is the roster card's half.
 
 // Marks the cards whose icon actually loaded, and drops the ones that did not.
 //
@@ -680,9 +732,153 @@ window.markLoadedRosterIcons = function (root) {
     });
 };
 
+// --- HOVER BANNERS (v1.2, the owner's Kanban card) ---
+//
+// "When hovering above a character box icon in the roster selection section
+// for about 0.25s, a banner pop up that have a custom wide stretch image
+// (different from the portrait) with a cut-off Overview." The banner is the
+// one editors set in the Profile tab, mirrored with the Overview's first line
+// into data/banners.json each night (scripts/fetch-banners.js), so a hover
+// asks Supabase for nothing. A character with no banner yet gets its line over
+// its colour; one with neither gets no popup.
+//
+// A mouse or a keyboard only. A finger has no hover, and a tap opens the page,
+// as it always did.
+const ROSTER_BANNER_DELAY_MS = 250;
+let rosterBanners = null;   // the promise of data/banners.json, fetched on the first hover
+let rosterBannerFor = null; // the card a popup is coming for, or showing
+let rosterBannerTimer = null;
+
+function loadRosterBanners() {
+    if (!rosterBanners) {
+        const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../';
+        rosterBanners = window.fetchJson(`${rootPath}data/banners.json`, { cache: true }).catch(err => {
+            // A roster without its banners is still a roster: the popups just
+            // do not open.
+            console.warn('The hover banners could not be loaded:', err.message);
+            return {};
+        });
+    }
+    return rosterBanners;
+}
+
+function rosterBannerElement() {
+    let el = document.getElementById('roster-banner');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'roster-banner';
+        el.className = 'roster-banner';
+        el.setAttribute('role', 'tooltip');
+        el.hidden = true;
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
+function hideRosterBanner() {
+    clearTimeout(rosterBannerTimer);
+    if (rosterBannerFor) rosterBannerFor.removeAttribute('aria-describedby');
+    rosterBannerFor = null;
+    const el = document.getElementById('roster-banner');
+    if (el) el.hidden = true;
+}
+
+// Above the card when there is room, below it when not, and kept on screen.
+function placeRosterBanner(el, card) {
+    const edge = 16;
+    const gap = 8;
+    const box = card.getBoundingClientRect();
+    let top = box.top - el.offsetHeight - gap;
+    if (top < edge) top = box.bottom + gap;
+    const left = Math.max(edge, Math.min(box.left + box.width / 2 - el.offsetWidth / 2, window.innerWidth - el.offsetWidth - edge));
+    el.style.top = `${Math.round(top)}px`;
+    el.style.left = `${Math.round(left)}px`;
+}
+
+async function showRosterBanner(card) {
+    const entry = (await loadRosterBanners())[card.dataset.pageId];
+    // Left meanwhile, or nothing to show.
+    if (rosterBannerFor !== card || !entry || (!entry.image && !entry.overview)) return;
+
+    const el = rosterBannerElement();
+    const rootPath = typeof window.getRootPath === 'function' ? window.getRootPath() : '../';
+    el.style.setProperty('--banner-color', card.style.getPropertyValue('--char-color') || 'var(--border-color)');
+    el.replaceChildren();
+
+    if (entry.image) {
+        const img = document.createElement('img');
+        img.className = 'roster-banner-image';
+        img.src = rootPath + entry.image;
+        img.alt = '';
+        el.appendChild(img);
+    } else {
+        const band = document.createElement('div');
+        band.className = 'roster-banner-band';
+        el.appendChild(band);
+    }
+    // textContent throughout: the line is contributor text.
+    const body = document.createElement('div');
+    body.className = 'roster-banner-body';
+    const name = document.createElement('div');
+    name.className = 'roster-banner-name';
+    name.textContent = (card.querySelector('.roster-card-text') || card).textContent.trim();
+    body.appendChild(name);
+    if (entry.overview) {
+        const line = document.createElement('p');
+        line.className = 'roster-banner-overview';
+        line.textContent = entry.overview;
+        body.appendChild(line);
+    }
+    el.appendChild(body);
+
+    el.hidden = false;
+    placeRosterBanner(el, card);
+    card.setAttribute('aria-describedby', 'roster-banner');
+}
+
+// Bound once per grid: the grid's contents are rebuilt on every filter
+// change, the grid is not.
+function bindRosterBanners(grid) {
+    if (grid.dataset.bannersBound) return;
+    grid.dataset.bannersBound = 'true';
+
+    const comeFor = (card) => {
+        hideRosterBanner();
+        rosterBannerFor = card;
+        loadRosterBanners();
+        rosterBannerTimer = setTimeout(() => showRosterBanner(card), ROSTER_BANNER_DELAY_MS);
+    };
+
+    grid.addEventListener('pointerover', (e) => {
+        if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
+        const card = e.target.closest('.roster-card');
+        if (card && card !== rosterBannerFor) comeFor(card);
+    });
+    grid.addEventListener('pointerout', (e) => {
+        const card = e.target.closest('.roster-card');
+        if (card && !card.contains(e.relatedTarget)) hideRosterBanner();
+    });
+    grid.addEventListener('focusin', (e) => {
+        const card = e.target.closest('.roster-card');
+        if (card && card.matches(':focus-visible')) comeFor(card);
+    });
+    grid.addEventListener('focusout', (e) => {
+        if (e.target.closest('.roster-card')) hideRosterBanner();
+    });
+    // A popup that is showing follows its card when the page scrolls. One
+    // still to come is placed when it opens, so a scroll must not cancel it:
+    // reaching a card often IS a scroll, and its last event lands after the
+    // pointer has (the home page roster sits below the fold).
+    window.addEventListener('scroll', () => {
+        const el = document.getElementById('roster-banner');
+        if (el && !el.hidden && rosterBannerFor) placeRosterBanner(el, rosterBannerFor);
+    }, { passive: true });
+}
+
 window.renderFilteredRoster = function() {
     const rosterGrid = document.getElementById('roster-grid') || document.querySelector('.roster-grid');
     if (!rosterGrid) return;
+    hideRosterBanner();
     rosterGrid.innerHTML = '';
 
     // --- Grab the root path to prevent duplicate directory stacking ---
@@ -738,7 +934,7 @@ window.renderFilteredRoster = function() {
         // the name slit's fill - and an inline background-color would beat every
         // stylesheet rule that needs to change one of them without !important.
         html += `
-            <a href="${esc(rootPath + char.url)}" class="roster-card" style="--char-color: ${charColor};">
+            <a href="${esc(rootPath + char.url)}" class="roster-card" data-page-id="${esc((char.cms_config || {}).pageId || '')}" style="--char-color: ${charColor};">
                 ${char.isEA ? `<span class="ea-star-indicator" title="Early Access" style="color: ${textColor};">★</span>` : ''}
                 ${char.isWip ? `<span class="roster-wip-indicator" title="Work In Progress" aria-label="Work In Progress">🚧</span>` : ''}
                 ${char.image ? `<img src="${esc(char.image)}" alt="${esc(char.name)}" class="roster-card-bg-image">` : ''}
@@ -749,6 +945,7 @@ window.renderFilteredRoster = function() {
     });
     rosterGrid.innerHTML = html;
     window.markLoadedRosterIcons(rosterGrid);
+    bindRosterBanners(rosterGrid);
 };
 
 // Categories that get their own Main Dashboard column, so they are not also
@@ -1362,10 +1559,12 @@ window.refreshTOC = function() {
         if (header.textContent.trim() === 'Move Overview and Strategy') return;
         if (!header.id) return;
         // A section the page itself has hidden (the Tier List's changelog
-        // while nobody is picked) is not there for the reader, and a link to
-        // it scrolls nowhere. Only the .hidden class: a closed accordion or a
-        // box's other tab is opened by the jump (revealAnchorTarget) and stays.
-        const hiddenBy = header.closest('.hidden');
+        // while nobody is picked, the Systems hub's Terminology and Matchup
+        // Chart while they have nothing to show) is not there for the reader,
+        // and a link to it scrolls nowhere. Only the .hidden class and the
+        // hidden attribute: a closed accordion or a box's other tab is opened
+        // by the jump (revealAnchorTarget) and stays.
+        const hiddenBy = header.closest('.hidden, [hidden]');
         if (hiddenBy && targetArea.contains(hiddenBy)) return;
 
         const isMinor = ANCHOR_MINOR_CLASSES.some(c => header.classList.contains(c));

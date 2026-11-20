@@ -739,6 +739,41 @@ const blockTemplates = {
     // shape comboGroups already uses, so the diff walkers and the nested
     // renderer read it without a fourth container convention being invented.
     sectionedbox: { type: 'sectionedbox', title: 'New Section Box', intro: [], sections: [{ title: 'Section 1', content: [] }], align: 'left', author: '' },
+    // Which grid of the site's own colours to draw (js/description.js). The
+    // colours are never stored: a character's comes from owner tools.
+    colorswatches: { type: 'colorswatches', set: 'characters' },
+    // One person on the Collaborators page, as a Card or a Thanks line
+    // (`kind`). The home page's Credits list is built from these.
+    collaborator: { type: 'collaborator', kind: 'card', name: 'New Collaborator', role: '', badge: 'badge-general', avatar: '', description: '', links: [] },
+};
+
+// Blocks drawn from what the site keeps for one page (the character colours
+// for Color Codes, the people the home page credits), offered on that page
+// only. The type dropdown asks the same question, so the two never offer
+// different things.
+const PAGE_ONLY_BLOCKS = { colorswatches: 'color_codes', collaborator: 'collaborators' };
+
+// A Collaborator's links, edited one per line as "Label | address". A line
+// with no bar is an address on its own, labelled by itself.
+function parseLinkLines(text) {
+    return String(text || '').split('\n').map(line => {
+        const bar = line.indexOf('|');
+        const name = (bar === -1 ? '' : line.slice(0, bar)).trim();
+        const url = (bar === -1 ? line : line.slice(bar + 1)).trim();
+        return { name: name || url, url };
+    }).filter(link => link.url);
+}
+const linkLinesText = (links) => (Array.isArray(links) ? links : []).map(l => `${l.name || ''} | ${l.url || ''}`).join('\n');
+
+// The lines the page will not link, named under the field while typing.
+function collaboratorLinkNote(links) {
+    const isLink = window.isCollaboratorLink || (() => true);
+    const bad = (Array.isArray(links) ? links : []).filter(l => !isLink(l.url)).map(l => l.url);
+    return bad.length ? `Not shown, as only an http or https address links: ${bad.join(', ')}` : '';
+}
+window.blockOfferedHere = function (type) {
+    const only = PAGE_ONLY_BLOCKS[type];
+    return !only || only === window.currentEditorCharId;
 };
 
 // What each block type is CALLED, as opposed to what its template key is.
@@ -769,6 +804,8 @@ const BLOCK_TYPE_LABELS = {
     sectionedbox: 'Section Box',
     divider: 'Divider',
     author: 'Author',
+    colorswatches: 'Color Swatches',
+    collaborator: 'Collaborator',
 };
 
 // Falls back to the key rather than dropping the option: a template added
@@ -782,7 +819,7 @@ window.blockTypeLabel = function (type) {
 // the map above; only the grouping is editorial.
 const ADD_BLOCK_GROUPS = [
     { title: 'Text & Media', types: ['heading', 'paragraph', 'table', 'list', 'image', 'video', 'youtube'] },
-    { title: 'Components', types: ['callout', 'combo', 'accordion', 'theorybox', 'sectionedbox', 'divider', 'author'] },
+    { title: 'Components', types: ['callout', 'combo', 'accordion', 'theorybox', 'sectionedbox', 'divider', 'author', 'colorswatches', 'collaborator'] },
 ];
 
 // A text prompt in the site's own modal, replacing window.prompt() for the
@@ -1549,6 +1586,19 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                         <div id="format-jump-list" class="format-jump-list"></div>
                     </div>
                 </div>
+                <!-- Mini icons in text (v1.2): the owner's accolade icons and
+                     the characters' roster icons, picked here rather than
+                     typed as [icon=...]. -->
+                <div class="format-jump-wrapper">
+                    <button class="format-btn format-btn-icon" id="btn-format-icon"
+                            title="Put an icon in the text">🖼</button>
+                    <div id="format-icon-popup" class="format-jump-popup format-icon-popup hidden">
+                        <div class="format-jump-label">Put an icon in the text</div>
+                        <input type="text" id="format-icon-search" class="format-jump-search"
+                               placeholder="Search icons…" autocomplete="off">
+                        <div id="format-icon-list" class="format-jump-list"></div>
+                    </div>
+                </div>
                 <!-- The two shortcodes v0.14 added to js/internalstyling.js.
                      They rendered on the page from the day they shipped and
                      had no way to be typed except by hand, which is the same
@@ -1615,7 +1665,7 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
                 <div class="add-block-popup" id="add-block-popup">
                     ${ADD_BLOCK_GROUPS.map((group, gi) => `
                     <div class="add-block-popup-title${gi ? ' add-block-popup-title-spaced' : ''}">${escField(group.title)}</div>
-                    ${group.types.map(t =>
+                    ${group.types.filter(window.blockOfferedHere).map(t =>
                         `<button class="btn-sys btn-sys-regular add-block-btn" data-type="${escField(t)}">+ ${escField(window.blockTypeLabel(t))}</button>`
                     ).join('')}`).join('')}
                 </div>
@@ -2257,6 +2307,20 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         field.setSelectionRange(start + openTag.length, start + openTag.length + selectedText.length);
     };
 
+    // A tag that wraps nothing (a mini icon) goes in where the caret is,
+    // before any highlighted text, which it keeps. The caret ends after it, so
+    // a second icon follows the first.
+    const insertTag = (tag) => {
+        if (!lastFocusedInput) return;
+        const field = lastFocusedInput;
+        const at = lastSelection.start !== undefined ? lastSelection.start : field.selectionStart;
+        field.value = field.value.substring(0, at) + tag + field.value.substring(at);
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.focus();
+        field.setSelectionRange(at + tag.length, at + tag.length);
+        lastSelection.start = lastSelection.end = at + tag.length;
+    };
+
     formatToolbar.addEventListener('click', (e) => {
         const btn = e.target.closest('.format-btn');
         if (btn && btn.hasAttribute('data-tag')) applyFormat(btn.getAttribute('data-tag'));
@@ -2515,6 +2579,110 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
         });
     }
 
+    // --- ICON PICKER (v1.2) ---
+    //
+    // The two groups js/internalstyling.js draws for [icon=...]: the owner's
+    // accolades, and every character the roster shows whose icon is uploaded.
+    // A character without one is left out rather than offered as a tag that
+    // would only come back as text. Built like the section-link picker above.
+    const iconBtn = container.querySelector('#btn-format-icon');
+    const iconPopup = container.querySelector('#format-icon-popup');
+    const iconList = container.querySelector('#format-icon-list');
+    const iconSearch = container.querySelector('#format-icon-search');
+
+    if (iconBtn && iconPopup && iconList) {
+        const esc = (v) => (window.escapeHtml ? window.escapeHtml(v) : String(v == null ? '' : v));
+        // null until the roster and its icons are in, then [{ id, name, src }].
+        let characters = null;
+        let charactersFailed = false;
+
+        const iconLoads = (src) => new Promise(resolve => {
+            const img = new Image();
+            img.onload = () => resolve(img.naturalWidth > 0);
+            img.onerror = () => resolve(false);
+            img.src = src;
+        });
+        const loadCharacters = async () => {
+            const roster = await window.loadCharacterRoster();
+            const rows = [...roster.entries()]
+                .filter(([, entry]) => !entry.hidden)
+                .map(([id, entry]) => ({ id, name: entry.name, src: '/' + window.rosterIconPath(id) }));
+            const uploaded = await Promise.all(rows.map(row => iconLoads(row.src)));
+            return rows.filter((row, i) => uploaded[i]);
+        };
+
+        const renderIconList = (filter) => {
+            const needle = String(filter || '').trim().toLowerCase();
+            const hit = (name) => !needle || String(name).toLowerCase().includes(needle);
+            const accolades = (window.ACCOLADES || []).filter(a => hit(a.name));
+            const people = (characters || []).filter(c => hit(c.name));
+            const site = (window.UI_ICONS || []).filter(i => hit(i.name) || hit(i.id));
+
+            let html = '';
+            if (accolades.length) {
+                html += '<div class="format-jump-group">Accolades</div>' + accolades.map(a =>
+                    `<button type="button" class="format-jump-item format-icon-item" data-icon="accolade/${esc(a.id)}">`
+                    + `<span class="format-icon-glyph" style="color: ${esc(a.color)}">${window.accoladeIconHTML(a)}</span>`
+                    + `<span>${esc(a.name)}</span></button>`).join('');
+            }
+            if (people.length) {
+                html += '<div class="format-jump-group">Characters</div>' + people.map(c =>
+                    `<button type="button" class="format-jump-item format-icon-item" data-icon="character/${esc(c.id)}">`
+                    + `<img class="format-icon-character" src="${esc(c.src)}" alt="">`
+                    + `<span>${esc(c.name)}</span></button>`).join('');
+            } else if (!needle && (charactersFailed || !characters)) {
+                html += '<div class="format-jump-group">Characters</div>' + (charactersFailed
+                    ? '<p class="format-jump-empty">The characters could not be loaded.</p>'
+                    : '<p class="loading-msg loading-msg-busy">Loading the characters...</p>');
+            }
+            // The owner's site icons (v1.2), [icon=ui/<id>], after the
+            // characters as they asked.
+            if (site.length) {
+                html += '<div class="format-jump-group">UI</div>' + site.map(i =>
+                    `<button type="button" class="format-jump-item format-icon-item" data-icon="ui/${esc(i.id)}">`
+                    + `<span class="format-icon-glyph">${window.uiIconHTML(i.id)}</span>`
+                    + `<span>${esc(i.name)}</span></button>`).join('');
+            }
+            iconList.innerHTML = html || '<p class="format-jump-empty">No icon matches that.</p>';
+        };
+
+        iconBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const opening = iconPopup.classList.contains('hidden');
+            iconPopup.classList.toggle('hidden');
+            if (!opening) return;
+            if (iconSearch) iconSearch.value = '';
+            renderIconList('');
+            keepColorPopupOnScreen(iconPopup);
+            if (characters || charactersFailed) return;
+            loadCharacters().then(list => { characters = list; }, err => {
+                console.error('The icon picker could not load the characters:', err);
+                charactersFailed = true;
+            }).then(() => {
+                if (!iconPopup.classList.contains('hidden')) renderIconList(iconSearch ? iconSearch.value : '');
+            });
+        });
+
+        // The selection the icon goes in at dies the moment focus moves.
+        iconPopup.addEventListener('mousedown', (e) => {
+            if (!e.target.closest('.format-jump-search')) e.preventDefault();
+        });
+        if (iconSearch) iconSearch.addEventListener('input', () => renderIconList(iconSearch.value));
+
+        iconList.addEventListener('click', (e) => {
+            const item = e.target.closest('.format-icon-item');
+            if (!item) return;
+            insertTag(`[icon=${item.getAttribute('data-icon')}]`);
+            iconPopup.classList.add('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#format-icon-popup') && !e.target.closest('#btn-format-icon')) {
+                iconPopup.classList.add('hidden');
+            }
+        });
+    }
+
     // --- 3. POPUP MENU LOGIC ---
     const btnToggleMenu = container.querySelector('#btn-toggle-add-menu');
     const popupMenu = container.querySelector('#add-block-popup');
@@ -2607,8 +2775,18 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             if (!card) return;
             const index = parseInt(card.getAttribute('data-index'));
             const field = e.target.getAttribute('data-field');
+            const block = window.getActiveBlocks()[index];
 
-            window.getActiveBlocks()[index][field] = e.target.value; 
+            // A Collaborator's kind decides which fields its form shows, so it
+            // redraws, the same way the Multiple Sections switch does.
+            if (field === 'kind' && block.type === 'collaborator') {
+                block.kind = e.target.value === 'line' ? 'line' : 'card';
+                renderBlockList();
+                updateLivePreview();
+                return;
+            }
+
+            block[field] = e.target.value;
 
             clearTimeout(typingTimer);
             typingTimer = setTimeout(() => { updateLivePreview(); }, 400);
@@ -3164,6 +3342,11 @@ function initStrategyBlockBuilder(containerId, initialData, opts) {
             const target = window.editorCardFieldTarget(activeBlocks[index]);
 
             if (field === 'content-array') target.content = e.target.value.split('\n');
+            else if (field === 'links-lines') {
+                target.links = parseLinkLines(e.target.value);
+                const note = e.target.closest('.block-card').querySelector('[data-links-note]');
+                if (note) { note.textContent = collaboratorLinkNote(target.links); note.hidden = !note.textContent; }
+            }
             // A combo route is an ARRAY of steps, edited one per line. Blank
             // lines are dropped rather than becoming empty chips in the route.
             else if (field === 'sequence-lines') target.sequence = e.target.value.split('\n').map(v => v.trim()).filter(Boolean);
@@ -3579,6 +3762,14 @@ function blockSummary(block) {
         case 'author':
             text = block.author;
             break;
+        case 'colorswatches': {
+            const sets = window.COLOR_SWATCH_SETS || {};
+            text = sets[block.set] || sets.characters;
+            break;
+        }
+        case 'collaborator':
+            text = block.name;
+            break;
         default:
             text = block.title || block.content || '';
     }
@@ -3808,13 +3999,13 @@ function renderBlockList() {
         return `
             <div class="align-group">
                 <button class="align-btn ${align === 'left' ? 'active' : ''}" data-val="left" title="Align/Float Left">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="15" y1="12" x2="3" y2="12"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+                    ${window.uiIconHTML('align-left')}
                 </button>
                 <button class="align-btn ${align === 'center' ? 'active' : ''}" data-val="center" title="Align/Float Center">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="18" y1="12" x2="6" y2="12"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+                    ${window.uiIconHTML('align-center')}
                 </button>
                 <button class="align-btn ${align === 'right' ? 'active' : ''}" data-val="right" title="Align/Float Right">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="6" x2="3" y2="6"></line><line x1="21" y1="12" x2="9" y2="12"></line><line x1="21" y1="18" x2="3" y2="18"></line></svg>
+                    ${window.uiIconHTML('align-right')}
                 </button>
             </div>
         `;
@@ -3963,7 +4154,8 @@ function renderBlockList() {
             + (window.isEditorBlockSelected(block) ? ' block-card-selected' : '');
         card.setAttribute('data-index', index);
 
-            const typeOptions = Object.keys(blockTemplates).map(t =>
+            // A Block that is somehow off its page still names its own type.
+            const typeOptions = Object.keys(blockTemplates).filter(t => window.blockOfferedHere(t) || t === block.type).map(t =>
                 `<option value="${escField(t)}" ${block.type === t ? 'selected' : ''}>${escField(window.blockTypeLabel(t))}</option>`
             ).join('');
 
@@ -4285,6 +4477,58 @@ function renderBlockList() {
             html += `
                 <div class="editor-row editor-row-nomargin">
                     <input type="text" class="editor-input" data-field="author" value="${escField(block.author || '')}" placeholder="Contributor Name(s) (Comma separated)">
+                </div>
+            `;
+        }
+        else if (block.type === 'collaborator') {
+            const isLine = block.kind === 'line';
+            const badges = window.COLLABORATOR_BADGES || {};
+            const badge = badges[block.badge] ? block.badge : 'badge-general';
+            html += `
+                <div class="editor-row">
+                    <div>
+                        <label class="block-field-label-sm">Shown as</label>
+                        <select class="editor-select" data-field="kind">
+                            <option value="card" ${isLine ? '' : 'selected'}>Main contributor (full card)</option>
+                            <option value="line" ${isLine ? 'selected' : ''}>Special thanks (one line)</option>
+                        </select>
+                    </div>
+                    <div><input type="text" class="editor-input" data-field="name" value="${escField(block.name || '')}" placeholder="Name"></div>
+                </div>
+            `;
+            if (isLine) {
+                html += `<textarea class="editor-textarea" data-field="description" placeholder="Why they are thanked">${escField(block.description || '')}</textarea>`;
+            } else {
+                html += `
+                    <div class="editor-row">
+                        <div><input type="text" class="editor-input" data-field="role" value="${escField(block.role || '')}" placeholder="Tag, e.g. Frame Data &amp; Testing"></div>
+                        <div>
+                            <label class="block-field-label-sm">Tag color</label>
+                            <select class="editor-select" data-field="badge">
+                                ${Object.entries(badges).map(([value, label]) =>
+                                    `<option value="${escField(value)}" ${badge === value ? 'selected' : ''}>${escField(label)}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+                    <input type="text" class="editor-input" data-field="avatar" value="${escField(block.avatar || '')}" placeholder="Icon path, e.g. /medias/images/Something.webp, or a Media Library address">
+                    <textarea class="editor-textarea" data-field="description" placeholder="What they did">${escField(block.description || '')}</textarea>
+                    <textarea class="editor-textarea" data-field="links-lines" placeholder="Links, one per line: GitHub | https://github.com/someone">${escField(linkLinesText(block.links))}</textarea>
+                    <p class="collaborator-links-note" data-links-note ${collaboratorLinkNote(block.links) ? '' : 'hidden'}>${escField(collaboratorLinkNote(block.links))}</p>
+                `;
+            }
+        }
+        else if (block.type === 'colorswatches') {
+            const sets = window.COLOR_SWATCH_SETS || {};
+            const set = sets[block.set] ? block.set : 'characters';
+            html += `
+                <div class="editor-row editor-row-nomargin">
+                    <div>
+                        <label class="block-field-label-sm">Swatches</label>
+                        <select class="editor-select" data-field="set">
+                            ${Object.entries(sets).map(([value, label]) =>
+                                `<option value="${escField(value)}" ${set === value ? 'selected' : ''}>${escField(label)}</option>`).join('')}
+                        </select>
+                    </div>
                 </div>
             `;
         }

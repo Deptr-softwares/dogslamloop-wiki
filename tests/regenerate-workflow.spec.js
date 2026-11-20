@@ -108,14 +108,14 @@ test('the workflow generates before it validates', async () => {
 });
 
 test('the workflow fetches fresh data before generating from it', async () => {
-    const lastFetch = Math.max(
-        workflow.indexOf('fetch-previews.js'),
-        workflow.indexOf('fetch-registry.js'),
-        workflow.indexOf('fetch-content.js'),
-        workflow.indexOf('fetch-portraits.js'),
-    );
-    expect(lastFetch).toBeGreaterThan(-1);
-    expect(lastFetch).toBeLessThan(workflow.indexOf('npm run generate'));
+    // Steps, not mentions, for the reason above: the Hover Banners step's
+    // comment names `npm run generate` (what reads its file) higher up than
+    // the fetches after it, and turned this red with every step in order.
+    const step = (command) => workflow.indexOf(`run: ${command}`);
+    const fetches = ['fetch-previews.js', 'fetch-registry.js', 'fetch-content.js', 'fetch-portraits.js', 'fetch-banners.js']
+        .map(script => ({ script, at: step(`node scripts/${script} --write`) }));
+    for (const { script, at } of fetches) expect(at, `a \`run: node scripts/${script} --write\` step exists`).toBeGreaterThan(-1);
+    expect(Math.max(...fetches.map(f => f.at))).toBeLessThan(step('npm run generate'));
 });
 
 // fetch-portraits mirrors the URLs that fetch-previews writes, so running it

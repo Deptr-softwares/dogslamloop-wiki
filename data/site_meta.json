@@ -1,6 +1,6 @@
 {
-  "version": "Release v1.1",
-  "tagline": "The Spooky JJS Wiki",
+  "version": "Stable v1.2",
+  "tagline": "The Competitive JJS Wiki",
   "hubs": {
     "character-hub": {
       "title": "Character Dashboard",

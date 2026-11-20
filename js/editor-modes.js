@@ -119,16 +119,55 @@
     // Ids are the delta keys and the ?mode= in shared links, so they are fixed
     // at creation and a later rename only ever touches the label. Renaming a
     // state must not orphan its content.
-    function nextModeId(existing) {
+    function nextModeId(existing, stem) {
         const taken = new Set(existing.map(m => m.id));
-        if (!taken.has('ultimate')) return 'ultimate';
+        if (!taken.has(stem)) return stem;
         for (let n = 2; n < 99; n++) {
-            if (!taken.has(`ultimate-${n}`)) return `ultimate-${n}`;
+            if (!taken.has(`${stem}-${n}`)) return `${stem}-${n}`;
         }
-        return `ultimate-${Date.now()}`;
+        return `${stem}-${Date.now()}`;
     }
 
-    window.addEditorMode = async function() {
+    // A full character's other states are its ultimates. A base-only
+    // character's ultimate is its own tab, so its states are other forms (an
+    // install, a buffed form), and are named and addressed for that.
+    function newStateNaming() {
+        return window.editorIsBaseOnlyCharacter
+            ? { stem: 'state', word: 'New State' }
+            : { stem: 'ultimate', word: 'Ultimate' };
+    }
+
+    const MAX_STATES = 4;
+    const TOO_MANY_STATES = 'A character can have at most four states. Rename or remove one first.';
+
+    // A deep copy of the base kit's moves, every move tab of them, with the
+    // strategy notes written under them. The state's moves are its own from
+    // here on: a later fix to the base kit does not reach them, which is what
+    // the + STATE question says.
+    function copyBaseKitInto(modeId) {
+        const frame = window.editorMasterFrameData || {};
+        const desc = window.editorMasterDescData || {};
+        const frameSlice = writableView(frame, modeId);
+        const clone = (v) => JSON.parse(JSON.stringify(v));
+
+        const ids = new Set();
+        window.FRAME_MOVE_CATEGORIES.forEach(cat => {
+            if (!Array.isArray(frame[cat]) || frame[cat].length === 0) return;
+            frameSlice[cat] = clone(frame[cat]);
+            frame[cat].forEach(m => { if (m && m.id) ids.add(m.id); });
+        });
+
+        const notes = desc.moveStrategies || {};
+        const copied = Object.keys(notes).filter(id => ids.has(id));
+        if (copied.length === 0) return;
+        const descSlice = writableView(desc, modeId);
+        descSlice.moveStrategies = {};
+        copied.forEach(id => { descSlice.moveStrategies[id] = clone(notes[id]); });
+    }
+
+    // start: 'empty' (every tab blank, which is how a state has always
+    // started) or 'copy' (the base kit's moves). The + STATE button asks.
+    window.addEditorMode = async function(start = 'empty') {
         if (typeof window.triggerManualSync === 'function') await window.triggerManualSync();
 
         const master = window.editorMasterFrameData;
@@ -142,16 +181,38 @@
         }
 
         const existing = declaredModes();
-        if (existing.length >= 4) {
-            window.editorAlert('A character can have at most four states. Rename or remove one first.');
+        if (existing.length >= MAX_STATES) {
+            window.editorAlert(TOO_MANY_STATES);
             return;
         }
 
-        const id = nextModeId(existing);
-        master.modes.push({ id, label: existing.length === 1 ? 'Ultimate' : `Ultimate ${existing.length}` });
+        const { stem, word } = newStateNaming();
+        const id = nextModeId(existing, stem);
+        master.modes.push({ id, label: existing.length === 1 ? word : `${word} ${existing.length}` });
+        if (start === 'copy') copyBaseKitInto(id);
 
         await window.setEditorMode(id);
     };
+
+    // An ultimate replaces the whole kit, so it starts empty. An install is
+    // mostly the same kit buffed, which is quicker as a copy. Asked before
+    // anything is made, so CANCEL leaves the page exactly as it was.
+    async function addStateFromBar() {
+        if (declaredModes().length >= MAX_STATES) {
+            window.editorAlert(TOO_MANY_STATES);
+            return;
+        }
+        let start = 'empty';
+        if (typeof window.customConfirm === 'function') {
+            const answer = await window.customConfirm(
+                "How should the new state start? COPY BASE KIT starts it with a copy of the base kit's moves, so only what changes in this state needs editing. The copy does not follow later edits to the base kit.",
+                'COPY BASE KIT', false, null, 'START EMPTY'
+            );
+            if (answer === false) return;
+            start = answer === 'alt' ? 'empty' : 'copy';
+        }
+        await window.addEditorMode(start);
+    }
 
     window.renameEditorMode = function(label) {
         const master = window.editorMasterFrameData;
@@ -210,10 +271,12 @@
 
         // Same reset as switchEditorTab, for the same reason: every sub-tab
         // loader flushes the *previous* selection's blocks on entry, and the
-        // previous selection belongs to the state being left.
-        window.currentOverviewSection = null;
-        window.currentMatchupIndex = undefined;
-        window.currentKeyedIndex = {};
+        // previous selection belongs to the state being left. The shared
+        // function, not a copy: a copy of three of its lines left the open
+        // Combos/Techs group and card set, so the state arrived at flushed the
+        // other state's card into its card of the same number (reported by an
+        // editor on Perfection's Techs, 2026-11-20).
+        window.clearEditorSubSelection();
 
         window.editorActiveMode = isBase(modeId) ? BASE() : modeId;
         window.applyEditorModeView();
@@ -245,9 +308,9 @@
         const controls = document.getElementById('editor-mode-controls');
         if (!bar) return;
 
-        // A base-only character has exactly one kit by definition; their
-        // ultimate is the extra tab, not a state.
-        if (!editorSupportsModes() || window.editorIsBaseOnlyCharacter) {
+        // A base-only character's ultimate is the extra tab, not a state, but
+        // it can still have states: other forms, like an install.
+        if (!editorSupportsModes()) {
             bar.classList.add('hidden');
             if (controls) controls.classList.add('hidden');
             return;
@@ -302,7 +365,7 @@
 
         bar.addEventListener('click', (e) => {
             const add = e.target.closest('[data-mode-add]');
-            if (add && bar.contains(add)) { window.addEditorMode(); return; }
+            if (add && bar.contains(add)) { addStateFromBar(); return; }
 
             const chip = e.target.closest('[data-mode-id]');
             if (chip && bar.contains(chip)) window.setEditorMode(chip.dataset.modeId);

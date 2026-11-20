@@ -502,9 +502,11 @@
             return;
         }
 
-        await loadScale();
-        const rankingError = await loadRankings();
-        await loadViewer();
+        // None of the three needs another, so they are asked for together: the
+        // page waits on the database once instead of three times in a row,
+        // which put it right at its 2-second target in the farthest regions
+        // (v1.2 estimate).
+        const [, rankingError] = await Promise.all([loadScale(), loadRankings(), loadViewer()]);
 
         if (rankingError && notDeployed(rankingError)) {
             mount.appendChild(el('p', 'loading-msg',

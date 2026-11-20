@@ -77,6 +77,8 @@
         "20261029000000_pending_revision_page_id_format.sql": "92467382a034e44111c9e7aa56f017ae906e869bde8b996603070c313dee44a7",
         "20261029000001_history_whole_page.sql": "758dd761654fc27b104e8c1d7d53d7a2bfd54735cd605fc5f2ee620322f1576c",
         "20261029000002_revision_insert_must_be_pending.sql": "d38233acb3f840d4ab56e62792d4fe9b708f1bf74802d94f21167a08135791a2",
-        "20261030000000_hide_review_chat.sql": "46d20e08db505237f2cc6598cbcb32c583ea1e7c1b1840e8bac5fc25812cad02"
+        "20261030000000_hide_review_chat.sql": "46d20e08db505237f2cc6598cbcb32c583ea1e7c1b1840e8bac5fc25812cad02",
+        "20261116000000_reviewers_moderate_by_grant.sql": "c03aa9fce2aa1f615729a575b344f8b5525c701ed57cf8c0d2e944d04e328690",
+        "20261118000000_color_codes_and_collaborators_in_the_editor.sql": "7cf177ba5e8f72ba4d680980efa94147e1c8066c93bdc09fa874d907d2040636"
     }
 }

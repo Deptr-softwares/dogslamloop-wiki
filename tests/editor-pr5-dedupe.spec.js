@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
   await page.goto('/edit.html?page=boomcat&type=character&tab=overview', { waitUntil: 'networkidle' });
 });
 
-test('media library: status/error messages and thumbnail card render with no inline styles', async ({ page }) => {
+test('media library: status/error messages and a file row render with no inline styles', async ({ page }) => {
   await page.evaluate(() => {
     document.getElementById('media-modal-overlay').classList.remove('hidden');
     window.initMediaLibrary();
@@ -31,21 +31,20 @@ test('media library: status/error messages and thumbnail card render with no inl
   expect(await statusMsg.evaluate(el => el.hasAttribute('style'))).toBe(false);
   expect(await statusMsg.evaluate(el => getComputedStyle(el).textAlign)).toBe('center');
 
+  // v1.2: the library is a list of names (the grid of thumbnails is gone).
   await page.evaluate(() => {
-    const card = document.createElement('div');
-    card.className = 'media-thumbnail-card';
-    card.innerHTML = `
-      <img src="x.webp" class="media-thumbnail-media">
-      <div class="media-thumbnail-badge">GIF</div>
-      <div class="media-thumbnail-filename">x.webp</div>
+    const row = document.createElement('button');
+    row.className = 'media-row';
+    row.innerHTML = `
+      <span class="media-row-name">x.webp</span>
+      <span class="media-row-type">IMAGE</span>
     `;
-    document.getElementById('media-gallery-grid').appendChild(card);
+    document.getElementById('media-gallery-grid').appendChild(row);
   });
-  const media = page.locator('.media-thumbnail-media');
-  expect(await media.evaluate(el => el.hasAttribute('style'))).toBe(false);
-  expect(await media.evaluate(el => getComputedStyle(el).objectFit)).toBe('cover');
-  const filename = page.locator('.media-thumbnail-filename');
-  expect(await filename.evaluate(el => getComputedStyle(el).textAlign)).toBe('center');
+  const name = page.locator('.media-row-name');
+  expect(await name.evaluate(el => el.hasAttribute('style'))).toBe(false);
+  expect(await name.evaluate(el => getComputedStyle(el).textOverflow)).toBe('ellipsis');
+  expect(await page.locator('.media-row').evaluate(el => getComputedStyle(el).textAlign)).toBe('left');
 });
 
 test('media library: upload zone toggles a CSS class on drag instead of mutating .style directly, and matches the existing :hover appearance', async ({ page }) => {
@@ -83,7 +82,7 @@ test('real bug fix: media prev/next buttons use :disabled CSS instead of JS styl
 test('diff viewer: renderDiffView blocks-branch reuses the live .diff-container/.diff-section-title (not the dead shadowed rule)', async ({ page }) => {
   await page.evaluate(() => {
     window.currentEditorDescData.overview = [{ type: 'paragraph', content: 'Changed for the diff test' }];
-    window.toggleDiffMode();
+    window.renderDiffView(); // CHANGE LIST, which VIEW DIFF drew until v1.2
   });
   const container = page.locator('.diff-container').first();
   await expect(container).toBeVisible();
@@ -96,7 +95,7 @@ test('diff viewer: raw/JSON branch wins its compound border/box-shadow override,
   await page.evaluate(() => {
     window.currentEditorFrameData.m1s = window.currentEditorFrameData.m1s || [];
     window.currentEditorFrameData.m1s.push({ id: 'diff_test_move', name: 'Diff Test Move' });
-    window.toggleDiffMode();
+    window.renderDiffView(); // CHANGE LIST, which VIEW DIFF drew until v1.2
   });
 
   const rawContainer = page.locator('.diff-container.diff-container-raw').first();

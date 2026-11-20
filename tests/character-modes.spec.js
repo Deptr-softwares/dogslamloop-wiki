@@ -237,12 +237,49 @@ test('a base-only character gets an Ultimate tab after Counterplay', async ({ pa
   const labels = await page.locator('.character-nav .btn-manga-text').allTextContents();
   expect(labels).toEqual(labelsOf({ includeInjected: true, includeOptional: true }));
 
-  // No mode toggle - a base-only character has exactly one kit.
+  // No toggle: this one declares no states.
   await expect(page.locator('#character-mode-bar')).toBeHidden();
 
   await page.locator('#nav-ultimateAtk').click();
   await expect(page.locator('#tab-ultimateAtk')).toBeVisible();
   await expect(page.locator('#tab-ultimateAtk')).toContainText('Locust Swarm');
+});
+
+test('a base-only character with a state gets the toggle, and each state its own Ultimate tab', async ({ page }) => {
+  // Flagged base-only in flight, so the test does not depend on which real
+  // characters are. An install is a state of a base-only character (v1.2).
+  await page.route('**/data/navigation.json*', async (route) => {
+    const response = await route.fetch();
+    const nav = await response.json();
+    for (const entries of Object.values(nav)) {
+      if (!Array.isArray(entries)) continue;
+      for (const e of entries) if (e && e.cms_config && e.cms_config.pageId === 'boomcat') e.isBaseOnly = true;
+    }
+    await route.fulfill({ response, json: nav });
+  });
+  await mockPageData(page, {
+    frame: {
+      modes: [{ id: 'base', label: 'Base Kit' }, { id: 'state', label: 'Swarm Form' }],
+      m1s: [move('jab', 'Jab')], skills: [], specials: [],
+      ultimateAtk: [move('ult', 'Locust Swarm')],
+      modeData: { state: { m1s: [move('jab', 'Jab')], skills: [], specials: [], ultimateAtk: [move('ult', 'Plague Swarm')] } },
+    },
+    desc: { overview: [] },
+  });
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+
+  await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
+
+  const bar = page.locator('#character-mode-bar');
+  await expect(bar.locator('.character-mode-chip')).toHaveText(['Base Kit', 'Swarm Form']);
+  await page.locator('#nav-ultimateAtk').click();
+  await expect(page.locator('#tab-ultimateAtk')).toContainText('Locust Swarm');
+
+  await bar.getByText('SWARM FORM').click();
+  await expect(page.locator('#tab-ultimateAtk')).toContainText('Plague Swarm');
+  await expect(page.locator('#tab-ultimateAtk')).not.toContainText('Locust Swarm');
+  expect(errors).toEqual([]);
 });
 
 test('the tabs bound at boot know to hide the Ultimate tab added after them', async ({ page }) => {

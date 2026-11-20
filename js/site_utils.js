@@ -15,7 +15,10 @@
 // First in the file so the class is on before anything starts moving.
 (function () {
     const STORE_KEY = 'dsl_site_settings';
-    const DEFAULTS = Object.freeze({ motionOff: false });
+    // look: 'default' or 'classic' (v1.2). html.look-classic does nothing on a
+    // page that does not load style/look-classic.css, which is how the editor
+    // and staff pages keep the default look.
+    const DEFAULTS = Object.freeze({ motionOff: false, look: 'default' });
 
     function readStore() {
         try {
@@ -40,6 +43,7 @@
     function apply() {
         document.documentElement.classList.toggle('reduce-motion',
             get('motionOff') || !!(deviceReduce && deviceReduce.matches));
+        document.documentElement.classList.toggle('look-classic', get('look') === 'classic');
     }
 
     // Returns whether the value was saved, so the panel can say when it was
@@ -109,27 +113,34 @@ window.openSiteSettings = function () {
         overlay = document.createElement('div');
         overlay.id = 'site-settings-overlay';
         overlay.className = 'modal-overlay hidden';
-        // The Halloween minigame plays once on its own; this plays it again
-        // (owner, 2026-10-23). window.halloween exists only until November 1.
-        const halloweenRow = window.halloween && typeof window.halloween.play === 'function' ? `
-                    <div class="site-setting site-setting-action">
-                        <span class="site-setting-text">
-                            <span class="site-setting-name">Halloween minigame</span>
-                            <span class="site-setting-hint">Play the Black Flash chain again.</span>
-                        </span>
-                        <button type="button" class="btn-sys btn-sys-yellow" data-halloween-replay>PLAY</button>
-                    </div>` : '';
         overlay.innerHTML = `
             <div class="modal-box modal-sm accent-blue" role="dialog" aria-modal="true" aria-labelledby="site-settings-title">
-                <div class="modal-header"><h3 id="site-settings-title">SITE SETTINGS</h3></div>
+                <div class="modal-header"><h3 id="site-settings-title">Site settings</h3></div>
                 <div class="modal-body site-settings-body">
+                    <fieldset class="site-setting-group">
+                        <legend class="site-setting-name">Look</legend>
+                        <label class="site-setting" for="site-setting-look-default">
+                            <input type="radio" name="site-setting-look" id="site-setting-look-default" value="default">
+                            <span class="site-setting-text">
+                                <span class="site-setting-name">Default</span>
+                                <span class="site-setting-hint">The site's usual look.</span>
+                            </span>
+                        </label>
+                        <label class="site-setting" for="site-setting-look-classic">
+                            <input type="radio" name="site-setting-look" id="site-setting-look-classic" value="classic">
+                            <span class="site-setting-text">
+                                <span class="site-setting-name">Classic</span>
+                                <span class="site-setting-hint">A plain, dark wiki look. The editor and staff pages keep the usual look.</span>
+                            </span>
+                        </label>
+                    </fieldset>
                     <label class="site-setting" for="site-setting-motion-off">
                         <input type="checkbox" id="site-setting-motion-off">
                         <span class="site-setting-text">
                             <span class="site-setting-name">Turn off animations</span>
                             <span class="site-setting-hint">Stops hover lifts, button sweeps, flashes and smooth scrolling. If your device is set to reduce motion, the site already follows it.</span>
                         </span>
-                    </label>${halloweenRow}
+                    </label>
                     <p class="site-settings-note">Saved on this device only.</p>
                     <p class="site-settings-error" hidden>This browser blocked saving, so the setting only lasts until you leave this page.</p>
                 </div>
@@ -143,16 +154,20 @@ window.openSiteSettings = function () {
             if (e.target === overlay || e.target.closest('[data-site-settings-close]')) close();
         });
         overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
-        const replay = overlay.querySelector('[data-halloween-replay]');
-        if (replay) replay.addEventListener('click', () => { close(); window.halloween.play(); });
         overlay.querySelector('#site-setting-motion-off').addEventListener('change', e => {
             const saved = window.siteSettings.set('motionOff', e.target.checked);
             overlay.querySelector('.site-settings-error').hidden = saved;
         });
+        overlay.querySelector('.site-setting-group').addEventListener('change', e => {
+            const saved = window.siteSettings.set('look', e.target.value);
+            overlay.querySelector('.site-settings-error').hidden = saved;
+        });
     }
+    const look = window.siteSettings.get('look') === 'classic' ? 'classic' : 'default';
+    overlay.querySelector(`#site-setting-look-${look}`).checked = true;
     overlay.querySelector('#site-setting-motion-off').checked = window.siteSettings.get('motionOff');
     overlay.classList.remove('hidden');
-    overlay.querySelector('#site-setting-motion-off').focus();
+    overlay.querySelector(`#site-setting-look-${look}`).focus();
 };
 
 const fetchPromiseCache = {};
@@ -257,6 +272,46 @@ async function loadCharacterRoster() {
     }
     return roster;
 }
+
+// --- TIER LIST ENTRIES: COPIES AND BADGES (v1.2) ---
+//
+// A certified tier list may hold a character more than once, each copy told
+// apart by a badge (owner, 2026-11-19). An entry in tiers[].characters is:
+//   "page_id"                       the character, no badge (every list before)
+//   { id, label, color }            the character, with a badge
+//   { id, copy, label, color }      a copy of it, which always has one
+// The key ("page_id", or "page_id#copy") is what the board, the move diff,
+// the notes and tier_list_changes.character_id use, so each copy is moved and
+// logged on its own. Read here once for the editor (js/tier-editor.js) and the
+// reader (js/certified-tier-lists.js), which must never disagree.
+//
+// save_tier_list stores the tiers as sent, so nothing is trusted: an entry
+// with no string id is dropped (null), a label is cut to TIER_BADGE_MAX, and a
+// colour that is not #rgb or #rrggbb is dropped, because it goes into a style.
+window.TIER_BADGE_MAX = 12;
+window.tierListEntry = function (raw) {
+    if (typeof raw === 'string') return raw ? { key: raw, id: raw, copy: null, label: '', color: '' } : null;
+    if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' || !raw.id) return null;
+    const copy = typeof raw.copy === 'string' && /^[a-z0-9]{1,12}$/i.test(raw.copy) ? raw.copy : null;
+    const label = typeof raw.label === 'string' ? raw.label.trim().slice(0, window.TIER_BADGE_MAX) : '';
+    const color = typeof raw.color === 'string' && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw.color) ? raw.color : '';
+    return { key: copy ? `${raw.id}#${copy}` : raw.id, id: raw.id, copy, label, color };
+};
+
+// The badge on a portrait's corner, or null for an entry without one. Its
+// text is black or white by the colour's lightness, the same test the
+// character colours use (isDarkCharacterColor, js/site_meta.js).
+window.tierBadgeElement = function (entry) {
+    if (!entry || !entry.label) return null;
+    const color = entry.color || '#888888';
+    const badge = document.createElement('span');
+    badge.className = 'tier-badge';
+    badge.textContent = entry.label;
+    badge.style.backgroundColor = color;
+    const dark = typeof window.isDarkCharacterColor === 'function' && window.isDarkCharacterColor(color);
+    badge.style.color = dark ? '#ffffff' : '#000000';
+    return badge;
+};
 
 // --- ARCHIVED PAGES ---
 // Lives next to fetchNavigationData because it answers the question that file
@@ -1984,7 +2039,7 @@ window.hydrateProfileModal = async function (session) {
     const labelEl = document.getElementById('profile-standing-label');
     if (iconEl) {
         // Built from the fixed ROLE_BADGES table; nothing here is user text.
-        iconEl.innerHTML = window.roleIconSvg(role, 'profile-role-icon');
+        iconEl.innerHTML = window.roleIconHTML(role, 'profile-role-icon');
         iconEl.className = `profile-standing-icon profile-standing-${badge.color}`;
     }
     if (labelEl) labelEl.textContent = badge.label;
@@ -2149,7 +2204,7 @@ window.openPublicProfile = async function (userId) {
 
     const standing = p.standing || 'member';
     const badge = window.roleBadge(standing);
-    iconEl.innerHTML = window.roleIconSvg(standing, 'profile-role-icon');
+    iconEl.innerHTML = window.roleIconHTML(standing, 'profile-role-icon');
     iconEl.className = `profile-standing-icon profile-standing-${badge.color}`;
     standingEl.textContent = badge.label;
 
@@ -2378,7 +2433,8 @@ async function claimBadgesNow(extra) {
     return { signedIn: true, claimed };
 }
 
-// The minigame calls this once it has closed on a win.
+// What awards a badge. The Halloween minigame called it on a win until the
+// event was removed (2026-11-13); the badges stay, and so does this.
 window.earnBadge = async function (id) {
     if (!window.knownBadges([id]).length) return;
     writePendingBadges([...new Set([...readPendingBadges(), id])]);
@@ -2758,7 +2814,7 @@ window.initNotifications = async function() {
                     <div style="display: flex; gap: 0.75rem; align-items: center;">
                         ${!n.is_read ? `<span id="notif-dot-${window.escapeHtml(n.id)}" class="status-dot online" style="background: var(--accent-blue); color: var(--accent-blue); width: 8px; height: 8px;"></span>` : ''}
                         <button data-notif-delete="${window.escapeHtml(n.id)}" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:0; display:flex; transition:color 0.2s;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text-muted)'" title="Delete">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                            ${window.uiIconHTML('delete')}
                         </button>
                     </div>
                 </div>
@@ -2944,47 +3000,20 @@ window.DISPLAY_NAME_MAX = 32;
 // js/pagebuilder.js:422 - an icon is an identity, not a bar somebody clears.
 // roleMeets would hand the owner the admin's shield, since the owner does meet
 // the admin bar.
+//
+// Each badge's icon is the owner's pixel art (v1.2, window.UI_ICONS in
+// js/site_meta.js), in the badge's color.
 window.ROLE_BADGES = {
-    // OWNER - a crown, redrawn for v0.17. The old one was a zigzag over a
-    // full-height box, which at 1.2rem read as a treasure chest rather than a
-    // crown: the box dominated and the peaks were uneven. Three peaks with real
-    // dips between them, and the band pulled out into a separate thin bar under
-    // the base, so at icon size the silhouette is crown-shaped.
-    owner: {
-        label: 'Owner', color: 'purple', join: true,
-        paths: '<path d="M3 16L5 6.5L9.5 11L12 4.5L14.5 11L19 6.5L21 16Z"></path><path d="M4.5 19.5h15"></path>'
-    },
-    // ADMIN - a shield with a check, new in v0.17 when the role stopped meaning
-    // the owner. Angular rather than the usual curved shield, to sit with the
-    // pencil and the eye rather than against them. The check deliberately echoes
-    // the member badge's: that one is a person plus a check ("you are signed
-    // in"), this is a shield plus a check ("you are the one who approves"),
-    // which is exactly what an admin has that a reviewer does not - force
-    // approve and force reject.
-    admin: {
-        label: 'Admin', color: 'red', join: true,
-        paths: '<path d="M12 2.5L20.5 6.5V12L12 21.5L3.5 12V6.5Z"></path><polyline points="8.5 12.5 11 15 15.5 9.5"></polyline>'
-    },
-    reviewer: {
-        label: 'Reviewer', color: 'blue',
-        paths: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>'
-    },
-    trusted_editor: {
-        label: 'Trusted Editor', color: 'yellow',
-        paths: '<path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>'
-    },
+    owner: { label: 'Owner', color: 'purple', icon: 'role-owner' },
+    admin: { label: 'Admin', color: 'red', icon: 'role-admin' },
+    reviewer: { label: 'Reviewer', color: 'blue', icon: 'role-reviewer' },
+    trusted_editor: { label: 'Trusted Editor', color: 'yellow', icon: 'role-trusted-editor' },
     // Signed in, no role - and also where `viewer` lands. A viewer is a soft
     // ban, and giving it a badge of its own would publish a moderation decision
     // on the person's own profile. get_public_profile() nulls the standing for
     // exactly the same reason.
-    member: {
-        label: 'Member', color: 'green',
-        paths: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline>'
-    },
-    guest: {
-        label: 'Guest', color: 'regular',
-        paths: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>'
-    }
+    member: { label: 'Member', color: 'green', icon: 'role--member' },
+    guest: { label: 'Guest', color: 'regular', icon: 'role--guest' },
 };
 
 // Which badge belongs to a role string. Anything unrecognised falls through to
@@ -2994,14 +3023,9 @@ window.roleBadge = function (roleName) {
     return window.ROLE_BADGES[key] || window.ROLE_BADGES.member;
 };
 
-// Builds the icon markup. `paths` is a fixed string from the table above and is
-// never user-influenced; className is caller-supplied, so it is escaped anyway
-// rather than relying on every future caller passing a literal.
-window.roleIconSvg = function (roleName, className) {
-    const badge = window.roleBadge(roleName);
-    const cls = window.escapeHtml(className || 'dock-role-icon');
-    const join = badge.join ? 'stroke-linejoin="round" ' : '';
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" ${join}stroke-linecap="square" class="${cls}">${badge.paths}</svg>`;
+// A role's icon, for whoever draws a badge (the dock, the profile).
+window.roleIconHTML = function (roleName, className) {
+    return window.uiIconHTML(window.roleBadge(roleName).icon, { className });
 };
 
 // A confirmation in the site's own modal, for code that runs on EVERY page.

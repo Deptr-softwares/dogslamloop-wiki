@@ -122,7 +122,6 @@ test('renderTicketWorkspace: a changes_requested message gets distinct styling, 
       <span id="ticket-oppose-text"></span>
       <div id="ticket-support-actions"></div>
       <div id="ticket-chat-log"></div>
-      <div id="ticket-qa-report"></div>
     `;
 
     const rev = {

@@ -17,10 +17,11 @@
     <link rel="stylesheet" href="style/Modals.css">
     <link rel="stylesheet" href="style/Forms.css">
     <link rel="stylesheet" href="style/RecentChanges.css">
-    <!-- The Halloween event (js/halloween.js): in <head>, so a reader who has
-         played gets the look on the first paint. -->
-    <link rel="stylesheet" href="style/halloween.css">
-    <script src="js/halloween.js?v=6b8d7ceb"></script>
+    <link rel="stylesheet" href="style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 </head>
 <body class="site-body p-0">
 
@@ -47,13 +48,11 @@
             <button class="sidebar-toggle-btn" aria-label="Collapse sidebar">☰</button>
             <div class="sidebar-master-title">Navigation</div>
             <div id="global-sidebar-nav"><p class="loading-msg loading-msg-sm loading-msg-busy">Loading menu...</p></div>
-            <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
+            <div id="sidebar-dynamic-dock" class="sidebar-dynamic-dock"></div>
 
             <div class="kofi-btn-wrapper">
                 <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square">
-                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line>
-                    </svg>
+                    <span class="px-icon" aria-hidden="true" style="--px-icon: url('/medias/icons/kofi.png')"></span>
                     <span class="kofi-text">Support Ko-fi</span>
                 </a>
             </div>
@@ -86,13 +85,14 @@
         </aside>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
-    <script src="js/character_tabs.js?v=6b8d7ceb"></script>
-    <script src="js/input_slots.js?v=6b8d7ceb"></script>
-    <script src="js/site_utils.js?v=6b8d7ceb"></script>
-    <script src="js/site_meta.js?v=6b8d7ceb"></script>
-    <script src="js/pagebuilder.js?v=6b8d7ceb"></script>
-    <script src="js/search.js?v=6b8d7ceb"></script>
-    <script src="js/recent-changes.js?v=6b8d7ceb"></script>
+    <script src="js/vendor/supabase-js-2.118.0.js"></script>
+    <script src="js/character_tabs.js?v=44484b72"></script>
+    <script src="js/input_slots.js?v=44484b72"></script>
+    <script src="js/site_utils.js?v=44484b72"></script>
+    <script src="js/site_meta.js?v=44484b72"></script>
+    <script src="js/pagebuilder.js?v=44484b72"></script>
+    <script src="js/search.js?v=44484b72"></script>
+    <script src="js/recent-changes.js?v=44484b72"></script>
+    <script async src="js/analytics.js?v=44484b72"></script>
 </body>
 </html>

@@ -440,11 +440,14 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
     box-sizing: border-box;
     transition: border-color 0.1s, background 0.1s;
     cursor: pointer;
-    /* Custom SVG Arrow */
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d1d5db' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    /* The owner's 8px arrow (medias/icons/dropdown.png, v1.2), white as they
+       drew it: a background cannot take the field's color the way a .px-icon
+       does. 8px exactly, so its pixels stay square. */
+    background-image: url('/medias/icons/dropdown.png');
     background-repeat: no-repeat;
     background-position: right 0.4rem center;
-    background-size: 1em;
+    background-size: 8px 8px;
+    image-rendering: pixelated;
 }
 .editor-select:focus {
     outline: none; border-color: var(--accent-blue); background-color: rgba(0,0,0,0.5); color: #fff;
@@ -475,11 +478,12 @@ input[type="checkbox"]:hover {
 input[type="checkbox"]:checked {
     background-color: var(--accent-blue);
     border-color: var(--accent-blue);
-    /* Custom sharp SVG checkmark */
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='20 6 9 17 4 12'%3e%3c/polyline%3e%3c/svg%3e");
-    background-size: 80%;
+    /* The owner's 8px tick (medias/icons/check.png, v1.2), white as drawn. */
+    background-image: url('/medias/icons/check.png');
+    background-size: 8px 8px;
     background-position: center;
     background-repeat: no-repeat;
+    image-rendering: pixelated;
 }
 
 /* --- DAW FRAME EDITOR UI --- */
@@ -694,7 +698,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 0.8rem;
     z-index: 10;
     pointer-events: none;
@@ -855,6 +859,12 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     color: var(--text-muted);
     margin: 0.3rem 0;
 }
+/* The icon picker (v1.2) is the section-link popup with the icon first on
+   each row. After .format-jump-item for the same source-order reason. */
+.format-icon-item { display: flex; align-items: center; gap: 0.45rem; }
+.format-icon-glyph { display: inline-flex; }
+.format-icon-character { width: 20px; height: 20px; flex: none; object-fit: contain; }
+.format-icon-popup .loading-msg { font-size: 0.7rem; margin: 0.3rem 0; }
 .format-color-popup-label { font-family: var(--text-mono); font-size: 0.6rem; color: #888; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.08em; }
 /* Separates the groups without putting a gap above the first one. */
 .format-color-presets-row + .format-color-popup-label,
@@ -1059,7 +1069,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
    today since the inline max-width already clips to 400px at normal
    viewport widths, but this is the correct fix regardless. */
 .auth-modal-box.qa-modal-box { width: 100%; transition: max-width 0.3s ease; }
-.qa-modal-title { color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; }
+.qa-modal-title { color: var(--accent-blue); font-family: var(--font-label), sans-serif; }
 .qa-form-container { display: flex; flex-direction: column; text-align: left; }
 .qa-modal-actions-divided { border-top: 1px dashed #333; }
 .qa-tabs-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
@@ -1074,13 +1084,13 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 /* --- MOVE ID MODAL (js/editor-tabs.js promptForMoveId) --- */
 .move-id-modal-elevated { z-index: 10006; }
 .auth-modal-box.move-id-modal-box { border-top-color: #22c55e; width: 100%; max-width: 400px; }
-.move-id-modal-title { color: #22c55e; font-family: 'CC-Wild-Words', sans-serif; }
+.move-id-modal-title { color: #22c55e; font-family: var(--font-label), sans-serif; }
 .move-id-form-fields { display: flex; flex-direction: column; gap: 1rem; text-align: left; }
 
 /* --- TIER LIST EDITOR: LIVE PREVIEW DISABLED NOTICE (initFullTabEditor) --- */
 .tierlist-preview-disabled-notice { padding: 2rem; color: #888; text-align: center; border: 1px dashed #333; margin-top: 4rem; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
 .tierlist-preview-disabled-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
-.tierlist-preview-disabled-title { color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; letter-spacing: 1px; }
+.tierlist-preview-disabled-title { color: var(--accent-blue); font-family: var(--font-label), sans-serif; letter-spacing: 1px; }
 .tierlist-preview-disabled-text { font-family: var(--text-mono); font-size: 0.85rem; max-width: 400px; line-height: 1.5; }
 
 /* --- TOOL PAGE SETUP (js/editor-tool.js) ---
@@ -1141,6 +1151,13 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     overflow: hidden;
 }
 .portrait-focus-preview img { width: 100%; height: 100%; object-fit: cover; }
+/* The Banner field's preview (v1.2): the shape the roster popup shows it in
+   (.roster-banner-image), so what it shows is what readers will see. */
+.profile-banner-preview { margin-top: 0.5rem; max-width: 360px; }
+.profile-banner-preview img {
+    display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover;
+    border: 1px solid var(--border-color);
+}
 .portrait-focus-empty {
     font-family: var(--text-mono); font-size: 0.6rem; color: var(--text-muted); text-align: center;
 }
@@ -1276,6 +1293,23 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .editor-row-spaced-sm { margin-bottom: 0.25rem; }
 .daw-stat-actions { display: flex; align-items: center; gap: 0.5rem; width: auto; flex: 0 0 auto; }
 .editor-checkbox-label { color: var(--text-muted); font-size: 0.75rem; }
+.daw-variant-media-row { margin: 0 0 0.75rem; }
+.daw-no-frames-hint { margin: 0.25rem 0 0; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem; line-height: 1.5; }
+/* The Accolades field (v1.2): every accolade as a chip, icon and name, muted
+   until ticked and then in the color its badge has on the Skill Card
+   (js/framedata.js). The icon follows the chip's color (.px-icon). */
+.accolade-picker { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem; }
+.accolade-chip {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-family: var(--text-mono); font-size: 0.65rem; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--text-muted); background: var(--bg-secondary); border: 2px solid var(--border-color);
+    border-radius: 0; padding: 0.15rem 0.45rem; cursor: pointer;
+}
+.accolade-chip:hover, .accolade-chip:focus-visible { border-color: var(--accent-blue); outline: none; }
+.accolade-chip[aria-pressed="true"] {
+    color: var(--accolade-color, var(--text-primary)); background: var(--bg-main);
+    border-color: var(--accolade-color, var(--text-primary));
+}
 /* Compound selectors: .btn-sys's own base rule sets padding at the same
    single-class specificity. */
 .btn-sys.daw-stat-del-btn { padding: 0.3rem 0.5rem; }
@@ -1354,7 +1388,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .strategy-toolbar-row-end { justify-content: flex-end; }
 .accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 .accordion-back-label { color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
-.accordion-back-title { color: #fff; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; }
+.accordion-back-title { color: #fff; font-family: var(--font-label), sans-serif; font-size: 0.9rem; }
 /* Two dropdowns share this row since v0.15 item 9, and the shared
    .manga-select-wrapper rule in Forms.css is `flex: 1` with `min-width: 0` -
    which is `flex-basis: 0%` and free to collapse. In a row that shrink-wraps to
@@ -1662,37 +1696,48 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 
 #btn-media-prev:disabled, #btn-media-next:disabled { opacity: 0.3; }
 
-.media-thumbnail-card {
-    background: #050505;
-    border: 2px solid #222;
-    aspect-ratio: 1 / 1;
-    display: flex;
-    flex-direction: column;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    transition: all 0.1s ease;
-}
-
-.media-thumbnail-card:hover {
-    border-color: var(--accent-blue);
-    transform: translateY(-2px);
-    box-shadow: 4px 4px 0px var(--manga-shadow);
-}
-
 .media-status-msg { color: #888; font-family: var(--text-mono); font-size: 0.75rem; padding: 2rem; text-align: center; grid-column: 1 / -1; }
 .media-error-msg { color: #ef4444; grid-column: 1 / -1; }
-.media-thumbnail-media { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-.media-thumbnail-badge { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.85); color: var(--accent-blue); font-size: 0.55rem; padding: 2px 4px; font-family: var(--text-mono); border: 1px solid var(--accent-blue); z-index: 5; }
-.media-thumbnail-filename { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.85); color: #fff; font-size: 0.65rem; font-family: var(--text-mono); padding: 4px 6px; box-sizing: border-box; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-top: 1px solid #333; z-index: 5; }
 
-/* v0.19 F8: the uploader credit, sitting directly on top of the filename bar.
-   Both are absolutely positioned against the card, so this is offset by the
-   filename bar's own height (0.65rem line + 8px padding + 1px border) rather
-   than stacked in flow - the card's flow is the media itself, which fills it.
-   Muted and a size down: it is a credit, not a label, and the filename is what
-   people are actually scanning for. */
-.media-thumbnail-uploader { position: absolute; bottom: calc(0.65rem + 9px); left: 0; width: 100%; background: rgba(0,0,0,0.7); color: var(--text-muted); font-size: 0.55rem; font-family: var(--text-mono); padding: 2px 6px; box-sizing: border-box; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 5; pointer-events: none; }
+/* --- MEDIA LIBRARY: A LIST OF NAMES AND ONE PREVIEW (v1.2) ---
+   Owner, 2026-11-19: no thumbnails. One page of the old grid of video cards
+   downloaded 52.2 MB before anyone hovered; a row is text, and only the file
+   picked into the preview is fetched. Side by side on a desktop, the preview
+   above the list on a phone (the mobile block below). */
+.media-browser { flex: 1; min-height: 0; display: flex; gap: 1rem; }
+
+.media-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    width: 100%;
+    flex: none;
+    padding: 0.4rem 0.6rem;
+    background: #050505;
+    border: 1px solid #222;
+    color: var(--text-white);
+    font-family: var(--text-mono);
+    font-size: 0.75rem;
+    text-align: left;
+    cursor: pointer;
+}
+.media-row:hover, .media-row:focus-visible { border-color: var(--accent-blue); }
+.media-row.is-selected { border-color: var(--accent-blue); background: rgba(96, 165, 250, 0.12); }
+.media-row-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.media-row-type { flex: none; color: var(--accent-blue); font-size: 0.6rem; }
+/* A credit, not a label: muted, a size down, and cut before the name is. */
+.media-row-uploader { flex: 0 1 auto; max-width: 35%; color: var(--text-muted); font-size: 0.6rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.media-lib-preview { flex: 1 1 45%; min-width: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+/* flex: none, or the column squeezes the frame to nothing before it scrolls. */
+.media-lib-preview-frame { flex: none; background: #050505; border: 2px solid #222; aspect-ratio: 16 / 9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.media-lib-preview-media { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+.media-lib-preview-name { margin: 0; font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-white); overflow-wrap: anywhere; }
+.media-lib-preview-uploader { margin: 0; font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-muted); overflow-wrap: anywhere; }
+/* Pinned to the bottom of the preview: when a long name or a short screen
+   makes the preview scroll, the button stays in view. */
+.media-lib-preview-actions { display: flex; gap: 0.5rem; position: sticky; bottom: 0; padding-top: 0.25rem; background: #0a0a0a; }
+.media-lib-preview-empty { margin: auto; color: #888; font-family: var(--text-mono); font-size: 0.75rem; text-align: center; }
 
 /* --- MEDIA LIBRARY UPLOAD QUEUE (js/editor-media.js handleUploads) --- */
 /* Per-file status for a batch upload. Capped and scrollable because a drop
@@ -1821,13 +1866,13 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .media-filter-select { flex: 1; margin: 0; }
 
 #media-gallery-grid {
-    flex: 1;
+    flex: 1 1 55%;
+    min-width: 0;
     overflow-y: auto;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     padding-right: 0.5rem;
-    align-content: start;
 }
 
 .media-modal-footer {
@@ -1864,43 +1909,6 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     border-color: #333;
     border-style: solid;
     background: transparent !important;
-}
-
-/* --- STRICT MEDIA GRID REFACTOR --- */
-#media-gallery-grid {
-    flex: 1;
-    overflow-y: auto;
-    display: grid;
-    /* Force exact square dimensions for every cell */
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    grid-auto-rows: 130px; 
-    gap: 1rem;
-    padding-right: 0.5rem;
-    align-content: start;
-}
-
-.media-thumbnail-card {
-    background: #050505;
-    border: 2px solid #222;
-    width: 100%;
-    height: 100%; /* Strictly fill the 130px grid row */
-    display: flex;
-    flex-direction: column;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden; /* Stops bleeding */
-    transition: all 0.1s ease;
-}
-
-.media-thumbnail-card video,
-.media-thumbnail-card img {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    pointer-events: none;
 }
 
 /* Keep the native select looking okay as a fallback before JS loads */
@@ -1970,7 +1978,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         color: #000;
         padding: 0.6rem 1rem;
         border-radius: 4px;
-        font-family: 'CC-Wild-Words', sans-serif;
+        font-family: var(--font-label), sans-serif;
         font-size: 0.75rem;
         box-shadow: 4px 4px 0px var(--manga-shadow);
         border: 2px solid #000;
@@ -2034,11 +2042,17 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
         gap: 0.5rem;
     }
     
-    /* Adjust Media Grid for phone screens */
-    #media-gallery-grid {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)) !important;
-        grid-auto-rows: 100px !important;
-    }
+    /* The Media Library on a phone: the preview above the list, so the file
+       picked is on screen without scrolling the list away. */
+    /* Measured at 390x844: a 112px frame and a 55% cap leave the list 161px.
+       A long name with an uploader line overflows the cap and scrolls, with
+       COPY LINK pinned in view (above). */
+    .media-browser { flex-direction: column; gap: 0.5rem; }
+    .media-lib-preview { flex: none; max-height: 55%; order: -1; }
+    .media-lib-preview-frame { aspect-ratio: auto; height: 112px; }
+    /* The footer stacks into three rows here, so the library takes more of
+       the screen to leave the list room. */
+    .media-modal-body { height: 80vh; }
 
     .modal-actions-centered { flex-direction: column; }
     .auth-body { padding: 1rem !important; }
@@ -2131,7 +2145,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 }
 
 .diff-section-title {
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     color: #a855f7;
     font-size: 1rem;
     border-bottom: 1px dashed #333;
@@ -2164,6 +2178,118 @@ del.diff-del {
     padding: 0 4px;
     border-radius: 2px;
     opacity: 0.8;
+}
+
+/* --- SIDE-BY-SIDE DIFF (v1.2, js/side-by-side.js) ---
+   The Overseer's DIFF VIEW and the editor's VIEW DIFF: the old version on the
+   left (what goes, red), the new one on the right (what comes, green), each
+   drawn as the page draws it, with rows pushed level by spacers. */
+.sbs { display: flex; flex-direction: column; width: 100%; }
+.sbs-top {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--bg-main);
+    border-bottom: 2px solid var(--border-color);
+}
+.sbs-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; padding: 0.5rem 0; }
+.sbs-count { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); margin-right: auto; }
+.sbs-heads, .sbs-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.sbs-cols { align-items: start; }
+.sbs-head {
+    font-family: var(--font-label), sans-serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    padding: 0.45rem 0.75rem;
+}
+.sbs-head small {
+    font-family: var(--text-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0;
+    color: var(--text-muted);
+    margin-left: 0.5rem;
+}
+.sbs-head-left { color: #fca5a5; }
+.sbs-head-right { color: #4ade80; }
+.sbs-heads .sbs-head-left { border-right: 2px solid var(--border-color); }
+.sbs-col { min-width: 0; padding: 1rem 0.75rem; box-sizing: border-box; }
+.sbs-col-left { border-right: 2px solid var(--border-color); }
+/* Each column's own heading shows only when the columns stack (below). */
+.sbs-col > .sbs-head { display: none; }
+.sbs-note { color: var(--text-muted); font-style: italic; border: 1px dashed var(--border-color); padding: 1rem; margin: 1rem 0 0; }
+/* The editor's "Compare with" picker (js/editor-sync.js). */
+.sbs-compare { display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); }
+.sbs-compare .editor-select { min-width: 16rem; }
+/* Where the editor draws a version for the side-by-side, out of sight and out
+   of the way, but laid out, so a clip or a picture can measure itself. */
+.sbs-render-host { position: absolute; left: 0; right: 0; top: 0; visibility: hidden; pointer-events: none; }
+/* The editor's side-by-side takes the pane's whole width, not the page's
+   1000px column, and the Workspace folds away while it is up (the
+   WORKSPACE button in its bar brings it back; js/editor-sync.js). */
+#diff-view-container.main-content-area:has(> .sbs) { max-width: none; }
+@media (min-width: 901px) {
+    .editor-layout-split.sbs-workspace-folded > .editor-workspace,
+    .editor-layout-split.sbs-workspace-folded > .editor-splitter { display: none; }
+}
+/* One column on a phone: there is no Workspace beside it to fold. */
+@media (max-width: 900px) { .sbs-workspace-toggle { display: none; } }
+
+/* Each half lays out for its own width. The page's own rules go by the
+   screen, so a Skill Card in a narrow half kept its desktop row and squeezed
+   its stats to one letter a line. Below 756px the card stacks, as the page
+   does: the page only uses that row once a card is 756px wide (a 1280px
+   screen), and narrower it wrapped a stat one word a line. (The Frame Data
+   legend follows its own width everywhere: style/FrameData.css.) */
+.sbs-col { container-type: inline-size; }
+@container (max-width: 755px) {
+    .sbs-col .skill-entry-body { flex-direction: column; }
+    .sbs-col .skill-left-col { width: auto; border-right: none; border-bottom: 2px solid var(--border-color); }
+    .sbs-col .skill-right-col { width: auto; }
+}
+
+/* The spacers that line rows up. A slot is the one opposite a block only the
+   other side has. */
+.sbs-spacer { display: block; margin: 0; padding: 0; border: 0; list-style: none; box-sizing: border-box; }
+.sbs-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed var(--border-color);
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.8rem;
+    overflow: hidden;
+}
+
+/* Outlines, not borders: an outline takes no room, so it cannot move the row
+   it is lining up. */
+.sbs-col-left .sbs-gone, .sbs-col-left .sbs-changed { outline: 2px solid #ef4444; outline-offset: 2px; }
+.sbs-col-left .sbs-gone { background-color: rgba(239, 68, 68, 0.12); }
+.sbs-col-right .sbs-new, .sbs-col-right .sbs-changed { outline: 2px solid #22c55e; outline-offset: 2px; }
+.sbs-col-right .sbs-new { background-color: rgba(34, 197, 94, 0.12); }
+
+/* A Micro Variant or Section Box tab whose hidden content changed: the same
+   blue dot the Overseer's tab strip puts on a changed tab (admin.css). */
+.sbs .sbs-tab-changed { border-color: var(--accent-blue); }
+.sbs .btn-manga.sbs-tab-changed .btn-manga-text::after,
+.sbs .sbox-tab.sbs-tab-changed::after {
+    content: '';
+    display: inline-block;
+    width: 0.45rem;
+    height: 0.45rem;
+    margin-left: 0.4rem;
+    vertical-align: 0.15rem;
+    border-radius: 50%;
+    background: var(--accent-blue);
+}
+
+/* The Overseer and the editor go to one column at this width, and so does
+   this: the old version, then the new one, each under its own heading. */
+@media (max-width: 900px) {
+    .sbs-heads { display: none; }
+    .sbs-cols { grid-template-columns: minmax(0, 1fr); }
+    .sbs-col-left { border-right: none; border-bottom: 2px solid var(--border-color); }
+    .sbs-col > .sbs-head { display: block; padding-left: 0; }
 }
 
 /* Stacked Layout (For complex data like JSON/Frames) */
@@ -2229,7 +2355,7 @@ del.diff-del {
 /* --- LOCAL DRAFT MANAGER (js/editor-drafts.js openDraftManager) --- */
 .draft-empty-msg { color: #666; font-family: var(--text-mono); font-size: 0.8rem; text-align: center; padding: 2rem 0; border: 1px dashed #333; }
 .draft-row { display: flex; justify-content: space-between; align-items: center; background: #050505; border: 1px solid #333; padding: 1rem; margin-bottom: 0.5rem; border-left: 3px solid var(--accent-blue); }
-.draft-row-label { color: var(--accent-blue); font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.25rem; }
+.draft-row-label { color: var(--accent-blue); font-family: var(--font-label), sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.25rem; }
 .draft-row-title { color: #fff; font-family: var(--text-mono); font-size: 0.8rem; margin-bottom: 0.25rem; font-weight: bold; }
 .draft-row-context { color: #888; font-weight: normal; }
 .draft-row-timestamp { color: #666; font-family: var(--text-mono); font-size: 0.65rem; }
@@ -2239,7 +2365,7 @@ del.diff-del {
    specificity. */
 .btn-sys.draft-resume-btn { padding: 0.4rem 0.8rem; font-size: 0.65rem; }
 .draft-active-badge { color: #22c55e; font-family: var(--text-mono); font-size: 0.65rem; padding: 0.4rem 0.8rem; border: 1px solid #22c55e; }
-.btn-sys.draft-discard-btn { padding: 0.4rem 0.8rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.65rem; }
+.btn-sys.draft-discard-btn { padding: 0.4rem 0.8rem; font-family: var(--font-label), sans-serif; font-size: 0.65rem; }
 
 /* --- SYSTEM PAGE EDITOR (js/editor-system.js renderSystemEditor) ---
    The tab/section-tab row reuses .daw-tab-item/.daw-tab-btn-removable/
@@ -2587,7 +2713,7 @@ del.diff-del {
 }
 
 .tutorial-title {
-    font-family: 'Finger-Paint', sans-serif; color: var(--accent-blue);
+    font-family: var(--font-title), sans-serif; color: var(--accent-blue);
     font-size: 1.1rem; margin: 0.25rem 0 0.75rem;
     text-shadow: 2px 2px 0 var(--manga-shadow);
 }
@@ -2719,6 +2845,9 @@ del.diff-del {
 .nstyle-name-count { color: var(--text-muted); margin-left: 0.35rem; }
 .nstyle-names-note { flex-basis: 100%; color: var(--accent-yellow); }
 .nstyle-names-note:empty { display: none; }
+
+/* A Collaborator's links that will not show (v1.2), named the same way. */
+.collaborator-links-note { color: var(--accent-yellow); font-family: var(--text-mono); font-size: 0.7rem; margin: 0.35rem 0 0; }
 
 /* --- WRITING CHECKS (v1.1, js/editor-writing-checks.js) ---
    A line under the field for each character name or broken tag, and the list
@@ -2949,7 +3078,7 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
 .playground-pull-category {
     flex-basis: 100%;
     margin: 0;
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 0.8rem;
     color: var(--accent-blue);
     text-transform: uppercase;

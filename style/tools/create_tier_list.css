@@ -23,7 +23,7 @@
 
 .mk-section-title {
     display: block;
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 1rem;
     color: var(--accent-blue);
     text-transform: uppercase;
@@ -70,7 +70,7 @@
     border: none;
     border-right: 2px solid var(--bg-secondary);
     box-shadow: inset -4px 0px 8px rgba(0, 0, 0, 0.2);
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 1.5rem;
     line-height: 1.1;
     color: #000;
@@ -128,7 +128,7 @@
 .mk-brand-icon { height: calc(var(--mk-box) * 0.45); width: auto; }
 
 .mk-brand-text {
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 0.95rem;
     color: var(--text-white);
     white-space: nowrap;

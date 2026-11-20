@@ -42,6 +42,17 @@ test('editRole gate: locked page hides the Edit button, open page shows it', asy
   // Boomcat's own page bootstrap already ran initTabEditorButtons('boomcat',
   // 'character') once before this test's manual calls even start, since
   // it's an open page.
+  //
+  // The locked page is the test's own, added to the registry in flight: which
+  // real pages are locked is the owner's to change (Collaborators was this
+  // test's example until v1.2 opened it to the editor).
+  await page.route('**/data/navigation.json*', async (route) => {
+    const response = await route.fetch();
+    const nav = await response.json();
+    nav['Test Pages'] = [{ id: 'locked-test', name: 'Locked Test', url: 'systems/locked-test/index.html',
+      cms_config: { pageType: 'system', pageId: 'locked_test', editRole: 'locked' } }];
+    await route.fulfill({ response, json: nav });
+  });
   await page.goto('/characters/Boomcat/index.html', { waitUntil: 'networkidle' });
 
   const result = await page.evaluate(async () => {
@@ -49,7 +60,7 @@ test('editRole gate: locked page hides the Edit button, open page shows it', asy
     btn.classList.remove('is-active');
     const beforeAny = getComputedStyle(btn).display;
 
-    await window.initTabEditorButtons('collaborators', 'system'); // editRole: locked
+    await window.initTabEditorButtons('locked_test', 'system'); // editRole: locked
     const afterLocked = getComputedStyle(btn).display;
 
     await window.initTabEditorButtons('boomcat', 'character'); // editRole: open

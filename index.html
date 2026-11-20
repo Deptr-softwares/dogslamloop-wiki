@@ -38,19 +38,20 @@
 
     <!-- 3. PAGE LAYOUT -->
     <link rel="stylesheet" href="style/Layout.css">
+    <link rel="stylesheet" href="style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 
     <meta http-equiv="Content-Security-Policy" content="
     default-src 'self'; 
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; 
-    connect-src 'self' https://gtqswjspxymjdopljmfi.supabase.co; 
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cloud.umami.is; 
+    connect-src 'self' https://gtqswjspxymjdopljmfi.supabase.co https://gateway.umami.is; 
     img-src 'self' data: blob: https://gtqswjspxymjdopljmfi.supabase.co; 
     style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; 
     font-src 'self' data: https://cdn.jsdelivr.net;
     ">
-    <!-- The Halloween event (js/halloween.js): in <head>, so a reader who has
-         played gets the look on the first paint. -->
-    <link rel="stylesheet" href="style/halloween.css">
-    <script src="js/halloween.js?v=6b8d7ceb"></script>
 </head>
 <body class="site-body p-0">
 
@@ -83,13 +84,11 @@
                 <p class="loading-msg loading-msg-sm loading-msg-busy">Loading menu...</p>
             </div>
 
-            <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
+            <div id="sidebar-dynamic-dock" class="sidebar-dynamic-dock"></div>
 
             <div class="kofi-btn-wrapper" style="margin-top: 0.75rem;">
                 <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow kofi-btn-full">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" style="width: 1rem; height: 1rem;">
-                        <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line>
-                    </svg>
+                    <span class="px-icon" aria-hidden="true" style="--px-icon: url('/medias/icons/kofi.png')"></span>
                     <span class="kofi-text">Support Ko-fi</span>
                 </a>
             </div>
@@ -292,25 +291,38 @@
 
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+    <!-- Deferred (v1.2, the owner's performance card). This is the one page
+         with a Content-Security-Policy meta tag, and Chrome stops fetching
+         ahead when it meets one, so these blocking scripts were fetched one at
+         a time, each when the parser reached it: twelve in a row, and the
+         page ready for its data at about 1.6s instead of 0.35s (measured,
+         2026-11-17). A deferred script never stops the parser, so it asks for
+         all of them at once; they still run in this order, once the page is
+         read, which is when they ran before. Below the policy, so it covers
+         them too. -->
+    <script defer src="js/vendor/supabase-js-2.118.0.js"></script>
 
-    <script src="js/site_meta.js?v=6b8d7ceb"></script>
-    <script src="js/character_tabs.js?v=6b8d7ceb"></script>
-    <script src="js/input_slots.js?v=6b8d7ceb"></script>
-    <script src="js/site_utils.js?v=6b8d7ceb"></script>
-    <script src="js/home_widgets.js?v=6b8d7ceb"></script>
-    <script src="js/pagebuilder.js?v=6b8d7ceb"></script>
-    <script src="js/search.js?v=6b8d7ceb"></script>
+    <script defer src="js/site_meta.js?v=44484b72"></script>
+    <script defer src="js/character_tabs.js?v=44484b72"></script>
+    <script defer src="js/input_slots.js?v=44484b72"></script>
+    <script defer src="js/site_utils.js?v=44484b72"></script>
+    <script defer src="js/home_widgets.js?v=44484b72"></script>
+    <script defer src="js/pagebuilder.js?v=44484b72"></script>
+    <script defer src="js/search.js?v=44484b72"></script>
     <!-- The homepage post widget lists posts only (escaped title/summary/date)
          and needs neither of these. The About Us section does: it renders
          authored blocks through generateHTMLForBlocks, which lives in
          description.js and relies on internalstyling.js for inline markup. -->
-    <script src="js/description.js?v=6b8d7ceb"></script>
-    <script src="js/internalstyling.js?v=6b8d7ceb"></script>
-    <script src="js/posts.js?v=6b8d7ceb"></script>
-    <script src="js/hub_content.js?v=6b8d7ceb"></script>
+    <script defer src="js/description.js?v=44484b72"></script>
+    <script defer src="js/internalstyling.js?v=44484b72"></script>
+    <script defer src="js/posts.js?v=44484b72"></script>
+    <script defer src="js/hub_content.js?v=44484b72"></script>
+    <script async src="js/analytics.js?v=44484b72"></script>
 
-    <script>
+    <!-- A module rather than a plain script since v1.2: a module waits in the
+         same queue as the deferred scripts above, so it still runs after them
+         and its DOMContentLoaded listener is still added after theirs. -->
+    <script type="module">
         document.addEventListener('DOMContentLoaded', () => {
             // 1. Boot the Sidebar Toggle logic
             if (window.initSidebarToggle) window.initSidebarToggle();

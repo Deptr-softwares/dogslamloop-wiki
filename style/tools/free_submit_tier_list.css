@@ -20,7 +20,7 @@
 }
 
 .fs-section-title {
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 1rem;
     color: var(--accent-blue);
     text-transform: uppercase;
@@ -45,7 +45,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 1.5rem;
     color: #000;
     text-shadow: 1px 1px 0px rgba(255, 255, 255, 0.5);
@@ -183,7 +183,7 @@
 }
 
 .fs-detail-title {
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 1.05rem;
     color: var(--text-white);
     margin: 0 0 0.2rem 0;
@@ -212,7 +212,7 @@
     width: 1.6rem;
     flex-shrink: 0;
     text-align: center;
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 0.75rem;
     color: #000;
     border: 2px solid var(--border-color);
@@ -288,7 +288,7 @@
 }
 
 .fs-ballot-name {
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 0.8rem;
     color: var(--text-white);
     overflow-wrap: anywhere;
@@ -306,7 +306,7 @@
     background: transparent;
     border: 2px solid var(--border-color);
     color: var(--text-white);
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 0.8rem;
     cursor: pointer;
     line-height: 1;

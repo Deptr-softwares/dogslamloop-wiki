@@ -107,9 +107,11 @@ function describe(name, pageType, category) {
     return `A Jujutsu Shenanigans guide to ${name}, on the Dogslamloop wiki.`;
 }
 
-function socialTags({ name, relPath, pageType, category, image }) {
+function socialTags({ name, relPath, pageType, category, image, overview }) {
     const url = `${SITE_ORIGIN}/${relPath}`;
-    const description = describe(name, pageType, category);
+    // A character's own Overview line says more than the line every character
+    // shares (Hover Banners, v1.2: data/banners.json).
+    const description = overview || describe(name, pageType, category);
 
     // A character's own portrait makes a far more useful Discord preview than
     // the site logo repeated 22 times. Portraits come from
@@ -148,11 +150,11 @@ function socialTags({ name, relPath, pageType, category, image }) {
 // Template was here until 2026-10-24: hand-built with 5 tabs while a character
 // page grew to 11. The owner made it a worked example of a character page, so
 // it is generated like one and always has the same tabs.
+// systems/color-codes and systems/collaborators left the set in v1.2: both
+// are pages edited in the editor now, their swatches and people Blocks.
 const NEVER_TOUCH = new Set([
-    'systems/collaborators/index.html',
     'systems/tierlist/index.html',
     'systems/updatelog/index.html',
-    'systems/color-codes/index.html',
     'characters/index.html',
     'systems/index.html',
 ]);
@@ -182,11 +184,12 @@ ${social}
     <link rel="stylesheet" href="../../style/discussions.css">
 
     <link rel="stylesheet" href="../../style/Layout.css">
+    <link rel="stylesheet" href="../../style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 
-    <!-- The Halloween event (js/halloween.js): in <head>, so a reader who has
-         played gets the look on the first paint. -->
-    <link rel="stylesheet" href="../../style/halloween.css">
-    <script src="../../js/halloween.js"></script>
 
     <script>window.PAGE_ROUTE = { pageId: "${pageId}", pageType: "character", title: "${title}" };</script>
 </head>
@@ -198,7 +201,7 @@ ${social}
     <script src="../../js/input_slots.js"></script>
     <script src="../../js/page_router.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+    <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
 
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
@@ -212,6 +215,7 @@ ${social}
     <script src="../../js/internalstyling.js"></script>
 
     <script src="../../js/page_boot.js"></script>
+    <script async src="../../js/analytics.js"></script>
 </body>
 </html>
 `;
@@ -244,11 +248,12 @@ ${social}
          system and others/ stubs rendered the login form as bare browser
          inputs. See tests/modal-stylesheets.spec.js. -->
     <link rel="stylesheet" href="../../style/Forms.css">
+    <link rel="stylesheet" href="../../style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 
-    <!-- The Halloween event (js/halloween.js): in <head>, so a reader who has
-         played gets the look on the first paint. -->
-    <link rel="stylesheet" href="../../style/halloween.css">
-    <script src="../../js/halloween.js"></script>
 
     <script>window.PAGE_ROUTE = { pageId: "${pageId}", pageType: "system", title: "${title}" };</script>
 </head>
@@ -260,7 +265,7 @@ ${social}
     <script src="../../js/input_slots.js"></script>
     <script src="../../js/page_router.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+    <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
@@ -269,6 +274,7 @@ ${social}
     <script src="../../js/internalstyling.js"></script>
 
     <script src="../../js/page_boot.js"></script>
+    <script async src="../../js/analytics.js"></script>
 </body>
 </html>
 `;
@@ -307,11 +313,12 @@ ${social}
     <link rel="stylesheet" href="../../style/Alerts.css">
     <link rel="stylesheet" href="../../style/Modals.css">
     <link rel="stylesheet" href="../../style/Forms.css">${extraStyles}
+    <link rel="stylesheet" href="../../style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 
-    <!-- The Halloween event (js/halloween.js): in <head>, so a reader who has
-         played gets the look on the first paint. -->
-    <link rel="stylesheet" href="../../style/halloween.css">
-    <script src="../../js/halloween.js"></script>
 
     <script>window.PAGE_ROUTE = { pageId: "${pageId}", pageType: "${pageType}", title: "${title}" };</script>
 </head>
@@ -323,7 +330,7 @@ ${social}
     <script src="../../js/input_slots.js"></script>
     <script src="../../js/page_router.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+    <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
     <script src="../../js/site_utils.js"></script>
     <script src="../../js/site_meta.js"></script>
     <script src="../../js/pagebuilder.js"></script>
@@ -334,6 +341,7 @@ ${social}
     <script src="../../js/${extraScript}"></script>` : ''}
 
     <script src="../../js/page_boot.js"></script>
+    <script async src="../../js/analytics.js"></script>
 </body>
 </html>
 `;
@@ -525,7 +533,7 @@ function scanMovedStubs(root = ROOT) {
 // moved: relPath -> pageId, from scanMovedStubs. Any of those paths that no
 // live or archived page claims, whose page is live somewhere else, gets a
 // forward there.
-function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set(), toolStyles = new Set(), moved = {}) {
+function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set(), toolStyles = new Set(), moved = {}, banners = {}) {
     const pages = [];
     const problems = [];
     const livePaths = new Set();
@@ -550,12 +558,20 @@ function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set(), 
                 continue;
             }
 
+            // Hover Banners (v1.2): a character's banner is its Discord preview
+            // when it has one (the owner's card: "it will replace the embed
+            // that will show up in Discord"), mirrored onto the site by
+            // scripts/fetch-banners.js, so the address is the site's own. Only
+            // a real character: the Template is a character page filed under
+            // Site Info, the same test describe() makes.
+            const banner = (cms.pageType === 'character' && category === 'Characters' && banners[cms.pageId]) || {};
             const social = socialTags({
                 name: entry.name,
                 relPath,
                 pageType: cms.pageType,
                 category,
-                image: previews[cms.pageId],
+                image: banner.image ? `${SITE_ORIGIN}/${banner.image}` : previews[cms.pageId],
+                overview: banner.overview,
             });
             const stubArgs = {
                 pageId: cms.pageId,
@@ -680,9 +696,16 @@ function main() {
         ? JSON.parse(fs.readFileSync(archivedPath, 'utf8'))
         : {};
 
+    // Optional, like page-previews.json: without it, characters keep the
+    // portrait and the shared line (Hover Banners, v1.2).
+    const bannersPath = path.join(ROOT, 'data', 'banners.json');
+    const banners = fs.existsSync(bannersPath)
+        ? JSON.parse(fs.readFileSync(bannersPath, 'utf8'))
+        : {};
+
     const { toolScripts, toolStyles } = scanToolAssets();
 
-    const { pages, problems } = buildPages(nav, previews, archived, toolScripts, toolStyles, scanMovedStubs());
+    const { pages, problems } = buildPages(nav, previews, archived, toolScripts, toolStyles, scanMovedStubs(), banners);
 
     if (problems.length > 0) {
         console.error('generate-pages FAILED - refusing to write:\n');

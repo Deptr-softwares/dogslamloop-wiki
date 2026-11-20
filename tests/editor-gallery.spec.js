@@ -12,8 +12,9 @@ async function openGalleryEditor(page, cloudItems = []) {
   // The real Emotes page loads first, only to boot the editor, and its preview
   // downloaded every emote video from the live library before the network went
   // idle. Each test was as slow as the slowest clip, and red once the gallery
-  // grew past the timeout (2026-11-13). None of those videos is looked at here.
-  await page.route('**/storage/v1/object/public/wiki-media/**', route => route.abort());
+  // grew past the timeout (2026-11-13). None of those videos is looked at here,
+  // so no video or sound is fetched, wherever it is hosted.
+  await page.route('**/*', route => route.request().resourceType() === 'media' ? route.abort() : route.fallback());
   await page.goto('/edit.html?page=emotes&type=gallery', { waitUntil: 'networkidle' });
   await page.evaluate((items) => {
     window.currentEditorPageType = 'gallery';

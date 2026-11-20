@@ -7,20 +7,19 @@ const frameDataLegendHTML = `
         <h3 class="legend-title">Frame Data Color Legend</h3>
         <div class="legend-grid">
             <div class="legend-item"><span class="legend-swatch bg-tick-start"></span><div><span class="legend-name">Startup</span></div></div>
-            <div class="legend-item"><span class="legend-swatch bg-tick-misc"></span><div><span class="legend-name">Misc</span>Variable frame data aka no hard number so it always come with a note</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-misc"></span><div><span class="legend-name">Misc</span>Variable frame data aka no hard number so it always comes with a note</div></div>
             <div class="legend-item"><span class="legend-swatch bg-tick-active"></span><div><span class="legend-name">Active</span>Hitbox view ...</div></div>
             <div class="legend-item"><span class="legend-swatch bg-tick-recov"></span><div><span class="legend-name">Recovery</span>aka Whiff endlag</div></div>
             <div class="legend-item"><span class="legend-swatch bg-tick-selfstun"></span><div><span class="legend-name">Self Stun</span>for Grab moves mostly</div></div>
             <div class="legend-item"><span class="legend-swatch bg-tick-inskillstun"></span><div><span class="legend-name">InSkill Stun</span>A weird version of Self Stun, but you can move around</div></div>
             <div class="legend-item"><span class="legend-swatch bg-tick-targetstun"></span><div><span class="legend-name">Target Stun</span>on Hit</div></div>
-            <div class="legend-item"><span class="legend-swatch bg-tick-blockendlag"></span><div><span class="legend-name">Block Endlag</span>aka Extended Recovery</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-blockendlag"></span><div><span class="legend-name">Block Endlag</span>aka Block Stun</div></div>
             <div class="legend-item"><span class="legend-swatch bg-tick-inactive"></span><div><span class="legend-name">Inactive</span>Frames between Active frames</div></div>
             <div class="legend-item"><span class="legend-swatch span-iframe-complete"></span><div><span class="legend-name">Complete I-Frames</span>aka Domain I-Frames</div></div>
             <div class="legend-item"><span class="legend-swatch span-iframe-swarm"></span><div><span class="legend-name">Swarm I-Frames</span></div></div>
             <div class="legend-item"><span class="legend-swatch span-iframe-explosion"></span><div><span class="legend-name">Explosion I-Frames</span></div></div>
             <div class="legend-item"><span class="legend-swatch span-iframe-bullet"></span><div><span class="legend-name">Bullet I-Frames</span></div></div>
             <div class="legend-item"><span class="legend-swatch span-iframe-melee"></span><div><span class="legend-name">Melee I-Frames</span></div></div>
-            <div class="legend-item"><span class="legend-swatch span-rhc"></span><div><span class="legend-name">Reverse Hitcancel</span></div></div>
         </div>
 
         <!-- The one thing on this page that is a convention rather than a
@@ -36,14 +35,45 @@ const frameDataLegendHTML = `
 `;
 
 // Dictionary for standardized game windows (Overlays)
+// Reverse Hitcancel was one until 2026-11-12, retired by the owner: no Frame
+// Track ever used it, and an old revision that names it just draws nothing.
 const windowTypes = {
-    'reverse-hitcancel': { class: 'span-rhc', label: 'Reverse Hitcancel' },
     'iframe-melee': { class: 'span-iframe-melee', label: 'Melee I-Frames' },
     'iframe-bullet': { class: 'span-iframe-bullet', label: 'Bullet I-Frames' },
     'iframe-explosion': { class: 'span-iframe-explosion', label: 'Explosion I-Frames' },
     'iframe-swarm': { class: 'span-iframe-swarm', label: 'Swarm I-Frames' },
     'iframe-complete': { class: 'span-iframe-complete', label: 'Complete I-Frames' }
 };
+
+// --- SKILL CARD ACCOLADES (v1.2, the owner's Kanban card) ---
+// The 26 themselves (window.ACCOLADES) and their icons (window.accoladeIconHTML)
+// are in js/site_meta.js since the mini icons in text, which any page can show.
+
+// No two of one group can be true of the same move, so the editor unticks the
+// rest of a group when one is ticked (js/editor-framedata.js).
+window.ACCOLADE_OPPOSITES = [
+    ['punishable-on-block', 'safe-on-block'],
+    ['punishable-on-whiff', 'safe-on-whiff'],
+    ['punishable-on-hit', 'safe-on-hit'],
+    ['hit-only-air-ragdoll', 'hit-ragdoll', 'cannot-hit-ragdoll'],
+    ['uncancelable', 'semi-uncancelable'],
+];
+
+// A move's accolades as the owner's entries, in the owner's order. An id that
+// is not one of theirs is left out rather than shown as a bare id.
+window.orderedAccolades = function (ids) {
+    const picked = new Set(Array.isArray(ids) ? ids : []);
+    return window.ACCOLADES.filter(a => picked.has(a.id));
+};
+
+// The badges under a move's name, or nothing, so a move with none takes no
+// room. Their hover is bound once the card is in the page.
+function accoladesHTML(ids) {
+    const list = window.orderedAccolades(ids);
+    if (!list.length) return '';
+    const badges = list.map(a => `<li class="skill-accolade" data-accolade="${window.escapeHtml(a.id)}" style="--accolade-color: ${window.escapeHtml(a.color)}">${window.accoladeIconHTML(a)}${window.escapeHtml(a.name)}</li>`);
+    return `<ul class="skill-accolades">${badges.join('')}</ul>`;
+}
 
 // initTooltip/bindTooltip are defined once, in site_utils.js (loaded before
 // this file), and shared with description.js's inline callout tooltips.
@@ -142,7 +172,7 @@ function createPhase(phaseObj, totalScale) {
     if (phaseObj.overlays) activeOverlays.push(...phaseObj.overlays);
     if (phaseObj.overlay) activeOverlays.push(phaseObj.overlay);
 
-    const hierarchy = ['iframe-melee', 'iframe-bullet', 'iframe-explosion', 'iframe-swarm', 'iframe-complete', 'reverse-hitcancel'];
+    const hierarchy = ['iframe-melee', 'iframe-bullet', 'iframe-explosion', 'iframe-swarm', 'iframe-complete'];
     activeOverlays.sort((a, b) => hierarchy.indexOf(a) - hierarchy.indexOf(b));
 
     activeOverlays.forEach(overlayKey => {
@@ -204,6 +234,56 @@ function createPhase(phaseObj, totalScale) {
 }
 
 window.cachedMasterFrameData = window.cachedMasterFrameData || {}; 
+
+// What goes in a Skill Card's media box: the move's media, or the media of the
+// Micro Variant on show (owner, 2026-11-16), or the Missing Media notice.
+function skillMediaHTML(media) {
+    let mediaContent = `<div class="skill-media-missing">[ Missing Media ]</div>`;
+    if (media?.src) {
+        // Extension is read off the path, not the whole URL. A raw
+        // endsWith missed anything carrying a query string or
+        // fragment - "clip.mp4?t=123" is ordinary for storage URLs -
+        // and only knew mp4/webm, while the media library accepts
+        // anything video/*. Those all fell through to the <img>
+        // branch, which cannot play a video: that is why mp4 looked
+        // unsupported in skill cards.
+        const path = media.src.split(/[?#]/)[0].toLowerCase();
+        const isVideo = ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => path.endsWith(ext));
+        // .gif stays an image on purpose - it animates on its own.
+        const filename = path.split('/').pop();
+        const esc = window.escapeHtml;
+        const altText = media.alt || '';
+
+        if (isVideo) {
+            // Injecting lazy-loading to prevent memory nukes!
+            //
+            // aria-label, not alt: <video> has no alt attribute, so
+            // alt text entered against a video-media move used to go
+            // nowhere at all - which is how "alt text does not
+            // persist" was reported. It persisted fine in the data;
+            // it just had nothing to render into. Plenty of skill
+            // media is .mp4/.webm, so this was the common case.
+            //
+            // The shared clip (js/description.js wikiClipHTML), which
+            // carries the corner button that opens the player.
+            mediaContent = window.wikiClipHTML(media.src, {
+                className: 'skill-media-img', label: altText,
+            }) + `
+                <span class="skill-media-filename">${esc(filename)}</span>`;
+        } else {
+            // Native loading="lazy" with a real src, matching how
+            // description.js renders wiki images. This carried
+            // data-lazy-src before, but initLazyMedia only ever
+            // promoted video[data-lazy-src] and iframe[data-lazy-src]
+            // - never img - so every static image in a skill card
+            // rendered with no source at all.
+            mediaContent = `
+                <img src="${esc(media.src)}" alt="${esc(altText)}" class="skill-media-img" loading="lazy">
+                <span class="skill-media-filename">${esc(filename)}</span>`;
+        }
+    }
+    return mediaContent;
+}
 
 async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageType = 'character', modeId = null) {
     if (pageType === 'system') return;
@@ -276,7 +356,9 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             container.innerHTML = `<div class="empty-tab-msg">Nothing has been recorded here yet.</div>`;
         }
 
-        const hasFrameData = movesArray.some(move => move.variants);
+        // A move an editor marked "No frame data" (a passive, a dash variant)
+        // has nothing the legend explains, whatever old tracks it still stores.
+        const hasFrameData = movesArray.some(move => move.variants && move.noFrameData !== true);
         if (hasFrameData) {
             container.innerHTML = frameDataLegendHTML;
         }
@@ -284,6 +366,11 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
         movesArray.forEach(move => {
             const card = document.createElement('section');
             card.className = 'skill-entry-card';
+            // "No frame data" (owner, 2026-11-16): the move's description takes
+            // the space the Frame Track would, and nothing says frame data is
+            // missing. Stored tracks are kept, so unticking brings them back.
+            const noFrameData = move.noFrameData === true;
+            if (noFrameData) card.classList.add('skill-entry-card-no-frames');
 
             // --- 1. STATS FALLBACK ---
             let statsHTML = '';
@@ -304,56 +391,14 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             }
 
             // --- 2. MEDIA & VIDEO FALLBACK ---
-            let mediaContent = `<div class="skill-media-missing">[ Missing Media ]</div>`;
-            if (move.media?.src) {
-                // Extension is read off the path, not the whole URL. A raw
-                // endsWith missed anything carrying a query string or
-                // fragment - "clip.mp4?t=123" is ordinary for storage URLs -
-                // and only knew mp4/webm, while the media library accepts
-                // anything video/*. Those all fell through to the <img>
-                // branch, which cannot play a video: that is why mp4 looked
-                // unsupported in skill cards.
-                const path = move.media.src.split(/[?#]/)[0].toLowerCase();
-                const isVideo = ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => path.endsWith(ext));
-                // .gif stays an image on purpose - it animates on its own.
-                const filename = path.split('/').pop();
-                const esc = window.escapeHtml;
-                const altText = move.media.alt || '';
-
-                if (isVideo) {
-                    // Injecting lazy-loading to prevent memory nukes!
-                    //
-                    // aria-label, not alt: <video> has no alt attribute, so
-                    // alt text entered against a video-media move used to go
-                    // nowhere at all - which is how "alt text does not
-                    // persist" was reported. It persisted fine in the data;
-                    // it just had nothing to render into. Plenty of skill
-                    // media is .mp4/.webm, so this was the common case.
-                    //
-                    // The shared clip (js/description.js wikiClipHTML), which
-                    // carries the corner button that opens the player.
-                    mediaContent = window.wikiClipHTML(move.media.src, {
-                        className: 'skill-media-img', label: altText,
-                    }) + `
-                        <span class="skill-media-filename">${esc(filename)}</span>`;
-                } else {
-                    // Native loading="lazy" with a real src, matching how
-                    // description.js renders wiki images. This carried
-                    // data-lazy-src before, but initLazyMedia only ever
-                    // promoted video[data-lazy-src] and iframe[data-lazy-src]
-                    // - never img - so every static image in a skill card
-                    // rendered with no source at all.
-                    mediaContent = `
-                        <img src="${esc(move.media.src)}" alt="${esc(altText)}" class="skill-media-img" loading="lazy">
-                        <span class="skill-media-filename">${esc(filename)}</span>`;
-                }
-            }
+            const mediaContent = skillMediaHTML(move.media);
 
             card.innerHTML = `
                 <div class="skill-entry-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <div>
                         <h2 class="skill-title">${window.escapeHtml(move.name || 'Unknown Move')}</h2>
                         <span class="skill-subtitle">Input: ${window.escapeHtml(move.input || 'N/A')} | Skill Type: ${window.escapeHtml(move.type || 'N/A')} | Damage Type: ${window.escapeHtml(move.damageType || 'N/A')} | ${window.escapeHtml(move.variant || '')}</span>
+                        ${accoladesHTML(move.accolades)}
                     </div>
 
                     <!-- move.id is contributor-submitted and used to be built
@@ -364,7 +409,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                     <button class="btn-sys btn-sys-regular skill-edit-move-btn"
                             data-move-id="${window.escapeHtml(move.id || '')}"
                             style="display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.6rem;">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        ${window.uiIconHTML('edit')}
                         Edit Move
                     </button>
                 </div>
@@ -380,6 +425,12 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             `;
 
             container.appendChild(card);
+
+            // Hovering (or tapping) a badge shows its name and what it means.
+            card.querySelectorAll('.skill-accolade').forEach(badge => {
+                const accolade = window.ACCOLADES.find(a => a.id === badge.dataset.accolade);
+                if (accolade) window.bindTooltip(badge, `<strong>${window.escapeHtml(accolade.name)}</strong><br><span class="tooltip-desc">${window.escapeHtml(accolade.description)}</span>`);
+            });
 
             // Shape the box to the media rather than cropping the media to the
             // box. Runs after append so the element is measurable, and hooks
@@ -406,11 +457,42 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             const rightCol = document.getElementById(`right-col-${move.id}`);
             const pendingTabs = [];
 
+            // --- MEDIA PER MICRO VARIANT (owner, 2026-11-16) ---
+            // Each timeline (a leaf of the tree, however deep) can carry its
+            // own media, and the box on the left follows the one on show. A
+            // timeline without any shows the move's own media.
+            const leafViews = new Map();
+            const mediaWrapper = card.querySelector('.skill-media-wrapper');
+            let shownSrc = move.media?.src || '';
+            function syncMediaToVariant() {
+                let leaf = null;
+                for (const [view, node] of leafViews) {
+                    // On show: neither it nor a tab above it is hidden.
+                    if (!view.closest('.view-section.hidden')) { leaf = node; break; }
+                }
+                const own = leaf && leaf.media && leaf.media.src ? leaf.media : null;
+                // The move's "Media box shape" is one setting for the whole card.
+                const media = own ? { ...own, framing: move.media?.framing } : move.media;
+                const src = media?.src || '';
+                // Same file as before: left alone, so a video is not restarted.
+                if (src === shownSrc) return;
+                shownSrc = src;
+
+                mediaWrapper.innerHTML = skillMediaHTML(media);
+                mediaWrapper.classList.toggle('skill-media-wrapper-empty', !src);
+                mediaWrapper.classList.remove('is-square', 'is-tall');
+                if (typeof window.applyMediaFraming === 'function') {
+                    window.applyMediaFraming(mediaWrapper.querySelector('.skill-media-img'), mediaWrapper, media);
+                }
+                if (typeof window.initLazyMedia === 'function') window.initLazyMedia(mediaWrapper);
+            }
+
             // --- 3. RECURSIVE FRAME DATA ENGINE ---
             function buildNestedTabs(dataNode, prefixId, wrapperElement) {
 
                 // LEAF NODE: Render actual frame data
                 if (dataNode.bars) {
+                    leafViews.set(wrapperElement, dataNode);
                     let autoLegendItems = [];
                     let seenPhases = new Set();
 
@@ -600,6 +682,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                             Array.from(viewsWrapper.children).forEach(v => v.classList.add('hidden'));
                             btn.classList.add('active');
                             viewSection.classList.remove('hidden');
+                            syncMediaToVariant();
                         });
 
                         buildNestedTabs(childNode, childId, viewSection);
@@ -611,9 +694,12 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
                 }
             }
 
-            if (move.variants && Object.keys(move.variants).length > 0) {
+            if (noFrameData) {
+                // Left empty here: the description is put in below.
+            } else if (move.variants && Object.keys(move.variants).length > 0) {
                 // Generates the entire recursive tree at once
                 buildNestedTabs({ variants: move.variants }, move.id, rightCol);
+                syncMediaToVariant();
             } else {
                 rightCol.innerHTML = `
                     <div class="empty-tab-msg empty-frame-data-msg">
@@ -625,7 +711,7 @@ async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageTyp
             // --- 4. STRATEGY INJECTION TARGET ---
             const strategyTarget = document.createElement('div');
             strategyTarget.id = `strategy-${move.id}`;
-            card.appendChild(strategyTarget);
+            (noFrameData ? rightCol : card).appendChild(strategyTarget);
         });
 
 

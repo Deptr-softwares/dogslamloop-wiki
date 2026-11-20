@@ -108,7 +108,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .wiki-stat { text-align: center; }
 .wiki-stat-value {
     display: block;
-    font-family: 'Finger-Paint', sans-serif;
+    font-family: var(--font-title), sans-serif;
     font-size: 1.75rem;
     color: var(--accent-blue);
     text-shadow: 2px 2px 0px var(--manga-shadow);
@@ -186,7 +186,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
    are two rules that will not. */
 .sidebar-master-title,
 .column-subgroup-title {
-    font-family: 'Finger-Paint', sans-serif;
+    font-family: var(--font-title), sans-serif;
     font-size: 1.15rem;
     color: var(--text-white);
     margin-bottom: 1rem;
@@ -222,7 +222,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 }
 
 .sidebar-nav-title {
-    font-family: 'CC-Wild-Words', sans-serif; font-size: 0.85rem; color: var(--accent-blue);
+    font-family: var(--font-label), sans-serif; font-size: 0.85rem; color: var(--accent-blue);
     text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.4rem; margin-top: 0.35rem;
     text-shadow: 1px 1px 0px var(--manga-shadow);
 }
@@ -263,7 +263,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
        Stated explicitly instead. --accent-blue is re-pointed per character by
        js/site_meta.js, so the headers now follow the page's own accent rather
        than a fixed blue. */
-    font-family: 'Finger-Paint', sans-serif;
+    font-family: var(--font-title), sans-serif;
     color: var(--accent-blue);
     text-transform: inherit;
     letter-spacing: inherit;
@@ -303,8 +303,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .global-sidebar-left.collapsed .sidebar-action-dock { padding: 0 0.5rem 1.5rem 0.5rem; gap: 1rem; }
 
 /* Auth/dock action buttons (js/pagebuilder.js initAuthDock) */
-.kofi-text { font-family: 'CC-Wild-Words', sans-serif; }
-.dock-role-icon { width: 1.2rem; height: 1.2rem; }
+.kofi-text { font-family: var(--font-label), sans-serif; }
 /* Deliberately declares NO padding and NO font-size, 2026-08-14.
 
    Both used to be here (0.75rem / 0.85rem) and both fought .btn-sys in
@@ -324,6 +323,13 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     align-items: center; justify-content: flex-start; gap: 0.75rem;
     white-space: nowrap; text-decoration: none;
 }
+/* The same tie, left over for layout until 2026-11-19: .btn-sys sets
+   inline-flex and centres its content at the same 0-1-0, so system, tool and
+   hub pages, which load Buttons.css after this file, centred every dock
+   button's icon and label while character pages kept them on the left (owner:
+   "Why is the alignment of the buttons in this tier list centered?"). Both
+   classes, 0-2-0, so the dock's own layout wins whatever the load order. */
+.btn-sys.dock-action-btn { display: flex; justify-content: flex-start; }
 .dock-action-icon { display: flex; align-items: center; justify-content: center; }
 .dock-action-text { overflow: hidden; text-overflow: ellipsis; }
 /* The account button and SITE SETTINGS share one row (v1.1), so the settings
@@ -336,13 +342,13 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 
 /* The Site settings panel (js/site_utils.js openSiteSettings). */
 .site-settings-body { display: flex; flex-direction: column; gap: 0.9rem; }
+.site-setting-group { display: flex; flex-direction: column; gap: 0.6rem; margin: 0; padding: 0; border: 0; min-width: 0; }
+.site-setting-group legend { padding: 0; margin-bottom: 0.6rem; }
 .site-setting { display: flex; gap: 0.75rem; align-items: flex-start; cursor: pointer; }
 .site-setting input { margin: 0.2rem 0 0; width: 1rem; height: 1rem; flex: none; accent-color: var(--accent-blue); cursor: pointer; }
 .site-setting-text { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
 .site-setting-name { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
 .site-setting-hint { color: var(--text-muted); font-size: 0.8rem; line-height: 1.45; }
-/* A setting that is a button rather than a checkbox: the text, then the button. */
-.site-setting.site-setting-action { align-items: center; justify-content: space-between; cursor: default; }
 .site-settings-note { margin: 0; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem; }
 .site-settings-error { margin: 0; color: #ef4444; font-size: 0.8rem; }
 .dock-btn-inbox { position: relative; }
@@ -367,7 +373,6 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     width: 100%; display: flex;
     align-items: center; justify-content: center; gap: 0.5rem;
 }
-.kofi-btn-wrapper svg { width: 1rem; height: 1rem; }
 /* At the top of the right sidebar (js/pagebuilder.js, placeKofiOnTheRight),
    with the sidebar's own headings below it. */
 .local-sidebar-right > .kofi-btn-wrapper { margin: 0 0 1.5rem; }
@@ -474,7 +479,9 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .system-button-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.65rem 0.9rem; }
 
 /* Systems directory grid (js/pagebuilder.js buildSystemsDirectory) */
-.system-category-block .sidebar-master-title { margin-top: 0; margin-bottom: 1.25rem; border-bottom: 2px dashed var(--border-color); }
+/* One line under every title (owner, 2026-11-16): solid, as .section-title has
+   it. Dashed is left for the lines between rows of a list. */
+.system-category-block .sidebar-master-title { margin-top: 0; margin-bottom: 1.25rem; }
 .system-directory-btn { width: 100%; padding: 0.6rem 1rem; }
 .system-directory-btn .btn-manga-content { justify-content: center; }
 .system-directory-btn .btn-manga-text { font-size: 0.85rem; letter-spacing: 1px; }
@@ -482,7 +489,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .filter-bar-inline { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
 .filter-group { display: flex; align-items: center; gap: 0.5rem; }
 .filter-group-right { margin-left: auto; }
-.filter-label { font-family: 'CC-Wild-Words', sans-serif; font-size: 0.75rem; color: var(--accent-blue); text-transform: uppercase; }
+.filter-label { font-family: var(--font-label), sans-serif; font-size: 0.75rem; color: var(--accent-blue); text-transform: uppercase; }
 
 /* --- 4. SCROLL BOXES --- */
 .scroll-lg { max-height: 450px !important; }
@@ -497,7 +504,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 /* --- 5. INTERNAL SECTION LAYOUTS --- */
 /* Game Info Widget */
 .game-info-logo-box { display: flex; flex-direction: column; align-items: center; margin-bottom: 1.5rem; }
-.game-info-title { font-family: 'Finger-Paint', sans-serif; font-size: 1.125rem; color: var(--text-white); letter-spacing: 0.15em; text-align: center; line-height: 1.2; margin: 0; }
+.game-info-title { font-family: var(--font-title), sans-serif; font-size: 1.125rem; color: var(--text-white); letter-spacing: 0.15em; text-align: center; line-height: 1.2; margin: 0; }
 .game-info-label { display: block; color: hsl(215, 8%, 47%); font-weight: bold; margin-bottom: 0.25rem; }
 .game-info-subtext { color: hsl(212, 9%, 58%); font-size: 0.75rem; display: block; }
 .game-info-footer { padding-top: 1rem; border-top: 1px solid var(--border-color); margin-top: 1rem; }
@@ -509,17 +516,17 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .update-log-meta { display: flex; gap: 0.5rem; align-items: center; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.25rem; font-family: var(--text-mono); }
 .expand-hint { margin-left: auto; font-size: 0.75rem; color: var(--text-muted); transition: transform 0.2s ease; }
 .update-log-item[open] .expand-hint { transform: rotate(180deg); }
-.update-title { margin: 0; font-size: 1.15rem; color: var(--text-white); font-family: 'CC-Wild-Words', sans-serif; }
+.update-title { margin: 0; font-size: 1.15rem; color: var(--text-white); font-family: var(--font-label), sans-serif; }
 .update-log-body { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 2px dashed var(--border-color); }
 
 .update-table-container { overflow-x: auto; }
 .update-table { width: 100%; font-size: 0.875rem; text-align: left; color: var(--text-primary); border-collapse: collapse; }
-.update-table th { padding: 0.5rem 0.75rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.75rem; color: var(--text-white); background-color: var(--bg-main); border-bottom: 2px solid var(--accent-blue); }
+.update-table th { padding: 0.5rem 0.75rem; font-family: var(--font-label), sans-serif; font-size: 0.75rem; color: var(--text-white); background-color: var(--bg-main); border-bottom: 2px solid var(--accent-blue); }
 .update-table td { padding: 0.75rem; border-bottom: 1px solid var(--border-color); }
 .update-row:hover { background-color: hsl(215, 28%, 17%); }
 
 /* FAQ Sections */
-.faq-summary { display: flex; justify-content: space-between; align-items: center; font-family: 'CC-Wild-Words', sans-serif; color: var(--accent-blue); cursor: pointer; list-style: none; text-shadow: 1px 1px 0px #000; }
+.faq-summary { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-label), sans-serif; color: var(--accent-blue); cursor: pointer; list-style: none; text-shadow: 1px 1px 0px #000; }
 .faq-summary::-webkit-details-marker { display: none; }
 .faq-arrow { font-size: 0.75rem; color: var(--text-muted); transition: transform 0.2s ease; }
 .faq-details[open] .faq-arrow { transform: rotate(180deg); }
@@ -643,7 +650,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .tier-list-empty { padding: 2rem; text-align: center; color: var(--text-muted); font-family: var(--text-mono); }
 .tier-list-row { display: flex; min-height: 80px; background: var(--bg-main); border: 1px solid var(--border-color); }
 .tier-list-row-label { width: 100px; background-color: var(--tier-row-color); display: flex; align-items: center; justify-content: center; border-right: 2px solid var(--bg-secondary); flex-shrink: 0; box-shadow: inset -4px 0px 8px rgba(0,0,0,0.2); }
-.tier-list-row-label-text { font-family: 'CC-Wild-Words', sans-serif; font-size: 1.5rem; color: #000; text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
+.tier-list-row-label-text { font-family: var(--font-label), sans-serif; font-size: 1.5rem; color: #000; text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
 .tier-list-row-chars { flex: 1; padding: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; align-content: flex-start; }
 
 .tier-changelog-entry { background: rgba(255,255,255,0.02); border-left: 3px solid var(--accent-blue); padding: 1rem; }
@@ -730,7 +737,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 
 .tier-editor-row .ctl-chars .tier-portrait-name,
 .tier-editor-tray .tier-portrait-name { font-size: 0.62rem; }
-.tier-portrait-name { position: relative; z-index: 2; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.5rem; color: #fff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; word-wrap: break-word; line-height: 1.1; padding: 2px; }
+.tier-portrait-name { position: relative; z-index: 2; font-family: var(--font-label), sans-serif; font-size: 0.5rem; color: #fff; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; word-wrap: break-word; line-height: 1.1; padding: 2px; }
 
 /* Floating clone that follows the pointer during a drag (mouse or touch),
    created/destroyed by bindTierDragAndDrop. pointer-events: none so
@@ -770,7 +777,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
         transition: transform 0.18s ease;
         background: rgba(0, 0, 0, 0.88);
         color: #fff;
-        font-family: 'CC-Wild-Words', sans-serif;
+        font-family: var(--font-label), sans-serif;
         font-size: 0.5rem;
         line-height: 1.15;
         padding: 3px 2px;
@@ -833,7 +840,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .tier-color-input { width: 32px; height: 32px; cursor: pointer; border: 1px solid #333; padding: 0; background: none; flex-shrink: 0; border-radius: 4px; }
 /* Compound: .editor-input's own base rule sets margin-bottom/background at
    the same specificity. */
-.editor-input.tier-name-input { margin: 0; font-family: 'CC-Wild-Words', sans-serif; font-size: 1.1rem; flex: 1; background: #0a0a0a; }
+.editor-input.tier-name-input { margin: 0; font-family: var(--font-label), sans-serif; font-size: 1.1rem; flex: 1; background: #0a0a0a; }
 .tier-row-btn-group { display: flex; gap: 0.25rem; }
 /* Compound: .btn-sys's own base rule sets padding at the same specificity. */
 .btn-sys.btn-sys-compact { padding: 0.3rem 0.5rem; }
@@ -884,7 +891,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
    contents on the right (owner, 2026-08-18). */
 .aggregated-contributors-footer { box-sizing: border-box; display: flex; flex-direction: column; gap: 0.75rem; margin-top: 2.5rem; margin-bottom: 0.5rem; padding: 1rem 1.25rem; background: var(--bg-main); border: 2px solid var(--border-color); clear: both; box-shadow: 6px 6px 0px var(--manga-shadow); position: relative; }
 .aggregated-contributors-footer::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background-color: var(--accent-blue); }
-.contributors-header { display: flex; align-items: center; gap: 0.5rem; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.85rem; color: var(--text-white); text-transform: uppercase; border-bottom: 2px dashed var(--border-color); padding-bottom: 0.5rem; }
+.contributors-header { display: flex; align-items: center; gap: 0.5rem; font-family: var(--font-label), sans-serif; font-size: 0.85rem; color: var(--text-white); text-transform: uppercase; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
 .contributors-list { display: flex; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.25rem; }
 /* One footer per tab (consolidateTabContributors in js/description.js), not
    one per section. It is the last thing in the tab now, so it takes the full
@@ -901,7 +908,6 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .sidebar-dynamic-dock { margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem; }
 .kofi-btn-wrapper-spaced { margin-top: 0.75rem; }
 .kofi-btn-full { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; }
-.kofi-btn-full svg { width: 1rem; height: 1rem; }
 .system-back-row { margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 /* The right sidebar's header row needs no new rule: .sidebar-tab-header
    (defined above, ~line 101) is already byte-identical to what the system
@@ -913,12 +919,12 @@ a.reading-step-title:hover { color: var(--accent-blue); }
    need rules of their own. */
 .post-card { border: 2px solid var(--border-color); background: var(--bg-main); box-shadow: 6px 6px 0px var(--manga-shadow); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
 .post-card-link { text-decoration: none; }
-.post-card-title { font-family: 'CC-Wild-Words', sans-serif; color: var(--text-white); margin: 0 0 0.5rem 0; font-size: 1.1rem; }
+.post-card-title { font-family: var(--font-label), sans-serif; color: var(--text-white); margin: 0 0 0.5rem 0; font-size: 1.1rem; }
 .post-card-link:hover .post-card-title { color: var(--accent-blue); }
 .post-card-meta, .post-meta { display: flex; flex-wrap: wrap; gap: 1rem; font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); }
 .post-card-summary { margin: 0.75rem 0 0 0; color: var(--text-primary); line-height: 1.6; }
 .post-header { border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
-.post-title { font-family: 'CC-Wild-Words', sans-serif; color: var(--text-white); margin: 0 0 0.5rem 0; }
+.post-title { font-family: var(--font-label), sans-serif; color: var(--text-white); margin: 0 0 0.5rem 0; }
 .post-error { color: #ef4444; }
 /* Distinguishes a hotfix note from a versioned release entry in the Update
    Log, where the two are deliberately interleaved. */
@@ -980,7 +986,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .wiki-block-heading-bar { border-left: 3px solid var(--heading-bar); padding-left: 0.75rem; }
 .card-header-flex { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem; }
 .card-header-title { 
-    font-family: 'Finger-Paint', sans-serif;
+    font-family: var(--font-title), sans-serif;
     color: var(--text-white); 
     font-size: 1.5rem; 
     margin: 0; 
@@ -1079,7 +1085,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .wiki-divider-segment { flex-grow: 1; height: 2px; background: var(--border-color, #333); }
 .wiki-divider-circle-dot { margin: 0 1rem; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--accent-blue); background: var(--bg-main); box-shadow: 2px 2px 0px var(--manga-shadow); }
 .wiki-divider-cross-plus { margin: 0 1rem; font-family: var(--text-mono); color: var(--accent-blue); font-weight: bold; font-size: 1.4rem; line-height: 0.5; }
-.wiki-divider-slash-mark { margin: 0 1rem; font-family: 'CC-Wild-Words', sans-serif; color: var(--border-color, #333); font-size: 1rem; letter-spacing: 2px; font-style: italic; }
+.wiki-divider-slash-mark { margin: 0 1rem; font-family: var(--font-label), sans-serif; color: var(--border-color, #333); font-size: 1rem; letter-spacing: 2px; font-style: italic; }
 .wiki-divider-diamond-mark { margin: 0 1rem; transform: rotate(45deg); width: 10px; height: 10px; border: 2px solid var(--accent-blue); background: var(--bg-main); box-shadow: 2px 2px 0px var(--manga-shadow); }
 
 /* Playstyle Component (js/description.js generatePlaystyleHTML) */
@@ -1087,7 +1093,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .playstyle-col { flex: 1; min-width: 250px; box-shadow: 4px 4px 0px var(--manga-shadow, #000); padding: 1.25rem 1.5rem; }
 .playstyle-col.likes { background: rgba(34, 197, 94, 0.05); border: 1px solid #22c55e; }
 .playstyle-col.dislikes { background: rgba(239, 68, 68, 0.05); border: 1px solid #ef4444; }
-.playstyle-header { font-family: 'CC-Wild-Words', sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-top: 0; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px dotted; }
+.playstyle-header { font-family: var(--font-label), sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-top: 0; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px dotted; }
 .playstyle-col.likes .playstyle-header { color: #22c55e; border-bottom-color: #22c55e; }
 .playstyle-col.dislikes .playstyle-header { color: #ef4444; border-bottom-color: #ef4444; }
 .playstyle-list { list-style: none; padding: 0; margin: 0; font-family: var(--text-mono); font-size: 0.8rem; color: #e5e7eb; }
@@ -1386,14 +1392,14 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     border: 2px dashed var(--border-color, #333);
 }
 .wiki-media-placeholder-label {
-    font-family: 'Finger-Paint', sans-serif;
+    font-family: var(--font-title), sans-serif;
     font-size: 1.1rem;
     color: var(--text-muted);
     letter-spacing: 0.02em;
 }
 .wiki-media-placeholder-icon { width: 64px; height: auto; opacity: 0.55; display: block; }
 
-.callout-tooltip-title { font-family: 'CC-Wild-Words', sans-serif; text-transform: uppercase; font-size: 0.9rem; display: block; margin-bottom: 0.5rem; padding-bottom: 0.25rem; color: var(--tooltip-accent); border-bottom: 1px dashed var(--tooltip-accent); }
+.callout-tooltip-title { font-family: var(--font-label), sans-serif; text-transform: uppercase; font-size: 0.9rem; display: block; margin-bottom: 0.5rem; padding-bottom: 0.25rem; color: var(--tooltip-accent); border-bottom: 1px solid var(--tooltip-accent); }
 .callout-tooltip-desc { font-family: var(--text-mono); font-size: 0.75rem; color: #e5e7eb; line-height: 1.5; display: block; }
 
 /* .update-table's own base rule belongs to js/home_widgets.js's homepage
@@ -1413,7 +1419,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .wiki-accordion-wrapper .manga-accordion summary::-webkit-details-marker { display: none; }
 .wiki-accordion-wrapper .manga-accordion[open] summary .accordion-arrow { transform: translateY(-50%) rotate(180deg) !important; }
 .manga-accordion { background: var(--bg-main, #050505); border: 1px solid var(--border-color, #333); box-shadow: 4px 4px 0px var(--manga-shadow, #000); width: 100%; }
-.wiki-accordion-summary { position: relative; padding: 0.75rem 2.5rem 0.75rem 1rem; cursor: pointer; font-family: 'CC-Wild-Words', sans-serif; font-size: 0.8rem; color: var(--accent-blue, #3b82f6); list-style: none; outline: none; user-select: none; text-transform: uppercase; }
+.wiki-accordion-summary { position: relative; padding: 0.75rem 2.5rem 0.75rem 1rem; cursor: pointer; font-family: var(--font-label), sans-serif; font-size: 0.8rem; color: var(--accent-blue, #3b82f6); list-style: none; outline: none; user-select: none; text-transform: uppercase; }
 .accordion-arrow { position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); font-size: 0.6rem; color: var(--text-muted, #888); transition: transform 0.2s; }
 /* NOT a flex container, and that is the whole point of this rule (owner bug,
    2026-09-20: "alignment is broken inside accordion").
@@ -1452,7 +1458,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     box-shadow: 4px 4px 0px var(--manga-shadow); padding: 1rem;
 }
 
-.sbox-title { font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; color: var(--text-white); margin: 0 0 0.5rem; }
+.sbox-title { font-family: var(--font-label), sans-serif; font-size: 1rem; color: var(--text-white); margin: 0 0 0.5rem; }
 .sbox-intro { margin-bottom: 0.75rem; }
 
 .sbox-tabs {
@@ -1619,12 +1625,19 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     font-size: 0.9rem; text-shadow: 1px 1px 0px #000; margin-left: 0.3rem;
 }
 
-/* Heading for an authored strategy block, moved here for the same reason. */
-.strategy-title { 
-    font-family: 'Finger-Paint', sans-serif;
-    font-size: 1rem; color: var(--accent-blue); 
-    margin-bottom: 1rem; padding-bottom: 0.5rem; margin-top: 0; text-shadow: 1px 1px 0px #000; 
-    display: inline-block; border-bottom: 2px solid var(--accent-blue);
+/* Heading for an authored strategy block, moved here for the same reason.
+   The same heading as a card's (.card-header-flex + .card-header-title
+   above): same size, weight and colour, and a rule across the whole panel.
+   Until v1.2 it was a small 1rem heading with a short accent underline, so
+   Overview & Strategy and every move's "Move Overview and Strategy" read
+   unlike Matchups, Starter Guide, Counterplay, Combos and Techs (owner,
+   2026-11-20: "This type of small heading and underline is seemingly only
+   used in the Overview and Strategy, M1s, Skills, and Innate sections"). */
+.strategy-title {
+    font-family: var(--font-title), sans-serif;
+    font-size: 1.5rem; font-weight: bold; color: var(--text-white);
+    margin: 0 0 1rem; padding-bottom: 0.75rem;
+    display: block; border-bottom: 1px solid var(--border-color);
 }
 
 
@@ -1672,6 +1685,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 /* --- 6. MOBILE SUPPORT --- */
 .mobile-top-bar { display: none; }
 .mobile-backdrop { display: none; }
+.mobile-bottom-bar { display: none; }
 
 /* .tab-editor-btn-mobile and #mobile-btn-group were removed on 2026-08-14
    along with the buttons they styled. They existed because the sidebar
@@ -1774,7 +1788,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     /* Was inheriting the body font, which made the one piece of branding on a
        phone the only place the wiki's own typeface was missing. */
     .mobile-site-title {
-        font-family: 'Finger-Paint', sans-serif;
+        font-family: var(--font-title), sans-serif;
         font-size: 1.05rem; margin: 0; line-height: 1.15; color: var(--text-white);
     }
     .mobile-menu-btn { background: none; border: none; color: var(--text-white); font-size: 1.75rem; padding: 0; cursor: pointer; }
@@ -1787,6 +1801,31 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
         z-index: 900; box-shadow: 4px 4px 0px var(--manga-shadow); transform: skewX(-10deg);
     }
     .mobile-edit-fab svg { transform: skewX(10deg); }
+
+    /* The bottom bar (js/pagebuilder.js buildMobileBottomBar): Search, Ko-fi,
+       Settings and the account, one tap away. Under the drawers and their
+       backdrop, which cover it while one is open. The page and the edit
+       button make room for it, and for a phone's home indicator below it. */
+    .mobile-bottom-bar {
+        display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+        background: var(--bg-main); border-top: 2px solid var(--border-color);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .mobile-bottom-btn {
+        flex: 1 1 0; min-width: 0; height: 3rem; box-sizing: border-box;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.2rem;
+        margin: 0; padding: 0; background: none; border: none; border-right: 1px solid var(--border-color);
+        color: var(--text-muted); font-family: var(--text-mono); font-size: 0.6rem; line-height: 1;
+        text-transform: uppercase; text-decoration: none; cursor: pointer;
+    }
+    .mobile-bottom-btn:last-child { border-right: none; }
+    .mobile-bottom-btn .px-icon { display: block; }
+    .mobile-bottom-icon { display: block; height: 16px; }
+    .mobile-bottom-btn:active { color: var(--text-white); background: var(--bg-secondary); }
+    .mobile-bottom-kofi { color: var(--accent-yellow); }
+    /* !important only to get past .p-0, which every page puts on its body. */
+    body.has-mobile-bottom-bar { padding-bottom: calc(3rem + 2px + env(safe-area-inset-bottom, 0px)) !important; }
+    body.has-mobile-bottom-bar .mobile-edit-fab { bottom: calc(4.5rem + 2px + env(safe-area-inset-bottom, 0px)); }
     /* Mobile Sidebar Dock Collapsing */
     .global-sidebar-left.collapsed .btn-manga-text { display: none; }
     .global-sidebar-left.collapsed .btn-manga-slanted { padding: 0.6rem; justify-content: center; }
@@ -1806,8 +1845,31 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 @media (max-width: 640px) {
     .main-content-area { padding: 1rem; }
     .wiki-section, .changelog-box { padding: 1rem; }
-    .character-title { font-size: 1.9rem; }
-    .home-main-title { font-size: 1.5rem; }
+
+    /* Phone text (owner's mobile card, v1.2: "Texts are too large"). Their
+       pick, 2026-11-16: body 14px and titles two steps down, so section
+       titles 18px, a character's name 24px, a Skill Card title 20px. Reading
+       text inherits the body's size; the titles are set one by one because
+       each has its own size in rem. Reader pages only (.site-body): the card
+       leaves the editor and the review queue out. */
+    body.site-body { font-size: 0.875rem; }
+    .section-title { font-size: 1.125rem; margin-bottom: 1rem; }
+    .character-title { font-size: 1.5rem; }
+    .skill-title { font-size: 1.25rem; }
+    .home-main-title { font-size: 1.25rem; }
+    .sidebar-master-title, .column-subgroup-title { font-size: 1rem; }
+    /* Heading Blocks size themselves off the text around them (h2 is 1.5em),
+       which would leave one bigger than the section title above it. */
+    h2.wiki-block-heading { font-size: 1.2em; }
+    h3.wiki-block-heading { font-size: 1.1em; }
+
+    /* A table keeps columns wide enough to read and scrolls sideways inside
+       its own box (same card: "Avoid big table having extremely stretched
+       vertical length"). Squeezed to the screen, a three-column table of
+       sentences ran to 3,400px tall. Columns take the width of what is in
+       them, up to 16rem, and never less than the box. */
+    .wiki-table-wrapper > table { width: max-content; min-width: 100%; max-width: none; }
+    .wiki-table-wrapper > table th, .wiki-table-wrapper > table td { max-width: 16rem; }
 
     /* description.js block-level media (image/video/youtube/embed): the
        max-width safety net above stops true overflow, but a contributor-set
@@ -1903,7 +1965,6 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
    from .systems-grid-container's gap instead. */
 .column-subgroup-title {
     margin: 2rem 0 1.25rem;
-    border-bottom: 2px dashed var(--border-color);
 }
 /* The first group sits directly under the section header, which already has
    its own spacing. */
@@ -1935,7 +1996,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     text-align: left; padding: 0.45rem 0.6rem; white-space: nowrap;
     background: var(--bg-main); color: var(--text-muted);
     border-bottom: 2px solid var(--border-color);
-    font-family: 'CC-Wild-Words', sans-serif; text-transform: uppercase;
+    font-family: var(--font-label), sans-serif; text-transform: uppercase;
     font-size: 0.7rem; letter-spacing: 0.5px;
 }
 .combo-th-sortable { cursor: pointer; user-select: none; }
@@ -2018,7 +2079,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .combo-table td.combo-cell.combo-cell-is-empty { display: none; }
     .combo-cell::before {
         content: attr(data-label); flex: 0 0 5.5rem; color: var(--text-muted);
-        font-family: 'CC-Wild-Words', sans-serif; text-transform: uppercase;
+        font-family: var(--font-label), sans-serif; text-transform: uppercase;
         font-size: 0.65rem; letter-spacing: 0.5px; padding-top: 0.15rem;
     }
     /* The route leads the card and spans it - it is the reason the row exists. */
@@ -2040,12 +2101,15 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 .theorybox-head { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
 .theorybox-title {
-    font-family: 'CC-Wild-Words', sans-serif; font-size: 0.95rem; margin: 0;
+    font-family: var(--font-label), sans-serif; font-size: 0.95rem; margin: 0;
     color: var(--text-white); flex: 1 1 auto;
 }
 .theorybox-difficulty { font-family: var(--text-mono); font-size: 0.75rem; }
-/* Plain: Practicality is free text, so it has no scale to colour. */
-.theorybox-practicality { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; }
+/* Plain: Practicality is free text, so it has no scale to colour. Free text
+   can be a sentence, so it wraps: kept on one line, Vessel's Techs tab was
+   170px wider than a phone (v1.2 mobile pass). The head still gives it a row
+   of its own before it has to break. */
+.theorybox-practicality { font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); min-width: 0; overflow-wrap: anywhere; }
 /* Not var(--accent-blue): on a character page that is the character's colour,
    and the dark ones render an unreadable link. Same reason as .combo-video-link. */
 .theorybox-video { color: var(--text-white); text-decoration: underline; text-underline-offset: 2px; font-family: var(--text-mono); font-size: 0.75rem; }

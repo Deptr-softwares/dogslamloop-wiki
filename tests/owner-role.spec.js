@@ -188,17 +188,17 @@ test('media deletion belongs to the admin, and keeps its per-user flag', async (
 // The icon suite moved from initAuthDock's local consts (js/pagebuilder.js) to
 // window.ROLE_BADGES (js/site_utils.js) in v0.17 F11, when the profile modal
 // became a second thing that draws a role and a duplicate would have drifted.
-// These two tests followed it. What they assert is unchanged; the rendered
-// half is now covered live in tests/profile-modal.spec.js, which drives the
-// real dock button and reads the crown back off the DOM.
+// These two tests followed it. Since v1.2 each badge is one of the owner's
+// pixel icons (medias/icons/), named in the table, and the rendered half is
+// covered live in tests/profile-modal.spec.js and tests/site-icons.spec.js.
 function roleBadges() {
   const src = fs.readFileSync(path.join(ROOT, 'js', 'site_utils.js'), 'utf8');
   const table = src.slice(src.indexOf('window.ROLE_BADGES = {'),
                           src.indexOf('window.roleBadge ='));
   const out = {};
-  const re = /(\w+):\s*\{\s*label:\s*'([^']+)',\s*color:\s*'([a-z]+)',[^}]*?paths:\s*'([^']+)'/g;
+  const re = /(\w+):\s*\{\s*label:\s*'([^']+)',\s*color:\s*'([a-z]+)',\s*icon:\s*'([^']+)'/g;
   let m;
-  while ((m = re.exec(table))) out[m[1]] = { label: m[2], colour: m[3], paths: m[4] };
+  while ((m = re.exec(table))) out[m[1]] = { label: m[2], colour: m[3], icon: m[4] };
   return out;
 }
 
@@ -221,29 +221,22 @@ test('owner and admin are told apart at a glance', async () => {
 
   expect(badges.owner, 'the owner has a badge').toBeTruthy();
   expect(badges.admin, 'and so does the admin').toBeTruthy();
-  expect(badges.owner.paths, 'different icons').not.toBe(badges.admin.paths);
+  expect(badges.owner.icon, 'different icons').not.toBe(badges.admin.icon);
   expect(badges.owner.colour, 'and different colours').not.toBe(badges.admin.colour);
 
   // Every badged role has its OWN badge - no two share either half.
-  const icons = pairs.map(p => p.paths);
+  const icons = pairs.map(p => p.icon);
   expect(new Set(icons).size, 'no two roles share an icon').toBe(icons.length);
   const colours = pairs.map(p => p.colour);
   expect(new Set(colours).size, 'nor a colour').toBe(colours.length);
 });
 
-test('the crown is a crown, not a box with a line through it', async () => {
-  // The old icon was a zigzag over a full-height rectangle, which at 1.2rem
-  // read as a treasure chest - the box dominated the silhouette. The redraw is
-  // three peaks with real dips and a separate thin band.
-  const owner = roleBadges().owner;
-  expect(owner, 'the owner badge exists').toBeTruthy();
-
-  // Three peaks and two dips means the outline path has seven points before it
-  // closes. Counting them is what distinguishes a crown from a zigzag.
-  const points = (owner.paths.match(/[ML]\s*[\d.]+\s*[\d.]+/g) || []).length;
-  expect(points, 'seven points: base, peak, dip, peak, dip, peak, base')
-    .toBeGreaterThanOrEqual(7);
-  expect(owner.paths, 'and the outline closes into a shape').toMatch(/Z/);
-  expect(owner.paths, 'the old full-height box is gone')
-    .not.toMatch(/h20v11/);
+test("every badge is one of the owner's own icons", async () => {
+  // v1.2: the crown, the shield and the rest are the owner's pixel art, which
+  // replaced the drawings an AI assistant made and the copies of Feather.
+  const badges = roleBadges();
+  expect(Object.keys(badges).length, 'the table was found at all').toBeGreaterThanOrEqual(6);
+  for (const [role, badge] of Object.entries(badges)) {
+    expect(fs.existsSync(path.join(ROOT, 'medias', 'icons', `${badge.icon}.png`)), `${role}: medias/icons/${badge.icon}.png`).toBe(true);
+  }
 });

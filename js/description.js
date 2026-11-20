@@ -213,13 +213,13 @@ window.generatePlaystyleHTML = function(playstyle) {
     return `
         <div class="playstyle-container">
             <div class="playstyle-col likes">
-                <h4 class="playstyle-header">PICK IF YOU LIKE</h4>
+                <h4 class="playstyle-header">Pick if you like</h4>
                 <ul class="playstyle-list">
                     ${renderList(playstyle.likes || [], '✓', 'likes')}
                 </ul>
             </div>
             <div class="playstyle-col dislikes">
-                <h4 class="playstyle-header">AVOID IF YOU DISLIKE</h4>
+                <h4 class="playstyle-header">Avoid if you dislike</h4>
                 <ul class="playstyle-list">
                     ${renderList(playstyle.dislikes || [], '✖', 'dislikes')}
                 </ul>
@@ -227,6 +227,130 @@ window.generatePlaystyleHTML = function(playstyle) {
         </div>
     `;
 };
+
+// --- COLOR SWATCHES (the Color Codes page, v1.2) ---
+// Drawn from the site's own colours, never from text an editor typed, so the
+// page cannot fall behind them: a character's is the one owner tools sets
+// (window.CHARACTER_COLORS, generated from site_pages.color), and the frame
+// data ones are the legend's (FRAME_COLORS, WINDOW_COLORS and their labels,
+// which js/site_meta.js reads from ColorCoding.css). The hand-written page
+// this replaced listed 21 characters by CSS variable, one of them misspelt.
+//
+// The grids a Block can draw, named the way the Color Codes page always
+// named them. The editor's dropdown reads this list too.
+window.COLOR_SWATCH_SETS = { characters: 'Character Themes', frames: 'Frame Data Types', overlays: 'Stackable Overlays' };
+
+// A colour the way an editor types it into [color=#...]. A canvas answers in
+// #rrggbb for any opaque colour, whatever syntax the source used; a value it
+// cannot read leaves the sentinel in place and shows no code.
+let swatchCanvas = null;
+function swatchHex(value) {
+    if (!value) return '';
+    swatchCanvas = swatchCanvas || document.createElement('canvas').getContext('2d');
+    swatchCanvas.fillStyle = '#010203';
+    swatchCanvas.fillStyle = String(value);
+    const out = swatchCanvas.fillStyle;
+    return out === '#010203' && String(value).trim().toLowerCase() !== '#010203' ? '' : out;
+}
+
+function swatchCardHTML(title, visual, code) {
+    return `<div class="color-swatch-card">${visual}<div class="swatch-meta">`
+        + `<span class="swatch-title">${escBlockText(title)}</span>`
+        + `<span class="swatch-code">${escBlockText(code)}</span></div></div>`;
+}
+
+// The class names below are the dictionaries' own keys, written in
+// js/site_meta.js, never anything from page data.
+function colorSwatchesHTML(set) {
+    const which = Object.prototype.hasOwnProperty.call(window.COLOR_SWATCH_SETS, set) ? set : 'characters';
+    const labels = window.FRAME_COLOR_LABELS || {};
+    if (which === 'frames') {
+        const frames = window.FRAME_COLORS || {};
+        const cards = Object.keys(frames).map(cls => swatchCardHTML(labels[cls] || cls,
+            `<div class="swatch-color-block ${cls}"><div class="frame-tick"></div></div>`, swatchHex(frames[cls])));
+        return `<div class="color-swatch-grid" data-swatch-set="frames">${cards.join('')}</div>`;
+    }
+    if (which === 'overlays') {
+        const windows = window.WINDOW_COLORS || {};
+        const cards = Object.keys(windows).map(key => swatchCardHTML(labels[key] || key,
+            `<div class="swatch-overlay-well"><div class="window-overlay span-${key}"></div></div>`, swatchHex(windows[key])));
+        return `<div class="color-swatch-grid" data-swatch-set="overlays">${cards.join('')}</div>`;
+    }
+    // Which characters to show needs the registry (a hidden one stays off),
+    // and that is fetched, so fillColorSwatches draws them once this is in
+    // the page.
+    return '<div class="color-swatch-grid" data-swatch-set="characters"><p class="loading-msg loading-msg-busy">Loading the character colors...</p></div>';
+}
+
+window.fillColorSwatches = async function (root) {
+    const grids = Array.from((root || document).querySelectorAll('.color-swatch-grid[data-swatch-set="characters"]:not([data-filled])'));
+    if (grids.length === 0) return;
+    grids.forEach(grid => grid.setAttribute('data-filled', 'pending'));
+
+    const roster = typeof window.loadCharacterRoster === 'function' ? await window.loadCharacterRoster() : new Map();
+    const colors = window.CHARACTER_COLORS || {};
+    const cards = [];
+    roster.forEach(entry => {
+        if (entry.hidden) return;
+        const color = typeof window.safeColor === 'function' ? window.safeColor(colors[entry.name]) : null;
+        if (!color) return;
+        cards.push(swatchCardHTML(entry.name,
+            `<div class="swatch-color-block" style="background-color: ${color};"></div>`, swatchHex(color)));
+    });
+
+    grids.forEach(grid => {
+        grid.setAttribute('data-filled', 'true');
+        grid.innerHTML = cards.length
+            ? cards.join('')
+            : '<p class="loading-msg">The character colors could not be loaded.</p>';
+    });
+};
+
+// --- COLLABORATORS (the Collaborators page, v1.2) ---
+// One Collaborator Block is one person, as a Card (Main Contributors) or a
+// Thanks line (Special Thanks). Cards next to each other share one grid and
+// lines one list, the way the page always drew them; each Block still starts
+// with an element of its own, which is what the editor's Preview follows the
+// Block marks. The home page's Credits list is built from the same Blocks
+// (scripts/fetch-content.js), so the two cannot drift again.
+//
+// The badge colours are the Update Log's badges, by colour: the editor's
+// dropdown reads this list, and nothing outside it reaches the class.
+window.COLLABORATOR_BADGES = { 'badge-general': 'Purple', 'badge-site': 'Green', 'badge-patch': 'Blue', 'badge-wip': 'Yellow', 'badge-ea': 'Orange' };
+
+const collaboratorKind = (b) => (b && b.type === 'collaborator' ? (b.kind === 'line' ? 'line' : 'card') : null);
+
+// Only an http(s) address becomes a link. The editor's form names the lines
+// that fail it, so one is never dropped without a word.
+window.isCollaboratorLink = (url) => /^https?:\/\/\S+$/i.test(String(url || '').trim());
+
+function collaboratorCardHTML(b) {
+    const name = escBlockText(b.name || '');
+    const badge = Object.prototype.hasOwnProperty.call(window.COLLABORATOR_BADGES, b.badge) ? b.badge : 'badge-general';
+    // As given, the way an Image Block's address is: the credits' avatars are
+    // paths from the site's root (/medias/images/...), and the site is served
+    // from its root.
+    const avatar = safeBlockUrl(b.avatar);
+    const links = (Array.isArray(b.links) ? b.links : [])
+        .filter(l => l && window.isCollaboratorLink(l.url))
+        .map(l => `<a href="${escBlockText(String(l.url).trim())}" target="_blank" rel="noopener noreferrer" class="btn-sys btn-sys-blue collaborator-link">${escBlockText(l.name || l.url)}</a>`)
+        .join('');
+    return '<div class="wiki-card collaborator-card"><div class="contributor-card"><div class="contributor-header">'
+        + (avatar
+            ? `<img src="${escBlockText(avatar)}" alt="${name}" class="contributor-avatar" loading="lazy">`
+            : '<div class="contributor-avatar-placeholder">N/A</div>')
+        + `<div><h3 class="collaborator-name">${name}</h3>`
+        + `<span class="update-badge ${badge}">${escBlockText(b.role || '')}</span></div></div>`
+        + `<p class="strategy-paragraph collaborator-description">${escBlockText(b.description || '')}</p>`
+        + (links ? `<div class="collaborator-links">${links}</div>` : '')
+        + '</div></div>';
+}
+
+function collaboratorLineHTML(b) {
+    return `<li class="collaborator-line"><strong class="collaborator-line-name">${escBlockText(b.name || '')}</strong>`
+        + (b.description ? ` - <span class="collaborator-line-reason">${escBlockText(b.description)}</span>` : '')
+        + '</li>';
+}
 
 // --- THE RECURSIVE BLOCK ENGINE ---
 // This standalone function can render blocks infinitely deep!
@@ -404,10 +528,12 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
             const bData = block.data || block; 
             
             const intentMap = {
-                'tip': { color: '#facc15', icon: '💡', label: 'TIP' },
-                'warning': { color: '#fb923c', icon: '⚠️', label: 'WARNING' },
-                'danger': { color: '#ef4444', icon: '🚨', label: 'DANGER' },
-                'info': { color: '#22d3ee', icon: '📌', label: 'INFO' }
+                // Typed in normal case: the default look shows them in capitals
+                // (.inline-callout-btn), the Classic look as written.
+                'tip': { color: '#facc15', icon: '💡', label: 'Tip' },
+                'warning': { color: '#fb923c', icon: '⚠️', label: 'Warning' },
+                'danger': { color: '#ef4444', icon: '🚨', label: 'Danger' },
+                'info': { color: '#22d3ee', icon: '📌', label: 'Info' }
             };
             const config = intentMap[bData.intent] || intentMap['info'];
             // Same escape-then-join rule as paragraphs. config.color comes from
@@ -706,7 +832,19 @@ function renderBlocksHTML(blocks, contextClass = '', anchor = null) { // FIXED 1
                 contentHTML += comboHTML;
             }
         }
-        
+        else if (block.type === 'colorswatches') {
+            contentHTML += colorSwatchesHTML(block.set);
+        }
+        else if (block.type === 'collaborator') {
+            const kind = collaboratorKind(block);
+            const [open, close] = kind === 'line'
+                ? ['<ul class="wiki-block-list collaborator-thanks">', '</ul>']
+                : ['<div class="grid-layout-3col collaborator-grid">', '</div>'];
+            contentHTML += (collaboratorKind(blocks[blockIndex - 1]) !== kind ? open : '')
+                + (kind === 'line' ? collaboratorLineHTML(block) : collaboratorCardHTML(block))
+                + (collaboratorKind(blocks[blockIndex + 1]) !== kind ? close : '');
+        }
+
         if (anchor) contentHTML = contentHTML.slice(0, blockStart) + anchor(contentHTML.slice(blockStart), blockIndex, block);
 
         // --- AUTHOR AGGREGATION ---
@@ -1732,6 +1870,10 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
             window.initLazyMedia(container);
         }
 
+        // 4. A Color Swatches Block's character colours need the registry,
+        // which is fetched (colorSwatchesHTML, above).
+        if (typeof window.fillColorSwatches === 'function') window.fillColorSwatches(container);
+
     } else {
         container.innerHTML = `
             <div class="wiki-section-empty">
@@ -2177,7 +2319,9 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 topSplit.innerHTML = profileHTML;
                 topSplit.appendChild(rightColumn);
                 overviewContainer.appendChild(topSplit);
-                window.fillProfilePager(overviewContainer, pageId);
+                // Kept for the Overseer's side-by-side, which waits for the
+                // Previous / Next tiles before it compares two drawings.
+                window.profilePagerFilled = window.fillProfilePager(overviewContainer, pageId);
 
                 populateTextSection('overview-text-subnode', 'Character Overview', data.overview);
                 if (data.strategy && data.strategy.length > 0) {
@@ -2374,19 +2518,26 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
 
             // --- 4. MOVE STRATEGIES (M1s, Skills, Specials) ---
             if (data.moveStrategies) {
-                setTimeout(() => {
-                    for (const [moveId, blocks] of Object.entries(data.moveStrategies)) {
-                        populateTextSection(`strategy-${moveId}`, 'Move Overview and Strategy', blocks, 'move-strategy');
+                // Kept as a promise for the Overseer's side-by-side
+                // (js/admin-preview.js), which draws a page twice and has to
+                // know this one is in before it moves the first drawing aside.
+                window.moveStrategiesDrawn = new Promise(resolve => setTimeout(() => {
+                    try {
+                        for (const [moveId, blocks] of Object.entries(data.moveStrategies)) {
+                            populateTextSection(`strategy-${moveId}`, 'Move Overview and Strategy', blocks, 'move-strategy');
+                        }
+                        // Deferred behind the same 300ms wait as the sections
+                        // themselves, since the move cards these render into are
+                        // built by js/framedata.js on its own schedule.
+                        window.FRAME_MOVE_CATEGORIES.forEach(tab => {
+                            window.consolidateTabContributors(document.getElementById(`tab-${tab}`));
+                        });
+                        if (typeof applyInternalStyling === 'function') applyInternalStyling();
+                        if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
+                    } finally {
+                        resolve();
                     }
-                    // Deferred behind the same 300ms wait as the sections
-                    // themselves, since the move cards these render into are
-                    // built by js/framedata.js on its own schedule.
-                    window.FRAME_MOVE_CATEGORIES.forEach(tab => {
-                        window.consolidateTabContributors(document.getElementById(`tab-${tab}`));
-                    });
-                    if (typeof applyInternalStyling === 'function') applyInternalStyling();
-                    if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
-                }, 300); 
+                }, 300));
             }
         } // End of else block (Character Engine)
 
@@ -2407,7 +2558,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
 // the connection, and a 0.31 MB clip waited 4.9s behind a 4.24 MB one. 11 of
 // 26 were still blank two seconds after scrolling into view, on desktop too.
 //
-// So an autoplaying clip now joins a queue two screens ahead of the reader,
+// So an autoplaying clip now joins a queue one screen ahead of the reader,
 // two start at a time, the clip nearest the screen always goes next, and a
 // loop plays only while it is on screen. A clip hands its turn on once it can
 // play through, not once its last byte lands, so the browser may still be
@@ -2423,7 +2574,11 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
 // render, the editor's preview renders on every keystroke, and observing an
 // element twice is a no-op, so a second call costs nothing.
 const CLIP_SLOTS = 2;
-const CLIP_AHEAD_MARGIN = '200% 0px';
+// Two screens until 2026-11-19, when cached egress stood at 155 of the plan's
+// 250 GB 16 days into the month. Clips are the heaviest thing a page fetches
+// from Storage, and a clip two screens down is often one the reader never
+// scrolls to.
+const CLIP_AHEAD_MARGIN = '100% 0px';
 // A slot is freed when the browser can play the clip through, stops fetching
 // it, or fails. A clip that does none of those in this long stops holding the
 // queue up, so one stalled download cannot stop every clip below it.
@@ -2473,7 +2628,7 @@ function startClip(video) {
     clipLoading.set(video, setTimeout(free, CLIP_SLOT_TIMEOUT_MS));
 
     // From here the queue decides when the clip plays, not the attribute:
-    // autoplay would start a loop two screens down that nobody is watching.
+    // autoplay would start a loop a screen down that nobody is watching.
     // preload="auto" because without autoplay, "none" fetches nothing until
     // play() is called on screen, which is the wait this exists to remove.
     video.autoplay = false;
@@ -2504,7 +2659,7 @@ function pumpClipQueue() {
     }
 }
 
-// Membership of the queue is "within two screens and not started". A clip the
+// Membership of the queue is "within a screen and not started". A clip the
 // reader scrolled far past leaves it, rather than downloading later for
 // nobody.
 function onClipAhead(entries) {
@@ -2529,8 +2684,103 @@ function onClipScreen(entries) {
     });
 }
 
+// --- VIDEO STILLS (v1.2; the owner's performance card) ---
+//
+// Owner: "For videos that takes time to load, there should be a thumbnail that
+// stands in place for those videos with the exact dimension it has." A clip in
+// a skill card showed an empty box until its first frame came, and a video
+// block had no height at all until its metadata did, so the page jumped. The
+// nightly job (scripts/fetch-video-stills.js) saves each video's first frame
+// (the owner's pick: nothing jumps when it starts) and its size.
+//
+// A video gets its size as soon as the list is here, so its box is right
+// before any of the video arrives, and its still once it is within three
+// screens: a page with 33 clips does not fetch 33 pictures for a reader who
+// reads the top. The list can arrive after the page has drawn, so it is
+// applied to whatever is on the page then, and to every render after.
+const STILL_AHEAD_MARGIN = '300% 0px';
+const STILL_PATH_RE = /^medias\/stills\/[0-9a-f]{16}\.webp$/;
+let videoStills = null;
+let videoStillsAsked = false;
+let stillObserver = null;
+
+// The video's file in the wiki-media bucket, decoded, as the job keys it.
+function wikiMediaFileOf(src) {
+    const value = String(src || '');
+    const at = value.indexOf(WIKI_MEDIA_BUCKET_PATH);
+    if (at === -1) return null;
+    try { return decodeURIComponent(value.slice(at + WIKI_MEDIA_BUCKET_PATH.length).split(/[?#]/)[0]); } catch (e) { return null; }
+}
+
+function stillFor(video) {
+    if (!videoStills) return null;
+    const file = wikiMediaFileOf(video.getAttribute('data-lazy-src') || video.getAttribute('src'));
+    const entry = file && Object.prototype.hasOwnProperty.call(videoStills, file) ? videoStills[file] : null;
+    // The list is the job's own output, but its values still only ever name
+    // a still of ours and a size.
+    if (!entry || !STILL_PATH_RE.test(entry.still)) return null;
+    if (!(Number.isInteger(entry.w) && entry.w > 0 && Number.isInteger(entry.h) && entry.h > 0)) return null;
+    return entry;
+}
+
+function showStill(video) {
+    const entry = stillFor(video);
+    if (entry) video.poster = window.getRootPath() + entry.still;
+}
+
+function applyStills(root) {
+    if (!videoStills) return;
+    root.querySelectorAll('video').forEach((video) => {
+        const entry = stillFor(video);
+        if (!entry) return;
+        // The shape before a byte of the video arrives: this ratio until the
+        // video has its own ("auto"), so a list a night out of date corrects
+        // itself. A ratio, not width and height attributes: those become a
+        // height in pixels, and a video block sets only its width. A skill
+        // card or a gallery tile sets its clip's height in CSS, which a ratio
+        // does not change.
+        video.style.aspectRatio = `auto ${entry.w} / ${entry.h}`;
+        if (stillObserver) stillObserver.observe(video);
+        else showStill(video);
+    });
+}
+
+// Only a page showing one of the wiki's own videos asks for the list: the
+// home page draws its posts through initLazyMedia too, and has a speed target
+// of its own.
+function hasWikiVideo(root) {
+    return Array.from(root.querySelectorAll('video'))
+        .some((video) => wikiMediaFileOf(video.getAttribute('data-lazy-src') || video.getAttribute('src')));
+}
+
+function askForVideoStills() {
+    // Both from site_utils.js, which a cache-skewed load can be missing.
+    if (videoStillsAsked || typeof window.fetchJson !== 'function' || typeof window.getRootPath !== 'function') return;
+    videoStillsAsked = true;
+    // Deliberately quiet past the console: a still is an extra, and without
+    // the list every video draws exactly as it did before v1.2.
+    window.fetchJson(`${window.getRootPath()}data/video-stills.json`, { cache: true })
+        .then((list) => {
+            videoStills = list && typeof list === 'object' ? list : {};
+            applyStills(document);
+        })
+        .catch((err) => console.warn('[Media] No video stills this time:', err.message));
+}
+
 window.initLazyMedia = function(rootElement = document) {
     const lazyMedia = rootElement.querySelectorAll('video[data-lazy-src], iframe[data-lazy-src]');
+
+    if (!stillObserver && 'IntersectionObserver' in window) {
+        stillObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(({ target, isIntersecting }) => {
+                if (!isIntersecting) return;
+                showStill(target);
+                observer.unobserve(target);
+            });
+        }, { rootMargin: STILL_AHEAD_MARGIN });
+    }
+    if (hasWikiVideo(rootElement)) askForVideoStills();
+    applyStills(rootElement);
 
     if (!('IntersectionObserver' in window)) {
         // Fallback for ancient browsers: everything at once, as before.

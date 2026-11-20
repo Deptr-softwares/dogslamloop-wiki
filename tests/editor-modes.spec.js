@@ -129,6 +129,61 @@ test('switching states flushes what is being typed into the state being left', a
   expect(seen.backOnState).toEqual([{ type: 'paragraph', content: 'Ultimate overview.' }]);
 });
 
+test("switching states on Techs never writes one state's open card into the other's", async ({ page }) => {
+  // Reported by an editor, 2026-11-20, on Perfection's Techs tab: "i was
+  // editing and went to look at smmthn in ult while editing base ... and then
+  // once i went back it js wasnt there". A switch forgot which section was
+  // open on Overview, Matchups and the keyed tabs, but not the open Techs
+  // group and card. The state arrived at reopened the group of the same
+  // number and flushed the card buffer, still holding the other state's
+  // card, into its card of the same number: both ways.
+  const p = (content) => ({ type: 'paragraph', content });
+  const card = (title, text) => ({ type: 'theorybox', title, sequence: [], content: [p(text)] });
+  await page.setViewportSize({ width: 1400, height: 950 });
+  await openEditor(page, {
+    tab: 'techs',
+    desc: {
+      overview: [], strategy: [], extras: [], matchups: [], counterplay: [], moveStrategies: {},
+      techGroups: [{ title: 'Air M1 Overview', content: [card('Blade to Club', 'Base write-up.')] }],
+      modeData: { ultimate: { techGroups: [{ title: 'Ult Techs', content: [card('Ult card', 'Ult write-up.')] }] } },
+    },
+    frame: {
+      m1s: [], skills: [], specials: [],
+      modes: [{ id: 'base', label: 'Base Kit' }, { id: 'ultimate', label: 'Ultimate' }],
+    },
+  });
+
+  const writeUp = page.locator('#combo-card-body textarea[data-field="content-array"]');
+  const techCards = (mode) => page.evaluate((mode) => {
+    const desc = mode === 'base' ? window.editorMasterDescData : window.editorMasterDescData.modeData[mode];
+    return desc.techGroups.map(g => `${g.title}: ${g.content.map(c => `${c.title}=${c.content.map(b => b.content).join('|')}`).join(', ')}`);
+  }, mode);
+
+  // Base: open the card and type in it.
+  await page.locator('#techs-nav-group-0').click();
+  await page.locator('#combo-cards-panel [data-card="0"]').click();
+  await writeUp.fill('Base write-up, edited.');
+  await page.waitForTimeout(300);
+
+  // Over to the Ultimate, and open its card to look at it.
+  await page.locator('#editor-mode-bar [data-mode-id="ultimate"]').click();
+  await expect(page.locator('#editor-mode-bar .character-mode-chip.active')).toHaveText('Ultimate');
+  expect(await techCards('ultimate'), "arriving does not write the Base card into the Ultimate's").toEqual(['Ult Techs: Ult card=Ult write-up.']);
+  // It opens on the tab's first section, as crossing to another tab does,
+  // not on whichever group has the Base group's number.
+  await expect(page.locator('#techs-nav-intro')).toHaveClass(/\bactive\b/);
+  await expect(page.locator('#techs-nav-group-0')).not.toHaveClass(/\bactive\b/);
+  await page.locator('#techs-nav-group-0').click();
+  await page.locator('#combo-cards-panel [data-card="0"]').click();
+  await expect(writeUp).toHaveValue('Ult write-up.');
+
+  // And back.
+  await page.locator('#editor-mode-bar [data-mode-id="base"]').click();
+  await expect(page.locator('#editor-mode-bar .character-mode-chip.active')).toHaveText('Base Kit');
+  expect(await techCards('base'), 'the Base card keeps what was typed').toEqual(['Air M1 Overview: Blade to Club=Base write-up, edited.']);
+  expect(await techCards('ultimate')).toEqual(['Ult Techs: Ult card=Ult write-up.']);
+});
+
 test('a state edit becomes a mode-scoped delta that lands where it should', async ({ page }) => {
   const { desc, frame } = PLAIN();
   await openEditor(page, { desc, frame });
@@ -262,13 +317,152 @@ test('deleting the last extra state returns the character to a plain one', async
   expect(after.overview).toEqual([{ type: 'paragraph', content: 'Base overview.' }]);
 });
 
-test('a base-only character gets the Ultimate tab and no state toggle', async ({ page }) => {
-  // locust_guy is flagged is_base_only in the real registry.
+// A base-only page of the test's own, added to the registry in flight, so
+// these tests do not depend on which real characters are flagged base-only.
+async function withBaseOnlyPage(page, pageId) {
+  await page.route('**/data/navigation.json*', async (route) => {
+    const response = await route.fetch();
+    const nav = await response.json();
+    nav['Test Pages'] = [{
+      id: pageId, name: 'Test Base Only', url: 'characters/Test/index.html', isBaseOnly: true,
+      cms_config: { pageType: 'character', pageId },
+    }];
+    await route.fulfill({ response, json: nav });
+  });
+}
+
+// A base-only kit: every move tab filled, notes under two of the moves and
+// one note left behind by a move that no longer exists.
+const KIT = () => ({
+  desc: {
+    overview: [{ type: 'paragraph', content: 'Base overview.' }], strategy: [], extras: [], matchups: [], counterplay: [],
+    moveStrategies: {
+      'swarm-jab': [{ type: 'paragraph', content: 'Jab note.' }],
+      'swarm-ult': [{ type: 'paragraph', content: 'Ultimate note.' }],
+      'gone-move': [{ type: 'paragraph', content: 'Left behind.' }],
+    },
+  },
+  frame: {
+    m1s: [{ id: 'swarm-jab', name: 'Jab', stats: [{ label: 'Damage', value: '3' }] }],
+    skills: [{ id: 'swarm-cloud', name: 'Locust Cloud' }],
+    specials: [{ id: 'swarm-hunger', name: 'Hunger' }],
+    ultimateAtk: [{ id: 'swarm-ult', name: 'Locust Swarm' }],
+  },
+});
+
+const addState = (page) => page.locator('#editor-mode-bar .editor-mode-add').click();
+
+test('a base-only character gets the Ultimate tab, and can still add a state', async ({ page }) => {
+  // Its ultimate is the extra tab. A state is another form of it (an
+  // install, a buffed form), which used to need the owner to unflag it.
+  await withBaseOnlyPage(page, 'testbase');
   const { desc, frame } = PLAIN();
-  await openEditor(page, { pageId: 'locust_guy', desc, frame });
+  await openEditor(page, { pageId: 'testbase', desc, frame });
 
   await expect(page.locator('#edit-nav-ultimateAtk')).toBeVisible();
-  await expect(page.locator('#editor-mode-bar')).toBeHidden();
+  await expect(page.locator('#editor-mode-bar .character-mode-chip')).toHaveText(['+ STATE']);
+});
+
+test('+ STATE asks how the new state starts, and CANCEL makes nothing', async ({ page }) => {
+  const { desc, frame } = PLAIN();
+  await openEditor(page, { desc, frame });
+
+  await addState(page);
+  const modal = page.locator('#editor-custom-modal');
+  await expect(modal).toBeVisible();
+  await expect(modal.locator('#editor-modal-text')).toContainText('How should the new state start?');
+  await expect(modal.locator('.modal-actions-centered button:visible')).toHaveText(['CANCEL', 'START EMPTY', 'COPY BASE KIT']);
+
+  await modal.getByRole('button', { name: 'CANCEL' }).click();
+  await expect(modal).toBeHidden();
+  await expect(page.locator('#editor-mode-bar .character-mode-chip')).toHaveText(['+ STATE']);
+  expect(await page.evaluate(() => window.editorMasterFrameData.modes)).toBeUndefined();
+});
+
+test('START EMPTY makes a state with every move tab blank, as states always started', async ({ page }) => {
+  const { desc, frame } = PLAIN();
+  await openEditor(page, { desc, frame });
+
+  await addState(page);
+  await page.getByRole('button', { name: 'START EMPTY' }).click();
+
+  await expect(page.locator('#editor-mode-bar .character-mode-chip.active')).toHaveText('Ultimate');
+  const moves = await page.evaluate(() => (window.FRAME_MOVE_CATEGORIES || [])
+    .map(cat => (window.editorMasterFrameData.modeData.ultimate[cat] || []).length));
+  expect(moves.every(n => n === 0)).toBe(true);
+});
+
+test('COPY BASE KIT puts every move tab and its notes into the state, as its own', async ({ page }) => {
+  await withBaseOnlyPage(page, 'testbase');
+  const { desc, frame } = KIT();
+  await openEditor(page, { pageId: 'testbase', desc, frame });
+
+  await addState(page);
+  await page.getByRole('button', { name: 'COPY BASE KIT' }).click();
+
+  // A base-only character's ultimate is its tab, so its state is not called one.
+  await expect(page.locator('#editor-mode-bar .character-mode-chip.active')).toHaveText('New State');
+  // Each state keeps its own Ultimate tab.
+  await expect(page.locator('#edit-nav-ultimateAtk')).toBeVisible();
+
+  const copied = await page.evaluate(() => JSON.parse(JSON.stringify({
+    mode: window.editorActiveMode,
+    frame: window.editorMasterFrameData.modeData.state,
+    notes: window.editorMasterDescData.modeData.state.moveStrategies,
+    overview: window.editorMasterDescData.modeData.state.overview || [],
+  })));
+  const base = KIT();
+  expect(copied.mode).toBe('state');
+  // The fixture fills every move tab, so its keys are the tabs to check.
+  for (const cat of Object.keys(base.frame)) {
+    expect(copied.frame[cat], cat).toEqual(base.frame[cat]);
+  }
+  // The notes of the moves that were copied, not the one left behind.
+  expect(copied.notes).toEqual({
+    'swarm-jab': base.desc.moveStrategies['swarm-jab'],
+    'swarm-ult': base.desc.moveStrategies['swarm-ult'],
+  });
+  // Only the moves: the write-up starts empty, as every state's does.
+  expect(copied.overview).toEqual([]);
+
+  // A copy, not the same objects: the buffed move leaves the base kit's alone.
+  const after = await page.evaluate(() => {
+    window.currentEditorFrameData.m1s[0].stats[0].value = '5';
+    window.currentEditorDescData.moveStrategies['swarm-jab'][0].content = 'Buffed jab note.';
+    return {
+      baseValue: window.editorMasterFrameData.m1s[0].stats[0].value,
+      baseNote: window.editorMasterDescData.moveStrategies['swarm-jab'][0].content,
+    };
+  });
+  expect(after.baseValue).toBe('3');
+  expect(after.baseNote).toBe('Jab note.');
+});
+
+test('a fifth state is refused before the question is asked', async ({ page }) => {
+  const { desc } = PLAIN();
+  const frame = { ...PLAIN().frame, modes: ['base', 'a', 'b', 'c'].map(id => ({ id, label: id.toUpperCase() })) };
+  await openEditor(page, { desc, frame });
+
+  await addState(page);
+  await expect(page.locator('#editor-alert-modal')).toBeVisible();
+  await expect(page.locator('#editor-alert-msg')).toHaveText(/at most four states/);
+  await expect(page.locator('#editor-custom-modal')).toBeHidden();
+});
+
+test("a base-only character's states are New State, New State 2, with ids to match", async ({ page }) => {
+  await withBaseOnlyPage(page, 'testbase');
+  const { desc, frame } = PLAIN();
+  await openEditor(page, { pageId: 'testbase', desc, frame });
+
+  for (let i = 0; i < 2; i++) {
+    await addState(page);
+    await page.getByRole('button', { name: 'START EMPTY' }).click();
+  }
+
+  await expect(page.locator('#editor-mode-bar .character-mode-chip:not(.editor-mode-add)'))
+    .toHaveText(['Base Kit', 'New State', 'New State 2']);
+  expect(await page.evaluate(() => window.editorMasterFrameData.modes.map(m => m.id)))
+    .toEqual(['base', 'state', 'state-2']);
 });
 
 test('a full character gets the state toggle and no Ultimate tab', async ({ page }) => {
@@ -404,6 +598,28 @@ test('adding a state ships the declaration, not just the content', async ({ page
   expect(applied.newDesc.modeData.ultimate.overview).toEqual([{ type: 'paragraph', content: 'Ultimate overview.' }]);
 });
 
+test("a copied state ships the base kit's moves and notes as the state's own", async ({ page }) => {
+  const { frame } = PLAIN();
+  const desc = { ...PLAIN().desc, moveStrategies: { 'base-m1': [{ type: 'paragraph', content: 'Jab note.' }] } };
+  await bootEditorWithSession(page, { desc, frame });
+
+  await page.locator('#editor-mode-bar .editor-mode-add').click();
+  await page.getByRole('button', { name: 'COPY BASE KIT' }).click();
+  await expect(page.locator('#editor-mode-bar .character-mode-chip.active')).toHaveText('Ultimate');
+
+  await page.locator('#submit-payload-btn').click();
+  await expect.poll(() => page.evaluate(() => (window.__inserted || []).length)).toBeGreaterThan(0);
+  const ticket = (await page.evaluate(() => window.__inserted))[0];
+
+  // Applied the way approval applies it: the state gets the copy, and the
+  // base kit is not in the ticket at all.
+  const applied = await page.evaluate((payload) =>
+    window.applyDeltaToData({}, {}, 'multi', 'batch', payload), ticket.delta_payload);
+  expect(applied.newFrame.modeData.ultimate.m1s).toEqual(frame.m1s);
+  expect(applied.newDesc.modeData.ultimate.moveStrategies['base-m1']).toEqual(desc.moveStrategies['base-m1']);
+  expect(applied.newFrame.m1s || []).toEqual([]);
+});
+
 test('a base-kit edit on a plain character still ships exactly as before', async ({ page }) => {
   // The regression guard for every contributor who has never seen a state.
   const { desc, frame } = PLAIN();
@@ -426,6 +642,11 @@ test('a base-kit edit on a plain character still ships exactly as before', async
 test('a gallery page shows no character tab strip', async ({ page }) => {
   // Missing from renderEditorTabNav's exclusion list when the gallery type
   // shipped, so its editor offered six tabs that did nothing.
+  // The real Emotes page only boots the editor. Its preview would download
+  // every live emote video before the network went idle, which passed the 30s
+  // timeout in CI as the gallery grew. No video or sound is fetched, wherever
+  // it is hosted.
+  await page.route('**/*', route => route.request().resourceType() === 'media' ? route.abort() : route.fallback());
   await page.goto('/edit.html?page=emotes&type=gallery', { waitUntil: 'networkidle' });
 
   await page.evaluate(() => {

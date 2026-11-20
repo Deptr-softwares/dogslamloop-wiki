@@ -7,13 +7,13 @@
     <title>Ten Shadows | Dogslamloop</title>
     <link rel="icon" type="image/jpg" href="../../medias/images/DogslamloopIcon.webp">
 
-    <meta name="description" content="Frame data, matchups, and strategy for Ten Shadows in Jujutsu Shenanigans.">
+    <meta name="description" content="Pretty interesting &quot;S tier&quot; character that is pretty underrated, has multiple mix up options, can control the pace of the fight and can do high damage in a...">
     <link rel="canonical" href="https://dogslamloop.com/characters/Ten_shadows/index.html">
 
     <meta property="og:site_name" content="Dogslamloop Wiki">
     <meta property="og:type" content="article">
     <meta property="og:title" content="Ten Shadows">
-    <meta property="og:description" content="Frame data, matchups, and strategy for Ten Shadows in Jujutsu Shenanigans.">
+    <meta property="og:description" content="Pretty interesting &quot;S tier&quot; character that is pretty underrated, has multiple mix up options, can control the pace of the fight and can do high damage in a...">
     <meta property="og:url" content="https://dogslamloop.com/characters/Ten_shadows/index.html">
     <meta property="og:image" content="https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/PotentialShadowsPortrait.webp">
     <meta name="twitter:card" content="summary_large_image">
@@ -31,11 +31,12 @@
     <link rel="stylesheet" href="../../style/discussions.css">
 
     <link rel="stylesheet" href="../../style/Layout.css">
+    <link rel="stylesheet" href="../../style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 
-    <!-- The Halloween event (js/halloween.js): in <head>, so a reader who has
-         played gets the look on the first paint. -->
-    <link rel="stylesheet" href="../../style/halloween.css">
-    <script src="../../js/halloween.js?v=6b8d7ceb"></script>
 
     <script>window.PAGE_ROUTE = { pageId: "ten_shadows", pageType: "character", title: "Ten Shadows" };</script>
 </head>
@@ -43,23 +44,24 @@
 
     <!-- Must precede page_router.js: it builds the tab strip from this
          vocabulary, synchronously, before site_utils.js has loaded. -->
-    <script src="../../js/character_tabs.js?v=6b8d7ceb"></script>
-    <script src="../../js/input_slots.js?v=6b8d7ceb"></script>
-    <script src="../../js/page_router.js?v=6b8d7ceb"></script>
+    <script src="../../js/character_tabs.js?v=44484b72"></script>
+    <script src="../../js/input_slots.js?v=44484b72"></script>
+    <script src="../../js/page_router.js?v=44484b72"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+    <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
 
-    <script src="../../js/site_utils.js?v=6b8d7ceb"></script>
-    <script src="../../js/site_meta.js?v=6b8d7ceb"></script>
-    <script src="../../js/pagebuilder.js?v=6b8d7ceb"></script>
-    <script src="../../js/search.js?v=6b8d7ceb"></script>
-    <script src="../../js/framedata.js?v=6b8d7ceb"></script>
-    <script src="../../js/description.js?v=6b8d7ceb"></script>
-    <script src="../../js/character_modes.js?v=6b8d7ceb"></script>
-    <script src="../../js/emoji.js?v=6b8d7ceb"></script>
-    <script src="../../js/discussions.js?v=6b8d7ceb"></script>
-    <script src="../../js/internalstyling.js?v=6b8d7ceb"></script>
+    <script src="../../js/site_utils.js?v=44484b72"></script>
+    <script src="../../js/site_meta.js?v=44484b72"></script>
+    <script src="../../js/pagebuilder.js?v=44484b72"></script>
+    <script src="../../js/search.js?v=44484b72"></script>
+    <script src="../../js/framedata.js?v=44484b72"></script>
+    <script src="../../js/description.js?v=44484b72"></script>
+    <script src="../../js/character_modes.js?v=44484b72"></script>
+    <script src="../../js/emoji.js?v=44484b72"></script>
+    <script src="../../js/discussions.js?v=44484b72"></script>
+    <script src="../../js/internalstyling.js?v=44484b72"></script>
 
-    <script src="../../js/page_boot.js?v=6b8d7ceb"></script>
+    <script src="../../js/page_boot.js?v=44484b72"></script>
+    <script async src="../../js/analytics.js?v=44484b72"></script>
 </body>
 </html>

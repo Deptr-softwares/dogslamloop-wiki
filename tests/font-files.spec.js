@@ -5,8 +5,46 @@
 // cannot decode also falls through to the TTF, which is why "no TTF request"
 // is the check: it fails for a wrong order and for a broken file alike.
 const { test, expect } = require('@playwright/test');
+const fs = require('fs');
+const path = require('path');
 
 const FAMILIES = ['Finger-Paint', 'CC-Wild-Words'];
+
+// v1.2: the faces are named once, as --font-title and --font-label in
+// Common.css, so a look can swap them (style/look-classic.css). A rule that
+// names a face itself would keep it in every look.
+test('no stylesheet names the two faces except through their variables', () => {
+    const files = [];
+    (function walk(dir) {
+        for (const name of fs.readdirSync(dir)) {
+            const full = path.join(dir, name);
+            if (fs.statSync(full).isDirectory()) walk(full);
+            else if (name.endsWith('.css')) files.push(full);
+        }
+    })(path.join(__dirname, '..', 'style'));
+
+    const offenders = [];
+    for (const file of files) {
+        const css = fs.readFileSync(file, 'utf8')
+            .replace(/\/\*[\s\S]*?\*\//g, '')
+            .replace(/@font-face\s*\{[^}]*\}/g, '')
+            .replace(/--font-(title|label)\s*:[^;]*;/g, '');
+        for (const family of FAMILIES) {
+            if (css.includes(family)) offenders.push(`${path.basename(file)}: ${family}`);
+        }
+    }
+    expect(offenders).toEqual([]);
+    expect(files.length, 'the scan found the stylesheets').toBeGreaterThan(10);
+});
+
+test('the default look still sets titles in Finger-Paint and labels in CC-Wild-Words', async ({ page }) => {
+    await page.goto('/index.html');
+    const fonts = await page.evaluate(() => ({
+        title: getComputedStyle(document.documentElement).getPropertyValue('--font-title').trim(),
+        label: getComputedStyle(document.documentElement).getPropertyValue('--font-label').trim(),
+    }));
+    expect(fonts).toEqual({ title: "'Finger-Paint'", label: "'CC-Wild-Words'" });
+});
 
 test('both fonts load from their WOFF2 files, and the TTFs are never fetched', async ({ page }) => {
     const fonts = [];

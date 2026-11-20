@@ -355,6 +355,19 @@
         "pageId": "strongest_of_history",
         "editRole": "open"
       }
+    },
+    {
+      "id": "Monkey-Kid",
+      "name": "Monkey Kid",
+      "url": "characters/Monkey_kid/index.html",
+      "isWip": true,
+      "isHidden": true,
+      "isMissingMedia": true,
+      "cms_config": {
+        "pageType": "character",
+        "pageId": "monkey_kid",
+        "editRole": "open"
+      }
     }
   ],
   "System Pages": [

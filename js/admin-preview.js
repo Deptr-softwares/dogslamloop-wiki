@@ -24,6 +24,9 @@ async function previewRevision(revId) {
     document.getElementById('preview-status-text').innerHTML = `REVIEWING: <strong class="admin-preview-status-highlight">${window.escapeHtml(rev.page_id.toUpperCase())}</strong> (By ${window.escapeHtml(rev.author_name)})`;
 
     updateActionButtons(rev);
+    renderQaReport(rev);
+    // The pane gets the whole width for the submission (js/admin-queue.js).
+    if (typeof window.setQueueOpen === 'function') window.setQueueOpen(false);
     document.getElementById('preview-nav-sidebar').classList.remove('hidden');
     document.getElementById('preview-tab-nav').classList.remove('hidden');
 
@@ -160,6 +163,42 @@ async function previewRevision(revId) {
     }, 150);
 }
 
+// --- THE QA REPORT (owner's Overseer card, v1.2) ---
+//
+// "There is no way to view the full QA, unless you need to open a ticket." It
+// was drawn inside the ticket workspace, so a submission nobody had opened a
+// ticket on never showed it. It is the pane's own panel now, for whichever
+// submission is open, ticket or not.
+//
+// All of it is contributor text on a staff page, so all of it is escaped. The
+// evidence is a link only when it is one whole http(s) address (a javascript:
+// URI typed into the field stays text), and the address is the link's text, so
+// a reviewer sees where it goes before pressing it. Anything else is shown as
+// written: a merged ticket's evidence is one block per contributor
+// (js/admin-merge-compiler.js), and a sentence is evidence too. Both used to
+// read "Evidence link is not a valid http(s) URL." with the text hidden.
+function renderQaReport(rev) {
+    const panel = document.getElementById('qa-report-panel');
+    const report = document.getElementById('qa-report');
+    if (!panel || !report) return;
+
+    const qa = (rev && rev.qa_metadata) || {};
+    const evidence = typeof qa.evidence === 'string' ? qa.evidence.trim() : '';
+    let evidenceHtml = 'No evidence linked.';
+    if (/^https?:\/\/\S+$/i.test(evidence)) {
+        evidenceHtml = `<a href="${window.escapeHtml(evidence)}" target="_blank" rel="noopener noreferrer" class="ticket-qa-link qa-report-evidence">${window.escapeHtml(evidence)}</a>`;
+    } else if (evidence) {
+        evidenceHtml = `<span class="qa-report-value qa-report-evidence">${window.escapeHtml(evidence)}</span>`;
+    }
+
+    report.innerHTML = `
+        <div class="ticket-qa-field"><strong class="ticket-qa-label">Changelog:</strong><br><span class="qa-report-value">${qa.changelog ? window.escapeHtml(qa.changelog) : 'No changelog provided.'}</span></div>
+        <div class="ticket-qa-field"><strong class="ticket-qa-label">Confidence:</strong><br>${qa.confidence ? window.escapeHtml(qa.confidence) : 'Unrated'}</div>
+        <div><strong class="ticket-qa-label">Evidence:</strong><br>${evidenceHtml}</div>
+    `;
+    panel.classList.remove('hidden');
+}
+
 // --- VERSION COMPARISON ENGINE ---
 async function switchVersionView(mode) {
     // Remembered so switching character state can redraw whichever comparison
@@ -184,37 +223,28 @@ async function switchVersionView(mode) {
         b.className = 'btn-sys btn-sys-regular version-toggle-btn';
     });
 
-    if(btns[mode]) {
-        if (mode === 'pending') btns[mode].classList.add('btn-sys-blue');
-        if (mode === 'live') btns[mode].classList.add('btn-sys-green');
-        if (mode === 'diff') btns[mode].classList.add('btn-sys-purple');
-    }
+    if (mode === 'pending' && btns.pending) btns.pending.classList.add('btn-sys-blue');
+    if (mode === 'live' && btns.live) btns.live.classList.add('btn-sys-green');
+    // The change list is the side-by-side's other half, so DIFF VIEW stays lit.
+    if ((mode === 'diff' || mode === 'list') && btns.diff) btns.diff.classList.add('btn-sys-purple');
 
-    // The renderers narrow to a character state through this, exactly as the
-    // live page does. currentEditorDescData is handed over already narrowed
-    // (js/description.js treats an editor-supplied object as final), while the
-    // frame cache stays whole because loadMoveSection resolves it itself.
-    const previewMode = window.activePreviewMode || null;
-    window.activeCharacterMode = previewMode;
-    // resolveModeDesc rather than reaching into modeData directly, so the
-    // preview inherits the one documented exception: a state that has not
-    // overridden the portrait shows the character's, not an empty box. Reading
-    // the bucket raw showed a state with no profile of its own as a page with
-    // no character on it, which is not what approving it would produce.
-    const narrow = (full) => (typeof window.resolveModeDesc === 'function'
-        ? window.resolveModeDesc(full || {}, previewMode)
-        : (window.isBaseMode(previewMode) ? full : ((full && full.modeData) || {})[previewMode] || {}));
+    // Anything still lining up a previous side-by-side lets go of it.
+    sideBySideRun++;
+    if (sideBySide) { sideBySide.destroy(); sideBySide = null; }
+    // Two pages wide while it is up (admin.css).
+    document.body.classList.toggle('sbs-active', mode === 'diff');
 
-    if (mode === 'pending') {
-        window.currentEditorDescData = narrow(window.currentPendingDescData);
-        window.cachedMasterFrameData = window.cachedMasterFrameData || {};
-        window.cachedMasterFrameData[window.activePreviewCharId] = window.currentPendingFrameData;
-    } else if (mode === 'live') {
-        window.currentEditorDescData = narrow(window.currentLiveDescData);
-        window.cachedMasterFrameData = window.cachedMasterFrameData || {};
-        window.cachedMasterFrameData[window.activePreviewCharId] = window.currentLiveFrameData;
-    }
+    // DIFF VIEW (v1.2, owner's Overseer card): both versions of the open tab,
+    // side by side, as the page draws them. js/side-by-side.js.
     if (mode === 'diff') {
+        await renderSideBySideDiff();
+        return;
+    }
+
+    // CHANGE LIST: the list of every changed part, which was DIFF VIEW until
+    // v1.2. Kept for what a page does not draw (an editor folder, a setting),
+    // which the side-by-side cannot show.
+    if (mode === 'list') {
         // Universal clear for both Character AND System dynamically generated tabs
         document.querySelectorAll('.tab-content, .wiki-tab-content').forEach(el => {
             el.classList.add('hidden');
@@ -247,7 +277,7 @@ async function switchVersionView(mode) {
             if (mainArea) mainArea.appendChild(diffContainer);
         }
 
-        diffContainer.innerHTML = `<h2 class="section-title diff-view-title">REVISION COMPARISON</h2>`;
+        diffContainer.innerHTML = `<h2 class="section-title diff-view-title">CHANGE LIST</h2>`;
         diffContainer.classList.remove('hidden');
 
         const rev = window.currentQueueData.find(r => r.id === window.activePreviewRevId);
@@ -1057,6 +1087,38 @@ async function switchVersionView(mode) {
         return;
     }
 
+    await renderPreviewVersion(mode);
+
+    // Always scan for new Headers after rendering finishes
+    setTimeout(updateAdminTOC, 300);
+}
+
+// --- ONE VERSION, DRAWN AS THE PAGE ---
+// PENDING SUBMISSION and LIVE VERSION, and each half of the side-by-side.
+// Resolves once the page is drawn, the move strategies included, which
+// js/description.js puts in 300ms after the rest. `onlyTab` (the
+// side-by-side) leaves out the move tabs it was not asked for.
+async function renderPreviewVersion(mode, onlyTab = null) {
+    // The renderers narrow to a character state through this, exactly as the
+    // live page does. currentEditorDescData is handed over already narrowed
+    // (js/description.js treats an editor-supplied object as final), while the
+    // frame cache stays whole because loadMoveSection resolves it itself.
+    const previewMode = window.activePreviewMode || null;
+    window.activeCharacterMode = previewMode;
+    // resolveModeDesc rather than reaching into modeData directly, so the
+    // preview inherits the one documented exception: a state that has not
+    // overridden the portrait shows the character's, not an empty box. Reading
+    // the bucket raw showed a state with no profile of its own as a page with
+    // no character on it, which is not what approving it would produce.
+    const narrow = (full) => (typeof window.resolveModeDesc === 'function'
+        ? window.resolveModeDesc(full || {}, previewMode)
+        : (window.isBaseMode(previewMode) ? full : ((full && full.modeData) || {})[previewMode] || {}));
+
+    const pending = mode === 'pending';
+    window.currentEditorDescData = narrow(pending ? window.currentPendingDescData : window.currentLiveDescData);
+    window.cachedMasterFrameData = window.cachedMasterFrameData || {};
+    window.cachedMasterFrameData[window.activePreviewCharId] = pending ? window.currentPendingFrameData : window.currentLiveFrameData;
+
     // --- REBUILDING LIVE / PENDING VIEWS ---
     document.querySelectorAll('.tab-content, .wiki-tab-content').forEach(el => el.innerHTML = '');
 
@@ -1132,26 +1194,125 @@ async function switchVersionView(mode) {
         } else {
             console.warn("tierlist.js is not loaded in Admin.html");
         }
-        setTimeout(window.showChangedTabsPopup, 200);
     } else {
         if (typeof loadPageDescriptions === 'function') {
             await loadPageDescriptions(window.activePreviewCharId, window.activePreviewPageType);
-            setTimeout(window.showChangedTabsPopup, 200);
         }
 
         if (window.activePreviewPageType !== 'system' && typeof loadMoveSection === 'function') {
-            await loadMoveSection(window.activePreviewCharId, 'm1s');
-            await loadMoveSection(window.activePreviewCharId, 'skills');
-            await loadMoveSection(window.activePreviewCharId, 'specials');
-            // Only when the tab exists - js/admin-modes.js injects it for a
-            // revision that actually has ultimate moves, and loadMoveSection
-            // bails on a missing container anyway.
-            if (document.getElementById('tab-ultimateAtk')) {
-                await loadMoveSection(window.activePreviewCharId, 'ultimateAtk');
+            // The side-by-side asks for one tab, and drawing the other move
+            // tabs twice over was most of its wait on a page with many moves.
+            const moveTabs = window.FRAME_MOVE_CATEGORIES.filter(tab => !onlyTab || tab === onlyTab);
+            for (const tab of moveTabs) {
+                // Only when the tab exists - js/admin-modes.js injects the
+                // Ultimate one for a revision that actually has ultimate
+                // moves, and loadMoveSection bails on a missing container anyway.
+                if (tab === 'ultimateAtk' && !document.getElementById('tab-ultimateAtk')) continue;
+                await loadMoveSection(window.activePreviewCharId, tab);
             }
         }
     }
 
-    // Always scan for new Headers after rendering finishes
-    setTimeout(updateAdminTOC, 300);
+    // A move's strategy text goes into its card 300ms after the rest
+    // (js/description.js); only a move tab has cards for it to go into.
+    const movesOnScreen = !onlyTab || (window.FRAME_MOVE_CATEGORIES || []).includes(onlyTab);
+    if (movesOnScreen && window.moveStrategiesDrawn) await window.moveStrategiesDrawn;
+    // The profile card's Previous / Next tiles wait on navigation.json.
+    // Never rejects in practice (it catches its own fetch); a failure here
+    // must not stop the page drawing, so it is let go.
+    if (window.profilePagerFilled) await Promise.resolve(window.profilePagerFilled).catch(() => {});
+    // The shortcodes ([b], colours, move names) styled now, not on a timer, so
+    // each half of the side-by-side is compared as a reader would see it.
+    if (typeof window.applyInternalStyling === 'function') window.applyInternalStyling();
 }
+
+// --- THE SIDE-BY-SIDE (v1.2) ---
+// Owner's Overseer card: "fit in the review panel that page current state with
+// all the red parts, and the current submission with all the green parts".
+// The open tab is drawn twice by renderPreviewVersion, live then pending, each
+// lifted out of its pane before the next is drawn, so no renderer finds the
+// other version's elements by id. js/side-by-side.js lines them up.
+let sideBySide = null;
+let sideBySideRun = 0;
+
+function openRevisionTabId() {
+    const btn = document.querySelector('#preview-tab-nav .btn-manga.active');
+    const id = btn ? btn.id.replace(/^nav-/, '') : null;
+    return id && document.getElementById(`tab-${id}`) ? id : window.getDefaultCharacterTabId();
+}
+
+// Moves a drawn tab's content into a holder that keeps the pane's layout
+// classes (a system tab lays its sections out in a row) but not its id.
+function liftTabContent(tabId) {
+    const holder = document.createElement('div');
+    const pane = document.getElementById(`tab-${tabId}`);
+    if (!pane) return holder;
+    holder.className = pane.className;
+    holder.classList.remove('hidden', 'active', 'tab-content');
+    holder.classList.add('sbs-version');
+    while (pane.firstChild) holder.appendChild(pane.firstChild);
+    return holder;
+}
+
+function showDiffContainer() {
+    document.querySelectorAll('.tab-content, .wiki-tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('#preview-content-area > div[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+    let host = document.getElementById('admin-diff-container');
+    if (!host) {
+        host = document.createElement('div');
+        host.id = 'admin-diff-container';
+        host.className = 'tab-content';
+        const mainArea = document.querySelector('.main-content-area');
+        if (mainArea) mainArea.appendChild(host);
+    }
+    host.classList.remove('hidden');
+    return host;
+}
+
+async function renderSideBySideDiff() {
+    // A tier list keeps the change list: its board redraws itself by id when
+    // one of its tabs is pressed, which two copies on one screen would confuse.
+    if (window.activePreviewPageType === 'tierlist') {
+        await switchVersionView('list');
+        return;
+    }
+
+    const run = sideBySideRun;
+    const tabId = openRevisionTabId();
+    showDiffContainer().innerHTML = '<p class="sbs-note">Drawing both versions...</p>';
+
+    await renderPreviewVersion('live', tabId);
+    if (run !== sideBySideRun) return;
+    const left = liftTabContent(tabId);
+
+    await renderPreviewVersion('pending', tabId);
+    if (run !== sideBySideRun) return;
+    const right = liftTabContent(tabId);
+
+    const host = showDiffContainer();
+    const list = document.createElement('button');
+    list.type = 'button';
+    list.id = 'btn-view-list';
+    list.className = 'btn-sys btn-sys-regular';
+    list.textContent = 'CHANGE LIST';
+    list.addEventListener('click', () => switchVersionView('list'));
+
+    sideBySide = window.SideBySide.mount(host, left, right, {
+        dataChanged: (window.changedTabs || []).includes(tabId),
+        extraButtons: [list],
+    });
+    if (typeof window.applyInternalStyling === 'function') setTimeout(window.applyInternalStyling, 50);
+    setTimeout(updateAdminTOC, 200);
+}
+
+// A tab picked in the strip while DIFF VIEW is open shows that tab side by
+// side. setupTabs (js/pagebuilder.js) has already switched the panes by then,
+// so this runs after it.
+document.addEventListener('DOMContentLoaded', () => {
+    const strip = document.getElementById('preview-tab-nav');
+    if (!strip) return;
+    strip.addEventListener('click', (e) => {
+        if (!e.target.closest('.btn-manga') || window.activePreviewViewMode !== 'diff') return;
+        setTimeout(() => switchVersionView('diff'), 0);
+    });
+});

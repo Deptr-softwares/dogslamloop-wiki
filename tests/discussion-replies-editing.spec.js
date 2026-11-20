@@ -269,7 +269,7 @@ test('a moderator opens what a post said before; a reader only sees that it was 
         { post_id: 'p1', body: 'second <b>version</b>', edited_at: '2026-10-04T10:30:00Z', edited_by: OTHER },
         { post_id: 'p1', body: 'first\nversion', edited_at: '2026-10-04T10:20:00Z', edited_by: null },
     ];
-    await openThread(page, { rows, session: SESSION, roleRow: { role: 'reviewer' }, edits });
+    await openThread(page, { rows, session: SESSION, roleRow: { role: 'reviewer', can_moderate: true }, edits });
 
     const mark = page.locator('#post-p1 .discussion-edited');
     expect(await mark.evaluate(el => el.tagName)).toBe('BUTTON');

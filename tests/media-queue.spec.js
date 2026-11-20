@@ -83,7 +83,8 @@ async function openQueue(page, config = {}) {
     }, { files: FILES, moderation: MODERATION, usage: USAGE, ...config });
 
     await page.goto('/admin.html', { waitUntil: 'networkidle' });
-    await page.evaluate(() => window.loadMediaQueue());
+    // The Media Queue is a tab since v1.2, and opening it is what loads it.
+    await page.locator('[data-queue-tab="media"]').click();
     await expect(page.locator('#media-queue-container .media-queue-row').first()).toBeVisible();
 }
 
@@ -273,4 +274,17 @@ test('usage that cannot be read degrades to unknown rather than failing the queu
 
     await expect(rows(page)).toHaveCount(2);
     await expect(rowFor(page, 'NewClip.webm')).toContainText('Nothing references it');
+});
+
+test('the Media Queue tab says how many files are waiting', async ({ page }) => {
+    // The count is the unchecked files, which is what the queue opens on. It
+    // is filled by the queue's own load: nothing extra is fetched for it.
+    await openQueue(page);
+    const waiting = await rows(page).count();
+    expect(waiting).toBeGreaterThan(0);
+    await expect(page.locator('[data-queue-count="media"]')).toHaveText(String(waiting));
+
+    // Looking at another filter does not change how many are waiting.
+    await setFilter(page, 'media-queue-status', 'all');
+    await expect(page.locator('[data-queue-count="media"]')).toHaveText(String(waiting));
 });

@@ -9,7 +9,7 @@
 // V2 fix 3, measured on Puppet Master on 2026-09-28: clips started loading
 // 300px ahead of the screen and a grid of them shared the connection, so a
 // 0.31 MB clip waited 4.9s behind a 4.24 MB one. Now two start at a time,
-// nearest first, from two screens ahead, and a loop plays only while it is on
+// nearest first, from two screens ahead (one since 2026-11-19), and a loop plays only while it is on
 // screen. A held response keeps a clip from ever being able to play through,
 // so in these tests "started" and "downloading" are the same thing.
 //
@@ -192,14 +192,17 @@ test('the player plays with sound, and the clip keeps looping under it', async (
 
 // --- 4.2: THE LOAD ORDER ---
 
-test('clips start two at a time, nearest first, from two screens ahead', async ({ page }) => {
+// One screen ahead since 2026-11-19 (two before), to spend less cached egress
+// on clips the reader never scrolls to.
+test('clips start two at a time, nearest first, from one screen ahead', async ({ page }) => {
   const net = await boot(page, { hold: ['near1', 'near2', 'mid', 'far'] });
   // Written in the reverse of their distance, so a queue that took clips in
-  // page order would start the two farthest instead.
+  // page order would start the two farthest instead. "beyond" sits where the
+  // old two-screen reach would still have fetched it.
   await placeClips(page, [
-    { name: 'beyond', at: 4 },
-    { name: 'far', at: 2.6 },
-    { name: 'mid', at: 1.6 },
+    { name: 'beyond', at: 2.6 },
+    { name: 'far', at: 1.8 },
+    { name: 'mid', at: 1.3 },
     { name: 'near2', at: 0.5, left: 380 },
     { name: 'near1', at: 0.05 },
   ]);
@@ -216,11 +219,11 @@ test('clips start two at a time, nearest first, from two screens ahead', async (
   await expect.poll(() => net.requested).toContain('mid');
   expect(net.requested, 'far is further than mid').not.toContain('far');
 
-  // 2.6 screens down is inside the reach, which the old 300px never was.
+  // 1.8 screens down is inside the reach, which the old 300px never was.
   await net.release('near2');
   await expect.poll(() => net.requested).toContain('far');
 
-  // Four screens down is not. With every download finished, a slot is free
+  // 2.6 screens down is not. With every download finished, a slot is free
   // and the clip is still not asked for; the settle covers the moment between
   // a clip becoming ready and its slot being handed on.
   await net.release('mid');
@@ -232,8 +235,8 @@ test('clips start two at a time, nearest first, from two screens ahead', async (
   await expect(clipVideo(page, 'beyond')).toHaveAttribute('data-lazy-src', /.+/);
   expect(net.requested).not.toContain('beyond');
 
-  // And it joins as soon as the reader comes within two screens of it.
-  await moveClip(page, 'beyond', 2.5);
+  // And it joins as soon as the reader comes within a screen of it.
+  await moveClip(page, 'beyond', 1.5);
   await expect.poll(() => net.requested).toContain('beyond');
 });
 

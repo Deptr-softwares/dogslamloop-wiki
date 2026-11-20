@@ -77,7 +77,7 @@
 
 /* --- SIDEBAR TABLE OF CONTENTS --- */
 #preview-nav-sidebar .sidebar-nav-title {
-    font-family: 'CC-Wild-Words', sans-serif;
+    font-family: var(--font-label), sans-serif;
     font-size: 0.7rem; 
     color: var(--accent-blue);
     text-transform: uppercase;
@@ -112,49 +112,6 @@
     background: hsla(217, 91%, 60%, 0.05);
 }
 
-/* --- CHANGED TABS POPUP --- */
-/* Single dismissable notification (js/admin-diff.js showChangedTabsPopup),
-   replacing what used to be a pulsing dot glued onto each individual nav
-   button - those live in the sidebar, invisible while actually viewing the
-   preview on mobile. Sits in normal document flow directly below
-   .admin-live-header (not absolutely positioned over it) - an earlier
-   version floated over the pane's top-right corner and directly covered
-   the real INTERCEPT & EDIT / FORCE APPROVE / FORCE REJECT buttons that
-   live in that same corner, on every screen size. */
-#changed-tabs-popup {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.75rem;
-    max-width: 420px;
-    margin: 0 0 1.5rem 0;
-    background: var(--bg-main, #050505);
-    border: 2px solid #eab308;
-    box-shadow: 4px 4px 0px var(--manga-shadow, #000);
-    padding: 0.75rem 1rem;
-    font-family: var(--text-mono);
-}
-.changed-tabs-popup-close {
-    background: none;
-    border: none;
-    color: #eab308;
-    cursor: pointer;
-    font-size: 0.65rem;
-    padding: 0.2rem;
-    flex-shrink: 0;
-}
-.changed-tabs-popup-title { color: #eab308; font-size: 0.65rem; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 0.35rem; }
-.changed-tabs-popup-body { color: #fff; font-size: 0.75rem; line-height: 1.4; }
-
-/* The one line a reviewer has to read when the tabs in front of them are
-   genuinely unchanged because the edit is in another character state.
-   Yellow to match the state toggle it points at, rather than the white of
-   the tab list above it. */
-.changed-tabs-popup-states { color: #eab308; margin-top: 0.4rem; }
-
-@media (max-width: 900px) {
-    #changed-tabs-popup { max-width: none; }
-}
 
 /* --- LAYOUT OVERRIDES --- */
 .admin-body { margin: 0; overflow: hidden; background-color: #050505; }
@@ -598,7 +555,21 @@
    without any thumbnail at all - a queue of newly recorded skill clips is the
    heaviest content in the bucket and rendering twenty to choose one is the
    wrong default. */
-.media-queue-header { margin-top: 2rem; }
+/* The queue tabs (admin.html #admin-queue-tabs): one queue on screen at a
+   time. They wrap rather than scroll, so every queue's name stays in view in
+   a column this narrow. */
+.admin-queue-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+.admin-queue-tab {
+    flex: 1 1 auto; padding: 0.45rem 0.6rem; cursor: pointer;
+    background: var(--bg-main, #050505); border: 1px solid var(--border-color, #333);
+    color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem;
+    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+}
+.admin-queue-tab:hover { color: var(--text-white); border-color: var(--accent-blue); }
+.admin-queue-tab.active { color: var(--text-white); border-color: var(--accent-blue); background: hsla(217, 91%, 60%, 0.12); }
+.admin-queue-tab[hidden] { display: none; }
+/* How many are waiting, once that queue has been loaded. */
+.admin-queue-count:not(:empty) { margin-left: 0.4rem; color: var(--accent-blue); font-weight: bold; }
 .media-queue-filters { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .media-queue-filter { flex: 1; font-size: 0.7rem; padding: 0.35rem; min-width: 0; }
 .media-queue-summary { font-family: var(--text-mono); font-size: 0.7rem; color: #888; margin: 0 0 0.75rem 0; }
@@ -704,6 +675,19 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 /* --- LIVE PREVIEW AREA --- */
 .admin-live-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid #222; flex-shrink: 0; width: 100%; box-sizing: border-box; }
 .admin-status-container { display: flex; align-items: center; }
+
+/* --- THE QUEUE COLUMN POPS IN AND OUT (v1.2, owner's Overseer card) ---
+   "turning the navigation bar to an overlay that can pop out and in". Put
+   away, the column gives the pane, and the side-by-side in it, the whole
+   width. The page moves over for it rather than being dimmed under it: the
+   media queue opens a clip in the pane while its buttons stay in the column.
+   Wider screens only (a phone already swaps between the two), and not for a
+   moderator-only view, which has nothing in the pane. js/admin-queue.js. */
+.queue-toggle { display: none; margin-right: 0.75rem; }
+@media (min-width: 901px) {
+    body.admin-body:not(.admin-moderator-only) .queue-toggle { display: inline-flex; }
+    body.admin-body.queue-collapsed:not(.admin-moderator-only) .admin-sidebar { display: none; }
+}
 .admin-status-text { margin-left: 1rem; font-size: 0.9rem; color: var(--text-muted); font-family: var(--text-mono); }
 #preview-action-buttons { display: flex; gap: 0.75rem; }
 
@@ -723,9 +707,25 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 }
 .ticket-left-col { flex: 1; border-right: 1px solid #333; padding-right: 2rem; display: flex; flex-direction: column; }
 .ticket-right-col { flex: 2; display: flex; flex-direction: column; }
-.ticket-header-title { margin: 0 0 0.75rem 0; font-size: 0.85rem; font-family: 'CC-Wild-Words', sans-serif; }
+.ticket-header-title { margin: 0 0 0.75rem 0; font-size: 0.85rem; font-family: var(--font-label), sans-serif; }
 .ticket-header-title.status { color: #eab308; }
 .ticket-header-title.log { color: var(--accent-blue); }
+.ticket-header-title.qa { color: #3b82f6; }
+
+/* --- QA REPORT (owner's Overseer card, v1.2): above the ticket, on every submission --- */
+.qa-report-panel {
+    background: hsl(0, 0%, 2%);
+    border: 1px solid hsl(0, 0%, 20%);
+    border-top: 2px solid #3b82f6;
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
+    flex-shrink: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+.qa-report { font-family: var(--text-mono); font-size: 0.7rem; color: var(--text-muted); overflow-wrap: anywhere; }
+/* A changelog with a staff note, and a merged ticket's evidence, are several lines. */
+.qa-report-value { white-space: pre-wrap; }
 .ticket-status-text { font-size: 0.75rem; margin: 0 0 0.25rem 0; font-family: var(--text-mono); }
 .ticket-status-text.support { color: #22c55e; }
 .ticket-status-text.oppose { color: #ef4444; margin-bottom: 1.5rem; }
@@ -740,18 +740,22 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 /* --- CONTENT VIEWERS --- */
 #preview-content-area { opacity: 0.2; pointer-events: none; transition: opacity 0.3s ease; padding: 0; max-width: 1000px; margin: 0 auto; width: 100%; box-sizing: border-box; }
 #preview-content-area.active { opacity: 1; pointer-events: auto; }
+/* The side-by-side (v1.2) draws the page twice, so it takes the pane's whole
+   width rather than one page's reading width. */
+body.sbs-active .admin-main-pane .max-w-7xl,
+body.sbs-active #preview-content-area { max-width: none; }
 #version-toggle-bar { justify-content: center; gap: 0.75rem; margin-bottom: 2rem; border-bottom: 1px dashed #222; padding-bottom: 1.5rem; flex-shrink: 0; width: 100%; box-sizing: border-box; display: flex; }
 
 /* --- ACCESS DENIED (js/admin-core.js kickUser, also js/owner.js) --- */
 .access-denied-screen { height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; flex-direction: column; background: #050505; }
-.access-denied-title { color: #ef4444; font-family: 'CC-Wild-Words', sans-serif; }
+.access-denied-title { color: #ef4444; font-family: var(--font-label), sans-serif; }
 
 /* --- QUEUE LOADING / ERROR / EMPTY STATES (js/admin-queue.js loadQueue) --- */
 .admin-error-text { color: #ef4444; font-size: 0.75rem; }
 .admin-queue-empty-msg { border: 1px dashed #333; padding: 1.5rem 1rem; font-size: 0.7rem; }
 
 /* --- QUEUE GROUP HEADER --- */
-.admin-queue-group-title { font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; color: var(--text-white); margin: 0; text-transform: uppercase; }
+.admin-queue-group-title { font-family: var(--font-label), sans-serif; font-size: 1rem; color: var(--text-white); margin: 0; text-transform: uppercase; }
 .admin-merge-btn { font-size: 0.65rem; padding: 0.3rem 0.6rem; }
 
 /* --- QUEUE STATUS BADGES --- */
@@ -898,7 +902,7 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
    redesign - browse + restore past live versions) --- */
 .page-history-card { margin-bottom: 1rem; border-left: 4px solid var(--accent-yellow); }
 .page-history-card-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
-.page-history-card-title { margin: 0; color: var(--text-white); font-family: 'CC-Wild-Words', sans-serif; font-size: 1rem; }
+.page-history-card-title { margin: 0; color: var(--text-white); font-family: var(--font-label), sans-serif; font-size: 1rem; }
 .page-history-card-editor { font-size: 0.75rem; color: var(--text-muted); font-family: var(--text-mono); margin-top: 0.25rem; }
 .page-history-card-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .page-history-diff { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border-color); }
@@ -911,7 +915,7 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 .compiler-select { margin-bottom: 0; border-color: #a855f7; background: rgba(168,85,247,0.1); color: #fff; font-weight: bold; }
 .compiler-discard-option { color: #888; font-weight: normal; }
 .compiler-conflict-card { background: rgba(255,255,255,0.02); border: 1px solid #333; padding: 0.75rem; margin-bottom: 0.75rem; border-left: 3px solid #a855f7; }
-.compiler-conflict-title { font-family: 'CC-Wild-Words', sans-serif; font-size: 0.8rem; color: #fff; margin-bottom: 0.5rem; text-transform: uppercase; }
+.compiler-conflict-title { font-family: var(--font-label), sans-serif; font-size: 0.8rem; color: #fff; margin-bottom: 0.5rem; text-transform: uppercase; }
 #btn-compiler-confirm:disabled { opacity: 0.5; }
 .version-toggle-btn { font-size: 0.7rem; padding: 0.5rem 1.25rem; }
 /* --- PER-USER CAPABILITIES (js/owner.js loadPersonnel) --- */

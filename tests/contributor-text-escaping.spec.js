@@ -97,6 +97,8 @@ function mockEditor(page, { desc, frame }) {
       const chain = {
         select() { return chain; }, eq() { return chain; }, in() { return chain; },
         order() { return chain; }, limit() { return chain; }, neq() { return chain; },
+        // VIEW DIFF lists the page's past versions with .not() (v1.2).
+        not() { return chain; },
         single: async () => result, maybeSingle: async () => result,
         then: (res) => Promise.resolve(result).then(res),
       };
@@ -256,8 +258,9 @@ test('the editor shows a crafted custom tab name and matchup opponent as text', 
 // The editor's VIEW DIFF list printed a changed move as raw JSON, and each
 // section's title (a move's id, a custom tab's name, a matchup's opponent) as
 // markup, so a reviewer who intercepted a crafted submission and opened VIEW
-// DIFF ran it. Not reached by the sweeps above.
-test("the editor's VIEW DIFF list shows a crafted move and section names as text", async ({ page }) => {
+// DIFF ran it. Not reached by the sweeps above. Since v1.2 VIEW DIFF opens
+// side by side and the list is behind CHANGE LIST.
+test("the editor's CHANGE LIST shows a crafted move and section names as text", async ({ page }) => {
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await mockEditor(page, { desc: EVIL_DESC, frame: EVIL_FRAME });
@@ -273,6 +276,7 @@ test("the editor's VIEW DIFF list shows a crafted move and section names as text
     window.currentEditorDescData.matchups[0].content = [{ type: 'paragraph', content: 'Now written.' }];
   });
   await page.locator('#btn-toggle-diff').click();
+  await page.getByRole('button', { name: 'CHANGE LIST' }).click();
 
   const list = page.locator('#diff-view-container');
   const skill = list.locator('.diff-container-raw', { hasText: 'FRAME DATA (SKILL)' });
@@ -328,7 +332,7 @@ test('a crafted combo route is a plain title in the reviewer diff view', async (
     window.currentLiveFrameData = { m1s: [], skills: [], specials: [] };
     window.currentPendingDescData = JSON.parse(JSON.stringify(live));
     window.currentPendingFrameData = { m1s: [], skills: [], specials: [] };
-    await switchVersionView('diff');
+    await switchVersionView('list');
     await new Promise(r => setTimeout(r, 400));
     const titles = [...document.querySelectorAll('.diff-section-title')].map(h => h.textContent);
     return { titles, fired: window.__xss || 0, images: document.querySelectorAll('img[src="x"]').length };

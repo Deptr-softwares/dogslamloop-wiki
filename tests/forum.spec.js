@@ -345,7 +345,7 @@ test('an address that is not a post says so', async ({ page }) => {
 });
 
 test('a moderator can hide a whole post, with a reason; nobody else sees the controls', async ({ page }) => {
-    await openForum(page, { path: `/forum.html?post=${T1}`, session: SESSION, roleRow: { role: 'reviewer' }, threads: [thread()], messages: [message()] });
+    await openForum(page, { path: `/forum.html?post=${T1}`, session: SESSION, roleRow: { role: 'reviewer', can_moderate: true }, threads: [thread()], messages: [message()] });
     const mod = page.locator('.forum-mod');
     await expect(mod.locator('button')).toHaveText(['HIDE', 'REMOVE']);
     // Closed until an action is picked. `.forum-mod-form` sets display: flex,
@@ -436,7 +436,7 @@ test('a moderator can see what a post was called before; a reader cannot', async
         { thread_id: T1, title: '<img src=x onerror="window.__xss=1">', tag: 'Discussion', edited_at: '2026-10-04T10:30:00Z', edited_by: ME },
         { thread_id: T1, title: 'First title', tag: 'Question', edited_at: '2026-10-04T10:10:00Z', edited_by: null },
     ];
-    await openForum(page, { path: `/forum.html?post=${T1}`, session: SESSION, roleRow: { role: 'reviewer' }, threads: [thread()], messages: [message()], titleEdits });
+    await openForum(page, { path: `/forum.html?post=${T1}`, session: SESSION, roleRow: { role: 'reviewer', can_moderate: true }, threads: [thread()], messages: [message()], titleEdits });
     const btn = page.locator('.forum-post-meta .discussion-edited-open');
     await expect(btn).toHaveText('title edited');
     const box = page.locator('.forum-post-header .discussion-edits');

@@ -135,7 +135,7 @@ async function renderScope(page, scope, key, payload) {
     window.currentPendingFrameData = JSON.parse(JSON.stringify(liveFrame));
 
     let err = '';
-    try { await switchVersionView('diff'); } catch (e) { err = String(e.message || e); }
+    try { await switchVersionView('list'); } catch (e) { err = String(e.message || e); }
     await new Promise(r => setTimeout(r, 250));
 
     const c = document.getElementById('admin-diff-container');
@@ -387,7 +387,7 @@ async function renderSystemDiff(page, pageType, liveDesc, payload) {
     window.currentPendingFrameData = {};
 
     let err = '';
-    try { await switchVersionView('diff'); } catch (e) { err = String(e.message || e); }
+    try { await switchVersionView('list'); } catch (e) { err = String(e.message || e); }
     await new Promise(r => setTimeout(r, 250));
 
     const c = document.getElementById('admin-diff-container');

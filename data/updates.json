@@ -1,12 +1,64 @@
 {
   "changelogs": [
     {
+      "version": "Stable v1.2",
+      "date": "11/20/2026",
+      "type": "site",
+      "title": "The \"Random\" Update",
+      "description": "Everything all at once, hell yeeeee",
+      "changes": [
+        {
+          "heading": "Features"
+        },
+        "Added a Classic look in the Site Settings, larping Wikipedia",
+        "Added a bottom bar on phones that has Search, Ko-fi, Settings and Account shortcuts",
+        "Added Hover Banners for every Characters page, which display on the home page roster",
+        "Added Accolades for Skill Cards",
+        "Added Mini icons in page text",
+        "Certified Tier Lists people can now create copies of a character on certified tier lists, with custom badges",
+        "Added a \"No frame data\" option for Skill Cards",
+        "Added Skill Card media that changes with the Micro Variant on show aka media per Micro Variant",
+        "Updated History pages to show the whole page as it was",
+        "Updated VIEW DIFF in the editor to show the page side by side and compare with a past version of that page (also did the same for Reviewers stuff)",
+        "Added States for base-only characters",
+        "Made Color Codes and Collaborators editable in the editor, restricted to admin and above tho",
+        "Added a warning before editing a restricted page",
+        {
+          "heading": "Fine-tuning"
+        },
+        "Made most text smaller on phones",
+        "Made tables scroll in their own box instead of being compressed on phones",
+        "Made pages load faster",
+        "Videos and clips now show their first frame until they play",
+        "Updated icons across the site",
+        "Made a universal solid line under every title, and one universal heading style on every character tab",
+        "Reworked the Media Library into a list of names with a preview",
+        "Removed Reverse Hitcancel",
+        "Block Endlag is now defined as Block Stun",
+        "\"Variant\" is now \"Micro Variant\" in the frame data editor",
+        "Made Discord previews and search results show a character's Overview line and banner",
+        "Updated the Overseer Panel to be more \"concise\" along with a bunch of QoLs",
+        "Changed a few things under the hood, such as security hole fixes, this and that, don't ask",
+        {
+          "heading": "Bug fixes"
+        },
+        "Fixed a long link in a post stretching the page sideways",
+        "Fixed Micro Variant tabs overflowing their Skill Card",
+        "Fixed History pages showing the current M1s, Skills and Innate tabs instead of the old ones",
+        "Fixed editing inside a Section Box and switching section deleting the rest of it",
+        "Fixed switching state on Techs and Combos swapping cards between the states, causing stuff to tragically disappear",
+        "Fixed move names with a hyphen being only half highlighted in combo routes",
+        "Fixed open dropdown lists cutting their options off",
+        "Fixed panels popping up when tapped on a phone",
+        "Fixed the editor's Workspace Footer jittering on short sections"
+      ]
+    },
+    {
       "version": "Release v1.1",
       "date": "10/24/2026",
       "type": "site",
       "title": "The 'Halloween' Update",
       "description": "Ooooooooohhh scary Black Flash chain",
-      "revealedBy": "halloween",
       "changes": [
         {
           "heading": "Features"

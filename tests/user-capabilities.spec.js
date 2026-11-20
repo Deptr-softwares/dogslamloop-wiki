@@ -123,7 +123,7 @@ test('uploading media comes with Trusted Editor and up, and the row says so', as
 });
 
 test('deleting media is not implied by any role except admin', async ({ page }) => {
-    // Deliberately narrower than moderation, which reviewers get for free.
+    // Deliberately narrow, as moderation is since 20261116000000.
     // This is the only irreversible action on the site, so it is granted one
     // person at a time.
     await openOwner(page);

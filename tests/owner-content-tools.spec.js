@@ -13,6 +13,9 @@
 // and site_collaborators already permitted UPDATE (FOR ALL, is_owner()), which
 // is why those two needed no migration at all - but that is verified by probe,
 // not here. These drive the client and keep the SQL text honest.
+//
+// The credits tool left owner tools in v1.2: the Collaborators page is edited
+// in the editor, and its tests are in tests/collaborators-page.spec.js.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -21,24 +24,16 @@ const FAQ = [
     { id: 1, question: 'How do I read frame data?', paragraphs: ['Startup, active, recovery.', 'Then block advantage.'], sort_order: 10 },
 ];
 
-const CREDITS = [
-    {
-        id: 7, name: 'MrT1', role: 'Frame Data & Testing', description: 'Counted frames.',
-        avatar: '/medias/images/Solid Blue.webp', badge_type: 'badge-site', is_lead: false,
-        links: [{ name: 'GitHub', url: 'https://github.com/mrt1' }], section: 'main', sort_order: 20,
-    },
-];
-
 const TIER_LISTS = [
     { id: 'tl-1', slug: 'mrt1', author_name: 'MrT1', email: 'mrt1@site.test', blurb: null, status: 'published', updated_at: '2026-09-01T00:00:00Z' },
     { id: 'tl-2', slug: 'old', author_name: 'Retired', email: 'gone@site.test', blurb: null, status: 'archived', updated_at: '2026-08-01T00:00:00Z' },
 ];
 
-async function openOwner(page, group = 'content') {
-    await page.addInitScript(({ faq, credits, tierLists }) => {
+async function openOwner(page, group = 'content', { tierIntro = null } = {}) {
+    await page.addInitScript(({ faq, tierLists, tierIntro }) => {
         window.__writes = [];
         window.__rpcCalls = [];
-        const rows = { site_faq: faq, site_collaborators: credits };
+        const rows = { site_faq: faq };
 
         Object.defineProperty(window, 'supabase', {
             configurable: true,
@@ -63,7 +58,10 @@ async function openOwner(page, group = 'content') {
                                 order() { return chain; },
                                 limit() { return chain; },
                                 eq(col, val) { state.eq = [col, val]; return chain; },
-                                maybeSingle: async () => ({ data: null, error: null }),
+                                maybeSingle: async () => ({
+                                    data: table === 'tier_page_settings' && tierIntro ? { intro: tierIntro } : null,
+                                    error: null,
+                                }),
                                 single: async () => ({ data: null, error: null }),
                                 insert(payload) {
                                     window.__writes.push({ table, op: 'insert', payload });
@@ -99,7 +97,7 @@ async function openOwner(page, group = 'content') {
                 }
             },
         });
-    }, { faq: FAQ, credits: CREDITS, tierLists: TIER_LISTS });
+    }, { faq: FAQ, tierLists: TIER_LISTS, tierIntro });
 
     await page.goto('/owner.html', { waitUntil: 'networkidle' });
 
@@ -164,93 +162,6 @@ test('an emptied answer is refused rather than written', async ({ page }) => {
     expect(await writes(page, 'site_faq', 'update')).toHaveLength(0);
 });
 
-// --- CREDITS ---
-
-test('every field the collaborators page renders is editable', async ({ page }) => {
-    // The table has carried role, avatar, badge_type, is_lead and links since
-    // 20260808000005. The tool read four columns, so the rest could be seen on
-    // the site and changed nowhere.
-    await openOwner(page);
-    const row = page.locator('.credit-row').first();
-    await row.locator('.credit-edit-btn').click();
-
-    await expect(row.locator('.credit-f-name')).toHaveValue('MrT1');
-    await expect(row.locator('.credit-f-role')).toHaveValue('Frame Data & Testing');
-    await expect(row.locator('.credit-f-badge')).toHaveValue('badge-site');
-    await expect(row.locator('.credit-f-avatar')).toHaveValue('/medias/images/Solid Blue.webp');
-    await expect(row.locator('.credit-f-links')).toHaveValue('GitHub | https://github.com/mrt1');
-    await expect(row.locator('.credit-f-section')).toHaveValue('main');
-    await expect(row.locator('.credit-f-lead')).not.toBeChecked();
-});
-
-test('saving a collaborator writes all of it, links parsed back into objects', async ({ page }) => {
-    await openOwner(page);
-    const row = page.locator('.credit-row').first();
-    await row.locator('.credit-edit-btn').click();
-
-    await row.locator('.credit-f-role').fill('Frame Data Lead');
-    await row.locator('.credit-f-badge').selectOption('badge-patch');
-    await row.locator('.credit-f-links').fill('GitHub | https://github.com/mrt1\nDiscord | https://discord.gg/x');
-    await row.locator('.credit-f-lead').check();
-    await row.locator('.credit-save-btn').click();
-
-    await expect.poll(() => writes(page, 'site_collaborators', 'update')).toHaveLength(1);
-    const [write] = await writes(page, 'site_collaborators', 'update');
-
-    expect(write.payload.role).toBe('Frame Data Lead');
-    expect(write.payload.badge_type).toBe('badge-patch');
-    expect(write.payload.is_lead).toBe(true);
-    expect(write.payload.links).toEqual([
-        { name: 'GitHub', url: 'https://github.com/mrt1' },
-        { name: 'Discord', url: 'https://discord.gg/x' },
-    ]);
-});
-
-test('a javascript: link is refused and named, not silently dropped', async ({ page }) => {
-    // The collaborators page builds link.url into an href. Escaping stops a tag
-    // being written; this stops the href being followed. A link that vanished
-    // on save would look like the save failed.
-    await openOwner(page);
-    const row = page.locator('.credit-row').first();
-    await row.locator('.credit-edit-btn').click();
-    await row.locator('.credit-f-links').fill('Evil | javascript:alert(1)');
-    await row.locator('.credit-save-btn').click();
-
-    await expect(page.locator('#credits-results')).toContainText('http://');
-    await expect(page.locator('#credits-results')).toContainText('Evil | javascript:alert(1)');
-    expect(await writes(page, 'site_collaborators', 'update')).toHaveLength(0);
-});
-
-test('adding somebody carries the new fields too, not just name and description', async ({ page }) => {
-    await openOwner(page);
-    await page.fill('#new-credit-name', 'Newcomer');
-    await page.fill('#new-credit-role', 'Matchup Notes');
-    await page.selectOption('#new-credit-badge', 'badge-wip');
-    await page.fill('#new-credit-links', 'Twitter | https://x.com/newcomer');
-    await page.click('#btn-add-credit');
-
-    await expect.poll(() => writes(page, 'site_collaborators', 'insert')).toHaveLength(1);
-    const [write] = await writes(page, 'site_collaborators', 'insert');
-    const inserted = Array.isArray(write.payload) ? write.payload[0] : write.payload;
-
-    expect(inserted.name).toBe('Newcomer');
-    expect(inserted.role).toBe('Matchup Notes');
-    expect(inserted.badge_type).toBe('badge-wip');
-    expect(inserted.links).toEqual([{ name: 'Twitter', url: 'https://x.com/newcomer' }]);
-});
-
-test('the add form holds links to the same rule as the row editor', async ({ page }) => {
-    // Two entry points to one column; a looser check on either is the one an
-    // attacker-shaped value goes through.
-    await openOwner(page);
-    await page.fill('#new-credit-name', 'Newcomer');
-    await page.fill('#new-credit-links', 'Evil | javascript:alert(1)');
-    await page.click('#btn-add-credit');
-
-    await expect(page.locator('#credits-results')).toContainText('http://');
-    expect(await writes(page, 'site_collaborators', 'insert')).toHaveLength(0);
-});
-
 // --- TIER LISTS ---
 
 test('a published list offers ARCHIVE and an archived one offers RESTORE', async ({ page }) => {
@@ -290,6 +201,27 @@ test('cancelling the confirmation changes nothing', async ({ page }) => {
     const calls = await page.evaluate(() =>
         (window.__rpcCalls || []).filter(c => c.name === 'set_tier_list_status').length);
     expect(calls).toBe(0);
+});
+
+test('saving the page introduction from inside a Section Box saves all of it', async ({ page }) => {
+    // The page editor's bug (tests/editor-nested-flush.spec.js) in this
+    // tool's save: inside a box, getActiveBlocks() is the box's list, and it
+    // was written to tier_page_settings as the whole introduction.
+    const p = (content) => ({ type: 'paragraph', content });
+    await openOwner(page, 'tierlists', { tierIntro: [
+        p('Before the box.'),
+        { type: 'sectionedbox', title: 'Box', intro: [], sections: [{ title: 'Inside', content: [p('inside text')] }] },
+        p('After the box.'),
+    ] });
+
+    await page.locator('#tier-page-intro-editor [data-sbox-edit="0"]').click();
+    await page.locator('#tier-page-intro-editor textarea[data-field="content-array"]').fill('inside text, edited');
+    await page.click('#btn-save-tier-page-intro');
+    await expect(page.locator('#tier-page-intro-results')).toContainText('Saved.');
+
+    const [w] = await writes(page, 'tier_page_settings', 'update');
+    const intro = w.payload.intro.map(b => (b.type === 'sectionedbox' ? `box[${b.sections[0].content[0].content}]` : b.content));
+    expect(intro).toEqual(['Before the box.', 'box[inside text, edited]', 'After the box.']);
 });
 
 // --- THE SQL HALF ---
@@ -335,16 +267,4 @@ test('set_tier_list_status is revoked from PUBLIC and anon', () => {
     expect(MIG).toMatch(/REVOKE ALL ON FUNCTION "public"\."set_tier_list_status"\(text, text\) FROM PUBLIC/);
     expect(MIG).toMatch(/REVOKE ALL ON FUNCTION "public"\."set_tier_list_status"\(text, text\) FROM "anon"/);
     expect(MIG).toMatch(/GRANT EXECUTE ON FUNCTION "public"\."set_tier_list_status"\(text, text\) TO "authenticated"/);
-});
-
-test('the collaborators page escapes what the owner tools can now write', () => {
-    // Six interpolations, and this pass is the first thing that ever let four
-    // of those columns be typed in.
-    const page = fs.readFileSync(
-        path.join(__dirname, '..', 'systems', 'collaborators', 'index.html'), 'utf8');
-
-    expect(page).toContain('function credEscape');
-    for (const field of ['link.url', 'link.name', 'contributor.name', 'contributor.role', 'contributor.description', 'person.name']) {
-        expect(page, `${field} is escaped`).toContain(`credEscape(${field})`);
-    }
 });

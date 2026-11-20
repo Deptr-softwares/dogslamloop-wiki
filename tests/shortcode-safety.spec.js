@@ -190,13 +190,22 @@ async function highlighted(page, text) {
 
 test('every overlay window term is highlighted, not just the frame ticks', async ({ page }) => {
     const found = await highlighted(page,
-        'Reverse Hitcancel, Melee I-Frames, Bullet I-Frames, Explosion I-Frames, '
+        'Melee I-Frames, Bullet I-Frames, Explosion I-Frames, '
         + 'Swarm I-Frames, Complete I-Frames');
 
     expect(found).toEqual([
-        'Reverse Hitcancel', 'Melee I-Frames', 'Bullet I-Frames',
+        'Melee I-Frames', 'Bullet I-Frames',
         'Explosion I-Frames', 'Swarm I-Frames', 'Complete I-Frames',
     ]);
+});
+
+test('a retired overlay term is plain text again', async ({ page }) => {
+    // Reverse Hitcancel was retired 2026-11-12. A colour left behind would
+    // keep painting the name, and its "RHC" alias, as if it still meant
+    // something on a Frame Track.
+    const found = await highlighted(page, 'Reverse Hitcancel or RHC, then Melee I-Frames');
+
+    expect(found).toEqual(['Melee I-Frames']);
 });
 
 test('the term list is derived from site_meta, not written out here', async ({ page }) => {
@@ -245,6 +254,45 @@ test('a two-word term beats the one-word term inside it', async ({ page }) => {
     const found = await highlighted(page, 'Extended Recovery and Block Endlag and Recovery');
 
     expect(found).toEqual(['Extended Recovery', 'Block Endlag', 'Recovery']);
+});
+
+test('each endlag phrase takes the colour of what it means now', async ({ page }) => {
+    // Round 2 (2026-11-12): Block Endlag is the blocker's stun, "Otherwise
+    // known as Block Stun", and the attacker's endlag on block (Extended
+    // Recovery) is Recovery. The phrase is the claim; its colour has to agree.
+    await page.goto(PAGE, { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => typeof window.applyInternalStyling === 'function');
+
+    const out = await page.evaluate(() => {
+        const host = document.createElement('div');
+        host.className = 'wiki-text';
+        host.textContent = 'Extended Recovery, Whiff Endlag, Block Stun, Recovery, Block Endlag';
+        (document.querySelector('main') || document.body).appendChild(host);
+        window.applyInternalStyling();
+
+        const paint = (color) => {
+            const probe = document.createElement('span');
+            probe.style.color = color;
+            document.body.appendChild(probe);
+            const rgb = getComputedStyle(probe).color;
+            probe.remove();
+            return rgb;
+        };
+        const words = {};
+        host.querySelectorAll('.sc-auto').forEach(el => { words[el.textContent] = getComputedStyle(el).color; });
+        return {
+            words,
+            recovery: paint(window.FRAME_COLORS['bg-tick-recov']),
+            blockEndlag: paint(window.FRAME_COLORS['bg-tick-blockendlag']),
+        };
+    });
+
+    expect(out.recovery).not.toBe(out.blockEndlag);
+    expect(out.words['Recovery']).toBe(out.recovery);
+    expect(out.words['Extended Recovery']).toBe(out.recovery);
+    expect(out.words['Whiff Endlag']).toBe(out.recovery);
+    expect(out.words['Block Endlag']).toBe(out.blockEndlag);
+    expect(out.words['Block Stun']).toBe(out.blockEndlag);
 });
 
 // --------------------------------------------------------------------------

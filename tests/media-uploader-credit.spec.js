@@ -99,7 +99,7 @@ async function openLibrary(page, config = {}) {
     await expect(page.locator('#media-upload-zone')).toBeVisible();
 }
 
-const card = page => page.locator('.media-thumbnail-card').first();
+const card = page => page.locator('#media-gallery-grid .media-row').first();
 
 // --- THE CREDIT ---
 
@@ -110,7 +110,7 @@ test('a file with a recorded uploader is credited by name', async ({ page }) => 
         profiles: [{ user_id: 'u7', display_name: 'Deptr' }],
     });
 
-    await expect(card(page).locator('.media-thumbnail-uploader')).toHaveText('by Deptr');
+    await expect(card(page).locator('.media-row-uploader')).toHaveText('by Deptr');
 });
 
 test('a file with no record shows no credit line at all', async ({ page }) => {
@@ -121,8 +121,8 @@ test('a file with no record shows no credit line at all', async ({ page }) => {
     await openLibrary(page, { files: ['Old.webp'], credits: [], profiles: [] });
 
     await expect(card(page)).toBeVisible();
-    await expect(card(page).locator('.media-thumbnail-filename')).toHaveText('Old.webp');
-    await expect(card(page).locator('.media-thumbnail-uploader')).toHaveCount(0);
+    await expect(card(page).locator('.media-row-name')).toHaveText('Old.webp');
+    await expect(card(page).locator('.media-row-uploader')).toHaveCount(0);
 });
 
 test('a deleted uploader leaves the file uncredited rather than blank-credited', async ({ page }) => {
@@ -135,7 +135,7 @@ test('a deleted uploader leaves the file uncredited rather than blank-credited',
     });
 
     await expect(card(page)).toBeVisible();
-    await expect(card(page).locator('.media-thumbnail-uploader')).toHaveCount(0);
+    await expect(card(page).locator('.media-row-uploader')).toHaveCount(0);
 
     // And no profile request was made for a null id - it would resolve nothing.
     expect(await page.evaluate(() => window.__f8.profileCalls)).toEqual([]);
@@ -154,7 +154,7 @@ test('uploader ids are de-duplicated before the profile lookup', async ({ page }
         profiles: [{ user_id: 'u7', display_name: 'Deptr' }, { user_id: 'u9', display_name: 'Someone' }],
     });
 
-    await expect(card(page).locator('.media-thumbnail-uploader')).toHaveText('by Deptr');
+    await expect(card(page).locator('.media-row-uploader')).toHaveText('by Deptr');
     const calls = await page.evaluate(() => window.__f8.profileCalls);
     expect(calls).toHaveLength(1);
     expect([...calls[0]].sort()).toEqual(['u7', 'u9']);
@@ -167,7 +167,7 @@ test('the grid still renders when the credit lookup fails', async ({ page }) => 
     await openLibrary(page, { files: ['Clip.webp'], creditsFail: true });
 
     await expect(card(page)).toBeVisible();
-    await expect(card(page).locator('.media-thumbnail-filename')).toHaveText('Clip.webp');
+    await expect(card(page).locator('.media-row-name')).toHaveText('Clip.webp');
     await expect(page.locator('.media-error-msg')).toHaveCount(0);
 });
 
@@ -211,12 +211,12 @@ test('a hostile filename is escaped in the gallery card', async ({ page }) => {
     const hostile = '<img src=x onerror="window.__xss=1">.webp';
     await openLibrary(page, { files: [hostile], credits: [] });
 
-    const label = card(page).locator('.media-thumbnail-filename');
+    const label = card(page).locator('.media-row-name');
     await expect(label).toHaveText(hostile);
 
     expect(await page.evaluate(() => window.__xss), 'no handler ran').toBeUndefined();
-    expect(await card(page).locator('img.media-thumbnail-media').count(),
-        'the only img is the thumbnail itself').toBe(1);
+    // v1.2: rows carry no picture at all, so any img in one came from the name.
+    expect(await card(page).locator('img').count(), 'the name made no element').toBe(0);
 });
 
 test('a hostile display name is escaped in the credit', async ({ page }) => {
@@ -229,7 +229,7 @@ test('a hostile display name is escaped in the credit', async ({ page }) => {
         profiles: [{ user_id: 'u7', display_name: hostile }],
     });
 
-    await expect(card(page).locator('.media-thumbnail-uploader')).toHaveText(`by ${hostile}`);
+    await expect(card(page).locator('.media-row-uploader')).toHaveText(`by ${hostile}`);
     expect(await page.evaluate(() => window.__xss2), 'no handler ran').toBeUndefined();
-    expect(await card(page).locator('img.media-thumbnail-media').count()).toBe(1);
+    expect(await card(page).locator('img').count(), 'the name made no element').toBe(0);
 });

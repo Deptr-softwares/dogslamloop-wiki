@@ -90,9 +90,11 @@ test('frame and window colours are offered under the legend names', async ({ pag
     const titles = await swatches(page).evaluateAll(nodes => nodes.map(n => n.title));
     // The wording contributors actually use, taken from the frame-data legend
     // rather than invented for the picker.
-    for (const label of ['Startup', 'Active', 'Recovery', 'InSkill Stun', 'Block Endlag', 'Melee I-Frames', 'Reverse Hitcancel']) {
+    for (const label of ['Startup', 'Active', 'Recovery', 'InSkill Stun', 'Block Endlag', 'Melee I-Frames']) {
         expect(titles, `no swatch labelled ${label}`).toContain(label);
     }
+    // Retired 2026-11-12 (no Frame Track ever used it).
+    expect(titles).not.toContain('Reverse Hitcancel');
 });
 
 test('the frame colours are real values, not empty strings', async ({ page }) => {

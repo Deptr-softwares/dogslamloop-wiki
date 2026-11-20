@@ -59,9 +59,21 @@ async function mockTool(page, {
     session = { user: { id: 'voter-1', email: 'voter@example.com' } },
     rankingError = null,
     submitError = null,
+    // The tier names, the rankings and the eligibility answer only once all
+    // three have been asked, as a database far away would make a page wait.
+    together = false,
 } = {}) {
     await page.addInitScript((cfg) => {
         window.__fsCalls = { rpc: [], deletes: [] };
+        const asked = new Set();
+        let releaseAll;
+        const allAsked = new Promise(r => { releaseAll = r; });
+        const answerWhenAllAsked = (what) => {
+            if (!cfg.together) return Promise.resolve();
+            asked.add(what);
+            if (asked.size === 3) releaseAll();
+            return allAsked;
+        };
 
         Object.defineProperty(window, 'supabase', {
             configurable: true,
@@ -79,11 +91,13 @@ async function mockTool(page, {
                     client.rpc = async (name, params) => {
                         window.__fsCalls.rpc.push({ name, params });
                         if (name === 'get_free_submit_rankings') {
+                            await answerWhenAllAsked(name);
                             return cfg.rankingError
                                 ? { data: null, error: cfg.rankingError }
                                 : { data: cfg.rankings, error: null };
                         }
                         if (name === 'free_submit_eligibility') {
+                            await answerWhenAllAsked(name);
                             return { data: [cfg.gate], error: null };
                         }
                         if (name === 'submit_tier_votes') {
@@ -99,7 +113,7 @@ async function mockTool(page, {
                             const chain = {
                                 select() { return chain; },
                                 order() { return chain; },
-                                then(resolve) { return resolve({ data: cfg.scale, error: null }); },
+                                then(resolve) { return answerWhenAllAsked(table).then(() => resolve({ data: cfg.scale, error: null })); },
                             };
                             return chain;
                         }
@@ -133,7 +147,7 @@ async function mockTool(page, {
                 };
             },
         });
-    }, { rankings, gate, myVotes, session, rankingError, submitError, scale: SCALE });
+    }, { rankings, gate, myVotes, session, rankingError, submitError, together, scale: SCALE });
 }
 
 test.describe('the board', () => {
@@ -158,6 +172,22 @@ test.describe('the board', () => {
         // tier" from nine people looks identical to "S tier" from four hundred.
         await expect(page.locator(`.fs-entry[data-character="${CHARS[0]}"] .fs-entry-count`))
             .toHaveText('412 votes');
+    });
+
+    // None of the three depends on another, so the page asks for them at once
+    // and waits on the database one time, not three in a row (v1.2 region
+    // estimate: three in a row put this page right at its 2-second target in
+    // Oceania). This mock answers none until all three are asked, so a page
+    // that asked one at a time would never draw the board.
+    test('the tier names, the rankings and the viewer\'s eligibility are asked for together', async ({ page }) => {
+        await mockTool(page, {
+            together: true,
+            rankings: [{ character_id: CHARS[0], vote_count: 412, median_tier: 'S', median_rank: 5.5, distribution: { S: 412 }, ranked: true }],
+        });
+        await page.goto(PAGE);
+
+        const sRow = page.locator('.fs-tier-row').filter({ has: page.locator('.fs-tier-label', { hasText: /^S$/ }) });
+        await expect(sRow.locator(`.fs-entry[data-character="${CHARS[0]}"]`)).toBeVisible();
     });
 
     test('a character below the floor is shown as unplaced, not omitted', async ({ page }) => {

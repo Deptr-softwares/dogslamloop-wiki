@@ -141,7 +141,10 @@ test('selecting a phase opens the inspector with no inline styles and correct fi
   await expect(page.locator('#insp-class')).toHaveValue('bg-tick-start');
 
   const overlayLabels = inspector.locator('.daw-overlay-label');
-  expect(await overlayLabels.count()).toBe(6);
+  // Reverse Hitcancel was retired 2026-11-12: no Frame Track ever used it.
+  expect((await overlayLabels.allTextContents()).map(t => t.trim())).toEqual([
+    'Complete I-Frames', 'Melee I-Frames', 'Bullet I-Frames', 'Explosion I-Frames', 'Swarm I-Frames',
+  ]);
   expect(await overlayLabels.first().evaluate(el => el.hasAttribute('style'))).toBe(false);
 });
 

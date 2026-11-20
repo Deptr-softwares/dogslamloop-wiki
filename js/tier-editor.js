@@ -28,10 +28,15 @@
 (function () {
     const state = {
         list: null,          // the row being edited
-        tiers: [],           // working copy: [{ name, color, characters: [page_id] }]
+        tiers: [],           // working copy: [{ name, color, characters: [entry] }]
         roster: new Map(),   // page_id -> { name, url, image }
-        original: new Map(), // page_id -> tier name at load, for the diff
-        notes: new Map(),    // page_id -> note typed for its pending move
+        original: new Map(), // entry key -> tier name at load, for the diff
+        notes: new Map(),    // entry key -> note typed for its pending move
+        // Unplaced entries that carry more than a page_id: copies, and
+        // characters with a badge (v1.2). Any other unplaced character is just
+        // its page_id, recomputed from the roster as before.
+        loose: new Map(),    // entry key -> entry
+        gone: new Map(),     // entry key -> entry, for copies deleted this session
         canEdit: false,
         drag: null,
         // Two documents, one block editor. See switchDoc.
@@ -74,20 +79,92 @@
         state.roster = await window.loadCharacterRoster();
     }
 
+    // --- ENTRIES, COPIES AND BADGES (v1.2) ---
+    //
+    // An entry is a page_id, a badged character, or a copy; window.tierListEntry
+    // (js/site_utils.js) reads all three, the same way the reader page does.
+    // Everything below keys on entry.key, so each copy is placed, diffed,
+    // noted and logged on its own.
+    const entryOf = (raw) => window.tierListEntry(raw);
+    const keyOf = (raw) => { const entry = entryOf(raw); return entry ? entry.key : null; };
+
+    // What is saved for an entry. A character with no badge is saved as its
+    // page_id, exactly as every list was before copies existed.
+    function cleanEntry(raw) {
+        const entry = entryOf(raw);
+        if (!entry) return null;
+        const color = entry.color || '#888888';
+        if (entry.copy) return { id: entry.id, copy: entry.copy, label: entry.label, color };
+        return entry.label ? { id: entry.id, label: entry.label, color } : entry.id;
+    }
+
+    // As stored, which is as any caller sent it (save_tier_list checks only
+    // that tiers is an array): anything that is not an entry is dropped, and a
+    // key met twice keeps its first place, since two entries with one key
+    // could never be told apart.
+    function normalizeLoaded() {
+        const seen = new Set();
+        state.tiers.forEach(tier => {
+            tier.characters = (Array.isArray(tier.characters) ? tier.characters : []).filter(raw => {
+                const key = keyOf(raw);
+                if (!key || seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+        });
+    }
+
+    // Where an entry is, to read it or put a changed one back: a tier, or
+    // Unranked (state.loose, or for a plain character just its page_id).
+    function locate(key) {
+        for (const tier of state.tiers) {
+            const list = tier.characters || [];
+            const i = list.findIndex(raw => keyOf(raw) === key);
+            if (i !== -1) return { raw: list[i], replace: (next) => { list[i] = next; }, remove: () => { list.splice(i, 1); } };
+        }
+        if (state.loose.has(key)) {
+            return { raw: state.loose.get(key), replace: (next) => { state.loose.set(key, next); }, remove: () => { state.loose.delete(key); } };
+        }
+        if (!String(key).includes('#') && state.roster.has(key)) {
+            return { raw: key, replace: (next) => { state.loose.set(key, next); }, remove: () => {} };
+        }
+        return null;
+    }
+
+    // page_id -> the keys of its copies, in the order they appear.
+    function copyGroups() {
+        const groups = new Map();
+        const add = (raw) => {
+            const entry = entryOf(raw);
+            if (!entry || !entry.copy) return;
+            if (!groups.has(entry.id)) groups.set(entry.id, []);
+            groups.get(entry.id).push(entry.key);
+        };
+        state.tiers.forEach(tier => (tier.characters || []).forEach(add));
+        state.loose.forEach(add);
+        return groups;
+    }
+
     // Snapshot of where everyone started, which is the only thing that makes a
     // move detectable later. Taken once at load and never refreshed until a
     // successful save, so moving a character out and back counts as no move.
     function snapshotOriginal() {
         state.original.clear();
         state.tiers.forEach(tier => {
-            (tier.characters || []).forEach(id => state.original.set(id, tier.name));
+            (tier.characters || []).forEach(raw => {
+                const key = keyOf(raw);
+                if (key) state.original.set(key, tier.name);
+            });
         });
     }
 
     function currentPlacement() {
         const map = new Map();
         state.tiers.forEach(tier => {
-            (tier.characters || []).forEach(id => map.set(id, tier.name));
+            (tier.characters || []).forEach(raw => {
+                const key = keyOf(raw);
+                if (key) map.set(key, tier.name);
+            });
         });
         return map;
     }
@@ -123,7 +200,10 @@
         return field && field.value === 'icon' ? 'icon' : 'portrait';
     }
 
-    function portrait(pageId, draggable) {
+    // `raw` is an entry: a page_id, a badged character or a copy.
+    function portrait(raw, draggable) {
+        const entry = entryOf(raw) || { key: String(raw), id: String(raw), label: '' };
+        const pageId = entry.id;
         const meta = state.roster.get(pageId) || { name: String(pageId).replace(/_/g, ' ') };
         const useIcon = currentArtStyle() === 'icon';
 
@@ -134,7 +214,7 @@
         // is the shape of complaint this project keeps receiving about work
         // that shipped correctly.
         if (useIcon) node.classList.add('tier-portrait-icon');
-        node.dataset.charId = pageId;
+        node.dataset.charId = entry.key;
         node.title = meta.name;
         // Icon mode moves the colour to the border - see the reader's copy of
         // this in js/certified-tier-lists.js and the rule it feeds in
@@ -171,7 +251,23 @@
             : `https://gtqswjspxymjdopljmfi.supabase.co/storage/v1/object/public/wiki-media/${encodeURIComponent(String(meta.name).replace(/[^a-zA-Z0-9]/g, ''))}Portrait.webp`);
         node.appendChild(img);
 
+        const badge = window.tierBadgeElement(entry);
+        if (badge) node.appendChild(badge);
+
         return node;
+    }
+
+    // A badge edited in the panel, redrawn on its portrait alone: renderBoard
+    // would rebuild the panel and drop the caret from the field being typed in.
+    function refreshBadge(key) {
+        const loc = locate(key);
+        const entry = loc ? entryOf(loc.raw) : null;
+        document.querySelectorAll('.tier-editor-board .tier-portrait, .tier-editor-tray .tier-portrait').forEach(node => {
+            if (node.dataset.charId !== key) return;
+            node.querySelectorAll('.tier-badge').forEach(b => b.remove());
+            const badge = window.tierBadgeElement(entry);
+            if (badge) node.appendChild(badge);
+        });
     }
 
     function renderBoard() {
@@ -190,7 +286,7 @@
 
             const chars = el('div', 'ctl-chars tier-dropzone');
             chars.dataset.tierIndex = String(index);
-            (tier.characters || []).forEach(id => chars.appendChild(portrait(id, true)));
+            (tier.characters || []).forEach(raw => chars.appendChild(portrait(raw, true)));
             row.appendChild(chars);
 
             board.appendChild(row);
@@ -198,19 +294,25 @@
 
         // Anyone in the roster and in no tier. Recomputed rather than stored,
         // so a character added to the wiki after this list was written shows up
-        // here on the next edit instead of being invisible forever.
-        const placed = new Set();
-        state.tiers.forEach(t => (t.characters || []).forEach(id => placed.add(id)));
+        // here on the next edit instead of being invisible forever. Then the
+        // copies waiting to be placed (v1.2), which only state.loose holds.
+        const placed = new Set(currentPlacement().keys());
 
         tray.innerHTML = '';
         tray.dataset.tierIndex = 'unranked';
         let unranked = 0;
         state.roster.forEach((_meta, id) => {
             if (placed.has(id)) return;
-            tray.appendChild(portrait(id, true));
+            tray.appendChild(portrait(state.loose.get(id) || id, true));
+            unranked += 1;
+        });
+        state.loose.forEach((raw, key) => {
+            if (!key.includes('#') || placed.has(key)) return;
+            tray.appendChild(portrait(raw, true));
             unranked += 1;
         });
         if (!unranked) tray.appendChild(el('span', 'ctl-empty-note', 'everyone is placed'));
+        renderCopies();
 
         fitTierLabels();
         // Per render, not once at script load: whether the font beats the
@@ -398,18 +500,33 @@
     // inside are duplicated across rows, which is fine because every lookup
     // that engine makes is scoped to the container it was given.
     function tierColorControl(tier, index) {
+        return colorControl('Tier colour', toHex(tier.color), `Colour for tier ${index + 1}`, (hex) => {
+            tier.color = hex;
+            // Only the board label's colour depends on this, and rebuilding
+            // the controls here would throw away the popup mid-interaction
+            // - the same trap the rename handler fell into.
+            const boardLabel = document.querySelector(
+                `.tier-editor-row[data-tier-index="${index}"] .ctl-label`);
+            if (boardLabel) boardLabel.style.backgroundColor = hex;
+        });
+    }
+
+    // The swatch and its popup, for a tier and (v1.2) for a copy's badge.
+    // `heading` is always one of this file's own strings, and `hex` has been
+    // through toHex, so neither needs escaping.
+    function colorControl(heading, hex, ariaLabel, onPick) {
         const wrap = el('div', 'tier-color-wrap');
 
         const swatch = document.createElement('button');
         swatch.type = 'button';
         swatch.className = 'tier-control-color';
-        swatch.style.backgroundColor = toHex(tier.color);
-        swatch.setAttribute('aria-label', `Colour for tier ${index + 1}`);
+        swatch.style.backgroundColor = hex;
+        swatch.setAttribute('aria-label', ariaLabel);
         wrap.appendChild(swatch);
 
         const popup = el('div', 'tier-color-popup hidden');
         popup.innerHTML = `
-            <div class="cp-label">Tier colour</div>
+            <div class="cp-label">${heading}</div>
             <div class="cp-surface" id="cp-surface">
                 <div class="cp-thumb" id="cp-surface-thumb"></div>
             </div>
@@ -419,7 +536,7 @@
             </div>
             <div class="format-color-custom-row">
                 <span class="cp-preview" id="cp-preview"></span>
-                <input type="text" id="cp-hex" class="cp-hex" value="${toHex(tier.color)}"
+                <input type="text" id="cp-hex" class="cp-hex" value="${hex}"
                        maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex colour">
                 <button type="button" class="btn-sys btn-sys-green cp-apply" id="cp-apply">USE</button>
             </div>
@@ -434,20 +551,173 @@
         });
 
         if (typeof window.initColorPicker === 'function') {
-            window.initColorPicker(popup, (hex) => {
-                tier.color = hex;
-                swatch.style.backgroundColor = hex;
+            window.initColorPicker(popup, (picked) => {
+                swatch.style.backgroundColor = picked;
                 popup.classList.add('hidden');
-                // Only the board label's colour depends on this, and rebuilding
-                // the controls here would throw away the popup mid-interaction
-                // - the same trap the rename handler fell into.
-                const boardLabel = document.querySelector(
-                    `.tier-editor-row[data-tier-index="${index}"] .ctl-label`);
-                if (boardLabel) boardLabel.style.backgroundColor = hex;
+                onPick(picked);
             });
         }
 
         return wrap;
+    }
+
+    // --- COPIES (v1.2) ---
+    //
+    // The owner's picks, 2026-11-19: copies are made here, any number of them,
+    // each with a badge (a label and a colour), and the character's original
+    // may wear one too. A new copy waits in Unranked until it is dragged, and
+    // SAVE waits until every copy is placed: only the tiers are saved, so an
+    // unplaced copy would have nowhere to be kept.
+
+    function renderCopies() {
+        const host = document.getElementById('tier-copies');
+        if (!host) return;
+        host.innerHTML = '';
+
+        const groups = copyGroups();
+        if (!groups.size) {
+            host.appendChild(el('p', 'admin-queue-empty-msg', 'No copies yet. Pick a character and a badge, then + COPY.'));
+            return;
+        }
+        groups.forEach((keys, id) => {
+            const box = el('div', 'tier-copy-group');
+            box.dataset.copyGroup = id;
+            box.appendChild(el('div', 'tier-copy-group-name', nameOf(id, { bare: true })));
+            box.appendChild(copyRow(id, 'ORIGINAL'));
+            keys.forEach(key => box.appendChild(copyRow(key, 'COPY')));
+            host.appendChild(box);
+        });
+    }
+
+    function copyRow(key, kind) {
+        const loc = locate(key);
+        const entry = (loc && entryOf(loc.raw)) || { key, id: key, copy: null, label: '', color: '' };
+        const isCopy = kind === 'COPY';
+
+        const row = el('div', 'tier-copy-row');
+        row.dataset.copyKey = key;
+        row.appendChild(el('span', 'tier-copy-kind', kind));
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'editor-input tier-copy-label-input';
+        input.maxLength = window.TIER_BADGE_MAX;
+        input.value = entry.label;
+        input.placeholder = isCopy ? 'Badge' : 'No badge';
+        input.disabled = !state.canEdit;
+        input.setAttribute('aria-label', isCopy ? 'Badge for this copy' : 'Badge for the original');
+        input.addEventListener('input', () => setBadge(key, { label: input.value }));
+        row.appendChild(input);
+
+        row.appendChild(colorControl('Badge colour', toHex(entry.color || '#888888'),
+            isCopy ? 'Badge colour for this copy' : 'Badge colour for the original',
+            (hex) => setBadge(key, { color: hex })));
+
+        if (isCopy) {
+            const del = el('button', 'btn-sys btn-sys-red tier-control-btn', '✖');
+            del.type = 'button';
+            del.title = 'Delete this copy';
+            del.dataset.copyDelete = '';
+            del.disabled = !state.canEdit;
+            del.addEventListener('click', () => deleteCopy(key));
+            row.appendChild(del);
+        }
+        return row;
+    }
+
+    // A label or colour changed. An original keeps an empty label while it is
+    // edited, so its colour is not lost; cleanEntry saves it as a plain page_id.
+    function setBadge(key, change) {
+        const loc = locate(key);
+        if (!loc) return;
+        const entry = entryOf(loc.raw);
+        const label = change.label !== undefined
+            ? String(change.label).trim().slice(0, window.TIER_BADGE_MAX) : entry.label;
+        const color = change.color !== undefined ? change.color : (entry.color || '#888888');
+        loc.replace(entry.copy
+            ? { id: entry.id, copy: entry.copy, label, color }
+            : { id: entry.id, label, color });
+        refreshBadge(key);
+        // Moves and the changelog preview name a copy by its badge.
+        renderPendingMoves();
+        if (typeof window.updateLivePreview === 'function') window.updateLivePreview();
+    }
+
+    function deleteCopy(key) {
+        const loc = locate(key);
+        if (!loc) return;
+        const entry = entryOf(loc.raw);
+        // Kept so a placed copy's removal (a move, which needs its note) can
+        // still be named after the copy itself is gone.
+        state.gone.set(key, entry);
+        loc.remove();
+        state.loose.delete(key);
+        state.notes.delete(key);
+        // The last copy takes the original's badge with it: there is nothing
+        // left for it to tell apart.
+        if (!copyGroups().has(entry.id)) {
+            const original = locate(entry.id);
+            const originalEntry = original && entryOf(original.raw);
+            if (originalEntry && originalEntry.label) setBadge(entry.id, { label: '' });
+        }
+        renderBoard();
+    }
+
+    function addCopy() {
+        const select = document.getElementById('tier-copy-character');
+        const field = document.getElementById('tier-copy-label');
+        if (!select || !field || !state.canEdit) return;
+        const id = select.value;
+        const label = field.value.trim().slice(0, window.TIER_BADGE_MAX);
+        if (!id || !label || !state.roster.has(id)) return;
+
+        // A key nothing has used, here or in the changelog, so an old line
+        // can never be read as about a new copy.
+        const used = new Set([...currentPlacement().keys(), ...state.loose.keys(), ...state.gone.keys(),
+            ...(Array.isArray(state.changes) ? state.changes.map(c => c.character_id) : [])]);
+        let copy = '';
+        while (!/^[a-z0-9]{4}$/.test(copy) || used.has(`${id}#${copy}`)) {
+            copy = Math.random().toString(36).slice(2, 6);
+        }
+        state.loose.set(`${id}#${copy}`, { id, copy, label, color: '#888888' });
+
+        field.value = '';
+        updateAddCopyState();
+        renderBoard();
+    }
+
+    function updateAddCopyState() {
+        const select = document.getElementById('tier-copy-character');
+        const field = document.getElementById('tier-copy-label');
+        const btn = document.getElementById('btn-add-copy');
+        if (!btn) return;
+        btn.disabled = !state.canEdit || !select || !select.value || !field || !field.value.trim();
+    }
+
+    // Filled once the roster is in, and only then given the class that makes
+    // it the site's dropdown: initializeMangaSelects copies a <select>'s
+    // options when it builds, and site_utils.js runs it whenever anything is
+    // added to the page, so a select carrying the class while still empty
+    // would be built empty and stay that way.
+    function fillCopyCharacters() {
+        const select = document.getElementById('tier-copy-character');
+        if (!select) return;
+        const people = [...state.roster.entries()].sort((a, b) => a[1].name.localeCompare(b[1].name));
+        select.innerHTML = '';
+        const prompt = document.createElement('option');
+        prompt.value = '';
+        prompt.textContent = 'Pick a character';
+        select.appendChild(prompt);
+        people.forEach(([id, meta]) => {
+            const option = document.createElement('option');
+            option.value = id;
+            option.textContent = meta.name;
+            select.appendChild(option);
+        });
+        select.disabled = !state.canEdit;
+        select.classList.add('editor-select');
+        select.addEventListener('change', updateAddCopyState);
+        updateAddCopyState();
     }
 
     document.addEventListener('click', (e) => {
@@ -502,12 +772,13 @@
                 'Drag a character to another tier and it will appear here.'));
             // Still saveable: retitling a tier, reordering, or editing the
             // reasoning are real edits that move nobody and need no note.
-            if (save) save.disabled = !state.canEdit;
+            // The gate still runs, for a copy left in Unranked (v1.2).
+            updateSaveState();
             return;
         }
 
         moves.forEach(move => {
-            const meta = state.roster.get(move.id) || { name: move.id };
+            const meta = { name: nameOf(move.id) };
             const row = el('div', 'tier-move');
 
             const head = el('div', 'tier-move-head');
@@ -548,17 +819,38 @@
 
         const moves = pendingMoves();
         const missing = moves.filter(m => (state.notes.get(m.id) || '').trim().length < 3);
+        const blocked = copyProblem();
 
-        save.disabled = !state.canEdit || missing.length > 0;
+        save.disabled = !state.canEdit || missing.length > 0 || !!blocked;
 
-        if (missing.length) {
-            const meta = state.roster.get(missing[0].id) || { name: missing[0].id };
+        if (blocked) {
+            setStatus(blocked);
+        } else if (missing.length) {
             setStatus(missing.length === 1
-                ? `${meta.name} still needs a note.`
+                ? `${nameOf(missing[0].id)} still needs a note.`
                 : `${missing.length} moves still need notes.`);
         } else {
             setStatus('');
         }
+    }
+
+    // What stops a save about copies (v1.2), or null. Only the tiers are
+    // saved, so a copy left in Unranked would be lost, and a copy is told
+    // apart by its badge, so it cannot be blank.
+    function copyProblem() {
+        const unlabeled = [];
+        state.tiers.forEach(tier => (tier.characters || []).forEach(raw => {
+            const entry = entryOf(raw);
+            if (entry && entry.copy && !entry.label) unlabeled.push(entry.key);
+        }));
+        const waiting = [...state.loose.keys()].filter(key => key.includes('#'));
+        state.loose.forEach(raw => {
+            const entry = entryOf(raw);
+            if (entry && entry.copy && !entry.label) unlabeled.push(entry.key);
+        });
+        if (unlabeled.length) return 'Every copy needs a badge.';
+        if (waiting.length) return `Place or delete every copy before saving: ${nameOf(waiting[0])} is in Unranked.`;
+        return null;
     }
 
     // --- DRAG AND DROP ---
@@ -618,17 +910,23 @@
 
     // Also the keyboard and test path: moving a character is a data operation,
     // and the drag is one way to trigger it rather than the operation itself.
+    //
+    // `charId` is an entry key (v1.2): the entry itself is what moves, so a
+    // copy or a badged character keeps its badge wherever it goes.
     function placeCharacter(charId, target) {
-        state.tiers.forEach(tier => {
-            tier.characters = (tier.characters || []).filter(id => id !== charId);
-        });
+        const loc = locate(charId);
+        if (!loc) return;
+        const raw = loc.raw;
+        loc.remove();
+        state.loose.delete(charId);
 
-        if (target !== 'unranked') {
-            const index = Number(target);
-            if (Number.isInteger(index) && state.tiers[index]) {
-                state.tiers[index].characters = state.tiers[index].characters || [];
-                state.tiers[index].characters.push(charId);
-            }
+        const index = Number(target);
+        if (target !== 'unranked' && Number.isInteger(index) && state.tiers[index]) {
+            state.tiers[index].characters = state.tiers[index].characters || [];
+            state.tiers[index].characters.push(raw);
+        } else if (typeof raw === 'object') {
+            // Unranked keeps a copy, or a character's badge, for the session.
+            state.loose.set(charId, raw);
         }
 
         // A character dragged back to where they started stops being a pending
@@ -762,15 +1060,28 @@
     }
 
     // The roster name rather than the page id, so the changelog reads the way
-    // the board does.
-    function nameOf(pageId) {
-        const meta = state.roster.get(pageId);
-        return meta ? meta.name : String(pageId || '').replace(/_/g, ' ');
+    // the board does. A copy, or a character wearing a badge, is named with it
+    // ("Vessel [Ult]"); a copy that no longer exists reads "(copy)". `bare`
+    // gives the character's name alone.
+    function nameOf(key, { bare = false } = {}) {
+        const k = String(key || '');
+        const loc = locate(k);
+        const entry = (loc && entryOf(loc.raw)) || state.gone.get(k) || null;
+        const id = entry ? entry.id : k.split('#')[0];
+        const meta = state.roster.get(id);
+        const name = meta ? meta.name : id.replace(/_/g, ' ');
+        if (bare) return name;
+        if (entry && entry.label) return `${name} [${entry.label}]`;
+        return k.includes('#') ? `${name} (copy)` : name;
     }
 
+    // The document's own list, currentStrategyBlocks. Not getActiveBlocks():
+    // inside a Section Box or a Dropdown that is the box's list, and it was
+    // saved as the whole document (the page editor's bug, found there by an
+    // editor 2026-11-20).
     function flushOpenDoc() {
-        if (typeof window.getActiveBlocks !== 'function') return;
-        const blocks = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+        if (typeof currentStrategyBlocks === 'undefined') return;
+        const blocks = JSON.parse(JSON.stringify(currentStrategyBlocks));
         state[state.activeDoc] = blocks;
     }
 
@@ -805,7 +1116,7 @@
         const moves = pendingMoves();
 
         const missing = moves.filter(m => (state.notes.get(m.id) || '').trim().length < 3);
-        if (missing.length) { updateSaveState(); return; }
+        if (missing.length || copyProblem()) { updateSaveState(); return; }
 
         if (save) save.disabled = true;
         setStatus('Saving…');
@@ -830,7 +1141,12 @@
 
         const { data, error } = await client().rpc('save_tier_list', {
             p_list_id: state.list.id,
-            p_tiers: state.tiers,
+            // Each entry as cleanEntry writes it: a plain page_id unless it
+            // wears a badge, so a list with no copies saves exactly as before.
+            p_tiers: state.tiers.map(tier => ({
+                ...tier,
+                characters: (tier.characters || []).map(cleanEntry).filter(Boolean),
+            })),
             p_reasoning: state.reasoning,
             p_intro: state.intro,
             p_game_version: versionField ? versionField.value.trim() : '',
@@ -854,6 +1170,7 @@
         // failed to record.
         snapshotOriginal();
         state.notes.clear();
+        state.gone.clear();
         renderBoard();
         renderPreviewDocs();
         setStatus(data || 'Saved.');
@@ -887,6 +1204,7 @@
 
         state.list = data;
         state.tiers = Array.isArray(data.tiers) ? JSON.parse(JSON.stringify(data.tiers)) : [];
+        normalizeLoaded();
         snapshotOriginal();
 
         // The client half of the per-row rule. The RPC re-checks it, because
@@ -935,6 +1253,18 @@
             // nobody trusts enough to try.
             artField.addEventListener('change', () => renderBoard());
         }
+
+        // The Copies panel (v1.2). After canEdit is known, which disables it on
+        // somebody else's list, and after the roster, which fills its picker.
+        fillCopyCharacters();
+        const copyLabel = document.getElementById('tier-copy-label');
+        if (copyLabel) {
+            copyLabel.disabled = !state.canEdit;
+            copyLabel.addEventListener('input', updateAddCopyState);
+            copyLabel.addEventListener('keydown', (e) => { if (e.key === 'Enter') addCopy(); });
+        }
+        const addCopyBtn = document.getElementById('btn-add-copy');
+        if (addCopyBtn) addCopyBtn.addEventListener('click', addCopy);
 
         renderBoard();
 
@@ -990,8 +1320,10 @@
 
         // Leaving with unwritten notes loses the reasoning, not just the
         // placement - the notes are the part that cannot be reconstructed.
+        // A copy still in Unranked is unsaved work too (v1.2).
         window.addEventListener('beforeunload', (e) => {
-            if (pendingMoves().length) { e.preventDefault(); e.returnValue = ''; }
+            const copyWaiting = [...state.loose.keys()].some(key => key.includes('#'));
+            if (pendingMoves().length || copyWaiting) { e.preventDefault(); e.returnValue = ''; }
         });
     });
 })();

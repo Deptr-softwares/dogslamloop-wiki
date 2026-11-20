@@ -88,9 +88,12 @@ window.buildPageSkeleton = function (route, rootPath) {
             .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    const EDIT_ICON = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
-    const EDIT_ICON_LG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>';
-    const KOFI_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>';
+    // The owner's pixel icons, as window.uiIconHTML (js/site_meta.js) writes
+    // them: this file runs before that one loads, so the markup is written
+    // out here. An id is a file in medias/icons/.
+    const uiIcon = (id) => `<span class="px-icon" aria-hidden="true" style="--px-icon: url('/medias/icons/${id}.png')"></span>`;
+    const EDIT_ICON = uiIcon('edit');
+    const KOFI_ICON = uiIcon('kofi');
 
     function mobileNav() {
         return `
@@ -195,7 +198,7 @@ ${withToc ? `
                     <div id="character-mode-bar" class="character-mode-bar hidden" role="tablist" aria-label="Character mode"></div>
 
                     <button type="button" id="btn-jump-discussion" class="btn-sys btn-sys-regular btn-jump-discussion" aria-label="Jump to the discussion">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                        ${uiIcon('discussion')}
                         <span id="jump-discussion-count" class="jump-discussion-count"></span>
                     </button>
                 </div>

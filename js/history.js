@@ -165,7 +165,7 @@ window.renderRevision = async function(index) {
         <div class="wiki-section" style="border-left: 4px solid var(--accent-blue); padding: 1.5rem; background: var(--bg-secondary); border-radius: 4px; box-shadow: 4px 4px 0px var(--manga-shadow);">
             <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px dashed var(--border-color); flex-wrap: wrap; gap: 1rem;">
                 <div>
-                    <h3 style="margin: 0; color: var(--text-white); font-family: 'CC-Wild-Words', sans-serif; font-size: 1.2rem;">REVISION <span style="color:#a855f7;">#${rev.id.substring(0,8).toUpperCase()}</span></h3>
+                    <h3 style="margin: 0; color: var(--text-white); font-family: var(--font-label), sans-serif; font-size: 1.2rem;">REVISION <span style="color:#a855f7;">#${rev.id.substring(0,8).toUpperCase()}</span></h3>
                     <div style="font-size: 0.75rem; color: var(--accent-blue); font-family: var(--text-mono); margin-top: 0.25rem;">${dateStr}</div>
                 </div>
                 <div style="text-align: right; font-size: 0.75rem; font-family: var(--text-mono); color: var(--text-muted);">

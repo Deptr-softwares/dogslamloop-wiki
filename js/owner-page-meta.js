@@ -117,6 +117,37 @@ function isValidCssColor(value) {
     return probe.style.color !== '';
 }
 
+// THE COLOUR AS THE SITE CAN READ IT (owner's card, v1.2).
+//
+// This box takes anything the browser understands, and the site reads two
+// forms: hsl(n, n%, n%) and hex (parseCharacterColor, js/site_meta.js). So
+// `red`, `rgb(...)` or `hsl(0 100% 50%)` saved fine here and themed nothing,
+// and a named colour then failed the regeneration job's colour check that
+// night. Owner, 2026-11-17: convert it on save.
+//
+// One of the two forms is kept exactly as typed. Anything else is painted to
+// one pixel and read back, which is the browser's answer for every form it
+// knows (named, rgb(), the space-separated hsl(), oklch()), and that pixel is
+// stored as hsl(). Returns null for a colour with transparency: a page colour
+// has no alpha to keep, and dropping it would store a colour nobody picked.
+const SITE_COLOR_FORMS = /^(#([0-9a-f]{3}|[0-9a-f]{6})|hsl\(\d+,\s*[\d.]+%,\s*[\d.]+%\))$/i;
+
+function toSiteColor(value) {
+    if (SITE_COLOR_FORMS.test(value)) return value;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.fillStyle = value;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+    if (a !== 255) return null;
+
+    const hex = '#' + [r, g, b].map(n => n.toString(16).padStart(2, '0')).join('');
+    const parts = window.parseCharacterColor(hex);
+    return `hsl(${Math.round(parts.h)}, ${Math.round(parts.s)}%, ${Math.round(parts.l)}%)`;
+}
+
 // A swatch beside the field, because a hex string is not a colour to a person
 // and the whole point of this feature is picking one that looks right.
 function syncColorPreview() {
@@ -196,6 +227,8 @@ async function savePageMeta() {
     if (!row) { results.innerHTML = '<p class="admin-error-text">Pick a page first.</p>'; return; }
 
     const payload = { updated_at: new Date().toISOString() };
+    // What was typed, when the colour was stored in another form (toSiteColor).
+    let convertedFrom = null;
     document.querySelectorAll('.page-meta-checkbox').forEach(box => {
         payload[box.dataset.column] = box.checked;
     });
@@ -216,10 +249,22 @@ async function savePageMeta() {
         //
         // Refused rather than written, because a colour the browser cannot
         // parse reaches ten consumers and renders as nothing on all of them.
-        const color = value('page-meta-color');
-        if (color && !isValidCssColor(color)) {
-            results.innerHTML = `<span class="admin-error-text">${ownerEscape(color)} is not a colour the browser understands. Try #ff8080 or hsl(0, 100%, 75%).</span>`;
+        const typed = value('page-meta-color');
+        if (typed && !isValidCssColor(typed)) {
+            results.innerHTML = `<span class="admin-error-text">${ownerEscape(typed)} is not a colour the browser understands. Try #ff8080 or hsl(0, 100%, 75%).</span>`;
             return;
+        }
+        // Stored in a form the site reads (see toSiteColor), and the box shows
+        // what was stored.
+        const color = typed ? toSiteColor(typed) : null;
+        if (typed && !color) {
+            results.innerHTML = `<span class="admin-error-text">${ownerEscape(typed)} is see-through, and a page colour cannot be. Try #ff8080 or hsl(0, 100%, 75%).</span>`;
+            return;
+        }
+        if (color !== typed) {
+            document.getElementById('page-meta-color').value = color || '';
+            syncColorPreview();
+            convertedFrom = typed;
         }
         payload.color = color;
     }
@@ -252,6 +297,7 @@ async function savePageMeta() {
     const tabsShown = !document.getElementById('page-meta-tabs-block').hidden;
     results.innerHTML = `<span class="owner-success-text">Saved. "${ownerEscape(row.name)}" updates on the site after the next regeneration run`
         + (tabsShown ? `; optional tabs take effect on the next page load.` : `.`)
+        + (convertedFrom ? ` The colour ${ownerEscape(convertedFrom)} is stored as ${ownerEscape(payload.color)}, which is the form the site reads.` : ``)
         + `</span>`;
 }
 

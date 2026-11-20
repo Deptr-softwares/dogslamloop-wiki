@@ -197,7 +197,7 @@
         window.syncPreviewUltimateTab();
 
         const rev = (window.currentQueueData || []).find(r => r.id === window.activePreviewRevId);
-        if (rev && typeof calculateTabDiffs === 'function') calculateTabDiffs(rev, false);
+        if (rev && typeof calculateTabDiffs === 'function') calculateTabDiffs(rev);
 
         window.renderPreviewModeBar();
 

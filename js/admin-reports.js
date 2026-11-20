@@ -91,6 +91,8 @@ window.loadReportQueue = async function () {
     reportQueueRows = data || [];
     reportEditsByPost = await loadReportEdits(reportQueueRows);
     reportQueueLoaded = true;
+    // Only the open ones are "waiting": a list of actioned reports is a record.
+    if (typeof window.setQueueCount === 'function' && status === 'open') window.setQueueCount('reports', reportQueueRows.length);
     renderReportQueue();
 };
 

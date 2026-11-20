@@ -791,8 +791,10 @@
             state.role = data ? data.role : null;
             // Mirrors public.can_moderate() in the migration. The client copy
             // only decides which buttons to draw; the RPC is what refuses.
+            // Admin and above, or the owner's tick: a reviewer no longer
+            // moderates by role (20261116000000).
             state.canModerate = !!data && (
-                window.roleMeets(data.role, 'reviewer') || data.can_moderate === true
+                window.roleMeets(data.role, 'admin') || data.can_moderate === true
             );
             // Mirrors public.can_upload_media(): Trusted Editor and up, or the
             // owner's tick, and never a viewer, who is banned by name because a

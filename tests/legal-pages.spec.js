@@ -119,6 +119,26 @@ test('the Terms and the Privacy Policy state the same age rule', async ({ page }
     expect(terms).toEqual(privacy);
 });
 
+// The pumpkins on the Halloween 2026 badges are Icons8 art (the comment on
+// SITE_BADGES in js/site_utils.js), and Icons8's free licence asks for a link
+// back. The badge list is read from the page, not copied here, so the credit
+// is checked for as long as a badge really draws one of these files.
+const ICONS8_ART = ['medias/images/Pumpkin2026.png', 'medias/images/GoldenPumpkin2026.png'];
+
+test('the Terms credit Icons8, with a link, while a badge draws its pumpkins', async ({ page }) => {
+    await page.goto('/terms.html', { waitUntil: 'domcontentloaded' });
+
+    const drawn = await page.evaluate(() => Object.values(window.SITE_BADGES || {}).map(b => b.icon));
+    expect(drawn.filter(icon => ICONS8_ART.includes(icon)), 'no badge draws the Icons8 pumpkins any more: drop this credit and this test together').not.toEqual([]);
+
+    const link = page.locator('main a[href="https://icons8.com"]');
+    await expect(link).toHaveCount(1);
+    await expect(link).toHaveText('Icons8');
+    // Names what it credits, beside the other art credits.
+    const paragraph = link.locator('xpath=ancestor::p[1]');
+    await expect(paragraph).toContainText('Halloween 2026 badges');
+});
+
 test('the licence and terms are reachable from the footer, not just from each other', async ({ page }) => {
     await page.goto('/index.html', { waitUntil: 'networkidle' });
     await expect(page.locator('#site-footer')).toBeAttached();
