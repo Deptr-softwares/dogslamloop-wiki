@@ -2099,6 +2099,30 @@
     "h": 360,
     "etag": "\"a03235214ba28b9607686eb1da0b47aa\""
   },
+  "edge-scale-tech.webm": {
+    "still": "medias/stills/04c10d9fa2eda8fe.webp",
+    "w": 1280,
+    "h": 720,
+    "etag": "\"cf8841a5bc153353a7196d2de0cfd635\""
+  },
+  "edge-scale-wrap-blood-manipulator.webm": {
+    "still": "medias/stills/26b7c6f66fa27078.webp",
+    "w": 1280,
+    "h": 720,
+    "etag": "\"cc1c0e30084abcbab1c96011054cc52b\""
+  },
+  "edge-wakeup-blood-manipulator.webm": {
+    "still": "medias/stills/bfd57de79d115d4f.webp",
+    "w": 1920,
+    "h": 1080,
+    "etag": "\"b0a3bd4aa0159eb5b9c1eb83b0c1865b\""
+  },
+  "fast-charge-blood-manipulator.webm": {
+    "still": "medias/stills/59c1b17c01ae1f26.webp",
+    "w": 1920,
+    "h": 1080,
+    "etag": "\"06f7b4302d2e3dd145d4b77a00830af0\""
+  },
   "first m1 (gojo).webm": {
     "still": "medias/stills/9a8f4e6db27c6917.webp",
     "w": 360,
@@ -2122,6 +2146,18 @@
     "w": 360,
     "h": 360,
     "etag": "\"01b56051f3f718108377ca95e5a9414f\""
+  },
+  "free-m1-frs-blood-manipulator.webm": {
+    "still": "medias/stills/75fb66c801e2209a.webp",
+    "w": 1920,
+    "h": 1080,
+    "etag": "\"acc5b4836459a59d6031d1e4ffbb64fc\""
+  },
+  "free-m1-supernova-uppercut-blood-manipulator.webm": {
+    "still": "medias/stills/80252af42135732e.webp",
+    "w": 1920,
+    "h": 1080,
+    "etag": "\"66f90f7bb50ba25b59f6b11b06a23de7\""
   },
   "grounded def res uppercut stall.webm": {
     "still": "medias/stills/858133c0bc9109a3.webp",
@@ -2177,6 +2213,24 @@
     "h": 360,
     "etag": "\"0680eb25c20f66837a40a27987564304\""
   },
+  "orb-catch-blood-manipulator.webm": {
+    "still": "medias/stills/e969b7fa3a6e12d9.webp",
+    "w": 1280,
+    "h": 720,
+    "etag": "\"d561868a046a4f7b7ebe0eeedacb1c43\""
+  },
+  "orb-charge-frs-blood-manipulator.webm": {
+    "still": "medias/stills/8b9f32650d5f935d.webp",
+    "w": 1920,
+    "h": 1080,
+    "etag": "\"4a874df58bfc7d278bb9ff66346fe1bb\""
+  },
+  "orb-charge-supernova-cropped.webm": {
+    "still": "medias/stills/45412378fdda6c13.webp",
+    "w": 1920,
+    "h": 1080,
+    "etag": "\"54c823f5213d34a2e8c365203e53b438\""
+  },
   "plane emission.webm": {
     "still": "medias/stills/216777fb1bed30a7.webp",
     "w": 1920,
@@ -2200,6 +2254,12 @@
     "w": 1920,
     "h": 1080,
     "etag": "\"00204ad98a5d0676239df25a41593062\""
+  },
+  "quick-nova-blood-manipulator.webm": {
+    "still": "medias/stills/6562f11f4cdc8583.webp",
+    "w": 1920,
+    "h": 1080,
+    "etag": "\"b1dad37a0b9fbe147865d3c41fe89c65\""
   },
   "rapid punches.webm": {
     "still": "medias/stills/dc063daf24496f17.webp",
@@ -2279,6 +2339,12 @@
     "h": 1080,
     "etag": "\"be054e4cce81f1c02d7fb8f021b72f59\""
   },
+  "supernova-downslam-blood-manipulator.webm": {
+    "still": "medias/stills/516d9d3ee87c06c9.webp",
+    "w": 1920,
+    "h": 1080,
+    "etag": "\"1c65280571ffff5512006bb603e46db6\""
+  },
   "taxi emission.webm": {
     "still": "medias/stills/d20548d13dcdd3e9.webp",
     "w": 1920,
@@ -2338,6 +2404,12 @@
     "w": 360,
     "h": 360,
     "etag": "\"ca535c56b2bbd79c2dd7d717ef2281d4\""
+  },
+  "uppercut-catch-blood-manipulator-tech.webm": {
+    "still": "medias/stills/6debab4f8f683c7f.webp",
+    "w": 1142,
+    "h": 720,
+    "etag": "\"a5e7a3db027f51fc0d22949df23729e1\""
   },
   "wavedash.webm": {
     "still": "medias/stills/526c81fa59038755.webp",
