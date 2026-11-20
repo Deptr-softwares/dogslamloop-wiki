@@ -69,10 +69,15 @@ async function saveTierPageIntro() {
     if (!tierPageIntroLoaded) { tierToolSay('tier-page-intro-results', 'Nothing loaded to save.', true); return; }
 
     // The buffer only reaches a caller when read out - the same flush every
-    // other editor surface does before it writes.
-    const blocks = typeof window.getActiveBlocks === 'function'
-        ? JSON.parse(JSON.stringify(window.getActiveBlocks()))
-        : [];
+    // other editor surface does before it writes. The whole list,
+    // currentStrategyBlocks: getActiveBlocks() is a box's own list while the
+    // owner is inside a Section Box or a Dropdown, and saving there wrote only
+    // that box as the introduction.
+    if (typeof currentStrategyBlocks === 'undefined') {
+        tierToolSay('tier-page-intro-results', 'The block editor did not load, so there is nothing to save.', true);
+        return;
+    }
+    const blocks = JSON.parse(JSON.stringify(currentStrategyBlocks));
 
     const { error } = await window.supabaseClient
         .from('tier_page_settings')

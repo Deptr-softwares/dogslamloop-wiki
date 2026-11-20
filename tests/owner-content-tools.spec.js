@@ -29,8 +29,8 @@ const TIER_LISTS = [
     { id: 'tl-2', slug: 'old', author_name: 'Retired', email: 'gone@site.test', blurb: null, status: 'archived', updated_at: '2026-08-01T00:00:00Z' },
 ];
 
-async function openOwner(page, group = 'content') {
-    await page.addInitScript(({ faq, tierLists }) => {
+async function openOwner(page, group = 'content', { tierIntro = null } = {}) {
+    await page.addInitScript(({ faq, tierLists, tierIntro }) => {
         window.__writes = [];
         window.__rpcCalls = [];
         const rows = { site_faq: faq };
@@ -58,7 +58,10 @@ async function openOwner(page, group = 'content') {
                                 order() { return chain; },
                                 limit() { return chain; },
                                 eq(col, val) { state.eq = [col, val]; return chain; },
-                                maybeSingle: async () => ({ data: null, error: null }),
+                                maybeSingle: async () => ({
+                                    data: table === 'tier_page_settings' && tierIntro ? { intro: tierIntro } : null,
+                                    error: null,
+                                }),
                                 single: async () => ({ data: null, error: null }),
                                 insert(payload) {
                                     window.__writes.push({ table, op: 'insert', payload });
@@ -94,7 +97,7 @@ async function openOwner(page, group = 'content') {
                 }
             },
         });
-    }, { faq: FAQ, tierLists: TIER_LISTS });
+    }, { faq: FAQ, tierLists: TIER_LISTS, tierIntro });
 
     await page.goto('/owner.html', { waitUntil: 'networkidle' });
 
@@ -198,6 +201,27 @@ test('cancelling the confirmation changes nothing', async ({ page }) => {
     const calls = await page.evaluate(() =>
         (window.__rpcCalls || []).filter(c => c.name === 'set_tier_list_status').length);
     expect(calls).toBe(0);
+});
+
+test('saving the page introduction from inside a Section Box saves all of it', async ({ page }) => {
+    // The page editor's bug (tests/editor-nested-flush.spec.js) in this
+    // tool's save: inside a box, getActiveBlocks() is the box's list, and it
+    // was written to tier_page_settings as the whole introduction.
+    const p = (content) => ({ type: 'paragraph', content });
+    await openOwner(page, 'tierlists', { tierIntro: [
+        p('Before the box.'),
+        { type: 'sectionedbox', title: 'Box', intro: [], sections: [{ title: 'Inside', content: [p('inside text')] }] },
+        p('After the box.'),
+    ] });
+
+    await page.locator('#tier-page-intro-editor [data-sbox-edit="0"]').click();
+    await page.locator('#tier-page-intro-editor textarea[data-field="content-array"]').fill('inside text, edited');
+    await page.click('#btn-save-tier-page-intro');
+    await expect(page.locator('#tier-page-intro-results')).toContainText('Saved.');
+
+    const [w] = await writes(page, 'tier_page_settings', 'update');
+    const intro = w.payload.intro.map(b => (b.type === 'sectionedbox' ? `box[${b.sections[0].content[0].content}]` : b.content));
+    expect(intro).toEqual(['Before the box.', 'box[inside text, edited]', 'After the box.']);
 });
 
 // --- THE SQL HALF ---
