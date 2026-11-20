@@ -387,6 +387,37 @@ test('switching away and back does not lose the other document', async ({ page }
         .toContain('REASONING TEXT');
 });
 
+test('leaving the introduction from inside a Section Box keeps the rest of it', async ({ page }) => {
+    // The page editor's bug (tests/editor-nested-flush.spec.js) in this
+    // editor's own write-back: inside a box, getActiveBlocks() is the box's
+    // list, and it was saved as the whole introduction.
+    const p = (content) => ({ type: 'paragraph', content });
+    await openEditor(page, {
+        list: {
+            ...LIST,
+            intro: [
+                p('Before the box.'),
+                { type: 'sectionedbox', title: 'Box', intro: [], sections: [{ title: 'Inside', content: [p('inside text')] }] },
+                p('After the box.'),
+            ],
+            reasoning: [p('REASONING TEXT')],
+        },
+    });
+
+    // The workspace unloads a block scrolled out of it (virtual-unloaded), so
+    // the box is scrolled to first, as an author would.
+    await page.locator('#block-list .block-card').nth(1).scrollIntoViewIfNeeded();
+    await page.locator('#block-list [data-sbox-edit="0"]').click();
+    await page.locator('#block-list textarea[data-field="content-array"]').fill('inside text, edited');
+    await page.click('#btn-doc-reasoning');
+    await page.click('#btn-doc-intro');
+    await saveBtn(page).click();
+
+    const call = await page.evaluate(() => window.__rpcCalls.find(c => c.name === 'save_tier_list'));
+    const intro = call.params.p_intro.map(b => (b.type === 'sectionedbox' ? `box[${b.sections[0].content[0].content}]` : b.content));
+    expect(intro).toEqual(['Before the box.', 'box[inside text, edited]', 'After the box.']);
+});
+
 // --- THE WORKSPACE SCROLLS (v0.16 fine-tuning 3) ---
 
 test('the workspace can be scrolled to the block editor at its bottom', async ({ page }) => {

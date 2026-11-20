@@ -14,7 +14,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const ROOT = path.join(__dirname, '..');
-const STAFF = ['admin.html', 'edit.html', 'owner.html', 'post-editor.html', 'tier-editor.html', 'submissions.html'];
+const STAFF = ['admin.html', 'edit.html', 'owner.html', 'post-editor.html', 'tier-editor.html'];
 // Puppet Master's colour is dark (46% light), so the character theme both
 // tints the page and injects its outlined-heading rule: the most it can do.
 const PAGE = '/characters/Puppet_master/index.html';
@@ -286,6 +286,38 @@ test('the account buttons are plain links under "Account", in normal case; a nam
     });
 });
 
+test('the account links are spaced the same on the home page as on a character page, in both looks', async ({ page }) => {
+    // Owner, 2026-11-20: the Classic account links sat further apart on the
+    // Main Hub than on a character or system page, "a CSS inconsistency that
+    // is not obvious when using the default look". Twelve hand-written pages
+    // wrote the dock's layout as an inline style, which beats any stylesheet,
+    // so Classic's tighter gap never reached them.
+    const spacing = () => page.evaluate(() => {
+        const a = document.getElementById('dock-btn-edit').getBoundingClientRect();
+        const b = document.getElementById('dock-btn-inbox').getBoundingClientRect();
+        return Math.round(b.top - a.bottom);
+    });
+    await signedIn(page);
+    const seen = {};
+    for (const look of ['default', 'classic']) {
+        for (const url of [PAGE, '/index.html']) {
+            await boot(page, look, url);
+            await expect(page.locator('#dock-btn-inbox')).toBeVisible();
+            seen[`${look} ${url}`] = await spacing();
+        }
+    }
+    expect(seen[`classic /index.html`], 'Classic: the home page as tight as a character page').toBe(seen[`classic ${PAGE}`]);
+    expect(seen[`classic ${PAGE}`]).toBeLessThan(seen[`default ${PAGE}`]);
+    expect(seen[`default /index.html`], 'Default is the same on both, as it was').toBe(seen[`default ${PAGE}`]);
+});
+
+test('no page writes the account dock\'s layout inline, where no look can reach it', () => {
+    const inline = execSync('git ls-files "*.html"', { cwd: ROOT, encoding: 'utf8' })
+        .split('\n').filter(Boolean)
+        .filter(rel => /id="sidebar-dynamic-dock"[^>]*\sstyle=/.test(fs.readFileSync(path.join(ROOT, rel), 'utf8')));
+    expect(inline).toEqual([]);
+});
+
 test('sidebar headings are small grey words, while the category toggles stay links', async ({ page }) => {
     await boot(page, 'classic');
     await expect(page.locator('.sidebar-group-header').first()).toBeVisible();
@@ -417,6 +449,39 @@ test('the site menu on the left is plain links, a character keeps its colour, WI
         nameColour: 'rgb(255, 153, 153)',
         // --accent-yellow, hsl(45, 93%, 47%).
         badgeGround: 'rgba(0, 0, 0, 0)', badgeColour: 'rgb(231, 176, 8)', badgeBorder: '0px',
+    });
+});
+
+test('My Submissions takes Classic, before its body is built, with each submission ruled off', async ({ page }) => {
+    // Owner, 2026-11-20: "My Submissions page is not Classic look despite
+    // selecting the setting, probably an oversight". It was counted with the
+    // staff pages; it is a reader's own page.
+    const show = () => page.evaluate(async () => {
+        const at = '2026-11-19T18:52:00Z';
+        const revisions = [
+            { id: 'r-1', page_id: 'locust_guy', author_id: 'me', status: 'pending', is_delta: false, created_at: at, qa_metadata: { changelog: 'One.' } },
+            { id: 'r-2', page_id: 'locust_guy', author_id: 'me', status: 'approved', is_delta: false, created_at: at, qa_metadata: { changelog: 'Two.' } },
+        ];
+        window.supabaseClient = { from() { return { select() { return this; }, eq() { return this; }, order: async () => ({ data: revisions, error: null }) }; } };
+        window.currentSessionUserId = 'me';
+        await window.loadSubmissions();
+        const cs = getComputedStyle(document.querySelector('.submission-card'));
+        return {
+            body: getComputedStyle(document.body).backgroundColor,
+            ground: cs.backgroundColor, sides: cs.borderLeftWidth, rule: cs.borderBottomWidth,
+            title: getComputedStyle(document.getElementById('submissions-page-title')).fontFamily,
+        };
+    });
+
+    await boot(page, 'default', '/submissions.html');
+    const usual = await show();
+    expect(usual.sides, 'Default draws each submission as a box').not.toBe('0px');
+
+    await boot(page, 'classic', '/submissions.html');
+    expect(await page.evaluate(() => window.__classAtBody)).toMatch(/\blook-classic\b/);
+    expect(await show()).toEqual({
+        body: CLASSIC_BG, ground: 'rgba(0, 0, 0, 0)', sides: '0px', rule: '1px',
+        title: 'Georgia, "Times New Roman", serif, serif',
     });
 });
 

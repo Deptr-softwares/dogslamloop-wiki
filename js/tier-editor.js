@@ -1075,9 +1075,13 @@
         return k.includes('#') ? `${name} (copy)` : name;
     }
 
+    // The document's own list, currentStrategyBlocks. Not getActiveBlocks():
+    // inside a Section Box or a Dropdown that is the box's list, and it was
+    // saved as the whole document (the page editor's bug, found there by an
+    // editor 2026-11-20).
     function flushOpenDoc() {
-        if (typeof window.getActiveBlocks !== 'function') return;
-        const blocks = JSON.parse(JSON.stringify(window.getActiveBlocks()));
+        if (typeof currentStrategyBlocks === 'undefined') return;
+        const blocks = JSON.parse(JSON.stringify(currentStrategyBlocks));
         state[state.activeDoc] = blocks;
     }
 

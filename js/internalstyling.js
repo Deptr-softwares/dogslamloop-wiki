@@ -563,8 +563,19 @@ function currentPageMoveSlots() {
 
     return {
         lookup: map,
-        pattern: new RegExp(`(?<![\\w-])(${names.map(termPattern).join('|')})(?![\\w-])(?![^<]*>)`, 'gi'),
+        pattern: new RegExp(`(?<![\\w-])(${names.map(moveNamePattern).join('|')})(?![\\w-])(?![^<]*>)`, 'gi'),
     };
+}
+
+// A move name as written in a route or in prose. The map's names are
+// normalised (input_slots.js), so the hyphen in "Dive-Bomb" or "Flowing Red
+// Scale - Air" is a space there, and each space has to match a run of spaces
+// and hyphens here. Split BEFORE termPattern: its output has no spaces left to
+// split on, which is how this matched spaces only until 2026-11-20 and left
+// " - Air" white in "...Flowing Red Scale - Air" (reported by an editor).
+const MOVE_NAME_SEPARATOR = '[\\s\\u2010-\\u2015-]+';
+function moveNamePattern(name) {
+    return String(name).split(/\s+/).map(termPattern).join(MOVE_NAME_SEPARATOR);
 }
 
 // The bare keys themselves - "M1", "2", "R". Only ever applied INSIDE a combo
@@ -600,9 +611,7 @@ function compoundPattern(terms) {
     // Each space has to match a hyphen too, or a compound step containing the
     // frame data's own spelling - "Dive-Bomb (whiff)" - would find nothing
     // while the plain "Dive Bomb" matched.
-    const separator = '[\\s\\u2010-\\u2015-]+';
-    const flexible = (n) => termPattern(n).split(/\s+/).join(separator);
-    const namePart = names.length ? `(?<![\\w-])(?:${names.map(flexible).join('|')})(?![\\w-])` : null;
+    const namePart = names.length ? `(?<![\\w-])(?:${names.map(moveNamePattern).join('|')})(?![\\w-])` : null;
     const keyPart = keys.length ? `(?<![A-Za-z0-9])(?:${keys.map(termPattern).join('|')})(?![A-Za-z0-9])` : null;
 
     return new RegExp([namePart, keyPart].filter(Boolean).join('|'), 'gi');

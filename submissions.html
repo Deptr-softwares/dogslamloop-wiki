@@ -15,6 +15,11 @@
     <link rel="stylesheet" href="style/Layout.css">
     <link rel="stylesheet" href="style/Cards.css">
     <link rel="stylesheet" href="style/Submissions.css">
+    <link rel="stylesheet" href="style/look-classic.css">
+    <!-- The look picked in Site settings, set before the page paints so the
+         other look never shows first. js/site_utils.js keeps it in step after.
+         Storage blocked or empty means the default look, silently. -->
+    <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 </head>
 <body class="site-body p-0">
 
@@ -41,7 +46,7 @@
             <button class="sidebar-toggle-btn" aria-label="Collapse sidebar">☰</button>
             <div class="sidebar-master-title">Navigation</div>
             <div id="global-sidebar-nav"><p class="loading-msg loading-msg-sm loading-msg-busy">Loading menu...</p></div>
-            <div id="sidebar-dynamic-dock" style="margin-top: auto; width: 100%; display: flex; flex-direction: column; gap: 0.75rem; padding-top: 2rem;"></div>
+            <div id="sidebar-dynamic-dock" class="sidebar-dynamic-dock"></div>
 
             <div class="kofi-btn-wrapper">
                 <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow">
@@ -78,12 +83,12 @@
     </div>
 
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/character_tabs.js?v=3f59591a"></script>
-    <script src="js/input_slots.js?v=3f59591a"></script>
-    <script src="js/site_utils.js?v=3f59591a"></script>
-    <script src="js/site_meta.js?v=3f59591a"></script>
-    <script src="js/pagebuilder.js?v=3f59591a"></script>
-    <script src="js/search.js?v=3f59591a"></script>
-    <script src="js/submissions.js?v=3f59591a"></script>
+    <script src="js/character_tabs.js?v=44484b72"></script>
+    <script src="js/input_slots.js?v=44484b72"></script>
+    <script src="js/site_utils.js?v=44484b72"></script>
+    <script src="js/site_meta.js?v=44484b72"></script>
+    <script src="js/pagebuilder.js?v=44484b72"></script>
+    <script src="js/search.js?v=44484b72"></script>
+    <script src="js/submissions.js?v=44484b72"></script>
 </body>
 </html>
