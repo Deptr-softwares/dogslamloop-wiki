@@ -25,12 +25,12 @@ const ROOT = path.join(__dirname, '..');
 // is served from it; every other request goes through.
 const CROW = JSON.parse(fs.readFileSync(path.join(ROOT, 'tests', 'fixtures', 'crow-charmer-page-data.json'), 'utf8'));
 
-async function openCrowCharmer(page, waitUntil = 'networkidle') {
+async function openCrowCharmer(page, waitUntil = 'networkidle', row = CROW) {
   await page.route('**/rest/v1/page_data**', route => {
     if (!route.request().url().includes('page_id=eq.crow_charmer')) return route.continue();
     // .single() and .maybeSingle() ask for one object; anything else, a list.
     const one = /vnd.pgrst.object/.test(route.request().headers()['accept'] || '');
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(one ? CROW : [CROW]) });
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(one ? row : [row]) });
   });
   await page.goto('/characters/Crow_charmer/index.html', { waitUntil });
 }
@@ -352,6 +352,53 @@ test("the owner's real Crow Charmer combo colours every step", async ({ page }) 
   expect(compound.inner, 'and the move it references is coloured too').toContain('Murmurate=is-3');
   // Whitespace survives the rewrite.
   expect(compound.text).toContain('Cancel  Murmurate');
+});
+
+test('a move name with a hyphen in it colours whole inside a longer step, and in prose', async ({ page }) => {
+  // Reported by an editor, 2026-11-20, on Blood Manipulator: "Flowing Red
+  // Scale - Air variant doesnt highlight completely inside combo cards", in
+  // the step "...Flowing Red Scale - Air". The leading dots make it a
+  // compound step, and there only "Flowing Red Scale" was found: " - Air"
+  // stayed white. Blood Manipulator's own names and inputs, added to the
+  // frozen Crow Charmer row so nothing here reads the live page.
+  const row = JSON.parse(JSON.stringify(CROW));
+  row.frame_data.skills.push(
+    { id: 'piercing-blood', name: 'Piercing Blood', input: '1' },
+    { id: 'piercing-blood-charged', name: 'Piercing Blood - Charged', input: '1 + Hold' },
+    { id: 'flowing-red-scale', name: 'Flowing Red Scale', input: '2' },
+    { id: 'aerial-flowing-red-scale', name: 'Flowing Red Scale - Air', input: '2 + Air' },
+  );
+  await openCrowCharmer(page, 'networkidle', row);
+  await page.waitForTimeout(1200);
+
+  const seen = await page.evaluate(() => {
+    window.renderCombosTab({
+      comboGroups: [{
+        title: 'T',
+        content: [
+          { type: 'paragraph', content: 'Flowing Red Scale - Air into Dive-Bomb.' },
+          {
+            type: 'theorybox', title: 'Test',
+            // The editor's card, step for step, and Crow Charmer's own
+            // hyphenated move with a note on it.
+            sequence: ['...Flowing Red Scale - Air', 'Hold Piercing Blood', 'R', 'Piercing Blood - Charged', 'Dive-Bomb (whiff)'],
+          },
+        ],
+      }],
+    });
+    window.applyInternalStyling();
+    const coloured = (root) => [...root.querySelectorAll('.sc-auto')]
+      .map(e => `${e.textContent}=${e.className.match(/is-[\w]+/)[0]}`);
+    return {
+      chips: Object.fromEntries([...document.querySelectorAll('#tab-combos .combo-node')].map(n => [n.textContent, coloured(n)])),
+      prose: coloured(document.querySelector('#tab-combos .strategy-paragraph') || document.body),
+    };
+  });
+
+  expect(seen.chips['...Flowing Red Scale - Air'], 'the whole name, " - Air" included').toEqual(['Flowing Red Scale - Air=is-2']);
+  expect(seen.chips['Hold Piercing Blood']).toEqual(['Piercing Blood=is-1']);
+  expect(seen.chips['Dive-Bomb (whiff)'], 'frame data spells it Dive-Bomb, the map dive bomb').toEqual(['Dive-Bomb=is-2']);
+  expect(seen.prose, 'the same names in the Combos tab prose').toEqual(['Flowing Red Scale - Air=is-2', 'Dive-Bomb=is-2']);
 });
 
 test('universal mechanics colour even though no character owns them', async ({ page }) => {
