@@ -11,29 +11,32 @@
 
 // --- LIGHTWEIGHT DSL MODAL HELPERS (dynamic, no static markup needed) ---
 function showConfirm(message, confirmText = 'CONFIRM', isDanger = false) {
-    return new Promise((resolve) => {
-        const overlay = document.createElement('div');
-        overlay.className = 'modal-overlay';
-        overlay.innerHTML = `
-            <div class="modal-box modal-md accent-blue">
-                <div class="modal-header"><h3>PLEASE CONFIRM</h3></div>
-                <div class="modal-body"><p>${window.escapeHtml(message)}</p></div>
-                <div class="modal-footer">
-                    <button class="btn-sys btn-sys-regular" id="submissions-confirm-cancel">CANCEL</button>
-                    <button class="btn-sys ${isDanger ? 'btn-sys-red' : 'btn-sys-green'}" id="submissions-confirm-ok">${window.escapeHtml(confirmText)}</button>
-                </div>
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay hidden';
+    overlay.innerHTML = `
+        <div class="modal-box modal-md accent-blue">
+            <div class="modal-header"><h3>PLEASE CONFIRM</h3></div>
+            <div class="modal-body"><p>${window.escapeHtml(message)}</p></div>
+            <div class="modal-footer">
+                <button class="btn-sys btn-sys-regular" id="submissions-confirm-cancel">CANCEL</button>
+                <button class="btn-sys ${isDanger ? 'btn-sys-red' : 'btn-sys-green'}" id="submissions-confirm-ok">${window.escapeHtml(confirmText)}</button>
             </div>
-        `;
-        document.body.appendChild(overlay);
-        const cleanup = (result) => { overlay.remove(); resolve(result); };
-        overlay.querySelector('#submissions-confirm-cancel').onclick = () => cleanup(false);
-        overlay.querySelector('#submissions-confirm-ok').onclick = () => cleanup(true);
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    return window.runDialog(overlay, {
+        buttons: [
+            [overlay.querySelector('#submissions-confirm-cancel'), false],
+            [overlay.querySelector('#submissions-confirm-ok'), true],
+        ],
+        cancel: false,
+        onClose: () => overlay.remove(),
     });
 }
 
 function showAlert(message) {
     const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
+    overlay.className = 'modal-overlay hidden';
     overlay.innerHTML = `
         <div class="modal-box modal-md accent-blue">
             <div class="modal-header"><h3>NOTICE</h3></div>
@@ -44,7 +47,10 @@ function showAlert(message) {
         </div>
     `;
     document.body.appendChild(overlay);
-    overlay.querySelector('#submissions-alert-ok').onclick = () => overlay.remove();
+    window.runDialog(overlay, {
+        buttons: [[overlay.querySelector('#submissions-alert-ok')]],
+        onClose: () => overlay.remove(),
+    });
 }
 
 const STATUS_LABELS = {

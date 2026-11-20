@@ -126,10 +126,10 @@ function timeSince(dateString) {
 
 // --- CUSTOM MODAL PROMISES ---
 window.adminAlert = function(message) {
-    const modal = document.getElementById('admin-alert-modal');
     document.getElementById('admin-alert-msg').textContent = message;
-    modal.classList.remove('hidden');
-    document.getElementById('btn-admin-alert-ok').onclick = () => { modal.classList.add('hidden'); };
+    window.runDialog(document.getElementById('admin-alert-modal'), {
+        buttons: [[document.getElementById('btn-admin-alert-ok')]],
+    });
 };
 
 // placeholder is a parameter because all three moderation actions share this
@@ -138,65 +138,37 @@ window.adminAlert = function(message) {
 // revision therefore asked the reviewer to justify a decline, in red. Working
 // through a queue at speed, that is wording someone eventually acts on.
 window.adminPrompt = function(message, title = "SYSTEM PROMPT", confirmText = "CONFIRM", isDanger = false, placeholder = "Type your note here...") {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('admin-prompt-modal');
+    const modal = document.getElementById('admin-prompt-modal');
 
-        // The modal box is always the first child of the overlay
-        const modalBox = modal.firstElementChild;
-        const titleEl = modalBox ? modalBox.querySelector('h3') : null;
-        const msgEl = document.getElementById('admin-prompt-msg');
-        const input = document.getElementById('admin-prompt-input');
-        const btnOk = document.getElementById('btn-admin-prompt-ok');
-        const btnCancel = document.getElementById('btn-admin-prompt-cancel');
+    // The modal box is always the first child of the overlay
+    const modalBox = modal.firstElementChild;
+    const titleEl = modalBox ? modalBox.querySelector('h3') : null;
+    const msgEl = document.getElementById('admin-prompt-msg');
+    const input = document.getElementById('admin-prompt-input');
+    const btnOk = document.getElementById('btn-admin-prompt-ok');
+    const btnCancel = document.getElementById('btn-admin-prompt-cancel');
 
-        // Dynamic Text Injection
-        if (titleEl) titleEl.textContent = title;
-        if (msgEl) msgEl.textContent = message;
-        if (input) {
-            input.value = '';
-            input.placeholder = placeholder;
-        }
-        if (btnOk) btnOk.textContent = confirmText;
+    // Dynamic Text Injection
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.textContent = message;
+    if (input) {
+        input.value = '';
+        input.placeholder = placeholder;
+    }
+    if (btnOk) btnOk.textContent = confirmText;
 
-        // Safe Class Replacement
-        if (modalBox) {
-            modalBox.classList.remove('accent-red', 'accent-green');
-            modalBox.classList.add(isDanger ? 'accent-red' : 'accent-green');
-        }
-        if (btnOk) {
-            btnOk.className = `btn-sys ${isDanger ? 'btn-sys-red btn-danger-fill' : 'btn-sys-green'}`;
-        }
+    // Safe Class Replacement
+    if (modalBox) {
+        modalBox.classList.remove('accent-red', 'accent-green');
+        modalBox.classList.add(isDanger ? 'accent-red' : 'accent-green');
+    }
+    if (btnOk) {
+        btnOk.className = `btn-sys ${isDanger ? 'btn-sys-red btn-danger-fill' : 'btn-sys-green'}`;
+    }
 
-        modal.classList.remove('hidden');
-
-        const cleanup = () => {
-            modal.classList.add('hidden');
-            if (btnOk) btnOk.onclick = null;
-            if (btnCancel) btnCancel.onclick = null;
-        };
-
-        if (btnCancel) btnCancel.onclick = () => { cleanup(); resolve(null); };
-        if (btnOk) btnOk.onclick = () => { cleanup(); resolve(input.value.trim()); };
-    });
-};
-
-window.adminConfirm = function(message) {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('admin-confirm-modal');
-        document.getElementById('admin-confirm-msg').textContent = message;
-        modal.classList.remove('hidden');
-
-        const btnOk = document.getElementById('btn-admin-confirm-ok');
-        const btnCancel = document.getElementById('btn-admin-confirm-cancel');
-
-        const cleanup = () => {
-            modal.classList.add('hidden');
-            btnOk.onclick = null;
-            btnCancel.onclick = null;
-        };
-
-        btnOk.onclick = () => { cleanup(); resolve(true); };
-        btnCancel.onclick = () => { cleanup(); resolve(false); };
+    return window.runDialog(modal, {
+        buttons: [[btnCancel, null], [btnOk, () => input.value.trim()]],
+        cancel: null,
     });
 };
 

@@ -96,27 +96,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (typeof loadPageExperts === 'function') await loadPageExperts();
 });
 
-// --- CUSTOM MODAL PROMISE (same contract as admin.js's adminConfirm) ---
-window.adminConfirm = function(message) {
-    return new Promise((resolve) => {
-        const modal = document.getElementById('admin-confirm-modal');
-        document.getElementById('admin-confirm-msg').textContent = message;
-        modal.classList.remove('hidden');
-
-        const btnOk = document.getElementById('btn-admin-confirm-ok');
-        const btnCancel = document.getElementById('btn-admin-confirm-cancel');
-
-        const cleanup = () => {
-            modal.classList.add('hidden');
-            btnOk.onclick = null;
-            btnCancel.onclick = null;
-        };
-
-        btnOk.onclick = () => { cleanup(); resolve(true); };
-        btnCancel.onclick = () => { cleanup(); resolve(false); };
-    });
-};
-
 // --- PERSONNEL MANAGEMENT ---
 // assign_role_by_email() is a "set role" RPC (supabase/migrations/
 // 20260801000000_role_model_fix.sql, applied 2026-08-01): it unconditionally

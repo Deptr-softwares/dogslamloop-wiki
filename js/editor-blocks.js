@@ -830,47 +830,34 @@ window.customPrompt = function (message, opts = {}) {
         return Promise.resolve(window.prompt(message));
     }
 
-    return new Promise((resolve) => {
-        const prevConfirmText = btnConfirm.textContent;
-        const prevConfirmClass = btnConfirm.className;
+    const prevConfirmText = btnConfirm.textContent;
+    const prevConfirmClass = btnConfirm.className;
 
-        textEl.textContent = message;
-        btnConfirm.textContent = opts.confirmText || 'INSERT';
-        btnConfirm.className = 'btn-sys btn-sys-blue';
+    textEl.textContent = message;
+    btnConfirm.textContent = opts.confirmText || 'INSERT';
+    btnConfirm.className = 'btn-sys btn-sys-blue';
 
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'editor-input editor-modal-input';
-        input.value = opts.value || '';
-        if (opts.placeholder) input.placeholder = opts.placeholder;
-        textEl.insertAdjacentElement('afterend', input);
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'editor-input editor-modal-input';
+    input.value = opts.value || '';
+    if (opts.placeholder) input.placeholder = opts.placeholder;
+    textEl.insertAdjacentElement('afterend', input);
 
-        modal.classList.remove('hidden');
-        input.focus();
-        input.select();
-
-        const cleanup = () => {
-            modal.classList.add('hidden');
+    const typed = () => input.value.trim() || null;
+    // Enter to accept, Escape to back out - what window.prompt gave for free
+    // and what anyone typing a URL will reach for.
+    const answer = window.runDialog(modal, {
+        buttons: [[btnCancel, null], [btnConfirm, typed]],
+        cancel: null, escape: true, enter: typed, keyTarget: input, focus: input,
+        onClose: () => {
             input.remove();
             btnConfirm.textContent = prevConfirmText;
             btnConfirm.className = prevConfirmClass;
-            btnCancel.removeEventListener('click', onCancel);
-            btnConfirm.removeEventListener('click', onConfirm);
-            input.removeEventListener('keydown', onKey);
-        };
-        const onCancel = () => { cleanup(); resolve(null); };
-        const onConfirm = () => { const v = input.value.trim(); cleanup(); resolve(v || null); };
-        // Enter to accept, Escape to back out - what window.prompt gave for free
-        // and what anyone typing a URL will reach for.
-        const onKey = (e) => {
-            if (e.key === 'Enter') { e.preventDefault(); onConfirm(); }
-            else if (e.key === 'Escape') { e.preventDefault(); onCancel(); }
-        };
-
-        btnCancel.addEventListener('click', onCancel);
-        btnConfirm.addEventListener('click', onConfirm);
-        input.addEventListener('keydown', onKey);
+        },
     });
+    input.select();
+    return answer;
 };
 
 // --- RECURSIVE EDITOR PATH TRACKING ---

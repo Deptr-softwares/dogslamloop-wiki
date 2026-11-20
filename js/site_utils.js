@@ -1979,10 +1979,6 @@ window.injectAuthModal = function() {
     bindCount('profile-bio', 'profile-bio-count', 500);
     bindCount('profile-flair', 'profile-flair-count', 32);
 
-    // Bind System Alert Close Button
-    document.getElementById('btn-alert-close')?.addEventListener('click', () => {
-        document.getElementById('alert-modal-overlay').classList.add('hidden');
-    });
 };
 
 // --- GLOBAL SYSTEM ALERT ---
@@ -1990,7 +1986,9 @@ window.showSystemAlert = function(message) {
     window.injectAuthModal(); // Ensure it exists in the DOM
     const msgEl = document.getElementById('alert-modal-msg');
     if (msgEl) msgEl.textContent = message;
-    document.getElementById('alert-modal-overlay').classList.remove('hidden');
+    window.runDialog(document.getElementById('alert-modal-overlay'), {
+        buttons: [[document.getElementById('btn-alert-close')]],
+    });
 };
 
 // --- USERNAME & PROFILE SYSTEM ---
@@ -3039,18 +3037,69 @@ window.roleIconHTML = function (roleName, className) {
     return window.uiIconHTML(window.roleBadge(roleName).icon, { className });
 };
 
-// A confirmation in the site's own modal, for code that runs on EVERY page.
+// Runs every confirm, message and prompt box on the site. Each box keeps its
+// own markup and look; this shows it, resolves with the value of the button
+// pressed, and takes its listeners off again (tests/dialog-engine.spec.js).
 //
-// js/editor-core.js has customConfirm, but it is bound to #editor-custom-modal,
-// which only edit.html and post-editor.html carry - and site_utils.js loads
-// everywhere, including the public pages a reader sees. So this builds its own,
-// once, out of the same .modal-overlay / .modal-box classes the notification
-// inbox above uses, and reuses that node afterwards.
+//   buttons    [[element, value]]; a function value is called at the press
+//   cancel     what Escape, a backdrop click or a refused open resolves to
+//   escape, backdrop   true to close on them
+//   enter      what Enter resolves to; keyTarget is where keys are listened
+//              for (default: document)
+//   focus      the element focused once the box shows
+//   onClose    undoes the caller's setup; runs on close and on a refusal
 //
-// Deliberately a second implementation rather than a shared one: this project
-// prefers small per-file duplication to a new cross-file dependency, and the
-// alternative here would be every public page loading an editor script for one
-// function (v0.16 fine-tuning 6).
+// One question per box: a box already showing refuses the new one with
+// `cancel`, so a double click can never run an action twice. A message box
+// does not return the promise: nothing waits for a reader to acknowledge one.
+window.runDialog = function (overlay, opts = {}) {
+    const { buttons = [], cancel, escape, backdrop, enter, keyTarget = document, focus, onClose } = opts;
+    if (!overlay.classList.contains('hidden')) {
+        if (onClose) onClose();
+        return Promise.resolve(cancel);
+    }
+    return new Promise((resolve) => {
+        const listeners = [];
+        const listen = (target, type, handler) => {
+            target.addEventListener(type, handler);
+            listeners.push(() => target.removeEventListener(type, handler));
+        };
+        const close = (value) => {
+            const answer = typeof value === 'function' ? value() : value;
+            overlay.classList.add('hidden');
+            listeners.forEach(off => off());
+            if (onClose) onClose();
+            resolve(answer);
+        };
+        buttons.forEach(([button, value]) => listen(button, 'click', () => close(value)));
+        if (backdrop) listen(overlay, 'click', (e) => { if (e.target === overlay) close(cancel); });
+        if (escape || enter !== undefined) {
+            listen(keyTarget, 'keydown', (e) => {
+                if (escape && e.key === 'Escape') { e.preventDefault(); close(cancel); }
+                else if (enter !== undefined && e.key === 'Enter') { e.preventDefault(); close(enter); }
+            });
+        }
+        overlay.classList.remove('hidden');
+        if (focus) focus.focus();
+    });
+};
+
+// The staff pages' confirm box, #admin-confirm-modal on admin.html and
+// owner.html.
+window.adminConfirm = function (message) {
+    document.getElementById('admin-confirm-msg').textContent = message;
+    return window.runDialog(document.getElementById('admin-confirm-modal'), {
+        buttons: [
+            [document.getElementById('btn-admin-confirm-ok'), true],
+            [document.getElementById('btn-admin-confirm-cancel'), false],
+        ],
+        cancel: false,
+    });
+};
+
+// A confirmation for code that runs on every page, in a box of its own built
+// once from the .modal-overlay / .modal-box classes the notification inbox
+// uses: the editor's box is only on edit.html and post-editor.html.
 window.siteConfirm = function (message, opts = {}) {
     let modal = document.getElementById('site-confirm-modal');
     if (!modal) {
@@ -3083,28 +3132,11 @@ window.siteConfirm = function (message, opts = {}) {
     textEl.textContent = message;
     btnOk.textContent = opts.confirmText || 'CONFIRM';
 
-    return new Promise((resolve) => {
-        modal.classList.remove('hidden');
-        btnOk.focus();
-
-        const cleanup = () => {
-            modal.classList.add('hidden');
-            btnCancel.removeEventListener('click', onCancel);
-            btnOk.removeEventListener('click', onOk);
-            modal.removeEventListener('click', onBackdrop);
-            document.removeEventListener('keydown', onKey);
-        };
-        const onCancel = () => { cleanup(); resolve(false); };
-        const onOk = () => { cleanup(); resolve(true); };
-        // Backdrop and Escape both cancel. This is a destructive action, so
-        // every ambiguous exit resolves to "no".
-        const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
-        const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); onCancel(); } };
-
-        btnCancel.addEventListener('click', onCancel);
-        btnOk.addEventListener('click', onOk);
-        modal.addEventListener('click', onBackdrop);
-        document.addEventListener('keydown', onKey);
+    // Backdrop and Escape both cancel. This is a destructive action, so every
+    // ambiguous exit resolves to "no".
+    return window.runDialog(modal, {
+        buttons: [[btnCancel, false], [btnOk, true]],
+        cancel: false, escape: true, backdrop: true, focus: btnOk,
     });
 };
 
