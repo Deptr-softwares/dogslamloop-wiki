@@ -26,10 +26,10 @@ const PAGE = '/systems/updatelog/index.html';
 // write its changelog entry at all - a shape check would pass happily with the
 // previous version still sitting at the top, which is the vacuous form. Updating
 // this line is part of shipping a release.
-test('the newest entry is the Halloween update, named and dated', async () => {
+test('the newest entry is v1.2, The "Random" Update, named and dated', async () => {
     const first = UPDATES.changelogs[0];
-    expect(first.version).toBe('Release v1.1');
-    expect(first.title).toBe("The 'Halloween' Update");
+    expect(first.version).toBe('Stable v1.2');
+    expect(first.title).toBe('The "Random" Update');
     expect(first.date).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
 });
 
