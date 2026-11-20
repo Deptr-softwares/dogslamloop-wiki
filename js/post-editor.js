@@ -101,11 +101,20 @@ window.loadPostAdminList = async function() {
                 <span class="post-admin-row-title">${window.escapeHtml(post.title)}</span>
             </div>
             <div class="post-admin-row-actions">
-                <button class="btn-sys btn-sys-regular" onclick="window.editPost('${window.escapeHtml(post.id)}')">EDIT</button>
-                <button class="btn-sys btn-sys-red" onclick="window.deletePost('${window.escapeHtml(post.id)}')">DELETE</button>
+                <button class="btn-sys btn-sys-regular" data-post-action="edit">EDIT</button>
+                <button class="btn-sys btn-sys-red" data-post-action="delete">DELETE</button>
             </div>
         </div>
     `).join('');
+
+    // Bound here rather than written into an inline onclick: escaping a value
+    // inside a JS string inside an attribute protects nothing, because the
+    // browser decodes it back before the handler runs.
+    container.querySelectorAll('.post-admin-row').forEach((row, i) => {
+        const id = data[i].id;
+        row.querySelector('[data-post-action="edit"]').addEventListener('click', () => window.editPost(id));
+        row.querySelector('[data-post-action="delete"]').addEventListener('click', () => window.deletePost(id));
+    });
 };
 
 window.editPost = async function(id) {
