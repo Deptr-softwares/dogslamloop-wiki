@@ -144,14 +144,16 @@ async function loadFAQ(containerId) {
             faqDetails.className = 'faq-details'; 
 
             let paragraphsHTML = '';
+            // Escaped before the @mention pass: site_faq is database text, and
+            // the only markup an answer gets is the mention's own span.
             item.paragraphs.forEach(text => {
-                const formattedText = text.replace(/(@[a-zA-Z0-9_\.]+)/g, '<span style="color: #a855f7; font-family: var(--text-mono); font-weight: bold;">$1</span>');
+                const formattedText = window.escapeHtml(text).replace(/(@[a-zA-Z0-9_\.]+)/g, '<span style="color: #a855f7; font-family: var(--text-mono); font-weight: bold;">$1</span>');
                 paragraphsHTML += `<p class="strategy-paragraph" style="margin-bottom: 0.5rem;">${formattedText}</p>`;
             });
 
             faqDetails.innerHTML = `
                 <summary class="faq-summary">
-                    <span>${item.question}</span>
+                    <span>${window.escapeHtml(item.question)}</span>
                     <span class="faq-arrow">▼</span>
                 </summary>
                 <div class="faq-content">
