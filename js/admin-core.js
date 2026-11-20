@@ -231,7 +231,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await new Promise(r => setTimeout(r, 600));
         ({ data: { session } } = await window.supabaseClient.auth.getSession());
     }
-    if (!session) { kickUser(); return; }
+    if (!session) { window.showAccessDenied(); return; }
 
     // Fetch ALL roles assigned to the user.
     //
@@ -296,7 +296,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.currentUserCanDeleteMedia = window.rolesMeet(roles, 'admin')
         || (!!roleRow && roleRow.can_delete_media === true);
 
-    if (error || (!isReviewStaff && !canModerate && !isExpert)) { kickUser(); return; }
+    if (error || (!isReviewStaff && !canModerate && !isExpert)) { window.showAccessDenied(); return; }
 
     window.currentUserId = session.user.id;
     window.currentUserRoles = roles;
@@ -452,10 +452,6 @@ document.addEventListener('click', (event) => {
     const tab = event.target.closest('[data-queue-tab]');
     if (tab) window.showQueuePanel(tab.dataset.queueTab);
 });
-
-function kickUser() {
-    document.body.innerHTML = `<div class="access-denied-screen"><h1 class="access-denied-title">ACCESS DENIED</h1></div>`;
-}
 
 // Narrows the Overseer to the queues this person is actually here for.
 //

@@ -6,6 +6,7 @@
 // puts contributor text into the page as markup the day it does run.
 //
 // page_router.js keeps its own copy: it runs before site_utils.js loads.
+// RegExp syntax has one helper too, window.escapeRegExp.
 const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
@@ -54,6 +55,12 @@ test('no other file keeps its own copy of the escape', () => {
     // A copy escapes quotes. internalstyling.js's escPageText escapes only &,
     // < and >, on purpose: it matches how the browser writes text back out.
     expect(linesMatching(/&quot;/, name => MAY_DEFINE_IT.has(name))).toEqual([]);
+});
+
+test('RegExp syntax is escaped by one helper too', () => {
+    // window.escapeRegExp, next to escapeHtml: five files carried their own.
+    expect(linesMatching(/'\\\\\$&'/, name => name === 'site_utils.js')).toEqual([]);
+    expect(linesMatching(/^window\.escapeRegExp = function/)).toHaveLength(1);
 });
 
 test('no local alias renames it', () => {

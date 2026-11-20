@@ -48,12 +48,11 @@
         'set', 'kind', 'badge', 'avatar',
     ]);
 
-    const escapeRe = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
     window.buildFindPattern = function (needle, opts) {
         const o = opts || {};
         if (!needle) return null;
-        let body = escapeRe(needle);
+        let body = window.escapeRegExp(needle);
         // \b would not fire against a term starting or ending in punctuation,
         // which "M1" and "R+4" both can - so the boundary is asserted as "not
         // adjacent to a word character" instead.

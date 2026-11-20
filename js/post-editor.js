@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await new Promise(r => setTimeout(r, 600));
         ({ data: { session } } = await window.supabaseClient.auth.getSession());
     }
-    if (!session) { kickUser(); return; }
+    if (!session) { window.showAccessDenied(); return; }
 
     let { data: roleData, error } = await window.supabaseClient
         .from('user_roles').select('role').eq('user_id', session.user.id);
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Owner only. Authoring site-wide posts is not on the list of what an admin
     // may do (owner, 2026-08-27), and this mirrors "Admins can write posts" on
     // site_posts, which became is_owner() in 20260827000003.
-    if (error || !window.rolesMeet(roles, 'owner')) { kickUser(); return; }
+    if (error || !window.rolesMeet(roles, 'owner')) { window.showAccessDenied(); return; }
 
     window.currentGlobalUsername = window.getDisplayName ? window.getDisplayName(session) : 'Staff';
 
@@ -255,10 +255,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.resetPostForm();
     await window.loadPostAdminList();
 });
-
-function kickUser() {
-    document.body.innerHTML = `<div class="access-denied-screen"><h1 class="access-denied-title">ACCESS DENIED</h1></div>`;
-}
 
 // Same bfcache guard as admin.html/owner.html: a back-forward restore skips
 // DOMContentLoaded entirely, so the gate above would never re-run.

@@ -217,8 +217,7 @@ const TERM_ALIASES = {
 // because KaTeX inserts non-breaking ones, and the hyphen in "I-Frames" is
 // optional because people type it both ways.
 function termPattern(text) {
-    return String(text)
-        .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return window.escapeRegExp(text)
         .replace(/ /g, '\\s+')
         .replace(/-/g, '[-\\s]?');
 }
@@ -418,7 +417,7 @@ function buildPageWords() {
         // after an "&", so a word like "amp" cannot split an escaped "&amp;".
         const source = Array.from(byText.keys())
             .sort((a, b) => b.length - a.length)
-            .map(w => w.split(' ').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+'))
+            .map(w => w.split(' ').map(part => window.escapeRegExp(part)).join('\\s+'))
             .join('|');
         value = { lookup: byText, pattern: new RegExp(`(?<![\\w&])(${source})(?!\\w)`, 'g') };
     }

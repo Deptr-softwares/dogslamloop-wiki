@@ -55,12 +55,11 @@
         Object.entries(aliases).forEach(([canonical, list]) => (list || []).forEach(a => character.set(a, canonical)));
         // Longest first, so "Yuji Itadori" is one name and not "Yuji" plus a word.
         const known = JJK_NAMES.filter(n => character.has(n)).sort((a, b) => b.length - a.length);
-        const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         names = {
             character,
             // Find and Replace's whole-word edge (buildFindPattern): not next to
             // a letter, a digit, _ or -.
-            pattern: known.length ? new RegExp(`(?<![\\w-])(?:${known.map(escapeRe).join('|')})(?![\\w-])`, 'g') : null,
+            pattern: known.length ? new RegExp(`(?<![\\w-])(?:${known.map(window.escapeRegExp).join('|')})(?![\\w-])`, 'g') : null,
         };
         return names;
     }

@@ -4,11 +4,12 @@
  * Split out of admin.js as part of the admin-page rework: these two tools
  * are admin-only and unrelated to the reviewer workflow admin.html/admin.js
  * are scoped to. Access here is admin-only, not admin/reviewer like
- * admin.html - kickUser/the RBAC-gate shape is intentionally duplicated
- * from admin.js rather than shared, matching this codebase's existing
- * precedent of small per-file duplication over new cross-file coupling
- * (see admin.js's own toggleMobilePreview, reimplemented rather than
- * pulling in editor.js for one function).
+ * admin.html - the RBAC-gate shape is intentionally duplicated from
+ * admin.js rather than shared, matching this codebase's precedent of small
+ * per-file duplication over one feature file depending on another (see
+ * admin.js's own toggleMobilePreview, reimplemented rather than pulling in
+ * editor.js for one function). The ACCESS DENIED screen both gates show is
+ * window.showAccessDenied, in site_utils.js.
  */
 
 // --- BFCACHE GUARD ---
@@ -32,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await new Promise(r => setTimeout(r, 600));
         ({ data: { session } } = await window.supabaseClient.auth.getSession());
     }
-    if (!session) { kickUser(); return; }
+    if (!session) { window.showAccessDenied(); return; }
 
     let { data: roleData, error } = await window.supabaseClient
         .from('user_roles').select('role').eq('user_id', session.user.id);
@@ -46,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Owner only, which is the whole point of v0.17's split: an admin works the
     // review queue and has no owner-tool access at all (owner, 2026-08-27).
-    if (error || !window.rolesMeet(roles, 'owner')) { kickUser(); return; }
+    if (error || !window.rolesMeet(roles, 'owner')) { window.showAccessDenied(); return; }
 
     // Lets loadPersonnel mark the signed-in admin and enforce the
     // self-demotion guard without a second lookup.
@@ -94,10 +95,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // must not take the rest of the page down.
     if (typeof loadPageExperts === 'function') await loadPageExperts();
 });
-
-function kickUser() {
-    document.body.innerHTML = `<div class="access-denied-screen"><h1 class="access-denied-title">ACCESS DENIED</h1></div>`;
-}
 
 // --- CUSTOM MODAL PROMISE (same contract as admin.js's adminConfirm) ---
 window.adminConfirm = function(message) {

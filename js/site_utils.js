@@ -2715,6 +2715,18 @@ window.escapeHtmlKeepBreaks = function(str) {
     return window.escapeHtml(str).replace(/&lt;\s*\/?\s*br\s*\/?\s*&gt;/gi, '<br>');
 };
 
+// Escapes every character a RegExp reads as syntax, so the text matches as
+// written.
+window.escapeRegExp = function(str) {
+    return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+// What a staff page's gate shows someone it turns away. It replaces the whole
+// page, so nothing the gate protects stays on screen.
+window.showAccessDenied = function() {
+    document.body.innerHTML = `<div class="access-denied-screen"><h1 class="access-denied-title">ACCESS DENIED</h1></div>`;
+};
+
 // KATEX, ONLY WHERE THERE IS MATH (v1.1 batch 9). It shipped in 28 pages' heads
 // since the first upload and no page used it (2026-10-22: one `$` in all the
 // indexed text), so every character page paid 81 KB and a walk of the whole

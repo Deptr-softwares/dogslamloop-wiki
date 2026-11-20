@@ -88,7 +88,7 @@
             // one inside a longer word. Deliberately simple: the alternative is
             // a real relevance model, and with 595 sections a plain ordering
             // that the reader can predict beats one they cannot.
-            const wholeWord = new RegExp(`\\b${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(text.toLowerCase());
+            const wholeWord = new RegExp(`\\b${window.escapeRegExp(query)}\\b`).test(text.toLowerCase());
             out.push({
                 score: (wholeWord ? 40 : 0) - Math.min(at, 400) * 0.05,
                 section: row[F.section],
