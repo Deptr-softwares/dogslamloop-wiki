@@ -17,10 +17,13 @@ async function previewRevision(revId) {
 
     const { data: authorRoleData } = await window.supabaseClient.from('user_roles').select('role').eq('user_id', rev.author_id);
     rev.author_roles = authorRoleData ? authorRoleData.map(r => r.role.toLowerCase()) : [];
+    // From the page list, never the submission's own page_type: that one is
+    // the submitter's word, and it picks which renderer runs below.
+    const pageType = (await window.registeredPageType(rev.page_id)) || 'character';
 
     window.activePreviewRevId = rev.id;
     window.activePreviewCharId = rev.page_id;
-    window.activePreviewPageType = rev.page_type || 'character';
+    window.activePreviewPageType = pageType;
     document.getElementById('preview-status-text').innerHTML = `REVIEWING: <strong class="admin-preview-status-highlight">${window.escapeHtml(rev.page_id.toUpperCase())}</strong> (By ${window.escapeHtml(rev.author_name)})`;
 
     updateActionButtons(rev);

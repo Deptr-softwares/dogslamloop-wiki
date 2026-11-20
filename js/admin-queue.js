@@ -84,7 +84,7 @@ async function loadQueue() {
         .in('status', ['pending', 'ticket_open'])
         .order('created_at', { ascending: true });
 
-    if (error) { container.innerHTML = `<p class="admin-error-text">Error: ${error.message}</p>`; return; }
+    if (error) { container.innerHTML = `<p class="admin-error-text">Error: ${window.escapeHtml(error.message)}</p>`; return; }
 
     window.currentQueueData = data || [];
     populateQueuePageFilter(window.currentQueueData);
@@ -265,9 +265,12 @@ function renderQueue() {
                         </div>
                         ${qaNote(rev)}
                     </div>
-                    <button onclick="previewRevision('${rev.id}')" class="btn-sys btn-sys-blue admin-review-btn">REVIEW</button>
+                    <button class="btn-sys btn-sys-blue admin-review-btn">REVIEW</button>
                 </div>
             `;
+            // Bound here rather than written into an inline onclick, so the
+            // revision's id never has to survive being markup.
+            card.querySelector('.admin-review-btn').addEventListener('click', () => previewRevision(rev.id));
             container.appendChild(card);
         });
     }

@@ -324,8 +324,10 @@ function renderSubmissionCard(rev) {
 // over system data, and the intercepted ticket rendering into nothing. The id
 // survived either way, which is why this looked like it worked right up until
 // the page was not a character.
-window.buildSubmissionEditUrl = function (rev) {
-    const pageType = rev.page_type || 'character';
+//
+// The kind comes from the page list, not the submission's own page_type.
+window.buildSubmissionEditUrl = async function (rev) {
+    const pageType = (await window.registeredPageType(rev.page_id)) || 'character';
     let url = `edit.html?char=${encodeURIComponent(rev.page_id)}`
         + `&type=${encodeURIComponent(pageType)}`
         + `&editTicket=${encodeURIComponent(rev.id)}`;
@@ -348,8 +350,8 @@ window.buildSubmissionEditUrl = function (rev) {
     return url;
 };
 
-function editSubmission(rev) {
-    window.location.href = window.buildSubmissionEditUrl(rev);
+async function editSubmission(rev) {
+    window.location.href = await window.buildSubmissionEditUrl(rev);
 }
 
 async function withdrawSubmission(revId) {

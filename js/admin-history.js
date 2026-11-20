@@ -268,7 +268,9 @@ async function restorePageHistoryVersion(row, pageId) {
 
     const payload = {
         page_id: pageId,
-        page_type: row.page_type || 'character',
+        // The page list first: an old snapshot can carry a kind an approval
+        // copied from a submission.
+        page_type: (await window.registeredPageType(pageId)) || row.page_type || 'character',
         desc_data: row.desc_data,
         frame_data: row.frame_data,
         last_editor_name: `${window.currentUsername} (restored ${dateStr})`

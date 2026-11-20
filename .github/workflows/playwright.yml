@@ -86,6 +86,11 @@ jobs:
       # carries its current content hash.
       - run: npm run validate
 
+      # Unused locals and the eval family in js/ (eslint.config.js). Here and
+      # not in `validate`: the regeneration job runs that, and a lint error
+      # must never stop content publishing.
+      - run: npm run lint
+
       # The browsers are ~150MB and identical between runs. Keyed on the
       # Playwright version because a cached browser from an older release is
       # not compatible with a newer one.

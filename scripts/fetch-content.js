@@ -227,6 +227,11 @@ async function fetchTable(table) {
 const COLORS_BEGIN = '// --- GENERATED REGION: CHARACTER_COLORS (scripts/fetch-content.js) ---';
 const COLORS_END = '// --- END GENERATED REGION ---';
 
+// The consumers write a colour into style attributes unescaped, so only a plain
+// colour gets into the file: a hex code, rgb() or hsl() of numbers, or a colour
+// name. The same pattern as TIER_COLOR in js/tierlist.js.
+const PLAIN_COLOR = /^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([\d\s.,%/+-]+\)|[a-z]+)$/i;
+
 // Keyed by NAME, because that is what every consumer looks up: the roster card
 // has the name, and internalstyling.js matches names in prose. page_id is the
 // database's key, not this dictionary's.
@@ -252,6 +257,13 @@ function buildCharacterColors(rows) {
 
     const characters = rows
         .filter(r => r.page_type === 'character' && r.color && String(r.color).trim() !== '')
+        .filter(r => {
+            if (PLAIN_COLOR.test(String(r.color).trim())) return true;
+            // Loudly, so the owner hears why a character lost its colour.
+            console.warn(`WARNING: ${r.name}'s colour is not a plain colour, so it was left out `
+                + `of CHARACTER_COLORS: ${JSON.stringify(r.color)}`);
+            return false;
+        })
         .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
     // Never write an EMPTY dictionary - that would un-colour the whole roster.

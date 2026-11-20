@@ -39,7 +39,6 @@ const safeBlockWidth = (width) => (/^\d+(\.\d+)?(%|px|rem|em|vw|vh)$/.test(Strin
 // via `javascript:` - escaping does nothing about a URL scheme.
 const safeBlockUrl = (url) => {
     const raw = String(url === null || url === undefined ? '' : url).trim();
-    // eslint-disable-next-line no-script-url
     return /^\s*(javascript|data|vbscript):/i.test(raw.replace(/[\u0000-\u0020]/g, '')) ? '' : raw;
 };
 
@@ -1879,7 +1878,7 @@ function populateTextSection(containerId, sectionTitle, blocks, contextClass = '
 let unscopedDrawnFor = null;
 const unscopedDrawn = new Set();
 
-function modeScopedTabIsDrawable(section, pageId, modeId) {
+function modeScopedTabIsDrawable(section, pageId) {
     const tab = (window.CHARACTER_TABS || []).find(t => t.id === section.tab);
     if (!tab || tab.modeScoped !== false) return true;
 
@@ -2412,7 +2411,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 // MODE's desc_data; a gallery stored at base level is simply
                 // absent from it, so re-rendering would blank the tab on every
                 // switch and refill it on the way back to base.
-                .filter(s => modeScopedTabIsDrawable(s, pageId, modeId))
+                .filter(s => modeScopedTabIsDrawable(s, pageId))
                 .forEach(s => {
                     if (selfRendered.has(s.rendererFn)) return;
                     selfRendered.add(s.rendererFn);

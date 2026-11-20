@@ -66,6 +66,37 @@ test('a name with a quote in it cannot break the file', () => {
     expect(() => new Function(out.replace(COLORS_BEGIN, '').replace(COLORS_END, ''))).not.toThrow();
 });
 
+test('a colour that is not a plain colour stays out of the file, loudly', () => {
+    // The site writes these into style attributes unescaped, so the file takes
+    // only a hex code, rgb() or hsl() of numbers, or a colour name.
+    const warnings = [];
+    const original = console.warn;
+    console.warn = (...args) => warnings.push(args.join(' '));
+    let out;
+    try {
+        out = buildCharacterColors([
+            { name: 'Hex', page_type: 'character', color: '#c0c0bf', sort_order: 1 },
+            { name: 'Hsl', page_type: 'character', color: 'hsl(0, 100%, 80%)', sort_order: 2 },
+            { name: 'Named', page_type: 'character', color: 'crimson', sort_order: 3 },
+            { name: 'Breakout', page_type: 'character', color: 'red;" onmouseover="alert(1)', sort_order: 4 },
+            { name: 'Extra', page_type: 'character', color: 'red; background: url(https://example.com/x)', sort_order: 5 },
+            { name: 'Variable', page_type: 'character', color: 'var(--x, "><img src=x>)', sort_order: 6 },
+            // parseCharacterColor reads this as a colour (its hsl match is not
+            // anchored), so nothing else on the way would stop it.
+            { name: 'Hidden', page_type: 'character', color: 'hsl(0, 100%, 50%);" onmouseover="alert(1)', sort_order: 7 },
+        ]);
+    } finally {
+        console.warn = original;
+    }
+    expect(out).toContain('"Hex": "#c0c0bf"');
+    expect(out).toContain('"Hsl": "hsl(0, 100%, 80%)"');
+    expect(out).toContain('"Named": "crimson"');
+    for (const name of ['Breakout', 'Extra', 'Variable', 'Hidden']) {
+        expect(out, `${name} is left out`).not.toContain(`"${name}"`);
+        expect(warnings.join('\n'), `${name} is named in a warning`).toContain(name);
+    }
+});
+
 test('a database without the column yet is skipped, not failed', () => {
     // THE DEPLOY WINDOW, and the reason this is not simply "throw on empty".
     // Migrations apply on merge to main, so between this landing on

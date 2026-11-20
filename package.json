@@ -3,6 +3,7 @@
     "test": "playwright test",
     "test:content": "playwright test --config=playwright.content.config.js",
     "validate": "node scripts/lock-migrations.js --check && node scripts/validate-navigation.js && node scripts/generate-pages.js --check && node scripts/generate-sitemap.js --check && node scripts/generate-hub-meta.js --check && node scripts/stamp-assets.js --check",
+    "lint": "eslint js/",
     "lock-migrations": "node scripts/lock-migrations.js --write",
     "generate": "node scripts/generate-pages.js --write && node scripts/generate-sitemap.js --write && node scripts/generate-hub-meta.js --write && node scripts/stamp-assets.js --write",
     "refresh-previews": "node scripts/fetch-previews.js --write",
@@ -16,6 +17,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
+    "eslint": "10.14.0",
     "playwright": "^1.62.1",
     "supabase": "^2.109.1"
   }

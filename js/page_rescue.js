@@ -71,14 +71,11 @@
         return data.find(row => row && row.status === 'live') || null;
     }
 
-    function unpublishedBanner(row) {
+    function unpublishedBanner() {
         const banner = document.createElement('div');
         banner.className = 'rescue-banner';
         banner.id = 'rescue-banner';
 
-        // textContent throughout: name and url are owner-authored but reach
-        // this through a database row, and the rule here is to escape at every
-        // interpolation rather than reason about who typed what.
         const strong = document.createElement('strong');
         strong.textContent = 'Not published yet.';
 
@@ -121,7 +118,7 @@
         await window.runPageBoot(route);
 
         const main = document.querySelector('.main-content-area');
-        if (main) main.insertBefore(unpublishedBanner(row), main.firstChild);
+        if (main) main.insertBefore(unpublishedBanner(), main.firstChild);
 
         return true;
     };
