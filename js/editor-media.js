@@ -784,8 +784,6 @@ window.initMediaLibrary = function() {
     }
 
     btnRefresh.addEventListener('click', window.loadMediaGallery);
-    document.getElementById('media-search-input').addEventListener('input', window.renderMediaGrid);
-    document.getElementById('media-filter-select').addEventListener('change', window.renderMediaGrid);
 
     dropZone.addEventListener('click', () => {
         if (uploadLocked) return;
