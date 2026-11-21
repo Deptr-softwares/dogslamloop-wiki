@@ -9,12 +9,12 @@
  * every emoji in posts (2026-10-21), and Discord draws Twemoji.
  *
  * Kept out: skin tone variants (the picker has no tone chooser; a tone typed
- * from a phone keyboard still draws, js/emoji.js), and the Component group
+ * from a phone keyboard still draws, js/utility/emoji.js), and the Component group
  * (bare tone swatches and hair pieces, which are parts, not emojis).
  *
  * Not part of the nightly regeneration: both sources are pinned, so the output
  * only changes when TWEMOJI_VERSION does. Moving it means moving the version
- * in js/emoji.js too (a test checks they agree), then running this.
+ * in js/utility/emoji.js too (a test checks they agree), then running this.
  *
  *   node scripts/build-emoji-data.js
  */
@@ -33,7 +33,7 @@ const TONE = /[\u{1F3FB}-\u{1F3FF}]/u;
 // points in lowercase hex joined by '-', with U+FE0F dropped unless the
 // sequence has a zero width joiner. One file breaks that rule (eye in speech
 // bubble is 1f441-200d-1f5e8), so the name without any U+FE0F is the second
-// try. js/emoji.js names files the same way, in the same order.
+// try. js/utility/emoji.js names files the same way, in the same order.
 const hex = (text) => Array.from(text).map(c => c.codePointAt(0).toString(16)).join('-');
 function twemojiNames(text) {
     const stripped = hex(text.replace(/\uFE0F/g, ''));

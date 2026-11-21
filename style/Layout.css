@@ -37,7 +37,7 @@
     .grid-layout-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* --- DASHBOARD WIDGETS (js/dashboards.js) --- */
+/* --- DASHBOARD WIDGETS (js/dashboards/dashboards.js) --- */
 
 /* Reading path / contribute steps. An <ol> so the order is in the markup and
    not just the styling - it is the point of the section. */
@@ -228,7 +228,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 }
 .sidebar-nav-title:first-child { margin-top: 0; }
 
-/* Collapsible category groups in the global sidebar menu (js/pagebuilder.js
+/* Collapsible category groups in the global sidebar menu (js/pages/core/pagebuilder.js
    buildGlobalSidebarMenu) */
 /* Tightened 2026-08-12. The sidebar carried five categories until the
    sub-grouped Others column shipped and Gamemodes / Misc / Servers joined it,
@@ -261,7 +261,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
        and made the difference look intentional.
 
        Stated explicitly instead. --accent-blue is re-pointed per character by
-       js/site_meta.js, so the headers now follow the page's own accent rather
+       js/utility/site_meta.js, so the headers now follow the page's own accent rather
        than a fixed blue. */
     font-family: var(--font-title), sans-serif;
     color: var(--accent-blue);
@@ -273,7 +273,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 
 .toc-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.25rem; }
 
-/* Table of Contents links (js/pagebuilder.js refreshTOC). Compound with
+/* Table of Contents links (js/pages/core/pagebuilder.js refreshTOC). Compound with
    .btn-nav, which sets colour, padding and size in Buttons.css at one class
    too: a page loading Layout.css first (the generated system pages,
    forum.html) let .btn-nav win, so its contents were gray and its
@@ -296,7 +296,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .loading-msg-toc { padding: 0.25rem 0.75rem; }
 .loading-msg-error { color: #ef4444; }
 
-/* Auth/dock action buttons (js/pagebuilder.js initAuthDock) */
+/* Auth/dock action buttons (js/pages/core/pagebuilder.js initAuthDock) */
 .kofi-text { font-family: var(--font-label), sans-serif; }
 /* Deliberately declares NO padding and NO font-size, 2026-08-14.
 
@@ -334,7 +334,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .dock-settings-btn { flex: 0 0 auto; padding-left: 0.6rem; padding-right: 0.6rem; }
 .global-sidebar-left.collapsed .dock-auth-row { flex-direction: column; }
 
-/* The Site settings panel (js/site_utils.js openSiteSettings). */
+/* The Site settings panel (js/utility/site_utils.js openSiteSettings). */
 .site-settings-body { display: flex; flex-direction: column; gap: 0.9rem; }
 .site-setting-group { display: flex; flex-direction: column; gap: 0.6rem; margin: 0; padding: 0; border: 0; min-width: 0; }
 .site-setting-group legend { padding: 0; margin-bottom: 0.6rem; }
@@ -347,7 +347,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .site-settings-error { margin: 0; color: #ef4444; font-size: 0.8rem; }
 .dock-btn-inbox { position: relative; }
 
-/* Character page sidebar dock (js/pagebuilder.js populates #sidebar-dynamic-dock) */
+/* Character page sidebar dock (js/pages/core/pagebuilder.js populates #sidebar-dynamic-dock) */
 #sidebar-dynamic-dock {
     margin-top: auto; width: 100%; display: flex; flex-direction: column;
     gap: 0.75rem; padding-top: 2rem;
@@ -360,7 +360,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     width: 100%; display: flex;
     align-items: center; justify-content: center; gap: 0.5rem;
 }
-/* At the top of the right sidebar (js/pagebuilder.js, placeKofiOnTheRight),
+/* At the top of the right sidebar (js/pages/core/pagebuilder.js, placeKofiOnTheRight),
    with the sidebar's own headings below it. */
 .local-sidebar-right > .kofi-btn-wrapper { margin: 0 0 1.5rem; }
 
@@ -371,7 +371,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .back-home-wrapper { margin-bottom: 1.5rem; }
 .character-header { margin-bottom: 2.5rem; }
 /* Scoped to .character-header, not a bare .character-nav rule: the
-   .character-nav class is also reused by js/history.js and
+   .character-nav class is also reused by js/pages/records/history.js and
    systems/tierlist/index.html's static nav with a *different* margin
    convention (margin-bottom, not margin-top) and one variant omits
    align-items - a bare rule here would leak margin-top/align-items onto
@@ -384,7 +384,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     align-items: center;
 }
 
-/* The character mode toggle (js/character_modes.js): which kit - base, or one
+/* The character mode toggle (js/pages/core/character_modes.js): which kit - base, or one
    of the ultimate states - every tab below is describing.
 
    Deliberately NOT .btn-manga. The tab strip directly underneath is built from
@@ -465,7 +465,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
    larger because skewX(-10deg) also leans each button roughly 3px sideways. */
 .system-button-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.65rem 0.9rem; }
 
-/* Systems directory grid (js/pagebuilder.js buildSystemsDirectory) */
+/* Systems directory grid (js/pages/core/pagebuilder.js buildSystemsDirectory) */
 /* One line under every title (owner, 2026-11-16): solid, as .section-title has
    it. Dashed is left for the lines between rows of a list. */
 .system-category-block .sidebar-master-title { margin-top: 0; margin-bottom: 1.25rem; }
@@ -527,7 +527,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .profile-stat-label { color: #8b949e; font-size: 0.9rem; }
 .profile-stat-val { color: var(--text-white); font-weight: bold; font-size: 0.9rem; }
 
-/* Profile Description (v1.1, js/description.js profileDescriptionHTML): the
+/* Profile Description (v1.1, js/pages/core/description.js profileDescriptionHTML): the
    quote, Trivia and Character Navigation, under the stats in the profile
    card. */
 .profile-desc[hidden], .profile-pager[hidden] { display: none; }
@@ -613,12 +613,12 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     color: var(--text-muted); font-family: var(--text-mono); font-size: 0.875rem;
 }
 
-/* Tier List Layout (js/tierlist.js LIVE RENDERER: loadTierList/switchLiveTierTab).
+/* Tier List Layout (js/pages/tier-lists/tierlist.js LIVE RENDERER: loadTierList/switchLiveTierTab).
    .tier-tabs/.tier-row/.tier-label/.tier-characters/.tier-char-tooltip were
    removed here - confirmed zero references anywhere in the codebase, dead
    CSS from an earlier iteration of this feature that current tierlist.js
    markup doesn't use. .tier-list-container is still live (wraps #tier-list-ui
-   in both systems/tierlist/index.html and js/history.js's tierlist branch). */
+   in both systems/tierlist/index.html and js/pages/records/history.js's tierlist branch). */
 .tier-list-container { background: var(--bg-main); border: 2px solid var(--border-color); box-shadow: 6px 6px 0px var(--manga-shadow); display: flex; flex-direction: column; gap: 2px; }
 
 .tier-nav-overall-wrapper { display: flex; justify-content: center; width: 100%; margin-bottom: 1.5rem; }
@@ -741,7 +741,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
    side, a tier portrait's rises from under it.
 
    `attr(title)` rather than a new element: all three renderers
-   (js/tierlist.js, js/tier-editor.js, js/certified-tier-lists.js) already set
+   (js/pages/tier-lists/tierlist.js, js/pages/tier-lists/tier-editor.js, js/pages/tier-lists/certified-tier-lists.js) already set
    title to the character's name, so this needs no JS at all and cannot fall out
    of step with the markup.
 
@@ -792,7 +792,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 /* --- BIGGER BOXES, TIGHTER SPACING (v0.16 fine-tuning 8) ---
    The certified tier lists page already got this (style/certified-tier-lists.css,
    scoped to #tier-list-ui); this is the same treatment for the OTHER live
-   surface, the one js/tierlist.js renders.
+   surface, the one js/pages/tier-lists/tierlist.js renders.
 
    Scoped to .tier-list-row-chars on purpose, exactly as that file scoped its
    own: the editor's drag-and-drop hit-testing was built around 60px portraits,
@@ -813,7 +813,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
     .tier-list-row-chars .tier-portrait { width: 60px; height: 60px; }
 }
 
-/* --- TIER LIST EDITOR (js/tierlist.js EDITOR BUILDER: renderTierEditorUI) --- */
+/* --- TIER LIST EDITOR (js/pages/tier-lists/tierlist.js EDITOR BUILDER: renderTierEditorUI) --- */
 /* Compound: .daw-variant-tabs's own base rule sets border-bottom color/
    padding-bottom at the same specificity. */
 .daw-variant-tabs.tier-editor-tabs-row { overflow-x: auto; padding-bottom: 0.5rem; border-bottom: 1px solid #333; align-items: center; }
@@ -880,13 +880,13 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .aggregated-contributors-footer::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background-color: var(--accent-blue); }
 .contributors-header { display: flex; align-items: center; gap: 0.5rem; font-family: var(--font-label), sans-serif; font-size: 0.85rem; color: var(--text-white); text-transform: uppercase; border-bottom: 2px solid var(--border-color); padding-bottom: 0.5rem; }
 .contributors-list { display: flex; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.25rem; }
-/* One footer per tab (consolidateTabContributors in js/description.js), not
+/* One footer per tab (consolidateTabContributors in js/pages/core/description.js), not
    one per section. It is the last thing in the tab now, so it takes the full
    width regardless of the float/flex layout the sections above it used, and
    ends the tab rather than interrupting it. */
 .tab-contributors-footer { width: 100%; flex-basis: 100%; margin-top: 3rem; }
 
-/* Router skeleton (js/page_router.js) - these replace inline styles that used
+/* Router skeleton (js/pages/core/page_router.js) - these replace inline styles that used
    to live on the system-page template only. The character template relied on
    classes for the same elements, so unifying the two skeletons meant lifting
    the system page's inline rules up into real classes rather than picking one
@@ -901,7 +901,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
    template was doing inline, so both templates were always meant to look the
    same here and the router just uses the class for both. */
 
-/* Site posts (blog + hotfix notes, js/posts.js). Post bodies reuse the wiki's
+/* Site posts (blog + hotfix notes, js/pages/community/posts.js). Post bodies reuse the wiki's
    own .wiki-section block styling, so only the listing card and post header
    need rules of their own. */
 .post-card { border: 2px solid var(--border-color); background: var(--bg-main); box-shadow: 6px 6px 0px var(--manga-shadow); padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
@@ -927,7 +927,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 .post-admin-row-title { color: var(--text-white); }
 .post-admin-row-actions { display: flex; gap: 0.4rem; }
 
-/* Sitewide footer (js/pagebuilder.js buildSiteFooter) - appended to <body>,
+/* Sitewide footer (js/pages/core/pagebuilder.js buildSiteFooter) - appended to <body>,
    outside .site-layout, so it spans the full width below both sidebars rather
    than sitting inside the content column. */
 .site-footer { border-top: 2px solid var(--border-color); background: var(--bg-main); padding: 1.5rem 2rem; margin-top: 2rem; }
@@ -969,7 +969,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 /* A Heading Block's side bar (v1.1), the block's own choice in any tab. The
    Matchup, Counterplay and Starter Guide tabs used to draw one by themselves;
    every heading now renders the same way everywhere (owner, 2026-10-19). The
-   colour arrives through --heading-bar, set by js/description.js. */
+   colour arrives through --heading-bar, set by js/pages/core/description.js. */
 .wiki-block-heading-bar { border-left: 3px solid var(--heading-bar); padding-left: 0.75rem; }
 .card-header-flex { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 1rem; }
 .card-header-title { 
@@ -1039,7 +1039,7 @@ summary:focus-visible {
 
 /* Respect a reduced-motion preference. The site's transitions are decorative
    and several run on hover across a whole roster grid at once.
-   html.reduce-motion rather than the media query (v1.1): js/site_utils.js
+   html.reduce-motion rather than the media query (v1.1): js/utility/site_utils.js
    sets it for the device's preference AND for Site settings > Turn off
    animations, so every rule like this one is written once. */
 html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
@@ -1055,7 +1055,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
    explicit so removing .hidden doesn't rely on the browser's implicit default. */
 .tab-content, .vessel-content { display: block; }
 
-/* Wiki Divider Blocks (js/description.js generateHTMLForBlocks 'divider' type) */
+/* Wiki Divider Blocks (js/pages/core/description.js generateHTMLForBlocks 'divider' type) */
 .wiki-divider { clear: both; display: flex; align-items: center; justify-content: center; opacity: 0.8; width: 100%; }
 .wiki-divider-pad-none { margin: 0; }
 .wiki-divider-pad-small { margin: 1rem 0; }
@@ -1075,7 +1075,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .wiki-divider-slash-mark { margin: 0 1rem; font-family: var(--font-label), sans-serif; color: var(--border-color, #333); font-size: 1rem; letter-spacing: 2px; font-style: italic; }
 .wiki-divider-diamond-mark { margin: 0 1rem; transform: rotate(45deg); width: 10px; height: 10px; border: 2px solid var(--accent-blue); background: var(--bg-main); box-shadow: 2px 2px 0px var(--manga-shadow); }
 
-/* Playstyle Component (js/description.js generatePlaystyleHTML) */
+/* Playstyle Component (js/pages/core/description.js generatePlaystyleHTML) */
 .playstyle-container { display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; }
 .playstyle-col { flex: 1; min-width: 250px; box-shadow: 4px 4px 0px var(--manga-shadow, #000); padding: 1.25rem 1.5rem; }
 .playstyle-col.likes { background: rgba(34, 197, 94, 0.05); border: 1px solid #22c55e; }
@@ -1091,11 +1091,11 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .playstyle-item-text { line-height: 1.4; }
 
 /* Wiki content blocks: image/video, callout tooltip content, table, accordion
-   (js/description.js generateHTMLForBlocks). Media has sharp corners like
+   (js/pages/core/description.js generateHTMLForBlocks). Media has sharp corners like
    everything else on the site (owner, 2026-10-18), so none of these rounds. */
 .wiki-block-image { width: 100%; box-shadow: 4px 4px 0px var(--manga-shadow, #000); }
 
-/* Stands in for media a moderator has flagged (js/site_utils.js
+/* Stands in for media a moderator has flagged (js/utility/site_utils.js
    sweepBlockedMedia). Says what happened rather than leaving a gap, because
    a silently missing image reads as the wiki being broken - and it replaces
    elements in wildly different contexts (skill cards, gallery tiles, inline
@@ -1139,7 +1139,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
 /* --- THE VIDEO PLAYER (v0.15 item 10) ---
    Native <video> with controls on. Everything here is painted with
-   var(--accent-blue), which js/site_meta.js overrides on :root for the
+   var(--accent-blue), which js/utility/site_meta.js overrides on :root for the
    character whose page this is - so the player re-themes per page and nothing
    in here knows a character exists.
 
@@ -1283,7 +1283,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 
 /* --- THE CLIP'S CORNER BUTTON (v0.20 V1) ---
    An autoplaying clip keeps its loop, and a small square in its bottom-right
-   corner opens the player in the modal (js/description.js wikiClipHTML). The
+   corner opens the player in the modal (js/pages/core/description.js wikiClipHTML). The
    wrapper is only a positioning box: in a skill card or a gallery card it fills
    the fixed-shape frame the video used to fill on its own. */
 .wiki-clip { position: relative; }
@@ -1389,7 +1389,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .callout-tooltip-title { font-family: var(--font-label), sans-serif; text-transform: uppercase; font-size: 0.9rem; display: block; margin-bottom: 0.5rem; padding-bottom: 0.25rem; color: var(--tooltip-accent); border-bottom: 1px solid var(--tooltip-accent); }
 .callout-tooltip-desc { font-family: var(--text-mono); font-size: 0.75rem; color: #e5e7eb; line-height: 1.5; display: block; }
 
-/* .update-table's own base rule belongs to js/home_widgets.js's homepage
+/* .update-table's own base rule belongs to js/dashboards/home_widgets.js's homepage
    changelog table - a visually different variant sharing the class name.
    This scoped modifier keeps the wiki-content-block table independent. */
 .wiki-table-wrapper { overflow-x: auto; margin: 1.5rem 0; border: 2px solid var(--border-color, #333); box-shadow: 4px 4px 0px var(--manga-shadow, #000); background: var(--bg-secondary, #0a0a0a); }
@@ -1495,7 +1495,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 .combo-container { display: flex; flex-wrap: wrap; align-items: center; gap: 0.15rem; }
 
-/* --- NOTATION STYLES (v0.20, js/description.js comboRouteHTML) ------------
+/* --- NOTATION STYLES (v0.20, js/pages/core/description.js comboRouteHTML) ------------
    A route with more than one notation. The route itself is the control, and
    the mark is the owner's "small toggle visuals on the side, which is very
    small and thin": one segment per style, the one showing lit.
@@ -1521,7 +1521,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 /* The review screens (the queue on admin.html, the editor's own diff) show
    EVERY style at once, one per line with its name, so a reviewer never has to
    click to find a changed route. Scoped to the diff container both screens
-   render into; js/description.js ignores clicks there too. */
+   render into; js/pages/core/description.js ignores clicks there too. */
 .diff-inline-target .combo-has-notations { cursor: default; }
 .diff-inline-target .combo-notation-mark { display: none; }
 .diff-inline-target .combo-notation,
@@ -1593,7 +1593,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
    belongs on the step under the cursor.
 
    --character-ink is the readable text colour for that background, set beside
-   --accent-blue by js/site_meta.js: white on a character below 50% lightness
+   --accent-blue by js/utility/site_meta.js: white on a character below 50% lightness
    (Crow Charmer, Black Death, Ten Shadows), black on the light ones. Without
    it, Register (100% light) and Aspiring Mangaka (96%) render white-on-white. */
 .combo-node:hover {
@@ -1632,7 +1632,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .wiki-section-empty { padding: 1.5rem; text-align: center; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.85rem; font-style: italic; border-top: 1px dashed var(--border-color); }
 .wiki-section-empty-flex { flex-basis: 100%; }
 
-/* System page dynamic tab grid (js/description.js loadPageDescriptions
+/* System page dynamic tab grid (js/pages/core/description.js loadPageDescriptions
    system-page engine). .wiki-section's own box-sizing/margin-bottom
    already match what this grid needs - only the horizontal padding and
    flex-basis/height "row breaker" spacers are genuinely specific here. */
@@ -1651,7 +1651,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .wiki-media-center { display: block; margin: 1.5rem auto; }
 .wiki-media-full { margin: 1.5rem 0; }
 
-/* v0.20: stands in for an image or video that failed to load (js/description.js,
+/* v0.20: stands in for an image or video that failed to load (js/pages/core/description.js,
    showMissingMedia). The look of a skill card with no media, .skill-media-missing,
    so "missing" reads the same everywhere. It keeps an image block's alignment
    classes, hence the compound selector: .wiki-media's solid border must lose. */
@@ -1683,7 +1683,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
    tests/mobile-drawers.spec.js pins that they do not come back. */
 
 /* Right-sidebar "EDIT TAB"/"EDIT PAGE" + History buttons
-   (js/pagebuilder.js initTabEditorButtons). Un-hidden via .is-active
+   (js/pages/core/pagebuilder.js initTabEditorButtons). Un-hidden via .is-active
    instead of a direct style.display write, matching the mobile pattern
    above. */
 /* The `.btn-sys` in these selectors is load-bearing, not decoration.
@@ -1781,7 +1781,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .mobile-menu-btn { background: none; border: none; color: var(--text-white); font-size: 1.75rem; padding: 0; cursor: pointer; }
     .mobile-menu-btn[hidden] { display: none; }
     
-    /* The bottom bar (js/pagebuilder.js buildMobileBottomBar): Search, Ko-fi,
+    /* The bottom bar (js/pages/core/pagebuilder.js buildMobileBottomBar): Search, Ko-fi,
        Settings and the account, one tap away. Under the drawers and their
        backdrop, which cover it while one is open. The page and the edit
        button make room for it, and for a phone's home indicator below it. */
@@ -1861,7 +1861,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .wiki-media { width: 100% !important; max-width: 100% !important; }
     .wiki-media-left, .wiki-media-right { float: none; margin: 1rem 0; }
 
-    /* Profile card (js/description.js's character overview aside) sits
+    /* Profile card (js/pages/core/description.js's character overview aside) sits
        beside .profile-text-wrapper in a flex row on desktop. On mobile we
        want a plain single-column stack - not flex-direction: column, which
        still leaves both children as flex items subject to Chromium's flex
@@ -1878,7 +1878,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     .profile-top-split { display: block; }
     .profile-card { max-width: none; margin-bottom: 1.5rem; }
 }
-/* --- GALLERY PAGES (page_type 'gallery', js/gallery.js) ---
+/* --- GALLERY PAGES (page_type 'gallery', js/pages/types/gallery.js) ---
    A flat searchable grid rather than tabs of blocks. auto-fill with a minmax
    floor so the same markup gives four columns on a desktop and one on a
    phone, without a breakpoint per size - a gallery's item count is the thing
@@ -1920,7 +1920,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .gallery-card-name { color: var(--text-white); font-weight: bold; font-size: 0.85rem; word-break: break-word; }
 .gallery-card-note { color: var(--text-muted); font-size: 0.7rem; font-family: var(--text-mono); }
 
-/* --- TOOL PAGES (page_type 'tool', js/tool_page.js) ---
+/* --- TOOL PAGES (page_type 'tool', js/pages/types/tool_page.js) ---
    The tool leads; prose sits around it. */
 .tool-shell { display: flex; flex-direction: column; gap: 1.5rem; }
 .tool-intro:empty, .tool-notes:empty { display: none; }
@@ -1931,7 +1931,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 }
 .tool-launch-btn { text-decoration: none; }
 
-/* Sub-group heading inside a Main Dashboard column (js/pagebuilder.js
+/* Sub-group heading inside a Main Dashboard column (js/pages/core/pagebuilder.js
    buildCategoryColumn). The Others column is one column holding several
    groups - Gamemodes, Servers, Misc - so each needs a label, while a
    single-group column renders none.
@@ -2105,7 +2105,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
    Applied through its own class rather than by changing .system-button-grid,
    because buildSystemsDirectory also fills the full-width Systems Hub, where
    two fixed columns would leave most of the page empty. See the `compact`
-   option in js/pagebuilder.js.
+   option in js/pages/core/pagebuilder.js.
 
    minmax(0, 1fr) rather than 1fr: a grid track's default min is auto, so a long
    page name would refuse to shrink and push the second column off the edge. */
@@ -2187,7 +2187,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     padding-bottom: 0.35rem;
 }
 
-/* --- SITE SEARCH (v0.19 F1a, js/search.js) ------------------------------
+/* --- SITE SEARCH (v0.19 F1a, js/utility/search.js) ------------------------------
    Injected by buildGlobalSidebarMenu above #global-sidebar-nav, so it lands
    inside .global-sidebar-left on all 64 pages without any of them shipping
    markup for it.
@@ -2252,7 +2252,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     font-family: var(--text-mono); font-size: 0.65rem; text-align: center;
 }
 
-/* --- SEARCH PAGE (v0.19 F1b, search.html + js/search-page.js) ----------- */
+/* --- SEARCH PAGE (v0.19 F1b, search.html + js/pages/records/search-page.js) ----------- */
 .search-page-header { margin-bottom: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 1rem; }
 .search-page-title { color: var(--accent-blue); }
 .search-page-blurb { color: var(--text-muted); font-family: var(--text-mono); font-size: 0.85rem; margin-top: 0.5rem; max-width: 60ch; }
@@ -2301,7 +2301,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
 .site-search-more:hover { background: var(--accent-blue); color: #000; }
 
 
-/* --- MATCHUP CHART (v0.19 F4, js/dashboards.js buildMatchupTable) --------
+/* --- MATCHUP CHART (v0.19 F4, js/dashboards/dashboards.js buildMatchupTable) --------
    A 22x22 grid on a hub page that also has to work on a phone. The table is
    given its natural width and the WRAPPER scrolls, rather than the table
    shrinking to fit - squeezing 22 columns into a phone gives cells too small
@@ -2371,7 +2371,7 @@ html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after 
     border: 1px solid var(--border-color);
 }
 
-/* --- MATCHUP CLASHES (v0.20, js/dashboards.js buildMatchupTable) ---------
+/* --- MATCHUP CLASHES (v0.20, js/dashboards/dashboards.js buildMatchupTable) ---------
    A pair whose two pages don't mirror each other, marked with a dark corner on
    BOTH cells. The corner is a fixed #111 rather than a theme token because the
    tier colours under it are fixed too, and every one of them, plus the white

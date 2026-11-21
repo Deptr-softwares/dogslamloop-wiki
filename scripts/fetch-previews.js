@@ -16,7 +16,7 @@
  * regeneration workflow), correctness is the generator's.
  *
  * Credentials: uses the public anon key, which is not a secret - it already
- * ships in js/site_utils.js and is in the page source of every page on the
+ * ships in js/utility/site_utils.js and is in the page source of every page on the
  * site. Deliberately NOT the service-role key: that would bypass all RLS and
  * turn a repo compromise into a database compromise. The data read here is
  * already world-readable through the "Public Read Live Data" policy.

@@ -2,7 +2,7 @@
 // page_type picked the directory, so an "Others" or "Tools" page could not be
 // created at all without inventing a render type for it. They are different
 // questions - an Emotes page lives in others/ and renders exactly like a
-// system page, which js/page_boot.js already treats as the default for
+// system page, which js/pages/core/page_boot.js already treats as the default for
 // anything that is not a character.
 //
 // Splitting them means no migration: site_pages.page_type keeps its CHECK

@@ -120,7 +120,7 @@ test('a merged ticket is a multi-scope delta, not a full overwrite', async ({ pa
   //
   // The singular scope's key is 'full', not null. This assertion previously
   // expected 'overview:' — it had pinned the null the compiler was emitting,
-  // and so helped the bug survive: js/admin-preview.js interpolated
+  // and so helped the bug survive: js/overseer/admin-preview.js interpolated
   // key.replace(...) into the diff label, threw on the null, and abandoned
   // every remaining edit in the batch. A real merged ticket on
   // defense_attorney counted 5 edits and showed a reviewer 2.
@@ -175,7 +175,7 @@ test('approving a merged ticket does not clobber work approved after the merge w
       skills: [{ id: 'skill-one', name: 'Skill One', startup: 7 }],
     };
 
-    // Mirrors the real approval branch (js/admin-actions.js:65-75) rather
+    // Mirrors the real approval branch (js/overseer/admin-actions.js:65-75) rather
     // than assuming the delta path - under the old payload this fell through
     // to the snapshot, which is precisely how the work was lost.
     if (rev.is_delta) {

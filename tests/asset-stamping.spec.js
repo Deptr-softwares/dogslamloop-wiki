@@ -11,7 +11,7 @@
 //
 // The worst instance was v0.16: the dynamic roster icons and the Show Hidden
 // control shipped and the owner could not see them on the live site, because
-// js/pagebuilder.js was unstamped and the browser kept the copy it already had.
+// js/pages/core/pagebuilder.js was unstamped and the browser kept the copy it already had.
 // The release looked like it had not happened. That file is the reason this
 // test names pagebuilder.js specifically.
 const { test, expect } = require('@playwright/test');
@@ -39,22 +39,26 @@ test('every module in js/ is stamped, and the list is discovered', async () => {
     // A hand-kept list is a list somebody forgets to add to, and the file they
     // forget is the next pagebuilder.js.
     //
-    // js/tools/ too (v1.1). A tool page's own script sat one folder down, so
-    // the list never saw it and every tool page loaded it bare from a20d29e4
-    // on: a fix to the Free Submit Tier List reached readers up to an hour
-    // late, against a fresh tool_page.js.
-    const scan = (dir, prefix) => fs.readdirSync(path.join(ROOT, dir))
-        .filter(f => f.endsWith('.js')).map(f => prefix + f);
-    const onDisk = [...scan('js', ''), ...scan('js/tools', 'tools/')].sort();
+    // Every folder, at any depth (v1.1, then the js/ folders). A tool page's own
+    // script once sat one folder down, so the list never saw it and every tool
+    // page loaded it bare from a20d29e4 on: a fix to the Free Submit Tier List
+    // reached readers up to an hour late, against a fresh tool_page.js.
+    const scan = (rel) => fs.readdirSync(path.join(ROOT, 'js', rel), { withFileTypes: true }).flatMap(e => {
+        const name = rel ? `${rel}/${e.name}` : e.name;
+        if (e.isDirectory()) return name === 'vendor' ? [] : scan(name);
+        return e.name.endsWith('.js') ? [name] : [];
+    });
+    const onDisk = scan('').sort();
 
     expect(SHARED_MODULES).toEqual(onDisk);
-    expect(SHARED_MODULES.some(n => n.startsWith('tools/')), 'the tool scripts are on the list').toBe(true);
+    expect(SHARED_MODULES.some(n => n.startsWith('pages/tools/')), 'the tool scripts are on the list').toBe(true);
+    expect(SHARED_MODULES.some(n => n.split('/').length > 2), 'a module two folders down is on the list').toBe(true);
     expect(SHARED_MODULES.length, 'this site has many modules, not three')
         .toBeGreaterThan(20);
 
     // The three that used to be the whole list, plus the one whose absence
     // caused the incident.
-    for (const name of ['site_utils.js', 'character_tabs.js', 'input_slots.js', 'pagebuilder.js']) {
+    for (const name of ['utility/site_utils.js', 'utility/character_tabs.js', 'utility/input_slots.js', 'pages/core/pagebuilder.js']) {
         expect(SHARED_MODULES, `${name} is stamped`).toContain(name);
     }
 });
@@ -116,8 +120,8 @@ test('a character page stamps pagebuilder.js specifically', async () => {
     expect(page, 'a character page exists').toBeTruthy();
 
     const html = fs.readFileSync(page, 'utf8');
-    expect(html).toMatch(/js\/pagebuilder\.js\?v=[0-9a-f]{8}/);
-    expect(html, 'and not the bare form').not.toMatch(/js\/pagebuilder\.js"/);
+    expect(html).toMatch(/js\/pages\/core\/pagebuilder\.js\?v=[0-9a-f]{8}/);
+    expect(html, 'and not the bare form').not.toMatch(/js\/pages\/core\/pagebuilder\.js"/);
 });
 
 // --- THE HASH ITSELF ---
@@ -141,9 +145,9 @@ test('the version changes when any module changes, including a new one', async (
 
     // Dropping any single module changes it - so no module is a no-op in the
     // hash, which is what "every module is covered" actually means.
-    const tools = SHARED_MODULES.filter(n => n.startsWith('tools/'));
+    const tools = SHARED_MODULES.filter(n => n.startsWith('pages/tools/'));
     expect(tools.length, 'a tool script to check').toBeGreaterThan(0);
-    for (const name of ['pagebuilder.js', 'site_utils.js', 'discussions.js', ...tools]) {
+    for (const name of ['pages/core/pagebuilder.js', 'utility/site_utils.js', 'pages/community/discussions.js', ...tools]) {
         const without = SHARED_MODULES.filter(n => n !== name);
         expect(hashOf(without), `${name} contributes to the version`).not.toBe(sharedAssetVersion());
     }

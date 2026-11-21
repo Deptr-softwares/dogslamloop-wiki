@@ -9,7 +9,7 @@
 // So: a capability, not a role. user_roles has UNIQUE(user_id) precisely
 // because a second row broke get_my_role() for that user everywhere.
 //
-// The most important test in this file is the last one. js/pagebuilder.js
+// The most important test in this file is the last one. js/pages/core/pagebuilder.js
 // carries a comment about the time these two gates drifted apart and produced
 // an OVERSEER button that dead-ended at ACCESS DENIED; they are asserted here
 // against the same inputs so the next drift fails a test instead of a person.

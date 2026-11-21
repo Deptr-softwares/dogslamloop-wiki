@@ -2,7 +2,7 @@
 //
 // THE BUG THIS EXISTS FOR
 //
-// updateLivePreview (js/editor-sync.js) branches on the open tab: frame tabs,
+// updateLivePreview (js/editor/core/editor-sync.js) branches on the open tab: frame tabs,
 // overview, matchups, then any tab using the shared keyed UI. Combos matched
 // none of them - getKeyedSectionByTab requires `field === tabId`, and Combos is
 // a DOCUMENT (comboIntro + comboGroups + comboList) rather than a keyed array -
@@ -13,7 +13,7 @@
 // which replaced the whole composed tab with a bare block dump titled "Editing
 // combos". Editing a card's FIELDS was fine, because those handlers call the
 // document preview directly; editing a BLOCK in its write-up was not, because
-// js/editor-blocks.js calls updateLivePreview.
+// js/editor/blocks/editor-blocks.js calls updateLivePreview.
 //
 // Live from the moment the Combos tab shipped in v0.15 item 3, and found while
 // generalising that editor for Techs.

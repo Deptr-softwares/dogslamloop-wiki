@@ -1,9 +1,9 @@
 // v0.17 F5: filtering the revision queue.
 //
 // The owner's source list said the queue "is already built to filter character
-// submission". It was not - js/admin-queue.js contained the string "filter"
+// submission". It was not - js/overseer/admin-queue.js contained the string "filter"
 // zero times across 270 lines. This is that filtering, patterned on
-// js/admin-media-queue.js, which had two working dropdowns all along.
+// js/overseer/admin-media-queue.js, which had two working dropdowns all along.
 //
 // It matters more with experts than it did without them. An expert receives
 // only their own pages, because the "Staff can view queue" policy filters the
@@ -235,7 +235,7 @@ test('admin.html carries both filters and they are bound', async ({ page }) => {
     // nothing and would fail for a reason that has nothing to do with filters.
     const { html, js } = await page.evaluate(async () => ({
         html: await (await fetch('/admin.html')).text(),
-        js: await (await fetch('/js/admin-queue.js')).text(),
+        js: await (await fetch('/js/overseer/admin-queue.js')).text(),
     }));
 
     expect(html).toContain('id="queue-filter-page"');

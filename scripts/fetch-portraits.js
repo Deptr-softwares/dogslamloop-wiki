@@ -20,7 +20,7 @@
  *    a tier list page. Served from the repo they cost nothing.
  *
  * 3. The URLs are currently GUESSED, and the guess is wrong for five
- *    characters. js/tierlist.js built them by stripping punctuation from the
+ *    characters. js/pages/tier-lists/tierlist.js built them by stripping punctuation from the
  *    display name and appending "Portrait.webp", which misses
  *    DisasterPlantsPortrait2.webp, LocustPortrait.webp,
  *    BlackDeathPortrait2.webp and Boomcat.webp. The <img> carries

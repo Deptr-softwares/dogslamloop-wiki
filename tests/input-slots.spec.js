@@ -40,7 +40,7 @@ async function openCrowCharmer(page, waitUntil = 'networkidle', row = CROW) {
 // rather than keeping its own copy of that list.
 const slots = (() => {
   const w = {};
-  ['character_tabs.js', 'input_slots.js'].forEach(file => {
+  ['utility/character_tabs.js', 'utility/input_slots.js'].forEach(file => {
     new Function('window', fs.readFileSync(path.join(ROOT, 'js', file), 'utf8'))(w);
   });
   return w;

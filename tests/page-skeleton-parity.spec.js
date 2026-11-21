@@ -50,14 +50,14 @@ const NEVER_ROUTED = [
 // #tab-overview is .tab-content) and that asymmetry is load-bearing for
 // framedata.js/description.js, so it is asserted exactly rather than loosely.
 //
-// Derived from js/character_tabs.js rather than restated here. This spec's
+// Derived from js/utility/character_tabs.js rather than restated here. This spec's
 // claim is that the router builds what the vocabulary declares; a second copy
 // would only ever assert that two hand-maintained lists agree with each other,
 // and it was that copy - not the router - that broke when v0.15 added the
 // Combos and Starter Guide tabs.
 const EXPECTED_CHARACTER_TABS = (() => {
   const src = require('fs').readFileSync(
-    require('path').join(__dirname, '..', 'js', 'character_tabs.js'), 'utf8');
+    require('path').join(__dirname, '..', 'js', 'utility', 'character_tabs.js'), 'utf8');
   const fakeWindow = {};
   new Function('window', src)(fakeWindow);
   // includeOptional: this describes the skeleton page_router.js BUILDS, and it
@@ -70,8 +70,8 @@ const EXPECTED_CHARACTER_TABS = (() => {
   }));
 })();
 
-// Ids the shared chrome in js/pagebuilder.js, js/description.js and
-// js/framedata.js look up directly. A router that omits any of them fails
+// Ids the shared chrome in js/pages/core/pagebuilder.js, js/pages/core/description.js and
+// js/pages/core/framedata.js look up directly. A router that omits any of them fails
 // silently - most of these lookups bail without throwing.
 const REQUIRED_CHROME_IDS = [
   'master-sidebar', 'global-sidebar-nav', 'sidebar-dynamic-dock',
@@ -90,7 +90,7 @@ async function captureSignature(page) {
             el.tagName + (el.className ? '.' + el.className.trim().split(/\s+/).join('.') : ''))
         : null,
       // Direct children of the content area only. A bare [id^="tab-"] also
-      // matches the nested variant tabs js/framedata.js builds inside a skill
+      // matches the nested variant tabs js/pages/core/framedata.js builds inside a skill
       // card (tab-<move>-<variant>), so whether this passed depended on
       // whether the live frame data happened to arrive before the snapshot -
       // it failed CI intermittently on one character at a time. The router's
@@ -106,14 +106,14 @@ async function captureSignature(page) {
          'character-alerts-container', 'btn-edit-current-tab']
           .map(id => [id, !!document.getElementById(id)])
       ),
-      // js/pagebuilder.js:120 resolves the active tab through this exact
+      // js/pages/core/pagebuilder.js:120 resolves the active tab through this exact
       // selector. It is the single most brittle contract the router inherits.
       activeNavButton: !!document.querySelector('nav.character-nav .btn-manga.active'),
       hasSidebarToggle: !!document.querySelector('.sidebar-toggle-btn'),
       // Non-empty proves the stylesheets were parsed before this ran.
       accentBlue: getComputedStyle(document.documentElement)
         .getPropertyValue('--accent-blue').trim(),
-      // js/site_meta.js reads --frame-color-* via getComputedStyle at
+      // js/utility/site_meta.js reads --frame-color-* via getComputedStyle at
       // script-parse time. If CSS ever became async these silently go blank
       // and every frame-data tick loses its colour.
       frameColorsPopulated: window.FRAME_COLORS
@@ -136,7 +136,7 @@ test.describe('character pages', () => {
         'MAIN.main-content-area.space-y-6',
         'ASIDE.local-sidebar-right',
       ]);
-      // js/character_modes.js appends an Ultimate tab at runtime for
+      // js/pages/core/character_modes.js appends an Ultimate tab at runtime for
       // base-only characters, once it has read the page registry - so whether
       // it is present here depends on a network response, not on the router.
       // This spec is about what the router builds, so that tab is filtered
@@ -150,7 +150,7 @@ test.describe('character pages', () => {
       // Classes are asserted as a superset, not an exact match, and this is a
       // race fix rather than a loosening.
       //
-      // loadPageDescriptions (js/description.js:740/827/881) adds
+      // loadPageDescriptions (js/pages/core/description.js:740/827/881) adds
       // 'vessel-content space-y-6' to #tab-overview, #tab-matchups and
       // #tab-counterplay once the page's data arrives. The boot fires it
       // without awaiting, so whether it has run by the time this snapshot is
@@ -209,7 +209,7 @@ test.describe('system pages', () => {
 });
 
 test('system pages expose the container description.js requires', async ({ page }) => {
-  // js/description.js:494 queries .main-content-area by CLASS and returns
+  // js/pages/core/description.js:494 queries .main-content-area by CLASS and returns
   // early if absent - a router that renamed it would render nothing at all,
   // with no error anywhere.
   await page.goto('/systems/m1-trading/index.html', { waitUntil: 'domcontentloaded' });

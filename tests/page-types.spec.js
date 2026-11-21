@@ -94,7 +94,10 @@ test('the vocabulary is defined once, anywhere in the repo', async () => {
 
     for (const root of roots) {
         const dir = path.join(__dirname, '..', root);
-        for (const file of fs.readdirSync(dir).filter(f => f.endsWith('.js'))) {
+        const files = root === 'js'
+            ? require('../scripts/asset-version.js').SHARED_MODULES
+            : fs.readdirSync(dir).filter(f => f.endsWith('.js'));
+        for (const file of files) {
             if (root === 'scripts' && file === 'page-types.js') continue;
             // This file, which has to name both words to explain the rule.
             if (root === 'tests' && file === 'page-types.spec.js') continue;

@@ -2,7 +2,7 @@
 
    The page became N per-person lists. Its own stylesheet rather than more
    rules in Layout.css, because the old .tier-list-* classes are still live -
-   js/tierlist.js renders the previous shape for the admin preview and the
+   js/pages/tier-lists/tierlist.js renders the previous shape for the admin preview and the
    existing editor - and adding to them would mean two features editing the
    same rules with different intentions.
 
@@ -23,7 +23,7 @@
 
 /* A copy's badge (v1.2): its label on the portrait's top corner, over the art
    (the image is z-index 3). Background and text colour are set inline by
-   tierBadgeElement (js/site_utils.js), which checks the colour first. Shared
+   tierBadgeElement (js/utility/site_utils.js), which checks the colour first. Shared
    with the editor's board and tray, which load this sheet too. */
 .tier-badge {
     position: absolute;

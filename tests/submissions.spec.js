@@ -2,7 +2,7 @@
 // workflow/UI redesign", Phase 1). Before this page existed, a regular
 // contributor had zero way to see/edit/withdraw their own pending
 // submission - admin.html's RBAC gate blocks anyone without admin/reviewer
-// outright (js/admin-core.js:161).
+// outright (js/overseer/admin-core.js:161).
 const { test, expect } = require('@playwright/test');
 
 test('submissions.html: logged-out visitor sees a login prompt, not an access-denied wall', async ({ page }) => {

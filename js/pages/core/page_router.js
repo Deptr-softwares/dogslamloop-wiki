@@ -1,0 +1,284 @@
+/**
+ * Dogslamloop Wiki - Page Router (skeleton builder)
+ *
+ * Every character and system page used to be a hand-authored ~160-line HTML
+ * file whose only real variance was the page id and display title. This file
+ * holds that markup once. A page stub sets window.PAGE_ROUTE in <head>, loads
+ * this script as the first element in <body>, and gets the full skeleton.
+ *
+ * Deliberately NOT covered by this router (they stay hand-authored, and
+ * tests/page-skeleton-parity.spec.js asserts they never define PAGE_ROUTE):
+ *   characters/Template  - documentation page in a character page's clothes
+ *   systems/collaborators - own fetch engine, own containers
+ *   systems/tierlist      - own pageType, loads tierlist.js
+ *   systems/updatelog     - driven by home_widgets.js
+ *   systems/color-codes   - hand-authored swatch markup
+ *
+ * Pairs with js/pages/core/page_boot.js, which runs the per-type boot sequence as the
+ * LAST script on the page. The split matters: this file decides what the DOM
+ * looks like, that one decides what runs, and keeping boot last preserves the
+ * DOMContentLoaded handler ordering the old inline scripts had (site_meta.js
+ * registers first, so applyCharacterTheme still runs before the boot).
+ */
+
+window.buildPageSkeleton = function (route, rootPath) {
+    if (!route || !route.pageId || !route.pageType) {
+        console.error('[Router] window.PAGE_ROUTE missing or incomplete; page cannot render.');
+        return null;
+    }
+
+    // Stubs live two levels deep (characters/<Name>/, systems/<slug>/). Kept
+    // as a literal rather than derived, because getRootPath() (site_utils.js)
+    // has not loaded yet at this point - this script runs before it by design.
+    //
+    // 404.html passes its own root: it is served from an arbitrary depth for
+    // any unmatched URL and carries <base href="/">, so two levels up is the
+    // wrong answer there and '/' is always the right one.
+    const ROOT = rootPath || '../../';
+
+    // The character tabs come from js/utility/character_tabs.js, which every page
+    // loads immediately before this one - the list used to live here, and the
+    // other twelve files holding a copy each had to be kept in step by hand.
+    // `gallery` has no handler anywhere and renders empty; it is kept
+    // deliberately, and is marked `editable: false` there so the admin and
+    // editor strips keep leaving it out.
+    //
+    // `hidden` is derived from isDefault rather than written into each entry,
+    // because which tab starts visible was separately hardcoded here, in
+    // admin.html's markup and in admin-preview.js's restore-from-diff-mode.
+    //
+    // The PAGE_ROUTE.tabs escape hatch is intentionally unused today. It lets
+    // the generator start emitting per-page tab lists later without reworking
+    // this module. Unifying character tabs with desc_data.tabs[] the way
+    // system pages already work is a much larger data-model change (see
+    // description.js:640-828, which is shape-driven rather than tab-driven)
+    // and is explicitly out of scope for v0.9.
+    //
+    // includeOptional, because this is markup rather than a decision about what
+    // a reader can reach. The page row that says whether this character has the
+    // Techs tab has not been fetched yet - this script runs as the first
+    // element in <body> - so the button and panel ship for every character and
+    // window.applyOptionalTabVisibility() un-hides them once the answer lands
+    // (js/utility/character_tabs.js). Same arrangement edit.html has always used for
+    // the Ultimate button. `optionalHidden` below is what makes the default
+    // OFF: a character whose fetch never completes shows one tab too few, not
+    // an empty tab nobody can fill.
+    const DEFAULT_CHARACTER_TABS = (window.getCharacterTabs
+        ? window.getCharacterTabs({ includeOptional: true })
+        : []
+    ).map(t => ({
+        id: t.id,
+        label: t.label,
+        classes: t.isDefault ? t.panelClass : `${t.panelClass} hidden`,
+        optionalHidden: !!t.optional,
+    }));
+
+    if (!DEFAULT_CHARACTER_TABS.length && !route.tabs) {
+        console.error('[Router] js/utility/character_tabs.js did not load before this script; the tab strip will be empty.');
+    }
+
+    const tabs = route.tabs || DEFAULT_CHARACTER_TABS;
+
+    // Content is owner/contributor-authored and arrives via the generator, but
+    // escaping here costs nothing and keeps the "escape at every innerHTML
+    // interpolation" standard this codebase holds everywhere else intact.
+    function esc(str) {
+        return String(str === null || str === undefined ? '' : str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // The owner's pixel icons, as window.uiIconHTML (js/utility/site_meta.js) writes
+    // them: this file runs before that one loads, so the markup is written
+    // out here. An id is a file in medias/icons/.
+    const uiIcon = (id) => `<span class="px-icon" aria-hidden="true" style="--px-icon: url('/medias/icons/${id}.png')"></span>`;
+    const EDIT_ICON = uiIcon('edit');
+    const KOFI_ICON = uiIcon('kofi');
+
+    function mobileNav() {
+        return `
+    <div class="mobile-top-bar">
+        <!-- A button, not a link home. On a phone the sidebar it opens carries
+             its own "dogslamloop wiki" link to the Main Dashboard, so the bar
+             linking there too was the site's second route to the same place -
+             and it was spending the one control a reader could reach the
+             navigation with. Owner's call, 2026-08-14.
+
+             Left control opens the LEFT drawer, right control opens the RIGHT
+             one, which is the only mapping a thumb can guess. -->
+        <button type="button" class="mobile-logo-link" id="mobile-nav-toggle" aria-label="Open navigation menu" aria-expanded="false" aria-controls="master-sidebar">
+            <img src="${ROOT}medias/images/DogslamloopIcon.webp" class="mobile-logo-img" alt="">
+            <span class="mobile-site-title">dogslamloop wiki</span>
+        </button>
+        <button class="mobile-menu-btn" id="mobile-menu-toggle" aria-label="Open table of contents" aria-expanded="false">☰</button>
+    </div>
+    <div class="mobile-backdrop" id="mobile-backdrop"></div>`;
+    }
+
+    function leftSidebar() {
+        return `
+        <aside class="global-sidebar-left" id="master-sidebar" aria-label="Site navigation">
+            <div class="sidebar-header-top">
+                <img src="${ROOT}medias/images/DogslamloopIcon.webp" alt="Site Logo" class="sidebar-site-logo">
+                <div class="sidebar-title-container">
+                    <a href="${ROOT}index.html" class="site-title">dogslamloop wiki</a>
+                    <p class="site-subtitle">Alpha v0.4</p>
+                </div>
+            </div>
+
+            <button class="sidebar-toggle-btn" id="btn-sidebar-collapse" title="Collapse Sidebar" aria-label="Collapse sidebar">☰</button>
+
+            <div class="sidebar-master-title">Navigation</div>
+
+            <div id="global-sidebar-nav">
+                <p class="loading-msg loading-msg-sm loading-msg-busy">Loading menu...</p>
+            </div>
+
+            <div id="sidebar-dynamic-dock" class="sidebar-dynamic-dock"></div>
+
+            <div class="kofi-btn-wrapper kofi-btn-wrapper-spaced">
+                <a href="https://Ko-fi.com/deptr_software_coffee_corner" target="_blank" class="btn-sys btn-sys-yellow kofi-btn-full">
+                    ${KOFI_ICON}
+                    <span class="kofi-text">SUPPORT KO-FI</span>
+                </a>
+            </div>
+        </aside>`;
+    }
+
+    // withToc is separate from the sidebar itself, because this aside is two
+    // things: a table of contents, and the ONLY place the Edit and History
+    // buttons live. A gallery genuinely has no headings to index - but it is
+    // still a page somebody has to be able to edit, and since v0.14 removed
+    // the duplicate mobile pair there is nowhere else to put them.
+    function rightSidebar(label, withToc = true) {
+        return `
+        <aside class="local-sidebar-right" aria-label="${withToc ? 'On this page' : 'Page tools'}">
+            <div class="sidebar-tab-header">
+                <div class="sidebar-master-title">${esc(label)}</div>
+
+                <button id="btn-edit-current-tab" class="btn-sys btn-sys-regular tab-editor-btn-sidebar">
+                    ${EDIT_ICON}
+                    EDIT ${label === 'On this tab' ? 'TAB' : 'PAGE'}
+                </button>
+            </div>
+${withToc ? `
+            <ul class="toc-list" id="dynamic-toc">
+                <li><p class="loading-msg loading-msg-busy">Loading contents...</p></li>
+            </ul>` : ''}
+        </aside>`;
+    }
+
+    function characterMain() {
+        const navButtons = tabs.map((t, i) => `
+                    <button id="nav-${esc(t.id)}" class="btn-manga btn-manga-slanted${i === 0 ? ' active' : ''}${t.optionalHidden ? ' hidden' : ''}"><div class="btn-manga-content"><span class="btn-manga-text">${esc(t.label)}</span></div></button>`).join('');
+
+        const tabDivs = tabs.map(t =>
+            `            <div id="tab-${esc(t.id)}" class="${esc(t.classes)}"></div>`).join('\n');
+
+        return `
+        <main class="main-content-area space-y-6">
+
+            <div class="back-home-wrapper">
+                <a href="${ROOT}index.html" class="btn-ghost">← Back to Home</a>
+            </div>
+
+            <header class="character-header">
+                <div id="character-alerts-container" class="character-alerts-container"></div>
+
+                <h1 class="character-title">${esc(route.title || route.pageId)}</h1>
+
+                <!-- The state chips and the jump-to-discussion button share a
+                     row, but the button is a SIBLING of the bar rather than a
+                     child of it. #character-mode-bar hides itself entirely for
+                     a character with fewer than two states, which is 20 of the
+                     22 - putting the button inside it would mean the button
+                     only existed on the two characters that happen to have an
+                     ultimate. -->
+                <div class="character-toolbar">
+                    <div id="character-mode-bar" class="character-mode-bar hidden" role="tablist" aria-label="Character mode"></div>
+
+                    <button type="button" id="btn-jump-discussion" class="btn-sys btn-sys-regular btn-jump-discussion" aria-label="Jump to the discussion">
+                        ${uiIcon('discussion')}
+                        <span id="jump-discussion-count" class="jump-discussion-count"></span>
+                    </button>
+                </div>
+
+                <nav class="character-nav">${navButtons}</nav>
+            </header>
+
+${tabDivs}
+
+            <!-- The discussion thread, below the tabs rather than as one more
+                 tab. A tab is a section of the article; this is the readers
+                 talking about it, and burying a conversation behind a button
+                 nobody clicks is how a discussion feature dies quietly.
+                 Filled by js/pages/community/discussions.js, which renders nothing at all if
+                 the table is unreachable. -->
+            <section id="discussion-section" class="discussion-section" aria-label="Discussion"></section>
+
+        </main>`;
+    }
+
+    function systemMain() {
+        // No tab divs here on purpose - description.js builds them from
+        // desc_data.tabs[] and inserts its own nav after .home-main-header.
+        return `
+        <main class="main-content-area space-y-6">
+
+            <div class="system-back-row">
+                <a href="${ROOT}systems/index.html" class="btn-ghost">← Back to Systems Hub</a>
+            </div>
+
+            <header class="home-main-header">
+                <h1 class="home-main-title" id="system-main-title">${esc(route.title || 'Loading...')}</h1>
+            </header>
+
+            <div id="character-alerts-container" class="character-alerts-container"></div>
+
+        </main>`;
+    }
+
+    const isCharacter = route.pageType === 'character';
+
+    // Gallery and tool pages reuse the system shell: a back link, a title and
+    // the alerts container, with the body filled at runtime. What differs is
+    // which script fills it (js/pages/types/gallery.js, js/pages/types/tool_page.js), not the frame
+    // around it - so there is nothing here for them to override.
+    //
+    // A gallery has no headings to index - its own search box is how you find
+    // something in it - so it gets the sidebar WITHOUT the contents list.
+    //
+    // It used to get no sidebar at all, which is why the Emotes page had no
+    // edit button and nobody could contribute to it: #btn-edit-current-tab
+    // lives in there, initTabEditorButtons ran, found nothing, and did nothing.
+    // Dropping the whole aside to drop the list threw the buttons out with it.
+    const hasToc = route.pageType !== 'gallery';
+
+    const skeleton = `${mobileNav()}
+
+    <div class="site-layout">
+${leftSidebar()}
+${isCharacter ? characterMain() : systemMain()}
+${rightSidebar(isCharacter ? 'On this tab' : (hasToc ? 'On this page' : 'This page'), hasToc)}
+    </div>`;
+
+    return skeleton;
+};
+
+// The parse-time path, used by every generated stub.
+//
+// insertAdjacentHTML('beforebegin') on the currently-executing script is the
+// safe mid-parse insertion: it writes before this <script> element without
+// disturbing the parser's insertion point. Assigning to document.body.innerHTML
+// here would destroy the not-yet-parsed rest of the document, including the
+// script tags below this one.
+//
+// Guarded on PAGE_ROUTE so the same file can be loaded by a page that decides
+// its route later - js/pages/core/page_rescue.js does exactly that, and calls
+// buildPageSkeleton itself once it knows what it is rendering.
+(function () {
+    if (!window.PAGE_ROUTE) return;
+
+    const skeleton = window.buildPageSkeleton(window.PAGE_ROUTE);
+    if (skeleton) document.currentScript.insertAdjacentHTML('beforebegin', skeleton);
+})();

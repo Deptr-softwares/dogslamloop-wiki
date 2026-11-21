@@ -66,7 +66,7 @@
                     approve media, I will have to scroll through dozens of
                     submission just to get to it. And when I want to see
                     Reports, I have to scroll through hundreds of media cards."
-                    js/admin-core.js shows the tabs a person is here for and
+                    js/overseer/admin-core.js shows the tabs a person is here for and
                     opens the first of them.
                 -->
                 <div id="admin-queue-tabs" class="admin-queue-tabs" role="tablist" aria-label="Queues">
@@ -170,7 +170,7 @@
                     every past live version of any page, with COMPARE TO LIVE
                     and RESTORE, in the review pane. Rolling a page back used to
                     need a submission on that page to be open first. Review
-                    staff only. js/admin-history.js fills the picker.
+                    staff only. js/overseer/admin-history.js fills the picker.
                 -->
                 <section class="admin-queue-panel hidden" data-queue-panel="history">
                 <div class="dashboard-header-split admin-split-header">
@@ -199,7 +199,7 @@
             <div class="editor-live-header admin-live-header">
                 <div class="admin-status-container">
                     <!-- The queue column pops in and out (owner's Overseer
-                         card, v1.2). js/admin-queue.js. -->
+                         card, v1.2). js/overseer/admin-queue.js. -->
                     <button type="button" id="queue-toggle" class="btn-sys btn-sys-blue queue-toggle" aria-controls="admin-sidebar" aria-expanded="true">☰ QUEUE</button>
                     <div class="status-dot online"></div>
                     <span id="preview-status-text" class="admin-status-text">Select a revision...</span>
@@ -210,7 +210,7 @@
             <!-- QA REPORT (owner's Overseer card, v1.2). What the contributor
                  said about the open submission. Was inside the ticket below,
                  so a submission with no ticket never showed it. Filled by
-                 renderQaReport in js/admin-preview.js. -->
+                 renderQaReport in js/overseer/admin-preview.js. -->
             <section id="qa-report-panel" class="qa-report-panel hidden" aria-labelledby="qa-report-title">
                 <h4 id="qa-report-title" class="ticket-header-title qa">QA REPORT</h4>
                 <div id="qa-report" class="qa-report"></div>
@@ -276,7 +276,7 @@
                          editor, in the same place: above the tab strip,
                          because the tabs mean different things depending on
                          which state is selected. Built by
-                         js/admin-modes.js and hidden for every page that
+                         js/overseer/admin-modes.js and hidden for every page that
                          declares no states, which is most of them. -->
                     <div id="preview-mode-bar" class="character-mode-bar admin-preview-mode-bar hidden" role="tablist" aria-label="Character state"></div>
                     <nav id="preview-tab-nav" class="admin-preview-tab-nav hidden" aria-label="Revision sections">
@@ -286,7 +286,7 @@
                         <button id="nav-specials" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Innate</span></div></button>
                         <button id="nav-combos" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Combos</span></div></button>
                         <!-- Optional: hidden until page_data.tab_settings says this
-                             character has it. See js/character_tabs.js. -->
+                             character has it. See js/utility/character_tabs.js. -->
                         <button id="nav-techs" class="btn-manga btn-manga-slanted hidden"><div class="btn-manga-content"><span class="btn-manga-text">Techs</span></div></button>
                         <button id="nav-starterGuide" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Starter Guide</span></div></button>
                         <button id="nav-matchups" class="btn-manga btn-manga-slanted"><div class="btn-manga-content"><span class="btn-manga-text">Matchups</span></div></button>
@@ -379,29 +379,29 @@
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
     <!-- First: the character tab vocabulary. site_utils.js derives
          FRAME_MOVE_CATEGORIES from it and admin-*.js their tab strips. -->
-    <script src="js/character_tabs.js?v=448691d1"></script>
-    <script src="js/input_slots.js?v=448691d1"></script>
-    <script src="js/site_utils.js?v=448691d1"></script>
-    <script src="js/site_meta.js?v=448691d1"></script>
-    <script src="js/pagebuilder.js?v=448691d1"></script>
-    <script src="js/search.js?v=448691d1"></script>
-    <script src="js/framedata.js?v=448691d1"></script>
-    <script src="js/description.js?v=448691d1"></script>
-    <script src="js/internalstyling.js?v=448691d1"></script>
-    <script src="js/tierlist.js?v=448691d1"></script>
+    <script src="js/utility/character_tabs.js?v=4a6623d0"></script>
+    <script src="js/utility/input_slots.js?v=4a6623d0"></script>
+    <script src="js/utility/site_utils.js?v=4a6623d0"></script>
+    <script src="js/utility/site_meta.js?v=4a6623d0"></script>
+    <script src="js/pages/core/pagebuilder.js?v=4a6623d0"></script>
+    <script src="js/utility/search.js?v=4a6623d0"></script>
+    <script src="js/pages/core/framedata.js?v=4a6623d0"></script>
+    <script src="js/pages/core/description.js?v=4a6623d0"></script>
+    <script src="js/pages/core/internalstyling.js?v=4a6623d0"></script>
+    <script src="js/pages/tier-lists/tierlist.js?v=4a6623d0"></script>
     
-    <script src="js/admin-core.js?v=448691d1"></script>
-    <script src="js/admin-queue.js?v=448691d1"></script>
-    <script src="js/diff-markers.js?v=448691d1"></script>
-    <script src="js/side-by-side.js?v=448691d1"></script>
-    <script src="js/admin-diff.js?v=448691d1"></script>
-    <script src="js/admin-modes.js?v=448691d1"></script>
-    <script src="js/admin-preview.js?v=448691d1"></script>
-    <script src="js/admin-tickets.js?v=448691d1"></script>
-    <script src="js/admin-actions.js?v=448691d1"></script>
-    <script src="js/admin-merge-compiler.js?v=448691d1"></script>
-    <script src="js/admin-history.js?v=448691d1"></script>
-    <script src="js/admin-media-queue.js?v=448691d1"></script>
-    <script src="js/admin-reports.js?v=448691d1"></script>
+    <script src="js/overseer/admin-core.js?v=4a6623d0"></script>
+    <script src="js/overseer/admin-queue.js?v=4a6623d0"></script>
+    <script src="js/utility/diff-markers.js?v=4a6623d0"></script>
+    <script src="js/utility/side-by-side.js?v=4a6623d0"></script>
+    <script src="js/overseer/admin-diff.js?v=4a6623d0"></script>
+    <script src="js/overseer/admin-modes.js?v=4a6623d0"></script>
+    <script src="js/overseer/admin-preview.js?v=4a6623d0"></script>
+    <script src="js/overseer/admin-tickets.js?v=4a6623d0"></script>
+    <script src="js/overseer/admin-actions.js?v=4a6623d0"></script>
+    <script src="js/overseer/admin-merge-compiler.js?v=4a6623d0"></script>
+    <script src="js/overseer/admin-history.js?v=4a6623d0"></script>
+    <script src="js/overseer/admin-media-queue.js?v=4a6623d0"></script>
+    <script src="js/overseer/admin-reports.js?v=4a6623d0"></script>
 </body>
 </html>

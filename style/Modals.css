@@ -120,7 +120,7 @@
 .modal-footer.centered-actions {
     justify-content: center;
 }
-/* --- SITE-WIDE CONFIRMATION (window.siteConfirm, js/site_utils.js) ---
+/* --- SITE-WIDE CONFIRMATION (window.siteConfirm, js/utility/site_utils.js) ---
    The editor's confirmation is bound to #editor-custom-modal, which only
    edit.html and post-editor.html carry. site_utils.js runs on every page, so
    Clear All Notifications needed one that exists everywhere (v0.16 fine-tuning

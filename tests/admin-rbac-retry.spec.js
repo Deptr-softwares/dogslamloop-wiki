@@ -13,7 +13,7 @@
 const { test, expect } = require('@playwright/test');
 
 // getSession() is called by more than just the RBAC gate under test here -
-// js/pagebuilder.js's login dock calls it too, independently, on every page
+// js/pages/core/pagebuilder.js's login dock calls it too, independently, on every page
 // - so a shared call-counter (this call is #0, the next is #1...) races
 // between callers in an undefined order and doesn't reliably target "the
 // RBAC gate's own first attempt". Time-based sequencing sidesteps that:

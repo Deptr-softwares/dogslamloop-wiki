@@ -1,4 +1,4 @@
-// Coverage for owner.html's tool grouping (js/owner-nav.js).
+// Coverage for owner.html's tool grouping (js/owner/owner-nav.js).
 //
 // owner.html grew from two tools to ten in one scroll with no navigation. The
 // tools are now in four groups. The failure mode this guards is specific and

@@ -1,4 +1,4 @@
-// Coverage for owner.html/js/owner.js: Personnel Management + Media Garbage
+// Coverage for owner.html/js/owner/owner.js: Personnel Management + Media Garbage
 // Collection, split out of admin.html/admin.js as part of the admin-page
 // rework (they're admin-only tools unrelated to the reviewer workflow
 // admin.html is scoped to). Same testing strategy as admin-dedupe.spec.js:

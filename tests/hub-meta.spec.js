@@ -3,7 +3,7 @@
 //
 // The constraint that forces this whole mechanism to exist: Discord, Twitter
 // and Facebook unfurlers do not execute JavaScript. A tag injected at runtime
-// by js/site_meta.js is never seen by any of them, so hub metadata cannot be
+// by js/utility/site_meta.js is never seen by any of them, so hub metadata cannot be
 // solved the way hub prose was. And because all three pages are hand-authored
 // (NEVER_TOUCH in generate-pages.js), they cannot be regenerated wholesale
 // either - hence a region inside an otherwise hand-written file.

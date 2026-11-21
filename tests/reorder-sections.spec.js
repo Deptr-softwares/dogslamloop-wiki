@@ -135,14 +135,14 @@ test('every ordered strip offers the controls', async ({ page }) => {
   const root = path.join(__dirname, '..');
 
   const wired = {
-    'js/editor-tabs.js': [
+    'js/editor/tabs/editor-tabs.js': [
       /reorderStripControls\(`frame\.\$\{tabId\}`/,       // moves
       /reorderStripControls\('desc\.extras'/,             // overview custom sections
       /reorderStripControls\('desc\.matchups'/,           // matchups
       /reorderStripControls\(`desc\.\$\{groups\.field\}`/, // combo groups
       /reorderStripControls\(`desc\.\$\{section\.field\}`/, // counterplay, starter guide, later ones
     ],
-    'js/editor-system.js': [
+    'js/editor/tabs/editor-system.js': [
       /reorderStripControls\('desc\.tabs'/,                       // system tabs
       /reorderStripControls\(`desc\.tabs\.\$\{window\.currentSystemTabIdx\}\.sections`/, // system sections
     ],
@@ -203,7 +203,7 @@ test('a reorder on a character page does not rebuild the system editor', async (
 
   await boot(page, CHAR);
 
-  // js/editor-system.js registers a refresh hook at file load, and edit.html
+  // js/editor/tabs/editor-system.js registers a refresh hook at file load, and edit.html
   // loads it on every page type. Both editors render into #interactive-builder,
   // so a hook that did not decline would draw the system editor over this one.
   await page.evaluate(() => {

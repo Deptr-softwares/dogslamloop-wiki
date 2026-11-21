@@ -1,0 +1,731 @@
+/**
+ * Dogslamloop Wiki - Frame Data Engine
+ */
+
+const frameDataLegendHTML = `
+    <section class="wiki-section legend-section">
+        <h3 class="legend-title">Frame Data Color Legend</h3>
+        <div class="legend-grid">
+            <div class="legend-item"><span class="legend-swatch bg-tick-start"></span><div><span class="legend-name">Startup</span></div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-misc"></span><div><span class="legend-name">Misc</span>Variable frame data aka no hard number so it always comes with a note</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-active"></span><div><span class="legend-name">Active</span>Hitbox view ...</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-recov"></span><div><span class="legend-name">Recovery</span>aka Whiff endlag</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-selfstun"></span><div><span class="legend-name">Self Stun</span>for Grab moves mostly</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-inskillstun"></span><div><span class="legend-name">InSkill Stun</span>A weird version of Self Stun, but you can move around</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-targetstun"></span><div><span class="legend-name">Target Stun</span>on Hit</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-blockendlag"></span><div><span class="legend-name">Block Endlag</span>aka Block Stun</div></div>
+            <div class="legend-item"><span class="legend-swatch bg-tick-inactive"></span><div><span class="legend-name">Inactive</span>Frames between Active frames</div></div>
+            <div class="legend-item"><span class="legend-swatch span-iframe-complete"></span><div><span class="legend-name">Complete I-Frames</span>aka Domain I-Frames</div></div>
+            <div class="legend-item"><span class="legend-swatch span-iframe-swarm"></span><div><span class="legend-name">Swarm I-Frames</span></div></div>
+            <div class="legend-item"><span class="legend-swatch span-iframe-explosion"></span><div><span class="legend-name">Explosion I-Frames</span></div></div>
+            <div class="legend-item"><span class="legend-swatch span-iframe-bullet"></span><div><span class="legend-name">Bullet I-Frames</span></div></div>
+            <div class="legend-item"><span class="legend-swatch span-iframe-melee"></span><div><span class="legend-name">Melee I-Frames</span></div></div>
+        </div>
+
+        <!-- The one thing on this page that is a convention rather than a
+             colour. It has to be stated once, or a reader has no way to learn
+             that a smooth block means "nobody counted this". -->
+        <p class="legend-estimate-note">
+            <span class="legend-swatch legend-swatch-estimate bg-tick-recov"></span>
+            A bar divided into single frames was <strong>counted</strong>. A smooth block with no
+            divisions was not: it is either an <strong>estimate</strong> or a length
+            <strong>timed in seconds</strong>. Hover over it to see which.
+        </p>
+    </section>
+`;
+
+// Dictionary for standardized game windows (Overlays)
+// Reverse Hitcancel was one until 2026-11-12, retired by the owner: no Frame
+// Track ever used it, and an old revision that names it just draws nothing.
+const windowTypes = {
+    'iframe-melee': { class: 'span-iframe-melee', label: 'Melee I-Frames' },
+    'iframe-bullet': { class: 'span-iframe-bullet', label: 'Bullet I-Frames' },
+    'iframe-explosion': { class: 'span-iframe-explosion', label: 'Explosion I-Frames' },
+    'iframe-swarm': { class: 'span-iframe-swarm', label: 'Swarm I-Frames' },
+    'iframe-complete': { class: 'span-iframe-complete', label: 'Complete I-Frames' }
+};
+
+// --- SKILL CARD ACCOLADES (v1.2, the owner's Kanban card) ---
+// The 26 themselves (window.ACCOLADES) and their icons (window.accoladeIconHTML)
+// are in js/utility/site_meta.js since the mini icons in text, which any page can show.
+
+// No two of one group can be true of the same move, so the editor unticks the
+// rest of a group when one is ticked (js/editor/tabs/editor-framedata.js).
+window.ACCOLADE_OPPOSITES = [
+    ['punishable-on-block', 'safe-on-block'],
+    ['punishable-on-whiff', 'safe-on-whiff'],
+    ['punishable-on-hit', 'safe-on-hit'],
+    ['hit-only-air-ragdoll', 'hit-ragdoll', 'cannot-hit-ragdoll'],
+    ['uncancelable', 'semi-uncancelable'],
+];
+
+// A move's accolades as the owner's entries, in the owner's order. An id that
+// is not one of theirs is left out rather than shown as a bare id.
+window.orderedAccolades = function (ids) {
+    const picked = new Set(Array.isArray(ids) ? ids : []);
+    return window.ACCOLADES.filter(a => picked.has(a.id));
+};
+
+// The badges under a move's name, or nothing, so a move with none takes no
+// room. Their hover is bound once the card is in the page.
+function accoladesHTML(ids) {
+    const list = window.orderedAccolades(ids);
+    if (!list.length) return '';
+    const badges = list.map(a => `<li class="skill-accolade" data-accolade="${window.escapeHtml(a.id)}" style="--accolade-color: ${window.escapeHtml(a.color)}">${window.accoladeIconHTML(a)}${window.escapeHtml(a.name)}</li>`);
+    return `<ul class="skill-accolades">${badges.join('')}</ul>`;
+}
+
+// initTooltip/bindTooltip are defined once, in site_utils.js (loaded before
+// this file), and shared with description.js's inline callout tooltips.
+
+// Core frame section generator
+// --- QUALITATIVE FRAME DATA ---
+// A pro who knows how an endlag *feels* should be able to record it without
+// counting frames. Seven steps, the owner's own wording, ordered from nothing
+// to unrecoverable.
+//
+// `frames` is a nominal weight for layout only. It exists so an estimated
+// phase occupies believable space next to measured ones - it is never shown as
+// a number and must never be read as one, which is exactly why an estimated
+// phase renders with no tick divisions: the ticks are the visual language for
+// "counted", so their absence says "estimated" with no legend required. That
+// is the owner's design, and it is better than a marker plus styling because
+// it also withholds the per-frame view, which would be meaningless here.
+window.FRAME_ESTIMATES = [
+    { id: 'none', label: 'Non-existent', frames: 0 },
+    { id: 'very-short', label: 'Very short', frames: 3 },
+    { id: 'short', label: 'Short', frames: 8 },
+    { id: 'mid', label: 'Mid', frames: 16 },
+    { id: 'high', label: 'High', frames: 28 },
+    { id: 'very-high', label: 'Very high', frames: 45 },
+    { id: 'rip', label: 'RIP', frames: 70 },
+];
+
+window.frameEstimate = function(id) {
+    if (!id) return null;
+    return (window.FRAME_ESTIMATES || []).find(e => e.id === id) || null;
+};
+
+// --- SECONDS DATA (v0.19 C4) ---
+//
+// A third way to say how long a phase lasts, BESIDE counted frames and an
+// estimate rather than replacing either (owner, 2026-08-24 - the list had
+// floated replacement and they decided against it).
+//
+// Some phases are genuinely timed rather than counted: a long animation, a
+// cooldown, a state that lasts "about two seconds". Writing 120 in a frame box
+// claims a precision nobody measured; writing 2 in a seconds box does not.
+//
+// JJS runs at 60fps server-side, so a second IS 60 frames and the conversion is
+// exact rather than a display convenience - which is why it happens here, in
+// the one function that decides how wide a phase is drawn, instead of at each
+// call site.
+window.FRAMES_PER_SECOND = 60;
+
+window.phaseSeconds = function(phaseObj) {
+    const raw = Number(phaseObj && phaseObj.seconds);
+    return Number.isFinite(raw) && raw > 0 ? raw : null;
+};
+
+// The frames a phase occupies on the timeline: timed, estimated, or counted.
+//
+// Seconds first. A typed duration is a claim about how long something actually
+// lasts, where an estimate is a bucket somebody picked - so if a phase carries
+// both, the number is the more specific of the two. Nothing carries both today;
+// the order is stated so that the first row which does is not a surprise.
+window.phaseWeight = function(phaseObj) {
+    const seconds = window.phaseSeconds(phaseObj);
+    if (seconds !== null) return seconds * window.FRAMES_PER_SECOND;
+
+    const estimate = window.frameEstimate(phaseObj && phaseObj.estimate);
+    if (estimate) return estimate.frames;
+    return Number(phaseObj && phaseObj.duration) || 0;
+};
+
+// "2s", "1.5s" - trailing zeroes dropped, because 2.0s reads as a measurement
+// to three significant figures and it is not one.
+window.formatPhaseSeconds = function(seconds) {
+    const n = Number(seconds);
+    if (!Number.isFinite(n)) return '';
+    return `${Number(n.toFixed(2))}s`;
+};
+
+function createPhase(phaseObj, totalScale) {
+    const phase = document.createElement('div');
+    phase.style.position = 'relative';
+    let styleClass = phaseObj.styleClass || '';
+
+    const estimate = window.frameEstimate(phaseObj.estimate);
+    // A seconds phase overrides an estimate for width, so it must do the same
+    // here - otherwise the block says "estimated" while being drawn to a timed
+    // width, which is the one combination that misreports the data.
+    const seconds = window.phaseSeconds(phaseObj);
+    const solid = seconds !== null || !!estimate;
+
+    phase.className = `phase-section ${styleClass}`
+        + (solid ? ' phase-solid' : '')
+        + (seconds !== null ? ' phase-seconds' : (estimate ? ' phase-estimated' : ''));
+    phase.style.width = `${(window.phaseWeight(phaseObj) / totalScale) * 100}%`;
+
+    // --- STACKABLE OVERLAYS (Gradient Glows) ---
+    let activeOverlays = [];
+    if (phaseObj.overlays) activeOverlays.push(...phaseObj.overlays);
+    if (phaseObj.overlay) activeOverlays.push(phaseObj.overlay);
+
+    const hierarchy = ['iframe-melee', 'iframe-bullet', 'iframe-explosion', 'iframe-swarm', 'iframe-complete'];
+    activeOverlays.sort((a, b) => hierarchy.indexOf(a) - hierarchy.indexOf(b));
+
+    activeOverlays.forEach(overlayKey => {
+        const winDef = windowTypes[overlayKey];
+        if (winDef) {
+            const overlayEl = document.createElement('div');
+            overlayEl.className = `window-overlay ${winDef.class}`;
+            phase.appendChild(overlayEl);
+        }
+    });
+
+    // --- CUSTOM TOOLTIPS ---
+    if (phaseObj.label || estimate || seconds !== null) {
+        // The tooltip is written as HTML (window.bindTooltip), and the label is
+        // contributor text.
+        let tooltipContent = `<strong>${window.escapeHtmlKeepBreaks(phaseObj.label || (estimate ? estimate.label : ''))}</strong>`;
+
+        // Said in words as well as shown by the missing divisions, for the same
+        // reason the estimate says so below: the hover is where somebody has
+        // asked for the detail, and the detail is which unit this was measured
+        // in. The frame figure is given too, because the timeline around it is
+        // drawn in frames and a reader comparing phases needs the same unit.
+        if (seconds !== null) {
+            tooltipContent += `<br><span class="tooltip-desc tooltip-desc-seconds">`
+                + `Timed: ${window.formatPhaseSeconds(seconds)}`
+                + ` - ${seconds * window.FRAMES_PER_SECOND} frames at ${window.FRAMES_PER_SECOND}fps</span>`;
+        }
+
+        // Said in words as well as shown by the missing divisions. Somebody
+        // reading a hover has already decided they want the detail, and the
+        // one detail an estimate must not hide is that it is an estimate.
+        if (estimate && seconds === null) {
+            tooltipContent += `<br><span class="tooltip-desc tooltip-desc-estimate">Estimated: ${estimate.label.toLowerCase()} - not frame-counted</span>`;
+        }
+        
+        if (activeOverlays.length > 0) {
+            let uniqueOverlays = Array.from(new Set(activeOverlays));
+            uniqueOverlays.forEach(o => {
+                if (windowTypes[o]) {
+                    tooltipContent += `<br><span class="tooltip-desc text-purple-400">Has ${windowTypes[o].label}</span>`;
+                }
+            });
+        }
+        window.bindTooltip(phase, tooltipContent);
+    }
+
+    // No ticks for an estimate or for a timed phase - that absence IS the
+    // marker. Drawing them would claim a per-frame breakdown nobody measured,
+    // and for seconds it would invent 120 divisions out of one typed "2".
+    if (!solid) {
+        for (let i = 0; i < phaseObj.duration; i++) {
+            const tick = document.createElement('div');
+            tick.className = 'frame-tick';
+            phase.appendChild(tick);
+        }
+    }
+
+    return phase;
+}
+
+window.cachedMasterFrameData = window.cachedMasterFrameData || {}; 
+
+// What goes in a Skill Card's media box: the move's media, or the media of the
+// Micro Variant on show (owner, 2026-11-16), or the Missing Media notice.
+function skillMediaHTML(media) {
+    let mediaContent = `<div class="skill-media-missing">[ Missing Media ]</div>`;
+    if (media?.src) {
+        // Extension is read off the path, not the whole URL. A raw
+        // endsWith missed anything carrying a query string or
+        // fragment - "clip.mp4?t=123" is ordinary for storage URLs -
+        // and only knew mp4/webm, while the media library accepts
+        // anything video/*. Those all fell through to the <img>
+        // branch, which cannot play a video: that is why mp4 looked
+        // unsupported in skill cards.
+        const path = media.src.split(/[?#]/)[0].toLowerCase();
+        const isVideo = ['.mp4', '.webm', '.mov', '.m4v', '.ogv'].some(ext => path.endsWith(ext));
+        // .gif stays an image on purpose - it animates on its own.
+        const filename = path.split('/').pop();
+        const altText = media.alt || '';
+
+        if (isVideo) {
+            // Injecting lazy-loading to prevent memory nukes!
+            //
+            // aria-label, not alt: <video> has no alt attribute, so
+            // alt text entered against a video-media move used to go
+            // nowhere at all - which is how "alt text does not
+            // persist" was reported. It persisted fine in the data;
+            // it just had nothing to render into. Plenty of skill
+            // media is .mp4/.webm, so this was the common case.
+            //
+            // The shared clip (js/pages/core/description.js wikiClipHTML), which
+            // carries the corner button that opens the player.
+            mediaContent = window.wikiClipHTML(media.src, {
+                className: 'skill-media-img', label: altText,
+            }) + `
+                <span class="skill-media-filename">${window.escapeHtml(filename)}</span>`;
+        } else {
+            // Native loading="lazy" with a real src, matching how
+            // description.js renders wiki images. This carried
+            // data-lazy-src before, but initLazyMedia only ever
+            // promoted video[data-lazy-src] and iframe[data-lazy-src]
+            // - never img - so every static image in a skill card
+            // rendered with no source at all.
+            mediaContent = `
+                <img src="${window.escapeHtml(media.src)}" alt="${window.escapeHtml(altText)}" class="skill-media-img" loading="lazy">
+                <span class="skill-media-filename">${window.escapeHtml(filename)}</span>`;
+        }
+    }
+    return mediaContent;
+}
+
+async function loadMoveSection(pageId, sectionType, targetMoveId = null, pageType = 'character', modeId = null) {
+    if (pageType === 'system') return;
+
+    try {
+        let data = null;
+        
+        // 1. Check Editor Cache
+        if (window.cachedMasterFrameData && window.cachedMasterFrameData[pageId]) {
+            data = window.cachedMasterFrameData[pageId];
+        } 
+        // 2. Check Supabase
+        else {
+            if (typeof window.fetchCloudCharacterData === 'function') {
+                const cloudData = await window.fetchCloudCharacterData(pageId);
+                if (cloudData && cloudData.frame_data) {
+                    data = cloudData.frame_data;
+                    window.cachedMasterFrameData = window.cachedMasterFrameData || {};
+                    window.cachedMasterFrameData[pageId] = data; 
+                    console.log(`[Cloud] Loaded ${pageId} frame data.`);
+                }
+            }
+
+            // 3. NO LOCAL FALLBACK. This used to read
+            // characters/<Name>/<pageId>_framedata.json, from before content
+            // moved to Supabase. No such file has existed in this repo since,
+            // so it could only ever 404 - and unlike the descriptions fallback
+            // it was not even wrapped, so the request threw and was swallowed
+            // by this function's own catch. Its path was at least correct:
+            // loadMoveSection returns early for system pages, so it only ever
+            // ran for characters, which all live in characters/.
+            //
+            // `data` stays null and the throw below reports the real problem
+            // (no frame data) instead of a fetch failure for a file that was
+            // never going to be there.
+        }
+
+        if (!data) throw new Error("No frame data found.");
+
+        const container = document.getElementById(`tab-${sectionType}`);
+        if (!container) return;
+
+        // A full character's ultimate modes replace the whole moveset, so which
+        // array this tab renders depends on the active mode. resolveModeFrame
+        // hands back `data` itself for the base mode, which is every character
+        // that declares no modes - so this is a no-op for all of them.
+        const activeMode = modeId || window.activeCharacterMode || null;
+        const scopedData = typeof window.resolveModeFrame === 'function'
+            ? window.resolveModeFrame(data, activeMode)
+            : data;
+
+        let movesArray = scopedData[sectionType] || [];
+
+        // If the editor passes a specific move ID, strip out the others so only that move renders.
+        if (targetMoveId) {
+            movesArray = movesArray.filter(move => move.id === targetMoveId);
+        }
+
+        container.innerHTML = '';
+
+        // An empty move tab used to render as a blank white void with no
+        // explanation - indistinguishable from a page that failed to load.
+        // It became worth naming once modes arrived: switching to an ultimate
+        // state whose Skills have not been written yet is a normal, expected
+        // thing to land on, not a broken page.
+        // No early return: the legend below is skipped on its own for an empty
+        // array, the render loop does nothing, and the lazy-media and TOC
+        // passes after the try block still need to run.
+        if (movesArray.length === 0 && !targetMoveId) {
+            container.innerHTML = `<div class="empty-tab-msg">Nothing has been recorded here yet.</div>`;
+        }
+
+        // A move an editor marked "No frame data" (a passive, a dash variant)
+        // has nothing the legend explains, whatever old tracks it still stores.
+        const hasFrameData = movesArray.some(move => move.variants && move.noFrameData !== true);
+        if (hasFrameData) {
+            container.innerHTML = frameDataLegendHTML;
+        }
+
+        movesArray.forEach(move => {
+            const card = document.createElement('section');
+            card.className = 'skill-entry-card';
+            // "No frame data" (owner, 2026-11-16): the move's description takes
+            // the space the Frame Track would, and nothing says frame data is
+            // missing. Stored tracks are kept, so unticking brings them back.
+            const noFrameData = move.noFrameData === true;
+            if (noFrameData) card.classList.add('skill-entry-card-no-frames');
+
+            // --- 1. STATS FALLBACK ---
+            let statsHTML = '';
+            if (move.stats && move.stats.length > 0) {
+                move.stats.forEach(stat => {
+                    // FIXED: Replaced Tailwind with explicit CSS color
+                    const highlightStyle = stat.isHighlighted ? 'color: #ef4444;' : '';
+                    // Contributor text, written into innerHTML: escaped, with
+                    // the <br> editors use for a second line kept.
+                    statsHTML += `
+                        <div class="stat-row">
+                            <span class="stat-label">${window.escapeHtmlKeepBreaks(stat.label)}</span>
+                            <span class="stat-value" style="${highlightStyle}">${window.escapeHtmlKeepBreaks(stat.value)}</span>
+                        </div>`;
+                });
+            } else {
+                statsHTML = `<div class="stat-row stat-row-empty">No stats recorded</div>`;
+            }
+
+            // --- 2. MEDIA & VIDEO FALLBACK ---
+            const mediaContent = skillMediaHTML(move.media);
+
+            card.innerHTML = `
+                <div class="skill-entry-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h2 class="skill-title">${window.escapeHtml(move.name || 'Unknown Move')}</h2>
+                        <span class="skill-subtitle">Input: ${window.escapeHtml(move.input || 'N/A')} | Skill Type: ${window.escapeHtml(move.type || 'N/A')} | Damage Type: ${window.escapeHtml(move.damageType || 'N/A')} | ${window.escapeHtml(move.variant || '')}</span>
+                        ${accoladesHTML(move.accolades)}
+                    </div>
+
+                    <!-- move.id is contributor-submitted and used to be built
+                         straight into an inline onclick, where a quote closed
+                         the handler and ran whatever followed, on every
+                         character page. Wired below from a data attribute
+                         instead, per the project's own rule. -->
+                    <button class="btn-sys btn-sys-regular skill-edit-move-btn"
+                            data-move-id="${window.escapeHtml(move.id || '')}"
+                            style="display: flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.6rem;">
+                        ${window.uiIconHTML('edit')}
+                        Edit Move
+                    </button>
+                </div>
+                <div class="skill-entry-body">
+                    <div class="skill-left-col">
+                        <div class="skill-media-wrapper ${!move.media?.src ? 'skill-media-wrapper-empty' : ''}">
+                            ${mediaContent}
+                        </div>
+                        <div class="skill-stats-box">${statsHTML}</div>
+                    </div>
+                    <div class="skill-right-col" id="right-col-${window.escapeHtml(move.id || '')}"></div>
+                </div>
+            `;
+
+            container.appendChild(card);
+
+            // Hovering (or tapping) a badge shows its name and what it means.
+            card.querySelectorAll('.skill-accolade').forEach(badge => {
+                const accolade = window.ACCOLADES.find(a => a.id === badge.dataset.accolade);
+                if (accolade) window.bindTooltip(badge, `<strong>${window.escapeHtml(accolade.name)}</strong><br><span class="tooltip-desc">${window.escapeHtml(accolade.description)}</span>`);
+            });
+
+            // Shape the box to the media rather than cropping the media to the
+            // box. Runs after append so the element is measurable, and hooks
+            // load/loadedmetadata because a lazy video reports nothing until
+            // the card scrolls into view.
+            if (typeof window.applyMediaFraming === 'function') {
+                window.applyMediaFraming(
+                    card.querySelector('.skill-media-img'),
+                    card.querySelector('.skill-media-wrapper'),
+                    move.media
+                );
+            }
+
+            const editBtn = card.querySelector('.skill-edit-move-btn');
+            if (editBtn) {
+                editBtn.addEventListener('click', () => {
+                    const params = new URLSearchParams({
+                        page: pageId, type: pageType, tab: sectionType, move: editBtn.dataset.moveId || '',
+                    });
+                    window.location.href = `../../edit.html?${params}`;
+                });
+            }
+
+            const rightCol = document.getElementById(`right-col-${move.id}`);
+
+            // --- MEDIA PER MICRO VARIANT (owner, 2026-11-16) ---
+            // Each timeline (a leaf of the tree, however deep) can carry its
+            // own media, and the box on the left follows the one on show. A
+            // timeline without any shows the move's own media.
+            const leafViews = new Map();
+            const mediaWrapper = card.querySelector('.skill-media-wrapper');
+            let shownSrc = move.media?.src || '';
+            function syncMediaToVariant() {
+                let leaf = null;
+                for (const [view, node] of leafViews) {
+                    // On show: neither it nor a tab above it is hidden.
+                    if (!view.closest('.view-section.hidden')) { leaf = node; break; }
+                }
+                const own = leaf && leaf.media && leaf.media.src ? leaf.media : null;
+                // The move's "Media box shape" is one setting for the whole card.
+                const media = own ? { ...own, framing: move.media?.framing } : move.media;
+                const src = media?.src || '';
+                // Same file as before: left alone, so a video is not restarted.
+                if (src === shownSrc) return;
+                shownSrc = src;
+
+                mediaWrapper.innerHTML = skillMediaHTML(media);
+                mediaWrapper.classList.toggle('skill-media-wrapper-empty', !src);
+                mediaWrapper.classList.remove('is-square', 'is-tall');
+                if (typeof window.applyMediaFraming === 'function') {
+                    window.applyMediaFraming(mediaWrapper.querySelector('.skill-media-img'), mediaWrapper, media);
+                }
+                if (typeof window.initLazyMedia === 'function') window.initLazyMedia(mediaWrapper);
+            }
+
+            // --- 3. RECURSIVE FRAME DATA ENGINE ---
+            function buildNestedTabs(dataNode, prefixId, wrapperElement) {
+
+                // LEAF NODE: Render actual frame data
+                if (dataNode.bars) {
+                    leafViews.set(wrapperElement, dataNode);
+                    let autoLegendItems = [];
+                    let seenPhases = new Set();
+
+                    // --- NEW: SCROLL WRAPPER TO PREVENT OVER-COMPRESSION ---
+                    const scrollWrapper = document.createElement('div');
+                    scrollWrapper.className = 'frame-scroll-wrapper';
+                    scrollWrapper.style.overflowX = 'auto';
+                    scrollWrapper.style.paddingBottom = '0.5rem';
+
+                    // Enforce a minimum of 5px per frame so borders never swallow the tick
+                    const safeMinWidth = `${dataNode.totalScale * 5}px`;
+
+                    dataNode.bars.forEach(bar => {
+                        // headerClass is one of the editor's colour classes
+                        // (text-red-400 and so on), but it is stored data and
+                        // lands inside a class attribute.
+                        const headerClass = String(bar.headerClass || '').replace(/[^\w -]/g, '');
+                        const barGroup = document.createElement('div');
+                        if (bar.type === 'target') barGroup.className = 'bar-group-target';
+
+                        // 1. Conditionally Build Header (Top)
+                        const headerText = bar.headerInfo || bar.title || dataNode.headerInfo || '';
+                        if (headerText.trim() !== '') {
+                            const infoHeader = document.createElement('div');
+                            infoHeader.className = 'bar-header-info';
+                            if (bar.type === 'target') infoHeader.classList.add('bar-header-target');
+                            infoHeader.innerHTML = `<span class="${headerClass}">${window.escapeHtmlKeepBreaks(headerText)}</span>`;
+                            barGroup.appendChild(infoHeader);
+                        }
+                        
+                        // 2. Build Timeline (Middle)
+                        const timelineContainer = document.createElement('div');
+                        timelineContainer.className = 'frame-bar-container';
+                        timelineContainer.style.position = 'relative'; 
+                        timelineContainer.style.minWidth = safeMinWidth;
+
+                        bar.phases.forEach(phase => {
+                            const phaseEl = createPhase(phase, dataNode.totalScale);
+                            timelineContainer.appendChild(phaseEl);
+
+                            // --- AUTO-LEGEND COLLECTOR (Standard Phase) ---
+                            if (phase.styleClass && phase.styleClass !== 'bg-transparent' && !phase.hideFromLegend) {
+                                
+                                // Determine the final visible text FIRST
+                                let legendText = phase.legendDesc ? phase.legendDesc : phase.label;
+                                
+                                // NEW: Use the final text to check for duplicates, not the hidden label!
+                                const uniqueKey = phase.styleClass + '-' + legendText;
+                                
+                                if (!seenPhases.has(uniqueKey)) {
+                                    seenPhases.add(uniqueKey);
+                                    
+                                    const safeColors = window.FRAME_COLORS || {};
+                                    autoLegendItems.push({
+                                        color: safeColors[phase.styleClass] || '#ffffff',
+                                        text: legendText
+                                    });
+                                }
+                            }
+
+                            // --- AUTO-LEGEND COLLECTOR (Windows/Overlays) ---
+                            let activeWindows = [];
+                            if (phase.overlays) activeWindows.push(...phase.overlays);
+                            if (phase.overlay) activeWindows.push(phase.overlay);
+
+                            activeWindows.forEach(winKey => {
+                                const winDef = windowTypes[winKey];
+                                if (winDef) {
+                                    const uniqueKey = 'window-' + winKey;
+                                    if (!seenPhases.has(uniqueKey)) {
+                                        seenPhases.add(uniqueKey);
+                                        const safeWindowColors = window.WINDOW_COLORS || {};
+                                        autoLegendItems.push({
+                                            color: safeWindowColors[winKey] || '#ffffff',
+                                            text: winDef.label,
+                                            isWindow: true,
+                                            cssClass: winDef.class
+                                        });
+                                    }
+                                }
+                            });
+                        });
+                        
+                        barGroup.appendChild(timelineContainer);
+
+                        // 3. Conditionally Build Footer (Bottom)
+                        if (bar.footerInfo && bar.footerInfo.trim() !== '') {
+                            const infoFooter = document.createElement('div');
+                            infoFooter.className = 'bar-header-info'; // Reusing font styling class
+                            infoFooter.style.marginTop = '0.25rem';  // Give it a gap from the timeline
+                            infoFooter.style.marginBottom = '0.5rem';
+                            infoFooter.innerHTML = `<span class="${headerClass}">${window.escapeHtmlKeepBreaks(bar.footerInfo)}</span>`;
+                            barGroup.appendChild(infoFooter);
+                        }
+                        
+                        scrollWrapper.appendChild(barGroup);
+                    });
+
+                    const rulerContainer = document.createElement('div');
+                    rulerContainer.className = 'frame-ruler';
+
+                    // Apply the EXACT SAME minimum width to the ruler so it scales perfectly with the bars
+                    rulerContainer.style.minWidth = safeMinWidth;
+                    
+                    const tickInterval = dataNode.totalScale > 100 ? 20 : 10;
+                    
+                    for (let i = 0; i <= dataNode.totalScale; i += tickInterval) {
+                        const tickMark = document.createElement('div');
+                        tickMark.className = 'ruler-tick';
+                        tickMark.style.left = `${(i / dataNode.totalScale) * 100}%`;
+                        tickMark.innerHTML = `<div class="ruler-notch"></div><span class="ruler-label">${i}</span>`;
+                        rulerContainer.appendChild(tickMark);
+                    }
+                    
+                    scrollWrapper.appendChild(rulerContainer);
+
+                    // Finally, append the full scroll wrapper to the view
+                    wrapperElement.appendChild(scrollWrapper);
+
+                    // Render Legend
+                    const legendData = (dataNode.inlineLegend && dataNode.inlineLegend.length > 0) 
+                        ? dataNode.inlineLegend 
+                        : autoLegendItems;
+
+                    if (legendData.length > 0) {
+
+                        const legendGrid = document.createElement('div');
+
+                        legendGrid.style.cssText = "display: flex; flex-direction: column; gap: 0.35rem; padding: 0 1.5rem 1.5rem 1.5rem; font-family: var(--text-mono); font-size: 0.65rem; color: var(--text-primary); line-height: 1.4;";
+
+                        legendData.forEach(item => {
+                            const legendItem = document.createElement('div');
+
+                            legendItem.style.cssText = "display: flex; align-items: flex-start; gap: 0.4rem;";
+
+                            // An inlineLegend is stored data, colour and text
+                            // both, so the colour is whitelisted (it lands in a
+                            // style attribute) and the text escaped.
+                            const color = (typeof window.safeColor === 'function' && window.safeColor(item.color)) || '#ffffff';
+                            const text = window.escapeHtmlKeepBreaks(item.text);
+
+                            if (item.isWindow) {
+                                legendItem.innerHTML = `<span style="width: 0.6rem; height: 0.6rem; background: transparent; border: 2px solid ${color}; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.4); flex-shrink: 0; margin-top: 0.15rem;"></span><span>${text}</span>`;
+                            } else {
+                                legendItem.innerHTML = `<span style="width: 0.6rem; height: 0.6rem; background: ${color}; border: 1px solid #000; flex-shrink: 0; margin-top: 0.15rem;"></span><span>${text}</span>`;
+                            }
+                            legendGrid.appendChild(legendItem);
+                        });
+                        wrapperElement.appendChild(legendGrid);
+                    }
+                    return;
+                }
+
+                // BRANCH NODE: Generate a new row of tabs
+                if (dataNode.variants) {
+                    const keys = Object.keys(dataNode.variants);
+                    if (keys.length === 0) return;
+
+                    const tabBar = document.createElement('div');
+                    tabBar.className = 'skill-tab-bar';
+                    
+                    if (prefixId !== move.id) {
+                        tabBar.classList.add('skill-tab-bar-nested');
+                    }
+
+                    const viewsWrapper = document.createElement('div');
+                    viewsWrapper.className = 'views-wrapper';
+
+                    keys.forEach((key, index) => {
+                        const childNode = dataNode.variants[key];
+                        const childId = `${prefixId}-${key}`;
+
+                        const btn = document.createElement('button');
+                        btn.id = `tab-${childId}`;
+                        btn.className = `btn-manga btn-manga-slanted btn-manga-gray ${index === 0 ? 'active' : ''}`;
+                        btn.innerHTML = `<div class="btn-manga-content"><span class="btn-manga-text">${window.escapeHtmlKeepBreaks(childNode.label || key)}</span></div>`;
+                        tabBar.appendChild(btn);
+
+                        const viewSection = document.createElement('div');
+                        viewSection.id = `view-${childId}`;
+                        viewSection.className = `view-section ${index === 0 ? '' : 'hidden'}`;
+
+                        // --- NATIVE TAB SWITCHER ---
+                        // Instantly hides/shows the preloaded timelines without recalculating
+                        btn.addEventListener('click', () => {
+                            Array.from(tabBar.children).forEach(b => b.classList.remove('active'));
+                            Array.from(viewsWrapper.children).forEach(v => v.classList.add('hidden'));
+                            btn.classList.add('active');
+                            viewSection.classList.remove('hidden');
+                            syncMediaToVariant();
+                        });
+
+                        buildNestedTabs(childNode, childId, viewSection);
+                        viewsWrapper.appendChild(viewSection);
+                    });
+
+                    wrapperElement.appendChild(tabBar);
+                    wrapperElement.appendChild(viewsWrapper);
+                }
+            }
+
+            if (noFrameData) {
+                // Left empty here: the description is put in below.
+            } else if (move.variants && Object.keys(move.variants).length > 0) {
+                // Generates the entire recursive tree at once
+                buildNestedTabs({ variants: move.variants }, move.id, rightCol);
+                syncMediaToVariant();
+            } else {
+                rightCol.innerHTML = `
+                    <div class="empty-tab-msg empty-frame-data-msg">
+                        Frame data has not been mapped for this move yet.
+                    </div>
+                `;
+            }
+            
+            // --- 4. STRATEGY INJECTION TARGET ---
+            const strategyTarget = document.createElement('div');
+            strategyTarget.id = `strategy-${move.id}`;
+            (noFrameData ? rightCol : card).appendChild(strategyTarget);
+        });
+
+
+
+    } catch (error) {
+        console.error(`Failed handling live frame engine synchronization updates for ${sectionType}:`, error);
+    }
+
+    // AWAKEN THE LAZY OBSERVER
+    if (typeof window.initLazyMedia === 'function') {
+        const container = document.getElementById(`tab-${sectionType}`);
+        if (container) window.initLazyMedia(container);
+    }
+
+    if (typeof window.refreshTOC === 'function') setTimeout(window.refreshTOC, 100);
+}
+
+window.createPhase = createPhase;
+window.loadMoveSection = loadMoveSection;

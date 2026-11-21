@@ -82,7 +82,7 @@ jobs:
       # Cheap and fails fast, so it runs before the browser download - and it
       # runs even for a docs-only change, because a check that asserts nothing
       # is worse than no check. Checks navigation.json's shape, that every
-      # generated page stub is in sync with it, and that js/site_utils.js
+      # generated page stub is in sync with it, and that js/utility/site_utils.js
       # carries its current content hash.
       - run: npm run validate
 

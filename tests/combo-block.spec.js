@@ -18,11 +18,11 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 
-// Read from js/site_meta.js so the expectations follow the roster rather than
+// Read from js/utility/site_meta.js so the expectations follow the roster rather than
 // a copy of it. Same technique as the tab vocabulary spec. The stubs are for
 // what the file does at load (the frame colours read CSS variables).
 const site = (() => {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'site_meta.js'), 'utf8');
+  const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'utility', 'site_meta.js'), 'utf8');
   const w = {};
   new Function('window', 'document', 'getComputedStyle', src)(
     w, { addEventListener() {}, documentElement: {} }, () => ({ getPropertyValue: () => '' }));

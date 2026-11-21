@@ -2,7 +2,7 @@
 // 9 of the 11 repeated inline-style blocks in characters/*/index.html were
 // extracted to CSS classes in style/Layout.css. Two were deliberately left
 // alone (see below). A real bug was caught while doing this: .character-nav
-// is also reused by js/history.js and systems/tierlist/index.html's static
+// is also reused by js/pages/records/history.js and systems/tierlist/index.html's static
 // nav with a *different* margin convention (margin-bottom, not margin-top)
 // - a bare .character-nav rule would have leaked margin-top/align-items
 // onto those unrelated elements, since inline styles only override the
@@ -38,7 +38,7 @@ test('previously-drifted Vessel/Template .character-nav now render identically t
   }
 });
 
-// Mobile-support pass: js/pagebuilder.js's initTabEditorButtons used to
+// Mobile-support pass: js/pages/core/pagebuilder.js's initTabEditorButtons used to
 // clone histBtn.style.cssText = sidebarBtn.style.cssText (and the mobile
 // equivalent) instead of sharing a class. Real bug found and fixed: on
 // system pages the mobile Edit button's static markup included an inline

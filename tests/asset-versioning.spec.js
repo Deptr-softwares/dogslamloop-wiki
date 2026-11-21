@@ -1,8 +1,8 @@
 // Cache skew between a fresh module and a stale shared dependency.
 //
 // The incident, 2026-08-10: GitHub Pages serves js/ with max-age=3600, so the
-// first load after a deploy gave the browser a brand-new js/editor-modes.js
-// and an hour-old js/site_utils.js. The new file called a helper the cached
+// first load after a deploy gave the browser a brand-new js/editor/core/editor-modes.js
+// and an hour-old js/utility/site_utils.js. The new file called a helper the cached
 // copy did not have yet, and the TypeError went straight through edit.html's
 // boot try/catch - "Editor failed to initialize context", reported on the live
 // site within minutes of the merge.
@@ -63,8 +63,8 @@ test('the hash actually changes when a shared module does', async () => {
 test('the served page really carries the query, not just the file on disk', async ({ request }) => {
   const res = await request.get('/edit.html');
   const html = await res.text();
-  expect(html).toMatch(/src="js\/site_utils\.js\?v=[0-9a-f]{8}"/);
-  expect(html).toMatch(/src="js\/character_tabs\.js\?v=[0-9a-f]{8}"/);
+  expect(html).toMatch(/src="js\/utility\/site_utils\.js\?v=[0-9a-f]{8}"/);
+  expect(html).toMatch(/src="js\/utility\/character_tabs\.js\?v=[0-9a-f]{8}"/);
 });
 
 test('a character page degrades rather than dying when site_utils is behind', async ({ page }) => {

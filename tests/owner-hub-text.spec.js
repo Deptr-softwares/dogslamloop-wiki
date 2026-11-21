@@ -1,4 +1,4 @@
-// Coverage for the Dashboard Text tool (owner.html + js/owner-hub-text.js).
+// Coverage for the Dashboard Text tool (owner.html + js/owner/owner-hub-text.js).
 //
 // Hub prose was originally routed through edit.html. That was wrong for a
 // reason the owner identified: the editor is built around character and system

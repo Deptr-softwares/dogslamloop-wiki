@@ -26,8 +26,7 @@ const path = require('path');
 const JS_DIR = path.join(__dirname, '..', 'js');
 
 function readAllJs() {
-    return fs.readdirSync(JS_DIR)
-        .filter(f => f.endsWith('.js'))
+    return require('../scripts/asset-version.js').SHARED_MODULES
         .map(f => ({ file: f, body: fs.readFileSync(path.join(JS_DIR, f), 'utf8') }));
 }
 

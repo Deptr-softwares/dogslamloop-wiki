@@ -95,7 +95,7 @@ test('the guard is a hostname check, not a build flag', async ({ page, request }
     // has to be something true of the running page. Asserted against the
     // served source, because the test server IS localhost - the negative case
     // cannot be reached by navigating.
-    const js = await (await request.get('/js/site_utils.js')).text();
+    const js = await (await request.get('/js/utility/site_utils.js')).text();
 
     expect(js, 'the override is gated on hostname').toMatch(
         /hostname[\s\S]{0,200}localhost[\s\S]{0,120}127\.0\.0\.1/

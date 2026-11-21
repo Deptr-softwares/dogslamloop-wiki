@@ -3,19 +3,19 @@
 // A full character swaps their whole kit when they go ultimate, so the tabs
 // stay and their contents change under a toggle. A base-only character has no
 // second kit and gets one extra tab instead. Both are injected at runtime by
-// js/character_modes.js rather than generated into the stub, so the tests here
+// js/pages/core/character_modes.js rather than generated into the stub, so the tests here
 // drive real pages and real clicks.
 //
 // The first test is the one that matters most: 22 characters declare no modes
 // and every one of them has to keep rendering exactly as it did.
 const { test, expect } = require('@playwright/test');
 
-// Labels derived from js/character_tabs.js rather than restated: the claim
+// Labels derived from js/utility/character_tabs.js rather than restated: the claim
 // here is about which tabs appear and in what order, not about their wording,
 // and a second copy of the list goes stale the next time one is added.
 const VOCAB = (() => {
   const src = require('fs').readFileSync(
-    require('path').join(__dirname, '..', 'js', 'character_tabs.js'), 'utf8');
+    require('path').join(__dirname, '..', 'js', 'utility', 'character_tabs.js'), 'utf8');
   const w = {};
   new Function('window', src)(w);
   return w;

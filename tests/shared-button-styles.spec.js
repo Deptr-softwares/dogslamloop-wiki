@@ -73,7 +73,7 @@ test('no button keeps a hand-copied look of its own: every legacy alias rides on
     // give one a base look again.
     const ALIASES = ['submit-btn', 'system-page-btn', 'add-block-btn', 'btn-action-delete'];
     const sources = [
-        ...fs.readdirSync(path.join(ROOT, 'js')).filter(f => f.endsWith('.js')).map(f => path.join('js', f)),
+        ...require('../scripts/asset-version.js').SHARED_MODULES.map(f => path.join('js', f)),
         ...fs.readdirSync(ROOT).filter(f => f.endsWith('.html')),
     ];
     const offenders = [];

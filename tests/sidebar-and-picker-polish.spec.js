@@ -26,7 +26,7 @@ test('sidebar category headers keep the title styling instead of the button rese
 });
 
 test('the header colour follows the page accent, not a fixed blue', async ({ page }) => {
-    // js/site_meta.js re-points --accent-blue per character, so a hardcoded
+    // js/utility/site_meta.js re-points --accent-blue per character, so a hardcoded
     // value would be right on the hub and wrong on every character page.
     // Proven by moving the variable and watching the header follow.
     await page.goto('/', { waitUntil: 'networkidle' });
@@ -136,7 +136,7 @@ test('a preset swatch is square and shows it is clickable', async ({ page }) => 
 
 // Owner, 2026-10-06: the Ko-fi button was still buried under the left
 // sidebar's categories and dock. It now opens the right sidebar on every page
-// that has one (js/pagebuilder.js, placeKofiOnTheRight). The pages that had
+// that has one (js/pages/core/pagebuilder.js, placeKofiOnTheRight). The pages that had
 // none were given one in v1.0 Part 2: tests/sitewide-sidebar.spec.js.
 for (const url of ['/', '/characters/Ten_shadows/index.html', '/systems/updatelog/index.html']) {
     test(`Ko-fi opens the right sidebar, and is gone from the left: ${url}`, async ({ page }) => {

@@ -1,4 +1,4 @@
-// js/internalstyling.js - the shortcode and auto-highlight engine.
+// js/pages/core/internalstyling.js - the shortcode and auto-highlight engine.
 //
 // It reads a block's innerHTML, runs string replacements over it, and writes
 // the result back. Every value it interpolates comes from PAGE CONTENT, which

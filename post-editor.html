@@ -21,7 +21,7 @@
 <body class="admin-body">
 
     <!-- Modal shells for the two helpers this page defines locally instead of
-         pulling in js/editor-core.js (whose DOMContentLoaded boots the whole
+         pulling in js/editor/core/editor-core.js (whose DOMContentLoaded boots the whole
          page-revision editor and throws without a ?page= parameter). -->
     <div id="editor-custom-modal" class="editor-modal-overlay modal-danger hidden">
         <div class="editor-modal-box auth-modal-box">
@@ -118,7 +118,7 @@
 
             <div class="preview-badge">PREVIEW</div>
 
-            <!-- Must be a real <main>: js/internalstyling.js watches <main>
+            <!-- Must be a real <main>: js/pages/core/internalstyling.js watches <main>
                  with a MutationObserver, and that is what expands the
                  [b]/[color=]/[url=] shortcodes. Preview outside it would
                  render unstyled and misrepresent the published result. -->
@@ -130,25 +130,25 @@
     </div>
 
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/character_tabs.js?v=448691d1"></script>
-    <script src="js/input_slots.js?v=448691d1"></script>
-    <script src="js/site_utils.js?v=448691d1"></script>
-    <script src="js/site_meta.js?v=448691d1"></script>
-    <script src="js/description.js?v=448691d1"></script>
-    <script src="js/internalstyling.js?v=448691d1"></script>
-    <script src="js/editor-dialogs.js?v=448691d1"></script>
+    <script src="js/utility/character_tabs.js?v=4a6623d0"></script>
+    <script src="js/utility/input_slots.js?v=4a6623d0"></script>
+    <script src="js/utility/site_utils.js?v=4a6623d0"></script>
+    <script src="js/utility/site_meta.js?v=4a6623d0"></script>
+    <script src="js/pages/core/description.js?v=4a6623d0"></script>
+    <script src="js/pages/core/internalstyling.js?v=4a6623d0"></script>
+    <script src="js/editor/core/editor-dialogs.js?v=4a6623d0"></script>
     <!-- posts.js supplies renderPostBody, so the preview goes through exactly
          the same render path as the published blog page. -->
-    <script src="js/posts.js?v=448691d1"></script>
-    <script src="js/editor-folders.js?v=448691d1"></script>
-    <script src="js/editor-blocks.js?v=448691d1"></script>
-    <script src="js/editor-media.js?v=448691d1"></script>
+    <script src="js/pages/community/posts.js?v=4a6623d0"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=4a6623d0"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=4a6623d0"></script>
+    <script src="js/editor/tools/editor-media.js?v=4a6623d0"></script>
 
     <script>
         // Helpers editor-blocks.js expects from editor-core.js. Reimplemented
         // here rather than loading that file, whose DOMContentLoaded boots the
         // full page-revision editor and throws without a ?page= parameter.
-        // Its two boxes come from js/editor-dialogs.js, like edit.html's.
+        // Its two boxes come from js/editor/core/editor-dialogs.js, like edit.html's.
 
         // Mobile pane toggle, same class contract editor.css already defines
         // (body.mobile-preview-active + #mobile-preview-toggle).
@@ -163,7 +163,7 @@
 
         // editor-blocks.js calls updateLivePreview() by bare name from ~10
         // sites after every block change. It is a top-level function
-        // declaration in js/editor-sync.js, which this page deliberately does
+        // declaration in js/editor/core/editor-sync.js, which this page deliberately does
         // not load (it belongs to the page-revision pipeline). Without a
         // definition every block edit threw a ReferenceError and the block
         // list stopped updating. Declaring it here both fixes that and is
@@ -208,6 +208,6 @@
         window.updateLivePreview = updateLivePreview;
     </script>
 
-    <script src="js/post-editor.js?v=448691d1"></script>
+    <script src="js/owner/post-editor.js?v=4a6623d0"></script>
 </body>
 </html>

@@ -96,14 +96,14 @@
 .roster-card:hover .roster-card-text { transform: scale(1.05); }
 @media (min-width: 768px) { .roster-card-text { font-size: 0.75rem; } }
 
-/* js/pagebuilder.js renderFilteredRoster */
+/* js/pages/core/pagebuilder.js renderFilteredRoster */
 .roster-card-bg-image {
     width: 100%; height: 100%; object-fit: cover; position: absolute;
     top: 0; left: 0; opacity: 0.5; filter: grayscale(100%); transition: opacity 0.2s;
 }
 
 /* --- DYNAMIC ROSTER ICON (v0.16) --- */
-/* js/pagebuilder.js hands the character's colour over as --char-color and adds
+/* js/pages/core/pagebuilder.js hands the character's colour over as --char-color and adds
    .has-icon only once the icon has actually loaded. A card with no icon keeps
    the solid-colour design it had before v0.16, which is the fallback the owner
    asked for - it is the absence of an opt-in, not a second code path. */
@@ -233,7 +233,7 @@
     background: var(--bg-main); display: flex; align-items: center; justify-content: center;
     color: var(--text-muted); font-family: var(--text-mono); font-size: 0.75rem;
 }
-/* The Collaborator Block (js/description.js, v1.2): the Collaborators page's
+/* The Collaborator Block (js/pages/core/description.js, v1.2): the Collaborators page's
    own inline styles, kept as they looked, since the editor preview, the
    Overseer and history.html draw it too. */
 .collaborator-grid { margin-bottom: 1rem; }
@@ -273,7 +273,7 @@
    that follows a heading of its own does not need it twice. */
 .update-changes-heading + .update-changes-list { margin-top: 0.4rem !important; }
 
-/* --- HOVER BANNERS (v1.2, js/pagebuilder.js) ---
+/* --- HOVER BANNERS (v1.2, js/pages/core/pagebuilder.js) ---
    Over a roster card after 0.25s: the character's banner, name and the start
    of their Overview, edged in their colour, or a band of it when they have no
    banner yet. Fixed to the screen and placed beside the card it is about by

@@ -1,9 +1,9 @@
 // Regression coverage for the split-brained notification system fixed in
 // v0.8. Contributors had no working way to learn what happened to a
-// submission: js/admin-actions.js correctly wrote approve/reject rows to
-// user_notifications, and js/site_utils.js built a correct modal to display
+// submission: js/overseer/admin-actions.js correctly wrote approve/reject rows to
+// user_notifications, and js/utility/site_utils.js built a correct modal to display
 // them - but nothing ever opened that modal, and the visible bell in the
-// sidebar dock was wired by js/pagebuilder.js to a `system_inbox` table that
+// sidebar dock was wired by js/pages/core/pagebuilder.js to a `system_inbox` table that
 // has no migration and has never existed. Clicking the bell built a SECOND
 // modal reusing the same literal element id and always reported an empty
 // inbox, while the real data sat unreachable behind the first one.

@@ -3,7 +3,7 @@
 // THE BUG
 //
 // The tab strip has offered the reorder controls since v0.15 item 8
-// (js/editor-system.js renders reorderStripControls('desc.tabs')), and clicking
+// (js/editor/tabs/editor-system.js renders reorderStripControls('desc.tabs')), and clicking
 // them did move the array. Nothing recorded the move.
 //
 // buildSystemDeltas emits `system_tab` per tab and `system_section` per section,

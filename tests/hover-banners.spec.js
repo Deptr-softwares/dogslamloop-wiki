@@ -23,7 +23,7 @@ const { buildPages } = require('../scripts/generate-pages.js');
 // The site's own shortcode stripper, as the script uses it.
 const strip = (() => {
   const fakeWindow = {};
-  new Function('window', fs.readFileSync(path.join(__dirname, '..', 'js', 'character_tabs.js'), 'utf8'))(fakeWindow);
+  new Function('window', fs.readFileSync(path.join(__dirname, '..', 'js', 'utility', 'character_tabs.js'), 'utf8'))(fakeWindow);
   return fakeWindow.stripStyleShortcodes;
 })();
 

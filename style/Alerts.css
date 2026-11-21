@@ -75,7 +75,7 @@
 .inline-callout-btn .callout-icon {
     font-size: 0.85rem;
 }
-/* The banner on a page rescued by js/page_rescue.js - one that exists in the
+/* The banner on a page rescued by js/pages/core/page_rescue.js - one that exists in the
    registry but has no generated file yet, so it is being rendered by 404.html.
    Says so plainly rather than letting the page pass for published: the
    response is still HTTP 404, so nothing will index or unfurl it until the

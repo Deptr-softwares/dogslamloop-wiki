@@ -27,7 +27,7 @@
     <link rel="stylesheet" href="style/Alerts.css">
     <link rel="stylesheet" href="style/Modals.css">
     <!-- Forms.css defines .editor-input, which the auth and profile modals
-         injected by js/site_utils.js both use, and the new-post fields. -->
+         injected by js/utility/site_utils.js both use, and the new-post fields. -->
     <link rel="stylesheet" href="style/Forms.css">
     <link rel="stylesheet" href="style/FrameData.css">
     <!-- The conversation is the same component as a character thread. -->
@@ -35,7 +35,7 @@
     <link rel="stylesheet" href="style/forum.css">
     <link rel="stylesheet" href="style/look-classic.css">
     <!-- The look picked in Site settings, set before the page paints so the
-         other look never shows first. js/site_utils.js keeps it in step after.
+         other look never shows first. js/utility/site_utils.js keeps it in step after.
          Storage blocked or empty means the default look, silently. -->
     <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 </head>
@@ -80,7 +80,7 @@
             </div>
         </aside>
 
-        <!-- Content must live inside <main>: js/internalstyling.js watches it
+        <!-- Content must live inside <main>: js/pages/core/internalstyling.js watches it
              with a MutationObserver. -->
         <main class="main-content-area space-y-6">
 
@@ -88,7 +88,7 @@
                 <a href="index.html" class="btn-ghost" id="forum-back">← Back to Home</a>
             </div>
 
-            <!-- js/forum.js fills this: the list of posts, or one post. -->
+            <!-- js/pages/community/forum.js fills this: the list of posts, or one post. -->
             <div id="forum-root"></div>
 
             <!-- A post's conversation: the character-thread component. -->
@@ -98,7 +98,7 @@
 
         <!-- v1.0 Part 2 (owner, 2026-10-08): the right sidebar this page had
              none of. Ko-fi is moved to its top by placeKofiOnTheRight
-             (js/pagebuilder.js); the links are the Main Dashboard's, less
+             (js/pages/core/pagebuilder.js); the links are the Main Dashboard's, less
              this page's own. -->
         <aside class="local-sidebar-right" aria-label="Sitewide">
             <div class="sidebar-nav-title">Sitewide</div>
@@ -108,18 +108,18 @@
     </div>
 
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/character_tabs.js?v=448691d1"></script>
-    <script src="js/input_slots.js?v=448691d1"></script>
-    <script src="js/site_utils.js?v=448691d1"></script>
-    <script src="js/site_meta.js?v=448691d1"></script>
-    <script src="js/pagebuilder.js?v=448691d1"></script>
-    <script src="js/search.js?v=448691d1"></script>
-    <script src="js/description.js?v=448691d1"></script>
-    <script src="js/emoji.js?v=448691d1"></script>
-    <script src="js/discussions.js?v=448691d1"></script>
-    <script src="js/internalstyling.js?v=448691d1"></script>
-    <script src="js/forum.js?v=448691d1"></script>
-    <script async src="js/analytics.js?v=448691d1"></script>
+    <script src="js/utility/character_tabs.js?v=4a6623d0"></script>
+    <script src="js/utility/input_slots.js?v=4a6623d0"></script>
+    <script src="js/utility/site_utils.js?v=4a6623d0"></script>
+    <script src="js/utility/site_meta.js?v=4a6623d0"></script>
+    <script src="js/pages/core/pagebuilder.js?v=4a6623d0"></script>
+    <script src="js/utility/search.js?v=4a6623d0"></script>
+    <script src="js/pages/core/description.js?v=4a6623d0"></script>
+    <script src="js/utility/emoji.js?v=4a6623d0"></script>
+    <script src="js/pages/community/discussions.js?v=4a6623d0"></script>
+    <script src="js/pages/core/internalstyling.js?v=4a6623d0"></script>
+    <script src="js/pages/community/forum.js?v=4a6623d0"></script>
+    <script async src="js/others/analytics.js?v=4a6623d0"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {

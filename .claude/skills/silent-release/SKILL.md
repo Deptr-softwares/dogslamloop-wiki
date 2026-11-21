@@ -65,4 +65,4 @@ PR #97 did both. Two failed migrations were edited in place; `list_personnel()` 
 
 The owner posts it, because `site_posts` writes need `is_owner()`, and writes the text. Your part is saying exactly what was fixed and where the note goes: **post-editor.html**, TYPE set to the "Hotfix note" option, status `published`.
 
-It renders above the versioned entries on `/systems/updatelog/index.html` via `window.loadHotfixPosts` (`js/posts.js`). It renders nothing when there are none and fails silently, because the changelog below it is the page's real content. A note is one fix, so it has no three-part split; the voice rules are in the `writing-site-text` skill.
+It renders above the versioned entries on `/systems/updatelog/index.html` via `window.loadHotfixPosts` (`js/pages/community/posts.js`). It renders nothing when there are none and fails silently, because the changelog below it is the page's real content. A note is one fix, so it has no three-part split; the voice rules are in the `writing-site-text` skill.

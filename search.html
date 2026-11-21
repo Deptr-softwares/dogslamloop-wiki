@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="style/Badges.css">
     <link rel="stylesheet" href="style/Layout.css">
     <link rel="stylesheet" href="style/Cards.css">
-    <!-- Modals.css and Forms.css: js/site_utils.js injects the auth, profile
+    <!-- Modals.css and Forms.css: js/utility/site_utils.js injects the auth, profile
          and alert modals into EVERY page, and they are styled by the first
          (.modal-box, .profile-field) and the second (.editor-input). Seven
          pages shipped without Forms.css and rendered the login form as bare
@@ -23,7 +23,7 @@
     <link rel="stylesheet" href="style/Forms.css">
     <link rel="stylesheet" href="style/look-classic.css">
     <!-- The look picked in Site settings, set before the page paints so the
-         other look never shows first. js/site_utils.js keeps it in step after.
+         other look never shows first. js/utility/site_utils.js keeps it in step after.
          Storage blocked or empty means the default look, silently. -->
     <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 </head>
@@ -85,7 +85,7 @@
 
         <!-- v1.0 Part 2 (owner, 2026-10-08): the right sidebar this page had
              none of. Ko-fi is moved to its top by placeKofiOnTheRight
-             (js/pagebuilder.js); the links are the Main Dashboard's, less
+             (js/pages/core/pagebuilder.js); the links are the Main Dashboard's, less
              this page's own. -->
         <aside class="local-sidebar-right" aria-label="Sitewide">
             <div class="sidebar-nav-title">Sitewide</div>
@@ -95,13 +95,13 @@
     </div>
 
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/character_tabs.js?v=448691d1"></script>
-    <script src="js/input_slots.js?v=448691d1"></script>
-    <script src="js/site_utils.js?v=448691d1"></script>
-    <script src="js/site_meta.js?v=448691d1"></script>
-    <script src="js/pagebuilder.js?v=448691d1"></script>
-    <script src="js/search.js?v=448691d1"></script>
-    <script src="js/search-page.js?v=448691d1"></script>
-    <script async src="js/analytics.js?v=448691d1"></script>
+    <script src="js/utility/character_tabs.js?v=4a6623d0"></script>
+    <script src="js/utility/input_slots.js?v=4a6623d0"></script>
+    <script src="js/utility/site_utils.js?v=4a6623d0"></script>
+    <script src="js/utility/site_meta.js?v=4a6623d0"></script>
+    <script src="js/pages/core/pagebuilder.js?v=4a6623d0"></script>
+    <script src="js/utility/search.js?v=4a6623d0"></script>
+    <script src="js/pages/records/search-page.js?v=4a6623d0"></script>
+    <script async src="js/others/analytics.js?v=4a6623d0"></script>
 </body>
 </html>

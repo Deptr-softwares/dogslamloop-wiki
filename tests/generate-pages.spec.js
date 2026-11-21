@@ -136,16 +136,16 @@ test('character and system stubs load the script sets their page type needs', ()
   const sys = pages.find(p => p.pageType === 'system');
 
   for (const html of [char.html, sys.html]) {
-    expect(html).toContain('js/page_router.js');
-    expect(html).toContain('js/page_boot.js');
-    expect(html).toContain('js/description.js');
+    expect(html).toContain('js/pages/core/page_router.js');
+    expect(html).toContain('js/pages/core/page_boot.js');
+    expect(html).toContain('js/pages/core/description.js');
   }
 
   // framedata.js only matters to character pages; loading it everywhere would
   // be dead weight on every system page.
-  expect(char.html).toContain('js/framedata.js');
-  expect(sys.html).not.toContain('js/framedata.js');
-  // KaTeX is fetched by renderMathIfAny (js/site_utils.js) when a page has
+  expect(char.html).toContain('js/pages/core/framedata.js');
+  expect(sys.html).not.toContain('js/pages/core/framedata.js');
+  // KaTeX is fetched by renderMathIfAny (js/utility/site_utils.js) when a page has
   // math in it, never up front (v1.1 batch 9): tests/katex-on-demand.spec.js.
   expect(char.html).not.toContain('katex');
   expect(sys.html).not.toContain('katex');

@@ -14,7 +14,7 @@
 //
 // The strip control is new. The submit and apply halves were supposed to be
 // free, because desc.comboList is already an EXTRA_KEYED_SECTION
-// (js/character_tabs.js:410) keyed by `starter`, and scanEveryOrder walks every
+// (js/utility/character_tabs.js:410) keyed by `starter`, and scanEveryOrder walks every
 // keyed section. That is an ASSUMPTION about code nobody changed, which is
 // exactly the kind that turns out to be wrong after the feature ships - so the
 // second test here drives a real submit and reads what reached the insert,

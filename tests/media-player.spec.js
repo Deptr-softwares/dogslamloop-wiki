@@ -99,7 +99,7 @@ const awaitDecode = (img) => img.evaluate(el => el.complete && el.naturalWidth
       el.addEventListener('error', () => reject(new Error('the cell image never loaded')), { once: true });
     }));
 
-// A full character page, because the accent test needs js/site_meta.js to have
+// A full character page, because the accent test needs js/utility/site_meta.js to have
 // themed :root for a real character. It is a heavy page and every worker
 // shares one single-threaded dev server, so the wait is generous on purpose -
 // the alternative is a spec that passes alone and scatters under load.
@@ -328,7 +328,7 @@ test('the player paints itself in the character accent, not a fixed blue', async
   await boot(page);
   await render(page, [{ type: 'video', src: '/medias/a.webm', controls: true }]);
 
-  // js/site_meta.js sets --accent-blue on :root per character page. Read the
+  // js/utility/site_meta.js sets --accent-blue on :root per character page. Read the
   // resolved colour and compare against the token rather than a literal hex,
   // so the test follows the palette instead of pinning it.
   const out = await page.evaluate(() => {

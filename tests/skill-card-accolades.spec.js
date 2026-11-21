@@ -6,7 +6,7 @@
 // description. Hovering over the badges will give its full description and
 // its name". The owner's pick from the mockups (2026-11-18): under the move's
 // name. Their 26 accolades, in their order, are window.ACCOLADES
-// (js/framedata.js); a move stores the ids.
+// (js/pages/core/framedata.js); a move stores the ids.
 const { test, expect } = require('@playwright/test');
 
 const TRACK = {

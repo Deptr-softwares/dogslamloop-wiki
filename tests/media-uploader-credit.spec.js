@@ -5,7 +5,7 @@
 //
 // The credit lives in its own table, public.media_uploads, NOT as a column on
 // media_moderation. That table is an overlay whose whole design rests on
-// "absence of a row means unchecked" (js/admin-media-queue.js reads
+// "absence of a row means unchecked" (js/overseer/admin-media-queue.js reads
 // `record ? record.status : 'unchecked'`), and status is NOT NULL with a CHECK
 // of approved|flagged - so a row written at upload time would have to claim one
 // of those and would silently pre-approve every upload, emptying the moderation

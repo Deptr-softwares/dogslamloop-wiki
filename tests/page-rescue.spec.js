@@ -221,14 +221,14 @@ test('a rescued character page gets the full character skeleton', async ({ page 
   await rescueAt(page, '/characters/Newcomer/index.html');
 
   // Longer than the 5s default on purpose. A character page boots its
-  // fetches concurrently with a deliberate 500ms TOC delay (js/page_boot.js),
+  // fetches concurrently with a deliberate 500ms TOC delay (js/pages/core/page_boot.js),
   // so this content arrives well after initPageRescue resolves - and on a
   // loaded runner the default was the binding constraint rather than
   // anything being wrong. This was the last failure left in this file at
   // 8 workers, and the one CI failed on.
   const booted = { timeout: 15000 };
   await expect(page.locator('.character-title')).toHaveText('Newcomer', booted);
-  // Count read from the page's own vocabulary (js/character_tabs.js), not
+  // Count read from the page's own vocabulary (js/utility/character_tabs.js), not
   // pinned: the claim is that the rescue builds a character strip at all, and
   // a literal would fail every time a tab is added for reasons unrelated to
   // the rescue path.

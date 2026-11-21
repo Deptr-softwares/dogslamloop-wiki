@@ -1,4 +1,4 @@
-// Regression coverage for a real bug in js/editor-drafts.js's saveLocalDraft,
+// Regression coverage for a real bug in js/editor/core/editor-drafts.js's saveLocalDraft,
 // matching the site owner's own complaint about the draft system ("something
 // wrong with save, can't pinpoint it"). Root cause: window.currentEditorDescData
 // is always the FULL character object for the whole editing session, but the

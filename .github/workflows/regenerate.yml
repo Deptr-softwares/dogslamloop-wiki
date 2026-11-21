@@ -95,7 +95,7 @@ jobs:
         branch: ${{ fromJSON(needs.targets.outputs.branches) }}
     env:
       # Not secrets, deliberately. The anon key already ships inside
-      # js/site_utils.js and is therefore in the page source of every page on
+      # js/utility/site_utils.js and is therefore in the page source of every page on
       # the site - storing it as a repository secret would be theatre.
       #
       # Explicitly NOT the service-role key: that bypasses all RLS, and
