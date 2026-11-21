@@ -75,7 +75,7 @@ function accoladesHTML(ids) {
     return `<ul class="skill-accolades">${badges.join('')}</ul>`;
 }
 
-// initTooltip/bindTooltip are defined once, in site_utils.js (loaded before
+// initTooltip/bindTooltip are defined once, in site_media.js (loaded before
 // this file), and shared with description.js's inline callout tooltips.
 
 // Core frame section generator

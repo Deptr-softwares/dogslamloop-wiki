@@ -81,7 +81,7 @@
     // database CHECK is what keeps them out; this is the second line, for a row
     // written before the column existed.
     // `raw` is one entry of tiers[].characters: a page_id, or since v1.2 a
-    // badged character or a copy (window.tierListEntry, js/utility/site_utils.js). An
+    // badged character or a copy (window.tierListEntry, js/utility/site_data.js). An
     // entry that is neither is not drawn (null).
     function portrait(raw, style) {
         const entry = window.tierListEntry(raw);

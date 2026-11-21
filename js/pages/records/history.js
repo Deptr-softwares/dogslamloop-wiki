@@ -20,10 +20,10 @@
  * It owns no renderer. A revision is reconstructed into the shape the live
  * page renderers already expect, and then handed to them:
  *
- *   applyDeltaToData   site_utils.js   rebuilds a delta revision into full
+ *   applyDeltaToData   site_data.js    rebuilds a delta revision into full
  *                                      desc/frame data (defined once there,
  *                                      loaded before this file)
- *   fetchCloudCharacterData            site_utils.js. Every renderer reads the
+ *   fetchCloudCharacterData            site_data.js. Every renderer reads the
  *                                      page through it, so servePageAs answers
  *                                      for this page with the historical
  *                                      content, and the live page's own code
@@ -60,7 +60,7 @@ window.currentHistoryIndex = 0;
 // drawCharacterPage).
 let historyPageName = null;
 
-// applyDeltaToData is defined once, in site_utils.js (loaded before this file).
+// applyDeltaToData is defined once, in site_data.js (loaded before this file).
 
 // --- RELATIVE PATH CLEANER ---
 // Converts "../../medias/..." to "medias/..." so images load correctly from the root directory!

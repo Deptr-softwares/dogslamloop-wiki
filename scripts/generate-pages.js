@@ -204,6 +204,9 @@ ${social}
     <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
 
     <script src="../../js/utility/site_utils.js"></script>
+    <script src="../../js/utility/site_data.js"></script>
+    <script src="../../js/utility/site_media.js"></script>
+    <script src="../../js/utility/site_account.js"></script>
     <script src="../../js/utility/site_meta.js"></script>
     <script src="../../js/pages/core/pagebuilder.js"></script>
     <script src="../../js/utility/search.js"></script>
@@ -267,6 +270,9 @@ ${social}
 
     <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
     <script src="../../js/utility/site_utils.js"></script>
+    <script src="../../js/utility/site_data.js"></script>
+    <script src="../../js/utility/site_media.js"></script>
+    <script src="../../js/utility/site_account.js"></script>
     <script src="../../js/utility/site_meta.js"></script>
     <script src="../../js/pages/core/pagebuilder.js"></script>
     <script src="../../js/utility/search.js"></script>
@@ -332,6 +338,9 @@ ${social}
 
     <script src="../../js/vendor/supabase-js-2.118.0.js"></script>
     <script src="../../js/utility/site_utils.js"></script>
+    <script src="../../js/utility/site_data.js"></script>
+    <script src="../../js/utility/site_media.js"></script>
+    <script src="../../js/utility/site_account.js"></script>
     <script src="../../js/utility/site_meta.js"></script>
     <script src="../../js/pages/core/pagebuilder.js"></script>
     <script src="../../js/utility/search.js"></script>

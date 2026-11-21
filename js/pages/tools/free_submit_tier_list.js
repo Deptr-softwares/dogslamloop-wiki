@@ -64,7 +64,7 @@
 
     // --- LOADING ---
 
-    // site_utils.js's loadCharacterRoster, shared with every tier list. This
+    // site_data.js's loadCharacterRoster, shared with every tier list. This
     // page's own copy is why it showed names on coloured squares until v0.18
     // FT3: it read `entry.image`, which navigation.json never carries.
     async function loadRoster() {

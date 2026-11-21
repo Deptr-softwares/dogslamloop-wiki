@@ -349,7 +349,7 @@ window.cancelEditor = function() {
     window.location.href = window.editorExitDestination();
 };
 
-// applyDeltaToData is defined once, in site_utils.js (loaded before this file).
+// applyDeltaToData is defined once, in site_data.js (loaded before this file).
 // triggerManualSync, updateLivePreview, toggleDiffMode, and renderDiffView all
 // moved to js/editor/core/editor-sync.js; diffTextLCS to js/utility/diff-markers.js.
 

@@ -513,7 +513,7 @@ window.initAuthDock = async function() {
 
     // --- ICONS ---
     // The owner's pixel art (v1.2, window.UI_ICONS in js/utility/site_meta.js). A
-    // role's badge is window.ROLE_BADGES (js/utility/site_utils.js), shared with the
+    // role's badge is window.ROLE_BADGES (js/utility/site_account.js), shared with the
     // profile modal so the two cannot drift.
     const svgGear = window.uiIconHTML('dock-overseer');
     const svgMail = window.uiIconHTML('dock-inbox');
@@ -625,7 +625,7 @@ window.initAuthDock = async function() {
     if (btnSettings) btnSettings.onclick = () => window.openSiteSettings();
     window.syncMobileBottomAccount({ icon: loginIcon, signedIn: username !== 'LOGIN' });
 
-    // Opens the real inbox modal built by js/utility/site_utils.js's initNotifications.
+    // Opens the real inbox modal built by js/utility/site_account.js's initNotifications.
     // This used to build a second modal here, with the same literal
     // id="site-notification-modal", reading the nonexistent system_inbox table -
     // so the bell always reported an empty inbox while the working

@@ -92,7 +92,7 @@ test('the auth modal really is the bigger consumer of .editor-input', () => {
     // the fix turns on: the owner saw the PROFILE fields unstyled, but the
     // login and register form uses the same class more, so an anonymous visitor
     // hit this before any signed-in one could.
-    const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'site_utils.js'), 'utf8');
+    const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'site_account.js'), 'utf8');
     const authStart = src.indexOf('const authModalHTML');
     const profileStart = src.indexOf('const profileModalHTML');
     expect(authStart, 'authModalHTML exists').toBeGreaterThan(-1);

@@ -145,7 +145,7 @@ test('character and system stubs load the script sets their page type needs', ()
   // be dead weight on every system page.
   expect(char.html).toContain('js/pages/core/framedata.js');
   expect(sys.html).not.toContain('js/pages/core/framedata.js');
-  // KaTeX is fetched by renderMathIfAny (js/utility/site_utils.js) when a page has
+  // KaTeX is fetched by renderMathIfAny (js/utility/site_media.js) when a page has
   // math in it, never up front (v1.1 batch 9): tests/katex-on-demand.spec.js.
   expect(char.html).not.toContain('katex');
   expect(sys.html).not.toContain('katex');

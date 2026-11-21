@@ -30,7 +30,7 @@
  *
  * ONE version across all of them, not a hash per file. This codebase is a
  * single shared `window` scope with no module system: pagebuilder.js calls
- * window.roleBadge from site_utils.js, discussions.js calls
+ * window.roleBadge from site_account.js, discussions.js calls
  * window.fetchPublicProfiles, page_boot.js drives both. Cross-file calls are
  * the norm, so any pair can be the fresh-module-against-stale-helper failure -
  * and per-file hashes would let exactly that pair be served half-fresh.

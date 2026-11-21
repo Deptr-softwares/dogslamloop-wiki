@@ -122,7 +122,7 @@ function timeSince(dateString) {
 }
 
 // --- THE DELTA INJECTION ENGINE ---
-// applyDeltaToData is defined once, in site_utils.js (loaded before this file).
+// applyDeltaToData is defined once, in site_data.js (loaded before this file).
 
 // --- CUSTOM MODAL PROMISES ---
 window.adminAlert = function(message) {

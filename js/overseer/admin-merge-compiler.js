@@ -118,7 +118,7 @@ window.openMergeCompiler = async function(pageId) {
     }
 
     // Sections are matched by their DERIVED key, the same one the editor and
-    // applyDeltaToData use (js/utility/site_utils.js), so a conflict is per section
+    // applyDeltaToData use (js/utility/site_data.js), so a conflict is per section
     // rather than per page. Two people editing different sections now produce
     // no conflict at all, which is the correct answer and the whole point.
     function scanSystemPage(t, tDesc) {

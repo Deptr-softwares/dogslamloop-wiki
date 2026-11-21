@@ -395,7 +395,7 @@ test('the display name inputs carry the cap', async ({ page }) => {
     await expect(page.locator('#profile-new-name')).toHaveAttribute('maxlength', '32');
 
     // The registration field too - a name set at signup is the same name.
-    const html = await page.evaluate(async () => (await fetch('/js/utility/site_utils.js')).text());
+    const html = await page.evaluate(async () => (await fetch('/js/utility/site_account.js')).text());
     expect(html).toMatch(/id="auth-name-register"[^>]*maxlength="32"/);
     expect(await page.evaluate(() => window.DISPLAY_NAME_MAX)).toBe(32);
 });

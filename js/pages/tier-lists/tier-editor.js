@@ -71,7 +71,7 @@
 
     // --- DATA ---
 
-    // site_utils.js's loadCharacterRoster, shared with every tier list. This
+    // site_data.js's loadCharacterRoster, shared with every tier list. This
     // was the third copy, and the second found broken (v0.18): it read
     // `entry.image`, which navigation.json never carries, so the editor drew
     // the old guessed art while the reader page showed the current portraits.

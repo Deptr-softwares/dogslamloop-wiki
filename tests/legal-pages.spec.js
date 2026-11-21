@@ -120,7 +120,7 @@ test('the Terms and the Privacy Policy state the same age rule', async ({ page }
 });
 
 // The pumpkins on the Halloween 2026 badges are Icons8 art (the comment on
-// SITE_BADGES in js/utility/site_utils.js), and Icons8's free licence asks for a link
+// SITE_BADGES in js/utility/site_account.js), and Icons8's free licence asks for a link
 // back. The badge list is read from the page, not copied here, so the credit
 // is checked for as long as a badge really draws one of these files.
 const ICONS8_ART = ['medias/images/Pumpkin2026.png', 'medias/images/GoldenPumpkin2026.png'];

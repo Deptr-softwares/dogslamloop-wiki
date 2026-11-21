@@ -50,7 +50,7 @@
 
 /* Media Box
    The box matches the source rather than the source being cropped to match
-   the box (js/utility/site_utils.js applyMediaFraming). 16:9 stays the bare default
+   the box (js/utility/site_media.js applyMediaFraming). 16:9 stays the bare default
    for two reasons: it is what every existing card already looks like, and it
    is the measured outcome for most gameplay capture - so nothing flips shape
    after layout in the common case. The two modifiers below are added once the

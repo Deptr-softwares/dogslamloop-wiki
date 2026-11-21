@@ -186,13 +186,13 @@ test('media deletion belongs to the admin, and keeps its per-user flag', async (
 // --- THE BADGE ---
 
 // The icon suite moved from initAuthDock's local consts (js/pages/core/pagebuilder.js) to
-// window.ROLE_BADGES (js/utility/site_utils.js) in v0.17 F11, when the profile modal
+// window.ROLE_BADGES (js/utility/site_account.js) in v0.17 F11, when the profile modal
 // became a second thing that draws a role and a duplicate would have drifted.
 // These two tests followed it. Since v1.2 each badge is one of the owner's
 // pixel icons (medias/icons/), named in the table, and the rendered half is
 // covered live in tests/profile-modal.spec.js and tests/site-icons.spec.js.
 function roleBadges() {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'site_utils.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'site_account.js'), 'utf8');
   const table = src.slice(src.indexOf('window.ROLE_BADGES = {'),
                           src.indexOf('window.roleBadge ='));
   const out = {};

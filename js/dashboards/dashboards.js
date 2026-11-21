@@ -400,7 +400,7 @@ window.buildTerminologyPeek = async function(sectionId, containerId, limit = 6) 
  *   22 pages carry one, 417 entries, and only 121 have any written content.
  *
  * `tier` is FREE TEXT and the data proves it: one entry reads "Aerial Circling
- * tier". resolveMatchupTier (js/utility/site_utils.js) already returns something
+ * tier". resolveMatchupTier (js/utility/site_data.js) already returns something
  * renderable for any value, keeping unrecognised wording and colouring it
  * white rather than guessing at a neighbouring difficulty - so every value
  * goes through it and no tier is ever tested by name here.

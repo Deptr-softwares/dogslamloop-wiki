@@ -225,7 +225,7 @@ window.updateSystemMeta = function(field, value, isCheckbox = false, isNumber = 
 // owner's and the prose is everyone's, so a contributor fixing the intro must
 // not be able to carry a URL change with it."
 //
-// Keys are derived by window.indexSystemSections (js/utility/site_utils.js) - see the
+// Keys are derived by window.indexSystemSections (js/utility/site_data.js) - see the
 // note there on why nothing here stores an id.
 window.buildSystemDeltas = function(local, cloud, pageType) {
     const differs = (a, b) => JSON.stringify(a === undefined ? null : a) !== JSON.stringify(b === undefined ? null : b);

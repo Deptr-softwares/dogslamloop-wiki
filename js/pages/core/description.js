@@ -158,7 +158,7 @@ window.wikiVideoButtonHTML = function (url, label) {
 //
 // The wrapper is what the corner is measured from, and it is what a failed or
 // moderated clip is replaced by, so the button never outlives its clip
-// (showMissingMedia below, blockedMediaTarget in js/utility/site_utils.js).
+// (showMissingMedia below, blockedMediaTarget in js/utility/site_media.js).
 window.wikiClipHTML = function (url, opts) {
     const safe = window.escapeHtml(safeBlockUrl(url));
     if (!safe) return '';
@@ -2338,7 +2338,7 @@ async function loadPageDescriptions(pageId, pageType = 'character', modeId = nul
                 if (data.matchups && data.matchups.length > 0) {
                     data.matchups.forEach(mu => {
 
-                        // window.MATCHUP_TIERS (js/utility/site_utils.js) is the one
+                        // window.MATCHUP_TIERS (js/utility/site_data.js) is the one
                         // definition; resolveMatchupTier also maps the two
                         // words v0.13 renamed, so history replay and anything
                         // submitted before the rename still renders.

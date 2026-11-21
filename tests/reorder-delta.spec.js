@@ -27,7 +27,7 @@
 // visible and repeatable while shuffling somebody's page is neither.
 const { test, expect } = require('@playwright/test');
 
-// applyDeltaToData is pure and lives in site_utils.js, so these run against the
+// applyDeltaToData is pure and lives in site_data.js, so these run against the
 // real function in a real page rather than a reimplementation of it.
 async function apply(page, baseDesc, baseFrame, scope, key, payload) {
   return page.evaluate(([d, f, s, k, p]) =>
