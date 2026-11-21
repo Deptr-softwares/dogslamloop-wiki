@@ -14,7 +14,22 @@
  */
 
 // --- DAW FRAME EDITOR ENGINE ---
-const DAW_TRACK_COLOR_CLASSES = ['text-red-400', 'text-red-600', 'text-blue-400', 'text-green-400', 'text-green-500', 'text-purple-400', 'text-orange-400', 'text-cyan-400', 'text-gray-400'];
+
+// Edits here change the move in place and never pass through the Block buffer's
+// live preview, which is what writes the draft. So every change is saved here
+// instead, on the same short timer as a Block edit, so typing does not write
+// on every key. A field edit arrives as input/change on the container; every
+// other change ends in renderDaw().
+let frameDraftTimer = null;
+function saveFrameDraftSoon() {
+    clearTimeout(frameDraftTimer);
+    frameDraftTimer = setTimeout(() => {
+        if (typeof window.saveLocalDraft === 'function') window.saveLocalDraft();
+    }, 400);
+}
+const draftSavingContainers = new WeakSet();
+
+const DAW_TRACK_COLOR_CLASSES =['text-red-400', 'text-red-600', 'text-blue-400', 'text-green-400', 'text-green-500', 'text-purple-400', 'text-orange-400', 'text-cyan-400', 'text-gray-400'];
 
 // The estimate whose nominal weight sits closest to a frame count, used when a
 // contributor switches a phase from counted to estimated. Nearest rather than
@@ -61,6 +76,15 @@ function initDawEditor(containerId, moveData) {
         container.innerHTML = `<p class="daw-empty-notice">No frame data configured for this move yet.</p>`;
         return;
     }
+
+    if (!draftSavingContainers.has(container)) {
+        draftSavingContainers.add(container);
+        container.addEventListener('input', saveFrameDraftSoon);
+        container.addEventListener('change', saveFrameDraftSoon);
+    }
+    // The first draw only shows the move; each later one follows a change, or a
+    // selection, which saves a draft identical to what is on screen.
+    let drawnOnce = false;
 
     if (!moveData.media) moveData.media = { src: "", alt: "" };
     if (!moveData.stats) moveData.stats = [];
@@ -463,6 +487,9 @@ function initDawEditor(containerId, moveData) {
 
         const newTimeline = container.querySelector('.daw-timeline-wrapper');
         if (newTimeline && keptScroll) newTimeline.scrollLeft = keptScroll;
+
+        if (drawnOnce) saveFrameDraftSoon();
+        drawnOnce = true;
     }
 
     // Stale dimensions are worse than none - they would frame the box for the
