@@ -98,6 +98,15 @@ test.describe('links', () => {
         expect(out.anchors[0].rel).toBe('noopener noreferrer');
     });
 
+    test('an address with & in it goes where it says', async ({ page }) => {
+        // The engine reads the address back out of innerHTML, where & is &amp;,
+        // so escaping it again sent ?v=abc&t=42 out as ?v=abc&amp;t=42.
+        const out = await render(page, '[url=https://www.youtube.com/watch?v=abc&t=42]clip[/url]');
+
+        expect(out.anchors.map(a => a.href)).toEqual(['https://www.youtube.com/watch?v=abc&t=42']);
+        expect(out.text).toBe('clip');
+    });
+
     test('site-relative and fragment links are allowed', async ({ page }) => {
         const out = await render(page,
             '[url=/systems/hud/index.html]hud[/url] [url=#combos]combos[/url]');

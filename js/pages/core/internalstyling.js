@@ -957,7 +957,9 @@ function applyInternalStyling() {
             // until something clicks it.
             content = content.replace(/\[url=([^\]]+)\]((?:(?!\[url=)[\s\S])*?)\[\/url\]/gi,
                 (whole, rawUrl, label) => {
-                    const url = safeUrl(rawUrl);
+                    // Read back out of innerHTML, where a typed & < > are
+                    // entities: decoded here, so the escape below is the only one.
+                    const url = safeUrl(rawUrl.replace(/&(amp|lt|gt);/g, (m, e) => ({ amp: '&', lt: '<', gt: '>' })[e]));
                     if (!url) return label;
                     if (url.charAt(0) === '#') {
                         return `<a href="${window.escapeHtml(url)}" class="wiki-link wiki-link-jump">${label}</a>`;
