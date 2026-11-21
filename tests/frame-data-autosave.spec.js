@@ -96,6 +96,18 @@ test('a phase changed in the inspector survives closing the tab, with no Sync', 
   expect(errors).toEqual([]);
 });
 
+test('a field that does not redraw the editor is saved as it is typed', async ({ page }) => {
+  // The move's name changes the data without redrawing anything, so only the
+  // editor's own input listener can save it.
+  await openMove(page);
+
+  await page.locator('.meta-inp[data-field="name"]').fill('Renamed Move');
+  await expect.poll(() => page.evaluate(() => {
+    const raw = localStorage.getItem('wiki_draft_boomcat');
+    return raw ? JSON.parse(raw).frame_data.skills[0].name : null;
+  }), 'the draft holds the new name').toBe('Renamed Move');
+});
+
 test('a phase added with + is saved too', async ({ page }) => {
   await openMove(page);
 
