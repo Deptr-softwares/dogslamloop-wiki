@@ -865,7 +865,7 @@ a.reading-step-title:hover { color: var(--accent-blue); }
 
 .tier-section-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
 .tier-section-header-row.tier-section-header-row-spaced { margin-top: 2rem; }
-.tier-section-title { color: var(--accent-blue); font-family: var(--text-manga); font-size: 1.2rem; font-weight: bold; text-transform: uppercase; }
+.tier-section-title { color: var(--accent-blue); font-family: inherit; font-size: 1.2rem; font-weight: bold; text-transform: uppercase; }
 
 /* Footer & Credits */
 .footer-grid-section { margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 2rem; }
