@@ -86,7 +86,7 @@
     // --- FORMAT TAGS ---
     //
     // The grammar is js/pages/core/internalstyling.js's: paired tags that take no value,
-    // three that need one, and [noauto] / [noauto=all]. Matched without regard
+    // three that need one, [noauto] / [noauto=all], and the mini icon. Matched without regard
     // to case, as the renderer does. A bracketed word that is none of them and
     // carries no "=" is left alone: "[M1]" is how a keybind is written.
     const PLAIN_TAGS = new Set(['b', 'i', 'u', 's', 'code', 'kbd', 'outline']);
@@ -101,6 +101,9 @@
         while ((m = TAG.exec(text)) !== null) {
             const [, slash, written, value] = m;
             const name = written.toLowerCase();
+            // A mini icon wraps nothing, so it opens nothing; the renderer
+            // owns its grammar (js/pages/core/internalstyling.js).
+            if (!slash && name === 'icon' && typeof window.isTextIconTag === 'function' && window.isTextIconTag(m[0])) continue;
             const known = PLAIN_TAGS.has(name) || VALUE_TAGS.has(name) || name === 'noauto';
 
             if (slash) {

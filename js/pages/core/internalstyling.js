@@ -761,7 +761,12 @@ window.applyInputSlotColours = function (root) {
 // before anything is built, so nothing a contributor types reaches an
 // attribute unless it is already proven to be a name. A name this file does not
 // know stays as the tag that was typed, so the mistake shows in the preview.
-const TEXT_ICON_TAG = /\[icon=([a-z]+)\/([a-z0-9_-]{1,64})\]/gi;
+const TEXT_ICON_SOURCE = String.raw`\[icon=([a-z]+)\/([a-z0-9_-]{1,64})\]`;
+const TEXT_ICON_TAG = new RegExp(TEXT_ICON_SOURCE, 'gi');
+
+// One whole tag, by the same grammar, for the editor's writing checks
+// (js/editor/tools/editor-writing-checks.js), so they keep no copy of it.
+window.isTextIconTag = (tag) => new RegExp(`^${TEXT_ICON_SOURCE}$`, 'i').test(String(tag));
 
 function textIconHTML(tag, group, name) {
     if (group === 'accolade') {

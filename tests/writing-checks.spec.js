@@ -128,6 +128,9 @@ test('format tags: unclosed, unopened, crossed and unknown, read the way the ren
     ['[color]x[/color]', ['[/color] has no [color] before it.']],
     ['[url=https://a.b]x', ['[url] is never closed.']],
     ['[B]x[/b] [color=#ff0000][b]y[/b][/color] [M1] [noauto=all]z[/noauto] [multicolor=#fff,#000]w[/multicolor]', []],
+    // A mini icon is a tag that wraps nothing, read by the renderer's own grammar.
+    ['[icon=accolade/blockbreak] then [icon=character/boomcat] and [ICON=ui/star]', []],
+    ['[/icon]', ['[/icon] is not a format tag.']],
   ];
   for (const [text, expected] of cases) {
     expect(await issues(page, text), text).toEqual(expected);
@@ -161,6 +164,18 @@ test('under the field: a yellow line per problem, FIX renames, and the line goes
   await field.press('End');
   await field.pressSequentially('[/b]');
   await expect(box).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('a mini icon in a field draws no warning, and a real problem beside it still does', async ({ page }) => {
+  const errors = await bootEditor(page);
+  const field = paragraph(page, 1);
+  await field.fill('Lands [icon=accolade/blockbreak] on [icon=character/boomcat] with [b]M1');
+
+  await expect(lines(page, 1)).toHaveText(['[b] is never closed.']);
+  await field.press('End');
+  await field.pressSequentially('[/b]');
+  await expect(page.locator('#block-list .block-card[data-index="1"] [data-writing-checks]')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
