@@ -107,6 +107,20 @@ test.describe('links', () => {
         expect(out.text).toBe('clip');
     });
 
+    test('a quote with no space in it still cannot leave the address', async ({ page }) => {
+        // The whitelist refuses an address with a space, which stops the usual
+        // `" onclick="` shape before escaping matters. Without a space it passes,
+        // and the escape is then all that keeps it inside the href.
+        const out = await render(page,
+            '[url=https://ok.test"onclick="window.__pwned=1]a[/url] [url=#top"onclick="window.__pwned=1]b[/url]');
+
+        expect(out.handlers).toEqual([]);
+        expect(out.anchors.map(a => a.href)).toEqual([
+            'https://ok.test"onclick="window.__pwned=1',
+            '#top"onclick="window.__pwned=1',
+        ]);
+    });
+
     test('site-relative and fragment links are allowed', async ({ page }) => {
         const out = await render(page,
             '[url=/systems/hud/index.html]hud[/url] [url=#combos]combos[/url]');
