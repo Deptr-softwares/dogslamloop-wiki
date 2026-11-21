@@ -316,6 +316,9 @@ test('a tier colour comes from the palette or a hex', async ({ page }) => {
     expect(red, '--accent-red reaches the page').not.toBe('');
     const errorColour = await status(page).evaluate(el => getComputedStyle(el).color);
     expect(errorColour).toBe(await resolveColour(page, red));
+    // Red by hue, not one hex: a token re-pointed to grey still "matches itself".
+    const [r, g, b] = errorColour.match(/\d+/g).map(Number);
+    expect(r - Math.max(g, b), `the error line reads red (${errorColour})`).toBeGreaterThan(80);
 
     await popup.locator('.mk-hex').fill('123456');
     await popup.locator('.mk-hex').press('Enter');
