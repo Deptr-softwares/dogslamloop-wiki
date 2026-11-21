@@ -260,10 +260,6 @@ function showMediaInPane(path) {
     // pane, one thing in it, rather than a clip stacked above a page render.
     document.body.classList.add('media-preview-open');
 
-    // On a tablet in the queue view the pane is off-screen until the reviewer
-    // switches to it, so opening a clip has to take them there.
-    window.showMobilePreview();
-
     panel.scrollIntoView({ block: 'nearest' });
     return true;
 }
