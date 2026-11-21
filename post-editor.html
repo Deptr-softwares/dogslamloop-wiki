@@ -62,7 +62,7 @@
                             <a href="blog.html" class="btn-sys btn-sys-regular admin-hub-btn">VIEW BLOG</a>
                             <a href="index.html" class="btn-sys btn-sys-regular admin-hub-btn">HUB</a>
                         </div>
-                        <button id="mobile-preview-toggle" class="btn-sys btn-sys-blue admin-mobile-preview-btn" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
+                        <button id="mobile-preview-toggle" data-hide-text="BACK TO EDITOR" class="btn-sys btn-sys-blue admin-mobile-preview-btn" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
                     </div>
                 </div>
             </div>
@@ -130,39 +130,29 @@
     </div>
 
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/utility/character_tabs.js?v=3414902b"></script>
-    <script src="js/utility/input_slots.js?v=3414902b"></script>
-    <script src="js/utility/site_utils.js?v=3414902b"></script>
-    <script src="js/utility/site_data.js?v=3414902b"></script>
-    <script src="js/utility/site_media.js?v=3414902b"></script>
-    <script src="js/utility/site_account.js?v=3414902b"></script>
-    <script src="js/utility/site_meta.js?v=3414902b"></script>
-    <script src="js/pages/core/description.js?v=3414902b"></script>
-    <script src="js/pages/core/internalstyling.js?v=3414902b"></script>
-    <script src="js/editor/core/editor-dialogs.js?v=3414902b"></script>
+    <script src="js/utility/character_tabs.js?v=b4ed418a"></script>
+    <script src="js/utility/input_slots.js?v=b4ed418a"></script>
+    <script src="js/utility/site_utils.js?v=b4ed418a"></script>
+    <script src="js/utility/site_data.js?v=b4ed418a"></script>
+    <script src="js/utility/site_media.js?v=b4ed418a"></script>
+    <script src="js/utility/site_account.js?v=b4ed418a"></script>
+    <script src="js/utility/site_meta.js?v=b4ed418a"></script>
+    <script src="js/pages/core/description.js?v=b4ed418a"></script>
+    <script src="js/pages/core/internalstyling.js?v=b4ed418a"></script>
+    <script src="js/editor/core/editor-dialogs.js?v=b4ed418a"></script>
     <!-- posts.js supplies renderPostBody, so the preview goes through exactly
          the same render path as the published blog page. -->
-    <script src="js/pages/community/posts.js?v=3414902b"></script>
-    <script src="js/editor/blocks/editor-folders.js?v=3414902b"></script>
-    <script src="js/editor/blocks/editor-blocks.js?v=3414902b"></script>
-    <script src="js/editor/tools/editor-media.js?v=3414902b"></script>
+    <script src="js/pages/community/posts.js?v=b4ed418a"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=b4ed418a"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=b4ed418a"></script>
+    <script src="js/editor/tools/editor-media.js?v=b4ed418a"></script>
 
     <script>
         // Helpers editor-blocks.js expects from editor-core.js. Reimplemented
         // here rather than loading that file, whose DOMContentLoaded boots the
         // full page-revision editor and throws without a ?page= parameter.
-        // Its two boxes come from js/editor/core/editor-dialogs.js, like edit.html's.
-
-        // Mobile pane toggle, same class contract editor.css already defines
-        // (body.mobile-preview-active + #mobile-preview-toggle).
-        window.toggleMobilePreview = function() {
-            document.body.classList.toggle('mobile-preview-active');
-            const btn = document.getElementById('mobile-preview-toggle');
-            if (btn) {
-                btn.textContent = document.body.classList.contains('mobile-preview-active')
-                    ? 'BACK TO EDITOR' : 'SHOW PREVIEW';
-            }
-        };
+        // Its two boxes come from js/editor/core/editor-dialogs.js, like edit.html's,
+        // and its SHOW PREVIEW switch from js/utility/site_utils.js.
 
         // editor-blocks.js calls updateLivePreview() by bare name from ~10
         // sites after every block change. It is a top-level function
@@ -211,6 +201,6 @@
         window.updateLivePreview = updateLivePreview;
     </script>
 
-    <script src="js/owner/post-editor.js?v=3414902b"></script>
+    <script src="js/owner/post-editor.js?v=b4ed418a"></script>
 </body>
 </html>

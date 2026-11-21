@@ -6,10 +6,9 @@
  * are scoped to. Access here is admin-only, not admin/reviewer like
  * admin.html - the RBAC-gate shape is intentionally duplicated from
  * admin.js rather than shared, matching this codebase's precedent of small
- * per-file duplication over one feature file depending on another (see
- * admin.js's own toggleMobilePreview, reimplemented rather than pulling in
- * editor.js for one function). The ACCESS DENIED screen both gates show is
- * window.showAccessDenied, in site_utils.js.
+ * per-file duplication over one feature file depending on another. The
+ * ACCESS DENIED screen both gates show is window.showAccessDenied, in
+ * site_utils.js.
  */
 
 // --- BFCACHE GUARD ---

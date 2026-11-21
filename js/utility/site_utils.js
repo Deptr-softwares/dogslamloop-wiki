@@ -760,6 +760,26 @@ window.siteConfirm = function (message, opts = {}) {
     });
 };
 
+// --- THE MOBILE PREVIEW SWITCH ---
+// edit.html, admin.html and post-editor.html show the work and its preview
+// side by side, and below 900px one at a time. body.mobile-preview-active is
+// the class editor.css and admin.css switch on; #mobile-preview-toggle says
+// what pressing it does. Each page goes back to something different, so its
+// button carries that wording in data-hide-text.
+window.toggleMobilePreview = function() {
+    const shown = document.body.classList.toggle('mobile-preview-active');
+    const btn = document.getElementById('mobile-preview-toggle');
+    if (btn) btn.textContent = shown ? btn.dataset.hideText : 'SHOW PREVIEW';
+};
+
+// Takes a reviewer to the preview when something opens in it. Nothing happens
+// where the switch is not shown (a wide screen) or the preview already is.
+window.showMobilePreview = function() {
+    const btn = document.getElementById('mobile-preview-toggle');
+    if (!btn || getComputedStyle(btn).display === 'none') return;
+    if (!document.body.classList.contains('mobile-preview-active')) window.toggleMobilePreview();
+};
+
 // --- GLOBALS THE OTHER FILES CALL ---
 window.getRootPath = getRootPath;
 window.fetchJson = fetchJson;

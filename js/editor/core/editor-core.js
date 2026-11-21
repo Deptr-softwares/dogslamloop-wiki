@@ -1,15 +1,3 @@
-// --- MOBILE VIEW TOGGLE ---
-window.toggleMobilePreview = function() {
-    const body = document.body;
-    body.classList.toggle('mobile-preview-active');
-    
-    // Update the button text if it exists
-    const btn = document.getElementById('mobile-preview-toggle');
-    if (btn) {
-        btn.textContent = body.classList.contains('mobile-preview-active') ? "HIDE PREVIEW" : "SHOW PREVIEW";
-    }
-};
-
 // --- RECLAIMING EDITOR SPACE (owner's fine-tuning item, 2026-08-14) ---
 //
 // Two controls that answer the same complaint: the top of the editor was

@@ -262,12 +262,7 @@ function showMediaInPane(path) {
 
     // On a tablet in the queue view the pane is off-screen until the reviewer
     // switches to it, so opening a clip has to take them there.
-    if (typeof window.toggleMobilePreview === 'function'
-        && document.getElementById('mobile-preview-toggle')
-        && getComputedStyle(document.getElementById('mobile-preview-toggle')).display !== 'none'
-        && !document.body.classList.contains('mobile-preview-active')) {
-        window.toggleMobilePreview();
-    }
+    window.showMobilePreview();
 
     panel.scrollIntoView({ block: 'nearest' });
     return true;

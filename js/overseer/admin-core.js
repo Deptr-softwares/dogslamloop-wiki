@@ -64,22 +64,7 @@ window.changedTabs = [];
 // rather than trusting the data (a malicious revision or chat message
 // shouldn't be able to run script in a reviewer's authenticated session).
 // The escaper is window.escapeHtml, from js/utility/site_utils.js (loaded first).
-
-// admin.html doesn't load editor.js (which is where edit.html's version of
-// this lives) - reimplemented here rather than pulling in the whole file
-// for one function. Shares the same class/element-id contract
-// (body.mobile-preview-active, #mobile-preview-toggle) that editor.css's
-// existing @media (max-width: 900px) rules already key off, so no new CSS
-// mechanism is needed, just this wiring plus the markup in admin.html.
-window.toggleMobilePreview = function() {
-    const body = document.body;
-    body.classList.toggle('mobile-preview-active');
-
-    const btn = document.getElementById('mobile-preview-toggle');
-    if (btn) {
-        btn.textContent = body.classList.contains('mobile-preview-active') ? "BACK TO QUEUE" : "SHOW PREVIEW";
-    }
-};
+// So is the SHOW PREVIEW switch, window.toggleMobilePreview.
 
 // Mobile-only header dropdown holding OWNER TOOLS/RECENT CHANGES/HUB (the
 // panel is display:none outside admin.css's max-width:900px block, so this is

@@ -160,12 +160,7 @@ window.openPageHistoryFor = async function(pageId) {
 
     // On a phone the pane is off-screen until the reviewer switches to it, so
     // picking a page has to take them there (as opening a clip does).
-    const toggle = document.getElementById('mobile-preview-toggle');
-    if (toggle && typeof window.toggleMobilePreview === 'function'
-        && getComputedStyle(toggle).display !== 'none'
-        && !document.body.classList.contains('mobile-preview-active')) {
-        window.toggleMobilePreview();
-    }
+    window.showMobilePreview();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
