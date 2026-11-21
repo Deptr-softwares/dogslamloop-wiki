@@ -671,7 +671,10 @@ function buildPages(nav, previews = {}, archived = {}, toolScripts = new Set(), 
         if (!live) continue;
         pages.push({
             relPath,
-            html: movedStub({ pageId, name: live.name, docTitle: docTitleFor(live.name, live.pageType), target: live.relPath }),
+            // Stamped like every stub: its "Page moved" notice loads stylesheets.
+            html: stampSharedAssets(
+                movedStub({ pageId, name: live.name, docTitle: docTitleFor(live.name, live.pageType), target: live.relPath }),
+                sharedAssetVersion()),
             pageId,
             pageType: live.pageType,
             moved: true,

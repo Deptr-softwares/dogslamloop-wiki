@@ -19,7 +19,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const { SHARED_MODULES, sharedAssetVersion } = require('../scripts/asset-version.js');
+const { SHARED_MODULES, SHARED_STYLES, sharedAssetVersion } = require('../scripts/asset-version.js');
 
 function collectHtml(dir, out = []) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -99,6 +99,39 @@ test('no page loads a js/ module without a version', async () => {
     expect(unstamped, 'these scripts can be served stale against fresh HTML').toEqual([]);
 });
 
+test('no page loads a stylesheet from style/ without the same version', async () => {
+    // Stylesheets are cached for an hour like scripts, and scripts write the
+    // class names they paint: fresh markup against an hour-old sheet is the
+    // same failure as a fresh module against a stale helper.
+    const version = sharedAssetVersion();
+    const wrong = [];
+    let seen = 0;
+
+    for (const file of PAGES) {
+        const html = fs.readFileSync(file, 'utf8');
+        for (const m of html.matchAll(/href="([^"]*style\/[a-z_0-9/-]+\.css)(\?[^"]*)?"/gi)) {
+            seen++;
+            if (m[2] !== `?v=${version}`) wrong.push(`${path.relative(ROOT, file)} -> ${m[1]}${m[2] || ''}`);
+        }
+    }
+
+    expect(seen, 'the sweep found stylesheet links').toBeGreaterThan(500);
+    expect(wrong, 'these stylesheets can be served stale against fresh HTML').toEqual([]);
+});
+
+test('every stylesheet in style/ is in the list, at any depth', async () => {
+    const found = [];
+    const walk = (dir, prefix) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+            if (entry.isDirectory()) walk(path.join(dir, entry.name), `${prefix}${entry.name}/`);
+            else if (entry.name.endsWith('.css')) found.push(prefix + entry.name);
+        }
+    };
+    walk(path.join(ROOT, 'style'), '');
+    expect(SHARED_STYLES).toEqual(found.sort());
+    expect(SHARED_STYLES, 'a nested one is among them').toContain('tools/create_tier_list.css');
+});
+
 test('the check really looked at the whole site', async () => {
     // Every absence assertion above passes trivially against an empty file
     // list, and a broken collectHtml would report a perfectly stamped site.
@@ -132,16 +165,24 @@ test('the version changes when any module changes, including a new one', async (
     // reads the real files and re-hashes with one byte different.
     const crypto = require('crypto');
     const jsDir = path.join(ROOT, 'js');
+    const styleDir = path.join(ROOT, 'style');
 
-    const hashOf = (names) => {
+    const hashOf = (names, styles = SHARED_STYLES) => {
         const h = crypto.createHash('sha256');
-        for (const n of names) {
-            h.update(fs.readFileSync(path.join(jsDir, n), 'utf8').replace(/\r\n/g, '\n'), 'utf8');
+        const files = [...names.map(n => path.join(jsDir, n)), ...styles.map(n => path.join(styleDir, n))];
+        for (const file of files) {
+            h.update(fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n'), 'utf8');
         }
         return h.digest('hex').slice(0, 8);
     };
 
     expect(hashOf(SHARED_MODULES), 'reproduces the shipped version').toBe(sharedAssetVersion());
+
+    // Stylesheets are in it too, so a CSS-only release also moves the version.
+    for (const name of ['Layout.css', 'ColorCoding.css', 'tools/create_tier_list.css']) {
+        const without = SHARED_STYLES.filter(n => n !== name);
+        expect(hashOf(SHARED_MODULES, without), `${name} contributes to the version`).not.toBe(sharedAssetVersion());
+    }
 
     // Dropping any single module changes it - so no module is a no-op in the
     // hash, which is what "every module is covered" actually means.
