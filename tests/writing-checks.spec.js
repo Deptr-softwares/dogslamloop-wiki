@@ -131,6 +131,8 @@ test('format tags: unclosed, unopened, crossed and unknown, read the way the ren
     // A mini icon is a tag that wraps nothing, read by the renderer's own grammar.
     ['[icon=accolade/blockbreak] then [icon=character/boomcat] and [ICON=ui/star]', []],
     ['[/icon]', ['[/icon] is not a format tag.']],
+    // Not the icon grammar, so the page prints them as typed: still a problem.
+    ['[icon=blockbreak] and [icon=ui/Not A Name]', ['[icon] is not a format tag.', '[icon] is not a format tag.']],
   ];
   for (const [text, expected] of cases) {
     expect(await issues(page, text), text).toEqual(expected);
