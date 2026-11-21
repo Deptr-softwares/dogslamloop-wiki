@@ -29,7 +29,7 @@ function saveFrameDraftSoon() {
 }
 const draftSavingContainers = new WeakSet();
 
-const DAW_TRACK_COLOR_CLASSES =['text-red-400', 'text-red-600', 'text-blue-400', 'text-green-400', 'text-green-500', 'text-purple-400', 'text-orange-400', 'text-cyan-400', 'text-gray-400'];
+const DAW_TRACK_COLOR_CLASSES = ['text-red-400', 'text-red-600', 'text-blue-400', 'text-green-400', 'text-green-500', 'text-purple-400', 'text-orange-400', 'text-cyan-400', 'text-gray-400'];
 
 // The estimate whose nominal weight sits closest to a frame count, used when a
 // contributor switches a phase from counted to estimated. Nearest rather than
