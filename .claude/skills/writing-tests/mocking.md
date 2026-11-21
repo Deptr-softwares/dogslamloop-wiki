@@ -1,6 +1,6 @@
 # Mocking Supabase in specs
 
-The site creates its client once, at script-parse time, in `js/site_utils.js`:
+The site creates its client once, at script-parse time, in `js/utility/site_utils.js`:
 
 ```js
 window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);

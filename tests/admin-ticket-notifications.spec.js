@@ -2,7 +2,7 @@
 // reject were the ONLY actions that ever wrote to user_notifications - a
 // submission could be opened for discussion and replied to indefinitely with
 // the author never told, since contributors have no live view of ticket chat
-// (js/submissions.js only reads status/ticket_chat when they happen to visit).
+// (js/pages/community/submissions.js only reads status/ticket_chat when they happen to visit).
 //
 // Deliberately scoped to ticket-open + the FIRST staff reply rather than every
 // message, so an active back-and-forth doesn't turn into notification spam.

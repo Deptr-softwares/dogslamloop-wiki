@@ -179,7 +179,7 @@ test('the tab row is the Section Box machinery, not a second copy', async ({ pag
 
     // And the card markup is one function: a tabbed card and a plain card
     // produce the same structure.
-    const src = fs.readFileSync(path.join(ROOT, 'js', 'description.js'), 'utf8');
+    const src = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'core', 'description.js'), 'utf8');
     expect(src, 'one card renderer, called by both paths')
         .toContain('function theoryboxCardHTML(');
 });
@@ -212,7 +212,7 @@ test('the reviewer diff and the draft sync both walk a card section', () => {
     // derives its seven sites, because the alternative is finding out from a
     // reviewer that the tabs looked unchanged while every combo was rewritten.
     const missing = [];
-    for (const file of ['js/editor-sync.js', 'js/admin-preview.js']) {
+    for (const file of ['js/editor/core/editor-sync.js', 'js/overseer/admin-preview.js']) {
         const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
         if (!/b\.sections\[j\]\.sequence\[k\] = window\.diffTextLCS/.test(src)) missing.push(`${file} :: route`);
         if (!/b\.sections\[j\]\.label = window\.diffTextLCS/.test(src)) missing.push(`${file} :: tab label`);
@@ -328,8 +328,8 @@ test('sections add and remove, and the write-up descends into the right one', as
 // "one of the two surfaces was forgotten" is not a thing a rendering test of
 // either surface can notice.
 test('both Combo Card editors offer the switch, and share one set of rules', () => {
-    const block = fs.readFileSync(path.join(ROOT, 'js', 'editor-blocks.js'), 'utf8');
-    const tabs = fs.readFileSync(path.join(ROOT, 'js', 'editor-tabs.js'), 'utf8');
+    const block = fs.readFileSync(path.join(ROOT, 'js', 'editor', 'blocks', 'editor-blocks.js'), 'utf8');
+    const tabs = fs.readFileSync(path.join(ROOT, 'js', 'editor', 'tabs', 'editor-tabs.js'), 'utf8');
 
     expect(block, 'the theorybox block form').toMatch(/data-field="multiSections"/);
     expect(tabs, 'the Combos/Techs card form').toMatch(/data-card-multi/);

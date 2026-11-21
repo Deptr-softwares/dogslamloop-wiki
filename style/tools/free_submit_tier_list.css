@@ -1,7 +1,7 @@
 /* --- FREE SUBMIT TIER LIST (v0.14 item 4) ---
 
    The community's ranking. Its own stylesheet under style/tools/, picked up by
-   the generator the same way js/tools/<page id>.js is - a tool is an
+   the generator the same way js/pages/tools/<page id>.js is - a tool is an
    application rather than a document, and the alternative is a <style> block
    written from JavaScript, which is the shape v0.13 spent six PRs removing
    from editor.js.

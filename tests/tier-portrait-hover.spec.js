@@ -3,8 +3,8 @@
 //
 // The same interaction the Roster Icon got this version, on the second surface
 // that shows a portrait with a name behind it. Built once in CSS off
-// `attr(title)`, because all three renderers - js/tierlist.js,
-// js/tier-editor.js, js/certified-tier-lists.js - already set title to the
+// `attr(title)`, because all three renderers - js/pages/tier-lists/tierlist.js,
+// js/pages/tier-lists/tier-editor.js, js/pages/tier-lists/certified-tier-lists.js - already set title to the
 // character's name.
 //
 // The thing most at risk here is the FALLBACK. .tier-portrait-name sits behind
@@ -136,7 +136,7 @@ test('the label never eats the click', async ({ page }) => {
 
 test('the live tier rows got the bigger boxes and tighter spacing', async ({ page }) => {
   // The certified page already had this; this is the same treatment for the
-  // surface js/tierlist.js renders.
+  // surface js/pages/tier-lists/tierlist.js renders.
   await harness(page);
 
   const seen = await page.evaluate(() => {
@@ -163,7 +163,7 @@ test('the base .tier-portrait is still 60px, so each surface sets its own', asyn
   // BASE size. And the drag hit-testing does not depend on it - the editor
   // resolves a drop through document.elementFromPoint plus
   // closest('.tier-dropzone, .tier-editor-tray') and reads no dimension at all.
-  // The claim was checked against js/tier-editor.js before the editor's
+  // The claim was checked against js/pages/tier-lists/tier-editor.js before the editor's
   // portraits were enlarged to 96px, because had it been true they could not
   // have grown.
   //

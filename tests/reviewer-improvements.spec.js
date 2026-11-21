@@ -108,7 +108,7 @@ test('a moved block is marked where it lands', async ({ page }) => {
   // Driven with Playwright's real mouse rather than dispatched PointerEvents:
   // startBlockPointerDrag calls setPointerCapture, which throws on synthetic
   // (untrusted) pointer events - a constraint the source comments in
-  // js/editor-blocks.js already call out.
+  // js/editor/blocks/editor-blocks.js already call out.
   await page.evaluate(() => {
     document.body.innerHTML = '<div id="block-host"></div>';
     window.initStrategyBlockBuilder('block-host', [
@@ -129,7 +129,7 @@ test('a moved block is marked where it lands', async ({ page }) => {
   // This drag is driven by real coordinates, so it can only be measured once
   // the layout has stopped moving - and it does move after the builder
   // renders. A block card holds several .editor-select elements, and
-  // initializeMangaSelects (js/site_utils.js) replaces each one with a custom
+  // initializeMangaSelects (js/utility/site_utils.js) replaces each one with a custom
   // wrapper of a different height, triggered by its own MutationObserver.
   //
   // This used to be a flat 150ms sleep, which is a guess at how long that
@@ -155,7 +155,7 @@ test('a moved block is marked where it lands', async ({ page }) => {
   // Record the marker as it appears, instead of looking for it afterwards.
   //
   // .block-just-moved is added inside a requestAnimationFrame and removed
-  // 1400ms later (js/editor-blocks.js). Reading it once after the drop means
+  // 1400ms later (js/editor/blocks/editor-blocks.js). Reading it once after the drop means
   // racing that window: locally the machine always won, and on CI it lost -
   // the drag itself succeeded, the order assertion passed, and only the
   // marker count came back 0. An observer cannot miss it, however slow the

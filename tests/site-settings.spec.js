@@ -3,7 +3,7 @@
 // for user in the future." A button beside the account button opens the panel,
 // and "Turn off animations" stops everything that moves: the same things the
 // device's own reduce-motion setting stops, through one class on <html>
-// (js/site_utils.js). Saved per device, signed in or not.
+// (js/utility/site_utils.js). Saved per device, signed in or not.
 //
 // The button shares the account button's row because a row of its own would
 // push the account button down, out of sight on a short screen (owner).

@@ -1,5 +1,5 @@
 // Coverage for v0.11's Site Metadata and Game Info tools (owner.html +
-// js/owner-site-meta.js).
+// js/owner/owner-site-meta.js).
 //
 // These drive the real controls rather than asserting the page rendered. The
 // post-editor shipped into a PR with a green suite and three bugs that made it

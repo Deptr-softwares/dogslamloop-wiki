@@ -1,7 +1,7 @@
 /* --- CREATE TIER LIST (v1.1) ---
 
    Anyone's own tier list, copied as an image. Its own stylesheet under
-   style/tools/, picked up by the generator the same way js/tools/<page id>.js
+   style/tools/, picked up by the generator the same way js/pages/tools/<page id>.js
    is.
 
    Namespaced mk- ("make"). The certified lists use ctl- and Free Submit fs-,
@@ -111,7 +111,7 @@
     align-content: flex-start;
 }
 
-/* The last two columns of the first row (js/tools/create_tier_list.js
+/* The last two columns of the first row (js/pages/tools/create_tier_list.js
    brand). Placed, so the characters placed around it skip those cells. */
 .mk-brand {
     grid-row: 1;
@@ -185,7 +185,7 @@
 /* Picked up, waiting for a tier. */
 .mk-entry[aria-pressed="true"] .tier-portrait { border-color: var(--accent-yellow); }
 
-/* Where the dragged character will land (js/tools/create_tier_list.js
+/* Where the dragged character will land (js/pages/tools/create_tier_list.js
    showMarker). Fixed, over the board, so nothing moves under the pointer. */
 .mk-drop-marker {
     position: fixed;

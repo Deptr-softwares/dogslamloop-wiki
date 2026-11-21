@@ -108,7 +108,7 @@ test('a visitor sees nothing: the rendered page is identical with and without fo
   const out = await page.evaluate(() => {
     // Rendered the way a reader page renders it. This page is the editor,
     // whose Preview marks each Block with a fingerprint of its data
-    // (window.previewBlockAnchor, js/editor-config.js), and a folder is part
+    // (window.previewBlockAnchor, js/editor/core/editor-config.js), and a folder is part
     // of that data. No reader page defines the hook.
     delete window.previewBlockAnchor;
     // One of every block type that carries content, so this is not a claim

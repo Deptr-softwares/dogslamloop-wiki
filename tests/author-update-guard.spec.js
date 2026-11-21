@@ -3,7 +3,7 @@
 // into states only a reviewer should produce.
 //
 // The one that matters: status = 'approved'. That drops the row out of the
-// staff queue (js/admin-queue.js selects .in('status', ['pending',
+// staff queue (js/overseer/admin-queue.js selects .in('status', ['pending',
 // 'ticket_open'])) and makes it world-readable, because "Public can view
 // approved revisions" is FOR SELECT USING (status = 'approved') and anon holds
 // SELECT on the table. Unreviewed content, publicly visible, gone from
@@ -143,7 +143,7 @@ test('every status the client writes as the author is one the policy allows', ()
   // above asks "is the policy strict enough"; this asks "is it strict about the
   // wrong things" - a policy that refuses something the UI actually does would
   // fail silently, because PostgREST returns 0 rows updated and no error.
-  const submissions = fs.readFileSync(path.join(ROOT, 'js', 'submissions.js'), 'utf8');
+  const submissions = fs.readFileSync(path.join(ROOT, 'js', 'pages', 'community', 'submissions.js'), 'utf8');
 
   const allowed = withCheckOf(UPDATE_POLICY())
     .match(/"status"\s+IN\s*\(([^)]*)\)/)[1]
@@ -157,6 +157,6 @@ test('every status the client writes as the author is one the policy allows', ()
   expect(written.length, 'the page sets at least one status, or this proves nothing')
     .toBeGreaterThan(0);
   for (const status of written) {
-    expect(allowed, `js/submissions.js writes '${status}' as the author`).toContain(status);
+    expect(allowed, `js/pages/community/submissions.js writes '${status}' as the author`).toContain(status);
   }
 });

@@ -154,7 +154,7 @@ test('renderMatchupsPreview/renderKeyedSectionPreview: card-tier-label keeps its
   // Starter Guide is the same shape, so one renderer serves every keyed
   // section rather than one per section. The claim here is unchanged - the
   // per-item colour is genuinely dynamic and stays inline - and the colour now
-  // comes from the section's metaColors map in js/character_tabs.js.
+  // comes from the section's metaColors map in js/utility/character_tabs.js.
   await page.evaluate(() => {
     if (!document.getElementById('tab-matchups')) {
       const el = document.createElement('div'); el.id = 'tab-matchups'; document.body.appendChild(el);

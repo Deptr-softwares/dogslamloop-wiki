@@ -26,7 +26,7 @@
     --border-color: hsl(212, 12%, 21%);
     
     --accent-blue: hsl(213, 94%, 68%);
-    /* The text colour to use ON TOP of --accent-blue. js/site_meta.js
+    /* The text colour to use ON TOP of --accent-blue. js/utility/site_meta.js
        re-points --accent-blue to the character's own colour on a character
        page, and re-points this with it: black on a light colour, white on a
        dark one, using the same <50% lightness test the title engine uses.
@@ -167,7 +167,7 @@ body {
 
 /* A bar of the page colour on the start of a panel heading's underline
    (v1.1). Hovering the panel stretches it to the end of the heading's words,
-   which js/site_utils.js measures into --title-words: on a heading as wide as
+   which js/utility/site_utils.js measures into --title-words: on a heading as wide as
    the panel, CSS cannot know where the words end. Only on headings with their
    own underline. -clean and -flex sit on a row's accent line instead, where a
    bar of the same colour would disappear. */
@@ -206,11 +206,11 @@ body {
     image-rendering: pixelated;
 }
 /* A character's icon in text, [icon=character/...] (v1.2,
-   js/internalstyling.js): their roster icon, a 128px picture, at the height
+   js/pages/core/internalstyling.js): their roster icon, a 128px picture, at the height
    of the line it sits in. An accolade's is a .px-icon above. */
 .text-icon-character { display: inline-block; width: 1.25em; height: 1.25em; vertical-align: -0.3em; object-fit: contain; }
 
-/* --- SHORTCODE OUTPUT (js/internalstyling.js) ---
+/* --- SHORTCODE OUTPUT (js/pages/core/internalstyling.js) ---
 
    These replace the inline styles that engine used to write, 2026-08-14. It
    builds markup by string replacement over contributor text, and every inline
@@ -248,12 +248,12 @@ body {
    BOTH HALVES OF THE SELECTOR ARE LOAD-BEARING, and they are different claims:
 
      .page-character-dark  is the PAGE. Set by applyCharacterTheme in
-                           js/site_meta.js, which already paints white outlines
+                           js/utility/site_meta.js, which already paints white outlines
                            onto this page's titles - so a dark name in prose
                            matches the treatment beside it instead of being the
                            only unoutlined dark text on the page.
 
-     .sc-char-dark         is the NAME. Added by js/internalstyling.js from
+     .sc-char-dark         is the NAME. Added by js/pages/core/internalstyling.js from
                            window.isDarkCharacterColor, so a light character
                            mentioned on a dark page is left alone - it was
                            already readable and an outline would only thicken
@@ -312,7 +312,7 @@ body {
 /* An IN-PAGE link, [url=#sec-tech]. A really faint underline and no arrow
    (owner, 2026-10-19): these links sit inside coloured and gradient text, where
    the dotted underline and the arrow fought the colour. Hovering one names the
-   section it goes to instead (js/pagebuilder.js). */
+   section it goes to instead (js/pages/core/pagebuilder.js). */
 .wiki-link-jump {
     text-decoration-color: color-mix(in srgb, var(--text-white) 22%, transparent);
     text-underline-offset: 3px;
@@ -325,7 +325,7 @@ body {
    across the heading and off again, once, in place of a soft fade with
    rounded corners. ::before, because .section-title's ::after is its bar.
    Over the words only, not the whole line a heading spans (owner,
-   2026-10-20): js/pagebuilder.js measures where they start and how wide
+   2026-10-20): js/pages/core/pagebuilder.js measures where they start and how wide
    they are into --flash-left and --flash-width. */
 .anchor-flash { position: relative; }
 .anchor-flash::before {
@@ -341,6 +341,6 @@ body {
     100% { clip-path: inset(0 0 0 100%); }
 }
 /* html.reduce-motion: the device's preference or Site settings
-   (js/site_utils.js). An outline, held, instead of the wipe. */
+   (js/utility/site_utils.js). An outline, held, instead of the wipe. */
 html.reduce-motion .anchor-flash::before { content: none; }
 html.reduce-motion .anchor-flash { outline: 2px solid var(--accent-blue); outline-offset: 3px; }

@@ -7,7 +7,7 @@
 // the header burned four full-width button rows before any queue content.
 //
 // admin.html's RBAC gate replaces document.body.innerHTML wholesale on auth
-// failure (js/admin-core.js kickUser), so every test here has to mock a valid
+// failure (js/overseer/admin-core.js kickUser), so every test here has to mock a valid
 // staff session first or the markup under test is destroyed before it can be
 // measured - same client-patching approach as admin-rbac-retry.spec.js.
 const { test, expect } = require('@playwright/test');

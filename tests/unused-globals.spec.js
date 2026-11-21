@@ -15,7 +15,7 @@ const SKIP_DIRS = new Set(['node_modules', '.git', '.claude', 'katana-move', 'me
 const KEPT_ON_PURPOSE = {
     // How a badge is awarded. The owner kept the badges when the Halloween
     // event that awarded them was removed (2026-11-14).
-    earnBadge: 'js/site_utils.js',
+    earnBadge: 'js/utility/site_account.js',
 };
 
 function walk(dir, keep, out = []) {
@@ -65,7 +65,7 @@ function definitions() {
 
 test('the scan finds the globals it is meant to check', () => {
     const defs = definitions();
-    expect(defs.get('escapeHtml')).toEqual([expect.stringMatching(/^js\/site_utils\.js:\d+$/)]);
+    expect(defs.get('escapeHtml')).toEqual([expect.stringMatching(/^js\/utility\/site_utils\.js:\d+$/)]);
     expect(defs.has('earnBadge')).toBe(true);
 });
 

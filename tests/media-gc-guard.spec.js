@@ -1,4 +1,4 @@
-// Coverage for the media garbage collector's safety rails (js/owner.js).
+// Coverage for the media garbage collector's safety rails (js/owner/owner.js).
 //
 // The collector decides a file is unused by NOT finding its name in the page
 // data, so every one of these tests is really the same question asked from a
@@ -13,7 +13,7 @@
 // happened.
 const { test, expect } = require('@playwright/test');
 
-// Matches GC_PAGE_SIZE in js/owner.js. Hard-coded rather than read from the
+// Matches GC_PAGE_SIZE in js/owner/owner.js. Hard-coded rather than read from the
 // page, because a test that silently follows the constant would stop testing
 // pagination the moment the constant changed to something the mock returns in
 // one page.

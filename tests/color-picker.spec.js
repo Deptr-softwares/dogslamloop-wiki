@@ -188,7 +188,7 @@ test('a hex the picker cannot parse never reaches the page', async ({ page }) =>
     await page.locator('#cp-apply').click();
 
     // It falls back to the surface's own colour rather than writing junk into
-    // a style attribute - which js/internalstyling.js would refuse anyway, but
+    // a style attribute - which js/pages/core/internalstyling.js would refuse anyway, but
     // the contributor would just see their colour vanish.
     const applied = await fieldValue(page);
     expect(applied).not.toContain('not-a-colour');

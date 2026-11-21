@@ -52,7 +52,7 @@ test('[outline] nests inside a colour, which is how a dark word gets it', async 
 });
 
 test('section anchors and search text drop the tag, not the words', async ({ page }) => {
-  // window.stripStyleShortcodes (js/character_tabs.js) is what headings pass
+  // window.stripStyleShortcodes (js/utility/character_tabs.js) is what headings pass
   // through before they become anchors and search-index text. A tag it does
   // not know about would end up in a URL.
   await page.goto(PAGE, { waitUntil: 'domcontentloaded' });

@@ -28,7 +28,7 @@ const SITEWIDE = ['forum.html', 'recent-changes.html'];
 
 test('every hand-written page with a left sidebar has a right one', () => {
     // Derived from the files, not listed, so a ninth page cannot be missed.
-    // Generated pages build both sidebars in js/page_router.js.
+    // Generated pages build both sidebars in js/pages/core/page_router.js.
     const SKIP = new Set(['node_modules', '.git', 'test-results', 'playwright-report']);
     const missing = [];
     const walk = (dir) => {

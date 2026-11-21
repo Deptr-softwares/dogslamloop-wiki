@@ -1,7 +1,7 @@
 // The Emotes page had no edit button, so nobody could contribute to it
 // (v0.14 §9). Gallery is the newest page type and the least exercised.
 //
-// The cause was one line in js/page_router.js: `hasToc` was false for a
+// The cause was one line in js/pages/core/page_router.js: `hasToc` was false for a
 // gallery, and the whole right sidebar was dropped along with the contents
 // list. #btn-edit-current-tab lives in that sidebar - initTabEditorButtons
 // ran, found nothing, and did nothing.
@@ -61,7 +61,7 @@ test('a gallery still gets no contents list, because it has no headings', async 
 });
 
 test('the gallery itself still works', async ({ page }) => {
-    // The page renders through js/gallery.js and the sidebar change must not
+    // The page renders through js/pages/types/gallery.js and the sidebar change must not
     // have disturbed it.
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));

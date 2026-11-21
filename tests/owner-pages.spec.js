@@ -1,4 +1,4 @@
-// Coverage for v0.10's page management (owner.html + js/owner.js).
+// Coverage for v0.10's page management (owner.html + js/owner/owner.js).
 //
 // Creating a page used to require three things by hand: a nav entry in
 // data/navigation.json, a physical HTML file, and optionally a page_data row.

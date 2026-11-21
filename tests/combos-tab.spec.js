@@ -26,7 +26,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 const vocab = (() => {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'character_tabs.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'character_tabs.js'), 'utf8');
   const w = {};
   new Function('window', src)(w);
   return w;

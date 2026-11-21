@@ -1,8 +1,8 @@
 // Coverage for Workstream B Tier 2: frame-data color de-duplication.
 // ColorCoding.css's :root custom properties are now the single source for
 // the 9 frame-timing colors + 5 i-frame window colors, consumed by
-// .bg-tick-*/.span-* rules, the legend swatches (js/framedata.js), and the
-// runtime dictionaries window.FRAME_COLORS/WINDOW_COLORS (js/site_meta.js,
+// .bg-tick-*/.span-* rules, the legend swatches (js/pages/core/framedata.js), and the
+// runtime dictionaries window.FRAME_COLORS/WINDOW_COLORS (js/utility/site_meta.js,
 // read via getComputedStyle). These tests prove the legend and the actual
 // frame-tick/window-overlay elements resolve to the same color instead of
 // four independently-hardcoded copies drifting apart.

@@ -20,7 +20,7 @@
  *
  * It has cost three releases. The worst was v0.16: the dynamic roster icons and
  * the Show Hidden control shipped, and the owner could not see them on the live
- * site - js/pagebuilder.js was unstamped, so the browser kept the copy it
+ * site - js/pages/core/pagebuilder.js was unstamped, so the browser kept the copy it
  * already had while everything around it updated. The release looked like it
  * had not happened.
  *
@@ -30,7 +30,7 @@
  *
  * ONE version across all of them, not a hash per file. This codebase is a
  * single shared `window` scope with no module system: pagebuilder.js calls
- * window.roleBadge from site_utils.js, discussions.js calls
+ * window.roleBadge from site_account.js, discussions.js calls
  * window.fetchPublicProfiles, page_boot.js drives both. Cross-file calls are
  * the norm, so any pair can be the fresh-module-against-stale-helper failure -
  * and per-file hashes would let exactly that pair be served half-fresh.
@@ -50,15 +50,21 @@ const JS_DIR = path.join(__dirname, '..', 'js');
 // hash has to be identical on a developer's Windows machine and the Linux CI
 // runner or `npm run validate` fails against a tree that is correct.
 //
-// js/tools/ as well: a tool page's own script (scripts/generate-pages.js adds
-// it to the stub) is a module like any other, and reading only the top level
-// left every one of them unstamped from a20d29e4 to v1.1. Named with a forward
-// slash on every OS, so the list, the hash and the src it matches agree.
+// Every folder under js/, at any depth: reading only the top level once left
+// js/tools/ unstamped from a20d29e4 to v1.1. js/vendor/ is not on the list:
+// its files carry their version in their name. Named with a forward slash on
+// every OS, so the list, the hash and the src it matches agree.
 const listModules = (dir, prefix) => fs.existsSync(dir)
-    ? fs.readdirSync(dir).filter(name => name.endsWith('.js')).map(name => prefix + name)
+    ? fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+        if (entry.isDirectory()) {
+            return prefix === '' && entry.name === 'vendor'
+                ? []
+                : listModules(path.join(dir, entry.name), `${prefix}${entry.name}/`);
+        }
+        return entry.name.endsWith('.js') ? [prefix + entry.name] : [];
+    })
     : [];
-const SHARED_MODULES = [...listModules(JS_DIR, ''), ...listModules(path.join(JS_DIR, 'tools'), 'tools/')]
-    .sort();
+const SHARED_MODULES = listModules(JS_DIR, '').sort();
 
 const SHARED_MODULE_PATHS = SHARED_MODULES.map(name => path.join(JS_DIR, name));
 

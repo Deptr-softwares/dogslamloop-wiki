@@ -464,7 +464,7 @@ test('a list with no introduction simply has none', async ({ page }) => {
 
 test('the reasoning actually renders, which it could not before', async ({ page }) => {
     // A regression test for a bug that shipped in PR #81 and was invisible for
-    // a day: js/description.js was not loaded on this page, so
+    // a day: js/pages/core/description.js was not loaded on this page, so
     // generateHTMLForBlocks did not exist and the reasoning section could
     // never have rendered at all.
     //
@@ -501,7 +501,7 @@ test('the block renderer is present on this page at all', async ({ page }) => {
     await open(page);
 
     const available = await page.evaluate(() => typeof window.generateHTMLForBlocks === 'function');
-    expect(available, 'js/description.js must be loaded for the block sections to render').toBe(true);
+    expect(available, 'js/pages/core/description.js must be loaded for the block sections to render').toBe(true);
 });
 
 // --- THE STOREFRONT (v0.14) ----------------------------------------------
@@ -704,7 +704,7 @@ test('an icon box borrows the character colour for its border, not its fill', as
 
     // The colour travels as a custom property. An inline background would beat
     // the stylesheet rule that needs to read it, which is the same reasoning
-    // js/pagebuilder.js gives for the roster grid.
+    // js/pages/core/pagebuilder.js gives for the roster grid.
     expect(box.charColor, 'the colour has to reach CSS to be usable as a border').toBeTruthy();
     expect(box.inlineBg, 'and must not also be painted as a fill').toBe('');
 

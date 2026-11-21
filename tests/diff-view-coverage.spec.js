@@ -154,7 +154,7 @@ async function renderScope(page, scope, key, payload) {
 // and a list written out by hand would have to be remembered to be updated -
 // which is how all seven went missing in the first place.
 function scopesThatCanBeApplied() {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'site_utils.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'site_data.js'), 'utf8');
   const body = src.slice(src.indexOf('applyDeltaToData'));
   const literal = [...body.matchAll(/scope === '([a-zA-Z_]+)'/g)].map(m => m[1]);
   const fixedInline = ['profile', 'playstyle', 'overview', 'strategy'];

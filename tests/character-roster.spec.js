@@ -85,7 +85,7 @@ test('an unreadable navigation gives an empty roster, and the next call tries ag
 });
 
 test('every tier list reads the shared roster, and none keeps a copy', async () => {
-    const lists = ['js/certified-tier-lists.js', 'js/tools/free_submit_tier_list.js', 'js/tier-editor.js'];
+    const lists = ['js/pages/tier-lists/certified-tier-lists.js', 'js/pages/tools/free_submit_tier_list.js', 'js/pages/tier-lists/tier-editor.js'];
     for (const file of lists) {
         const src = fs.readFileSync(path.join(ROOT, file), 'utf8');
         expect(src, `${file} uses the shared loader`).toContain('window.loadCharacterRoster()');

@@ -430,7 +430,7 @@
     font-size: 0.55rem;
 }
 
-/* --- THE GIF PICKER (js/discussions.js, v1.1 batch 8.5) --- */
+/* --- THE GIF PICKER (js/pages/community/discussions.js, v1.1 batch 8.5) --- */
 
 .gif-picker {
     margin-top: 0.5rem;
@@ -491,7 +491,7 @@
 
 .gif-credit { border-top: 1px solid var(--border-color); }
 
-/* --- EMOJIS (js/emoji.js, v1.1 batch 8.5) --- */
+/* --- EMOJIS (js/utility/emoji.js, v1.1 batch 8.5) --- */
 
 /* In a sentence, 22px at Discord's 16px text, so the same ratio here. */
 .discussion-body .emoji {

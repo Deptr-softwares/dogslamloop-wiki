@@ -143,7 +143,7 @@ test('a submission from before the QA form says what is missing', async ({ page 
 
 test('evidence that is not one web address is shown as text, never as a link', async ({ page }) => {
     // A merged ticket's evidence is every contributor's, one block each
-    // (js/admin-merge-compiler.js), and a contributor can type a sentence. Both
+    // (js/overseer/admin-merge-compiler.js), and a contributor can type a sentence. Both
     // used to read "not a valid http(s) URL" and hide what was written.
     const samples = [
         'javascript:alert(1)',

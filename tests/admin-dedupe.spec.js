@@ -82,7 +82,7 @@ test('#preview-content-area.active toggles opacity/pointer-events via classList 
   expect(states.enabled.pointerEvents).toBe('auto');
 });
 
-test('dynamically-created system-nav-btn (js/admin-diff.js updateAdminSidebar) gets its styling from a class, not inline', async ({ page }) => {
+test('dynamically-created system-nav-btn (js/overseer/admin-diff.js updateAdminSidebar) gets its styling from a class, not inline', async ({ page }) => {
   await page.goto('/admin.html', { waitUntil: 'networkidle' });
 
   // Drives the real generator rather than a hand-built stand-in. These
@@ -130,7 +130,7 @@ test('dynamically-created system-nav-btn (js/admin-diff.js updateAdminSidebar) g
   expect(result.xss).toBe(false);
 });
 
-test('real bug fix: window.escapeHtml (js/admin-core.js) neutralizes markup instead of letting it execute - contributor-controlled strings (author name, ticket chat, QA metadata, raw diff JSON) all pass through it before reaching innerHTML', async ({ page }) => {
+test('real bug fix: window.escapeHtml (js/overseer/admin-core.js) neutralizes markup instead of letting it execute - contributor-controlled strings (author name, ticket chat, QA metadata, raw diff JSON) all pass through it before reaching innerHTML', async ({ page }) => {
   // escapeHtml itself is defined at admin-core.js's top level, not inside
   // the RBAC-gated DOMContentLoaded handler, so it's callable even for a
   // logged-out visitor.

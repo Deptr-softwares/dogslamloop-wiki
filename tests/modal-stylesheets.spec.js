@@ -1,4 +1,4 @@
-// js/site_utils.js injects four modals into EVERY page that loads it - auth,
+// js/utility/site_utils.js injects four modals into EVERY page that loads it - auth,
 // profile, alert and public-profile - by appending them to document.body at
 // boot. They are not opt-in, and a page cannot decline them.
 //
@@ -52,7 +52,7 @@ const PAGES = findHtml(ROOT).map(full => ({
 
 // A page "injects the modals" if it loads site_utils.js at all. There is no
 // finer condition to test: the injection is unconditional inside that file.
-const INJECTORS = PAGES.filter(p => /src="[^"]*js\/site_utils\.js/.test(p.src));
+const INJECTORS = PAGES.filter(p => /src="[^"]*js\/utility\/site_utils\.js/.test(p.src));
 
 test('the scan found pages to check', () => {
     // Guards the whole file against the vacuous shape - a broken walker finds
@@ -92,7 +92,7 @@ test('the auth modal really is the bigger consumer of .editor-input', () => {
     // the fix turns on: the owner saw the PROFILE fields unstyled, but the
     // login and register form uses the same class more, so an anonymous visitor
     // hit this before any signed-in one could.
-    const src = fs.readFileSync(path.join(ROOT, 'js', 'site_utils.js'), 'utf8');
+    const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'site_account.js'), 'utf8');
     const authStart = src.indexOf('const authModalHTML');
     const profileStart = src.indexOf('const profileModalHTML');
     expect(authStart, 'authModalHTML exists').toBeGreaterThan(-1);

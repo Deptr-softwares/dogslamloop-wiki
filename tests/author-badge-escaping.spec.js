@@ -9,8 +9,8 @@
 // with a test. v0.15 corrected it on evidence, not opinion:
 //
 //   - Contributors do not write HTML. The editor's formatting toolbar
-//     (applyFormat, js/editor-blocks.js) emits BBCODE - [b]…[/b],
-//     [color=#f00]…[/color], [url=…]…[/url] - which js/internalstyling.js
+//     (applyFormat, js/editor/blocks/editor-blocks.js) emits BBCODE - [b]…[/b],
+//     [color=#f00]…[/color], [url=…]…[/url] - which js/pages/core/internalstyling.js
 //     converts to HTML after render. HTML escaping does not touch square
 //     brackets, so every one of those still works.
 //   - A scan of all live content at the time (33 pages) found ZERO angle

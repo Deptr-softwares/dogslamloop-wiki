@@ -50,7 +50,7 @@ body { margin: 0; padding: 0; overflow: hidden; background-color: #000; }
        the page expects 1100. */
     .editor-layout-split {
         /* The one number the drag writes. Percent so it survives a window
-           resize; js/editor-core.js clamps it in px before writing. */
+           resize; js/editor/core/editor-core.js clamps it in px before writing. */
         --editor-split: 30%;
     }
 
@@ -570,14 +570,14 @@ input[type="checkbox"]:checked {
 
 /* The flash is decorative; anyone who asked for less motion just gets the
    outline, held briefly, with no animation. */
-/* html.reduce-motion: the device's preference or Site settings (js/site_utils.js). */
+/* html.reduce-motion: the device's preference or Site settings (js/utility/site_utils.js). */
 html.reduce-motion .block-card.block-just-moved {
     animation: none;
     box-shadow: 0 0 0 2px var(--accent-blue);
 }
 /* Small pill that follows the pointer during a block-list drag (add-block-btn
    or drag-handle reorder), created/destroyed by startBlockPointerDrag in
-   js/editor-blocks.js. pointer-events: none so elementFromPoint() hit-tests
+   js/editor/blocks/editor-blocks.js. pointer-events: none so elementFromPoint() hit-tests
    the real card underneath it, not the ghost itself. */
 .block-drag-ghost {
     position: fixed; z-index: 9999; pointer-events: none;
@@ -609,8 +609,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
    The block editor never showed it, because autoSizeEditorTextarea writes
    style.overflowY inline and an inline style beats both rules. Everything else
    using this class had no scrollbar and no wheel scrolling: the combo card's
-   route and notes fields (js/editor-tabs.js), the QA changelog on the submit
-   modal (js/editor-core.js), the tier changelog (js/tierlist.js).
+   route and notes fields (js/editor/tabs/editor-tabs.js), the QA changelog on the submit
+   modal (js/editor/core/editor-core.js), the tier changelog (js/pages/tier-lists/tierlist.js).
 
    Fifth time an equal-specificity pair in this project has been settled by
    source order rather than by intent - so the cap keeps `overflow-y: auto` and
@@ -711,7 +711,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     max-height: 320px;
     display: flex;
     flex-direction: column;
-    /* Positioning is handled in js/editor-blocks.js (keepColorPopupOnScreen),
+    /* Positioning is handled in js/editor/blocks/editor-blocks.js (keepColorPopupOnScreen),
        not here: the popup overflows the editor pane by an amount that depends
        on where along the toolbar the button sits, which no static rule knows.
        An earlier attempt reserved a scrollbar gutter here on the theory that
@@ -860,7 +860,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 
    Replaces <input type="color">, which opened the operating system's own
    colour dialog over the wiki. Drawn with CSS gradients rather than a canvas:
-   the maths is four lines in js/editor-blocks.js and a canvas would be a
+   the maths is four lines in js/editor/blocks/editor-blocks.js and a canvas would be a
    second way to draw the same square.
 
    The saturation/brightness square is one hue-coloured background with white
@@ -932,7 +932,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 
 .cp-apply { flex-shrink: 0; font-size: 0.6rem; padding: 0.25rem 0.45rem; }
 
-/* The custom gradient (v1.1, js/editor-blocks.js wireGradientBuilder): one
+/* The custom gradient (v1.1, js/editor/blocks/editor-blocks.js wireGradientBuilder): one
    chip per colour, the chip being edited outlined, a ✕ on each once there
    are more than two, and the result in a strip. */
 .cp-gradient-toggle { display: block; width: 100%; text-align: left; cursor: pointer; }
@@ -1027,7 +1027,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     justify-content: flex-end;
 }
 
-/* --- QA MODAL (js/editor-core.js openQAModal) --- */
+/* --- QA MODAL (js/editor/core/editor-core.js openQAModal) --- */
 .editor-intercept-label { color: #a855f7; }
 .qa-modal-elevated { z-index: 10005; }
 /* Compound selector: .auth-modal-box's own base rule also sets width (400px)
@@ -1049,7 +1049,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .qa-textarea-short { min-height: 80px; }
 .qa-textarea-long { min-height: 150px; }
 
-/* --- MOVE ID MODAL (js/editor-tabs.js promptForMoveId) --- */
+/* --- MOVE ID MODAL (js/editor/tabs/editor-tabs.js promptForMoveId) --- */
 .move-id-modal-elevated { z-index: 10006; }
 .auth-modal-box.move-id-modal-box { border-top-color: #22c55e; width: 100%; max-width: 400px; }
 .move-id-modal-title { color: #22c55e; font-family: var(--font-label), sans-serif; }
@@ -1061,7 +1061,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .tierlist-preview-disabled-title { color: var(--accent-blue); font-family: var(--font-label), sans-serif; letter-spacing: 1px; }
 .tierlist-preview-disabled-text { font-family: var(--text-mono); font-size: 0.85rem; max-width: 400px; line-height: 1.5; }
 
-/* --- TOOL PAGE SETUP (js/editor-tool.js) ---
+/* --- TOOL PAGE SETUP (js/editor/tabs/editor-tool.js) ---
    Short explanations sitting under a control rather than a tooltip on it: the
    two things worth saying here (an embed can silently render blank, and a
    tool with its own renderer ignores the link settings) are exactly the kind
@@ -1075,7 +1075,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 }
 .tool-embed-toggle { margin-top: 0.85rem; }
 
-/* --- PORTRAIT CROP FOCUS (js/editor-tabs.js renderProfileForm) ---
+/* --- PORTRAIT CROP FOCUS (js/editor/tabs/editor-tabs.js renderProfileForm) ---
    Character portraits render as a fixed square (style/Layout.css
    .profile-portrait), so a non-square source is cropped. These nine dots aim
    that crop, matching object-position's own keyword pairs, with a live square
@@ -1130,7 +1130,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
     font-family: var(--text-mono); font-size: 0.6rem; color: var(--text-muted); text-align: center;
 }
 
-/* --- CHARACTER STATE TOGGLE (edit.html, driven by js/editor-modes.js) ---
+/* --- CHARACTER STATE TOGGLE (edit.html, driven by js/editor/core/editor-modes.js) ---
    Sits above the major tab strip, mirroring the live page exactly: the
    chips are style/Layout.css's .character-mode-chip, deliberately shared so
    the editor and the page a contributor is previewing look the same.
@@ -1214,7 +1214,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .editor-tab-nav .btn-manga { padding: 0.3rem 0.7rem; }
 .editor-tab-nav .btn-manga-text { font-size: 0.7rem; }
 
-/* --- EDITOR TAB NAV BARS (js/editor-tabs.js initFullTabEditor: moves/overview/
+/* --- EDITOR TAB NAV BARS (js/editor/tabs/editor-tabs.js initFullTabEditor: moves/overview/
    matchups/counterplay sub-nav rows). Compound selector against
    .daw-variant-tabs: its own base rule sets margin-bottom/border-bottom/
    padding-bottom at the same single-class specificity. --- */
@@ -1236,13 +1236,13 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .editor-extra-title-row { display: flex; align-items: center; gap: 0.75rem; width: 100%; }
 .editor-extra-title-input { margin: 0; max-width: 300px; font-size: 0.85rem; font-family: var(--text-mono); border-radius: 0; padding: 0.4rem 0.6rem; text-transform: uppercase; }
 .daw-editor-target-spacing { padding-bottom: 1rem; }
-/* The fold button on "1. STATS & FRAME DATA" (js/editor-tabs.js), pushed to the
+/* The fold button on "1. STATS & FRAME DATA" (js/editor/tabs/editor-tabs.js), pushed to the
    banner's right end. */
 .editor-stats-fold { margin-left: auto; }
 /* The [outline] button previews its own effect: a black letter with the white
    outline, since a white letter would hide it. */
 .format-btn-outline .sc-outline { color: #000; font-weight: bold; }
-/* A one-line field being edited past its width (js/editor-blocks.js,
+/* A one-line field being edited past its width (js/editor/blocks/editor-blocks.js,
    growEditorField). Its width, margin and offset are set inline from a
    measurement; this lifts it above its neighbours and keeps a flex row from
    shrinking it back. The shadow is the manga one, so it reads as raised. */
@@ -1256,7 +1256,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
    at the same specificity - genuinely different here (0, not 1rem). */
 .block-editor-container.block-editor-container-tight { margin-top: 0; margin-bottom: 1rem; }
 
-/* --- DAW FRAME EDITOR (js/editor-framedata.js initDawEditor) --- */
+/* --- DAW FRAME EDITOR (js/editor/tabs/editor-framedata.js initDawEditor) --- */
 .daw-empty-notice { color: var(--text-muted); font-size: 0.85rem; padding-bottom: 1rem; }
 .editor-row-spaced-sm { margin-bottom: 0.25rem; }
 .daw-stat-actions { display: flex; align-items: center; gap: 0.5rem; width: auto; flex: 0 0 auto; }
@@ -1265,7 +1265,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .daw-no-frames-hint { margin: 0.25rem 0 0; color: var(--text-muted); font-family: var(--text-mono); font-size: 0.7rem; line-height: 1.5; }
 /* The Accolades field (v1.2): every accolade as a chip, icon and name, muted
    until ticked and then in the color its badge has on the Skill Card
-   (js/framedata.js). The icon follows the chip's color (.px-icon). */
+   (js/pages/core/framedata.js). The icon follows the chip's color (.px-icon). */
 .accolade-picker { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.3rem; }
 .accolade-chip {
     display: inline-flex; align-items: center; gap: 0.3rem;
@@ -1322,7 +1322,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
    (0,1,0), so these were silently losing outright, not just tying - the
    root cause of the "color does not load in" bug in the track-color
    dropdown. Values reference ColorCoding.css's --track-color-* custom
-   properties, the same single source of truth js/framedata.js's live
+   properties, the same single source of truth js/pages/core/framedata.js's live
    .text-* rendering uses, so the editor preview and the live page can't
    drift apart again. */
 .editor-select option.daw-option-default { color: #ffffff; }
@@ -1336,8 +1336,8 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 .editor-select option.daw-option-cyan-400 { color: var(--track-color-cyan-400); }
 .editor-select option.daw-option-gray-400 { color: var(--track-color-gray-400); }
 
-/* --- CONTENT BLOCK BUILDER (js/editor-tabs.js initProfileEditor, initPlaystyleEditor;
-   js/editor-blocks.js initStrategyBlockBuilder, renderBlockList) --- */
+/* --- CONTENT BLOCK BUILDER (js/editor/tabs/editor-tabs.js initProfileEditor, initPlaystyleEditor;
+   js/editor/blocks/editor-blocks.js initStrategyBlockBuilder, renderBlockList) --- */
 /* Compound selectors: .block-editor-container's own base rule sets
    margin-top: 1rem at the same specificity - same lesson as .block-editor-container-tight. */
 .block-editor-container.block-editor-container-notop { margin-top: 0; }
@@ -1352,7 +1352,7 @@ html.reduce-motion .block-folder.block-just-moved { animation: none; box-shadow:
 /* The block builder's row has nothing on its left any more - MEDIA LIBRARY
    moved to the footer - so space-between would drag undo/redo/clear across to
    it. A modifier rather than a change to .strategy-toolbar-row, which the
-   structured-form toolbar in js/editor-tabs.js still uses with two children. */
+   structured-form toolbar in js/editor/tabs/editor-tabs.js still uses with two children. */
 .strategy-toolbar-row-end { justify-content: flex-end; }
 .accordion-back-banner { background: rgba(168, 85, 247, 0.1); border: 1px dashed #a855f7; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
 .accordion-back-label { color: #a855f7; font-family: var(--text-mono); font-size: 0.75rem; text-transform: uppercase; }
@@ -1618,7 +1618,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     outline-offset: -2px;
 }
 /* touch-action: none so a touch-drag on the handle doesn't also scroll the
-   page - startBlockPointerDrag (js/editor-blocks.js) owns the gesture entirely
+   page - startBlockPointerDrag (js/editor/blocks/editor-blocks.js) owns the gesture entirely
    once it starts. */
 .drag-handle { color: #666; font-size: 1rem; line-height: 1; cursor: grab; touch-action: none; }
 /* Compound: .editor-select's own base rule sets border/padding at the same specificity. */
@@ -1632,7 +1632,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 /* Compound: .editor-input's own base rule sets margin-bottom/border/background at the same specificity. */
 .editor-input.table-header-input { margin: 0; border-radius: 0; border: none; border-bottom: 2px solid #444; border-right: 1px solid #333; font-weight: bold; background: rgba(0,0,0,0.4); text-align: center; }
 .editor-input.table-cell-input { margin: 0; border-radius: 0; border: none; border-bottom: 1px solid #222; border-right: 1px solid #333; }
-/* The picked cell's row and column (js/editor-blocks.js, editorTablePick):
+/* The picked cell's row and column (js/editor/blocks/editor-blocks.js, editorTablePick):
    the cells' fields are see-through, so the tint shows under them. */
 .block-table td.table-picked { background: color-mix(in srgb, var(--accent-blue) 12%, transparent); }
 .block-table-actions-row { display: flex; gap: 0.25rem; margin-bottom: 0.5rem; border-radius: 0rem; }
@@ -1707,7 +1707,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .media-lib-preview-actions { display: flex; gap: 0.5rem; position: sticky; bottom: 0; padding-top: 0.25rem; background: #0a0a0a; }
 .media-lib-preview-empty { margin: auto; color: #888; font-family: var(--text-mono); font-size: 0.75rem; text-align: center; }
 
-/* --- MEDIA LIBRARY UPLOAD QUEUE (js/editor-media.js handleUploads) --- */
+/* --- MEDIA LIBRARY UPLOAD QUEUE (js/editor/tools/editor-media.js handleUploads) --- */
 /* Per-file status for a batch upload. Capped and scrollable because a drop
    of thirty files should not push the upload zone and the pager off screen -
    the controls have to stay reachable while the run is going. */
@@ -1801,7 +1801,7 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
 .modal-prompt-text.pre-wrap { white-space: pre-wrap; }
 
 /* The field window.customPrompt inserts between the prompt text and the buttons
-   (js/editor-blocks.js). It is created per call rather than living in the
+   (js/editor/blocks/editor-blocks.js). It is created per call rather than living in the
    markup, because #editor-custom-modal is shared with customConfirm on both
    edit.html and post-editor.html and a stray text field would otherwise appear
    on every delete confirmation.
@@ -2108,10 +2108,10 @@ html.reduce-motion .block-folder-discard:hover:not(:disabled) { transition: none
     padding-bottom: 0.5rem;
     margin: 0;
 }
-/* js/editor-sync.js's raw/JSON diff branch (renderDiffView) - the border/
+/* js/editor/core/editor-sync.js's raw/JSON diff branch (renderDiffView) - the border/
    box-shadow differ from the default (inline-blocks) .diff-container above. */
 .diff-container.diff-container-raw { border: 2px solid var(--border-color, #333); box-shadow: 6px 6px 0px var(--manga-shadow, #000); }
-/* Referenced by js/admin-preview.js's own diff view too (<div class="diff-inline-
+/* Referenced by js/overseer/admin-preview.js's own diff view too (<div class="diff-inline-
    target">) but never had a CSS rule until this pass. */
 .diff-inline-target { width: 100%; }
 .editor-diff-empty-msg { color: var(--text-muted); font-style: italic; border: 1px dashed #333; padding: 2rem; text-align: center; }
@@ -2136,7 +2136,7 @@ del.diff-del {
     opacity: 0.8;
 }
 
-/* --- SIDE-BY-SIDE DIFF (v1.2, js/side-by-side.js) ---
+/* --- SIDE-BY-SIDE DIFF (v1.2, js/utility/side-by-side.js) ---
    The Overseer's DIFF VIEW and the editor's VIEW DIFF: the old version on the
    left (what goes, red), the new one on the right (what comes, green), each
    drawn as the page draws it, with rows pushed level by spacers. */
@@ -2173,7 +2173,7 @@ del.diff-del {
 /* Each column's own heading shows only when the columns stack (below). */
 .sbs-col > .sbs-head { display: none; }
 .sbs-note { color: var(--text-muted); font-style: italic; border: 1px dashed var(--border-color); padding: 1rem; margin: 1rem 0 0; }
-/* The editor's "Compare with" picker (js/editor-sync.js). */
+/* The editor's "Compare with" picker (js/editor/core/editor-sync.js). */
 .sbs-compare { display: inline-flex; align-items: center; gap: 0.5rem; font-family: var(--text-mono); font-size: 0.75rem; color: var(--text-muted); }
 .sbs-compare .editor-select { min-width: 16rem; }
 /* Where the editor draws a version for the side-by-side, out of sight and out
@@ -2181,7 +2181,7 @@ del.diff-del {
 .sbs-render-host { position: absolute; left: 0; right: 0; top: 0; visibility: hidden; pointer-events: none; }
 /* The editor's side-by-side takes the pane's whole width, not the page's
    1000px column, and the Workspace folds away while it is up (the
-   WORKSPACE button in its bar brings it back; js/editor-sync.js). */
+   WORKSPACE button in its bar brings it back; js/editor/core/editor-sync.js). */
 #diff-view-container.main-content-area:has(> .sbs) { max-width: none; }
 @media (min-width: 901px) {
     .editor-layout-split.sbs-workspace-folded > .editor-workspace,
@@ -2283,7 +2283,7 @@ del.diff-del {
 .diff-stacked-label.old { color: #ef4444; }
 .diff-stacked-label.new { color: #22c55e; }
 
-/* Structured field-diff (js/admin-diff.js's renderStructuredDiff) - replaces
+/* Structured field-diff (js/overseer/admin-diff.js's renderStructuredDiff) - replaces
    the stacked-JSON layout above for admin.html's move-stats/metadata diffs
    specifically (Phase 2 of the reviewer-workflow redesign). */
 .diff-structured { display: flex; flex-direction: column; gap: 0.5rem; }
@@ -2291,7 +2291,7 @@ del.diff-del {
 .diff-field-key { color: var(--text-muted); font-weight: bold; margin-right: 0.4rem; }
 .diff-field-nested { margin-top: 0.4rem; margin-left: 1rem; display: flex; flex-direction: column; gap: 0.4rem; }
 .diff-field-unchanged { color: var(--text-muted); font-style: italic; border-left-color: transparent; }
-/* Referenced by js/admin-preview.js's own raw/JSON diff view too (<pre class="diff-
+/* Referenced by js/overseer/admin-preview.js's own raw/JSON diff view too (<pre class="diff-
    stacked-pre old/new">) but never had a CSS rule until this pass.
    <pre> defaults to white-space: pre, which never wraps - a long serialized
    JSON line ran straight off the side of the screen. pre-wrap keeps the real
@@ -2308,7 +2308,7 @@ del.diff-del {
 .diff-stacked-pre.old { color: #fca5a5; }
 .diff-stacked-pre.new { color: #86efac; }
 
-/* --- LOCAL DRAFT MANAGER (js/editor-drafts.js openDraftManager) --- */
+/* --- LOCAL DRAFT MANAGER (js/editor/core/editor-drafts.js openDraftManager) --- */
 .draft-empty-msg { color: #666; font-family: var(--text-mono); font-size: 0.8rem; text-align: center; padding: 2rem 0; border: 1px dashed #333; }
 .draft-row { display: flex; justify-content: space-between; align-items: center; background: #050505; border: 1px solid #333; padding: 1rem; margin-bottom: 0.5rem; border-left: 3px solid var(--accent-blue); }
 .draft-row-label { color: var(--accent-blue); font-family: var(--font-label), sans-serif; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.25rem; }
@@ -2323,7 +2323,7 @@ del.diff-del {
 .draft-active-badge { color: #22c55e; font-family: var(--text-mono); font-size: 0.65rem; padding: 0.4rem 0.8rem; border: 1px solid #22c55e; }
 .btn-sys.draft-discard-btn { padding: 0.4rem 0.8rem; font-family: var(--font-label), sans-serif; font-size: 0.65rem; }
 
-/* --- SYSTEM PAGE EDITOR (js/editor-system.js renderSystemEditor) ---
+/* --- SYSTEM PAGE EDITOR (js/editor/tabs/editor-system.js renderSystemEditor) ---
    The tab/section-tab row reuses .daw-tab-item/.daw-tab-btn-removable/
    .daw-tab-remove-btn (initFullTabEditor's tab-with-a-remove-button
    pattern) and .daw-editor-nav-row, all already established. */
@@ -2338,7 +2338,7 @@ del.diff-del {
 .editor-row-divider { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed #333; }
 .system-checkbox-row { display: flex; align-items: center; }
 .system-checkbox-label { color: var(--text-muted); font-size: 0.85rem; margin: 0; cursor: pointer; }
-/* --- GALLERY BIN (edit.html, js/editor-gallery.js) ---
+/* --- GALLERY BIN (edit.html, js/editor/tabs/editor-gallery.js) ---
    A list of rows rather than the block editor: a gallery item is a file and a
    name, and routing that through blocks/sections/tabs would be three screens
    of machinery for two fields. */
@@ -2621,7 +2621,7 @@ del.diff-del {
 .block-card.collapsed .block-folder-picker { display: none; }
 
 
-/* --- THE EDITOR TUTORIAL (v0.19 F2, js/editor-tutorial.js) ---------------
+/* --- THE EDITOR TUTORIAL (v0.19 F2, js/editor/tools/editor-tutorial.js) ---------------
    A spotlight over the editor: everything dims, one element stays lit, and a
    text box explains it.
 
@@ -2775,7 +2775,7 @@ del.diff-del {
 }
 .cardsec-tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.4rem; }
 
-/* --- NOTATION STYLE FIELDS (v0.20, js/editor-blocks.js comboNotationFieldsHTML)
+/* --- NOTATION STYLE FIELDS (v0.20, js/editor/blocks/editor-blocks.js comboNotationFieldsHTML)
    The same dashed box and blue label as the Combo Card's section strip above,
    because it is the same kind of thing: optional structure hung off a combo. */
 .nstyle-editor { border: 1px dashed #333; padding: 0.5rem; margin: 0.5rem 0 0.6rem; }
@@ -2804,7 +2804,7 @@ del.diff-del {
 /* A Collaborator's links that will not show (v1.2), named the same way. */
 .collaborator-links-note { color: var(--accent-yellow); font-family: var(--text-mono); font-size: 0.7rem; margin: 0.35rem 0 0; }
 
-/* --- WRITING CHECKS (v1.1, js/editor-writing-checks.js) ---
+/* --- WRITING CHECKS (v1.1, js/editor/tools/editor-writing-checks.js) ---
    A line under the field for each character name or broken tag, and the list
    at Submit. */
 .writing-checks {
@@ -2820,7 +2820,7 @@ del.diff-del {
 .writing-checks-where { color: var(--text-muted); }
 
 /* --- THE CONFIG PANEL (v1.1) ---
-   Settings saved per device by js/editor-config.js, each one a class on
+   Settings saved per device by js/editor/core/editor-config.js, each one a class on
    <body>. Every rule below the panel's own is keyed on its body.cfg-* class,
    so with the panel untouched none of them applies and the editor is exactly
    as it was. */
@@ -2873,7 +2873,7 @@ del.diff-del {
 }
 .config-word-popup .format-color-presets-scroll { max-height: 180px; }
 
-/* A Heading Block's side bar (v1.1, js/editor-blocks.js headingBarRowHTML). */
+/* A Heading Block's side bar (v1.1, js/editor/blocks/editor-blocks.js headingBarRowHTML). */
 .heading-bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin-top: 0.5rem; }
 .heading-bar-swatch {
     width: 28px; height: 28px; padding: 0; cursor: pointer;
@@ -2905,10 +2905,10 @@ body.cfg-hide-block-type .block-type-row .block-type-selector + .manga-select-wr
 body.cfg-hide-block-type .block-type-row .block-type-label { display: inline-block; }
 
 /* Hide Drag-and-drop area: the card's left edge becomes the handle. 12px from
-   the outer edge, which must match BLOCK_DRAG_EDGE_PX in js/editor-blocks.js:
+   the outer edge, which must match BLOCK_DRAG_EDGE_PX in js/editor/blocks/editor-blocks.js:
    the 3px border and the start of the padding, where no content sits. */
 body.cfg-hide-drag-handle .block-card .drag-handle { display: none; }
-/* A folder's header gives up the same strip (js/editor-blocks.js, the
+/* A folder's header gives up the same strip (js/editor/blocks/editor-blocks.js, the
    pointerdown listener). */
 body.cfg-hide-drag-handle .block-folder-handle { display: none; }
 body.cfg-hide-drag-handle .block-folder:not(.is-empty) > .block-folder-head { position: relative; }
@@ -2962,7 +2962,7 @@ body.cfg-no-preview .editor-layout-split > .live-preview-pane,
 body.cfg-no-preview .editor-layout-split > .editor-splitter,
 body.cfg-no-preview #mobile-preview-toggle { display: none !important; }
 
-/* Click a Block to edit it (v1.1, js/editor-config.js jumpToBlock): the Block
+/* Click a Block to edit it (v1.1, js/editor/core/editor-config.js jumpToBlock): the Block
    under the pointer in the Preview is outlined, which is what says a click
    will open it. */
 body.cfg-preview-jump .live-preview-pane [data-preview-block]:hover {
@@ -2975,7 +2975,7 @@ body.cfg-preview-jump .live-preview-pane [data-preview-block]:hover {
 }
 
 /* Sticky top elements, once they differ from the defaults: the workspace
-   scrolls instead of #interactive-builder, and js/editor-config.js stacks each
+   scrolls instead of #interactive-builder, and js/editor/core/editor-config.js stacks each
    bar that stays at a measured top. The footer toolbar's -1.5rem offset was
    for the builder's padding, which is no longer the scroll edge. */
 body.cfg-workspace-scrolls .editor-layout-split > .editor-workspace { overflow-y: auto; }
@@ -2992,7 +2992,7 @@ body.cfg-workspace-scrolls .add-block-toolbar { bottom: 0; }
 .strategy-toolbar-row.cfg-stuck { background: #050505; }
 
 /* --- THE EDITOR PLAYGROUND (v1.1) ---
-   edit.html?playground (js/editor-playground.js). The banner takes the scope
+   edit.html?playground (js/editor/tools/editor-playground.js). The banner takes the scope
    tip's place and is loud where the tip is quiet: it is the one thing on
    screen saying this editor sends nothing. */
 .playground-banner {

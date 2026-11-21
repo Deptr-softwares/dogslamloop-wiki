@@ -15,7 +15,7 @@
     <link rel="stylesheet" href="style/FrameData.css">
     <link rel="stylesheet" href="style/look-classic.css">
     <!-- The look picked in Site settings, set before the page paints so the
-         other look never shows first. js/site_utils.js keeps it in step after.
+         other look never shows first. js/utility/site_utils.js keeps it in step after.
          Storage blocked or empty means the default look, silently. -->
     <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 </head>
@@ -76,24 +76,27 @@
     </div>
 
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="js/character_tabs.js?v=448691d1"></script>
+    <script src="js/utility/character_tabs.js?v=e1624428"></script>
     <!-- The live page's markup and boot (buildPageSkeleton, bootCharacterContent),
-         which js/history.js draws a past version with. Without window.PAGE_ROUTE
+         which js/pages/records/history.js draws a past version with. Without window.PAGE_ROUTE
          neither does anything on load. -->
-    <script src="js/page_router.js?v=448691d1"></script>
-    <script src="js/input_slots.js?v=448691d1"></script>
-    <script src="js/site_utils.js?v=448691d1"></script>
-    <script src="js/site_meta.js?v=448691d1"></script>
-    <script src="js/pagebuilder.js?v=448691d1"></script>
-    <script src="js/search.js?v=448691d1"></script>
-    <script src="js/description.js?v=448691d1"></script>
-    <script src="js/framedata.js?v=448691d1"></script>
-    <script src="js/character_modes.js?v=448691d1"></script>
-    <script src="js/emoji.js?v=448691d1"></script>
-    <script src="js/internalstyling.js?v=448691d1"></script>
-    <script src="js/tierlist.js?v=448691d1"></script>
-    <script src="js/page_boot.js?v=448691d1"></script>
-    <script src="js/history.js?v=448691d1"></script>
-    <script async src="js/analytics.js?v=448691d1"></script>
+    <script src="js/pages/core/page_router.js?v=e1624428"></script>
+    <script src="js/utility/input_slots.js?v=e1624428"></script>
+    <script src="js/utility/site_utils.js?v=e1624428"></script>
+    <script src="js/utility/site_data.js?v=e1624428"></script>
+    <script src="js/utility/site_media.js?v=e1624428"></script>
+    <script src="js/utility/site_account.js?v=e1624428"></script>
+    <script src="js/utility/site_meta.js?v=e1624428"></script>
+    <script src="js/pages/core/pagebuilder.js?v=e1624428"></script>
+    <script src="js/utility/search.js?v=e1624428"></script>
+    <script src="js/pages/core/description.js?v=e1624428"></script>
+    <script src="js/pages/core/framedata.js?v=e1624428"></script>
+    <script src="js/pages/core/character_modes.js?v=e1624428"></script>
+    <script src="js/utility/emoji.js?v=e1624428"></script>
+    <script src="js/pages/core/internalstyling.js?v=e1624428"></script>
+    <script src="js/pages/tier-lists/tierlist.js?v=e1624428"></script>
+    <script src="js/pages/core/page_boot.js?v=e1624428"></script>
+    <script src="js/pages/records/history.js?v=e1624428"></script>
+    <script async src="js/others/analytics.js?v=e1624428"></script>
 </body>
 </html>

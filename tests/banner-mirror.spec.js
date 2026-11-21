@@ -22,7 +22,7 @@ test('every banner the file names is on the site, and nothing else is in the fol
 
 test('an entry is a banner on the site and a plain line, never a remote address or a style tag', () => {
   const fakeWindow = {};
-  new Function('window', fs.readFileSync(path.join(ROOT, 'js', 'character_tabs.js'), 'utf8'))(fakeWindow);
+  new Function('window', fs.readFileSync(path.join(ROOT, 'js', 'utility', 'character_tabs.js'), 'utf8'))(fakeWindow);
   const strip = fakeWindow.stripStyleShortcodes;
   for (const [pageId, entry] of Object.entries(manifest)) {
     expect(Object.keys(entry).filter(k => k !== 'image' && k !== 'overview'), pageId).toEqual([]);
@@ -50,10 +50,10 @@ function mirrorFolder({ rows, previous, files }) {
   const os = require('os');
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'banner-mirror-'));
   const at = (...p) => path.join(tmp, ...p);
-  for (const dir of ['scripts', 'data', 'js', 'medias/banners']) fs.mkdirSync(at(dir), { recursive: true });
+  for (const dir of ['scripts', 'data', 'js/utility', 'medias/banners']) fs.mkdirSync(at(dir), { recursive: true });
   for (const f of ['fetch-banners.js', 'shrink-to-webp.js']) fs.copyFileSync(path.join(ROOT, 'scripts', f), at('scripts', f));
   // The Overview lines are stripped with the site's own tag list.
-  fs.copyFileSync(path.join(ROOT, 'js', 'character_tabs.js'), at('js', 'character_tabs.js'));
+  fs.copyFileSync(path.join(ROOT, 'js', 'utility', 'character_tabs.js'), at('js', 'utility', 'character_tabs.js'));
   if (previous) fs.writeFileSync(at('data', 'banners.json'), JSON.stringify(previous));
   for (const f of files || []) fs.writeFileSync(at('medias', 'banners', f), `old ${f}`);
   // RIFF....WEBP and small, so nothing here needs the shrinker's browser:

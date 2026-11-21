@@ -5,7 +5,7 @@
 // including but not limited to making new color code, applying that color
 // throughout the site (mainly auto-coloring), and probably more."
 //
-// window.CHARACTER_COLORS was a hardcoded literal in js/site_meta.js read
+// window.CHARACTER_COLORS was a hardcoded literal in js/utility/site_meta.js read
 // SYNCHRONOUSLY by ten files, so a new character's colour needed a code edit, a
 // PR and a release. The source is now site_pages.color, generated into a marked
 // region of the same file - which keeps the literal synchronous, because making
@@ -19,7 +19,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const SITE_META = path.join(ROOT, 'js', 'site_meta.js');
+const SITE_META = path.join(ROOT, 'js', 'utility', 'site_meta.js');
 const {
     buildCharacterColors, replaceRegion, COLORS_BEGIN, COLORS_END,
 } = require('../scripts/fetch-content.js');
@@ -186,7 +186,7 @@ test('a file without the markers is refused, not guessed at', () => {
         .toThrow(/missing the CHARACTER_COLORS generated-region markers/i);
 });
 
-test('the committed js/site_meta.js still carries both markers', () => {
+test('the committed js/utility/site_meta.js still carries both markers', () => {
     // If these are ever lost, the next regeneration fails loudly rather than
     // silently stopping - but the failure would block a release, so assert it
     // here where it costs nothing.
@@ -440,7 +440,7 @@ test('the backfill fills only what is unset, so it cannot undo an edit', () => {
 });
 
 test('the backfill still carries exactly the 22 colours it was written with', () => {
-    // The values were extracted from js/site_meta.js programmatically rather
+    // The values were extracted from js/utility/site_meta.js programmatically rather
     // than retyped - 22 hsl() triples is exactly the list a person transcribes
     // one digit wrong.
     //

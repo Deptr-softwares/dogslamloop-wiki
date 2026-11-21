@@ -38,11 +38,11 @@ test('the generator produces stubs for gallery and tool pages', () => {
 
   // Each loads its own renderer, and neither drags in the character stack.
   expect(gallery.html).toContain('pageType: "gallery"');
-  expect(gallery.html).toContain('js/gallery.js');
-  expect(gallery.html).not.toContain('js/framedata.js');
+  expect(gallery.html).toContain('js/pages/types/gallery.js');
+  expect(gallery.html).not.toContain('js/pages/core/framedata.js');
 
   expect(tool.html).toContain('pageType: "tool"');
-  expect(tool.html).toContain('js/tool_page.js');
+  expect(tool.html).toContain('js/pages/types/tool_page.js');
 
   // The description is what a search result and a Discord unfurl say, so
   // "a guide to Emotes" would be wrong for both of these.
@@ -72,7 +72,7 @@ test('the directory list still covers every folder a page can be created in', ()
 async function mountGallery(page, items, intro = []) {
   // The fixture's files are served, from real local media. They do not exist,
   // and since v0.20 a file that 404s is replaced by the missing-media notice
-  // (js/description.js), which is right on a real page and would leave this
+  // (js/pages/core/description.js), which is right on a real page and would leave this
   // test counting notices instead of the elements it is about.
   await page.route(/\/medias\/videos\/(wave|salute)\./, r =>
     r.fulfill({ path: 'medias/videos/example-video2.webm', contentType: 'video/webm' }));
@@ -83,7 +83,7 @@ async function mountGallery(page, items, intro = []) {
   // real gallery renderer injected - no generated gallery page exists yet, and
   // hand-editing navigation.json to make one would be editing a generated file.
   await page.goto('/systems/hud/', { waitUntil: 'networkidle' });
-  await page.addScriptTag({ path: 'js/gallery.js' });
+  await page.addScriptTag({ path: 'js/pages/types/gallery.js' });
   return page.evaluate(async ({ items: rows, intro: introBlocks }) => {
     document.body.innerHTML = '<main class="main-content-area"></main>';
     window.supabaseClient = {
@@ -211,7 +211,7 @@ test('an empty gallery invites the first entry rather than rendering nothing', a
 
 async function mountTool(page, descData) {
   await page.goto('/systems/hud/', { waitUntil: 'networkidle' });
-  await page.addScriptTag({ path: 'js/tool_page.js' });
+  await page.addScriptTag({ path: 'js/pages/types/tool_page.js' });
   return page.evaluate(async (data) => {
     document.body.innerHTML = '<main class="main-content-area"></main>';
     window.PAGE_ROUTE = { pageId: 'id_reader', pageType: 'tool', title: 'ID Reader' };
@@ -233,7 +233,7 @@ test('a tool with its own script takes over the page', async ({ page }) => {
   // application, not a document. The Certified Tier List has its own data
   // model and submission flow; only the ID Reader is genuinely just a link.
   await page.goto('/systems/hud/', { waitUntil: 'networkidle' });
-  await page.addScriptTag({ path: 'js/tool_page.js' });
+  await page.addScriptTag({ path: 'js/pages/types/tool_page.js' });
 
   const result = await page.evaluate(async () => {
     document.body.innerHTML = '<main class="main-content-area"></main>';
@@ -274,7 +274,7 @@ test('a tool with its own script takes over the page', async ({ page }) => {
 
 test('a tool that throws does not take the page prose down with it', async ({ page }) => {
   await page.goto('/systems/hud/', { waitUntil: 'networkidle' });
-  await page.addScriptTag({ path: 'js/tool_page.js' });
+  await page.addScriptTag({ path: 'js/pages/types/tool_page.js' });
 
   const result = await page.evaluate(async () => {
     document.body.innerHTML = '<main class="main-content-area"></main>';

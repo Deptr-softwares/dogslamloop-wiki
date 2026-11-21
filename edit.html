@@ -192,7 +192,7 @@
                 </div>
                 
                 <!-- A list of names and one preview (v1.2): a file is fetched
-                     only when someone picks it (js/editor-media.js). -->
+                     only when someone picks it (js/editor/tools/editor-media.js). -->
                 <div class="media-browser">
                     <div id="media-gallery-grid"></div>
                     <div id="media-lib-preview" class="media-lib-preview"><p class="media-lib-preview-empty">Pick a file to preview it here.</p></div>
@@ -268,7 +268,7 @@
                     </div>
                     <div class="editor-header-side">
                         <a href="index.html" class="btn-sys btn-sys-regular editor-hub-link">HUB</a>
-                        <button id="mobile-preview-toggle" class="btn-sys btn-sys-blue editor-mobile-preview-btn" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
+                        <button id="mobile-preview-toggle" data-hide-text="HIDE PREVIEW" class="btn-sys btn-sys-blue editor-mobile-preview-btn" onclick="window.toggleMobilePreview()">SHOW PREVIEW</button>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -290,11 +290,11 @@
                     <!-- v1.1: this page's own house style, written in Config >
                          Page. Red beside MoS, as the owner asked, and shown on
                          every page that has a Config > Page, written or not
-                         (js/editor-config.js). -->
+                         (js/editor/core/editor-config.js). -->
                     <button id="btn-house-style" class="btn-sys btn-sys-red hidden"
                             title="This page's house style" onclick="window.openHouseStyle()">House Style</button>
                     <!-- v1.1 Config panel: the editor's own settings, per device
-                         (js/editor-config.js). Gray, as the owner asked. -->
+                         (js/editor/core/editor-config.js). Gray, as the owner asked. -->
                     <button id="btn-editor-config" class="btn-sys btn-sys-regular"
                             title="Editor settings" onclick="window.openEditorConfig()">Config</button>
                     <button id="submit-payload-btn" class="btn-sys btn-sys-green">Submit</button>
@@ -318,12 +318,12 @@
 
             <!-- Major tab navigation, in the same shape the live character
                  page uses. Populated/activated by renderEditorTabNav in
-                 js/editor-tabs.js; hidden for system and tierlist pages,
+                 js/editor/tabs/editor-tabs.js; hidden for system and tierlist pages,
                  whose builders manage their own tabs. -->
             <!-- Character state toggle, in the same shape and the same place
-                 as the live page's (js/character_modes.js) - which is what
+                 as the live page's (js/pages/core/character_modes.js) - which is what
                  contributors are looking at when they decide what to write.
-                 Populated by js/editor-modes.js; hidden unless the character
+                 Populated by js/editor/core/editor-modes.js; hidden unless the character
                  has more than one state. -->
             <div id="editor-mode-bar" class="character-mode-bar editor-mode-bar hidden" aria-label="Character state"></div>
             <div id="editor-mode-controls" class="editor-mode-controls hidden"></div>
@@ -343,7 +343,7 @@
                 <button id="edit-nav-matchups" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('matchups')"><div class="btn-manga-content"><span class="btn-manga-text">Matchups</span></div></button>
                 <button id="edit-nav-counterplay" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('counterplay')"><div class="btn-manga-content"><span class="btn-manga-text">Counterplay</span></div></button>
                 <!-- Base-only characters only: their ultimate is a single big
-                     attack rather than a state. Un-hidden by js/editor-modes.js
+                     attack rather than a state. Un-hidden by js/editor/core/editor-modes.js
                      once the registry says so. -->
                 <button id="edit-nav-ultimateAtk" class="btn-manga btn-manga-slanted hidden" onclick="window.switchEditorTab('ultimateAtk')"><div class="btn-manga-content"><span class="btn-manga-text">Ultimate</span></div></button>
                 <button id="edit-nav-gallery" class="btn-manga btn-manga-slanted" onclick="window.switchEditorTab('gallery')"><div class="btn-manga-content"><span class="btn-manga-text">Gallery</span></div></button>
@@ -391,46 +391,49 @@
     <script src="js/vendor/supabase-js-2.118.0.js"></script>
     <!-- First: the character tab vocabulary. site_utils.js derives
          FRAME_MOVE_CATEGORIES from it and editor-tabs.js its major strip. -->
-    <script src="js/character_tabs.js?v=448691d1"></script>
-    <script src="js/input_slots.js?v=448691d1"></script>
-    <script src="js/site_utils.js?v=448691d1"></script>
-    <script src="js/site_meta.js?v=448691d1"></script>
-    <script src="js/pagebuilder.js?v=448691d1"></script>
-    <script src="js/search.js?v=448691d1"></script>
-    <script src="js/framedata.js?v=448691d1"></script>
-    <script src="js/description.js?v=448691d1"></script>
-    <script src="js/internalstyling.js?v=448691d1"></script>
+    <script src="js/utility/character_tabs.js?v=e1624428"></script>
+    <script src="js/utility/input_slots.js?v=e1624428"></script>
+    <script src="js/utility/site_utils.js?v=e1624428"></script>
+    <script src="js/utility/site_data.js?v=e1624428"></script>
+    <script src="js/utility/site_media.js?v=e1624428"></script>
+    <script src="js/utility/site_account.js?v=e1624428"></script>
+    <script src="js/utility/site_meta.js?v=e1624428"></script>
+    <script src="js/pages/core/pagebuilder.js?v=e1624428"></script>
+    <script src="js/utility/search.js?v=e1624428"></script>
+    <script src="js/pages/core/framedata.js?v=e1624428"></script>
+    <script src="js/pages/core/description.js?v=e1624428"></script>
+    <script src="js/pages/core/internalstyling.js?v=e1624428"></script>
     <!-- Before every editor module: ?playground decides which page opens. -->
-    <script src="js/editor-playground.js?v=448691d1"></script>
-    <script src="js/editor-dialogs.js?v=448691d1"></script>
-    <script src="js/editor-config.js?v=448691d1"></script>
-    <script src="js/editor-modes.js?v=448691d1"></script>
-    <script src="js/editor-core.js?v=448691d1"></script>
-    <script src="js/editor-tabs.js?v=448691d1"></script>
-    <script src="js/editor-framedata.js?v=448691d1"></script>
-    <script src="js/editor-folders.js?v=448691d1"></script>
-    <script src="js/editor-blocks.js?v=448691d1"></script>
-    <script src="js/editor-previews.js?v=448691d1"></script>
-    <script src="js/diff-markers.js?v=448691d1"></script>
-    <script src="js/side-by-side.js?v=448691d1"></script>
-    <script src="js/editor-sync.js?v=448691d1"></script>
-    <script src="js/editor-drafts.js?v=448691d1"></script>
-    <script src="js/editor-media.js?v=448691d1"></script>
-    <script src="js/editor-system.js?v=448691d1"></script>
-    <script src="js/tool_page.js?v=448691d1"></script>
-    <script src="js/editor-tool.js?v=448691d1"></script>
-    <script src="js/gallery.js?v=448691d1"></script>
-    <script src="js/editor-gallery.js?v=448691d1"></script>
-    <script src="js/tierlist.js?v=448691d1"></script>
+    <script src="js/editor/tools/editor-playground.js?v=e1624428"></script>
+    <script src="js/editor/core/editor-dialogs.js?v=e1624428"></script>
+    <script src="js/editor/core/editor-config.js?v=e1624428"></script>
+    <script src="js/editor/core/editor-modes.js?v=e1624428"></script>
+    <script src="js/editor/core/editor-core.js?v=e1624428"></script>
+    <script src="js/editor/tabs/editor-tabs.js?v=e1624428"></script>
+    <script src="js/editor/tabs/editor-framedata.js?v=e1624428"></script>
+    <script src="js/editor/blocks/editor-folders.js?v=e1624428"></script>
+    <script src="js/editor/blocks/editor-blocks.js?v=e1624428"></script>
+    <script src="js/editor/tools/editor-previews.js?v=e1624428"></script>
+    <script src="js/utility/diff-markers.js?v=e1624428"></script>
+    <script src="js/utility/side-by-side.js?v=e1624428"></script>
+    <script src="js/editor/core/editor-sync.js?v=e1624428"></script>
+    <script src="js/editor/core/editor-drafts.js?v=e1624428"></script>
+    <script src="js/editor/tools/editor-media.js?v=e1624428"></script>
+    <script src="js/editor/tabs/editor-system.js?v=e1624428"></script>
+    <script src="js/pages/types/tool_page.js?v=e1624428"></script>
+    <script src="js/editor/tabs/editor-tool.js?v=e1624428"></script>
+    <script src="js/pages/types/gallery.js?v=e1624428"></script>
+    <script src="js/editor/tabs/editor-gallery.js?v=e1624428"></script>
+    <script src="js/pages/tier-lists/tierlist.js?v=e1624428"></script>
     <!-- Before the strips that call reorderControls while rendering. -->
-    <script src="js/editor-reorder.js?v=448691d1"></script>
+    <script src="js/editor/blocks/editor-reorder.js?v=e1624428"></script>
     <!-- Last: it walks whatever the other editors have put in desc_data, and
          reads the keyed-section registry to name where a match is. -->
-    <script src="js/editor-find-replace.js?v=448691d1"></script>
-    <script src="js/editor-writing-checks.js?v=448691d1"></script>
+    <script src="js/editor/tools/editor-find-replace.js?v=e1624428"></script>
+    <script src="js/editor/tools/editor-writing-checks.js?v=e1624428"></script>
     <!-- Order-independent: it binds its own DOMContentLoaded and a delegated
          click, and touches nothing another editor module owns. -->
-    <script src="js/editor-notices.js?v=448691d1"></script>
-    <script src="js/editor-tutorial.js?v=448691d1"></script>
+    <script src="js/editor/tools/editor-notices.js?v=e1624428"></script>
+    <script src="js/editor/tools/editor-tutorial.js?v=e1624428"></script>
 </body>
 </html>

@@ -5,19 +5,19 @@
 // edited a state rendered as *unchanged* - and a reviewer clicking Approve on
 // a page where nothing appears to have changed is reviewing blind.
 //
-// Everything below drives the real functions in js/admin-modes.js,
-// js/admin-diff.js and js/admin-preview.js against seeded page data. The
+// Everything below drives the real functions in js/overseer/admin-modes.js,
+// js/overseer/admin-diff.js and js/overseer/admin-preview.js against seeded page data. The
 // queue's Supabase fetches are not involved: previewRevision's job is to put
 // two versions in memory, and these tests start from the point where it has.
 const { test, expect } = require('@playwright/test');
 
 
-// Derived from js/character_tabs.js, not restated: these are the tabs
+// Derived from js/utility/character_tabs.js, not restated: these are the tabs
 // admin.html's static strip owns, and a second copy here would go stale the
 // next time one is added.
 const VOCAB = (() => {
   const src = require('fs').readFileSync(
-    require('path').join(__dirname, '..', 'js', 'character_tabs.js'), 'utf8');
+    require('path').join(__dirname, '..', 'js', 'utility', 'character_tabs.js'), 'utf8');
   const w = {};
   new Function('window', src)(w);
   return w;
@@ -27,7 +27,7 @@ const TABS = VOCAB.getCharacterTabIds({ editableOnly: true });
 const move = (id, name) => ({ id, name, startup: '5', active: '3', recovery: '12', damage: '10' });
 const para = (text) => ({ type: 'paragraph', content: text });
 
-// A character with two states, in the shape js/site_utils.js documents:
+// A character with two states, in the shape js/utility/site_utils.js documents:
 // frame_data.modes declares them, frame_data.modeData holds the non-base kits.
 function twoStateCharacter() {
     return {

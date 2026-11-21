@@ -3,7 +3,7 @@
 // comparison title, the "Suggested Edit Location" label, and the diff
 // content itself all rendered on the same row instead of stacking
 // vertically. Root cause: the diff container's className copied a
-// class pairing from js/description.js's unrelated system-page tab
+// class pairing from js/pages/core/description.js's unrelated system-page tab
 // containers ('tab-content wiki-tab-content') - .wiki-tab-content
 // carries a display:flex;flex-wrap:wrap rule (style/Layout.css) that
 // was never wanted here.

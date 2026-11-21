@@ -360,7 +360,7 @@ test('nothing reads or writes the dropped site_pages.tier column', () => {
     const fs = require('fs');
     const path = require('path');
     const root = path.join(__dirname, '..');
-    const pageMeta = fs.readFileSync(path.join(root, 'js', 'owner-page-meta.js'), 'utf8');
+    const pageMeta = fs.readFileSync(path.join(root, 'js', 'owner', 'owner-page-meta.js'), 'utf8');
     const select = /\.from\('site_pages'\)\s*\.select\('([^']+)'\)/.exec(pageMeta);
     expect(select, 'the Page Details query').not.toBeNull();
     expect(select[1].split(',').map(s => s.trim())).toContain('archetype');

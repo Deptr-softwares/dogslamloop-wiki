@@ -1,6 +1,6 @@
 // The character tab vocabulary has exactly one definition.
 //
-// js/character_tabs.js owns the list of character tabs. Before it existed, the
+// js/utility/character_tabs.js owns the list of character tabs. Before it existed, the
 // list was written out by hand at ~20 sites across 13 files - ten JS modules
 // and three HTML pages. Crucially, none of those copies were wrong: each was a
 // deliberately different subset (admin.html has no Ultimate button because
@@ -21,7 +21,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
-const VOCAB_FILE = path.join(ROOT, 'js', 'character_tabs.js');
+const VOCAB_FILE = path.join(ROOT, 'js', 'utility', 'character_tabs.js');
 
 // Loaded by evaluating the real module against a stand-in window, so this file
 // never holds a second copy of the list it is policing.
@@ -58,8 +58,8 @@ test('no other JS file restates the tab list', () => {
   // worse than a module holding one - it turns a real regression into a green
   // suite, or a vocabulary change into a spurious failure.
   const offenders = [];
-  const jsFiles = fs.readdirSync(path.join(ROOT, 'js'))
-    .filter(f => f.endsWith('.js') && f !== 'character_tabs.js')
+  const jsFiles = require('../scripts/asset-version.js').SHARED_MODULES
+    .filter(f => f !== 'utility/character_tabs.js')
     .map(f => ['js', f]);
   const testFiles = fs.readdirSync(path.join(ROOT, 'tests'))
     .filter(f => f.endsWith('.spec.js') && f !== path.basename(__filename))
@@ -68,7 +68,7 @@ test('no other JS file restates the tab list', () => {
   for (const [dir, name] of jsFiles.concat(testFiles)) {
     let src = fs.readFileSync(path.join(ROOT, dir, name), 'utf8');
 
-    // Object-form lists count too. js/page_boot.js held the tab list as
+    // Object-form lists count too. js/pages/core/page_boot.js held the tab list as
     // [{ id: 'overview' }, { id: 'm1s' }, …] and this scan walked straight
     // past it for months of edits, because it only understood arrays of bare
     // strings. Flattening `{ id: 'x' }` to `'x'` first makes both forms look
@@ -105,7 +105,7 @@ test('no other JS file restates the tab list', () => {
 
   expect(
     offenders,
-    'derive these from window.getCharacterTabIds() instead - see js/character_tabs.js'
+    'derive these from window.getCharacterTabIds() instead - see js/utility/character_tabs.js'
   ).toEqual([]);
 });
 
@@ -136,7 +136,7 @@ test('clicking EVERY tab actually switches to it', async ({ page }) => {
   //
   // Every tab, not a representative one. The first version of this drove only
   // the LAST tab - Gallery - and passed while Combos and Starter Guide were
-  // completely inert: js/page_boot.js registered a hardcoded id list with
+  // completely inert: js/pages/core/page_boot.js registered a hardcoded id list with
   // setupTabs that predated them, so their buttons existed, were drawn, and
   // did nothing when clicked. Gallery was in that stale list, so the one tab
   // this checked was the one tab that could not fail.

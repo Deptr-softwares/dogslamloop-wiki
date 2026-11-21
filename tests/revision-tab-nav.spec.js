@@ -10,12 +10,12 @@
 const { test, expect } = require('@playwright/test');
 
 
-// Derived from js/character_tabs.js, not restated: these are the tabs
+// Derived from js/utility/character_tabs.js, not restated: these are the tabs
 // admin.html's static strip owns, and a second copy here would go stale the
 // next time one is added.
 const VOCAB = (() => {
   const src = require('fs').readFileSync(
-    require('path').join(__dirname, '..', 'js', 'character_tabs.js'), 'utf8');
+    require('path').join(__dirname, '..', 'js', 'utility', 'character_tabs.js'), 'utf8');
   const w = {};
   new Function('window', src)(w);
   return w;
@@ -47,7 +47,7 @@ test('admin: the revision tabs sit above the content, not inside the sidebar', a
       navSharesParentWithContent: !!(nav && content && nav.parentElement === content.parentElement),
       navInsideSidebar: !!(nav && sidebar && sidebar.contains(nav)),
       buttonIds: tabs.map(t => !!doc.getElementById(`nav-${t}`)),
-      // Same shape as the live page's nav (js/description.js, page_router.js).
+      // Same shape as the live page's nav (js/pages/core/description.js, page_router.js).
       allManga: tabs.every(t => doc.getElementById(`nav-${t}`)?.classList.contains('btn-manga')),
       sidebarKeepsToc: !!(sidebar && sidebar.querySelector('#dynamic-toc')),
     };
@@ -70,7 +70,7 @@ test('admin: clicking a revision tab switches which content pane is shown', asyn
 
   // admin.html's RBAC gate wipes the body for a logged-out visitor, so the
   // real click path is exercised on a rebuilt copy of the same markup with
-  // the same wiring (setupTabs, js/pagebuilder.js) applied. Wait for the
+  // the same wiring (setupTabs, js/pages/core/pagebuilder.js) applied. Wait for the
   // gate to land first - it wipes asynchronously, and rebuilding before it
   // runs means clicking into a body it is about to replace.
   await page.waitForSelector('.access-denied-screen');

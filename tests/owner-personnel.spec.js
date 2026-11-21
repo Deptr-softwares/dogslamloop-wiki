@@ -1,4 +1,4 @@
-// Coverage for v0.10's personnel roster (owner.html + js/owner.js).
+// Coverage for v0.10's personnel roster (owner.html + js/owner/owner.js).
 //
 // Before this, role management was a blind by-email setter: you had to
 // already know someone's address, and there was no way to see who held what.

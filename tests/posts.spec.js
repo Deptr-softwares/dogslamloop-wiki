@@ -1,7 +1,7 @@
 // Coverage for the v0.9 posts system (blog + hotfix notes).
 //
 // Posts store the same block array the wiki uses, so rendering goes through
-// js/description.js's generateHTMLForBlocks. The tests that matter most here
+// js/pages/core/description.js's generateHTMLForBlocks. The tests that matter most here
 // are the ones covering what that function does NOT do for you: binding
 // callout tooltips and arming lazy media. Skipping those steps produces dead
 // callout buttons and videos that never load - visible only by clicking, so
@@ -225,7 +225,7 @@ test('slugify produces url-safe slugs and survives awkward titles', async ({ pag
 
 test('post-editor defines updateLivePreview, which editor-blocks.js calls by bare name', async ({ page }) => {
   // editor-blocks.js calls updateLivePreview() from ~10 sites after every
-  // block change. It is declared in js/editor-sync.js, which post-editor.html
+  // block change. It is declared in js/editor/core/editor-sync.js, which post-editor.html
   // deliberately does not load - so without a local declaration every block
   // edit threw a ReferenceError and the block list silently stopped updating.
   const errors = [];

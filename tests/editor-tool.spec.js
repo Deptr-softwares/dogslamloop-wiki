@@ -1,6 +1,6 @@
 // The tool-page editor.
 //
-// js/tool_page.js shipped a renderer that reads desc_data.tool and nothing
+// js/pages/types/tool_page.js shipped a renderer that reads desc_data.tool and nothing
 // ever wrote it, so a tool page could exist but never be pointed at anything.
 //
 // The claim worth protecting is the split: the config (where the tool lives,

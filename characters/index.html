@@ -38,7 +38,7 @@
     <link rel="stylesheet" href="../style/Forms.css">
     <link rel="stylesheet" href="../style/look-classic.css">
     <!-- The look picked in Site settings, set before the page paints so the
-         other look never shows first. js/site_utils.js keeps it in step after.
+         other look never shows first. js/utility/site_utils.js keeps it in step after.
          Storage blocked or empty means the default look, silently. -->
     <script>try { if (JSON.parse(localStorage.getItem('dsl_site_settings') || '{}').look === 'classic') document.documentElement.classList.add('look-classic'); } catch (e) {}</script>
 </head>
@@ -181,19 +181,22 @@
     <!-- V0.4 SYSTEM SCRIPTS -->
     <!-- Note: Make sure Supabase is loaded in your root if site_utils requires it! -->
     <script src="../js/vendor/supabase-js-2.118.0.js"></script>
-    <script src="../js/character_tabs.js?v=448691d1"></script>
-    <script src="../js/input_slots.js?v=448691d1"></script>
-    <script src="../js/site_utils.js?v=448691d1"></script>
-    <script src="../js/site_meta.js?v=448691d1"></script>
-    <script src="../js/pagebuilder.js?v=448691d1"></script>
-    <script src="../js/search.js?v=448691d1"></script>
+    <script src="../js/utility/character_tabs.js?v=e1624428"></script>
+    <script src="../js/utility/input_slots.js?v=e1624428"></script>
+    <script src="../js/utility/site_utils.js?v=e1624428"></script>
+    <script src="../js/utility/site_data.js?v=e1624428"></script>
+    <script src="../js/utility/site_media.js?v=e1624428"></script>
+    <script src="../js/utility/site_account.js?v=e1624428"></script>
+    <script src="../js/utility/site_meta.js?v=e1624428"></script>
+    <script src="../js/pages/core/pagebuilder.js?v=e1624428"></script>
+    <script src="../js/utility/search.js?v=e1624428"></script>
     <!-- Needed to render the hub's authored prose: generateHTMLForBlocks
          lives in description.js and relies on internalstyling.js. -->
-    <script src="../js/description.js?v=448691d1"></script>
-    <script src="../js/internalstyling.js?v=448691d1"></script>
-    <script src="../js/hub_content.js?v=448691d1"></script>
-    <script src="../js/dashboards.js?v=448691d1"></script>
-    <script async src="../js/analytics.js?v=448691d1"></script>
+    <script src="../js/pages/core/description.js?v=e1624428"></script>
+    <script src="../js/pages/core/internalstyling.js?v=e1624428"></script>
+    <script src="../js/dashboards/hub_content.js?v=e1624428"></script>
+    <script src="../js/dashboards/dashboards.js?v=e1624428"></script>
+    <script async src="../js/others/analytics.js?v=e1624428"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {

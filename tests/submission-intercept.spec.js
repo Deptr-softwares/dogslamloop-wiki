@@ -1,7 +1,7 @@
 // v0.16 bug 5: "Intercept-and-edit does not work on your own submission."
 //
 // The EDIT button on submissions.html built `edit.html?char=<id>&editTicket=<id>`
-// and never passed the page type. js/editor-core.js reads
+// and never passed the page type. js/editor/core/editor-core.js reads
 // `urlParams.get('type') || 'character'`, so a submission against a system, tool
 // or tier list page opened the editor in CHARACTER mode: a character tab strip
 // over system data, and the intercepted ticket rendering into nothing.
@@ -9,7 +9,7 @@
 // The page id survived either way, which is exactly why this looked like it
 // worked - right up until the page was not a character.
 //
-// js/admin-actions.js had the identical omission, so a reviewer intercepting the
+// js/overseer/admin-actions.js had the identical omission, so a reviewer intercepting the
 // same ticket from admin.html hit it too. Both are fixed; the admin half is in
 // tests/page-kind-from-list.spec.js.
 //

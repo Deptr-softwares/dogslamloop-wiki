@@ -1,5 +1,5 @@
 // Regression coverage for a real, historically-damaging bug in
-// js/admin-merge-compiler.js's conflict detection (scanArray), documented
+// js/overseer/admin-merge-compiler.js's conflict detection (scanArray), documented
 // in full in project memory (the "merge-compiler array-conflict" bug).
 //
 // The bug: scanArray compared each ticket's extras/matchups/counterplay

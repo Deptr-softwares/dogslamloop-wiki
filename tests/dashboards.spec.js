@@ -1,4 +1,4 @@
-// Coverage for the v0.11 dashboard widgets (js/dashboards.js).
+// Coverage for the v0.11 dashboard widgets (js/dashboards/dashboards.js).
 //
 // These are computed views of data the wiki already holds, so the risks are
 // data-shaped rather than layout-shaped:

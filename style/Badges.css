@@ -85,7 +85,7 @@
    Access star above, and a sibling of it by design: the owner asked for WIP to
    read the same way EA already does. It replaces the "(WIP)" line that used to
    sit under the name, which stopped working the moment the name became a
-   hover-revealed slit - see js/pagebuilder.js renderFilteredRoster.
+   hover-revealed slit - see js/pages/core/pagebuilder.js renderFilteredRoster.
    drop-shadow rather than text-shadow: this is an emoji glyph, and text-shadow
    paints behind the whole emoji box instead of its outline. */
 .roster-wip-indicator {

@@ -121,7 +121,7 @@ test('every place a clip renders gives it one corner button, and each opens its 
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   // Gallery pages have their own script, which a character page does not load.
-  await page.addScriptTag({ url: '/js/gallery.js' });
+  await page.addScriptTag({ url: '/js/pages/types/gallery.js' });
 
   await page.evaluate(async (base) => {
     const host = document.createElement('div');

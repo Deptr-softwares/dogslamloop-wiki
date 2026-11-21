@@ -24,7 +24,7 @@ test('every still in the list exists and belongs to its video, and the folder ho
     const list = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'video-stills.json'), 'utf8'));
     expect(list && typeof list === 'object' && !Array.isArray(list)).toBe(true);
 
-    // What js/description.js relies on: a still of ours and a size, per video.
+    // What js/pages/core/description.js relies on: a still of ours and a size, per video.
     for (const [file, entry] of Object.entries(list)) {
         expect(file, 'keyed by a video file').toMatch(/\.(webm|mp4|m4v|mov|ogv)$/i);
         expect(entry.still).toMatch(/^medias\/stills\/[0-9a-f]{16}\.webp$/);

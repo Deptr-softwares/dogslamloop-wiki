@@ -1,4 +1,4 @@
-// window.runDialog (js/site_utils.js) runs every confirm, message and prompt
+// window.runDialog (js/utility/site_utils.js) runs every confirm, message and prompt
 // box on the site. Each box keeps its own markup and look; the engine shows
 // it, resolves with the value of the button pressed, and takes its listeners
 // off again.

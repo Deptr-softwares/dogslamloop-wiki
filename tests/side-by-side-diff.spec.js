@@ -145,7 +145,7 @@ test('a submission opens side by side: what goes struck in red on the live page,
 });
 
 test("a move's strategy text is compared with the rest of its card", async ({ page }) => {
-    // Drawn into the card 300ms after the card itself (js/description.js).
+    // Drawn into the card 300ms after the card itself (js/pages/core/description.js).
     const edit = rev({
         target_scope: 'move', target_key: 'skills::m-1',
         delta_payload: { frame_data: move('14', 'Hold for 1s'), desc_data: [para('Combo into it from a whiffed M1.')] },

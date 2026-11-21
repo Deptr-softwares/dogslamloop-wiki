@@ -38,7 +38,7 @@
 
 /* --- THE MANGA DROPDOWN WIDGET ---
 
-   window.initializeMangaSelects (js/site_utils.js) hides every
+   window.initializeMangaSelects (js/utility/site_utils.js) hides every
    select.editor-select and builds this in its place.
 
    Moved here from style/editor.css on 2026-08-14. It lived there because the

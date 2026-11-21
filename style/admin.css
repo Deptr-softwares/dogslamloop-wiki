@@ -44,8 +44,8 @@
    The same .character-mode-chip the live page and the editor use, so a
    reviewer picks a state with the control they already know. Only the
    spacing and the changed-marker are admin-specific, and both are scoped to
-   #preview-mode-bar: .character-mode-chip is shared with js/character_modes.js
-   and js/editor-modes.js, and neither of those wants a review marker. */
+   #preview-mode-bar: .character-mode-chip is shared with js/pages/core/character_modes.js
+   and js/editor/core/editor-modes.js, and neither of those wants a review marker. */
 .admin-preview-mode-bar {
     margin-top: 0;
     margin-bottom: 0.9rem;
@@ -126,7 +126,7 @@
     border-right: 1px solid #222;
 }
 
-/* --- OWNER TOOLS PAGE (owner.html, single-pane layout, js/owner.js) --- */
+/* --- OWNER TOOLS PAGE (owner.html, single-pane layout, js/owner/owner.js) --- */
 /* .editor-workspace (editor.css) is built to be one of two flex children
    alongside a .live-preview-pane sibling and defaults to a 30% width for
    that reason - owner.html has no second pane, so left alone it would sit
@@ -493,7 +493,7 @@
 .admin-tool-danger-row .admin-tool-hint strong { color: #ef4444; }
 .permissions-list { margin: 1rem 0; }
 
-/* --- PERSONNEL ROSTER (owner.html, js/owner.js loadPersonnel) --- */
+/* --- PERSONNEL ROSTER (owner.html, js/owner/owner.js loadPersonnel) --- */
 .admin-tool-header-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .personnel-roster { margin: 1rem 0; }
 .personnel-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 0.6rem 0; border-bottom: 1px dashed var(--border-color); }
@@ -506,7 +506,7 @@
 .personnel-add { border-top: 1px dashed var(--border-color); padding-top: 1rem; margin-top: 1rem; }
 .owner-success-text { color: #22c55e; }
 
-/* Staff Perks toggle rows (js/owner-staff-perks.js). A <label> wrapping the
+/* Staff Perks toggle rows (js/owner/owner-staff-perks.js). A <label> wrapping the
    checkbox, so the whole row including the explanation is a hit target -
    these sit next to destructive role controls and deserve to be hard to
    catch by accident, not easy to miss. */
@@ -548,7 +548,7 @@
 .admin-tool-btn { font-size: 0.7rem; padding: 0.4rem; width: 100%; margin-top: 0.5rem; }
 .admin-tool-results { margin-top: 0.75rem; font-family: var(--text-mono); font-size: 0.7rem; color: #888; line-height: 1.4; }
 
-/* --- MEDIA MODERATION QUEUE (js/admin-media-queue.js) --- */
+/* --- MEDIA MODERATION QUEUE (js/overseer/admin-media-queue.js) --- */
 /* Deliberately text-first. The media itself is not in the DOM until a
    reviewer presses VIEW, so these rows have to be readable and sortable
    without any thumbnail at all - a queue of newly recorded skill clips is the
@@ -661,7 +661,7 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
 .media-queue-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.6rem; }
 .media-queue-btn { font-size: 0.62rem; padding: 0.3rem 0.6rem; }
 
-/* --- MEDIA GARBAGE COLLECTION (js/owner.js) --- */
+/* --- MEDIA GARBAGE COLLECTION (js/owner/owner.js) --- */
 /* Stated explicitly: .owner-group once set display:grid and beat the UA
    stylesheet's [hidden] rule, leaving every tool group on screen at once.
    Nothing here sets display, so [hidden] already works - this pins it, since
@@ -681,7 +681,7 @@ body.media-preview-open .admin-main-pane > .site-body { display: none !important
    width. The page moves over for it rather than being dimmed under it: the
    media queue opens a clip in the pane while its buttons stay in the column.
    Wider screens only (a phone already swaps between the two), and not for a
-   moderator-only view, which has nothing in the pane. js/admin-queue.js. */
+   moderator-only view, which has nothing in the pane. js/overseer/admin-queue.js. */
 .queue-toggle { display: none; margin-right: 0.75rem; }
 @media (min-width: 901px) {
     body.admin-body:not(.admin-moderator-only) .queue-toggle { display: inline-flex; }
@@ -745,11 +745,11 @@ body.sbs-active .admin-main-pane .max-w-7xl,
 body.sbs-active #preview-content-area { max-width: none; }
 #version-toggle-bar { justify-content: center; gap: 0.75rem; margin-bottom: 2rem; border-bottom: 1px dashed #222; padding-bottom: 1.5rem; flex-shrink: 0; width: 100%; box-sizing: border-box; display: flex; }
 
-/* --- ACCESS DENIED (js/admin-core.js kickUser, also js/owner.js) --- */
+/* --- ACCESS DENIED (js/overseer/admin-core.js kickUser, also js/owner/owner.js) --- */
 .access-denied-screen { height: 100vh; width: 100vw; display: flex; align-items: center; justify-content: center; flex-direction: column; background: #050505; }
 .access-denied-title { color: #ef4444; font-family: var(--font-label), sans-serif; }
 
-/* --- QUEUE LOADING / ERROR / EMPTY STATES (js/admin-queue.js loadQueue) --- */
+/* --- QUEUE LOADING / ERROR / EMPTY STATES (js/overseer/admin-queue.js loadQueue) --- */
 .admin-error-text { color: #ef4444; font-size: 0.75rem; }
 .admin-queue-empty-msg { border: 1px dashed #333; padding: 1.5rem 1rem; font-size: 0.7rem; }
 
@@ -877,7 +877,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 /* --- TIERLIST ADMIN PREVIEW --- */
 .admin-changelog-container { margin-top: 2rem; }
 
-/* --- TICKET WORKSPACE (dynamic content, js/admin-tickets.js renderTicketWorkspace) --- */
+/* --- TICKET WORKSPACE (dynamic content, js/overseer/admin-tickets.js renderTicketWorkspace) --- */
 .ticket-score-value { font-size: 1.1rem; }
 .ticket-perk-note { color: #a855f7; font-weight: bold; }
 .ticket-requirement-text { color: #888; font-size: 0.75rem; }
@@ -890,14 +890,14 @@ body.sbs-active #preview-content-area { max-width: none; }
 .ticket-chat-empty { color: #555; font-style: italic; }
 .ticket-chat-author { color: var(--accent-blue); }
 
-/* "Request Changes" chat entries (js/admin-actions.js requestChanges) - a
+/* "Request Changes" chat entries (js/overseer/admin-actions.js requestChanges) - a
    distinct callout instead of a plain chat line, so a specific ask doesn't
    get lost scrolling past ordinary discussion messages. */
 .ticket-chat-changes-requested { background: rgba(234,179,8,0.08); border-left: 3px solid #eab308; padding: 0.5rem 0.75rem; margin: 0.35rem 0; }
 .ticket-chat-changes-requested-label { color: #eab308; font-size: 0.7rem; font-weight: bold; text-transform: uppercase; margin-bottom: 0.25rem; }
 .ticket-chat-changes-requested-text { color: var(--text-white); }
 
-/* --- PAGE HISTORY (js/admin-history.js, Phase 5 of the reviewer-workflow
+/* --- PAGE HISTORY (js/overseer/admin-history.js, Phase 5 of the reviewer-workflow
    redesign - browse + restore past live versions) --- */
 .page-history-card { margin-bottom: 1rem; border-left: 4px solid var(--accent-yellow); }
 .page-history-card-header { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
@@ -906,7 +906,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 .page-history-card-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .page-history-diff { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border-color); }
 
-/* --- MERGE COMPILER (js/admin-merge-compiler.js openMergeCompiler) --- */
+/* --- MERGE COMPILER (js/overseer/admin-merge-compiler.js openMergeCompiler) --- */
 .compiler-title-highlight { color: #fff; }
 .compiler-status-text { color: var(--text-muted); font-style: italic; text-align: center; padding: 2rem; }
 .compiler-empty-text { color: var(--text-muted); padding: 2rem; border: 1px dashed #333; text-align: center; }
@@ -917,7 +917,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 .compiler-conflict-title { font-family: var(--font-label), sans-serif; font-size: 0.8rem; color: #fff; margin-bottom: 0.5rem; text-transform: uppercase; }
 #btn-compiler-confirm:disabled { opacity: 0.5; }
 .version-toggle-btn { font-size: 0.7rem; padding: 0.5rem 1.25rem; }
-/* --- PER-USER CAPABILITIES (js/owner.js loadPersonnel) --- */
+/* --- PER-USER CAPABILITIES (js/owner/owner.js loadPersonnel) --- */
 /* A capability is an extra on top of a role, so it sits under the role row
    rather than beside it - beside would read as an alternative to the role
    select, which is exactly the confusion user_roles' UNIQUE(user_id) exists
@@ -945,7 +945,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 .personnel-capability:has(.personnel-capability-box:disabled):hover { color: #888; }
 .personnel-capability-note { font-style: italic; opacity: 0.85; }
 
-/* --- ACCOUNT SEARCH (js/owner.js searchAccounts) ---
+/* --- ACCOUNT SEARCH (js/owner/owner.js searchAccounts) ---
    The roster reads user_roles and so can only show people who already hold
    something. This finds everyone else. Same row markup, so the results need no
    layout of their own - only the input line does.
@@ -969,7 +969,7 @@ body.sbs-active #preview-content-area { max-width: none; }
     padding: 0.4rem 1rem;
 }
 
-/* --- CHARACTER COLOUR (js/owner-page-meta.js) ---
+/* --- CHARACTER COLOUR (js/owner/owner-page-meta.js) ---
    Three controls for one value: the text field IS the value, because it has to
    hold hsl() as well as hex; the native picker is a way to fill it in; the
    swatch is there because a colour string is not a colour to a person. */
@@ -1001,7 +1001,7 @@ body.sbs-active #preview-content-area { max-width: none; }
     cursor: pointer;
 }
 
-/* --- PAGE REGISTRY GROUPS (js/owner.js loadSitePages) ---
+/* --- PAGE REGISTRY GROUPS (js/owner/owner.js loadSitePages) ---
    Fifty-two rows in one column with nothing between categories. <details>
    rather than a JS toggle: the browser already handles the keyboard, and
    find-in-page opens a closed group on its own, which a div never would. */
@@ -1150,7 +1150,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 }
 .report-edit-when { font-size: 0.7rem; color: var(--text-muted); margin: 0.3rem 0 0.2rem; }
 
-/* v0.20: the broken-media report in owner tools (js/owner-media-report.js). */
+/* v0.20: the broken-media report in owner tools (js/owner/owner-media-report.js). */
 .media-report-summary { margin: 0.5rem 0; color: var(--text-white); font-size: 0.85rem; }
 .media-report-note { margin: 0 0 0.5rem 0; color: var(--text-muted); font-size: 0.75rem; }
 .media-report-page { border-top: 1px solid var(--border-color, #333); padding: 0.5rem 0; }
@@ -1196,7 +1196,7 @@ body.sbs-active #preview-content-area { max-width: none; }
 /* Moderator-only view (v0.14). A moderator is on the staff page to work the
    report queue and nothing else, so the control that swaps to the revision
    preview on mobile has nothing to swap to. The queues themselves are hidden
-   by js/admin-core.js rather than here, because that has to happen before
+   by js/overseer/admin-core.js rather than here, because that has to happen before
    anything loads - a CSS rule would let them flash in first. */
 body.admin-moderator-only .admin-mobile-preview-btn { display: none; }
 

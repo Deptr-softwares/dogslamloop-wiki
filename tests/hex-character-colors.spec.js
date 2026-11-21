@@ -17,7 +17,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 const site = (() => {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'site_meta.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'site_meta.js'), 'utf8');
   const w = {};
   // The stubs are for what the file does at load (the frame colours read CSS
   // variables); nothing here uses what they return.

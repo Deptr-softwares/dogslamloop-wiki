@@ -1,4 +1,4 @@
-// One HTML escape helper: window.escapeHtml, in js/site_utils.js.
+// One HTML escape helper: window.escapeHtml, in js/utility/site_utils.js.
 //
 // Until 2026-11 there were 48 local copies of it, and 37 of them fell back to
 // the raw, unescaped text when window.escapeHtml was missing. That never ran,
@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 
 const JS = path.join(__dirname, '..', 'js');
-const MAY_DEFINE_IT = new Set(['site_utils.js', 'page_router.js']);
+const MAY_DEFINE_IT = new Set(['utility/site_utils.js', 'pages/core/page_router.js']);
 
 function jsFiles(dir, out = []) {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -40,9 +40,9 @@ function linesMatching(pattern, skip = () => false) {
 
 test('the scan reads the files that define the helper', () => {
     const names = SOURCES.map(s => s.name);
-    expect(names).toContain('site_utils.js');
-    expect(linesMatching(/^window\.escapeHtml = function/)).toEqual(['site_utils.js:' + (SOURCES
-        .find(s => s.name === 'site_utils.js').lines.findIndex(l => /^window\.escapeHtml = function/.test(l)) + 1)]);
+    expect(names).toContain('utility/site_utils.js');
+    expect(linesMatching(/^window\.escapeHtml = function/)).toEqual(['utility/site_utils.js:' + (SOURCES
+        .find(s => s.name === 'utility/site_utils.js').lines.findIndex(l => /^window\.escapeHtml = function/.test(l)) + 1)]);
 });
 
 test('nothing falls back to unescaped text when an escape helper is missing', () => {
@@ -59,7 +59,7 @@ test('no other file keeps its own copy of the escape', () => {
 
 test('RegExp syntax is escaped by one helper too', () => {
     // window.escapeRegExp, next to escapeHtml: five files carried their own.
-    expect(linesMatching(/'\\\\\$&'/, name => name === 'site_utils.js')).toEqual([]);
+    expect(linesMatching(/'\\\\\$&'/, name => name === 'utility/site_utils.js')).toEqual([]);
     expect(linesMatching(/^window\.escapeRegExp = function/)).toHaveLength(1);
 });
 

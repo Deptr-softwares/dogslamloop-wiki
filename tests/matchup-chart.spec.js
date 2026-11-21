@@ -246,7 +246,7 @@ test('a section that stays hidden is left out of the table of contents', async (
 });
 
 test('a failure explains itself rather than rendering an empty box', async ({ page }) => {
-    // Rule 2 in js/dashboards.js's header. Deliberately UNLIKE the terminology
+    // Rule 2 in js/dashboards/dashboards.js's header. Deliberately UNLIKE the terminology
     // peek, which hides on failure: that is a sample of something one click
     // away, and this is the only place the whole grid exists, so a reader who
     // came for it should be told why it is missing.

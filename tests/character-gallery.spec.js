@@ -1,7 +1,7 @@
 // The character Gallery tab (v0.18 F9).
 //
 // The tab existed from v0.12 to v0.18 as a registry placeholder that rendered
-// nothing, and js/page_router.js said so in a comment. Making it real is one
+// nothing, and js/pages/core/page_router.js said so in a comment. Making it real is one
 // registry entry plus a renderer and an editor; everything between - submit,
 // merge, diff, apply - is the keyed-section pipeline, which is exactly the
 // claim this file has to check rather than trust.
@@ -24,7 +24,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
 const vocab = (() => {
-  const src = fs.readFileSync(path.join(ROOT, 'js', 'character_tabs.js'), 'utf8');
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'character_tabs.js'), 'utf8');
   const w = {};
   new Function('window', src)(w);
   return w;

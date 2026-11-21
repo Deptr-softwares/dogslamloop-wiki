@@ -25,7 +25,7 @@ const F = {};
 index.fields.forEach((name, i) => { F[name] = i; });
 
 function loadVocabulary() {
-    const src = fs.readFileSync(path.join(ROOT, 'js', 'character_tabs.js'), 'utf8');
+    const src = fs.readFileSync(path.join(ROOT, 'js', 'utility', 'character_tabs.js'), 'utf8');
     const w = {};
     new Function('window', src)(w);
     return w;

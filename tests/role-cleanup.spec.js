@@ -33,7 +33,7 @@ test('logged-out visitors are not labelled with the ban role', async ({ page }) 
   // means "banned", that default is backwards - harmless today because it
   // only picks a dock icon, but exactly the kind of default that becomes a
   // real bug the first time something gates on it.
-  const source = await (await page.request.get('/js/pagebuilder.js')).text();
+  const source = await (await page.request.get('/js/pages/core/pagebuilder.js')).text();
   expect(source).toContain("let userRole = 'none'");
   expect(source).not.toContain("let userRole = 'viewer'");
 });

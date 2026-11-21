@@ -107,7 +107,7 @@ async function editFirstParagraph(page, text, options) {
 }
 
 // What was typed reaches the page's data 400ms after the last key
-// (js/editor-blocks.js), redrawing the preview. Waited out where a test needs
+// (js/editor/blocks/editor-blocks.js), redrawing the preview. Waited out where a test needs
 // the preview to hold still.
 const TYPING_PAUSE_MS = 400;
 
