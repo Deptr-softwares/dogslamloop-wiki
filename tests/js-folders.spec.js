@@ -71,6 +71,31 @@ test('every path a rule loads with is a file that exists', () => {
     expect(stale, 'a rule with a stale path never loads').toEqual([]);
 });
 
+test('every js/ path a Node script or spec builds is a file that exists', () => {
+    // The nightly job's scripts read and write modules by path, and only that
+    // job runs them: a stale one stops content reaching the site, and no page
+    // test would notice first.
+    const sources = execSync('git ls-files -- "scripts/*.js" "tests/*.js"', { cwd: ROOT, encoding: 'utf8' })
+        .trim().split('\n').filter(Boolean);
+    // lint.spec.js hands ESLint a name for text it lints, so the config's
+    // js/**/*.js block applies. No file is meant to be there.
+    const NOT_A_FILE = new Set(['tests/lint.spec.js: js/lint-probe.js']);
+    const stale = [];
+    let named = 0;
+    for (const source of sources) {
+        const text = fs.readFileSync(path.join(ROOT, source), 'utf8');
+        for (const m of text.matchAll(/['"]js['"]((?:\s*,\s*['"][\w.-]+['"])+)/g)) {
+            const parts = [...m[1].matchAll(/['"]([\w.-]+)['"]/g)].map(p => p[1]);
+            if (!parts[parts.length - 1].endsWith('.js')) continue;
+            named++;
+            const label = `${source}: js/${parts.join('/')}`;
+            if (!NOT_A_FILE.has(label) && !fs.existsSync(path.join(ROOT, 'js', ...parts))) stale.push(label);
+        }
+    }
+    expect(named, 'paths were found').toBeGreaterThan(0);
+    expect(stale).toEqual([]);
+});
+
 test('the stamper still finds every hand-authored page it owns', () => {
     // Its own selector names site_utils.js by path. Counted here by resolving
     // each tag instead, so a selector left on an old path shows as a shortfall.
