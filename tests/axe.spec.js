@@ -37,7 +37,6 @@ const BASELINE = {
         'color-contrast .mb-2',
         'color-contrast .site-footer-note',
         'color-contrast div > .game-info-label',
-        'scrollable-region-focusable .scroll-sm',
     ],
     '/characters/Crow_charmer/index.html': [
         'color-contrast .author-badge',

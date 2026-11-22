@@ -253,10 +253,11 @@
                 <div class="space-y-6">
                     <section class="wiki-section" id="credits-section">
                         <div class="dashboard-header-split">
-                            <h2 class="section-title section-title-clean m-0" data-heading-key="credits">&nbsp;</h2>
+                            <h2 class="section-title section-title-clean m-0" id="credits-heading" data-heading-key="credits">&nbsp;</h2>
                         </div>
-                        
-                        <div class="faq-scroll-box scroll-sm" style="margin-top: 1rem;">
+
+                        <!-- Focusable, so a keyboard can scroll a list that holds nothing else to focus. -->
+                        <div class="faq-scroll-box scroll-sm" style="margin-top: 1rem;" tabindex="0" role="region" aria-labelledby="credits-heading">
                             <ul class="credits-list" id="credits-dynamic-list">
                                 <li><p class="loading-msg loading-msg-busy">Loading credits...</p></li>
                             </ul>
